@@ -11,6 +11,7 @@ type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error';
 // Chat history management service with backend persistence
 class ChatHistoryService {
   private storageKey = 'biomate-chat-history';
+  private activeUserId: string | null = null;
   private syncQueue: Set<string> = new Set();
   private syncTimer: NodeJS.Timeout | null = null;
   private syncStatus: SyncStatus = 'idle';
@@ -18,6 +19,13 @@ class ChatHistoryService {
   private backendSyncActive = false;
   private backendSyncBlocked = false;
   private loggedAuthBlock = false;
+
+  /** Scope chat history to the authenticated user. Call after login/auth confirmation. */
+  setUserId(userId: string) {
+    if (this.activeUserId === userId) return;
+    this.activeUserId = userId;
+    this.storageKey = `biomate-chat-history-${userId}`;
+  }
 
   // Get all chat sessions (from localStorage cache)
   getAllSessions(): ChatSession[] {
@@ -596,7 +604,8 @@ class ChatHistoryService {
   // ============================================================================
 
   private getDefaultSessions(): ChatSession[] {
-    // Create some realistic mock chat history
+    // Return empty — no mock sessions for real users
+    return [];
     const now = new Date();
     const hoursAgo = (hours: number) => new Date(now.getTime() - hours * 60 * 60 * 1000);
     const daysAgo = (days: number) => new Date(now.getTime() - days * 24 * 60 * 60 * 1000);

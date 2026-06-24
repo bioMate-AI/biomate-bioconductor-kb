@@ -5,6 +5,43 @@
    v1 panel styles unless explicitly noted.
    ============================================================ */
 
+/* ────────── Param provenance badges (schema-grounded extraction) ──────────
+   The PARAMETERS line proves prefill worked; the per-param badge proves the
+   value's provenance. `.src` marks values extracted straight from the user's
+   message (or normalized to a schema enum) vs. values the workflow inferred. */
+.param-row .v {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.param-row .v .vval {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.param-row .prov {
+  flex: none;
+  font-family: var(--font-sans, inherit);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 999px;
+  color: var(--text-dim);
+  background: var(--bg-subtle, rgba(125,125,125,0.1));
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.param-row .prov.src {
+  color: var(--accent-ink, #2563a8);
+  background: var(--accent-soft, rgba(37,99,168,0.1));
+  border-color: transparent;
+}
+
+
 /* ────────── Shell tweaks for Surface 1 ────────── */
 .thread {
   /* room for the sticky plan checklist */
@@ -1058,6 +1095,15 @@
   padding: 3px 0;
 }
 .findings-chat-card .fcc-row:first-child { border-top: none; }
+.findings-chat-card .fcc-foot {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+.findings-chat-card .fcc-foot b { color: var(--text-muted); font-weight: 600; }
 
 /* ============================================================
    Scenario controls (top of chat, prototype-only)

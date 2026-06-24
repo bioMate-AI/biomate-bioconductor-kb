@@ -879,6 +879,8 @@ export function ChatInterface({
         if (!workflowInfo.toLowerCase().includes('workflow')) {
           workflowInfo += '\n\n✅ I\'ve generated a workflow for you based on your request.';
         }
+        // Append a "Generating workflow…" trailing cue so users know the panel is loading
+        workflowInfo += '\n\n*Generating workflow…*';
         if (data.workflow?.needs_user_feedback) {
           workflowInfo += `\n\n⚠️ ${data.workflow?.feedback_prompt || 'Confidence is not high enough yet. Please review and provide corrections before execution.'}`;
         }
@@ -2073,6 +2075,16 @@ export function ChatInterface({
         padding: '10px clamp(20px, 8%, 80px) 16px',
         background: 'var(--bm-bg, hsl(var(--background)))',
       }}>
+        {displayMessages.length === 0 && (
+          <p style={{
+            fontSize: 13,
+            color: 'var(--bm-text-dim, oklch(0.60 0.008 240))',
+            marginBottom: 8,
+            textAlign: 'center',
+          }}>
+            Input your use case here
+          </p>
+        )}
         <ChatInput
           onSend={handleSendOrQueue}
           pendingCount={pendingMessages.length}

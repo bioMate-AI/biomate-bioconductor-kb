@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Upload, File, X, Check, AlertCircle, Loader2, Link2, Server, Info, HardDrive, Clock, Zap } from "lucide-react"
+import { Upload, File, X, Check, AlertCircle, Loader2, Link2, Server, Info, HardDrive, Clock, Zap, FolderArchive, Lightbulb } from "lucide-react"
 import { analytics } from "@/lib/analytics"
 
 // Maximum file size: 5GB for local uploads
@@ -363,14 +363,47 @@ export function FileUpload({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* 5GB limit info */}
-        <Alert className="border-blue-200 bg-blue-50/50">
-          <Info className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-xs text-blue-800">
-            <strong>File size limit: {MAX_LOCAL_FILE_SIZE_GB}GB per file.</strong> For larger files, use URL Import
-            to let Galaxy fetch directly from HTTP/FTP/S3 sources (faster and no upload needed).
-          </AlertDescription>
-        </Alert>
+        {/* Tips panel */}
+        <div className="rounded-lg border border-muted bg-muted/30 divide-y divide-muted text-xs">
+          {/* Size limits */}
+          <div className="flex gap-2 px-3 py-2.5">
+            <Info className="h-3.5 w-3.5 text-blue-500 mt-0.5 shrink-0" />
+            <div className="space-y-0.5 text-muted-foreground">
+              <span className="font-medium text-foreground">Size limits: </span>
+              Local upload <strong>{MAX_LOCAL_FILE_SIZE_GB} GB</strong> per file · URL/S3 import <strong>no limit</strong> (Galaxy downloads server-side)
+            </div>
+          </div>
+
+          {/* Accepted formats */}
+          <div className="flex gap-2 px-3 py-2.5">
+            <File className="h-3.5 w-3.5 text-violet-500 mt-0.5 shrink-0" />
+            <div className="space-y-0.5 text-muted-foreground">
+              <span className="font-medium text-foreground">Accepted formats: </span>
+              FASTQ, BAM, SAM, CRAM, FASTA, VCF, BED, GFF, GTF, CSV, TSV, H5AD, LOOM, MRC, TIFF, mzML, mzXML, IPYNB, RDS, ZIP, TAR.GZ,&nbsp;
+              <span className="text-muted-foreground/70">and 30+ more</span>
+            </div>
+          </div>
+
+          {/* Folder tip */}
+          <div className="flex gap-2 px-3 py-2.5">
+            <FolderArchive className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+            <div className="space-y-0.5 text-muted-foreground">
+              <span className="font-medium text-foreground">Folders: </span>
+              No folder picker — zip your folder first (<code className="font-mono bg-background/60 px-1 rounded">zip -r data.zip folder/</code>), then upload the <code className="font-mono bg-background/60 px-1 rounded">.zip</code>.
+              For S3 folders, use URL Import with your bucket prefix instead.
+            </div>
+          </div>
+
+          {/* Many files tip */}
+          <div className="flex gap-2 px-3 py-2.5">
+            <Lightbulb className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />
+            <div className="space-y-0.5 text-muted-foreground">
+              <span className="font-medium text-foreground">Many files: </span>
+              Up to <strong>32</strong> individual file references are kept per conversation (oldest drop on overflow).
+              For 100+ samples, zip them into one archive or use an S3 prefix URL.
+            </div>
+          </div>
+        </div>
 
         {/* Upload method tabs */}
         <Tabs value={uploadTab} onValueChange={(v) => setUploadTab(v as 'local' | 'url')}>
@@ -404,10 +437,13 @@ export function FileUpload({
                 {isDragging ? 'Drop files here' : 'Click to upload or drag and drop'}
               </p>
               <p className="text-xs text-muted-foreground mb-2">
-                FASTQ, BAM, SAM, mzML, mzXML, CSV, TSV, FASTA
+                FASTQ · BAM · VCF · FASTA · CSV · H5AD · MRC · ZIP · and 40+ more
               </p>
               <p className="text-xs text-muted-foreground">
-                Max {MAX_LOCAL_FILE_SIZE_GB}GB per file {multiple && '• Multiple files (parallel upload)'}
+                Max {MAX_LOCAL_FILE_SIZE_GB} GB per file{multiple && ' · multiple files upload in parallel'}
+              </p>
+              <p className="text-xs text-muted-foreground/60 mt-1">
+                Folders: zip first · Files &gt;5 GB: use URL Import tab
               </p>
               <input
                 ref={fileInputRef}
@@ -508,9 +544,26 @@ export function FileUpload({
               </RadioGroup>
             </div>
 
-            <p className="text-xs text-muted-foreground">
-              Supports HTTP/HTTPS, FTP, and S3 URLs. No size limit for Galaxy server-side fetch.
-            </p>
+            <div className="rounded-md border border-muted bg-muted/30 text-xs text-muted-foreground px-3 py-2.5 space-y-1">
+              <div className="flex gap-1.5 items-start">
+                <Lightbulb className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-medium text-foreground">No size limit</span> — Galaxy fetches the file server-side; the 5 GB cap does not apply.
+                </div>
+              </div>
+              <div className="flex gap-1.5 items-start">
+                <FolderArchive className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-medium text-foreground">S3 folder:</span> paste a bucket prefix (<code className="font-mono bg-background/60 px-1 rounded">s3://bucket/samples/</code>) to reference all files under it at once.
+                </div>
+              </div>
+              <div className="flex gap-1.5 items-start">
+                <Info className="h-3.5 w-3.5 text-blue-500 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-medium text-foreground">Public datasets:</span> NCBI SRA, EBI ENA, EMPIAR, and any public HTTPS/FTP URL work without credentials.
+                </div>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
 

@@ -270,7 +270,8 @@ export function pickGeminiIntentModel(message: string): string {
 }
 
 export interface GalaxyAssistantOptions {
-  anthropicApiKey: string;
+  /** Anthropic API key — optional when GOOGLE_API_KEY / GEMINI_API_KEY is present */
+  anthropicApiKey?: string;
   galaxyAPIProxy: GalaxyAPIProxy;
   /** Model configuration - uses defaults if not provided */
   modelConfig?: Partial<ModelConfig>;
@@ -808,6 +809,76 @@ const WORKFLOW_PARAM_ALIASES: Record<string, Record<string, string>> = {
 };
 
 /**
+ * Workflows that accept a `smiles_list` parameter (JSON array of SMILES strings).
+ * The decomposition LLM may extract SMILES using an arbitrary drug name as the key
+ * (e.g. {"imatinib": "Cc1ccc..."}) instead of the workflow-expected key "smiles_list".
+ * This set is used by normalizeWorkflowSmiles to know when to apply remapping.
+ */
+const SMILES_LIST_WORKFLOWS = new Set([
+  'predict_admet_properties',
+  'herg_cardiac_safety_qsar',
+  'cns_penetration_prediction',
+  'dart_toxicity_prediction',
+  'genotoxicity_ames_prediction',
+  'membrane_permeability_prediction',
+  'calculate_physicochemical_properties',
+  'docking_autodock_vina',
+  'run_diffdock_with_smiles',
+  'antibody_developability',
+  'qsar_rf_model',
+  'metabolite_prediction_biotransformer',
+]);
+
+/**
+ * For workflows that use smiles_list, the decomposition LLM may extract SMILES strings
+ * using an arbitrary drug name as the key (e.g. {"imatinib": "Cc1ccc..."}) instead of
+ * the workflow-expected key "smiles_list". This function detects SMILES-like values
+ * and collects them into a JSON array under "smiles_list".
+ *
+ * A value is treated as SMILES when its first whitespace-delimited token contains characters
+ * typical of SMILES notation (=, #, [, ], /, \, @).  Trailing prose is stripped.
+ */
+function normalizeAdmetSmiles(
+  workflowName: string | undefined | null,
+  raw: Record<string, string> | undefined | null,
+): Record<string, string> {
+  // Match by exact name OR by canonical short name embedded in a full display name.
+  // groundInlineParameters passes workflow_ga.name ("Predict ADMET Properties (AI)"),
+  // not the canonical short name ("predict_admet_properties") — check both.
+  if (!raw || !workflowName) return raw || {};
+  const normalizedWfKey = workflowName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/_+$/, '');
+  const isMatch = SMILES_LIST_WORKFLOWS.has(workflowName) ||
+    Array.from(SMILES_LIST_WORKFLOWS).some(n => normalizedWfKey.includes(n));
+  if (!isMatch) return raw;
+  // SMILES heuristic: extract the first whitespace-delimited token and test it.
+  // The LLM sometimes appends prose after the SMILES string
+  // (e.g. "Cc1ccc...n1 and predict hERG cardiac risk"), so strip trailing text.
+  const getSmilesToken = (v: string): string | null => {
+    const token = v.split(/\s/)[0];
+    return /[=#\[\]\/\\@]/.test(token) && token.length >= 5 ? token : null;
+  };
+  const smilesList: string[] = [];
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (k === 'smiles_list' || k === 'ADMET_model_type') {
+      out[k] = v;
+    } else {
+      const smilesToken = getSmilesToken(v);
+      if (smilesToken) {
+        smilesList.push(smilesToken);
+      } else {
+        out[k] = v;
+      }
+    }
+  }
+  if (smilesList.length > 0 && !out.smiles_list) {
+    out.smiles_list = JSON.stringify(smilesList);
+    console.log('[normalizeAdmetSmiles] Remapped', smilesList.length, 'SMILES value(s) → smiles_list');
+  }
+  return out;
+}
+
+/**
  * Remap an LLM-extracted inlineParameters dict to the workflow's expected
  * required_params keys. Unknown keys pass through (forwards-compat for new
  * workflows). Keys mapped to '__drop__' are removed.
@@ -896,7 +967,28 @@ export async function groundInlineParameters(args: {
     return { params: (rawParams as any) || {}, path: 'noop' };
   }
   if (!SCHEMA_GROUNDED_FLAG()) {
-    const remapped = remapInlineParametersForWorkflow(workflowName, rawParams as any);
+    const normalized = normalizeAdmetSmiles(workflowName, rawParams as any);
+    const remapped = remapInlineParametersForWorkflow(workflowName, normalized);
+    // When the backend supplied a schema (required/optional params), drop any
+    // remapped keys that are not in the schema — they are LLM hallucinations
+    // (e.g. "imatinib: <SMILES>" gets parsed as param key "imatinib" but the
+    // workflow only accepts "smiles"). This prevents unknown keys from being
+    // passed as Nextflow --flags.
+    const allKnownNames: Set<string> = new Set([
+      ...(requiredParams || []).map((p) => (typeof p === 'string' ? p : p.name)),
+      ...(optionalParams || []).map((p) => (typeof p === 'string' ? p : p.name)),
+    ]);
+    if (allKnownNames.size > 0) {
+      const filtered: Record<string, string> = {};
+      for (const [k, v] of Object.entries(remapped)) {
+        if (allKnownNames.has(k)) {
+          filtered[k] = v as string;
+        } else {
+          console.log(`[groundInlineParameters] dropping unknown param "${k}" (not in schema for "${workflowName}")`);
+        }
+      }
+      return { params: filtered, path: 'legacy-alias' };
+    }
     return { params: remapped, path: 'legacy-alias' };
   }
   try {
@@ -919,7 +1011,8 @@ export async function groundInlineParameters(args: {
           : typeof optionalParams,
       );
       onStatus?.('No schema metadata; using legacy parameter mapping', { stage: 'fallback' });
-      const remapped = remapInlineParametersForWorkflow(workflowName, rawParams as any);
+      const normalized = normalizeAdmetSmiles(workflowName, rawParams as any);
+      const remapped = remapInlineParametersForWorkflow(workflowName, normalized);
       return { params: remapped, path: 'legacy-alias' };
     }
     const llmCall = buildLlmGenerateAdapter(llmGenerate);
@@ -955,7 +1048,8 @@ export async function groundInlineParameters(args: {
       `[groundInlineParameters] schema-grounded path failed for "${workflowName}" (${(e as Error).message}); falling back to legacy alias`,
     );
     onStatus?.('Parameter extraction failed; using legacy mapping', { stage: 'error', error: (e as Error).message });
-    const remapped = remapInlineParametersForWorkflow(workflowName, rawParams as any);
+    const normalized = normalizeAdmetSmiles(workflowName, rawParams as any);
+    const remapped = remapInlineParametersForWorkflow(workflowName, normalized);
     return { params: remapped, path: 'legacy-alias' };
   }
 }
@@ -1423,6 +1517,120 @@ const _inlineDataCache = new Map<string, InlineDataMap>();
  * This is async and must be awaited; it is called once per generateResponse() turn.
  * Latency: ~200-400 ms (Haiku, max_tokens=256).
  */
+
+/**
+ * Detect paper references in a message (URL, DOI, arXiv ID, PMID) and fetch
+ * their text content. Runs in parallel with tool/dataset search.
+ *
+ * Returns { ref, content } or null if no paper reference found.
+ * Content is capped at 8000 chars (enough for methods + abstract).
+ */
+async function _fetchPaperContentFromMessage(
+  message: string,
+): Promise<{ ref: string; content: string } | null> {
+  // arXiv: https://arxiv.org/abs/XXXX.XXXXX or arxiv:XXXX.XXXXX
+  const arxivMatch = message.match(/(?:https?:\/\/arxiv\.org\/abs\/|arxiv[:\s]+)(\d{4}\.\d{4,})/i);
+  // DOI: 10.XXXX/...
+  const doiMatch = message.match(/\b(10\.\d{4,}\/\S+)/);
+  // PMID: PMID:XXXXXXXX or pubmed.ncbi.../<digits>
+  const pmidMatch = message.match(/\bPMID[:\s]+(\d{5,})\b/i)
+    || message.match(/pubmed\.ncbi\.nlm\.nih\.gov\/(\d{5,})/i);
+  // Bare https URL (not already captured)
+  const urlMatch = !arxivMatch && !doiMatch && !pmidMatch
+    ? message.match(/https?:\/\/[^\s\])"']+/)
+    : null;
+
+  try {
+    if (arxivMatch) {
+      const id = arxivMatch[1];
+      const ref = `arXiv:${id}`;
+      const apiUrl = `https://export.arxiv.org/api/query?id_list=${encodeURIComponent(id)}&max_results=1`;
+      const res = await fetch(apiUrl, { signal: AbortSignal.timeout(10_000) });
+      if (!res.ok) return null;
+      const xml = await res.text();
+      const summary = xml.match(/<summary[^>]*>([\s\S]*?)<\/summary>/i)?.[1]?.trim() ?? '';
+      const title = xml.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.replace(/\n\s+/g, ' ').trim() ?? '';
+      const pdfUrl = xml.match(/<link[^>]+title="pdf"[^>]+href="([^"]+)"/i)?.[1]
+        ?? `https://arxiv.org/pdf/${id}`;
+      let content = `Title: ${title}\n\nAbstract: ${summary}`;
+      // Attempt to fetch PDF text via Europe PMC / direct (lightweight, 15s budget)
+      try {
+        const pdfRes = await fetch(pdfUrl, { signal: AbortSignal.timeout(15_000) });
+        if (pdfRes.ok) {
+          const buf = await pdfRes.arrayBuffer();
+          // Extract readable ASCII text from PDF bytes (rough but fast — no native PDF lib needed)
+          const raw = Buffer.from(buf).toString('latin1');
+          const text = raw.replace(/[^\x20-\x7E\n]/g, ' ').replace(/\s{3,}/g, '\n').slice(0, 6000);
+          if (text.trim().length > 200) content += `\n\nPaper text (excerpt):\n${text}`;
+        }
+      } catch { /* PDF fetch is best-effort */ }
+      return { ref, content: content.slice(0, 8000) };
+    }
+
+    if (doiMatch) {
+      const doi = doiMatch[1].replace(/[.,;)\]]+$/, '');
+      const ref = `DOI:${doi}`;
+      // Try Unpaywall for open-access PDF, fall back to crossref for metadata
+      const crossref = await fetch(
+        `https://api.crossref.org/works/${encodeURIComponent(doi)}?mailto=biomate@biomate.ai`,
+        { signal: AbortSignal.timeout(10_000) },
+      ).catch(() => null);
+      if (crossref?.ok) {
+        const data = await crossref.json();
+        const item = data?.message ?? {};
+        const title = (item.title ?? [])[0] ?? '';
+        const abstract = item.abstract?.replace(/<[^>]+>/g, '') ?? '';
+        const content = `Title: ${title}\nAbstract: ${abstract}`.slice(0, 8000);
+        if (content.trim().length > 50) return { ref, content };
+      }
+      return null;
+    }
+
+    if (pmidMatch) {
+      const pmid = pmidMatch[1];
+      const ref = `PMID:${pmid}`;
+      const efetch = await fetch(
+        `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=${pmid}&rettype=abstract&retmode=text`,
+        { signal: AbortSignal.timeout(10_000) },
+      ).catch(() => null);
+      if (efetch?.ok) {
+        const content = (await efetch.text()).slice(0, 8000);
+        return { ref, content };
+      }
+      return null;
+    }
+
+    if (urlMatch) {
+      const url = urlMatch[0];
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(12_000),
+        headers: { 'User-Agent': 'BioMate/1.0 (research assistant; mailto:biomate@biomate.ai)' },
+      }).catch(() => null);
+      if (!res?.ok) return null;
+      const ct = res.headers.get('content-type') ?? '';
+      if (ct.includes('pdf')) {
+        // Same rough PDF text extraction as arXiv path
+        const buf = await res.arrayBuffer();
+        const raw = Buffer.from(buf).toString('latin1');
+        const text = raw.replace(/[^\x20-\x7E\n]/g, ' ').replace(/\s{3,}/g, '\n').slice(0, 6000);
+        return text.trim().length > 200 ? { ref: url, content: text } : null;
+      }
+      // HTML: strip tags, collapse whitespace
+      const html = await res.text();
+      const text = html
+        .replace(/<style[\s\S]*?<\/style>/gi, '')
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s{2,}/g, '\n')
+        .slice(0, 8000);
+      return { ref: url, content: text };
+    }
+  } catch (err: any) {
+    console.warn('[_fetchPaperContentFromMessage] fetch failed:', err.message);
+  }
+  return null;
+}
+
 async function extractInlineDataWithLLM(
   message: string,
   claude: Anthropic,
@@ -1523,8 +1731,10 @@ export class GalaxyAssistant {
   private static readonly DOMAIN_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
   constructor(options: GalaxyAssistantOptions) {
-    this.claude = new Anthropic({ apiKey: options.anthropicApiKey });
-    const geminiKey = process.env.GEMINI_API_KEY;
+    // Anthropic is optional — Gemini can drive the assistant alone
+    this.claude = new Anthropic({ apiKey: options.anthropicApiKey || '' });
+    // Accept either GEMINI_API_KEY or GOOGLE_API_KEY (both mean the same credential)
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (geminiKey) this.gemini = new GoogleGenerativeAI(geminiKey);
     this.galaxyAPI = options.galaxyAPIProxy;
     this.modelConfig = { ...DEFAULT_MODEL_CONFIG, ...options.modelConfig };
@@ -2468,6 +2678,11 @@ Rules:
     let toolSearchUsed = false;
     let datasetRAGUsed = false;
 
+    // Parallel content fetch: if the message contains a paper URL, DOI, arXiv ID, or PMID,
+    // fetch its text content now — in parallel with tool/dataset search — so the workflow
+    // generator and research agent both have the actual paper content to work from.
+    const _paperContentPromise = _fetchPaperContentFromMessage(message);
+
     const searchPromises: Promise<void>[] = [];
 
     // Search tools when action flags indicate it
@@ -2494,11 +2709,19 @@ Rules:
       );
     }
 
-    // Wait for all parallel searches to complete
+    // Wait for all parallel searches + paper content fetch to complete
     log('Steps 2-3: Starting parallel searches');
-    if (searchPromises.length > 0) {
-      await Promise.all(searchPromises);
-      log('Steps 2-3 complete');
+    const [, paperContentResult] = await Promise.all([
+      searchPromises.length > 0 ? Promise.all(searchPromises) : Promise.resolve(),
+      _paperContentPromise,
+    ]);
+    log('Steps 2-3 complete');
+
+    // Inject fetched paper content into the message so the workflow generator and
+    // response synthesizer both see the actual paper text.
+    if (paperContentResult) {
+      message = `${message}\n\n[Paper content: ${paperContentResult.ref}]\n${paperContentResult.content}`;
+      log(`Paper content injected: ${paperContentResult.ref} (${paperContentResult.content.length} chars)`);
     }
 
     // Step 4: Determine if workflow generation is needed
@@ -3976,6 +4199,8 @@ Ask a single question: **"Does completing this task require running a computatio
 - If yes → **workflow_generation**. The user may not have named their inputs yet; BioMate will ask.
 - **Accession IDs are workflow inputs.** SRA (SRR/ERR/DRR), GEO (GSE/GSM), NCBI (PRJNA/PRJEB), UniProt IDs, PDB IDs, EMBL accessions — these are valid workflow inputs BioMate fetches automatically. "Run RNA-seq on SRR12345678" or "dock compound into PDB:3HTB" is workflow_generation, not a database lookup.
 - **Molecular inputs are workflow inputs.** SMILES strings, PDB/SDF files, concentration-time CSV — signal workflow_generation for drug discovery / pharmacology workflows. But a conceptual or planning question about these topics (how does hERG work? what dose range is typical?) is still research_question or experiment_design.
+- **Paper-to-workflow (CRITICAL):** If the user provides a research paper — via URL (http/https), DOI (10.xxx/...), arXiv ID, PMID, uploaded PDF, or "[Attached files: paper.pdf]" — AND uses any execution verb (run, reproduce, implement, build, execute, replicate, generate the workflow, do what they did, follow their pipeline, apply their method) → **workflow_generation**. The paper is the workflow specification; BioMate will fetch it and extract the methods. Do NOT classify as research_question or protocol_guidance.
+- **Document reading without execution intent:** If the user provides a paper/URL and asks to read, summarize, extract, explain, or find information — WITHOUT asking to run anything → **protocol_guidance** (if asking about experimental steps) or **research_question** (if asking about findings/content).
 - If the task is planning, strategy, or design WITHOUT asking BioMate to execute a pipeline → **experiment_design**.
 - If the task is interpreting existing results, explaining what output means → **data_interpretation**.
 - If the task is diagnosing why a run failed or a metric looks wrong → **troubleshooting**.
@@ -4962,28 +5187,74 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
           generationConfig: { temperature: 0, maxOutputTokens: 4096, responseMimeType: 'application/json' },
           systemInstruction: systemPrompt,
         });
-        // Retry with exponential backoff on 429 rate limit
+        // Attempt Gemini; on 429 immediately fall back to Haiku — no slow retry loop.
         let geminiResult: any;
-        for (let attempt = 0; attempt < 5; attempt++) {
-          try {
-            geminiResult = await geminiModel.generateContent(message);
-            break;
-          } catch (err: any) {
-            const is429 = err?.message?.includes('429') || err?.status === 429;
-            if (is429 && attempt < 4) {
-              const delay = (attempt + 1) * 3000; // 3s, 6s, 9s, 12s
-              console.warn(`[GalaxyAssistant] Gemini 429 rate limit, retrying in ${delay}ms (attempt ${attempt + 1})`);
-              await new Promise(r => setTimeout(r, delay));
-            } else {
-              throw err;
-            }
+        let usedGeminiFallback = false;
+        try {
+          geminiResult = await geminiModel.generateContent(message);
+        } catch (err: any) {
+          const is429 = err?.message?.includes('429') || err?.status === 429;
+          if (is429) {
+            console.warn('[GalaxyAssistant] Gemini 429 — falling back to Haiku for intent classification (no delay)');
+            usedGeminiFallback = true;
+          } else {
+            throw err;
           }
         }
-        resultText = geminiResult.response.text();
-        console.log('[GalaxyAssistant] Intent API response (Gemini):', {
-          model: effectiveIntentModel,
-          time_ms: Date.now() - intentStartTime,
-        });
+
+        if (usedGeminiFallback) {
+          // Gemini 429 fallback: route through the YAML chain (Gemini 3.5 Flash →
+          // Claude → GPT-4o → Ollama) rather than crashing when ANTHROPIC_API_KEY
+          // is empty. Direct Haiku path preserved only as last resort if chain fails.
+          console.warn('[GalaxyAssistant] Gemini 429 → using YAML fallback chain for intent classification');
+          const { llmGenerate } = await import('./llm-client');
+          let chainResult: string | null = null;
+          try {
+            const r = await llmGenerate({
+              prompt: message,
+              system: systemPrompt,
+              maxTokens: 4096,
+              jsonMode: false,
+            });
+            chainResult = r.text || null;
+            console.log('[GalaxyAssistant] Intent chain fallback done:', {
+              model_used: r.modelUsed, fallback_depth: r.fallbackDepth,
+              time_ms: Date.now() - intentStartTime,
+            });
+          } catch (chainErr: any) {
+            console.warn('[GalaxyAssistant] Chain fallback also failed; trying Haiku directly:', chainErr?.message);
+          }
+          if (chainResult !== null) {
+            resultText = chainResult;
+          } else if (process.env.ANTHROPIC_API_KEY) {
+            // Direct Haiku only when we have a real key
+            const haiku = 'claude-haiku-4-5-20251001';
+            const fallbackCompletion = await this._withAnthropicRetry(
+              () => this.claude.messages.create({
+                model: haiku,
+                max_tokens: 4096,
+                system: systemPrompt,
+                messages: [{ role: 'user', content: message }],
+              }),
+              'intent-classification-haiku-fallback',
+            );
+            console.log('[GalaxyAssistant] Intent Haiku fallback response:', {
+              model: haiku,
+              time_ms: Date.now() - intentStartTime,
+              usage: fallbackCompletion.usage,
+            });
+            const fc = fallbackCompletion.content[0];
+            resultText = fc.type === 'text' ? fc.text : '{}';
+          } else {
+            throw new Error('Intent classification failed: Gemini 429, chain exhausted, no Anthropic key');
+          }
+        } else {
+          resultText = geminiResult.response.text();
+          console.log('[GalaxyAssistant] Intent API response (Gemini):', {
+            model: effectiveIntentModel,
+            time_ms: Date.now() - intentStartTime,
+          });
+        }
       } else {
         // Anthropic path (default)
         // Note: temperature is deprecated for Claude 4.x models
@@ -5981,16 +6252,16 @@ When a workflow was generated successfully:
   - **Key steps:** [2–3 bullets, tool name → output]
   - **Expected output:** [what files/results the user will get]
 
-When no workflow was generated AND no inline data is present (clarification needed):
+When no workflow was generated AND no inline data is present (clarification needed — workflow turn only):
   **Missing: [what is needed]**
   [ONE specific question stating exactly what formats are accepted]
 
-When no workflow was generated AND inline data IS present (technical failure):
+When no workflow was generated AND inline data IS present (technical failure — workflow turn only):
   **Could not generate workflow** — [specific reason in one sentence]
   **Closest available option:** [name + brief description]
   [ONE configuration question if needed, otherwise say "Try adjusting parameters in the panel"]
 
-Do NOT deviate from these three formats. No freeform narrative, no "Next Steps" sections, no numbered lists of pipeline stages unless inside the key-steps bullet.
+**The three formats above apply ONLY to workflow-generation turns.** For all other intents (research questions, protocol guidance, document extraction, general questions, explanations, data interpretation, etc.) respond directly and comprehensively — no "Missing:" prefix, no data-format questions. Just answer.
 ════════════════════════════════════════════════════════
 
 IMPORTANT RULES:
@@ -6006,6 +6277,7 @@ DATA-FIRST RULE (hard prohibition — no exceptions except demo/test/mock):
 - NEVER describe workflow steps, list pipeline stages, explain tools, or provide any execution instructions in response to a workflow-generation request when the user has not yet provided input data. This is a strict prohibition, not a preference. Violating this rule means the system cannot run.
 - EXCEPTION — PRE-SATISFIED PARAMETERS: If a <pre_satisfied_parameters> block appears above AND a runnable workflow was generated, the DATA-FIRST RULE does NOT apply. The parameters are already provided (either explicitly in the message or auto-extracted by the AI). Proceed directly to the "Workflow generated" format.
 - "Input data provided" means the user's message contains ANY of: a file path (e.g. /path/to/sample.fastq, /data/reads_R1.fastq.gz), an S3 URI (s3://…), an SRA/ENA/DDBJ accession (SRR followed by digits, ERR followed by digits, DRR followed by digits), a GEO accession (GSE followed by digits, GSM followed by digits), an ArrayExpress accession (E-MTAB- followed by digits), a PXD accession (PXD followed by digits), a SMILES string, an InChI string, an amino acid sequence, a PDB ID, or an "[Uploaded datasets: ...]" block.
+- **PAPER-AS-SPECIFICATION EXCEPTION:** When the user provides a research paper (URL, DOI, arXiv ID, PMID, "[Attached files: *.pdf]", or "[Paper content: ...]" block) AND asks to reproduce/run/implement the workflow from it, the DATA-FIRST RULE does NOT apply. The paper is the workflow specification. Proceed to workflow generation — BioMate will extract the methods section and map it to an appropriate pipeline. If sample input data is needed to actually run the workflow, ask for it AFTER presenting the generated workflow, not before.
 - SRA ACCESSION RULE: An SRA/ENA/DDBJ accession number (e.g. SRR1518169, ERR204916, DRR013480) IS input data. Treat it as the reads/input parameter. Proceed directly to workflow generation. DO NOT ask for a file path or S3 URI when an SRA accession is present in the message.
 - If NO input data is present: ask EXACTLY ONE specific question. State what the workflow needs and list the accepted data formats. Example: "To run this GATK germline pipeline I need your input data. Please provide one of: (1) FASTQ file paths or S3 URIs for your sequencing reads, or (2) an SRA accession number (e.g. SRR1518169). Which do you have?" Do NOT explain workflow steps. Do NOT list pipeline stages. Do NOT describe what the tools do.
 - Exception: if the user explicitly requests a "demo", "test", or "mock" workflow, generate it immediately without asking for data. This exception ALSO covers any of these phrasings, treat them as identical: "with defaults", "use defaults", "default parameters", "synthetic data", "synthetic plate", "demo data", "example data", "sample data", "built-in demo", "use the demo data", "no data, just run it", "I just want to see it", "show me how this works". Many BioMate workflows (notably hts_plate_qc_hit_calling, exposure_response_modelling, demo PBPK, the cryo-EM SPA reference workflows) ship with a built-in synthetic-data generator that fires when no input is provided — when the user signals they want to use it, generate the workflow immediately and do NOT ask for an upload.
@@ -6086,6 +6358,15 @@ ${runnableWorkflow
      - Bullet: Key steps (2–3, tool → output)
      - Bullet: Expected output (file types / results)
      - Do NOT say "click Run" — the Run button is already visible`
+  : !isWorkflowTurn
+    ? researchResponse
+      ? `FORMAT: Research / document answer.
+     - Answer directly and fully. Use the research evidence and any [Paper content: ...] in the message.
+     - Cite sources inline as [N] where relevant.
+     - End with ## References section if citations were provided.`
+      : `FORMAT: Direct answer.
+     - Answer the question directly and completely. No workflow format. No "Missing:" prefix.
+     - Use run_code if computation is needed on data already in the prompt.`
   : workflowGenerationFailed && hasInlineData
     ? `FORMAT: Technical failure — inline data was provided.
      - One sentence: why the exact workflow wasn't found

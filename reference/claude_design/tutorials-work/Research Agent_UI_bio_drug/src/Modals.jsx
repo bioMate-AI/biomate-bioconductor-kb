@@ -993,11 +993,11 @@ function ReportFindings({ findings }) {
   return (
     <div>
       <div style={{
-        fontSize: 13, fontWeight: 600, color: 'var(--text)',
-        marginBottom: 10, lineHeight: 1.5,
+        fontSize: 16, fontWeight: 600, color: 'var(--text)',
+        marginBottom: 16, lineHeight: 1.5,
       }}>{findings.headline}</div>
-      <ul style={{margin: '0 0 14px', paddingLeft: 18, color: 'var(--text-muted)'}}>
-        {findings.bullets.map((b, i) => <li key={i} style={{marginBottom: 4}}>{b}</li>)}
+      <ul style={{margin: '0 0 22px', paddingLeft: 20, color: 'var(--text-muted)', fontSize: 14}}>
+        {findings.bullets.map((b, i) => <li key={i} style={{marginBottom: 10}}>{b}</li>)}
       </ul>
 
       {figures.length > 0 && (
@@ -1007,25 +1007,25 @@ function ReportFindings({ findings }) {
       )}
 
       <div style={{
-        fontSize: 11, color: 'var(--text-dim)', textTransform: 'uppercase',
-        letterSpacing: '0.05em', fontWeight: 600, margin: '4px 0 6px',
+        fontSize: 13, color: 'var(--text-dim)', textTransform: 'uppercase',
+        letterSpacing: '0.05em', fontWeight: 600, margin: '6px 0 10px',
       }}>Headline metrics</div>
-      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: 12.5}}>
+      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: 14}}>
         <tbody>
           {findings.table.map((r, i) => (
             <tr key={i} style={{borderTop: i === 0 ? 'none' : '1px dashed var(--border)'}}>
-              <td style={{padding: '7px 0', color: 'var(--text-muted)'}}>{r[0]}</td>
-              <td style={{padding: '7px 0', fontFamily: 'var(--font-mono)', textAlign: 'right'}}>{r[1]}</td>
+              <td style={{padding: '15px 0', color: 'var(--text-muted)'}}>{r[0]}</td>
+              <td style={{padding: '15px 0', fontFamily: 'var(--font-mono)', textAlign: 'right', fontSize: 15}}>{r[1]}</td>
             </tr>
           ))}
         </tbody>
       </table>
       <div style={{
-        marginTop: 14, padding: 10, background: 'var(--surface)', borderRadius: 'var(--r-sm)',
-        fontSize: 11.5, color: 'var(--text-dim)', fontStyle: 'italic', lineHeight: 1.55,
+        marginTop: 18, padding: 14, background: 'var(--surface)', borderRadius: 'var(--r-sm)',
+        fontSize: 13, color: 'var(--text-dim)', fontStyle: 'italic', lineHeight: 1.6,
       }}>
         Findings are generated directly from the run manifest. Numbers and figures in this section come
-        from the workflow outputs, not from the LLM.
+        from the workflow outputs.
       </div>
     </div>
   );
@@ -1333,6 +1333,7 @@ function QcAuditModal({ scenario, phases, onClose }) {
             override modified this run.
           </div>
 
+          {/* Operator e-signature — commented out for now
           <div data-tour="qc-sig" style={{marginTop:12, padding:'12px 14px', background:'var(--surface)', borderRadius:'var(--r-sm)',
             border:'1px solid var(--border)', fontSize:11.5, lineHeight:1.55}}>
             <div style={{fontWeight:600, marginBottom:4}}>Operator e-signature</div>
@@ -1343,6 +1344,7 @@ function QcAuditModal({ scenario, phases, onClose }) {
               </span>
             </div>
           </div>
+          */}
         </div>
         <div className="foot">
           <span style={{flex:1, fontSize:11, color:'var(--text-dim)'}}>
@@ -1436,6 +1438,7 @@ function QcAuditPanel({ scenario, phases }) {
             All raw inputs, intermediate outputs, and parameter sets are versioned via content-addressed storage
             (SHA-256). Each row above corresponds to a tamper-evident manifest entry. No human override modified this run.
           </div>
+          {/* Operator e-signature — commented out for now
           <div data-tour="qc-sig" style={{marginTop:12, padding:'12px 14px', background:'var(--surface)',
             borderRadius:'var(--r-sm)', border:'1px solid var(--border)', fontSize:11.5, lineHeight:1.55}}>
             <div style={{fontWeight:600, marginBottom:4}}>Operator e-signature</div>
@@ -1444,6 +1447,7 @@ function QcAuditPanel({ scenario, phases }) {
               <span className="mono" style={{fontSize:10}}>sig:9f2a…b7e1</span>
             </div>
           </div>
+          */}
         </React.Fragment>
       )}
     </div>

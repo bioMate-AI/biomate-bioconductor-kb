@@ -9,11 +9,17 @@
   var chevron = `<svg class="bm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>`;
 
   function navHTML(active) {
-    function link(slug, label, href) {
-      return `<li><a href="${href}" class="${active === slug ? 'active' : ''}">${label}</a></li>`;
-    }
+    // Normalize legacy active slugs → 4-group structure
+    var slugMap = {
+      home: '', services: 'platform', platform: 'platform',
+      newsroom: 'newsroom',
+      pricing: 'company', about: 'company', contact: 'company', company: 'company',
+      tutorials: 'research', benchmarks: 'research', research: 'research',
+    };
+    active = Object.prototype.hasOwnProperty.call(slugMap, active) ? slugMap[active] : active;
+
     function dropdown(slug, label, href, items) {
-      var isActive = active === slug || items.some(function(i){ return i.active; });
+      var isActive = active === slug;
       return `
         <li class="bm-has-dropdown">
           <a href="${href}" class="${isActive ? 'active' : ''}">${label}${chevron}</a>
@@ -30,35 +36,37 @@
       <header class="bm-nav">
         <div class="bm-nav-inner">
           <a href="index.html" class="bm-brand" aria-label="BioMate AI">
-            <img src="assets/logo.png" alt="BioMate AI" />
+            <img src="assets/logo.png?v=3" alt="BioMate AI" />
           </a>
           <ul class="bm-nav-links" id="bmNavLinks">
-            ${link('home', 'Home', 'index.html')}
-            ${dropdown('services', 'Services', 'services.html', [
-              { label: 'Drug Discovery',           href: 'services.html#drug-discovery' },
-              { label: 'Genomics &amp; Multi-Omics', href: 'services.html#genomics' },
-              { label: 'Structural Biology',       href: 'services.html#structural-biology' },
+            <li><a href="index.html" class="${active === '' ? 'active' : ''}">Home</a></li>
+            ${dropdown('platform', 'Platform', 'services.html', [
+              { label: 'Platform Features',          href: 'features.html' },
               { divider: true },
-              { label: 'All Services &rarr;',      href: 'services.html', bold: true }
+              { label: 'Drug Discovery',             href: 'services.html#drug-discovery' },
+              { label: 'Genomics &amp; Multi-Omics', href: 'services.html#genomics' },
+              { label: 'Structural Biology',         href: 'services.html#structural-biology' },
+              { divider: true },
+              { label: 'All Services &rarr;',        href: 'services.html', bold: true }
+            ])}
+            ${dropdown('research', 'Research', 'benchmarks.html', [
+              { label: 'Benchmarks',   href: 'benchmarks.html' },
+              { label: 'Tutorials',    href: 'tutorials.html' },
+              { label: 'Publications', href: 'publications.html' }
             ])}
             ${dropdown('newsroom', 'Newsroom', 'blog.html', [
               { label: 'Scientific Articles', href: 'blog.html?cat=science' },
               { label: 'Company News',        href: 'blog.html?cat=news' },
-              { label: 'Publications',        href: 'publications.html' },
               { divider: true },
               { label: 'All Posts &rarr;',    href: 'blog.html', bold: true }
             ])}
-            ${link('pricing', 'Pricing', 'pricing.html')}
-            ${dropdown('about', 'About', 'about.html', [
-              { label: 'About BioMate',      href: 'about.html' },
-              { label: 'How It Works',       href: 'index.html#how-it-works' },
-              { label: 'Platform Features',  href: 'features.html' }
-              /* Team — commented out until team page is ready
-              ,{ label: 'Team',              href: 'team.html' }
-              */
+            ${dropdown('company', 'Company', 'about.html', [
+              { label: 'About BioMate', href: 'about.html' },
+              { label: 'Pricing',       href: 'pricing.html' },
+              { label: 'Compare',       href: 'compare.html' },
+              { divider: true },
+              { label: 'Contact',       href: 'contact.html' }
             ])}
-            ${link('tutorials', 'Tutorials', 'tutorials.html')}
-            ${link('contact', 'Contact', 'contact.html')}
             <li><a href="https://dev-public.biomate.ai/login" class="bm-nav-login">Log in</a></li>
             <li><a href="https://dev-public.biomate.ai/register" class="bm-nav-cta">Start free</a></li>
           </ul>
@@ -94,7 +102,7 @@
           <div class="bm-footer-grid">
             <div class="bm-footer-brand">
               <a href="index.html" class="bm-brand">
-                <img src="assets/logo.png" alt="BioMate AI" />
+                <img src="assets/logo.png?v=3" alt="BioMate AI" />
               </a>
               <p>Computational biology assistant for pharma, biotech, academic labs, and core facilities.</p>
             </div>
@@ -103,6 +111,7 @@
               <ul>
                 <li><a href="services.html">Services</a></li>
                 <li><a href="features.html">Features</a></li>
+                <li><a href="benchmarks.html">Benchmarks</a></li>
                 <li><a href="pricing.html">Pricing</a></li>
                 <li><a href="compare.html">Compare</a></li>
                 <li><a href="https://dev-public.biomate.ai/register">Start free</a></li>
@@ -159,19 +168,26 @@
       }
     });
 
-    // ── Dropdown: toggle on click (also works for touch) ──
+    // ── Dropdown: single unified toggle (desktop + mobile, one listener per element) ──
     document.querySelectorAll('.bm-has-dropdown > a').forEach(function(a) {
       a.addEventListener('click', function(e) {
         var li = a.closest('.bm-has-dropdown');
         var isOpen = li.classList.contains('bm-dd-open');
+        var isMobileNav = window.innerWidth <= 900;
+        // Close all other dropdowns first
         document.querySelectorAll('.bm-has-dropdown').forEach(function(el) {
-          el.classList.remove('bm-dd-open');
+          if (el !== li) el.classList.remove('bm-dd-open');
         });
         if (!isOpen) {
           li.classList.add('bm-dd-open');
-          // Only prevent default when opening the dropdown itself (not navigating)
-          if (window.innerWidth > 900) e.preventDefault();
+          // Prevent navigation on both desktop and mobile when opening dropdown
+          e.preventDefault();
+        } else if (isMobileNav) {
+          // Mobile: close accordion, never navigate
+          li.classList.remove('bm-dd-open');
+          e.preventDefault();
         }
+        // Desktop + already open: allow navigation to the section href
       });
     });
 
@@ -183,17 +199,12 @@
         var open = tog.getAttribute('aria-expanded') === 'true';
         tog.setAttribute('aria-expanded', open ? 'false' : 'true');
         links.classList.toggle('bm-nav-open', !open);
-      });
-
-      // Mobile: expand/collapse dropdowns as accordions
-      links.querySelectorAll('.bm-has-dropdown > a').forEach(function(a) {
-        a.addEventListener('click', function(e) {
-          if (window.innerWidth <= 900) {
-            e.preventDefault();
-            var li = a.closest('.bm-has-dropdown');
-            li.classList.toggle('bm-dd-open');
-          }
-        });
+        // Close all dropdowns when closing the mobile menu
+        if (open) {
+          links.querySelectorAll('.bm-has-dropdown').forEach(function(el) {
+            el.classList.remove('bm-dd-open');
+          });
+        }
       });
     }
   };

@@ -38,7 +38,9 @@ describe("Bug 1: register endpoint returns verificationToken", () => {
   });
 
   it("/api/auth/register response includes verificationToken on the user object", () => {
-    expect(/user:\s*\{\s*\.\.\.result\.user\s*,\s*verificationToken\s*:\s*_verificationToken\s*\}/.test(ROUTES)).toBe(true);
+    // Token is gated: null when SMTP is configured (production), real token in dev-only mode.
+    // Pattern: verificationToken: _emailConfigured ? null : _verificationToken
+    expect(/verificationToken\s*:\s*_emailConfigured\s*\?\s*null\s*:\s*_verificationToken/.test(ROUTES)).toBe(true);
   });
 
   it("auth-service.sendVerificationEmail supports an overload that returns the token", () => {

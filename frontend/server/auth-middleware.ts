@@ -19,6 +19,9 @@ export async function authenticateToken(
   res: Response,
   next: NextFunction
 ): Promise<void> {
+  // If a prior middleware (e.g. authenticateStaticApiKey) already set req.user, skip JWT check.
+  if (req.user) { next(); return; }
+
   try {
     // Get token from Authorization header or cookie
     let token: string | undefined;
@@ -91,6 +94,74 @@ export async function authenticateToken(
       console.error('Authentication error:', error);
       res.status(500).json({ error: 'Authentication failed' });
     }
+  }
+}
+
+/**
+ * Static API key authentication for headless connector clients.
+ *
+ * Accepts `X-API-Key: <key>` header or `Authorization: Bearer <key>` where
+ * the key is NOT a JWT (doesn't start with "eyJ").
+ *
+ * Configuration (environment variables on the BioMate server):
+ *   BIOMATE_CONNECTOR_API_KEY  — the secret key the connector sends
+ *   BIOMATE_CONNECTOR_USER_ID  — the numeric user ID to attach to the request
+ *
+ * If neither env var is set this middleware is a no-op and passes through.
+ * Allows MCP clients (Claude Code, Cursor, CI pipelines) to authenticate
+ * without a browser OAuth flow.
+ */
+export async function authenticateStaticApiKey(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  const serviceKey = process.env.BIOMATE_CONNECTOR_API_KEY;
+  const serviceUserId = process.env.BIOMATE_CONNECTOR_USER_ID;
+
+  if (!serviceKey || !serviceUserId) {
+    // Not configured — skip silently (fall through to JWT auth).
+    return next();
+  }
+
+  // Extract provided key: prefer X-API-Key, then Bearer token that isn't a JWT.
+  let providedKey: string | undefined;
+  const xApiKey = req.headers['x-api-key'];
+  if (typeof xApiKey === 'string' && xApiKey.length > 0) {
+    providedKey = xApiKey;
+  } else {
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      const candidate = authHeader.substring(7);
+      if (!candidate.startsWith('eyJ')) {
+        // Not a JWT — treat as opaque API key.
+        providedKey = candidate;
+      }
+    }
+  }
+
+  if (!providedKey) {
+    return next(); // No API key provided; fall through to JWT auth.
+  }
+
+  if (providedKey !== serviceKey) {
+    res.status(401).json({ error: 'Invalid API key' });
+    return;
+  }
+
+  // Key matches — attach the configured service account user.
+  try {
+    const user = await authService.getUserById(serviceUserId);
+    if (!user) {
+      res.status(401).json({ error: 'Connector service account not found (check BIOMATE_CONNECTOR_USER_ID)' });
+      return;
+    }
+    const { password, ...safeUser } = user;
+    req.user = safeUser;
+    next();
+  } catch (error: any) {
+    console.error('[Auth] API key user lookup failed:', error);
+    res.status(500).json({ error: 'Authentication failed' });
   }
 }
 

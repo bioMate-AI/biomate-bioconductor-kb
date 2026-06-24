@@ -9,8 +9,8 @@
   --border:    oklch(0.915 0.006 240);
   --border-strong: oklch(0.86 0.008 240);
   --text:      oklch(0.22 0.01 260);
-  --text-muted:oklch(0.48 0.012 260);
-  --text-dim:  oklch(0.62 0.010 260);
+  --text-muted:oklch(0.40 0.012 260);
+  --text-dim:  oklch(0.50 0.010 260);
 
   /* Accent — single cool accent, used sparingly */
   --accent:      oklch(0.55 0.14 245);
@@ -72,7 +72,7 @@ input, textarea, select { font-family: inherit; color: inherit; }
 .chip {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 2px 8px; border-radius: 999px;
-  font-size: 11.5px; font-weight: 500;
+  font-size: 13px; font-weight: 500;
   background: var(--neutral-badge); color: var(--text-muted);
   white-space: nowrap;
 }

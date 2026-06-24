@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useLocation } from "wouter"
+import { useLocation, useSearch } from "wouter"
 import { useAuth } from "@/contexts/auth-context"
 import { Loader2, Eye, EyeOff } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
@@ -27,6 +27,15 @@ const inputStyle: React.CSSProperties = {
 
 export default function LoginPage() {
   const [, setLocation] = useLocation()
+  const search = useSearch()
+  // Same-origin redirect target (e.g. a /workflow/:id deep link bounced here
+  // when the session was missing). Restricted to in-app paths.
+  const nextParam = (() => {
+    const raw = new URLSearchParams(search).get('next')
+    return raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : null
+  })()
+  // Hero query forwarded through the auth flow (?q= on register or App.tsx redirect)
+  const qParam = new URLSearchParams(search).get('q')
   const { login, loginWithGoogle, loginWithGithub } = useAuth()
   const { toast } = useToast()
   const [email, setEmail] = useState("")
@@ -39,10 +48,16 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true); setError(null)
+    // Park the hero query in sessionStorage BEFORE calling login — auth-context
+    // calls setLocation('/') internally which mounts App.tsx before our override
+    // setLocation('/?q=...') can run, so the useState initializer in App.tsx
+    // would see no ?q= in the URL. sessionStorage survives that navigation.
+    if (qParam) sessionStorage.setItem('pendingHeroQuery', qParam)
     try {
       await login(email, password, rememberMe)
-      // auth-context.login() already calls setLocation('/') on success
+      if (nextParam) setLocation(nextParam)
     } catch (err) {
+      if (qParam) sessionStorage.removeItem('pendingHeroQuery')
       setError(err instanceof Error ? err.message : "Invalid credentials. Please try again.")
     } finally {
       setIsLoading(false)

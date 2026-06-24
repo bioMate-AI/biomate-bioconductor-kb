@@ -35,10 +35,10 @@ import { promises as fs, createReadStream, existsSync, readdirSync } from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import archiver from "archiver";
-import { createHash } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import { authService } from "./auth-service";
 import { emailService } from "./email-service";
-import { authenticateToken, optionalAuth } from "./auth-middleware";
+import { authenticateToken, authenticateStaticApiKey, optionalAuth } from "./auth-middleware";
 import BetterSqlite3 from "better-sqlite3";
 import type { RegisterData, LoginData } from "./auth-service";
 import { s3Service } from "./s3-client";
@@ -628,7 +628,15 @@ if (typeof parsedThinkingBudget === "number" && Number.isFinite(parsedThinkingBu
   modelConfigOverrides.thinkingBudget = parsedThinkingBudget;
 }
 
-const galaxyAssistant = process.env.ANTHROPIC_API_KEY ? new GalaxyAssistant({
+// Start with whichever LLM key is available; Gemini (GOOGLE_API_KEY) is the
+// backbone and Anthropic is used for memory, embeddings, and fallback.
+// Neither key alone blocks startup — the assistant degrades gracefully.
+const _hasAnyLLMKey = !!(
+  process.env.ANTHROPIC_API_KEY ||
+  process.env.GOOGLE_API_KEY ||
+  process.env.GEMINI_API_KEY
+);
+const galaxyAssistant = _hasAnyLLMKey ? new GalaxyAssistant({
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
   galaxyAPIProxy,
   modelConfig: modelConfigOverrides,
@@ -796,6 +804,66 @@ const OPEN_CLAW_TOOLS = [
       required: ["database", "query"],
     },
   },
+  // ── Accession Resolution ─────────────────────────────────────────────────
+  {
+    name: "resolve_accession",
+    description:
+      "Identify a public archive accession (GEO, SRA, ENA, DDBJ) and return the " +
+      "best BioMate workflow to fetch it plus pre-filled params ready for run_workflow. " +
+      "Examples: GSE183947 → Geo Data Connector; SRR12345 → nf-core/fetchngs. " +
+      "Call this before run_workflow whenever the user provides an accession instead of a file.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        accession: {
+          type: "string",
+          description: "Public archive accession: GSE*, GSM*, GDS*, SRR*, SRX*, SRP*, ERR*, ERX*, ERP*, DRR*, PRJNA*, PRJEB*, E-MTAB-*, E-GEOD-*",
+        },
+      },
+      required: ["accession"],
+    },
+  },
+  // ── Public Data Sources ───────────────────────────────────────────────────
+  {
+    name: "browse_data",
+    description:
+      "Browse a biological data repository or S3 workspace by listing files and directories " +
+      "at a given path. Public sources (EBI, NCBI, Ensembl, UCSC) require a path. " +
+      "S3 sources (biomate_workspace, user_s3) accept an optional prefix. " +
+      "Use before fetch_public_data to navigate to the exact file you need.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        source_id: {
+          type: "string",
+          enum: ["ebi_ftp", "ncbi_ftp", "ensembl_ftp", "ucsc_downloads", "http_public", "biomate_workspace", "user_s3"],
+          description: "Data source to browse. biomate_workspace = BioMate's S3 work bucket; user_s3 = user's own S3 bucket (if configured)",
+        },
+        path: { type: "string", description: "Directory path or S3 prefix to list (e.g. '/pub/databases/uniprot/.../' or 'results/run-xyz/')" },
+      },
+      required: ["source_id"],
+    },
+  },
+  {
+    name: "fetch_public_data",
+    description:
+      "Download a file from a public biological repository (EBI, NCBI, Ensembl, UCSC) " +
+      "into BioMate's S3 workspace and return a presigned URL and S3 URI. " +
+      "Use the S3 URI as a workflow input parameter. Call browse_data first to find the exact path.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        source_id: {
+          type: "string",
+          enum: ["ebi_ftp", "ncbi_ftp", "ensembl_ftp", "ucsc_downloads", "http_public"],
+          description: "Data source the file comes from",
+        },
+        remote_path: { type: "string", description: "Path on the FTP server (e.g. '/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz')" },
+        url: { type: "string", description: "For http_public source: full HTTPS URL of the file to download" },
+      },
+      required: ["source_id"],
+    },
+  },
 ];
 
 /**
@@ -874,6 +942,24 @@ async function executeOpenClaudeTool(
       case "query_database":
         return await post("/api/databases/query", { database: input.database, query: input.query });
 
+      // ── Accession Resolution ─────────────────────────────────────────────
+      case "resolve_accession":
+        return await post("/api/accession/resolve", { accession: input.accession });
+
+      // ── Public Data Sources ───────────────────────────────────────────────
+      case "browse_data":
+        if (input.source_id === "biomate_workspace" || input.source_id === "user_s3") {
+          return await get(`/api/s3/browse?prefix=${encodeURIComponent(input.path ?? "")}`);
+        }
+        return await get(`/api/data/browse?source=${encodeURIComponent(input.source_id)}&path=${encodeURIComponent(input.path ?? "/")}`);
+
+      case "fetch_public_data":
+        return await post("/api/data/fetch", {
+          source_id: input.source_id,
+          remote_path: input.remote_path,
+          url: input.url,
+        });
+
       default:
         return { error: `Unknown tool: ${toolName}` };
     }
@@ -905,7 +991,7 @@ function getPilotFeedbackDb(): InstanceType<typeof BetterSqlite3> | null {
 }
 
 // Initialize Prerequisites Validator (LLM-powered pre-execution validation)
-const prerequisitesValidator = process.env.ANTHROPIC_API_KEY ? new WorkflowPrerequisitesValidator({
+const prerequisitesValidator = _hasAnyLLMKey ? new WorkflowPrerequisitesValidator({
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
   galaxyAPIProxy,
 }) : null;
@@ -1971,9 +2057,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         maxAge: result.expiresIn * 1000, // Convert to milliseconds
       });
 
+      // Only expose the raw verification token when SMTP is not configured
+      // (dev/local environments). In production the email is delivered normally
+      // and surfacing the token would show the "Dev mode" bypass box to real users.
+      const _emailConfigured = !!(process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS);
       res.status(201).json({
         success: true,
-        user: { ...result.user, verificationToken: _verificationToken },
+        user: { ...result.user, verificationToken: _emailConfigured ? null : _verificationToken },
         token: result.token,
         expiresIn: result.expiresIn,
       });
@@ -2075,6 +2165,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     res.clearCookie('biomate_token');
     res.json({ success: true, message: 'Logged out successfully' });
+  });
+
+  // ── Deep-linkable workflow draft ──────────────────────────────────────────
+  // Loads a workflow persisted at generation time (see /api/chat/stream). The
+  // /workflow/:id frontend route fetches this to render the workflow panel
+  // focused on a connector-shared workflow. Owner-scoped: a cross-user id
+  // returns 404 (not 403) so it can't be probed for existence — matches the
+  // project-routes ownership convention.
+  app.get("/api/workflow-draft/:id", authenticateToken, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await pool.query(
+        `SELECT user_id, workflow_name, payload, expires_at FROM workflow_drafts WHERE id = $1`,
+        [id]
+      );
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'not_found' });
+      }
+      const row = result.rows[0];
+      if (row.expires_at && new Date(row.expires_at) < new Date()) {
+        return res.status(410).json({ error: 'expired' });
+      }
+      if (String(row.user_id) !== String(req.user!.id)) {
+        return res.status(404).json({ error: 'not_found' });
+      }
+      // payload is already a JS object (pg parses jsonb columns).
+      const payload = (row.payload && typeof row.payload === 'object') ? row.payload : {};
+      res.json({ id, workflow_name: row.workflow_name, ...payload });
+    } catch (error: any) {
+      console.error('[WorkflowDraft] fetch error:', error?.message || error);
+      res.status(500).json({ error: 'Failed to load workflow' });
+    }
+  });
+
+  // ── Magic-link auto-login for chat connectors ─────────────────────────────
+  // Two-step, secret-never-in-URL flow:
+  //   1. POST /api/auth/login-token  (Bearer of the bound BioMate credential)
+  //      → mints a short-lived (5 min), single-use token. The IM bot calls this
+  //        with the api_key it stored via `bind`; that credential is the same
+  //        Bearer the bot already sends to /api/chat/stream, so authenticateToken
+  //        resolves it to the bound user. Only the token's SHA-256 hash is stored.
+  //   2. GET  /api/auth/magic?token=<ott>&redirect=<path>
+  //      → consumes the token, sets the biomate_token session cookie, 302s to the
+  //        (same-origin) redirect, e.g. the view_url path. The long-lived
+  //        credential never appears in any URL.
+  app.post("/api/auth/login-token", authLimiter, authenticateToken, async (req, res) => {
+    try {
+      const userId = String(req.user!.id);
+      // Optional redirect path baked into the token at mint time; query-param
+      // redirect at consume time takes precedence. Only same-origin paths allowed.
+      const rawRedirect = typeof req.body?.redirect === 'string' ? req.body.redirect : undefined;
+      const safeRedirect =
+        rawRedirect && rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')
+          ? rawRedirect
+          : null;
+
+      // base64url so it's URL-safe without encoding.
+      const oneTimeToken = randomBytes(32).toString('base64url');
+      const tokenHash = createHash('sha256').update(oneTimeToken).digest('hex');
+      const ttlSeconds = 300; // 5 minutes
+      const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
+
+      await pool.query(
+        `INSERT INTO login_tokens (token_hash, user_id, redirect, expires_at)
+           VALUES ($1, $2, $3, $4)`,
+        [tokenHash, userId, safeRedirect, expiresAt]
+      );
+
+      res.json({ token: oneTimeToken, expires_in: ttlSeconds });
+    } catch (error: any) {
+      console.error('[Auth] login-token error:', error?.message || error);
+      res.status(500).json({ error: 'Failed to mint login token' });
+    }
+  });
+
+  app.get("/api/auth/magic", async (req, res) => {
+    const sanitizePath = (p: unknown): string | null => {
+      if (typeof p !== 'string' || !p.startsWith('/') || p.startsWith('//')) return null;
+      return p;
+    };
+    try {
+      const rawToken = typeof req.query.token === 'string' ? req.query.token : '';
+      const redirectFromQuery = sanitizePath(req.query.redirect);
+      if (!rawToken) {
+        return res.redirect(302, '/login?error=missing_token');
+      }
+
+      const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+      // Atomically consume: succeeds only if the token exists, is unconsumed, and
+      // is unexpired. The single UPDATE makes the token genuinely single-use even
+      // under concurrent clicks (e.g. IM link-preview crawler + the user).
+      const consume = await pool.query(
+        `UPDATE login_tokens
+            SET consumed_at = NOW()
+          WHERE token_hash = $1 AND consumed_at IS NULL AND expires_at > NOW()
+        RETURNING user_id, redirect`,
+        [tokenHash]
+      );
+      if (consume.rowCount === 0) {
+        return res.redirect(302, '/login?error=invalid_or_expired');
+      }
+
+      const { user_id, redirect: storedRedirect } = consume.rows[0];
+      const user = await authService.getUserById(String(user_id));
+      if (!user) {
+        return res.redirect(302, '/login?error=user_not_found');
+      }
+
+      // New entry path to the SAME session — reuse the standard JWT cookie the
+      // app already authenticates with (auth-middleware reads biomate_token).
+      const sessionToken = authService.generateToken(user as any, false); // 24h
+      res.cookie('biomate_token', sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+
+      const dest = redirectFromQuery || sanitizePath(storedRedirect) || '/';
+      return res.redirect(302, dest);
+    } catch (error: any) {
+      console.error('[Auth] magic login error:', error?.message || error);
+      return res.redirect(302, '/login?error=magic_failed');
+    }
   });
 
   // Get current user (non-erroring for anonymous clients)
@@ -4416,6 +4630,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Proxy /api/regulatory/* to the Galaxy backend. These are galaxy-served routes
+  // (active_adapter, generate_smoke, generate_stream, feedback/queue) that the
+  // public frontend must expose for the IND PI suite + the ind-report UI — without
+  // this they 404 on dev/prod (caddy routes the public domain to this Node server,
+  // which had no /api/regulatory handler). Mirrors the /api/ind-report/* proxy
+  // above. Does NOT shadow the frontend's own /api/regulatory_llm/* routes — the
+  // `/api/regulatory/` prefix (trailing slash) cannot match `/api/regulatory_llm/`.
+  app.all("/api/regulatory/*", optionalAuth, async (req: any, res: any) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      const fullPath = `${req.path}${queryStr}`;
+      const _rawKey = (req as any).user?.galaxyApiKey as string | undefined;
+      const apiKey = (_rawKey ? decryptField(_rawKey) : null) || process.env.GALAXY_API_KEY || '';
+      const headers: Record<string, string> = {
+        'Content-Type': req.headers['content-type'] || 'application/json',
+        'X-API-Key': apiKey,
+      };
+      const fetchOpts: RequestInit = {
+        method: req.method.toUpperCase(),
+        headers,
+        signal: AbortSignal.timeout(120000),
+      };
+      if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
+        fetchOpts.body = JSON.stringify(req.body);
+      }
+      const resp = await fetch(`${galaxyUrl}${fullPath}`, fetchOpts);
+      const contentType = resp.headers.get('content-type') || 'application/json';
+      res.setHeader('Content-Type', contentType);
+      const cd = resp.headers.get('content-disposition');
+      if (cd) res.setHeader('Content-Disposition', cd);
+      res.status(resp.status);
+      if (contentType.includes('application/json')) {
+        const data = await resp.json().catch(() => ({}));
+        return res.json(data);
+      }
+      const buf = Buffer.from(await resp.arrayBuffer());
+      return res.send(buf);
+    } catch (err: any) {
+      const status = err.response?.status || 502;
+      return res.status(status).json({ error: 'regulatory proxy error', detail: err.message });
+    }
+  });
+
   app.all("/api/qc-gates/*", async (req: any, res: any) => {
     try {
       const path = req.path;
@@ -5691,6 +5949,65 @@ ${paramLines || '(none recorded)'}`;
         benchmarkEvidence: assistantResponse.benchmarkEvidence,
       };
 
+      // ── Deep-link: persist a stable, URL-addressable draft at GENERATION time ──
+      // A generated workflow otherwise lives only in the client's in-memory chat
+      // state, so a chat connector ("Open in BioMate" button) has nothing to point
+      // at. We persist the workflow draft now (not only at execution) and hand the
+      // SSE consumers an absolute `view_url` → /workflow/<id>. Only for authenticated
+      // requests (the IM bot calls with the bound user's Bearer credential); anonymous
+      // requests get no view_url and the connector falls back to the app root.
+      let workflowViewUrl: string | undefined;
+      let workflowDraftId: string | undefined;
+      if (responseState === "workflow_ready" && workflowPayload && req.user?.id) {
+        try {
+          const ga = (workflowPayload as any).workflow_ga || {};
+          const draftWorkflowName =
+            ga.name || (workflowPayload as any).workflow_name ||
+            (workflowPayload as any).chain_display_name || "";
+          // Build the panel-shaped workflow object the same way the client does
+          // (chat-interface.tsx onSuccess): workflow_ga ?? workflow, with the
+          // LLM-extracted inline params merged into inline_parameters.
+          const inlineParams = (responsePayload.metadata as any)?.inlineParameters;
+          let panelWorkflow: any = (workflowPayload as any).workflow_ga || workflowPayload;
+          if (inlineParams && typeof inlineParams === "object" && Object.keys(inlineParams).length > 0) {
+            panelWorkflow = {
+              ...panelWorkflow,
+              inline_parameters: { ...(panelWorkflow.inline_parameters || {}), ...inlineParams },
+            };
+          }
+          const draftPayload = {
+            response: assistantMessage,
+            state: responseState,
+            workflow: panelWorkflow,
+            rawWorkflow: workflowPayload,
+            inlineParameters: inlineParams || null,
+            suggestions,
+            prerequisitesValidation,
+            workflowName: draftWorkflowName,
+          };
+          workflowDraftId = uuidv4();
+          const appUrl = process.env.APP_URL || "http://localhost:5000";
+          const draftExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+          await pool.query(
+            `INSERT INTO workflow_drafts (id, user_id, workflow_name, payload, expires_at)
+               VALUES ($1, $2, $3, $4::jsonb, $5)`,
+            [workflowDraftId, String(req.user.id), draftWorkflowName || null, JSON.stringify(draftPayload), draftExpiresAt]
+          );
+          workflowViewUrl = `${appUrl.replace(/\/+$/, "")}/workflow/${workflowDraftId}`;
+        } catch (e: any) {
+          // Non-fatal: a failed draft persist just means no deep link this turn.
+          console.warn("[ChatStream] workflow draft persist failed:", e?.message || e);
+          workflowViewUrl = undefined;
+          workflowDraftId = undefined;
+        }
+      }
+      // Surface the deep link on the canonical `final` payload too (some connector
+      // flows read `view_url` from `final` rather than `workflow_ready`).
+      if (workflowViewUrl) {
+        (responsePayload as any).view_url = workflowViewUrl;
+        (responsePayload as any).workflow_id = workflowDraftId;
+      }
+
       // Emit LLM cost to Galaxy billing backend → Lago (fire-and-forget)
       // Pilot users (PILOT_ACCOUNT_EMAILS) skip billing during the pilot window.
       if (req.user && !isPilotUser) {
@@ -5738,13 +6055,19 @@ ${paramLines || '(none recorded)'}`;
           //   3. chain_display_name — chain result
           //   4. ""               — generated/composed workflow (display name unknown at this point)
           workflow_name: ga.name || workflowPayload.workflow_name || workflowPayload.chain_display_name || "",
-          workflow_id:   ga.id || "",
+          // Prefer the stable, URL-addressable draft id over the catalog ga.id
+          // (which is often empty for generated/composed workflows). This is the
+          // id embedded in view_url and resolvable via /api/workflow-draft/:id.
+          workflow_id:   workflowDraftId || ga.id || "",
           workflow_type: workflowPayload.workflow_type || workflowPayload.execution_engine || "",
           nextflow_path: workflowPayload.nextflow_path || "",
           source:        workflowPayload.source || "",
           confidence:    workflowPayload.confidence ?? null,
           chain_name:    workflowPayload.chain_name || "",
           chain_steps:   chainStepNames,
+          // Absolute, app-origin deep link the connector puts on its
+          // "Open in BioMate" button. Empty when the draft couldn't be persisted.
+          view_url:      workflowViewUrl || "",
         });
       } else if (responseState === "needs_input") {
         // Two sub-cases both produce needs_input:
@@ -7140,6 +7463,324 @@ ${paramLines || '(none recorded)'}`;
       });
       const data = await upstream.json();
       res.status(upstream.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/workflows/spec — full spec for a workflow by ID/path (used by MCP get_workflow_spec)
+  // workflow_id is the nextflow path, e.g. "pharmacology/herg_cardiac_safety_qsar/main.nf"
+  app.get("/api/workflows/spec", optionalAuth, async (req, res) => {
+    try {
+      const workflowId = String(req.query.workflow_id || '');
+      if (!workflowId) return res.status(400).json({ error: "workflow_id is required" });
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      // Extract bare name from path: "pharmacology/herg_cardiac_safety_qsar/main.nf" → "herg_cardiac_safety_qsar"
+      const namePart = workflowId.replace(/\/main\.nf$/, '').split('/').pop() || workflowId;
+      const upstream = await fetch(`${galaxyUrl}/api/ai_assistant/search_nextflow_workflow`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_intent: namePart, force_workflow_name: namePart, limit: 1 }),
+      });
+      const data = await upstream.json();
+      res.status(upstream.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/files/preview — render a preview of an S3 file (used by MCP preview_file)
+  // Returns { content_type, preview_text?, download_url?, rows?, truncated }
+  app.post("/api/files/preview", optionalAuth, async (req, res) => {
+    try {
+      const { s3_key, max_rows = 100 } = req.body || {};
+      if (!s3_key) return res.status(400).json({ error: "s3_key is required" });
+
+      const s3Match = (s3_key as string).match(/^s3:\/\/([^/]+)\/(.+)$/);
+      if (!s3Match) return res.status(400).json({ error: "s3_key must be s3://bucket/key format" });
+      const [, bucket, key] = s3Match;
+
+      const ALLOWED_BUCKETS = new Set([
+        process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work',
+        'biomate-nextflow-work',
+        'biomate-outputs',
+      ]);
+      if (!ALLOWED_BUCKETS.has(bucket)) {
+        return res.status(403).json({ error: "S3 bucket not allowed" });
+      }
+
+      const ext = key.split('.').pop()?.toLowerCase() ?? '';
+      const TEXT_EXTS = new Set(['csv','tsv','txt','log','fasta','fa','fastq','vcf','bed','gff','gtf','json','html','htm','tabular']);
+      const IMAGE_EXTS = new Set(['png','jpg','jpeg','gif','svg']);
+
+      const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+      const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
+      const s3 = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' });
+      const cmd = new GetObjectCommand({ Bucket: bucket, Key: key });
+
+      if (IMAGE_EXTS.has(ext)) {
+        const url = await getSignedUrl(s3, cmd, { expiresIn: 3600 });
+        return res.json({ content_type: 'image', download_url: url });
+      }
+
+      if (TEXT_EXTS.has(ext)) {
+        const response = await s3.send(cmd);
+        const chunks: Buffer[] = [];
+        for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
+          chunks.push(Buffer.from(chunk));
+          if (Buffer.concat(chunks).length > 512 * 1024) break; // 512 KB cap
+        }
+        const text = Buffer.concat(chunks).toString('utf-8');
+        const lines = text.split('\n');
+        const truncated = lines.length > (max_rows as number);
+        const preview = lines.slice(0, max_rows as number).join('\n');
+        const isTable = ext === 'csv' || ext === 'tsv' || ext === 'tabular';
+        return res.json({ content_type: isTable ? 'table' : 'text', preview_text: preview, rows: lines.length, truncated });
+      }
+
+      // Binary / unknown: return a presigned download URL
+      const url = await getSignedUrl(s3, cmd, { expiresIn: 3600 });
+      return res.json({ content_type: 'binary', download_url: url });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/databases/query — query biological databases (used by MCP query_database)
+  // Proxies to Galaxy /api/databases/query which routes to UniProt, PDB, NCBI, etc.
+  app.post("/api/databases/query", optionalAuth, async (req, res) => {
+    try {
+      const { database, query } = req.body || {};
+      if (!query) return res.status(400).json({ error: "query is required" });
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const upstream = await fetch(`${galaxyUrl}/api/databases/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ database: database || "auto", query }),
+      });
+      const data = await upstream.json();
+      res.status(upstream.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ── Accession resolver (resolve_accession MCP tool) ─────────────────────
+  // POST /api/accession/resolve
+  // Given a public archive accession (GEO GSE*, SRA SRR*, ENA ERR*, etc.) returns
+  // the best BioMate workflow to fetch it plus pre-filled params ready for run_workflow.
+  app.post("/api/accession/resolve", authenticateStaticApiKey, authenticateToken, express.json(), async (req, res) => {
+    const { accession } = req.body || {};
+    if (!accession || typeof accession !== "string") {
+      return res.status(400).json({ error: "accession is required" });
+    }
+    const acc = accession.trim().toUpperCase();
+
+    // Classify accession type and select the best fetcher workflow.
+    type AccessionClass = {
+      type: string;
+      archive: string;
+      workflow_id: number;
+      workflow_name: string;
+      nextflow_path: string;
+      param_key: string;   // which workflow input param the accession goes into
+      description: string;
+    };
+
+    const ACCESSION_MAP: Array<{ pattern: RegExp; cls: AccessionClass }> = [
+      // GEO series / sample → Geo Data Connector (R-based; returns count matrix + metadata)
+      {
+        pattern: /^(GSE|GDS)\d+$/,
+        cls: {
+          type: "GEO_series", archive: "GEO",
+          workflow_id: 10672, workflow_name: "Geo Data Connector",
+          nextflow_path: "nextflow_nfcore/subworkflows/genomics/geo_data_connector/main.nf",
+          param_key: "accession",
+          description: "Downloads GEO series matrix + clinical metadata via GEOquery; emits channels ready for DESeq2/edgeR.",
+        },
+      },
+      {
+        pattern: /^GSM\d+$/,
+        cls: {
+          type: "GEO_sample", archive: "GEO",
+          workflow_id: 10672, workflow_name: "Geo Data Connector",
+          nextflow_path: "nextflow_nfcore/subworkflows/genomics/geo_data_connector/main.nf",
+          param_key: "accession",
+          description: "Downloads individual GEO sample via GEOquery.",
+        },
+      },
+      // SRA/ENA/DDBJ runs/experiments/projects → nf-core/fetchngs
+      {
+        pattern: /^(SRR|SRX|SRS|SRP|ERP|ERR|ERX|DRR|DRP|PRJNA|PRJEB|PRJDB|E-[A-Z]+-\d+)\S*/,
+        cls: {
+          type: "SRA_ENA_DDBJ", archive: "SRA/ENA/DDBJ",
+          workflow_id: 12704, workflow_name: "nf-core/fetchngs",
+          nextflow_path: "nfcore/fetchngs/main.nf",
+          param_key: "input",
+          description: "Downloads raw FASTQ files and metadata from SRA, ENA, DDBJ, or GEO using nf-core/fetchngs. Output FASTQs can feed directly into nf-core/rnaseq, sarek, etc.",
+        },
+      },
+    ];
+
+    let matched: AccessionClass | null = null;
+    for (const { pattern, cls } of ACCESSION_MAP) {
+      if (pattern.test(acc)) { matched = cls; break; }
+    }
+
+    if (!matched) {
+      return res.status(422).json({
+        error: "Unrecognised accession format",
+        hint: "Supported prefixes: GSE, GSM, GDS, SRR, SRX, SRS, SRP, ERR, ERX, ERP, DRR, DRP, PRJNA, PRJEB, E-MTAB-*, E-GEOD-*",
+        accession: acc,
+      });
+    }
+
+    // Verify the workflow still exists in the DB.
+    let db_name: string | null = null;
+    try {
+      const dbPath = process.env.GALAXY_AI_TOOLS_DB || path.join(process.cwd(), "../backend/database/galaxy_ai_tools.db");
+      if (existsSync(dbPath)) {
+        const db = new BetterSqlite3(dbPath, { readonly: true });
+        const row = db.prepare("SELECT name FROM workflows WHERE id = ?").get(matched.workflow_id) as { name: string } | undefined;
+        db.close();
+        db_name = row?.name ?? null;
+      }
+    } catch { /* non-fatal — return resolved info regardless */ }
+
+    res.json({
+      accession: acc,
+      accession_type: matched.type,
+      archive: matched.archive,
+      workflow_id: matched.workflow_id,
+      workflow_name: db_name ?? matched.workflow_name,
+      nextflow_path: matched.nextflow_path,
+      prefilled_params: { [matched.param_key]: acc },
+      description: matched.description,
+      ready_to_run: true,
+      next_step: `Call run_workflow with workflow_id=${matched.workflow_id} and params=${JSON.stringify({ [matched.param_key]: acc })}`,
+    });
+  });
+
+  // ── Data source browsing (browse_data MCP tool) ──────────────────────────
+  // GET /api/data/sources  — list configured data sources
+  // GET /api/data/browse   — list contents of a path within a source
+  // POST /api/data/fetch   — download/stage a public file into BioMate S3
+  //
+  // Authentication: chained [authenticateStaticApiKey, authenticateToken].
+  // authenticateStaticApiKey sets req.user from BIOMATE_CONNECTOR_API_KEY and
+  // calls next(); authenticateToken then skips (req.user already set).
+  // Clients that send only a JWT skip the API-key check and use JWT path normally.
+  app.get("/api/data/sources", authenticateStaticApiKey, authenticateToken, async (req, res) => {
+    // Galaxy exposes configured file source plugins at /api/remote_files/plugins.
+    // We proxy and reshape the response to a stable BioMate-facing schema.
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const upstream = await fetch(`${galaxyUrl}/api/remote_files/plugins`, {
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!upstream.ok) {
+        // Galaxy not configured or file_sources_conf.yml missing — return
+        // the static list parsed from the known config to avoid a 500.
+        return res.json({
+          sources: [
+            { id: "ebi_ftp",        label: "EBI — European Bioinformatics Institute", type: "ftp",  writable: false },
+            { id: "ncbi_ftp",       label: "NCBI — National Center for Biotechnology Information", type: "ftp", writable: false },
+            { id: "ensembl_ftp",    label: "Ensembl — Genome Browser", type: "ftp", writable: false },
+            { id: "ucsc_downloads", label: "UCSC Genome Downloads", type: "ftp", writable: false },
+            { id: "http_public",    label: "HTTP/HTTPS — Public URLs", type: "http", writable: false },
+          ],
+        });
+      }
+      const plugins: any[] = await upstream.json();
+      res.json({ sources: plugins.map((p: any) => ({ id: p.id, label: p.label ?? p.id, type: p.type, writable: p.writable ?? false })) });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/data/browse", authenticateStaticApiKey, authenticateToken, async (req, res) => {
+    // Proxies to Galaxy's /api/remote_files which lists contents of a file source path.
+    try {
+      const { source, path: browsePath } = req.query as { source?: string; path?: string };
+      if (!source) return res.status(400).json({ error: "source is required" });
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      // Galaxy uses `target` for the source id and `format=uri` for the listing.
+      const qs = new URLSearchParams({ target: source, format: "uri", browsable: "true" });
+      if (browsePath) qs.set("path", browsePath);
+      const upstream = await fetch(`${galaxyUrl}/api/remote_files?${qs}`, {
+        signal: AbortSignal.timeout(20_000),
+      });
+      if (!upstream.ok) {
+        const body = await upstream.text();
+        return res.status(upstream.status).json({ error: body });
+      }
+      const data = await upstream.json();
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/data/fetch", authenticateStaticApiKey, authenticateToken, express.json(), async (req, res) => {
+    // Stages a remote file into BioMate S3 so a workflow can consume it.
+    // The Galaxy backend handles the actual download + S3 upload.
+    try {
+      const { source, path: remotePath, url } = req.body || {};
+      if (!remotePath && !url) {
+        return res.status(400).json({ error: "path or url is required" });
+      }
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const upstream = await fetch(`${galaxyUrl}/api/nextflow/fetch_public_data`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source_id: source, remote_path: remotePath, url }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      const data = await upstream.json();
+      res.status(upstream.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/s3/browse — list objects in BioMate's S3 workspace (or user's configured S3 bucket).
+  // Proxies to Galaxy's /api/nextflow/s3/browse which resolves credentials server-side.
+  app.get("/api/s3/browse", authenticateStaticApiKey, authenticateToken, async (req, res) => {
+    try {
+      const { prefix = "", max_keys = "200" } = req.query as { prefix?: string; max_keys?: string };
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const galaxyApiKey = process.env.GALAXY_API_KEY || "";
+      const qs = new URLSearchParams({ prefix, max_keys });
+      const upstream = await fetch(`${galaxyUrl}/api/nextflow/s3/browse?${qs}`, {
+        headers: galaxyApiKey ? { "x-api-key": galaxyApiKey } : {},
+        signal: AbortSignal.timeout(15_000),
+      });
+      const data = await upstream.json();
+      res.status(upstream.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/uploads/signed_url — get S3 presigned URL for direct file upload (used by MCP upload_file)
+  app.post("/api/uploads/signed_url", optionalAuth, async (req, res) => {
+    try {
+      const { filename, size_bytes, content_type } = req.body || {};
+      if (!filename) return res.status(400).json({ error: "filename is required" });
+      if (!s3Service.getBucketName()) {
+        return res.status(503).json({ error: "S3 not configured — file uploads unavailable in this environment" });
+      }
+      const userId = req.user?.id ?? 'anonymous';
+      const uploadData = await s3Service.generatePresignedUploadUrl(
+        userId,
+        filename,
+        content_type || 'application/octet-stream',
+      );
+      res.json({
+        upload_url: uploadData.uploadUrl,
+        s3_key: uploadData.key,
+        expires_in: uploadData.expires_in,
+      });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -8875,13 +9516,7 @@ ${paramLines || '(none recorded)'}`;
           const stagedParamsClean = { ...stagedParams };
           delete (stagedParamsClean as any).__outputLocation;
 
-          const nextflowResponse = await fetch(`${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/execute`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-API-Key': process.env.GALAXY_API_KEY || '',
-            },
-            body: JSON.stringify({
+          const _nfBody = JSON.stringify({
               history_id: galaxyHistoryId,
               nextflow_path: request.workflowDefinition.nextflow_path,
               parameters: stagedParamsClean,
@@ -8905,15 +9540,30 @@ ${paramLines || '(none recorded)'}`;
                 const _pe = (process.env.PILOT_ACCOUNT_EMAILS || '').split(',').map((e: string) => e.trim().toLowerCase()).filter(Boolean);
                 return req.user ? _pe.includes(String((req.user as any).email || '').toLowerCase()) : false;
               })(),
-            })
-          });
-
-          if (!nextflowResponse.ok) {
-            const errBody = await nextflowResponse.text().catch(() => nextflowResponse.statusText);
-            throw new Error(`Nextflow execution failed (${nextflowResponse.status}): ${errBody}`);
+            });
+          // Retry up to 3 times on transient Galaxy backend errors (502/503/504 from
+          // gunicorn worker recycles). Fixed 3s delay — gunicorn recycles in <5s.
+          let nextflowResponse: Response | null = null;
+          for (let _attempt = 0; _attempt < 3; _attempt++) {
+            if (_attempt > 0) {
+              await new Promise(r => setTimeout(r, 3000));
+              console.log(`[Nextflow Direct] Retry attempt ${_attempt} after transient Galaxy error`);
+            }
+            nextflowResponse = await fetch(`${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/execute`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-API-Key': process.env.GALAXY_API_KEY || '' },
+              body: _nfBody,
+            });
+            if (nextflowResponse.ok || ![502, 503, 504].includes(nextflowResponse.status)) break;
+            console.warn(`[Nextflow Direct] Galaxy returned ${nextflowResponse.status} (attempt ${_attempt + 1}/3) — will retry`);
           }
 
-          const nextflowData = await nextflowResponse.json();
+          if (!nextflowResponse!.ok) {
+            const errBody = await nextflowResponse!.text().catch(() => nextflowResponse!.statusText);
+            throw new Error(`Nextflow execution failed (${nextflowResponse!.status}): ${errBody}`);
+          }
+
+          const nextflowData = await nextflowResponse!.json();
           console.log('[Nextflow Direct] Execution result:', nextflowData);
 
           // The backend returns invocation_id it created internally
@@ -9239,7 +9889,19 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
-      res.json(run);
+      // ── Inline convenience fields for MCP / headless consumers ────────────
+      // MCP tools/get_run clients should not need a second round-trip to
+      // /output_files or /status to get findings and files. Surface them here.
+      const ns = (run.execution?.nextflowStatus as any) || {};
+      const response: any = {
+        ...run,
+        // Canonical file list: prefer S3-backed files, fall back to local.
+        output_files: ns.s3_output_files || ns.output_files || [],
+        // AI findings / key results synthesized by the findings-analysis job.
+        inline_findings: ns.findings || ns.ai_findings || ns.key_results || [],
+      };
+
+      res.json(response);
     } catch (error: any) {
       console.error("[ExecutionRun] Error fetching run:", error);
       res.status(500).json({ error: error.message });

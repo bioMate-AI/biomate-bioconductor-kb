@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="960" height="420" viewBox="0 0 960 420" xmlns="http://www.w3.org/2000/svg"
+     font-family="'Inter','Helvetica Neue',Arial,sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#8FD6EA"/>
+    </marker>
+    <marker id="arr-g" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#a6e2c4"/>
+    </marker>
+    <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#112236"/>
+      <stop offset="100%" stop-color="#0a1a2b"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="420" fill="#0B1520" rx="14"/>
+
+  <!-- ── LEFT: INPUT ─────────────────────────────── -->
+  <rect x="24" y="54" width="182" height="312" fill="#0d1d2e" rx="10" stroke="#1e3a54" stroke-width="1.2"/>
+  <text x="115" y="78" text-anchor="middle" fill="#8FD6EA" font-size="10" font-weight="700" letter-spacing="2.5">INPUT</text>
+
+  <!-- pill: Research question -->
+  <rect x="40" y="94" width="150" height="52" fill="#0f2336" rx="7" stroke="#8FD6EA" stroke-width="0.8" stroke-opacity="0.35"/>
+  <text x="115" y="116" text-anchor="middle" fill="#E8F4F8" font-size="12" font-weight="600">Research question</text>
+  <text x="115" y="133" text-anchor="middle" fill="#5a8090" font-size="10">plain language · ...</text>
+
+  <!-- pill: Data files -->
+  <rect x="40" y="160" width="150" height="52" fill="#0f2336" rx="7" stroke="#8FD6EA" stroke-width="0.8" stroke-opacity="0.35"/>
+  <text x="115" y="182" text-anchor="middle" fill="#E8F4F8" font-size="12" font-weight="600">Data files</text>
+  <text x="115" y="199" text-anchor="middle" fill="#5a8090" font-size="10">FASTQ · VCF · PDB · CSV · ...</text>
+
+  <!-- pill: Lab instruments -->
+  <rect x="40" y="226" width="150" height="52" fill="#0f2336" rx="7" stroke="#8FD6EA" stroke-width="0.8" stroke-opacity="0.35"/>
+  <text x="115" y="248" text-anchor="middle" fill="#E8F4F8" font-size="12" font-weight="600">Lab instruments</text>
+  <text x="115" y="265" text-anchor="middle" fill="#5a8090" font-size="10">Sequencers · LIMS · Cryo-EM · ...</text>
+
+  <!-- pill: AI clients -->
+  <rect x="40" y="292" width="150" height="52" fill="#0f2336" rx="7" stroke="#8FD6EA" stroke-width="0.8" stroke-opacity="0.35"/>
+  <text x="115" y="314" text-anchor="middle" fill="#E8F4F8" font-size="12" font-weight="600">AI clients</text>
+  <text x="115" y="331" text-anchor="middle" fill="#5a8090" font-size="10">Claude · MCP · REST API · ...</text>
+
+  <!-- INPUT → ENGINE arrow -->
+  <line x1="208" y1="210" x2="234" y2="210" stroke="#8FD6EA" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- ── CENTER: BIOMATE ENGINE ──────────────────── -->
+  <rect x="238" y="38" width="484" height="344" fill="url(#cg)" rx="12"
+        stroke="#8FD6EA" stroke-width="1.4" stroke-opacity="0.45"/>
+  <text x="480" y="62" text-anchor="middle" fill="#8FD6EA" font-size="11" font-weight="700" letter-spacing="3">BIOMATE</text>
+
+  <!-- Row 1: Understand & Route -->
+  <rect x="260" y="76" width="440" height="72" fill="#0c1e30" rx="8"
+        stroke="#8FD6EA" stroke-width="0.9" stroke-opacity="0.45"/>
+  <text x="480" y="105" text-anchor="middle" fill="#E8F4F8" font-size="14" font-weight="700">Understand &amp; Route</text>
+  <text x="480" y="124" text-anchor="middle" fill="#5a8090" font-size="11">Intent · Context · Workflow selection · Parameter inference · ...</text>
+
+  <!-- down arrow row1→row2 left -->
+  <line x1="360" y1="150" x2="360" y2="166" stroke="#8FD6EA" stroke-width="1.2" stroke-opacity="0.4" marker-end="url(#arr)"/>
+  <!-- down arrow row1→row2 right -->
+  <line x1="600" y1="150" x2="600" y2="166" stroke="#8FD6EA" stroke-width="1.2" stroke-opacity="0.4" marker-end="url(#arr)"/>
+
+  <!-- Row 2 left: Workflow Library -->
+  <rect x="260" y="168" width="210" height="100" fill="#091827" rx="8"
+        stroke="#a6e2c4" stroke-width="0.9" stroke-opacity="0.5"/>
+  <text x="365" y="196" text-anchor="middle" fill="#a6e2c4" font-size="12" font-weight="700">Workflow Library</text>
+  <text x="365" y="222" text-anchor="middle" fill="#E8F4F8" font-size="22" font-weight="800">4,000+</text>
+  <text x="365" y="244" text-anchor="middle" fill="#5a8090" font-size="10">37 domains · 1,818 Bioconductor pkg · ...</text>
+
+  <!-- Row 2 right: Cloud Execution -->
+  <rect x="490" y="168" width="210" height="100" fill="#091827" rx="8"
+        stroke="#8FD6EA" stroke-width="0.9" stroke-opacity="0.5"/>
+  <text x="595" y="196" text-anchor="middle" fill="#8FD6EA" font-size="12" font-weight="700">Cloud Execution</text>
+  <text x="595" y="220" text-anchor="middle" fill="#5a8090" font-size="10">Nextflow · container-pinned</text>
+  <text x="595" y="238" text-anchor="middle" fill="#5a8090" font-size="10">GPU + CPU · scalable</text>
+  <text x="595" y="256" text-anchor="middle" fill="#5a8090" font-size="10">reproducible by design · ...</text>
+
+  <!-- down arrows row2→row3 -->
+  <line x1="365" y1="270" x2="365" y2="288" stroke="#a6e2c4" stroke-width="1.2" stroke-opacity="0.4" marker-end="url(#arr-g)"/>
+  <line x1="595" y1="270" x2="595" y2="288" stroke="#8FD6EA" stroke-width="1.2" stroke-opacity="0.4" marker-end="url(#arr)"/>
+
+  <!-- Row 3: QC + Auto-loop -->
+  <rect x="260" y="290" width="440" height="78" fill="#0c1e30" rx="8"
+        stroke="#f5cd87" stroke-width="0.9" stroke-opacity="0.4"/>
+  <text x="480" y="318" text-anchor="middle" fill="#f5cd87" font-size="12" font-weight="700">QC + Auto-loop</text>
+  <text x="480" y="337" text-anchor="middle" fill="#5a8090" font-size="10">GOLD · SILVER · BRONZE grading</text>
+  <text x="480" y="353" text-anchor="middle" fill="#5a8090" font-size="10">QC fail → auto-fix → re-run · no manual intervention</text>
+
+  <!-- ENGINE → OUTPUT arrow -->
+  <line x1="724" y1="210" x2="750" y2="210" stroke="#a6e2c4" stroke-width="2" marker-end="url(#arr-g)"/>
+
+  <!-- ── RIGHT: OUTPUT ───────────────────────────── -->
+  <rect x="754" y="54" width="182" height="312" fill="#0d1d2e" rx="10" stroke="#1e3a54" stroke-width="1.2"/>
+  <text x="845" y="78" text-anchor="middle" fill="#a6e2c4" font-size="10" font-weight="700" letter-spacing="2.5">RESULTS</text>
+
+  <!-- pill: Structured results -->
+  <rect x="770" y="94" width="150" height="52" fill="#0f2336" rx="7" stroke="#a6e2c4" stroke-width="0.8" stroke-opacity="0.35"/>
+  <text x="845" y="116" text-anchor="middle" fill="#E8F4F8" font-size="12" font-weight="600">Structured output</text>
+  <text x="845" y="133" text-anchor="middle" fill="#5a8090" font-size="10">figures · tables · data · ...</text>
+
+  <!-- pill: QC grade -->
+  <rect x="770" y="160" width="150" height="52" fill="#0f2336" rx="7" stroke="#f5cd87" stroke-width="0.8" stroke-opacity="0.4"/>
+  <text x="845" y="182" text-anchor="middle" fill="#f5cd87" font-size="12" font-weight="600">QC grade</text>
+  <text x="845" y="199" text-anchor="middle" fill="#5a8090" font-size="10">Gold · Silver · Bronze</text>
+
+  <!-- pill: Audit trail -->
+  <rect x="770" y="226" width="150" height="52" fill="#0f2336" rx="7" stroke="#8FD6EA" stroke-width="0.8" stroke-opacity="0.35"/>
+  <text x="845" y="248" text-anchor="middle" fill="#E8F4F8" font-size="12" font-weight="600">Audit trail</text>
+  <text x="845" y="265" text-anchor="middle" fill="#5a8090" font-size="10">immutable · reproducible</text>
+
+  <!-- pill: Reports -->
+  <rect x="770" y="292" width="150" height="52" fill="#0f2336" rx="7" stroke="#8FD6EA" stroke-width="0.8" stroke-opacity="0.35"/>
+  <text x="845" y="314" text-anchor="middle" fill="#E8F4F8" font-size="12" font-weight="600">Reports</text>
+  <text x="845" y="331" text-anchor="middle" fill="#5a8090" font-size="10">methods · IND · CRO packages · ...</text>
+
+  <!-- Footer caption -->
+  <text x="480" y="404" text-anchor="middle" fill="#2a4a5a" font-size="10">BioMate AI — biomate.ai</text>
+</svg>

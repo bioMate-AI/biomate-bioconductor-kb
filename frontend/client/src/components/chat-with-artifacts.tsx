@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
+import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { useWorkflowTour } from "./workflow-tour"
 import { ChatInterface } from "./chat-interface"
 import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
@@ -49,6 +50,8 @@ interface ChatWithArtifactsProps {
   /** Called when the workflow panel opens (true) or closes (false).
    *  Parent uses this to auto-collapse the sidebar for more screen space. */
   onWorkflowPanelOpenChange?: (open: boolean) => void
+  /** Pre-filled query from the marketing hero input — auto-submitted once the chat is ready. */
+  initialMessage?: string
 }
 type RunManagerScope = 'current_chat' | 'all_chats'
 type RunManagerSort = 'updated_desc' | 'running_first' | 'failed_first'
@@ -83,7 +86,7 @@ function shortenId(raw?: string, prefix = "", maxLen = 8): string {
  * Chat-first layout: Full-width chat with workflows displayed inline as artifacts.
  * No split panel - workflows appear as collapsible cards within chat messages.
  */
-export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflowPanelOpenChange }: ChatWithArtifactsProps) {
+export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflowPanelOpenChange, initialMessage }: ChatWithArtifactsProps) {
   // Lift useAfterRunFlavor() out of the JSX (was inlined at line ~1883). The
   // inline call was conditional on JSX ancestors that mounted/unmounted per
   // render, so React detected a different hook-call count between renders and
@@ -127,6 +130,14 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   const [runSort, setRunSort] = useState<RunManagerSort>("updated_desc")
   const [focusedRunId, setFocusedRunId] = useState<string | null>(null)
   const [runAnchorRequestId, setRunAnchorRequestId] = useState(0)
+  // ── Mobile detection ───────────────────────────────────────────────────────
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768)
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+
   // ── Right panel (workflow panel) ────────────────────────────────────────────
   const [panelOpen, setPanelOpen] = useState(false)
   const [panelWorkflowMessageId, setPanelWorkflowMessageId] = useState<string | null>(null)
@@ -436,6 +447,16 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   const sendChatMessageRef = useRef<
     ((message: string, contextOverride?: Record<string, unknown>) => void) | undefined
   >(undefined)
+  // State flag flipped when the sender is registered — triggers the effect below.
+  const [senderReady, setSenderReady] = useState(false)
+  const sentInitialRef = useRef(false)
+  // Auto-submit the pending query from the marketing page once the chat sender is ready.
+  useEffect(() => {
+    if (!initialMessage || sentInitialRef.current || !sendChatMessageRef.current) return
+    sentInitialRef.current = true
+    sendChatMessageRef.current(initialMessage)
+  }, [senderReady, initialMessage]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const [postRunSurveyContext, setPostRunSurveyContext] = useState<{
     runId: string
     runStatus: 'completed' | 'failed' | 'cancelled'
@@ -1856,8 +1877,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
 
       {/* Split layout: Chat (left, flexible) + Workflow Panel (right, fixed 420px) */}
       <div className={`flex-1 overflow-hidden flex ${panelOpen ? "gap-0" : ""}`}>
-        {/* Center: Chat */}
-        <div className="flex-1 overflow-hidden min-w-0">
+        {/* Center: Chat — hidden on mobile when workflow panel is open */}
+        <div className={`overflow-hidden min-w-0 ${isMobile && panelOpen ? 'hidden' : 'flex-1'}`}>
           {pendingStructuralEdits.length > 0 && (
             <div
               data-testid="workflow-edits-pending"
@@ -1969,42 +1990,79 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             panelWorkflowMessageId={panelWorkflowMessageId}
             isPanelOpen={panelOpen}
             onRegisterSetDraft={(setter) => { setChatDraftRef.current = setter }}
-            onRegisterSendMessage={(sender) => { sendChatMessageRef.current = sender }}
+            onRegisterSendMessage={(sender) => { sendChatMessageRef.current = sender; setSenderReady(true) }}
           />
+          {/* Mobile: floating button to re-open the workflow panel when it's been dismissed */}
+          {isMobile && !panelOpen && panelWorkflow && (
+            <div style={{ position: 'absolute', bottom: 72, right: 16, zIndex: 20 }}>
+              <button
+                onClick={() => setPanelOpen(true)}
+                data-testid="button-mobile-open-panel"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '8px 14px', borderRadius: 999,
+                  background: 'oklch(0.45 0.18 240)', color: 'white',
+                  fontSize: 13, fontWeight: 600, boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
+                  border: 'none', cursor: 'pointer',
+                }}
+              >
+                <Layers className="h-4 w-4" /> View Workflow
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Right: Workflow Panel — auto-opens when AI returns a workflow */}
         {panelOpen && (
           <div
             className="flex-shrink-0 border-l bg-background flex flex-col overflow-hidden relative"
-            style={{ width: panelWidth, minWidth: 320, maxWidth: 900 }}
+            style={isMobile
+              ? { width: '100vw', minWidth: 0, maxWidth: '100vw' }
+              : { width: panelWidth, minWidth: 320, maxWidth: 900 }}
             data-testid="workflow-right-panel"
           >
-            {/* Drag handle — grab to resize panel width */}
-            <div
-              className="absolute top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-10 select-none"
-              style={{ left: -3 }}
-              onMouseDown={handlePanelResizeStart}
-              title="Drag to resize panel"
-            />
-            {/* Slim chrome bar — Tutorial + Close only; panel-head owns the workflow title */}
-            <div className="flex items-center justify-end gap-2 px-3 py-1 border-b flex-shrink-0" style={{ minHeight: 36 }}>
-              <button
-                className="tut-btn"
-                onClick={startTour}
-                title="Start the workflow panel tutorial"
-                data-testid="button-start-tour"
-              >
-                <span style={{ fontSize: 9 }}>▶</span> Tutorial
-              </button>
-              <button
-                onClick={handleClosePanelWorkflow}
-                className="rounded-sm p-1 hover:bg-muted"
-                aria-label="Close workflow panel"
-                data-testid="workflow-panel-close"
-              >
-                <X className="h-4 w-4" />
-              </button>
+            {/* Drag handle — desktop only */}
+            {!isMobile && (
+              <div
+                className="absolute top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-10 select-none"
+                style={{ left: -3 }}
+                onMouseDown={handlePanelResizeStart}
+                title="Drag to resize panel"
+              />
+            )}
+            {/* Slim chrome bar */}
+            <div className="flex items-center gap-2 px-3 py-1 border-b flex-shrink-0" style={{ minHeight: 36 }}>
+              {/* Mobile: back-to-chat button on the left */}
+              {isMobile && (
+                <button
+                  onClick={handleClosePanelWorkflow}
+                  className="flex items-center gap-1 rounded-sm px-2 py-1 hover:bg-muted text-sm font-medium"
+                  aria-label="Back to chat"
+                  data-testid="workflow-panel-back"
+                >
+                  ← Chat
+                </button>
+              )}
+              <div className="ml-auto flex items-center gap-2">
+                {!isMobile && (
+                  <button
+                    className="tut-btn"
+                    onClick={startTour}
+                    title="Start the workflow panel tutorial"
+                    data-testid="button-start-tour"
+                  >
+                    <span style={{ fontSize: 9 }}>▶</span> Tutorial
+                  </button>
+                )}
+                <button
+                  onClick={handleClosePanelWorkflow}
+                  className="rounded-sm p-1 hover:bg-muted"
+                  aria-label="Close workflow panel"
+                  data-testid="workflow-panel-close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
             {/* v2 after-run 7-tab report — gated by ?afterrun=v2 flag, shown

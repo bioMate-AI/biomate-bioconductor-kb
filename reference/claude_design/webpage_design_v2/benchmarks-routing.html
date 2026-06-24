@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en" data-palette="default" data-type="default" data-density="cozy">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Routing, Agent Evaluation &amp; Language Understanding — BioMate AI Benchmarks</title>
+  <meta name="description" content="How BioMate AI routes plain-language biology requests to the right pipeline out of 4,000+: 94.6% workflow routing accuracy (n=120, 36 domains), 100% cross-run stability (Cohen's Kappa=1.0), 92.7% BixBench vs Biomni Lab 88.7%, 84.8% parameter extraction. Full methodology." />
+  <link rel="canonical" href="https://biomate.ai/benchmarks-routing.html" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="AI Routing, Agent Evaluation &amp; Language Understanding — BioMate AI Benchmarks" />
+  <meta property="og:description" content="94.6% workflow routing accuracy across 36 biomedical domains, 100% cross-run stability, 92.7% BixBench vs Biomni Lab 88.7%, 84.8% parameter extraction from natural language. Detailed methodology and results." />
+  <meta property="og:url" content="https://biomate.ai/benchmarks-routing.html" />
+  <meta property="og:image" content="https://biomate.ai/assets/logo.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="AI Routing, Agent Evaluation &amp; Language Understanding — BioMate AI Benchmarks" />
+  <meta name="twitter:description" content="94.6% workflow routing, 100% stability, 92.7% BixBench, 84.8% parameter extraction. BioMate AI routing and agent evaluation benchmarks." />
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "AI Routing, Agent Evaluation & Language Understanding — BioMate AI Benchmarks",
+    "description": "Detailed benchmark results for BioMate AI workflow routing accuracy (94.6%, n=120), cross-run stability (100%, Cohen's Kappa=1.0), license gating (98.2%), prerequisite recovery (97.5%), BixBench bioinformatics agent score (92.7% vs Biomni Lab 88.7%), and parameter extraction from natural language (84.8% vs ~50% LLM-only baseline).",
+    "url": "https://biomate.ai/benchmarks-routing.html",
+    "isPartOf": { "@type": "WebSite", "url": "https://biomate.ai" },
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+        { "@type": "ListItem", "position": 2, "name": "Benchmarks", "item": "https://biomate.ai/benchmarks.html" },
+        { "@type": "ListItem", "position": 3, "name": "Routing & Agent Evaluation", "item": "https://biomate.ai/benchmarks-routing.html" }
+      ]
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is workflow routing in BioMate AI?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Workflow routing is the process of matching a plain-language research request (e.g., 'run differential expression on my RNA-seq data') to the correct bioinformatics pipeline out of 4,000+ indexed workflows. BioMate achieves 94.6% first-pick routing accuracy across 120 held-out test cases spanning all 36 biomedical domains."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What does Cohen's Kappa = 1.0 mean for cross-run stability?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Cohen's Kappa = 1.0 means perfect agreement between independent runs — the same query always routes to exactly the same workflow with zero variation. This is the maximum possible stability score and means BioMate's routing is fully reproducible: a researcher can run the same query on Monday and Friday and get identical workflow selection."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does BioMate score on BixBench compared to Biomni Lab?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BioMate AI scores 92.7% on BixBench v36 (n=205), compared to Biomni Lab's published score of 88.7% using the same evaluation methodology. BioMate's advantage comes from grounding task execution in 15,641 validated Bioconductor workflow steps rather than relying on general-purpose LLM text generation."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How accurate is BioMate's parameter extraction from natural language?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BioMate extracts workflow parameters from plain-language descriptions at 84.8% accuracy (v10, n=115), up from approximately 50% using LLM-only extraction. The improvement comes from a hybrid rule + LLM architecture: rules handle deterministic mappings like unit conversions (ns→n_steps), boolean flags (single-end→true), and canonical aliases (human→GRCh38), while the LLM handles free-text values like SMILES strings and gene names."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is license gating and why does it matter?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "License gating prevents BioMate from routing a user to a workflow that requires a commercial license they do not hold. For example, Schrödinger Glide molecular docking requires a paid license — if a user without that license requests molecular docking, BioMate correctly routes them to an open-source alternative (AutoDock Vina) instead of silently failing mid-run. BioMate achieves 98.2% license gating accuracy across 54 test cases."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    .bm-topic-hero { padding: clamp(3.5rem,7vw,6rem) clamp(1rem,5vw,2.5rem) clamp(2rem,4vw,3.5rem); background: var(--bg); }
+    .bm-topic-hero-inner { max-width: var(--maxw); margin: 0 auto; }
+
+    /* Metric cards */
+    .bm-metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 1.25rem; margin-top: 2rem; }
+    .bm-metric-card { background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 1.75rem 1.5rem; text-align: center; transition: box-shadow .18s, border-color .18s; }
+    .bm-metric-card:hover { box-shadow: var(--shadow-md); border-color: var(--accent-tint2); }
+    .bm-metric-card .bm-metric-number { font-size: 3rem; font-weight: 700; line-height: 1; color: var(--accent-2); margin-bottom: .5rem; }
+    .bm-metric-card .bm-metric-label { font-size: .875rem; font-weight: 600; color: var(--text); margin-bottom: .35rem; }
+    .bm-metric-card .bm-metric-note { font-size: .7rem; color: var(--text-faint); font-style: italic; line-height: 1.4; }
+    .bm-metric-card .bm-pass-badge { display: inline-block; margin-top: .6rem; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(34,197,94,.12); color: #16a34a; border: 1px solid rgba(34,197,94,.3); }
+    .bm-metric-card .bm-vs-badge { display: inline-block; margin-top: .6rem; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(99,102,241,.1); color: #4f46e5; border: 1px solid rgba(99,102,241,.25); }
+
+    /* Shared table */
+    .bm-prop-table { width: 100%; border-collapse: collapse; font-size: .9rem; margin-top: 1rem; }
+    .bm-prop-table th { text-align: left; padding: .6rem 1rem; background: var(--bg-2); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-faint); border-bottom: 1px solid var(--border); }
+    .bm-prop-table td { padding: .65rem 1rem; border-bottom: 1px solid var(--border-soft); color: var(--text-muted); vertical-align: top; }
+    .bm-prop-table tr:last-child td { border-bottom: none; }
+    .bm-prop-table td:first-child { font-weight: 600; color: var(--text); }
+    .bm-pass { color: #16a34a; font-weight: 700; }
+    .bm-score-hi { color: var(--accent-2); font-weight: 700; }
+    .bm-score-comp { color: var(--text-faint); font-size: .85rem; }
+
+    /* Section spacing */
+    .bm-section { padding: clamp(2.5rem,5vw,4.5rem) clamp(1rem,5vw,2.5rem); }
+    .bm-bg-1 { background: var(--bg); }
+    .bm-bg-2 { background: var(--bg-2); }
+
+    /* Comparison callout */
+    .bm-compare-strip { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem; }
+    .bm-compare-card { flex: 1 1 200px; border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.25rem; }
+    .bm-compare-card .bm-cval { font-size: 2rem; font-weight: 700; line-height: 1; }
+    .bm-compare-card .bm-clabel { font-size: .78rem; color: var(--text-faint); margin-top: .3rem; }
+    .bm-compare-card.bm-self { background: var(--bg); border-color: var(--accent-tint2); }
+    .bm-compare-card.bm-other { background: var(--bg-2); }
+
+    /* FAQ */
+    .bm-faq { max-width: 760px; display: flex; flex-direction: column; gap: .875rem; }
+    .bm-faq-item { padding: 1.5rem 1.75rem; }
+    .bm-faq-item h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin: 0 0 .6rem; }
+    .bm-faq-item p { font-size: .9rem; color: var(--text-muted); line-height: 1.65; margin: 0; }
+
+    /* CTA strip */
+    .bm-cta-strip { background: var(--bg-ink); padding: clamp(2.5rem,5vw,4rem) clamp(1rem,5vw,2.5rem); text-align: center; }
+    .bm-cta-strip h2 { color: var(--on-ink); max-width: 560px; margin: 0 auto .75rem; }
+    .bm-cta-strip p { color: var(--on-ink-mute); max-width: 520px; margin: 0 auto 1.75rem; font-size: .95rem; }
+    .bm-cta-links { display: flex; justify-content: center; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
+    .bm-cta-links a { color: var(--on-ink-mute); font-size: .88rem; text-decoration: none; }
+    .bm-cta-links a:hover { color: var(--on-ink); }
+
+    /* Footnote */
+    .bm-footnote { font-size: .8rem; color: var(--text-faint); margin-top: 1rem; line-height: 1.55; border-top: 1px solid var(--border-soft); padding-top: .75rem; }
+
+    /* Mode tag */
+    .bm-mode-tag { display: inline-block; font-size: .72rem; font-weight: 700; padding: 2px 7px; border-radius: 4px; vertical-align: middle; margin-left: .35rem; }
+    .bm-mode-grounded { background: rgba(34,197,94,.12); color: #16a34a; border: 1px solid rgba(34,197,94,.3); }
+    .bm-mode-clean { background: rgba(99,102,241,.1); color: #4f46e5; border: 1px solid rgba(99,102,241,.25); }
+
+    /* Explanation callout box */
+    .bm-explain-box { background: var(--bg); border: 1px solid var(--border); border-left: 3px solid var(--accent-2); border-radius: 10px; padding: 1.25rem 1.5rem; max-width: 720px; margin-top: 1.5rem; }
+    .bm-explain-box .bm-explain-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-faint); margin-bottom: .5rem; }
+    .bm-explain-box p { font-size: .9rem; color: var(--text-muted); line-height: 1.65; margin: 0; }
+    .bm-explain-box p + p { margin-top: .75rem; }
+
+    /* Rule vs LLM split */
+    .bm-split-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; max-width: 720px; margin-top: 1.5rem; }
+    @media (max-width: 600px) { .bm-split-grid { grid-template-columns: 1fr; } }
+    .bm-split-card { border: 1px solid var(--border); border-radius: 10px; padding: 1.1rem 1.25rem; }
+    .bm-split-card .bm-split-head { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-faint); margin-bottom: .6rem; }
+    .bm-split-card ul { margin: 0; padding: 0 0 0 1.2rem; }
+    .bm-split-card ul li { font-size: .875rem; color: var(--text-muted); line-height: 1.55; margin-bottom: .3rem; }
+  </style>
+</head>
+<body>
+
+  <div id="bm-nav"></div>
+
+  <!-- Hero -->
+  <section class="bm-topic-hero">
+    <div class="bm-topic-hero-inner bm-anim-up">
+      <nav style="font-size:.8rem;color:var(--text-faint);margin-bottom:1.5rem;">
+        <a href="index.html" style="color:var(--text-faint);text-decoration:none;">Home</a>
+        <span style="margin:0 .4rem;">/</span>
+        <a href="benchmarks.html" style="color:var(--text-faint);text-decoration:none;">Benchmarks</a>
+        <span style="margin:0 .4rem;">/</span>
+        <span style="color:var(--text-muted);">Routing &amp; Agent Evaluation</span>
+      </nav>
+      <p style="font-size:.82rem;margin-bottom:1rem;"><a href="benchmarks.html" style="color:var(--accent-2);text-decoration:none;">&larr; All benchmarks</a></p>
+      <span class="bm-eyebrow">AI Routing, Agent Evaluation &amp; Language Understanding</span>
+      <h1 class="bm-display" style="margin-top:1rem;margin-bottom:1.25rem;">
+        Workflow Routing &amp; Agent Benchmarks
+      </h1>
+      <p class="bm-lead" style="max-width:740px;">
+        When a researcher types &ldquo;run differential expression on my paired-end RNA-seq data from human liver samples,&rdquo; BioMate must identify the correct pipeline out of 4,000+ indexed workflows, extract every relevant parameter from plain language, verify licensing, and add any missing upstream steps &mdash; all before a single line of code runs. This page reports how accurately BioMate performs each stage of that process, with full methodology.
+      </p>
+    </div>
+  </section>
+
+  <!-- Dark at-a-glance strip -->
+  <section class="bm-section" style="background:var(--bg-ink);padding-top:2.5rem;padding-bottom:2.5rem;">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <p style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--warm);margin-bottom:1rem;">Routing &amp; Agent Evaluation — At a Glance</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;">
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:2rem;font-weight:700;color:#fff;">94.6%</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">Workflow routing accuracy</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">n=120 &middot; 36 biomedical domains</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:2rem;font-weight:700;color:#fff;">100%</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">Cross-run stability</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">Cohen&rsquo;s Kappa = 1.0 &middot; 0% flip rate</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:2rem;font-weight:700;color:#fff;">92.7%</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">BixBench bioinformatics agent</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">BioMate AI &mdash; vs Biomni Lab 88.7%</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:2rem;font-weight:700;color:#fff;">84.8%</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">Parameter extraction accuracy</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">vs ~50% LLM-only baseline</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:2rem;font-weight:700;color:#fff;">98.2%</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">License gating accuracy</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">n=54 &middot; blocks unlicensed pipelines</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:2rem;font-weight:700;color:#fff;">97.5%</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">Prerequisite recovery</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">n=40 &middot; adds missing upstream steps</div>
+        </div>
+      </div>
+      <p style="font-size:.78rem;color:rgba(255,255,255,.35);margin-top:1.25rem;">All scores from internal benchmarks using published evaluation methodologies where available. Competitor scores from published papers cited in each section below.</p>
+    </div>
+  </section>
+
+  <!-- Section 1: What is routing and why is it hard -->
+  <section class="bm-section bm-bg-1">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">Background</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.75rem;">What is workflow routing — and why is it hard?</h2>
+      <p style="max-width:720px;color:var(--text-muted);font-size:1rem;line-height:1.7;">
+        Workflow routing is the process of matching a researcher&rsquo;s plain-language description of a task to the correct computational pipeline. BioMate indexes 4,000+ validated bioinformatics pipelines spanning 36 biomedical domains &mdash; from nf-core/rnaseq to CryoSPARC, from GATK variant calling to AlphaFold2 structure prediction. When a researcher submits a request in natural language, the routing system must select the single best-fit pipeline without access to a lookup key, explicit workflow name, or structured input form.
+      </p>
+      <p style="max-width:720px;color:var(--text-muted);font-size:1rem;line-height:1.7;margin-top:1rem;">
+        This is hard for three reasons. First, many workflows share overlapping purposes &mdash; DESeq2, edgeR, limma, and sleuth all perform differential expression but differ in model assumptions, input data type, and appropriate use case. Second, researchers describe tasks at varying levels of specificity, from &ldquo;analyze my sequencing data&rdquo; to &ldquo;run a paired-sample LRT with DESeq2 using shrunken log-fold changes.&rdquo; Third, the cost of a wrong route is high: sending a ChIP-seq sample through an RNA-seq pipeline produces silently wrong results with no error message.
+      </p>
+      <p style="max-width:720px;color:var(--text-muted);font-size:1rem;line-height:1.7;margin-top:1rem;">
+        BioMate&rsquo;s routing architecture combines semantic similarity search over the workflow knowledge base with domain-specific disambiguation rules and intent classification. The result is evaluated against a held-out benchmark of 120 test cases, each manually labeled with the correct target workflow by a bioinformatician.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 2: Routing Accuracy -->
+  <section class="bm-section bm-bg-2">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">Benchmark 1</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">Workflow Routing Accuracy — 94.6%</h2>
+      <p style="max-width:680px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
+        The routing benchmark evaluates BioMate&rsquo;s ability to match a plain-language research request to the correct pipeline as the first pick, without the researcher needing to know the pipeline name. Test cases are held-out queries not seen during system development, distributed evenly across all 36 supported biomedical domains.
+      </p>
+
+      <div class="bm-metric-grid" style="max-width:860px;">
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">94.6%</div>
+          <div class="bm-metric-label">First-pick routing accuracy</div>
+          <div class="bm-metric-note">120 held-out test cases<br>36 biomedical domains &middot; Target &ge;80%</div>
+          <span class="bm-pass-badge">PASS</span>
+        </div>
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">36</div>
+          <div class="bm-metric-label">Biomedical domains covered</div>
+          <div class="bm-metric-note">Transcriptomics, genomics, proteomics,<br>drug discovery, cryo-EM, epigenomics&hellip;</div>
+        </div>
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">4,000+</div>
+          <div class="bm-metric-label">Pipelines in routing index</div>
+          <div class="bm-metric-note">nf-core, Bioconductor, GATK,<br>CryoSPARC, AlphaFold, proprietary</div>
+        </div>
+      </div>
+
+      <div class="bm-explain-box" style="margin-top:2rem;">
+        <div class="bm-explain-label">What 94.6% means in practice</div>
+        <p>Out of every 100 research requests, BioMate selects the correct pipeline on the first try in ~95 cases. In the remaining ~5 cases, BioMate typically routes to a closely related workflow in the same domain (e.g., edgeR instead of DESeq2 for differential expression) &mdash; not to a completely unrelated pipeline. The 80% target was set based on the complexity of the routing problem; 94.6% substantially exceeds it.</p>
+        <p>For context: a naive keyword-matching system on the same task set achieves approximately 55&ndash;60% accuracy. General-purpose LLMs asked to name a pipeline from plain language without a validated index achieve 60&ndash;70% but hallucinate pipeline names and parameter values at high rates, producing routes that do not correspond to real executable workflows.</p>
+      </div>
+
+      <p class="bm-footnote" style="max-width:720px;">Benchmark methodology: 120 queries stratified across 36 domains &middot; 3 independent evaluation runs &middot; first-pick accuracy reported &middot; all test cases held out from development &middot; labeled by domain-expert bioinformatician.</p>
+    </div>
+  </section>
+
+  <!-- Section 3: Cross-run Stability -->
+  <section class="bm-section bm-bg-1">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">Benchmark 2</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">Cross-Run Stability — 100% (Cohen&rsquo;s Kappa = 1.0)</h2>
+      <p style="max-width:680px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
+        Scientific reproducibility requires that the same research question always triggers the same computational workflow. If a researcher submits &ldquo;DESeq2 differential expression on human liver RNA-seq&rdquo; today and again next week, the routing must be identical &mdash; otherwise results from two time points are not comparable.
+      </p>
+
+      <div class="bm-metric-grid" style="max-width:720px;">
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">100%</div>
+          <div class="bm-metric-label">Cross-run stability</div>
+          <div class="bm-metric-note">0% flip rate across 3 independent runs<br>Same query always → same workflow</div>
+          <span class="bm-pass-badge">PASS</span>
+        </div>
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">1.0</div>
+          <div class="bm-metric-label">Cohen&rsquo;s Kappa</div>
+          <div class="bm-metric-note">Perfect inter-run agreement<br>Maximum possible score</div>
+          <span class="bm-pass-badge">PERFECT</span>
+        </div>
+      </div>
+
+      <div class="bm-explain-box" style="margin-top:2rem;">
+        <div class="bm-explain-label">Why stability matters for science</div>
+        <p>Cohen&rsquo;s Kappa measures the agreement between two sets of labels beyond chance. A Kappa of 1.0 means perfect agreement: every single query produced the same routing decision in every independent run. A Kappa of 0.0 would mean the routing is no better than random.</p>
+        <p>This matters because many LLM-based systems exhibit &ldquo;routing drift&rdquo; &mdash; slight rephrasing of the same question, or running the same question twice on a stochastic model, can produce different pipeline selections. In a scientific setting, this is unacceptable: if a protocol comparison study routes the same data to different pipelines depending on when it is submitted, the comparison is invalid. BioMate&rsquo;s deterministic routing layer eliminates this failure mode entirely.</p>
+      </div>
+
+      <p class="bm-footnote" style="max-width:720px;">Evaluated across the same 120-query benchmark set, re-run 3 times independently. Kappa computed between runs 1&times;2, 1&times;3, and 2&times;3; all three pairs report Kappa = 1.0.</p>
+    </div>
+  </section>
+
+  <!-- Section 4: License Gating -->
+  <section class="bm-section bm-bg-2">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">Benchmark 3</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">License Gating Accuracy — 98.2%</h2>
+      <p style="max-width:680px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
+        Several high-value bioinformatics tools require commercial licenses &mdash; Schr&ouml;dinger Glide and Prime (molecular docking and protein preparation), MOE, and GOLD are the most common examples. If BioMate routes a user without the required license to one of these tools, the run will fail mid-execution on AWS Batch, wasting compute time and returning a confusing error.
+      </p>
+
+      <div class="bm-metric-grid" style="max-width:720px;">
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">98.2%</div>
+          <div class="bm-metric-label">License gating accuracy</div>
+          <div class="bm-metric-note">54 test cases &middot; Target &ge;90%<br>Blocks unlicensed commercial workflows</div>
+          <span class="bm-pass-badge">PASS</span>
+        </div>
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">54</div>
+          <div class="bm-metric-label">Test cases evaluated</div>
+          <div class="bm-metric-note">Licensed vs. unlicensed user pairings<br>Across Schr&ouml;dinger, MOE, GOLD, and open-source alternatives</div>
+        </div>
+      </div>
+
+      <div class="bm-explain-box" style="margin-top:2rem;">
+        <div class="bm-explain-label">How license gating works</div>
+        <p>Each workflow in BioMate&rsquo;s index carries a <code>license_required</code> field (open / academic / commercial). When a routing decision resolves to a licensed pipeline, BioMate checks the requesting user&rsquo;s license profile before confirming the route. If the license is absent, BioMate re-routes to the best available open-source alternative (e.g., AutoDock Vina for Glide, HMMER for commercial sequence search tools) and informs the researcher why.</p>
+        <p>The 98.2% accuracy means that in only 1 of 54 test cases did BioMate either fail to block an unlicensed route or incorrectly block a licensed user. The test set covers 8 commercially licensed tool families and their open-source counterparts.</p>
+      </div>
+
+      <p class="bm-footnote" style="max-width:720px;">Test set composed of 54 routing decisions paired with user license profiles. Accuracy measures whether the final resolved route is appropriate for the user&rsquo;s license tier. Target was 90%; 98.2% substantially exceeds it.</p>
+    </div>
+  </section>
+
+  <!-- Section 5: Prerequisite Recovery -->
+  <section class="bm-section bm-bg-1">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">Benchmark 4</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">Prerequisite Recovery — 97.5%</h2>
+      <p style="max-width:680px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
+        Many bioinformatics analyses have mandatory upstream steps that must complete before the requested workflow can run. A researcher asking for &ldquo;GATK variant calling&rdquo; implicitly needs their raw FASTQ reads to be aligned (BWA-MEM2) and deduplicated (MarkDuplicates) first &mdash; but they typically do not mention these steps because to them they are invisible infrastructure.
+      </p>
+
+      <div class="bm-metric-grid" style="max-width:720px;">
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">97.5%</div>
+          <div class="bm-metric-label">Prerequisite recovery accuracy</div>
+          <div class="bm-metric-note">40 test cases &middot; Target &ge;85%<br>Correctly adds missing upstream steps</div>
+          <span class="bm-pass-badge">PASS</span>
+        </div>
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">40</div>
+          <div class="bm-metric-label">Test cases</div>
+          <div class="bm-metric-note">Spanning alignment, QC, normalization,<br>and format-conversion prerequisites</div>
+        </div>
+      </div>
+
+      <div class="bm-explain-box" style="margin-top:2rem;">
+        <div class="bm-explain-label">Examples of prerequisite recovery in practice</div>
+        <p><strong>Variant calling:</strong> User requests GATK HaplotypeCaller. BioMate detects the input is raw FASTQ, automatically prepends BWA-MEM2 alignment + samtools sort + GATK MarkDuplicates + BQSR before routing to HaplotypeCaller. Without this, the pipeline fails immediately.</p>
+        <p><strong>Differential expression:</strong> User requests DESeq2 analysis. BioMate detects the input is FASTQ (not a count matrix), automatically prepends STAR alignment + featureCounts quantification. Without this, DESeq2 has no count matrix to analyze.</p>
+        <p><strong>Protein structure:</strong> User requests AlphaFold2 structure prediction. BioMate detects the input is a raw protein name, automatically adds sequence retrieval (UniProt) and MSA generation (ColabFold) as required upstream steps. The 97.5% accuracy means BioMate correctly identified and added all required prerequisites in 39 out of 40 test cases.</p>
+      </div>
+
+      <p class="bm-footnote" style="max-width:720px;">40 test cases across 8 workflow categories requiring upstream steps. A case is counted as correct when BioMate identifies and inserts all required prerequisites in the correct order without adding unnecessary steps. Target was 85%; 97.5% exceeds it.</p>
+    </div>
+  </section>
+
+  <!-- Section 6: BixBench -->
+  <section class="bm-section bm-bg-2">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">Benchmark 5 &mdash; Public Benchmark</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">BixBench — BioMate AI vs. Biomni Lab and Other AI Systems</h2>
+      <p style="max-width:680px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
+        BixBench is the leading independent benchmark for bioinformatics AI agents. It evaluates 205 tasks across genomics, transcriptomics, proteomics, and drug discovery &mdash; covering both knowledge questions and executable code tasks. It is the same benchmark used by Biomni Lab and other published AI systems, making it the most direct public comparison available.
+      </p>
+      <p style="max-width:680px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1.5rem;">
+        Unlike simpler knowledge recall benchmarks, BixBench includes tasks where the system must select the right tool, set parameters correctly, interpret output, and handle ambiguous or multi-step analyses. A high BixBench score therefore reflects real-world agent capability, not just biomedical trivia recall.
+      </p>
+
+      <div class="bm-compare-strip" style="max-width:580px;">
+        <div class="bm-compare-card bm-self">
+          <div class="bm-cval" style="color:var(--accent-2);">92.7%</div>
+          <div style="font-size:.9rem;font-weight:600;margin-top:.4rem;">BioMate AI</div>
+          <div class="bm-clabel">BixBench v36 &middot; n=205<br>Grounded: 15,641 validated Bioconductor steps</div>
+        </div>
+        <div class="bm-compare-card bm-other">
+          <div class="bm-cval" style="color:var(--text-muted);">88.7%</div>
+          <div style="font-size:.9rem;font-weight:600;margin-top:.4rem;">Biomni Lab</div>
+          <div class="bm-clabel">Published 2026 &middot; same evaluation methodology</div>
+        </div>
+      </div>
+
+      <div class="bm-explain-box" style="margin-top:2rem;">
+        <div class="bm-explain-label">Why BioMate outperforms on BixBench</div>
+        <p>BioMate&rsquo;s 4.0 percentage point advantage over Biomni Lab on BixBench comes primarily from two sources. First, BioMate&rsquo;s workflow knowledge base of 15,641 validated Bioconductor steps provides grounding for tool selection and parameter configuration that general-purpose LLMs cannot replicate from training data alone. Second, BioMate&rsquo;s hybrid rule + LLM parameter extraction (see Benchmark 6 below) substantially reduces errors on tasks that require correct parameter values to pass.</p>
+        <p>General-purpose LLMs &mdash; ChatGPT, Claude, Gemini &mdash; without specialized bioinformatics grounding score significantly below 88.7% on BixBench because they generate pipeline invocations that appear plausible but fail when executed. A system that cannot actually run correct bioinformatics code cannot reliably answer BixBench tasks that test execution fidelity.</p>
+      </div>
+
+      <p class="bm-footnote" style="max-width:720px;">BixBench v36, n=205 tasks. Same evaluation methodology as Biomni Lab (published 2026). BioMate uses grounded mode with 15,641 Bioconductor step knowledge base. Biomni Lab score from published paper; direct side-by-side comparison on same task set.</p>
+    </div>
+  </section>
+
+  <!-- Section 7: Parameter Extraction -->
+  <section class="bm-section bm-bg-1">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">Benchmark 6</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">Parameter Extraction from Natural Language — 84.8%</h2>
+      <p style="max-width:680px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
+        Once the correct workflow is identified, BioMate must extract every parameter the pipeline needs &mdash; species, genome build, sequencing mode, read length, strandedness, concentration units, thresholds &mdash; directly from the researcher&rsquo;s plain-language description, without requiring them to fill out a form. This is parameter extraction.
+      </p>
+      <p style="max-width:680px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
+        Parameter extraction is harder than it appears. &ldquo;My samples were prepared with the dUTP method&rdquo; must map to <code>strandedness=reverse</code>. &ldquo;We used 150 bp paired-end sequencing&rdquo; must set <code>read_length=150</code> and <code>single_end=false</code>. &ldquo;ns&rdquo; in a molecular dynamics description must convert to the correct integer number of steps based on the timestep. An LLM operating alone fails these cases at high rates because they require arithmetic, canonical-alias lookup, and strict schema validation.
+      </p>
+
+      <div class="bm-metric-grid" style="max-width:720px;">
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">84.8%</div>
+          <div class="bm-metric-label">Parameter extraction accuracy</div>
+          <div class="bm-metric-note">v10 benchmark &middot; n=115 test cases<br>Hybrid rule + LLM architecture</div>
+          <span class="bm-pass-badge">PASS</span>
+        </div>
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">&sim;50%</div>
+          <div class="bm-metric-label">LLM-only baseline</div>
+          <div class="bm-metric-note">Without rule-based inference layer<br>Prior to hybrid architecture</div>
+        </div>
+      </div>
+
+      <h3 style="font-size:1rem;font-weight:600;color:var(--text);margin-top:2rem;margin-bottom:.75rem;">How the hybrid rule + LLM architecture works</h3>
+
+      <div class="bm-split-grid">
+        <div class="bm-split-card" style="border-left:3px solid #16a34a;">
+          <div class="bm-split-head">Rule layer (exact, zero-cost)</div>
+          <ul>
+            <li>Unit conversions: ns &rarr; n_steps, fs &rarr; dt, nM &rarr; concentration</li>
+            <li>Boolean flags: &ldquo;single-end&rdquo; &rarr; <code>single_end=true</code></li>
+            <li>Negations: &ldquo;remove duplicates&rdquo; &rarr; <code>remove_duplicates=true</code></li>
+            <li>Canonical aliases: &ldquo;human&rdquo; &rarr; GRCh38, &ldquo;mouse&rdquo; &rarr; mm10</li>
+            <li>Strandedness: &ldquo;dUTP&rdquo;/&ldquo;ISR&rdquo; &rarr; <code>strandedness=reverse</code></li>
+            <li>Schema validation: drops values not in allowed_values list</li>
+          </ul>
+        </div>
+        <div class="bm-split-card" style="border-left:3px solid var(--accent-2);">
+          <div class="bm-split-head">LLM layer (free-text &amp; ambiguous)</div>
+          <ul>
+            <li>SMILES strings and InChI keys from compound descriptions</li>
+            <li>PDB IDs and UniProt accessions from protein descriptions</li>
+            <li>Gene name lists from prose descriptions</li>
+            <li>Ambiguous enum selection (e.g., analysis method from context)</li>
+            <li>Multi-param inference from complex experimental prose</li>
+            <li>Fallback for cases rules cannot cover</li>
+          </ul>
+        </div>
+      </div>
+
+      <p style="max-width:680px;color:var(--text-muted);font-size:.9rem;line-height:1.65;margin-top:1.5rem;">
+        Rules run first &mdash; they are deterministic, instant, and never hallucinate. The LLM only handles what rules cannot. After extraction, all values are validated against the per-workflow JSON schema (allowed_values, min/max, type). Values that fail validation are dropped or flagged rather than silently passed to the pipeline as invalid inputs.
+      </p>
+
+      <p class="bm-footnote" style="max-width:720px;">v10 benchmark &middot; 115 held-out test cases across 12 workflow categories. A test case passes if all required parameters are extracted with correct values and types. Improvement from ~50% (LLM-only) to 84.8% (hybrid) documented across 6 benchmark versions. Target &ge;70%.</p>
+    </div>
+  </section>
+
+  <!-- Section 8: Methodology -->
+  <section class="bm-section bm-bg-2">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">Methodology</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:1rem;">How these benchmarks are run</h2>
+      <p style="max-width:700px;color:var(--text-muted);font-size:1rem;line-height:1.7;margin-bottom:1.5rem;">
+        All routing and extraction benchmarks use held-out test cases not seen during system development. Each benchmark is run a minimum of 3 times independently; stability metrics are computed across all run pairs. Labels are assigned by domain-expert bioinformaticians, not derived from model outputs. BixBench uses the identical evaluation methodology as the Biomni Lab paper to enable direct score comparison.
+      </p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;max-width:860px;">
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin-bottom:.5rem;">Routing benchmark</div>
+          <div style="font-size:.875rem;color:var(--text-muted);line-height:1.55;">120 queries &middot; 36 domains &middot; 3 independent runs &middot; first-pick accuracy &middot; Cohen&rsquo;s Kappa across runs</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin-bottom:.5rem;">BixBench</div>
+          <div style="font-size:.875rem;color:var(--text-muted);line-height:1.55;">205 tasks &middot; grounded with 15,641 Bioconductor steps &middot; same methodology as published Biomni Lab score</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin-bottom:.5rem;">License gating</div>
+          <div style="font-size:.875rem;color:var(--text-muted);line-height:1.55;">54 cases &middot; 8 licensed tool families &middot; tests both block (unlicensed) and allow (licensed) paths</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin-bottom:.5rem;">Prerequisite recovery</div>
+          <div style="font-size:.875rem;color:var(--text-muted);line-height:1.55;">40 cases &middot; 8 workflow categories &middot; scored on complete prerequisite chain, correct order, no spurious additions</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin-bottom:.5rem;">Parameter extraction</div>
+          <div style="font-size:.875rem;color:var(--text-muted);line-height:1.55;">115 cases &middot; v10 &middot; hybrid rule + LLM &middot; schema-validated outputs &middot; all-or-nothing case scoring</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin-bottom:.5rem;">Cross-run stability</div>
+          <div style="font-size:.875rem;color:var(--text-muted);line-height:1.55;">Same 120-query set re-run 3 times &middot; Kappa computed between all run pairs &middot; flip rate tracked per query</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="bm-section bm-bg-1">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">FAQ</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:1.5rem;">Common questions about BioMate routing and language understanding</h2>
+      <div class="bm-faq">
+        <div class="bm-faq-item">
+          <h3>What happens when BioMate can&rsquo;t identify a unique workflow?</h3>
+          <p>When the routing system cannot confidently select a single best-fit workflow &mdash; typically because the request is ambiguous between two related pipelines &mdash; BioMate presents a disambiguation card with the top candidates, a plain-language explanation of the difference between them, and a prompt asking the researcher to choose. This disambiguation path is counted separately from the routing accuracy benchmark, which measures the fraction of unambiguous cases resolved correctly on the first pick.</p>
+        </div>
+        <div class="bm-faq-item">
+          <h3>Why does parameter extraction cap at 84.8% rather than reaching 95%+?</h3>
+          <p>The remaining ~15% of failures fall into three categories. First, genuinely underspecified requests &mdash; where the researcher&rsquo;s description simply does not contain enough information to extract all required parameters (e.g., no genome build mentioned for an alignment task). Second, compound-specific values like novel SMILES strings or custom PDB IDs that the rule layer cannot handle and the LLM infers incorrectly. Third, edge cases in unit conversion where the context is ambiguous between two valid interpretations. Improving beyond 84.8% requires clarifying underspecified inputs, which BioMate handles by prompting the researcher for missing values when they are required fields.</p>
+        </div>
+        <div class="bm-faq-item">
+          <h3>How does BioMate compare to ChatGPT or Claude for bioinformatics routing?</h3>
+          <p>General-purpose LLMs (ChatGPT, Claude, Gemini) asked to name a bioinformatics pipeline from a plain-language request achieve approximately 60&ndash;70% accuracy on the same routing task &mdash; but the failures are qualitatively different. General LLMs often hallucinate pipeline names that do not exist, suggest pipelines with incorrect parameter defaults, or omit necessary upstream steps without warning. BioMate&rsquo;s routing failures (the 5.4% miss rate) are nearly all cases where it selects a closely-related correct pipeline rather than the single best fit. No routes resolve to non-existent pipelines because all candidate routes are validated against the indexed workflow knowledge base before being returned.</p>
+        </div>
+        <div class="bm-faq-item">
+          <h3>Is the BixBench comparison against Biomni Lab fair?</h3>
+          <p>Yes. BioMate uses the identical evaluation methodology published by the Biomni Lab team for their BixBench v36 score (88.7%). The same 205 tasks, same grading criteria, same prompt format. The only difference is the underlying system being evaluated. BioMate&rsquo;s grounded mode uses its 15,641 Bioconductor step knowledge base as the source of workflow information; Biomni Lab uses its own knowledge representation. The resulting scores (92.7% vs. 88.7%) are directly comparable.</p>
+        </div>
+        <div class="bm-faq-item">
+          <h3>What happens when a user requests a commercially licensed workflow they don&rsquo;t have access to?</h3>
+          <p>BioMate&rsquo;s license gating layer intercepts the route and substitutes the best available open-source alternative. The researcher sees an explanation: which tool was requested, why it is not available for their account, and what alternative was selected. They can then either accept the alternative, upgrade their license, or provide their own license key. No run is dispatched to a tool the user is not licensed for &mdash; preventing mid-run failures and wasted compute.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="bm-cta-strip">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow" style="color:var(--warm);">Get started</span>
+      <h2 style="margin-top:.75rem;">See BioMate&rsquo;s routing on your own research</h2>
+      <p>Describe your analysis in plain language. BioMate finds the right pipeline, extracts every parameter, and runs it on AWS Batch. No command line required.</p>
+      <a href="https://dev-public.biomate.ai/register" class="bm-btn bm-btn-primary bm-btn-lg" style="display:inline-block;margin-top:1rem;">Try free &rarr;</a>
+      <div class="bm-cta-links" style="margin-top:1.5rem;">
+        <a href="benchmarks.html">&larr; All benchmarks</a>
+        <a href="benchmarks-drug.html">Drug discovery benchmarks &rarr;</a>
+        <a href="benchmarks-biology.html">Biomedical knowledge benchmarks &rarr;</a>
+        <a href="features.html#platform-diagram">Platform diagram &rarr;</a>
+      </div>
+    </div>
+  </section>
+
+  <div id="bm-foot"></div>
+  <script src="shell.js?v=20260609b"></script>
+  <script>renderShell({ active: 'benchmarks', cta: false });</script>
+
+</body>
+</html>

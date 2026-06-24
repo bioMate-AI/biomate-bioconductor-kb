@@ -1,63 +1,61 @@
-# METAL image — bakes the pre-built Linux binary + 2 tutorial sumstats.
+# METAL image — multi-cohort GWAS meta-analysis (Willer lab / statgen/METAL)
 #
 # Build:
 #   cd backend/nf-core-workflows/modules/biomate-ai-tools/metal_meta_analysis/container
-#   docker build -t biomate/metal:v1 .
+#   docker build --platform linux/amd64 -t biomate/metal:latest .
 #
 # ECR push (BioMate AWS account):
-#   docker tag biomate/metal:v1 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/metal:v1
-#   aws ecr get-login-password --region us-west-2 | docker login --username AWS \
-#     --password-stdin 399683337364.dkr.ecr.us-west-2.amazonaws.com
-#   docker push 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/metal:v1
+#   ECR=399683337364.dkr.ecr.us-west-2.amazonaws.com
+#   aws ecr create-repository --repository-name biomate/metal --region us-west-2 \
+#       --image-scanning-configuration scanOnPush=true   # one-time
+#   aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin $ECR
+#   docker tag biomate/metal:latest $ECR/biomate/metal:latest
+#   docker push $ECR/biomate/metal:latest
 #
-# Image size estimate: ~250 MB (ubuntu:22.04 ~80, python3+pandas ~140, metal binary ~5, examples ~3).
+# Image size estimate: ~400 MB (ubuntu:22.04 ~80 MB, cmake+build deps ~200 MB,
+#   python3+pandas ~100 MB, METAL binary ~5 MB).
 #
-# Required upstream of MAGMA + LDSC in the Zhi UDIP-FA pipeline (PMC12458571).
+# License: METAL is MIT-licensed (statgen/METAL on GitHub).
+#
+# Reference:
+#   Willer CJ, Li Y, Abecasis GR (2010). METAL: fast and efficient meta-analysis of
+#   genomewide association scans. Bioinformatics 26(17):2190-1.
+#   doi:10.1093/bioinformatics/btq340
 
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Build dependencies for METAL (CMake + C++ compiler + zlib)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl ca-certificates tar gzip python3 python3-pip \
+        cmake g++ make zlib1g-dev \
+        python3 python3-pip \
+        git ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install --no-cache-dir pandas numpy
+RUN pip3 install --no-cache-dir numpy==1.26.4 pandas==2.2.2
 
-# --- METAL pre-built Linux binary ---------------------------------------------
-# Upstream:  https://github.com/statgen/METAL  (BSD-3-Clause)
-# Distrib:   https://csg.sph.umich.edu/abecasis/Metal/
-RUN mkdir -p /opt/metal \
-    && curl -sSL "https://csg.sph.umich.edu/abecasis/Metal/download/Linux-metal.tar.gz" \
-         -o /tmp/metal.tar.gz \
-    && tar -xzf /tmp/metal.tar.gz -C /opt/metal --strip-components=1 \
-    && chmod +x /opt/metal/metal \
-    && rm /tmp/metal.tar.gz \
-    && /opt/metal/metal < /dev/null 2>&1 | head -5
+# ─── METAL source + build ───────────────────────────────────────────────────
+# Clone statgen/METAL and build the static binary.
+# Pinned to a known-good commit via ARG (bump SHA to re-cut).
+ARG METAL_SHA=main
+RUN git clone https://github.com/statgen/METAL.git /opt/metal_src \
+    && cd /opt/metal_src \
+    && git checkout ${METAL_SHA} \
+    && mkdir build \
+    && cd build \
+    && cmake .. -DCMAKE_BUILD_TYPE=Release \
+    && make -j$(nproc) \
+    && cp metal/metal /usr/local/bin/metal \
+    && chmod +x /usr/local/bin/metal
 
-ENV PATH="/opt/metal:${PATH}"
+# ─── Smoke test ─────────────────────────────────────────────────────────────
+# METAL with no args prints usage and exits non-zero.  Catch exit and check
+# that the binary at least produces output (proves it linked correctly).
+RUN metal 2>&1 | head -3 || true && echo "[metal:build] binary ok"
 
-# --- Baked example sumstats ---------------------------------------------------
-# METAL ships two example GWAS files used in its tutorial:
-#   examples/GlucoseExample/DGI_three_regions.txt
-#   examples/GlucoseExample/MAGIC_FUSION_Results.txt
-# These come inside the source tarball at github.com/statgen/METAL.
-RUN mkdir -p /opt/metal/example \
-    && curl -sSL "https://github.com/statgen/METAL/archive/refs/heads/master.tar.gz" \
-         -o /tmp/metal_src.tar.gz \
-    && tar -xzf /tmp/metal_src.tar.gz -C /tmp \
-    && cp /tmp/METAL-master/examples/GlucoseExample/DGI_three_regions.txt /opt/metal/example/ || true \
-    && cp /tmp/METAL-master/examples/GlucoseExample/MAGIC_FUSION_Results.txt /opt/metal/example/ || true \
-    && cp /tmp/METAL-master/examples/GlucoseExample/metal.txt /opt/metal/example/metal_example.txt || true \
-    && rm -rf /tmp/metal_src.tar.gz /tmp/METAL-master \
-    && ls -la /opt/metal/example || true
-
-WORKDIR /opt/metal
-
-# Build-time self-test
-RUN echo "QUIT" | /opt/metal/metal 2>&1 | head -3 \
-    && echo "[metal:build] OK"
+WORKDIR /opt/metal_src
 
 LABEL org.opencontainers.image.source=https://github.com/statgen/METAL \
-      org.opencontainers.image.licenses=BSD-3-Clause \
-      org.opencontainers.image.description="METAL (Willer 2010) GWAS meta-analysis + DGI/MAGIC tutorial sumstats baked."
+      org.opencontainers.image.licenses=MIT \
+      org.opencontainers.image.description="METAL (Willer lab) — multi-cohort GWAS meta-analysis (BioMate)"

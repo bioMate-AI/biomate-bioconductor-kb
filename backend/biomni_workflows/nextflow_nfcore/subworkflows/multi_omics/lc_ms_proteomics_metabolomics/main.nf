@@ -67,6 +67,7 @@ def XCMS_CONTAINER() { 'quay.io/biocontainers/bioconductor-xcms:3.24.0--r43hf170
 // PROTEOMICS ARM
 // ════════════════════════════════════════════════════════════════════════════
 
+// [Preprocessing]
 process PROTEOMICS_QC_NORMALISE {
     tag "Proteomics QC + normalisation"
     container { PYTHON_CONTAINER() }
@@ -258,6 +259,7 @@ REOF
 // METABOLOMICS ARM
 // ════════════════════════════════════════════════════════════════════════════
 
+// [Feature Detection]
 process METABOLOMICS_PEAK_PICKING {
     tag "XCMS peak picking"
     container { XCMS_CONTAINER() }
@@ -336,6 +338,7 @@ REOF
     """
 }
 
+// [Annotation]
 process METABOLOMICS_ANNOTATE_DA {
     tag "Metabolite annotation + DA"
     container { PYTHON_CONTAINER() }
@@ -446,6 +449,7 @@ PYEOF
 // MULTI-OMICS INTEGRATION
 // ════════════════════════════════════════════════════════════════════════════
 
+// [Alignment]
 process MULTI_OMICS_INTEGRATION {
     tag "Protein-metabolite integration"
     container { PYTHON_CONTAINER() }
@@ -459,6 +463,8 @@ process MULTI_OMICS_INTEGRATION {
     path "protein_metabolite_correlation.tsv", emit: correlation
     path "joint_pathway_enrichment.tsv",       emit: joint_enrichment
     path "multi_omics_report.html",            emit: html_report
+    path "pca_multi_omics.png",                emit: pca_plot
+    path "heatmap_da_proteins.pdf",            emit: heatmap_pdf
     path "qc_integration.json",                emit: qc_json
 
     script:

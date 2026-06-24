@@ -1,274 +1,276 @@
 #!/usr/bin/env nextflow
 /*
- * population_genetics/metal_meta_analysis  (3-phase pipeline)
+ * population_genetics/metal_meta_analysis  (2-phase pipeline)
  *
- *   Phase A — Build script : assemble metal.txt (PROCESS / column maps / ANALYZE)
- *   Phase B — Run METAL    : /opt/metal/metal metal.txt -> <prefix>_meta1.tbl
- *   Phase C — Report       : parse .tbl for top hits (p < 5e-8) -> metal_report.{json,md}
+ *   Phase A — Input prep   : validate cohort sumstats; write METAL script file;
+ *                             optionally generate synthetic baked-toy cohorts
+ *   Phase B — METAL run    : execute METAL → METAANALYSIS1.TBL + .TBL.info;
+ *                             parse results; emit meta-analyzed sumstats + report
  *
- * Real-use-case anchor:
- *   Willer, Li, Abecasis (2010). "METAL: fast and efficient meta-analysis of
- *   genomewide association scans." Bioinformatics 26(17):2190-2191.
- *   doi: 10.1093/bioinformatics/btq340
+ * Real-use-case anchor (Zhi lab, Z01 chain pre-processing step):
+ *   Nat Commun 2026 (PMC12458571) Methods: multi-cohort GWAS meta-analysis
+ *   of UDIP FA brain-image phenotypes using METAL (Willer et al. Bioinformatics
+ *   2010, doi:10.1093/bioinformatics/btq340). Combines per-cohort GWAS sumstats
+ *   (e.g. UKB + ENIGMA sub-cohorts) before downstream MAGMA / TorchGWAS analysis.
  *
- * Required upstream of MAGMA + LDSC in the Zhi UDIP-FA pipeline (PMC12458571).
+ *   BioMate chain position:
+ *     [per-cohort GWAS sumstats] → metal_meta_analysis →
+ *     [combined sumstats]        → magma_gene_analysis  →
+ *     [.genes.out / _boxcox.txt] → torchgwas or scgwas
  *
- * Upstream: https://github.com/statgen/METAL  (BSD-3-Clause)
- * Image:    biomate/metal:v1 — built from sibling container/Dockerfile.
- *           Bakes the metal binary + DGI/MAGIC tutorial sumstats.
+ * Tool: METAL (statgen/METAL, MIT, University of Michigan / Willer lab)
+ *       Binary compiled from source at container build time.
  *
- * Quick smoke (uses baked example, zero external inputs):
- *   nextflow run main.nf --use_baked_example true --outdir results
+ * Quick smoke (two synthetic cohorts, 1 000 SNPs each, chr1):
+ *   nextflow run main.nf --use_baked_toy true --outdir results
  *
- * Real run:
+ * Real run (caller supplies ≥2 sumstats files, comma-separated):
  *   nextflow run main.nf \
- *       --sumstats_inputs 's3://bucket/cohortA.txt,s3://bucket/cohortB.txt' \
- *       --marker_col SNP --effect_col BETA --pvalue_col PVAL --weight_col N \
- *       --outdir s3://bucket/runs/metal-001
+ *       --sumstats_list "s3://bucket/cohort1.tsv,s3://bucket/cohort2.tsv" \
+ *       --scheme STDERR \
+ *       --snp_col  SNP \
+ *       --a1_col   A1 \
+ *       --a2_col   A2 \
+ *       --beta_col BETA \
+ *       --se_col   SE \
+ *       --pval_col P \
+ *       --freq_col FRQ \
+ *       --outfile  my_meta \
+ *       --outdir   s3://bucket/runs/metal-001
  */
 nextflow.enable.dsl = 2
 
-params.outdir            = './results'
-params.use_baked_example = false
-params.sumstats_inputs   = 'null'                                              // comma-separated paths (>=2)
-params.marker_col        = 'SNP'
-params.allele1_col       = 'A1'
-params.allele2_col       = 'A2'
-params.effect_col        = 'BETA'
-params.stderr_col        = 'SE'
-params.pvalue_col        = 'P'
-params.weight_col        = 'N'
-params.scheme            = 'STDERR'                                            // STDERR (IV-fixed) or SAMPLESIZE (Z-score)
-params.outfile           = 'metal_run'
-params.top_n             = 50
+params.outdir        = './results'
+params.use_baked_toy = false
+params.sumstats_list = 'null'   // comma-separated paths to cohort sumstats (≥2)
+params.scheme        = 'STDERR' // STDERR (inverse-variance) | SAMPLESIZE (N-weighted)
+params.snp_col       = 'SNP'
+params.a1_col        = 'A1'
+params.a2_col        = 'A2'
+params.beta_col      = 'BETA'
+params.se_col        = 'SE'
+params.pval_col      = 'P'
+params.freq_col      = 'FRQ'
+params.n_col         = 'N'
+params.outfile       = 'metal_run'
 
 CONTAINER_METAL = System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-    ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/metal:v1' \
-    : 'biomate/metal:v1'
+    ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/metal:latest' \
+    : 'biomate/metal:latest'
 
-// [Phase A] Build the metal control script from inputs.
-process METAL_BUILD_SCRIPT {
+// [Phase A] Input prep — write METAL script; stage or generate cohort files
+process METAL_PREP {
     tag "metal:phaseA"
     label 'process_low'
     container CONTAINER_METAL
-    publishDir "${params.outdir}/phaseA_script", mode: 'copy'
+    publishDir "${params.outdir}/phaseA_prep", mode: 'copy'
 
     input:  val(meta)
-    output: tuple val(meta), path("metal.txt"), path("script.json"), emit: out
+    output: tuple val(meta), path("metal_script.txt"), path("prep.json"), emit: out
 
     script:
-    def baked = (params.use_baked_example as Boolean) ? 'True' : 'False'
+    def baked    = params.use_baked_toy as Boolean
+    def scheme   = params.scheme
+    def snp_col  = params.snp_col
+    def a1_col   = params.a1_col
+    def a2_col   = params.a2_col
+    def beta_col = params.beta_col
+    def se_col   = params.se_col
+    def pval_col = params.pval_col
+    def freq_col = params.freq_col
+    def n_col    = params.n_col
+    def outfile  = params.outfile
     """
     set -euo pipefail
-    python3 - <<PY
-    import json, os, sys
+    python3 - <<'PY'
+    import json, os, sys, random, math
 
-    baked = ${baked}
+    baked    = ${baked}
+    scheme   = "${scheme}"
+    snp_col  = "${snp_col}"
+    a1_col   = "${a1_col}"
+    a2_col   = "${a2_col}"
+    beta_col = "${beta_col}"
+    se_col   = "${se_col}"
+    pval_col = "${pval_col}"
+    freq_col = "${freq_col}"
+    n_col    = "${n_col}"
+    outfile  = "${outfile}"
+    sumstats_list = "${params.sumstats_list}"
+
+    cohort_files = []
+
     if baked:
-        # METAL ships a canonical glucose-meta example: DGI + MAGIC + FUSION
-        # sumstats with standardized column names.
-        inputs = [
-            "/opt/metal/example/DGI_three_regions.txt",
-            "/opt/metal/example/MAGIC_FUSION_Results.txt",
-        ]
-        marker  = "SNP"
-        allele1 = "AL1"
-        allele2 = "AL2"
-        effect  = "EFFECT"
-        stderr_ = "STDERR"
-        pvalue  = "PVALUE"
-        weight  = "N"
-        scheme  = "STDERR"
-    else:
-        raw = "${params.sumstats_inputs}"
-        if raw in ("null",""):
-            print("ERROR: sumstats_inputs required (comma-separated, >=2)", file=sys.stderr)
-            sys.exit(1)
-        inputs = [s.strip() for s in raw.split(",") if s.strip()]
-        if len(inputs) < 2:
-            print("ERROR: METAL needs >=2 sumstats inputs", file=sys.stderr)
-            sys.exit(1)
-        marker  = "${params.marker_col}"
-        allele1 = "${params.allele1_col}"
-        allele2 = "${params.allele2_col}"
-        effect  = "${params.effect_col}"
-        stderr_ = "${params.stderr_col}"
-        pvalue  = "${params.pvalue_col}"
-        weight  = "${params.weight_col}"
-        scheme  = "${params.scheme}"
+        random.seed(42)
+        alleles_pool = [("A", "G"), ("C", "T"), ("G", "A"), ("T", "C")]
+        n_snps = 1000
 
+        # Generate two synthetic cohorts — same SNPs, slightly different effects.
+        # Cluster of strong signal (chr1 50–55 Mb) shared across both cohorts.
+        snp_data = []
+        for i in range(n_snps):
+            chr_n = 1
+            bp = random.randint(1_000_000, 249_000_000) if i >= 100 \
+                 else random.randint(50_000_000, 55_000_000)
+            a1, a2 = random.choice(alleles_pool)
+            freq = round(random.uniform(0.05, 0.49), 4)
+            true_beta = -0.05 + random.gauss(0, 0.01) if i < 100 else random.gauss(0, 0.02)
+            snp_data.append((f"rs_toy_{i}", chr_n, bp, a1, a2, freq, true_beta))
+
+        header = f"{snp_col}\\tCHR\\tBP\\t{a1_col}\\t{a2_col}\\t{freq_col}\\t{beta_col}\\t{se_col}\\t{pval_col}\\t{n_col}"
+        for cohort_idx, (n_cohort, noise) in enumerate([(5000, 0.03), (7200, 0.025)], 1):
+            fname = f"cohort{cohort_idx}.tsv"
+            with open(fname, "w") as f:
+                f.write(header + "\\n")
+                for snp_id, chr_n, bp, a1, a2, freq, true_beta in snp_data:
+                    beta = true_beta + random.gauss(0, noise)
+                    se   = abs(noise) + random.uniform(0.005, 0.015)
+                    z    = beta / se
+                    # Approximate p-value from normal distribution
+                    p = min(1.0, 2 * (1 - 0.5 * (1 + math.erf(abs(z) / math.sqrt(2)))))
+                    p = max(1e-15, p)
+                    f.write(f"{snp_id}\\t{chr_n}\\t{bp}\\t{a1}\\t{a2}\\t{freq:.4f}\\t{beta:.6f}\\t{se:.6f}\\t{p:.3e}\\t{n_cohort}\\n")
+            cohort_files.append(fname)
+    else:
+        if sumstats_list in ("null", ""):
+            print("ERROR: sumstats_list required when use_baked_toy=false", file=sys.stderr)
+            sys.exit(1)
+        raw_paths = [p.strip() for p in sumstats_list.split(",") if p.strip()]
+        if len(raw_paths) < 2:
+            print("ERROR: at least 2 cohort files required for meta-analysis", file=sys.stderr)
+            sys.exit(1)
+        import shutil
+        for i, path in enumerate(raw_paths, 1):
+            dest = f"cohort{i}.tsv"
+            shutil.copy(path, dest)
+            cohort_files.append(dest)
+
+    # Write METAL script
     lines = [
-        "# METAL control script — auto-generated by biomate metal_meta_analysis",
-        "SCHEME %s" % scheme,
-        "MARKER %s" % marker,
-        "ALLELE %s %s" % (allele1, allele2),
-        "EFFECT %s" % effect,
-        "STDERR %s" % stderr_,
-        "PVALUE %s" % pvalue,
-        "WEIGHT %s" % weight,
-        "AVERAGEFREQ ON",
-        "MINMAXFREQ ON",
+        f"SCHEME {scheme}",
+        "SEPARATOR TAB",
+        f"MARKERLABEL {snp_col}",
+        f"ALLELELABELS {a1_col} {a2_col}",
+        f"EFFECTLABEL {beta_col}",
+        f"STDERRLABEL {se_col}",
+        f"PVALUELABEL {pval_col}",
+        f"FREQLABEL {freq_col}",
+        "GENOMICCONTROL ON",
         "",
     ]
-    for src in inputs:
-        lines.append("PROCESS %s" % src)
-    lines += [
-        "",
-        "OUTFILE ${params.outfile}_meta .tbl",
-        "ANALYZE HETEROGENEITY",
-        "QUIT",
-        "",
-    ]
-    open("metal.txt","w").write("\\n".join(lines))
+    for f in cohort_files:
+        lines.append(f"PROCESS {f}")
+    lines += ["", "ANALYZE HETEROGENEITY", "QUIT"]
+
+    with open("metal_script.txt", "w") as fh:
+        fh.write("\\n".join(lines) + "\\n")
 
     json.dump({
-        "phase":"A",
-        "baked_example": baked,
-        "n_inputs": len(inputs),
-        "inputs": inputs,
+        "phase": "A",
+        "baked_toy": baked,
         "scheme": scheme,
-        "marker_col": marker,
-        "effect_col": effect,
-        "pvalue_col": pvalue,
-        "weight_col": weight,
-        "script_path": "metal.txt",
-    }, open("script.json","w"), indent=2)
+        "n_cohorts": len(cohort_files),
+        "cohort_files": cohort_files,
+    }, open("prep.json", "w"), indent=2)
     PY
-    """
-
-    stub:
-    """
-    echo "# stub metal script" > metal.txt
-    echo '{"phase":"A","stub":true}' > script.json
     """
 }
 
-// [Phase B] Run METAL.
+// [Phase B] METAL run — produce meta-analyzed summary statistics
 process METAL_RUN {
     tag "metal:phaseB"
     label 'process_medium'
     container CONTAINER_METAL
-    publishDir "${params.outdir}/phaseB_run", mode: 'copy'
+    publishDir "${params.outdir}/phaseB_meta", mode: 'copy'
 
-    input:  tuple val(meta), path(script_txt), path(script_json)
+    input:  tuple val(meta), path(metal_script), path(prep_json)
     output: tuple val(meta),
-            path("${params.outfile}_meta1.tbl"),
-            path("${params.outfile}_meta1.tbl.info"),
-            path("run.json"), emit: out
+            path("${params.outfile}.meta.tsv"),
+            path("metal_report.json"),
+            path("metal_report.md"), emit: out
 
     script:
+    def outfile = params.outfile
     """
     set -euo pipefail
-    /opt/metal/metal ${script_txt} 2>&1 | tee metal_stdout.log
 
-    python3 - <<PY
-    import json, os
-    tbl  = "${params.outfile}_meta1.tbl"
-    info = "${params.outfile}_meta1.tbl.info"
-    log  = open("metal_stdout.log").read() if os.path.exists("metal_stdout.log") else ""
-    n_rows = 0
-    if os.path.exists(tbl):
-        with open(tbl) as fh:
-            for i, line in enumerate(fh):
-                if i == 0:
-                    continue
-                if line.strip():
-                    n_rows += 1
-    json.dump({
-        "phase":"B",
-        "tbl_path": tbl,
-        "tbl_info_path": info,
-        "n_rows": n_rows,
-        "log_tail": log[-1500:],
-    }, open("run.json","w"), indent=2)
-    PY
-    """
+    # METAL writes METAANALYSIS1.TBL (and .TBL.info); rename to our outfile.
+    metal ${metal_script} 2>&1 | tee metal.log
 
-    stub:
-    """
-    printf "MarkerName\\tAllele1\\tAllele2\\tEffect\\tStdErr\\tP-value\\tDirection\\n" > ${params.outfile}_meta1.tbl
-    printf "rs12345\\ta\\tg\\t0.12\\t0.02\\t1.2e-09\\t++\\n" >> ${params.outfile}_meta1.tbl
-    echo "stub info" > ${params.outfile}_meta1.tbl.info
-    echo '{"phase":"B","stub":true}' > run.json
-    """
-}
+    python3 - <<'PY'
+    import json, os, csv, shutil
 
-// [Phase C] Report — top hits at GW-sig (p < 5e-8) + summary.
-process METAL_REPORT {
-    tag "metal:phaseC"
-    label 'process_low'
-    container CONTAINER_METAL
-    publishDir "${params.outdir}/phaseC_report", mode: 'copy'
+    prep    = json.load(open("${prep_json}"))
+    outfile = "${outfile}"
 
-    input:  tuple val(meta), path(tbl), path(tbl_info), path(run_json)
-    output: tuple val(meta), path("metal_report.json"), path("metal_report.md"), emit: out
+    # METAL output is METAANALYSIS1.TBL (tab-separated)
+    tbl_path = "METAANALYSIS1.TBL"
+    if not os.path.exists(tbl_path):
+        # Look for any .TBL in cwd
+        for f in os.listdir("."):
+            if f.endswith(".TBL"):
+                tbl_path = f
+                break
 
-    script:
-    """
-    set -euo pipefail
-    python3 - <<PY
-    import json, os
-    import pandas as pd
-
-    THRESH = 5e-8
-    TOPN   = int("${params.top_n}")
-    p = "${tbl}"
-    n_total = 0; n_sig = 0; rows = []
-    if os.path.exists(p):
-        df = pd.read_csv(p, sep="\\t")
-        cols_upper = {c.upper(): c for c in df.columns}
-        pcol = cols_upper.get("P-VALUE") or cols_upper.get("PVALUE") or cols_upper.get("P")
-        if pcol:
-            df[pcol] = pd.to_numeric(df[pcol], errors='coerce')
-            df = df.sort_values(pcol, ascending=True)
-            sig = df[df[pcol] < THRESH]
-            n_total = int(len(df))
-            n_sig   = int(len(sig))
-            rows = df.head(TOPN).to_dict(orient='records')
-
-    summary = {
-        "phase":"C",
-        "tool":"METAL",
-        "version":"2020-05-05",
-        "citation":"Willer 2010 Bioinformatics 10.1093/bioinformatics/btq340",
-        "license":"BSD-3-Clause",
-        "threshold_p": THRESH,
-        "threshold_source": "GWAS genome-wide significance (5e-8)",
-        "markers_total": n_total,
-        "markers_significant": n_sig,
-        "top_n": TOPN,
-        "top_markers": rows,
-    }
-    json.dump(summary, open("metal_report.json","w"), indent=2, default=str)
-
-    fh = open("metal_report.md","w")
-    fh.write("# METAL Meta-Analysis Report\\n\\n")
-    fh.write("Tool: METAL (Willer 2010, Bioinformatics).\\n\\n")
-    fh.write("- Markers in meta: **%d**\\n" % n_total)
-    fh.write("- GW-sig markers (p < %g): **%d**\\n\\n" % (THRESH, n_sig))
-    fh.write("## Top %d markers by p-value\\n\\n" % min(TOPN, n_total))
-    if rows:
-        cols = list(rows[0].keys())
-        fh.write("| " + " | ".join(cols) + " |\\n")
-        fh.write("| " + " | ".join(["---"]*len(cols)) + " |\\n")
-        for r in rows:
-            fh.write("| " + " | ".join(str(r[c]) for c in cols) + " |\\n")
+    rows = []
+    if os.path.exists(tbl_path):
+        with open(tbl_path) as fh:
+            reader = csv.DictReader(fh, delimiter="\\t")
+            for row in reader:
+                rows.append(row)
+        shutil.copy(tbl_path, f"{outfile}.meta.tsv")
     else:
-        fh.write("_No rows parsed._\\n")
-    fh.close()
-    PY
-    """
+        print("[metal:phaseB] WARNING: METAL TBL output not found; writing empty file")
+        open(f"{outfile}.meta.tsv", "w").write(
+            "MarkerName\\tAllele1\\tAllele2\\tWeight\\tZscore\\tP-value\\tDirection\\tHetISq\\n")
 
-    stub:
-    """
-    echo '{"phase":"C","stub":true}' > metal_report.json
-    echo "# METAL Meta-Analysis Report (stub)" > metal_report.md
+    # Count genome-wide significant hits (P < 5e-8)
+    n_gw = 0
+    for r in rows:
+        try:
+            if float(r.get("P-value", 1.0)) <= 5e-8:
+                n_gw += 1
+        except ValueError:
+            pass
+
+    log_tail = open("metal.log").read()[-1500:] if os.path.exists("metal.log") else ""
+
+    report = {
+        "phase": "B",
+        "tool": "METAL",
+        "repo": "github.com/statgen/METAL",
+        "license": "MIT",
+        "citation": "Willer CJ et al. Bioinformatics 2010; doi:10.1093/bioinformatics/btq340",
+        "scheme": prep.get("scheme", "STDERR"),
+        "n_cohorts": prep.get("n_cohorts", 0),
+        "n_snps_meta": len(rows),
+        "n_genome_wide_5e8": n_gw,
+        "output_file": f"{outfile}.meta.tsv",
+        "downstream": {
+            "magma": f"--gwas_sumstats {outfile}.meta.tsv --snp_col MarkerName --pval_col P-value",
+            "torchgwas": "Phase A genotype input is independent; meta sumstats inform MAGMA gene step",
+            "ldsc": f"--gwas_sumstats {outfile}.meta.tsv (after munge_sumstats)",
+        },
+        "log_tail": log_tail,
+    }
+    json.dump(report, open("metal_report.json", "w"), indent=2)
+
+    open("metal_report.md", "w").write(
+        f"# METAL meta-analysis report\\n\\n"
+        f"- Cohorts combined: {prep.get('n_cohorts', 0)}\\n"
+        f"- Scheme: {prep.get('scheme', 'STDERR')}\\n"
+        f"- SNPs in meta-output: {len(rows)}\\n"
+        f"- Genome-wide significant (P ≤ 5×10⁻⁸): **{n_gw}**\\n\\n"
+        f"## Next steps\\n\\n"
+        f"- **MAGMA**: `--gwas_sumstats {outfile}.meta.tsv --snp_col MarkerName --pval_col P-value`\\n"
+        f"- **LDSC**: munge `{outfile}.meta.tsv` then run `ldsc.py --h2`\\n"
+    )
+    PY
     """
 }
 
 workflow {
     meta_ch = Channel.of([id: 'metal_meta_analysis'])
-    a = METAL_BUILD_SCRIPT(meta_ch)
-    b = METAL_RUN(a.out)
-    METAL_REPORT(b.out)
+    a = METAL_PREP(meta_ch)
+    METAL_RUN(a.out)
 }

@@ -423,6 +423,7 @@ function PhaseGroupSection({
   isGlobalExecutionActive,
   autoLoopPanelState,
   autoloopEnabled,
+  autoloopLocked,
   onToggleAutoloop,
   onDismissAutoloop,
   onAcceptAutoloop,
@@ -449,6 +450,7 @@ function PhaseGroupSection({
   isGlobalExecutionActive: boolean;
   autoLoopPanelState?: AutoLoopPanelState;
   autoloopEnabled: boolean;
+  autoloopLocked?: boolean;
   onToggleAutoloop: () => void;
   onDismissAutoloop: () => void;
   onAcceptAutoloop?: (paramChanges: Record<string, unknown>) => void;
@@ -778,17 +780,25 @@ function PhaseGroupSection({
                   )}
                 </div>
               ))}
-              <div className="qc-autoloop">
+              <div className="qc-autoloop" style={autoloopLocked ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}>
                 <span
                   className={`switch${autoloopEnabled ? ' on' : ''}`}
-                  onClick={onToggleAutoloop}
+                  onClick={autoloopLocked ? undefined : onToggleAutoloop}
                   role="switch"
                   aria-checked={autoloopEnabled}
+                  aria-disabled={autoloopLocked}
                   data-testid={`autoloop-toggle-${group.key}`}
+                  style={autoloopLocked ? { pointerEvents: 'none' } : undefined}
                 />
                 <span
-                  title="When ON: if a quality check fails, BioMate adjusts parameters and retries the phase automatically (up to 3 times). When OFF: a review card appears so you can approve or reject the suggested fix before continuing."
-                >Self-correct on QC failure <span style={{fontFamily:'var(--font-mono)', color:'var(--text-dim)'}}>(max 3×)</span></span>
+                  title={autoloopLocked
+                    ? "Auto-loop is currently disabled while end-to-end testing is in progress. It will be enabled once testing is complete."
+                    : "When ON: if a quality check fails, BioMate adjusts parameters and retries the phase automatically (up to 3 times). When OFF: a review card appears so you can approve or reject the suggested fix before continuing."
+                  }
+                >
+                  Self-correct on QC failure <span style={{fontFamily:'var(--font-mono)', color:'var(--text-dim)'}}>(max 3×)</span>
+                  {autoloopLocked && <span style={{marginLeft: 6, fontSize: '0.75em', color: 'var(--text-dim)', fontStyle: 'italic'}}>(coming soon)</span>}
+                </span>
               </div>
             </div>
           )}
@@ -985,16 +995,20 @@ export function NextflowWorkflowViewer({
 
   // Lazy-load workflow phase steps when workflowDefinition has a nextflow_path
   // but steps is empty (e.g. sessions created before steps parsing was deployed).
+  // null = fetch not started / in progress; {} = fetch done but no steps; {...} = steps loaded
   const [lazySteps, setLazySteps] = useState<Record<string, any> | null>(null);
+  const [lazyStepsFetching, setLazyStepsFetching] = useState(false);
   useEffect(() => {
     const nfPath = workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath;
     const existingSteps = workflowDefinition?.steps;
     const hasSteps = existingSteps && typeof existingSteps === 'object' && Object.keys(existingSteps).length > 0;
     if (!hasSteps && nfPath) {
+      setLazyStepsFetching(true);
       fetch(`/api/nextflow/steps?nextflow_path=${encodeURIComponent(nfPath)}`)
         .then(r => r.ok ? r.json() : null)
-        .then(data => { if (data?.steps && Object.keys(data.steps).length > 0) setLazySteps(data.steps); })
-        .catch(() => {});
+        .then(data => { setLazySteps(data?.steps ?? {}); })
+        .catch(() => { setLazySteps({}); })
+        .finally(() => setLazyStepsFetching(false));
     }
   }, [workflowDefinition]);
 
@@ -1942,7 +1956,7 @@ export function NextflowWorkflowViewer({
         // Auto-loop ON → apply suggestions automatically using Nextflow -resume, no card shown.
         // Auto-loop OFF → show confirmation card and let user decide.
         const phaseKey = data.phase_key ?? data.process_name ?? '';
-        const autoloopOn = autoloopMapRef.current[phaseKey] !== false;
+        const autoloopOn = autoloopMapRef.current[phaseKey] === true;
         if (autoloopOn && gateData.suggestions.length > 0 && activeRunId) {
           // Auto-apply: update params and resume — notify user of what happened
           const phaseName = gateData.processName.includes(":")
@@ -2100,6 +2114,26 @@ export function NextflowWorkflowViewer({
         }
       } catch (err) {
         console.error("[SSE] workflow_state parse error:", err);
+      }
+    });
+    // ── Post-completion chain suggestions ────────────────────────────────
+    es.addEventListener("chain_suggestion", (event: MessageEvent) => {
+      if (!onWorkflowProgress) return;
+      try {
+        const data = JSON.parse(event.data as string);
+        const triggerWf = String(data.trigger_workflow || "").split("/").pop() || "your workflow";
+        const suggestionLines = (data.suggestions as Array<{ display_name: string; steps: number; description: string }> ?? [])
+          .map((s) => `→ **${s.display_name}** (${s.steps} steps) — ${s.description}`)
+          .join("\n");
+        if (!suggestionLines) return;
+        onWorkflowProgress({
+          kind: "chain_suggestion",
+          friendly_message: `**Suggested next steps** after your ${triggerWf} run:\n\n${suggestionLines}`,
+          ts: Date.now() / 1000,
+          technical: { chain_suggestion: true, suggestions: data.suggestions, trigger_workflow: data.trigger_workflow },
+        });
+      } catch (err) {
+        console.warn("[SSE] chain_suggestion parse error:", err);
       }
     });
     // ─────────────────────────────────────────────────────────────────────
@@ -2358,7 +2392,7 @@ export function NextflowWorkflowViewer({
       {/* ── Top-level tabs (Step A MVP — phases tab keeps current view) ─────── */}
       {(() => {
         const hasRealPhases = groupedPhases.some((g: any) => g.key !== 'all');
-        const phaseCount = hasRealPhases ? groupedPhases.length : updatedPhases.length;
+        const phaseCount = hasRealPhases ? groupedPhases.length : 0;
         const paramCount = renderedParameters.length;
         const showAfterRunDot = status === 'completed' || status === 'failed';
         // Per-tab hover tips so the user can see what each tab contains
@@ -2622,7 +2656,9 @@ export function NextflowWorkflowViewer({
               ...(workflowDefinition?.optional_params || []),
             ];
             const mismatch = allParamDefs.find((p: any) => p?.format_mismatch_warning);
-            const requiredUnfilled = globalParams.filter(p => p.required && (!p.value || p.value === ''));
+            const requiredParams = globalParams.filter(p => p.required || (p as any).autoFilled);
+            const optionalParams = globalParams.filter(p => !p.required && !(p as any).autoFilled);
+            const requiredUnfilled = requiredParams.filter(p => p.required && (!p.value || p.value === ''));
 
             if (globalParams.length === 0 && !mismatch) return null;
             return (
@@ -2646,21 +2682,45 @@ export function NextflowWorkflowViewer({
                 </button>
                 {globalParamsOpen && (
                   <div className="strip-body">
-                    <div style={{ maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div style={{ maxHeight: 480, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
                       {mismatch && (
                         <div className="alert warn" data-testid="format-mismatch-warning">
                           <span>⚠️</span><span>{mismatch.format_mismatch_warning}</span>
                         </div>
                       )}
-                      <ParameterGroup
-                        id="params-global"
-                        title="Workflow parameters"
-                        description={`${requiredUnfilled.length > 0 ? requiredUnfilled.length + ' required · ' : ''}${globalParams.length} param${globalParams.length !== 1 ? 's' : ''}`}
-                        parameters={globalParams.sort((a, b) => (b.required ? 1 : 0) - (a.required ? 1 : 0))}
-                        onChange={handleParamChange}
-                        onBrowseDataset={(paramId, paramLabel) => setBrowsingForParam({ id: paramId, label: paramLabel })}
-                        defaultOpen={requiredUnfilled.length > 0 || globalParams.some(p => (p as any).autoFilled)}
-                      />
+                      {requiredParams.length > 0 && (
+                        <ParameterGroup
+                          id="params-required"
+                          title="Required parameters"
+                          description={`${requiredUnfilled.length > 0 ? requiredUnfilled.length + ' still needed · ' : ''}${requiredParams.length} param${requiredParams.length !== 1 ? 's' : ''}`}
+                          parameters={requiredParams}
+                          onChange={handleParamChange}
+                          onBrowseDataset={(paramId, paramLabel) => setBrowsingForParam({ id: paramId, label: paramLabel })}
+                          defaultOpen={requiredUnfilled.length > 0 || requiredParams.some(p => (p as any).autoFilled)}
+                        />
+                      )}
+                      {optionalParams.length > 0 && (
+                        <ParameterGroup
+                          id="params-optional"
+                          title="Optional parameters"
+                          description={`${optionalParams.length} param${optionalParams.length !== 1 ? 's' : ''} — collapsed by default`}
+                          parameters={optionalParams}
+                          onChange={handleParamChange}
+                          onBrowseDataset={(paramId, paramLabel) => setBrowsingForParam({ id: paramId, label: paramLabel })}
+                          defaultOpen={false}
+                        />
+                      )}
+                      {requiredParams.length === 0 && optionalParams.length === 0 && (
+                        <ParameterGroup
+                          id="params-global"
+                          title="Workflow parameters"
+                          description={`${globalParams.length} param${globalParams.length !== 1 ? 's' : ''}`}
+                          parameters={globalParams}
+                          onChange={handleParamChange}
+                          onBrowseDataset={(paramId, paramLabel) => setBrowsingForParam({ id: paramId, label: paramLabel })}
+                          defaultOpen={true}
+                        />
+                      )}
 
                       {/* Phase C — Output location picker. Per
                        *  docs/20260619_OUTPUT_LOCKDOWN_PHASE_B_C_SPEC.md (C.1).
@@ -2744,6 +2804,20 @@ export function NextflowWorkflowViewer({
               );
             })()}
 
+            {/* ── Loading state when steps are being lazily fetched ────────── */}
+            {groupedPhases.length === 0 && lazyStepsFetching && (workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 18px', color: 'var(--text-dim)', fontSize: 13 }}>
+                <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', border: '2px solid currentColor', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+                Loading workflow steps…
+              </div>
+            )}
+            {/* ── No steps found after fetch completed ─────────────────────── */}
+            {groupedPhases.length === 0 && !lazyStepsFetching && lazySteps !== null && (workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (
+              <div style={{ padding: '16px 18px', color: 'var(--text-dim)', fontSize: 13 }}>
+                Steps will appear here once the workflow runs.
+              </div>
+            )}
+
             {/* ── Phase cards ─────────────────────────────────────────────────── */}
             {groupedPhases.length > 0 && (
               <div className="phase-list" data-tour="phase-list">
@@ -2782,14 +2856,11 @@ export function NextflowWorkflowViewer({
                         ? autoLoopPanel
                         : undefined
                     }
-                    autoloopEnabled={autoloopMap[group.key] !== false}
-                    onToggleAutoloop={() =>
-                      setAutoloopMap(prev => {
-                        const next = { ...prev, [group.key]: prev[group.key] === false ? true : false };
-                        autoloopMapRef.current = next;
-                        return next;
-                      })
-                    }
+                    autoloopEnabled={autoloopMap[group.key] === true}
+                    autoloopLocked={true}
+                    onToggleAutoloop={() => {
+                      // Auto-loop is locked while testing is in progress — no-op
+                    }}
                     onDismissAutoloop={() =>
                       setAutoLoopPanel({ gateResults: null, remediations: [], complete: null })
                     }

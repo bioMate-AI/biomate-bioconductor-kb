@@ -64,7 +64,8 @@ const DSF = 2;
   const HTML   = argOf('html', 'http://localhost:8000/Research%20Agent%20UI.html');
   const LABEL  = argOf('label', 'BIO — Bioconductor · KB routing');
   const NSTEPS = parseInt(argOf('steps', '21'), 10);
-  const TID    = argOf('tour-id', TOUR_ID[KEY] || '');
+  const TID        = argOf('tour-id', TOUR_ID[KEY] || '');
+  const NO_PICKER  = process.argv.includes('--no-picker');
 
   const BASE     = path.resolve(__dirname);
   const OUT_DIR  = path.join(BASE, 'clips', KEY);
@@ -89,7 +90,10 @@ const DSF = 2;
   const videoDir = path.join(OUT_DIR, '_video_tmp');
   fs.mkdirSync(videoDir, { recursive: true });
 
+  // Use system Google Chrome — the downloaded chromium-headless-shell requires
+  // AVFAudio.framework which is not present on macOS 11 (Big Sur / Darwin 20.x).
   const browser = await chromium.launch({
+    channel: 'chrome',
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   });
@@ -115,10 +119,14 @@ const DSF = 2;
     }, [TID, label]).catch(() => false);
 
     if (!ok) {
-      // Path 2: click the picker programmatically and select.
       await page.locator('.tut-btn').first().click();
-      await page.waitForSelector('.tour-picker', { timeout: 10_000 });
-      await page.locator('.tour-picker-item').filter({ hasText: label.slice(0, 30) }).click();
+      if (NO_PICKER) {
+        // Direct-start: .tut-btn begins tour immediately, no picker dialog.
+      } else {
+        // Path 2: picker opens — find and click the matching item.
+        await page.waitForSelector('.tour-picker', { timeout: 10_000 });
+        await page.locator('.tour-picker-item').filter({ hasText: label.slice(0, 30) }).click();
+      }
     }
     await page.waitForSelector('.tour-callout', { timeout: 10_000 });
   }
@@ -132,7 +140,7 @@ const DSF = 2;
     });
     const warm = await warmCtx.newPage();
     warm.on('pageerror', err => console.log('[warm pageerror]', err.message.slice(0, 200)));
-    await warm.goto(HTML, { waitUntil: 'load', timeout: 30_000 });
+    await warm.goto(HTML, { waitUntil: 'load', timeout: 60_000 });
     await warm.waitForTimeout(2000);
     await startTour(warm, LABEL);
     console.log(`[${KEY}] warm pass OK · tour callout visible`);
@@ -151,7 +159,7 @@ const DSF = 2;
     const page = await ctx.newPage();
     page.on('pageerror', err => console.log('[page error]', err.message.slice(0, 200)));
 
-    await page.goto(HTML, { waitUntil: 'load', timeout: 30_000 });
+    await page.goto(HTML, { waitUntil: 'load', timeout: 60_000 });
     await page.waitForTimeout(1500);
     await startTour(page, LABEL);
     await page.waitForTimeout(LEAD_IN_MS);

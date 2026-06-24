@@ -261,6 +261,88 @@
     </div>
   </section>
 
+  <!-- ════ Feature 5 — Literature Survey ════ -->
+  <section class="bm-section">
+    <div class="bm-section-inner">
+      <div class="bm-feat-row">
+        <div class="bm-feat-text">
+          <span class="bm-eyebrow">Literature survey</span>
+          <h2 class="bm-h2">From a research question to a synthesized evidence summary in minutes.</h2>
+          <p>BioMate searches and synthesizes primary literature across PubMed, bioRxiv, ChEMBL, ClinicalTrials.gov, and PDB — returning ranked, cited summaries grounded in actual sources, not hallucinated references.</p>
+          <ul>
+            <li>Retrieval-grounded answers: every claim links to a source</li>
+            <li>Structured summaries by study type, sample size, and outcome</li>
+            <li>Conflict detection — flags contradictory findings across studies</li>
+            <li>Export to DOCX or BibTeX for grant applications and manuscripts</li>
+          </ul>
+        </div>
+        <div class="bm-feat-mock">
+          <div class="bm-feat-mock-bar">
+            <div class="bm-console-dots"><span></span><span></span><span></span></div>
+            <span class="bm-feat-mock-title">literature · KRAS G12C resistance mechanisms</span>
+          </div>
+          <div class="bm-feat-mock-body" style="font-size:.82rem;">
+            <div style="background:rgba(143,214,234,.08);border:1px solid rgba(143,214,234,.2);border-radius:8px;padding:10px 12px;color:#cfeaf2;line-height:1.6;margin-bottom:10px;">
+              <b style="color:#8fd6ea;">Synthesis (23 studies, 2020–2026)</b><br/>
+              Acquired resistance to KRAS G12C inhibitors (sotorasib, adagrasib) most commonly involves secondary KRAS mutations (Y96D, H95R) reported in 11/23 studies, followed by bypass signalling via EGFR/MET amplification (8/23). Three studies report co-occurring STK11 loss as a primary resistance driver in LUAD.
+            </div>
+            <div style="display:flex;flex-direction:column;gap:7px;">
+              <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 10px;background:rgba(255,255,255,.03);border-radius:6px;border:1px solid rgba(255,255,255,.07);">
+                <span style="font-family:var(--font-mono);font-size:.7rem;color:#a6e2c4;white-space:nowrap;">PMID 38901234</span>
+                <span style="color:var(--on-ink-mute);">Fell et al. 2025 — KRAS Y96D covalent pocket mutation in 6/32 adagrasib-treated patients.</span>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 10px;background:rgba(255,255,255,.03);border-radius:6px;border:1px solid rgba(255,255,255,.07);">
+                <span style="font-family:var(--font-mono);font-size:.7rem;color:#a6e2c4;white-space:nowrap;">PMID 38712098</span>
+                <span style="color:var(--on-ink-mute);">Awad et al. 2025 — MET amplification as co-resistance mechanism, combinatorial EGFR blockade partially rescues.</span>
+              </div>
+              <div style="font-size:.74rem;color:var(--on-ink-mute);margin-top:4px;">+21 sources · Export BibTeX · Export DOCX summary</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ Feature 6 — Protocol Generation ════ -->
+  <section class="bm-section bm-bg-2">
+    <div class="bm-section-inner">
+      <div class="bm-feat-row reverse">
+        <div class="bm-feat-text">
+          <span class="bm-eyebrow">Protocol generation</span>
+          <h2 class="bm-h2">Experimental protocols written from your workflow results — not from a template.</h2>
+          <p>BioMate generates step-by-step wet-lab and computational protocols grounded in the actual parameters used in your analysis — reagent concentrations, instrument settings, QC checkpoints, and safety notes all derived from the run record, not generic boilerplate.</p>
+          <ul>
+            <li>Auto-generated from run provenance: parameters match what actually ran</li>
+            <li>Structured per-step format: materials, procedure, QC pass/fail criteria</li>
+            <li>SOP-ready: formatted for direct upload to Benchling, Notion, or Word</li>
+            <li>Protocol versioning tied to the workflow version that produced it</li>
+          </ul>
+        </div>
+        <div class="bm-feat-mock">
+          <div class="bm-feat-mock-bar">
+            <div class="bm-console-dots"><span></span><span></span><span></span></div>
+            <span class="bm-feat-mock-title">protocol · RNA extraction from PBMC · run #f4a1</span>
+          </div>
+          <div class="bm-feat-mock-body" style="font-size:.82rem;">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="background:rgba(166,226,196,.08);border:1px solid rgba(166,226,196,.2);border-radius:6px;padding:8px 12px;">
+                <div style="font-weight:600;color:#a6e2c4;font-size:.78rem;margin-bottom:4px;">STEP 1 · Cell isolation</div>
+                <div style="color:var(--on-ink-mute);line-height:1.5;">Dilute whole blood 1:1 with PBS (no Ca²⁺/Mg²⁺). Layer 30 mL over 15 mL Ficoll-Paque PLUS. Centrifuge 400 × g, 30 min, 18–20 °C, brake off.</div>
+                <div style="margin-top:5px;font-size:.72rem;color:#f5cd87;">QC: PBMC viability ≥ 90% by Trypan blue before proceeding.</div>
+              </div>
+              <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:8px 12px;">
+                <div style="font-weight:600;color:#8fd6ea;font-size:.78rem;margin-bottom:4px;">STEP 2 · RNA extraction</div>
+                <div style="color:var(--on-ink-mute);line-height:1.5;">Lyse 1 × 10⁶ cells in 350 µL RLT buffer + 1% β-ME. Process with Qiagen RNeasy Micro kit. Elute in 14 µL RNase-free water.</div>
+                <div style="margin-top:5px;font-size:.72rem;color:#f5cd87;">QC: RIN ≥ 7.0 · A260/A280 1.8–2.1 · Yield ≥ 50 ng</div>
+              </div>
+              <div style="font-size:.74rem;color:var(--on-ink-mute);">6 steps total · Derived from run #f4a1 params · Export SOP (DOCX) · Export Benchling entry</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ════ Capability cards grid ════ -->
   <section class="bm-section">
     <div class="bm-section-inner">
@@ -282,7 +364,7 @@
       <div class="bm-section-head">
         <span class="bm-eyebrow">Workflow catalog</span>
         <h2 class="bm-h2">4,000+ indexed workflows across 36 biomedical domains.</h2>
-        <p class="bm-lead">Container‑pinned and version‑locked, spanning 36 biomedical domains. Counts shown are indexed workflows. Bring your own when you need to.</p>
+        <p class="bm-lead">Container‑pinned and version‑locked, spanning 36 biomedical domains. Bring your own when you need to.</p>
       </div>
       <div id="bm-wf-grid">
         <noscript>
@@ -421,6 +503,7 @@
   </section>
 
   <!-- ════ Platform diagram ════ -->
+  <!--
   <section id="platform-diagram" class="bm-section bm-bg-2">
     <div class="bm-section-inner">
       <div class="bm-section-head">
@@ -441,6 +524,7 @@
       </figure>
     </div>
   </section>
+  -->
 
   <!-- ════ Security strip ════ -->
   <section id="security" class="bm-section bm-product-band">
@@ -496,7 +580,7 @@
   <script src="illustrations.js"></script>
   <script src="shell.js?v=20260609b"></script>
   <script>
-    renderShell({ active: 'about' });
+    renderShell({ active: 'about', cta: false });
 
     // Capability cards
     const CAPS = [
@@ -508,7 +592,9 @@
       { icon: 'scale',    title: 'Workflow benchmarking',       desc: 'Per‑workflow accuracy metrics from a continuously growing benchmark suite of >1,400 cases.' },
       { icon: 'brain',    title: 'Tool use, not autocomplete',  desc: 'Calls structured tools (search, fetch, dock, simulate) instead of inventing answers from token weights.' },
       { icon: 'chat',     title: 'Reviewer comments',           desc: 'Threaded, anchored to a specific claim or figure &mdash; never lost in a Slack channel.' },
-      { icon: 'defensible',title: 'GxP‑ready',                  desc: 'Mapped controls, validated state, and an audit packet your QA lead can hand a regulator on day one.' }
+      { icon: 'defensible',title: 'GxP‑ready',                  desc: 'Mapped controls, validated state, and an audit packet your QA lead can hand a regulator on day one.' },
+      { icon: 'data',     title: 'Literature survey',           desc: 'Retrieval-grounded synthesis across PubMed, bioRxiv, ChEMBL, and ClinicalTrials.gov — every claim linked to a source, never hallucinated.' },
+      { icon: 'community',title: 'Protocol generation',         desc: 'Step-by-step wet-lab and computational protocols derived from your actual run parameters — SOP-ready, version-pinned to the workflow that produced them.' }
     ];
     const capGrid = document.getElementById('bm-cap-grid');
     capGrid.innerHTML = CAPS.map((c) => `
@@ -532,7 +618,7 @@
       { label: 'Computational &amp; Data',
         domains: [['Systems Biology',108],['General / Utility',143],['Lab Automation',8],['Database APIs',5],['Literature Mining',4]] },
     ];
-    const chip = ([name, count]) => `<div class="bm-tech-chip"><div class="bm-tech-chip-name">${name}</div><div class="bm-tech-chip-count" style="font-size:.7rem;font-weight:700;color:var(--accent,#8FD6EA);margin-top:2px;">${count.toLocaleString()}</div></div>`;
+    const chip = ([name]) => `<div class="bm-tech-chip"><div class="bm-tech-chip-name">${name}</div></div>`;
     const groupLabel = (text) => `<div style="grid-column:1/-1;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-top:1.25rem;margin-bottom:.25rem;">${text}</div>`;
     document.getElementById('bm-wf-grid').style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;';
     document.getElementById('bm-wf-grid').innerHTML = DOMAIN_GROUPS.map(

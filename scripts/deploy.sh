@@ -65,6 +65,47 @@ FRONTEND_REPO="${FRONTEND_REPO:-biomate/dev-frontend}"
 BACKEND_IMAGE="$ECR_REGISTRY/$BACKEND_REPO:$TAG"
 FRONTEND_IMAGE="$ECR_REGISTRY/$FRONTEND_REPO:$TAG"
 
+# --- Failure/rollback notification (real guardrail, previously only documented) ---
+# deploy.yml's header claimed "auto-rollback (L17)" and "notify" were enforced in
+# this script — they were not. Step 6 below implements the rollback on the host;
+# this EXIT trap implements the notification. SNS publish failures are non-fatal
+# (logged as a warning) so a missing IAM perm can never block a deploy.
+SNS_TOPIC_ARN="${SNS_TOPIC_ARN:-arn:aws:sns:$AWS_REGION:399683337364:biomate-deploy-events}"
+GITHUB_RUN_URL="${GITHUB_RUN_URL:-${GITHUB_SERVER_URL:+$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID}}"
+DEPLOY_STATE="unknown"   # set by Step 6; read by the EXIT trap
+
+notify() {
+  local state="$1" detail="${2:-}" subject icon
+  case "$state" in
+    healthy)         icon="OK";  subject="[deploy ok] $ENVIRONMENT -> $TAG" ;;
+    rolled_back)     icon="!!";  subject="[deploy ROLLED BACK] $ENVIRONMENT -> $TAG" ;;
+    rollback_failed) icon="!!!"; subject="[deploy + ROLLBACK FAILED] $ENVIRONMENT -> $TAG" ;;
+    *)               icon="XX";  subject="[deploy FAILED] $ENVIRONMENT -> $TAG" ;;
+  esac
+  if aws sns publish --region "$AWS_REGION" --topic-arn "$SNS_TOPIC_ARN" \
+       --subject "${subject:0:99}" \
+       --message "[$icon] BioMate deploy
+Environment: $ENVIRONMENT
+Tag:         $TAG
+Instance:    ${INSTANCE_ID:-unknown}
+State:       $state
+${detail:+Detail:      $detail}
+${GITHUB_RUN_URL:+Run:         $GITHUB_RUN_URL}" >/dev/null 2>&1; then
+    echo "SNS notified ($state) -> $SNS_TOPIC_ARN"
+  else
+    echo "::warning:: SNS publish failed (state=$state) — check sns:Publish on the deploy role and that the topic has a confirmed subscription"
+  fi
+}
+
+on_exit() {
+  local rc=$?
+  if [[ "$DEPLOY_STATE" == "unknown" ]]; then
+    if [[ $rc -eq 0 ]]; then DEPLOY_STATE="healthy"; else DEPLOY_STATE="failed"; fi
+  fi
+  notify "$DEPLOY_STATE" "exit_code=$rc"
+}
+trap on_exit EXIT
+
 echo "=== BioMate Deploy ==="
 echo "Environment: $ENVIRONMENT"
 echo "Tag: $TAG"
@@ -95,6 +136,7 @@ echo ""
 ssm_run() {
   local cmd="$1"
   local description="${2:-Running command}"
+  local timeout="${3:-300}"   # client poll budget; Step 6 overrides (cold starts are slow)
 
   echo "$description..."
 
@@ -118,8 +160,7 @@ ssm_run() {
     exit 1
   fi
 
-  # Wait for command to complete (max 5 minutes)
-  local timeout=300
+  # Wait for command to complete (default 5 min; caller may override via $3)
   local elapsed=0
   local status=""
 
@@ -134,25 +175,36 @@ ssm_run() {
     if [[ "$status" == "Success" ]]; then
       echo "✓ Command completed successfully"
 
-      # Show output
-      aws ssm get-command-invocation \
+      # Capture stdout into a global so callers can parse host-side markers
+      # (e.g. Step 6's DEPLOY_RESULT=...), then show it.
+      SSM_OUT=$(aws ssm get-command-invocation \
         --region "$AWS_REGION" \
         --command-id "$cmd_id" \
         --instance-id "$INSTANCE_ID" \
         --query 'StandardOutputContent' \
-        --output text
+        --output text 2>/dev/null || echo "")
+      echo "$SSM_OUT"
 
       return 0
     elif [[ "$status" == "Failed" || "$status" == "Cancelled" || "$status" == "TimedOut" ]]; then
       echo "✗ Command failed with status: $status"
 
-      # Show error output
-      aws ssm get-command-invocation \
+      # Capture BOTH streams — a non-zero host exit (e.g. Step 6 rolling back
+      # with exit 2/3) still carries its DEPLOY_RESULT marker on stdout.
+      SSM_OUT=$(aws ssm get-command-invocation \
+        --region "$AWS_REGION" \
+        --command-id "$cmd_id" \
+        --instance-id "$INSTANCE_ID" \
+        --query 'StandardOutputContent' \
+        --output text 2>/dev/null || echo "")
+      SSM_ERR=$(aws ssm get-command-invocation \
         --region "$AWS_REGION" \
         --command-id "$cmd_id" \
         --instance-id "$INSTANCE_ID" \
         --query 'StandardErrorContent' \
-        --output text
+        --output text 2>/dev/null || echo "")
+      [[ -n "$SSM_OUT" ]] && echo "$SSM_OUT"
+      echo "$SSM_ERR"
 
       return 1
     fi
@@ -239,56 +291,137 @@ ssm_run "docker pull $BACKEND_IMAGE" "Pulling backend image"
 ssm_run "docker pull $FRONTEND_IMAGE" "Pulling frontend image"
 echo ""
 
-# Step 6: Deploy with compose
-echo "=== Step 6: Deploy containers ==="
-ssm_run "
+# Step 6: Deploy + health check + auto-rollback (single host-side script)
+echo "=== Step 6: Deploy + health check + auto-rollback ==="
+#
+# Run deploy, health check and rollback in ONE host script: the image that is
+# currently in service is only known on the host, so capturing it there and
+# reverting there is atomic — no need to round-trip the prior tag through the
+# runner. The script prints a final `DEPLOY_RESULT=<state>` line that this
+# script parses to drive messaging + the SNS notification. Host exit codes:
+#   0 healthy · 1 failed (no prior image) · 2 rolled_back · 3 rollback_failed
+DEPLOY_AND_VERIFY=$(cat <<HOSTEOF
+set -u
+cd /opt/biomate
+RESULT_FILE=/tmp/biomate_deploy_result
+: > "\$RESULT_FILE" 2>/dev/null || true
+
+NEW_BACKEND='$BACKEND_IMAGE'
+NEW_FRONTEND='$FRONTEND_IMAGE'
+
+# Capture the images currently in service so we can roll back to them. They are
+# still present locally (we never prune — past-incident L3), so the revert is
+# a fast \`compose up\` with no pull.
+PREV_BACKEND=\$(docker inspect --format '{{.Config.Image}}' biomate-galaxy-deploy 2>/dev/null || echo '')
+PREV_FRONTEND=\$(docker inspect --format '{{.Config.Image}}' biomate-frontend-deploy 2>/dev/null || echo '')
+echo "prev_backend=\${PREV_BACKEND:-<none>}"
+echo "prev_frontend=\${PREV_FRONTEND:-<none>}"
+
+# Bring up with a BOUNDED wait. The compose file has frontend depends_on backend
+# (condition: service_healthy) — so a broken image whose healthcheck never goes
+# green makes a plain \`up -d\` HANG FOREVER waiting on the dependency. --wait
+# --wait-timeout makes \`up\` RETURN NON-ZERO after the budget instead of hanging;
+# the outer \`timeout\` is a hard kill in case \`up\` itself wedges. \$3 = wait secs.
+bring_up() {
+  local wait_s="\$3" hard=\$(( \$3 + 30 ))
+  export BACKEND_IMAGE="\$1"
+  export FRONTEND_IMAGE="\$2"
+  timeout "\$hard" docker compose -f docker-compose.deploy.yml up -d --wait --wait-timeout "\$wait_s"
+}
+
+# --wait gates on docker healthchecks; this confirms the real HTTP endpoints too.
+endpoints_ok() {
+  curl -fsS http://localhost:8081/api/version >/dev/null 2>&1 \\
+    && curl -fsS http://localhost:3000/api/health >/dev/null 2>&1
+}
+
+finish() {   # \$1 = state, \$2 = exit code; persist marker to file AND stdout
+  echo "DEPLOY_RESULT=\$1"
+  echo "DEPLOY_RESULT=\$1" > "\$RESULT_FILE" 2>/dev/null || true
+  exit "\$2"
+}
+
+# Export NEW images so the down's project parse is valid (compose errors with
+# "invalid compose project" if BACKEND_IMAGE/FRONTEND_IMAGE are unset). bring_up
+# re-exports per-attempt below.
+export BACKEND_IMAGE="\$NEW_BACKEND"
+export FRONTEND_IMAGE="\$NEW_FRONTEND"
+docker compose -f docker-compose.deploy.yml down --timeout 30 || true
+
+# New image gets up to 180s to go healthy (Galaxy cold start is ~60-90s).
+if bring_up "\$NEW_BACKEND" "\$NEW_FRONTEND" 180 && endpoints_ok; then
+  finish healthy 0
+fi
+
+echo '*** New images failed health gate — backend/frontend logs follow ***'
+docker logs biomate-galaxy-deploy --tail 50 2>&1 || true
+docker logs biomate-frontend-deploy --tail 50 2>&1 || true
+
+if [ -n "\$PREV_BACKEND" ] && [ -n "\$PREV_FRONTEND" ] && [ "\$PREV_BACKEND" != "\$NEW_BACKEND" ]; then
+  echo "Rolling back to \$PREV_BACKEND / \$PREV_FRONTEND"
+  # Rollback gets a longer budget (240s) — it is a real cold start of a good image.
+  if bring_up "\$PREV_BACKEND" "\$PREV_FRONTEND" 240 && endpoints_ok; then
+    finish rolled_back 2
+  fi
+  finish rollback_failed 3
+fi
+
+finish failed_no_prev 1
+HOSTEOF
+)
+
+# Don't let ssm_run's non-zero return (host rolled back -> exit 2/3) abort us
+# before we parse the marker; SSM_OUT is captured even on a failed invocation.
+# Budget 600s: worst case is new-image wait (180) + rollback cold start (240) +
+# docker/SSM overhead, which exceeds the default 300s poll.
+set +e
+ssm_run "$DEPLOY_AND_VERIFY" "Deploying + verifying + auto-rollback" 600
+set -e
+
+marker=$(printf '%s' "${SSM_OUT:-}" | grep -oE 'DEPLOY_RESULT=[a-z_]+' | tail -1 | cut -d= -f2)
+if [[ -z "$marker" ]]; then
+  # ssm_run's poll may have given up while the host script was still finishing.
+  # The host persists the terminal marker to a file — read it back.
+  echo "(no marker in stream — reading host result file)"
+  set +e
+  ssm_run "sleep 3; cat /tmp/biomate_deploy_result 2>/dev/null || echo NONE" "Fetching deploy result marker" 120
   set -e
-  cd /opt/biomate
-
-  export BACKEND_IMAGE='$BACKEND_IMAGE'
-  export FRONTEND_IMAGE='$FRONTEND_IMAGE'
-
-  # Stop old containers gracefully
-  docker compose -f docker-compose.deploy.yml down --timeout 30 || true
-
-  # Start new containers
-  docker compose -f docker-compose.deploy.yml up -d
-
-  echo 'Containers deployed successfully'
-" "Deploying with docker compose"
+  marker=$(printf '%s' "${SSM_OUT:-}" | grep -oE 'DEPLOY_RESULT=[a-z_]+' | tail -1 | cut -d= -f2)
+fi
+case "$marker" in
+  healthy)         DEPLOY_STATE="healthy" ;;
+  rolled_back)     DEPLOY_STATE="rolled_back" ;;
+  rollback_failed) DEPLOY_STATE="rollback_failed" ;;
+  *)               DEPLOY_STATE="failed" ;;
+esac
 echo ""
 
-# Step 7: Health check
-echo "=== Step 7: Health check ==="
-echo "Waiting 30s for containers to start..."
-sleep 30
-
-ssm_run "
-  # Check backend health
-  if curl -fsS http://localhost:8081/api/version >/dev/null 2>&1; then
-    echo '✓ Backend is healthy'
-  else
-    echo '✗ Backend health check failed'
-    docker logs biomate-galaxy-deploy --tail 50
+# Step 7: Report (the EXIT trap publishes the SNS notification from DEPLOY_STATE)
+case "$DEPLOY_STATE" in
+  healthy)
+    echo "=== Deploy Complete ==="
+    echo "✓ Environment: $ENVIRONMENT"
+    echo "✓ Tag: $TAG"
+    echo "✓ Backend: $BACKEND_IMAGE"
+    echo "✓ Frontend: $FRONTEND_IMAGE"
+    echo ""
+    echo "Instance: $INSTANCE_ID"
+    echo "URL: http://stage-public.biomate.ai"
+    ;;
+  rolled_back)
+    echo "=== Deploy FAILED — auto-rolled back to previous image ==="
+    echo "✗ $TAG failed health check; previous image was restored and is healthy."
+    echo "  Service is UP on the prior tag. Investigate $TAG before retrying."
+    exit 2
+    ;;
+  rollback_failed)
+    echo "=== Deploy FAILED — ROLLBACK ALSO FAILED (service may be DOWN) ==="
+    echo "✗ Manual intervention required on $INSTANCE_ID."
+    exit 3
+    ;;
+  *)
+    echo "=== Deploy FAILED ==="
+    echo "✗ $TAG failed health check; no previous image available to roll back to."
     exit 1
-  fi
-
-  # Check frontend health
-  if curl -fsS http://localhost:3000/api/health >/dev/null 2>&1; then
-    echo '✓ Frontend is healthy'
-  else
-    echo '✗ Frontend health check failed'
-    docker logs biomate-frontend-deploy --tail 50
-    exit 1
-  fi
-" "Running health checks"
-echo ""
-
-echo "=== Deploy Complete ==="
-echo "✓ Environment: $ENVIRONMENT"
-echo "✓ Tag: $TAG"
-echo "✓ Backend: $BACKEND_IMAGE"
-echo "✓ Frontend: $FRONTEND_IMAGE"
-echo ""
-echo "Instance: $INSTANCE_ID"
-echo "URL: http://stage-public.biomate.ai"
+    ;;
+esac

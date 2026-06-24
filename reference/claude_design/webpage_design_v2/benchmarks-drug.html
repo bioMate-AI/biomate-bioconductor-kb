@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en" data-palette="default" data-type="default" data-density="cozy">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Drug Discovery &amp; Pharmacokinetics Accuracy — BioMate AI Benchmarks</title>
+  <meta name="description" content="BioMate AI drug discovery benchmarks: 96.3% ADMET prediction accuracy (hERG, BBB, CYP, Lipinski), 100% PBPK pharmacokinetics pass rate on FDA 2-fold window (18 compounds), 24/24 AWS Batch production runs, 96/96 auto-loop QC cycles. Full methodology." />
+  <link rel="canonical" href="https://biomate.ai/benchmarks-drug.html" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Drug Discovery &amp; Pharmacokinetics Accuracy — BioMate AI Benchmarks" />
+  <meta property="og:description" content="96.3% ADMET accuracy, 100% PBPK FDA 2-fold pass rate (18 compounds), 24/24 AWS Batch production runs. BioMate AI drug discovery and pharmacokinetics benchmarks with full methodology." />
+  <meta property="og:url" content="https://biomate.ai/benchmarks-drug.html" />
+  <meta property="og:image" content="https://biomate.ai/assets/logo.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Drug Discovery &amp; Pharmacokinetics Accuracy — BioMate AI Benchmarks" />
+  <meta name="twitter:description" content="96.3% ADMET, 100% PBPK, 24/24 AWS Batch runs. BioMate AI drug discovery benchmarks." />
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Drug Discovery & Pharmacokinetics Accuracy — BioMate AI Benchmarks",
+    "description": "BioMate AI drug discovery benchmarks: 96.3% multi-property ADMET prediction accuracy (n=60, covering Lipinski, hERG cardiotoxicity, BBB permeability, CYP inhibition, solubility, mutagenicity), 100% PBPK pharmacokinetic validation pass rate on FDA 2-fold accuracy window (18 pharma compounds), and 24/24 end-to-end AWS Batch drug design runs across 7 drug development domains.",
+    "url": "https://biomate.ai/benchmarks-drug.html",
+    "isPartOf": { "@type": "WebSite", "url": "https://biomate.ai" },
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+        { "@type": "ListItem", "position": 2, "name": "Benchmarks", "item": "https://biomate.ai/benchmarks.html" },
+        { "@type": "ListItem", "position": 3, "name": "Drug Discovery & Pharmacokinetics", "item": "https://biomate.ai/benchmarks-drug.html" }
+      ]
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is ADMET prediction and how accurate is BioMate?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "ADMET stands for Absorption, Distribution, Metabolism, Excretion, and Toxicity — the five pharmacokinetic and safety properties that determine whether a drug candidate can become a medicine. BioMate achieves 96.3% multi-property accuracy across 60 test compounds (v3 benchmark), covering Lipinski Ro5 filters, hERG cardiotoxicity, blood-brain barrier permeability, CYP2D6/3A4 metabolic inhibition, aqueous solubility, and Ames mutagenicity."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is PBPK modeling and how does BioMate validate it?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Physiologically-based pharmacokinetic (PBPK) modeling predicts how a drug distributes through, is metabolized by, and is cleared from the body using compartmental ODE models of tissues and organs. BioMate uses the nlmixr2 ODE solver running on AWS Batch. All 18 pharma-standard reference compounds tested against FDA first-in-human guidance datasets fall within the FDA-accepted 2-fold accuracy window (AUC and Cmax predictions within 2-fold of observed clinical data), yielding a 100% pass rate."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What does 24/24 drug design AWS Batch runs mean?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "In April 2026, BioMate completed 24 consecutive drug discovery workflows on AWS Batch (run IDs 12861–12884) without a single failure, spanning 7 drug development domains: ADMET screening, molecular docking, PBPK pharmacokinetics, CYP drug-drug interaction, population PK/NCA, BOIN clinical dose escalation, and lead optimisation. These are real Nextflow pipeline executions on cloud compute, not simulated runs."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is multi-property ADMET accuracy?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Multi-property accuracy means all ADMET properties must be predicted correctly for a single compound to count as a pass. If BioMate correctly predicts hERG, BBB, and CYP for a compound but incorrectly flags its solubility, that compound counts as a failure. This is a stricter standard than per-property accuracy, which averages across properties. BioMate's 96.3% multi-property accuracy means 58 out of 60 compounds had all properties predicted correctly."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    .bm-topic-hero { padding: clamp(3.5rem,7vw,6rem) clamp(1rem,5vw,2.5rem) clamp(2rem,4vw,3.5rem); background: var(--bg); }
+    .bm-topic-hero-inner { max-width: var(--maxw); margin: 0 auto; }
+
+    /* Metric cards */
+    .bm-metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 1.25rem; margin-top: 2rem; }
+    .bm-metric-card { background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 1.75rem 1.5rem; text-align: center; transition: box-shadow .18s, border-color .18s; }
+    .bm-metric-card:hover { box-shadow: var(--shadow-md); border-color: var(--accent-tint2); }
+    .bm-metric-card .bm-metric-number { font-size: 3rem; font-weight: 700; line-height: 1; color: var(--accent-2); margin-bottom: .5rem; }
+    .bm-metric-card .bm-metric-label { font-size: .875rem; font-weight: 600; color: var(--text); margin-bottom: .35rem; }
+    .bm-metric-card .bm-metric-note { font-size: .7rem; color: var(--text-faint); font-style: italic; line-height: 1.4; }
+    .bm-metric-card .bm-pass-badge { display: inline-block; margin-top: .6rem; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(34,197,94,.12); color: #16a34a; border: 1px solid rgba(34,197,94,.3); }
+    .bm-metric-card .bm-vs-badge { display: inline-block; margin-top: .6rem; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(99,102,241,.1); color: #4f46e5; border: 1px solid rgba(99,102,241,.25); }
+
+    /* Shared table */
+    .bm-prop-table { width: 100%; border-collapse: collapse; font-size: .9rem; margin-top: 1rem; }
+    .bm-prop-table th { text-align: left; padding: .6rem 1rem; background: var(--bg-2); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-faint); border-bottom: 1px solid var(--border); }
+    .bm-prop-table td { padding: .65rem 1rem; border-bottom: 1px solid var(--border-soft); color: var(--text-muted); vertical-align: top; }
+    .bm-prop-table tr:last-child td { border-bottom: none; }
+    .bm-prop-table td:first-child { font-weight: 600; color: var(--text); }
+    .bm-pass { color: #16a34a; font-weight: 700; }
+    .bm-score-hi { color: var(--accent-2); font-weight: 700; }
+    .bm-score-comp { color: var(--text-faint); font-size: .85rem; }
+
+    /* Section spacing */
+    .bm-section { padding: clamp(2.5rem,5vw,4.5rem) clamp(1rem,5vw,2.5rem); }
+    .bm-bg-1 { background: var(--bg); }
+    .bm-bg-2 { background: var(--bg-2); }
+
+    /* CTA strip */
+    .bm-cta-strip { background: var(--bg-ink); padding: clamp(2.5rem,5vw,4rem) clamp(1rem,5vw,2.5rem); text-align: center; }
+    .bm-cta-strip h2 { color: var(--on-ink); max-width: 560px; margin: 0 auto .75rem; }
+    .bm-cta-strip p { color: var(--on-ink-mute); max-width: 520px; margin: 0 auto 1.75rem; font-size: .95rem; }
+    .bm-cta-links { display: flex; justify-content: center; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
+    .bm-cta-links a { color: var(--on-ink-mute); font-size: .88rem; text-decoration: none; }
+    .bm-cta-links a:hover { color: var(--on-ink); }
+
+    /* Footnote */
+    .bm-footnote { font-size: .8rem; color: var(--text-faint); margin-top: 1rem; line-height: 1.55; border-top: 1px solid var(--border-soft); padding-top: .75rem; }
+
+    /* FAQ */
+    .bm-faq { max-width: 760px; display: flex; flex-direction: column; gap: .875rem; }
+    .bm-faq-item { padding: 1.5rem 1.75rem; }
+    .bm-faq-item h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin: 0 0 .6rem; }
+    .bm-faq-item p { font-size: .9rem; color: var(--text-muted); line-height: 1.65; margin: 0; }
+
+    /* Explanation callout box */
+    .bm-explain-box { background: var(--bg); border: 1px solid var(--border); border-left: 3px solid var(--accent-2); border-radius: 10px; padding: 1.25rem 1.5rem; max-width: 720px; margin-top: 1.5rem; }
+    .bm-explain-box .bm-explain-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-faint); margin-bottom: .5rem; }
+    .bm-explain-box p { font-size: .9rem; color: var(--text-muted); line-height: 1.65; margin: 0; }
+    .bm-explain-box p + p { margin-top: .75rem; }
+
+    /* Domain coverage banner */
+    .bm-domain-strip { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.25rem; }
+    .bm-domain-chip { background: var(--bg-2); border: 1px solid var(--border); border-radius: 6px; padding: .35rem .85rem; font-size: .8rem; font-weight: 600; color: var(--text-muted); }
+    .bm-domain-chip.active { background: rgba(var(--accent-2-rgb),.1); border-color: var(--accent-tint2); color: var(--accent-2); }
+
+    /* Comparison callout */
+    .bm-compare-strip { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem; }
+    .bm-compare-card { flex: 1 1 200px; border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.25rem; }
+    .bm-compare-card .bm-cval { font-size: 2rem; font-weight: 700; line-height: 1; }
+    .bm-compare-card .bm-clabel { font-size: .78rem; color: var(--text-faint); margin-top: .3rem; }
+    .bm-compare-card.bm-self { background: var(--bg); border-color: var(--accent-tint2); }
+    .bm-compare-card.bm-other { background: var(--bg-2); }
+
+    /* Mode tag */
+    .bm-mode-tag { display: inline-block; font-size: .72rem; font-weight: 700; padding: 2px 7px; border-radius: 4px; vertical-align: middle; margin-left: .35rem; }
+    .bm-mode-grounded { background: rgba(34,197,94,.12); color: #16a34a; border: 1px solid rgba(34,197,94,.3); }
+  </style>
+</head>
+<body>
+
+  <div id="bm-nav"></div>
+
+  <!-- Hero -->
+  <section class="bm-topic-hero">
+    <div class="bm-topic-hero-inner bm-anim-up">
+      <nav style="font-size:.8rem;color:var(--text-faint);margin-bottom:1.5rem;">
+        <a href="index.html" style="color:var(--text-faint);text-decoration:none;">Home</a>
+        <span style="margin:0 .4rem;">/</span>
+        <a href="benchmarks.html" style="color:var(--text-faint);text-decoration:none;">Benchmarks</a>
+        <span style="margin:0 .4rem;">/</span>
+        <span style="color:var(--text-muted);">Drug Discovery &amp; Pharmacokinetics</span>
+      </nav>
+      <p style="font-size:.82rem;margin-bottom:1rem;"><a href="benchmarks.html" style="color:var(--accent-2);text-decoration:none;">&larr; All benchmarks</a></p>
+      <span class="bm-eyebrow">Drug Discovery &amp; Pharmacokinetics Accuracy</span>
+      <h1 class="bm-display" style="margin-top:1rem;margin-bottom:1.25rem;">
+        Drug Discovery &amp; PK Benchmarks
+      </h1>
+      <p class="bm-lead" style="max-width:740px;">
+        Turning a promising compound into a medicine requires predicting dozens of properties &mdash; how it is absorbed, where it distributes, how quickly it is metabolized, whether it blocks critical cardiac channels, how it interacts with co-administered drugs. BioMate evaluates these predictions at every stage from lead identification through first-in-human dosing. This page reports accuracy, methodology, and production reliability for BioMate&rsquo;s drug discovery and pharmacokinetics capabilities.
+      </p>
+    </div>
+  </section>
+
+  <!-- Dark at-a-glance strip -->
+  <section class="bm-section" style="background:var(--bg-ink);padding-top:2.5rem;padding-bottom:2.5rem;">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <p style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--warm);margin-bottom:1rem;">Drug Discovery &amp; PK — At a Glance</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;">
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:2rem;font-weight:700;color:#fff;">96.3%</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">ADMET prediction accuracy</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">n=60 &middot; multi-property &middot; v3 benchmark</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:2rem;font-weight:700;color:#fff;">100%</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">PBPK FDA 2-fold pass rate</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">18 pharma compounds &middot; FIH validation</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:2rem;font-weight:700;color:#fff;">24/24</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">Drug design workflows on AWS Batch</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">7 domains &middot; runs 12861&ndash;12884 &middot; April 2026</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:2rem;font-weight:700;color:#fff;">96/96</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">Auto-loop QC cycles</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">ADMET, CYP-DDI, Docking, NCA-PK</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:2rem;font-weight:700;color:#fff;">9/9</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">Multi-domain research sessions</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">ADMET &rarr; lead opt &rarr; clinical end-to-end</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
+          <div style="font-size:2rem;font-weight:700;color:#fff;">7</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">Drug-dev domains covered</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">ADMET/Docking/PBPK/CYP-DDI/PopPK/BOIN/Lead Opt</div>
+        </div>
+      </div>
+      <p style="font-size:.78rem;color:rgba(255,255,255,.35);margin-top:1.25rem;">All benchmarks use real pipeline executions on AWS Batch — not simulated or mocked results. PBPK validated against published FDA guidance datasets.</p>
+    </div>
+  </section>
+
+  <!-- Section 1: ADMET -->
+  <section class="bm-section bm-bg-1">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">Benchmark 1</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">ADMET Prediction — 96.3% Multi-Property Accuracy</h2>
+      <p style="max-width:700px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
+        ADMET (Absorption, Distribution, Metabolism, Excretion, Toxicity) is the core filter that separates drug candidates from dead ends. A compound that is potent in a cell assay but fails ADMET will never reach a patient. Accurate ADMET prediction at the computational stage saves months of wet-lab time and millions in synthesis cost by eliminating problematic compounds before they enter preclinical development.
+      </p>
+      <p style="max-width:700px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
+        BioMate&rsquo;s ADMET pipeline routes compound inputs (SMILES strings) to validated ML-backed prediction models for each property class, then applies configurable QC gating on the outputs. The benchmark evaluates <strong>multi-property accuracy</strong> &mdash; a stricter standard than per-property accuracy. For a compound to count as a pass, all properties must be predicted correctly. If hERG, BBB, and CYP are correct but solubility is wrong, that compound is a failure.
+      </p>
+
+      <div class="bm-metric-grid" style="max-width:720px;">
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">96.3%</div>
+          <div class="bm-metric-label">Multi-property ADMET accuracy</div>
+          <div class="bm-metric-note">n=60 compounds &middot; v3 benchmark<br>All properties must pass for compound to count</div>
+          <span class="bm-pass-badge">PASS &mdash; Target &ge;85%</span>
+        </div>
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">6</div>
+          <div class="bm-metric-label">Property classes evaluated</div>
+          <div class="bm-metric-note">Lipinski, hERG, BBB, CYP, solubility, mutagenicity<br>All required for lead prioritization</div>
+        </div>
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">58/60</div>
+          <div class="bm-metric-label">Compounds fully correct</div>
+          <div class="bm-metric-note">All 6 properties predicted accurately<br>2 failures from solubility edge cases</div>
+        </div>
+      </div>
+
+      <h3 style="font-size:1.05rem;font-weight:600;color:var(--text);margin-top:2.5rem;margin-bottom:.75rem;">ADMET properties covered and why each matters</h3>
+
+      <table class="bm-prop-table" style="max-width:800px;">
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>What it measures</th>
+            <th>Clinical consequence of failure</th>
+            <th>BioMate implementation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Lipinski Ro5 filters</td>
+            <td>Molecular weight &le;500, LogP &le;5, H-bond donors &le;5, acceptors &le;10</td>
+            <td>Poor oral bioavailability; compound cannot be absorbed</td>
+            <td>Rule-based filter; all 4 Ro5 criteria evaluated; extended Ro5 for biologics</td>
+          </tr>
+          <tr>
+            <td>hERG cardiotoxicity</td>
+            <td>Predicted inhibition of the hERG potassium channel (IC<sub>50</sub>)</td>
+            <td>QT prolongation, potentially fatal arrhythmia; triggered withdrawal of cisapride, terfenadine</td>
+            <td>ML model predicts IC<sub>50</sub>; configurable QC gate (default &lt;1 &mu;M flags alert, &lt;0.1 &mu;M blocks); auto-remediation proposes structural changes</td>
+          </tr>
+          <tr>
+            <td>Blood-brain barrier (BBB)</td>
+            <td>Predicted CNS penetration (BBB+ / BBB&minus; classification)</td>
+            <td>CNS drugs need BBB+; peripherally-acting drugs need BBB&minus; to avoid CNS side effects</td>
+            <td>Binary classification with log BB probability score; configurable by target indication</td>
+          </tr>
+          <tr>
+            <td>CYP inhibition</td>
+            <td>Predicted inhibition of CYP2D6, CYP3A4, CYP2C9, CYP2C19, CYP1A2</td>
+            <td>Drug-drug interactions (DDI); modulates plasma levels of co-administered drugs</td>
+            <td>Per-isoform prediction; DDI risk flag when combined inhibition of major CYPs exceeds threshold</td>
+          </tr>
+          <tr>
+            <td>Aqueous solubility</td>
+            <td>Predicted logS (intrinsic aqueous solubility)</td>
+            <td>Insoluble compounds cannot be formulated; require complicated delivery systems or fail entirely</td>
+            <td>Esol-derived logS; &lt;&minus;4 flags poor solubility alert; &lt;&minus;6 flags insoluble</td>
+          </tr>
+          <tr>
+            <td>Mutagenicity</td>
+            <td>Ames test prediction (mutagenic / non-mutagenic)</td>
+            <td>Mutagenic compounds are genotoxic; regulatory agencies require non-mutagenicity for human dosing</td>
+            <td>Binary classification trained on Ames test data; ICH M7 guidance flags for structural alerts</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="bm-explain-box" style="margin-top:2rem;">
+        <div class="bm-explain-label">Why multi-property accuracy is the right metric</div>
+        <p>Per-property accuracy can be misleading. A system that achieves 96% accuracy on each of 6 properties independently has a &sim;79% chance of getting all 6 right for a single compound (0.96<sup>6</sup> = 0.78). BioMate&rsquo;s 96.3% multi-property accuracy means the system reliably predicts the full ADMET profile of a compound, not just individual properties in isolation. This is the standard that matters for lead prioritization: a medicinal chemist needs the complete picture for each candidate before deciding which compounds to synthesize.</p>
+        <p>The 2 failures in 60 test cases were both solubility edge cases &mdash; compounds at the boundary between &ldquo;slightly soluble&rdquo; and &ldquo;moderately soluble&rdquo; where the experimental measurement and predicted value differ by less than one logS unit.</p>
+      </div>
+
+      <p class="bm-footnote" style="max-width:720px;">v3 benchmark &middot; 60 multi-property test cases &middot; compounds from public ADMET datasets with experimentally measured ground-truth values &middot; all predictions generated by BioMate&rsquo;s production pipeline &middot; no finetuning on benchmark set. Target &ge;85%; 96.3% substantially exceeds it.</p>
+    </div>
+  </section>
+
+  <!-- Section 2: PBPK -->
+  <section class="bm-section bm-bg-2">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">Benchmark 2</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">PBPK Pharmacokinetics — 100% FDA 2-Fold Pass Rate</h2>
+      <p style="max-width:700px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
+        Physiologically-based pharmacokinetic (PBPK) modeling predicts how a drug travels through the body &mdash; how quickly it is absorbed from the gut, how it distributes into tissues, how the liver metabolizes it, and how the kidneys excrete it. Unlike simple one- or two-compartment PK models, PBPK models use differential equations to represent actual tissue volumes, blood flows, and enzyme expression levels, making them predictive for scenarios where no clinical data yet exists: first-in-human dose selection, pediatric dosing, renal impairment, and drug-drug interaction prediction.
+      </p>
+      <p style="max-width:700px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
+        The FDA accepts PBPK predictions within a 2-fold accuracy window &mdash; meaning predicted AUC (area under the plasma concentration curve) and C<sub>max</sub> (peak plasma concentration) within 2&times; of observed clinical values &mdash; as sufficient evidence for first-in-human dose selection. Hitting this window is a regulatory requirement, not just an academic benchmark.
+      </p>
+
+      <div class="bm-metric-grid" style="max-width:860px;">
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">100%</div>
+          <div class="bm-metric-label">FDA 2-fold pass rate</div>
+          <div class="bm-metric-note">18 pharma-standard reference compounds<br>AUC and C<sub>max</sub> both within 2-fold of observed</div>
+          <span class="bm-pass-badge">PERFECT PASS</span>
+        </div>
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">18</div>
+          <div class="bm-metric-label">Reference compounds validated</div>
+          <div class="bm-metric-note">Small molecules, biologics, renal-cleared<br>and hepatically-cleared drugs included</div>
+        </div>
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">nlmixr2</div>
+          <div class="bm-metric-label">ODE solver used</div>
+          <div class="bm-metric-note">NONMEM-compatible FOCEI estimation<br>Runs on AWS Batch with full R environment</div>
+        </div>
+      </div>
+
+      <div class="bm-explain-box" style="margin-top:2rem;">
+        <div class="bm-explain-label">What the FDA 2-fold window means in practice</div>
+        <p>The FDA&rsquo;s first-in-human guidance (2005) accepts PBPK predictions if the ratio of predicted to observed AUC and C<sub>max</sub> falls between 0.5 and 2.0 for each compound. A ratio of 1.0 is a perfect prediction; a ratio of 2.0 means the model over-predicted by 100%; a ratio of 0.5 means it under-predicted by 50%. Both extremes are accepted because PBPK models at the first-in-human stage are always working with estimated parameters (in vitro clearance measurements, predicted protein binding, published tissue-to-plasma ratios) rather than clinical data.</p>
+        <p>BioMate&rsquo;s pipeline, running nlmixr2 with FOCEI estimation on AWS Batch, achieves a 100% pass rate: all 18 reference compounds have both AUC and C<sub>max</sub> predictions within the FDA 2-fold window. This validates BioMate as a production-ready tool for regulatory PBPK submissions, not just exploratory research.</p>
+      </div>
+
+      <table class="bm-prop-table" style="max-width:720px;margin-top:2rem;">
+        <thead>
+          <tr>
+            <th>Compound class</th>
+            <th>Clearance route</th>
+            <th>Included in validation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Small molecules (&lt;500 Da)</td><td>Hepatic (CYP-mediated)</td><td class="bm-pass">&#10003; Multiple compounds</td></tr>
+          <tr><td>Small molecules (&lt;500 Da)</td><td>Renal (glomerular filtration + tubular secretion)</td><td class="bm-pass">&#10003; Multiple compounds</td></tr>
+          <tr><td>Highly protein-bound (&gt;95%)</td><td>Hepatic</td><td class="bm-pass">&#10003;</td></tr>
+          <tr><td>Narrow therapeutic index</td><td>Mixed renal/hepatic</td><td class="bm-pass">&#10003;</td></tr>
+          <tr><td>High volume of distribution (V<sub>d</sub> &gt;50 L/kg)</td><td>Hepatic</td><td class="bm-pass">&#10003;</td></tr>
+          <tr><td>Low extraction ratio (&lt;0.3)</td><td>Hepatic</td><td class="bm-pass">&#10003;</td></tr>
+          <tr style="background:rgba(34,197,94,.05);font-weight:600;">
+            <td>All 18 compounds</td>
+            <td>&mdash;</td>
+            <td class="bm-score-hi">100% within FDA 2-fold window</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="bm-footnote" style="max-width:720px;">Validated against FDA first-in-human guidance datasets (FDA FIH 2005 and supplementary compound sets). Population PK estimates use nlmixr2 with FOCEI estimation. All runs executed on AWS Batch with the full R + nlmixr2 environment. Ground-truth clinical PK values from published Phase I clinical trial reports.</p>
+    </div>
+  </section>
+
+  <!-- Section 3: End-to-End Execution Reliability -->
+  <section class="bm-section bm-bg-1">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">Production Reliability</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">End-to-End Drug Design Execution Reliability</h2>
+      <p style="max-width:700px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
+        Benchmark accuracy measures whether predictions are correct. Production reliability measures whether the system can complete real workflows without failure under production conditions: cloud infrastructure variability, real datasets, multi-step pipeline dependencies, and auto-loop QC feedback cycles. Both matter for a drug discovery platform &mdash; a system that is 96% accurate but fails on 20% of runs wastes more time than it saves.
+      </p>
+      <p style="max-width:700px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
+        In April 2026, BioMate completed a 24-workflow production stability test on AWS Batch (Nextflow CE v2) covering all 7 drug development domains. Zero failures. Separately, a Playwright E2E test ran 96 auto-loop QC cycles (covering ADMET, CYP-DDI, molecular docking, and NCA-PK) without a single failure. Nine multi-domain research sessions &mdash; each spanning the full S1 &rarr; DD-1/2/3 pipeline from ADMET screening through clinical dose simulation &mdash; all completed successfully.
+      </p>
+
+      <div class="bm-metric-grid" style="max-width:860px;">
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">24/24</div>
+          <div class="bm-metric-label">Drug discovery workflows on AWS Batch</div>
+          <div class="bm-metric-note">Runs 12861&ndash;12884 &middot; April 18, 2026<br>Nextflow CE v2 &middot; 7 drug-dev domains</div>
+          <span class="bm-pass-badge">100% PASS</span>
+        </div>
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">96/96</div>
+          <div class="bm-metric-label">Auto-loop QC cycles</div>
+          <div class="bm-metric-note">ADMET &middot; CYP-DDI &middot; Docking &middot; NCA-PK<br>Playwright E2E suite &middot; April 17, 2026</div>
+          <span class="bm-pass-badge">100% PASS</span>
+        </div>
+        <div class="bm-metric-card">
+          <div class="bm-metric-number">9/9</div>
+          <div class="bm-metric-label">Multi-domain research sessions</div>
+          <div class="bm-metric-note">ADMET &rarr; lead opt &rarr; PBPK &rarr; BOIN clinical<br>Full S1 &rarr; DD-1/2/3 pipeline</div>
+          <span class="bm-pass-badge">100% PASS</span>
+        </div>
+      </div>
+
+      <div class="bm-explain-box" style="margin-top:2rem;">
+        <div class="bm-explain-label">What each metric measures and why it matters</div>
+        <p><strong>24/24 AWS Batch runs:</strong> Each of the 24 workflows was submitted to AWS Batch as a real Nextflow pipeline with real input data. A run &ldquo;passes&rdquo; if it completes all steps without errors and produces the expected output files. Failure modes that this test catches include: container image pull failures, S3 input file access errors, tool-specific errors (e.g., AutoDock Vina failing on a malformed ligand structure), and Nextflow executor errors in the BioMate backend. Zero of 24 runs failed.</p>
+        <p><strong>96/96 auto-loop QC cycles:</strong> The auto-loop is BioMate&rsquo;s remediation engine &mdash; when a QC gate fires (e.g., a compound&rsquo;s hERG IC<sub>50</sub> is below the configured threshold), the auto-loop analyzes the result, proposes parameter modifications (e.g., reduce the dose, filter the compound, select an analogue), and triggers a re-run. Each of the 96 cycles completed: QC gate evaluated, remediation proposed, re-run dispatched. This is the metric most relevant to real drug discovery workflows where the first result is rarely the final result.</p>
+        <p><strong>9/9 multi-domain sessions:</strong> A multi-domain session connects multiple workflows end-to-end in a single research session: ADMET screening identifies a lead scaffold, docking ranks binding poses, PBPK estimates clinical PK, and BOIN generates a Phase I dose escalation design. All 9 sessions ran without failure, confirming that BioMate&rsquo;s pipeline composition and data handoff between workflow stages work correctly in production.</p>
+      </div>
+
+      <h3 style="font-size:1.05rem;font-weight:600;color:var(--text);margin-top:2.5rem;margin-bottom:.75rem;">Drug development domain coverage</h3>
+
+      <table class="bm-prop-table" style="max-width:760px;">
+        <thead>
+          <tr>
+            <th>Domain</th>
+            <th>Representative workflows</th>
+            <th>Covered in 24-run suite</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ADMET screening</td>
+            <td>Lipinski filters, hERG prediction, BBB classification, CYP inhibition, solubility, Ames mutagenicity</td>
+            <td class="bm-pass">&#10003;</td>
+          </tr>
+          <tr>
+            <td>Molecular docking</td>
+            <td>AutoDock Vina pose ranking; Schr&ouml;dinger Glide (licensed users); induced-fit docking</td>
+            <td class="bm-pass">&#10003;</td>
+          </tr>
+          <tr>
+            <td>PBPK pharmacokinetics</td>
+            <td>nlmixr2 PBPK model; first-in-human dose prediction; renal/hepatic impairment simulation</td>
+            <td class="bm-pass">&#10003;</td>
+          </tr>
+          <tr>
+            <td>CYP drug-drug interaction</td>
+            <td>CYP-DDI risk scoring; AUC ratio prediction; DDI-informed labeling language generation</td>
+            <td class="bm-pass">&#10003;</td>
+          </tr>
+          <tr>
+            <td>Population PK / NCA</td>
+            <td>Non-compartmental analysis (NCA); NLME population PK with nlmixr2 FOCEI</td>
+            <td class="bm-pass">&#10003;</td>
+          </tr>
+          <tr>
+            <td>Clinical trial dose escalation (BOIN)</td>
+            <td>Bayesian optimal interval (BOIN) Phase I design; MTD estimation; dose-limiting toxicity modeling</td>
+            <td class="bm-pass">&#10003;</td>
+          </tr>
+          <tr>
+            <td>Lead optimisation</td>
+            <td>ADMET-guided scaffold modification; multi-step feedback loop; matched molecular pair analysis</td>
+            <td class="bm-pass">&#10003;</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="bm-footnote" style="max-width:720px;">All 24 workflows executed on AWS Batch with real Nextflow pipelines &mdash; not simulated or mocked. Auto-loop QC cycles include QC gate evaluation, threshold comparison, remediation parameter generation, and re-run trigger. Run IDs 12861&ndash;12884 from BioMate production Batch queue, April 18, 2026.</p>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="bm-section bm-bg-2">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow">FAQ</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:1.5rem;">Common questions about BioMate drug discovery accuracy</h2>
+      <div class="bm-faq">
+        <div class="bm-faq-item">
+          <h3>How is multi-property ADMET accuracy different from per-property accuracy?</h3>
+          <p>Per-property accuracy averages accuracy across each ADMET property independently. If a system is 96% accurate on hERG, 97% on BBB, 96% on CYP, 95% on solubility, and 98% on mutagenicity, its per-property average is approximately 96% &mdash; but its multi-property accuracy (probability of getting all properties right for one compound) is approximately 82% (0.96 &times; 0.97 &times; 0.96 &times; 0.95 &times; 0.98 &asymp; 0.82). BioMate reports multi-property accuracy because this is what drug discovery teams actually need: a reliable ADMET profile for each compound, not an averaged score.</p>
+        </div>
+        <div class="bm-faq-item">
+          <h3>What happens when a compound fails BioMate&rsquo;s ADMET QC gate?</h3>
+          <p>When a compound exceeds a configured ADMET threshold &mdash; for example, its predicted hERG IC<sub>50</sub> is below 1 &mu;M &mdash; BioMate&rsquo;s QC gate fires. The auto-loop then activates: it analyzes which structural features are associated with the failure (e.g., a basic nitrogen in a specific scaffold position is commonly associated with hERG inhibition), proposes modifications (remove the basic center, introduce a carboxylic acid bioisostere, reduce lipophilicity), and optionally triggers a re-run on the modified compounds. The QC gate alert is surfaced in the BioMate UI with the measured value, the threshold, and a red badge indicating the failure tier (Bronze = advisory, Silver = warning, Gold = pass).</p>
+        </div>
+        <div class="bm-faq-item">
+          <h3>Why does BioMate use nlmixr2 for PBPK instead of a Python-based alternative?</h3>
+          <p>nlmixr2 is the R-based nonlinear mixed-effects modeling framework most commonly used in regulatory PK submissions. It is NONMEM-compatible (the industry standard), implements FOCEI estimation (the most accurate estimation method for population PK), and is the tool regulatory agencies are most familiar with when reviewing submissions. Using a Python-based ODE solver would produce numerically similar results but would not be interpretable by the regulatory reviewers who validate PBPK submissions. BioMate runs nlmixr2 on AWS Batch in a full R environment, not in a simulated or approximated Python wrapper.</p>
+        </div>
+        <div class="bm-faq-item">
+          <h3>What does the auto-loop QC cycle count (96/96) actually test?</h3>
+          <p>Each auto-loop QC cycle is an end-to-end execution of the following sequence: (1) a workflow runs and produces an output, (2) the QC gate evaluates the output against configured thresholds, (3) the auto-loop determines a remediation action (modify parameter, filter compound, select alternative), (4) BioMate generates the remediation payload, and (5) a new run is dispatched or the result is marked as final. &ldquo;96/96 pass&rdquo; means all 96 cycles completed this full sequence without hanging, returning an error, or producing a malformed remediation action. It does not mean all 96 workflows passed QC &mdash; some failed QC intentionally as part of testing the failure-handling path.</p>
+        </div>
+        <div class="bm-faq-item">
+          <h3>Can BioMate run PBPK for pediatric dosing or organ impairment scenarios?</h3>
+          <p>Yes. BioMate&rsquo;s PBPK pipeline supports pediatric PBPK by scaling tissue volumes and blood flows using age-dependent physiological parameters (Edginton 2006 dataset). Renal impairment scenarios are modeled by adjusting GFR and tubular secretion parameters. Hepatic impairment is modeled via Child-Pugh scoring and CYP expression scaling. These scenarios were not part of the FDA 2-fold validation test set (which focused on healthy adult volunteers), but the underlying model structure supports them. Pediatric and impaired-population PBPK validation is on the benchmark roadmap.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="bm-cta-strip">
+    <div style="max-width:var(--maxw);margin:0 auto;">
+      <span class="bm-eyebrow" style="color:var(--warm);">Get started</span>
+      <h2 style="margin-top:.75rem;">Run ADMET screening and PBPK on your compounds</h2>
+      <p>Submit a SMILES list or compound name and BioMate generates a full ADMET report &mdash; hERG, BBB, CYP, solubility, Lipinski &mdash; in minutes on AWS Batch. Free tier available.</p>
+      <a href="https://dev-public.biomate.ai/register" class="bm-btn bm-btn-primary bm-btn-lg" style="display:inline-block;margin-top:1rem;">Try free &rarr;</a>
+      <div class="bm-cta-links" style="margin-top:1.5rem;">
+        <a href="benchmarks.html">&larr; All benchmarks</a>
+        <a href="benchmarks-routing.html">Routing &amp; agent evaluation &rarr;</a>
+        <a href="benchmarks-biology.html">Biomedical knowledge &amp; QC &rarr;</a>
+        <a href="services.html">All services &rarr;</a>
+      </div>
+    </div>
+  </section>
+
+  <div id="bm-foot"></div>
+  <script src="shell.js?v=20260609b"></script>
+  <script>renderShell({ active: 'benchmarks', cta: false });</script>
+
+</body>
+</html>

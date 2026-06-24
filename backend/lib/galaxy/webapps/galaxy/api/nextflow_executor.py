@@ -217,6 +217,73 @@ def _narrate_chat(invocation_id: str, kind: str, technical: Optional[Dict[str, A
     _narrator_emit(invocation_id, kind, technical, sse_callback=_post_sse)
 
 
+def _post_sse_direct(invocation_id: str, event_type: str, data: Dict[str, Any]) -> None:
+    """Module-level SSE inject — usable outside _narrate_chat."""
+    import os as _os
+    frontend_url = _os.environ.get("FRONTEND_URL", "http://localhost:5000")
+    try:
+        import requests as _req
+        _req.post(
+            f"{frontend_url}/internal/sse-inject",
+            json={"invocation_id": invocation_id, "event_type": event_type, "data": data},
+            timeout=2,
+        )
+    except Exception as _exc:
+        log.debug("[chain_suggest] SSE inject failed for %s: %s", event_type, _exc)
+
+
+def _collect_output_extensions(run_id: str) -> List[str]:
+    """Return lowercased unique file extensions from a run's output directory."""
+    import os as _os
+    with _runs_lock:
+        run = _runs.get(run_id, {})
+    outdir = run.get("outdir", "")
+    if not outdir or str(outdir).startswith("s3://"):
+        # For S3 runs, use s3_output_files list if available
+        s3_files = run.get("s3_output_files", [])
+        return list({f.rsplit(".", 1)[-1].lower() for f in s3_files if "." in f})
+    exts: set = set()
+    try:
+        for root, _dirs, files in _os.walk(str(outdir)):
+            for f in files:
+                if "." in f:
+                    exts.add(f.rsplit(".", 1)[-1].lower())
+    except Exception:
+        pass
+    return list(exts)
+
+
+def _fire_chain_suggestions(run_id: str, workflow_name: str, invocation_id: str) -> None:
+    """After a successful run, suggest relevant downstream chains via SSE."""
+    try:
+        from galaxy.ai.bioc_chain_templates import suggest_chains_for_run as _bioc_suggest
+        output_exts = _collect_output_extensions(run_id)
+        suggestions = _bioc_suggest(workflow_name, output_exts)
+        # Also check cryo-EM chains if the module exists
+        try:
+            from galaxy.ai.cryoem_chain_templates import suggest_chains_for_run as _cryoem_suggest
+            suggestions = suggestions + _cryoem_suggest(workflow_name, output_exts)
+        except ImportError:
+            pass
+        if not suggestions:
+            return
+        _post_sse_direct(invocation_id, "chain_suggestion", {
+            "trigger_workflow": workflow_name,
+            "suggestions": [
+                {
+                    "name": s["name"],
+                    "display_name": s["display_name"],
+                    "steps": len(s.get("steps", [])),
+                    "required_inputs": s.get("required_inputs", []),
+                    "description": s.get("description", "")[:200],
+                }
+                for s in suggestions[:2]
+            ],
+        })
+    except Exception as _exc:
+        log.debug("[chain_suggest] _fire_chain_suggestions failed for %s: %s", run_id, _exc)
+
+
 def _aws_cli_bin() -> str:
     """Canonical path to the aws CLI binary inside the Galaxy container.
 
@@ -2098,10 +2165,17 @@ def _generate_executor_config(
             #     "Could not find method publishDir() to invoke" (boltz v3-v5,
             #     2026-06-12). nf-amazon@3.3.0 pin above already prevents the
             #     CRT crash this null was guarding against.
+            #   - subworkflows/bioconductor/ — the generated biomate_entry.nf wrapper
+            #     hits the SAME "Could not find method publishDir() to invoke" on dev's
+            #     Nextflow 25.10.5 (confirmed on deseq2, 2026-06-20; passed on a spot only
+            #     because it ran 26.04.4). The bioc .nf carry NO publishDir directives and
+            #     collect outputs from the Batch task work dir, so the null is pointless
+            #     here too; the nf-amazon@3.3.0 pin already covers CRT.
             *(
                 ["process {", "    publishDir = null", "}"]
                 if "/nf-core-workflows/" not in nf_path
                    and "structural_biology/" not in nf_path
+                   and "/bioconductor/" not in nf_path
                 else []
             ),
             "process {",
@@ -3481,6 +3555,17 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                 _narrate_chat(_inv_id, "workflow.failed", {"run_id": run_id, "returncode": returncode, "reason": f"exit {returncode}"})
             elif final_status == "interrupted":
                 _narrate_chat(_inv_id, "workflow.failed", {"run_id": run_id, "reason": "workflow was interrupted"})
+
+        # Post-completion chain suggestions: fire downstream chain hints when the
+        # run succeeded.  Uses nextflow_path as the workflow name for trigger
+        # matching (bioc + cryo-EM chain templates both key on the nf path
+        # basename).  Runs in the same completion thread — failures are silently
+        # swallowed so they cannot block billing / LTM writes below.
+        if final_status == "completed" and _inv_id:
+            with _runs_lock:
+                _wf_name = _runs.get(run_id, {}).get("nextflow_path", "")
+            if _wf_name:
+                _fire_chain_suggestions(run_id, _wf_name, _inv_id)
 
         # Write timing.json immediately — before any follow-on work that could fail.
         _write_timing(run_id, {
@@ -8550,3 +8635,198 @@ def _scrape_batch_job_ids(run_id: str) -> None:
                     )
     except Exception as _e:
         log.debug("[Nextflow run %s] Could not scrape Batch job IDs: %s", run_id, _e)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Data connector: fetch_public_data
+# ──────────────────────────────────────────────────────────────────────────────
+
+class FetchPublicDataRequest(BaseModel):
+    """Stage a publicly accessible file into BioMate S3 for workflow consumption."""
+    source_id: Optional[str] = None     # file source id from file_sources_conf.yml, e.g. "ebi_ftp"
+    remote_path: Optional[str] = None   # path within the source, e.g. "/pub/databases/uniprot/..."
+    url: Optional[str] = None           # direct HTTP/HTTPS/FTP URL (alternative to source_id+remote_path)
+    destination_key: Optional[str] = None  # S3 key prefix; defaults to "public-data/<filename>"
+
+
+@router.post("/api/nextflow/fetch_public_data", summary="Stage a public file into BioMate S3")
+async def fetch_public_data(body: FetchPublicDataRequest):
+    """
+    Download a file from a public biological data source and stage it into
+    BioMate's S3 bucket so downstream workflows can reference it via s3://.
+
+    Accepts either:
+    - `source_id` + `remote_path` (file source plugin + relative path)
+    - `url` (any HTTP/HTTPS/FTP URL)
+
+    Returns the S3 URI and presigned download URL of the staged file.
+    """
+    import urllib.request
+    import urllib.parse
+    import tempfile
+
+    if not body.url and not (body.source_id and body.remote_path):
+        raise HTTPException(status_code=400, detail="Provide 'url' or both 'source_id' and 'remote_path'")
+
+    # Resolve URL from source_id + remote_path if needed
+    download_url = body.url
+    if not download_url and body.source_id and body.remote_path:
+        SOURCE_HOSTS = {
+            "ebi_ftp":        "ftp://ftp.ebi.ac.uk",
+            "ncbi_ftp":       "ftp://ftp.ncbi.nlm.nih.gov",
+            "ensembl_ftp":    "ftp://ftp.ensembl.org",
+            "ucsc_downloads": "ftp://hgdownload.soe.ucsc.edu",
+            "http_public":    None,  # remote_path must be a full URL for http source
+        }
+        host = SOURCE_HOSTS.get(body.source_id)
+        if host is None:
+            if body.remote_path.startswith(("http://", "https://", "ftp://")):
+                download_url = body.remote_path
+            else:
+                raise HTTPException(status_code=400, detail=f"Unknown source_id '{body.source_id}'")
+        else:
+            path = body.remote_path.lstrip("/")
+            download_url = f"{host}/{path}"
+
+    # Derive destination S3 key
+    parsed = urllib.parse.urlparse(download_url)
+    filename = Path(parsed.path).name or "data.bin"
+    dest_key = body.destination_key or f"public-data/{filename}"
+
+    s3_bucket = os.environ.get("NEXTFLOW_S3_BUCKET") or os.environ.get("AWS_S3_BUCKET")
+    if not s3_bucket:
+        raise HTTPException(status_code=503, detail="S3 not configured (NEXTFLOW_S3_BUCKET not set)")
+
+    log.info("[fetch_public_data] Downloading %s → s3://%s/%s", download_url, s3_bucket, dest_key)
+
+    try:
+        import boto3
+        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-1"))
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{filename}") as tmp:
+            tmp_path = tmp.name
+
+        try:
+            # Download to temp file then upload to S3 to avoid memory pressure
+            urllib.request.urlretrieve(download_url, tmp_path)  # noqa: S310  (internal validated URLs)
+            file_size = Path(tmp_path).stat().st_size
+            s3.upload_file(tmp_path, s3_bucket, dest_key)
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+
+        # Generate presigned URL (valid 24h)
+        presigned = s3.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": s3_bucket, "Key": dest_key},
+            ExpiresIn=86400,
+        )
+
+        return {
+            "s3_uri": f"s3://{s3_bucket}/{dest_key}",
+            "s3_key": dest_key,
+            "presigned_url": presigned,
+            "filename": filename,
+            "size_bytes": file_size,
+            "source_url": download_url,
+        }
+
+    except Exception as exc:
+        log.exception("[fetch_public_data] Failed: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# S3 workspace browser
+# ──────────────────────────────────────────────────────────────────────────────
+
+@router.get("/api/nextflow/s3/browse", summary="List objects in a user's S3 bucket")
+async def browse_s3(
+    trans: ProvidesUserContext = DependsOnTrans,
+    prefix: str = "",
+    max_keys: int = 200,
+):
+    """
+    Return a directory-style listing of S3 objects for the authenticated user.
+
+    Credential resolution order:
+    1. User-stored S3 credential (aws_access_key_id / secret / region / s3_bucket)
+    2. BioMate's own bucket (NEXTFLOW_S3_BUCKET env var) using instance-role/env creds
+
+    Each item in the response is one of:
+    - {"type": "prefix", "key": "folder/", "name": "folder"}
+    - {"type": "object", "key": "file.txt", "name": "file.txt", "size": 123, "last_modified": "..."}
+    """
+    from galaxy.webapps.galaxy.api.credentials_api import _get_credential
+
+    # Resolve credentials + bucket
+    bucket = None
+    boto_kwargs: Dict[str, Any] = {}
+
+    user_cred = _get_credential(trans, "s3") if trans.user else None
+    if user_cred and user_cred.get("aws_access_key_id"):
+        boto_kwargs = {
+            "aws_access_key_id":     user_cred["aws_access_key_id"],
+            "aws_secret_access_key": user_cred.get("aws_secret_access_key", ""),
+            "region_name":           user_cred.get("aws_region", "us-east-1"),
+        }
+        bucket = user_cred.get("s3_bucket")
+
+    if not bucket:
+        bucket = os.environ.get("NEXTFLOW_S3_BUCKET") or os.environ.get("AWS_S3_BUCKET")
+        if not boto_kwargs:
+            # Fall back to instance role / env-var creds
+            region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+            boto_kwargs = {"region_name": region}
+
+    if not bucket:
+        raise HTTPException(status_code=503, detail="No S3 bucket configured for this user")
+
+    try:
+        import boto3
+        s3 = boto3.client("s3", **boto_kwargs)
+
+        paginator = s3.get_paginator("list_objects_v2")
+        page_iter = paginator.paginate(
+            Bucket=bucket,
+            Prefix=prefix,
+            Delimiter="/",
+            PaginationConfig={"MaxItems": max_keys},
+        )
+
+        entries: List[Dict[str, Any]] = []
+        truncated = False
+
+        for page in page_iter:
+            if page.get("IsTruncated"):
+                truncated = True
+            for cp in page.get("CommonPrefixes") or []:
+                key = cp["Prefix"]
+                entries.append({
+                    "type": "prefix",
+                    "key": key,
+                    "name": key.rstrip("/").split("/")[-1] + "/",
+                })
+            for obj in page.get("Contents") or []:
+                key = obj["Key"]
+                name = key.split("/")[-1] if "/" in key else key
+                if not name:
+                    continue  # skip the prefix entry itself
+                entries.append({
+                    "type": "object",
+                    "key": key,
+                    "name": name,
+                    "size": obj.get("Size", 0),
+                    "last_modified": obj["LastModified"].isoformat() if obj.get("LastModified") else None,
+                })
+
+        return {
+            "bucket": bucket,
+            "prefix": prefix,
+            "entries": entries,
+            "truncated": truncated,
+            "credential_source": "user" if user_cred else "biomate",
+        }
+
+    except Exception as exc:
+        log.exception("[browse_s3] Failed for bucket=%s prefix=%s: %s", bucket, prefix, exc)
+        raise HTTPException(status_code=500, detail=str(exc))

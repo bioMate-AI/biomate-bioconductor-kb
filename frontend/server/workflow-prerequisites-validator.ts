@@ -36,7 +36,7 @@ import type {
 } from '../shared/prerequisites-types';
 
 export interface PrerequisitesValidatorOptions {
-  anthropicApiKey: string;
+  anthropicApiKey?: string;
   galaxyAPIProxy: GalaxyAPIProxy;
 }
 
@@ -50,7 +50,7 @@ export class WorkflowPrerequisitesValidator {
   private readonly SCHEMA_TTL_MS = 60 * 60 * 1000; // 1 hour
 
   constructor(options: PrerequisitesValidatorOptions) {
-    this.claude = new Anthropic({ apiKey: options.anthropicApiKey });
+    this.claude = new Anthropic({ apiKey: options.anthropicApiKey || '' });
     this.galaxyAPI = options.galaxyAPIProxy;
   }
 

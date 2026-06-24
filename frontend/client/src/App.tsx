@@ -20,10 +20,11 @@ import { CreateProjectDialog } from "@/components/create-project-dialog";
 import { ToolIntroductionDialog } from "@/components/tool-introduction-dialog";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { chatHistoryService } from "@/lib/chat-history";
 import React, { useState, useEffect, useRef } from "react";
 import { useSearch } from "wouter";
-import { PanelLeft, Plus, FlaskConical, MessageCircle } from "lucide-react";
+import { PanelLeft, Plus, FlaskConical, MessageCircle, Menu } from "lucide-react";
 import type { ChatSession } from "@shared/schema";
 import { analytics } from "@/lib/analytics";
 
@@ -39,6 +40,7 @@ import CheckoutPage from "@/pages/checkout";
 import BlogPage from "@/pages/blog";
 import BlogPostPage from "@/pages/blog-post";
 import AboutPage from "@/pages/about";
+import TutorialsPage from "@/pages/tutorials";
 import PrivacyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
 import DashboardPage from "@/pages/dashboard";
@@ -47,9 +49,9 @@ import AdminFeedbackDashboardPage from "@/pages/admin/feedback-dashboard";
 import PilotExitSurveyPage from "@/pages/pilot-exit-survey";
 import DrugDiscoveryCroDemoPage from "@/pages/drug-discovery-cro-demo";
 import IndReportPage from "@/pages/ind-report";
-import TutorialsPage from "@/pages/tutorials";
 import DebugOutputs from "@/pages/DebugOutputs";
 import DebugViewerChain from "@/pages/DebugViewerChain";
+import WorkflowDeepLink from "@/pages/WorkflowDeepLink";
 import CapabilitiesPage from "@/pages/capabilities";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -118,9 +120,35 @@ function RootRoute({
   const uiFlavor = useUiFlavor()
   const handledSessionParam = useRef(false)
 
+  // Consume pending use-case query passed via ?q= from the marketing hero input.
+  // Cross-domain localStorage doesn't work (biomate.ai vs dev-public.biomate.ai),
+  // so register.tsx passes the query through as a URL param → /?q=<encoded>.
+  const [initialMessage] = useState<string | undefined>(() => {
+    const urlQ = new URLSearchParams(window.location.search).get('q')
+    if (urlQ) {
+      window.history.replaceState(null, '', window.location.pathname)
+      return decodeURIComponent(urlQ)
+    }
+    // Fallback: hero query parked in sessionStorage during login (auth-context's
+    // setLocation('/') mounts this component before login.tsx can append ?q=,
+    // so the URL param path above would miss it).
+    const stored = sessionStorage.getItem('pendingHeroQuery')
+    if (stored) {
+      sessionStorage.removeItem('pendingHeroQuery')
+      return stored
+    }
+    return undefined
+  })
+
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) setLocation('/login')
-  }, [isAuthenticated, isLoading, setLocation])
+    if (!isLoading && !isAuthenticated) {
+      // Preserve the pending hero query so it survives the login/register flow
+      const dest = initialMessage
+        ? '/login?q=' + encodeURIComponent(initialMessage)
+        : '/login'
+      setLocation(dest)
+    }
+  }, [isAuthenticated, isLoading, setLocation, initialMessage])
 
   // Handle ?session=<chatSessionId> — emitted by the "Open" button in the
   // Workflow Runs dialog. Once auth is ready, load the session and strip the param.
@@ -163,6 +191,7 @@ function RootRoute({
         currentChatSession={currentChatSession}
         onChatUpdated={onChatUpdated}
         onWorkflowPanelOpenChange={(open) => setSidebarCollapsed(open)}
+        initialMessage={initialMessage}
       />
     </PlatformLayout>
   )
@@ -225,79 +254,141 @@ function PlatformLayout({
 }) {
   const { isAuthenticated, isLoading } = useAuth()
   const [, navigate] = useLocation()
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) navigate('/login')
   }, [isAuthenticated, isLoading, navigate])
 
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
   if (!isAuthenticated) return null
 
   const toggleSidebar = () => {
-    setSidebarCollapsed(!sidebarCollapsed)
+    if (isMobile) {
+      setMobileMenuOpen(true)
+    } else {
+      setSidebarCollapsed(!sidebarCollapsed)
+    }
   }
 
   return (
-    <div className="h-screen w-full flex" style={{ background: 'var(--bm-bg, hsl(var(--background)))' }}>
-      {/* Sidebar: full when not collapsed, slim icon rail when collapsed */}
-      {sidebarCollapsed ? (
-        /* Slim icon rail — 52px, always visible when panel is open */
+    <div className="h-screen w-full flex flex-col" style={{ background: 'var(--bm-bg, hsl(var(--background)))' }}>
+      {/* Mobile header bar — only on small screens */}
+      {isMobile && (
         <div
-          className="flex-shrink-0 flex flex-col items-center border-r py-3 gap-3"
+          className="flex-shrink-0 flex items-center justify-between border-b px-3"
           style={{
-            width: 52,
+            height: 52,
             background: 'var(--bm-surface, hsl(var(--sidebar)))',
             borderColor: 'var(--bm-border, hsl(var(--border)))',
           }}
-          title="Sidebar collapsed — panel is open"
         >
-          {/* Brand mark */}
+          <img src="/biomate-logo.png" alt="BioMate" style={{ height: 34, width: 'auto', objectFit: 'contain' }} />
           <button
-            onClick={toggleSidebar}
-            className="w-8 h-8 rounded-lg flex items-center justify-center font-mono font-bold text-sm flex-shrink-0"
+            onClick={() => setMobileMenuOpen(true)}
+            data-testid="button-mobile-menu"
             style={{
-              background: 'var(--bm-text, hsl(var(--foreground)))',
-              color: 'var(--bm-bg-elev, white)',
-              fontSize: 13,
-              letterSpacing: '-0.03em',
+              border: 'none', background: 'transparent', cursor: 'pointer',
+              padding: '6px', borderRadius: 6, display: 'flex', alignItems: 'center',
+              color: 'var(--bm-text-muted)',
             }}
-            data-testid="button-sidebar-expand"
-            title="Expand sidebar"
+            aria-label="Open menu"
           >
-            B
+            <Menu className="h-5 w-5" />
           </button>
-          {/* Icon buttons */}
-          <button onClick={onNewChat} className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="New chat">
-            <Plus className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
-          </button>
-          <button className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="Workflows">
-            <FlaskConical className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
-          </button>
-          <button className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="Chat history">
-            <MessageCircle className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
-          </button>
-          <div className="flex-1" />
-          <ThemeToggle />
-        </div>
-      ) : (
-        /* Full sidebar */
-        <div className="flex-shrink-0 flex overflow-hidden" style={{ width: 260, minWidth: 260, maxWidth: 260 }}>
-          <AppSidebar
-            onNewChat={onNewChat}
-            onChatSelect={onChatSelect}
-            onCategorySelect={onCategorySelect}
-            onToolSelect={onToolSelect}
-            onProjectSelect={onProjectSelect}
-            onNewProject={onNewProject}
-            onToggleSidebar={toggleSidebar}
-            activeChatId={activeChatId}
-            chatSessions={chatSessions}
-          />
         </div>
       )}
 
-      {/* Main content — no separate header; chat-with-artifacts owns its own top bar */}
-      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-        {children}
+      {/* Mobile sidebar Sheet */}
+      {isMobile && (
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetContent side="left" className="p-0 w-72 max-w-[85vw]">
+            <AppSidebar
+              onNewChat={() => { onNewChat(); setMobileMenuOpen(false); }}
+              onChatSelect={(id) => { onChatSelect(id); setMobileMenuOpen(false); }}
+              onCategorySelect={onCategorySelect}
+              onToolSelect={onToolSelect}
+              onProjectSelect={(id) => { onProjectSelect(id); setMobileMenuOpen(false); }}
+              onNewProject={() => { onNewProject(); setMobileMenuOpen(false); }}
+              onToggleSidebar={() => setMobileMenuOpen(false)}
+              activeChatId={activeChatId}
+              chatSessions={chatSessions}
+            />
+          </SheetContent>
+        </Sheet>
+      )}
+
+      {/* Desktop + mobile content row */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        {/* Desktop sidebar only */}
+        {!isMobile && (
+          sidebarCollapsed ? (
+            /* Slim icon rail — 52px, always visible when panel is open */
+            <div
+              className="flex-shrink-0 flex flex-col items-center border-r py-3 gap-3"
+              style={{
+                width: 52,
+                background: 'var(--bm-surface, hsl(var(--sidebar)))',
+                borderColor: 'var(--bm-border, hsl(var(--border)))',
+              }}
+              title="Sidebar collapsed — panel is open"
+            >
+              {/* Brand mark */}
+              <button
+                onClick={toggleSidebar}
+                className="w-8 h-8 rounded-lg flex items-center justify-center font-mono font-bold text-sm flex-shrink-0"
+                style={{
+                  background: 'var(--bm-text, hsl(var(--foreground)))',
+                  color: 'var(--bm-bg-elev, white)',
+                  fontSize: 13,
+                  letterSpacing: '-0.03em',
+                }}
+                data-testid="button-sidebar-expand"
+                title="Expand sidebar"
+              >
+                B
+              </button>
+              {/* Icon buttons */}
+              <button onClick={onNewChat} data-testid="button-new-chat" className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="New chat">
+                <Plus className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
+              </button>
+              <button className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="Workflows">
+                <FlaskConical className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
+              </button>
+              <button className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="Chat history">
+                <MessageCircle className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
+              </button>
+              <div className="flex-1" />
+              <ThemeToggle />
+            </div>
+          ) : (
+            /* Full sidebar */
+            <div className="flex-shrink-0 flex overflow-hidden" style={{ width: 260, minWidth: 260, maxWidth: 260 }}>
+              <AppSidebar
+                onNewChat={onNewChat}
+                onChatSelect={onChatSelect}
+                onCategorySelect={onCategorySelect}
+                onToolSelect={onToolSelect}
+                onProjectSelect={onProjectSelect}
+                onNewProject={onNewProject}
+                onToggleSidebar={toggleSidebar}
+                activeChatId={activeChatId}
+                chatSessions={chatSessions}
+              />
+            </div>
+          )
+        )}
+
+        {/* Main content — no separate header; chat-with-artifacts owns its own top bar */}
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -436,6 +527,10 @@ function Router({
         </PublicPageLayout>
       </Route>
 
+{/* Deep link from chat connectors — loads a generated workflow by id and
+          opens the workflow panel focused on it. See pages/WorkflowDeepLink.tsx. */}
+      <Route path="/workflow/:id" component={WorkflowDeepLink} />
+
 {/* Root: platform for authenticated users, redirect to /login for guests */}
       <Route path="/">
         <RootRoute
@@ -511,14 +606,15 @@ function App() {
     analytics.track('page_viewed', { page: location })
   }, [location])
 
-  // Load chat history list on mount, but start with a fresh empty session
-  // so users always land on a clean chat (previous sessions accessible in sidebar)
+  const { user } = useAuth()
+
+  // Reload sidebar session list whenever the authenticated user changes.
+  // Do NOT reset currentChatSession here — the auto-submit may have just created one.
   useEffect(() => {
+    if (user?.id) chatHistoryService.setUserId(String(user.id))
     const sessions = chatHistoryService.getAllSessions()
     setChatSessions(sessions)
-    // Do not auto-load the last session — the user sees an empty welcome state
-    // and can pick a previous conversation from the sidebar if needed
-  }, [])
+  }, [user?.id])
 
   const handleNewChat = () => {
     console.log('Creating new chat session')
@@ -628,11 +724,16 @@ function App() {
 
 
 function AppWithAuthSync() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
 
   useEffect(() => {
     chatHistoryService.setBackendSyncActive(isAuthenticated)
   }, [isAuthenticated])
+
+  // Scope chat history to the authenticated user so new users don't see others' chats
+  useEffect(() => {
+    if (user?.id) chatHistoryService.setUserId(String(user.id))
+  }, [user?.id])
 
   return <App />
 }

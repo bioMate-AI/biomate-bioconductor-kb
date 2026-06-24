@@ -29,8 +29,8 @@
 nextflow.enable.dsl = 2
 
 params.outdir                   = './results'
-params.fastq_dir                = 'null'           // 10X paired-end fastq dir (required)
-params.samplesheet              = 'null'           // nf-core format CSV (required)
+params.fastq_dir                = null             // 10X paired-end fastq dir (required)
+params.samplesheet              = null             // nf-core format CSV (required)
 params.reference_genome         = 'GRCh38'         // FASTA path or canonical name
 params.gtf_annotation           = 'GENCODE_v44'    // GTF path or canonical name
 params.species                  = 'human'          // human | mouse

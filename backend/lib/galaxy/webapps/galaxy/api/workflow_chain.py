@@ -23,6 +23,66 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+# ---------------------------------------------------------------------------
+# Context-param propagation helpers
+# ---------------------------------------------------------------------------
+
+# Transform registry: maps transform-name → {raw_value_lower → transformed_value}.
+# Used by resolve_context_params() to convert a param value from step N into
+# the appropriate form for step N+1.
+_PARAM_TRANSFORMS: Dict[str, Dict[str, str]] = {
+    "genome_to_organism": {
+        "grch38": "hsa", "grch37": "hsa", "hg38": "hsa", "hg19": "hsa",
+        "grcm39": "mmu", "grcm38": "mmu", "mm10": "mmu", "mm39": "mmu",
+        "rnor_6.0": "rno", "rnor6": "rno",
+        "bdgp6": "dme", "danrer11": "dre",
+    }
+}
+
+
+def resolve_context_params(
+    connection: Dict[str, Any],
+    prev_run_params: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Return a dict of params inherited from the previous step's run params.
+
+    Given a connection dict (with optional ``context_params`` field) and the
+    params dict from the previous step's run, return a dict of resolved params
+    to merge into the next step's params_template.
+
+    Example connection::
+
+        {
+            "from_step": 1, "from_output": "results",
+            "to_step": 2, "to_input": "de_results",
+            "context_params": {
+                "organism": {
+                    "from_run_param": "genome",
+                    "transform": "genome_to_organism"
+                }
+            }
+        }
+
+    Rules:
+    - ``from_run_param``: key to look up in *prev_run_params*.
+    - ``transform`` (optional): name of a transform table in ``_PARAM_TRANSFORMS``.
+      If the looked-up value is not in the table, the raw value is passed through.
+    - Missing source param → the dest param is silently omitted (no error).
+    """
+    ctx = connection.get("context_params", {})
+    resolved: Dict[str, Any] = {}
+    for dest_param, rule in ctx.items():
+        src_key = rule.get("from_run_param")
+        transform = rule.get("transform")
+        raw_val = prev_run_params.get(src_key)
+        if raw_val is None:
+            continue
+        if transform:
+            table = _PARAM_TRANSFORMS.get(transform, {})
+            raw_val = table.get(str(raw_val).lower(), raw_val)
+        resolved[dest_param] = raw_val
+    return resolved
+
 from fastapi import HTTPException
 from pydantic import BaseModel
 
@@ -416,6 +476,25 @@ def _run_chain(chain_run_id: str, start_from_step: int = 0) -> None:
             if conn_warnings:
                 current["steps"][idx]["handoff_warnings"] = conn_warnings
                 _update_chain(current)
+            # Propagate context params from the previous step's run params
+            # (e.g. genome → organism transform for DESeq2 / clusterProfiler).
+            # This runs whenever connections are defined, regardless of whether
+            # artifact handoff resolved any files.
+            if idx > 0:
+                prev_step_state = current["steps"][idx - 1]
+                prev_run_params = prev_step_state.get("params") or {}
+                target_step_num = idx + 1  # connections use 1-based step numbers
+                for conn in connections:
+                    if int(conn.get("to_step", -1)) != target_step_num:
+                        continue
+                    if conn.get("context_params"):
+                        inherited = resolve_context_params(conn, prev_run_params)
+                        if inherited:
+                            params.update(inherited)
+                            log.info(
+                                "workflow_chain: step %d inherited context params from step %d: %s",
+                                idx, idx - 1, list(inherited.keys()),
+                            )
         elif idx > 0:
             prev_step = current["steps"][idx - 1]
             prev_run_id = prev_step.get("run_id")

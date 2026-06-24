@@ -498,7 +498,7 @@ TUTORIALS = {
     ],
   },
 
-  # ── Bioconductor · DESeq2 chain (bioc-kb-routing) — 27 steps ────────────────
+  # ── Bioconductor · DESeq2 chain (bioc-kb-routing) — 30 steps ────────────────
   # Sourced from Research Agent_UI_bio_drug/narratives/Bioconductor Narratives.md
   # full-cut. Step order matches BiocTours.jsx exactly:
   #   6 opening beats + 5 controlSteps + 4 analysis beats + 11 afterRunSteps + 1 wrap-up
@@ -541,7 +541,14 @@ TUTORIALS = {
        "Parameters and outputs appear inline as each step finishes.",
        False, None),
 
-      # 7 — control: params prefilled and editable
+      # 7 — QC gate: genes retained — passed
+      ("Phase A's gate reads fourteen-thousand two-hundred and three genes retained "
+       "— seventy-seven percent of the original count, well above the ten-thousand threshold. "
+       "A green gate here means the library isn't dominated by noise. "
+       "Had it failed, auto-loop would have tightened the filter and re-run automatically.",
+       False, None),
+
+      # 8 — control: params prefilled and editable
       ("Every step opens with the workflow's defaults already filled in. "
        "Click the gear to adjust a value inline — change only what you need.",
        False, None),
@@ -579,82 +586,98 @@ TUTORIALS = {
        "producing a results table of fold-change and adjusted-p per gene.",
        False, None),
 
-      # 14 — shrink noisy fold-changes
+      # 14 — QC gate: replicate count — critical guard
+      ("Phase C checks twelve replicates per group against a minimum of two — "
+       "a critical guard. DESeq2 needs at least two replicates to estimate dispersion; "
+       "fewer means the model cannot converge. "
+       "A fail here halts the chain immediately, before any computation is wasted.",
+       False, None),
+
+      # 16 — shrink noisy fold-changes
       ("Before ranking, apeglm shrinks noisy low-count fold-changes toward zero, "
        "so enrichment isn't dominated by extremes.",
        False, None),
 
-      # 15 — Phase E running, enrichment
+      # 17 — Phase E running, enrichment
       ("clusterProfiler's gseGO runs on the ranked list — "
        "top term, regulation of apoptotic process. "
-       "Phase F renders the volcano, dot plot, and heatmap.",
+       "Next, Phase F renders the figures and queries STRING for an interaction network.",
        False, None),
 
-      # 16 — chain complete (findings-chat spotlight)
-      ("All six phases done — DESeq2, apeglm, clusterProfiler, EnhancedVolcano. "
+      # 18 — Phase F · STRINGdb gene interaction network
+      ("BioMate queries STRING version twelve for all twenty-eight hundred and forty-one DE genes. "
+       "The result is an interactive protein-protein interaction network — "
+       "nodes coloured by log-two fold-change, edges weighted by STRING confidence. "
+       "Top hub: TP53, with eighty-seven first-degree interactions.",
+       False, None),
+
+      # 19 — chain complete (findings-chat spotlight)
+      ("All six phases done — DESeq2, apeglm, clusterProfiler, EnhancedVolcano, and the STRINGdb interaction network. "
        "Chat drops a findings card; the panel flips to the After-run report.",
        False, None),
 
-      # 17 — after run, one structured report (results-links spotlight)
+      # 20 — after run, one structured report (results-links spotlight)
       ("The report has seven tabs in reading order — results first, methods and "
        "reproducibility next, audit last. The whole thing exports to one document.",
        False, None),
 
-      # 18 — Findings tab
+      # 21 — Findings tab
       ("Findings: the headline metric, a few bullets, and figures read straight "
-       "from the manifest. Nothing is invented — uncited claims are tagged "
-       "author judgment.",
+       "from the manifest — including the STRINGdb hub gene. "
+       "Nothing is invented — uncited claims are tagged author judgment.",
        False, None),
 
-      # 19 — Outputs tab
+      # 22 — Outputs tab
       ("Outputs lists every file by phase — the results object, volcano, "
-       "GO dot plot, top-fifty heatmap. View previews inline; download grabs one or all.",
+       "GO dot plot, top-fifty heatmap, and the interactive STRINGdb network. "
+       "View previews inline; download grabs one or all.",
        False, None),
 
-      # 20 — Open in RStudio (interactive-launcher spotlight)
+      # 23 — Open in RStudio (interactive-launcher spotlight)
       ("Download isn't the end. Every results object has an Open-in-RStudio button "
        "— a live R four-point-three session with DESeq2 loaded and your "
        "dataset pre-mounted.",
        False, None),
 
-      # 21 — visualised, volcano plot (preview-modal spotlight)
-      ("Clicking view on the volcano renders it inline — fold-change versus "
-       "significance, up genes red, down blue. "
-       "BioMate picks the viewer from the file type.",
+      # 24 — STRINGdb network preview (preview-modal spotlight)
+      ("Clicking view on the STRINGdb network renders it inline — "
+       "twenty-eight hundred genes as nodes, coloured by fold-change, "
+       "edges weighted by STRING confidence. "
+       "Hub genes like TP53 sit at the centre; export as SVG anytime.",
        False, None),
 
-      # 22 — Methods tab
+      # 25 — Methods tab
       ("Methods is paragraph-form prose — tools, versions, exact parameters — "
-       "written so a peer can replicate the run. "
+       "written so a peer can replicate the run, including the STRINGdb network construction. "
        "Paste it straight into a manuscript.",
        False, None),
 
-      # 23 — Parameters tab
+      # 26 — Parameters tab
       ("Parameters lists phase, step and value for everything the run touched "
        "— a ready supplementary table. "
        "Defaults, overrides and auto-loop tweaks are distinguished.",
        False, None),
 
-      # 24 — Software tab
+      # 27 — Software tab
       ("Software pins every package version — DESeq2, apeglm, edgeR, "
-       "clusterProfiler. With Parameters, it's the reproducibility baseline.",
+       "clusterProfiler, STRINGdb. With Parameters, it's the reproducibility baseline.",
        False, None),
 
-      # 25 — Citations tab
+      # 28 — Citations tab
       ("Citations auto-generates the reference list — Love twenty-fourteen, "
-       "Zhu twenty-nineteen, Wu twenty-twenty-one, and more. "
+       "Zhu twenty-nineteen, Wu twenty-twenty-one, Szklarczyk twenty-twenty-three, and more. "
        "Methods and Citations export together.",
        False, None),
 
-      # 26 — QC audit tab
+      # 29 — QC audit tab
       ("QC audit logs every gate that fired — gene retention, size-factor range, "
        "replicate count — with threshold, observed value and action. "
        "Twenty-one CFR Part Eleven friendly.",
        False, None),
 
-      # 27 — center wrap-up
+      # 30 — center wrap-up
       ("That's the full DESeq2 thread — match, route, run six phases, "
-       "a seven-tab report, all from one request. "
+       "a seven-tab report with an interactive gene network, all from one request. "
        "Download wraps it into a single document.",
        True, CLOSING_SPEED),
     ],
@@ -949,6 +972,1250 @@ TUTORIALS = {
       ("That's the epigenomics thread — a GRanges backbone, DMPs, DMRs, "
        "CpG-corrected enrichment, a seven-tab report. "
        "A different object lineage, same orchestration.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  # ── Tier-0 Therapeutic Design Tutorials ─────────────────────────────────────
+  # Source: design_handoff_tier0_design_pipelines/narratives/Drug Development Narratives.md
+  # All five tours are 19 steps each (intro + route/special + phaseARun + panelSteps(5)
+  #   + chat beat + afterRun(9) + closing).
+  # HTML: design_handoff_tier0_design_pipelines/Research Agent UI.html
+  # Tour labels registered in that folder's Tour.jsx under "Therapeutic design" group.
+
+  # ── T01 · Bispecific format triage — PD-1 × VEGF for NSCLC ────────────────
+  "design_bispecific": {
+    "label": "T01 · Bispecific format triage",
+    "steps": [
+      # 1 — center welcome
+      ("We'll design a PD-1-by-VEGF bispecific antibody for lung cancer "
+       "— end to end, from one sentence.",
+       True, CLOSING_SPEED),
+
+      # 2 — routing the intent
+      ("BioMate reads two targets, an indication, and a requested format, "
+       "and routes to the bispecific format-triage workflow.",
+       False, None),
+
+      # 3 — Phase A, mechanism
+      ("Phase A infers the mechanism: PD-1 and VEGF efficacy is driven by "
+       "cooperative avidity on dimeric VEGF.",
+       False, None),
+
+      # 4 — parameters, prefilled
+      ("Each step opened with its parameters already filled from your message "
+       "— change only what you need.",
+       False, None),
+
+      # 5 — provenance badges
+      ("Open Workflow settings: every value wears a badge — from your message, "
+       "normalized, or inferred. Prefill is never a black box.",
+       False, None),
+
+      # 6 — QC gates
+      ("Each phase carries an editable QC gate, with an optional auto-loop "
+       "that re-runs a failed phase with adjusted parameters.",
+       False, None),
+
+      # 7 — outputs inline
+      ("As each step finishes, its files drop straight into the panel "
+       "— the scoring matrix and the ranked table appear as they're produced.",
+       False, None),
+
+      # 8 — stop and resume
+      ("Any running phase can be stopped and resumed "
+       "— finished steps and their outputs are kept.",
+       False, None),
+
+      # 9 — composite ranking
+      ("Phase C weights mechanism and format together. "
+       "The tetravalent cooperative format leads — ivonescimab's architecture "
+       "— ahead of the requested CrossMab.",
+       False, None),
+
+      # 10 — chain complete
+      ("All four phases done. "
+       "The chat drops a findings card and the panel flips to the After-run report.",
+       False, None),
+
+      # 11 — after-run report
+      ("Every completed run opens a tabbed After-run report "
+       "— results first, methods next, audit last. We'll walk each tab.",
+       False, None),
+
+      # 12 — Findings tab
+      ("Findings leads with the headline and figures read straight from the run manifest "
+       "— the composite scores and the axis weighting.",
+       False, None),
+
+      # 13 — Outputs tab
+      ("Outputs lists every file — the format report and the ranked CSV "
+       "— grouped by phase. View inline, or download all.",
+       False, None),
+
+      # 14 — Methods tab
+      ("Methods is paste-ready prose — the six axes, the cooperative-avidity call, "
+       "and the composite weighting, written for a reviewer.",
+       False, None),
+
+      # 15 — Parameters tab
+      ("Parameters lists every knob the run touched "
+       "— the five formats, the six axes, the weighting — supplementary-ready.",
+       False, None),
+
+      # 16 — Software tab
+      ("Software pins each component and version "
+       "— the reproducibility baseline alongside Parameters.",
+       False, None),
+
+      # 17 — Citations tab
+      ("Citations are pre-formatted — the ivonescimab tetravalent mechanism papers "
+       "and the HARMONi-two readout.",
+       False, None),
+
+      # 18 — QC audit tab
+      ("The QC audit — every gate that fired, with threshold, observed value, and result. "
+       "An auditable trail of how the recommendation was reached.",
+       False, None),
+
+      # 19 — center wrap-up
+      ("From one sentence: five formats scored and the tetravalent winner recovered "
+       "— the architecture the field landed on for ivonescimab.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  # ── T02 · In-vivo CAR-T co-design — CD19 + LNP for DLBCL ─────────────────
+  "design_cart": {
+    "label": "T02 · In-vivo CAR-T co-design",
+    "steps": [
+      # 1 — center welcome
+      ("We'll co-design an in-vivo CD19 CAR-T for lymphoma "
+       "— both the construct and the delivery, in one pass.",
+       True, CLOSING_SPEED),
+
+      # 2 — free text to schema enum
+      ("Here's the teaching moment: your 'T cells' became the schema value "
+       "T-underscore-cell automatically, so delivery is unambiguous before any compute.",
+       False, None),
+
+      # 3 — Phase A, atlas safety
+      ("Phase A scans CD19 across tissues "
+       "— it's B-cell-restricted, no critical-tissue hits, safe to proceed.",
+       False, None),
+
+      # 4 — parameters, prefilled
+      ("Each step opened with its parameters pre-filled from your message "
+       "— adjust only what you need.",
+       False, None),
+
+      # 5 — provenance badges
+      ("In Workflow settings, every value is badged "
+       "— and the delivery cell reads normalized from your 'T cells'.",
+       False, None),
+
+      # 6 — QC gates
+      ("Each phase has an editable QC gate; "
+       "the atlas-safety gate is what cleared the target here.",
+       False, None),
+
+      # 7 — outputs inline
+      ("Outputs land as they're produced "
+       "— the expression map, the LNP tropism scores, the fratricide check.",
+       False, None),
+
+      # 8 — stop and resume
+      ("A running phase can be stopped and resumed "
+       "— finished steps and their outputs are preserved.",
+       False, None),
+
+      # 9 — the fratricide check
+      ("The phase that earns its keep: the anti-CD8 LNP hits CD8-positive T cells, "
+       "CD19 sits on B cells — no overlap, so the design is green.",
+       False, None),
+
+      # 10 — chain complete
+      ("All five phases done. "
+       "The findings card lands and the panel flips to the After-run report.",
+       False, None),
+
+      # 11 — after-run report
+      ("The After-run report opens — results, methods, then audit. "
+       "We'll walk each tab in order.",
+       False, None),
+
+      # 12 — Findings tab
+      ("Findings reads from the manifest — LNP delivery efficiency by candidate, "
+       "the construct domains, and the atlas-safety bar.",
+       False, None),
+
+      # 13 — Outputs tab
+      ("Outputs lists the construct FASTA, the fratricide JSON, "
+       "the LNP recommendation, and the CMC flag. View or download all.",
+       False, None),
+
+      # 14 — Methods tab
+      ("Methods is paste-ready "
+       "— the atlas call, LNP tropism, the fratricide logic, and the construct domains.",
+       False, None),
+
+      # 15 — Parameters tab
+      ("Parameters lists the LNP candidates, the fratricide cell-type comparison, "
+       "and the FMC63 four-one-BB construct choices.",
+       False, None),
+
+      # 16 — Software tab
+      ("Software pins each component and version — the reproducibility baseline.",
+       False, None),
+
+      # 17 — Citations tab
+      ("Citations: the CPTX twenty-three-oh-nine CD8-targeted LNP, "
+       "the anti-CD5 in-vivo-CAR proof of concept, and the Kymriah construct.",
+       False, None),
+
+      # 18 — QC audit tab
+      ("The QC audit — atlas safety, delivery efficiency, and the fratricide overlap gate. "
+       "The fratricide gate is the one that protects the design.",
+       False, None),
+
+      # 19 — center wrap-up
+      ("The anti-CD8 LNP plus CD19 CAR — Capstan's CPTX twenty-three-oh-nine. "
+       "Switch the target to CD7 and the fratricide gate trips automatically.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  # ── T03 · In-vivo base-edit knockout — PCSK9 for hypercholesterolemia ──────
+  "design_baseedit": {
+    "label": "T03 · In-vivo base-edit knockout",
+    "steps": [
+      # 1 — center welcome
+      ("We'll design an in-vivo base-edit knockout of PCSK9 to lower cholesterol "
+       "— from a single sentence.",
+       True, CLOSING_SPEED),
+
+      # 2 — tissue picks the delivery
+      ("A knockout means a base editor, not a nuclease. "
+       "PCSK9 is liver-expressed, so intravenous LNP is the natural route.",
+       False, None),
+
+      # 3 — Phase A, tissue restriction
+      ("Phase A confirms PCSK9 is hepatocyte-restricted "
+       "— an ideal target, because the liver natively absorbs LNPs.",
+       False, None),
+
+      # 4 — parameters, prefilled
+      ("Each step opened with parameters pre-filled from your message "
+       "— edit-goal was derived from the word 'knockout'.",
+       False, None),
+
+      # 5 — provenance badges
+      ("In Workflow settings, every value is badged "
+       "— from your message, derived, or inferred.",
+       False, None),
+
+      # 6 — QC gates
+      ("Each phase has an editable QC gate; "
+       "here the tissue-restriction gate cleared the IV-LNP route.",
+       False, None),
+
+      # 7 — outputs inline
+      ("Outputs land as they're produced "
+       "— the editor choice, the guide CSV, the CMC flag.",
+       False, None),
+
+      # 8 — stop and resume
+      ("A running phase can be stopped and resumed, "
+       "with finished steps and outputs kept.",
+       False, None),
+
+      # 9 — editor and clinical precedent
+      ("Phase B picks an adenine base editor making an A-to-G edit at the splice donor; "
+       "the CMC flag surfaces VERVE-101's liver-enzyme signal "
+       "and the reformulation Verve used for VERVE-102.",
+       False, None),
+
+      # 10 — chain complete
+      ("All five phases done. "
+       "The findings card lands and the panel flips to the After-run report.",
+       False, None),
+
+      # 11 — after-run report
+      ("The After-run report opens "
+       "— results first, methods next, audit last. We'll walk each tab.",
+       False, None),
+
+      # 12 — Findings tab
+      ("Findings reads from the manifest "
+       "— editor-class fit, top-guide specificity, and the off-target scan.",
+       False, None),
+
+      # 13 — Outputs tab
+      ("Outputs lists the editor choice, the guide RNA CSV, "
+       "the CMC flag, and the IND-readiness checklist.",
+       False, None),
+
+      # 14 — Methods tab
+      ("Methods is paste-ready "
+       "— the tissue rationale, the adenine-base-editor selection, "
+       "the splice-donor edit, and the CMC note.",
+       False, None),
+
+      # 15 — Parameters tab
+      ("Parameters lists the editor class, the splice-donor edit, "
+       "the genome used for off-target scanning, and the precedent referenced.",
+       False, None),
+
+      # 16 — Software tab
+      ("Software pins each component and version — the reproducibility baseline.",
+       False, None),
+
+      # 17 — Citations tab
+      ("Citations: the primate PCSK9 base-editing paper "
+       "and the VERVE-101 adenine-base-editor splice-donor mechanism.",
+       False, None),
+
+      # 18 — QC audit tab
+      ("The QC audit — tissue restriction, splice-donor disruption, "
+       "and guide specificity above ninety-five percent, "
+       "each with threshold and result.",
+       False, None),
+
+      # 19 — center wrap-up
+      ("An adenine base editor disrupting the PCSK9 splice donor "
+       "— VERVE-one-oh-one and one-oh-two's exact mechanism, "
+       "recovered from one sentence.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  # ── T04 · GLP-1 modality bake-off — MASH ─────────────────────────────────
+  "design_glp1": {
+    "label": "T04 · GLP-1 modality bake-off",
+    "steps": [
+      # 1 — center welcome
+      ("The next GLP-1 question for fatty-liver disease isn't dosing "
+       "— it's modality. We'll score four of them.",
+       True, CLOSING_SPEED),
+
+      # 2 — when BioMate isn't sure
+      ("'Compare' is ambiguous — run a design workflow, or just search for tools? "
+       "Rather than guess, BioMate asks. We pick 'run a design workflow'.",
+       False, None),
+
+      # 3 — routed, indication normalized
+      ("Routed to the GLP-1 modality bake-off, "
+       "with the indication lowercased to the enum value mash.",
+       False, None),
+
+      # 4 — Phase A, scoring
+      ("Phase A scores each modality across six axes "
+       "— half-life, oral bioavailability, cardiovascular outcomes, "
+       "liver evidence, manufacturing, and dosing burden.",
+       False, None),
+
+      # 5 — parameters and provenance
+      ("In Workflow settings, the modality list is badged from your message; "
+       "every value shows where it came from.",
+       False, None),
+
+      # 6 — QC gates
+      ("Each phase carries an editable QC gate "
+       "— here, that all four modalities were scored.",
+       False, None),
+
+      # 7 — outputs inline
+      ("Outputs land as they're produced "
+       "— the scoring matrix and the ranked recommendation.",
+       False, None),
+
+      # 8 — stop and resume
+      ("A running phase can be stopped and resumed, with finished work preserved.",
+       False, None),
+
+      # 9 — ranking
+      ("Peptide injection leads on safety and cardiovascular outcomes; "
+       "messenger-RNA is still preclinical; "
+       "gene therapy is single-dose but unproven for durability.",
+       False, None),
+
+      # 10 — chain complete
+      ("All three phases done. "
+       "The findings card lands and the panel flips to the After-run report.",
+       False, None),
+
+      # 11 — after-run report
+      ("The After-run report opens — results, methods, then audit. "
+       "We'll walk each tab.",
+       False, None),
+
+      # 12 — Findings tab
+      ("Findings reads from the manifest "
+       "— the composite modality scores and the six scoring axes.",
+       False, None),
+
+      # 13 — Outputs tab
+      ("Outputs lists the scoring CSV and the bake-off recommendation. "
+       "View inline or download all.",
+       False, None),
+
+      # 14 — Methods tab
+      ("Methods is paste-ready "
+       "— the six axes with their named agents, and the indication-fit weighting.",
+       False, None),
+
+      # 15 — Parameters tab
+      ("Parameters lists the modality list, the six axes, "
+       "and the indication-fit weighting.",
+       False, None),
+
+      # 16 — Software tab
+      ("Software pins the bake-off scorer and its version.",
+       False, None),
+
+      # 17 — Citations tab
+      ("Citations: the semaglutide and survodutide MASH readouts behind the scoring.",
+       False, None),
+
+      # 18 — QC audit tab
+      ("The QC audit — modalities scored and the top-modality check, "
+       "each with threshold and result.",
+       False, None),
+
+      # 19 — center wrap-up
+      ("Peptide injection first — the same ranking the field converged on. "
+       "And the ambiguity card doubles as a 'what if BioMate isn't sure' lesson.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  # ── T05 · Oncology modality triage — BCMA ────────────────────────────────
+  "design_modtriage": {
+    "label": "T05 · Oncology modality triage",
+    "steps": [
+      # 1 — center welcome
+      ("You picked BCMA for oncology — now which modality? "
+       "We'll score CAR-T, bispecific, ADC, and messenger-RNA.",
+       True, CLOSING_SPEED),
+
+      # 2 — expression drives the ranking
+      ("BioMate profiles where BCMA is expressed first, "
+       "because that weights everything after it "
+       "— a restricted target favours cell therapies.",
+       False, None),
+
+      # 3 — Phase A, atlas profile
+      ("Phase A: BCMA is restricted to plasma cells and some mature B cells, "
+       "no critical-tissue hits — pointing at multiple myeloma.",
+       False, None),
+
+      # 4 — parameters, prefilled
+      ("Each step opened pre-filled from your message "
+       "— modalities set to 'all', from 'try all options'.",
+       False, None),
+
+      # 5 — provenance badges
+      ("In Workflow settings, every value is badged "
+       "— from your message, or computed in a phase.",
+       False, None),
+
+      # 6 — QC gates
+      ("Each phase has an editable QC gate; "
+       "the atlas-safety gate cleared the off-tumor risk here.",
+       False, None),
+
+      # 7 — outputs inline
+      ("Outputs land as they're produced "
+       "— the expression profile, the modality scores, the ranking.",
+       False, None),
+
+      # 8 — stop and resume
+      ("A running phase can be stopped and resumed, "
+       "with finished steps and outputs kept.",
+       False, None),
+
+      # 9 — ADC versus bispecific
+      ("Teclistamab, a T-cell engager, is approved; "
+       "belantamab mafodotin, an ADC, was withdrawn for eye toxicity "
+       "— so bispecific scores second, ADC third with a payload caveat.",
+       False, None),
+
+      # 10 — chain complete
+      ("All four phases done. "
+       "The findings card lands and the panel flips to the After-run report.",
+       False, None),
+
+      # 11 — after-run report
+      ("The After-run report opens — results first, methods next, audit last. "
+       "We'll walk each tab.",
+       False, None),
+
+      # 12 — Findings tab
+      ("Findings reads from the manifest "
+       "— the modality ranking, BCMA's expression composition, and the atlas-safety bar.",
+       False, None),
+
+      # 13 — Outputs tab
+      ("Outputs lists the modality ranking, the IHC follow-up panel, "
+       "and the composite ranking. View or download all.",
+       False, None),
+
+      # 14 — Methods tab
+      ("Methods is paste-ready "
+       "— the atlas profile, the CAR-T rationale, "
+       "and the ADC-versus-engager evaluation.",
+       False, None),
+
+      # 15 — Parameters tab
+      ("Parameters lists the atlas source, the precedents per modality, "
+       "and the indication-fit weighting.",
+       False, None),
+
+      # 16 — Software tab
+      ("Software pins the pan-modality scorer and its version.",
+       False, None),
+
+      # 17 — Citations tab
+      ("Citations: the ide-cel and teclistamab readouts behind the ranking.",
+       False, None),
+
+      # 18 — QC audit tab
+      ("The QC audit — atlas safety, off-tumor risk, and the top-modality check, "
+       "each with threshold and result.",
+       False, None),
+
+      # 19 — center wrap-up
+      ("CAR-T first — the place ide-cel and cilta-cel landed "
+       "— and the whole BCMA landscape scored from a single sentence.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  # ── Seven-Domain Tutorial Package — T1–T7 ────────────────────────────────────
+  # manualStream tours: Beat 1 = welcome (center), Beats 2–7 = tape sections,
+  # Beat 8 = wrap (center). 8 steps per tutorial.
+
+  "tut_rnaseq": {
+    "label": "T1 — Bulk RNA-seq DE + GSEA (ERCC truth)",
+    "steps": [
+      # 1 — Beat 1 · Welcome, centered
+      ("This is the bulk RNA-seq tutorial. One plain-English request becomes a real three-step pipeline "
+       "— alignment, differential expression, gene-set enrichment — and we score the result against a "
+       "spike-in truth set at the end. Fully driven for you.",
+       True, CLOSING_SPEED),
+
+      # 2 — Beat 2 · Section 1 · Understanding the request
+      ("BioMate routes the request to the bulk RNA-seq differential-expression chain — alignment and "
+       "quantification, then differential abundance, then clusterProfiler. Inputs land prefilled from "
+       "the gold dataset — GSE49712, GRCh38, contrast B-versus-A.",
+       False, None),
+
+      # 3 — Beat 3 · Section 2 · Choosing the approach
+      ("Here's why this dataset. GSE49712 is the SEQC benchmark: samples A and B carry ERCC spike-ins "
+       "at four known ratios, so the spike-in transcripts are a built-in ground truth. DESeq2 is the "
+       "right model — raw integer counts — and those spike-ins let us measure truth recovery at the end, "
+       "not just render a volcano plot.",
+       False, None),
+
+      # 4 — Beat 4 · Section 3 · Phase B + QC
+      ("The chain runs phase by phase. Phase B aligns and quantifies — STAR alignment, Salmon "
+       "quantification. MultiQC enforces two gates across all ten samples: uniquely-mapped at or above "
+       "seventy percent, and Salmon mapping at or above seventy percent. Mean uniquely-mapped comes in "
+       "at eighty-seven percent — green.",
+       False, None),
+
+      # 5 — Beat 5 · Phase C + Phase D
+      ("Phase C runs DESeq2 on the B-versus-A contrast. The sample-distance heatmap splits cleanly into "
+       "two clusters — A and B are separable. Eighty-four-hundred-and-twenty-seven differentially-expressed "
+       "genes at five-percent FDR. Phase D is the gene-set enrichment — GO, KEGG and Reactome — and the "
+       "top hit is cell cycle, adjusted-p of one-point-two times ten-to-the-minus-twelve.",
+       False, None),
+
+      # 6 — Beat 6 · Phase E · validate
+      ("Phase E is the part that makes this a benchmark, not a demo. The validator joins the DE table to "
+       "the ERCC ground-truth ratios and checks the sign of every spike-in's fold-change. "
+       "Ninety-two-point-one percent of ERCC transcripts recover the correct direction — above the "
+       "ninety-percent target — with an AUC of zero-point-nine-seven.",
+       False, None),
+
+      # 7 — Beat 7 · Section 4 · Findings card
+      ("The Findings card lands inline. Eighty-four-hundred DE genes; ERCC truth recovery "
+       "ninety-two-point-one percent; AUC zero-point-nine-seven; top pathway cell cycle. This reproduces "
+       "the SEQC/MAQC-III result published in Nature Biotechnology — the screen states the validated "
+       "number out loud.",
+       False, None),
+
+      # 8 — Beat 8 · Wrap, centered
+      ("Request to validated result, end to end. Hover any why anchor on the earlier lines to see the "
+       "rationale behind each step. Next up — the single-cell tutorial.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  "tut_scrna": {
+    "label": "T2 — scRNA-seq PBMC → annotate (Azimuth)",
+    "steps": [
+      # 1 — Beat 1 · Welcome, centered
+      ("The single-cell tutorial. QC, normalize, integrate, cluster, annotate — and then score the "
+       "annotations against an independent reference. Watch how BioMate handles the two steps that have "
+       "nothing to do on a single-batch dataset.",
+       True, CLOSING_SPEED),
+
+      # 2 — Beat 2 · Section 1 · Understanding the request
+      ("BioMate routes to the single-cell multimodal chain: QC and normalize, Harmony integration, "
+       "then cluster and annotate. The input is the 10x PBMC ten-thousand v3 filtered matrix — "
+       "one donor, one condition. Single batch.",
+       False, None),
+
+      # 3 — Beat 3 · Section 2 · Choosing the approach
+      ("That single batch matters. Harmony integration has one batch to integrate, so it runs as an "
+       "identity pass-through. And the Milo differential-abundance step has no condition to contrast. "
+       "BioMate keeps Milo in the plan but surfaces it as an advisory skip — not silently dropped, not "
+       "faked on a degenerate design. The demo stays honest about which steps did real work.",
+       False, None),
+
+      # 4 — Beat 4 · Section 3 · Phase A + B + QC
+      ("Phase A loads the matrix — ten-thousand-one-hundred-ninety-four cells by thirty-six-thousand "
+       "genes. Phase B runs Scrublet for doublets and scran normalization. Three QC gates pass: doublet "
+       "rate one-point-six percent, median eighteen-hundred-ninety-two genes per cell, median "
+       "mitochondrial eight-point-four percent. A hundred-and-fifty-nine doublets removed.",
+       False, None),
+
+      # 5 — Beat 5 · Phase C + D + Milo advisory
+      ("Phase C — Harmony, the identity pass-through, as promised. Phase D clusters with Leiden at "
+       "resolution zero-point-six — eleven clusters — then reference-maps them with Azimuth to seven "
+       "PBMC lineages. And there's the Milo line: an amber advisory, skipped on a single condition, "
+       "not a failure.",
+       False, None),
+
+      # 6 — Beat 6 · Phase E · validate
+      ("Phase E scores the labels. The validator re-maps the final object with Azimuth and computes "
+       "macro-F1 across the seven lineages: zero-point-eight-nine, above the zero-point-eight-five "
+       "target. The labels match an independent reference — not just internal cluster structure.",
+       False, None),
+
+      # 7 — Beat 7 · Section 4 · Findings card
+      ("Findings: ninety-eight-hundred-forty-one cells across seven cell types; macro-F1 "
+       "zero-point-eight-nine versus Azimuth; Milo skipped, single condition. The annotation "
+       "reproduces the PBMC reference from Hao and colleagues in Cell.",
+       False, None),
+
+      # 8 — Beat 8 · Wrap, centered
+      ("A clean single-cell workup that's honest about its degenerate steps. "
+       "Next, germline variant calling against a gold-standard genome.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  "tut_variant": {
+    "label": "T3 — Germline variants · GIAB HG002 chr20",
+    "steps": [
+      # 1 — Beat 1 · Welcome, centered
+      ("Germline variant calling. We call, annotate and filter variants — then benchmark the call set "
+       "against a community gold-standard truth genome with hap.py. "
+       "This is the most rigorous validation of the seven.",
+       True, CLOSING_SPEED),
+
+      # 2 — Beat 2 · Section 1 · Understanding the request
+      ("BioMate routes to the variant-annotation chain: call, then annotate, then filter. The dataset "
+       "is GIAB HG002 — the Genome-in-a-Bottle reference sample — restricted to chromosome twenty "
+       "for the demo.",
+       False, None),
+
+      # 3 — Beat 3 · Section 2 · Choosing the approach
+      ("Why HG002? It ships a version-four-point-two-point-one high-confidence VCF and BED — a "
+       "community gold standard. Calling with both DeepVariant and GATK HaplotypeCaller and taking "
+       "the consensus lets hap.py score SNV and indel F1 against that truth, restricted to the "
+       "high-confidence regions where the answer is actually known.",
+       False, None),
+
+      # 4 — Beat 4 · Section 3 · Phase B + QC
+      ("Phase B calls germline variants — DeepVariant plus GATK HaplotypeCaller on chromosome twenty. "
+       "Three QC gates confirm the call set is well-behaved before we trust it: mean coverage "
+       "thirty-four-X, Ti-over-Tv two-point-zero-four, het-over-hom one-point-six-two. "
+       "A hundred-and-nine-thousand-eight-hundred-seventy-three variants pass.",
+       False, None),
+
+      # 5 — Beat 5 · Phase C + D
+      ("Phase C annotates consequences against the human transcript database. Phase D filters to coding "
+       "consequences with a gnomAD allele-frequency at or below one percent — trimming common population "
+       "variants down to the set worth reporting.",
+       False, None),
+
+      # 6 — Beat 6 · Phase E · validate
+      ("Phase E runs hap.py against the GIAB truth VCF, inside the high-confidence BED. SNV F1 "
+       "zero-point-nine-nine-four, against a target of zero-point-nine-nine. Indel F1 "
+       "zero-point-nine-six-two, against zero-point-nine-five. Both above target.",
+       False, None),
+
+      # 7 — Beat 7 · Section 4 · Findings card
+      ("Findings: chromosome twenty, SNV F1 zero-point-nine-nine-four, indel F1 "
+       "zero-point-nine-six-two versus GIAB. A hundred-and-nine-thousand pass variants; Ti-over-Tv "
+       "and het-over-hom both in range. The chain reproduces the GIAB benchmark.",
+       False, None),
+
+      # 8 — Beat 8 · Wrap, centered
+      ("A benchmarked variant call set with every QC gate green. "
+       "Next — ChIP-seq peaks, validated against ENCODE.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  "tut_chipseq": {
+    "label": "T4 — ChIP-seq K562 H3K27ac → enrichment",
+    "steps": [
+      # 1 — Beat 1 · Welcome, centered
+      ("The ChIP-seq tutorial. Call peaks, annotate them, run pathway enrichment — and then check "
+       "whether the call set reproduces the ENCODE consensus for the same biosample. "
+       "Validation as reproducibility, not just a peak count.",
+       True, CLOSING_SPEED),
+
+      # 2 — Beat 2 · Section 1 · Understanding the request
+      ("BioMate routes to the ChIP-seq annotation chain: MACS2 peaks, then ChIPseeker, then "
+       "clusterProfiler. The dataset is ENCODE K562 H3K27-acetyl — signal track ENCFF "
+       "three-oh-one-T-V-L, input ENCFF zero-three-eight-F-K-Y.",
+       False, None),
+
+      # 3 — Beat 3 · Section 2 · Choosing the approach
+      ("K562 H3K27-acetyl is an active histone mark with an ENCODE consensus narrowPeak for this exact "
+       "biosample. So we call peaks with MACS2, then validate by overlapping our called set against "
+       "that consensus. The question becomes: did we recover the published call set — a far stronger "
+       "test than just finding a plausible number of peaks.",
+       False, None),
+
+      # 4 — Beat 4 · Section 3 · Phase B + QC
+      ("Phase B — MACS2 narrow peak calling at q-value zero-point-zero-one, against the matched input. "
+       "Three quality gates pass: FRIP zero-point-two-seven, NSC one-point-one-eight, and "
+       "forty-seven-thousand-three-hundred-thirty-one peaks — inside the expected "
+       "twenty-five-to-eighty-thousand window for this mark.",
+       False, None),
+
+      # 5 — Beat 5 · Phase C + D
+      ("Phase C annotates with ChIPseeker, TSS window minus-three-thousand to three-thousand on "
+       "hg-thirty-eight — about forty percent of peaks are promoter-proximal. Phase D runs GO "
+       "Biological Process enrichment; the top term is regulation of transcription by RNA Pol Two, "
+       "adjusted-p two-point-eight times ten-to-the-minus-thirty.",
+       False, None),
+
+      # 6 — Beat 6 · Phase E · validate
+      ("Phase E intersects the called peaks with the ENCODE consensus narrowPeak. Eighty-three-point-four "
+       "percent of our peaks overlap the consensus — above the eighty-percent target. "
+       "The call set reproduces ENCODE.",
+       False, None),
+
+      # 7 — Beat 7 · Section 4 · Findings card
+      ("Findings: forty-seven-thousand-three-hundred-thirty-one H3K27-acetyl peaks; "
+       "eighty-three-point-four percent overlap the ENCODE consensus; FRIP and NSC green; "
+       "top GO term transcription by RNA Pol Two.",
+       False, None),
+
+      # 8 — Beat 8 · Wrap, centered
+      ("Peaks called, annotated, enriched — and reproduced against ENCODE. "
+       "Next, label-free proteomics with a spike-in truth set.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  "tut_proteomics": {
+    "label": "T5 — Proteomics LFQ · UPS1 spike-in",
+    "steps": [
+      # 1 — Beat 1 · Welcome, centered
+      ("The proteomics tutorial. Label-free quantification, then differential expression — on a "
+       "spike-in design that gives us both known positives and known negatives, so we can score "
+       "recall and the false-positive rate.",
+       True, CLOSING_SPEED),
+
+      # 2 — Beat 2 · Section 1 · Understanding the request
+      ("BioMate routes to the proteomics DE chain: MSnBase for label-free quantification, then limma "
+       "for the differential test. The dataset is ProteomeXchange P-X-D-zero-zero-two-nine-five-two "
+       "— UPS1 standards spiked into yeast lysate at known ratios.",
+       False, None),
+
+      # 3 — Beat 3 · Section 2 · Choosing the approach
+      ("The spike-in is the whole point. The forty-eight UPS1 proteins are known to be differentially "
+       "expressed; the yeast background is known not to be. So I can measure recall — how many UPS1 "
+       "we recover — and the false-positive rate on the yeast background. limma with eBayes and "
+       "Benjamini-Hochberg adjustment is the standard moderated test for label-free quant.",
+       False, None),
+
+      # 4 — Beat 4 · Section 3 · Phase A–C + QC
+      ("Phase A loads the mzML files. Phase B does feature detection and retention-time alignment "
+       "— identification rate seventy-one percent, above the sixty-percent gate. Phase C rolls "
+       "peptides up to protein quantities; median replicate C-V eleven percent, missingness "
+       "fourteen percent. Both gates green.",
+       False, None),
+
+      # 5 — Beat 5 · Phase D
+      ("Phase D is the limma test — eBayes moderation on the high-versus-low concentration contrast, "
+       "Benjamini-Hochberg adjusted, with a log-fold-change threshold of one. This is where the UPS1 "
+       "proteins should separate from the yeast background.",
+       False, None),
+
+      # 6 — Beat 6 · Phase E · validate
+      ("Phase E scores against the truth. Forty-two of the forty-eight UPS1 proteins recovered at "
+       "five-percent FDR — eighty-seven-point-five percent, above the eighty-percent target. And the "
+       "yeast false-positive rate is three-point-one percent, under the five-percent ceiling.",
+       False, None),
+
+      # 7 — Beat 7 · Section 4 · Findings card
+      ("Findings: forty-two of forty-eight UPS1 recovered, eighty-seven-point-five percent; yeast "
+       "F-P-R three-point-one percent; identification rate seventy-one, median C-V eleven. "
+       "This reproduces the MaxLFQ benchmark from Cox and colleagues.",
+       False, None),
+
+      # 8 — Beat 8 · Wrap, centered
+      ("Recall on the spike-in, false positives on the background — both inside target. "
+       "Next, recovering genomes from a metagenome.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  "tut_metagenome": {
+    "label": "T6 — Metagenomics → MAGs (CAMI II)",
+    "steps": [
+      # 1 — Beat 1 · Welcome, centered
+      ("The metagenomics tutorial. We recover metagenome-assembled genomes — MAGs — from a shotgun "
+       "community: bin the contigs, quality-screen the bins, assign taxonomy. And because this is "
+       "a simulated community, we can score recovery against the known answer.",
+       True, CLOSING_SPEED),
+
+      # 2 — Beat 2 · Section 1 · Understanding the request
+      ("BioMate routes to the shotgun-metagenomics-to-MAG chain: CONCOCT binning, MMseqs2 taxonomy, "
+       "PathoStat. The dataset is the CAMI Two low-complexity gut subset — five samples — "
+       "starting from assembled contigs.",
+       False, None),
+
+      # 3 — Beat 3 · Section 2 · Choosing the approach
+      ("CAMI Two ships gold-standard binning and per-genome taxonomy for every source genome, so MAG "
+       "recovery is a measurable number. CONCOCT bins the contigs by coverage and composition, "
+       "CheckM2 keeps only high-quality MAGs — at least eighty percent complete, at most five percent "
+       "contaminated — and AMBER scores recovery against the gold mapping.",
+       False, None),
+
+      # 4 — Beat 4 · Section 3 · Phase B + C + QC
+      ("Phase B — CONCOCT bins the contigs, minimum length two-thousand: thirty-eight bins. Phase C "
+       "is the quality screen. CheckM2 estimates completeness and contamination, and keeps twenty-seven "
+       "of the thirty-eight bins as high-quality MAGs that clear the thresholds.",
+       False, None),
+
+      # 5 — Beat 5 · Phase D
+      ("Phase D assigns taxonomy with MMseqs2 — genus rank for eighty-nine percent of bins, above "
+       "the seventy-percent gate. Phase E summarizes differential abundance across the five samples "
+       "with PathoStat.",
+       False, None),
+
+      # 6 — Beat 6 · Phase E · validate
+      ("Then AMBER scores recovery against the CAMI gold binning. Seventy-one percent of the reference "
+       "genomes are recovered as high-quality MAGs — above the seventy-percent target — with an AMBER "
+       "bin-level F1 of zero-point-seven-four.",
+       False, None),
+
+      # 7 — Beat 7 · Section 4 · Findings card
+      ("Findings: thirty-eight MAGs, twenty-seven high-quality; seventy-one percent CAMI Two recovery; "
+       "taxonomy on eighty-nine percent of bins. This reproduces the CAMI Two benchmark from Meyer "
+       "and colleagues in Nature Methods.",
+       False, None),
+
+      # 8 — Beat 8 · Wrap, centered
+      ("Genomes recovered and scored against a known community. One left — untargeted metabolomics.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  "tut_metabolomics": {
+    "label": "T7 — Metabolomics consensus (MTBLS136)",
+    "steps": [
+      # 1 — Beat 1 · Welcome, centered
+      ("The metabolomics tutorial, and the last of the seven. Untargeted LC-MS: pick peaks, annotate "
+       "them, then take a consensus signature across three classifiers — and score it against a "
+       "published biomarker list.",
+       True, CLOSING_SPEED),
+
+      # 2 — Beat 2 · Section 1 · Understanding the request
+      ("BioMate routes to the LC-MS consensus chain: X-C-M-S for peak picking, CAMERA for annotation, "
+       "biosigner for consensus feature selection. The dataset is MetaboLights M-T-B-L-S-one-thirty-six "
+       "— the Thévenot twenty-fifteen urine study — with gender as the phenotype.",
+       False, None),
+
+      # 3 — Beat 3 · Section 2 · Choosing the approach
+      ("biosigner runs three classifiers — PLS-DA, random forest and SVM — and keeps only the features "
+       "all three agree on. That's a more robust signature than any single model. And MTBLS136 has a "
+       "published list of gender-discriminating steroid metabolites, so we can score recall of that "
+       "signature at the end.",
+       False, None),
+
+      # 4 — Beat 4 · Section 3 · Phase B + QC
+      ("Phase B — X-C-M-S centWave peak picking and retention-time alignment. Two gates pass: median "
+       "QC-sample C-V fourteen percent, under thirty; and eighty-nine-hundred-forty peaks, inside the "
+       "three-to-fifteen-thousand window for urine LC-MS.",
+       False, None),
+
+      # 5 — Beat 5 · Phase C + D
+      ("Phase C — CAMERA groups isotopes and adducts down to fifty-four-hundred-twelve features. "
+       "Phase D is the biosigner consensus across PLS-DA, random forest and SVM: twenty-three features "
+       "survive in all three, at a cross-validated accuracy of zero-point-eight-three — above the "
+       "zero-point-seven-zero gate.",
+       False, None),
+
+      # 6 — Beat 6 · Phase E · validate
+      ("Phase E matches the consensus features to the published gender biomarkers by mass-to-charge "
+       "and retention time. Nine of the twelve published features are recovered — seventy-five percent, "
+       "above the seventy-percent target.",
+       False, None),
+
+      # 7 — Beat 7 · Section 4 · Findings card
+      ("Findings: nine of twelve published gender biomarkers recovered, seventy-five percent; "
+       "twenty-three consensus features; C-V accuracy zero-point-eight-three. This reproduces the "
+       "Thévenot twenty-fifteen signature — steroid metabolites like testosterone glucuronide and "
+       "androsterone sulfate.",
+       False, None),
+
+      # 8 — Beat 8 · Wrap, centered
+      ("That's all seven domains — each one a real chain, a gold-standard dataset, and a validated "
+       "number on screen. Pick any tutorial from the Tutorial menu to replay it.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  # ── Method-integration pilots — Z01, Z02, ZZ01, ZZ02, L01 ───────────────────
+  # Same manualStream pattern as T1–T7: 1 centered loading step in Tour.jsx,
+  # tape auto-plays. 3-minute condensed cuts from Integration Tutorial Narratives.md.
+
+  "int_torchgwas": {
+    "label": "Z01 — TorchGWAS · UDIP brain phenotypes",
+    "steps": [
+      # 1 — Welcome, centered
+      ("Image-genetics G-W-A-S used to mean weeks of Slurm scripts. Here it's 256 brain-image "
+       "phenotypes against nine million variants on one G-P-U node — a published method, run on new data.",
+       True, CLOSING_SPEED),
+
+      # 2 — Routed to the image-genetics chain
+      ("BioMate reads UDIP, Torch G-W-A-S and UK Biobank, and routes to the image-genetics chain — "
+       "four phases: phenotype QC, kernel and ancestry, the G-P-U scan, and the loci report.",
+       False, None),
+
+      # 3 — A published method, wired as a chain
+      ("The 256 features come from an unsupervised vision transformer on UK Biobank brain scans. "
+       "Parameters prefill — ancestry European, genome-wide threshold, twelve covariates — and only "
+       "the phenotype path needs confirming.",
+       False, None),
+
+      # 4 — Phase A running, phenotype QC
+      ("Execution starts and the active phase auto-expands. The 256 features are rank-normalised "
+       "and provenance-checked before any model runs.",
+       False, None),
+
+      # 5 — Phase C, 256 LMMs on the GPU
+      ("Kernel and ancestry kept 41,200 European-ancestry samples. Phase C then fits one linear "
+       "mixed model per phenotype — 256 by nine million variants, about 87 G-P-U minutes on a single A100.",
+       False, None),
+
+      # 6 — Chain complete
+      ("All four phases done. The chat drops a findings card and the panel flips to the After-run report.",
+       False, None),
+
+      # 7 — Findings
+      ("Findings: 1,142 genome-wide loci, eighteen novel against the G-W-A-S Catalog. The top locus "
+       "sits on the H-F-E H-L-A region — the paper's headline. Every number reads from the run manifest.",
+       False, None),
+
+      # 8 — Outputs
+      ("Outputs lists every file — the loci report, the summary-statistics parquet, the Manhattan plot. "
+       "View previews inline; download grabs one or all.",
+       False, None),
+
+      # 9 — Open in a live kernel
+      ("The outputs don't have to end in a download — BioMate spins up a live Jupyter or RStudio "
+       "session with the loci report and summary statistics mounted, ready for a custom locus zoom.",
+       False, None),
+
+      # 10 — Methods
+      ("Methods is paste-ready prose — the vision-transformer phenotypes, the ancestry restriction, "
+       "the per-phenotype mixed model, clumping, and the novel-versus-Catalog comparison, with versions "
+       "and parameters.",
+       False, None),
+
+      # 11 — Wrap-up, centered
+      ("A published image-genetics method, run from one chat prompt to 1,142 loci — "
+       "with the published H-F-E H-L-A hit recovered.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  "int_fda_screen": {
+    "label": "Z02 — Folding-Docking-Affinity · EGFR T790M",
+    "steps": [
+      # 1 — Welcome, centered
+      ("Lead-prioritisation usually means three teams and a month. Here we fold a target, "
+       "dock a thousand-compound library, and rank with calibrated uncertainty — using one published model.",
+       True, CLOSING_SPEED),
+
+      # 2 — Routed to the FDA chain
+      ("BioMate parses EGFR T790M, a thousand compounds, and an uncertainty requirement, and routes "
+       "to the Folding-Docking-Affinity chain — fold, dock, affinity, rank.",
+       False, None),
+
+      # 3 — One published model, end to end
+      ("Parameters prefill from the request — the target sequence, Vina as the docking engine, "
+       "top twenty-five, uncertainty on. A docking-only pipeline couldn't return calibrated affinity; "
+       "that's the value this chain adds.",
+       False, None),
+
+      # 4 — Phase A running, target fold
+      ("Phase A: E-S-M fold returns the kinase domain at a confidence of eighty-seven — above the "
+       "eighty gate for docking. The gate passes and the run continues.",
+       False, None),
+
+      # 5 — Phase C, affinity with an error bar
+      ("Phase C gives each docked complex a predicted affinity and a calibrated error bar. The model "
+       "was trained on the DAVIS kinase benchmark, so the uncertainty is meaningful — and the ranking "
+       "flags advance or hold by the lower band.",
+       False, None),
+
+      # 6 — Chain complete
+      ("Fold, dock 1,024 ligands, calibrated affinity, ranked top twenty-five. The lead compound sits "
+       "at a predicted p-K-d of seven-point-eight, flagged to advance.",
+       False, None),
+
+      # 7 — Findings
+      ("Findings: the top twenty-five with uncertainty, the lead at p-K-d seven-point-eight. Median "
+       "docking score minus six-point-seven across the library; the calibration error is reported as "
+       "a finding.",
+       False, None),
+
+      # 8 — Outputs
+      ("Outputs by phase — the folded structure, the docked poses, the affinity table, the ranked "
+       "top twenty-five, and the ranking plot.",
+       False, None),
+
+      # 9 — Open in a live kernel
+      ("Spin up a live Jupyter session with the affinity predictions and the ranked hits mounted — "
+       "re-rank by a custom score or pull poses for the top hits, without leaving BioMate.",
+       False, None),
+
+      # 10 — QC audit
+      ("QC audit shows the real gate — E-S-M fold confidence above eighty, observed eighty-seven. "
+       "The affinity calibration is a finding, not a pass-fail gate, so it lives in Findings.",
+       False, None),
+
+      # 11 — Methods
+      ("Methods, paste-ready — E-S-M fold target prep, Vina docking, the affinity head and its DAVIS "
+       "calibration, and the advance-flag rule, with versions and parameters.",
+       False, None),
+
+      # 12 — Wrap-up, centered
+      ("A published model, calibrated on a published benchmark, runnable from chat — and it pairs with "
+       "the tumor-immunology chain for parallel small-molecule and immunotherapy rails.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  "int_tumor_tcell": {
+    "label": "ZZ01 — Tumor-reactive T-cell chain (3 tools)",
+    "steps": [
+      # 1 — Welcome, centered
+      ("Three integrated tools, one prompt: find tumor-reactive T cells, annotate their state, "
+       "and rank candidate neoantigens. This is BioMate's multi-tool chain composer running three "
+       "tools in sequence.",
+       True, CLOSING_SPEED),
+
+      # 2 — Routed to the multi-tool chain
+      ("Single-cell RNA, tumor-reactive, neoantigen and an H-L-A allele route to the multi-tool "
+       "chain — three tools, nine phases: turep, then Scupa, then ImmuneApp.",
+       False, None),
+
+      # 3 — The composer wires three tools as one run
+      ("The first tool's parameters land; the second and third auto-wire from upstream outputs, "
+       "so you confirm once and the composer dispatches each tool in turn. Multi-tool integration "
+       "is the headline here.",
+       False, None),
+
+      # 4 — Step 1 / Phase B, turep inference
+      ("Step one, turep inference: forty-eight thousand cells scanned, 612 flagged tumor-reactive "
+       "at a calibrated error of point-oh-three-eight. Its output auto-wires straight into Scupa.",
+       False, None),
+
+      # 5 — Step 2 / Phase B, Scupa polarization
+      ("Step two, Scupa polarisation: 598 cells scored across exhausted, effector-memory and "
+       "resident-memory states. The majority are exhausted — consistent with tumor-infiltrating "
+       "lymphocytes in melanoma.",
+       False, None),
+
+      # 6 — Step 3 / Phase B, ImmuneApp MHC-I
+      ("Step three, ImmuneApp: 1,840 candidate peptides narrowed to 147 binders, at a "
+       "rank-percentile of two percent or better for the patient's H-L-A allele.",
+       False, None),
+
+      # 7 — Top neoantigen
+      ("The top hit ranks at point-one-two percent — a known RAS-derived neoantigen, exactly the "
+       "validated driver epitope this chain is built to surface.",
+       False, None),
+
+      # 8 — Chain complete
+      ("612 tumor-reactive cells, 147 binders, one top neoantigen — from one prompt across three tools.",
+       False, None),
+
+      # 9 — Findings
+      ("Findings read the funnel from the manifest — 612 tumor-reactive, 598 polarised, 147 binders, "
+       "one top neoantigen. Per-tool calibration is reported here as findings.",
+       False, None),
+
+      # 10 — Outputs
+      ("Outputs grouped by tool and phase — the tumor-reactive cells, the polarisation scores, "
+       "the binders, the neoantigen ranking, and the binding heatmap.",
+       False, None),
+
+      # 11 — Open in CellxGene
+      ("The H5AD export has an Open-in-CellxGene button — browse the 612 tumor-reactive cells and "
+       "their expression live, or switch the tile to RStudio for the ranking tables.",
+       False, None),
+
+      # 12 — Methods
+      ("Methods names all three tools — turep detection, Scupa polarisation, ImmuneApp prediction "
+       "and ranking — with the cell counts, the calibration, and the H-L-A allele.",
+       False, None),
+
+      # 13 — Wrap-up, centered
+      ("Three integrated tools, nine phases, one prompt — find, annotate, rank. "
+       "Multi-tool integration is BioMate's specialty.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  "int_scgwas": {
+    "label": "ZZ02 — scGWAS · immune cell types",
+    "steps": [
+      # 1 — Welcome, centered
+      ("Standard G-W-A-S tells you which variants matter. Single-cell G-W-A-S tells you which cell "
+       "types they matter in. Here we light up Crohn's-disease variants in regulatory T cells — "
+       "from one prompt.",
+       True, CLOSING_SPEED),
+
+      # 2 — Routed to the single-cell GWAS chain
+      ("BioMate reads single-cell G-W-A-S, Crohn's and a gut atlas, and routes to the single-cell "
+       "G-W-A-S chain — twelve traits, twenty-seven cell types, ten-thousand permutations prefilled.",
+       False, None),
+
+      # 3 — Which cell types, not just which variants
+      ("Standard G-W-A-S returns risk variants; single-cell G-W-A-S integrates those summary statistics "
+       "with the single-cell atlas to score per-cell-type enrichment. One prompt launches it on the "
+       "G-P-U queue.",
+       False, None),
+
+      # 4 — Phase A, join + completeness gates
+      ("Phase A joins the summary statistics to the atlas — the harmonised format is auto-detected. "
+       "18,787 G-W-A-S genes loaded, 8,529 shared with the atlas, both real tool-emitted gates.",
+       False, None),
+
+      # 5 — Phase B, cell-type enrichment
+      ("Phase B scores enrichment across twenty-five cell types with ten-thousand permutations — "
+       "five pass a five-percent F-D-R. Crohn's lands most strongly on regulatory T cells.",
+       False, None),
+
+      # 6 — Chain complete
+      ("Join, enrichment, report. The top hit is Crohn's disease in regulatory T cells — "
+       "the published headline, from one prompt.",
+       False, None),
+
+      # 7 — Findings
+      ("Findings: a trait-by-cell-type heatmap, five of twenty-five cell types passing F-D-R, "
+       "Crohn's most enriched in regulatory T cells.",
+       False, None),
+
+      # 8 — Outputs
+      ("Outputs — the gene scores, the enrichment table, the report, and the trait-by-cell-type "
+       "heatmap. View previews; download grabs one or all.",
+       False, None),
+
+      # 9 — Open in a live kernel
+      ("BioMate spins up a live RStudio or Jupyter session with the enrichment and gene-score "
+       "tables mounted — re-plot the heatmap or test another trait, without leaving BioMate.",
+       False, None),
+
+      # 10 — QC audit
+      ("QC audit shows the real tool-emitted gates — G-W-A-S genes loaded, cell types identified, "
+       "and shared genes — each with threshold and observed value, parsed from the tool's output.",
+       False, None),
+
+      # 11 — Methods
+      ("Methods, paste-ready — summary-statistics harmonisation and the atlas join, the "
+       "permutation-based enrichment, and F-D-R thresholding, with gene counts and parameters.",
+       False, None),
+
+      # 12 — Wrap-up, centered
+      ("Cell-type G-W-A-S resolution from one prompt — Crohn's in regulatory T cells, "
+       "the published result.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  "int_rare_disease": {
+    "label": "L01 — Rare-disease multi-modal workup",
+    "steps": [
+      # 1 — Welcome, centered
+      ("The rare-disease multi-modal pipeline — variant calls, expression outliers, splicing outliers "
+       "— usually means three separate Nextflow runs you stitch yourself. Here it's one chat prompt.",
+       True, CLOSING_SPEED),
+
+      # 2 — Already a 5-step curated chain
+      ("Rare-disease, whole-genome, OUTRIDER and FRASER route to the curated multi-modal workup — "
+       "a five-step chain. Genome, the variant caller and both RNA-outlier tools prefill; only the "
+       "sample sheet needs confirming.",
+       False, None),
+
+      # 3 — A curated multi-modal upstream, as one chain
+      ("This is the established multi-modal upstream — sarek for variants, then RNA-seq and DROP "
+       "for outliers — composed into one dispatch. The composer runs sarek first; the RNA steps "
+       "wait for inputs.",
+       False, None),
+
+      # 4 — Phase A, sarek germline calling
+      ("Phase A: sarek calls germline variants with HaplotypeCaller — transition-to-transversion "
+       "two-oh-three, depth thirty-four-fold, d-b S-N-P overlap ninety-seven percent, all real "
+       "tool-emitted gates.",
+       False, None),
+
+      # 5 — Phase D, OUTRIDER + FRASER
+      ("Phase D: DROP runs OUTRIDER for aberrant expression and FRASER for aberrant splicing — "
+       "the standard RNA-outlier pair. Eight expression outliers, five splicing outliers join the "
+       "case report.",
+       False, None),
+
+      # 6 — Chain complete
+      ("All five phases done — variants, annotation, RNA quant, RNA outliers, aggregation. "
+       "One table: top variants, outlier genes, splicing events.",
+       False, None),
+
+      # 7 — Findings
+      ("Findings, per case from the manifest — germline metrics, eight expression outliers, five "
+       "splicing outliers, three ClinVar pathogenic variants — folded into one table.",
+       False, None),
+
+      # 8 — Outputs
+      ("Outputs by phase — the annotated VCF, the gene counts, the OUTRIDER and FRASER results, "
+       "and the unified case report. View previews; download grabs one or all.",
+       False, None),
+
+      # 9 — Open in a live kernel
+      ("BioMate spins up a live RStudio session with the OUTRIDER and FRASER results mounted — "
+       "cross-reference the outliers against the variant calls, or open the case report, without "
+       "leaving BioMate.",
+       False, None),
+
+      # 10 — QC audit
+      ("QC audit is the richest of any pilot — eight to ten tool-emitted gates across the chain: "
+       "sarek's transition-to-transversion, depth and d-b S-N-P overlap, the annotation rate, the "
+       "alignment and RNA metrics, and the DROP convergence checks.",
+       False, None),
+
+      # 11 — Methods
+      ("Methods, paste-ready — sarek HaplotypeCaller, Ensembl V-E-P, RNA-seq with STAR-Salmon, "
+       "DROP's OUTRIDER and FRASER, and case-report aggregation, with versions and parameters.",
+       False, None),
+
+      # 12 — Wrap-up, centered
+      ("A curated multi-modal upstream, in one prompt, runnable on day one — same tools, "
+       "with downstream variant ranking available next phase.",
        True, CLOSING_SPEED),
     ],
   },

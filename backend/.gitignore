@@ -79,6 +79,7 @@ object_store_conf.xml
 job_metrics_conf.xml
 workflow_schedulers_conf.xml
 config/*
+!config/file_sources_conf.yml
 !config/llm_providers.yml
 !config/tool_family_aliases.yaml
 !config/tool_family_canonical.yaml

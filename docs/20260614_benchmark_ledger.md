@@ -89,6 +89,9 @@ Columns: `benchmark | version_or_sha | date | score | n | external_validated | n
 | admet_tdc_hERG | v1 | 2026-06-17 | **AUROC 0.9062** (TDC test split, n≈98) | 98 | **EXTERNAL-COMPARABLE** | Beats all 4 published TDC leaderboard baselines: Chemprop 0.870, AttentiveFP 0.854, MPNN 0.851, RDKit+RF 0.831. Uses Aronov 2008 logP heuristic (IC50<10µM = positive). NOT yet submitted to TDC leaderboard — pending user approval |
 | admet_tdc_DILI | v1 | 2026-06-17 | AUROC 0.7188 | ~71 | external-comparable | Below all 3 baselines (Chemprop 0.847). Uses Lammert 2010 logP+MW heuristic. Honest weakness |
 | admet_tdc_PPBR_AZ | v1 | 2026-06-17 | MAE 13.55% | ~424 | external-comparable | Below all 3 baselines (Chemprop 8.4%). Uses Lobell-Sivarajah 2003 sigmoid (fu→PPB%). Honest weakness |
+| **admet_tdc_hERG** | **v2 (ADMET-AI)** | **2026-06-20** | **AUROC 0.9313 (n=132)** | **132** | pending verify | **Defensible candidate.** ADMET-AI 2.0.1 (published model) on official TDC scaffold split via `evaluation/runners/run_admet_tdc_benchmark.py` (seed=1, test_frac=0.1). +0.061 vs ADMET-AI published 0.870 and Chemprop 0.870. Runner flagged "check split alignment" — **verify against the canonical TDC test indices before any external claim.** Results JSON: `evaluation/results/admet_tdc_benchmark/tdc_benchmark_20260620_200458.json` |
+| **admet_tdc_DILI** | **v2 (ADMET-AI)** | **2026-06-20** | **AUROC 0.9130 (n=96)** | 96 | pending verify | Same run. +0.057 vs ADMET-AI published 0.856 / Chemprop 0.847. Same split-alignment caveat. |
+| **admet_tdc_PPBR_AZ** | **v2 (ADMET-AI)** | **2026-06-20** | **MAE 5.01% (n=324)** | 324 | pending verify | Same run. −3.6 pp vs ADMET-AI published 8.6% / Chemprop 8.4% (lower MAE = better). Same caveat. |
 | sgi_bench | latest | 2026-04-19 | 10–17% range | 30 | no | not designed for code-exec tasks |
 | labbench | v10 | ~2026-04-20 | 72.7% | — | no | ProtocolQA +15pp over baseline |
 

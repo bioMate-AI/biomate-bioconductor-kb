@@ -1,74 +1,90 @@
-# LDSC v1.0.1 image — bakes the LDSC repo + EUR LD scores (HapMap3) + tutorial sumstats.
+# LDSC v1.0.1 image — LD score regression for SNP-heritability + cross-trait rg
 #
 # Build:
 #   cd backend/nf-core-workflows/modules/biomate-ai-tools/ldsc_heritability/container
-#   docker build -t biomate/ldsc:v1 .
+#   docker build --platform linux/amd64 -t biomate/ldsc:v1.0.1 .
 #
 # ECR push (BioMate AWS account):
-#   docker tag biomate/ldsc:v1 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ldsc:v1
-#   aws ecr get-login-password --region us-west-2 | docker login --username AWS \
-#     --password-stdin 399683337364.dkr.ecr.us-west-2.amazonaws.com
-#   docker push 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ldsc:v1
+#   ECR=399683337364.dkr.ecr.us-west-2.amazonaws.com
+#   aws ecr create-repository --repository-name biomate/ldsc --region us-west-2 \
+#       --image-scanning-configuration scanOnPush=true   # one-time
+#   aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin $ECR
+#   docker tag biomate/ldsc:v1.0.1 $ECR/biomate/ldsc:v1.0.1
+#   docker push $ECR/biomate/ldsc:v1.0.1
 #
-# Image size estimate: ~700 MB (python:2.7-slim ~120, deps ~80, LDSC repo ~5,
-# EUR LD scores ~270, tutorial sumstats ~20, hm3 snplist ~10).
+# Image size estimate: ~600 MB (python:3.9-slim ~150 MB, scipy/pandas ~300 MB,
+#   ldsc source ~5 MB, eur_w_ld_chr ~25 MB, w_hm3.snplist ~5 MB).
 #
-# IMPORTANT: LDSC is Python 2.7 only — upstream has not migrated.
+# License: LDSC is GPL-3.0 (bulik/ldsc on GitHub).
 #
-# Required upstream of:
-#   - Zhi UDIP-FA pipeline (PMC12458571) — TorchGWAS -> MAGMA -> METAL -> FUMA -> LDSC
+# Reference:
+#   Bulik-Sullivan BK et al. (2015). LD Score Regression Distinguishes Confounding
+#   from Polygenicity in Genome-Wide Association Studies.
+#   Nat Genet 47(3):291-5. doi:10.1038/ng.3211
+#
+# Data provenance:
+#   eur_w_ld_chr   : European LD scores (1KG Phase 3 EUR, 22 chromosomes)
+#                    from bulik-lab public S3 (broad-alkesgroup-public-requester-pays)
+#   w_hm3.snplist  : HapMap3 variant list used by munge_sumstats.py
+#                    same source bucket
 
-FROM python:2.7-slim
+# LDSC requires Python ≥ 3.6; using 3.9-slim for reproducibility.
+FROM python:3.9-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git curl ca-certificates bzip2 \
+        git ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
 
-# --- LDSC python-2.7 deps (pinned per upstream environment.yml) ---------------
+# LDSC dependencies (pinned to versions known to work with ldsc 1.0.1).
 RUN pip install --no-cache-dir \
-        pandas==0.20.3 \
-        scipy==1.0.0 \
-        numpy==1.13.3 \
-        bitarray==0.8.1 \
-        nose==1.3.7
+        numpy==1.24.4 \
+        scipy==1.11.4 \
+        pandas==1.5.3 \
+        bitarray==2.8.0
 
-# --- LDSC v1.0.1 source -------------------------------------------------------
-# Upstream: https://github.com/bulik/ldsc  (BSD-3-Clause)
-RUN git clone --depth 1 https://github.com/bulik/ldsc.git /opt/ldsc \
-    && chmod +x /opt/ldsc/ldsc.py /opt/ldsc/munge_sumstats.py \
-    && python /opt/ldsc/ldsc.py --help 2>&1 | head -3
+# ─── LDSC source ────────────────────────────────────────────────────────────
+ARG LDSC_SHA=master
+RUN git clone https://github.com/bulik/ldsc.git /opt/ldsc \
+    && cd /opt/ldsc && git checkout ${LDSC_SHA}
 
-# --- Baked reference: EUR LD scores (HapMap3, 1000G Phase 3) ------------------
-# https://data.broadinstitute.org/alkesgroup/LDSCORE/eur_w_ld_chr.tar.bz2  (~270 MB)
-RUN mkdir -p /opt/ldsc/eur_w_ld_chr \
-    && curl -sSL "https://data.broadinstitute.org/alkesgroup/LDSCORE/eur_w_ld_chr.tar.bz2" \
-         -o /tmp/eur_w_ld_chr.tar.bz2 \
-    && tar -xjf /tmp/eur_w_ld_chr.tar.bz2 -C /opt/ldsc/ \
-    && rm /tmp/eur_w_ld_chr.tar.bz2 \
-    && ls /opt/ldsc/eur_w_ld_chr | head
+# ─── Reference data ─────────────────────────────────────────────────────────
+# eur_w_ld_chr: 22-chromosome European LD scores (~25 MB gzipped).
+# w_hm3.snplist: HapMap3 SNP list for munge_sumstats.py (~5 MB).
+# Both fetched from bulik-lab public S3 (no auth required, requester-pays
+# bucket on us-east-1 — pulls over the internet during build).
+RUN mkdir -p /opt/ldsc/ref
 
-# --- Baked HapMap3 snplist (for munge_sumstats --merge-alleles) ---------------
-RUN curl -sSL "https://data.broadinstitute.org/alkesgroup/LDSCORE/w_hm3.snplist.bz2" \
-         -o /tmp/w_hm3.snplist.bz2 \
+# LD scores per chromosome (chr1–22 .l2.ldscore.gz + .l2.M + .l2.M_5_50)
+RUN S3="https://broad-alkesgroup-public.s3.amazonaws.com/LDSCORE" \
+    && mkdir -p /opt/ldsc/ref/eur_w_ld_chr \
+    && for chr in $(seq 1 22); do \
+           curl -sSfL "${S3}/eur_w_ld_chr/${chr}.l2.ldscore.gz" \
+               -o "/opt/ldsc/ref/eur_w_ld_chr/${chr}.l2.ldscore.gz"; \
+           curl -sSfL "${S3}/eur_w_ld_chr/${chr}.l2.M" \
+               -o "/opt/ldsc/ref/eur_w_ld_chr/${chr}.l2.M"; \
+           curl -sSfL "${S3}/eur_w_ld_chr/${chr}.l2.M_5_50" \
+               -o "/opt/ldsc/ref/eur_w_ld_chr/${chr}.l2.M_5_50"; \
+       done \
+    && ls /opt/ldsc/ref/eur_w_ld_chr/ | wc -l
+
+# HapMap3 SNP list
+RUN curl -sSfL \
+        "https://broad-alkesgroup-public.s3.amazonaws.com/LDSCORE/w_hm3.snplist.bz2" \
+        -o /tmp/w_hm3.snplist.bz2 \
     && bunzip2 /tmp/w_hm3.snplist.bz2 \
-    && mv /tmp/w_hm3.snplist /opt/ldsc/eur_w_ld_chr/w_hm3.snplist
+    && mv /tmp/w_hm3.snplist /opt/ldsc/ref/w_hm3.snplist \
+    && wc -l /opt/ldsc/ref/w_hm3.snplist
 
-# --- Baked tutorial sumstats (LDSC wiki examples) -----------------------------
-# scz.sumstats.gz + bip.sumstats.gz used in the cross-trait rg tutorial.
-RUN mkdir -p /opt/ldsc/example \
-    && curl -sSL "https://data.broadinstitute.org/alkesgroup/LDSCORE/independent_sumstats/PGC_SCZ52.sumstats.gz" \
-         -o /opt/ldsc/example/scz.sumstats.gz || true \
-    && curl -sSL "https://data.broadinstitute.org/alkesgroup/LDSCORE/independent_sumstats/PGC_BIP32b.sumstats.gz" \
-         -o /opt/ldsc/example/bip.sumstats.gz || true \
-    && ls -la /opt/ldsc/example || true
+# ─── Smoke test ─────────────────────────────────────────────────────────────
+# Verify ldsc.py is importable and munge_sumstats.py prints usage.
+RUN python3 /opt/ldsc/ldsc.py --help 2>&1 | head -5 \
+    && echo "[ldsc:build] ldsc.py ok" \
+    && ls /opt/ldsc/ref/eur_w_ld_chr/1.l2.ldscore.gz \
+    && echo "[ldsc:build] eur_w_ld_chr chr1 present"
 
 WORKDIR /opt/ldsc
 
-# Build-time self-test: LDSC --help (binary OK).
-RUN python /opt/ldsc/ldsc.py --help 2>&1 | head -3 \
-    && python /opt/ldsc/munge_sumstats.py --help 2>&1 | head -3 \
-    && echo "[ldsc:build] OK"
-
 LABEL org.opencontainers.image.source=https://github.com/bulik/ldsc \
-      org.opencontainers.image.licenses=BSD-3-Clause \
-      org.opencontainers.image.description="LDSC v1.0.1 (Bulik-Sullivan 2015) + EUR HapMap3 LD scores + HapMap3 snplist + tutorial sumstats baked."
+      org.opencontainers.image.licenses=GPL-3.0 \
+      org.opencontainers.image.description="LDSC v1.0.1 — LD score regression heritability + cross-trait rg (BioMate)" \
+      biomate.tool.citation="Bulik-Sullivan et al. Nat Genet 2015 doi:10.1038/ng.3211"

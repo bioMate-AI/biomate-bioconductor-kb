@@ -68,84 +68,84 @@
   </g>
 
   <!-- CONNECT label -->
-  <text x="120" y="108" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" font-weight="700" fill="#8FD6EA" letter-spacing="3" text-anchor="middle" text-transform="uppercase">CONNECT</text>
+  <text x="120" y="108" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" font-weight="700" fill="#8FD6EA" letter-spacing="3" text-anchor="middle" text-transform="uppercase">CONNECT</text>
   <line x1="30" y1="116" x2="210" y2="116" stroke="rgba(143,214,234,0.20)" stroke-width="0.8"/>
 
   <!-- ── Group 1: AI · PROTOCOL ── -->
-  <text x="30" y="136" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8.5" fill="#8BA3B8" letter-spacing="1.5">AI · PROTOCOL</text>
+  <text x="30" y="136" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#8BA3B8" letter-spacing="1.5">AI · PROTOCOL</text>
 
   <!-- MCP -->
   <rect x="22" y="142" width="196" height="22" rx="4" fill="rgba(143,214,234,0.07)" stroke="rgba(143,214,234,0.20)" stroke-width="0.7"/>
-  <text x="30" y="157" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">MCP (Model Context Protocol)</text>
+  <text x="30" y="157" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">MCP (Model Context Protocol)</text>
 
   <!-- Open Claw -->
   <rect x="22" y="168" width="196" height="22" rx="4" fill="rgba(143,214,234,0.07)" stroke="rgba(143,214,234,0.20)" stroke-width="0.7"/>
-  <text x="30" y="183" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">Open Claw</text>
+  <text x="30" y="183" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">Open Claw</text>
 
   <!-- REST API -->
   <rect x="22" y="194" width="196" height="22" rx="4" fill="rgba(143,214,234,0.07)" stroke="rgba(143,214,234,0.20)" stroke-width="0.7"/>
-  <text x="30" y="209" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">REST API (50+ endpoints)</text>
+  <text x="30" y="209" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">REST API (50+ endpoints)</text>
 
   <!-- Server-Sent Events -->
   <rect x="22" y="220" width="196" height="22" rx="4" fill="rgba(143,214,234,0.07)" stroke="rgba(143,214,234,0.20)" stroke-width="0.7"/>
-  <text x="30" y="235" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">Server-Sent Events</text>
+  <text x="30" y="235" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">Server-Sent Events</text>
 
   <!-- ── Group 2: CHAT · SOCIAL ── -->
-  <text x="30" y="262" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8.5" fill="#8BA3B8" letter-spacing="1.5">CHAT · SOCIAL</text>
+  <text x="30" y="262" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#8BA3B8" letter-spacing="1.5">CHAT · SOCIAL</text>
 
   <!-- Slack -->
   <rect x="22" y="268" width="196" height="22" rx="4" fill="rgba(143,214,234,0.07)" stroke="rgba(143,214,234,0.20)" stroke-width="0.7"/>
-  <text x="30" y="283" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">Slack (/biomate)</text>
+  <text x="30" y="283" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">Slack (/biomate)</text>
 
   <!-- WeChat Work -->
   <rect x="22" y="294" width="196" height="22" rx="4" fill="rgba(143,214,234,0.07)" stroke="rgba(143,214,234,0.20)" stroke-width="0.7"/>
-  <text x="30" y="309" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">WeChat Work (企业微信)</text>
+  <text x="30" y="309" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">WeChat Work (企业微信)</text>
 
   <!-- ── Group 3: LAB INSTRUMENTS ── -->
-  <text x="30" y="336" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8.5" fill="#8BA3B8" letter-spacing="1.5">LAB INSTRUMENTS</text>
+  <text x="30" y="336" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#8BA3B8" letter-spacing="1.5">LAB INSTRUMENTS</text>
 
   <!-- Illumina -->
   <rect x="22" y="342" width="196" height="22" rx="4" fill="rgba(143,214,234,0.07)" stroke="rgba(143,214,234,0.20)" stroke-width="0.7"/>
-  <text x="30" y="357" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">Illumina BaseSpace</text>
+  <text x="30" y="357" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">Illumina BaseSpace</text>
 
   <!-- Oxford Nanopore -->
   <rect x="22" y="368" width="196" height="22" rx="4" fill="rgba(143,214,234,0.07)" stroke="rgba(143,214,234,0.20)" stroke-width="0.7"/>
-  <text x="30" y="383" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">Oxford Nanopore</text>
+  <text x="30" y="383" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">Oxford Nanopore</text>
 
   <!-- CryoEM EPU -->
   <rect x="22" y="394" width="196" height="22" rx="4" fill="rgba(143,214,234,0.07)" stroke="rgba(143,214,234,0.20)" stroke-width="0.7"/>
-  <text x="30" y="409" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">CryoEM EPU</text>
+  <text x="30" y="409" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">CryoEM EPU</text>
 
   <!-- Flow Cytometer -->
   <rect x="22" y="420" width="196" height="22" rx="4" fill="rgba(143,214,234,0.07)" stroke="rgba(143,214,234,0.20)" stroke-width="0.7"/>
-  <text x="30" y="435" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">Flow Cytometer</text>
+  <text x="30" y="435" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">Flow Cytometer</text>
 
   <!-- LC-MS / qPCR -->
   <rect x="22" y="446" width="196" height="22" rx="4" fill="rgba(143,214,234,0.07)" stroke="rgba(143,214,234,0.20)" stroke-width="0.7"/>
-  <text x="30" y="461" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">LC-MS · qPCR</text>
+  <text x="30" y="461" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">LC-MS · qPCR</text>
 
   <!-- Opentrons -->
   <rect x="22" y="472" width="196" height="22" rx="4" fill="rgba(143,214,234,0.07)" stroke="rgba(143,214,234,0.20)" stroke-width="0.7"/>
-  <text x="30" y="487" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">Opentrons</text>
+  <text x="30" y="487" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">Opentrons</text>
 
   <!-- Plate Reader / SiLA2 -->
   <rect x="22" y="498" width="196" height="22" rx="4" fill="rgba(143,214,234,0.07)" stroke="rgba(143,214,234,0.20)" stroke-width="0.7"/>
-  <text x="30" y="513" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">Plate Reader · SiLA2</text>
+  <text x="30" y="513" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">Plate Reader · SiLA2</text>
 
   <!-- Benchling LIMS -->
   <rect x="22" y="524" width="196" height="22" rx="4" fill="rgba(143,214,234,0.07)" stroke="rgba(143,214,234,0.20)" stroke-width="0.7"/>
-  <text x="30" y="539" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">Benchling LIMS</text>
+  <text x="30" y="539" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">Benchling LIMS</text>
 
   <!-- Integration count badge at bottom of left panel -->
   <rect x="42" y="600" width="136" height="28" rx="14" fill="rgba(143,214,234,0.12)" stroke="rgba(143,214,234,0.30)" stroke-width="0.8"/>
-  <text x="110" y="619" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="10" fill="#8FD6EA" text-anchor="middle">25+ integrations</text>
+  <text x="110" y="619" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#8FD6EA" text-anchor="middle">25+ integrations</text>
 
   <!-- ═══════════════════════════════════════════════════
        LEFT → CENTER ARROW
   ═══════════════════════════════════════════════════ -->
   <line x1="232" y1="380" x2="275" y2="380" stroke="#8FD6EA" stroke-width="1.8" marker-end="url(#arrow-teal)"/>
   <!-- Chevron decorations on arrow -->
-  <text x="249" y="374" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8" fill="rgba(143,214,234,0.5)" text-anchor="middle">data</text>
+  <text x="249" y="374" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="rgba(143,214,234,0.5)" text-anchor="middle">data</text>
 
   <!-- ═══════════════════════════════════════════════════
        CENTER PANEL — ANALYZE (BioMate AI)
@@ -162,8 +162,8 @@
   <rect x="280" y="108" width="640" height="20" fill="url(#center-head-grad)"/>
 
   <!-- BioMate AI logo text -->
-  <text x="600" y="97" font-family="'Crimson Text',Georgia,serif" font-size="26" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.5">BioMate AI</text>
-  <text x="600" y="116" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="10.5" fill="#8FD6EA" text-anchor="middle" letter-spacing="0.5">AI-powered computational biology platform</text>
+  <text x="600" y="97" font-family="'Crimson Text',Georgia,serif" font-size="22" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.5">BioMate AI</text>
+  <text x="600" y="116" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#8FD6EA" text-anchor="middle" letter-spacing="0.5">AI-powered computational biology platform</text>
 
   <line x1="300" y1="130" x2="900" y2="130" stroke="rgba(143,214,234,0.15)" stroke-width="0.8"/>
 
@@ -172,131 +172,129 @@
   ══════════════════════════════════════════ -->
   <rect x="298" y="140" width="604" height="120" rx="8" fill="rgba(42,74,106,0.50)" stroke="rgba(143,214,234,0.20)" stroke-width="0.8"/>
 
-  <text x="316" y="161" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9" font-weight="700" fill="#8FD6EA" letter-spacing="2">AI ORCHESTRATION</text>
+  <text x="316" y="161" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" font-weight="700" fill="#8FD6EA" letter-spacing="2">AI ORCHESTRATION</text>
 
   <!-- Orchestration chips — 4 across -->
   <!-- Chip 1: Workflow Routing -->
   <rect x="308" y="168" width="130" height="30" rx="5" fill="rgba(143,214,234,0.10)" stroke="rgba(143,214,234,0.30)" stroke-width="0.8"/>
-  <text x="373" y="180" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9" fill="#FFFFFF" text-anchor="middle">Workflow Routing</text>
-  <text x="373" y="192" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7.5" fill="#8BA3B8" text-anchor="middle">94.6% accuracy</text>
+  <text x="373" y="180" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#FFFFFF" text-anchor="middle">Workflow Routing</text>
+  <text x="373" y="192" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#8BA3B8" text-anchor="middle">94.6% accuracy</text>
 
   <!-- Chip 2: Parameter Extraction -->
   <rect x="448" y="168" width="130" height="30" rx="5" fill="rgba(143,214,234,0.10)" stroke="rgba(143,214,234,0.30)" stroke-width="0.8"/>
-  <text x="513" y="180" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9" fill="#FFFFFF" text-anchor="middle">Parameter Extraction</text>
-  <text x="513" y="192" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7.5" fill="#8BA3B8" text-anchor="middle">rule + LLM hybrid</text>
+  <text x="513" y="180" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#FFFFFF" text-anchor="middle">Parameter Extraction</text>
+  <text x="513" y="192" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#8BA3B8" text-anchor="middle">rule + LLM hybrid</text>
 
   <!-- Chip 3: Hierarchical Memory -->
   <rect x="588" y="168" width="130" height="30" rx="5" fill="rgba(143,214,234,0.10)" stroke="rgba(143,214,234,0.30)" stroke-width="0.8"/>
-  <text x="653" y="180" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9" fill="#FFFFFF" text-anchor="middle">Hierarchical Memory</text>
-  <text x="653" y="192" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7.5" fill="#8BA3B8" text-anchor="middle">cross-session recall</text>
+  <text x="653" y="180" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#FFFFFF" text-anchor="middle">Hierarchical Memory</text>
+  <text x="653" y="192" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#8BA3B8" text-anchor="middle">cross-session recall</text>
 
   <!-- Chip 4: Auto-Remediation -->
   <rect x="728" y="168" width="160" height="30" rx="5" fill="rgba(143,214,234,0.10)" stroke="rgba(143,214,234,0.30)" stroke-width="0.8"/>
-  <text x="808" y="180" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9" fill="#FFFFFF" text-anchor="middle">Auto-Remediation</text>
-  <text x="808" y="192" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7.5" fill="#8BA3B8" text-anchor="middle">QC-gate retry loop</text>
+  <text x="808" y="180" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#FFFFFF" text-anchor="middle">Auto-Remediation</text>
+  <text x="808" y="192" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#8BA3B8" text-anchor="middle">QC-gate retry loop</text>
 
   <!-- Subtitle bar -->
   <rect x="308" y="206" width="580" height="22" rx="4" fill="rgba(143,214,234,0.06)" stroke="rgba(143,214,234,0.12)" stroke-width="0.6"/>
-  <text x="598" y="221" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9" fill="#8BA3B8" text-anchor="middle">Hybrid vector + LLM routing · 94.6% accuracy · Wikidata Q140074014</text>
+  <text x="598" y="221" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#8BA3B8" text-anchor="middle">Hybrid vector + LLM routing · 94.6% accuracy · Wikidata Q140074014</text>
 
   <!-- ══════════════════════════════════════════
        INNER BOX 2 — DOMAIN COVERAGE
   ══════════════════════════════════════════ -->
   <rect x="298" y="272" width="604" height="268" rx="8" fill="url(#domain-grad)" stroke="rgba(245,205,135,0.22)" stroke-width="0.8"/>
 
-  <text x="316" y="293" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9" font-weight="700" fill="#F5CD87" letter-spacing="2">36 BIOMEDICAL DOMAINS · 4,000+ WORKFLOWS</text>
+  <text x="316" y="293" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" font-weight="700" fill="#F5CD87" letter-spacing="2">36 BIOMEDICAL DOMAINS · 4,000+ WORKFLOWS</text>
 
   <!-- Domain group chips — 2 columns × 3 rows -->
 
   <!-- Column 1 — left domains -->
   <!-- Group A: Omics & Sequencing -->
   <rect x="308" y="300" width="280" height="70" rx="6" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.22)" stroke-width="0.7"/>
-  <text x="322" y="318" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" font-weight="700" fill="#FFFFFF">Omics &amp; Sequencing</text>
-  <text x="322" y="333" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8" fill="#8BA3B8">transcriptomics · genomics · epigenomics</text>
-  <text x="322" y="347" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8" fill="#8BA3B8">single cell · variant calling · metagenomics</text>
-  <text x="322" y="361" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8" fill="#8BA3B8">proteomics · metabolomics · multi-omics</text>
+  <text x="322" y="318" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" font-weight="700" fill="#FFFFFF">Omics &amp; Sequencing</text>
+  <text x="322" y="333" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#8BA3B8">transcriptomics · genomics · epigenomics</text>
+  <text x="322" y="347" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#8BA3B8">single cell · variant calling · metagenomics</text>
+  <text x="322" y="361" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#8BA3B8">proteomics · metabolomics · multi-omics</text>
 
   <!-- Group B: Drug Discovery -->
   <rect x="308" y="378" width="280" height="60" rx="6" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.22)" stroke-width="0.7"/>
-  <text x="322" y="396" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" font-weight="700" fill="#FFFFFF">Drug Discovery</text>
-  <text x="322" y="411" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8" fill="#8BA3B8">drug discovery · pharmacology · molecular biology</text>
-  <text x="322" y="425" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8" fill="#8BA3B8">genetics · biochemistry</text>
+  <text x="322" y="396" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" font-weight="700" fill="#FFFFFF">Drug Discovery</text>
+  <text x="322" y="411" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#8BA3B8">drug discovery · pharmacology · molecular biology</text>
+  <text x="322" y="425" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#8BA3B8">genetics · biochemistry</text>
 
   <!-- Group C: Computational -->
   <rect x="308" y="446" width="280" height="50" rx="6" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.22)" stroke-width="0.7"/>
-  <text x="322" y="464" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" font-weight="700" fill="#FFFFFF">Computational</text>
-  <text x="322" y="479" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8" fill="#8BA3B8">systems biology · synthetic biology · virtual cell</text>
-  <text x="322" y="488" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8" fill="#8BA3B8">lab automation</text>
+  <text x="322" y="464" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" font-weight="700" fill="#FFFFFF">Computational</text>
+  <text x="322" y="479" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#8BA3B8">systems biology · synthetic biology · lab automation</text>
 
   <!-- Column 2 — right domains -->
   <!-- Group D: Structural & Imaging -->
   <rect x="600" y="300" width="290" height="60" rx="6" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.22)" stroke-width="0.7"/>
-  <text x="614" y="318" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" font-weight="700" fill="#FFFFFF">Structural &amp; Imaging</text>
-  <text x="614" y="333" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8" fill="#8BA3B8">cryo-EM · cryo-ET · structural biology</text>
-  <text x="614" y="347" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8" fill="#8BA3B8">bioimaging · imaging</text>
+  <text x="614" y="318" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" font-weight="700" fill="#FFFFFF">Structural &amp; Imaging</text>
+  <text x="614" y="333" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#8BA3B8">cryo-EM · cryo-ET · structural biology</text>
+  <text x="614" y="347" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#8BA3B8">bioimaging · imaging</text>
 
   <!-- Group E: Biology & Medicine -->
   <rect x="600" y="368" width="290" height="80" rx="6" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.22)" stroke-width="0.7"/>
-  <text x="614" y="386" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" font-weight="700" fill="#FFFFFF">Biology &amp; Medicine</text>
-  <text x="614" y="401" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8" fill="#8BA3B8">immunology · microbiology · cell biology</text>
-  <text x="614" y="415" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8" fill="#8BA3B8">cancer biology · pathology · physiology</text>
-  <text x="614" y="429" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8" fill="#8BA3B8">bioengineering · biophysics · rare disease</text>
-  <text x="614" y="440" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8" fill="#8BA3B8">glycoengineering</text>
+  <text x="614" y="386" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" font-weight="700" fill="#FFFFFF">Biology &amp; Medicine</text>
+  <text x="614" y="401" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#8BA3B8">immunology · microbiology · cell biology</text>
+  <text x="614" y="415" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#8BA3B8">cancer biology · pathology · physiology</text>
+  <text x="614" y="429" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#8BA3B8">bioengineering · biophysics · rare disease · glycoengineering</text>
 
   <!-- Group F: R / Bioconductor -->
   <rect x="600" y="456" width="290" height="40" rx="6" fill="rgba(42,74,106,0.55)" stroke="rgba(245,205,135,0.30)" stroke-width="0.7"/>
-  <text x="614" y="472" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" font-weight="700" fill="#F5CD87">R / Bioconductor</text>
-  <text x="614" y="487" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8" fill="#8BA3B8">1,818 packages · DESeq2 · edgeR · Seurat · limma · clusterProfiler</text>
+  <text x="614" y="472" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" font-weight="700" fill="#F5CD87">R / Bioconductor</text>
+  <text x="614" y="487" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#8BA3B8">1,818 packages · DESeq2 · edgeR · Seurat · limma · clusterProfiler</text>
 
   <!-- Workflow count badge -->
   <rect x="308" y="504" width="580" height="24" rx="4" fill="rgba(245,205,135,0.07)" stroke="rgba(245,205,135,0.18)" stroke-width="0.6"/>
-  <text x="598" y="520" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9" fill="#F5CD87" text-anchor="middle">4,000+ workflows · container-pinned · version-locked</text>
+  <text x="598" y="520" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#F5CD87" text-anchor="middle">4,000+ workflows · container-pinned · version-locked</text>
 
   <!-- ══════════════════════════════════════════
        INNER BOX 3 — EXECUTION LAYER
   ══════════════════════════════════════════ -->
   <rect x="298" y="552" width="604" height="112" rx="8" fill="url(#exec-grad)" stroke="rgba(166,226,196,0.20)" stroke-width="0.8"/>
 
-  <text x="316" y="572" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9" font-weight="700" fill="#A6E2C4" letter-spacing="2">EXECUTION LAYER</text>
+  <text x="316" y="572" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" font-weight="700" fill="#A6E2C4" letter-spacing="2">EXECUTION LAYER</text>
 
   <!-- Execution chips row -->
   <!-- AWS Batch -->
   <rect x="308" y="580" width="160" height="32" rx="5" fill="rgba(46,125,82,0.20)" stroke="rgba(166,226,196,0.35)" stroke-width="0.8"/>
-  <text x="388" y="592" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF" text-anchor="middle">AWS Batch</text>
-  <text x="388" y="605" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7.5" fill="#A6E2C4" text-anchor="middle">scalable cloud compute</text>
+  <text x="388" y="592" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF" text-anchor="middle">AWS Batch</text>
+  <text x="388" y="605" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#A6E2C4" text-anchor="middle">scalable cloud compute</text>
 
   <!-- Nextflow / nf-core -->
   <rect x="478" y="580" width="180" height="32" rx="5" fill="rgba(46,125,82,0.20)" stroke="rgba(166,226,196,0.35)" stroke-width="0.8"/>
-  <text x="568" y="592" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF" text-anchor="middle">Nextflow / nf-core</text>
-  <text x="568" y="605" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7.5" fill="#A6E2C4" text-anchor="middle">gold-standard pipelines</text>
+  <text x="568" y="592" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF" text-anchor="middle">Nextflow / nf-core</text>
+  <text x="568" y="605" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#A6E2C4" text-anchor="middle">gold-standard pipelines</text>
 
   <!-- GPU Cluster -->
   <rect x="668" y="580" width="220" height="32" rx="5" fill="rgba(46,125,82,0.20)" stroke="rgba(166,226,196,0.35)" stroke-width="0.8"/>
-  <text x="778" y="592" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF" text-anchor="middle">GPU Cluster</text>
-  <text x="778" y="605" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7.5" fill="#A6E2C4" text-anchor="middle">AlphaFold · CryoSPARC · deep learning</text>
+  <text x="778" y="592" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF" text-anchor="middle">GPU Cluster</text>
+  <text x="778" y="605" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#A6E2C4" text-anchor="middle">AlphaFold · CryoSPARC · deep learning</text>
 
   <!-- QC Grade badges row -->
   <!-- Gold badge -->
   <rect x="308" y="622" width="128" height="28" rx="5" fill="rgba(245,205,135,0.18)" stroke="rgba(245,205,135,0.45)" stroke-width="0.9"/>
-  <text x="372" y="638" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="10.5" fill="#F5CD87" text-anchor="middle" font-weight="700">GOLD</text>
+  <text x="372" y="638" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#F5CD87" text-anchor="middle" font-weight="700">GOLD</text>
   <text x="372" y="643" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="0.1" fill="transparent">&#x1F947;</text>
 
   <!-- Silver badge -->
   <rect x="446" y="622" width="148" height="28" rx="5" fill="rgba(176,190,197,0.18)" stroke="rgba(176,190,197,0.40)" stroke-width="0.9"/>
-  <text x="520" y="638" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="10.5" fill="#C8D8E0" text-anchor="middle" font-weight="700">SILVER</text>
+  <text x="520" y="638" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#C8D8E0" text-anchor="middle" font-weight="700">SILVER</text>
 
   <!-- Bronze badge -->
   <rect x="604" y="622" width="168" height="28" rx="5" fill="rgba(184,130,70,0.18)" stroke="rgba(205,155,90,0.40)" stroke-width="0.9"/>
-  <text x="688" y="638" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="10.5" fill="#D4A560" text-anchor="middle" font-weight="700">BRONZE</text>
+  <text x="688" y="638" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#D4A560" text-anchor="middle" font-weight="700">BRONZE</text>
 
   <!-- QC label right -->
-  <text x="800" y="638" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8" fill="#8BA3B8" text-anchor="start">evidence-graded QC</text>
+  <text x="800" y="638" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#8BA3B8" text-anchor="start">evidence-graded QC</text>
 
   <!-- ═══════════════════════════════════════════════════
        CENTER → RIGHT ARROW
   ═══════════════════════════════════════════════════ -->
   <line x1="922" y1="380" x2="945" y2="380" stroke="#A6E2C4" stroke-width="1.8" marker-end="url(#arrow-green)"/>
-  <text x="933" y="374" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8" fill="rgba(166,226,196,0.5)" text-anchor="middle">out</text>
+  <text x="933" y="374" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="rgba(166,226,196,0.5)" text-anchor="middle">out</text>
 
   <!-- ═══════════════════════════════════════════════════
        RIGHT PANEL — DELIVER
@@ -306,63 +304,63 @@
   </g>
 
   <!-- DELIVER label -->
-  <text x="1070" y="108" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" font-weight="700" fill="#A6E2C4" letter-spacing="3" text-anchor="middle">DELIVER</text>
+  <text x="1070" y="108" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" font-weight="700" fill="#A6E2C4" letter-spacing="3" text-anchor="middle">DELIVER</text>
   <line x1="970" y1="116" x2="1178" y2="116" stroke="rgba(166,226,196,0.20)" stroke-width="0.8"/>
 
   <!-- ── Group 1: REPORTS & DOCS ── -->
-  <text x="968" y="136" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8.5" fill="#8BA3B8" letter-spacing="1.5">REPORTS &amp; DOCS</text>
+  <text x="968" y="136" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#8BA3B8" letter-spacing="1.5">REPORTS &amp; DOCS</text>
 
   <!-- Structured Methods Report -->
   <rect x="960" y="142" width="216" height="22" rx="4" fill="rgba(46,125,82,0.15)" stroke="rgba(166,226,196,0.30)" stroke-width="0.7"/>
-  <text x="968" y="157" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">Structured Methods Report</text>
+  <text x="968" y="157" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">Structured Methods Report</text>
 
   <!-- DOCX / PDF Export -->
   <rect x="960" y="168" width="216" height="22" rx="4" fill="rgba(46,125,82,0.15)" stroke="rgba(166,226,196,0.30)" stroke-width="0.7"/>
-  <text x="968" y="183" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">DOCX / PDF Export</text>
+  <text x="968" y="183" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">DOCX / PDF Export</text>
 
   <!-- IND Sections -->
   <rect x="960" y="194" width="216" height="22" rx="4" fill="rgba(46,125,82,0.15)" stroke="rgba(166,226,196,0.30)" stroke-width="0.7"/>
-  <text x="968" y="209" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">IND Sections §2.6.1–2.6.7</text>
+  <text x="968" y="209" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">IND Sections §2.6.1–2.6.7</text>
 
   <!-- CRO Submission Package -->
   <rect x="960" y="220" width="216" height="22" rx="4" fill="rgba(46,125,82,0.15)" stroke="rgba(166,226,196,0.30)" stroke-width="0.7"/>
-  <text x="968" y="235" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">CRO Submission Package</text>
+  <text x="968" y="235" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">CRO Submission Package</text>
 
   <!-- 21 CFR Part 11 -->
   <rect x="960" y="246" width="216" height="22" rx="4" fill="rgba(46,125,82,0.15)" stroke="rgba(166,226,196,0.30)" stroke-width="0.7"/>
-  <text x="968" y="261" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">21 CFR Part 11 eSig</text>
+  <text x="968" y="261" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">21 CFR Part 11 eSig</text>
 
   <!-- ── Group 2: QUALITY & AUDIT ── -->
-  <text x="968" y="292" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="8.5" fill="#8BA3B8" letter-spacing="1.5">QUALITY &amp; AUDIT</text>
+  <text x="968" y="292" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#8BA3B8" letter-spacing="1.5">QUALITY &amp; AUDIT</text>
 
   <!-- Gold/Silver/Bronze QC Grade -->
   <rect x="960" y="298" width="216" height="22" rx="4" fill="rgba(46,125,82,0.15)" stroke="rgba(166,226,196,0.30)" stroke-width="0.7"/>
-  <text x="968" y="313" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#F5CD87">Gold / Silver / Bronze QC Grade</text>
+  <text x="968" y="313" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#F5CD87">Gold / Silver / Bronze QC Grade</text>
 
   <!-- Per-metric remediation -->
   <rect x="960" y="324" width="216" height="22" rx="4" fill="rgba(46,125,82,0.15)" stroke="rgba(166,226,196,0.30)" stroke-width="0.7"/>
-  <text x="968" y="339" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">Per-metric remediation</text>
+  <text x="968" y="339" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">Per-metric remediation</text>
 
   <!-- Immutable Audit Trail -->
   <rect x="960" y="350" width="216" height="22" rx="4" fill="rgba(46,125,82,0.15)" stroke="rgba(166,226,196,0.30)" stroke-width="0.7"/>
-  <text x="968" y="365" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">Immutable Audit Trail</text>
+  <text x="968" y="365" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">Immutable Audit Trail</text>
 
   <!-- Reproducibility Hash -->
   <rect x="960" y="376" width="216" height="22" rx="4" fill="rgba(46,125,82,0.15)" stroke="rgba(166,226,196,0.30)" stroke-width="0.7"/>
-  <text x="968" y="391" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">Reproducibility Hash</text>
+  <text x="968" y="391" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">Reproducibility Hash</text>
 
   <!-- HIPAA / SOC 2 / GDPR -->
   <rect x="960" y="402" width="216" height="22" rx="4" fill="rgba(46,125,82,0.15)" stroke="rgba(166,226,196,0.30)" stroke-width="0.7"/>
-  <text x="968" y="417" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9.5" fill="#FFFFFF">HIPAA · SOC 2 · GDPR</text>
+  <text x="968" y="417" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">HIPAA · SOC 2 · GDPR</text>
 
   <!-- Compliance badge at bottom of right panel -->
   <rect x="980" y="600" width="176" height="28" rx="14" fill="rgba(166,226,196,0.12)" stroke="rgba(166,226,196,0.30)" stroke-width="0.8"/>
-  <text x="1068" y="619" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="10" fill="#A6E2C4" text-anchor="middle">audit-ready output</text>
+  <text x="1068" y="619" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#A6E2C4" text-anchor="middle">audit-ready output</text>
 
   <!-- ═══════════════════════════════════════════════════
        BOTTOM FOOTER
   ═══════════════════════════════════════════════════ -->
   <line x1="40" y1="688" x2="1160" y2="688" stroke="rgba(143,214,234,0.08)" stroke-width="0.6"/>
-  <text x="600" y="696" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="9" fill="#8BA3B8" text-anchor="middle">Wikidata Q140074014 · biomate.ai · contact@biomate.ai</text>
+  <text x="600" y="696" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#8BA3B8" text-anchor="middle">Wikidata Q140074014 · biomate.ai · contact@biomate.ai</text>
 
 </svg>

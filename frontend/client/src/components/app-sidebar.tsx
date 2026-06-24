@@ -224,19 +224,14 @@ export function AppSidebar({
     return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`
   }
 
-  // Use chat sessions from props or fallback to default
-  const recentChats = chatSessions.length > 0 ? [...chatSessions]
+  // Use chat sessions from props; empty list until backend syncs (no mock fallback)
+  const recentChats = [...chatSessions]
     .sort((a, b) => new Date(b.lastActivity ?? 0).getTime() - new Date(a.lastActivity ?? 0).getTime())
     .slice(0, 20).map(session => ({
     id: session.id,
     title: session.title,
     timestamp: getRelativeTime(session.lastActivity)
-  })) : [
-    { id: "1", title: "RNA-seq Analysis Pipeline", timestamp: "2 hours ago" },
-    { id: "2", title: "Variant Calling Workflow", timestamp: "Yesterday" },
-    { id: "3", title: "ChIP-seq Data Processing", timestamp: "3 days ago" },
-    { id: "4", title: "Genome Assembly Help", timestamp: "1 week ago" },
-  ];
+  }));
   return (
     <div className="h-full flex flex-col" style={{
       background: 'var(--bm-surface, hsl(var(--sidebar)))',
@@ -311,9 +306,11 @@ export function AppSidebar({
         <button className="side-link" data-testid="button-workflows-nav" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => { analytics.track('workflows_sidebar_opened'); setShowHistoryDialog(true); }}>
           <FlaskConical className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Workflows</span>{runningCount > 0 && (<span data-testid="workflows-running-badge" style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 999, background: 'oklch(0.92 0.04 230)', color: 'oklch(0.40 0.13 230)' }}>{runningCount}</span>)}
         </button>
+        {/* Workspaces — commented out until create flow is stable (500 on POST /api/workspaces)
         <button className="side-link" data-testid="button-workspaces-nav" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/workspaces')}>
           <FolderOpen className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Workspaces</span>
         </button>
+        */}
         {/* CRO Library — commented out until fully implemented and validated
         <button className="side-link" data-testid="button-cro-compliance" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/drug-discovery-cro')}>
           <Database className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>CRO Library</span>
@@ -362,7 +359,7 @@ export function AppSidebar({
                                 dotStatus === 'completed' ? 'var(--bm-ok, oklch(0.62 0.13 150))' :
                                 'var(--bm-border-strong, oklch(0.80 0.008 240))',
                     animation: dotStatus === 'running' ? 'pulse 1.5s infinite' : 'none',
-                  }} title={dotStatus || 'idle'} />
+                  }} title={dotStatus || 'idle'} data-testid={`history-dot-${chat.id}`} />
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span>
                 </button>
               )

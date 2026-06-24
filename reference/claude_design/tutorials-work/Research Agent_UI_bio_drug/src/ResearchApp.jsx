@@ -74,6 +74,10 @@ function ResearchApp() {
   // Load persisted tweaks
   const saved = (() => { try { return JSON.parse(localStorage.getItem('biomate-research-tweaks') || 'null'); } catch { return null; } })();
   const init = { ...TWEAK_DEFAULTS, ...(saved || {}) };
+  // Resilience: a persisted scenarioId that this build doesn't define (e.g. a
+  // shared-origin value from another BioMate page) would crash the engine —
+  // fall back to the default scenario instead.
+  if (!window.RESEARCH_SCENARIOS[init.scenarioId]) init.scenarioId = TWEAK_DEFAULTS.scenarioId;
 
   // Tweak / config state
   const [scenarioId, setScenarioId]       = useState(init.scenarioId);
@@ -95,7 +99,7 @@ function ResearchApp() {
   const [tweaksVisible, setTweaksVisible] = useState(false);
 
   // Engine state
-  const scenario = window.RESEARCH_SCENARIOS[scenarioId];
+  const scenario = window.RESEARCH_SCENARIOS[scenarioId] || window.RESEARCH_SCENARIOS[TWEAK_DEFAULTS.scenarioId];
   // Bioconductor scenarios drive the workflow panel directly from the chat
   // engine — their phase ids (A–G) match the panel scenario 1:1 — so the two
   // surfaces stay in lockstep instead of the panel sitting frozen at "done".

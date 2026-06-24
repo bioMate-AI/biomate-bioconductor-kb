@@ -160,7 +160,14 @@ export async function waitForNoActiveRuns(page: Page, timeoutMs = 1_200_000): Pr
   while (Date.now() < deadline) {
     await pause(page, 8_000);
     const allIdle = await page.evaluate(() => {
-      const panel = document.querySelector('[data-testid="workflow-panel"], [data-testid="nextflow-workflow-viewer"]');
+      // First check the overall status badge — if running/queued, definitely not idle
+      const overallBadge = document.querySelector('[data-testid="workflow-overall-status-badge"]');
+      if (overallBadge) {
+        const s = (overallBadge as HTMLElement).dataset.status ?? overallBadge.textContent ?? '';
+        if (/running|queued/i.test(s)) return false;
+        if (/completed|failed|errored/i.test(s)) return true;
+      }
+      const panel = document.querySelector('[data-testid="workflow-artifact-panel"], [data-testid="workflow-panel"], [data-testid="nextflow-workflow-viewer"]');
       if (!panel) return true; // no panel = nothing running
       const phaseCards = panel.querySelectorAll('[data-testid^="phase-card-"]');
       if (phaseCards.length === 0) return true;
@@ -400,7 +407,7 @@ export async function clickRunAndWait(
       }
 
       // 2. Phase cards INSIDE the workflow viewer / workflow panel only
-      const panel = document.querySelector('[data-testid="workflow-panel"], [data-testid="nextflow-workflow-viewer"]');
+      const panel = document.querySelector('[data-testid="workflow-artifact-panel"], [data-testid="workflow-panel"], [data-testid="nextflow-workflow-viewer"]');
       if (panel) {
         // All phase cards inside the panel
         const allPhase = panel.querySelectorAll('[data-testid^="phase-card-"]');

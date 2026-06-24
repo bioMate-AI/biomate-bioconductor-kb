@@ -59,7 +59,15 @@ BIOC_CHAIN_TEMPLATES: List[Dict[str, Any]] = [
             },
         ],
         "connections": [
-            {"from_step": 1, "from_output": "results", "to_step": 2, "to_input": "de_results"},
+            {
+                "from_step": 1, "from_output": "results",
+                "to_step": 2, "to_input": "de_results",
+                # Inherit the genome param from step 1 and convert to KEGG organism code
+                # so clusterProfiler knows which organism DB to use (e.g. GRCh38 → "hsa").
+                "context_params": {
+                    "organism": {"from_run_param": "genome", "transform": "genome_to_organism"}
+                },
+            },
             {"from_step": 2, "from_output": "enrichment", "to_step": 3, "to_input": "enrichment_obj"},
         ],
         "required_inputs": ["count_matrix", "sample_sheet"],
@@ -371,15 +379,18 @@ def suggest_chains_for_run(
         triggers_wf = [t.lower() for t in tpl.get("trigger_on_workflows", [])]
         triggers_ext = [e.lower() for e in tpl.get("trigger_on_output_extensions", [])]
 
-        # Workflow name match (strong signal)
+        # Workflow name match (strong signal — mandatory for bioc chains)
+        # tsv/csv are too common across all domains; require at least a
+        # workflow-name match so mag/metabolomics/proteomics runs don't
+        # falsely trigger a DESeq2 suggestion just from TSV output.
         if any(t in wf_lower or wf_lower in t for t in triggers_wf):
             score += 3
 
-        # Output extension match (medium signal)
+        # Output extension match (secondary boost only)
         if ext_set & set(triggers_ext):
             score += 2
 
-        if score > 0:
+        if score >= 3:  # require at least a workflow-name signal
             candidates.append({"score": score, "chain": tpl})
 
     candidates.sort(key=lambda x: -x["score"])

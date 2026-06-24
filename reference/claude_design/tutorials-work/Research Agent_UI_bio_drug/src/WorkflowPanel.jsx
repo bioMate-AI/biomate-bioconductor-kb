@@ -380,7 +380,10 @@ function WorkflowPanel({ scenario, runState, setRunState, onOpenModal, tweaks, w
             {base.globalParams.map(p => (
               <div className="param-row" key={p.key}>
                 <div className="k">{p.label}</div>
-                <div className="v" title={p.value}>{p.value}</div>
+                <div className="v" title={p.value}>
+                  <span className="vval">{p.value}</span>
+                  {p.note && <span className={'prov' + (/your message|normalized|from /i.test(p.note) ? ' src' : '')}>{p.note}</span>}
+                </div>
                 <button className="linkish edit" style={{fontSize:11}}
                   onClick={() => flash(`Edit “${p.label}” in workflow settings`)}>edit</button>
               </div>
@@ -626,7 +629,10 @@ function SectionTabs({ base, phases, runState, openPhaseId, togglePhase,
             {base.globalParams.map(p => (
               <div className="param-row" key={p.key}>
                 <div className="k">{p.label}</div>
-                <div className="v" title={p.value}>{p.value}</div>
+                <div className="v" title={p.value}>
+                  <span className="vval">{p.value}</span>
+                  {p.note && <span className={'prov' + (/your message|normalized|from /i.test(p.note) ? ' src' : '')}>{p.note}</span>}
+                </div>
                 <button className="linkish edit" style={{fontSize:11}}
                   onClick={() => flash(`Edit “${p.label}” in workflow settings`)}>edit</button>
               </div>
