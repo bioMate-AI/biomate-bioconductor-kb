@@ -2719,8 +2719,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           expiresIn: uploadData.expires_in,
         });
       } else {
-        // For large files, use multipart upload
-        const multipartData = await s3Service.generateMultipartUploadUrls(
+        // For large files, use real S3 multipart upload (chunk to S3 directly).
+        const multipartData = await s3Service.startMultipartUpload(
           userId,
           filename,
           fileSize,
@@ -2732,14 +2732,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
           key: multipartData.key,
           partUrls: multipartData.partUrls,
           chunkSize: multipartData.chunkSize,
+          numParts: multipartData.numParts,
           method: 'multipart',
-          expiresIn: 3600,
+          expiresIn: 6 * 3600,
         });
       }
     } catch (error: any) {
       console.error('[S3] Upload init error:', error);
       res.status(500).json({
         error: 'Failed to initialize upload',
+        message: error.message,
+      });
+    }
+  });
+
+  // Finalise a multipart upload — assembles the parts into a single S3 object.
+  // Body: { key, uploadId, parts: [{ PartNumber, ETag }, ...] }
+  app.post("/api/s3/upload/complete", authenticateToken, async (req, res) => {
+    try {
+      const { key, uploadId, parts } = req.body ?? {};
+      if (!key || !uploadId || !Array.isArray(parts) || parts.length === 0) {
+        return res.status(400).json({
+          error: 'Missing required fields: key, uploadId, parts[]',
+        });
+      }
+      // Tenant isolation: caller can only complete uploads under their own prefix.
+      const userId = req.user!.id;
+      if (!String(key).startsWith(`users/${userId}/`)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      const out = await s3Service.completeMultipartUpload(key, uploadId, parts);
+      res.json({ key: out.key, bucket: out.bucket, location: out.location });
+    } catch (error: any) {
+      console.error('[S3] Upload complete error:', error);
+      res.status(500).json({
+        error: 'Failed to complete multipart upload',
+        message: error.message,
+      });
+    }
+  });
+
+  // Cancel an in-flight multipart upload so S3 stops billing the staged parts.
+  // Body: { key, uploadId }
+  app.post("/api/s3/upload/abort", authenticateToken, async (req, res) => {
+    try {
+      const { key, uploadId } = req.body ?? {};
+      if (!key || !uploadId) {
+        return res.status(400).json({ error: 'Missing required fields: key, uploadId' });
+      }
+      const userId = req.user!.id;
+      if (!String(key).startsWith(`users/${userId}/`)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      await s3Service.abortMultipartUpload(key, uploadId);
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error('[S3] Upload abort error:', error);
+      res.status(500).json({
+        error: 'Failed to abort multipart upload',
         message: error.message,
       });
     }

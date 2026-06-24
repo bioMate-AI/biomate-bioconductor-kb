@@ -11,9 +11,17 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Upload, File, X, Check, AlertCircle, Loader2, Link2, Server, Info, HardDrive, Clock, Zap, FolderArchive, Lightbulb } from "lucide-react"
 import { analytics } from "@/lib/analytics"
 
-// Maximum file size: 5GB for local uploads
-// AWS workflows require file upload first, so we constrain to reduce latency
-const MAX_LOCAL_FILE_SIZE_GB = 5
+// Files <= 100 MB go through the legacy /api/datasets/upload FormData path
+// (one POST, server proxies to Galaxy). Above this threshold we use real
+// S3 multipart upload — chunked PUTs straight to S3 with per-part retry.
+const SIMPLE_UPLOAD_MAX_BYTES = 100 * 1024 * 1024
+
+// Hard cap on a single uploaded file. S3 multipart with 64 MiB chunks tops
+// out at 640 GiB before hitting the 10,000-part limit, but anything beyond
+// ~50 GiB from a browser tab is impractical (long-lived JS context, no
+// app-level resume across reloads). 50 GiB matches the ceiling of every
+// public RNA-seq / WGS sample we’ve seen in practice.
+const MAX_LOCAL_FILE_SIZE_GB = 50
 const MAX_LOCAL_FILE_SIZE_BYTES = MAX_LOCAL_FILE_SIZE_GB * 1024 * 1024 * 1024
 
 interface UploadedFile {
@@ -236,53 +244,173 @@ export function FileUpload({
     }
   }
 
+  const setProgress = (id: string, progress: number) => {
+    setFiles(prev => prev.map(f => (f.id === id ? { ...f, progress } : f)))
+  }
+
+  // PUT one part to its presigned URL with retry. Returns the ETag the server needs
+  // for CompleteMultipartUpload. Throws after maxAttempts failures so the caller
+  // can mark the whole upload errored (and ideally abort the S3 upload id).
+  const putPartWithRetry = async (
+    url: string,
+    body: Blob,
+    partNumber: number,
+    maxAttempts = 5,
+  ): Promise<{ PartNumber: number; ETag: string }> => {
+    let lastErr: unknown
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const r = await fetch(url, { method: 'PUT', body })
+        if (!r.ok) throw new Error(`S3 part ${partNumber} HTTP ${r.status}`)
+        const eTag = r.headers.get('ETag') ?? r.headers.get('etag')
+        if (!eTag) throw new Error(`S3 part ${partNumber} returned no ETag`)
+        return { PartNumber: partNumber, ETag: eTag }
+      } catch (err) {
+        lastErr = err
+        if (attempt < maxAttempts) {
+          await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt - 1)))
+        }
+      }
+    }
+    throw lastErr
+  }
+
+  const uploadSimple = async (file: File, uploadedFile: UploadedFile) => {
+    // <=100 MB — keep the existing single-POST FormData path. Galaxy's
+    // upload endpoint registers a Galaxy dataset directly.
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('file_type', file.type || 'auto')
+    if (uploadedFile.description) formData.append('description', uploadedFile.description)
+
+    // The simple path has no per-byte progress without XHR; keep the legacy
+    // optimistic counter so the UI doesn't appear frozen on a 100 MB upload.
+    const interval = setInterval(() => {
+      setFiles(prev => prev.map(f =>
+        f.id === uploadedFile.id && f.progress < 90
+          ? { ...f, progress: f.progress + 10 }
+          : f,
+      ))
+    }, 200)
+    try {
+      const response = await fetch('/api/datasets/upload', { method: 'POST', body: formData })
+      if (!response.ok) {
+        throw new Error((await response.text()) || 'Upload failed')
+      }
+      const result = await response.json()
+      return { datasetId: result.dataset_id as string | undefined }
+    } finally {
+      clearInterval(interval)
+    }
+  }
+
+  const uploadMultipart = async (file: File, uploadedFile: UploadedFile) => {
+    // >100 MB — real S3 multipart. Client chunks the File and PUTs each part
+    // directly to S3 via presigned URLs; failures retry per-part, not whole-file.
+    const init = await fetch('/api/s3/upload/init', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filename: file.name,
+        fileSize: file.size,
+        contentType: file.type || 'application/octet-stream',
+      }),
+    })
+    if (!init.ok) throw new Error((await init.text()) || 'init failed')
+    const initData = await init.json() as {
+      method: 'simple' | 'multipart'
+      uploadId: string
+      key: string
+      partUrls?: string[]
+      chunkSize?: number
+      numParts?: number
+      uploadUrl?: string
+    }
+
+    if (initData.method !== 'multipart' || !initData.partUrls || !initData.chunkSize) {
+      throw new Error('server did not return a multipart upload plan')
+    }
+    const { uploadId, key, partUrls, chunkSize } = initData
+    const numParts = partUrls.length
+
+    // PUT each part. Concurrency 3 is the sweet spot for typical home upload
+    // (50–500 Mbps): keeps the link saturated without exhausting browser
+    // socket limits or memory (3 × 64 MiB blob slices held at peak).
+    const PART_CONCURRENCY = 3
+    const completedParts: Array<{ PartNumber: number; ETag: string }> = []
+    let bytesDone = 0
+
+    try {
+      for (let i = 0; i < numParts; i += PART_CONCURRENCY) {
+        const batch: Array<Promise<{ PartNumber: number; ETag: string }>> = []
+        for (let j = i; j < Math.min(i + PART_CONCURRENCY, numParts); j++) {
+          const start = j * chunkSize
+          const end = Math.min(start + chunkSize, file.size)
+          const blob = file.slice(start, end)
+          batch.push(
+            putPartWithRetry(partUrls[j], blob, j + 1).then(res => {
+              bytesDone += (end - start)
+              setProgress(uploadedFile.id, Math.floor((bytesDone / file.size) * 100))
+              return res
+            }),
+          )
+        }
+        const done = await Promise.all(batch)
+        completedParts.push(...done)
+      }
+    } catch (err) {
+      // Tell S3 to stop billing the staged parts before re-throwing.
+      try {
+        await fetch('/api/s3/upload/abort', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, uploadId }),
+        })
+      } catch { /* best-effort cleanup */ }
+      throw err
+    }
+
+    // Assemble the parts into a single S3 object.
+    const complete = await fetch('/api/s3/upload/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, uploadId, parts: completedParts }),
+    })
+    if (!complete.ok) throw new Error((await complete.text()) || 'complete failed')
+
+    // Register the finished S3 key as a Galaxy dataset reference so the
+    // downstream workflow picker can use it (no second upload).
+    const reg = await fetch('/api/datasets/register-path', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        path: `s3://${initData.key.startsWith('s3://') ? initData.key : key}`,
+        name: file.name,
+      }),
+    })
+    if (!reg.ok) throw new Error((await reg.text()) || 'register-path failed')
+    const regData = await reg.json()
+    return { datasetId: regData.dataset_id as string | undefined }
+  }
+
   const uploadFile = async (file: File, uploadedFile: UploadedFile) => {
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('file_type', file.type || 'auto')
-
-      // Add description if available
-      if (uploadedFile.description) {
-        formData.append('description', uploadedFile.description)
-      }
-
-      // Simulate progress updates
-      const progressInterval = setInterval(() => {
-        setFiles(prev => prev.map(f =>
-          f.id === uploadedFile.id && f.progress < 90
-            ? { ...f, progress: f.progress + 10 }
-            : f
-        ))
-      }, 200)
-
-      const response = await fetch('/api/datasets/upload', {
-        method: 'POST',
-        body: formData,
-      })
-
-      clearInterval(progressInterval)
-
-      if (!response.ok) {
-        const error = await response.text()
-        throw new Error(error || 'Upload failed')
-      }
-
-      const result = await response.json()
+      const out = file.size <= SIMPLE_UPLOAD_MAX_BYTES
+        ? await uploadSimple(file, uploadedFile)
+        : await uploadMultipart(file, uploadedFile)
 
       setFiles(prev => prev.map(f =>
         f.id === uploadedFile.id
-          ? { ...f, status: 'completed', progress: 100, datasetId: result.dataset_id }
-          : f
+          ? { ...f, status: 'completed', progress: 100, datasetId: out.datasetId }
+          : f,
       ))
-
-      console.log(`[FileUpload] File uploaded successfully: ${file.name} -> ${result.dataset_id}`)
+      console.log(`[FileUpload] uploaded ${file.name} -> ${out.datasetId ?? '(no id)'}`)
     } catch (error: any) {
       console.error(`[FileUpload] Failed to upload ${file.name}:`, error)
       setFiles(prev => prev.map(f =>
         f.id === uploadedFile.id
           ? { ...f, status: 'error', progress: 0, error: error.message }
-          : f
+          : f,
       ))
     }
   }
