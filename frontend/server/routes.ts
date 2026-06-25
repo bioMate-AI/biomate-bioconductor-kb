@@ -9,7 +9,8 @@ import "./jobs/handlers/findings-analysis";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
-import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs, instrumentEvents, instruments, INSTRUMENT_TYPES } from "../shared/schema";
+import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs, instrumentEvents, instruments, INSTRUMENT_TYPES, apiKeys } from "../shared/schema";
+import { generateApiKey, listApiKeys } from "./api-key-service";
 import type { InsertInviteCode, ExecutionRunStatus, InstrumentType } from "../shared/schema";
 import { db, pool } from "./db";
 import { selectChatHistoryUnderBudget } from "./chat-history-selector";
@@ -6468,6 +6469,77 @@ ${paramLines || '(none recorded)'}`;
     } catch {
       const limit = parseFloat(process.env.VCPU_HOUR_QUOTA || '100');
       res.json({ used: 0, limit, currency: 'vCPU-hrs' });
+    }
+  });
+
+  // ──────────────────────────────────────────────────────────────────────
+  // Per-user API keys (biomate-connector / headless access).
+  // Web UI (Settings → API Keys) authenticates via the JWT cookie. The
+  // plaintext key is returned ONCE on creation; only its hash is stored.
+  // ──────────────────────────────────────────────────────────────────────
+
+  // List the current user's API keys (masked — no secrets).
+  app.get("/api/user/api-keys", authenticateToken, async (req, res) => {
+    try {
+      const rows = await listApiKeys(req.user!.id);
+      res.json(rows.map((k) => ({
+        id: k.id,
+        name: k.name,
+        keyPrefix: k.keyPrefix,
+        createdAt: k.createdAt,
+        lastUsedAt: k.lastUsedAt,
+        revokedAt: k.revokedAt,
+      })));
+    } catch (error: any) {
+      console.error('[api-keys] list error:', error?.message || error);
+      res.status(500).json({ error: 'Failed to list API keys' });
+    }
+  });
+
+  // Generate a new API key. Returns the plaintext ONCE — it is never stored.
+  app.post("/api/user/api-keys", authenticateToken, express.json(), async (req, res) => {
+    try {
+      const name = typeof req.body?.name === 'string' ? req.body.name.trim().slice(0, 100) : null;
+      const { plaintext, keyHash, keyPrefix } = generateApiKey();
+      const [row] = await db.insert(apiKeys).values({
+        userId: req.user!.id,
+        keyHash,
+        keyPrefix,
+        name: name || null,
+      }).returning();
+      res.json({
+        id: row.id,
+        name: row.name,
+        keyPrefix: row.keyPrefix,
+        createdAt: row.createdAt,
+        // Shown once — the client must copy it now.
+        key: plaintext,
+      });
+    } catch (error: any) {
+      console.error('[api-keys] create error:', error?.message || error);
+      res.status(500).json({ error: 'Failed to create API key' });
+    }
+  });
+
+  // Revoke (soft-delete) an API key the current user owns.
+  app.delete("/api/user/api-keys/:id", authenticateToken, async (req, res) => {
+    try {
+      const result = await db.update(apiKeys)
+        .set({ revokedAt: new Date() })
+        .where(and(
+          eq(apiKeys.id, req.params.id),
+          eq(apiKeys.userId, req.user!.id),
+          // ownership scoped; revoke is idempotent
+        ))
+        .returning({ id: apiKeys.id });
+      if (result.length === 0) {
+        // Either not found or not owned — 404 to avoid leaking existence.
+        return res.status(404).json({ error: 'API key not found' });
+      }
+      res.json({ ok: true, id: result[0].id });
+    } catch (error: any) {
+      console.error('[api-keys] revoke error:', error?.message || error);
+      res.status(500).json({ error: 'Failed to revoke API key' });
     }
   });
 

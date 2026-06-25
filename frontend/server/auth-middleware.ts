@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { authService } from './auth-service';
 import type { SafeUser } from '../shared/schema';
+import { resolveApiKey, API_KEY_PREFIX } from './api-key-service';
 
 // Extend Express Request type to include user
 declare global {
@@ -9,6 +10,38 @@ declare global {
       user?: SafeUser;
     }
   }
+}
+
+/**
+ * Extract a presented per-user API key from `X-API-Key` or a non-JWT
+ * `Authorization: Bearer` header (keys start with `bm_live_`).
+ */
+function extractApiKey(req: Request): string | undefined {
+  const xApiKey = req.headers['x-api-key'];
+  if (typeof xApiKey === 'string' && xApiKey.startsWith(API_KEY_PREFIX)) return xApiKey;
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    const candidate = authHeader.substring(7);
+    if (candidate.startsWith(API_KEY_PREFIX)) return candidate;
+  }
+  return undefined;
+}
+
+/**
+ * Resolve a per-user API key (connector / headless client) to a SafeUser, or
+ * null if no key is presented / the key is unknown or revoked. Shared by
+ * `authenticateToken` and `optionalAuth` so every endpoint behind either
+ * middleware transparently accepts personal API keys.
+ */
+async function authenticateApiKeyUser(req: Request): Promise<SafeUser | null> {
+  const key = extractApiKey(req);
+  if (!key) return null;
+  const resolved = await resolveApiKey(key);
+  if (!resolved) return null;
+  const user = await authService.getUserById(resolved.userId);
+  if (!user) return null;
+  const { password, ...safeUser } = user;
+  return safeUser;
 }
 
 /**
@@ -23,39 +56,49 @@ export async function authenticateToken(
   if (req.user) { next(); return; }
 
   try {
-    // Get token from Authorization header or cookie
-    let token: string | undefined;
+    // Per-user API key (connector / headless client) takes precedence over JWT.
+    // Resolves to the owning user so connector traffic runs as that user.
+    const apiKeyUser = await authenticateApiKeyUser(req);
 
-    // Check Authorization header
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.substring(7);
-    }
+    let user: SafeUser | null = apiKeyUser;
 
-    // Check cookie
-    if (!token && req.cookies && req.cookies.biomate_token) {
-      token = req.cookies.biomate_token;
-    }
-
-    if (!token) {
-      res.status(401).json({ error: 'Not authenticated' });
-      return;
-    }
-
-    // Verify token
-    const payload = authService.verifyToken(token);
-
-    // Reject MFA challenge tokens — only valid for /api/auth/mfa/challenge
-    if (payload.type === 'mfa_challenge') {
-      res.status(401).json({ error: 'MFA challenge token cannot be used for authenticated requests' });
-      return;
-    }
-
-    // Get user from database
-    const user = await authService.getUserById(payload.userId);
     if (!user) {
-      res.status(401).json({ error: 'User not found' });
-      return;
+      // Get token from Authorization header or cookie
+      let token: string | undefined;
+
+      // Check Authorization header
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+
+      // Check cookie
+      if (!token && req.cookies && req.cookies.biomate_token) {
+        token = req.cookies.biomate_token;
+      }
+
+      if (!token) {
+        res.status(401).json({ error: 'Not authenticated' });
+        return;
+      }
+
+      // Verify token
+      const payload = authService.verifyToken(token);
+
+      // Reject MFA challenge tokens — only valid for /api/auth/mfa/challenge
+      if (payload.type === 'mfa_challenge') {
+        res.status(401).json({ error: 'MFA challenge token cannot be used for authenticated requests' });
+        return;
+      }
+
+      // Get user from database
+      const fullUser = await authService.getUserById(payload.userId);
+      if (!fullUser) {
+        res.status(401).json({ error: 'User not found' });
+        return;
+      }
+      const { password, ...safeUser } = fullUser;
+      user = safeUser;
     }
 
     // Check subscription status
@@ -80,9 +123,8 @@ export async function authenticateToken(
       console.log(`[Auth] E2E-token subscription bypass for user ${user.id}`);
     }
 
-    // Attach user to request (without password)
-    const { password, ...safeUser } = user;
-    req.user = safeUser;
+    // Attach the resolved user (already password-stripped above).
+    req.user = user;
 
     next();
   } catch (error: any) {
@@ -144,6 +186,12 @@ export async function authenticateStaticApiKey(
     return next(); // No API key provided; fall through to JWT auth.
   }
 
+  // Per-user API keys (bm_live_…) are NOT the shared service key — let them
+  // fall through to authenticateToken, which resolves them to the owning user.
+  if (providedKey.startsWith(API_KEY_PREFIX)) {
+    return next();
+  }
+
   if (providedKey !== serviceKey) {
     res.status(401).json({ error: 'Invalid API key' });
     return;
@@ -174,6 +222,14 @@ export async function optionalAuth(
   next: NextFunction
 ): Promise<void> {
   try {
+    // Per-user API key (connector / headless client) takes precedence over JWT.
+    const apiKeyUser = await authenticateApiKeyUser(req);
+    if (apiKeyUser) {
+      req.user = apiKeyUser;
+      next();
+      return;
+    }
+
     // Get token from Authorization header or cookie
     let token: string | undefined;
 
