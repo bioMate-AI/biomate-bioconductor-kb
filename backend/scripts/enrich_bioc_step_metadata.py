@@ -26,7 +26,7 @@ from enrich_bioc_viz_qc import (  # shared vocab
     VIZ_FUNCS, QC_PATTERNS, GENERIC_VIZ, extract_r, viz_from_figure_files)
 
 BIOC = HERE.parents[0] / "biomni_workflows/nextflow_nfcore/subworkflows/bioconductor"
-DB = Path("/home/yzhang/biomate/backend/database/galaxy_ai_tools.db")
+DB = Path(__file__).resolve().parents[1] / "database" / "galaxy_ai_tools.db"
 REL = "nextflow_nfcore/subworkflows/bioconductor"
 
 
