@@ -1055,6 +1055,37 @@ if [[ -z "$CURRENT_COMMIT" ]]; then
   exit 1
 fi
 
+# Refuse to deploy commits that are not yet on origin (i.e. unreviewed/unmerged).
+# The dirty-tree guard above only catches *uncommitted* changes. The 2026-06
+# UnboundLocalError on /api/ai_assistant/search_nextflow_workflow ("local
+# variable '_os' referenced before assignment") reached stage as a
+# locally-committed-but-never-pushed edit: the working tree was clean (so it
+# passed the guard above) yet `deploy_backend_python` ships `git show HEAD:`,
+# so a commit absent from origin was hot-synced into the container while the
+# image tag and origin both stayed clean. Require HEAD to exist on origin so
+# only reviewed code can deploy. Escape hatch for deliberate hotfixes:
+# ALLOW_UNPUSHED=1 bash scripts/sync_to_dev.sh
+if [[ "${ALLOW_UNPUSHED:-0}" != "1" ]]; then
+  CURRENT_BRANCH=$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+  UPSTREAM=$(git -C "$REPO_ROOT" rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || echo "")
+  [[ -z "$UPSTREAM" && -n "$CURRENT_BRANCH" ]] && UPSTREAM="origin/$CURRENT_BRANCH"
+  if [[ -n "$UPSTREAM" ]]; then
+    # Refresh the remote ref first so a just-pushed HEAD is not false-flagged.
+    git -C "$REPO_ROOT" fetch --quiet "${UPSTREAM%%/*}" "${UPSTREAM#*/}" 2>/dev/null \
+      || log "WARN: could not fetch ${UPSTREAM} — comparing against last-known remote state"
+    if ! git -C "$REPO_ROOT" merge-base --is-ancestor HEAD "$UPSTREAM" 2>/dev/null; then
+      ahead=$(git -C "$REPO_ROOT" rev-list --count "${UPSTREAM}..HEAD" 2>/dev/null || echo "?")
+      log "ERROR: local HEAD has ${ahead} commit(s) not on ${UPSTREAM}:"
+      git -C "$REPO_ROOT" log --oneline "${UPSTREAM}..HEAD" 2>/dev/null | sed 's/^/  /' >&2
+      log "Push & merge them (so they are reviewed) before deploying,"
+      log "or set ALLOW_UNPUSHED=1 to override for a deliberate hotfix."
+      exit 3
+    fi
+  else
+    log "WARN: no upstream for branch '${CURRENT_BRANCH:-?}' — skipping unpushed-commit check"
+  fi
+fi
+
 # --- One-shot sync ---------------------------------------------------------
 # Sync all tracked layers in one pass and exit. No polling, no retries.
 CHANGED="$(printf 'frontend/\nbackend/lib/\nbackend/biomni_workflows/\nbackend/database/')"
