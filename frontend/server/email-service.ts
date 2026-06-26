@@ -625,8 +625,9 @@ class EmailService {
     }
   }
 
-  async sendAdminAlert(subject: string, details: Record<string, unknown>): Promise<boolean> {
+  async sendAdminAlert(subject: string, details: Record<string, unknown>, extraRecipient?: string): Promise<boolean> {
     const ADMIN_EMAIL = 'yaoyun.zhang@biomate.ai';
+    const to = extraRecipient ? `${ADMIN_EMAIL}, ${extraRecipient}` : ADMIN_EMAIL;
     const ts = new Date().toISOString();
     const rows = Object.entries(details)
       .map(([k, v]) => `<tr><td style="padding:4px 8px;font-weight:bold;color:#555">${k}</td><td style="padding:4px 8px;font-family:monospace;word-break:break-all">${String(v)}</td></tr>`)
@@ -648,7 +649,7 @@ class EmailService {
       </div>
       </body></html>
     `;
-    return this.sendEmail({ to: ADMIN_EMAIL, subject: `[BioMate Alert] ${subject}`, html });
+    return this.sendEmail({ to, subject: `[BioMate Alert] ${subject}`, html });
   }
 }
 

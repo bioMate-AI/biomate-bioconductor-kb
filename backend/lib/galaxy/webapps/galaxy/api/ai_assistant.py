@@ -3237,6 +3237,18 @@ def generate_workflow_unified(
                 'pilot_run_suggested': False
             }
 
+    except sqlite3.OperationalError as e:
+        _db_err_str = str(e)
+        log.error(f"[DB ERROR] SQLite OperationalError in workflow generation: {_db_err_str}")
+        return {
+            'success': False,
+            'error': 'db_unavailable',
+            'message': 'Service temporarily unavailable. Please try again in a moment.',
+            'citations': [],
+            'methods_section': None,
+            'parameter_recommendations': {},
+            'pilot_run_suggested': False,
+        }
     except Exception as e:
         log.error(f"Error in unified workflow generation: {e}")
         raise HTTPException(status_code=500, detail=f"Error generating workflow: {str(e)}")

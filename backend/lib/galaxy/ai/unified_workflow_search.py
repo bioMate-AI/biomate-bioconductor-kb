@@ -539,8 +539,38 @@ class UnifiedWorkflowSearch:
         """Get database connection."""
         return sqlite3.connect(str(self.db_path))
 
+    def _ensure_workflows_table(self):
+        """Create the workflows table if it doesn't exist (prevents crash on fresh/empty DB)."""
+        conn = self._get_connection()
+        try:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS workflows (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    filename TEXT UNIQUE NOT NULL,
+                    description TEXT, annotation TEXT, tags TEXT,
+                    domain TEXT, workflow_json TEXT NOT NULL DEFAULT '{}',
+                    step_count INTEGER, tools_used TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    source TEXT DEFAULT 'unknown', format TEXT DEFAULT 'galaxy_ga',
+                    executable INTEGER DEFAULT 1, docker_image TEXT, category TEXT,
+                    workflow_hash TEXT, indexed_at TEXT,
+                    input_types TEXT DEFAULT '[]', output_types TEXT DEFAULT '[]',
+                    annotation_v2 TEXT, step_metadata TEXT, params_schema TEXT
+                )
+            """)
+            conn.commit()
+            count = conn.execute("SELECT COUNT(*) FROM workflows").fetchone()[0]
+            if count == 0:
+                log.warning("[WorkflowSearch] workflows table is EMPTY — workflow suggestions unavailable until the DB is synced")
+            else:
+                log.info("[WorkflowSearch] workflows table OK: %d entries", count)
+        finally:
+            conn.close()
+
     def _ensure_fts_index(self):
         """Ensure FTS index exists and is populated."""
+        self._ensure_workflows_table()
         conn = self._get_connection()
         cursor = conn.cursor()
 
