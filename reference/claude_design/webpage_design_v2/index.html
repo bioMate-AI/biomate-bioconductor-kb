@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>BioMate AI &mdash; Agentic AI Platform for Biomedicine</title>
+  <title>BioMate AI &mdash; Agentic AI Assistant for Biomedical Research</title>
   <meta name="description" content="BioMate AI is an agentic AI platform for biomedicine — autonomous multi-agent orchestration across 4,000+ validated workflows for RNA-seq, genomics, single-cell, spatial omics, epigenomics, drug discovery, cryo-EM, precision medicine, and clinical research. QC-graded, audit-ready. Start free." />
+  <link rel="icon" href="/assets/logo.png" type="image/png" />
   <link rel="canonical" href="https://biomate.ai/" />
   <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
   <meta property="og:type" content="website" />
@@ -93,7 +94,7 @@
           "drug discovery", "generative biology", "AI-designed therapeutics",
           "ADMET AI", "PBPK modeling", "structural biology", "cryo-EM",
           "molecular docking", "variant calling", "multi-omics", "proteomics",
-          "translational research", "clinical-grade AI", "regulatory-grade AI"
+          "translational research", "regulatory-grade AI"
         ],
         "sameAs": [
           "https://www.wikidata.org/wiki/Q140074014",
@@ -110,21 +111,38 @@
   <link rel="stylesheet" href="styles.css" />
   <style>
     .bm-hero-query-form { width: 100%; margin-bottom: 0; }
+    .bm-hero-query-row {
+      display: flex; align-items: center; gap: 10px;
+    }
     .bm-hero-query-input {
-      width: 100%; box-sizing: border-box;
-      padding: 14px 16px; font-size: 0.95rem; line-height: 1.55;
+      flex: 1; min-width: 0; box-sizing: border-box;
+      padding: 13px 16px; font-size: 0.95rem;
       border: 1.5px solid var(--border); border-radius: 12px;
       background: rgba(255,255,255,.85); color: var(--text);
-      font-family: inherit; resize: vertical; margin-bottom: 14px;
+      font-family: inherit;
       transition: border-color .15s, box-shadow .15s;
     }
     .bm-hero-query-input::placeholder { color: var(--text-muted); }
-    .bm-hero-query-input.bm-hero-query-prefilled { color: var(--text-muted); }
-    .bm-hero-query-input.bm-hero-query-prefilled:focus { color: var(--text); }
     .bm-hero-query-input:focus {
       outline: none; border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(42,85,130,.12);
     }
+    @media (max-width: 520px) {
+      .bm-hero-query-row { flex-direction: column; align-items: stretch; }
+    }
+    /* Hero benefits list */
+    .bm-hero-benefits {
+      list-style: none; margin: 0 0 1.5rem 0; padding: 0;
+      display: flex; flex-direction: column; gap: .55rem;
+    }
+    .bm-hero-benefits li {
+      display: flex; align-items: flex-start; gap: .6rem;
+      font-size: .9rem; line-height: 1.45; color: var(--text);
+    }
+    .bm-benefit-icon {
+      flex-shrink: 0; width: 1.4rem; font-size: .9rem; margin-top: .05rem;
+    }
+    .bm-hero-benefits strong { color: var(--text); }
   </style>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
@@ -145,7 +163,7 @@
         "name": "What is BioMate AI?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "BioMate AI is an agentic AI platform for biomedicine. Its multi-agent orchestration engine autonomously routes plain-English requests to validated computational workflows, executes them on cloud infrastructure, applies clinical-grade QC, and returns audit-ready results — with no coding or command-line expertise required. It covers 36 biomedical domains including transcriptomics, genomics, single-cell multi-omics, spatial transcriptomics, epigenomics, metagenomics, precision medicine, drug discovery, cryo-EM, and clinical genomics — for bench researchers, clinical teams, pharma, CROs, and academic core facilities."
+          "text": "BioMate AI is an agentic AI platform for biomedicine. Its multi-agent orchestration engine autonomously routes plain-English requests to validated computational workflows, executes them on cloud infrastructure, applies automated QC, and returns audit-ready results — with no coding or command-line expertise required. It covers 36 biomedical domains including transcriptomics, genomics, single-cell multi-omics, spatial transcriptomics, epigenomics, metagenomics, precision medicine, drug discovery, cryo-EM, and clinical genomics — for bench researchers, clinical teams, pharma, CROs, and academic core facilities."
         }
       },
       {
@@ -238,32 +256,29 @@
           From the first hypothesis to the last regulatory filing &nbsp;&rarr;
         </span>
         <h1 class="bm-display">
-          BioMate is your agentic AI assistant <em class="bm-em-accent">for biomedicine.</em>
+          BioMate is your agentic AI assistant <em class="bm-em-accent">for biomedical research.</em>
         </h1>
-        <p class="bm-lead">
-          BioMate's agentic AI autonomously orchestrates multi-step biomedical workflows &mdash; processing <b>RNA&#8209;seq</b>, <b>single&#8209;cell</b>, and <b>spatial omics</b> data, calling <b>variants</b>, profiling <b>epigenomes</b>, characterising <b>microbiomes</b>, running <b>cryo&#8209;EM</b> pipelines, scoring molecules for <b>ADMET</b>, and supporting <b>precision medicine</b> and <b>clinical genomics</b>. Every result is clinical&#8209;grade QC&#8209;graded and audit&#8209;ready.
-        </p>
+        <ul class="bm-hero-benefits">
+          <li><span class="bm-benefit-icon bm-benefit-speed">⚡</span><span><strong>90% time saved</strong> &mdash; analyses that took weeks complete in minutes on cloud compute</span></li>
+          <li><span class="bm-benefit-icon bm-benefit-qc">✓</span><span><strong>Evidence-based QC</strong> &mdash; every result scored against published community standards, auto-remediated when it fails</span></li>
+          <li><span class="bm-benefit-icon bm-benefit-audit">📋</span><span><strong>Audit &amp; report ready</strong> &mdash; immutable trail, AI-authored findings, and a draft Methods section included in every run</span></li>
+          <li><span class="bm-benefit-icon bm-benefit-sec">🔒</span><span><strong>Security &amp; compliance</strong> &mdash; HIPAA, 21&nbsp;CFR Part&nbsp;11 e-signature, SOC&nbsp;2, private VPC deployment available</span></li>
+        </ul>
         <form class="bm-hero-query-form" onsubmit="bmHeroSubmit(event)">
-          <textarea
-            id="bmHeroQuery"
-            class="bm-hero-query-input bm-hero-query-prefilled"
-            rows="3"
-          >Run DESeq2 on my RNA-seq data and identify differentially expressed genes between treated and control groups</textarea>
-          <div class="bm-hero-ctas">
+          <div class="bm-hero-query-row">
+            <input
+              type="text"
+              id="bmHeroQuery"
+              class="bm-hero-query-input"
+              placeholder="Describe your analysis — RNA-seq, ADMET, variant calling…"
+              autocomplete="off"
+            />
             <button type="submit" class="bm-btn bm-btn-primary bm-btn-lg">
-              Start free
-              <span class="bm-btn-arrow">&rarr;</span>
+              Start free <span class="bm-btn-arrow">&rarr;</span>
             </button>
-            <a href="services.html" class="bm-btn bm-btn-outline bm-btn-lg">See what we do</a>
           </div>
         </form>
         <script>
-          (function() {
-            var ta = document.getElementById('bmHeroQuery');
-            ta.addEventListener('input', function() {
-              ta.classList.remove('bm-hero-query-prefilled');
-            });
-          })();
           function bmHeroSubmit(e) {
             e.preventDefault();
             var q = document.getElementById('bmHeroQuery').value.trim();
@@ -272,11 +287,6 @@
             window.location.href = url;
           }
         </script>
-        <div class="bm-hero-meta">
-          <span><span class="bm-hero-meta-dot"></span> 36 biomedical domains</span>
-          <span><span class="bm-hero-meta-dot"></span> Evidence-graded QC</span>
-          <span><span class="bm-hero-meta-dot"></span> Your data stays yours</span>
-        </div>
       </div>
 
       <!-- Hero photo — real scientist, warm framing, friendly result chip -->
