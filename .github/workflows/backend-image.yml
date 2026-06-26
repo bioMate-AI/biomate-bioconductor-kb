@@ -111,6 +111,20 @@ jobs:
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
+      # The backend image is ~4.7GB and requirements.txt pulls torch + the
+      # nvidia-cuda-* stack + transformers (many GB). On a stock ubuntu-latest
+      # runner (~14GB free) `pip install` ran out of disk ("[Errno 28] No space
+      # left on device") at Dockerfile:126, and with `load: true` the built
+      # image is also imported into the runner daemon. Reclaim the large
+      # preinstalled toolchains we never use before building.
+      - name: Free up runner disk space
+        run: |
+          echo "Before:"; df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                      /opt/hostedtoolcache/CodeQL /usr/local/.ghcup || true
+          sudo docker image prune --all --force || true
+          echo "After:"; df -h / | tail -1
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
