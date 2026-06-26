@@ -86,6 +86,30 @@ If the host file is absent, Docker creates an empty dir at the mount target →
 sqlite can't open it → search degrades to no-results, **but Galaxy still boots
 healthy** (safe). deploy.sh `down` (no -v) doesn't touch the host file.
 
+## UPDATE 2026-06-26 (2) — workflow definition files also missing on test
+
+Separate but related gap found while checking the container for workflow files:
+
+- The catalog lists ~2632 workflows, but the container had only 764 `.nf` files;
+  `cyp_ddi_panel`'s `.nf` was absent. Cause: `backend/.dockerignore` excludes
+  `biomni_workflows/nextflow_nfcore/` ("indexed separately"), and dev seeds those
+  files into the container via `sync_to_dev.sh` **step 4** (`docker cp` of
+  `backend/biomni_workflows/`). deploy.sh-based envs (test/prod) never run that.
+- Effect: generation still SUCCEEDS (card from catalog) but `workflow_ga.steps`
+  comes back `0` — the steps parser (`_parse_nextflow_steps`) reads the `.nf`
+  from disk, and the lazy `/api/nextflow/steps` fallback only covers
+  `bioconductor` paths. So drug_discovery / nf-core workflows showed a card with
+  no phase steps.
+- Fix (def-only, mirrors the catalog): seed the `.nf`/`.config` definitions
+  (~5MB bundle of `nextflow_nfcore`, 3734 files) onto the host at
+  `/opt/biomate/data/nextflow_nfcore` and **additively** bind-mount it at
+  `/app/biomni_workflows/nextflow_nfcore` (the image has no such subdir → no
+  shadowing of `nextflow/`, `nextflow_generated/`). Verified:
+  `/api/nextflow/steps` for cyp_ddi_panel returns 5 steps; `generate_workflow`
+  returns `steps: 5`. NOTE: this seeds DEFINITIONS only — workflows whose
+  EXECUTION needs bundled reference data (e.g. drug_discovery, 216MB of data)
+  are not fully execution-ready on test; seed the full tree for that.
+
 ## Root-cause fix — for backend (pick one)
 
 1. **Bake `galaxy_ai_tools.db` into the backend image (recommended).** The
