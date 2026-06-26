@@ -3482,11 +3482,11 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 log.warning("[UnifiedWorkflowGeneration] Chain lookup failed: %s", chain_exc)
 
             # Plan B / synthetic biology: codon optimization before mRNA-LNP engineering.
-            _CODON_MRNA_PAT = _re_routing.compile(
+            _CODON_MRNA_PAT = re.compile(
                 r'\b(optimize\s+codons?|codon\s+optimi[sz]ation|heterologous\s+expression|'
                 r'host_codon_usage|target_sequence|optimize_codons_for_heterologous_expression|'
                 r'mrna[\s-]lnp|registry\s+id\s+10813)\b',
-                _re_routing.IGNORECASE,
+                re.IGNORECASE,
             )
             if _CODON_MRNA_PAT.search(user_intent):
                 _hint = (
@@ -3498,12 +3498,12 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 log.info("[UnifiedWorkflowGeneration] Codon/mRNA pattern detected — injected optimize_codons routing hint")
 
             # ANDV inhibitor / pharmacology: site-directed AutoDock Vina (not DiffDock / AF3 chain).
-            _DOCKING_VINA_PAT = _re_routing.compile(
+            _DOCKING_VINA_PAT = re.compile(
                 r'\b(autodock\s*vina|docking_autodock_vina|site[- ]directed\s+docking|vina\s+docking)\b',
-                _re_routing.IGNORECASE,
+                re.IGNORECASE,
             )
-            if _DOCKING_VINA_PAT.search(user_intent) and not _re_routing.search(
-                r'\bdiffdock\b', user_intent, _re_routing.IGNORECASE
+            if _DOCKING_VINA_PAT.search(user_intent) and not re.search(
+                r'\bdiffdock\b', user_intent, re.IGNORECASE
             ):
                 _hint = (
                     "\n[Routing hint: site-directed AutoDock Vina molecular docking — "
