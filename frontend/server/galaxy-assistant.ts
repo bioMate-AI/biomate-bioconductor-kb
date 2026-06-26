@@ -1888,7 +1888,14 @@ export class GalaxyAssistant {
     const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (geminiKey) this.gemini = new GoogleGenerativeAI(geminiKey);
     this.galaxyAPI = options.galaxyAPIProxy;
-    this.modelConfig = { ...DEFAULT_MODEL_CONFIG, ...options.modelConfig };
+    // Auto-detect: if no Anthropic key but Gemini is available, switch response model to Gemini.
+    // This prevents silent auth failures when ANTHROPIC_API_KEY is absent on a Gemini-only deployment.
+    const computedModelConfig = { ...DEFAULT_MODEL_CONFIG, ...options.modelConfig };
+    if (!options.anthropicApiKey && geminiKey && !computedModelConfig.responseModel?.startsWith('gemini-')) {
+      computedModelConfig.responseModel = 'gemini-3.5-flash';
+      console.log('[GalaxyAssistant] No ANTHROPIC_API_KEY — switching responseModel to gemini-3.5-flash');
+    }
+    this.modelConfig = computedModelConfig;
     this.sessionMemory = new SessionMemoryUpdater(this.claude);
     // Wire persistence: after each Haiku update, write sessionMemory into conversationState JSONB
     this.sessionMemory.setPersistCallback((sid, mem) => {
@@ -4311,6 +4318,34 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     context: ChatContext,
     sessionMemoryBlock: string = ''
   ): Promise<IntentDecomposition> {
+    // Short-circuit: inline tabular data + known analysis tool → always workflow_generation.
+    // The LLM intent classifier unreliably returns tool_search for pasted CSV/count-matrix
+    // messages because the R/Bioconductor priority note says run_code for small datasets.
+    // This deterministic rule fires before the LLM call and is not affected by prompt drift.
+    const _ANALYSIS_TOOLS_RE = /\b(deseq2|edger|limma|seurat|scanpy|clusterProfiler|enrichGO|minfi|macs2|star|hisat2|bowtie|salmon|kallisto|cellranger|monocle|harmony|scvi|magma|ldsc|plink|gatk|deepvariant|varscan|mutect|freebayes|cuffdiff|htseq|featurecounts|dseq|glmgampoi)\b/i;
+    const _HAS_TABULAR_DATA = (msg: string) => {
+      const lines = msg.split('\n');
+      // 3+ lines where at least 2 contain comma or tab-separated numbers
+      const dataLines = lines.filter(l => /(\d+[,\t]\s*\d+[,\t]\s*\d+)/.test(l));
+      return dataLines.length >= 2;
+    };
+    if (_HAS_TABULAR_DATA(message) && _ANALYSIS_TOOLS_RE.test(message)) {
+      const wgIntent: DecomposedIntent = {
+        id: 'intent_inline_data_forced',
+        type: 'workflow_generation',
+        subQuery: message,
+        keywords: [],
+        inlineParameters: {},
+        needsToolSearch: false,
+        needsDatasets: false,
+        confidence: 0.95,
+        facts: [],
+        dependsOn: [],
+        actions: inferActionsFromType('workflow_generation'),
+      };
+      return { intents: [wgIntent], isMultiIntent: false, primaryIntent: wgIntent };
+    }
+
     // Short-circuit: "KNOWLEDGE QUESTION" prefix from eval harness forces research_question
     // routing without calling Haiku, preventing workflow hijack on benchmark tasks.
     if (message.startsWith('KNOWLEDGE QUESTION')) {
@@ -6927,6 +6962,33 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       if (isBilling) {
         return { message: 'Service temporarily unavailable: API credit balance too low. Please contact support.' };
       }
+
+      // Auth failure or any other error: fall back to Gemini if available.
+      // This covers the common case where ANTHROPIC_API_KEY is not configured on
+      // a server that has GEMINI_API_KEY — avoids silent empty responses.
+      if (this.gemini) {
+        console.warn(`[GalaxyAssistant] Claude error (${isAuth ? 'auth' : 'unknown'}) — falling back to Gemini`);
+        try {
+          const allPrev = context.previousMessages || [];
+          const plainMessages = [
+            ...allPrev.slice(-6).map(m => ({
+              role: (m.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
+              content: typeof m.content === 'string' ? m.content
+                : (m.content as any[]).filter((b: any) => b.type === 'text').map((b: any) => b.text).join(''),
+            })),
+            { role: 'user' as const, content: userPrompt },
+          ];
+          const geminiResponse = await this._generateWithGemini(
+            systemPrompt, plainMessages, onResponseDelta, 4096, 'gemini-3.5-flash',
+          );
+          const fallbackMsg = geminiResponse || 'I\'m having trouble generating a response right now. Please try again in a moment.';
+          if (!geminiResponse && onResponseDelta) onResponseDelta(fallbackMsg);
+          return { message: fallbackMsg, truncated: false };
+        } catch (geminiErr: any) {
+          console.error('[GalaxyAssistant] Gemini fallback also failed:', geminiErr.message);
+        }
+      }
+
       if (isAuth) {
         return { message: 'Service configuration error: invalid API credentials. Please contact support.' };
       }
