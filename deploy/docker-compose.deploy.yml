@@ -34,18 +34,25 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - GALAXY_CONFIG_FILE=/app/config/galaxy.yml
-    # Persist /app/database across container recreates. The workflow catalog
-    # (galaxy_ai_tools.db, ~279MB, ~2600 workflows) is NOT baked into the image
-    # (the image ships only a 20KB stub) — it is seeded out-of-band into this
-    # volume once per host. Without this volume every `deploy.sh` recreate
-    # reverts the catalog to the stub → routing fails with
-    # "no such table: workflows". `deploy.sh` uses `docker compose down`
-    # (no -v), so the named volume survives deploys. On an unseeded host Docker
-    # initializes the volume from the image contents (stub + universe.sqlite),
-    # so this is safe — it degrades to prior behavior, it never empties the dir.
+    # Persist ONLY the workflow catalog (galaxy_ai_tools.db, ~279MB, ~2600
+    # workflows) across container recreates via a single-file bind-mount. The
+    # catalog is NOT baked into the image (the image ships only a 20KB stub),
+    # so without this every `deploy.sh` recreate reverts the catalog to the stub
+    # → routing fails with "no such table: workflows".
+    #
+    # IMPORTANT: bind-mount the single FILE, not the whole /app/database dir.
+    # /app/database also holds Galaxy's gravity/ process-manager runtime state
+    # (supervisor sockets, pids); persisting that whole dir across recreates
+    # leaves stale gravity state that breaks Galaxy startup on the 2nd recreate
+    # (container goes unhealthy). Keeping gravity/cache ephemeral = clean boots.
+    #
+    # The host file is seeded once per host from
+    # s3://biomate-nextflow-work/dev-sync/galaxy_ai_tools.db. If it is absent,
+    # Docker creates an empty dir at the target → sqlite "unable to open" →
+    # search degrades to no-results, but Galaxy still boots healthy (safe).
     # Seed/refresh recipe: docs/20260625_TEST_WORKFLOW_CATALOG_EMPTY_ROOTCAUSE.md.
     volumes:
-      - galaxy-db-deploy:/app/database
+      - /opt/biomate/data/galaxy_ai_tools.db:/app/database/galaxy_ai_tools.db
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/api/version"]
@@ -89,10 +96,3 @@ networks:
   biomate-deploy-net:
     name: biomate-deploy-net
     driver: bridge
-
-volumes:
-  # Persists the Galaxy /app/database dir (workflow catalog galaxy_ai_tools.db).
-  # Survives `deploy.sh` recreates because deploy.sh runs `docker compose down`
-  # without -v. See the galaxy-backend-deploy service comment.
-  galaxy-db-deploy:
-    name: biomate-galaxy-db-deploy
