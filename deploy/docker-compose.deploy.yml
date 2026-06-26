@@ -51,8 +51,21 @@ services:
     # Docker creates an empty dir at the target → sqlite "unable to open" →
     # search degrades to no-results, but Galaxy still boots healthy (safe).
     # Seed/refresh recipe: docs/20260625_TEST_WORKFLOW_CATALOG_EMPTY_ROOTCAUSE.md.
+    #
+    # Second mount: the nextflow_nfcore workflow DEFINITIONS (.nf/.config). These
+    # are excluded from the backend image (.dockerignore: "indexed separately"),
+    # and on dev they're seeded into the container by sync_to_dev.sh step 4 —
+    # deploy.sh-based envs (test/prod) don't run that, so without this mount the
+    # ~2600 catalog workflows (incl drug_discovery/cyp_ddi_panel) route + show a
+    # card but lazy-load 0 steps (the steps parser reads the .nf from disk).
+    # This is ADDITIVE: the image's /app/biomni_workflows has no nextflow_nfcore/
+    # subdir, so the mount adds it without shadowing nextflow/ or
+    # nextflow_generated/. Host dir seeded once (def-only bundle, ~5MB) from the
+    # repo's backend/biomni_workflows/nextflow_nfcore. Absent host dir → empty
+    # mountpoint → 0 steps (same as today), never breaks boot.
     volumes:
       - /opt/biomate/data/galaxy_ai_tools.db:/app/database/galaxy_ai_tools.db
+      - /opt/biomate/data/nextflow_nfcore:/app/biomni_workflows/nextflow_nfcore
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/api/version"]
