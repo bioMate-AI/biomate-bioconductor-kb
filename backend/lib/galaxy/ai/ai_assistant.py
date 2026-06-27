@@ -2785,10 +2785,16 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         )
 
         try:
-            from .gemini_flash import call_gemini_flash as _gemini_flash  # noqa: PLC0415
-            text = _gemini_flash(
-                messages=[{"role": "user", "content": user_msg}],
-                system=self._PARAM_SUGGEST_SYSTEM,
+            # Route through the resilient fallback LLM client (Gemini primary →
+            # Claude → …) instead of calling gemini_flash directly: deploy.sh
+            # images lack the google SDK ("No module named 'google'"), so the
+            # direct call hard-failed with NO fallback — dropping every extracted
+            # param (SMILES, gene, PDB id). Fold the system prompt into the user
+            # message since the fallback path uses a generic system role.
+            from .llm_client import LLMClient  # noqa: PLC0415
+            _ps_prompt = f"{self._PARAM_SUGGEST_SYSTEM}\n\n{user_msg}"
+            text = LLMClient(self.config).call(
+                messages=[{"role": "user", "content": _ps_prompt}],
                 max_tokens=1024,  # S3 URIs can be long; 512 causes truncation
             ).strip()
             # Extract JSON array from response
