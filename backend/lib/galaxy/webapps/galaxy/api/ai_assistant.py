@@ -2270,7 +2270,21 @@ def search_nextflow_workflow(
                 "nextflow_path": best.filename if best.format == "nextflow" else None,
                 "workflow_type": best.format,
                 "steps": _parse_nextflow_steps(best.filename) if best.format == "nextflow" and best.filename else {},
-                "parameters": _wf_parameters,
+                # workflow_ga.parameters must be the READY-TO-RUN value dict, not just the
+                # .nf schema defaults (_wf_parameters). The rule/LLM-extracted values (e.g.
+                # the user's SMILES) are filled into _req_params/_opt_params[].default by
+                # _apply_llm_fill but were NOT reflected here — so headless consumers that
+                # send workflow_ga straight to /api/workflows/execute (connector
+                # execute_workflow, chat auto-execute) ran with schema defaults / empty
+                # params and the SMILES was dropped ([Nextflow Direct] Parameters: undefined).
+                # Flatten the filled param values on top of the schema defaults so every
+                # consumer (web UI card, run_workflow, connector) carries them.
+                "parameters": {
+                    **(_wf_parameters or {}),
+                    **{p["name"]: p["default"]
+                       for p in (_req_params + _opt_params)
+                       if isinstance(p, dict) and p.get("name") and p.get("default") not in (None, "")},
+                },
                 "parameter_metadata": _wf_parameter_metadata,
                 "required_params": _req_params,
                 "optional_params": _opt_params,
