@@ -9948,6 +9948,59 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
+      // ── Lazy Nextflow status reconcile ────────────────────────────────────
+      // The stored execution.status is otherwise only advanced by the /status
+      // polling endpoint, so runs driven outside the UI poll loop (MCP /
+      // headless / direct API) can show stale 'running' long after the Nextflow
+      // run finished on AWS Batch. Poll the live Nextflow status and persist a
+      // terminal flip here too, so EVERY reader of the run record (get_run,
+      // overview, MCP) sees the real outcome — not just /status callers.
+      {
+        const isNextflowRun =
+          getWorkflowExecutionEngine(run.workflowDefinition) === 'nextflow' ||
+          run.execution?.executionEngine === 'nextflow' ||
+          !!run.execution?.nextflowRunId;
+        const nonTerminal = ['running', 'paused', 'queued'].includes(
+          String(run.execution?.status)
+        );
+        const nfRunId = run.execution?.nextflowRunId || run.execution?.galaxyInvocationId;
+        if (isNextflowRun && nonTerminal && nfRunId) {
+          try {
+            const nextflowStatus = await galaxyAPIProxy.getNextflowStatus(nfRunId);
+            const nfState = String(nextflowStatus?.status || '').toLowerCase();
+            if (['succeeded', 'failed', 'error'].includes(nfState)) {
+              const mappedStatus: ExecutionRunStatus = toValidRunStatus(nfState);
+              run = await storage.updateExecutionRun(run.id, {
+                execution: {
+                  ...run.execution,
+                  status: mappedStatus,
+                  errorMessage: nfState === 'succeeded'
+                    ? undefined
+                    : (nextflowStatus?.log_tail?.slice?.(-1)?.[0]
+                        || run.execution?.errorMessage || 'Nextflow run failed'),
+                  completedAt: new Date(),
+                  nextflowStatus,
+                },
+              }) || run;
+              const nfInvocationId = run.execution?.galaxyInvocationId || run.execution?.nextflowRunId;
+              if (nfInvocationId) {
+                galaxyPoller.emit('workflow_completed', {
+                  invocation_id: nfInvocationId,
+                  state: nfState === 'succeeded' ? 'ok' : 'failed',
+                });
+              }
+            } else if (nextflowStatus) {
+              // Non-terminal: keep latest snapshot for output/visibility.
+              run = await storage.updateExecutionRun(run.id, {
+                execution: { ...run.execution, nextflowStatus },
+              }) || run;
+            }
+          } catch (e: any) {
+            console.warn('[ExecutionRun] lazy nextflow reconcile failed:', e?.message || e);
+          }
+        }
+      }
+
       // ── Inline convenience fields for MCP / headless consumers ────────────
       // MCP tools/get_run clients should not need a second round-trip to
       // /output_files or /status to get findings and files. Surface them here.
