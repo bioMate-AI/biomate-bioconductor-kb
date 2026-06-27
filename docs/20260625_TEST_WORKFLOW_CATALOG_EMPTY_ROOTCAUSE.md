@@ -110,6 +110,69 @@ Separate but related gap found while checking the container for workflow files:
   EXECUTION needs bundled reference data (e.g. drug_discovery, 216MB of data)
   are not fully execution-ready on test; seed the full tree for that.
 
+## UPDATE 2026-06-26 (3) — execute → 422 "Access denied to S3" = INVALID creds, not a bucket-permission gap
+
+After steps resolved, `POST /api/nextflow/execute` returned 422
+`{"error":"Access denied to S3 bucket 'biomate-nextflow-work'"}`. The reporter
+read this as "the IAM role lacks bucket permission" — that is the WRONG fix.
+
+Diagnosed on the test host:
+- The preflight ([nextflow_executor.py:1976-2004]) does `boto3 s3.head_bucket()`
+  with the default credential chain.
+- The galaxy container has **explicit `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`
+  in its env** (so boto3 uses those, NOT the EC2 instance role).
+- `boto3 sts get_caller_identity` in the container →
+  **`InvalidClientTokenId: The security token included in the request is
+  invalid`**. The embedded keys are **stale/deleted/invalid** → EVERY S3 call
+  fails 403 (not just this bucket). Granting the bucket to any role/key does
+  nothing while the dead embedded keys are present and used.
+- EC2 instance role is `BioMateEc2DeployRole` (inline policies: dev/test
+  secrets-read, ECR push/pull, `S3ReadDevSync`, `v6-eval-s3-and-terminate`) —
+  it has SOME S3 but the backend isn't using it (embedded keys win), and it
+  likely lacks WRITE to `nextflow/outputs/*`.
+
+Fix (account-level; the deploy user `galaxy-dev` can't read/write the secret or
+IAM, so this needs an admin):
+- **Option A (matches current design):** in Secrets Manager
+  `test/biomate/galaxy-env`, replace the invalid `AWS_ACCESS_KEY_ID`/
+  `AWS_SECRET_ACCESS_KEY` with VALID keys whose identity has
+  `s3:GetObject`/`PutObject`/`ListBucket` on `biomate-nextflow-work`, then
+  `deploy.sh test <tag>` (re-materializes env).
+- **Option B (cleaner, recommended):** remove the embedded keys from the secret
+  so boto3 uses `BioMateEc2DeployRole`, and attach this inline policy to that
+  role:
+  ```json
+  {"Version":"2012-10-17","Statement":[
+    {"Sid":"NfWorkRW","Effect":"Allow",
+     "Action":["s3:GetObject","s3:PutObject","s3:DeleteObject"],
+     "Resource":"arn:aws:s3:::biomate-nextflow-work/*"},
+    {"Sid":"NfWorkList","Effect":"Allow",
+     "Action":["s3:ListBucket","s3:GetBucketLocation"],
+     "Resource":"arn:aws:s3:::biomate-nextflow-work"}]}
+  ```
+
+### RESOLVED 2026-06-26 (admin SSO) — reused dev's key
+
+The orphaned key `AKIAV2DX3XSKGYVKVDET` was a deleted key of the **`biomate-admin`**
+IAM user (AdministratorAccess) — the identity dev's backend also uses. dev runs
+on a valid `biomate-admin` key `AKIA…LG5H4HQ6` (last used today). Fix applied:
+copied dev's working key into `test/biomate/galaxy-env`
+(`PutSecretValue`, only `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` changed, the
+other 19 keys preserved) → `deploy.sh test` re-materialized env. Verified in the
+container: `sts get_caller_identity` → `user/biomate-admin`; `head_bucket` OK;
+`put+delete` to `biomate-nextflow-work/nextflow/outputs/` OK. (No IAM key
+created/deleted — `biomate-admin` was already at the 2-key limit; test now shares
+dev's key. Proper long-term fix: dedicated least-priv backend identity / instance
+role with S3-write + Batch, not an admin key embedded in the secret.)
+
+### Next blocker (separate): execute sends `parameters: undefined`
+
+`frontend/server/routes.ts:9543` logs `request.workflowDefinition.parameters`
+and it's undefined → the SMILES never reaches Nextflow. The execute body is built
+from `request.workflowDefinition.parameters` (routes.ts:9557/9581); whoever calls
+`POST /api/workflows/execute` (the connector / chat execute path) isn't populating
+it. Needs the actual re-run request payload to pin where the SMILES drops.
+
 ## Root-cause fix — for backend (pick one)
 
 1. **Bake `galaxy_ai_tools.db` into the backend image (recommended).** The
