@@ -173,6 +173,32 @@ from `request.workflowDefinition.parameters` (routes.ts:9557/9581); whoever call
 `POST /api/workflows/execute` (the connector / chat execute path) isn't populating
 it. Needs the actual re-run request payload to pin where the SMILES drops.
 
+### UPDATE 2026-06-27 — params chain: fix A done; next blocker = Gemini dep missing
+
+- **Fix A (merged, PR #61):** `workflow_ga.parameters` now flattens the
+  rule/LLM-extracted values (not just `.nf` schema defaults), so headless
+  consumers carry them to execute. Deployed to test via a fast backend OVERLAY
+  (`FROM <deployed-backend> + COPY ai_assistant.py`) — no 15-min full Galaxy
+  rebuild. Correct + necessary.
+- **But the value still isn't extracted on test.** Logs:
+  `[ParamSuggest] LLM inference failed: No module named 'google'`.
+  `_infer_params_from_intent_llm` (ai_assistant.py:1834) is hardcoded to Gemini
+  (`from galaxy.ai.gemini_flash import call_gemini_flash` →
+  `import google.generativeai`). `google-generativeai` is **NOT in
+  `backend/requirements.txt`** → not in the image. dev installs it at runtime
+  (sync_to_dev pip layer); deploy.sh test/prod don't → extraction throws → every
+  free-text param (SMILES, gene, PDB id) comes back `None` → fix A has nothing
+  to flatten. GEMINI_API_KEY/GOOGLE_API_KEY ARE set on test, so the code tries
+  Gemini and fails (the routing LLM works only because it uses the resilient
+  fallback client that falls back to Anthropic).
+- **Fix options for the Gemini gap:**
+  - (b, recommended) make `_infer_params_from_intent_llm` use the same resilient
+    fallback LLM client as routing (falls back to Anthropic) instead of the
+    hardcoded `call_gemini_flash`. No new dep; fixes all envs; Anthropic already
+    works on test.
+  - (a) add `google-generativeai` to `backend/requirements.txt` + full backend
+    rebuild. Keeps Gemini as primary but makes the image self-contained.
+
 ## Root-cause fix — for backend (pick one)
 
 1. **Bake `galaxy_ai_tools.db` into the backend image (recommended).** The
