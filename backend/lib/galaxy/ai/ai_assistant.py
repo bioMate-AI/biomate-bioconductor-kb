@@ -3159,6 +3159,15 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 _pv = _p.get('default') or _p.get('value')
                 if _pn and _pv is not None:
                     _exec_params.setdefault(_pn, _pv)
+        # workflow_ga.parameters must carry the rule/LLM-extracted values (SMILES,
+        # gene, PDB id, …) for ALL workflows, not just cryosparc. Headless consumers
+        # (connector execute_workflow, chat auto-execute) send workflow_ga straight
+        # to /api/workflows/execute; without this they run with NO params and the
+        # extracted value is dropped ([Nextflow Direct] Parameters: undefined).
+        for _p in req + opt:
+            _pn = _p.get('name', '')
+            if _pn and _p.get('default') not in (None, ''):
+                _exec_params.setdefault(_pn, _p.get('default'))
         return {
             'success': True,
             'nextflow_path': match.filename,
