@@ -7763,9 +7763,13 @@ ${paramLines || '(none recorded)'}`;
       const { source, path: browsePath } = req.query as { source?: string; path?: string };
       if (!source) return res.status(400).json({ error: "source is required" });
       const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
-      // Galaxy uses `target` for the source id and `format=uri` for the listing.
-      const qs = new URLSearchParams({ target: source, format: "uri", browsable: "true" });
-      if (browsePath) qs.set("path", browsePath);
+      // Galaxy's remote_files `target` is the plugin's gxfiles:// URI (the
+      // plugin uri_root), NOT the bare id — passing the bare id 400s with
+      // "Invalid target parameter supplied". Build gxfiles://<source>/<path>.
+      const root = `gxfiles://${source}`;
+      const sub = browsePath && browsePath !== "/" ? String(browsePath).replace(/^\/+/, "") : "";
+      const target = sub ? `${root}/${sub}` : root;
+      const qs = new URLSearchParams({ target, format: "uri", browsable: "true" });
       const upstream = await fetch(`${galaxyUrl}/api/remote_files?${qs}`, {
         signal: AbortSignal.timeout(20_000),
       });

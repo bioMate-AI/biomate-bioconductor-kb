@@ -8693,9 +8693,14 @@ async def fetch_public_data(body: FetchPublicDataRequest):
     filename = Path(parsed.path).name or "data.bin"
     dest_key = body.destination_key or f"public-data/{filename}"
 
-    s3_bucket = os.environ.get("NEXTFLOW_S3_BUCKET") or os.environ.get("AWS_S3_BUCKET")
-    if not s3_bucket:
-        raise HTTPException(status_code=503, detail="S3 not configured (NEXTFLOW_S3_BUCKET not set)")
+    # Default to the standard work bucket like the rest of nextflow_executor
+    # (lines ~2091/4389) instead of hard-failing — fetch_public_data otherwise
+    # 503'd on envs that never set NEXTFLOW_S3_BUCKET explicitly.
+    s3_bucket = (
+        os.environ.get("NEXTFLOW_S3_BUCKET")
+        or os.environ.get("AWS_S3_BUCKET")
+        or "biomate-nextflow-work"
+    )
 
     log.info("[fetch_public_data] Downloading %s → s3://%s/%s", download_url, s3_bucket, dest_key)
 
