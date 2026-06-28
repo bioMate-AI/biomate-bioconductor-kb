@@ -880,18 +880,25 @@ async function executeOpenClaudeTool(
 ): Promise<any> {
   const baseUrl = `http://localhost:${process.env.PORT || 5000}`;
   const authHeader = req.headers.authorization || "";
+  // These are loopback self-calls to our own Express server. In production the
+  // app force-redirects plain HTTP → HTTPS (security-config.ts), so a bare
+  // http://localhost:PORT fetch gets a 301 to https on the plain port and Node
+  // fails the TLS handshake → "fetch failed" → every Open-Claw tool returns an
+  // error and the agentic loop degrades to narration. Send X-Forwarded-Proto:
+  // https (as Caddy does) so the redirect is skipped for these internal calls.
+  const _fwd = { "X-Forwarded-Proto": "https" };
 
   const post = async (path: string, body: any) => {
     const r = await fetch(`${baseUrl}${path}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: authHeader },
+      headers: { "Content-Type": "application/json", Authorization: authHeader, ..._fwd },
       body: JSON.stringify(body),
     });
     return r.json();
   };
   const get = async (path: string) => {
     const r = await fetch(`${baseUrl}${path}`, {
-      headers: { Authorization: authHeader },
+      headers: { Authorization: authHeader, ..._fwd },
     });
     return r.json();
   };
