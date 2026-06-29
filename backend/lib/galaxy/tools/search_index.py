@@ -234,6 +234,34 @@ class ToolSearchIndex:
             ''')
             return {row[0]: row[1] for row in cursor.fetchall()}
 
+    def get_tool_schema(self, tool_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Return a structured parameter schema for a tool.
+
+        Builds schema from the tool's DB record (inputs_schema / parameters
+        columns when present, falling back to a minimal stub so the endpoint
+        always returns something useful rather than crashing).
+        """
+        tool = self.get_by_id(tool_id)
+        if not tool:
+            return None
+        # Prefer an already-structured schema column if it exists
+        for col in ('inputs_schema', 'parameters_schema', 'schema'):
+            if tool.get(col):
+                import json as _json
+                try:
+                    return _json.loads(tool[col]) if isinstance(tool[col], str) else tool[col]
+                except Exception:
+                    pass
+        # Fall back to a minimal stub derived from the tool record
+        return {
+            'tool_id': tool.get('tool_id', tool_id),
+            'name': tool.get('name', tool_id),
+            'description': tool.get('description', ''),
+            'inputs': [],
+            'outputs': [],
+        }
+
     def close(self):
         """Close thread-local connection"""
         if hasattr(self._local, 'conn') and self._local.conn is not None:
