@@ -435,6 +435,17 @@ export function AppSidebar({
           <div style={{ color: 'var(--bm-text-dim)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email || 'researcher@biomate.ai'}</div>
         </div>
         <button
+          onClick={() => { analytics.track('settings_opened'); setShowSettingsDialog(true); }}
+          data-testid="button-settings"
+          title="Settings"
+          style={{
+            flexShrink: 0, border: 'none', background: 'transparent', cursor: 'pointer',
+            padding: '4px 6px', borderRadius: 6, display: 'grid', placeItems: 'center', color: 'var(--bm-text-muted)',
+          }}
+        >
+          <Settings className="w-3.5 h-3.5" style={{ opacity: 0.8 }} />
+        </button>
+        <button
           onClick={async () => { await logout(); setLocation('/login'); }}
           data-testid="button-logout"
           title="Sign out"

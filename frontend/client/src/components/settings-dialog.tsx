@@ -38,7 +38,99 @@ import {
   Loader2,
   Eye,
   EyeOff,
+  Key,
+  Copy,
+  Plus,
+  Trash2,
 } from "lucide-react"
+
+// ---------------------------------------------------------------------------
+// Per-user API keys (biomate-connector / headless access)
+// ---------------------------------------------------------------------------
+interface ApiKeyRow {
+  id: string;
+  name: string | null;
+  keyPrefix: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+}
+
+function useApiKeys(open: boolean) {
+  const [keys, setKeys] = useState<ApiKeyRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [newName, setNewName] = useState('');
+  const [creating, setCreating] = useState(false);
+  // Plaintext of the key just created — shown ONCE, then cleared.
+  const [freshKey, setFreshKey] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const r = await fetch('/api/user/api-keys', { credentials: 'include' });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setKeys(await r.json());
+    } catch (e: any) {
+      setError(e.message || 'Failed to load API keys');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (open) { setFreshKey(null); load(); }
+  }, [open, load]);
+
+  const create = useCallback(async () => {
+    setCreating(true);
+    setError('');
+    setFreshKey(null);
+    try {
+      const r = await fetch('/api/user/api-keys', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName.trim() || undefined }),
+      });
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}));
+        throw new Error(e.error || `HTTP ${r.status}`);
+      }
+      const d = await r.json();
+      setFreshKey(d.key);
+      setNewName('');
+      await load();
+    } catch (e: any) {
+      setError(e.message || 'Failed to create API key');
+    } finally {
+      setCreating(false);
+    }
+  }, [newName, load]);
+
+  const revoke = useCallback(async (id: string) => {
+    setError('');
+    try {
+      const r = await fetch(`/api/user/api-keys/${id}`, { method: 'DELETE', credentials: 'include' });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      await load();
+    } catch (e: any) {
+      setError(e.message || 'Failed to revoke API key');
+    }
+  }, [load]);
+
+  const copyFresh = useCallback(() => {
+    if (!freshKey) return;
+    navigator.clipboard.writeText(freshKey).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {});
+  }, [freshKey]);
+
+  return { keys, loading, error, newName, setNewName, creating, create, revoke, freshKey, dismissFresh: () => setFreshKey(null), copyFresh, copied };
+}
 
 // ---------------------------------------------------------------------------
 // S3 credential state
@@ -151,6 +243,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [settings, setSettings] = useState<UserSettings>(userSettingsService.getSettings())
   const [activeTab, setActiveTab] = useState("profile")
   const s3 = useS3Credentials(open)
+  const apiKeysState = useApiKeys(open)
 
   const handleLogout = async () => {
     onOpenChange(false)
@@ -248,6 +341,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 <TabsTrigger value="security" className="justify-start gap-2 p-3" data-testid="tab-security">
                   <Shield className="w-4 h-4" />
                   Security
+                </TabsTrigger>
+                <TabsTrigger value="api-keys" className="justify-start gap-2 p-3" data-testid="tab-api-keys">
+                  <Key className="w-4 h-4" />
+                  API Keys
                 </TabsTrigger>
                 <TabsTrigger value="advanced" className="justify-start gap-2 p-3" data-testid="tab-advanced">
                   <Code className="w-4 h-4" />
@@ -742,6 +839,131 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     Manage authentication security for your account.
                   </p>
                   <MfaSettings />
+                </div>
+              </TabsContent>
+
+              {/* API Keys Tab */}
+              <TabsContent value="api-keys" className="space-y-6 m-0" data-testid="tab-content-api-keys">
+                <div>
+                  <h3 className="text-lg font-semibold mb-1">API Keys</h3>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Personal keys for connecting BioMate to external surfaces (Slack, Feishu, WeChat, MCP clients)
+                    via biomate-connector. Send the key as <code className="bg-muted px-1 rounded text-[11px]">Authorization: Bearer &lt;key&gt;</code>.
+                    Requests authenticate as <span className="font-medium">you</span> — your runs, quota, and history.
+                  </p>
+
+                  {/* Freshly created key — shown once */}
+                  {apiKeysState.freshKey && (
+                    <Card className="mb-4 border-green-500/40" data-testid="fresh-api-key-card">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          New API key created
+                        </CardTitle>
+                        <CardDescription className="text-xs">
+                          Copy it now — for your security it will <span className="font-medium">not be shown again</span>.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Input
+                            readOnly
+                            value={apiKeysState.freshKey}
+                            className="font-mono text-xs h-8"
+                            data-testid="input-fresh-api-key"
+                            onFocus={(e) => e.currentTarget.select()}
+                          />
+                          <Button size="sm" variant="outline" className="h-8 text-xs gap-1 shrink-0" onClick={apiKeysState.copyFresh} data-testid="button-copy-fresh-key">
+                            <Copy className="h-3.5 w-3.5" />
+                            {apiKeysState.copied ? 'Copied' : 'Copy'}
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-8 text-xs shrink-0" onClick={apiKeysState.dismissFresh} data-testid="button-dismiss-fresh-key">
+                            Done
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Create new key */}
+                  <Card className="mb-4">
+                    <CardContent className="pt-4">
+                      <div className="flex items-end gap-2">
+                        <div className="flex-1 space-y-1.5">
+                          <Label htmlFor="api-key-name" className="text-xs">Name (optional)</Label>
+                          <Input
+                            id="api-key-name"
+                            placeholder="e.g. Feishu bot, Slack prod"
+                            value={apiKeysState.newName}
+                            onChange={(e) => apiKeysState.setNewName(e.target.value)}
+                            className="text-xs h-8"
+                            data-testid="input-api-key-name"
+                          />
+                        </div>
+                        <Button
+                          size="sm"
+                          className="h-8 text-xs gap-1.5"
+                          onClick={apiKeysState.create}
+                          disabled={apiKeysState.creating}
+                          data-testid="button-create-api-key"
+                        >
+                          {apiKeysState.creating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                          Generate key
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {apiKeysState.error && (
+                    <div className="flex items-start gap-2 text-xs rounded p-2 mb-4 bg-destructive/10 text-destructive" data-testid="api-keys-error">
+                      <XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                      <span>{apiKeysState.error}</span>
+                    </div>
+                  )}
+
+                  {/* Existing keys */}
+                  <div className="space-y-2" data-testid="api-keys-list">
+                    {apiKeysState.loading && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground p-2">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…
+                      </div>
+                    )}
+                    {!apiKeysState.loading && apiKeysState.keys.length === 0 && (
+                      <p className="text-xs text-muted-foreground p-2">No API keys yet.</p>
+                    )}
+                    {apiKeysState.keys.map((k) => (
+                      <div
+                        key={k.id}
+                        className="flex items-center justify-between gap-3 rounded border p-3"
+                        data-testid={`api-key-row-${k.id}`}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium truncate">{k.name || 'Unnamed key'}</span>
+                            {k.revokedAt
+                              ? <Badge variant="secondary" className="text-[10px]">Revoked</Badge>
+                              : <Badge variant="secondary" className="text-[10px] gap-1"><CheckCircle2 className="h-3 w-3 text-green-600" />Active</Badge>}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground font-mono mt-0.5">{k.keyPrefix}</div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5">
+                            Created {new Date(k.createdAt).toLocaleDateString()}
+                            {k.lastUsedAt ? ` · last used ${new Date(k.lastUsedAt).toLocaleDateString()}` : ' · never used'}
+                          </div>
+                        </div>
+                        {!k.revokedAt && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs text-destructive hover:text-destructive gap-1 shrink-0"
+                            onClick={() => apiKeysState.revoke(k.id)}
+                            data-testid={`button-revoke-api-key-${k.id}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Revoke
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </TabsContent>
 

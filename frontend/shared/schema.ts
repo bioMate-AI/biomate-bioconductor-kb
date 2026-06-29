@@ -168,6 +168,25 @@ export type User = typeof users.$inferSelect;
 // Explicit type for user without password (for API responses)
 export type SafeUser = Omit<User, 'password'>;
 
+// ============================================================================
+// Per-user API keys for headless / connector (biomate-connector) access.
+// Plaintext is shown once at creation; only the SHA-256 hash is stored.
+// See migrations/0010_api_keys.sql.
+// ============================================================================
+export const apiKeys = pgTable("api_keys", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  keyHash: text("key_hash").notNull().unique(),
+  keyPrefix: text("key_prefix").notNull(),
+  name: text("name"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastUsedAt: timestamp("last_used_at"),
+  revokedAt: timestamp("revoked_at"),
+});
+
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type InsertApiKey = typeof apiKeys.$inferInsert;
+
 // Dataset configuration schema for workflow inputs/outputs
 export const datasetConfigSchema = z.object({
   id: z.string(),

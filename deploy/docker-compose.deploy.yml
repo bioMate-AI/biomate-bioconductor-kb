@@ -34,6 +34,46 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - GALAXY_CONFIG_FILE=/app/config/galaxy.yml
+      # Where the backend POSTs SSE/progress events (/internal/sse-inject) so
+      # biomate_session streaming works. The frontend is a SEPARATE container —
+      # the backend's localhost is NOT the frontend, so the unset default
+      # (localhost:5000/3000) → Connection refused → "fetch failed". Point it at
+      # the frontend's name on biomate-deploy-net (same pattern as the frontend's
+      # GALAXY_API_URL=http://galaxy-backend-deploy:8080). /internal/ is exempt
+      # from the frontend's HTTPS redirect so this plain-HTTP call isn't 301'd.
+      - FRONTEND_URL=http://biomate-frontend-deploy:3000
+    # Persist ONLY the workflow catalog (galaxy_ai_tools.db, ~279MB, ~2600
+    # workflows) across container recreates via a single-file bind-mount. The
+    # catalog is NOT baked into the image (the image ships only a 20KB stub),
+    # so without this every `deploy.sh` recreate reverts the catalog to the stub
+    # → routing fails with "no such table: workflows".
+    #
+    # IMPORTANT: bind-mount the single FILE, not the whole /app/database dir.
+    # /app/database also holds Galaxy's gravity/ process-manager runtime state
+    # (supervisor sockets, pids); persisting that whole dir across recreates
+    # leaves stale gravity state that breaks Galaxy startup on the 2nd recreate
+    # (container goes unhealthy). Keeping gravity/cache ephemeral = clean boots.
+    #
+    # The host file is seeded once per host from
+    # s3://biomate-nextflow-work/dev-sync/galaxy_ai_tools.db. If it is absent,
+    # Docker creates an empty dir at the target → sqlite "unable to open" →
+    # search degrades to no-results, but Galaxy still boots healthy (safe).
+    # Seed/refresh recipe: docs/20260625_TEST_WORKFLOW_CATALOG_EMPTY_ROOTCAUSE.md.
+    #
+    # Second mount: the nextflow_nfcore workflow DEFINITIONS (.nf/.config). These
+    # are excluded from the backend image (.dockerignore: "indexed separately"),
+    # and on dev they're seeded into the container by sync_to_dev.sh step 4 —
+    # deploy.sh-based envs (test/prod) don't run that, so without this mount the
+    # ~2600 catalog workflows (incl drug_discovery/cyp_ddi_panel) route + show a
+    # card but lazy-load 0 steps (the steps parser reads the .nf from disk).
+    # This is ADDITIVE: the image's /app/biomni_workflows has no nextflow_nfcore/
+    # subdir, so the mount adds it without shadowing nextflow/ or
+    # nextflow_generated/. Host dir seeded once (def-only bundle, ~5MB) from the
+    # repo's backend/biomni_workflows/nextflow_nfcore. Absent host dir → empty
+    # mountpoint → 0 steps (same as today), never breaks boot.
+    volumes:
+      - /opt/biomate/data/galaxy_ai_tools.db:/app/database/galaxy_ai_tools.db
+      - /opt/biomate/data/nextflow_nfcore:/app/biomni_workflows/nextflow_nfcore
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/api/version"]
