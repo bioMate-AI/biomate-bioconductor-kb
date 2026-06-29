@@ -1057,7 +1057,40 @@ fi
 
 # --- One-shot sync ---------------------------------------------------------
 # Sync all tracked layers in one pass and exit. No polling, no retries.
-CHANGED="$(printf 'frontend/\nbackend/lib/\nbackend/biomni_workflows/\nbackend/database/')"
+#
+# Layer detection strategy:
+#   Code layers (frontend/, backend/lib/, backend/biomni_workflows/):
+#     git diff against last-synced commit — only files in those trees
+#     that actually changed get included.
+#   DB layer (galaxy_ai_tools.db):
+#     gitignored binary — use md5 of the local file vs. a stored
+#     "last-synced md5" in .last_dev_sync_db_md5. Only syncs when
+#     the file content has actually changed.
+_PREV_COMMIT_FILE="$REPO_ROOT/.last_dev_sync_commit"
+_DB_MD5_FILE="$REPO_ROOT/.last_dev_sync_db_md5"
+_LOCAL_DB="$REPO_ROOT/backend/database/galaxy_ai_tools.db"
+
+# Code layers — git diff
+_PREV_COMMIT=""
+[[ -f "$_PREV_COMMIT_FILE" ]] && _PREV_COMMIT="$(cat "$_PREV_COMMIT_FILE" | tr -d '[:space:]')"
+if [[ -n "$_PREV_COMMIT" ]] && git -C "$REPO_ROOT" rev-parse --verify "$_PREV_COMMIT" &>/dev/null; then
+  CHANGED="$(git -C "$REPO_ROOT" diff --name-only "${_PREV_COMMIT}...${CURRENT_COMMIT}" 2>/dev/null || \
+             printf 'frontend/\nbackend/lib/\nbackend/biomni_workflows/')"
+  log "Diff base: ${_PREV_COMMIT:0:8} → ${CURRENT_COMMIT:0:8} ($(echo "$CHANGED" | wc -l | tr -d ' ') code files)"
+else
+  CHANGED="$(printf 'frontend/\nbackend/lib/\nbackend/biomni_workflows/')"
+  log "No previous sync commit — syncing all code layers"
+fi
+
+# DB layer — md5 comparison (gitignored, so git diff can't detect it)
+_LOCAL_DB_MD5="$(md5 -q "$_LOCAL_DB" 2>/dev/null || md5sum "$_LOCAL_DB" 2>/dev/null | cut -d' ' -f1 || echo '')"
+_LAST_DB_MD5=""; [[ -f "$_DB_MD5_FILE" ]] && _LAST_DB_MD5="$(cat "$_DB_MD5_FILE" | tr -d '[:space:]')"
+if [[ -n "$_LOCAL_DB_MD5" && "$_LOCAL_DB_MD5" != "$_LAST_DB_MD5" ]]; then
+  CHANGED="$CHANGED"$'\n'"backend/database/"
+  log "DB md5 changed ($_LAST_DB_MD5 → $_LOCAL_DB_MD5) — will sync"
+else
+  log "DB md5 unchanged — skipping 300MB transfer"
+fi
 
 # From here on the run IS a deploy attempt — arm the SNS notification so its
 # outcome (success OR failure) reaches the topic. Pre-flight refusals above
@@ -1065,6 +1098,9 @@ CHANGED="$(printf 'frontend/\nbackend/lib/\nbackend/biomni_workflows/\nbackend/d
 SYNC_STARTED=1
 
 if do_sync "$CURRENT_COMMIT" "$CHANGED"; then
+  # Record commit + DB md5 so next sync only transfers what actually changed.
+  echo "$CURRENT_COMMIT" > "$_PREV_COMMIT_FILE"
+  [[ -n "$_LOCAL_DB_MD5" ]] && echo "$_LOCAL_DB_MD5" > "$_DB_MD5_FILE"
   log "=== Sync OK at ${CURRENT_COMMIT:0:8} ==="
   # Ensure all AWS Batch CEs are pinned to the latest Launch Template version.
   # The aws-cli libz regression (2026-04 → 2026-06) was caused by CEs being
