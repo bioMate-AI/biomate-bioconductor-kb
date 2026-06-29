@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { uploadFile as uploadFileShared } from '@/lib/upload';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,19 +87,16 @@ function SessionTab({
     setUploading(true);
     setUploadError('');
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('name', file.name);
-      const res = await fetch('/api/datasets/upload', { method: 'POST', body: formData });
-      if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
-      const data = await res.json();
+      // Size-branched upload: ≤100 MiB → single POST; larger → real S3 multipart.
+      const result = await uploadFileShared(file);
       const newDs: SessionDataset = {
-        id: data.dataset_id || data.id || file.name,
+        id: result.datasetId || file.name,
         name: file.name,
         fileType: file.name.split('.').pop() || '',
-        galaxyDatasetId: data.dataset_id,
-        path: data.file_path,
-        s3_uri: data.s3_uri,
+        galaxyDatasetId: result.galaxyDatasetId,
+        // multipart path returns an s3:// URI through s3Key; the simple path
+        // doesn't (the Galaxy upload route handles workflow staging itself).
+        s3_uri: result.s3Key ? `s3://${result.s3Key}` : undefined,
       };
       onUploaded?.(newDs);
       // Auto-select the just-uploaded file. Prefer the durable S3 URI: it is the only

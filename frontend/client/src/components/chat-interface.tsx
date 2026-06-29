@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { uploadFile as uploadFileShared } from "@/lib/upload"
 import { CodeExecutionBlock, type ToolBlock, type AgentToolEvent } from "./code-execution-block"
 import { ChatMessage, type Message } from "./chat-message"
 import { groupProgressMessages, FoldedProgressGroup } from "./chat-progress-fold"
@@ -1484,29 +1485,20 @@ export function ChatInterface({
 
       for (const file of files) {
         try {
-          const formData = new FormData()
-          formData.append('file', file)
-          formData.append('description', 'Uploaded from BioMate chat composer')
-
-          const response = await fetch('/api/datasets/upload', {
-            method: 'POST',
-            body: formData,
-            credentials: 'include',
+          // Branches by size: ≤100 MiB → single POST to /api/datasets/upload;
+          // larger → real S3 multipart (chunked PUT direct to S3 with per-part
+          // retry). Closes the 5 GB ceiling for chat-composer attachments.
+          const result = await uploadFileShared(file, {
+            description: 'Uploaded from BioMate chat composer',
           })
-
-          if (!response.ok) {
-            failedUploads.push(`${file.name} (HTTP ${response.status})`)
-            continue
-          }
-
-          const result = await response.json()
           uploaded.push({
             name: file.name,
-            datasetId: result.dataset_id,
-            galaxyDatasetId: result.galaxy_dataset_id,
+            datasetId: result.datasetId,
+            galaxyDatasetId: result.galaxyDatasetId,
           })
-        } catch {
-          failedUploads.push(file.name)
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err)
+          failedUploads.push(`${file.name} (${msg})`)
         }
       }
 
