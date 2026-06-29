@@ -1760,6 +1760,7 @@ def _infer_params_from_intent_llm(
     user_intent: str,
     workflow_name: str,
     all_params: List[Dict[str, Any]],
+    llm_client: Any = None,
 ) -> Dict[str, Any]:
     """Extract parameter values from user's natural language message.
 
@@ -1826,13 +1827,17 @@ Rules:
 Return ONLY a JSON object, no markdown, no explanation.
 Example: {{"pdb_id": "1M17", "ligand_smiles": "C#Cc1cccc(Nc2ncnc3cc(OCCO)c(OCCO)cc23)c1", "exhaustiveness": 4, "box_center": [22.0, 2.5, 17.0], "box_size": [20.0, 20.0, 20.0]}}"""
 
-    # Short-circuit when no Gemini key is configured — otherwise the LLM call
-    # hangs the request waiting on auth and the frontend chat spinner stays up.
-    if not (_os.environ.get("GOOGLE_API_KEY") or _os.environ.get("GEMINI_API_KEY")):
-        return {"edits": [], "reason": "no_api_key"}
+    # Use the resilient fallback LLM client (the SAME provider chain routing
+    # uses: Gemini primary → Claude → …). This previously called gemini_flash
+    # directly, which hard-failed on deploy.sh images that lack the google SDK
+    # ("No module named 'google'") with NO fallback — silently dropping every
+    # free-text param (SMILES, gene, PDB id). Going through LLMClient means a
+    # broken/unavailable Gemini transparently falls back to Anthropic.
+    if llm_client is None:
+        # No resilient client available — return rule-based results only.
+        return result
     try:
-        from galaxy.ai.gemini_flash import call_gemini_flash as _gemini_flash  # noqa: PLC0415
-        raw = _gemini_flash(
+        raw = llm_client.call(
             messages=[{"role": "user", "content": prompt}],
             max_tokens=400,
             temperature=0.0,
@@ -2206,9 +2211,21 @@ def search_nextflow_workflow(
                 for _p in _req_params
             ]
 
-        # LLM-based extraction: fill any remaining unfilled params from natural language
+        # LLM-based extraction: fill any remaining unfilled params from natural language.
+        # Build the resilient fallback LLM client (Gemini primary → Claude → …) so a
+        # broken/unavailable Gemini (e.g. missing google SDK on deploy.sh images)
+        # transparently falls back instead of dropping the extraction. Same pattern as
+        # the research-agent path elsewhere in this module.
+        _pe_llm = None
+        try:
+            _sa = get_ai_assistant(trans)
+            if _sa is not None:
+                from galaxy.ai.llm_client import LLMClient  # noqa: PLC0415
+                _pe_llm = LLMClient(_sa.config)
+        except Exception as _pe_exc:
+            log.debug("[ParamSuggest] could not build LLM client: %s", _pe_exc)
         _llm_extracted = _infer_params_from_intent_llm(
-            user_intent, best.name, _req_params + _opt_params
+            user_intent, best.name, _req_params + _opt_params, llm_client=_pe_llm
         )
         if _llm_extracted:
             def _apply_llm_fill(params: list) -> list:
@@ -2270,7 +2287,21 @@ def search_nextflow_workflow(
                 "nextflow_path": best.filename if best.format == "nextflow" else None,
                 "workflow_type": best.format,
                 "steps": _parse_nextflow_steps(best.filename) if best.format == "nextflow" and best.filename else {},
-                "parameters": _wf_parameters,
+                # workflow_ga.parameters must be the READY-TO-RUN value dict, not just the
+                # .nf schema defaults (_wf_parameters). The rule/LLM-extracted values (e.g.
+                # the user's SMILES) are filled into _req_params/_opt_params[].default by
+                # _apply_llm_fill but were NOT reflected here — so headless consumers that
+                # send workflow_ga straight to /api/workflows/execute (connector
+                # execute_workflow, chat auto-execute) ran with schema defaults / empty
+                # params and the SMILES was dropped ([Nextflow Direct] Parameters: undefined).
+                # Flatten the filled param values on top of the schema defaults so every
+                # consumer (web UI card, run_workflow, connector) carries them.
+                "parameters": {
+                    **(_wf_parameters or {}),
+                    **{p["name"]: p["default"]
+                       for p in (_req_params + _opt_params)
+                       if isinstance(p, dict) and p.get("name") and p.get("default") not in (None, "")},
+                },
                 "parameter_metadata": _wf_parameter_metadata,
                 "required_params": _req_params,
                 "optional_params": _opt_params,

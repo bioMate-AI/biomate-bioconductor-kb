@@ -63,6 +63,16 @@ export function getSecurityConfig(): SecurityConfig {
 export function forceHTTPS(req: Request, res: Response, next: NextFunction) {
   const config = getSecurityConfig();
 
+  // Internal container-to-container endpoints (e.g. the Galaxy backend POSTing
+  // SSE events to /internal/sse-inject) are called over plain HTTP on the
+  // docker network. They must NOT be redirected to HTTPS: the caller (urllib/
+  // requests) follows the 301 into a TLS handshake on the plain :3000 port and
+  // fails, breaking biomate_session progress streaming. These routes carry no
+  // user browser traffic and are not the HTTPS-redirect's security boundary.
+  if (req.path.startsWith('/internal/')) {
+    return next();
+  }
+
   if (config.forceHTTPS && !req.secure && req.get('x-forwarded-proto') !== 'https') {
     return res.redirect(301, `https://${req.get('host')}${req.url}`);
   }

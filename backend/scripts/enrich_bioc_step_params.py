@@ -50,7 +50,7 @@ from enrich_bioc_viz_qc import extract_r  # shared R-body extractor
 
 BIOC = HERE.parents[0] / "biomni_workflows/nextflow_nfcore/subworkflows/bioconductor"
 REL = "nextflow_nfcore/subworkflows/bioconductor"
-DEFAULT_DB = Path("/home/yzhang/biomate/backend/database/galaxy_ai_tools.db")
+DEFAULT_DB = Path(__file__).resolve().parents[1] / "database" / "galaxy_ai_tools.db"
 
 # The 5 widget types parameter-group.tsx renders. Map schema types onto them.
 _TYPE_MAP = {

@@ -9,7 +9,8 @@ import "./jobs/handlers/findings-analysis";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
-import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs, instrumentEvents, instruments, INSTRUMENT_TYPES } from "../shared/schema";
+import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs, instrumentEvents, instruments, INSTRUMENT_TYPES, apiKeys } from "../shared/schema";
+import { generateApiKey, listApiKeys } from "./api-key-service";
 import type { InsertInviteCode, ExecutionRunStatus, InstrumentType } from "../shared/schema";
 import { db, pool } from "./db";
 import { selectChatHistoryUnderBudget } from "./chat-history-selector";
@@ -879,18 +880,25 @@ async function executeOpenClaudeTool(
 ): Promise<any> {
   const baseUrl = `http://localhost:${process.env.PORT || 5000}`;
   const authHeader = req.headers.authorization || "";
+  // These are loopback self-calls to our own Express server. In production the
+  // app force-redirects plain HTTP → HTTPS (security-config.ts), so a bare
+  // http://localhost:PORT fetch gets a 301 to https on the plain port and Node
+  // fails the TLS handshake → "fetch failed" → every Open-Claw tool returns an
+  // error and the agentic loop degrades to narration. Send X-Forwarded-Proto:
+  // https (as Caddy does) so the redirect is skipped for these internal calls.
+  const _fwd = { "X-Forwarded-Proto": "https" };
 
   const post = async (path: string, body: any) => {
     const r = await fetch(`${baseUrl}${path}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: authHeader },
+      headers: { "Content-Type": "application/json", Authorization: authHeader, ..._fwd },
       body: JSON.stringify(body),
     });
     return r.json();
   };
   const get = async (path: string) => {
     const r = await fetch(`${baseUrl}${path}`, {
-      headers: { Authorization: authHeader },
+      headers: { Authorization: authHeader, ..._fwd },
     });
     return r.json();
   };
@@ -6495,6 +6503,77 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
+  // ──────────────────────────────────────────────────────────────────────
+  // Per-user API keys (biomate-connector / headless access).
+  // Web UI (Settings → API Keys) authenticates via the JWT cookie. The
+  // plaintext key is returned ONCE on creation; only its hash is stored.
+  // ──────────────────────────────────────────────────────────────────────
+
+  // List the current user's API keys (masked — no secrets).
+  app.get("/api/user/api-keys", authenticateToken, async (req, res) => {
+    try {
+      const rows = await listApiKeys(req.user!.id);
+      res.json(rows.map((k) => ({
+        id: k.id,
+        name: k.name,
+        keyPrefix: k.keyPrefix,
+        createdAt: k.createdAt,
+        lastUsedAt: k.lastUsedAt,
+        revokedAt: k.revokedAt,
+      })));
+    } catch (error: any) {
+      console.error('[api-keys] list error:', error?.message || error);
+      res.status(500).json({ error: 'Failed to list API keys' });
+    }
+  });
+
+  // Generate a new API key. Returns the plaintext ONCE — it is never stored.
+  app.post("/api/user/api-keys", authenticateToken, express.json(), async (req, res) => {
+    try {
+      const name = typeof req.body?.name === 'string' ? req.body.name.trim().slice(0, 100) : null;
+      const { plaintext, keyHash, keyPrefix } = generateApiKey();
+      const [row] = await db.insert(apiKeys).values({
+        userId: req.user!.id,
+        keyHash,
+        keyPrefix,
+        name: name || null,
+      }).returning();
+      res.json({
+        id: row.id,
+        name: row.name,
+        keyPrefix: row.keyPrefix,
+        createdAt: row.createdAt,
+        // Shown once — the client must copy it now.
+        key: plaintext,
+      });
+    } catch (error: any) {
+      console.error('[api-keys] create error:', error?.message || error);
+      res.status(500).json({ error: 'Failed to create API key' });
+    }
+  });
+
+  // Revoke (soft-delete) an API key the current user owns.
+  app.delete("/api/user/api-keys/:id", authenticateToken, async (req, res) => {
+    try {
+      const result = await db.update(apiKeys)
+        .set({ revokedAt: new Date() })
+        .where(and(
+          eq(apiKeys.id, req.params.id),
+          eq(apiKeys.userId, req.user!.id),
+          // ownership scoped; revoke is idempotent
+        ))
+        .returning({ id: apiKeys.id });
+      if (result.length === 0) {
+        // Either not found or not owned — 404 to avoid leaking existence.
+        return res.status(404).json({ error: 'API key not found' });
+      }
+      res.json({ ok: true, id: result[0].id });
+    } catch (error: any) {
+      console.error('[api-keys] revoke error:', error?.message || error);
+      res.status(500).json({ error: 'Failed to revoke API key' });
+    }
+  });
+
   app.get("/api/users/credentials/map", optionalAuth, async (req, res) => {
     try {
       const proxy = userProxy(req);
@@ -7715,9 +7794,13 @@ ${paramLines || '(none recorded)'}`;
       const { source, path: browsePath } = req.query as { source?: string; path?: string };
       if (!source) return res.status(400).json({ error: "source is required" });
       const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
-      // Galaxy uses `target` for the source id and `format=uri` for the listing.
-      const qs = new URLSearchParams({ target: source, format: "uri", browsable: "true" });
-      if (browsePath) qs.set("path", browsePath);
+      // Galaxy's remote_files `target` is the plugin's gxfiles:// URI (the
+      // plugin uri_root), NOT the bare id — passing the bare id 400s with
+      // "Invalid target parameter supplied". Build gxfiles://<source>/<path>.
+      const root = `gxfiles://${source}`;
+      const sub = browsePath && browsePath !== "/" ? String(browsePath).replace(/^\/+/, "") : "";
+      const target = sub ? `${root}/${sub}` : root;
+      const qs = new URLSearchParams({ target, format: "uri", browsable: "true" });
       const upstream = await fetch(`${galaxyUrl}/api/remote_files?${qs}`, {
         signal: AbortSignal.timeout(20_000),
       });
@@ -9897,6 +9980,59 @@ ${paramLines || '(none recorded)'}`;
               completedAt: new Date(),
             },
           }) || run;
+        }
+      }
+
+      // ── Lazy Nextflow status reconcile ────────────────────────────────────
+      // The stored execution.status is otherwise only advanced by the /status
+      // polling endpoint, so runs driven outside the UI poll loop (MCP /
+      // headless / direct API) can show stale 'running' long after the Nextflow
+      // run finished on AWS Batch. Poll the live Nextflow status and persist a
+      // terminal flip here too, so EVERY reader of the run record (get_run,
+      // overview, MCP) sees the real outcome — not just /status callers.
+      {
+        const isNextflowRun =
+          getWorkflowExecutionEngine(run.workflowDefinition) === 'nextflow' ||
+          run.execution?.executionEngine === 'nextflow' ||
+          !!run.execution?.nextflowRunId;
+        const nonTerminal = ['running', 'paused', 'queued'].includes(
+          String(run.execution?.status)
+        );
+        const nfRunId = run.execution?.nextflowRunId || run.execution?.galaxyInvocationId;
+        if (isNextflowRun && nonTerminal && nfRunId) {
+          try {
+            const nextflowStatus = await galaxyAPIProxy.getNextflowStatus(nfRunId);
+            const nfState = String(nextflowStatus?.status || '').toLowerCase();
+            if (['succeeded', 'failed', 'error'].includes(nfState)) {
+              const mappedStatus: ExecutionRunStatus = toValidRunStatus(nfState);
+              run = await storage.updateExecutionRun(run.id, {
+                execution: {
+                  ...run.execution,
+                  status: mappedStatus,
+                  errorMessage: nfState === 'succeeded'
+                    ? undefined
+                    : (nextflowStatus?.log_tail?.slice?.(-1)?.[0]
+                        || run.execution?.errorMessage || 'Nextflow run failed'),
+                  completedAt: new Date(),
+                  nextflowStatus,
+                },
+              }) || run;
+              const nfInvocationId = run.execution?.galaxyInvocationId || run.execution?.nextflowRunId;
+              if (nfInvocationId) {
+                galaxyPoller.emit('workflow_completed', {
+                  invocation_id: nfInvocationId,
+                  state: nfState === 'succeeded' ? 'ok' : 'failed',
+                });
+              }
+            } else if (nextflowStatus) {
+              // Non-terminal: keep latest snapshot for output/visibility.
+              run = await storage.updateExecutionRun(run.id, {
+                execution: { ...run.execution, nextflowStatus },
+              }) || run;
+            }
+          } catch (e: any) {
+            console.warn('[ExecutionRun] lazy nextflow reconcile failed:', e?.message || e);
+          }
         }
       }
 
