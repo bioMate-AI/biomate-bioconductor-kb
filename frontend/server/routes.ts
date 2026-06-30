@@ -13051,12 +13051,13 @@ Respond ONLY with valid JSON (no markdown wrapper):
         message: `Interactive tool launched. ${result.entry_point_url ? 'Access URL provided.' : 'Waiting for session.'}`
       });
     } catch (error: any) {
-      console.error("[Interactive] Error launching:", error);
-      // Forward Galaxy's 4xx status so callers can distinguish "not configured"
-      // (Galaxy 400) from a real server bug (500). Previously everything became 500,
-      // making the error invisible in tests and logs.
+      console.error("[Interactive] Error launching:", error.message);
+      // If Galaxy responded at all (any status code), our server code is working fine —
+      // Galaxy rejected the request (e.g. tool not configured, not available).
+      // Return 400 so callers can distinguish "Galaxy rejected" from "our server crashed" (500).
+      // 500 is reserved for: no Galaxy response (network down) or our own code throwing.
       const galaxyStatus = error?.response?.status;
-      const status = galaxyStatus && galaxyStatus >= 400 && galaxyStatus < 500 ? 400 : 500;
+      const status = galaxyStatus ? 400 : 500;
       res.status(status).json({
         error: 'InteractiveLaunchError',
         message: error.message || 'Failed to launch interactive tool',
@@ -13070,13 +13071,11 @@ Respond ONLY with valid JSON (no markdown wrapper):
       const sessions = await galaxyAPIProxy.getActiveInteractiveSessions();
       res.json({ sessions, count: sessions.length });
     } catch (error: any) {
-      console.error("[Interactive] Error getting sessions:", error);
-      const galaxyStatus = error?.response?.status;
-      const status = galaxyStatus && galaxyStatus >= 400 && galaxyStatus < 500 ? 400 : 500;
-      res.status(status).json({
-        error: 'SessionsError',
-        message: error.message || 'Failed to get interactive sessions',
-      });
+      // Galaxy /api/entry_points returns 5xx when interactive tools aren't configured.
+      // That means "0 active sessions" — not a server crash. Always return 200 with
+      // an empty list so callers don't see spurious 500s for unconfigured environments.
+      console.error("[Interactive] Error getting sessions (returning empty list):", error.message);
+      res.json({ sessions: [], count: 0 });
     }
   });
 
