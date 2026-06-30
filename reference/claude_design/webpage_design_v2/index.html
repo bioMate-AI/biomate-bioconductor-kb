@@ -117,15 +117,15 @@
   <style>
     .bm-hero-query-form { width: 100%; margin-bottom: 0; }
     .bm-hero-query-row {
-      display: flex; flex-direction: column; gap: 10px;
+      display: flex; align-items: flex-end; gap: 10px;
     }
     .bm-hero-query-input {
-      width: 100%; min-width: 0; box-sizing: border-box;
+      flex: 1; min-width: 0; box-sizing: border-box;
       padding: 13px 16px; font-size: 0.95rem;
       border: 1.5px solid var(--border); border-radius: 12px;
       background: rgba(255,255,255,.85); color: var(--text);
       font-family: inherit; line-height: 1.5;
-      min-height: 80px; resize: none; overflow: hidden;
+      resize: none; overflow: hidden;
       transition: border-color .15s, box-shadow .15s;
     }
     .bm-hero-query-input::placeholder { color: var(--text-muted); }
@@ -133,8 +133,8 @@
       outline: none; border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(42,85,130,.12);
     }
-    .bm-hero-query-actions {
-      display: flex; justify-content: flex-end;
+    @media (max-width: 520px) {
+      .bm-hero-query-row { flex-direction: column; align-items: stretch; }
     }
     /* Hero benefits list */
     .bm-hero-benefits {
@@ -299,13 +299,11 @@
               class="bm-hero-query-input"
               placeholder="Describe your analysis — RNA-seq, ADMET, variant calling…"
               autocomplete="off"
-              rows="3"
+              rows="2"
             ></textarea>
-            <div class="bm-hero-query-actions">
-              <button type="submit" class="bm-btn bm-btn-primary bm-btn-lg">
-                Start free <span class="bm-btn-arrow">&rarr;</span>
-              </button>
-            </div>
+            <button type="submit" class="bm-btn bm-btn-primary bm-btn-lg">
+              Start free <span class="bm-btn-arrow">&rarr;</span>
+            </button>
           </div>
         </form>
         <script>
