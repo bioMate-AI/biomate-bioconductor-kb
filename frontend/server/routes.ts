@@ -13056,7 +13056,10 @@ Respond ONLY with valid JSON (no markdown wrapper):
       // Galaxy rejected the request (e.g. tool not configured, not available).
       // Return 400 so callers can distinguish "Galaxy rejected" from "our server crashed" (500).
       // 500 is reserved for: no Galaxy response (network down) or our own code throwing.
-      const galaxyStatus = error?.response?.status;
+      //
+      // Note: galaxy-api-proxy.ts interceptor re-throws AxiosError as a GalaxyAPIError with
+      // status_code (not error.response.status), so check both fields.
+      const galaxyStatus = error?.response?.status ?? error?.status_code;
       const status = galaxyStatus ? 400 : 500;
       res.status(status).json({
         error: 'InteractiveLaunchError',
