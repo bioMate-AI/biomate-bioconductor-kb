@@ -53,8 +53,8 @@
               { divider: true },
               { label: 'Drug Discovery',                      href: 'services.html#drug-discovery' },
               { label: 'Genomics &amp; Multi-Omics',          href: 'services.html#genomics' },
-              { label: 'Structural Biology',                  href: 'services.html#structural-biology' },
               { label: 'Clinical Research &amp; Applications', href: 'services.html#clinical-research' },
+              { label: 'Structural Biology',                  href: 'services.html#structural-biology' },
               { divider: true },
               { label: 'All Services &rarr;',                 href: 'services.html', bold: true }
             ])}
