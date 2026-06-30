@@ -3164,10 +3164,22 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         # (connector execute_workflow, chat auto-execute) send workflow_ga straight
         # to /api/workflows/execute; without this they run with NO params and the
         # extracted value is dropped ([Nextflow Direct] Parameters: undefined).
+        # BUT exclude INTERNAL config vars (e.g. _useAws, _ECR, CHEM_CONTAINER)
+        # whose "default" is a Groovy/nextflow config EXPRESSION, not a literal.
+        # These are resolved inside nextflow.config — passing them on the CLI as
+        # `--_useAws "params.use_aws || System.getenv(...)"` makes Nextflow abort
+        # at parse time ("Dynamic parameter expected a value of the form a=b")
+        # → run dies instantly with zero output (e.g. cyp_ddi_panel, 2026-06-29).
+        def _is_internal_param(_name, _val):
+            if str(_name).startswith('_'):
+                return True
+            _s = str(_val)
+            return ('params.' in _s) or ('System.getenv' in _s) or ('${' in _s)
         for _p in req + opt:
             _pn = _p.get('name', '')
-            if _pn and _p.get('default') not in (None, ''):
-                _exec_params.setdefault(_pn, _p.get('default'))
+            _pv = _p.get('default')
+            if _pn and _pv not in (None, '') and not _is_internal_param(_pn, _pv):
+                _exec_params.setdefault(_pn, _pv)
         return {
             'success': True,
             'nextflow_path': match.filename,
