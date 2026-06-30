@@ -134,7 +134,7 @@
       box-shadow: 0 0 0 3px rgba(42,85,130,.12);
     }
     .bm-hero-query-btn {
-      position: absolute; right: 8px; bottom: 8px;
+      position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
       padding: 7px 16px; font-size: 0.875rem; font-weight: 600;
       background: var(--accent); color: #fff;
       border: none; border-radius: 8px; cursor: pointer;
@@ -142,7 +142,7 @@
       white-space: nowrap;
     }
     .bm-hero-query-btn:hover { background: var(--accent-dark, #1e4a80); }
-    .bm-hero-query-btn:active { transform: scale(.97); }
+    .bm-hero-query-btn:active { transform: translateY(-50%) scale(.97); }
     /* Hero benefits list */
     .bm-hero-benefits {
       list-style: none; margin: 0 0 1.5rem 0; padding: 0;
@@ -308,7 +308,7 @@
               autocomplete="off"
               rows="2"
             ></textarea>
-            <button type="submit" class="bm-hero-query-btn">Start &rarr;</button>
+            <button type="submit" class="bm-hero-query-btn">Start</button>
           </div>
         </form>
         <script>
