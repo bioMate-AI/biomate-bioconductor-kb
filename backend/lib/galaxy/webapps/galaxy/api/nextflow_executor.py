@@ -54,7 +54,20 @@ router = Router(tags=["nextflow"])
 # adds a parallel write to RunStateStore at the init site. Reads still go
 # through _runs; subsequent stages flip reads over cluster-by-cluster.
 _runs: Dict[str, Dict[str, Any]] = {}
-_runs_lock = threading.Lock()
+# REENTRANT by design. Several locked sections (_stream_logs completion at the
+# `with _runs_lock` around the status/inv-id reads, resume_nextflow_run,
+# _execute_nextflow_impl resume lookup) call the helpers `_run_lookup()` /
+# `_find_run_by_invocation_id()`, which ALSO take this lock. With a plain
+# threading.Lock() that is a self-deadlock on a single thread: the completion
+# thread holds the lock, blocks forever trying to re-acquire it, and starves
+# every other consumer (`/api/nextflow/execute` and `/api/nextflow/status` both
+# `with _runs_lock`) → the Node dispatch then trips undici's 300s headers
+# timeout → connector "fetch failed". Introduced by the Stage 2c/2d persistence
+# refactor (it replaced direct `_runs.get()` with the lock-taking helpers but
+# left the call sites inside existing locked sections). RLock allows the same
+# thread to re-enter; all critical sections only guard the in-memory dict, so
+# reentrancy is safe. Incident 2026-06-30 (connector hERG, 5 consecutive fails).
+_runs_lock = threading.RLock()
 
 from galaxy.ai.runs import get_run_state_store  # noqa: E402
 
