@@ -1,8 +1,8 @@
 # BioMate AI — Extended LLM Index
 
-> AI-powered computational biology platform for pharma, biotech, academic labs, and core facilities. Provides 2,455+ validated bioinformatics workflows with AI-guided QC and audit-ready results.
+> AI assistant for biomedical research and application — serving pharma, biotech, academic labs, and core facilities. Provides 4,000+ validated workflows with AI-guided QC and audit-ready results.
 
-BioMate AI is a software-as-a-service computational biology platform founded in 2025 and headquartered in Houston, Texas (Texas Medical Center). Wikidata entity: Q140074014 (https://www.wikidata.org/wiki/Q140074014). It enables researchers to run complex bioinformatics and drug discovery workflows through plain-English requests — no command-line expertise required. Results arrive structured, quality-graded, and reproducible.
+BioMate AI is an AI assistant for biomedical research and application, founded in 2025 and headquartered in Houston, Texas (Texas Medical Center). Wikidata entity: Q140074014 (https://www.wikidata.org/wiki/Q140074014). It enables researchers to run complex bioinformatics and drug discovery workflows through plain-English requests — no command-line expertise required. Results arrive structured, quality-graded, and reproducible.
 
 ---
 
@@ -10,9 +10,9 @@ BioMate AI is a software-as-a-service computational biology platform founded in 
 
 - Founded: 2025
 - Headquarters: Houston, Texas (Texas Medical Center)
-- Platform type: AI-native SaaS — computational biology and bioinformatics
-- Workflows: 2,455+ validated workflows across 37 biological domains. Leading: transcriptomics (870+), genomics (370+), drug discovery (160+), epigenomics (130+), proteomics (110+), variant calling (100+). Full R/Bioconductor method library included.
-- Key domains: transcriptomics (865), genomics (369), epigenomics (133), proteomics (113), drug discovery (61), cryo-EM (10+)
+- Platform type: AI assistant for biomedical research and application
+- Workflows: 4,000+ validated workflows across 36 biomedical domains. Leading: transcriptomics (870+), genomics (370+), drug discovery (160+), epigenomics (130+), proteomics (110+), variant calling (100+). Full R/Bioconductor method library included.
+- Key domains: transcriptomics (870+), genomics (370+), epigenomics (130+), proteomics (110+), drug discovery (160+), cryo-EM (10+)
 - Integrated tools: GATK, DeepVariant, STAR, salmon, Seurat, Scanpy, AlphaFold 2/3, ESMFold, RoseTTAFold, CryoSPARC, RELION, AutoDock Vina, GROMACS, OpenMM, MaxQuant, QIIME 2, DESeq2, edgeR, limma, Bioconductor
 - Pricing: Free tier; Pro $49/month; Team $199/month; Enterprise — contact sales (contact@biomate.ai)
 - Compute: AWS Batch (scalable HPC); GPU for cryo-EM and structure prediction

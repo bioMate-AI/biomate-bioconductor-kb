@@ -163,7 +163,7 @@
 
   <!-- BioMate AI logo text -->
   <text x="600" y="97" font-family="'Crimson Text',Georgia,serif" font-size="22" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.5">BioMate AI</text>
-  <text x="600" y="116" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#8FD6EA" text-anchor="middle" letter-spacing="0.5">AI-powered computational biology platform</text>
+  <text x="600" y="116" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#8FD6EA" text-anchor="middle" letter-spacing="0.5">AI assistant for biomedical research and application</text>
 
   <line x1="300" y1="130" x2="900" y2="130" stroke="rgba(143,214,234,0.15)" stroke-width="0.8"/>
 
