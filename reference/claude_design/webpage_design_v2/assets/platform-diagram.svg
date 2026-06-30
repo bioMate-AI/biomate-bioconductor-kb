@@ -170,34 +170,26 @@
   <!-- ══════════════════════════════════════════
        INNER BOX 1 — AI ORCHESTRATION
   ══════════════════════════════════════════ -->
-  <rect x="298" y="140" width="604" height="120" rx="8" fill="rgba(42,74,106,0.50)" stroke="rgba(143,214,234,0.20)" stroke-width="0.8"/>
+  <rect x="298" y="140" width="604" height="72" rx="8" fill="rgba(42,74,106,0.50)" stroke="rgba(143,214,234,0.20)" stroke-width="0.8"/>
 
   <text x="316" y="161" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" font-weight="700" fill="#8FD6EA" letter-spacing="2">AI ORCHESTRATION</text>
 
-  <!-- Orchestration chips — 4 across -->
+  <!-- Orchestration chips — 4 across, title only -->
   <!-- Chip 1: Workflow Routing -->
   <rect x="308" y="168" width="130" height="30" rx="5" fill="rgba(143,214,234,0.10)" stroke="rgba(143,214,234,0.30)" stroke-width="0.8"/>
-  <text x="373" y="180" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#FFFFFF" text-anchor="middle">Workflow Routing</text>
-  <text x="373" y="192" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#8BA3B8" text-anchor="middle">94.6% accuracy</text>
+  <text x="373" y="187" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#FFFFFF" text-anchor="middle">Workflow Routing</text>
 
   <!-- Chip 2: Parameter Extraction -->
   <rect x="448" y="168" width="130" height="30" rx="5" fill="rgba(143,214,234,0.10)" stroke="rgba(143,214,234,0.30)" stroke-width="0.8"/>
-  <text x="513" y="180" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#FFFFFF" text-anchor="middle">Parameter Extraction</text>
-  <text x="513" y="192" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#8BA3B8" text-anchor="middle">rule + LLM hybrid</text>
+  <text x="513" y="187" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#FFFFFF" text-anchor="middle">Parameter Extraction</text>
 
   <!-- Chip 3: Hierarchical Memory -->
   <rect x="588" y="168" width="130" height="30" rx="5" fill="rgba(143,214,234,0.10)" stroke="rgba(143,214,234,0.30)" stroke-width="0.8"/>
-  <text x="653" y="180" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#FFFFFF" text-anchor="middle">Hierarchical Memory</text>
-  <text x="653" y="192" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#8BA3B8" text-anchor="middle">cross-session recall</text>
+  <text x="653" y="187" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#FFFFFF" text-anchor="middle">Hierarchical Memory</text>
 
   <!-- Chip 4: Auto-Remediation -->
   <rect x="728" y="168" width="160" height="30" rx="5" fill="rgba(143,214,234,0.10)" stroke="rgba(143,214,234,0.30)" stroke-width="0.8"/>
-  <text x="808" y="180" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#FFFFFF" text-anchor="middle">Auto-Remediation</text>
-  <text x="808" y="192" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#8BA3B8" text-anchor="middle">QC-gate retry loop</text>
-
-  <!-- Subtitle bar -->
-  <rect x="308" y="206" width="580" height="22" rx="4" fill="rgba(143,214,234,0.06)" stroke="rgba(143,214,234,0.12)" stroke-width="0.6"/>
-  <text x="598" y="221" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#8BA3B8" text-anchor="middle">Hybrid vector + LLM routing · 94.6% accuracy · Wikidata Q140074014</text>
+  <text x="808" y="187" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#FFFFFF" text-anchor="middle">Auto-Remediation</text>
 
   <!-- ══════════════════════════════════════════
        INNER BOX 2 — DOMAIN COVERAGE
@@ -257,21 +249,15 @@
 
   <text x="316" y="572" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" font-weight="700" fill="#A6E2C4" letter-spacing="2">EXECUTION LAYER</text>
 
-  <!-- Execution chips row -->
-  <!-- AWS Batch -->
-  <rect x="308" y="580" width="160" height="32" rx="5" fill="rgba(46,125,82,0.20)" stroke="rgba(166,226,196,0.35)" stroke-width="0.8"/>
-  <text x="388" y="592" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF" text-anchor="middle">AWS Batch</text>
-  <text x="388" y="605" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#A6E2C4" text-anchor="middle">scalable cloud compute</text>
+  <!-- Execution chips row: Local · Cloud · HPC -->
+  <rect x="308" y="580" width="181" height="28" rx="5" fill="rgba(46,125,82,0.20)" stroke="rgba(166,226,196,0.35)" stroke-width="0.8"/>
+  <text x="398" y="598" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#FFFFFF" text-anchor="middle">Local</text>
 
-  <!-- Nextflow / nf-core -->
-  <rect x="478" y="580" width="180" height="32" rx="5" fill="rgba(46,125,82,0.20)" stroke="rgba(166,226,196,0.35)" stroke-width="0.8"/>
-  <text x="568" y="592" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF" text-anchor="middle">Nextflow / nf-core</text>
-  <text x="568" y="605" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#A6E2C4" text-anchor="middle">gold-standard pipelines</text>
+  <rect x="509" y="580" width="181" height="28" rx="5" fill="rgba(46,125,82,0.20)" stroke="rgba(166,226,196,0.35)" stroke-width="0.8"/>
+  <text x="599" y="598" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#FFFFFF" text-anchor="middle">Cloud</text>
 
-  <!-- GPU Cluster -->
-  <rect x="668" y="580" width="220" height="32" rx="5" fill="rgba(46,125,82,0.20)" stroke="rgba(166,226,196,0.35)" stroke-width="0.8"/>
-  <text x="778" y="592" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF" text-anchor="middle">GPU Cluster</text>
-  <text x="778" y="605" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#A6E2C4" text-anchor="middle">AlphaFold · CryoSPARC · deep learning</text>
+  <rect x="710" y="580" width="182" height="28" rx="5" fill="rgba(46,125,82,0.20)" stroke="rgba(166,226,196,0.35)" stroke-width="0.8"/>
+  <text x="801" y="598" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" fill="#FFFFFF" text-anchor="middle">HPC</text>
 
   <!-- QC Grade badges row -->
   <!-- Gold badge -->
