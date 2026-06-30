@@ -143,7 +143,7 @@ function SessionTab({
       <div className="rounded-md border border-muted bg-muted/30 text-xs text-muted-foreground divide-y divide-muted mb-3">
         <div className="flex gap-2 px-2.5 py-2">
           <Info className="h-3 w-3 text-blue-500 mt-0.5 shrink-0" />
-          <span><span className="font-medium text-foreground">5 GB limit</span> per local file · For larger files, switch to the <span className="font-medium text-foreground">From URL</span> tab — no size limit.</span>
+          <span><span className="font-medium text-foreground">50 GB limit</span> per local file (chunked S3 multipart with resume) · For data already hosted on S3/HTTP/FTP, switch to the <span className="font-medium text-foreground">From URL</span> tab — no transfer at all.</span>
         </div>
         <div className="flex gap-2 px-2.5 py-2">
           <FolderArchive className="h-3 w-3 text-amber-500 mt-0.5 shrink-0" />
