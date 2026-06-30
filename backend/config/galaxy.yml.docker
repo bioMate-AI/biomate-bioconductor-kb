@@ -6,6 +6,10 @@ galaxy:
   check_migrate_tools: false
   database_connection: sqlite:///./database/universe.sqlite?isolation_level=IMMEDIATE
   enable_ai_assistant: true
+  # Enable Interactive Tools (Jupyter, RStudio, CellxGene)
+  # upstream_proxy=true: nginx/Caddy handles routing, no separate gx-it-proxy needed
+  interactivetools_enable: true
+  interactivetools_upstream_proxy: true
   file_path: database/files
   master_api_key: f17c618a6d8a9b0c397d6cc847a7f658
   new_file_path: database/tmp

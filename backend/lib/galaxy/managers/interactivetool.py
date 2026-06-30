@@ -205,7 +205,8 @@ class InteractiveToolManager:
             .where(Job.state.in_(Job.non_ready_states))
         )
         if trans.user:
-            stmt = stmt.where(Job.user == trans.user)
+            # SQLAlchemy 2.x: compare via the FK column, not the relationship object
+            stmt = stmt.where(Job.user_id == trans.user.id)
         else:
             stmt = stmt.where(Job.session_id == trans.get_galaxy_session().id)
         return trans.sa_session.scalars(stmt)
