@@ -48,7 +48,7 @@ def _get_retriever():
         from galaxy.ai.cryo_em_knowledge import get_retriever
         db_path = os.environ.get(
             "GALAXY_AI_DB_PATH",
-            os.path.join(os.path.dirname(__file__), "../../../../../galaxy_ai_tools.db")
+            os.path.join(os.path.dirname(__file__), "../../../../../database/galaxy_ai_tools.db")
         )
         _retriever = get_retriever(os.path.abspath(db_path))
     return _retriever
@@ -210,7 +210,7 @@ def build_rag_index(
     from galaxy.ai.cryo_em_knowledge import build_rag_index as _build
     db_path = os.environ.get(
         "GALAXY_AI_DB_PATH",
-        os.path.join(os.path.dirname(__file__), "../../../../../galaxy_ai_tools.db")
+        os.path.join(os.path.dirname(__file__), "../../../../../database/galaxy_ai_tools.db")
     )
     n = _build(docs_dir=docs_dir, db_path=os.path.abspath(db_path), force=force)
     return RagBuildResponse(

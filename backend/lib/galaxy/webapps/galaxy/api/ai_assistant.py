@@ -4593,7 +4593,7 @@ import os as _os_dp
 
 _PROFILE_DB_PATH = _os_dp.path.normpath(_os_dp.path.join(
     _os_dp.path.dirname(_os_dp.path.abspath(__file__)),
-    "..", "..", "..", "..", "..", "galaxy_ai_tools.db"
+    "..", "..", "..", "..", "..", "database", "galaxy_ai_tools.db"
 ))
 
 
