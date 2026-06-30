@@ -119,6 +119,8 @@ interface FetchedContent {
 // Extension → viewer category
 // ---------------------------------------------------------------------------
 
+// Single-cell / AnnData formats → CellxGene interactive viewer
+const SINGLECELL_EXTS = new Set(['h5ad', 'loom', 'h5']);
 const IMAGE_EXTS   = new Set(['png', 'jpg', 'jpeg', 'gif', 'svg']);
 // PDF is the dominant Bioconductor figure output (pdf()/ggsave .pdf). It is NOT an
 // <img>-renderable raster — browsers display it natively in an <iframe>/<embed>.
@@ -139,23 +141,43 @@ const R_EXTS       = new Set(['rds', 'rdata']);
 
 type ViewerKind =
   | 'image' | 'pdf' | 'table' | 'sequence' | 'vcf' | 'annotation'
-  | 'structure' | 'density' | 'r-object' | 'html' | 'text' | 'download';
+  | 'structure' | 'density' | 'r-object' | 'singlecell' | 'html' | 'text' | 'download';
 
 function resolveViewer(ext: string): ViewerKind {
   const e = ext.toLowerCase().replace(/^\./, '');
-  if (IMAGE_EXTS.has(e))   return 'image';
-  if (PDF_EXTS.has(e))     return 'pdf';
-  if (TABLE_EXTS.has(e))   return 'table';
-  if (SEQ_EXTS.has(e))     return 'sequence';
-  if (VCF_EXTS.has(e))     return 'vcf';
-  if (ANNOT_EXTS.has(e))   return 'annotation';
-  if (STRUCT_EXTS.has(e))  return 'structure';
+  if (IMAGE_EXTS.has(e))        return 'image';
+  if (PDF_EXTS.has(e))          return 'pdf';
+  if (TABLE_EXTS.has(e))        return 'table';
+  if (SEQ_EXTS.has(e))          return 'sequence';
+  if (VCF_EXTS.has(e))          return 'vcf';
+  if (ANNOT_EXTS.has(e))        return 'annotation';
+  if (STRUCT_EXTS.has(e))       return 'structure';
   if (DENSITY_EXTS.has(e))      return 'density';
   if (R_EXTS.has(e))            return 'r-object';
+  if (SINGLECELL_EXTS.has(e))   return 'singlecell';
   if (CRYO_BINARY_EXTS.has(e))  return 'download';
   if (HTML_EXTS.has(e))         return 'html';
   if (TEXT_EXTS.has(e))         return 'text';
   return 'download';
+}
+
+/**
+ * Pick the best interactive tool for a given file extension.
+ * Used to pre-select the correct tab in InteractiveLauncher and label the button.
+ */
+function pickInteractiveTool(ext: string): {
+  tool: 'jupyter' | 'rstudio' | 'cellxgene';
+  label: string;
+} {
+  const e = ext.toLowerCase().replace(/^\./, '');
+  if (SINGLECELL_EXTS.has(e))
+    return { tool: 'cellxgene', label: 'Explore in CellxGene' };
+  if (R_EXTS.has(e) || e === 'rda')
+    return { tool: 'rstudio', label: 'Open in RStudio' };
+  if (TABLE_EXTS.has(e))
+    return { tool: 'rstudio', label: 'Analyze in RStudio' };
+  // sequences, annotations, VCF, text — Jupyter is the universal fallback
+  return { tool: 'jupyter', label: 'Open in Jupyter' };
 }
 
 /** Viewers that need text content (not a blob URL). */
@@ -164,9 +186,9 @@ const TEXT_VIEWERS: ViewerKind[] = ['table', 'sequence', 'vcf', 'annotation', 's
 /**
  * Viewers that fetch their own data — StepOutputPreview skips the blob/text
  * fetch entirely and hands the URL to the viewer component directly.
- * 'r-object' is also here because RDS/RData are binary and need no preview fetch.
+ * 'r-object' and 'singlecell' are binary; no preview content to fetch.
  */
-const SELF_FETCHING: ViewerKind[] = ['density', 'r-object'];
+const SELF_FETCHING: ViewerKind[] = ['density', 'r-object', 'singlecell'];
 
 // ---------------------------------------------------------------------------
 // STAR / RELION format parser
@@ -543,7 +565,58 @@ function RObjectPreview({ runId, file, onClose, projectId }: StepOutputPreviewPr
         <Laptop className="h-3.5 w-3.5" />
         Open in RStudio
       </Button>
-      <InteractiveLauncher open={launcherOpen} onOpenChange={setLauncherOpen} outputs={[output]} />
+      <InteractiveLauncher
+        open={launcherOpen}
+        onOpenChange={setLauncherOpen}
+        outputs={[output]}
+        initialTool="rstudio"
+      />
+    </div>
+  );
+}
+
+/** Single-cell AnnData / Loom preview — binary format; cannot be read inline.
+ *  Offers CellxGene (ideal for .h5ad / .loom) and Jupyter as fallback. */
+function SingleCellPreview({ runId: _runId, file, onClose }: StepOutputPreviewProps) {
+  const [launcherOpen, setLauncherOpen] = useState(false);
+  const [launcherTool, setLauncherTool] = useState<'cellxgene' | 'jupyter'>('cellxgene');
+  const output = { id: file.path, name: file.name, size: 0, type: file.extension };
+
+  const openWith = (tool: 'cellxgene' | 'jupyter') => {
+    setLauncherTool(tool);
+    setLauncherOpen(true);
+  };
+
+  return (
+    <div className="mt-2 border rounded-md bg-background p-3">
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
+        </div>
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground mb-3">
+        Single-cell AnnData / Loom object — open interactively to explore.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs" onClick={() => openWith('cellxgene')}>
+          <Laptop className="h-3.5 w-3.5" />
+          Explore in CellxGene
+        </Button>
+        <Button size="sm" variant="ghost" className="gap-1.5 h-7 text-xs" onClick={() => openWith('jupyter')}>
+          <Laptop className="h-3.5 w-3.5" />
+          Open in Jupyter
+        </Button>
+      </div>
+      <InteractiveLauncher
+        open={launcherOpen}
+        onOpenChange={setLauncherOpen}
+        outputs={[output]}
+        initialTool={launcherTool}
+      />
     </div>
   );
 }
@@ -605,6 +678,11 @@ export function StepOutputPreview({ runId, file, onClose, projectId }: StepOutpu
     return <RObjectPreview runId={runId} file={file} onClose={onClose} projectId={projectId} />;
   }
 
+  // Single-cell AnnData/Loom files — binary; offer CellxGene launch.
+  if (viewer === 'singlecell') {
+    return <SingleCellPreview runId={runId} file={file} onClose={onClose} />;
+  }
+
   // Route special CryoEM JSON reports to dedicated chart viewers.
   if (ext === 'json') {
     const chartType = resolveCryoChartViewer(file.name);
@@ -622,7 +700,11 @@ function FetchingPreview({
   const [content, setContent] = useState<FetchedContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [rstudioOpen, setRstudioOpen] = useState(false);
+  const [launcherOpen, setLauncherOpen] = useState(false);
+  const [launcherTool, setLauncherTool] = useState<'jupyter' | 'rstudio' | 'cellxgene'>(() => pickInteractiveTool(ext).tool);
+  // kept for compat with the local variable name used in JSX below
+  const rstudioOpen = launcherOpen;
+  const setRstudioOpen = setLauncherOpen;
 
   const needsText = TEXT_VIEWERS.includes(viewer);
   const stepFileUrl = `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(file.path)}&name=${encodeURIComponent(file.name)}`;
@@ -699,27 +781,48 @@ function FetchingPreview({
         <ViewerContent viewer={viewer} content={content} file={file} ext={ext} />
       )}
 
-      {/* Secondary action: open tabular outputs directly in RStudio */}
-      {viewer === 'table' && !loading && !error && (
-        <div className="mt-2 pt-2 border-t flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1.5 h-7 text-xs"
-            onClick={() => setRstudioOpen(true)}
-          >
-            <Laptop className="h-3.5 w-3.5" />
-            Analyze in RStudio
-          </Button>
-          <span className="text-[10px] text-muted-foreground">Opens with this file pre-loaded</span>
-        </div>
-      )}
+      {/* Secondary action: open in the appropriate interactive tool.
+          Shown for table/text/sequence/annotation/vcf viewers — all file types
+          a biologist might want to analyse further. Image, PDF, structure,
+          and density viewers are excluded (not useful in Jupyter/RStudio). */}
+      {(['table', 'text', 'sequence', 'annotation', 'vcf'] as ViewerKind[]).includes(viewer)
+        && !loading && !error && (() => {
+          const { tool, label } = pickInteractiveTool(ext);
+          return (
+            <div className="mt-2 pt-2 border-t flex items-center gap-2 flex-wrap">
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 h-7 text-xs"
+                onClick={() => { setLauncherTool(tool); setLauncherOpen(true); }}
+              >
+                <Laptop className="h-3.5 w-3.5" />
+                {label}
+              </Button>
+              {tool !== 'jupyter' && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="gap-1.5 h-7 text-xs"
+                  onClick={() => { setLauncherTool('jupyter'); setLauncherOpen(true); }}
+                  data-tool="jupyter"
+                >
+                  <Laptop className="h-3.5 w-3.5" />
+                  Open in Jupyter
+                </Button>
+              )}
+              <span className="text-[10px] text-muted-foreground">Opens with this file pre-loaded</span>
+            </div>
+          );
+        })()
+      }
 
-      {viewer === 'table' && (
+      {(['table', 'text', 'sequence', 'annotation', 'vcf'] as ViewerKind[]).includes(viewer) && (
         <InteractiveLauncher
-          open={rstudioOpen}
-          onOpenChange={setRstudioOpen}
+          open={launcherOpen}
+          onOpenChange={setLauncherOpen}
           outputs={[{ id: file.path, name: file.name, size: 0, type: file.extension }]}
+          initialTool={launcherTool}
         />
       )}
     </div>

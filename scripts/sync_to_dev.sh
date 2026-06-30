@@ -489,6 +489,17 @@ deploy_databases() {
     log "[db] galaxy_ai_tools.db changed ($(du -sh $local_db | cut -f1)) — scp to EC2..."
     ec2_scp "$local_db" "${EC2_USER}@${EC2_HOST}:/tmp/galaxy_ai_tools_sync.db" \
       || { log "[db] scp failed — aborting galaxy_ai_tools.db sync"; return 1; }
+    # Verify the transferred file is not empty/truncated before touching the container.
+    # An scp that fails mid-transfer can leave a 0-byte or partial file even with exit 0.
+    ec2_ssh '
+      transferred_size=$(stat -c %s /tmp/galaxy_ai_tools_sync.db 2>/dev/null || echo 0)
+      if [[ "$transferred_size" -lt 10485760 ]]; then
+        echo "[db] FATAL: transferred file is only ${transferred_size} bytes (expected >10MB) — refusing docker cp to avoid corrupting dev DB" >&2
+        rm -f /tmp/galaxy_ai_tools_sync.db
+        exit 1
+      fi
+      echo "[db] transfer verified: ${transferred_size} bytes"
+    ' || { log "[db] transfer size check failed — aborting"; return 1; }
     ec2_ssh '
       docker stop biomate-galaxy-dev 2>/dev/null || true
       docker cp /tmp/galaxy_ai_tools_sync.db \
@@ -498,7 +509,14 @@ deploy_databases() {
       sleep 3
       docker exec -u root biomate-galaxy-dev chown galaxy:galaxy /app/database/galaxy_ai_tools.db
       sleep 5
-      echo "[db] galaxy_ai_tools.db replaced (md5: $(docker exec biomate-galaxy-dev md5sum /app/database/galaxy_ai_tools.db | cut -d" " -f1))"
+      # Verify the copy landed correctly — catch any docker cp corruption.
+      dev_size=$(docker exec biomate-galaxy-dev stat -c %s /app/database/galaxy_ai_tools.db 2>/dev/null || echo 0)
+      dev_md5=$(docker exec biomate-galaxy-dev md5sum /app/database/galaxy_ai_tools.db 2>/dev/null | cut -d" " -f1)
+      if [[ "$dev_size" -lt 10485760 ]]; then
+        echo "[db] ERROR: dev DB is only ${dev_size}B after copy — DB may be corrupt" >&2
+      else
+        echo "[db] galaxy_ai_tools.db replaced OK (size=${dev_size}B md5=${dev_md5})"
+      fi
       rm -f /tmp/galaxy_ai_tools_sync.db
     '
     LAST_DB_SYNC="$local_db_mtime"
@@ -1072,7 +1090,59 @@ fi
 
 # --- One-shot sync ---------------------------------------------------------
 # Sync all tracked layers in one pass and exit. No polling, no retries.
-CHANGED="$(printf 'frontend/\nbackend/lib/\nbackend/biomni_workflows/\nbackend/database/')"
+#
+# Layer detection strategy:
+#   Code layers (frontend/, backend/lib/, backend/biomni_workflows/):
+#     git diff against last-synced commit — only files in those trees
+#     that actually changed get included.
+#   DB layer (galaxy_ai_tools.db):
+#     gitignored binary — use md5 of the local file vs. a stored
+#     "last-synced md5" in .last_dev_sync_db_md5. Only syncs when
+#     the file content has actually changed.
+_PREV_COMMIT_FILE="$REPO_ROOT/.last_dev_sync_commit"
+_DB_MD5_FILE="$REPO_ROOT/.last_dev_sync_db_md5"
+_LOCAL_DB="$REPO_ROOT/backend/database/galaxy_ai_tools.db"
+
+# Code layers — git diff
+_PREV_COMMIT=""
+[[ -f "$_PREV_COMMIT_FILE" ]] && _PREV_COMMIT="$(cat "$_PREV_COMMIT_FILE" | tr -d '[:space:]')"
+if [[ -n "$_PREV_COMMIT" ]] && git -C "$REPO_ROOT" rev-parse --verify "$_PREV_COMMIT" &>/dev/null; then
+  CHANGED="$(git -C "$REPO_ROOT" diff --name-only "${_PREV_COMMIT}...${CURRENT_COMMIT}" 2>/dev/null || \
+             printf 'frontend/\nbackend/lib/\nbackend/biomni_workflows/')"
+  log "Diff base: ${_PREV_COMMIT:0:8} → ${CURRENT_COMMIT:0:8} ($(echo "$CHANGED" | wc -l | tr -d ' ') code files)"
+else
+  CHANGED="$(printf 'frontend/\nbackend/lib/\nbackend/biomni_workflows/')"
+  log "No previous sync commit — syncing all code layers"
+fi
+
+# DB layer — compare local md5 against the ACTUAL dev DB md5 (not a cached local md5).
+# Comparing local→stored-local is wrong: if dev DB gets corrupted/truncated (e.g. a
+# failed docker cp that wrote 0 bytes), the stored md5 still matches local and the DB
+# is never re-synced. Root cause of the Jun-2026 "20K stub" incident.
+_LOCAL_DB_MD5="$(md5 -q "$_LOCAL_DB" 2>/dev/null || md5sum "$_LOCAL_DB" 2>/dev/null | cut -d' ' -f1 || echo '')"
+if [[ -n "$_LOCAL_DB_MD5" ]]; then
+  # Fetch the actual dev DB md5 via SSH. One cheap round-trip saves 300MB transfer.
+  _DEV_DB_MD5="$(inject_key > /dev/null 2>&1; \
+    ssh -i "$KEY_FILE" -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o IdentitiesOnly=yes \
+      "${EC2_USER}@${EC2_HOST}" \
+      'docker exec biomate-galaxy-dev md5sum /app/database/galaxy_ai_tools.db 2>/dev/null | cut -d" " -f1' 2>/dev/null || echo '')"
+  _DEV_DB_SIZE="$(inject_key > /dev/null 2>&1; \
+    ssh -i "$KEY_FILE" -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o IdentitiesOnly=yes \
+      "${EC2_USER}@${EC2_HOST}" \
+      'docker exec biomate-galaxy-dev stat -c %s /app/database/galaxy_ai_tools.db 2>/dev/null || echo 0' 2>/dev/null || echo '0')"
+  if [[ "$_LOCAL_DB_MD5" != "$_DEV_DB_MD5" ]]; then
+    CHANGED="$CHANGED"$'\n'"backend/database/"
+    log "DB out of sync (local=$_LOCAL_DB_MD5 dev=$_DEV_DB_MD5 dev_size=${_DEV_DB_SIZE}B) — will sync"
+  elif [[ "${_DEV_DB_SIZE:-0}" -lt 1048576 ]]; then
+    # Dev DB is < 1MB — corrupt/empty stub. Force sync even if md5 somehow matches.
+    CHANGED="$CHANGED"$'\n'"backend/database/"
+    log "Dev DB is too small (${_DEV_DB_SIZE}B) — forcing sync"
+  else
+    log "DB in sync on dev (${_DEV_DB_MD5}) — skipping 300MB transfer"
+  fi
+else
+  log "WARNING: cannot compute local DB md5 (file missing?) — skipping DB sync"
+fi
 
 # From here on the run IS a deploy attempt — arm the SNS notification so its
 # outcome (success OR failure) reaches the topic. Pre-flight refusals above
@@ -1080,6 +1150,10 @@ CHANGED="$(printf 'frontend/\nbackend/lib/\nbackend/biomni_workflows/\nbackend/d
 SYNC_STARTED=1
 
 if do_sync "$CURRENT_COMMIT" "$CHANGED"; then
+  # Record commit so next sync diffs only changed code layers.
+  # Note: DB md5 is no longer cached locally — we fetch it from dev each run
+  # to correctly detect dev-side corruption. See the DB layer detection comment above.
+  echo "$CURRENT_COMMIT" > "$_PREV_COMMIT_FILE"
   log "=== Sync OK at ${CURRENT_COMMIT:0:8} ==="
   # Ensure all AWS Batch CEs are pinned to the latest Launch Template version.
   # The aws-cli libz regression (2026-04 → 2026-06) was caused by CEs being

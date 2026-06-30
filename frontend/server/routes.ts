@@ -1136,6 +1136,8 @@ const upload = multer({
       '.vcf', '.vcf.gz', '.bed', '.gff', '.gtf',
       '.h5ad', '.h5', '.hdf5', '.loom',
       '.json', '.xml',
+      // Research papers / literature
+      '.pdf',
       // Cryo-EM / electron microscopy formats
       '.mrc', '.mrcs', '.tif', '.tiff', '.eer', '.spi', '.dm4', '.map',
       // Archive formats (capsule data, bulk uploads)
@@ -5881,6 +5883,18 @@ ${paramLines || '(none recorded)'}`;
       );
 
       const workflowPayload = assistantResponse.generatedWorkflow;
+
+      // Detect DB unavailability and alert ops immediately
+      if ((workflowPayload as any)?.error === 'db_unavailable') {
+        console.error('[Chat Stream API] DB unavailable error — firing admin alert');
+        emailService.sendAdminAlert('DB Unavailable — Workflow Generation Failed', {
+          time: new Date().toISOString(),
+          userId: String((req.user as any)?.id || 'anon'),
+          query: String(message || '').slice(0, 300),
+          error: 'SQLite OperationalError (missing table or corrupt DB)',
+        }, 'support@biomate.ai').catch((e: any) => console.error('[EmailAlert] send failed:', e.message));
+      }
+
       const runnableWorkflow = !!(
         workflowPayload?.success &&
         !workflowPayload?.error &&
@@ -5947,7 +5961,17 @@ ${paramLines || '(none recorded)'}`;
         };
       })();
 
-      const assistantMessage = String(assistantResponse.message || "");
+      const assistantMessage = (() => {
+        const msg = String(assistantResponse.message || "");
+        if (msg.trim()) return msg;
+        // Fallback: LLM returned empty — surface recommended tools if available, else generic prompt
+        const tools = assistantResponse.recommendedTools;
+        if (tools && tools.length > 0) {
+          const names = tools.slice(0, 3).map((t: any) => `**${t.name || t.tool_name}**`).join(', ');
+          return `I found some relevant tools for your request: ${names}. Would you like me to run one of these on your data?`;
+        }
+        return "I'm ready to help with your analysis. Could you confirm what you'd like me to run, and attach or paste your data?";
+      })();
 
       // ----------------------------------------------------------------
       // Response state — one of four explicit states, not inferred from text:
@@ -9012,7 +9036,7 @@ ${paramLines || '(none recorded)'}`;
       const result = await galaxyAPIProxy.launchInteractiveTool(toolId, targetHistoryId, inputs);
 
       // Construct entry point URL if not provided
-      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8080';
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       const entryPointUrl = result.entry_point_url || `${galaxyUrl}/interactivetool/jobs/${result.job_id}`;
 
       res.json({

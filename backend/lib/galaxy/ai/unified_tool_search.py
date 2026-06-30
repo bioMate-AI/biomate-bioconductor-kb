@@ -533,8 +533,7 @@ def create_unified_search(
     if db_path is None:
         # Auto-detect database path
         possible_paths = [
-            Path(__file__).parent.parent.parent.parent / "galaxy_ai_tools.db",
-            Path("/home/yzhang/biomate/backend/galaxy_ai_tools.db"),
+            Path(__file__).parent.parent.parent.parent / "database" / "galaxy_ai_tools.db",
         ]
         for path in possible_paths:
             if path.exists():

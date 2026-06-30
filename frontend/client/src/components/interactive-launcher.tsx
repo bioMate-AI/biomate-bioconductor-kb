@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -30,6 +30,14 @@ interface InteractiveLauncherProps {
   onOpenChange: (open: boolean) => void
   outputs?: OutputFile[]
   historyId?: string
+  /** Pre-select this tool when the dialog opens.
+   *  Callers should pick based on file extension:
+   *    h5ad/loom  → 'cellxgene'
+   *    rds/rdata  → 'rstudio'
+   *    csv/tsv    → 'rstudio'
+   *    everything → 'jupyter' (default)
+   */
+  initialTool?: InteractiveTool
 }
 
 type InteractiveTool = 'jupyter' | 'rstudio' | 'cellxgene'
@@ -64,9 +72,16 @@ export function InteractiveLauncher({
   open,
   onOpenChange,
   outputs = [],
-  historyId
+  historyId,
+  initialTool,
 }: InteractiveLauncherProps) {
-  const [selectedTool, setSelectedTool] = useState<InteractiveTool>('jupyter')
+  const [selectedTool, setSelectedTool] = useState<InteractiveTool>(initialTool ?? 'jupyter')
+
+  // Sync to initialTool whenever the dialog opens or initialTool changes.
+  // Because Dialog doesn't unmount, state persists between opens.
+  useEffect(() => {
+    if (open) setSelectedTool(initialTool ?? 'jupyter')
+  }, [open, initialTool])
   const [selectedOutputs, setSelectedOutputs] = useState<Set<string>>(new Set())
   const [isLaunching, setIsLaunching] = useState(false)
   const [error, setError] = useState<string | null>(null)

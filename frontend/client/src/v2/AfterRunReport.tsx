@@ -19,6 +19,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { FindingsCard } from "@/components/findings-card";
 import { JobButton } from "@/components/job-button";
+import { InteractiveLauncher } from "@/components/interactive-launcher";
 
 interface AfterRunReportProps {
   runId: string;
@@ -666,6 +667,116 @@ function useFetchCitations(workflowName?: string): Citation[] {
 // Tab body components
 // ---------------------------------------------------------------------------
 
+/** Map output file extensions to the right interactive tool.
+ *  Returns null when no tool is appropriate (images, PDFs, binary cryo-EM, etc.). */
+function toolForExt(ext: string): { tool: 'jupyter' | 'rstudio' | 'cellxgene'; label: string } | null {
+  const e = ext.toLowerCase().replace(/^\./, '');
+  if (['h5ad', 'loom', 'h5'].includes(e)) return { tool: 'cellxgene', label: 'CellxGene' };
+  if (['rds', 'rdata', 'rda'].includes(e)) return { tool: 'rstudio', label: 'RStudio' };
+  if (['csv', 'tsv', 'tabular', 'txt', 'json', 'log', 'bed', 'gff', 'gtf',
+       'vcf', 'fasta', 'fa', 'fastq', 'fq'].includes(e)) return { tool: 'jupyter', label: 'Jupyter' };
+  return null;
+}
+
+/**
+ * Inline interactive-tool row for the Outputs tab.
+ * Scans all output file extensions and surfaces the distinct set of
+ * applicable tools as labelled buttons — no placeholder when empty.
+ */
+function InteractiveToolsRow({ outputs }: { outputs: OutputFile[] }) {
+  const [open, setOpen] = useState(false);
+  const [selectedTool, setSelectedTool] = useState<'jupyter' | 'rstudio' | 'cellxgene'>('jupyter');
+
+  // Build the set of applicable tools + the files for each.
+  const toolMap = useMemo<Map<'jupyter' | 'rstudio' | 'cellxgene', { label: string; files: Array<{ id: string; name: string; size: number; type?: string }> }>>(() => {
+    const m = new Map<'jupyter' | 'rstudio' | 'cellxgene', { label: string; files: Array<{ id: string; name: string; size: number; type?: string }> }>();
+    for (const f of outputs) {
+      const t = toolForExt(f.ext);
+      if (!t) continue;
+      if (!m.has(t.tool)) m.set(t.tool, { label: t.label, files: [] });
+      m.get(t.tool)!.files.push({ id: f.path || f.name, name: f.name, size: f.size ?? 0, type: f.ext });
+    }
+    // Jupyter is always offered as a universal fallback — add it if not already present.
+    if (!m.has('jupyter')) {
+      const allFiles = outputs.map(f => ({ id: f.path || f.name, name: f.name, size: f.size ?? 0, type: f.ext }));
+      if (allFiles.length > 0) m.set('jupyter', { label: 'Jupyter', files: allFiles });
+    }
+    return m;
+  }, [outputs]);
+
+  if (toolMap.size === 0) return null;
+
+  const openWith = (tool: 'jupyter' | 'rstudio' | 'cellxgene') => {
+    setSelectedTool(tool);
+    setOpen(true);
+  };
+
+  // Files for the currently selected tool.
+  const currentFiles = toolMap.get(selectedTool)?.files ?? [];
+
+  // Tool ordering: CellxGene first (most specific), then RStudio, then Jupyter.
+  const orderedTools: Array<'cellxgene' | 'rstudio' | 'jupyter'> = ['cellxgene', 'rstudio', 'jupyter'];
+
+  return (
+    <div
+      data-testid="afterrun-interactive-tools-row"
+      style={{
+        display: 'flex',
+        gap: 8,
+        marginBottom: 12,
+        padding: '10px 12px',
+        background: 'oklch(0.97 0.005 245)',
+        borderRadius: 6,
+        border: '1px solid oklch(0.91 0.01 245)',
+        alignItems: 'center',
+        flexWrap: 'wrap' as React.CSSProperties['flexWrap'],
+      }}
+    >
+      <span style={{ fontSize: 11, color: 'oklch(0.48 0.012 260)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: 4 }}>
+        Explore in
+      </span>
+      {orderedTools.filter(t => toolMap.has(t)).map(tool => {
+        const { label } = toolMap.get(tool)!;
+        const icons: Record<string, string> = {
+          cellxgene: '◉',
+          rstudio: 'R',
+          jupyter: '⌥',
+        };
+        return (
+          <button
+            key={tool}
+            type="button"
+            data-testid={`afterrun-launch-${tool}`}
+            onClick={() => openWith(tool)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '5px 12px',
+              fontSize: 12,
+              fontWeight: 500,
+              background: 'white',
+              border: '1px solid oklch(0.88 0.01 245)',
+              borderRadius: 6,
+              cursor: 'pointer',
+              color: 'oklch(0.22 0.01 260)',
+            }}
+          >
+            <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 11 }}>{icons[tool]}</span>
+            {label}
+          </button>
+        );
+      })}
+      <InteractiveLauncher
+        open={open}
+        onOpenChange={setOpen}
+        outputs={currentFiles}
+        initialTool={selectedTool}
+      />
+    </div>
+  );
+}
+
 function OutputsTab({
   outputs,
   runId,
@@ -778,6 +889,8 @@ function OutputsTab({
           ↓ Reproducibility bundle
         </a>
       </div>
+
+      <InteractiveToolsRow outputs={effectiveOutputs} />
 
       {Object.entries(byStep).map(([step, files]) => (
         <div key={step} style={{ marginBottom: 12 }}>

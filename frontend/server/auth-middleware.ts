@@ -117,7 +117,7 @@ export async function authenticateToken(
       const isNonProd = process.env.NODE_ENV !== 'production';
       const isE2eBypass = isNonProd && e2eToken === expectedToken;
       if (!isE2eBypass) {
-        res.status(403).json({ error: 'Subscription required', details: subscriptionStatus });
+        res.status(403).json({ error: 'Account suspended', details: subscriptionStatus });
         return;
       }
       console.log(`[Auth] E2E-token subscription bypass for user ${user.id}`);

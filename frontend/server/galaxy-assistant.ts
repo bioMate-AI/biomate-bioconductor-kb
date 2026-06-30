@@ -1525,17 +1525,155 @@ const _inlineDataCache = new Map<string, InlineDataMap>();
  * Returns { ref, content } or null if no paper reference found.
  * Content is capped at 8000 chars (enough for methods + abstract).
  */
+async function _extractPdfText(filePath: string, maxChars = 50000): Promise<string | null> {
+  // Use a direct Python subprocess to avoid contending with the Galaxy gunicorn worker
+  // (Galaxy has 1 worker on dev; routing PDF extraction through it causes 30s+ queue waits).
+  // Try the Galaxy venv Python first; fall back to system python3.
+  const { execFile } = await import('child_process');
+  const { promisify } = await import('util');
+  const execFileAsync = promisify(execFile);
+
+  const pythonScript = `
+import sys, json
+try:
+    import pdfplumber
+    with pdfplumber.open(sys.argv[1]) as pdf:
+        parts = []
+        chars = 0
+        for page in pdf.pages:
+            t = (page.extract_text() or '').strip()
+            if t:
+                parts.append(t)
+                chars += len(t)
+            if chars >= int(sys.argv[2]):
+                break
+        text = '\\n\\n'.join(parts)[:int(sys.argv[2])]
+        print(json.dumps({'text': text, 'page_count': len(pdf.pages)}))
+except ImportError:
+    from pypdf import PdfReader
+    reader = PdfReader(sys.argv[1])
+    parts = []
+    chars = 0
+    for page in reader.pages:
+        t = (page.extract_text() or '').strip()
+        if t:
+            parts.append(t)
+            chars += len(t)
+        if chars >= int(sys.argv[2]):
+            break
+    text = '\\n\\n'.join(parts)[:int(sys.argv[2])]
+    print(json.dumps({'text': text, 'page_count': len(reader.pages)}))
+`;
+
+  const pythonCandidates = [
+    process.env.GALAXY_PYTHON || '',
+    '/Users/kky/biomate/backend/.venv/bin/python3',
+    'python3',
+    'python',
+  ].filter(Boolean);
+
+  for (const py of pythonCandidates) {
+    try {
+      const { stdout } = await execFileAsync(py, ['-c', pythonScript, filePath, String(maxChars)], {
+        timeout: 60_000,
+      });
+      const data = JSON.parse(stdout.trim()) as { text: string; page_count: number };
+      if (data.text && data.text.trim().length > 50) {
+        console.log(`[_extractPdfText] Extracted ${data.text.length} chars from ${filePath} via subprocess (${py})`);
+        return data.text;
+      }
+      return null;
+    } catch (err: any) {
+      if (err.code === 'ENOENT') continue; // Python not found, try next
+      console.warn(`[_extractPdfText] subprocess failed (${py}): ${err.message?.slice(0, 200)}`);
+      // Don't break — fall through to Galaxy HTTP endpoint as last resort
+      break;
+    }
+  }
+
+  // Last resort: Galaxy HTTP endpoint (may be slow under load)
+  const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+  try {
+    const r = await fetch(`${galaxyUrl}/api/ai_assistant/extract_pdf_text`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file_path: filePath, max_chars: maxChars }),
+      signal: AbortSignal.timeout(90_000),
+    });
+    if (!r.ok) {
+      console.warn(`[_extractPdfText] Galaxy endpoint returned ${r.status} for ${filePath}`);
+      return null;
+    }
+    const data = await r.json() as { text?: string; page_count?: number };
+    return data.text && data.text.trim().length > 50 ? data.text : null;
+  } catch (err: any) {
+    console.warn(`[_extractPdfText] Galaxy fetch failed: ${err.message}`);
+    return null;
+  }
+}
+
 async function _fetchPaperContentFromMessage(
   message: string,
 ): Promise<{ ref: string; content: string } | null> {
+  // --- Attached PDF extraction (highest priority) ---
+  // Message format (from chat-interface.tsx):
+  //   [Attached files: paper.pdf, other.pdf]
+  //   [Uploaded datasets: paper.pdf: dataset_id=<uuid>[, galaxy_dataset_id=<gid>][; other.pdf: dataset_id=<uuid2>]]
+  const _attachedBlock = message.match(/\[Attached files:\s*([^\]]+)\]/i)?.[1] ?? '';
+  const _datasetsBlock = message.match(/\[Uploaded datasets:\s*([^\]]+)\]/i)?.[1] ?? '';
+  if (_attachedBlock && _datasetsBlock && /\.pdf\b/i.test(_attachedBlock)) {
+    try {
+      const { getUploadedFile } = await import('./routes');
+      // Split multi-file entries: "name.pdf: dataset_id=<uuid>[, galaxy_dataset_id=<gid>]"
+      const entries = _datasetsBlock.split(/;\s*/);
+      const textParts: string[] = [];
+      const refNames: string[] = [];
+      for (const entry of entries) {
+        const name = entry.match(/^([^:]+):/)?.[1]?.trim() ?? '';
+        if (!name.toLowerCase().endsWith('.pdf')) continue;
+        const datasetId = entry.match(/dataset_id=([a-f0-9-]+)/i)?.[1];
+        if (!datasetId) continue;
+        const localFile = getUploadedFile(datasetId);
+        if (!localFile?.filePath) {
+          console.warn(`[_fetchPaperContentFromMessage] No local file for dataset ${datasetId}`);
+          continue;
+        }
+        const text = await _extractPdfText(localFile.filePath, 40000);
+        if (text) {
+          textParts.push(`=== ${name} ===\n${text}`);
+          refNames.push(name);
+        }
+      }
+      if (textParts.length > 0) {
+        return {
+          ref: refNames.join(', '),
+          content: textParts.join('\n\n---\n\n').slice(0, 50000),
+        };
+      }
+    } catch (err: any) {
+      console.warn(`[_fetchPaperContentFromMessage] PDF extraction failed: ${err.message}`);
+    }
+  }
+
   // arXiv: https://arxiv.org/abs/XXXX.XXXXX or arxiv:XXXX.XXXXX
-  const arxivMatch = message.match(/(?:https?:\/\/arxiv\.org\/abs\/|arxiv[:\s]+)(\d{4}\.\d{4,})/i);
-  // DOI: 10.XXXX/...
-  const doiMatch = message.match(/\b(10\.\d{4,}\/\S+)/);
+  const arxivMatch = message.match(/(?:https?:\/\/arxiv\.org\/(?:abs|pdf)\/|arxiv[:\s]+)(\d{4}\.\d{4,})/i);
+
+  // DOI: bare 10.XXXX/... NOT inside a URL (negative lookbehind for URL path chars)
+  const doiRaw = message.match(/(?<![:/\w])(10\.\d{4,}\/[^\s\])"',;]+)/);
+  const doiMatch = doiRaw
+    ? (() => {
+        // Double-check: skip if the match sits inside an https:// URL
+        const idx = doiRaw.index ?? 0;
+        const pre = message.slice(Math.max(0, idx - 30), idx);
+        return /https?:\/\/\S*$/.test(pre) ? null : doiRaw;
+      })()
+    : null;
+
   // PMID: PMID:XXXXXXXX or pubmed.ncbi.../<digits>
   const pmidMatch = message.match(/\bPMID[:\s]+(\d{5,})\b/i)
     || message.match(/pubmed\.ncbi\.nlm\.nih\.gov\/(\d{5,})/i);
-  // Bare https URL (not already captured)
+
+  // Bare https URL (only if none of the above matched)
   const urlMatch = !arxivMatch && !doiMatch && !pmidMatch
     ? message.match(/https?:\/\/[^\s\])"']+/)
     : null;
@@ -1544,36 +1682,30 @@ async function _fetchPaperContentFromMessage(
     if (arxivMatch) {
       const id = arxivMatch[1];
       const ref = `arXiv:${id}`;
-      const apiUrl = `https://export.arxiv.org/api/query?id_list=${encodeURIComponent(id)}&max_results=1`;
-      const res = await fetch(apiUrl, { signal: AbortSignal.timeout(10_000) });
-      if (!res.ok) return null;
-      const xml = await res.text();
-      const summary = xml.match(/<summary[^>]*>([\s\S]*?)<\/summary>/i)?.[1]?.trim() ?? '';
-      const title = xml.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.replace(/\n\s+/g, ' ').trim() ?? '';
-      const pdfUrl = xml.match(/<link[^>]+title="pdf"[^>]+href="([^"]+)"/i)?.[1]
-        ?? `https://arxiv.org/pdf/${id}`;
-      let content = `Title: ${title}\n\nAbstract: ${summary}`;
-      // Attempt to fetch PDF text via Europe PMC / direct (lightweight, 15s budget)
-      try {
-        const pdfRes = await fetch(pdfUrl, { signal: AbortSignal.timeout(15_000) });
-        if (pdfRes.ok) {
-          const buf = await pdfRes.arrayBuffer();
-          // Extract readable ASCII text from PDF bytes (rough but fast — no native PDF lib needed)
-          const raw = Buffer.from(buf).toString('latin1');
-          const text = raw.replace(/[^\x20-\x7E\n]/g, ' ').replace(/\s{3,}/g, '\n').slice(0, 6000);
-          if (text.trim().length > 200) content += `\n\nPaper text (excerpt):\n${text}`;
-        }
-      } catch { /* PDF fetch is best-effort */ }
-      return { ref, content: content.slice(0, 8000) };
+      // Fetch abstract HTML page — has citation_* meta tags, faster than export Atom API
+      const res = await fetch(`https://arxiv.org/abs/${id}`, {
+        signal: AbortSignal.timeout(15_000),
+        headers: { 'User-Agent': 'BioMate/1.0 (research assistant; mailto:biomate@biomate.ai)' },
+      }).catch(() => null);
+      if (!res?.ok) return null;
+      const html = await res.text();
+      const title = html.match(/<meta name="citation_title" content="([^"]+)"/i)?.[1]?.trim()
+        ?? html.match(/<title>([^<]+)<\/title>/i)?.[1]?.replace(/\[.*?\]\s*/, '').trim()
+        ?? '';
+      const summary = html.match(/<meta name="citation_abstract" content="([^"]+)"/i)?.[1]?.trim()
+        ?? html.match(/<blockquote class="abstract[^"]*">([\s\S]*?)<\/blockquote>/i)?.[1]
+             ?.replace(/<[^>]+>/g, '').replace(/Abstract:\s*/i, '').trim()
+        ?? '';
+      const content = `Title: ${title}\n\nAbstract: ${summary}`;
+      return content.length > 30 ? { ref, content: content.slice(0, 8000) } : null;
     }
 
     if (doiMatch) {
       const doi = doiMatch[1].replace(/[.,;)\]]+$/, '');
       const ref = `DOI:${doi}`;
-      // Try Unpaywall for open-access PDF, fall back to crossref for metadata
       const crossref = await fetch(
         `https://api.crossref.org/works/${encodeURIComponent(doi)}?mailto=biomate@biomate.ai`,
-        { signal: AbortSignal.timeout(10_000) },
+        { signal: AbortSignal.timeout(12_000) },
       ).catch(() => null);
       if (crossref?.ok) {
         const data = await crossref.json();
@@ -1589,33 +1721,52 @@ async function _fetchPaperContentFromMessage(
     if (pmidMatch) {
       const pmid = pmidMatch[1];
       const ref = `PMID:${pmid}`;
+      // Fetch abstract text via PubMed efetch
       const efetch = await fetch(
         `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=${pmid}&rettype=abstract&retmode=text`,
-        { signal: AbortSignal.timeout(10_000) },
+        { signal: AbortSignal.timeout(12_000) },
       ).catch(() => null);
       if (efetch?.ok) {
         const content = (await efetch.text()).slice(0, 8000);
-        return { ref, content };
+        if (content.trim().length > 50) return { ref, content };
       }
       return null;
     }
 
     if (urlMatch) {
-      const url = urlMatch[0];
+      const url = urlMatch[0].replace(/[.,;)\]]+$/, '');
+
+      // bioRxiv / medRxiv: extract DOI from URL path and use their REST API
+      const biorxivDoi = url.match(/(?:biorxiv|medrxiv)\.org\/content\/(10\.\d{4,}\/[^\s?#v]+)/i)?.[1];
+      if (biorxivDoi) {
+        const server = url.includes('medrxiv') ? 'medrxiv' : 'biorxiv';
+        const apiRes = await fetch(
+          `https://api.biorxiv.org/details/${server}/${biorxivDoi}/json`,
+          { signal: AbortSignal.timeout(12_000) },
+        ).catch(() => null);
+        if (apiRes?.ok) {
+          const data = await apiRes.json();
+          const paper = (data?.collection ?? [])[0];
+          if (paper) {
+            const content = `Title: ${paper.title ?? ''}\nAuthors: ${paper.authors ?? ''}\nAbstract: ${paper.abstract ?? ''}`.slice(0, 8000);
+            if (content.trim().length > 50) return { ref: `${server}:${biorxivDoi}`, content };
+          }
+        }
+        // If API fails, fall through to HTML fetch
+      }
+
       const res = await fetch(url, {
-        signal: AbortSignal.timeout(12_000),
+        signal: AbortSignal.timeout(15_000),
         headers: { 'User-Agent': 'BioMate/1.0 (research assistant; mailto:biomate@biomate.ai)' },
       }).catch(() => null);
       if (!res?.ok) return null;
       const ct = res.headers.get('content-type') ?? '';
       if (ct.includes('pdf')) {
-        // Same rough PDF text extraction as arXiv path
-        const buf = await res.arrayBuffer();
-        const raw = Buffer.from(buf).toString('latin1');
-        const text = raw.replace(/[^\x20-\x7E\n]/g, ' ').replace(/\s{3,}/g, '\n').slice(0, 6000);
-        return text.trim().length > 200 ? { ref: url, content: text } : null;
+        // PDF binary fetch via URL — call Python backend for pdfplumber extraction
+        // (latin1 decode produces junk; skip binary PDF here, let upload flow handle it)
+        return null;
       }
-      // HTML: strip tags, collapse whitespace
+      // HTML: strip style/script/tags, collapse whitespace
       const html = await res.text();
       const text = html
         .replace(/<style[\s\S]*?<\/style>/gi, '')
@@ -1623,7 +1774,7 @@ async function _fetchPaperContentFromMessage(
         .replace(/<[^>]+>/g, ' ')
         .replace(/\s{2,}/g, '\n')
         .slice(0, 8000);
-      return { ref: url, content: text };
+      return text.trim().length > 100 ? { ref: url, content: text } : null;
     }
   } catch (err: any) {
     console.warn('[_fetchPaperContentFromMessage] fetch failed:', err.message);
@@ -1737,7 +1888,14 @@ export class GalaxyAssistant {
     const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (geminiKey) this.gemini = new GoogleGenerativeAI(geminiKey);
     this.galaxyAPI = options.galaxyAPIProxy;
-    this.modelConfig = { ...DEFAULT_MODEL_CONFIG, ...options.modelConfig };
+    // Auto-detect: if no Anthropic key but Gemini is available, switch response model to Gemini.
+    // This prevents silent auth failures when ANTHROPIC_API_KEY is absent on a Gemini-only deployment.
+    const computedModelConfig = { ...DEFAULT_MODEL_CONFIG, ...options.modelConfig };
+    if (!options.anthropicApiKey && geminiKey && !computedModelConfig.responseModel?.startsWith('gemini-')) {
+      computedModelConfig.responseModel = 'gemini-3.5-flash';
+      console.log('[GalaxyAssistant] No ANTHROPIC_API_KEY — switching responseModel to gemini-3.5-flash');
+    }
+    this.modelConfig = computedModelConfig;
     this.sessionMemory = new SessionMemoryUpdater(this.claude);
     // Wire persistence: after each Haiku update, write sessionMemory into conversationState JSONB
     this.sessionMemory.setPersistCallback((sid, mem) => {
@@ -1840,18 +1998,23 @@ export class GalaxyAssistant {
     const MAX_TOOL_TURNS = 12;
     let currentMessage: string | object = lastMessage;
     for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
-      const result = await chat.sendMessage(currentMessage as any);
-      const response = result.response;
-      const allParts = response.candidates?.[0]?.content?.parts || [];
-      console.log(`[GeminiLoop] turn=${turn} parts=${allParts.length} keys=${allParts.map((p: any) => Object.keys(p).join(',')).join('|')}`);
-
-      // Collect text (skip thoughtSignature-only parts)
-      const textParts = allParts.filter((p: any) => p.text);
-      for (const part of textParts) {
-        const txt: string = part.text ?? '';
-        rawResponse += txt;
-        if (txt) onResponseDelta?.(txt);
+      // Use streaming so tokens flow to the client as they arrive instead of
+      // appearing all at once after the full model round-trip completes.
+      const streamResult = await chat.sendMessageStream(currentMessage as any);
+      for await (const chunk of streamResult.stream) {
+        for (const part of (chunk.candidates?.[0]?.content?.parts || []) as any[]) {
+          if (part.text) {
+            rawResponse += part.text;
+            onResponseDelta?.(part.text);
+          }
+        }
       }
+      // Await the aggregated response to:
+      //  1. Ensure SDK updates chat history before the next sendMessageStream call
+      //  2. Reliably detect function calls (never split across stream chunks)
+      const aggregated = await streamResult.response;
+      const allParts: any[] = aggregated.candidates?.[0]?.content?.parts || [];
+      console.log(`[GeminiLoop] turn=${turn} parts=${allParts.length} keys=${allParts.map((p: any) => Object.keys(p).join(',')).join('|')}`);
 
       // Check for function calls
       const fnCalls = allParts.filter((p: any) => p.functionCall);
@@ -1896,12 +2059,19 @@ export class GalaxyAssistant {
         });
         const summaryHistory = await chat.getHistory();
         const summaryChatObj = noToolModel.startChat({ history: summaryHistory });
-        const summaryResult = await summaryChatObj.sendMessage(
+        const summaryStream = await summaryChatObj.sendMessageStream(
           'Based on all the code results above, what is the final answer? Reply with ONLY the answer value.'
         );
-        const summaryText = summaryResult.response.text();
-        rawResponse = summaryText;
-        if (summaryText) onResponseDelta?.(summaryText);
+        for await (const chunk of summaryStream.stream) {
+          const txt = (chunk.candidates?.[0]?.content?.parts || [])
+            .filter((p: any) => p.text)
+            .map((p: any) => p.text as string)
+            .join('');
+          if (txt) {
+            rawResponse += txt;
+            onResponseDelta?.(txt);
+          }
+        }
       } catch (e: any) {
         console.warn('[GeminiLoop] Final answer request failed:', e.message);
       }
@@ -3091,7 +3261,20 @@ Rules:
     };
 
     // Research agent
-    if (actions.needsResearchAgent) {
+    // Skip when the message already contains injected paper content — the LLM has everything
+    // it needs to answer directly. The research agent adds value for external knowledge queries
+    // (database lookups, literature search) but NOT when paper text is already in-context.
+    // Text-reasoning intents (protocol_guidance, data_interpretation, methods_writing,
+    // experiment_design, teaching_explanation) don't need the Python research agent when paper
+    // content is present; the LLM is the stronger reasoner for this task.
+    const _textReasoningIntents = new Set([
+      'protocol_guidance', 'data_interpretation', 'methods_writing',
+      'experiment_design', 'teaching_explanation', 'general_question',
+    ]);
+    const _hasPaperContent = paperContentResult !== null;
+    const _skipResearchAgent = _hasPaperContent && _textReasoningIntents.has(intent.type);
+
+    if (actions.needsResearchAgent && !_skipResearchAgent) {
       log('Routing to research backend');
       try {
         researchResponse = await this._api().queryResearch({
@@ -3104,6 +3287,8 @@ Rules:
       } catch (error: any) {
         log('Research query failed: ' + error.message);
       }
+    } else if (_skipResearchAgent) {
+      log(`Skipping research agent — paper content (${paperContentResult!.content.length} chars) already in context; LLM will reason directly`);
     }
 
     // Benchmark agent
@@ -4133,6 +4318,34 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     context: ChatContext,
     sessionMemoryBlock: string = ''
   ): Promise<IntentDecomposition> {
+    // Short-circuit: inline tabular data + known analysis tool → always workflow_generation.
+    // The LLM intent classifier unreliably returns tool_search for pasted CSV/count-matrix
+    // messages because the R/Bioconductor priority note says run_code for small datasets.
+    // This deterministic rule fires before the LLM call and is not affected by prompt drift.
+    const _ANALYSIS_TOOLS_RE = /\b(deseq2|edger|limma|seurat|scanpy|clusterProfiler|enrichGO|minfi|macs2|star|hisat2|bowtie|salmon|kallisto|cellranger|monocle|harmony|scvi|magma|ldsc|plink|gatk|deepvariant|varscan|mutect|freebayes|cuffdiff|htseq|featurecounts|dseq|glmgampoi)\b/i;
+    const _HAS_TABULAR_DATA = (msg: string) => {
+      const lines = msg.split('\n');
+      // 3+ lines where at least 2 contain comma or tab-separated numbers
+      const dataLines = lines.filter(l => /(\d+[,\t]\s*\d+[,\t]\s*\d+)/.test(l));
+      return dataLines.length >= 2;
+    };
+    if (_HAS_TABULAR_DATA(message) && _ANALYSIS_TOOLS_RE.test(message)) {
+      const wgIntent: DecomposedIntent = {
+        id: 'intent_inline_data_forced',
+        type: 'workflow_generation',
+        subQuery: message,
+        keywords: [],
+        inlineParameters: {},
+        needsToolSearch: false,
+        needsDatasets: false,
+        confidence: 0.95,
+        facts: [],
+        dependsOn: [],
+        actions: inferActionsFromType('workflow_generation'),
+      };
+      return { intents: [wgIntent], isMultiIntent: false, primaryIntent: wgIntent };
+    }
+
     // Short-circuit: "KNOWLEDGE QUESTION" prefix from eval harness forces research_question
     // routing without calling Haiku, preventing workflow hijack on benchmark tasks.
     if (message.startsWith('KNOWLEDGE QUESTION')) {
@@ -4169,6 +4382,7 @@ Describe the user's information need with a descriptive label. You may use these
 1. Search BioMate's indexed Bioconductor workflows first (1,000+ available). If a matching workflow exists, use it (needsWorkflowGeneration: true, runs on AWS Batch with full R + Bioconductor).
 2. If no indexed workflow matches, generate a new Nextflow/R workflow and add it to BioMate's DB.
 3. If the task is ad-hoc or too small for a full pipeline (single statistical test, small inline dataset), execute R directly via run_code (needsWorkflowGeneration: false).
+**CRITICAL — inline data is ALWAYS workflow_generation, never tool_search:** If the user pastes data directly in the message (CSV rows, gene counts, a count matrix, SMILES strings, sequences, numeric arrays) AND uses an analysis verb (run, analyse, compute, test, compare, identify, find), classify as **workflow_generation**. The inline data IS their input — BioMate will execute the analysis. Never classify this as tool_search or research_question.
 **research_question** — Look up or synthesize information from scientific literature and papers.
 **database_lookup** — Query a specific biological database (GWAS Catalog, Open Targets, OMIM, ClinVar, Ensembl, mygene.info, Monarch) for structured facts. Use when the question needs real-time database query results, not just literature recall.
 **genomics_knowledge** — GWAS variant-to-phenotype associations, causal gene identification at a locus, eQTL evidence, gene-disease links, published CRISPR screen results. Triggered by: candidate SNP/gene selection tasks, "from this list which is causal", GWAS phenotype + rsID candidates, "which gene showed the strongest effect in this CRISPR screen", "identify the gene from this published screen". Requires live GWAS Catalog / Open Targets / DepMap / GenomeCRISPR lookup. Candidate gene/SNP lists in the prompt are published data to look up — NOT user-provided files.
@@ -6359,11 +6573,11 @@ ${runnableWorkflow
      - Bullet: Expected output (file types / results)
      - Do NOT say "click Run" — the Run button is already visible`
   : !isWorkflowTurn
-    ? researchResponse
+    ? (researchResponse || /\[Paper content:/i.test(message))
       ? `FORMAT: Research / document answer.
-     - Answer directly and fully. Use the research evidence and any [Paper content: ...] in the message.
-     - Cite sources inline as [N] where relevant.
-     - End with ## References section if citations were provided.`
+     - Answer directly and fully. Extract information from any [Paper content: ...] blocks in the message and use any research evidence provided.
+     - Cite the paper(s) by name. Use [N] inline where relevant.
+     - End with ## References section listing papers cited.`
       : `FORMAT: Direct answer.
      - Answer the question directly and completely. No workflow format. No "Missing:" prefix.
      - Use run_code if computation is needed on data already in the prompt.`
@@ -6516,7 +6730,14 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             'methods_writing','comparative_methodology','regulatory_compliance',
           ]).has((intent as any)?.type ?? ''),
         });
-        return { message: qualityEnforcedMessage || rawResponse, truncated: false };
+        const finalMessage = qualityEnforcedMessage || rawResponse;
+        if (!finalMessage) {
+          // Gemini returned an empty response — surface a clear error rather than silence
+          const emptyFallback = 'I\'m having trouble generating a response right now. Please try again in a moment.';
+          if (onResponseDelta) onResponseDelta(emptyFallback);
+          return { message: emptyFallback, truncated: false };
+        }
+        return { message: finalMessage, truncated: false };
       }
       // ── End non-Claude backbone ───────────────────────────────────────────────
 
@@ -6695,6 +6916,11 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       });
 
       const wasTruncated = lastStopReason === 'max_tokens';
+      if (!qualityEnforcedMessage) {
+        const emptyFallback = 'I\'m having trouble generating a response right now. Please try again in a moment.';
+        if (onResponseDelta) onResponseDelta(emptyFallback);
+        return { message: emptyFallback, truncated: false };
+      }
       return {
         message: qualityEnforcedMessage,
         thinking: thinkingResult.hasThinking ? thinkingResult : undefined,
@@ -6736,6 +6962,33 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       if (isBilling) {
         return { message: 'Service temporarily unavailable: API credit balance too low. Please contact support.' };
       }
+
+      // Auth failure or any other error: fall back to Gemini if available.
+      // This covers the common case where ANTHROPIC_API_KEY is not configured on
+      // a server that has GEMINI_API_KEY — avoids silent empty responses.
+      if (this.gemini) {
+        console.warn(`[GalaxyAssistant] Claude error (${isAuth ? 'auth' : 'unknown'}) — falling back to Gemini`);
+        try {
+          const allPrev = context.previousMessages || [];
+          const plainMessages = [
+            ...allPrev.slice(-6).map(m => ({
+              role: (m.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
+              content: typeof m.content === 'string' ? m.content
+                : (m.content as any[]).filter((b: any) => b.type === 'text').map((b: any) => b.text).join(''),
+            })),
+            { role: 'user' as const, content: userPrompt },
+          ];
+          const geminiResponse = await this._generateWithGemini(
+            systemPrompt, plainMessages, onResponseDelta, 4096, 'gemini-3.5-flash',
+          );
+          const fallbackMsg = geminiResponse || 'I\'m having trouble generating a response right now. Please try again in a moment.';
+          if (!geminiResponse && onResponseDelta) onResponseDelta(fallbackMsg);
+          return { message: fallbackMsg, truncated: false };
+        } catch (geminiErr: any) {
+          console.error('[GalaxyAssistant] Gemini fallback also failed:', geminiErr.message);
+        }
+      }
+
       if (isAuth) {
         return { message: 'Service configuration error: invalid API credentials. Please contact support.' };
       }
@@ -6876,6 +7129,15 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       const { getUploadedFile } = await import('./routes');
       const localFile = getUploadedFile(fileId);
       if (localFile?.filePath) {
+        // PDF: extract text via pdfplumber (binary readFile returns garbage for PDFs)
+        if (localFile.filePath.toLowerCase().endsWith('.pdf')) {
+          const text = await _extractPdfText(localFile.filePath, Math.min(n_lines * 200, 40000));
+          if (text) {
+            const lines = text.split('\n').slice(0, n_lines);
+            return { lines, total_lines_preview: lines.length, format_hint: 'PDF', has_more: true };
+          }
+          return { error: 'PDF text extraction failed — file may be scanned or encrypted' };
+        }
         const nodeFs = await import('fs/promises');
         const content = await nodeFs.readFile(localFile.filePath, 'utf8');
         const allLines = content.split('\n');

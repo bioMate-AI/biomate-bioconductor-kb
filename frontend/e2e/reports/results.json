@@ -97,295 +97,149 @@
   },
   "suites": [
     {
-      "title": "index-query-input.e2e.ts",
-      "file": "index-query-input.e2e.ts",
+      "title": "tutorial-use-cases.e2e.ts",
+      "file": "tutorial-use-cases.e2e.ts",
       "column": 0,
       "line": 0,
       "specs": [
         {
-          "title": "QI-1: Registration — /register form → new account → chat access",
-          "ok": false,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 60000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "failed",
-                  "duration": 107633,
-                  "error": {
-                    "message": "TypeError: termsButton.isAttached is not a function",
-                    "stack": "TypeError: termsButton.isAttached is not a function\n    at /Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts:313:25",
-                    "location": {
-                      "file": "/Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts",
-                      "column": 25,
-                      "line": 313
-                    },
-                    "snippet": "  311 |   const termsButton = page.locator('#terms');\n  312 |   const termsLabel = page.locator('label[for=\"terms\"]');\n> 313 |   if (await termsButton.isAttached({ timeout: 3_000 }).catch(() => false)) {\n      |                         ^\n  314 |     const dataState = await termsButton.getAttribute('data-state').catch(() => 'unchecked');\n  315 |     if (dataState !== 'checked') {\n  316 |       // Prefer clicking the label (triggers Radix handler via normal DOM event)"
-                  },
-                  "errors": [
-                    {
-                      "location": {
-                        "file": "/Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts",
-                        "column": 25,
-                        "line": 313
-                      },
-                      "message": "TypeError: termsButton.isAttached is not a function\n\n  311 |   const termsButton = page.locator('#terms');\n  312 |   const termsLabel = page.locator('label[for=\"terms\"]');\n> 313 |   if (await termsButton.isAttached({ timeout: 3_000 }).catch(() => false)) {\n      |                         ^\n  314 |     const dataState = await termsButton.getAttribute('data-state').catch(() => 'unchecked');\n  315 |     if (dataState !== 'checked') {\n  316 |       // Prefer clicking the label (triggers Radix handler via normal DOM event)\n    at /Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts:313:25"
-                    }
-                  ],
-                  "stdout": [
-                    {
-                      "text": "[Screenshot] /tmp/qi-e2e-screenshots/qi-reg-01-page.png\n"
-                    },
-                    {
-                      "text": "[QI-1] Register form fields visible ✓\n"
-                    },
-                    {
-                      "text": "[QI-1] Password mismatch validation ✓\n"
-                    },
-                    {
-                      "text": "[Screenshot] /tmp/qi-e2e-screenshots/qi-reg-02-mismatch-error.png\n"
-                    }
-                  ],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-06-22T19:47:19.377Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "video",
-                      "contentType": "video/webm",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/index-query-input.e2e.ts-Q-456bd-→-new-account-→-chat-access-chromium/video.webm"
-                    },
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/index-query-input.e2e.ts-Q-456bd-→-new-account-→-chat-access-chromium/error-context.md"
-                    },
-                    {
-                      "name": "trace",
-                      "contentType": "application/zip",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/index-query-input.e2e.ts-Q-456bd-→-new-account-→-chat-access-chromium/trace.zip"
-                    }
-                  ],
-                  "errorLocation": {
-                    "file": "/Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts",
-                    "column": 25,
-                    "line": 313
-                  }
-                }
-              ],
-              "status": "unexpected"
-            }
-          ],
-          "id": "a6af1ea51b88f8cee184-18b31efc02e84c1d2385",
-          "file": "index-query-input.e2e.ts",
-          "line": 225,
-          "column": 1
-        },
-        {
-          "title": "QI-2: Login — /login form → fixture account → chat access",
-          "ok": false,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 60000,
-              "annotations": [
-                {
-                  "type": "skip",
-                  "description": "E2E_FIXTURE_PASSWORD not set — skipping login UI test",
-                  "location": {
-                    "file": "/Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts",
-                    "line": 388,
-                    "column": 10
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [
-                {
-                  "workerIndex": 1,
-                  "parallelIndex": 0,
-                  "status": "failed",
-                  "duration": 29704,
-                  "error": {
-                    "message": "Error: apiRequestContext._wrapApiCall: ENOENT: no such file or directory, open '/Users/kky/biomate/frontend/e2e/test-results/.playwright-artifacts-1/traces/a6af1ea51b88f8cee184-ab668abecea519e22f31.trace'",
-                    "stack": "Error: apiRequestContext._wrapApiCall: ENOENT: no such file or directory, open '/Users/kky/biomate/frontend/e2e/test-results/.playwright-artifacts-1/traces/a6af1ea51b88f8cee184-ab668abecea519e22f31.trace'"
-                  },
-                  "errors": [
-                    {
-                      "message": "Error: apiRequestContext._wrapApiCall: ENOENT: no such file or directory, open '/Users/kky/biomate/frontend/e2e/test-results/.playwright-artifacts-1/traces/a6af1ea51b88f8cee184-ab668abecea519e22f31.trace'"
-                    },
-                    {
-                      "message": "Error: ENOENT: no such file or directory, open '/Users/kky/biomate/frontend/e2e/test-results/.playwright-artifacts-1/8f6c8e40c6ee95b87dbac4d6e09d4f09.zip'"
-                    },
-                    {
-                      "message": "\u001b[31mTest timeout of 2700000ms exceeded.\u001b[39m"
-                    }
-                  ],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-06-22T19:50:19.959Z",
-                  "annotations": [
-                    {
-                      "type": "skip",
-                      "description": "E2E_FIXTURE_PASSWORD not set — skipping login UI test",
-                      "location": {
-                        "file": "/Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts",
-                        "line": 388,
-                        "column": 10
-                      }
-                    }
-                  ],
-                  "attachments": []
-                }
-              ],
-              "status": "unexpected"
-            }
-          ],
-          "id": "a6af1ea51b88f8cee184-ab668abecea519e22f31",
-          "file": "index-query-input.e2e.ts",
-          "line": 385,
-          "column": 1
-        },
-        {
-          "title": "QI-3: Chat query input — full user journey",
-          "ok": false,
+          "title": "Tutorial workflow routing — all 7 domain scenarios",
+          "ok": true,
           "tags": [],
           "tests": [
             {
               "timeout": 900000,
               "annotations": [],
               "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
+              "projectId": "firefox",
+              "projectName": "firefox",
               "results": [
                 {
-                  "workerIndex": 2,
+                  "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "failed",
-                  "duration": 228209,
-                  "error": {
-                    "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5000/?q=What%20is%20BioMate%3F\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5000/?q=What%20is%20BioMate%3F\", waiting until \"load\"\u001b[22m\n",
-                    "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5000/?q=What%20is%20BioMate%3F\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5000/?q=What%20is%20BioMate%3F\", waiting until \"load\"\u001b[22m\n\n    at /Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts:633:14",
-                    "location": {
-                      "file": "/Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts",
-                      "column": 14,
-                      "line": 633
-                    },
-                    "snippet": "  631 |   // ── ?q= URL param auto-submits; URL cleaned ────────────────────────────────\n  632 |   const query7 = \"What is BioMate?\";\n> 633 |   await page.goto(`${BASE_URL}/?q=${encodeURIComponent(query7)}`);\n      |              ^\n  634 |   await page.waitForLoadState(\"load\");\n  635 |   console.log(\"[QI-3.7] Navigated to /?q= — waiting for auto-submit…\");\n  636 |"
-                  },
-                  "errors": [
-                    {
-                      "location": {
-                        "file": "/Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts",
-                        "column": 14,
-                        "line": 633
-                      },
-                      "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5000/?q=What%20is%20BioMate%3F\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5000/?q=What%20is%20BioMate%3F\", waiting until \"load\"\u001b[22m\n\n\n  631 |   // ── ?q= URL param auto-submits; URL cleaned ────────────────────────────────\n  632 |   const query7 = \"What is BioMate?\";\n> 633 |   await page.goto(`${BASE_URL}/?q=${encodeURIComponent(query7)}`);\n      |              ^\n  634 |   await page.waitForLoadState(\"load\");\n  635 |   console.log(\"[QI-3.7] Navigated to /?q= — waiting for auto-submit…\");\n  636 |\n    at /Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts:633:14"
-                    },
-                    {
-                      "message": "Error: apiRequestContext._wrapApiCall: ENOENT: no such file or directory, open '/Users/kky/biomate/frontend/e2e/test-results/.playwright-artifacts-2/traces/a6af1ea51b88f8cee184-b63845a06801d29dcd86.network'"
-                    },
-                    {
-                      "message": "Error: ENOENT: no such file or directory, open '/Users/kky/biomate/frontend/e2e/test-results/.playwright-artifacts-2/d599d04ca79ee7f1e3aa097e4d79f876.zip'"
-                    },
-                    {
-                      "message": "\u001b[31mTest timeout of 2700000ms exceeded.\u001b[39m"
-                    }
-                  ],
+                  "status": "passed",
+                  "duration": 707699,
+                  "errors": [],
                   "stdout": [
                     {
-                      "text": "[loginViaApi] Logged in as throwaway: e2e_qi_chat_1782160613684@biomate.test\n"
+                      "text": "\n[T1] transcriptomics — sending: \"Run nf-core rnaseq then differential expression and GSEA\"\n"
                     },
                     {
-                      "text": "[Screenshot] /tmp/qi-e2e-screenshots/qi-03-01-after-login.png\n"
+                      "text": "[T1] ✅ workflow=\"nf-core/rnaseq\" → OK\n"
                     },
                     {
-                      "text": "[QI-3.1] No onboarding overlay ✓\n"
+                      "text": "[Screenshot] tutorial-cases/T1_transcriptomics.png\n"
                     },
                     {
-                      "text": "[QI-3.1] chat-input visible and focusable ✓\n"
+                      "text": "\n[T2] single_cell — sending: \"Run single-cell RNA-seq QC, clustering and annotation from Cell Ranger output\"\n"
                     },
                     {
-                      "text": "[QI-3.2] Send button disabled on empty input ✓\n"
+                      "text": "[T2] ✅ workflow=\"Workflow\" → OK (name fallback — keyword matched in AI message text)\n"
                     },
                     {
-                      "text": "[QI-3.3] Send button enabled after typing ✓\n"
+                      "text": "[Screenshot] tutorial-cases/T2_single_cell.png\n"
                     },
                     {
-                      "text": "[QI-3.3] Send button disabled after clearing ✓\n"
+                      "text": "\n[T3] variant_calling — sending: \"Germline variant calling annotation and filtering on this WGS sample\"\n"
                     },
                     {
-                      "text": "[Screenshot] /tmp/qi-e2e-screenshots/qi-03-03-empty-again.png\n"
+                      "text": "[T3] ✅ workflow=\"Wgs Germline Gatk\" → OK\n"
                     },
                     {
-                      "text": "[QI-3.4] Enter pressed — waiting for AI response…\n"
+                      "text": "[Screenshot] tutorial-cases/T3_variant_calling.png\n"
                     },
                     {
-                      "text": "[Screenshot] /tmp/qi-e2e-screenshots/qi-03-04-after-enter.png\n"
+                      "text": "\n[T4] epigenomics — sending: \"Annotate my ChIP-seq peaks and run pathway enrichment\"\n"
                     },
                     {
-                      "text": "[QI-3.4] AI response after Enter ✓ (len: \u001b[33m84\u001b[39m )\n"
+                      "text": "[T4] ✅ workflow=\"nf-core/chipseq\" → OK\n"
                     },
                     {
-                      "text": "[QI-3.5] Send button clicked — waiting for AI response…\n"
+                      "text": "[Screenshot] tutorial-cases/T4_epigenomics.png\n"
                     },
                     {
-                      "text": "[Screenshot] /tmp/qi-e2e-screenshots/qi-03-05-after-send-btn.png\n"
+                      "text": "\n[T5] proteomics — sending: \"Bioconductor MSnBase proteomics pipeline — DDA label-free protein differential expression with limma\"\n"
                     },
                     {
-                      "text": "[QI-3.5] AI response after send-button ✓ (len: \u001b[33m278\u001b[39m )\n"
+                      "text": "[T5] ✅ workflow=\"nf-core/proteomicslfq\" → OK\n"
                     },
                     {
-                      "text": "[QI-3.6] Empty Enter is a no-op ✓\n"
+                      "text": "[Screenshot] tutorial-cases/T5_proteomics.png\n"
+                    },
+                    {
+                      "text": "\n[T6] metagenomics — sending: \"MAG recovery with binning and taxonomy assignment\"\n"
+                    },
+                    {
+                      "text": "[T6] ✅ workflow=\"nf-core/mag\" → OK\n"
+                    },
+                    {
+                      "text": "[Screenshot] tutorial-cases/T6_metagenomics.png\n"
+                    },
+                    {
+                      "text": "\n[T7] metabolomics — sending: \"Untargeted metabolomics multi-method analysis\"\n"
+                    },
+                    {
+                      "text": "[T7] ✅ workflow=\"Lc Ms Proteomics Metabolomics\" → OK\n"
+                    },
+                    {
+                      "text": "[Screenshot] tutorial-cases/T7_metabolomics.png\n"
+                    },
+                    {
+                      "text": "\n══════════════════════════════════════════\n"
+                    },
+                    {
+                      "text": "Tutorial Routing Audit Summary\n"
+                    },
+                    {
+                      "text": "══════════════════════════════════════════\n"
+                    },
+                    {
+                      "text": "  ✅ T1 (transcriptomics): nf-core/rnaseq — OK\n"
+                    },
+                    {
+                      "text": "  ✅ T2 (single_cell): Workflow — OK (name fallback — keyword matched in AI message text)\n"
+                    },
+                    {
+                      "text": "  ✅ T3 (variant_calling): Wgs Germline Gatk — OK\n"
+                    },
+                    {
+                      "text": "  ✅ T4 (epigenomics): nf-core/chipseq — OK\n"
+                    },
+                    {
+                      "text": "  ✅ T5 (proteomics): nf-core/proteomicslfq — OK\n"
+                    },
+                    {
+                      "text": "  ✅ T6 (metagenomics): nf-core/mag — OK\n"
+                    },
+                    {
+                      "text": "  ✅ T7 (metabolomics): Lc Ms Proteomics Metabolomics — OK\n"
+                    },
+                    {
+                      "text": "\nResult: 7/7 scenarios routed correctly\n"
+                    },
+                    {
+                      "text": "══════════════════════════════════════════\n"
                     }
                   ],
-                  "stderr": [
-                    {
-                      "text": "[loginViaApi] E2E_FIXTURE_PASSWORD not set — creating throwaway account e2e_qi_chat_1782160613684@biomate.test. Set E2E_FIXTURE_PASSWORD for the canonical fixture to avoid registration rate-limits.\n"
-                    },
-                    {
-                      "text": "[QI-3.4] Console errors: [\n  \u001b[32m'Failed to load resource: net::ERR_CONNECTION_REFUSED'\u001b[39m,\n  \u001b[32m'Failed to load resource: net::ERR_CONNECTION_REFUSED'\u001b[39m,\n  \u001b[32m'Failed to load resource: net::ERR_CONNECTION_REFUSED'\u001b[39m\n]\n"
-                    }
-                  ],
+                  "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-06-22T20:36:22.439Z",
+                  "startTime": "2026-06-23T18:09:57.805Z",
                   "annotations": [],
                   "attachments": [
                     {
                       "name": "screenshot",
                       "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/index-query-input.e2e.ts-Q-3f7a9-y-input-—-full-user-journey-chromium/test-failed-1.png"
-                    },
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/index-query-input.e2e.ts-Q-3f7a9-y-input-—-full-user-journey-chromium/error-context.md"
+                      "path": "/Users/kky/biomate/frontend/e2e/test-results/tutorial-use-cases.e2e.ts--80dcb-ng-—-all-7-domain-scenarios-firefox/test-finished-1.png"
                     }
-                  ],
-                  "errorLocation": {
-                    "file": "/Users/kky/biomate/frontend/e2e/index-query-input.e2e.ts",
-                    "column": 14,
-                    "line": 633
-                  }
+                  ]
                 }
               ],
-              "status": "unexpected"
+              "status": "expected"
             }
           ],
-          "id": "a6af1ea51b88f8cee184-b63845a06801d29dcd86",
-          "file": "index-query-input.e2e.ts",
-          "line": 489,
+          "id": "27614cb5a3034d6d86c7-5824b82b01e57e2f74d3",
+          "file": "tutorial-use-cases.e2e.ts",
+          "line": 174,
           "column": 1
         }
       ]
@@ -393,11 +247,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-06-22T19:47:18.344Z",
-    "duration": 5883229.621,
-    "expected": 0,
+    "startTime": "2026-06-23T18:09:56.848Z",
+    "duration": 724180.914,
+    "expected": 1,
     "skipped": 0,
-    "unexpected": 3,
+    "unexpected": 0,
     "flaky": 0
   }
 }

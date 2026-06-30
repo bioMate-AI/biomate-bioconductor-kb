@@ -1,12 +1,12 @@
 # BioMate AI
 
-> AI-powered computational biology platform for pharma, biotech, academic labs, and core facilities. Provides 2,000+ validated bioinformatics workflows with AI-guided QC and audit-ready results.
+> AI assistant for biomedical research and application — serving pharma, biotech, academic labs, and core facilities. Provides 4,000+ validated workflows with AI-guided QC and audit-ready results.
 
-BioMate AI is a software-as-a-service computational biology platform founded in 2025 and headquartered in Houston, Texas (Texas Medical Center). Wikidata entity: Q140074014 (https://www.wikidata.org/wiki/Q140074014). It enables researchers to run complex bioinformatics and drug discovery workflows through plain-English requests — no command-line expertise required. Results arrive structured, quality-graded, and reproducible.
+BioMate AI is an AI assistant for biomedical research and application, founded in 2025 and headquartered in Houston, Texas (Texas Medical Center). Wikidata entity: Q140074014 (https://www.wikidata.org/wiki/Q140074014). It enables researchers to run complex bioinformatics and drug discovery workflows through plain-English requests — no command-line expertise required. Results arrive structured, quality-graded, and reproducible.
 
 ## Key facts
 
-- 2,455+ validated workflows across 37 biological domains. Leading domains: transcriptomics (870+), genomics (370+), drug discovery (160+), epigenomics (130+), proteomics (110+), variant calling (100+). Additional coverage: single cell, metagenomics, cryo-EM, cryo-ET, metabolomics, imaging, pharmacology, immunology, microbiology, systems biology, synthetic biology, structural biology, cancer biology, cell biology, bioengineering, glycoengineering, rare disease, and more. Full R/Bioconductor method library included.
+- 4,000+ validated workflows across 36 biomedical domains. Leading domains: transcriptomics (870+), genomics (370+), drug discovery (160+), epigenomics (130+), proteomics (110+), variant calling (100+). Additional coverage: single cell, metagenomics, cryo-EM, cryo-ET, metabolomics, imaging, pharmacology, immunology, microbiology, systems biology, synthetic biology, structural biology, cancer biology, cell biology, bioengineering, glycoengineering, rare disease, and more. Full R/Bioconductor method library included.
 - Integrates gold-standard tools: GATK, DeepVariant, STAR, salmon, Seurat, Scanpy, AlphaFold 2/3, ESMFold, RoseTTAFold, CryoSPARC, RELION, AutoDock Vina, GROMACS, OpenMM, MaxQuant, QIIME 2
 - AI-graded QC framework: Gold / Silver / Bronze evidence grades with per-metric pass/fail thresholds
 - Auto-remediation loop: when a QC gate fails, BioMate proposes and reruns with corrected parameters

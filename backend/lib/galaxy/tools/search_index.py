@@ -34,6 +34,10 @@ class ToolSearchIndex:
         if not Path(self.db_path).exists():
             raise FileNotFoundError(f"Tool search index not found at {self.db_path}")
 
+        # Auto-create the tools table if it's missing (galaxy_ai_tools.db only
+        # ships the workflows table; the tools table is populated separately).
+        self._ensure_tools_table()
+
     def _get_connection(self) -> sqlite3.Connection:
         """Get thread-local database connection"""
         if not hasattr(self._local, 'conn') or self._local.conn is None:
@@ -233,6 +237,65 @@ class ToolSearchIndex:
                 ORDER BY count DESC
             ''')
             return {row[0]: row[1] for row in cursor.fetchall()}
+
+    def _ensure_tools_table(self):
+        """Create the tools table if it doesn't exist (prevents crash when the
+        DB was built without a ToolShed crawl, e.g. fresh dev containers)."""
+        conn = self._get_connection()
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS tools (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tool_id TEXT UNIQUE NOT NULL,
+                name TEXT NOT NULL,
+                description TEXT,
+                category TEXT DEFAULT 'uncategorized',
+                version TEXT,
+                owner TEXT,
+                repository TEXT,
+                inputs_schema TEXT,
+                parameters_schema TEXT
+            )
+        """)
+        conn.execute("""
+            CREATE VIRTUAL TABLE IF NOT EXISTS tools_fts USING fts5(
+                tool_id, name, description, category,
+                content='tools', content_rowid='id'
+            )
+        """)
+        conn.commit()
+        count = conn.execute("SELECT COUNT(*) FROM tools").fetchone()[0]
+        if count == 0:
+            log.warning("[ToolSearchIndex] tools table is empty — tool search will return no results")
+        else:
+            log.info("[ToolSearchIndex] tools table OK: %d tools", count)
+
+    def get_tool_schema(self, tool_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Return a structured parameter schema for a tool.
+
+        Builds schema from the tool's DB record (inputs_schema / parameters
+        columns when present, falling back to a minimal stub so the endpoint
+        always returns something useful rather than crashing).
+        """
+        tool = self.get_by_id(tool_id)
+        if not tool:
+            return None
+        # Prefer an already-structured schema column if it exists
+        for col in ('inputs_schema', 'parameters_schema', 'schema'):
+            if tool.get(col):
+                import json as _json
+                try:
+                    return _json.loads(tool[col]) if isinstance(tool[col], str) else tool[col]
+                except Exception:
+                    pass
+        # Fall back to a minimal stub derived from the tool record
+        return {
+            'tool_id': tool.get('tool_id', tool_id),
+            'name': tool.get('name', tool_id),
+            'description': tool.get('description', ''),
+            'inputs': [],
+            'outputs': [],
+        }
 
     def close(self):
         """Close thread-local connection"""

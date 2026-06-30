@@ -58,15 +58,63 @@ SEO meta tags (`<meta name="description">`, `og:*`, `twitter:*`, `ld+json`) were
 
 ---
 
+### 4. sessionStorage race fix — empty chat after login
+
+**Problem:** After the first fix, existing users going through register → "Sign in" → login still got an empty chat. Root cause: `auth-context.login()` calls `setLocation('/')` synchronously inside the `await login()` call, which mounts App.tsx at `/` (no `?q=`) before `login.tsx` can call its override `setLocation('/?q=...')`. The `useState` lazy initializer in App.tsx only runs once on mount, so `initialMessage` was always `undefined`.
+
+**Fix — commit `a44b194c4`:**
+
+| File | Change |
+|---|---|
+| `frontend/client/src/pages/auth/login.tsx` | Before calling `login()`, write `qParam` to `sessionStorage.setItem('pendingHeroQuery', qParam)`. On error, remove it. |
+| `frontend/client/src/App.tsx` | `useState` initializer now checks `sessionStorage.getItem('pendingHeroQuery')` as fallback when no `?q=` in URL; removes key after consuming. |
+
+The `?q=` override in `login.tsx` is still there as a belt-and-suspenders path (URL wins if present); sessionStorage is the fallback that survives the auth-context navigation race.
+
+---
+
+### 5. Workflow DB — replaced stale local with prod 304MB DB
+
+**Problem:** The sync script pushes the local `backend/database/galaxy_ai_tools.db` to dev. The local file was a stale 279MB copy (2,617 workflows). The correct prod DB was at `/private/tmp/gat_prod_local.db` (304MB, 4,014 workflows, downloaded from prod June 22).
+
+**Root cause of the mistake:** The sync script triggers DB push whenever `local_db_mtime > LAST_DB_SYNC`, which was true for the stale local file. The correct file was sitting in `/tmp` but not at the expected repo path.
+
+**Fix:**
+1. Extracted old local DB from `git show 440322e56:backend/database/galaxy_ai_tools.db` to compare
+2. Copied `/private/tmp/gat_prod_local.db` → `backend/database/galaxy_ai_tools.db`
+3. Re-ran 3 local addition scripts against the new base:
+   - `backend/scripts/add_zhi_lab_chains.py` — skipped (already in prod)
+   - `backend/scripts/add_zhao_lab_chains.py` — skipped (already in prod)
+   - `backend/scripts/add_gwas_methods_chain.py` — added 3 workflows (`magma_gene_analysis`, `metal_meta_analysis`, `ldsc_heritability`) + `z01_gwas_methods_chain`
+4. Pushed merged DB directly to dev via `scp` + `docker cp`
+
+**Final state:** local + dev both at 304MB, 4,017 workflows, 67 chains.
+
+**Prevention:** The canonical prod DB should be kept at `backend/database/galaxy_ai_tools.db`, not in `/tmp`. After pulling a fresh prod snapshot, immediately copy it to the repo path before running any sync.
+
+---
+
+### 6. MCP config — pointed at dev-public.biomate.ai
+
+**Problem:** `.mcp.json` had `BIOMATE_API_URL: http://localhost:5000` — MCP tools were hitting the local server (not running) instead of dev.
+
+**Fix:** Updated `.mcp.json` `BIOMATE_API_URL` to `https://dev-public.biomate.ai`. Requires Claude Code restart to take effect.
+
+---
+
 ## Deployments
 
 | Commit | What | When |
 |---|---|---|
 | `5b67ea929` | Auth query-flow fix (frontend only) | 2026-06-23 13:36 |
 | marketing deploy | Hero UI + branding copy | 2026-06-23 14:29 / 14:35 |
+| `a44b194c4` | sessionStorage race fix | 2026-06-23 15:43 |
+| DB push (direct scp) | 304MB prod DB + GWAS additions | 2026-06-23 16:43 |
 
 ---
 
 ## Open issues
 
-- **Empty reply for new users (partially resolved):** The auth flow fix addresses the case where the query was lost before reaching the platform. If users still report empty replies after this fix, the next investigation point is the SSE parsing in `chat-with-artifacts.tsx` — the Gemini backbone sends no delta events, only a single `final` event with `data.response`; verify the client is reading that field correctly.
+- **Hero query flow — needs live test:** The sessionStorage fix is deployed but not yet verified end-to-end by the user (MCP was pointing to localhost when test was attempted). Re-test after Claude Code restart with MCP pointing at dev-public.biomate.ai.
+- **`lavaan` and `glmmTMB`** have no workflow or tool DB entries. Not needed now (BioMate's `run_code` handles ad-hoc R), but worth adding if SAS-migration use cases become common.
+- **DB sync guard:** The sync script has no check to ensure the local DB is ≥ the dev DB size before pushing. Consider adding a size/count guard to prevent accidentally downgrading dev.

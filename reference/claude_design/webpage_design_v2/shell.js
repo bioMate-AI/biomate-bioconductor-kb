@@ -83,7 +83,7 @@
         <div class="bm-cta-bar-inner">
           <p class="bm-cta-bar-eyebrow">BioMate AI</p>
           <h2 class="bm-cta-bar-head">Try BioMate free.</h2>
-          <p class="bm-cta-bar-sub">The computational biology assistant for pharma, biotech, and academic labs.</p>
+          <p class="bm-cta-bar-sub">The AI assistant for biomedical research and application.</p>
           <div class="bm-cta-bar-btns">
             <a href="https://dev-public.biomate.ai/register" class="bm-btn bm-btn-on-ink-primary bm-btn-lg">
               Start free <span class="bm-btn-arrow">&rarr;</span>
@@ -104,7 +104,7 @@
               <a href="index.html" class="bm-brand">
                 <img src="assets/logo.png?v=3" alt="BioMate AI" />
               </a>
-              <p>Computational biology assistant for pharma, biotech, academic labs, and core facilities.</p>
+              <p>AI assistant for biomedical research and application.</p>
             </div>
             <div class="bm-footer-col">
               <h4>Platform</h4>

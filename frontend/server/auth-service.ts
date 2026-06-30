@@ -588,6 +588,11 @@ export class AuthService {
     const subscriptionActive =
       user.subscriptionStatus === 'active' &&
       (!user.currentPeriodEnd || user.currentPeriodEnd > now);
+    // Explicitly blocked statuses — only these two should deny access.
+    // Trial expiry transitions the user to free tier, not to blocked.
+    const explicitlyBlocked =
+      user.subscriptionStatus === 'cancelled' ||
+      user.subscriptionStatus === 'suspended';
 
     let daysRemaining = 0;
     if (trialActive && user.trialEndsAt) {
@@ -595,7 +600,10 @@ export class AuthService {
     }
 
     return {
-      active: trialActive || subscriptionActive,
+      // active = false ONLY for explicitly cancelled/suspended accounts.
+      // Expired trials fall through to free-tier — quota enforcement (not
+      // auth) is what limits what they can do.
+      active: !explicitlyBlocked,
       trialing: trialActive,
       trialExpired: user.trialEndsAt ? user.trialEndsAt <= now : false,
       daysRemaining,
