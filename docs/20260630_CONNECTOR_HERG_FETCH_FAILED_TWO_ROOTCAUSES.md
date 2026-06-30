@@ -132,17 +132,25 @@ uses `_s3ClientForBucket()` (resolves region via GetBucketLocation). **Fix — P
 #72 (merged):** use `_s3ClientForBucket(bucket)` in the preview route. Verified
 (`sha-292c13e81806`): JSON → 200 text, CSV → 200 table, both with real data.
 
-**#3b `analyze_results` → empty `output_files_sampled`.** Its own S3 read has
-`followRegionRedirects`, so NOT the region bug. Root cause: the run record had
-**vanished** — `RUN_STATE_STORE` was unset on test, so records were InMemory and
-died on gunicorn worker recycle → `/api/invocations/:id/outputs` (resolves the
-run via frontend storage → backend `s3_output_files`) returned empty → analyze
-degraded to a generic template. **Fix:** set `RUN_STATE_STORE=redis` on test
-`.env` (the documented L3 fix; `biomate-redis` was already up + reachable, galaxy
-has the redis module). Verified: post-fix a completed run's record persists with
-`s3_output_files`=6. (Full connector analyze path resolves via the frontend
-execution record, which only the connector/UI flow creates — re-confirm via the
-connector.)
+**#3b `analyze_results` → empty `output_files_sampled`.** TWO contributing
+issues; the SECOND was the real blocker:
+ - **Persistence (necessary, not sufficient):** run records were InMemory
+   (`RUN_STATE_STORE` unset) and died on gunicorn worker recycle. Fixed by
+   `RUN_STATE_STORE=redis` (now baked into compose, PR #74). Records now persist
+   with `s3_output_files`=6.
+ - **HTTPS self-call redirect (the actual fix, PR #75):** `POST
+   /api/workflows/runs/:id/ai/analyze` fetches its OWN
+   `/api/invocations/:id/outputs` over `http://localhost:3000` WITHOUT
+   `X-Forwarded-Proto`. `forceHTTPS` 301-redirects it to https on a plain-HTTP
+   port → the self-fetch fails → caught → `outputSamples=[]` → generic template.
+   Confirmed: that URL returns 301 without the header, 200 with it. Fixed by
+   sending `X-Forwarded-Proto: https` (+ 10s→30s timeout for the first live S3
+   scan); also fixed the sibling `/api/workflows/runs/:id/outputs` alias. Same
+   class as the open-claw tools (PR #65) and SSE-inject (PR #60).
+ - **Verified end-to-end (`sha-f136d42f8018`, real frontend execute→analyze, real
+   user):** analyze HTTP 200, `output_files_sampled = [cardiac_safety_summary.csv,
+   herg_cardiac_output.txt, herg_cardiac_results.json, herg_risk.json,
+   nav15_alerts.csv]` (was `[]`).
 
 **#3c `browse_data` → "Unknown tool".** MCP tool-registry on the **connector**
 side, not the biomate backend (the `/api/...` browse route exists). Out of scope
