@@ -116,12 +116,12 @@
   <link rel="stylesheet" href="styles.css" />
   <style>
     .bm-hero-query-form { width: 100%; margin-bottom: 0; }
-    .bm-hero-query-row {
-      display: flex; align-items: flex-end; gap: 10px;
+    .bm-hero-query-wrap {
+      position: relative; width: 100%;
     }
     .bm-hero-query-input {
-      flex: 1; min-width: 0; box-sizing: border-box;
-      padding: 13px 16px; font-size: 0.95rem;
+      width: 100%; box-sizing: border-box;
+      padding: 13px 80px 13px 16px; font-size: 0.95rem;
       border: 1.5px solid var(--border); border-radius: 12px;
       background: rgba(255,255,255,.85); color: var(--text);
       font-family: inherit; line-height: 1.5;
@@ -133,9 +133,16 @@
       outline: none; border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(42,85,130,.12);
     }
-    @media (max-width: 520px) {
-      .bm-hero-query-row { flex-direction: column; align-items: stretch; }
+    .bm-hero-query-btn {
+      position: absolute; right: 8px; bottom: 8px;
+      padding: 7px 16px; font-size: 0.875rem; font-weight: 600;
+      background: var(--accent); color: #fff;
+      border: none; border-radius: 8px; cursor: pointer;
+      transition: background .15s, transform .1s;
+      white-space: nowrap;
     }
+    .bm-hero-query-btn:hover { background: var(--accent-dark, #1e4a80); }
+    .bm-hero-query-btn:active { transform: scale(.97); }
     /* Hero benefits list */
     .bm-hero-benefits {
       list-style: none; margin: 0 0 1.5rem 0; padding: 0;
@@ -293,7 +300,7 @@
           <li><span class="bm-benefit-icon bm-benefit-sec">🔒</span><span><strong>Security &amp; compliance</strong> &mdash; HIPAA, 21&nbsp;CFR Part&nbsp;11 e-signature, SOC&nbsp;2, private VPC deployment available</span></li>
         </ul>
         <form class="bm-hero-query-form" onsubmit="bmHeroSubmit(event)">
-          <div class="bm-hero-query-row">
+          <div class="bm-hero-query-wrap">
             <textarea
               id="bmHeroQuery"
               class="bm-hero-query-input"
@@ -301,9 +308,7 @@
               autocomplete="off"
               rows="2"
             ></textarea>
-            <button type="submit" class="bm-btn bm-btn-primary bm-btn-lg">
-              Start free <span class="bm-btn-arrow">&rarr;</span>
-            </button>
+            <button type="submit" class="bm-hero-query-btn">Start &rarr;</button>
           </div>
         </form>
         <script>
