@@ -1273,7 +1273,7 @@ export class GalaxyAPIProxy {
     entry_point_url: string;
     created: string;
   }>> {
-    const response = await this.client.get('/api/entry_points?active=true');
+    const response = await this.client.get('/api/entry_points?running=true');
     return response.data;
   }
 
