@@ -347,21 +347,18 @@ test("C1: InteractiveLauncher dialog always shows all 3 tools (Jupyter, RStudio,
 // D. API — sessions + launch endpoints (cookie auth via sharedPage.request)
 // ============================================================================
 
-test("D1: /api/interactive/sessions responds (200 or 400 when Galaxy not configured)", async () => {
+test("D1: /api/interactive/sessions always responds 200 (empty list when Galaxy not configured)", async () => {
   const page = sharedPage;
   // Use sharedPage.request which carries the session cookie
   const resp = await page.request.get(`${BASE_URL}/api/interactive/sessions`);
-  // 200 = OK with sessions array; 400 = Galaxy entry_points not available
-  // Either way we must NOT get 401 (auth should pass via session cookie) or 500 (real bug)
+  // Always 200: Galaxy errors are absorbed and returned as { sessions: [], count: 0 }.
+  // NOT 401 (auth must pass) or 500 (real server crash).
   expect(resp.status()).not.toBe(401);
-  expect([200, 400]).toContain(resp.status());
-  console.log("[D1] /api/interactive/sessions status:", resp.status());
-  if (resp.status() === 200) {
-    const body = await resp.json();
-    expect(Array.isArray(body.sessions)).toBe(true);
-    expect(typeof body.count).toBe("number");
-    console.log("[D1] Active interactive sessions:", body.count);
-  }
+  expect(resp.status()).toBe(200);
+  const body = await resp.json();
+  expect(Array.isArray(body.sessions)).toBe(true);
+  expect(typeof body.count).toBe("number");
+  console.log("[D1] /api/interactive/sessions status:", resp.status(), "count:", body.count);
 });
 
 test("D2: /api/interactive/launch 400 when tool_id missing", async () => {

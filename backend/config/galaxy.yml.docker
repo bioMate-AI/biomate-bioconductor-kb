@@ -14,7 +14,7 @@ galaxy:
   master_api_key: f17c618a6d8a9b0c397d6cc847a7f658
   new_file_path: database/tmp
   preload_tool_panel: false
-  tool_config_file: config/tool_conf.xml.sample,config/shed_tool_conf.xml
+  tool_config_file: config/tool_conf.xml.sample,config/shed_tool_conf.xml,config/interactivetools_conf.xml
   tool_dependency_dir: database/dependencies
 gravity:
   galaxy_user: galaxy

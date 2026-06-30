@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!-- BioMate interactive tool registrations.
+     Referenced by galaxy.yml.docker → tool_config_file.
+     Tools live at backend/tools/interactive/ which is copied into the image at /app/tools/interactive/
+-->
+<toolbox>
+    <section id="interactivetools" name="Interactive Tools">
+        <tool file="interactive/interactivetool_jupyter_notebook.xml" />
+        <tool file="interactive/interactivetool_rstudio.xml" />
+        <tool file="interactive/interactivetool_cellxgene_1.1.1.xml" />
+    </section>
+</toolbox>

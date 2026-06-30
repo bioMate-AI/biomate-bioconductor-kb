@@ -284,6 +284,16 @@ deploy_galaxy_yml() {
     docker exec biomate-galaxy-dev galaxyctl restart gunicorn 2>&1 | tail -1
   '
   log "[galaxy.yml] Done"
+
+  # Sync interactivetools_conf.xml — registers Jupyter, RStudio, CellxGene in Galaxy's tool panel.
+  # This file is synced here (alongside galaxy.yml) because both require a gunicorn restart
+  # and neither is covered by the Python file diff sync.
+  local it_src="$REPO_ROOT/backend/config/interactivetools_conf.xml"
+  if [[ -f "$it_src" ]]; then
+    ec2_scp "$it_src" "${EC2_USER}@${EC2_HOST}:/tmp/interactivetools_conf.xml"
+    ec2_ssh 'docker cp /tmp/interactivetools_conf.xml biomate-galaxy-dev:/app/config/interactivetools_conf.xml'
+    log "[galaxy.yml] interactivetools_conf.xml synced"
+  fi
 }
 
 deploy_backend_python() {

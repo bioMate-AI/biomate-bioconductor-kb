@@ -99,7 +99,7 @@
 
   <!-- WeChat Work -->
   <rect x="22" y="294" width="196" height="22" rx="4" fill="rgba(143,214,234,0.07)" stroke="rgba(143,214,234,0.20)" stroke-width="0.7"/>
-  <text x="30" y="309" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">WeChat Work (企业微信)</text>
+  <text x="30" y="309" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#FFFFFF">Feishu</text>
 
   <!-- ── Group 3: LAB INSTRUMENTS ── -->
   <text x="30" y="336" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5" fill="#8BA3B8" letter-spacing="1.5">LAB INSTRUMENTS</text>
