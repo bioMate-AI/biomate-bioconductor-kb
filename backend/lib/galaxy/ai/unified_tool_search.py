@@ -533,10 +533,7 @@ def create_unified_search(
     if db_path is None:
         # Auto-detect database path
         possible_paths = [
-            # Canonical path: <app_root>/database/galaxy_ai_tools.db
             Path(__file__).parent.parent.parent.parent / "database" / "galaxy_ai_tools.db",
-            # Legacy: db at app root (not in database/ subdir) — kept for backwards compat
-            Path(__file__).parent.parent.parent.parent / "galaxy_ai_tools.db",
         ]
         for path in possible_paths:
             if path.exists():
