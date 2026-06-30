@@ -3034,6 +3034,22 @@ def generate_workflow_unified(
                 credential_map=credential_map or None,
             )
 
+        # Clarification requests from chain verifier — pass through with a clear error key
+        # so the frontend LLM uses "clarification needed" format, not "internal routing error".
+        if result.get('workflow_type') == 'clarification':
+            return {
+                'success': False,
+                'error': 'clarification_needed',
+                'workflow_type': 'clarification',
+                'clarification_question': result.get('clarification_question', result.get('message', '')),
+                'message': result.get('message', ''),
+                'candidate_chain': result.get('candidate_chain', ''),
+                'citations': [],
+                'methods_section': None,
+                'parameter_recommendations': {},
+                'pilot_run_suggested': False,
+            }
+
         # Chain responses carry a different payload (no workflow_ga / citations).
         # Return them directly so the frontend WorkflowChainPlan component can render.
         if result.get('workflow_type') == 'chain':

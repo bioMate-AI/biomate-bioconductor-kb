@@ -39,8 +39,8 @@ const LLM_TIMEOUT = 90_000;
 test.setTimeout(30 * 60_000); // 30 min — panel states + LLM calls + file previews
 
 test.use({
-  video: { mode: "on", size: { width: 1440, height: 900 } },
-  trace: "on",
+  video: { mode: "retain-on-failure", size: { width: 1440, height: 900 } },
+  trace: "retain-on-failure",
 });
 
 // ---------------------------------------------------------------------------

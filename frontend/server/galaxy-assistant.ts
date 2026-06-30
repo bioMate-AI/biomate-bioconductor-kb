@@ -6581,6 +6581,12 @@ ${runnableWorkflow
       : `FORMAT: Direct answer.
      - Answer the question directly and completely. No workflow format. No "Missing:" prefix.
      - Use run_code if computation is needed on data already in the prompt.`
+  : workflowGenerationFailed && hasInlineData && workflowFailureSignals?.error === 'clarification_needed'
+    ? `FORMAT: Pipeline selection needs one clarification.
+     - Do NOT say "internal routing error" or "could not generate" — this is a normal disambiguation step.
+     - Ask the specific clarification question from the failure details (clarification_question field).
+     - One line: name the closest pipeline option found.
+     - At most ONE question. Do not ask for data the user already provided.`
   : workflowGenerationFailed && hasInlineData
     ? `FORMAT: Technical failure — inline data was provided.
      - One sentence: why the exact workflow wasn't found

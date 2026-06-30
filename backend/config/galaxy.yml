@@ -2,6 +2,12 @@ galaxy:
   # Enable AI Assistant
   enable_ai_assistant: true
 
+  # Enable Interactive Tools (Jupyter, RStudio, CellxGene)
+  # interactivetools_upstream_proxy: true means the upstream nginx/proxy handles routing
+  # so Galaxy does not need a separate gx-it-proxy process
+  interactivetools_enable: true
+  interactivetools_upstream_proxy: true
+
   # Claude Sonnet 4.5 Configuration (Primary)
   ai_llm_provider: anthropic
   ai_llm_model: claude-sonnet-4-5
