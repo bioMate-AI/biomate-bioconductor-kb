@@ -119,6 +119,35 @@ the lock survives a completion** (previously run2 hung 300s).
 > The host `py-spy` dump was decisive — it named the deadlocked thread + line.
 > Always get the live stack before concluding which critical section is stuck.
 
+## Root cause #3 — read side: preview/analyze couldn't pull the (correct) S3 outputs
+
+After execution worked end-to-end (run succeeded, 6 files in S3), the three
+connector READ tools failed:
+
+**#3a `preview_file` → HTTP 500 "must be addressed using the specified
+endpoint".** `/api/files/preview` built `new S3Client({ region: AWS_REGION })`;
+deploy host `AWS_REGION=us-west-2` but `biomate-nextflow-work` is **us-east-1** →
+PermanentRedirect on GetObject + presigned URL. The write path is fine because it
+uses `_s3ClientForBucket()` (resolves region via GetBucketLocation). **Fix — PR
+#72 (merged):** use `_s3ClientForBucket(bucket)` in the preview route. Verified
+(`sha-292c13e81806`): JSON → 200 text, CSV → 200 table, both with real data.
+
+**#3b `analyze_results` → empty `output_files_sampled`.** Its own S3 read has
+`followRegionRedirects`, so NOT the region bug. Root cause: the run record had
+**vanished** — `RUN_STATE_STORE` was unset on test, so records were InMemory and
+died on gunicorn worker recycle → `/api/invocations/:id/outputs` (resolves the
+run via frontend storage → backend `s3_output_files`) returned empty → analyze
+degraded to a generic template. **Fix:** set `RUN_STATE_STORE=redis` on test
+`.env` (the documented L3 fix; `biomate-redis` was already up + reachable, galaxy
+has the redis module). Verified: post-fix a completed run's record persists with
+`s3_output_files`=6. (Full connector analyze path resolves via the frontend
+execution record, which only the connector/UI flow creates — re-confirm via the
+connector.)
+
+**#3c `browse_data` → "Unknown tool".** MCP tool-registry on the **connector**
+side, not the biomate backend (the `/api/...` browse route exists). Out of scope
+for the backend; flag to the connector repo.
+
 ## Status
 - #1 (S3 out of lock): merged PR #68 — correct hygiene, reduced hold time.
 - #1b (RLock self-deadlock): merged PR #70 — **the actual fix**, deployed
