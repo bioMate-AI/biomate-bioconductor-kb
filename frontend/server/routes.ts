@@ -11172,7 +11172,10 @@ Rules:
     try {
       const r = await fetch(
         `http://localhost:${process.env.PORT || 5000}/api/workflows/runs/${req.params.id}/output_files`,
-        { headers: { Authorization: req.headers.authorization || '', cookie: req.headers.cookie || '' } as any }
+        // X-Forwarded-Proto: https — without it this self-fetch is 301'd to
+        // https on a plain-HTTP port by forceHTTPS (only /internal/ is exempt)
+        // and fails on the deploy stack. Same class as the analyze fix above.
+        { headers: { Authorization: req.headers.authorization || '', cookie: req.headers.cookie || '', 'X-Forwarded-Proto': 'https' } as any }
       );
       const data: any = await r.json().catch(() => ({}));
       res.status(r.status).json(data.output_files || []);
@@ -11826,9 +11829,18 @@ Rules:
       let outputSamples: Array<{ name: string; content: string; type: string }> = [];
       try {
         const localUrl = `http://localhost:${process.env.PORT || 5000}`;
+        // X-Forwarded-Proto: https is REQUIRED. On the deploy stack the app
+        // force-redirects plain HTTP → HTTPS (security-config forceHTTPS, only
+        // /internal/ is exempt). Without this header the self-fetch to
+        // http://localhost:3000/api/invocations/:id/outputs gets a 301 to
+        // https://localhost:3000 (a plain-HTTP port) → the fetch fails → caught
+        // below → outputSamples stays empty → analyze_results silently returns
+        // the generic template with output_files_sampled: []. Same self-call
+        // redirect class as the open-claw tools (PR #65). 30s timeout: the
+        // first /outputs call does a live S3 scan that can exceed 10s.
         const outRes = await fetch(`${localUrl}/api/invocations/${runIdForOutputs}/outputs`, {
-          headers: { Authorization: req.headers.authorization || '' },
-          signal: AbortSignal.timeout(10_000),
+          headers: { Authorization: req.headers.authorization || '', 'X-Forwarded-Proto': 'https' },
+          signal: AbortSignal.timeout(30_000),
         });
         if (outRes.ok) {
           const outData = await outRes.json() as any;
