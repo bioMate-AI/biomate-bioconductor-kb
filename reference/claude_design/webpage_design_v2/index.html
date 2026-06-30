@@ -117,14 +117,15 @@
   <style>
     .bm-hero-query-form { width: 100%; margin-bottom: 0; }
     .bm-hero-query-row {
-      display: flex; align-items: center; gap: 10px;
+      display: flex; flex-direction: column; gap: 10px;
     }
     .bm-hero-query-input {
-      flex: 1; min-width: 0; box-sizing: border-box;
+      width: 100%; min-width: 0; box-sizing: border-box;
       padding: 13px 16px; font-size: 0.95rem;
       border: 1.5px solid var(--border); border-radius: 12px;
       background: rgba(255,255,255,.85); color: var(--text);
-      font-family: inherit;
+      font-family: inherit; line-height: 1.5;
+      min-height: 80px; resize: none; overflow: hidden;
       transition: border-color .15s, box-shadow .15s;
     }
     .bm-hero-query-input::placeholder { color: var(--text-muted); }
@@ -132,8 +133,8 @@
       outline: none; border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(42,85,130,.12);
     }
-    @media (max-width: 520px) {
-      .bm-hero-query-row { flex-direction: column; align-items: stretch; }
+    .bm-hero-query-actions {
+      display: flex; justify-content: flex-end;
     }
     /* Hero benefits list */
     .bm-hero-benefits {
@@ -293,16 +294,18 @@
         </ul>
         <form class="bm-hero-query-form" onsubmit="bmHeroSubmit(event)">
           <div class="bm-hero-query-row">
-            <input
-              type="text"
+            <textarea
               id="bmHeroQuery"
               class="bm-hero-query-input"
               placeholder="Describe your analysis — RNA-seq, ADMET, variant calling…"
               autocomplete="off"
-            />
-            <button type="submit" class="bm-btn bm-btn-primary bm-btn-lg">
-              Start free <span class="bm-btn-arrow">&rarr;</span>
-            </button>
+              rows="3"
+            ></textarea>
+            <div class="bm-hero-query-actions">
+              <button type="submit" class="bm-btn bm-btn-primary bm-btn-lg">
+                Start free <span class="bm-btn-arrow">&rarr;</span>
+              </button>
+            </div>
           </div>
         </form>
         <script>
@@ -314,9 +317,25 @@
             window.location.href = url;
           }
           function bmSetPrompt(text) {
-            document.getElementById('bmHeroQuery').value = text;
-            document.getElementById('bmHeroQuery').focus();
+            var ta = document.getElementById('bmHeroQuery');
+            ta.value = text;
+            ta.style.height = 'auto';
+            ta.style.height = ta.scrollHeight + 'px';
+            ta.focus();
           }
+          document.addEventListener('DOMContentLoaded', function() {
+            var ta = document.getElementById('bmHeroQuery');
+            ta.addEventListener('input', function() {
+              this.style.height = 'auto';
+              this.style.height = this.scrollHeight + 'px';
+            });
+            ta.addEventListener('keydown', function(e) {
+              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                this.closest('form').dispatchEvent(new Event('submit'));
+              }
+            });
+          });
         </script>
         <div class="bm-hero-prompts">
           <span class="bm-hero-prompt-label">Try:</span>
