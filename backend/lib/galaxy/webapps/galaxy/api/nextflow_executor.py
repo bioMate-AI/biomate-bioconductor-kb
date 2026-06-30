@@ -4458,6 +4458,16 @@ def execute_nextflow(
         if "outdir" not in params:
             cmd += ["--outdir", str(outdir)]
         for key, value in params.items():
+            # Defense in depth: never pass INTERNAL config vars (e.g. _useAws,
+            # CHEM_CONTAINER) whose value is a Groovy/nextflow config EXPRESSION.
+            # `--_useAws "params.use_aws || System.getenv(...)"` makes Nextflow
+            # abort at parse ("Dynamic parameter expected a value of the form
+            # a=b") → run dies instantly, zero output. These resolve inside
+            # nextflow.config, not on the CLI.
+            _vstr = str(value)
+            if str(key).startswith("_") or "params." in _vstr or "System.getenv" in _vstr or "${" in _vstr:
+                log.info(f"[Nextflow run {run_id}] skipping internal/expr param --{key}")
+                continue
             if key == "outdir":
                 cmd += ["--outdir", str(value)]
             elif isinstance(value, bool):
