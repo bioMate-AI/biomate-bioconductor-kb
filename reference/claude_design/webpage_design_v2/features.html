@@ -465,7 +465,7 @@
         <div style="display:flex;flex-wrap:wrap;gap:10px;" id="bm-conn-chat">
           <noscript>
             <span class="bm-tech-chip"><div class="bm-tech-chip-name">Slack</div><div class="bm-tech-chip-role">/biomate slash command</div></span>
-            <span class="bm-tech-chip"><div class="bm-tech-chip-name">WeChat Work</div><div class="bm-tech-chip-role">企业微信 integration</div></span>
+            <span class="bm-tech-chip"><div class="bm-tech-chip-name">Feishu</div><div class="bm-tech-chip-role">Lark / 飞书 integration</div></span>
           </noscript>
         </div>
       </div>
@@ -489,16 +489,6 @@
         </div>
       </div>
 
-      <!-- Auth & SSO -->
-      <div>
-        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:1rem;">Auth &amp; SSO</div>
-        <div style="display:flex;flex-wrap:wrap;gap:10px;" id="bm-conn-auth">
-          <noscript>
-            <span class="bm-tech-chip"><div class="bm-tech-chip-name">Google OAuth</div><div class="bm-tech-chip-role">SSO login</div></span>
-            <span class="bm-tech-chip"><div class="bm-tech-chip-name">GitHub OAuth</div><div class="bm-tech-chip-role">SSO login</div></span>
-          </noscript>
-        </div>
-      </div>
     </div>
   </section>
 
@@ -513,7 +503,7 @@
       </div>
       <figure style="margin:0;">
         <img src="assets/platform-diagram.svg"
-             alt="BioMate AI platform architecture diagram: CONNECT layer (MCP, Open Claw, REST API, SSE, Slack, WeChat Work, 10 lab instruments) feeds into the ANALYZE layer (AI orchestration routing to 4,000+ workflows across 36 domains, executed on AWS Batch via Nextflow) which produces DELIVER outputs (structured reports, IND sections, CRO packages, Gold/Silver/Bronze QC grading, immutable audit trail)"
+             alt="BioMate AI platform architecture diagram: CONNECT layer (MCP, Open Claw, REST API, SSE, Slack, Feishu, 10 lab instruments) feeds into the ANALYZE layer (AI orchestration routing to 4,000+ workflows across 36 domains) which produces DELIVER outputs (structured reports, IND sections, CRO packages, Gold/Silver/Bronze QC grading, immutable audit trail)"
              width="1200" height="700"
              style="width:100%;height:auto;border-radius:12px;border:1px solid rgba(143,214,234,0.15);"
              loading="lazy" />
@@ -634,7 +624,7 @@
     ];
     const CONN_CHAT = [
       ['Slack', '/biomate slash command · Block Kit'],
-      ['WeChat Work (企业微信)', 'Message signing · XML encryption'],
+      ['Feishu', 'Lark / 飞书 · message signing · webhook'],
     ];
     const CONN_LAB = [
       ['Illumina BaseSpace', 'Sequencing run ingestion'],
@@ -648,10 +638,6 @@
       ['SiLA2', 'Standardized lab automation protocol'],
       ['Benchling LIMS', 'Samples, assay results, projects'],
     ];
-    const CONN_AUTH = [
-      ['Google OAuth', 'SSO login'],
-      ['GitHub OAuth', 'SSO login'],
-    ];
     function renderChips(id, arr) {
       document.getElementById(id).innerHTML = arr.map(([name, role]) => `
         <div class="bm-tech-chip">
@@ -662,7 +648,6 @@
     renderChips('bm-conn-ai',   CONN_AI);
     renderChips('bm-conn-chat', CONN_CHAT);
     renderChips('bm-conn-lab',  CONN_LAB);
-    renderChips('bm-conn-auth', CONN_AUTH);
   </script>
 
   <script type="text/babel" src="tweaks-panel.jsx"></script>

@@ -39,15 +39,24 @@
             <img src="assets/logo.png?v=3" alt="BioMate AI" />
           </a>
           <ul class="bm-nav-links" id="bmNavLinks">
-            <li><a href="index.html" class="${active === '' ? 'active' : ''}">Home</a></li>
-            ${dropdown('platform', 'Platform', 'services.html', [
-              { label: 'Platform Features',          href: 'features.html' },
+            ${dropdown('company', 'Company', 'about.html', [
+              { label: 'Home',          href: 'index.html' },
               { divider: true },
-              { label: 'Drug Discovery',             href: 'services.html#drug-discovery' },
-              { label: 'Genomics &amp; Multi-Omics', href: 'services.html#genomics' },
-              { label: 'Structural Biology',         href: 'services.html#structural-biology' },
+              { label: 'About BioMate', href: 'about.html' },
+              { label: 'Pricing',       href: 'pricing.html' },
+              { label: 'Compare',       href: 'compare.html' },
               { divider: true },
-              { label: 'All Services &rarr;',        href: 'services.html', bold: true }
+              { label: 'Contact',       href: 'contact.html' }
+            ])}
+            ${dropdown('platform', 'Services', 'services.html', [
+              { label: 'Platform Features',                   href: 'features.html' },
+              { divider: true },
+              { label: 'Drug Discovery',                      href: 'services.html#drug-discovery' },
+              { label: 'Genomics &amp; Multi-Omics',          href: 'services.html#genomics' },
+              { label: 'Structural Biology',                  href: 'services.html#structural-biology' },
+              { label: 'Clinical Research &amp; Applications', href: 'services.html#drug-discovery' },
+              { divider: true },
+              { label: 'All Services &rarr;',                 href: 'services.html', bold: true }
             ])}
             ${dropdown('research', 'Research', 'benchmarks.html', [
               { label: 'Benchmarks',   href: 'benchmarks.html' },
@@ -59,13 +68,6 @@
               { label: 'Company News',        href: 'blog.html?cat=news' },
               { divider: true },
               { label: 'All Posts &rarr;',    href: 'blog.html', bold: true }
-            ])}
-            ${dropdown('company', 'Company', 'about.html', [
-              { label: 'About BioMate', href: 'about.html' },
-              { label: 'Pricing',       href: 'pricing.html' },
-              { label: 'Compare',       href: 'compare.html' },
-              { divider: true },
-              { label: 'Contact',       href: 'contact.html' }
             ])}
             <li><a href="https://dev-public.biomate.ai/login" class="bm-nav-login">Log in</a></li>
             <li><a href="https://dev-public.biomate.ai/register" class="bm-nav-cta">Start free</a></li>
