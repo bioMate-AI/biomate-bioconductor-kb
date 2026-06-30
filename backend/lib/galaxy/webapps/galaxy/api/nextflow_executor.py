@@ -4135,13 +4135,117 @@ def _accession_chain_thread(
 # Routes
 # ---------------------------------------------------------------------------
 
+def _fail_run(run_id: str, message: str) -> None:
+    """Mark a run failed in both the in-proc dict and the persistence store.
+
+    Used when the (now background) launch path raises before the run reaches a
+    live state — so a launch error still surfaces to the caller via run status.
+    """
+    try:
+        with _runs_lock:
+            rec = _runs.get(run_id) or {"run_id": run_id}
+            rec["status"] = "failed"
+            rec["returncode"] = -1
+            rec["error"] = message
+            _runs[run_id] = rec
+            snapshot = dict(rec)
+        try:
+            get_run_state_store().set_run(run_id, snapshot)
+        except Exception:
+            pass
+    except Exception as _e:
+        log.debug("[runs] _fail_run failed for %s: %s", run_id, _e)
+
+
+def _narrate_launch_failure(invocation_id: str, run_id: str, message: str) -> None:
+    """Fire the workflow.failed SSE narration so the frontend reconciles a run
+    that failed during the (background) launch before any process started."""
+    if not invocation_id:
+        return
+    try:
+        _narrate_chat(invocation_id, "workflow.failed", {"run_id": run_id, "reason": message})
+    except Exception as _e:
+        log.debug("[runs] launch-failure narration failed for %s: %s", run_id, _e)
+
+
 @router.post("/api/nextflow/execute", summary="Launch a Nextflow workflow")
 def execute_nextflow(
     request: NextflowExecuteRequest,
 ) -> Dict[str, Any]:
     """
-    Launch a Nextflow workflow by path.  Returns immediately with a run_id.
-    The workflow runs as a background subprocess.
+    Launch a Nextflow workflow by path. Returns IMMEDIATELY with a run_id; the
+    (sometimes slow) prep + launch run in a background thread.
+
+    Why async: the Node→Galaxy dispatch `fetch()` previously awaited this whole
+    handler. Slow-to-launch workflows (e.g. first-time AWS Batch job-definition
+    registration for a new container) made the prep take long enough to trip
+    undici's headers timeout → "fetch failed" → the run was marked failed even
+    though it had actually launched (connector hERG incident 2026-06-30).
+    Returning the run_id up front and launching in the background removes that
+    whole class of false-fail; status flows configuring → running → completed.
+    """
+    # Fast, synchronous input validation so an obviously-bad request still gets
+    # an immediate 4xx rather than a deferred failed-run.
+    try:
+        _resolve_nextflow_path(request.nextflow_path)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+    run_id = str(uuid.uuid4())
+    invocation_id = str(uuid.uuid4())
+
+    # Register a minimal record up front so a status poll fired right after this
+    # returns "configuring" (not 404) while the background launch runs.
+    _pre_record = {
+        "run_id": run_id,
+        "invocation_id": invocation_id,
+        "status": "configuring",
+        "returncode": None,
+        "nextflow_path": str(request.nextflow_path),
+        "user_id": request.user_id or "anonymous",
+        "is_pilot": bool(request.is_pilot),
+        "started_at": time.time(),
+    }
+    with _runs_lock:
+        _runs[run_id] = dict(_pre_record)
+    try:
+        get_run_state_store().set_run(run_id, _pre_record)
+    except Exception as _e:
+        log.debug("[runs] pre-record set_run failed for %s: %s", run_id, _e)
+
+    def _launch_bg() -> None:
+        try:
+            _execute_nextflow_impl(request, _run_id=run_id, _invocation_id=invocation_id)
+        except HTTPException as he:
+            _msg = f"launch failed ({he.status_code}): {he.detail}"
+            _fail_run(run_id, _msg)
+            _narrate_launch_failure(invocation_id, run_id, _msg)
+        except Exception as exc:
+            log.error("[Nextflow run %s] background launch crashed: %s", run_id, exc)
+            _fail_run(run_id, f"launch failed: {exc}")
+            _narrate_launch_failure(invocation_id, run_id, f"launch failed: {exc}")
+
+    threading.Thread(
+        target=_launch_bg, daemon=True, name=f"nf-launch-{run_id[:8]}"
+    ).start()
+
+    return {
+        "success": True,
+        "run_id": run_id,
+        "invocation_id": invocation_id,
+        "status": "configuring",
+    }
+
+
+def _execute_nextflow_impl(
+    request: NextflowExecuteRequest,
+    _run_id: Optional[str] = None,
+    _invocation_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    The actual (sometimes slow) prep + launch. Spawned in a background thread by
+    execute_nextflow(); may also be called directly. Raises HTTPException on
+    launch errors — the caller converts those to a failed run via _fail_run.
     """
     try:
         nf_path = _resolve_nextflow_path(request.nextflow_path)
@@ -4252,8 +4356,8 @@ def execute_nextflow(
         )
 
     # Generate unique IDs
-    run_id = str(uuid.uuid4())
-    invocation_id = str(uuid.uuid4())
+    run_id = _run_id or str(uuid.uuid4())
+    invocation_id = _invocation_id or str(uuid.uuid4())
 
     # Work / output directory (local staging area for logs and config files).
     work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
