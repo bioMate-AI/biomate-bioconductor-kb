@@ -198,49 +198,83 @@
 
   <text x="316" y="293" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12" font-weight="700" fill="#F5CD87" letter-spacing="2">36 BIOMEDICAL DOMAINS · 4,000+ WORKFLOWS</text>
 
-  <!-- Domain group chips — 2 columns × 3 rows -->
-
-  <!-- Column 1 — left domains -->
-  <!-- Group A: Omics & Sequencing -->
-  <rect x="308" y="300" width="280" height="70" rx="6" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.22)" stroke-width="0.7"/>
-  <text x="322" y="318" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12.5" font-weight="700" fill="#FFFFFF">Omics &amp; Sequencing</text>
-  <text x="322" y="333" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12.5" fill="#8BA3B8">transcriptomics · genomics · epigenomics</text>
-  <text x="322" y="347" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12.5" fill="#8BA3B8">single cell · variant calling · metagenomics</text>
-  <text x="322" y="361" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12.5" fill="#8BA3B8">proteomics · metabolomics · multi-omics</text>
-
-  <!-- Group B: Drug Discovery -->
-  <rect x="308" y="378" width="280" height="60" rx="6" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.22)" stroke-width="0.7"/>
-  <text x="322" y="396" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12.5" font-weight="700" fill="#FFFFFF">Drug Discovery</text>
-  <text x="322" y="411" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12.5" fill="#8BA3B8">drug discovery · pharmacology · molecular biology</text>
-  <text x="322" y="425" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12.5" fill="#8BA3B8">genetics · biochemistry</text>
-
-  <!-- Group C: Computational -->
-  <rect x="308" y="446" width="280" height="50" rx="6" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.22)" stroke-width="0.7"/>
-  <text x="322" y="464" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12.5" font-weight="700" fill="#FFFFFF">Computational</text>
-  <text x="322" y="479" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12.5" fill="#8BA3B8">systems biology · synthetic biology · lab automation</text>
-
-  <!-- Column 2 — right domains -->
-  <!-- Group D: Structural & Imaging -->
-  <rect x="600" y="300" width="290" height="60" rx="6" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.22)" stroke-width="0.7"/>
-  <text x="614" y="318" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12.5" font-weight="700" fill="#FFFFFF">Structural &amp; Imaging</text>
-  <text x="614" y="333" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12.5" fill="#8BA3B8">cryo-EM · cryo-ET · structural biology</text>
-  <text x="614" y="347" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12.5" fill="#8BA3B8">bioimaging · imaging</text>
-
-  <!-- Group E: Biology & Medicine -->
-  <rect x="600" y="368" width="290" height="80" rx="6" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.22)" stroke-width="0.7"/>
-  <text x="614" y="386" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12.5" font-weight="700" fill="#FFFFFF">Biology &amp; Medicine</text>
-  <text x="614" y="401" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12.5" fill="#8BA3B8">immunology · microbiology · cell biology</text>
-  <text x="614" y="415" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12.5" fill="#8BA3B8">cancer biology · pathology · physiology</text>
-  <text x="614" y="429" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12.5" fill="#8BA3B8">bioengineering · biophysics · rare disease · glycoengineering</text>
-
-  <!-- Group F: R / Bioconductor -->
-  <rect x="600" y="456" width="290" height="40" rx="6" fill="rgba(42,74,106,0.55)" stroke="rgba(245,205,135,0.30)" stroke-width="0.7"/>
-  <text x="614" y="472" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12.5" font-weight="700" fill="#F5CD87">R / Bioconductor</text>
-  <text x="614" y="487" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12.5" fill="#8BA3B8">1,818 packages · DESeq2 · edgeR · Seurat · limma · clusterProfiler</text>
+  <!-- Domain chips — flat grid of all 36 domains -->
+  <rect x="308" y="303" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="314" y="316" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Transcriptomics</text>
+  <rect x="425" y="303" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="431" y="316" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Genomics</text>
+  <rect x="542" y="303" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="548" y="316" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Epigenomics</text>
+  <rect x="659" y="303" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="665" y="316" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Variant Calling</text>
+  <rect x="776" y="303" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="782" y="316" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Proteomics</text>
+  <rect x="308" y="328" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="314" y="341" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Single Cell</text>
+  <rect x="425" y="328" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="431" y="341" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Drug Discovery</text>
+  <rect x="542" y="328" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="548" y="341" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Systems Biology</text>
+  <rect x="659" y="328" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="665" y="341" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Metagenomics</text>
+  <rect x="776" y="328" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="782" y="341" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Metabolomics</text>
+  <rect x="308" y="353" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="314" y="366" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Imaging</text>
+  <rect x="425" y="353" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="431" y="366" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Pharmacology</text>
+  <rect x="542" y="353" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="548" y="366" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Genetics</text>
+  <rect x="659" y="353" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="665" y="366" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Molecular Biology</text>
+  <rect x="776" y="353" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="782" y="366" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Immunology</text>
+  <rect x="308" y="378" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="314" y="391" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Microbiology</text>
+  <rect x="425" y="378" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="431" y="391" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Physiology</text>
+  <rect x="542" y="378" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="548" y="391" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Bioimaging</text>
+  <rect x="659" y="378" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="665" y="391" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Bioengineering</text>
+  <rect x="776" y="378" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="782" y="391" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Synthetic Biology</text>
+  <rect x="308" y="403" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="314" y="416" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Cryo-EM</text>
+  <rect x="425" y="403" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="431" y="416" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Cryo-ET</text>
+  <rect x="542" y="403" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="548" y="416" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Structural Biology</text>
+  <rect x="659" y="403" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="665" y="416" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Biochemistry</text>
+  <rect x="776" y="403" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="782" y="416" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Lab Automation</text>
+  <rect x="308" y="428" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="314" y="441" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Pathology</text>
+  <rect x="425" y="428" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="431" y="441" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Cancer Biology</text>
+  <rect x="542" y="428" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="548" y="441" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Population Genetics</text>
+  <rect x="659" y="428" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="665" y="441" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Cell Biology</text>
+  <rect x="776" y="428" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="782" y="441" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Immuno-oncology</text>
+  <rect x="308" y="453" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="314" y="466" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Glycoengineering</text>
+  <rect x="425" y="453" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="431" y="466" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Biophysics</text>
+  <rect x="542" y="453" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="548" y="466" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Multi-omics</text>
+  <rect x="659" y="453" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="665" y="466" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Spatial Transcriptomics</text>
+  <rect x="776" y="453" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(245,205,135,0.30)" stroke-width="0.5"/>
+  <text x="782" y="466" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#F5CD87">R / Bioconductor</text>
+  <rect x="308" y="478" width="112" height="18" rx="3" fill="rgba(42,74,106,0.55)" stroke="rgba(143,214,234,0.18)" stroke-width="0.5"/>
+  <text x="314" y="491" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF">Clinical Pharmacology</text>
 
   <!-- Workflow count badge -->
-  <rect x="308" y="504" width="580" height="24" rx="4" fill="rgba(245,205,135,0.07)" stroke="rgba(245,205,135,0.18)" stroke-width="0.6"/>
-  <text x="598" y="520" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12" fill="#F5CD87" text-anchor="middle">4,000+ workflows · container-pinned · version-locked</text>
+  <rect x="308" y="502" width="580" height="22" rx="4" fill="rgba(245,205,135,0.07)" stroke="rgba(245,205,135,0.18)" stroke-width="0.6"/>
+  <text x="598" y="517" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12" fill="#F5CD87" text-anchor="middle">4,000+ workflows · container-pinned · version-locked</text>
 
   <!-- ══════════════════════════════════════════
        INNER BOX 3 — EXECUTION LAYER
