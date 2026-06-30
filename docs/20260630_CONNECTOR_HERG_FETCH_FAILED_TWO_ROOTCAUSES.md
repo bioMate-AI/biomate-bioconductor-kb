@@ -83,7 +83,47 @@ with prod — flagged for an explicit decision.
 
 ---
 
+## Root cause #1b — the ACTUAL lock holder: self-deadlock on a non-reentrant lock
+
+PR #68 (move S3 out of `_runs_lock`) was correct hygiene but **did not fix the
+hang** — run `8088d4ff` failed identically right after a "successful" run
+(`57895ed6`) completed. A `py-spy` dump of the wedged worker (taken from the
+**host** — the container's seccomp blocks ptrace) caught the real holder:
+
+```
+Thread nf-log-57895ed6 (completion):
+    _run_lookup   nextflow_executor.py:95     <- acquires _runs_lock
+    _stream_logs  nextflow_executor.py:3469   <- ALREADY holds _runs_lock
+```
+
+`_stream_logs` (and 3 other locked sections) call `_run_lookup()` /
+`_find_run_by_invocation_id()` **while already holding `_runs_lock`**; those
+helpers take the same lock. With a non-reentrant `threading.Lock()` the
+completion thread blocks forever re-acquiring its own lock and keeps holding it
+→ every consumer (`execute`, `status`) hangs 300s → "fetch failed". The run
+still shows **succeeded** because `orphan_finalizer` finalizes it on a separate
+thread — which is why each run's completion poisons the **next** run's execute
+(5 consecutive hERG fails). Self-deadlock call sites: 3468→3469, 3533→3538,
+4520→4521, 5127→5128. Introduced by the Stage 2c/2d persistence refactor.
+
+**Fix — PR #70 (merged):** `_runs_lock = threading.RLock()` (reentrant). Every
+critical section only guards the in-memory dict, so reentrancy is safe.
+
+**Verified (test `sha-a6b904934755`) — two sequential runs with a completion
+between:** run1 → Batch → succeeded (status 0.02–0.7s throughout); post-
+completion (the poison point) status probe 0.006s + run2 execute 0.009s → **PASS,
+the lock survives a completion** (previously run2 hung 300s).
+
+> Lesson: the symptom (execute/status hang 300s, `/api/version` fine) pointed at
+> lock starvation, and the S3-under-lock block was a plausible-but-wrong holder.
+> The host `py-spy` dump was decisive — it named the deadlocked thread + line.
+> Always get the live stack before concluding which critical section is stuck.
+
 ## Status
-- #1: fixed, merged (PR #68), deployed (`sha-273918d32a25`), verified.
-- #2: fixed on test (.env), deployed, verified. Repo-level durability flagged.
-- The connector hERG path now runs Batch → completes → returns real data.
+- #1 (S3 out of lock): merged PR #68 — correct hygiene, reduced hold time.
+- #1b (RLock self-deadlock): merged PR #70 — **the actual fix**, deployed
+  (`sha-a6b904934755`), verified across a completion boundary.
+- #2 (NEXTFLOW_USE_AWS): fixed on test (.env), deployed, verified. Repo-level
+  durability flagged (bake into compose, prod-shared — needs sign-off).
+- The connector hERG path now runs Batch → completes → returns real data, and
+  back-to-back runs no longer poison each other.
