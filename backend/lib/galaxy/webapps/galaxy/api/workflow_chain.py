@@ -98,7 +98,7 @@ router = Router(tags=["workflow-chain"])
 
 _CHAINS_DIR = Path(os.environ.get(
     "BIOMATE_CHAINS_DIR",
-    "/home/yzhang/biomate/backend/database/ai_workflow_ops/chains"
+    str(Path(__file__).parent.parent.parent.parent.parent.parent / "database" / "ai_workflow_ops" / "chains")
 ))
 
 
@@ -706,7 +706,14 @@ def _poll_run_until_done(chain_run_id: str, step_idx: int, run_id: str, poll_int
 # DB type lookup helpers
 # ---------------------------------------------------------------------------
 
-_DB_PATH = Path(os.environ.get("GALAXY_AI_DB", "/home/yzhang/biomate/backend/database/galaxy_ai_tools.db"))
+# Resolve to the canonical database path: $GALAXY_AI_DB env > app-relative default.
+# Uses the same logic as unified_workflow_search.py so all code that opens this DB
+# resolves to the same file. The hardcoded /home/yzhang/ fallback only worked on one
+# developer's laptop — it never worked in Docker.
+_DB_PATH = Path(os.environ.get(
+    "GALAXY_AI_DB",
+    str(Path(__file__).parent.parent.parent.parent.parent.parent / "database" / "galaxy_ai_tools.db")
+))
 
 
 def resolve_workflow_name_to_path(workflow_name: str, workflow_id: Optional[int] = None) -> Optional[str]:
