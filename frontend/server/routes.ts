@@ -7603,9 +7603,17 @@ ${paramLines || '(none recorded)'}`;
       const TEXT_EXTS = new Set(['csv','tsv','txt','log','fasta','fa','fastq','vcf','bed','gff','gtf','json','html','htm','tabular']);
       const IMAGE_EXTS = new Set(['png','jpg','jpeg','gif','svg']);
 
-      const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+      const { GetObjectCommand } = await import('@aws-sdk/client-s3');
       const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
-      const s3 = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' });
+      // Pin the client to the BUCKET's real region. biomate-nextflow-work lives
+      // in us-east-1 while the deploy host's AWS_REGION is us-west-2 — a region-
+      // mismatched client (the old `new S3Client({ region: AWS_REGION })`) gets
+      // "The bucket you are attempting to access must be addressed using the
+      // specified endpoint" (PermanentRedirect → HTTP 500) on both GetObject and
+      // the presigned URL. _s3ClientForBucket resolves the region via
+      // GetBucketLocation, same as the Nextflow write path. (connector preview_file
+      // incident 2026-06-30 — execution wrote S3 fine, only the read side broke.)
+      const s3 = await _s3ClientForBucket(bucket);
       const cmd = new GetObjectCommand({ Bucket: bucket, Key: key });
 
       if (IMAGE_EXTS.has(ext)) {
