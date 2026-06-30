@@ -3574,25 +3574,43 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
             "returncode": returncode,
         })
 
+        # Enumerate S3 output files + evaluate QC gates on success (Batch runs
+        # have no local work dir). CRITICAL: these do blocking network I/O (S3
+        # LIST + object downloads in _evaluate_qc_from_s3) that can stall for
+        # minutes on throttling, a large file, or boto retries. They MUST run
+        # OUTSIDE _runs_lock — holding the lock across them starves every other
+        # run-registry consumer (execute/status block on `with _runs_lock` and
+        # hang until the worker restarts). Incident 2026-06-30: the connector
+        # hERG "fetch failed" was this lock starvation (one run's completion
+        # wedged in S3 QC eval under the lock), NOT a launch timeout. Read the
+        # inputs under a brief lock, compute lock-free, write results back under
+        # a second brief lock.
+        with _runs_lock:
+            _present = run_id in _runs
+            _outdir_for_s3 = _runs[run_id].get("outdir", "") if _present else ""
+            _wf_domain_for_qc = _runs[run_id].get("workflow_domain", "") if _present else ""
+            _qc_overrides_for_qc = dict(_runs[run_id].get("qc_overrides", {})) if _present else {}
+
+        _s3_output_files: list = []
+        _qc_gates_s3 = None
+        if _present and returncode == 0 and str(_outdir_for_s3).startswith("s3://"):
+            _s3_output_files = _s3_files_for_salvage or _list_s3_output_files(_outdir_for_s3)
+            _qc_gates_s3 = _evaluate_qc_from_s3(
+                run_id=run_id,
+                s3_output_files=_s3_output_files,
+                workflow_domain=_wf_domain_for_qc,
+                qc_overrides=_qc_overrides_for_qc,
+            )
+            if _qc_gates_s3:
+                log.info("[QC Gate] S3 evaluation for %s: %d gate(s)", run_id, len(_qc_gates_s3))
+
+        run_meta: Dict[str, Any] = {}
         with _runs_lock:
             if run_id in _runs:
-                # Enumerate S3 output files on success (including salvaged false failures).
-                if returncode == 0:
-                    outdir = _runs[run_id].get("outdir", "")
-                    if str(outdir).startswith("s3://"):
-                        _runs[run_id]["s3_output_files"] = (
-                            _s3_files_for_salvage or _list_s3_output_files(outdir)
-                        )
-                        # Evaluate QC gates from S3 output files (Batch runs have no local work dir)
-                        _qc_gates_s3 = _evaluate_qc_from_s3(
-                            run_id=run_id,
-                            s3_output_files=_runs[run_id]["s3_output_files"],
-                            workflow_domain=_runs[run_id].get("workflow_domain", ""),
-                            qc_overrides=_runs[run_id].get("qc_overrides", {}),
-                        )
-                        if _qc_gates_s3:
-                            _runs[run_id]["qc_gates"] = _qc_gates_s3
-                            log.info("[QC Gate] S3 evaluation for %s: %d gate(s)", run_id, len(_qc_gates_s3))
+                if _s3_output_files:
+                    _runs[run_id]["s3_output_files"] = _s3_output_files
+                if _qc_gates_s3:
+                    _runs[run_id]["qc_gates"] = _qc_gates_s3
                 run_meta = dict(_runs[run_id])
         log.info("[Nextflow run %s] finished — status=%s returncode=%d", run_id, final_status, returncode)
 
