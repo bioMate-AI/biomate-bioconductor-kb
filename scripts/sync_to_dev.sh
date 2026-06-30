@@ -274,13 +274,25 @@ deploy_galaxy_yml() {
   fi
   log "[galaxy.yml] Shipping $(stat -c %s $src 2>/dev/null || echo ?) bytes..."
   ec2_scp "$src" "${EC2_USER}@${EC2_HOST}:/tmp/galaxy.yml"
+
+  # Sync interactivetools_conf.xml BEFORE the gunicorn restart below.
+  # galaxy.yml.docker references interactivetools_conf.xml in tool_config_file;
+  # Galaxy reads tool_config_file at startup — if the file is missing when gunicorn
+  # restarts, Galaxy crashes. Copy it first so both files land before the restart.
+  local it_src="$REPO_ROOT/backend/config/interactivetools_conf.xml"
+  if [[ -f "$it_src" ]]; then
+    ec2_scp "$it_src" "${EC2_USER}@${EC2_HOST}:/tmp/interactivetools_conf.xml"
+    ec2_ssh 'docker cp /tmp/interactivetools_conf.xml biomate-galaxy-dev:/app/config/interactivetools_conf.xml'
+    log "[galaxy.yml] interactivetools_conf.xml staged"
+  fi
+
   ec2_ssh '
     set -e
     docker cp /tmp/galaxy.yml biomate-galaxy-dev:/app/config/galaxy.yml
     # Verify the bind is correct (catch any future regression)
     BIND=$(docker exec biomate-galaxy-dev grep -E "^[[:space:]]+bind:" /app/config/galaxy.yml | head -1 | tr -d " ")
     echo "[galaxy.yml] applied; bind = ${BIND}"
-    # Reload gunicorn so it picks up the new bind (no-op if unchanged)
+    # Reload gunicorn so it picks up the new config (both galaxy.yml + interactivetools_conf.xml are now in place)
     docker exec biomate-galaxy-dev galaxyctl restart gunicorn 2>&1 | tail -1
   '
   log "[galaxy.yml] Done"
@@ -920,8 +932,12 @@ rollback_sync() {
     set -e
     NET=\$(cat /opt/biomate/rollback/galaxy.net)
     PORTS=\$(cat /opt/biomate/rollback/galaxy.ports)
+    # Write a filtered env file (drop shell-only vars that docker --env-file rejects)
+    grep -vE '^(PATH|HOME|TERM|HOSTNAME|SHELL|SHLVL|LOGNAME|USER|_)=' /opt/biomate/rollback/galaxy.env > /tmp/galaxy_rollback.env
     docker rm -f biomate-galaxy-dev >/dev/null 2>&1 || true
-    docker run -d --name biomate-galaxy-dev --network \"\$NET\" \$PORTS --restart unless-stopped \$(grep -vE '^(PATH|HOME|TERM|HOSTNAME)=' /opt/biomate/rollback/galaxy.env | awk '{print \"-e\", \$0}' | tr '\n' ' ') $RB_GALAXY_IMAGE >/dev/null
+    # Use --env-file instead of per-var -e flags: avoids word-splitting bugs when
+    # env values contain spaces or shell-special chars.
+    docker run -d --name biomate-galaxy-dev --network \"\$NET\" \$PORTS --restart unless-stopped --env-file /tmp/galaxy_rollback.env $RB_GALAXY_IMAGE >/dev/null
     docker network connect biomate-dev-net biomate-galaxy-dev 2>/dev/null || true
     echo '[rollback]   galaxy recreated from snapshot'
   "; then
