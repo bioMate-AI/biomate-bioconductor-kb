@@ -13052,7 +13052,12 @@ Respond ONLY with valid JSON (no markdown wrapper):
       });
     } catch (error: any) {
       console.error("[Interactive] Error launching:", error);
-      res.status(500).json({
+      // Forward Galaxy's 4xx status so callers can distinguish "not configured"
+      // (Galaxy 400) from a real server bug (500). Previously everything became 500,
+      // making the error invisible in tests and logs.
+      const galaxyStatus = error?.response?.status;
+      const status = galaxyStatus && galaxyStatus >= 400 && galaxyStatus < 500 ? 400 : 500;
+      res.status(status).json({
         error: 'InteractiveLaunchError',
         message: error.message || 'Failed to launch interactive tool',
       });
@@ -13066,7 +13071,9 @@ Respond ONLY with valid JSON (no markdown wrapper):
       res.json({ sessions, count: sessions.length });
     } catch (error: any) {
       console.error("[Interactive] Error getting sessions:", error);
-      res.status(500).json({
+      const galaxyStatus = error?.response?.status;
+      const status = galaxyStatus && galaxyStatus >= 400 && galaxyStatus < 500 ? 400 : 500;
+      res.status(status).json({
         error: 'SessionsError',
         message: error.message || 'Failed to get interactive sessions',
       });

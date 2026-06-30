@@ -78,8 +78,9 @@ test("A1: Table file (tsv) → primary button is 'Analyze in RStudio', secondary
       headers: { "Content-Type": "application/json" },
       data: { tool_id: "interactive_tool_rstudio", inputs: {} },
     });
-    // 200 (Galaxy accepted) or 500 (Galaxy interactive tools not configured locally) — NOT 401
-    expect([200, 500]).toContain(r.status());
+    // 200 (Galaxy accepted) or 400 (Galaxy not configured for interactive tools) — NOT 401/500
+    // 500 would mean our code crashed, which is a real bug.
+    expect([200, 400]).toContain(r.status());
     console.log("[A1] /api/interactive/launch status:", r.status());
     return;
   }
@@ -146,8 +147,8 @@ test("A2: h5ad / loom file → CellxGene launch API responds", async () => {
     data: { tool_id: "interactive_tool_cellxgene", inputs: {} },
   });
   console.log("[A2] CellxGene launch API status:", launchResp.status());
-  // 200 = Galaxy accepted, 500 = Galaxy not configured locally — NOT 401
-  expect([200, 500]).toContain(launchResp.status());
+  // 200 = Galaxy accepted, 400 = Galaxy not configured locally — NOT 401/500
+  expect([200, 400]).toContain(launchResp.status());
 
   if (launchResp.status() === 200) {
     const body = await launchResp.json();
@@ -346,14 +347,14 @@ test("C1: InteractiveLauncher dialog always shows all 3 tools (Jupyter, RStudio,
 // D. API — sessions + launch endpoints (cookie auth via sharedPage.request)
 // ============================================================================
 
-test("D1: /api/interactive/sessions responds (200 or 500 when Galaxy not configured)", async () => {
+test("D1: /api/interactive/sessions responds (200 or 400 when Galaxy not configured)", async () => {
   const page = sharedPage;
   // Use sharedPage.request which carries the session cookie
   const resp = await page.request.get(`${BASE_URL}/api/interactive/sessions`);
-  // 200 = OK with sessions array; 500 = Galaxy interactive tools not configured locally
-  // Either way we must NOT get 401 (auth should pass via session cookie)
+  // 200 = OK with sessions array; 400 = Galaxy entry_points not available
+  // Either way we must NOT get 401 (auth should pass via session cookie) or 500 (real bug)
   expect(resp.status()).not.toBe(401);
-  expect([200, 500]).toContain(resp.status());
+  expect([200, 400]).toContain(resp.status());
   console.log("[D1] /api/interactive/sessions status:", resp.status());
   if (resp.status() === 200) {
     const body = await resp.json();
