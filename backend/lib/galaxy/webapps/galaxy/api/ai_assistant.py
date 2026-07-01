@@ -4325,7 +4325,10 @@ def query_benchmarks(
                 "value": result.get('metric_value'),
                 "evidence": result.get('evidence_text'),
                 "study": result.get('study_name'),
-                "doi": result.get('doi')
+                "doi": result.get('doi'),
+                "benchmark_papers": result.get('benchmark_papers', []),
+                "alternatives": result.get('alternatives', []),
+                "source": result.get('source'),
             })
 
         # Check for context-aware recommendations
