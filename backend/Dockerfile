@@ -176,6 +176,22 @@ RUN echo "git_sha=${GIT_SHA}"      >  /image-build-info \
     && echo "nf_version=${NF_VERSION}" >> /image-build-info \
     && cat /image-build-info
 
+# Bake the sentence-transformer CHAIN-embedding model (all-MiniLM-L6-v2) into
+# the image's HF cache so the /api/workflows/search path loads it locally
+# (local_files_only=True) in ~0.6s. Without this, the first request per worker
+# fetches it from huggingface.co — 2s on a good network, but a ~13s CONNECT-TIMEOUT
+# HANG when the network is slow/blocked, which tripped the connector's cold-start
+# timeout (incident 2026-07-01). Root-owned + world-readable so the galaxy user
+# can read it at runtime.
+# NOTE: BGE (BAAI/bge-small-en-v1.5, workflow dense retrieval) is intentionally
+# NOT baked here — enabling it also requires the prebuilt embeddings .npz, else
+# _ensure_workflow_embeddings() runs a ~67s _build on every worker recycle. Bake
+# BGE + its .npz together in a follow-up to re-enable dense retrieval.
+ENV HF_HOME=/opt/hf_cache
+RUN mkdir -p /opt/hf_cache \
+    && HF_HOME=/opt/hf_cache python3 -c "from sentence_transformers import SentenceTransformer as S; S('all-MiniLM-L6-v2')" \
+    && chmod -R a+rX /opt/hf_cache
+
 USER galaxy
 
 EXPOSE 8080
