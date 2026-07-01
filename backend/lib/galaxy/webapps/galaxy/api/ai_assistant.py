@@ -5139,3 +5139,143 @@ Rules:
     except Exception as exc:
         log.warning("extract_workflow_edits failed: %s", exc)
         return {"edits": [], "error": str(exc)}
+
+
+# ---------------------------------------------------------------------------
+# PaperQA2 (Future House) multi-paper synthesis endpoint
+# ---------------------------------------------------------------------------
+# Accepts local file paths to PDFs that have already been uploaded to the
+# server (resolved from dataset_ids by the Node.js layer before calling here).
+# Chunks all PDFs, embeds them, retrieves the most relevant passages, and
+# synthesises ONE answer with inline citations.
+#
+# Requires: paper-qa>=5.0.0 installed in the Galaxy venv AND ANTHROPIC_API_KEY
+#           set as an environment variable (or GALAXY_AI_API_KEY).
+#
+# Falls back gracefully if paperqa is not installed or the key is missing.
+# ---------------------------------------------------------------------------
+
+class PaperQASynthesizeRequest(BaseModel):
+    file_paths: List[str] = Field(..., description="Absolute paths to uploaded PDF files on this server")
+    question: str = Field(..., description="The question to answer from the papers")
+    llm: str = Field(default="claude-sonnet-4-6", description="Claude model short name (e.g. claude-sonnet-4-6)")
+
+
+@router.post(
+    "/api/ai_assistant/paperqa_synthesize",
+    summary="Use PaperQA2 to synthesise an answer from multiple uploaded research papers."
+)
+async def paperqa_synthesize(
+    request: PaperQASynthesizeRequest,
+    trans: ProvidesUserContext = DependsOnTrans,
+) -> Dict[str, Any]:
+    """
+    Chunks all provided PDFs, embeds them, retrieves top-K passages across
+    ALL papers, and returns ONE synthesised answer with inline citations.
+    """
+    import asyncio as _asyncio
+    import os as _os
+
+    # ── Validate file paths ────────────────────────────────────────────────
+    valid_paths = []
+    for p in request.file_paths:
+        fp = FilePath(p)
+        if fp.exists() and fp.suffix.lower() == ".pdf":
+            valid_paths.append(str(fp))
+
+    if not valid_paths:
+        return {
+            "success": False,
+            "error": "No valid PDF files found for the provided paths",
+            "file_paths": request.file_paths,
+        }
+
+    # ── Check paperqa availability ─────────────────────────────────────────
+    try:
+        from paperqa import Docs, Settings  # type: ignore[import]
+    except ImportError:
+        return {
+            "success": False,
+            "error": "paper-qa is not installed in this environment. Install with: pip install paper-qa>=5.0.0",
+        }
+
+    # ── API key ───────────────────────────────────────────────────────────
+    api_key = _os.getenv("ANTHROPIC_API_KEY") or _os.getenv("GALAXY_AI_API_KEY")
+    if not api_key:
+        return {
+            "success": False,
+            "error": "ANTHROPIC_API_KEY not set — PaperQA2 requires an Anthropic API key for synthesis",
+        }
+
+    try:
+        llm_name = f"anthropic/{request.llm}"
+        model_cfg = [
+            {
+                "model_name": llm_name,
+                "litellm_params": {
+                    "model": llm_name,
+                    "api_key": api_key,
+                },
+            }
+        ]
+        settings = Settings(
+            llm=llm_name,
+            summary_llm=llm_name,
+            llm_config={
+                "rate_limit": {"anthropic": "50/minute"},
+                "model_list": model_cfg,
+            },
+            summary_llm_config={
+                "rate_limit": {"anthropic": "50/minute"},
+                "model_list": model_cfg,
+            },
+            answer={
+                "evidence_k": 10,
+                "answer_max_sources": 5,
+            },
+        )
+
+        docs = Docs()
+        # Index all PDFs in parallel
+        await _asyncio.gather(*[docs.aadd(p) for p in valid_paths])
+
+        # Run the query
+        session = await docs.aquery(request.question, settings=settings)
+
+        # Build citation list from the session contexts
+        citations = []
+        seen = set()
+        for ctx in (getattr(session, "contexts", None) or []):
+            doc = getattr(ctx, "doc", None)
+            if doc is None:
+                continue
+            key = getattr(doc, "key", None) or getattr(doc, "docname", None) or str(doc)
+            if key in seen:
+                continue
+            seen.add(key)
+            citations.append({
+                "key": key,
+                "title": getattr(doc, "title", None) or key,
+                "authors": getattr(doc, "authors", []),
+                "year": getattr(doc, "year", None),
+                "doi": getattr(doc, "doi", None),
+                "pages_used": [getattr(ctx, "text", {}).get("name", "") if isinstance(getattr(ctx, "text", None), dict) else ""],
+            })
+
+        return {
+            "success": True,
+            "question": request.question,
+            "answer": getattr(session, "answer", ""),
+            "formatted_answer": getattr(session, "formatted_answer", getattr(session, "answer", "")),
+            "citations": citations,
+            "sources": len(valid_paths),
+            "files": valid_paths,
+        }
+
+    except Exception as exc:
+        log.error("paperqa_synthesize failed: %s", exc, exc_info=True)
+        return {
+            "success": False,
+            "error": str(exc),
+            "question": request.question,
+        }

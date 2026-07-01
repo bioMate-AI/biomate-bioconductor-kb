@@ -246,3 +246,4 @@ qrcode[pil]>=8.2       # S2: QR generation for MFA enrollment
 # Dense (BGE) workflow retrieval — unified_workflow_search.py (CPU). Was a local-only
 # dependency; declaring it so the backend image actually ships it (dev had none).
 sentence-transformers
+paper-qa>=5.0.0            # PaperQA2 (Future House) for multi-paper RAG synthesis
