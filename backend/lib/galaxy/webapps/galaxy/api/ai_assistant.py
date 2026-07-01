@@ -5262,7 +5262,32 @@ async def paperqa_synthesize(
         }
 
     # ── API key ───────────────────────────────────────────────────────────
+    # 1) Process environment (set by gravity/gunicorn via galaxy.yml)
+    # 2) Galaxy config object (ai_llm_api_key or equivalent)
+    # 3) Explicit GALAXY_AI_API_KEY env var (legacy)
     api_key = _os.getenv("ANTHROPIC_API_KEY") or _os.getenv("GALAXY_AI_API_KEY")
+    if not api_key:
+        try:
+            cfg = getattr(trans, "app", None) and getattr(trans.app, "config", None)
+            api_key = (
+                getattr(cfg, "ai_llm_api_key", None)
+                or getattr(cfg, "anthropic_api_key", None)
+            )
+        except Exception:
+            pass
+    if not api_key:
+        # Last resort: read from galaxy.yml handlers.gunicorn.environment directly
+        try:
+            import yaml as _yaml
+            _cfg_path = _os.path.join(_os.path.dirname(__file__), "..", "..", "..", "..", "..", "config", "galaxy.yml")
+            _cfg_path = _os.path.realpath(_cfg_path)
+            if _os.path.exists(_cfg_path):
+                with open(_cfg_path) as _f:
+                    _raw = _yaml.safe_load(_f) or {}
+                _env = (_raw.get("gravity", {}).get("gunicorn", {}).get("environment", {}))
+                api_key = _env.get("ANTHROPIC_API_KEY")
+        except Exception:
+            pass
     if not api_key:
         return {
             "success": False,
@@ -5281,14 +5306,15 @@ async def paperqa_synthesize(
             }
         ]
         from paperqa.settings import ParsingSettings  # type: ignore[import]
-        # Raise the LMI GLOBAL_LIMITER token budget before creating settings.
-        # Default is 30,000 tokens/minute; 10 chunk summaries can exceed that.
-        # Raise to 100,000 to allow burst synthesis without TimeoutError.
+        # Patch the LMI GLOBAL_LIMITER token-bucket before running synthesis.
+        # Default is 30k tokens/minute; 10 parallel chunk summaries (~3.5k
+        # tokens each ≈ 35k total) exceed that and cause a TimeoutError.
+        # We raise it to 200k to support high-recall synthesis (surveys, reviews).
         try:
-            import lmi as _lmi  # type: ignore[import]
-            _lmi.set_rate_limit(100_000, period=60)  # tokens per minute
+            from lmi.rate_limiter import RATE_CONFIG, limit_parse  # type: ignore[import]
+            RATE_CONFIG[("client", None)] = limit_parse("200000/1minute")
         except Exception:
-            pass  # lmi may not expose this API in all versions — non-fatal
+            pass  # non-fatal — worst case synthesis might hit rate limit
 
         settings = Settings(
             llm=llm_name,
@@ -5302,13 +5328,11 @@ async def paperqa_synthesize(
                 "model_list": model_cfg,
             },
             answer={
-                # Keep evidence chunks low enough that total token weight stays
-                # under the LMI GLOBAL_LIMITER budget (30k tokens/min default).
-                # 5 chunks × ~3500 tokens ≈ 17,500 — safely under the limit.
-                # If lmi.set_rate_limit() raised the budget above, this can go
-                # back to 10 without risking TimeoutError.
-                "evidence_k": 5,
-                "answer_max_sources": 5,
+                # 10 evidence chunks → high recall for survey/review use cases.
+                # The LMI token bucket is patched to 200k/min above, so this
+                # is safe even for long chunks.
+                "evidence_k": 10,
+                "answer_max_sources": 8,
             },
             # Disable Semantic Scholar / Crossref enrichment — avoids 429s when
             # no external API keys are set, and cuts per-paper indexing time by
@@ -5335,8 +5359,7 @@ async def paperqa_synthesize(
             else:
                 docs = Docs()
                 # Stub citations skip the per-paper LLM citation call (halves indexing time).
-                import os as _osp
-                stub_citations = [_osp.splitext(_osp.basename(p))[0][:80] for p in valid_paths]
+                stub_citations = [_os.path.splitext(_os.path.basename(p))[0][:80] for p in valid_paths]
 
                 log.info("paperqa_synthesize: indexing %d papers (cache MISS)", len(valid_paths))
                 await _asyncio.gather(
