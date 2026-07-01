@@ -5260,16 +5260,17 @@ async def paperqa_synthesize(
             # Disable Semantic Scholar / Crossref enrichment — avoids 429s when
             # no external API keys are set, and cuts per-paper indexing time by
             # 3-5x. Citation metadata comes from the PDF content directly.
-            parsing=ParsingSettings(use_doc_details=False),
+            # disable_doc_valid_check=True: attempt extraction even on PDFs whose
+            # text density looks low (scanned pages, complex layouts). pdfplumber
+            # may still extract usable text from these.
+            parsing=ParsingSettings(use_doc_details=False, disable_doc_valid_check=True),
         )
 
         docs = Docs()
         # Index all PDFs in parallel.
-        # disable_check=True: attempt even PDFs that look like scanned images —
-        # pdfplumber may still extract some text.
         # return_exceptions=True: one bad PDF doesn't abort the whole batch.
         await _asyncio.gather(
-            *[docs.aadd(p, disable_check=True, settings=settings) for p in valid_paths],
+            *[docs.aadd(p, settings=settings) for p in valid_paths],
             return_exceptions=True,
         )
 
