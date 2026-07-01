@@ -47,13 +47,41 @@ async function ss(page: Page, name: string) {
   await page.screenshot({ path: path.join(SS_DIR, `${name}.png`), fullPage: true });
 }
 
+/**
+ * Navigate to a chat session by chatSessionId via ?session= URL param.
+ * Returns true if the workflow panel appeared, false if skippable.
+ *
+ * Background: chat sessions are stored in localStorage, which is empty in
+ * a fresh test browser context. The ?session= URL param triggers a backend
+ * fetch (via fetchSessionDetail) to load the session from the server.
+ * After our fix to remove the backendSyncActive gate, this works without
+ * a race condition.
+ */
+async function navigateToRunSession(page: Page, chatSessionId: string): Promise<boolean> {
+  try {
+    await page.goto(`${BASE_URL}/?session=${encodeURIComponent(chatSessionId)}`, {
+      waitUntil: "domcontentloaded",
+    });
+  } catch (e: any) {
+    console.log("[navigateToRunSession] page.goto failed:", e?.message?.slice(0, 100));
+    return false;
+  }
+  // Wait for the workflow panel to appear (session loaded + workflow card rendered)
+  try {
+    await page.waitForSelector('[data-testid^="panel-tab-"]', { timeout: 12000 });
+    return true;
+  } catch {
+    console.log("[navigateToRunSession] Panel tabs not found within 12s for session:", chatSessionId);
+    return false;
+  }
+}
+
 // ============================================================================
 // A. StepOutputPreview — verify tool selection + dialog per extension
 // ============================================================================
 
 test("A1: Table file (tsv) → primary button is 'Analyze in RStudio', secondary 'Open in Jupyter'", async () => {
   const page = sharedPage;
-  await page.goto(`${BASE_URL}/`, { waitUntil: "networkidle" });
 
   // Use sharedPage.request (cookie-bearing) — no Bearer token needed
   const runsResp = await page.request.get(`${BASE_URL}/api/workflows/runs?limit=20`);
@@ -85,13 +113,10 @@ test("A1: Table file (tsv) → primary button is 'Analyze in RStudio', secondary
     return;
   }
 
-  console.log("[A1] Found completed run with TSV:", completedRun.id);
-  await page.goto(`${BASE_URL}/dashboard`, { waitUntil: "networkidle" });
-  const runCard = page.locator(`[data-run-id="${completedRun.id}"]`).first();
-  if (await runCard.count() === 0) { test.skip(); return; }
-
-  await runCard.click();
-  await page.waitForTimeout(1500);
+  console.log("[A1] Found completed run with TSV:", completedRun.id, "chatSessionId:", completedRun.chatSessionId);
+  if (!completedRun.chatSessionId) { test.skip(); return; }
+  const panelReady = await navigateToRunSession(page, completedRun.chatSessionId);
+  if (!panelReady) { test.skip(); return; }
   await ss(page, "a1_00_panel");
 
   const phasesTab = page.locator('[data-testid="panel-tab-phases"]');
@@ -166,7 +191,6 @@ test("A2: h5ad / loom file → CellxGene launch API responds", async () => {
 
 test("B1: AfterRunReport Outputs tab shows interactive tool buttons based on output extensions", async () => {
   const page = sharedPage;
-  await page.goto(`${BASE_URL}/`, { waitUntil: "networkidle" });
 
   const runsResp = await page.request.get(`${BASE_URL}/api/workflows/runs?limit=10`);
   if (!runsResp.ok()) { test.skip(); return; }
@@ -175,16 +199,12 @@ test("B1: AfterRunReport Outputs tab shows interactive tool buttons based on out
   if (!Array.isArray(runs)) { test.skip(); return; }
 
   const completed = runs.find(r =>
-    r.execution?.status === "completed" || r.execution?.status === "ok"
+    (r.execution?.status === "completed" || r.execution?.status === "ok") && r.chatSessionId
   );
   if (!completed) { test.skip(); return; }
 
-  await page.goto(`${BASE_URL}/dashboard`, { waitUntil: "networkidle" });
-  const runCard = page.locator(`[data-run-id="${completed.id}"]`).first();
-  if (await runCard.count() === 0) { test.skip(); return; }
-
-  await runCard.click();
-  await page.waitForTimeout(2000);
+  const panelReady = await navigateToRunSession(page, completed.chatSessionId);
+  if (!panelReady) { test.skip(); return; }
 
   const afterRunTab = page.locator('[data-testid="panel-tab-after-run"]');
   if (await afterRunTab.count() === 0) { test.skip(); return; }
@@ -294,11 +314,9 @@ test("C1: InteractiveLauncher dialog always shows all 3 tools (Jupyter, RStudio,
       r.execution?.status === "completed" || r.execution?.status === "ok"
     );
     if (!completed) { test.skip(); return; }
-    await page.goto(`${BASE_URL}/dashboard`, { waitUntil: "networkidle" });
-    const card = page.locator(`[data-run-id="${completed.id}"]`).first();
-    if (await card.count() === 0) { test.skip(); return; }
-    await card.click();
-    await page.waitForTimeout(1500);
+    if (!completed.chatSessionId) { test.skip(); return; }
+    const panelReady = await navigateToRunSession(page, completed.chatSessionId);
+    if (!panelReady) { test.skip(); return; }
     const afterRunTab = page.locator('[data-testid="panel-tab-after-run"]');
     if (await afterRunTab.count() === 0) { test.skip(); return; }
     await afterRunTab.click();

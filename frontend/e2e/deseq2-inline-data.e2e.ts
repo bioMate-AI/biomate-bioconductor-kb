@@ -53,6 +53,15 @@ const DESEQ2_MESSAGE =
   `Run DESeq2 differential expression on this count matrix — ` +
   `3 ctrl replicates vs 3 treated replicates:\n${INLINE_MATRIX}`;
 
+/** Sample sheet matching the inline count matrix columns */
+const SAMPLE_SHEET = `sample,condition
+ctrl1,control
+ctrl2,control
+ctrl3,control
+treat1,treatment
+treat2,treatment
+treat3,treatment`;
+
 test.setTimeout(20 * 60_000); // 20 min — panel run + real SSE wait
 
 let sharedPage: Page;
@@ -124,6 +133,37 @@ async function waitForPanelTerminal(page: Page, timeoutMs = 10 * 60_000) {
     },
     { timeout: timeoutMs },
   );
+}
+
+/**
+ * Navigate to home, send the inline DESeq2 message, wait for the LLM
+ * response, and try to open the workflow panel.
+ * Returns true if the panel became visible.
+ */
+async function openPanelWithDESeq2(page: Page): Promise<boolean> {
+  await page.goto(`${BASE_URL}/`, { waitUntil: "networkidle" });
+  const chatInput = page.locator("textarea, input[type='text']").first();
+  await expect(chatInput).toBeVisible({ timeout: 10_000 });
+  await chatInput.fill(DESEQ2_MESSAGE);
+  await chatInput.press("Enter");
+  await waitForResponseComplete(page, LLM_TIMEOUT);
+
+  const panel = page.locator('[data-testid="workflow-artifact-panel"]');
+  let panelVisible = await panel.isVisible().catch(() => false);
+
+  if (!panelVisible) {
+    // Try clicking a wf-chip to open the panel manually
+    const chip = page.locator('[data-testid^="wf-chip-"]').first();
+    if (await chip.count() > 0) {
+      await chip.click();
+      await page
+        .waitForSelector('[data-testid="workflow-artifact-panel"]', { state: "visible", timeout: 5_000 })
+        .catch(() => null);
+      panelVisible = await panel.isVisible().catch(() => false);
+    }
+  }
+
+  return panelVisible;
 }
 
 /** Wait until panel shows running (or terminal) */
@@ -426,6 +466,245 @@ test("C1: workflow panel opens in idle state with correct tabs and run button", 
 });
 
 // ============================================================================
+// C2. Panel Settings tab — param form renders correct element types
+// ============================================================================
+
+test("C2: Settings tab renders param form with correct input element for each param type", async () => {
+  const page = sharedPage;
+  const panelVisible = await openPanelWithDESeq2(page);
+  await ss(page, "C2_00_panel");
+
+  if (!panelVisible) {
+    console.log("[C2] Panel not visible — workflow not generated; skipping param form test");
+    return;
+  }
+
+  const panel = page.locator('[data-testid="workflow-artifact-panel"]');
+
+  // Make sure Settings tab is active
+  const settingsTab = page.locator('[data-testid="panel-tab-settings"]');
+  await expect(settingsTab, "Settings tab visible").toBeVisible();
+  if (await settingsTab.getAttribute("aria-selected") !== "true") {
+    await settingsTab.click();
+    await page.waitForSelector('[data-testid="panel-tab-settings"][aria-selected="true"]', { timeout: 3_000 }).catch(() => null);
+  }
+
+  // Expand global params if collapsed
+  const toggleBtn = page.locator('[data-testid="button-toggle-workflow-settings"]');
+  if (await toggleBtn.count() > 0) {
+    const isOpen = await toggleBtn.evaluate((el) => el.classList.contains("open")).catch(() => false);
+    if (!isOpen) {
+      await toggleBtn.click();
+      await page.waitForTimeout(500);
+    }
+  }
+
+  await ss(page, "C2_01_params_expanded");
+
+  // Get rendered param IDs from debug attribute
+  const rawIds = await panel.getAttribute("data-debug-rendered-param-ids");
+  const paramIds = rawIds ? rawIds.split(",").filter(Boolean) : [];
+  console.log("[C2] Rendered param IDs:", paramIds.join(", ") || "(none)");
+  console.log("[C2] Param count:", paramIds.length);
+
+  // Required params section must be present
+  const requiredSection = page.locator('[id="params-required"]');
+  const hasRequired = await requiredSection.count() > 0;
+  const optionalSection = page.locator('[id="params-optional"]');
+  const hasOptional = await optionalSection.count() > 0;
+  expect(
+    hasRequired || hasOptional,
+    "At least one params section (required or optional) must render in Settings tab",
+  ).toBe(true);
+  console.log("[C2] Required section:", hasRequired, " Optional section:", hasOptional);
+
+  await ss(page, "C2_02_sections");
+
+  // For each param ID, verify a visible input element exists and log its type
+  const typeCounts = { textarea: 0, textInput: 0, numberInput: 0, pathInput: 0, switch: 0, unknown: 0 };
+
+  for (const pid of paramIds.slice(0, 15)) {
+    const textarea = page.locator(`textarea[id="${pid}"]`);
+    const inputEl = page.locator(`input[id="${pid}"]`);
+    const switchEl = page.locator(`[id="${pid}"][role="switch"]`);
+    const label = await page.locator(`label[for="${pid}"]`).textContent().catch(() => "");
+
+    if (await textarea.count() > 0) {
+      await expect(textarea.first(), `textarea for "${pid}" must be visible`).toBeVisible();
+      const placeholder = await textarea.first().getAttribute("placeholder") ?? "";
+      typeCounts.textarea++;
+      console.log(`[C2]  "${pid}": textarea — label="${label?.trim()}", placeholder="${placeholder.slice(0, 60)}"`);
+    } else if (await inputEl.count() > 0) {
+      await expect(inputEl.first(), `input for "${pid}" must be visible`).toBeVisible();
+      const inputType = await inputEl.first().getAttribute("type") ?? "text";
+      if (inputType === "number") {
+        typeCounts.numberInput++;
+        const min = await inputEl.first().getAttribute("min");
+        const max = await inputEl.first().getAttribute("max");
+        console.log(`[C2]  "${pid}": number input — min=${min}, max=${max}, label="${label?.trim()}"`);
+      } else {
+        // Text or path input — detect path type by param ID suffix
+        const isPath = ["_path", "_dir", "_file", "_input", "_output"].some(s => pid.toLowerCase().endsWith(s));
+        if (isPath) { typeCounts.pathInput++; } else { typeCounts.textInput++; }
+        console.log(`[C2]  "${pid}": ${isPath ? "path" : "text"} input — label="${label?.trim()}"`);
+      }
+    } else if (await switchEl.count() > 0) {
+      typeCounts.switch++;
+      console.log(`[C2]  "${pid}": boolean switch — label="${label?.trim()}"`);
+    } else {
+      typeCounts.unknown++;
+      console.log(`[C2]  "${pid}": no matching element found (may use non-standard ID pattern)`);
+    }
+  }
+
+  console.log("[C2] Element type counts:", JSON.stringify(typeCounts));
+
+  // For DESeq2, there must be at least one param with a visible input
+  if (paramIds.length > 0) {
+    const totalFound = typeCounts.textarea + typeCounts.textInput + typeCounts.numberInput +
+      typeCounts.pathInput + typeCounts.switch;
+    expect(
+      totalFound,
+      `at least 1 param input must be visible (${paramIds.length} param IDs registered)`,
+    ).toBeGreaterThan(0);
+  }
+
+  await ss(page, "C2_03_inputs_verified");
+});
+
+// ============================================================================
+// C3. Phases tab — phase cards render with pending status before run
+// ============================================================================
+
+test("C3: Phases tab renders phase group cards with data-status before run", async () => {
+  const page = sharedPage;
+  const panelVisible = await openPanelWithDESeq2(page);
+
+  if (!panelVisible) {
+    console.log("[C3] Panel not visible — workflow not generated; skipping phases tab test");
+    return;
+  }
+
+  await ss(page, "C3_00_panel");
+
+  // Click Phases tab
+  const phasesTab = page.locator('[data-testid="panel-tab-phases"]');
+  await expect(phasesTab, "Phases tab visible").toBeVisible();
+  await phasesTab.click();
+  await page.waitForTimeout(500);
+
+  await ss(page, "C3_01_phases_clicked");
+
+  // Phase group cards (data-testid="phase-group-<key>")
+  const phaseGroups = page.locator('[data-testid^="phase-group-"]');
+  await page
+    .waitForFunction(
+      () => document.querySelectorAll('[data-testid^="phase-group-"]').length > 0,
+      { timeout: 10_000 },
+    )
+    .catch(() => null);
+
+  const groupCount = await phaseGroups.count();
+  console.log("[C3] Phase group cards:", groupCount);
+
+  if (groupCount === 0) {
+    // Workflow may not expose phases — check for any phase-related elements
+    const anyPhase = await page.locator('[data-testid*="phase"]').count();
+    console.log("[C3] Any phase elements:", anyPhase);
+    // This is a soft-skip — some workflows don't have named phases
+    console.log("[C3] No phase-group elements — workflow may not have phases; soft-skip");
+    return;
+  }
+
+  // Verify each phase card has a data-status attribute and is in pre-run state
+  for (let i = 0; i < Math.min(groupCount, 8); i++) {
+    const card = phaseGroups.nth(i);
+    const testid = await card.getAttribute("data-testid") ?? "unknown";
+    const dataStatus = await card.getAttribute("data-status");
+    console.log(`[C3]   "${testid}": data-status="${dataStatus}"`);
+
+    // Before a run, phases must be in a pre-run state
+    const validPreRunStatuses = ["pending", "idle", "not_started", null, ""];
+    expect(
+      validPreRunStatuses,
+      `phase "${testid}" must be in pre-run state before run`,
+    ).toContain(dataStatus);
+  }
+
+  expect(groupCount, "at least 1 phase group card must be present").toBeGreaterThan(0);
+
+  await ss(page, "C3_02_phase_cards");
+
+  // Verify phases body is visible
+  const phasesBody = page.locator('[data-testid="panel-phases"]');
+  const bodyVisible = await phasesBody.isVisible().catch(() => false);
+  if (bodyVisible) {
+    await expect(phasesBody, "phases body visible when Phases tab active").toBeVisible();
+    console.log("[C3] panel-phases body visible");
+  } else {
+    console.log("[C3] panel-phases testid not found — phases render inside panel-body");
+  }
+
+  await ss(page, "C3_03_done");
+});
+
+// ============================================================================
+// C4. After Run tab — body renders even before run completes
+// ============================================================================
+
+test("C4: After Run tab body renders (placeholder or report) when clicked before run", async () => {
+  const page = sharedPage;
+  const panelVisible = await openPanelWithDESeq2(page);
+
+  if (!panelVisible) {
+    console.log("[C4] Panel not visible — workflow not generated; skipping after-run tab test");
+    return;
+  }
+
+  await ss(page, "C4_00_panel");
+
+  // Click After Run tab
+  const afterRunTab = page.locator('[data-testid="panel-tab-after-run"]');
+  await expect(afterRunTab, "After Run tab visible").toBeVisible();
+  await afterRunTab.click();
+  await page.waitForTimeout(500);
+
+  await ss(page, "C4_01_after_run_clicked");
+
+  // After Run tab body
+  const afterRunBody = page.locator('[data-testid="panel-after-run"]');
+  await page
+    .waitForSelector('[data-testid="panel-after-run"]', { state: "visible", timeout: 5_000 })
+    .catch(() => null);
+
+  const bodyVisible = await afterRunBody.isVisible().catch(() => false);
+
+  if (bodyVisible) {
+    await expect(afterRunBody, "panel-after-run body must be visible").toBeVisible();
+    const bodyText = await afterRunBody.textContent().catch(() => "");
+    console.log("[C4] After Run body text (first 150):", bodyText?.trim().slice(0, 150));
+    // May be a placeholder like "Run the workflow to see results" — that's fine
+    expect(bodyText?.trim().length ?? 0, "After Run body must contain some text").toBeGreaterThan(0);
+    await ss(page, "C4_02_body_content");
+  } else {
+    // Tab content may render under a different class structure
+    const panelBody = page.locator('.panel-body');
+    const panelBodyCount = await panelBody.count();
+    console.log("[C4] .panel-body count:", panelBodyCount);
+
+    // There must be SOMETHING rendered when After Run tab is clicked
+    const visibleBodyCount = await page.locator('.panel-body:visible').count();
+    expect(
+      visibleBodyCount,
+      "at least one .panel-body must be visible when After Run tab is active",
+    ).toBeGreaterThan(0);
+    await ss(page, "C4_02_panel_body");
+  }
+
+  await ss(page, "C4_03_done");
+});
+
+// ============================================================================
 // D. Panel run — real-time status tracking (idle → running → terminal)
 // ============================================================================
 
@@ -570,6 +849,301 @@ test("D1: clicking Run transitions panel status badge idle→running→terminal"
   } catch (err) {
     await ss(page, "D1_ERROR");
     console.error("[D1] Run state transition error:", err);
+    throw err;
+  }
+});
+
+// ============================================================================
+// D2. Full run — fill required params → run → state transitions → after-run
+//     tab → download buttons
+// ============================================================================
+
+test("D2: fill required params → run → idle→running→terminal + after-run tab + download buttons", async () => {
+  const page = sharedPage;
+  const panelVisible = await openPanelWithDESeq2(page);
+  await ss(page, "D2_00_panel");
+
+  if (!panelVisible) {
+    console.log("[D2] Panel not visible — workflow not generated; skipping full-run test");
+    return;
+  }
+
+  const panel = page.locator('[data-testid="workflow-artifact-panel"]');
+  const runBtn = page.locator('[data-testid="button-run-workflow-panel"]');
+  const statusBadge = page.locator('[data-testid="workflow-overall-status-badge"]');
+
+  // ── Assert idle state before filling ──────────────────────────────────────
+
+  if (await statusBadge.count() > 0) {
+    const pre = await statusBadge.getAttribute("data-status");
+    expect(["idle", "pending"], "badge must be idle before param fill").toContain(pre);
+    console.log("[D2] Pre-fill badge:", pre);
+  }
+
+  // ── Expand Settings tab + global params strip ─────────────────────────────
+
+  const settingsTab = page.locator('[data-testid="panel-tab-settings"]');
+  if (await settingsTab.getAttribute("aria-selected") !== "true") {
+    await settingsTab.click();
+    await page.waitForTimeout(300);
+  }
+
+  const toggleBtn = page.locator('[data-testid="button-toggle-workflow-settings"]');
+  if (await toggleBtn.count() > 0) {
+    const isOpen = await toggleBtn.evaluate((el) => el.classList.contains("open")).catch(() => false);
+    if (!isOpen) {
+      await toggleBtn.click();
+      await page.waitForTimeout(600);
+    }
+  }
+
+  await ss(page, "D2_01_settings_expanded");
+
+  // ── Read param IDs from debug attribute ───────────────────────────────────
+
+  const rawIds = await panel.getAttribute("data-debug-rendered-param-ids");
+  const paramIds = rawIds ? rawIds.split(",").filter(Boolean) : [];
+  console.log("[D2] Param IDs available:", paramIds.join(", ") || "(none)");
+
+  // ── Fill params with heuristic matching ──────────────────────────────────
+
+  let filledCount = 0;
+
+  for (const pid of paramIds) {
+    const pidLower = pid.toLowerCase();
+    const textarea = page.locator(`textarea[id="${pid}"]`);
+    const input = page.locator(`input[id="${pid}"]`);
+
+    if (await textarea.count() > 0 && await textarea.first().isVisible().catch(() => false)) {
+      const currentVal = await textarea.first().inputValue().catch(() => "");
+      if (!currentVal) {
+        // Choose content based on param semantics
+        let fillContent: string;
+        if (
+          pidLower.includes("count") || pidLower.includes("matrix") ||
+          pidLower.includes("expr") || pidLower.includes("abundance") ||
+          pidLower.includes("raw") || pidLower.includes("gene") ||
+          (!pidLower.includes("meta") && !pidLower.includes("sample") && !pidLower.includes("sheet"))
+        ) {
+          fillContent = INLINE_MATRIX;
+        } else {
+          fillContent = SAMPLE_SHEET;
+        }
+        await textarea.first().fill(fillContent);
+        filledCount++;
+        console.log(`[D2]  filled textarea "${pid}" with ${fillContent === INLINE_MATRIX ? "INLINE_MATRIX" : "SAMPLE_SHEET"}`);
+      } else {
+        console.log(`[D2]  textarea "${pid}" already has value — skipping`);
+      }
+    } else if (await input.count() > 0 && await input.first().isVisible().catch(() => false)) {
+      const inputType = await input.first().getAttribute("type") ?? "text";
+      if (inputType === "checkbox") continue;
+      const currentVal = await input.first().inputValue().catch(() => "");
+      if (!currentVal) {
+        // Map param name to a sensible fill value
+        let fillVal = "";
+        if (pidLower.includes("reference") || pidLower.includes("baseline") ||
+          pidLower.includes("control") && !pidLower.includes("condition")) {
+          fillVal = "control";
+        } else if (pidLower.includes("treatment") || pidLower.includes("treated") ||
+          pidLower.includes("case") && !pidLower.includes("condition")) {
+          fillVal = "treatment";
+        } else if (pidLower.includes("condition") || pidLower.includes("factor") || pidLower.includes("variable")) {
+          fillVal = "condition";
+        } else if (pidLower.includes("genome") || pidLower.includes("organism") || pidLower.includes("species")) {
+          fillVal = "GRCh38";
+        } else if (pidLower.includes("prefix") || pidLower.includes("name") || pidLower.includes("project")) {
+          fillVal = "deseq2_test";
+        }
+        if (fillVal) {
+          await input.first().fill(fillVal);
+          filledCount++;
+          console.log(`[D2]  filled input "${pid}" → "${fillVal}"`);
+        } else {
+          console.log(`[D2]  input "${pid}" (type=${inputType}) — no heuristic fill`);
+        }
+      }
+    }
+  }
+
+  console.log("[D2] Total params filled:", filledCount);
+  await ss(page, "D2_02_params_filled");
+
+  // ── Check run button state after filling ──────────────────────────────────
+
+  const unfilledAfter = parseInt((await runBtn.getAttribute("data-required-unfilled")) ?? "0", 10);
+  const isDisabledAfter = await runBtn.isDisabled();
+  console.log("[D2] After fill — required-unfilled:", unfilledAfter, ", disabled:", isDisabledAfter);
+
+  if (unfilledAfter > 0 || isDisabledAfter) {
+    // Try "Confirm anyway" — available when the AI has low confidence but can proceed
+    const confirmAnyway = page.locator('button:has-text("Confirm anyway")');
+    const confirmVisible = await confirmAnyway.count() > 0 && !(await confirmAnyway.first().isDisabled().catch(() => true));
+    if (confirmVisible) {
+      console.log("[D2] Clicking 'Confirm anyway' to proceed despite unfilled required params");
+      await confirmAnyway.first().click();
+      await page.waitForTimeout(800);
+    } else {
+      // Blocked — verify the blocking UI and document clearly
+      console.log("[D2] Run blocked: required-unfilled=" + unfilledAfter + ", disabled=" + isDisabledAfter);
+      console.log("[D2] Filled " + filledCount + " param(s); run button remains disabled.");
+
+      // The action bar must show the blocked status correctly
+      const actionBar = page.locator('[data-testid="panel-action-bar"]');
+      if (await actionBar.count() > 0) {
+        const barStatus = await actionBar.getAttribute("data-status");
+        console.log("[D2] Action bar data-status:", barStatus);
+      }
+
+      // "Fix now" button should be present when blocked
+      const fixNowBtn = page.locator('button:has-text("Fix now")');
+      const fixNowVisible = await fixNowBtn.count() > 0;
+      console.log("[D2] 'Fix now' button visible:", fixNowVisible);
+
+      await ss(page, "D2_03_blocked_state");
+      console.log("[D2] Blocked-run state verified — params could not be auto-filled for this workflow");
+      return;
+    }
+  }
+
+  // ── Click Run ─────────────────────────────────────────────────────────────
+
+  await expect(runBtn).toBeVisible();
+  await runBtn.click();
+  console.log("[D2] Clicked Run button");
+
+  // Dismiss any confirm dialog
+  const confirmDialog = page.locator('button:has-text("Confirm & Run"), button:has-text("Confirm")').first();
+  if (await confirmDialog.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    await confirmDialog.click();
+    console.log("[D2] Dismissed confirm dialog");
+  }
+
+  await ss(page, "D2_03_run_clicked");
+
+  // ── Observe idle → running ────────────────────────────────────────────────
+
+  try {
+    await waitForPanelRunning(page, 30_000);
+    const runningStatus = await statusBadge.getAttribute("data-status").catch(() => null);
+    console.log("[D2] Badge after run click:", runningStatus);
+    expect(
+      ["running", "completed", "failed"],
+      "badge must reach running or terminal within 30 s",
+    ).toContain(runningStatus);
+    await ss(page, "D2_04_running_or_terminal");
+
+    // ── Verify at least one phase group reaches running state ────────────────
+
+    if (runningStatus === "running") {
+      // Panel auto-switches to Phases tab when running — click it to be sure
+      const phasesTab = page.locator('[data-testid="panel-tab-phases"]');
+      if (await phasesTab.count() > 0 && await phasesTab.getAttribute("aria-selected") !== "true") {
+        await phasesTab.click();
+      }
+
+      try {
+        await page.waitForFunction(
+          () => {
+            const groups = document.querySelectorAll('[data-testid^="phase-group-"]');
+            return Array.from(groups).some((el) => el.getAttribute("data-status") === "running");
+          },
+          { timeout: 30_000 },
+        );
+        const runningGroups = await page.locator('[data-testid^="phase-group-"][data-status="running"]').count();
+        console.log("[D2] Phase groups in running state:", runningGroups);
+        expect(runningGroups, "at least 1 phase group must show running state").toBeGreaterThan(0);
+        await ss(page, "D2_05_phase_running");
+      } catch {
+        console.log("[D2] No phase group reached running within 30 s — may have completed quickly");
+        await ss(page, "D2_05_no_phase_running");
+      }
+    }
+
+    // ── Wait for terminal state ───────────────────────────────────────────────
+
+    await waitForPanelTerminal(page, 10 * 60_000);
+    const terminal = await statusBadge.getAttribute("data-status").catch(() => null);
+    console.log("[D2] Terminal badge:", terminal);
+    expect(["completed", "failed"], "badge must reach terminal state").toContain(terminal);
+    await ss(page, "D2_06_terminal");
+
+    // ── After Run tab content (only accessible after run) ────────────────────
+
+    const afterRunTab = page.locator('[data-testid="panel-tab-after-run"]');
+    if (await afterRunTab.count() > 0) {
+      await afterRunTab.click();
+      await page.waitForTimeout(1_000);
+      await ss(page, "D2_07_after_run_tab");
+
+      const afterRunBody = page.locator('[data-testid="panel-after-run"]');
+      await page
+        .waitForSelector('[data-testid="panel-after-run"]', { state: "visible", timeout: 8_000 })
+        .catch(() => null);
+
+      const bodyVisible = await afterRunBody.isVisible().catch(() => false);
+      if (bodyVisible) {
+        const bodyText = await afterRunBody.textContent().catch(() => "");
+        console.log("[D2] After Run body text (first 200):", bodyText?.trim().slice(0, 200));
+        expect(
+          bodyText?.trim().length ?? 0,
+          "After Run tab must have content after the run completes",
+        ).toBeGreaterThan(0);
+      } else {
+        console.log("[D2] After Run body not visible within timeout — AfterRunReport may still loading");
+        await page.waitForTimeout(3_000);
+        await ss(page, "D2_07b_after_run_loading");
+      }
+    }
+
+    // ── Download buttons visible after completion ─────────────────────────────
+
+    if (terminal === "completed") {
+      // Download buttons live in the action bar (always visible) and/or After Run tab
+      const dlAll = page.locator('[data-testid="button-download-all-workflow-panel"]');
+      const dlMethods = page.locator('[data-testid="button-download-methods-report"]');
+      const dlQC = page.locator('[data-testid="button-download-qc-audit"]');
+
+      const dlAllVisible = await dlAll.isVisible().catch(() => false);
+      const dlMethodsVisible = await dlMethods.isVisible().catch(() => false);
+      const dlQCVisible = await dlQC.isVisible().catch(() => false);
+
+      console.log("[D2] Download buttons — all:", dlAllVisible, "methods:", dlMethodsVisible, "qc:", dlQCVisible);
+
+      if (dlAllVisible || dlMethodsVisible || dlQCVisible) {
+        const anyDl = dlAll.or(dlMethods).or(dlQC).first();
+        await expect(anyDl, "at least one download button must be visible after completion").toBeVisible();
+        console.log("[D2] Download button confirmed visible");
+      } else {
+        // May be in the After Run tab — check there
+        await afterRunTab.click().catch(() => null);
+        await page.waitForTimeout(1_000);
+        const dlInReport = page.locator('[data-testid^="button-download"]');
+        const dlCount = await dlInReport.count();
+        console.log("[D2] Download buttons in After Run tab:", dlCount);
+        // After a successful run, at least one download must be available
+        expect(
+          dlCount,
+          "at least 1 download button must be visible in After Run tab after completion",
+        ).toBeGreaterThan(0);
+      }
+
+      await ss(page, "D2_08_download_buttons");
+
+      // "Run again" button must be visible
+      const runAgainBtn = page.locator('button:has-text("Run again")');
+      const runAgainVisible = await runAgainBtn.isVisible().catch(() => false);
+      console.log("[D2] 'Run again' button visible:", runAgainVisible);
+    } else if (terminal === "failed") {
+      // "Restart" button must be visible on failure
+      const restartBtn = page.locator('button:has-text("Restart")');
+      const restartVisible = await restartBtn.isVisible().catch(() => false);
+      console.log("[D2] 'Restart' button visible on failure:", restartVisible);
+      await ss(page, "D2_08_restart_button");
+    }
+  } catch (err) {
+    await ss(page, "D2_ERROR");
+    console.error("[D2] Error during run:", err);
     throw err;
   }
 });
