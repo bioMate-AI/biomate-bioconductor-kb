@@ -13364,7 +13364,37 @@ Respond ONLY with valid JSON (no markdown wrapper):
         [req.params.sessionId, req.user.id]
       );
       if (!rows.rows.length) return res.status(404).json({ error: 'Session not found' });
-      res.json(rows.rows[0]);
+      const session = rows.rows[0];
+
+      // If the stored workflows array is empty, dynamically populate it from
+      // execution_runs so that historical runs (completed before this column
+      // was written) still surface the AfterRunReport in the right panel.
+      if (!session.workflows || session.workflows.length === 0) {
+        try {
+          const runRows = await pool.query(
+            `SELECT id, workflow_name, (execution->>'status') AS run_status,
+                    workflow_definition, completed_at
+             FROM execution_runs
+             WHERE chat_session_id = $1
+               AND (execution->>'status') IN ('completed', 'failed', 'running')
+             ORDER BY created_at DESC
+             LIMIT 5`,
+            [req.params.sessionId]
+          );
+          if (runRows.rows.length > 0) {
+            session.workflows = runRows.rows.map((r: any) => ({
+              workflow_id: r.id,
+              workflow_name: r.workflow_name || r.workflow_definition?.name || r.workflow_definition?.chain_name || 'Workflow',
+              status: r.run_status || 'completed',
+            }));
+          }
+        } catch (dynErr: any) {
+          // Non-fatal: fall back to empty array
+          console.warn('[sessions/:id] Failed to backfill workflows from execution_runs:', dynErr?.message);
+        }
+      }
+
+      res.json(session);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
