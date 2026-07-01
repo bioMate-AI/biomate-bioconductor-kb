@@ -125,6 +125,12 @@ _WORKFLOW_EMBED_NPZ: Optional[Path] = None  # set once DB_PATH is known
 
 # Module-level singletons — shared across all UnifiedWorkflowSearch instances
 # so embeddings are only loaded once per process.
+# Serializes the one-time embedding-model loads so a startup warmup thread and a
+# racing first request can't both pay the ~8-10s SentenceTransformer load (each
+# would clobber the global). The warm path early-returns BEFORE taking the lock,
+# so steady-state searches are never serialized on it.
+import threading as _threading
+_EMBED_INIT_LOCK = _threading.Lock()
 _WF_EMBED_MODEL: Optional[Any] = None       # SentenceTransformer instance
 _WF_EMBED_IDS: List[int] = []              # workflow DB ids in index order
 _WF_EMBED_MATRIX: Optional[Any] = None     # np.ndarray (n_workflows × dim)
@@ -1356,6 +1362,18 @@ class UnifiedWorkflowSearch:
         if _WF_EMBED_FAILED or not _EMBEDDINGS_AVAILABLE:
             return False
 
+        # Serialize the cold init (model load + index build) so the warmup thread
+        # and a first request don't double-load. Re-check readiness after taking
+        # the lock — the thread that lost the race returns immediately.
+        with _EMBED_INIT_LOCK:
+            if _WF_EMBED_READY:
+                return True
+            if _WF_EMBED_FAILED:
+                return False
+            return self._ensure_workflow_embeddings_locked()
+
+    def _ensure_workflow_embeddings_locked(self) -> bool:
+        global _WF_EMBED_MODEL, _WF_EMBED_IDS, _WF_EMBED_MATRIX, _WF_EMBED_READY, _WF_EMBED_FAILED, _WORKFLOW_EMBED_NPZ
         try:
             # Resolve .npz path next to the DB
             if _WORKFLOW_EMBED_NPZ is None:
@@ -2032,16 +2050,20 @@ class UnifiedWorkflowSearch:
             return
         try:
             if _CHAIN_EMBED_MODEL is None:
-                log.info("[ChainIndex] Loading %s for chain embedding search", _CHAIN_EMBED_MODEL_NAME)
-                # Reuse VectorToolSearch's GPU-safe device detection when available;
-                # fall back to cpu so we never block startup on a broken CUDA driver.
-                try:
-                    from .vector_search import _detect_device_safe
-                    device = _detect_device_safe(timeout_seconds=5.0)
-                except Exception:
-                    device = "cpu"
-                _CHAIN_EMBED_MODEL = _ST(_CHAIN_EMBED_MODEL_NAME, device=device,
-                                        local_files_only=True)
+                # Double-checked lock: don't let a warmup thread + a first request
+                # both load the MiniLM weights (~2-3s each).
+                with _EMBED_INIT_LOCK:
+                    if _CHAIN_EMBED_MODEL is None:
+                        log.info("[ChainIndex] Loading %s for chain embedding search", _CHAIN_EMBED_MODEL_NAME)
+                        # Reuse VectorToolSearch's GPU-safe device detection when available;
+                        # fall back to cpu so we never block startup on a broken CUDA driver.
+                        try:
+                            from .vector_search import _detect_device_safe
+                            device = _detect_device_safe(timeout_seconds=5.0)
+                        except Exception:
+                            device = "cpu"
+                        _CHAIN_EMBED_MODEL = _ST(_CHAIN_EMBED_MODEL_NAME, device=device,
+                                                local_files_only=True)
             texts = [self._chain_embed_text(c) for c in chains]
             _CHAIN_EMBED_NAMES = [c.name for c in chains]
             import hashlib as _hashlib

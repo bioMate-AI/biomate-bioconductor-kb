@@ -104,6 +104,54 @@ try:
     except Exception as _we:
         logging.warning(f"WiredWorkflowSearch upgrade skipped: {_we}")
     WORKFLOW_SEARCH_AVAILABLE = True
+
+    # Startup warmup — load the BGE workflow + MiniLM chain embedding models in a
+    # background daemon thread so the ~10s cold-start is paid at worker boot, not
+    # on the first production /api/workflows/search (which was tripping the
+    # connector's 15s timeout). Background (not blocking) so a recycled single
+    # gunicorn worker serves immediately; the double-checked _EMBED_INIT_LOCK in
+    # unified_workflow_search makes a request that races the warmup safe. Disable
+    # with WORKFLOW_SEARCH_WARMUP=false.
+    try:
+        import os as _oswarm
+        if _oswarm.getenv("WORKFLOW_SEARCH_WARMUP", "true").strip().lower() not in ("false", "0", "no"):
+            import threading as _wthreading
+
+            def _warm_workflow_search():
+                import time as _twarm
+                # Let the worker finish app init first — at bare module-import time
+                # list_chains() can still be empty (so search_chains would no-op) and
+                # the catalog may not be wired yet. Retry so the warm actually lands.
+                _twarm.sleep(3)
+                _t0 = _twarm.time()
+                _chains_n = 0
+                for _attempt in range(4):
+                    try:
+                        # BGE workflow embeddings (no-op where unavailable).
+                        _workflow_search._ensure_workflow_embeddings()
+                        # Build the chain (MiniLM) index DIRECTLY — this is the real
+                        # ~5-11s one-time-per-worker cold cost. Going through
+                        # search_chains() is unreliable (it early-returns when
+                        # list_chains() is momentarily empty), so build it by hand.
+                        _chains = _workflow_search.list_chains()
+                        _chains_n = len(_chains or [])
+                        if _chains:
+                            _workflow_search._rebuild_chain_embedding_index(_chains)
+                            _built = True
+                            break
+                    except Exception as _wexc:
+                        logging.warning("[WorkflowSearchWarmup] attempt %d failed: %s", _attempt, _wexc)
+                    _twarm.sleep(3)
+                else:
+                    _built = False
+                logging.info(
+                    "[WorkflowSearchWarmup] done in %.1fs (chains=%d, chain_index_built=%s)",
+                    _twarm.time() - _t0, _chains_n, locals().get("_built", False),
+                )
+
+            _wthreading.Thread(target=_warm_workflow_search, daemon=True, name="wf-search-warmup").start()
+    except Exception as _warm_setup_exc:
+        logging.warning(f"WorkflowSearch warmup not scheduled: {_warm_setup_exc}")
 except Exception as _e:
     logging.warning(f"UnifiedWorkflowSearch not available: {_e}")
     _workflow_search = None
@@ -920,7 +968,31 @@ _NF_SKIP_PARAMS = {
 }
 
 
+_NF_PARSE_CACHE: Dict[str, Any] = {}
+
+
 def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
+    """Cached wrapper over :func:`_parse_nextflow_params_impl`.
+
+    .nf files are immutable within a worker's lifetime (a deploy/recreate spawns a
+    fresh process; bind-mounted nextflow_nfcore updates are additive new files,
+    not in-place edits), so a process-lifetime memo keyed by the logical filename
+    is safe and removes the ~100-200 ms re-parse (file read + regex) from every
+    /api/workflows/search. Callers treat the result read-only (they build new
+    param lists from it), so returning the shared object is safe.
+    """
+    if not nf_filename:
+        return {"parameters": {}, "parameter_metadata": {}}
+    _cached = _NF_PARSE_CACHE.get(nf_filename)
+    if _cached is not None:
+        return _cached
+    _res = _parse_nextflow_params_impl(nf_filename)
+    if len(_NF_PARSE_CACHE) < 4096:
+        _NF_PARSE_CACHE[nf_filename] = _res
+    return _res
+
+
+def _parse_nextflow_params_impl(nf_filename: str) -> Dict[str, Any]:
     """Parse user-facing params from a Nextflow .nf file.
 
     Returns ``{"parameters": {name: value, ...}, "parameter_metadata": {name: {...}, ...}}``.
@@ -1756,7 +1828,44 @@ def _rule_based_param_inference(user_intent: str, all_params: List[Dict[str, Any
     return result
 
 
+_LLM_PARAM_CACHE: "OrderedDict[tuple, Dict[str, Any]]" = __import__("collections").OrderedDict()
+_LLM_PARAM_CACHE_MAX = 512
+
+
 def _infer_params_from_intent_llm(
+    user_intent: str,
+    workflow_name: str,
+    all_params: List[Dict[str, Any]],
+    llm_client: Any = None,
+) -> Dict[str, Any]:
+    """Cached wrapper over :func:`_infer_params_from_intent_llm_impl`.
+
+    Extraction is deterministic for a given (intent, workflow, param-set), so a
+    bounded LRU memo removes the ~1-2 s per-request Anthropic call from the WARM
+    /api/workflows/search path on repeated identical queries (connector retries,
+    benchmarks). Result is consumed read-only by the caller. llm_client is not
+    part of the key — it's the same process-level client.
+    """
+    try:
+        _key = (user_intent, workflow_name,
+                tuple(sorted(str(p.get("name", "")) for p in (all_params or []))))
+    except Exception:
+        _key = None
+    if _key is not None:
+        _hit = _LLM_PARAM_CACHE.get(_key)
+        if _hit is not None:
+            _LLM_PARAM_CACHE.move_to_end(_key)
+            return _hit
+    _res = _infer_params_from_intent_llm_impl(user_intent, workflow_name, all_params, llm_client=llm_client)
+    if _key is not None and isinstance(_res, dict):
+        _LLM_PARAM_CACHE[_key] = _res
+        _LLM_PARAM_CACHE.move_to_end(_key)
+        while len(_LLM_PARAM_CACHE) > _LLM_PARAM_CACHE_MAX:
+            _LLM_PARAM_CACHE.popitem(last=False)
+    return _res
+
+
+def _infer_params_from_intent_llm_impl(
     user_intent: str,
     workflow_name: str,
     all_params: List[Dict[str, Any]],
