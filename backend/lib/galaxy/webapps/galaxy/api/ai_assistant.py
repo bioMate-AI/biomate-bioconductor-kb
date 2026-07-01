@@ -5281,19 +5281,33 @@ async def paperqa_synthesize(
             }
         ]
         from paperqa.settings import ParsingSettings  # type: ignore[import]
+        # Raise the LMI GLOBAL_LIMITER token budget before creating settings.
+        # Default is 30,000 tokens/minute; 10 chunk summaries can exceed that.
+        # Raise to 100,000 to allow burst synthesis without TimeoutError.
+        try:
+            import lmi as _lmi  # type: ignore[import]
+            _lmi.set_rate_limit(100_000, period=60)  # tokens per minute
+        except Exception:
+            pass  # lmi may not expose this API in all versions — non-fatal
+
         settings = Settings(
             llm=llm_name,
             summary_llm=llm_name,
             llm_config={
-                "rate_limit": {"anthropic": "50/minute"},
+                "rate_limit": {"anthropic": "200/minute"},
                 "model_list": model_cfg,
             },
             summary_llm_config={
-                "rate_limit": {"anthropic": "50/minute"},
+                "rate_limit": {"anthropic": "200/minute"},
                 "model_list": model_cfg,
             },
             answer={
-                "evidence_k": 10,
+                # Keep evidence chunks low enough that total token weight stays
+                # under the LMI GLOBAL_LIMITER budget (30k tokens/min default).
+                # 5 chunks × ~3500 tokens ≈ 17,500 — safely under the limit.
+                # If lmi.set_rate_limit() raised the budget above, this can go
+                # back to 10 without risking TimeoutError.
+                "evidence_k": 5,
                 "answer_max_sources": 5,
             },
             # Disable Semantic Scholar / Crossref enrichment — avoids 429s when
