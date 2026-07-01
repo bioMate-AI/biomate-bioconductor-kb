@@ -59,14 +59,18 @@ async function newSession(page: Page) {
 
 async function sendMessage(page: Page, text: string) {
   const composer = page.locator('textarea, input[placeholder*="Ask"], input[placeholder*="Describe"]').first();
-  await expect(composer).toBeVisible({ timeout: 10_000 });
+  await expect(composer).toBeVisible({ timeout: 30_000 });
   await composer.fill(text);
   await composer.press("Enter");
 }
 
 async function waitForAssistant(page: Page, timeoutMs = LLM_TIMEOUT) {
   await waitForResponseComplete(page, timeoutMs);
-  return page.locator('[data-is-latest-assistant="true"]').first();
+  const el = page.locator('[data-is-latest-assistant="true"]').first();
+  // Wait explicitly with LLM_TIMEOUT, not actionTimeout (60s), so cold-start
+  // LLM calls that take 60–90s don't time out before the element appears.
+  await el.waitFor({ state: "attached", timeout: timeoutMs }).catch(() => {});
+  return el;
 }
 
 // ---------------------------------------------------------------------------
@@ -103,7 +107,7 @@ test("MT-1: research question produces text-only response (no workflow card)", a
   await ss(page, "MT1_01_response");
 
   // Response must have real text content
-  const text = await assistantEl.textContent();
+  const text = await assistantEl.textContent({ timeout: LLM_TIMEOUT });
   expect(text?.trim().length ?? 0, "response must be non-empty").toBeGreaterThan(50);
   console.log("[MT-1] Response preview:", text?.slice(0, 120));
 

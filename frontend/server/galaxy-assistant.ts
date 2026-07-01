@@ -1810,6 +1810,7 @@ Parameter type names to detect (and any others you recognize):
 - sample_id: patient/sample/library identifier
 - coordinates: genomic coordinates (chr:start-end format)
 - uploaded_dataset: IDs from an "[Uploaded datasets: ...]" block in the message
+- count_matrix: a comma/tab-separated gene expression count matrix (header row + data rows with gene IDs and numeric counts, e.g. "gene,ctrl1,ctrl2\nGENE1,100,120")
 - any other scientific parameter you recognize as concrete input data
 
 Rules:
@@ -3261,34 +3262,27 @@ Rules:
     };
 
     // Research agent
-    // Skip when the message already contains injected paper content — the LLM has everything
-    // it needs to answer directly. The research agent adds value for external knowledge queries
-    // (database lookups, literature search) but NOT when paper text is already in-context.
-    // Text-reasoning intents (protocol_guidance, data_interpretation, methods_writing,
-    // experiment_design, teaching_explanation) don't need the Python research agent when paper
-    // content is present; the LLM is the stronger reasoner for this task.
-    const _textReasoningIntents = new Set([
-      'protocol_guidance', 'data_interpretation', 'methods_writing',
-      'experiment_design', 'teaching_explanation', 'general_question',
-    ]);
-    const _hasPaperContent = paperContentResult !== null;
-    const _skipResearchAgent = _hasPaperContent && _textReasoningIntents.has(intent.type);
-
-    if (actions.needsResearchAgent && !_skipResearchAgent) {
+    if (actions.needsResearchAgent) {
       log('Routing to research backend');
       try {
-        researchResponse = await this._api().queryResearch({
+        // When paper content is available, pass it directly to the research agent
+        // so it becomes the PRIMARY source for synthesis. The agent then
+        // cross-references with PubMed/Semantic Scholar for supporting literature.
+        const researchPayload: Record<string, unknown> = {
           query: message,
           context: { information_need: intent.type },
           include_citations: true,
           include_benchmark_evidence: true,
-        });
+        };
+        if (paperContentResult) {
+          researchPayload.paper_content = paperContentResult.content;
+          log(`Passing paper content to research agent: ${paperContentResult.ref} (${paperContentResult.content.length} chars)`);
+        }
+        researchResponse = await this._api().queryResearch(researchPayload);
         log('Research response received');
       } catch (error: any) {
         log('Research query failed: ' + error.message);
       }
-    } else if (_skipResearchAgent) {
-      log(`Skipping research agent — paper content (${paperContentResult!.content.length} chars) already in context; LLM will reason directly`);
     }
 
     // Benchmark agent
@@ -6192,7 +6186,24 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     if (_matchedFixture) {
       console.log(`[chat] canonical fixture matched in user message: ${_matchedFixture} — suppressing clarification ask`);
     }
+    // Detect CSV/tabular data pasted inline (e.g. a count matrix with header + data rows).
+    // Pattern: at least 2 lines each containing ≥2 comma/tab-separated tokens where at
+    // least one token is numeric. This catches gene count matrices, sample metadata tables,
+    // and similar bioinformatics tabular inputs without requiring LLM extraction.
+    const _hasTabularData = (() => {
+      const lines = message.split('\n').map(l => l.trim()).filter(Boolean);
+      let numericRows = 0;
+      for (const line of lines) {
+        const cols = line.split(/[,\t]/);
+        if (cols.length >= 2 && cols.some(c => /^\d+(\.\d+)?$/.test(c.trim()))) {
+          numericRows++;
+          if (numericRows >= 2) return true;
+        }
+      }
+      return false;
+    })();
     const hasInlineData = Object.keys(inlineDataMap).length > 0 ||
+      _hasTabularData ||
       /do not ask|no (further )?clarification|use (the )?provided|use default/i.test(message) ||
       _matchedFixture !== null;
 
