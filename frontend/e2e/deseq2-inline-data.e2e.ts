@@ -187,16 +187,13 @@ test.beforeAll(async ({ browser }) => {
   sharedPage = await browser.newPage();
   await loginAsFixture(sharedPage);
 
-  // Capture token for APIRequestContext calls
-  sharedToken = await sharedPage.evaluate(async (baseUrl) => {
-    const r = await fetch(`${baseUrl}/api/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: "lifeifei163361@163.com", password: "WpmFixture!2026" }),
-    });
-    const b = await r.json().catch(() => ({}));
-    return b.token ?? "";
-  }, BASE_URL);
+  // Capture token from cookies set by loginAsFixture — avoids browser-side
+  // fetch (page.evaluate) which is blocked by CSRF protection on the dev server.
+  // loginAsFixture already sets the biomate_token cookie via page.request (Playwright's
+  // native HTTP stack, not the browser fetch), so we just read it from cookies here.
+  const cookies = await sharedPage.context().cookies();
+  const tokenCookie = cookies.find((c) => c.name === "biomate_token");
+  sharedToken = tokenCookie?.value ?? "";
 
   console.log("[Auth] sharedToken present:", !!sharedToken);
 });
@@ -507,18 +504,35 @@ test("C2: Settings tab renders param form with correct input element for each pa
   console.log("[C2] Rendered param IDs:", paramIds.join(", ") || "(none)");
   console.log("[C2] Param count:", paramIds.length);
 
-  // Required params section must be present
-  const requiredSection = page.locator('[id="params-required"]');
-  const hasRequired = await requiredSection.count() > 0;
-  const optionalSection = page.locator('[id="params-optional"]');
-  const hasOptional = await optionalSection.count() > 0;
+  // ParameterGroup uses Radix Accordion whose `id` prop becomes the
+  // AccordionItem `value` — NOT an HTML id attribute. Check for params via
+  // data-debug-rendered-param-ids instead.
   expect(
-    hasRequired || hasOptional,
-    "At least one params section (required or optional) must render in Settings tab",
-  ).toBe(true);
-  console.log("[C2] Required section:", hasRequired, " Optional section:", hasOptional);
+    paramIds.length,
+    "Settings tab must render at least 1 param (data-debug-rendered-param-ids must be non-empty)",
+  ).toBeGreaterThan(0);
+  console.log("[C2] Param section present via", paramIds.length, "rendered param IDs");
 
   await ss(page, "C2_02_sections");
+
+  // Radix Accordion unmounts closed AccordionContent from the DOM, so inputs
+  // inside closed sections are invisible to locator queries. Open all closed
+  // accordion triggers inside the panel to make the inputs accessible.
+  const closedTriggers = panel.locator('[data-radix-accordion-trigger][aria-expanded="false"]');
+  const closedCount = await closedTriggers.count();
+  for (let i = 0; i < closedCount; i++) {
+    await closedTriggers.nth(i).click().catch(() => null);
+  }
+  if (closedCount > 0) {
+    // Brief wait for accordion animation to complete and content to mount
+    await page.waitForFunction(
+      () => document.querySelectorAll('[data-radix-accordion-trigger][aria-expanded="false"]').length === 0
+        || document.querySelectorAll('[data-radix-accordion-content]').length > 0,
+      { timeout: 3_000 },
+    ).catch(() => null);
+  }
+
+  await ss(page, "C2_02b_accordion_open");
 
   // For each param ID, verify a visible input element exists and log its type
   const typeCounts = { textarea: 0, textInput: 0, numberInput: 0, pathInput: 0, switch: 0, unknown: 0 };
