@@ -773,7 +773,18 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       loadRun(invId).catch(err =>
         console.warn('[ChatWithArtifacts] Session restore loadRun failed:', err)
       );
-      break;
+      return;
+    }
+    // Fallback: if no message has an invocationId (e.g. session was created before
+    // invocationId was persisted in messages), restore from session.workflows.
+    // GET /api/sessions/:id dynamically backfills workflows from execution_runs,
+    // so session.workflows[0].id is always an execution_run UUID we can loadRun() with.
+    const latestWf = currentChatSession.workflows?.[0];
+    if (latestWf?.id) {
+      console.log(`[ChatWithArtifacts] Session restore fallback: loading run ${latestWf.id} from session.workflows`);
+      loadRun(latestWf.id).catch(err =>
+        console.warn('[ChatWithArtifacts] Session restore (workflows fallback) loadRun failed:', err)
+      );
     }
   }, [currentChatSession?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
