@@ -204,7 +204,16 @@ test("B1: AfterRunReport Outputs tab shows interactive tool buttons based on out
   if (!completed) { test.skip(); return; }
 
   const panelReady = await navigateToRunSession(page, completed.chatSessionId);
-  if (!panelReady) { test.skip(); return; }
+  if (!panelReady) {
+    // NOTE: backend session API returns workflows:[] — workflow data is not
+    // persisted server-side. The panel cannot reconstruct from historical sessions.
+    // Interactive tool button behaviour is covered by:
+    //   frontend/client/src/components/interactive-launcher.test.tsx (dialog)
+    //   frontend/client/src/components/step-output-preview.test.tsx (extension routing)
+    // B1 will pass when backend workflow persistence is implemented.
+    test.skip();
+    return;
+  }
 
   const afterRunTab = page.locator('[data-testid="panel-tab-after-run"]');
   if (await afterRunTab.count() === 0) { test.skip(); return; }
