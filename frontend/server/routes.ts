@@ -505,6 +505,31 @@ galaxyPoller.on('workflow_completed', async (data: { invocation_id: string; stat
       );
       console.log(`[WorkflowComplete] Updated execution run ${executionRun.id} to ${finalStatus} (state=${data.state})`);
 
+      // Persist workflow metadata to chat_sessions.workflows so that
+      // GET /api/sessions/:id returns a non-empty workflows array and
+      // the right panel can render the AfterRunReport/interactive tools.
+      if (finalStatus === 'completed' && executionRun.chatSessionId) {
+        try {
+          const wfName = (executionRun as any).workflowName ||
+                         (executionRun as any).workflowDefinition?.name ||
+                         (executionRun as any).workflowDefinition?.chain_name ||
+                         'Workflow';
+          const wfEntry = JSON.stringify([{
+            workflow_id: executionRun.id,
+            workflow_name: wfName,
+            status: 'completed',
+          }]);
+          await pool.query(
+            `UPDATE chat_sessions SET workflows = $1::jsonb, last_activity = NOW()
+             WHERE session_id = $2`,
+            [wfEntry, executionRun.chatSessionId]
+          );
+          console.log(`[WorkflowComplete] Wrote workflow entry to chat_sessions for session ${executionRun.chatSessionId}`);
+        } catch (sessErr: any) {
+          console.error('[WorkflowComplete] Failed to update chat_sessions.workflows:', sessErr?.message);
+        }
+      }
+
       // CRITICAL FIX: Retrieve and store workflow outputs from Galaxy
       if (finalStatus === 'completed' && executionRun.execution.galaxyWorkflowId) {
         try {
@@ -4396,6 +4421,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           finalizedBy: finalized_by ? String(finalized_by) : 'orphan_poller',
         },
       } as any);
+
+      // Persist workflow metadata to chat_sessions.workflows on completion.
+      if (status === 'completed' && run.chatSessionId) {
+        try {
+          const wfName = (run as any).workflowName ||
+                         (run as any).workflowDefinition?.name ||
+                         (run as any).workflowDefinition?.chain_name ||
+                         'Workflow';
+          const wfEntry = JSON.stringify([{
+            workflow_id: run.id,
+            workflow_name: wfName,
+            status: 'completed',
+          }]);
+          await pool.query(
+            `UPDATE chat_sessions SET workflows = $1::jsonb, last_activity = NOW()
+             WHERE session_id = $2`,
+            [wfEntry, run.chatSessionId]
+          );
+          console.log(`[OrphanFinalizer] Wrote workflow entry to chat_sessions for session ${run.chatSessionId}`);
+        } catch (sessErr: any) {
+          console.error('[OrphanFinalizer] Failed to update chat_sessions.workflows:', sessErr?.message);
+        }
+      }
+
       return res.json({ ok: true, runId: run.id, status });
     } catch (e: any) {
       return res.status(500).json({ error: 'update failed', message: e?.message ?? String(e) });
