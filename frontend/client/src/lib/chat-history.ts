@@ -50,7 +50,12 @@ class ChatHistoryService {
    * Used when a session was synced from backend but only has metadata (empty messages).
    */
   async fetchSessionDetail(id: string): Promise<ChatSession | null> {
-    if (!BACKEND_SYNC_ENABLED || !this.backendSyncActive || this.backendSyncBlocked) {
+    // Do not gate on backendSyncActive: this is an explicit caller-driven fetch
+    // (e.g. ?session= URL param or sidebar click), not a background sync poll.
+    // backendSyncActive is a startup flag set by AppWithAuthSync; if this method
+    // is called it already means the caller knows the user is authenticated.
+    // The 401/403 path below sets backendSyncBlocked if auth truly fails.
+    if (!BACKEND_SYNC_ENABLED || this.backendSyncBlocked) {
       return this.getSession(id);
     }
     try {
