@@ -535,9 +535,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       currentRun.execution?.galaxyInvocationId ||
       currentRun.id
     )
-    // Auto-open panel on run restore (e.g. after page refresh mid-run).
-    // Only fires when the panel is closed and the run is active/running.
-    const isActive = ['running', 'queued'].includes(currentRun.execution?.status ?? '');
+    // Auto-open panel on run restore (e.g. after page refresh or ?session= nav).
+    // Open for active runs (show live progress) and completed runs (show AfterRunReport).
+    const isActive = ['running', 'queued', 'completed', 'failed'].includes(currentRun.execution?.status ?? '');
     if (isActive && !panelWorkflow && currentRun.workflowDefinition) {
       setPanelWorkflow(currentRun.workflowDefinition)
       setPanelOpen(true)
