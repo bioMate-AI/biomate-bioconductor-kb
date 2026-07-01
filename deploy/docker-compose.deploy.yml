@@ -87,6 +87,16 @@ services:
     volumes:
       - /opt/biomate/data/galaxy_ai_tools.db:/app/database/galaxy_ai_tools.db
       - /opt/biomate/data/nextflow_nfcore:/app/biomni_workflows/nextflow_nfcore
+      # Prebuilt BGE workflow-embeddings index (dense retrieval). Keyed to the
+      # catalog's content signature — built once offline against the catalog above
+      # (~2632 workflows, 3.7MB) and persisted on the host. With it,
+      # _ensure_workflow_embeddings() LOADS in ~2s at boot; WITHOUT it, the first
+      # request per worker triggers a ~4-min _build (and re-builds on every worker
+      # recycle → churn). Rebuild this file whenever galaxy_ai_tools.db changes
+      # (else the staleness check rebuilds it once at runtime). Absent host file →
+      # Docker makes a dir → load fails gracefully → BGE stays disabled (FTS still
+      # works), never breaks boot.
+      - /opt/biomate/data/galaxy_ai_workflow_embeddings.npz:/app/database/galaxy_ai_workflow_embeddings.npz
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/api/version"]
