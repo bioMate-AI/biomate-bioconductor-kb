@@ -5267,10 +5267,17 @@ async def paperqa_synthesize(
         )
 
         docs = Docs()
+        # Pass stub citations derived from filenames so PaperQA2 skips the
+        # per-paper LLM citation-generation call — halves indexing time.
+        # The synthesis step uses real in-text citations anyway.
+        import os as _osp
+        stub_citations = [_osp.splitext(_osp.basename(p))[0][:80] for p in valid_paths]
+
         # Index all PDFs in parallel.
         # return_exceptions=True: one bad PDF doesn't abort the whole batch.
         await _asyncio.gather(
-            *[docs.aadd(p, settings=settings) for p in valid_paths],
+            *[docs.aadd(p, citation=cit, settings=settings)
+              for p, cit in zip(valid_paths, stub_citations)],
             return_exceptions=True,
         )
 
