@@ -13372,11 +13372,10 @@ Respond ONLY with valid JSON (no markdown wrapper):
       if (!session.workflows || session.workflows.length === 0) {
         try {
           const runRows = await pool.query(
-            `SELECT id, workflow_name, (execution->>'status') AS run_status,
-                    workflow_definition, completed_at
+            `SELECT id, workflow_name, status AS run_status
              FROM execution_runs
              WHERE chat_session_id = $1
-               AND (execution->>'status') IN ('completed', 'failed', 'running')
+               AND status IN ('completed', 'failed', 'running')
              ORDER BY created_at DESC
              LIMIT 5`,
             [req.params.sessionId]
@@ -13384,7 +13383,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
           if (runRows.rows.length > 0) {
             session.workflows = runRows.rows.map((r: any) => ({
               workflow_id: r.id,
-              workflow_name: r.workflow_name || r.workflow_definition?.name || r.workflow_definition?.chain_name || 'Workflow',
+              workflow_name: r.workflow_name || 'Workflow',
               status: r.run_status || 'completed',
             }));
           }
