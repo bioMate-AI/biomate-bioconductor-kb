@@ -226,33 +226,45 @@ export function configureSecurityHeaders(app: Express) {
 export function configureCORS(app: Express) {
   const config = getSecurityConfig();
 
-  const corsOptions: cors.CorsOptions = {
-    origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, Postman, etc.)
-      if (!origin) {
-        return callback(null, true);
+  // E2E test CORS bypass: when a valid X-E2E-Test-Token is present, emit the
+  // correct Access-Control-Allow-Origin for the actual request origin and skip
+  // the cors() middleware. This handles the SSH-tunnel case where the browser's
+  // Origin is localhost:PORT but the server only whitelists https://biomate.ai
+  // (NODE_ENV=production on dev EC2). Gated by E2E token — same security bar as
+  // the existing auth bypass in auth-middleware.ts.
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const e2eToken = process.env.E2E_TEST_TOKEN;
+    if (e2eToken && req.headers['x-e2e-test-token'] === e2eToken) {
+      const origin = req.headers.origin;
+      if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        if (req.method === 'OPTIONS') {
+          res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+          res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-CSRF-Token, X-E2E-Test-Token');
+          return res.status(204).send();
+        }
       }
-
-      if (config.corsOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.warn(`[Security] CORS blocked origin: ${origin}`);
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    credentials: true, // Allow cookies
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'X-Requested-With',
-      'X-CSRF-Token',
-    ],
-    exposedHeaders: ['X-CSRF-Token'],
-    maxAge: 600, // 10 minutes
-  };
-
-  app.use(cors(corsOptions));
+      return next(); // Skip cors() below
+    }
+    // Non-E2E: standard cors() middleware
+    cors({
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (config.corsOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          console.warn(`[Security] CORS blocked origin: ${origin}`);
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
+      exposedHeaders: ['X-CSRF-Token'],
+      maxAge: 600,
+    })(req, res, next);
+  });
   console.log(`[Security] CORS configured for origins: ${config.corsOrigins.join(', ')}`);
 }
 
