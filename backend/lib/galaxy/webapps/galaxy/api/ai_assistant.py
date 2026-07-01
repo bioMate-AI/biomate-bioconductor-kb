@@ -5178,6 +5178,45 @@ Rules:
 # Falls back gracefully if paperqa is not installed or the key is missing.
 # ---------------------------------------------------------------------------
 
+# ── Docs embedding cache ───────────────────────────────────────────────────
+# Key: frozenset of (path, md5) pairs — same files in any order → same key.
+# Value: (Docs object, timestamp). Max 5 entries, 2-hour TTL.
+# Avoids re-indexing the same paper set for follow-up questions.
+import asyncio as _pqa_asyncio
+import time as _pqa_time
+import hashlib as _pqa_hashlib
+
+_PQA_DOCS_CACHE: dict = {}          # cache_key → {"docs": Docs, "ts": float}
+_PQA_CACHE_LOCKS: dict = {}         # cache_key → asyncio.Lock
+_PQA_CACHE_MAX = 5
+_PQA_CACHE_TTL = 7200               # 2 hours
+
+
+def _pqa_content_key(paths: List[str]) -> frozenset:
+    """Stable cache key from file content hashes — order-independent."""
+    pairs = []
+    for p in paths:
+        try:
+            h = _pqa_hashlib.md5(open(p, "rb").read(65536)).hexdigest()  # first 64KB
+        except OSError:
+            h = p
+        pairs.append((p, h))
+    return frozenset(pairs)
+
+
+def _pqa_evict_stale() -> None:
+    """Remove expired entries; if still over limit, drop the oldest."""
+    now = _pqa_time.time()
+    stale = [k for k, v in _PQA_DOCS_CACHE.items() if now - v["ts"] > _PQA_CACHE_TTL]
+    for k in stale:
+        _PQA_DOCS_CACHE.pop(k, None)
+        _PQA_CACHE_LOCKS.pop(k, None)
+    while len(_PQA_DOCS_CACHE) >= _PQA_CACHE_MAX:
+        oldest = min(_PQA_DOCS_CACHE, key=lambda k: _PQA_DOCS_CACHE[k]["ts"])
+        _PQA_DOCS_CACHE.pop(oldest, None)
+        _PQA_CACHE_LOCKS.pop(oldest, None)
+
+
 class PaperQASynthesizeRequest(BaseModel):
     file_paths: List[str] = Field(..., description="Absolute paths to uploaded PDF files on this server")
     question: str = Field(..., description="The question to answer from the papers")
@@ -5266,20 +5305,33 @@ async def paperqa_synthesize(
             parsing=ParsingSettings(use_doc_details=False, disable_doc_valid_check=True),
         )
 
-        docs = Docs()
-        # Pass stub citations derived from filenames so PaperQA2 skips the
-        # per-paper LLM citation-generation call — halves indexing time.
-        # The synthesis step uses real in-text citations anyway.
-        import os as _osp
-        stub_citations = [_osp.splitext(_osp.basename(p))[0][:80] for p in valid_paths]
+        # ── Embedding cache lookup ────────────────────────────────────────
+        _pqa_evict_stale()
+        cache_key = _pqa_content_key(valid_paths)
 
-        # Index all PDFs in parallel.
-        # return_exceptions=True: one bad PDF doesn't abort the whole batch.
-        await _asyncio.gather(
-            *[docs.aadd(p, citation=cit, settings=settings)
-              for p, cit in zip(valid_paths, stub_citations)],
-            return_exceptions=True,
-        )
+        if cache_key not in _PQA_CACHE_LOCKS:
+            _PQA_CACHE_LOCKS[cache_key] = _pqa_asyncio.Lock()
+        lock = _PQA_CACHE_LOCKS[cache_key]
+
+        async with lock:
+            cached = _PQA_DOCS_CACHE.get(cache_key)
+            if cached and (_pqa_time.time() - cached["ts"] < _PQA_CACHE_TTL):
+                docs = cached["docs"]
+                log.info("paperqa_synthesize: cache HIT for %d papers", len(valid_paths))
+            else:
+                docs = Docs()
+                # Stub citations skip the per-paper LLM citation call (halves indexing time).
+                import os as _osp
+                stub_citations = [_osp.splitext(_osp.basename(p))[0][:80] for p in valid_paths]
+
+                log.info("paperqa_synthesize: indexing %d papers (cache MISS)", len(valid_paths))
+                await _asyncio.gather(
+                    *[docs.aadd(p, citation=cit, settings=settings)
+                      for p, cit in zip(valid_paths, stub_citations)],
+                    return_exceptions=True,
+                )
+                _pqa_evict_stale()
+                _PQA_DOCS_CACHE[cache_key] = {"docs": docs, "ts": _pqa_time.time()}
 
         # Run the query
         session = await docs.aquery(request.question, settings=settings)
