@@ -5373,24 +5373,24 @@ async def paperqa_synthesize(
         # Run the query
         session = await docs.aquery(request.question, settings=settings)
 
-        # Build citation list from the session contexts
+        # Build citation list from unique docs across all contexts.
+        # In PaperQA5 the Doc object lives on ctx.text.doc, not ctx.doc.
         citations = []
-        seen = set()
-        for ctx in (getattr(session, "contexts", None) or []):
-            doc = getattr(ctx, "doc", None)
-            if doc is None:
-                continue
-            key = getattr(doc, "key", None) or getattr(doc, "docname", None) or str(doc)
-            if key in seen:
-                continue
-            seen.add(key)
+        try:
+            unique_docs = session.get_unique_docs_from_contexts()
+        except Exception:
+            unique_docs = set()
+            for ctx in (getattr(session, "contexts", None) or []):
+                text_obj = getattr(ctx, "text", None)
+                doc = getattr(text_obj, "doc", None) if text_obj else None
+                if doc:
+                    unique_docs.add(doc)
+        for doc in unique_docs:
+            dockey = getattr(doc, "dockey", None) or getattr(doc, "docname", None) or str(doc)
             citations.append({
-                "key": key,
-                "title": getattr(doc, "title", None) or key,
-                "authors": getattr(doc, "authors", []),
-                "year": getattr(doc, "year", None),
-                "doi": getattr(doc, "doi", None),
-                "pages_used": [getattr(ctx, "text", {}).get("name", "") if isinstance(getattr(ctx, "text", None), dict) else ""],
+                "key": dockey,
+                "citation": getattr(doc, "citation", None) or getattr(doc, "formatted_citation", None) or dockey,
+                "docname": getattr(doc, "docname", None),
             })
 
         return {
@@ -5399,7 +5399,8 @@ async def paperqa_synthesize(
             "answer": getattr(session, "answer", ""),
             "formatted_answer": getattr(session, "formatted_answer", getattr(session, "answer", "")),
             "citations": citations,
-            "sources": len(valid_paths),
+            "papers_indexed": len(valid_paths),
+            "chunks_retrieved": len(getattr(session, "contexts", []) or []),
             "files": valid_paths,
         }
 
