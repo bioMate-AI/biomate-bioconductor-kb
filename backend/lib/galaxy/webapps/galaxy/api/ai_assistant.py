@@ -2185,7 +2185,13 @@ def search_nextflow_workflow(
         def _is_runnable_nextflow_match(match: Any) -> bool:
             if not runnable_keys:
                 return True
-            key = _nextflow_workflow_key((getattr(match, "filename", "") or ""))
+            filename = (getattr(match, "filename", "") or "").lower()
+            # nfcore top-level pipelines (nfcore/<pipeline>/main.nf) are always
+            # runnable via AWS Batch — the runnable_keys gate only applies to
+            # bioconductor subworkflows and biomni custom workflows.
+            if filename.startswith("nfcore/") and "/main.nf" in filename:
+                return True
+            key = _nextflow_workflow_key(filename)
             return bool(key and key in runnable_keys)
 
         best = results[0]
@@ -5265,6 +5271,73 @@ Rules:
     except Exception as exc:
         log.warning("extract_workflow_edits failed: %s", exc)
         return {"edits": [], "error": str(exc)}
+
+
+# ---------------------------------------------------------------------------
+# PDF text extraction endpoint
+# ---------------------------------------------------------------------------
+
+class ExtractPdfRequest(BaseModel):
+    file_path: str
+    max_chars: int = 50000
+
+
+@router.post(
+    "/api/ai_assistant/extract_pdf_text",
+    summary="Extract text from an uploaded PDF using pdfplumber (falls back to pypdf).",
+)
+def extract_pdf_text(request: ExtractPdfRequest) -> Dict[str, Any]:
+    """
+    Extract plain text from a local PDF file.
+    Security guard: path must end in .pdf and contain 'uploads'.
+    Returns { text, page_count, char_count }.
+    """
+    import os as _os
+
+    abs_path = _os.path.realpath(request.file_path)
+
+    if not abs_path.lower().endswith(".pdf"):
+        raise HTTPException(status_code=403, detail="Only .pdf files are allowed")
+    if "uploads" not in abs_path:
+        raise HTTPException(status_code=403, detail="File path not within uploads directory")
+    if not _os.path.isfile(abs_path):
+        raise HTTPException(status_code=404, detail=f"File not found: {abs_path}")
+
+    text_parts: List[str] = []
+    n_pages = 0
+    total_chars = 0
+
+    try:
+        try:
+            import pdfplumber  # preferred: installed via requirements.txt
+            with pdfplumber.open(abs_path) as pdf:
+                for page in pdf.pages:
+                    t = (page.extract_text() or "").strip()
+                    if t:
+                        text_parts.append(t)
+                    n_pages += 1
+                    total_chars += len(t)
+                    if total_chars >= request.max_chars:
+                        break
+        except ImportError:
+            from pypdf import PdfReader  # fallback for local dev environments
+            reader = PdfReader(abs_path)
+            n_pages = len(reader.pages)
+            for page in reader.pages:
+                t = (page.extract_text() or "").strip()
+                if t:
+                    text_parts.append(t)
+                total_chars += len(t)
+                if total_chars >= request.max_chars:
+                    break
+
+        full_text = "\n\n".join(text_parts)[: request.max_chars]
+        return {"text": full_text, "page_count": n_pages, "char_count": len(full_text)}
+    except (ImportError, NameError):
+        raise HTTPException(status_code=503, detail="No PDF library available (pdfplumber or pypdf required)")
+    except Exception as exc:
+        log.error("PDF text extraction failed for %s: %s", abs_path, exc)
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 # ---------------------------------------------------------------------------

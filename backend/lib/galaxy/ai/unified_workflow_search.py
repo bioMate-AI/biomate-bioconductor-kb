@@ -476,6 +476,13 @@ class UnifiedWorkflowSearch:
             'mechanism of action rnaseq': 4.5, 'mechanism action rna': 4.0,
             'drug mechanism rnaseq': 4.5, 'drug effect rna': 3.5,
 
+            # Pharmacovigilance / FAERS signal detection
+            'faers': 4.0, 'pharmacovigilance': 4.0, 'disproportionality': 4.0,
+            'ror': 3.5, 'prr': 3.5, 'reporting odds ratio': 4.0,
+            'proportional reporting ratio': 4.0, 'adverse drug reaction': 3.5,
+            'signal detection': 3.5, 'spontaneous reporting': 3.5,
+            'drug safety surveillance': 3.5, 'post-marketing surveillance': 3.5,
+
             # Drug discovery / Pharmacology / ADMET
             'admet': 3.0, 'herg': 3.0, 'dili': 3.0,
             'toxicity': 2.5, 'cardiotoxicity': 3.0, 'hepatotoxicity': 2.5,
