@@ -27,6 +27,7 @@ import { resolveCanonicalChainStepPath } from './canonical-chain-steps';
 // across concurrent users). See ChatContext.galaxyAPIOverride for rationale.
 const _galaxyAPIRequestStorage = new AsyncLocalStorage<GalaxyAPIProxy>();
 import { conversationStateManager } from './conversation-state';
+import { shouldInjectDatasets } from './dataset-injection-gate';
 import { userPatternsService, type UserContext } from './user-patterns-service';
 import { thinkingDetector, type ThinkingDetectionResult } from './thinking-detector';
 import { memoryService } from './memory-repository';
@@ -1843,7 +1844,7 @@ Rules:
     console.warn('[extractInlineData] LLM extraction failed, using regex fallback:', err.message);
   }
 
-  // Regex fallback — high-confidence patterns only (accessions and file paths)
+  // Regex fallback — high-confidence patterns only (accessions, file paths, tabular data)
   const fallback: InlineDataMap = {};
   const sra = message.match(/\b((SRR|ERR|DRR|SRS|ERS|DRS|SRP|ERP|DRP|PRJNA|PRJEB)\d+)\b/i);
   if (sra) fallback.sra_accession = sra[1].toUpperCase();
@@ -1853,6 +1854,14 @@ Rules:
   if (file) fallback.file_path = file[1];
   const upload = message.match(/\[Uploaded datasets:\s*([^\]]+)\]/);
   if (upload) fallback.uploaded_dataset = upload[1].trim();
+  // Tabular data: ≥2 lines each with ≥2 comma/tab-separated tokens where at least one is
+  // numeric. Catches gene count matrices, sample metadata tables, and similar pasted inputs.
+  const tabularLines = message.split('\n').map((l: string) => l.trim()).filter(Boolean);
+  const numericTabularRows = tabularLines.filter((line: string) => {
+    const cols = line.split(/[,\t]/);
+    return cols.length >= 2 && cols.some((c: string) => /^\d+(\.\d+)?$/.test(c.trim()));
+  });
+  if (numericTabularRows.length >= 2) fallback.count_matrix = message.trim();
   _inlineDataCache.set(cacheKey, fallback);
   return fallback;
 }
@@ -6186,24 +6195,7 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     if (_matchedFixture) {
       console.log(`[chat] canonical fixture matched in user message: ${_matchedFixture} — suppressing clarification ask`);
     }
-    // Detect CSV/tabular data pasted inline (e.g. a count matrix with header + data rows).
-    // Pattern: at least 2 lines each containing ≥2 comma/tab-separated tokens where at
-    // least one token is numeric. This catches gene count matrices, sample metadata tables,
-    // and similar bioinformatics tabular inputs without requiring LLM extraction.
-    const _hasTabularData = (() => {
-      const lines = message.split('\n').map(l => l.trim()).filter(Boolean);
-      let numericRows = 0;
-      for (const line of lines) {
-        const cols = line.split(/[,\t]/);
-        if (cols.length >= 2 && cols.some(c => /^\d+(\.\d+)?$/.test(c.trim()))) {
-          numericRows++;
-          if (numericRows >= 2) return true;
-        }
-      }
-      return false;
-    })();
     const hasInlineData = Object.keys(inlineDataMap).length > 0 ||
-      _hasTabularData ||
       /do not ask|no (further )?clarification|use (the )?provided|use default/i.test(message) ||
       _matchedFixture !== null;
 
@@ -6304,8 +6296,6 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       // docs/20260613_DATASET_INJECTION_GATE_DESIGN.md. Default-on
       // (false-skip cost > false-inject cost), but suppress on pure
       // abstract-knowledge turns where no signal points at data.
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { shouldInjectDatasets } = require('./dataset-injection-gate');
       const _gate = shouldInjectDatasets({
         message,
         intentType: (intent as any)?.type,
