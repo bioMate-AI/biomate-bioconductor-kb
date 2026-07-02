@@ -1949,6 +1949,9 @@ Rules:
   });
   if (numericTabularRows.length >= 2) fallback.count_matrix = message.trim();
   _inlineDataCache.set(cacheKey, fallback);
+  // Log regex fallback result using same format as LLM path so E2E tests can observe both paths.
+  const _fbArrayKeys = Object.keys(fallback).filter(k => fallback[k].startsWith('['));
+  console.log(`[extractInlineData] result keys=${Object.keys(fallback).join(',') || 'none'} arrayKeys=${_fbArrayKeys.join(',') || 'none'} map=${JSON.stringify(fallback)} (regex-fallback)`);
   return fallback;
 }
 

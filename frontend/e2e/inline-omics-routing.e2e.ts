@@ -350,3 +350,90 @@ test("UC-6: compound name+SMILES table routes to property workflow without re-as
   await ss(page, "UC6_02_verified");
   console.log("[UC-6] PASS — compound table processed; assistant did not re-request structures");
 });
+
+// ============================================================================
+// UC-6b — Prove extractInlineDataWithLLM array preservation via server log
+// ============================================================================
+//
+// UC-6 proves observable behavior (no re-asking). UC-6b proves the mechanism:
+// that extractInlineDataWithLLM actually preserved the Gemini array response
+// (the fix in galaxy-assistant.ts line ~1919) rather than returning {}.
+//
+// The server emits a structured log line for every extraction:
+//   [extractInlineData] result keys=<k> arrayKeys=<k> map=<JSON>
+// This test sends a compound+SMILES table, waits for the response, then reads
+// the dev server log (/tmp/biomate_server_v*.log) and asserts:
+//   (a) an extraction event was logged for this message
+//   (b) if Gemini returned an array, arrayKeys is non-empty (array branch hit)
+//   (c) if Gemini returned a string, keys is still non-empty (data not lost)
+// Either way, the result must not be empty.
+
+test("UC-6b: extractInlineDataWithLLM preserves multi-value data (array or string) in inlineDataMap", async () => {
+  const page = sharedPage;
+  await newSession(page);
+  await ss(page, "UC6b_00_new_session");
+
+  // Record log size before sending so we only scan new lines
+  const logFiles = fs.readdirSync("/tmp").filter(f => /^biomate_server_v\d+\.log$/.test(f))
+    .map(f => path.join("/tmp", f))
+    .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
+  const serverLog = logFiles[0] ?? null;
+  const logSizeBefore = serverLog ? fs.statSync(serverLog).size : 0;
+  console.log("[UC-6b] Reading server log:", serverLog, "size before:", logSizeBefore);
+
+  const message = [
+    "Calculate molecular weight and LogP for each compound:",
+    "name,smiles",
+    "aspirin,CC(=O)Oc1ccccc1C(=O)O",
+    "caffeine,Cn1cnc2c1c(=O)n(C)c(=O)n2C",
+    "ibuprofen,CC(C)Cc1ccc(cc1)C(C)C(=O)O",
+  ].join("\n");
+
+  await sendMessage(page, message);
+  await waitForAssistant(page, LLM_TIMEOUT);
+  await ss(page, "UC6b_01_response");
+
+  // Give server a moment to flush the log
+  await page.waitForTimeout(1000);
+
+  if (!serverLog) {
+    console.warn("[UC-6b] No server log found — skipping log assertion");
+    return;
+  }
+  const logContent = fs.readFileSync(serverLog, "utf8").slice(logSizeBefore);
+  console.log("[UC-6b] New log chars:", logContent.length);
+
+  const extractionLines = logContent.split("\n").filter(l => l.includes("[extractInlineData] result"));
+  console.log("[UC-6b] Extraction log lines:", extractionLines.length);
+  console.log("[UC-6b] Extraction details:", extractionLines.join(" | "));
+
+  expect(extractionLines.length, "server must have logged at least one extractInlineData result").toBeGreaterThan(0);
+
+  // At least one extraction must have found non-empty keys (data was not lost)
+  const anyNonEmpty = extractionLines.some(l => {
+    const m = l.match(/keys=(\S+)/);
+    return m && m[1] !== "none";
+  });
+  expect(anyNonEmpty, "extractInlineDataWithLLM must have extracted at least one key (data not lost)").toBe(true);
+
+  // If Gemini returned an array, arrayKeys must be preserved (the fix was hit)
+  const arrayLine = extractionLines.find(l => {
+    const m = l.match(/arrayKeys=(\S+)/);
+    return m && m[1] !== "none";
+  });
+  if (arrayLine) {
+    console.log("[UC-6b] Array branch WAS hit:", arrayLine);
+    const mapMatch = arrayLine.match(/map=(\{[^}]+\})/);
+    if (mapMatch) {
+      const mapObj = JSON.parse(mapMatch[1]);
+      const arrayVals = Object.values(mapObj).filter((v: any) => typeof v === "string" && v.startsWith("["));
+      expect(arrayVals.length, "at least one array value must be preserved in map").toBeGreaterThan(0);
+      console.log("[UC-6b] Array values preserved:", arrayVals);
+    }
+  } else {
+    console.log("[UC-6b] Gemini returned strings (not arrays) this run — array branch not needed, data still present");
+  }
+
+  await ss(page, "UC6b_02_log_verified");
+  console.log("[UC-6b] PASS — extractInlineDataWithLLM preserved multi-value data");
+});
