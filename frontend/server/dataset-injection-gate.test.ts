@@ -296,7 +296,11 @@ describe("galaxy-assistant.ts wires the gate into sessionDatasetsBlock", () => {
   const SRC = fs.readFileSync(path.join(__dirname, "galaxy-assistant.ts"), "utf-8");
 
   it("imports shouldInjectDatasets from ./dataset-injection-gate", () => {
-    expect(/require\(['"]\.\/dataset-injection-gate['"]\)/.test(SRC)).toBe(true);
+    // galaxy-assistant.ts uses ES module imports, not require()
+    expect(
+      /import.*shouldInjectDatasets.*from.*['"]\.\/dataset-injection-gate['"]/.test(SRC) ||
+      /require\(['"]\.\/dataset-injection-gate['"]\)/.test(SRC)
+    ).toBe(true);
     expect(SRC.includes("shouldInjectDatasets")).toBe(true);
   });
 

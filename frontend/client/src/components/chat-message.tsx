@@ -336,14 +336,51 @@ export function ChatMessage({
           lineHeight: 1.5,
           alignSelf: 'flex-end',
         } : undefined}>
-            {isUser ? (
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
-            ) : (
+            {isUser ? (() => {
+              const raw = message.content || ''
+              // Extract attached file names from metadata blocks before stripping them
+              const attachedNames: string[] = []
+              const attachedBlock = raw.match(/\[Attached files:\s*([^\]]+)\]/i)?.[1] ?? ''
+              if (attachedBlock) {
+                attachedNames.push(...attachedBlock.split(',').map(s => s.trim()).filter(Boolean))
+              }
+              const datasetBlock = raw.match(/\[(?:Uploaded datasets?|Dataset):\s*([^\]]+)\]/gi) ?? []
+              datasetBlock.forEach(b => {
+                const name = b.match(/\[(?:Uploaded datasets?|Dataset):\s*([^:(]+)/i)?.[1]?.trim()
+                if (name && !attachedNames.includes(name)) attachedNames.push(name)
+              })
+              // Strip all metadata blocks from the visible text
+              const visibleText = raw
+                .replace(/\n?\[(?:Galaxy dataset|Dataset|Attached files|Uploaded datasets?)[^\]]*\]/gi, '')
+                .replace(/\n?\[Paper content:[^\]]*\][\s\S]*$/i, '')
+                .trim()
+              return (
+                <div>
+                  {visibleText && <p className="text-sm leading-relaxed whitespace-pre-wrap">{visibleText}</p>}
+                  {attachedNames.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {attachedNames.map(name => (
+                        <span key={name} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-black/10 dark:bg-white/10 text-xs text-current/80">
+                          📎 {name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })() : (
               <>
               {/* Agent tool blocks — shown above the text response */}
               {(message.metadata?.toolBlocks as ToolBlock[] | undefined)?.map(block => (
                 <CodeExecutionBlock key={block.tool_use_id} block={block} />
               ))}
+              {/* Research/analysis progress indicator — shown while content is still loading */}
+              {!message.content?.trim() && (message.metadata as any)?.progressStatus && (
+                <div className="flex items-center gap-2 text-muted-foreground italic text-sm py-1">
+                  <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" aria-hidden />
+                  <span>{(message.metadata as any).progressStatus}</span>
+                </div>
+              )}
               <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none
                 prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
                 prose-h1:text-base prose-h2:text-sm prose-h3:text-sm
@@ -855,7 +892,8 @@ export function ChatMessage({
           })()}
         </div>
 
-        {!isUser && (
+        {/* Action buttons — only shown when there is actual response content */}
+        {!isUser && message.metadata?.type !== "error" && !!message.content?.trim() && (
           <div className="flex items-center gap-2 flex-wrap">
             <DownloadOutcomePrompt
               open={downloadPromptOpen}
@@ -922,17 +960,18 @@ export function ChatMessage({
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleDownloadOutputs}
-              data-testid="button-download-outputs-icon"
-              title="Download outputs"
-              aria-label="Download outputs"
-              disabled={!effectiveInvocationId}
-            >
-              <Download className="h-4 w-4" />
-            </Button>
+            {effectiveInvocationId && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleDownloadOutputs}
+                data-testid="button-download-outputs-icon"
+                title="Download outputs"
+                aria-label="Download outputs"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            )}
             {(message.metadata?.type === 'workflow' || message.invocationId || hasGalaxyMetadata) && (
               <InlineFeedbackWidget
                 messageId={message.id}
@@ -944,11 +983,9 @@ export function ChatMessage({
             )}
           </div>
         )}
-        
-        {/* Suggestion buttons hidden per UX request */}
 
         {!isUser && message.metadata?.type === "error" && (
-          <div className="flex flex-wrap items-center gap-2 mt-2">
+          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-border/40">
             <Button
               variant="outline"
               size="sm"
@@ -964,10 +1001,9 @@ export function ChatMessage({
                 errorType: message.metadata?.errorType,
                 errorMessage: message.metadata?.errorMessage,
               }}
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => onSuggestionClick("Report issue", message)}
-              className="h-8"
             />
           </div>
         )}

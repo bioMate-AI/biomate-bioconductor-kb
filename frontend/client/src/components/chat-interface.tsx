@@ -493,11 +493,14 @@ export function ChatInterface({
   // Hide typing indicator once streaming content has started appearing in the placeholder
   const lastMsg = displayMessages[displayMessages.length - 1]
   const streamingHasContent = (isTyping || isTypingLocal) && lastMsg?.role === 'assistant' && !!lastMsg?.content?.trim()
+  // Also suppress the typing indicator when the placeholder already has a progressStatus
+  // (research-phase spinner) — showing both simultaneously creates a confusing double-loader.
+  const placeholderHasProgress = (isTyping || isTypingLocal) && lastMsg?.role === 'assistant' && !!(lastMsg?.metadata as any)?.progressStatus
   // Show indicator either before any text appears OR during the workflow-generation
   // window after the AI text finishes streaming (per todo #24 — the user wants the
   // "BioMate is generating the workflow for you…" cue in that 2-5 s gap).
   const displayTyping = showWorkflowCue ||
-    ((isTyping || isTypingLocal) && (!streamingHasContent || workflowGeneratingPhase === 'workflow'))
+    ((isTyping || isTypingLocal) && (!streamingHasContent || workflowGeneratingPhase === 'workflow') && !placeholderHasProgress)
   const latestAssistantMessageId = [...displayMessages]
     .reverse()
     .find((msg) => msg.role !== "user")?.id
@@ -631,7 +634,10 @@ export function ChatInterface({
 
   const updateMessageInSession = (sessionId: string, messageId: string, updates: Partial<Message>) => {
     const session = chatHistoryService.getSession(sessionId)
-    if (!session) return
+    if (!session) {
+      console.warn('[updateMsg] session NOT FOUND for', sessionId, 'update keys:', Object.keys(updates))
+      return
+    }
     const updatedMessages = session.messages.map((msg) =>
       msg.id === messageId ? { ...msg, ...updates } : msg
     )
@@ -788,6 +794,9 @@ export function ChatInterface({
 
             if (eventName === 'delta' && typeof payload.text === 'string') {
               accumulatedText += payload.text
+              if (accumulatedText.length <= payload.text.length) {
+                console.log('[ChatInterface] First delta received, sessionId:', sessionId, 'placeholderId:', placeholderId, 'text len:', accumulatedText.length)
+              }
               updateMessageInSession(sessionId, placeholderId, { content: accumulatedText })
             } else if (eventName === 'tool_event') {
               const event = payload as AgentToolEvent
@@ -796,8 +805,15 @@ export function ChatInterface({
               // channel but should NOT render as tool calls in the chat UI.
               // Skip without registering a tool block.
               if (event.type === 'status') {
-                // Future: surface in a dedicated status strip / timeline.
-                break
+                // Surface status events as a transient progress indicator in the placeholder.
+                if (event.message && !accumulatedText) {
+                  const curSess = chatHistoryService.getSession(sessionId)
+                  const curMsg = curSess?.messages.find(m => m.id === placeholderId)
+                  updateMessageInSession(sessionId, placeholderId, {
+                    metadata: { ...(curMsg?.metadata ?? {}), progressStatus: event.message }
+                  })
+                }
+                continue
               }
               const id = event.tool_use_id
               if (!toolBlocksMap.has(id)) {
@@ -1814,6 +1830,14 @@ export function ChatInterface({
     setLanggraphTasks(prev => prev.filter(t => t.id !== taskId))
   }, [])
 
+  // Re-send the last user message to regenerate the assistant response.
+  const handleRegenerate = useCallback(() => {
+    const msgs = chatSession?.messages ?? []
+    const lastUser = [...msgs].reverse().find(m => m.role === 'user')
+    if (!lastUser?.content?.trim()) return
+    handleSendOrQueue(lastUser.content)
+  }, [chatSession?.messages, handleSendOrQueue])
+
   useEffect(() => {
     if (!externalPromptRequest) return
     if (displayTyping) return
@@ -1855,7 +1879,9 @@ export function ChatInterface({
         <div className="space-y-4">
           {(() => {
             const visible = displayMessages.filter(
-              msg => !(msg.role === 'assistant' && !msg.content?.trim() && (isTyping || isTypingLocal))
+              // Hide empty assistant placeholder during typing UNLESS it already has a
+              // progressStatus to show (research-phase progress indicator).
+              msg => !(msg.role === 'assistant' && !msg.content?.trim() && !(msg.metadata as any)?.progressStatus && (isTyping || isTypingLocal))
             )
             // Render a single message exactly as before (used for un-folded
             // singles AND for the "latest" line of a folded group AND inside
@@ -1881,6 +1907,7 @@ export function ChatInterface({
                   onPauseWorkflow={onPauseWorkflow}
                   onResumeWorkflow={onResumeWorkflow}
                   onParameterChange={onParameterChange}
+                  onRegenerate={handleRegenerate}
                   onSuggestionClick={handleSuggestionClick}
                   onWorkflowProgress={handleWorkflowProgress}
                   isWorkflowRunning={isWorkflowRunning}

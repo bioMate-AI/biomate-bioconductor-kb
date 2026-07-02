@@ -1920,6 +1920,10 @@ Rules:
         }
       }
       _inlineDataCache.set(cacheKey, result);
+      // Log structured extraction result so E2E tests can verify array preservation.
+      // Format: [extractInlineData] result keys=<k1,k2,...> arrayKeys=<k1,...> map=<JSON>
+      const arrayKeys = Object.keys(result).filter(k => result[k].startsWith('['));
+      console.log(`[extractInlineData] result keys=${Object.keys(result).join(',') || 'none'} arrayKeys=${arrayKeys.join(',') || 'none'} map=${JSON.stringify(result)}`);
       return result;
     }
   } catch (err: any) {

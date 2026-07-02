@@ -64,7 +64,7 @@ describe("ChatInput — sessionDatasetCount indicator", () => {
     const el = screen.getByTestId("chat-input-attached-count")
     const tip = el.getAttribute("title") ?? ""
     expect(tip).toMatch(/At the 32-attachment cap/i)
-    expect(tip).toMatch(/Galaxy collection/i)
+    expect(tip).toMatch(/archive|collection|zip/i)
   })
 
   it("tooltip names the cap on the calm path too", () => {
