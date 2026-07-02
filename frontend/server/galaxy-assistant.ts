@@ -1907,10 +1907,16 @@ Rules:
     const cleaned = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
     const parsed = JSON.parse(cleaned);
     if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-      // Normalize: all values must be non-empty strings
+      // Normalize: string values kept as-is; arrays serialized to JSON so multi-SMILES
+      // and multi-value extractions are preserved rather than silently dropped.
       const result: InlineDataMap = {};
       for (const [k, v] of Object.entries(parsed)) {
-        if (typeof v === 'string' && v.trim()) result[k] = v.trim();
+        if (typeof v === 'string' && v.trim()) {
+          result[k] = v.trim();
+        } else if (Array.isArray(v) && v.length > 0) {
+          const strings = v.filter((item): item is string => typeof item === 'string' && item.trim() !== '');
+          if (strings.length > 0) result[k] = JSON.stringify(strings);
+        }
       }
       _inlineDataCache.set(cacheKey, result);
       return result;
