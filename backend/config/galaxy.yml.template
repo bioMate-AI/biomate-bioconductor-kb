@@ -42,7 +42,13 @@ gravity:
     timeout: 300
     # Limit memory per worker
     worker_class: sync
-    max_requests: 1000
-    max_requests_jitter: 50
+    # Recycle the worker after this many requests to bound any slow memory
+    # growth. Raised 1000→3000 (jitter 50→300) so the single worker recycles ~3x
+    # less often — each recycle has a brief cold window (new worker warms the
+    # embedding index) that shows up as a straggler under concurrent load.
+    # Kept bounded (not disabled) as an OOM guard on this memory-tight box;
+    # worker RSS verified stable over a 200-request burst (~1GB free maintained).
+    max_requests: 3000
+    max_requests_jitter: 300
     # Do NOT preload app - load toolbox per worker to reduce memory
     preload: false
