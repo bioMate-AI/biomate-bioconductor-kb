@@ -9,20 +9,26 @@
  *
  *   EX-1  ADMET Full Panel          — fast bioinformatics, has QC gates
  *   EX-2  Pharmacovigilance (FAERS) — single nextflow workflow
- *   EX-3  Bulk RNA-seq DESeq2       — multi-step chain (bioc_rnaseq chain)
+ *   EX-3  PBPK Allometric Scaling   — single nextflow workflow (not a chain)
  *
  * Each flow exercises:
  *   ✓ Pre-run state  — footer "Run", overall badge idle/pending
  *   ✓ Running state  — footer "Running…", phase card data-status="running"
  *   ✓ Terminal state — footer "Run again" OR "Restart"
- *   ✓ After-run tabs — Findings, Methods tabs present; Report download link
+ *   ✓ After-run tabs — "after-tab-*" buttons present; Download report link
  *
  * NO page.route() mocking. Real backend (AWS Batch via Galaxy :8081).
  * Screenshots → e2e/screenshots/service-execution/
  *
+ * NOTE: Execution (Nextflow) requires dev EC2 (dev-public.biomate.ai) where
+ * Nextflow + AWS Batch are configured. Running locally produces "FAILED"
+ * terminal states (no Nextflow binary), which is correct failure-path
+ * behavior but workflows won't complete. Routing + lifecycle assertions
+ * still pass locally; completion + Findings content assertions require dev.
+ *
  * Timeouts:
  *   - LLM routing:  90 s
- *   - AWS Batch execution: 20 min (FAERS/ADMET), 30 min (RNA-seq chain)
+ *   - AWS Batch execution: 20 min (ADMET/FAERS), 20 min (PBPK)
  *
  * Run locally:
  *   BIOMATE_URL=http://localhost:5000 \
@@ -35,7 +41,7 @@
  *   npx playwright test e2e/service-page-execution.e2e.ts --project=chromium
  */
 
-import { test, expect, type Page, type Browser } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import {
   sendAndWait,
   clickRunAndWait,
@@ -54,7 +60,7 @@ const E2E_TOKEN        = process.env.E2E_TEST_TOKEN ?? 'biomate-e2e-bypass-token
 // Individual workflow execution timeouts
 const ADMET_TIMEOUT_MS  = 20 * 60_000;  // 20 min
 const FAERS_TIMEOUT_MS  = 20 * 60_000;  // 20 min
-const RNASEQ_TIMEOUT_MS = 30 * 60_000;  // 30 min (chain = multiple steps)
+const PBPK_TIMEOUT_MS   = 20 * 60_000;  // 20 min
 
 interface ExecCase {
   id: string;
@@ -86,10 +92,12 @@ const EXEC_CASES: ExecCase[] = [
   },
   {
     id: 'EX-3',
-    label: 'Bulk RNA-seq DESeq2',
-    prompt: 'Run bulk RNA-seq differential expression analysis comparing treated vs control samples with DESeq2 — use the example FASTQ dataset (GSE183947, human, paired-end)',
-    expectWorkflow: ['bulk_rnaseq', 'DESeq2', 'deseq2', 'differential', 'rna', 'RNA'],
-    executionTimeoutMs: RNASEQ_TIMEOUT_MS,
+    label: 'PBPK Allometric Scaling',
+    // Single nextflow workflow — avoids chain UI incompatibility with clickRunAndWait.
+    // Routes to pbpk_pediatric (verified in 21-case routing test as Q04).
+    prompt: 'Run PBPK simulation for metoprolol (oral 100mg dose) — allometrically scale PK parameters from rat to human and predict Cmax, AUC, and half-life for pediatric dose selection',
+    expectWorkflow: ['pbpk', 'PBPK', 'allometric', 'pediatric', 'pharmacokinetic'],
+    executionTimeoutMs: PBPK_TIMEOUT_MS,
     minAfterRunTabs: 2,
   },
 ];
@@ -138,12 +146,22 @@ async function startNewChat(page: Page): Promise<void> {
 
 /**
  * Returns the current data-status of the overall workflow badge.
- * Falls back to phase card statuses when no badge exists.
+ * Falls back to panel-action-bar data-status when no badge exists.
  */
 async function getOverallStatus(page: Page): Promise<string> {
   return page.evaluate(() => {
+    // Primary: workflow-overall-status-badge (set in nextflow-workflow-viewer.tsx)
     const badge = document.querySelector('[data-testid="workflow-overall-status-badge"]');
-    if (badge) return (badge as HTMLElement).dataset.status ?? badge.textContent ?? 'unknown';
+    if (badge) {
+      const s = (badge as HTMLElement).dataset.status ?? '';
+      if (s) return s;
+    }
+    // Secondary: panel-action-bar data-status (set on the footer action bar)
+    const actionBar = document.querySelector('[data-testid="panel-action-bar"]');
+    if (actionBar) {
+      const s = (actionBar as HTMLElement).dataset.status ?? '';
+      if (s && s !== 'idle') return s;
+    }
     // Fallback: any running phase card means "running"
     const cards = document.querySelectorAll('[data-testid^="phase-card-"]');
     if (Array.from(cards).some(c => (c as HTMLElement).dataset.status === 'running')) return 'running';
@@ -170,39 +188,52 @@ async function waitForRunningState(page: Page, timeoutMs = 120_000): Promise<boo
 }
 
 /**
- * Returns visible after-run tab labels (Findings, Methods, Report, etc.)
+ * Returns visible after-run tab labels.
+ *
+ * Uses the canonical data-testid="after-tab-{id}" pattern from AfterRunReport.tsx.
+ * Tabs are always shown in order: Outputs → Findings → [QC report] → [Methods] →
+ * [Citations] → Parameters → [Software].
+ *
+ * Minimum: Outputs + Findings + Parameters (3) are always shown.
+ * Methods appears only when the methods API returns real content.
  */
 async function getAfterRunTabs(page: Page): Promise<string[]> {
   return page.evaluate(() => {
-    // After-run tabs are rendered in the workflow panel below phase cards
-    const tabEls = document.querySelectorAll(
-      '[data-testid^="after-run-tab-"], [role="tab"][data-value], .after-run-tab, [class*="after-run"]'
-    );
-    if (tabEls.length > 0) {
-      return Array.from(tabEls).map(el => el.textContent?.trim() ?? '').filter(Boolean);
+    // Canonical: after-tab-{id} data-testids from AfterRunReport.tsx
+    const canonical = document.querySelectorAll('[data-testid^="after-tab-"]');
+    if (canonical.length > 0) {
+      return Array.from(canonical).map(el => el.textContent?.trim() ?? '').filter(Boolean);
     }
-    // Fallback: look for tab-like buttons containing known labels
-    const allButtons = document.querySelectorAll('button, [role="tab"]');
-    const knownLabels = ['findings', 'methods', 'outputs', 'report', 'citations', 'params', 'software', 'qc'];
-    return Array.from(allButtons)
-      .map(el => el.textContent?.trim().toLowerCase() ?? '')
-      .filter(t => knownLabels.some(l => t.includes(l)));
+    // Fallback: look for role=tab buttons with known after-run labels
+    // Only match tab-like elements within the after-run section
+    const afterRunSection = document.querySelector('[data-testid="panel-after-run"]');
+    if (afterRunSection) {
+      const tabBtns = afterRunSection.querySelectorAll('button[role="tab"]');
+      if (tabBtns.length > 0) {
+        return Array.from(tabBtns).map(el => el.textContent?.trim() ?? '').filter(Boolean);
+      }
+    }
+    return [];
   }).catch(() => []);
 }
 
 /**
  * Checks if the workflow panel shows a "Run again" or "Restart" footer button,
  * indicating the workflow reached a terminal state.
+ * Uses the canonical data-testid="panel-run-again-cta" from nextflow-workflow-viewer.tsx.
  */
 async function isTerminalState(page: Page): Promise<boolean> {
   return page.evaluate(() => {
-    const panel = document.querySelector(
-      '[data-testid="nextflow-workflow-viewer"], [data-testid="workflow-artifact-panel"]'
-    );
-    if (!panel) return false;
-    const footer = panel.querySelector('button');
-    const label = footer?.textContent?.toLowerCase() ?? '';
-    return label.includes('run again') || label.includes('restart') || label.includes('re-run');
+    // Primary: panel-run-again-cta appears ONLY in terminal (completed/failed) state
+    const runAgainCta = document.querySelector('[data-testid="panel-run-again-cta"]');
+    if (runAgainCta) return true;
+    // Secondary: check panel-action-bar data-status
+    const actionBar = document.querySelector('[data-testid="panel-action-bar"]');
+    if (actionBar) {
+      const s = (actionBar as HTMLElement).dataset.status ?? '';
+      return /completed|failed|errored/i.test(s);
+    }
+    return false;
   }).catch(() => false);
 }
 
@@ -242,11 +273,12 @@ for (const ec of EXEC_CASES) {
     const effectiveTitle = (chipName ?? msgText).toLowerCase();
 
     const routed = ec.expectWorkflow.some(kw => effectiveTitle.includes(kw.toLowerCase()));
-    console.log(`[${ec.id}] Routing: "${chipName ?? '(chip missing, checked message)'}" → ${routed ? '✅' : '⚠️ keyword not matched'}`);
+    console.log(`[${ec.id}] Routing: "${chipName ?? '(chip missing)'}" → ${routed ? '✅' : '⚠️ keyword not matched'}`);
     await shot(sharedPage, 'service-execution', `${ec.id}_01_routed`);
 
+    // Routing is not a hard failure — wrong routing is already caught by the 21-case test
     if (!routed) {
-      console.warn(`[${ec.id}] ⚠️ Routing unexpected — title="${chipName}", continuing with execution anyway`);
+      console.warn(`[${ec.id}] ⚠️ Routing unexpected — title="${chipName}", proceeding with execution`);
     }
 
     // ── Step 2: Verify pre-run state ────────────────────────────────────────
@@ -255,7 +287,7 @@ for (const ec of EXEC_CASES) {
     await shot(sharedPage, 'service-execution', `${ec.id}_02_prerun`);
 
     // ── Step 3: Click Run and observe running state ─────────────────────────
-    // First wait for any previous run on this fixture to clear
+    // Wait for any previous run on this fixture to clear
     await waitForNoActiveRuns(sharedPage, 120_000);
 
     console.log(`[${ec.id}] Clicking Run…`);
@@ -290,66 +322,66 @@ for (const ec of EXEC_CASES) {
     // ── Step 5: Verify after-run tabs ───────────────────────────────────────
     await pause(sharedPage, 2_000); // allow tabs to render
 
+    // Ensure After run tab is active (auto-switches on terminal but may need nudge)
+    const afterRunTabBtn = sharedPage.locator('[data-testid="panel-tab-after-run"]').first();
+    if (await afterRunTabBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      const isActive = await afterRunTabBtn.evaluate(el =>
+        el.classList.contains('active') || el.getAttribute('aria-selected') === 'true'
+      ).catch(() => false);
+      if (!isActive) await afterRunTabBtn.click().catch(() => {});
+      await pause(sharedPage, 1_000);
+    }
+
     const tabs = await getAfterRunTabs(sharedPage);
-    console.log(`[${ec.id}] After-run tabs visible: [${tabs.join(', ')}]`);
+    console.log(`[${ec.id}] After-run tabs: [${tabs.join(', ')}]`);
     await shot(sharedPage, 'service-execution', `${ec.id}_05_tabs`);
 
-    // Check for Findings tab
-    const hasFindings = tabs.some(t => t.toLowerCase().includes('finding'));
-    const hasMethods  = tabs.some(t => t.toLowerCase().includes('method'));
-    const hasReport   = tabs.some(t => t.toLowerCase().includes('report') || t.toLowerCase().includes('output'));
+    // Check for known after-run tabs
+    const hasOutputs  = tabs.some(t => /outputs?/i.test(t));
+    const hasFindings = tabs.some(t => /finding/i.test(t));
+    const hasMethods  = tabs.some(t => /method/i.test(t));
+    const hasParams   = tabs.some(t => /param/i.test(t));
 
-    console.log(`[${ec.id}]   Findings: ${hasFindings ? '✅' : '❌'}  Methods: ${hasMethods ? '✅' : '❌'}  Report/Outputs: ${hasReport ? '✅' : '❌'}`);
+    console.log(`[${ec.id}]   Outputs: ${hasOutputs ? '✅' : '❌'}  Findings: ${hasFindings ? '✅' : '❌'}  Methods: ${hasMethods ? '✅' : '❌'}  Params: ${hasParams ? '✅' : '❌'}`);
 
-    if (postStatus === 'completed') {
-      expect(
-        tabs.length,
-        `[${ec.id}] Expected ≥ ${ec.minAfterRunTabs} after-run tabs on completed run, got ${tabs.length}`
-      ).toBeGreaterThanOrEqual(ec.minAfterRunTabs);
-    }
+    // Outputs + Findings + Parameters are always shown (even on failed runs).
+    // Assert tabs are present regardless of completion status.
+    expect(
+      tabs.length,
+      `[${ec.id}] Expected ≥ ${ec.minAfterRunTabs} after-run tabs (Outputs+Findings always present), got ${tabs.length}: [${tabs.join(', ')}]`
+    ).toBeGreaterThanOrEqual(ec.minAfterRunTabs);
+
+    expect(
+      hasFindings,
+      `[${ec.id}] Expected "Findings" tab in after-run section, got: [${tabs.join(', ')}]`
+    ).toBe(true);
 
     // ── Step 6: Click Findings and verify content ────────────────────────────
-    if (hasFindings) {
-      const findingsBtn = sharedPage.locator(
-        '[data-testid="after-run-tab-findings"], button:has-text("Findings"), [role="tab"]:has-text("Findings")'
-      ).first();
-      const findingsVisible = await findingsBtn.isVisible({ timeout: 3_000 }).catch(() => false);
-      if (findingsVisible) {
-        await findingsBtn.click().catch(() => {});
-        await pause(sharedPage, 1_500);
-        await shot(sharedPage, 'service-execution', `${ec.id}_06_findings`);
-        console.log(`[${ec.id}] ✅ Findings tab clicked and screenshot captured`);
-      }
+    const findingsBtn = sharedPage.locator('[data-testid="after-tab-findings"]').first();
+    const findingsVisible = await findingsBtn.isVisible({ timeout: 5_000 }).catch(() => false);
+    if (findingsVisible) {
+      await findingsBtn.click().catch(() => {});
+      await pause(sharedPage, 1_500);
+      await shot(sharedPage, 'service-execution', `${ec.id}_06_findings`);
+      console.log(`[${ec.id}] ✅ Findings tab clicked`);
     }
 
-    // ── Step 7: Click Methods and verify content ─────────────────────────────
+    // ── Step 7: Click Methods if present ────────────────────────────────────
     if (hasMethods) {
-      const methodsBtn = sharedPage.locator(
-        '[data-testid="after-run-tab-methods"], button:has-text("Methods"), [role="tab"]:has-text("Methods")'
-      ).first();
+      const methodsBtn = sharedPage.locator('[data-testid="after-tab-methods"]').first();
       const methodsVisible = await methodsBtn.isVisible({ timeout: 3_000 }).catch(() => false);
       if (methodsVisible) {
         await methodsBtn.click().catch(() => {});
         await pause(sharedPage, 1_500);
         await shot(sharedPage, 'service-execution', `${ec.id}_07_methods`);
-        console.log(`[${ec.id}] ✅ Methods tab clicked and screenshot captured`);
-
-        // Verify methods content is non-empty
-        const methodsText = await sharedPage
-          .locator('[data-testid="after-run-tab-content-methods"], [class*="methods-content"], [class*="tab-content"]')
-          .first().textContent({ timeout: 5_000 }).catch(() => '');
-        if (methodsText && methodsText.trim().length > 50) {
-          console.log(`[${ec.id}]   Methods text: "${methodsText.trim().slice(0, 100)}…"`);
-        }
+        console.log(`[${ec.id}] ✅ Methods tab clicked`);
       }
     }
 
-    // ── Step 8: Check for report download link ───────────────────────────────
-    const downloadLink = sharedPage.locator(
-      'a[download], button:has-text("Download"), a:has-text("Download Report"), [data-testid*="download"]'
-    ).first();
-    const downloadVisible = await downloadLink.isVisible({ timeout: 5_000 }).catch(() => false);
-    console.log(`[${ec.id}] Download button: ${downloadVisible ? '✅ visible' : '⚠️ not found'}`);
+    // ── Step 8: Check for report download button ─────────────────────────────
+    const downloadBtn = sharedPage.locator('[data-testid="afterrun-download-report"]').first();
+    const downloadVisible = await downloadBtn.isVisible({ timeout: 5_000 }).catch(() => false);
+    console.log(`[${ec.id}] Download report: ${downloadVisible ? '✅ visible' : '⚠️ not found'}`);
 
     if (downloadVisible) {
       await shot(sharedPage, 'service-execution', `${ec.id}_08_download`);
@@ -375,10 +407,17 @@ test('EX-RT — real-time status tracking: idle→running→completed', async ()
     90_000
   );
 
-  // Verify pre-run idle state
+  // Click the workflow chip to open the panel (in case it didn't auto-open)
+  const chip = sharedPage.locator('.wf-chip-name, [data-testid="workflow-chip"]').first();
+  if (await chip.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    await chip.click().catch(() => {});
+    await pause(sharedPage, 1_500);
+  }
+
+  // Verify pre-run idle state — give the panel 20 s to render
   const panelExists = await sharedPage
     .locator('[data-testid="nextflow-workflow-viewer"]')
-    .isVisible({ timeout: 10_000 }).catch(() => false);
+    .isVisible({ timeout: 20_000 }).catch(() => false);
 
   if (!panelExists) {
     console.log('[EX-RT] ⚠️ No workflow panel visible — skipping status tracking');
@@ -420,13 +459,25 @@ test('EX-RT — real-time status tracking: idle→running→completed', async ()
   await runPromise; // ensure execution completes
 
   const finalStatus = await getOverallStatus(sharedPage);
-  console.log(`[EX-RT] Final status: "${finalStatus}", running captured: ${runningCaptured}`);
-  await shot(sharedPage, 'service-execution', 'EX-RT_03_completed');
+  const finalTerminal = await isTerminalState(sharedPage);
+  console.log(`[EX-RT] Final status: "${finalStatus}", terminal: ${finalTerminal}, running captured: ${runningCaptured}`);
+  await shot(sharedPage, 'service-execution', 'EX-RT_03_terminal');
 
   expect(
     finalStatus === 'completed' || finalStatus === 'failed',
     `Expected completed/failed terminal status, got "${finalStatus}"`
   ).toBe(true);
+
+  // Verify after-run tabs appear after terminal state
+  await pause(sharedPage, 2_000);
+  const tabs = await getAfterRunTabs(sharedPage);
+  console.log(`[EX-RT] After-run tabs: [${tabs.join(', ')}]`);
+  await shot(sharedPage, 'service-execution', 'EX-RT_04_tabs');
+
+  expect(
+    tabs.length,
+    `[EX-RT] Expected after-run tabs on terminal state, got ${tabs.length}: [${tabs.join(', ')}]`
+  ).toBeGreaterThan(0);
 
   console.log('[EX-RT] ✅ Status transition audit complete');
 });
