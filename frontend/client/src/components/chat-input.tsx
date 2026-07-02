@@ -97,6 +97,38 @@ export function ChatInput({
     setAttachedFiles(prev => prev.filter(f => f.id !== id))
   }
 
+  // Drag-and-drop onto the chat input
+  const [isDraggingOver, setIsDraggingOver] = useState(false)
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes('Files')) {
+      e.preventDefault()
+      setIsDraggingOver(true)
+    }
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear if leaving the container entirely
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDraggingOver(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDraggingOver(false)
+    const dropped = Array.from(e.dataTransfer.files)
+    if (dropped.length === 0) return
+    const newAttached: AttachedFile[] = dropped.map(f => ({
+      id: `${Date.now()}-${f.name}`,
+      name: f.name,
+      size: f.size,
+      file: f,
+    }))
+    setAttachedFiles(prev => [...prev, ...newAttached])
+    onFilesSelected?.(dropped)
+  }
+
   // --- Local file preview ---
   const [previewFile, setPreviewFile] = useState<AttachedFile | null>(null)
   const [previewContent, setPreviewContent] = useState<string[]>([])
@@ -171,7 +203,13 @@ export function ChatInput({
   }
 
   return (
-    <div className="border-t bg-background p-4">
+    <div
+      className="border-t bg-background p-4"
+      style={{ position: 'relative' }}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       {/* Attached files chips */}
       {attachedFiles.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-3">
@@ -250,9 +288,27 @@ export function ChatInput({
         </Dialog>
       )}
 
+      {/* Drag-over overlay */}
+      {isDraggingOver && (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 10,
+          background: 'rgba(99,102,241,0.06)',
+          border: '2px dashed var(--bm-primary, oklch(0.55 0.20 265))',
+          borderRadius: 'var(--bm-r-lg, 12px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          pointerEvents: 'none',
+        }}>
+          <span style={{ fontSize: 13, color: 'var(--bm-primary, oklch(0.55 0.20 265))', fontWeight: 500 }}>
+            Drop files to attach
+          </span>
+        </div>
+      )}
+
       {/* Reference design: pill input with attachment + textarea + send */}
       <div className="chat-input" style={{
-        border: '1px solid var(--bm-border, hsl(var(--border)))',
+        border: isDraggingOver
+          ? '1px solid var(--bm-primary, oklch(0.55 0.20 265))'
+          : '1px solid var(--bm-border, hsl(var(--border)))',
         borderRadius: 'var(--bm-r-lg, 12px)',
         background: 'var(--bm-bg-elev, hsl(var(--background)))',
         boxShadow: 'var(--bm-shadow-sm, 0 1px 2px rgba(15,23,42,0.04))',

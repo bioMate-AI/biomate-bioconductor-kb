@@ -64,7 +64,7 @@ function formatDate(iso: string): string {
   }
 }
 
-// Tab: "This session" — shows sessionDatasets prop + inline upload button
+// Tab: "This session" — shows sessionDatasets prop + inline upload button with drag-drop
 function SessionTab({
   datasets,
   search,
@@ -78,39 +78,63 @@ function SessionTab({
 }) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const uploadFile = async (file: File): Promise<void> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('name', file.name);
+    const res = await fetch('/api/datasets/upload', { method: 'POST', body: formData });
+    if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+    const data = await res.json();
+    const newDs: SessionDataset = {
+      id: data.dataset_id || data.id || file.name,
+      name: file.name,
+      fileType: file.name.split('.').pop() || '',
+      galaxyDatasetId: data.dataset_id,
+      path: data.file_path,
+      s3_uri: data.s3_uri,
+    };
+    onUploaded?.(newDs);
+    // Auto-select the just-uploaded file. Prefer the durable S3 URI: it is the only
+    // reference that survives a server restart and is directly usable by AWS Batch.
+    const value = newDs.s3_uri || newDs.galaxyDatasetId || newDs.path || newDs.id;
+    onSelect(value, file.name);
+  };
+
+  const handleFiles = async (files: File[]) => {
+    if (files.length === 0) return;
     setUploading(true);
     setUploadError('');
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('name', file.name);
-      const res = await fetch('/api/datasets/upload', { method: 'POST', body: formData });
-      if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
-      const data = await res.json();
-      const newDs: SessionDataset = {
-        id: data.dataset_id || data.id || file.name,
-        name: file.name,
-        fileType: file.name.split('.').pop() || '',
-        galaxyDatasetId: data.dataset_id,
-        path: data.file_path,
-        s3_uri: data.s3_uri,
-      };
-      onUploaded?.(newDs);
-      // Auto-select the just-uploaded file. Prefer the durable S3 URI: it is the only
-      // reference that survives a server restart and is directly usable by AWS Batch.
-      const value = newDs.s3_uri || newDs.galaxyDatasetId || newDs.path || newDs.id;
-      onSelect(value, file.name);
+      // Upload sequentially so each gets auto-selected in order
+      for (const file of files) {
+        await uploadFile(file);
+      }
     } catch (err: any) {
       setUploadError(err.message || 'Upload failed');
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    handleFiles(files);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+  const handleDragLeave = () => setIsDragging(false);
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    handleFiles(files);
   };
 
   const filtered = datasets.filter(ds => {
@@ -120,24 +144,37 @@ function SessionTab({
 
   return (
     <div className="space-y-1">
-      {/* Upload button — always visible at the top */}
-      <div className="flex items-center gap-2 mb-2 pb-2 border-b">
+      {/* Upload zone — supports click + drag-drop + multiple files */}
+      <div className="mb-2 pb-2 border-b">
         <input
           ref={fileRef}
           type="file"
+          multiple
           className="hidden"
           onChange={handleFileChange}
         />
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 text-xs gap-1.5 w-full"
-          disabled={uploading}
-          onClick={() => fileRef.current?.click()}
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => !uploading && fileRef.current?.click()}
+          className={`flex flex-col items-center justify-center gap-1.5 rounded-md border-2 border-dashed px-4 py-3 cursor-pointer transition-colors ${
+            isDragging
+              ? 'border-primary bg-primary/5'
+              : 'border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/30'
+          }`}
         >
-          {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-          {uploading ? 'Uploading...' : 'Upload file from computer'}
-        </Button>
+          {uploading
+            ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            : <Upload className="h-4 w-4 text-muted-foreground" />
+          }
+          <span className="text-xs text-muted-foreground">
+            {uploading ? 'Uploading…' : isDragging ? 'Drop files here' : 'Drop files here or click to browse'}
+          </span>
+          {!uploading && (
+            <span className="text-[11px] text-muted-foreground/60">Multiple files supported</span>
+          )}
+        </div>
       </div>
       {uploadError && <p className="text-xs text-destructive px-1">{uploadError}</p>}
 
@@ -145,7 +182,7 @@ function SessionTab({
       <div className="rounded-md border border-muted bg-muted/30 text-xs text-muted-foreground divide-y divide-muted mb-3">
         <div className="flex gap-2 px-2.5 py-2">
           <Info className="h-3 w-3 text-blue-500 mt-0.5 shrink-0" />
-          <span><span className="font-medium text-foreground">5 GB limit</span> per local file · For larger files, switch to the <span className="font-medium text-foreground">From URL</span> tab — no size limit.</span>
+          <span><span className="font-medium text-foreground">10 GB limit</span> per local file · For larger files, switch to the <span className="font-medium text-foreground">From URL</span> tab — no size limit.</span>
         </div>
         <div className="flex gap-2 px-2.5 py-2">
           <FolderArchive className="h-3 w-3 text-amber-500 mt-0.5 shrink-0" />
@@ -426,18 +463,18 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
         <div className="flex items-center gap-1.5">
           <Info className="h-3.5 w-3.5 text-blue-500 shrink-0" />
           <p className="font-medium text-foreground">
-            No size limit — Galaxy downloads server-side. Works for files of any size.
+            No size limit — BioMate downloads server-side. Works for files of any size.
           </p>
         </div>
         <div className="space-y-1.5 text-muted-foreground border-t pt-2">
           <div>
-            <p className="font-medium text-foreground/80 mb-0.5">Public HTTP/HTTPS (no login needed):</p>
+            <p className="font-medium text-foreground/80 mb-0.5">Public HTTP/HTTPS:</p>
             <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all">
               https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/GCA_000001405.15_GRCh38_genomic.fna.gz
             </code>
           </div>
           <div>
-            <p className="font-medium text-foreground/80 mb-0.5">NCBI SRA / EBI ENA (public dataset):</p>
+            <p className="font-medium text-foreground/80 mb-0.5">NCBI SRA / EBI ENA (public):</p>
             <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all">
               https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR1518169/SRR1518169
             </code>
@@ -449,7 +486,7 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
             </code>
           </div>
           <div>
-            <p className="font-medium text-foreground/80 mb-0.5">AWS S3 single file (uses Account Settings credentials):</p>
+            <p className="font-medium text-foreground/80 mb-0.5">AWS S3 single file (uses your Account Settings credentials):</p>
             <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all">
               s3://my-bucket/project/sample.bam
             </code>
@@ -457,7 +494,7 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
           <div>
             <p className="font-medium text-foreground/80 mb-0.5 flex items-center gap-1">
               <FolderArchive className="h-3 w-3 text-amber-500" />
-              S3 folder / many files (one reference covers all objects under the prefix):
+              S3 folder — one reference covers all files under the prefix:
             </p>
             <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all">
               s3://my-bucket/project/samples/

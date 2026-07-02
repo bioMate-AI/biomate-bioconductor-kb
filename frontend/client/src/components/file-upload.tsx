@@ -11,9 +11,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Upload, File, X, Check, AlertCircle, Loader2, Link2, Server, Info, HardDrive, Clock, Zap, FolderArchive, Lightbulb } from "lucide-react"
 import { analytics } from "@/lib/analytics"
 
-// Maximum file size: 5GB for local uploads
-// AWS workflows require file upload first, so we constrain to reduce latency
-const MAX_LOCAL_FILE_SIZE_GB = 5
+// Maximum file size: 10GB for local uploads (matches server-side multer limit)
+const MAX_LOCAL_FILE_SIZE_GB = 10
 const MAX_LOCAL_FILE_SIZE_BYTES = MAX_LOCAL_FILE_SIZE_GB * 1024 * 1024 * 1024
 
 interface UploadedFile {
@@ -32,7 +31,7 @@ interface UploadedFile {
 interface FileUploadProps {
   accept?: string
   multiple?: boolean
-  maxSize?: number // in MB (for backward compatibility, capped at 5GB)
+  maxSize?: number // in MB (for backward compatibility, capped at MAX_LOCAL_FILE_SIZE_GB)
   onUploadComplete?: (files: UploadedFile[]) => void
   // Resource constraint info
   availableStorageGB?: number
@@ -42,12 +41,12 @@ interface FileUploadProps {
 export function FileUpload({
   accept = ".fastq,.fastq.gz,.bam,.sam,.mzML,.mzXML,.csv,.tsv,.txt",
   multiple = true,
-  maxSize = 5000, // 5GB default (capped by MAX_LOCAL_FILE_SIZE_GB)
+  maxSize = 10240, // 10GB default (capped by MAX_LOCAL_FILE_SIZE_GB)
   onUploadComplete,
   availableStorageGB = 50, // Default available storage
   totalUploadedGB = 0
 }: FileUploadProps) {
-  // Ensure maxSize doesn't exceed 5GB limit
+  // Ensure maxSize doesn't exceed 10GB limit
   const effectiveMaxSize = Math.min(maxSize, MAX_LOCAL_FILE_SIZE_GB * 1024)
   const [files, setFiles] = useState<UploadedFile[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -83,7 +82,7 @@ export function FileUpload({
       source: 'local' as const,
     }))
 
-    // Check individual file sizes (5GB limit)
+    // Check individual file sizes
     const oversizedFiles = newFiles.filter(f => f.size > MAX_LOCAL_FILE_SIZE_BYTES)
     if (oversizedFiles.length > 0) {
       // Show helpful error instead of browser alert
@@ -443,7 +442,7 @@ export function FileUpload({
                 Max {MAX_LOCAL_FILE_SIZE_GB} GB per file{multiple && ' · multiple files upload in parallel'}
               </p>
               <p className="text-xs text-muted-foreground/60 mt-1">
-                Folders: zip first · Files &gt;5 GB: use URL Import tab
+                Folders: zip first · Files &gt;10 GB: use URL Import tab
               </p>
               <input
                 ref={fileInputRef}
@@ -548,7 +547,7 @@ export function FileUpload({
               <div className="flex gap-1.5 items-start">
                 <Lightbulb className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />
                 <div>
-                  <span className="font-medium text-foreground">No size limit</span> — Galaxy fetches the file server-side; the 5 GB cap does not apply.
+                  <span className="font-medium text-foreground">No size limit</span> — BioMate fetches the file server-side; no local cap applies.
                 </div>
               </div>
               <div className="flex gap-1.5 items-start">
