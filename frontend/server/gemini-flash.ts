@@ -17,7 +17,7 @@ import { GoogleGenerativeAI, GenerativeModel, GenerationConfig } from '@google/g
 export const GEMINI_FLASH_MODEL = 'gemini-3.5-flash';
 
 function getClient(): GoogleGenerativeAI {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY not set');
   return new GoogleGenerativeAI(apiKey);
 }
