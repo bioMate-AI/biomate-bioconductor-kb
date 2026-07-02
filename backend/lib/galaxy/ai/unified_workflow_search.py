@@ -2545,7 +2545,8 @@ class UnifiedWorkflowSearch:
     # ------------------------------------------------------------------
 
     def search_chains(self, query: str, domain: Optional[str] = None,
-                      limit: int = 3, min_score: float = 0.25) -> List["WorkflowChain"]:
+                      limit: int = 3, min_score: float = 0.25,
+                      skip_llm_rerank: bool = False) -> List["WorkflowChain"]:
         """Return workflow chains matching the query.
 
         Search pipeline (three tiers, each falling back to the next):
@@ -2619,10 +2620,14 @@ class UnifiedWorkflowSearch:
                     return []
                 # LLM reranking from short candidate list
                 # Returns [chain] (match), [] (explicit no-match), or None (unavailable)
-                llm_result = self._llm_select_chain(query, top_candidates)
-                if llm_result is not None:
-                    return llm_result  # trust LLM decision (including explicit [])
-                # LLM unavailable — trust embedding ranking
+                # skip_llm_rerank: the ~3s LLM scope-check is the dominant chain-search
+                # latency and serializes concurrent requests. Callers on a latency-
+                # critical path (connector) skip it and trust the embedding ranking.
+                if not skip_llm_rerank:
+                    llm_result = self._llm_select_chain(query, top_candidates)
+                    if llm_result is not None:
+                        return llm_result  # trust LLM decision (including explicit [])
+                # LLM unavailable or skipped — trust embedding ranking
                 return top_candidates[:limit]
 
         # ── Tier 2: Jaccard fallback ───────────────────────────────────────────

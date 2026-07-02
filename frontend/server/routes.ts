@@ -907,7 +907,12 @@ async function executeOpenClaudeTool(
     switch (toolName) {
       // ── Discovery ────────────────────────────────────────────────────────
       case "search_workflow":
-        return await post("/api/workflows/search", { query: input.query, limit: input.limit ?? 5 });
+        // defer_param_prefill: the connector's client extracts params from the
+        // user's request itself, so the backend's inline LLM prefill is redundant
+        // here and only adds ~1-2s (up to ~13s under concurrency) to the search.
+        // Skip it → sub-second search. (run_workflow takes params from the client,
+        // not from the search response.)
+        return await post("/api/workflows/search", { query: input.query, limit: input.limit ?? 5, defer_param_prefill: true });
 
       // ── Execution ────────────────────────────────────────────────────────
       case "run_workflow":
@@ -7543,13 +7548,17 @@ ${paramLines || '(none recorded)'}`;
   // Proxies to Python backend /api/ai_assistant/search_nextflow_workflow
   app.post("/api/workflows/search", optionalAuth, async (req, res) => {
     try {
-      const { query, limit } = req.body || {};
+      const { query, limit, defer_param_prefill } = req.body || {};
       if (!query) return res.status(400).json({ error: "query is required" });
       const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
       const upstream = await fetch(`${galaxyUrl}/api/ai_assistant/search_nextflow_workflow`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_intent: query, limit: limit ?? 5 }),
+        // defer_param_prefill: skip the backend's inline LLM param-prefill (~1-2s,
+        // up to ~13s under concurrent retry) and return search sub-second. The
+        // connector's search_workflow sets this — its LLM client extracts params
+        // itself, so the inline prefill is redundant there.
+        body: JSON.stringify({ user_intent: query, limit: limit ?? 5, defer_param_prefill: !!defer_param_prefill }),
       });
       const data = await upstream.json();
       res.status(upstream.status).json(data);
