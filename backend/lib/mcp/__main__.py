@@ -1,11 +1,11 @@
 """
-Redirect: the canonical BioMate MCP server is at backend/mcp/biomate_mcp_server.py (v1.1.0).
+Redirect shim — DEPRECATED.
 
-That server has 8 tools: chat, search_workflows, get_workflow_params, list_runs,
-get_run_status, get_output_files, upload_file, research_query, rerun_workflow.
-
-This shim forwards `python -m backend.lib.mcp` to the real server so the documented
-entry point keeps working.
+Forwards `python -m backend.lib.mcp` to backend/mcp/biomate_mcp_server.py
+(v1.1.0, 8 tools). Both in-repo servers are deprecated and unmaintained; the
+maintained MCP server is in the separate biomate-connector repo (v2.0.0,
+`npx @biomate/connect`). This shim is kept only so the documented entry point
+does not hard-break for historical configs.
 """
 import subprocess
 import sys

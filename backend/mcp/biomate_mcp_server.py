@@ -1,6 +1,25 @@
 #!/usr/bin/env python3
 """
-BioMate MCP Server — stdio transport (MCP protocol 2024-11-05)
+BioMate MCP Server — stdio transport (MCP protocol 2024-11-05)  —  DEPRECATED (v1.1.0)
+
+.. deprecated:: 1.1.0
+    This in-repo stdio server is **superseded** and no longer maintained. The
+    current, maintained MCP server lives in the separate connector repository:
+
+        github.com/bioMate-AI/biomate-connector  →  mcp/biomate_mcp_server.py (v2.0.0)
+
+    That server is schema-driven from a single ``tools_manifest.py`` (17 tools
+    with Directory-compliant ``title`` + ``annotations``), ships OAuth 2.1 +
+    PKCE, and is what is published as ``@biomate/connect`` and submitted to the
+    Anthropic Claude Directory.
+
+    This file (8 tools, no annotations, hardcoded tool list) is kept only so
+    historical Claude Desktop / Claude Code configs do not hard-break. Do not add
+    features here — make changes in the connector repo. Migrate any local config
+    to ``npx @biomate/connect`` before this is removed.
+
+    (The older sibling ``backend/lib/mcp/biomate_mcp_server.py`` v1.0.0 is also
+    deprecated.)
 
 Exposes BioMate's AI assistant and workflow capabilities to Claude Code CLI
 and any other MCP-compatible client. Reads JSON-RPC 2.0 messages from stdin,
@@ -30,6 +49,7 @@ import os
 import sys
 import sqlite3
 import time
+import warnings
 from pathlib import Path
 
 import requests
@@ -764,6 +784,20 @@ def handle(msg: dict) -> dict | None:
 # ---------------------------------------------------------------------------
 
 def main():
+    warnings.warn(
+        "backend/mcp/biomate_mcp_server.py (v1.1.0) is DEPRECATED and "
+        "unmaintained. Use the connector repo's mcp/biomate_mcp_server.py "
+        "(v2.0.0) — install via `npx @biomate/connect`.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    print(
+        "[biomate-mcp] WARNING: this v1.1.0 server is DEPRECATED and superseded "
+        "by the biomate-connector repo (v2.0.0). See module docstring / "
+        "`npx @biomate/connect`.",
+        file=sys.stderr,
+        flush=True,
+    )
     _log(f"BioMate MCP server starting. BIOMATE_URL={BIOMATE_URL}")
     for raw_line in sys.stdin:
         raw_line = raw_line.strip()
