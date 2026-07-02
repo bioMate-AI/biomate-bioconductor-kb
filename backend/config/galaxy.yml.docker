@@ -20,8 +20,8 @@ gravity:
   galaxy_user: galaxy
   gunicorn:
     bind: 0.0.0.0:8080
-    max_requests: 1000
-    max_requests_jitter: 50
+    max_requests: 3000
+    max_requests_jitter: 300
     # workers=4 + preload=true (option (a) from the 2026-06-09 rollback
     # writeup). With preload the master process loads ~600 tools + the
     # SQLite DB once at boot; workers fork via copy-on-write so they
