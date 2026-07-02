@@ -2659,8 +2659,13 @@ def get_ai_assistant(trans) -> Optional[AIAssistant]:
             import os as _os_ai
             config_enabled = getattr(app.config, 'enable_ai_assistant', False)
             env_enabled = _os_ai.environ.get('GALAXY_CONFIG_ENABLE_AI_ASSISTANT', '').lower() == 'true'
-            # Also enable if ANTHROPIC_API_KEY is present — local dev without full galaxy.yml
-            key_enabled = bool(_os_ai.environ.get('ANTHROPIC_API_KEY') or _os_ai.environ.get('GALAXY_AI_API_KEY'))
+            # Also enable if any LLM API key is present — local dev without full galaxy.yml
+            key_enabled = bool(
+                _os_ai.environ.get('ANTHROPIC_API_KEY')
+                or _os_ai.environ.get('GALAXY_AI_API_KEY')
+                or _os_ai.environ.get('GOOGLE_API_KEY')
+                or _os_ai.environ.get('GEMINI_API_KEY')
+            )
             ai_enabled = config_enabled or env_enabled or key_enabled
             log.info(f"[DEBUG] enable_ai_assistant: config={config_enabled} env={env_enabled} key={key_enabled} → {ai_enabled}")
 
