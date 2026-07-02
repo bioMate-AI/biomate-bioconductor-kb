@@ -1990,21 +1990,136 @@ def search_nextflow_workflow(
         raise HTTPException(status_code=503, detail="Workflow search not available")
 
     try:
-        # ── Chain pre-check (Step 0) ─────────────────────────────────────────
-        # Before searching individual Nextflow workflows, check whether a
-        # curated multi-step chain matches the query.  Chains outrank any
-        # single-workflow match because they represent authoritative, vetted
-        # multi-tool pipelines for complex analyses.
-        # Use min_score=0.35 to avoid weak-overlap false positives.
-        # The internal default of 0.15 is too permissive — direct single-pipeline
-        # queries (e.g. "germline variant calling") would otherwise match complex
-        # chains (e.g. rare_disease_multimodal_workup) via 2-3 shared tokens.
-        chain_candidates = [] if request.skip_chains else _workflow_search.search_chains(user_intent, min_score=0.35)
+        # ── Forced workflow (bypasses search — for param-extraction benchmarks) ─
+        if request.force_workflow_name:
+            forced_results = _workflow_search.search(
+                request.force_workflow_name, limit=5, include_workflow_json=False,
+            )
+            if forced_results:
+                _forced = next(
+                    (r for r in forced_results
+                     if getattr(r, "name", "").lower() == request.force_workflow_name.lower()),
+                    forced_results[0],
+                )
+                results = [_forced]
+            else:
+                results = []
+            chain_candidates: list = []
+        else:
+            # ── Parallel chain + workflow search ─────────────────────────────────
+            # Run both simultaneously, then let the LLM choose the best result from
+            # the combined pool.  The old serial "chains first → skip workflows if
+            # any chain matches" design caused any weak chain hit to beat a perfect
+            # specific-workflow match.
+            import concurrent.futures as _cf
+
+            def _do_chain_search():
+                return [] if request.skip_chains else _workflow_search.search_chains(
+                    user_intent, min_score=0.25
+                )
+
+            def _do_workflow_search():
+                return _workflow_search.search(
+                    user_intent, limit=5, include_workflow_json=False,
+                    preferred_domains=request.preferred_domains or None,
+                    key_terms=request.key_terms or None,
+                )
+
+            with _cf.ThreadPoolExecutor(max_workers=2) as _pool:
+                _cf_chains = _pool.submit(_do_chain_search)
+                _cf_workflows = _pool.submit(_do_workflow_search)
+                chain_candidates = _cf_chains.result()
+                results = _cf_workflows.result()
+
+            # ── LLM arbitration: chain vs workflow ───────────────────────────────
+            # When both are present, ask the LLM to pick the best match given full
+            # descriptions of each candidate.
+            if chain_candidates and results:
+                try:
+                    _sa_arb = get_ai_assistant(trans)
+                    if _sa_arb is not None:
+                        from galaxy.ai.llm_client import LLMClient  # noqa: PLC0415
+                        _arb_llm = LLMClient(_sa_arb.config)
+
+                        _chain_descs = "\n".join(
+                            f"CHAIN {i+1}: {c.name}\n"
+                            f"  Display name: {c.display_name}\n"
+                            f"  Domain: {c.domain}\n"
+                            f"  Description: {(c.description or '')[:350]}\n"
+                            f"  Steps ({len(c.steps)}): "
+                            f"{', '.join(s.get('workflow_name', '?') for s in c.steps[:5])}\n"
+                            f"  Required inputs: "
+                            f"{', '.join((ri if isinstance(ri, str) else ri.get('name', '?')) for ri in c.required_inputs[:4])}"
+                            for i, c in enumerate(chain_candidates[:3])
+                        )
+                        _wf_descs = "\n".join(
+                            f"WORKFLOW {i+1}: {w.name}\n"
+                            f"  Domain: {w.domain}\n"
+                            f"  Description: {(w.description or '')[:350]}\n"
+                            f"  Match score: {w.score:.1f}"
+                            for i, w in enumerate(results[:3])
+                        )
+                        _arb_prompt = (
+                            f"You are a bioinformatics routing assistant. A user submitted:\n"
+                            f"\"{user_intent}\"\n\n"
+                            f"You must pick the SINGLE BEST match from the candidates below.\n\n"
+                            f"=== CHAINS (multi-step curated pipelines) ===\n{_chain_descs}\n\n"
+                            f"=== SINGLE WORKFLOWS ===\n{_wf_descs}\n\n"
+                            f"CRITICAL RULES — read carefully before deciding:\n"
+                            f"1. TOPIC MATCH is mandatory. A chain or workflow must cover the SAME topic as "
+                            f"the user query. Keyword overlap alone is NOT enough — read the full description "
+                            f"and confirm the candidate is actually about what the user asked. A survival "
+                            f"analysis query must NOT match a multi-omics integration chain even if both "
+                            f"mention 'cancer' or 'biomarkers'.\n"
+                            f"2. Choose a CHAIN when: the chain description closely matches the user's "
+                            f"request AND the chain covers the right tool/topic. Naming a specific tool "
+                            f"(e.g. DESeq2, AlphaFold, GROMACS) does NOT mean 'use workflow' — if a chain "
+                            f"explicitly includes that tool in its description or steps, the chain is the "
+                            f"right answer. Only choose workflow over chain when NO chain covers the "
+                            f"specific tool or question.\n"
+                            f"3. Choose a WORKFLOW when: (a) no chain covers the user's exact topic, OR "
+                            f"(b) the user wants to run a pipeline tool end-to-end (nf-core/sarek, "
+                            f"nf-core/atacseq, GROMACS, CryoSPARC) with no chain that wraps it, OR "
+                            f"(c) the best-matching chain is about a DIFFERENT biological question. "
+                            f"Do NOT choose workflow just because the query names a tool — check whether "
+                            f"a chain already covers that tool first.\n"
+                            f"4. When uncertain, prefer the CHAIN — chains are curated multi-step pipelines "
+                            f"that deliver production-grade results. Only fall back to a workflow when rules "
+                            f"1–3 clearly exclude all chains. A workflow whose description mentions "
+                            f"drug MoA, drug screening, or drug mechanism is NOT appropriate for a generic "
+                            f"bulk RNA-seq differential expression query.\n\n"
+                            f"Respond with EXACTLY one token:\n"
+                            f"  chain:N   (e.g. chain:1)\n"
+                            f"  workflow:N   (e.g. workflow:1)\n"
+                            f"No explanation. No other text."
+                        )
+                        _arb_resp = _arb_llm.generate(_arb_prompt, max_tokens=16, temperature=0.0)
+                        _arb_resp = (_arb_resp or "").strip().lower()
+                        log.info("[search_nextflow_workflow] LLM arbitration → %r for %r",
+                                 _arb_resp, user_intent[:60])
+                        import re as _re_arb
+                        _chain_m = _re_arb.match(r'chain:(\d+)', _arb_resp)
+                        _wf_m = _re_arb.match(r'workflow:(\d+)', _arb_resp)
+                        if _chain_m:
+                            _idx = max(0, int(_chain_m.group(1)) - 1)
+                            best_chain = chain_candidates[min(_idx, len(chain_candidates) - 1)]
+                            chain_candidates = [best_chain]
+                            results = []
+                        elif _wf_m:
+                            _idx = max(0, int(_wf_m.group(1)) - 1)
+                            results = [results[min(_idx, len(results) - 1)]] + results[1:]
+                            chain_candidates = []
+                        else:
+                            log.warning("[search_nextflow_workflow] unrecognised arbitration response %r", _arb_resp)
+                            chain_candidates = []  # fallback: use workflow
+                except Exception as _arb_exc:
+                    log.warning("[search_nextflow_workflow] arbitration failed: %s — using workflow", _arb_exc)
+                    chain_candidates = []
+
+        # ── Return chain if LLM chose it ─────────────────────────────────────
         if chain_candidates:
             best_chain = chain_candidates[0]
-            log.info(
-                f"[search_nextflow_workflow] Chain match '{best_chain.name}' — returning chain payload"
-            )
+            log.info("[search_nextflow_workflow] returning chain %r", best_chain.name)
             return {
                 "success": True,
                 "workflow_type": "chain",
@@ -2012,7 +2127,7 @@ def search_nextflow_workflow(
                 "chain_display_name": best_chain.display_name,
                 "chain_domain": best_chain.domain,
                 "chain_description": best_chain.description,
-                "chain_steps": best_chain.steps,   # already List[dict]
+                "chain_steps": best_chain.steps,
                 "chain_connections": best_chain.connections,
                 "required_inputs": best_chain.required_inputs,
                 "expected_outputs": best_chain.expected_outputs,
@@ -2030,31 +2145,7 @@ def search_nextflow_workflow(
                 "parameter_recommendations": {},
                 "pilot_run_suggested": False,
             }
-        # ── Forced workflow (bypasses search for param-extraction benchmarks) ──
-        if request.force_workflow_name:
-            # Search by exact name match — used by param_prefill benchmark to
-            # ensure param extraction is tested on the correct workflow regardless
-            # of how routing would normally classify the query.
-            forced_results = _workflow_search.search(
-                request.force_workflow_name, limit=5, include_workflow_json=False,
-            )
-            if forced_results:
-                # Prefer exact name match
-                _forced = next(
-                    (r for r in forced_results
-                     if getattr(r, "name", "").lower() == request.force_workflow_name.lower()),
-                    forced_results[0],
-                )
-                results = [_forced]
-            else:
-                results = []
-        else:
-            # ── Individual Nextflow workflow search ──────────────────────────────
-            results = _workflow_search.search(
-                user_intent, limit=5, include_workflow_json=False,
-                preferred_domains=request.preferred_domains or None,
-                key_terms=request.key_terms or None,
-            )
+
         if not results:
             return {"success": False, "message": "No matching workflows found"}
 
@@ -2067,10 +2158,17 @@ def search_nextflow_workflow(
 
             # Exclude subworkflow library paths — any path containing /subworkflows/ is
             # a pipeline component, not a standalone entry point the user would run directly.
-            # EXCEPTION: /subworkflows/bioconductor/<pkg>/<wf>.nf — each is a standalone
-            # runnable Bioconductor workflow (real-execution validated; gated by runnable_keys).
-            if "/subworkflows/" in filename and "/bioconductor/" not in filename:
-                return False
+            # EXCEPTIONS:
+            # 1. /subworkflows/bioconductor/<pkg>/<wf>.nf — standalone runnable Bioconductor
+            #    workflows (real-execution validated; gated by runnable_keys).
+            # 2. nextflow_nfcore/subworkflows/<domain>/ — these are BioMate AI tool workflows
+            #    stored under a subworkflows layout but are standalone runnable entry points
+            #    (e.g. amber_pmemd_md, gromacs_md), NOT nf-core library components.
+            if "/subworkflows/" in filename:
+                is_bioconductor = "/bioconductor/" in filename
+                is_biomate_tool = filename.startswith("nextflow_nfcore/subworkflows/")
+                if not is_bioconductor and not is_biomate_tool:
+                    return False
             if filename.startswith("nf-core-modules/"):
                 return False
             if "subworkflow" in name:
@@ -2361,10 +2459,13 @@ def get_ai_assistant(trans) -> Optional[AIAssistant]:
             log.info(f"[DEBUG] Got app: {app}")
 
             log.info("[DEBUG] Getting enable_ai_assistant config...")
-            # Check environment variable directly as fallback
-            import os
-            ai_enabled = getattr(app.config, 'enable_ai_assistant', os.environ.get('GALAXY_CONFIG_ENABLE_AI_ASSISTANT', 'false').lower() == 'true')
-            log.info(f"[DEBUG] enable_ai_assistant config value: {ai_enabled}")
+            import os as _os_ai
+            config_enabled = getattr(app.config, 'enable_ai_assistant', False)
+            env_enabled = _os_ai.environ.get('GALAXY_CONFIG_ENABLE_AI_ASSISTANT', '').lower() == 'true'
+            # Also enable if ANTHROPIC_API_KEY is present — local dev without full galaxy.yml
+            key_enabled = bool(_os_ai.environ.get('ANTHROPIC_API_KEY') or _os_ai.environ.get('GALAXY_AI_API_KEY'))
+            ai_enabled = config_enabled or env_enabled or key_enabled
+            log.info(f"[DEBUG] enable_ai_assistant: config={config_enabled} env={env_enabled} key={key_enabled} → {ai_enabled}")
 
             if not ai_enabled:
                 log.warning("[DEBUG] AI Assistant not enabled in config")
@@ -4447,6 +4548,7 @@ class ResearchQueryRequest(BaseModel):
     include_citations: bool = Field(default=True, description="Include literature citations")
     include_benchmark_evidence: bool = Field(default=True, description="Include benchmark evidence")
     max_citations: int = Field(default=5, description="Maximum number of citations")
+    paper_content: str = Field(default="", description="Full text of an attached PDF paper — treated as primary source")
 
 
 @router.post(
@@ -4515,7 +4617,8 @@ def answer_research_query(
             question=request.query,
             context=request.context,
             include_citations=request.include_citations,
-            include_benchmark_evidence=request.include_benchmark_evidence
+            include_benchmark_evidence=request.include_benchmark_evidence,
+            paper_content=request.paper_content or None
         )
 
         # Format citations for JSON
@@ -5183,11 +5286,12 @@ Rules:
 # Value: (Docs object, timestamp). Max 5 entries, 2-hour TTL.
 # Avoids re-indexing the same paper set for follow-up questions.
 import asyncio as _pqa_asyncio
+import threading as _pqa_threading
 import time as _pqa_time
 import hashlib as _pqa_hashlib
 
 _PQA_DOCS_CACHE: dict = {}          # cache_key → {"docs": Docs, "ts": float}
-_PQA_CACHE_LOCKS: dict = {}         # cache_key → asyncio.Lock
+_PQA_CACHE_LOCK = _pqa_threading.Lock()  # protects _PQA_DOCS_CACHE (threading, not asyncio)
 _PQA_CACHE_MAX = 5
 _PQA_CACHE_TTL = 7200               # 2 hours
 
@@ -5296,82 +5400,112 @@ async def paperqa_synthesize(
 
     try:
         llm_name = f"anthropic/{request.llm}"
-        model_cfg = [
-            {
-                "model_name": llm_name,
-                "litellm_params": {
-                    "model": llm_name,
-                    "api_key": api_key,
-                },
-            }
-        ]
-        from paperqa.settings import ParsingSettings  # type: ignore[import]
-        # Patch the LMI GLOBAL_LIMITER token-bucket before running synthesis.
-        # Default is 30k tokens/minute; 10 parallel chunk summaries (~3.5k
-        # tokens each ≈ 35k total) exceed that and cause a TimeoutError.
-        # We raise it to 200k to support high-recall synthesis (surveys, reviews).
-        try:
-            from lmi.rate_limiter import RATE_CONFIG, limit_parse  # type: ignore[import]
-            RATE_CONFIG[("client", None)] = limit_parse("200000/1minute")
-        except Exception:
-            pass  # non-fatal — worst case synthesis might hit rate limit
+        # Read OpenAI key for embeddings — PaperQA defaults to text-embedding-3-small.
+        # If OPENAI_API_KEY is not in env, try galaxy.yml, else fall back to sparse.
+        openai_key = _os.getenv("OPENAI_API_KEY")
+        if not openai_key:
+            try:
+                import yaml as _yaml2
+                _cfg2 = _os.path.realpath(_os.path.join(
+                    _os.path.dirname(__file__),
+                    "..", "..", "..", "..", "..", "config", "galaxy.yml"
+                ))
+                if _os.path.exists(_cfg2):
+                    with open(_cfg2) as _f2:
+                        _raw2 = _yaml2.safe_load(_f2) or {}
+                    _env2 = _raw2.get("gravity", {}).get("gunicorn", {}).get("environment", {})
+                    openai_key = _env2.get("OPENAI_API_KEY")
+                    if openai_key:
+                        _os.environ["OPENAI_API_KEY"] = openai_key
+            except Exception:
+                pass
+        embedding_model = "text-embedding-3-small" if openai_key else "sparse"
 
-        settings = Settings(
-            llm=llm_name,
-            summary_llm=llm_name,
-            llm_config={
-                "rate_limit": {"anthropic": "200/minute"},
-                "model_list": model_cfg,
-            },
-            summary_llm_config={
-                "rate_limit": {"anthropic": "200/minute"},
-                "model_list": model_cfg,
-            },
-            answer={
-                # 10 evidence chunks → high recall for survey/review use cases.
-                # The LMI token bucket is patched to 200k/min above, so this
-                # is safe even for long chunks.
-                "evidence_k": 10,
-                "answer_max_sources": 8,
-            },
-            # Disable Semantic Scholar / Crossref enrichment — avoids 429s when
-            # no external API keys are set, and cuts per-paper indexing time by
-            # 3-5x. Citation metadata comes from the PDF content directly.
-            # disable_doc_valid_check=True: attempt extraction even on PDFs whose
-            # text density looks low (scanned pages, complex layouts). pdfplumber
-            # may still extract usable text from these.
-            parsing=ParsingSettings(use_doc_details=False, disable_doc_valid_check=True),
-        )
+        # Snapshot the current env so the synthesis thread inherits the same API keys.
+        # pdfminer PDF parsing runs synchronously and blocks the asyncio event loop;
+        # the entire synthesis must run in a thread so the gunicorn master can still
+        # receive heartbeats and won't kill the worker with WORKER TIMEOUT.
+        _env_snapshot = dict(_os.environ)
+        _cache_key = _pqa_content_key(valid_paths)
+        _question = request.question
+        _paths = list(valid_paths)
+        _api_key_snap = api_key
 
-        # ── Embedding cache lookup ────────────────────────────────────────
-        _pqa_evict_stale()
-        cache_key = _pqa_content_key(valid_paths)
+        import concurrent.futures as _cf
 
-        if cache_key not in _PQA_CACHE_LOCKS:
-            _PQA_CACHE_LOCKS[cache_key] = _pqa_asyncio.Lock()
-        lock = _PQA_CACHE_LOCKS[cache_key]
+        def _run_synthesis_in_thread() -> dict:
+            """
+            Runs the full PaperQA indexing + query in a worker thread with its own
+            event loop, keeping the main uvicorn loop unblocked.
+            """
+            import asyncio as _t_aio
+            import logging as _t_logging
+            # pdfminer emits DEBUG logs for every PDF token — millions of lines per
+            # document. At DEBUG level this makes indexing 10x slower due to I/O.
+            # Suppress to WARNING so only real errors surface.
+            for _noisy in ("pdfminer", "pdfplumber", "pypdf", "paperqa.readers"):
+                _t_logging.getLogger(_noisy).setLevel(_t_logging.WARNING)
+            import os as _t_os
 
-        async with lock:
-            cached = _PQA_DOCS_CACHE.get(cache_key)
-            if cached and (_pqa_time.time() - cached["ts"] < _PQA_CACHE_TTL):
-                docs = cached["docs"]
-                log.info("paperqa_synthesize: cache HIT for %d papers", len(valid_paths))
-            else:
+            # Propagate API keys into this thread's environment
+            for k, v in _env_snapshot.items():
+                _t_os.environ.setdefault(k, v)
+
+            async def _inner():
+                from paperqa import Docs, Settings  # noqa: F811
+                from paperqa.settings import ParsingSettings  # noqa: F811
+                try:
+                    from lmi.rate_limiter import RATE_CONFIG, limit_parse  # noqa: F811
+                    RATE_CONFIG[("client", None)] = limit_parse("200000/1minute")
+                except Exception:
+                    pass
+
+                model_cfg_t = [{
+                    "model_name": llm_name,
+                    "litellm_params": {"model": llm_name, "api_key": _api_key_snap},
+                }]
+                settings_t = Settings(
+                    llm=llm_name,
+                    summary_llm=llm_name,
+                    embedding=embedding_model,
+                    llm_config={
+                        "rate_limit": {"anthropic": "200/minute"},
+                        "model_list": model_cfg_t,
+                    },
+                    summary_llm_config={
+                        "rate_limit": {"anthropic": "200/minute"},
+                        "model_list": model_cfg_t,
+                    },
+                    answer={
+                        # 10 evidence chunks → high recall for survey/review use cases.
+                        "evidence_k": 10,
+                        "answer_max_sources": 8,
+                    },
+                    parsing=ParsingSettings(use_doc_details=False, disable_doc_valid_check=True),
+                )
+
+                # Always create a fresh Docs() per request.
+                # Caching Docs objects across event loops causes Lock binding errors
+                # because asyncio.Lock is bound to the event loop it was created in.
                 docs = Docs()
-                # Stub citations skip the per-paper LLM citation call (halves indexing time).
-                stub_citations = [_os.path.splitext(_os.path.basename(p))[0][:80] for p in valid_paths]
-
-                log.info("paperqa_synthesize: indexing %d papers (cache MISS)", len(valid_paths))
-                await _asyncio.gather(
-                    *[docs.aadd(p, citation=cit, settings=settings)
-                      for p, cit in zip(valid_paths, stub_citations)],
+                stubs = [_t_os.path.splitext(_t_os.path.basename(p))[0][:80] for p in _paths]
+                log.info("paperqa_synthesize: indexing %d papers", len(_paths))
+                await _t_aio.gather(
+                    *[docs.aadd(p, citation=c, settings=settings_t)
+                      for p, c in zip(_paths, stubs)],
                     return_exceptions=True,
                 )
-                _pqa_evict_stale()
-                _PQA_DOCS_CACHE[cache_key] = {"docs": docs, "ts": _pqa_time.time()}
 
-        # Run the query
-        session = await docs.aquery(request.question, settings=settings)
+                session = await docs.aquery(_question, settings=settings_t)
+                return session
+
+            return _t_aio.run(_inner())
+
+        # Run synthesis in a thread (non-blocking) with a 270s timeout
+        with _cf.ThreadPoolExecutor(max_workers=1) as _pool:
+            _fut = _pool.submit(_run_synthesis_in_thread)
+            loop = _asyncio.get_event_loop()
+            session = await loop.run_in_executor(None, lambda: _fut.result(timeout=270))
 
         # Build citation list from unique docs across all contexts.
         # In PaperQA5 the Doc object lives on ctx.text.doc, not ctx.doc.

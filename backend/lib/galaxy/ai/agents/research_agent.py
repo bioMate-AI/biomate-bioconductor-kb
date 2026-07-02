@@ -1215,7 +1215,8 @@ class ResearchAgent:
         question: str,
         context: Optional[Dict[str, Any]] = None,
         include_citations: bool = True,
-        include_benchmark_evidence: bool = True
+        include_benchmark_evidence: bool = True,
+        paper_content: Optional[str] = None
     ) -> ResearchResponse:
         """
         Answer a research question with literature-backed evidence.
@@ -1225,6 +1226,7 @@ class ResearchAgent:
             context: Optional context (domain, workflow results, etc.)
             include_citations: Whether to search and include citations
             include_benchmark_evidence: Whether to query benchmarks
+            paper_content: Full text of an attached PDF paper — treated as primary source
 
         Returns:
             ResearchResponse with answer, citations, and evidence
@@ -1238,7 +1240,8 @@ class ResearchAgent:
                 question=question,
                 analysis=analysis,
                 include_citations=include_citations,
-                include_benchmark_evidence=include_benchmark_evidence
+                include_benchmark_evidence=include_benchmark_evidence,
+                paper_content=paper_content
             )
 
             # Step 3: Synthesize response
@@ -1468,7 +1471,8 @@ class ResearchAgent:
         question: str,
         analysis: Dict[str, Any],
         include_citations: bool,
-        include_benchmark_evidence: bool
+        include_benchmark_evidence: bool,
+        paper_content: Optional[str] = None
     ) -> Dict[str, Any]:
         """Gather evidence from multiple sources."""
         evidence = {
@@ -1477,6 +1481,12 @@ class ResearchAgent:
             'skill_guidance': '',
             'db_facts': {}   # live DB lookup results injected before LLM synthesis
         }
+
+        # Attached paper content is the PRIMARY source — injected before all other evidence.
+        # When the user provides a PDF, we reason from it first, then cross-reference literature.
+        if paper_content and paper_content.strip():
+            evidence['attached_paper_content'] = paper_content
+            log.info(f"Attached paper content registered: {len(paper_content)} chars")
 
         # Load relevant skills
         if self.skill_loader:
@@ -2105,6 +2115,19 @@ class ResearchAgent:
         """Build the prompt for LLM synthesis."""
         prompt_parts = []
 
+        # Attached paper content — HIGHEST priority source.
+        # When the user has provided a PDF, the LLM must reason from this first.
+        # Supporting literature and DB facts supplement it but do not override it.
+        if evidence.get('attached_paper_content'):
+            prompt_parts.append(
+                "<attached_paper>\n"
+                "The user has provided the following paper. "
+                "This is your PRIMARY source — extract information from it directly and cite it as 'the attached paper'. "
+                "Use supporting literature below only for cross-referencing or context.\n\n"
+                f"{evidence['attached_paper_content'][:45000]}\n"
+                "</attached_paper>"
+            )
+
         # Add skill guidance if available
         if evidence.get('skill_guidance'):
             prompt_parts.append(f"## Scientific Skill Guidance\n{evidence['skill_guidance'][:4000]}")
@@ -2423,7 +2446,8 @@ Format: plain prose or a short bulleted list. No lengthy introductions, no "In s
         question: str,
         context: Optional[Dict[str, Any]] = None,
         include_citations: bool = True,
-        include_benchmark_evidence: bool = True
+        include_benchmark_evidence: bool = True,
+        paper_content: Optional[str] = None
     ) -> ResearchResponse:
         """Synchronous wrapper for answer_question.
 
@@ -2436,7 +2460,8 @@ Format: plain prose or a short bulleted list. No lengthy introductions, no "In s
             question=question,
             context=context,
             include_citations=include_citations,
-            include_benchmark_evidence=include_benchmark_evidence
+            include_benchmark_evidence=include_benchmark_evidence,
+            paper_content=paper_content
         )
 
         # Check if we're already inside an async context

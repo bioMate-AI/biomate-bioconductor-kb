@@ -1616,8 +1616,42 @@ except ImportError:
 async function _fetchPaperContentFromMessage(
   message: string,
 ): Promise<{ ref: string; content: string } | null> {
-  // --- Attached PDF extraction (highest priority) ---
-  // Message format (from chat-interface.tsx):
+  // --- New chip format: [Dataset: name (id: uuid)] ---
+  // Emitted by chat-input.tsx when the user attaches a dataset chip.
+  // Extract all PDF dataset refs and pull their content.
+  const newFormatRefs = [...message.matchAll(/\[Dataset:\s*([^\(]+?)\s*\(id:\s*([a-f0-9-]+)\s*\)\]/gi)];
+  if (newFormatRefs.length > 0) {
+    try {
+      const { getUploadedFile } = await import('./routes');
+      const textParts: string[] = [];
+      const refNames: string[] = [];
+      for (const m of newFormatRefs) {
+        const name = m[1].trim();
+        const datasetId = m[2].trim();
+        const localFile = getUploadedFile(datasetId);
+        if (!localFile?.filePath) {
+          console.warn(`[_fetchPaperContentFromMessage] No local file for dataset ${datasetId} (name: ${name})`);
+          continue;
+        }
+        const text = await _extractPdfText(localFile.filePath, 40000);
+        if (text) {
+          textParts.push(`=== ${name} ===\n${text}`);
+          refNames.push(name);
+          console.log(`[_fetchPaperContentFromMessage] Extracted ${text.length} chars from ${name} (${datasetId})`);
+        }
+      }
+      if (textParts.length > 0) {
+        return {
+          ref: refNames.join(', '),
+          content: textParts.join('\n\n---\n\n').slice(0, 50000),
+        };
+      }
+    } catch (err: any) {
+      console.warn(`[_fetchPaperContentFromMessage] New-format PDF extraction failed: ${err.message}`);
+    }
+  }
+
+  // --- Legacy format (from old chat-input.tsx) ---
   //   [Attached files: paper.pdf, other.pdf]
   //   [Uploaded datasets: paper.pdf: dataset_id=<uuid>[, galaxy_dataset_id=<gid>][; other.pdf: dataset_id=<uuid2>]]
   const _attachedBlock = message.match(/\[Attached files:\s*([^\]]+)\]/i)?.[1] ?? '';
@@ -2022,9 +2056,24 @@ export class GalaxyAssistant {
       // Await the aggregated response to:
       //  1. Ensure SDK updates chat history before the next sendMessageStream call
       //  2. Reliably detect function calls (never split across stream chunks)
+      //  3. Fall back to aggregated text if streaming chunks produced no text
+      //     (some Gemini SDK versions emit text only in aggregated, not in stream chunks)
       const aggregated = await streamResult.response;
       const allParts: any[] = aggregated.candidates?.[0]?.content?.parts || [];
       console.log(`[GeminiLoop] turn=${turn} parts=${allParts.length} keys=${allParts.map((p: any) => Object.keys(p).join(',')).join('|')}`);
+
+      // If streaming produced no text but the aggregated response has text, extract it now.
+      if (!rawResponse) {
+        const aggregatedText = allParts
+          .filter((p: any) => p.text)
+          .map((p: any) => p.text as string)
+          .join('');
+        if (aggregatedText) {
+          rawResponse = aggregatedText;
+          onResponseDelta?.(aggregatedText);
+          console.log(`[GeminiLoop] Streaming produced no text — extracted ${aggregatedText.length} chars from aggregated response`);
+        }
+      }
 
       // Check for function calls
       const fnCalls = allParts.filter((p: any) => p.functionCall);
@@ -3290,7 +3339,7 @@ Rules:
         researchResponse = await this._api().queryResearch(researchPayload);
         log('Research response received');
       } catch (error: any) {
-        log('Research query failed: ' + error.message);
+        log('Research query failed: ' + (error.message ?? error.error ?? String(error)));
       }
     }
 
