@@ -51,7 +51,7 @@ const DEFAULT_PER_MESSAGE_MAX = 1200;
 const DEFAULT_GUARANTEED_RECENT = 6;
 
 /** Regex matching the load-bearing dataset/attachment blocks. */
-export const DATASET_BLOCK_RE = /\[(?:Galaxy dataset|Uploaded datasets?|Attached files?)\s*:/i;
+export const DATASET_BLOCK_RE = /\[(?:BioMate dataset|Galaxy dataset|Uploaded datasets?|Attached files?)\s*:/i;
 
 function clipMessage(content: string, maxChars: number): string {
   if (!content || content.length <= maxChars) return content;
