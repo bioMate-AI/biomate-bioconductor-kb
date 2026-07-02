@@ -286,13 +286,10 @@ export function ChatInput({
                 <p className="text-sm text-muted-foreground p-4">Loading preview…</p>
               ) : previewContent.length === 0 ? (
                 <div className="p-4 space-y-2">
-                  <p className="text-sm font-medium">Binary / large file — metadata only</p>
+                  <p className="text-sm font-medium">File attached</p>
                   <p className="text-xs text-muted-foreground">Name: {previewFile.name}</p>
                   <p className="text-xs text-muted-foreground">Size: {formatFileSize(previewFile.size)}</p>
                   <p className="text-xs text-muted-foreground">Type: {previewFile.file.type || 'application/octet-stream'}</p>
-                  <p className="text-xs text-muted-foreground mt-3">
-                    This file will be sent with your message. Preview is not available for binary formats.
-                  </p>
                 </div>
               ) : (['csv','tsv','tabular'].includes(previewFile.name.split('.').pop()?.toLowerCase() ?? '')) ? (
                 <div className="p-1">
