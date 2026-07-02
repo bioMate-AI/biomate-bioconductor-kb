@@ -104,6 +104,54 @@ try:
     except Exception as _we:
         logging.warning(f"WiredWorkflowSearch upgrade skipped: {_we}")
     WORKFLOW_SEARCH_AVAILABLE = True
+
+    # Startup warmup — load the BGE workflow + MiniLM chain embedding models in a
+    # background daemon thread so the ~10s cold-start is paid at worker boot, not
+    # on the first production /api/workflows/search (which was tripping the
+    # connector's 15s timeout). Background (not blocking) so a recycled single
+    # gunicorn worker serves immediately; the double-checked _EMBED_INIT_LOCK in
+    # unified_workflow_search makes a request that races the warmup safe. Disable
+    # with WORKFLOW_SEARCH_WARMUP=false.
+    try:
+        import os as _oswarm
+        if _oswarm.getenv("WORKFLOW_SEARCH_WARMUP", "true").strip().lower() not in ("false", "0", "no"):
+            import threading as _wthreading
+
+            def _warm_workflow_search():
+                import time as _twarm
+                # Let the worker finish app init first — at bare module-import time
+                # list_chains() can still be empty (so search_chains would no-op) and
+                # the catalog may not be wired yet. Retry so the warm actually lands.
+                _twarm.sleep(3)
+                _t0 = _twarm.time()
+                _chains_n = 0
+                for _attempt in range(4):
+                    try:
+                        # BGE workflow embeddings (no-op where unavailable).
+                        _workflow_search._ensure_workflow_embeddings()
+                        # Build the chain (MiniLM) index DIRECTLY — this is the real
+                        # ~5-11s one-time-per-worker cold cost. Going through
+                        # search_chains() is unreliable (it early-returns when
+                        # list_chains() is momentarily empty), so build it by hand.
+                        _chains = _workflow_search.list_chains()
+                        _chains_n = len(_chains or [])
+                        if _chains:
+                            _workflow_search._rebuild_chain_embedding_index(_chains)
+                            _built = True
+                            break
+                    except Exception as _wexc:
+                        logging.warning("[WorkflowSearchWarmup] attempt %d failed: %s", _attempt, _wexc)
+                    _twarm.sleep(3)
+                else:
+                    _built = False
+                logging.info(
+                    "[WorkflowSearchWarmup] done in %.1fs (chains=%d, chain_index_built=%s)",
+                    _twarm.time() - _t0, _chains_n, locals().get("_built", False),
+                )
+
+            _wthreading.Thread(target=_warm_workflow_search, daemon=True, name="wf-search-warmup").start()
+    except Exception as _warm_setup_exc:
+        logging.warning(f"WorkflowSearch warmup not scheduled: {_warm_setup_exc}")
 except Exception as _e:
     logging.warning(f"UnifiedWorkflowSearch not available: {_e}")
     _workflow_search = None
@@ -330,6 +378,16 @@ class NextflowSearchRequest(BaseModel):
     key_terms: Optional[List[str]] = None
     skip_chains: bool = False
     force_workflow_name: Optional[str] = None
+    # When True, skip ALL inline LLM work in search so it returns sub-second:
+    #   (1) the param-prefill call (~1-2s, up to ~6-13s under concurrent retry) —
+    #       response carries rule-based defaults + `param_prefill_deferred: true`;
+    #       fetch the prefill separately via POST /api/ai_assistant/extract_params.
+    #   (2) the chain scope-check rerank (~3s) — chains fall back to embedding-only
+    #       ranking (skip_llm_rerank).
+    # Used by the connector (MCP) search_workflow: its client extracts params
+    # itself and run_workflow takes params from the client, so both inline LLM
+    # calls are redundant there and only added latency under concurrency.
+    defer_param_prefill: bool = False
 
 
 def _nextflow_workflow_key(filename: str) -> Optional[str]:
@@ -920,7 +978,31 @@ _NF_SKIP_PARAMS = {
 }
 
 
+_NF_PARSE_CACHE: Dict[str, Any] = {}
+
+
 def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
+    """Cached wrapper over :func:`_parse_nextflow_params_impl`.
+
+    .nf files are immutable within a worker's lifetime (a deploy/recreate spawns a
+    fresh process; bind-mounted nextflow_nfcore updates are additive new files,
+    not in-place edits), so a process-lifetime memo keyed by the logical filename
+    is safe and removes the ~100-200 ms re-parse (file read + regex) from every
+    /api/workflows/search. Callers treat the result read-only (they build new
+    param lists from it), so returning the shared object is safe.
+    """
+    if not nf_filename:
+        return {"parameters": {}, "parameter_metadata": {}}
+    _cached = _NF_PARSE_CACHE.get(nf_filename)
+    if _cached is not None:
+        return _cached
+    _res = _parse_nextflow_params_impl(nf_filename)
+    if len(_NF_PARSE_CACHE) < 4096:
+        _NF_PARSE_CACHE[nf_filename] = _res
+    return _res
+
+
+def _parse_nextflow_params_impl(nf_filename: str) -> Dict[str, Any]:
     """Parse user-facing params from a Nextflow .nf file.
 
     Returns ``{"parameters": {name: value, ...}, "parameter_metadata": {name: {...}, ...}}``.
@@ -1756,7 +1838,44 @@ def _rule_based_param_inference(user_intent: str, all_params: List[Dict[str, Any
     return result
 
 
+_LLM_PARAM_CACHE: "OrderedDict[tuple, Dict[str, Any]]" = __import__("collections").OrderedDict()
+_LLM_PARAM_CACHE_MAX = 512
+
+
 def _infer_params_from_intent_llm(
+    user_intent: str,
+    workflow_name: str,
+    all_params: List[Dict[str, Any]],
+    llm_client: Any = None,
+) -> Dict[str, Any]:
+    """Cached wrapper over :func:`_infer_params_from_intent_llm_impl`.
+
+    Extraction is deterministic for a given (intent, workflow, param-set), so a
+    bounded LRU memo removes the ~1-2 s per-request Anthropic call from the WARM
+    /api/workflows/search path on repeated identical queries (connector retries,
+    benchmarks). Result is consumed read-only by the caller. llm_client is not
+    part of the key — it's the same process-level client.
+    """
+    try:
+        _key = (user_intent, workflow_name,
+                tuple(sorted(str(p.get("name", "")) for p in (all_params or []))))
+    except Exception:
+        _key = None
+    if _key is not None:
+        _hit = _LLM_PARAM_CACHE.get(_key)
+        if _hit is not None:
+            _LLM_PARAM_CACHE.move_to_end(_key)
+            return _hit
+    _res = _infer_params_from_intent_llm_impl(user_intent, workflow_name, all_params, llm_client=llm_client)
+    if _key is not None and isinstance(_res, dict):
+        _LLM_PARAM_CACHE[_key] = _res
+        _LLM_PARAM_CACHE.move_to_end(_key)
+        while len(_LLM_PARAM_CACHE) > _LLM_PARAM_CACHE_MAX:
+            _LLM_PARAM_CACHE.popitem(last=False)
+    return _res
+
+
+def _infer_params_from_intent_llm_impl(
     user_intent: str,
     workflow_name: str,
     all_params: List[Dict[str, Any]],
@@ -2015,7 +2134,8 @@ def search_nextflow_workflow(
 
             def _do_chain_search():
                 return [] if request.skip_chains else _workflow_search.search_chains(
-                    user_intent, min_score=0.25
+                    user_intent, min_score=0.25,
+                    skip_llm_rerank=getattr(request, 'defer_param_prefill', False),
                 )
 
             def _do_workflow_search():
@@ -2116,7 +2236,6 @@ def search_nextflow_workflow(
                     log.warning("[search_nextflow_workflow] arbitration failed: %s — using workflow", _arb_exc)
                     chain_candidates = []
 
-        # ── Return chain if LLM chose it ─────────────────────────────────────
         if chain_candidates:
             best_chain = chain_candidates[0]
             log.info("[search_nextflow_workflow] returning chain %r", best_chain.name)
@@ -2340,33 +2459,42 @@ def search_nextflow_workflow(
         # broken/unavailable Gemini (e.g. missing google SDK on deploy.sh images)
         # transparently falls back instead of dropping the extraction. Same pattern as
         # the research-agent path elsewhere in this module.
-        _pe_llm = None
-        try:
-            _sa = get_ai_assistant(trans)
-            if _sa is not None:
-                from galaxy.ai.llm_client import LLMClient  # noqa: PLC0415
-                _pe_llm = LLMClient(_sa.config)
-        except Exception as _pe_exc:
-            log.debug("[ParamSuggest] could not build LLM client: %s", _pe_exc)
-        _llm_extracted = _infer_params_from_intent_llm(
-            user_intent, best.name, _req_params + _opt_params, llm_client=_pe_llm
-        )
-        if _llm_extracted:
-            def _apply_llm_fill(params: list) -> list:
-                result = []
-                for p in params:
-                    if p['name'] in _llm_extracted:
-                        # Apply LLM extraction regardless of existing defaults —
-                        # the user explicitly stated this value in their query so it
-                        # should override the workflow schema default (e.g. pdb_id,
-                        # ligand_smiles, exhaustiveness, etc.)
-                        result.append({**p, 'default': str(_llm_extracted[p['name']]), 'llm_extracted': True, 'autoFilled': True})
-                    else:
-                        result.append(p)
-                return result
-            _req_params = _apply_llm_fill(_req_params)
-            _opt_params = _apply_llm_fill(_opt_params)
-            log.info("LLM param extraction for %s: filled/overrode %s", best.name, list(_llm_extracted.keys()))
+        #
+        # ASYNC OPT-OUT: when defer_param_prefill is set, skip this entirely and let
+        # the caller fetch the prefill via /api/ai_assistant/extract_params. This LLM
+        # call is the dominant search latency (~1-2s, and ~6-13s under concurrent
+        # retry/fallback to slow local models) — moving it off the critical path keeps
+        # search sub-second. See NextflowSearchRequest.defer_param_prefill.
+        if request.defer_param_prefill:
+            log.info("[ParamSuggest] prefill deferred for %s (async opt-out)", best.name)
+        else:
+            _pe_llm = None
+            try:
+                _sa = get_ai_assistant(trans)
+                if _sa is not None:
+                    from galaxy.ai.llm_client import LLMClient  # noqa: PLC0415
+                    _pe_llm = LLMClient(_sa.config)
+            except Exception as _pe_exc:
+                log.debug("[ParamSuggest] could not build LLM client: %s", _pe_exc)
+            _llm_extracted = _infer_params_from_intent_llm(
+                user_intent, best.name, _req_params + _opt_params, llm_client=_pe_llm
+            )
+            if _llm_extracted:
+                def _apply_llm_fill(params: list) -> list:
+                    result = []
+                    for p in params:
+                        if p['name'] in _llm_extracted:
+                            # Apply LLM extraction regardless of existing defaults —
+                            # the user explicitly stated this value in their query so it
+                            # should override the workflow schema default (e.g. pdb_id,
+                            # ligand_smiles, exhaustiveness, etc.)
+                            result.append({**p, 'default': str(_llm_extracted[p['name']]), 'llm_extracted': True, 'autoFilled': True})
+                        else:
+                            result.append(p)
+                    return result
+                _req_params = _apply_llm_fill(_req_params)
+                _opt_params = _apply_llm_fill(_opt_params)
+                log.info("LLM param extraction for %s: filled/overrode %s", best.name, list(_llm_extracted.keys()))
 
         # Only treat params as "missing" if they have no pre-filled default (e.g. SRR accession injected)
         _truly_missing = [p for p in _req_params if not p.get('default')]
@@ -2402,6 +2530,10 @@ def search_nextflow_workflow(
             "parameter_metadata": _wf_parameter_metadata,
             "required_params": _req_params,
             "optional_params": _opt_params,
+            # True → the LLM param-prefill was skipped for latency; params carry
+            # rule-based defaults only. Clients wanting the prefill call
+            # /api/ai_assistant/extract_params with (user_intent, workflow_name).
+            "param_prefill_deferred": bool(request.defer_param_prefill),
             "workflow_ga": {
                 "name": best.name,
                 "description": best.description,
@@ -2444,6 +2576,65 @@ def search_nextflow_workflow(
     except Exception as e:
         log.error(f"Nextflow workflow search failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class ExtractParamsRequest(BaseModel):
+    user_intent: Optional[str] = None
+    request_text: Optional[str] = None
+    workflow_name: Optional[str] = None
+    nextflow_path: Optional[str] = None
+    # Optional: the param dicts from the search response. If omitted, the .nf at
+    # nextflow_path is parsed to derive the param set.
+    params: Optional[List[Dict[str, Any]]] = None
+
+
+@router.post(
+    "/api/ai_assistant/extract_params",
+    summary="Extract param values from a query for a known workflow (async prefill companion).",
+)
+def extract_params(
+    request: ExtractParamsRequest,
+    trans: ProvidesUserContext = DependsOnTrans,
+) -> Dict[str, Any]:
+    """Async companion to search_nextflow_workflow's inline prefill.
+
+    Given the user's query + an already-resolved workflow, run the (cached) LLM
+    param extraction and return the extracted ``{name: value}``. This lets a
+    caller keep search sub-second via ``defer_param_prefill`` and fetch the
+    prefill off the critical path. Never raises — returns ``{}`` on any failure.
+    """
+    user_intent = request.user_intent or request.request_text or ""
+    if not user_intent:
+        return {"success": True, "extracted": {}}
+    # Resolve the workflow's param set: prefer the client-provided list, else
+    # parse the .nf (cached).
+    all_params: List[Dict[str, Any]] = request.params or []
+    if not all_params and request.nextflow_path:
+        _parsed = _parse_nextflow_params(request.nextflow_path)
+        _meta = _parsed.get("parameter_metadata") or {}
+        _vals = _parsed.get("parameters") or {}
+        if isinstance(_meta, dict):
+            all_params = [
+                {"name": k, "type": (v or {}).get("type", "string"), "default": _vals.get(k)}
+                for k, v in _meta.items()
+            ]
+    if not all_params:
+        return {"success": True, "extracted": {}}
+    _wf_name = request.workflow_name or (request.nextflow_path or "").rsplit("/", 1)[-1]
+    _llm = None
+    try:
+        _sa = get_ai_assistant(trans)
+        if _sa is not None:
+            from galaxy.ai.llm_client import LLMClient  # noqa: PLC0415
+            _llm = LLMClient(_sa.config)
+    except Exception as _exc:
+        log.debug("[extract_params] LLM client build failed: %s", _exc)
+    try:
+        extracted = _infer_params_from_intent_llm(user_intent, _wf_name, all_params, llm_client=_llm)
+    except Exception as _exc:
+        log.warning("[extract_params] extraction failed: %s", _exc)
+        extracted = {}
+    return {"success": True, "extracted": extracted or {}}
 
 
 def get_ai_assistant(trans) -> Optional[AIAssistant]:

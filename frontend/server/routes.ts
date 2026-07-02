@@ -932,7 +932,12 @@ async function executeOpenClaudeTool(
     switch (toolName) {
       // ── Discovery ────────────────────────────────────────────────────────
       case "search_workflow":
-        return await post("/api/workflows/search", { query: input.query, limit: input.limit ?? 5 });
+        // defer_param_prefill: the connector's client extracts params from the
+        // user's request itself, so the backend's inline LLM prefill is redundant
+        // here and only adds ~1-2s (up to ~13s under concurrency) to the search.
+        // Skip it → sub-second search. (run_workflow takes params from the client,
+        // not from the search response.)
+        return await post("/api/workflows/search", { query: input.query, limit: input.limit ?? 5, defer_param_prefill: true });
 
       // ── Execution ────────────────────────────────────────────────────────
       case "run_workflow":
@@ -1033,9 +1038,9 @@ const prerequisitesValidator = _hasAnyLLMKey ? new WorkflowPrerequisitesValidato
 const memoryIntegration = galaxyAssistant ? createMemoryIntegration(galaxyAssistant) : null;
 
 // Configure multer for file uploads
-// AWS workflows require file upload first, so we constrain to 5GB to reduce latency
-const MAX_FILE_SIZE_GB = 5;
-const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_GB * 1024 * 1024 * 1024; // 5GB
+// 10 GB per-file upload limit. Subject to the user's overall storage quota.
+const MAX_FILE_SIZE_GB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_GB * 1024 * 1024 * 1024; // 10 GB
 
 const uploadDir = path.join(process.cwd(), 'data', 'uploads');
 
@@ -3308,6 +3313,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const datasetId = uuidv4();
       const description = req.body.description || ''; // Get optional description from request body
 
+      // Rename the multer-generated file to use datasetId as the filename prefix,
+      // so that getUploadedFile() fallback scan (f.startsWith(datasetId)) works after server restart.
+      const fileExt = path.extname(file.originalname);
+      const namedFilename = `${datasetId}${fileExt}`;
+      const namedFilePath = path.join(path.dirname(file.path), namedFilename);
+      await fs.rename(file.path, namedFilePath);
+      file.path = namedFilePath;
+      file.filename = namedFilename;
+
       console.log(`[FileUpload] File uploaded: ${file.originalname} -> ${file.filename}`);
       console.log(`[FileUpload] Dataset ID: ${datasetId}`);
       if (description) {
@@ -4345,7 +4359,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // SSE endpoint for LangGraph pipeline task-status events.
   // The Python backend publishes to Redis channel biomate:pipeline:{id};
   // this endpoint relays those events to the browser.
-  app.get("/api/pipelines/:pipelineId/events", (req, res) => {
+  app.get("/api/pipelines/:pipelineId/events", async (req, res) => {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache, no-transform");
     res.setHeader("Connection", "keep-alive");
@@ -4358,7 +4372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // If Redis is available, subscribe to the pipeline channel
     let redisSub: any = null;
     try {
-      const { getRedisClient } = require('./redis-session');
+      const { getRedisClient } = await import('./redis-session');
       const client = getRedisClient?.();
       if (client) {
         redisSub = client.duplicate();
@@ -7592,13 +7606,17 @@ ${paramLines || '(none recorded)'}`;
   // Proxies to Python backend /api/ai_assistant/search_nextflow_workflow
   app.post("/api/workflows/search", optionalAuth, async (req, res) => {
     try {
-      const { query, limit } = req.body || {};
+      const { query, limit, defer_param_prefill } = req.body || {};
       if (!query) return res.status(400).json({ error: "query is required" });
       const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
       const upstream = await fetch(`${galaxyUrl}/api/ai_assistant/search_nextflow_workflow`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_intent: query, limit: limit ?? 5 }),
+        // defer_param_prefill: skip the backend's inline LLM param-prefill (~1-2s,
+        // up to ~13s under concurrent retry) and return search sub-second. The
+        // connector's search_workflow sets this — its LLM client extracts params
+        // itself, so the inline prefill is redundant there.
+        body: JSON.stringify({ user_intent: query, limit: limit ?? 5, defer_param_prefill: !!defer_param_prefill }),
       });
       const data = await upstream.json();
       res.status(upstream.status).json(data);
