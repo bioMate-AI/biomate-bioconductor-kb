@@ -128,7 +128,7 @@ class ChatHistoryService {
       lastActivity: new Date(),
       messages: [{
         id: "welcome",
-        content: "Hello! I'm your BioMate AI assistant. I can help you discover bioinformatics tools, build workflows, and analyze your data. What would you like to work on today?",
+        content: "Hello! I'm BioMate — your AI research assistant for computational biology. I can read your papers and extract protocols, run bioinformatics workflows (RNA-seq, variant calling, ADMET, and more), search the latest literature, and help you design experiments. Upload a PDF or describe your analysis to get started.",
         role: "assistant",
         timestamp: new Date(),
         suggestions: [
@@ -625,7 +625,7 @@ class ChatHistoryService {
         messages: [
           {
             id: "msg-1-1",
-            content: "Hello! I'm your BioMate AI assistant. I can help you discover bioinformatics tools, build workflows, and analyze your data. What would you like to work on today?",
+            content: "Hello! I'm BioMate — your AI research assistant for computational biology. I can read your papers and extract protocols, run bioinformatics workflows (RNA-seq, variant calling, ADMET, and more), search the latest literature, and help you design experiments. Upload a PDF or describe your analysis to get started.",
             role: "assistant",
             timestamp: hoursAgo(2.5),
             suggestions: ["Analyze RNA-seq data", "Find variant calling tools", "Build a custom workflow", "Explore genomics tools"]
@@ -732,7 +732,7 @@ class ChatHistoryService {
         messages: [
           {
             id: "msg-2-1",
-            content: "Hello! I'm your BioMate AI assistant. I can help you discover bioinformatics tools, build workflows, and analyze your data. What would you like to work on today?",
+            content: "Hello! I'm BioMate — your AI research assistant for computational biology. I can read your papers and extract protocols, run bioinformatics workflows (RNA-seq, variant calling, ADMET, and more), search the latest literature, and help you design experiments. Upload a PDF or describe your analysis to get started.",
             role: "assistant",
             timestamp: daysAgo(1.1),
             suggestions: ["Analyze RNA-seq data", "Find variant calling tools", "Build a custom workflow", "Explore genomics tools"]
@@ -804,7 +804,7 @@ class ChatHistoryService {
         messages: [
           {
             id: "msg-3-1",
-            content: "Hello! I'm your BioMate AI assistant. I can help you discover bioinformatics tools, build workflows, and analyze your data. What would you like to work on today?",
+            content: "Hello! I'm BioMate — your AI research assistant for computational biology. I can read your papers and extract protocols, run bioinformatics workflows (RNA-seq, variant calling, ADMET, and more), search the latest literature, and help you design experiments. Upload a PDF or describe your analysis to get started.",
             role: "assistant",
             timestamp: daysAgo(3.1),
             suggestions: ["Analyze RNA-seq data", "Find variant calling tools", "Build a custom workflow", "Explore genomics tools"]
@@ -835,7 +835,7 @@ class ChatHistoryService {
         messages: [
           {
             id: "msg-4-1",
-            content: "Hello! I'm your BioMate AI assistant. I can help you discover bioinformatics tools, build workflows, and analyze your data. What would you like to work on today?",
+            content: "Hello! I'm BioMate — your AI research assistant for computational biology. I can read your papers and extract protocols, run bioinformatics workflows (RNA-seq, variant calling, ADMET, and more), search the latest literature, and help you design experiments. Upload a PDF or describe your analysis to get started.",
             role: "assistant",
             timestamp: daysAgo(7.1),
             suggestions: ["Analyze RNA-seq data", "Find variant calling tools", "Build a custom workflow", "Explore genomics tools"]
