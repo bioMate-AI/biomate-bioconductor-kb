@@ -2423,7 +2423,14 @@ class UnifiedWorkflowSearch:
             return True
         # Check if any required input is a processed type
         for inp in chain.required_inputs:
-            inp_type = inp.get("type", "").lower()
+            # required_inputs may be stored as plain strings (legacy bioc_*_v2 chains)
+            # or as dicts with name/type/description — handle both safely.
+            if isinstance(inp, str):
+                inp_type = inp.lower()
+            elif isinstance(inp, dict):
+                inp_type = inp.get("type", "").lower()
+            else:
+                continue
             # Handle pipe-separated alternatives: "fastq|bam" → {"fastq","bam"}
             inp_subtypes = frozenset(t.strip() for t in inp_type.split("|"))
             if inp_subtypes & cls._PROCESSED_TYPES:
