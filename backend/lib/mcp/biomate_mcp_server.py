@@ -1,7 +1,27 @@
 #!/usr/bin/env python3
 """
-BioMate MCP Server
-==================
+BioMate MCP Server  —  DEPRECATED (v1.0.0)
+==========================================
+
+.. deprecated:: 1.0.0
+    This standalone v1.0.0 stdio server is **superseded** and no longer
+    maintained. The current, maintained MCP server lives in the separate
+    connector repository:
+
+        github.com/bioMate-AI/biomate-connector  →  mcp/biomate_mcp_server.py (v2.0.0)
+
+    That server is schema-driven from a single ``tools_manifest.py`` (17 tools
+    with Directory-compliant ``title`` + ``annotations``), ships OAuth 2.1 +
+    PKCE, and is what is published as ``@biomate/connect`` and submitted to the
+    Anthropic Claude Directory.
+
+    This file's tool set is stale and is not wired into any deployment. It is
+    kept only so historical ``python -m backend.lib.mcp`` / Claude Desktop
+    configs do not hard-break. Do not add features here — make changes in the
+    connector repo. Removal is tracked; migrate any local config to
+    ``npx @biomate/connect`` before it is deleted.
+    (The sibling ``backend/mcp/biomate_mcp_server.py`` v1.1.0 is also deprecated.)
+
 Exposes BioMate's scientific workflow capabilities as MCP (Model Context Protocol) tools,
 enabling any MCP-compatible AI client (Claude Desktop, Cursor, etc.) to invoke BioMate
 workflows, search databases, and retrieve results.
@@ -34,6 +54,7 @@ import os
 import logging
 import time
 import threading
+import warnings
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -736,7 +757,18 @@ def handle_request(client: BioMateClient, msg: Dict[str, Any]) -> Optional[Dict[
 
 def run_server() -> None:
     client = BioMateClient(BIOMATE_API_URL, BIOMATE_API_KEY)
-    log.warning(f"BioMate MCP Server {SERVER_VERSION} starting (api={BIOMATE_API_URL})")
+    warnings.warn(
+        "backend/lib/mcp/biomate_mcp_server.py (v1.0.0) is DEPRECATED and "
+        "unmaintained. Use the connector repo's mcp/biomate_mcp_server.py "
+        "(v2.0.0) — install via `npx @biomate/connect`.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    log.warning(
+        f"BioMate MCP Server {SERVER_VERSION} starting (api={BIOMATE_API_URL}) "
+        "— DEPRECATED: this v1.0.0 server is superseded by the biomate-connector "
+        "repo (v2.0.0). See module docstring."
+    )
 
     for raw_line in sys.stdin:
         raw_line = raw_line.strip()
