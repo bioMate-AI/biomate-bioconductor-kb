@@ -4629,7 +4629,18 @@ def _execute_nextflow_impl(
     # /opt/nextflow/plugins/ — read-only after first download. NF's plugin
     # loader is safe for many concurrent readers, races only on first write.
     # Subsequent runs find the cache warm and skip download entirely.
-    env["NXF_HOME"] = "/opt/nextflow"
+    # Use /opt/nextflow (Docker/EC2) if it exists; fall back to ~/.nextflow (local dev).
+    # /opt/nextflow is baked into the container image with pre-fetched plugins.
+    # On macOS/local dev it doesn't exist — setting NXF_HOME to a non-existent
+    # path causes Nextflow to fail before submitting any Batch jobs.
+    _nxf_home_candidates = [
+        Path("/opt/nextflow"),
+        Path(os.environ.get("HOME", "/root")) / ".nextflow",
+    ]
+    _nxf_home = next((p for p in _nxf_home_candidates if p.is_dir()), None)
+    if _nxf_home:
+        env["NXF_HOME"] = str(_nxf_home)
+        log.info(f"[Nextflow run {run_id}] NXF_HOME={_nxf_home}")
 
     # Plugin pre-warm. DO NOT REVERT — without this, each run starts with an
     # empty {NXF_HOME}/plugins dir and Nextflow attempts to download nf-amazon

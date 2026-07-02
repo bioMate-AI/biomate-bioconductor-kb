@@ -39,7 +39,7 @@ export class GalaxyAPIProxy {
 
     // Warn if using default localhost
     if (!process.env.GALAXY_URL) {
-      console.warn('[GalaxyAPIProxy] WARNING: GALAXY_URL not set, using default localhost:8080');
+      console.warn('[GalaxyAPIProxy] WARNING: GALAXY_URL not set, using default localhost:8081');
     }
 
     // Warn if no API key

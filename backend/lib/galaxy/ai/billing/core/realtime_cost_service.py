@@ -87,15 +87,18 @@ class RealtimeCostService:
     ) -> None:
         month = _month_key()
         key   = f"cost:{user_id}:month:{month}:llm"
-        pipe  = self._r.pipeline()
-        pipe.hincrbyfloat(key, "input_usd",    input_usd)
-        pipe.hincrbyfloat(key, "output_usd",   output_usd)
-        pipe.hincrby(key, "input_tokens",  int(input_tokens))
-        pipe.hincrby(key, "output_tokens", int(output_tokens))
-        pipe.hincrby(key, "calls", 1)
-        pipe.expire(key, TTL_SECONDS)
-        pipe.execute()
-        self._update_total(user_id, month, input_usd + output_usd)
+        try:
+            pipe  = self._r.pipeline()
+            pipe.hincrbyfloat(key, "input_usd",    input_usd)
+            pipe.hincrbyfloat(key, "output_usd",   output_usd)
+            pipe.hincrby(key, "input_tokens",  int(input_tokens))
+            pipe.hincrby(key, "output_tokens", int(output_tokens))
+            pipe.hincrby(key, "calls", 1)
+            pipe.expire(key, TTL_SECONDS)
+            pipe.execute()
+            self._update_total(user_id, month, input_usd + output_usd)
+        except Exception as e:
+            log.warning("[billing] Redis unavailable — LLM cost not recorded: %s", e)
 
     def record_batch_job_cost(
         self,
@@ -108,19 +111,22 @@ class RealtimeCostService:
     ) -> None:
         month = _month_key()
         key   = f"cost:{user_id}:month:{month}:compute"
-        pipe  = self._r.pipeline()
-        pipe.hincrbyfloat(key, "vcpu_usd",  vcpu_usd)
-        pipe.hincrbyfloat(key, "gpu_usd",   gpu_usd)
-        pipe.hincrbyfloat(key, "mem_usd",   mem_usd)
-        pipe.hincrbyfloat(key, "seconds",   duration_seconds)
-        pipe.hincrby(key, "jobs", 1)
-        pipe.expire(key, TTL_SECONDS)
-        # Delete running estimate atomically in the same pipeline flush
-        pipe.delete(f"cost:{user_id}:job:{job_id}:running")
-        pipe.execute()
+        try:
+            pipe  = self._r.pipeline()
+            pipe.hincrbyfloat(key, "vcpu_usd",  vcpu_usd)
+            pipe.hincrbyfloat(key, "gpu_usd",   gpu_usd)
+            pipe.hincrbyfloat(key, "mem_usd",   mem_usd)
+            pipe.hincrbyfloat(key, "seconds",   duration_seconds)
+            pipe.hincrby(key, "jobs", 1)
+            pipe.expire(key, TTL_SECONDS)
+            # Delete running estimate atomically in the same pipeline flush
+            pipe.delete(f"cost:{user_id}:job:{job_id}:running")
+            pipe.execute()
+            self._update_total(user_id, month, vcpu_usd + gpu_usd + mem_usd)
+        except Exception as e:
+            log.warning("[billing] Redis unavailable — batch job cost not recorded: %s", e)
         with self._lock:
             self._running_jobs.pop(job_id, None)
-        self._update_total(user_id, month, vcpu_usd + gpu_usd + mem_usd)
 
     def record_s3_put(
         self,
@@ -150,8 +156,11 @@ class RealtimeCostService:
                 "month":       month,
             })
             pipe.expire(obj_meta_key, TTL_SECONDS)
-        pipe.execute()
-        self._update_total(user_id, month, storage_usd + request_usd)
+        try:
+            pipe.execute()
+            self._update_total(user_id, month, storage_usd + request_usd)
+        except Exception as e:
+            log.warning("[billing] Redis unavailable — S3 cost not recorded: %s", e)
 
     def record_s3_delete(
         self,
@@ -327,9 +336,12 @@ class RealtimeCostService:
 
     def _update_total(self, user_id: str, month: str, delta: float) -> None:
         key = f"cost:{user_id}:month:{month}:total"
-        self._r.incrbyfloat(key, delta)
-        self._r.expire(key, TTL_SECONDS)
-        self._check_quota(user_id, month)
+        try:
+            self._r.incrbyfloat(key, delta)
+            self._r.expire(key, TTL_SECONDS)
+            self._check_quota(user_id, month)
+        except Exception as e:
+            log.warning("[billing] Redis unavailable — total cost not updated: %s", e)
 
     def _check_quota(self, user_id: str, month: str) -> None:
         """Fire a soft-limit warning if the user crosses 80% of their plan quota."""

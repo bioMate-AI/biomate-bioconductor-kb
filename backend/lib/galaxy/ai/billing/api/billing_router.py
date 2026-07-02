@@ -484,13 +484,19 @@ def internal_llm_cost(payload: LLMCostPayload):
         output_tokens=payload.output_tokens,
     )
     svc = get_cost_service()
-    svc.record_llm_cost(
-        user_id=payload.user_id,
-        input_usd=cost.input_cost,
-        output_usd=cost.output_cost,
-        input_tokens=cost.input_tokens,
-        output_tokens=cost.output_tokens,
-    )
+    try:
+        svc.record_llm_cost(
+            user_id=payload.user_id,
+            input_usd=cost.input_cost,
+            output_usd=cost.output_cost,
+            input_tokens=cost.input_tokens,
+            output_tokens=cost.output_tokens,
+        )
+    except Exception as _redis_err:
+        import logging as _log
+        _log.getLogger(__name__).warning(
+            "[billing] Redis unavailable — LLM cost not recorded locally: %s", _redis_err
+        )
 
     # Emit to Lago for usage-based billing (subscription routing uses the user's plan)
     lago = get_lago_client()
