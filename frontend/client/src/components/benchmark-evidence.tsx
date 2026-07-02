@@ -246,6 +246,7 @@ export function BenchmarkEvidence({
                       </div>
 
                       <div className="flex items-center gap-2">
+                        {result.metric_value != null && result.metric_name !== 'benchmark_evidence' && (
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -259,6 +260,7 @@ export function BenchmarkEvidence({
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
+                        )}
 
                         <Button
                           size="sm"

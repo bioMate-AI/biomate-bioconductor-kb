@@ -1160,7 +1160,7 @@ export function inferActionsFromType(type: string): ActionCategories {
     'workflow_modification': { needsToolSearch: true, needsWorkflowModification: true, needsLLMReasoning: true },
     'troubleshooting': { needsResearchAgent: true, needsToolSearch: true, needsLLMReasoning: true },
     'parameter_optimization': { needsBenchmarkAgent: true, needsResearchAgent: true, needsToolSearch: true, needsLLMReasoning: true },
-    'result_comparison': { needsToolSearch: true, needsBenchmarkAgent: true, needsLLMReasoning: true },
+    'result_comparison': { needsResearchAgent: true, needsLLMReasoning: true },
     // Research/knowledge intents — ALL route through ResearchAgent for live DB + literature
     'research_question': { needsResearchAgent: true, needsLLMReasoning: true },
     // Live database lookup: GWAS Catalog, Open Targets, OMIM, ClinVar, Ensembl, mygene.info
@@ -1179,7 +1179,7 @@ export function inferActionsFromType(type: string): ActionCategories {
     'protocol_guidance': { needsResearchAgent: true, needsLLMReasoning: true },
     'teaching_explanation': { needsLLMReasoning: true },
     'methods_writing': { needsResearchAgent: true, needsLLMReasoning: true },
-    'comparative_methodology': { needsResearchAgent: true, needsBenchmarkAgent: true, needsLLMReasoning: true },
+    'comparative_methodology': { needsResearchAgent: true, needsLLMReasoning: true },
     'regulatory_compliance': { needsResearchAgent: true, needsLLMReasoning: true },
     'cost_estimation': { needsBenchmarkAgent: true, needsLLMReasoning: true },
     'general_question': { needsLLMReasoning: true },
@@ -1867,7 +1867,10 @@ async function extractInlineDataWithLLM(
   const { createHash } = await import('node:crypto');
   const cacheKey = createHash('sha256').update(message).digest('hex').slice(0, 16);
   if (_inlineDataCache.has(cacheKey)) {
-    return _inlineDataCache.get(cacheKey)!;
+    const cached = _inlineDataCache.get(cacheKey)!;
+    const _cArrayKeys = Object.keys(cached).filter(k => cached[k].startsWith('['));
+    console.log(`[extractInlineData] result keys=${Object.keys(cached).join(',') || 'none'} arrayKeys=${_cArrayKeys.join(',') || 'none'} map=${JSON.stringify(cached)} (cache-hit)`);
+    return cached;
   }
 
   const SYSTEM = `You are a scientific data extractor. Given a user message, identify any scientific
