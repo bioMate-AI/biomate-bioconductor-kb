@@ -277,6 +277,76 @@ test("UC-3: SMILES drug candidates route to ADMET screening workflow", async () 
     /admet|herg|cyp|absorption|toxicit|pharmacokinet|bioavail/
   );
 
+  // Assistant must NOT re-ask for the SMILES the user already provided.
+  // Failure here means inlineDataMap was empty (e.g. Gemini returned an array that
+  // got dropped before the extractInlineDataWithLLM fix) so the LLM didn't know
+  // the compounds were already in the message.
+  expect(responseText, "must not re-request already-provided SMILES").not.toMatch(
+    /please provide|can you (share|give|send|paste)|need.*smiles|upload.*sdf|attach.*compound|what (molecule|compound|structure)/i
+  );
+
   await ss(page, "UC3_02_panel_verified");
   console.log("[UC-3] PASS — ADMET workflow routed; response mentions drug properties");
+});
+
+// ============================================================================
+// UC-6 — Compound table (name + SMILES column) without explicit ADMET keywords
+// ============================================================================
+//
+// Why this test exists:
+//   UC-3 uses the ADMET+SMILES fast path (message contains "hERG"/"ADMET") so
+//   needsWorkflowGeneration is forced true even if inlineDataMap is empty.
+//   UC-6 uses a physicochemical-properties request with NO ADMET keywords, so
+//   the routing relies on extractInlineDataWithLLM correctly surfacing the SMILES
+//   table in inlineDataMap.  If Gemini returns an array that was previously
+//   dropped (pre-fix), inlineDataMap is empty, the LLM has no "data already
+//   provided" context, and may re-ask — failing the not.toMatch assertion below.
+
+test("UC-6: compound name+SMILES table routes to property workflow without re-asking for structures", async () => {
+  const page = sharedPage;
+  await newSession(page);
+  await ss(page, "UC6_00_new_session");
+
+  // CSV table: compound name column + SMILES column.
+  // No ADMET/hERG keywords → ADMET fast path is NOT triggered.
+  // Routing must come from inlineDataMap populated by extractInlineDataWithLLM.
+  const message = [
+    "Calculate the molecular weight, LogP, and number of hydrogen bond donors/acceptors for each of these compounds:",
+    "compound_name,smiles",
+    "aspirin,CC(=O)Oc1ccccc1C(=O)O",
+    "caffeine,Cn1cnc2c1c(=O)n(C)c(=O)n2C",
+    "ibuprofen,CC(C)Cc1ccc(cc1)C(C)C(=O)O",
+    "paracetamol,CC(=O)Nc1ccc(O)cc1",
+    "metformin,CN(C)C(=N)NC(=N)N",
+  ].join("\n");
+
+  await sendMessage(page, message);
+  const assistantEl = await waitForAssistant(page, LLM_TIMEOUT);
+  await ss(page, "UC6_01_response");
+
+  const responseText = await assistantEl.textContent({ timeout: LLM_TIMEOUT }).catch(() => "");
+  console.log("[UC-6] Response length:", responseText?.length);
+  console.log("[UC-6] Response (first 300):", responseText?.slice(0, 300));
+
+  // Must be a substantive response
+  expect(responseText?.trim().length ?? 0, "response must be non-empty").toBeGreaterThan(50);
+
+  // Critical assertion: assistant must NOT ask for the structures the user already pasted.
+  // This fails if inlineDataMap was empty (arrays dropped) because the system prompt
+  // would lack the "these values are already provided" context block.
+  expect(responseText, "must not re-request already-provided SMILES/structures").not.toMatch(
+    /please provide|can you (share|give|send|paste)|need.*smiles|upload.*sdf|attach.*compound|what (molecule|compound|structure)|provide.*structure|share.*smiles/i
+  );
+
+  // Response should engage with the physicochemical request
+  expect(responseText?.toLowerCase()).toMatch(
+    /molecular weight|logp|hydrogen bond|mw|donor|acceptor|property|properties|lipinski|aspirin|caffeine|ibuprofen/i
+  );
+
+  // No workflow card expected (property calculation may return chat-only or workflow)
+  const cardCount = await page.locator('[data-testid^="workflow-artifact-anchor-"]').count();
+  console.log("[UC-6] Workflow cards found:", cardCount);
+
+  await ss(page, "UC6_02_verified");
+  console.log("[UC-6] PASS — compound table processed; assistant did not re-request structures");
 });

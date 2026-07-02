@@ -12,6 +12,7 @@
  */
 
 import { resolveChainHintNames } from './chain-hint-fallback';
+import { jsonrepair } from 'jsonrepair';
 import Anthropic from '@anthropic-ai/sdk';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
@@ -3369,6 +3370,17 @@ Rules:
     // Research agent
     if (actions.needsResearchAgent) {
       log('Routing to research backend');
+      // Emit a progress status so the UI shows feedback during the long research query.
+      if (onToolEvent) {
+        onToolEvent({
+          type: 'status',
+          tool_use_id: 'research_agent',
+          name: 'research_query',
+          message: paperContentResult
+            ? `Reading your paper and searching relevant literature…`
+            : `Searching relevant literature and databases…`,
+        });
+      }
       try {
         // When paper content is available, pass it directly to the research agent
         // so it becomes the PRIMARY source for synthesis. The agent then
@@ -3385,6 +3397,14 @@ Rules:
         }
         researchResponse = await this._api().queryResearch(researchPayload);
         log('Research response received');
+        if (onToolEvent) {
+          onToolEvent({
+            type: 'status',
+            tool_use_id: 'research_agent',
+            name: 'research_query',
+            message: `Synthesizing findings and generating response…`,
+          });
+        }
       } catch (error: any) {
         log('Research query failed: ' + (error.message ?? error.error ?? String(error)));
       }
@@ -5603,16 +5623,42 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         .replace(/\s*`+\s*$/g, '')
         .trim();
 
-      // Try to extract JSON object if there's extra text around it
-      const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        resultText = jsonMatch[0];
+      // Extract the JSON object using brace counting (not a greedy regex).
+      // Greedy /\{[\s\S]*\}/ expands to the LAST } in the text, which causes
+      // "Unexpected non-whitespace character after JSON" when Gemini appends
+      // trailing explanation text that itself contains a } character.
+      {
+        const firstBrace = resultText.indexOf('{');
+        if (firstBrace !== -1) {
+          let depth = 0;
+          let inStr = false;
+          let escape = false;
+          let end = -1;
+          for (let i = firstBrace; i < resultText.length; i++) {
+            const c = resultText[i];
+            if (escape) { escape = false; continue; }
+            if (c === '\\' && inStr) { escape = true; continue; }
+            if (c === '"') { inStr = !inStr; continue; }
+            if (inStr) continue;
+            if (c === '{') depth++;
+            else if (c === '}') { depth--; if (depth === 0) { end = i; break; } }
+          }
+          if (end !== -1) resultText = resultText.slice(firstBrace, end + 1);
+        }
       }
 
       // Remove any remaining backticks that might be inside string values
       resultText = resultText.replace(/`/g, "'");
 
-      const result = JSON.parse(resultText);
+      // Try strict parse first; fall back to jsonrepair for Gemini quirks
+      // (unescaped quotes in strings, trailing commas, etc.)
+      let result: any;
+      try {
+        result = JSON.parse(resultText);
+      } catch (parseErr) {
+        const repaired = jsonrepair(resultText);
+        result = JSON.parse(repaired);
+      }
 
       // Parse into IntentDecomposition
       return this.parseIntentResult(result, message);
@@ -5625,29 +5671,42 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         // Re-throw so _generateResponse catch block can surface the correct error message
         throw error;
       }
-      // JSON parse failure: build a best-effort tool_search intent so the pipeline
-      // still attempts workflow search rather than silently skipping it.
-      // Extract keywords from the raw message via simple tokenisation.
+      // JSON parse failure: build a best-effort intent so the pipeline still
+      // attempts workflow search rather than silently skipping it.
+      // If the message contains inline data (tabular data, SRA/GEO accessions,
+      // SMILES, file paths), default to workflow_generation — inline data is
+      // strong evidence the user wants to run a pipeline, not just search tools.
       const rawKeywords = message
         .toLowerCase()
         .replace(/[^\w\s-]/g, ' ')
         .split(/\s+/)
         .filter(w => w.length > 3 && !['with','that','this','from','have','will','your','their','what','which','when','then','they','also','into','been','would','could'].includes(w))
         .slice(0, 8);
+      const _fallbackHasInlineData = (
+        /\b((SRR|ERR|DRR|SRS|ERS|DRS|SRP|ERP|DRP|PRJNA|PRJEB)\d+)\b/i.test(message) ||
+        /\b((GSE|GSM|GDS|GPL|E-MTAB-|E-GEOD-|PXD)\d+)\b/i.test(message) ||
+        /\b((?:s3|gs|ftp|http|https):\/\/\S+|\/\S+\.(?:fastq|fq|bam|vcf|fa|fasta|gz|csv|tsv|h5))\b/i.test(message) ||
+        /[=#\[\]\/\\@(][A-Za-z0-9@=#\-+\[\]()\/.\\]{4,}/.test(message) || // SMILES-like
+        (() => {
+          const lines = message.split('\n').map(l => l.trim()).filter(Boolean);
+          return lines.filter(l => { const c = l.split(/[,\t]/); return c.length >= 2 && c.some(x => /^\d+(\.\d+)?$/.test(x.trim())); }).length >= 2;
+        })()
+      );
+      const _fallbackType = _fallbackHasInlineData ? 'workflow_generation' : 'tool_search';
       const fallback: DecomposedIntent = {
         id: 'intent_fallback',
-        type: 'tool_search',
+        type: _fallbackType,
         subQuery: message,
         keywords: rawKeywords,
         inlineParameters: {},
-        needsToolSearch: true,
+        needsToolSearch: !_fallbackHasInlineData,
         needsDatasets: false,
         confidence: 0.4,
         facts: [],
         dependsOn: [],
-        actions: inferActionsFromType('tool_search'),
+        actions: inferActionsFromType(_fallbackType),
       };
-      console.warn('[GalaxyAssistant] Intent parse failed — using keyword fallback, needsToolSearch=true');
+      console.warn(`[GalaxyAssistant] Intent parse failed — using keyword fallback, type=${_fallbackType} (hasInlineData=${_fallbackHasInlineData})`);
       return {
         intents: [fallback],
         isMultiIntent: false,
