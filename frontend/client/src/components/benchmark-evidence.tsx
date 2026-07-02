@@ -303,7 +303,7 @@ export function BenchmarkEvidence({
                             onClick={() => onToolClick(result.tool_name, result.galaxy_tool_id)}
                           >
                             <ExternalLink className="h-3 w-3 mr-1" />
-                            View in Galaxy
+                            View tool
                           </Button>
                         )}
                       </div>

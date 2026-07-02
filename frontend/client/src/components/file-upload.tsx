@@ -509,7 +509,7 @@ export function FileUpload({
                       Deferred (Recommended for large files)
                     </Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Galaxy downloads only when workflow needs the data. Start designing immediately, no waiting.
+                      BioMate downloads only when the workflow needs the data. Start designing immediately, no waiting.
                     </p>
                     <div className="flex flex-wrap gap-1 mt-2">
                       <Badge variant="secondary" className="text-xs">No upfront wait</Badge>
@@ -532,7 +532,7 @@ export function FileUpload({
                       Immediate Download
                     </Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Galaxy fetches the file now. Data available for preview before workflow runs.
+                      BioMate fetches the file now. Data available for preview before workflow runs.
                     </p>
                     <div className="flex flex-wrap gap-1 mt-2">
                       <Badge variant="outline" className="text-xs">Preview before run</Badge>

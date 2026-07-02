@@ -972,7 +972,7 @@ export function WorkflowArtifact({
                     <p className="text-xs mt-2 italic">
                       {isParameterOnly
                         ? 'Click on workflow steps to configure parameters, or ask me to help set them up.'
-                        : 'Please upload your data files to Galaxy or ask me to help you prepare test data.'
+                        : 'Please upload your data files or ask me to help you prepare test data.'
                       }
                     </p>
                   </AlertDescription>
