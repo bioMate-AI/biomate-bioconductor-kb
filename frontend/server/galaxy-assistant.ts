@@ -854,7 +854,8 @@ function normalizeAdmetSmiles(
   // SMILES heuristic: extract the first whitespace-delimited token and test it.
   // The LLM sometimes appends prose after the SMILES string
   // (e.g. "Cc1ccc...n1 and predict hERG cardiac risk"), so strip trailing text.
-  const getSmilesToken = (v: string): string | null => {
+  const getSmilesToken = (v: unknown): string | null => {
+    if (typeof v !== 'string') return null;
     const token = v.split(/\s/)[0];
     return /[=#\[\]\/\\@]/.test(token) && token.length >= 5 ? token : null;
   };
@@ -862,13 +863,20 @@ function normalizeAdmetSmiles(
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(raw)) {
     if (k === 'smiles_list' || k === 'ADMET_model_type') {
-      out[k] = v;
+      // smiles_list may be a JSON array from the Galaxy backend — serialize it if needed
+      out[k] = Array.isArray(v) ? JSON.stringify(v) : String(v);
+    } else if (Array.isArray(v)) {
+      // Array of SMILES strings from the Galaxy backend — treat each element as a SMILES candidate
+      for (const item of v) {
+        const smilesToken = getSmilesToken(item);
+        if (smilesToken) smilesList.push(smilesToken);
+      }
     } else {
       const smilesToken = getSmilesToken(v);
       if (smilesToken) {
         smilesList.push(smilesToken);
-      } else {
-        out[k] = v;
+      } else if (v != null) {
+        out[k] = String(v);
       }
     }
   }
@@ -1536,34 +1544,57 @@ async function _extractPdfText(filePath: string, maxChars = 50000): Promise<stri
 
   const pythonScript = `
 import sys, json
-try:
-    import pdfplumber
-    with pdfplumber.open(sys.argv[1]) as pdf:
+
+def _try_pdfplumber(path, max_chars):
+    try:
+        import pdfplumber
         parts = []
         chars = 0
-        for page in pdf.pages:
+        pdf = pdfplumber.open(path)
+        page_count = 0
+        try:
+            page_count = len(pdf.pages)
+            for page in pdf.pages:
+                t = (page.extract_text() or '').strip()
+                if t:
+                    parts.append(t)
+                    chars += len(t)
+                if chars >= max_chars:
+                    break
+        finally:
+            try:
+                pdf.close()
+            except Exception:
+                pass
+        text = '\\n\\n'.join(parts)[:max_chars]
+        return (text, page_count) if text.strip() else (None, 0)
+    except Exception:
+        return (None, 0)
+
+def _try_pypdf(path, max_chars):
+    try:
+        from pypdf import PdfReader
+        reader = PdfReader(path)
+        parts = []
+        chars = 0
+        for page in reader.pages:
             t = (page.extract_text() or '').strip()
             if t:
                 parts.append(t)
                 chars += len(t)
-            if chars >= int(sys.argv[2]):
+            if chars >= max_chars:
                 break
-        text = '\\n\\n'.join(parts)[:int(sys.argv[2])]
-        print(json.dumps({'text': text, 'page_count': len(pdf.pages)}))
-except ImportError:
-    from pypdf import PdfReader
-    reader = PdfReader(sys.argv[1])
-    parts = []
-    chars = 0
-    for page in reader.pages:
-        t = (page.extract_text() or '').strip()
-        if t:
-            parts.append(t)
-            chars += len(t)
-        if chars >= int(sys.argv[2]):
-            break
-    text = '\\n\\n'.join(parts)[:int(sys.argv[2])]
-    print(json.dumps({'text': text, 'page_count': len(reader.pages)}))
+        text = '\\n\\n'.join(parts)[:max_chars]
+        return (text, len(reader.pages)) if text.strip() else (None, 0)
+    except Exception:
+        return (None, 0)
+
+path = sys.argv[1]
+max_chars = int(sys.argv[2])
+text, page_count = _try_pdfplumber(path, max_chars)
+if not text:
+    text, page_count = _try_pypdf(path, max_chars)
+print(json.dumps({'text': text or '', 'page_count': page_count}))
 `;
 
   const pythonCandidates = [
@@ -1616,10 +1647,11 @@ except ImportError:
 async function _fetchPaperContentFromMessage(
   message: string,
 ): Promise<{ ref: string; content: string } | null> {
-  // --- New chip format: [Dataset: name (id: uuid)] ---
+  // --- New chip format: [Dataset: name (id: <value>)] ---
   // Emitted by chat-input.tsx when the user attaches a dataset chip.
-  // Extract all PDF dataset refs and pull their content.
-  const newFormatRefs = [...message.matchAll(/\[Dataset:\s*([^\(]+?)\s*\(id:\s*([a-f0-9-]+)\s*\)\]/gi)];
+  // The "id" field may be a UUID, an S3 URI (s3://bucket/uploads/<uuid>/file.pdf),
+  // a local file path, or a Galaxy dataset ID. Extract all PDF refs and pull content.
+  const newFormatRefs = [...message.matchAll(/\[Dataset:\s*([^\(]+?)\s*\(id:\s*([^\)]+?)\s*\)\]/gi)];
   if (newFormatRefs.length > 0) {
     try {
       const { getUploadedFile } = await import('./routes');
@@ -1627,17 +1659,26 @@ async function _fetchPaperContentFromMessage(
       const refNames: string[] = [];
       for (const m of newFormatRefs) {
         const name = m[1].trim();
-        const datasetId = m[2].trim();
-        const localFile = getUploadedFile(datasetId);
+        const rawId = m[2].trim();
+        // Resolve to a local file. Try the raw ID first, then extract a UUID from an S3 URI.
+        let localFile = getUploadedFile(rawId);
+        if (!localFile) {
+          // If rawId is an S3 URI like s3://bucket/uploads/<uuid>/file.pdf, extract the UUID
+          const uuidInS3 = rawId.match(/uploads\/([0-9a-f-]{36})\//i)?.[1];
+          if (uuidInS3) localFile = getUploadedFile(uuidInS3);
+        }
         if (!localFile?.filePath) {
-          console.warn(`[_fetchPaperContentFromMessage] No local file for dataset ${datasetId} (name: ${name})`);
+          // Also skip non-PDF names — GalaxyDatasetBrowser can hold any file type
+          if (!name.toLowerCase().endsWith('.pdf')) continue;
+          console.warn(`[_fetchPaperContentFromMessage] No local file for dataset id=${rawId} (name: ${name})`);
           continue;
         }
+        if (!localFile.filePath.toLowerCase().endsWith('.pdf')) continue;
         const text = await _extractPdfText(localFile.filePath, 40000);
         if (text) {
           textParts.push(`=== ${name} ===\n${text}`);
           refNames.push(name);
-          console.log(`[_fetchPaperContentFromMessage] Extracted ${text.length} chars from ${name} (${datasetId})`);
+          console.log(`[_fetchPaperContentFromMessage] Extracted ${text.length} chars from ${name} (id=${rawId})`);
         }
       }
       if (textParts.length > 0) {
@@ -5640,9 +5681,17 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
           'clinical_genomics', 'genomics_knowledge', 'database_lookup',
         ]);
         const mustUseResearch = researchAgentTypes.has(type);
+        // For types that require workflow generation, the LLM classifier must NOT be able
+        // to disable it by returning needsWorkflowGeneration: false — that skips generateWorkflow()
+        // entirely and returns an empty Gemini response, causing the "having trouble" fallback.
+        const workflowTypes = new Set([
+          'workflow_generation', 'data_format_conversion', 'external_db_retrieval',
+          'visualization', 'multi_step_procedure',
+        ]);
+        const mustGenerateWorkflow = workflowTypes.has(type);
         return {
           needsToolSearch: typeof raw.needsToolSearch === 'boolean' ? raw.needsToolSearch : base.needsToolSearch,
-          needsWorkflowGeneration: typeof raw.needsWorkflowGeneration === 'boolean' ? raw.needsWorkflowGeneration : base.needsWorkflowGeneration,
+          needsWorkflowGeneration: mustGenerateWorkflow ? true : (typeof raw.needsWorkflowGeneration === 'boolean' ? raw.needsWorkflowGeneration : base.needsWorkflowGeneration),
           needsWorkflowModification: typeof raw.needsWorkflowModification === 'boolean' ? raw.needsWorkflowModification : base.needsWorkflowModification,
           // If type requires research agent, always enable it regardless of what the classifier returns
           needsResearchAgent: mustUseResearch ? true : (typeof raw.needsResearchAgent === 'boolean' ? raw.needsResearchAgent : base.needsResearchAgent),
