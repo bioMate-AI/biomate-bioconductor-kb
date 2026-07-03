@@ -344,14 +344,14 @@ export function ChatMessage({
               if (attachedBlock) {
                 attachedNames.push(...attachedBlock.split(',').map(s => s.trim()).filter(Boolean))
               }
-              const datasetBlock = raw.match(/\[(?:Uploaded datasets?|Dataset):\s*([^\]]+)\]/gi) ?? []
+              const datasetBlock = raw.match(/\[(?:BioMate dataset|Uploaded datasets?|Dataset):\s*([^\]]+)\]/gi) ?? []
               datasetBlock.forEach(b => {
-                const name = b.match(/\[(?:Uploaded datasets?|Dataset):\s*([^:(]+)/i)?.[1]?.trim()
+                const name = b.match(/\[(?:BioMate dataset|Uploaded datasets?|Dataset):\s*([^:(]+)/i)?.[1]?.trim()
                 if (name && !attachedNames.includes(name)) attachedNames.push(name)
               })
               // Strip all metadata blocks from the visible text
               const visibleText = raw
-                .replace(/\n?\[(?:Galaxy dataset|Dataset|Attached files|Uploaded datasets?)[^\]]*\]/gi, '')
+                .replace(/\n?\[(?:BioMate dataset|Galaxy dataset|Dataset|Attached files|Uploaded datasets?)[^\]]*\]/gi, '')
                 .replace(/\n?\[Paper content:[^\]]*\][\s\S]*$/i, '')
                 .trim()
               return (
@@ -421,7 +421,13 @@ export function ChatMessage({
                     },
                   }}
                 >
-                  {addCitationLinks(message.content || '')}
+                  {addCitationLinks(
+                    // Strip trailing References section when structured citations are rendered below
+                    (message.metadata?.type === 'research_response' &&
+                      (message.metadata?.research_response as any)?.citations?.length > 0)
+                      ? (message.content || '').replace(/\n+(?:#{1,3}\s+|\*{1,2})?references?\**\s*\n[\s\S]*$/i, '').trim()
+                      : (message.content || '')
+                  )}
                 </ReactMarkdown>
               </div>
               </>
@@ -475,45 +481,48 @@ export function ChatMessage({
           )}
 
           {/* wf-chip: compact workflow card shown in chat when workflow is open in the panel */}
-          {isWorkflowMessage && isInPanel && message.metadata?.workflow && (
-            <>
-              <div className="wf-chip" data-tour="chat-handoff">
-                <div className="wf-chip-ic">
-                  <FlaskConical size={16} />
-                </div>
-                <div className="wf-chip-body">
-                  <div className="wf-chip-name">{message.metadata.workflow.name || message.metadata.workflow.display_name || 'Workflow'}</div>
-                  <div className="wf-chip-sub">
-                    {[
-                      message.metadata.workflow.domain,
-                      message.metadata.workflow.subtitle ||
-                        (message.metadata.workflow.steps && typeof message.metadata.workflow.steps === 'object' && !Array.isArray(message.metadata.workflow.steps) && Object.keys(message.metadata.workflow.steps).length > 0
-                          ? `${Object.keys(message.metadata.workflow.steps).length} steps` : null),
-                    ].filter(Boolean).join(' · ')}
+          {isWorkflowMessage && isInPanel && message.metadata?.workflow && (() => {
+              const runStatus = currentExecutionRun?.execution?.status;
+              const chipClass = runStatus === 'failed' ? 'chip-fail' : runStatus === 'running' ? 'chip-run' : 'chip-ok';
+              const chipLabel = runStatus === 'failed' ? 'Failed' : runStatus === 'completed' ? 'Done' : runStatus === 'running' ? 'Running' : 'In panel';
+              const hint = runStatus === 'failed'
+                ? 'This run did not complete. Check the panel for details and try again.'
+                : runStatus === 'completed'
+                ? 'Run complete — results are available in the panel.'
+                : 'You can keep chatting while this run continues in the background.';
+              return (
+                <>
+                  <div className="wf-chip" data-tour="chat-handoff">
+                    <div className="wf-chip-ic">
+                      <FlaskConical size={16} />
+                    </div>
+                    <div className="wf-chip-body">
+                      <div className="wf-chip-name">{message.metadata.workflow.name || message.metadata.workflow.display_name || 'Workflow'}</div>
+                      <div className="wf-chip-sub">
+                        {[
+                          message.metadata.workflow.domain,
+                          message.metadata.workflow.subtitle ||
+                            (message.metadata.workflow.steps && typeof message.metadata.workflow.steps === 'object' && !Array.isArray(message.metadata.workflow.steps) && Object.keys(message.metadata.workflow.steps).length > 0
+                              ? `${Object.keys(message.metadata.workflow.steps).length} steps` : null),
+                        ].filter(Boolean).join(' · ')}
+                      </div>
+                    </div>
+                    <span className={chipClass}>
+                      <span className="dot" />
+                      {chipLabel}
+                    </span>
                   </div>
-                </div>
-                <span className="chip-ok">
-                  <span className="dot" />
-                  In panel
-                </span>
-              </div>
-              {/* Background-work hint — tells the user they don't have to wait for
-                  the workflow to finish. Stays in chat regardless of run state. */}
-              <div
-                className="wf-chip-hint"
-                data-testid="wf-chip-background-hint"
-                style={{
-                  fontSize: 12,
-                  color: 'var(--text-muted)',
-                  marginTop: 6,
-                  lineHeight: 1.45,
-                }}
-              >
-                You can keep chatting and start more work — this run continues in the background.
-                All active and past runs are visible in the <strong>Run Manager</strong> at the top of the chat.
-              </div>
-            </>
-          )}
+                  <div
+                    className="wf-chip-hint"
+                    data-testid="wf-chip-background-hint"
+                    style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.45 }}
+                  >
+                    {hint}
+                  </div>
+                </>
+              );
+            })()
+          }
 
           {/* IntentClarificationCard — surfaces cross-intent ambiguity
               (e.g. tool_search vs workflow_generation) from the backend's

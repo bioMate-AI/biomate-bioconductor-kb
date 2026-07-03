@@ -3004,6 +3004,10 @@ Rules:
     ]);
     log('Steps 2-3 complete');
 
+    // Capture user's original query before paper-content injection so the
+    // paper-question guard can test only what the user actually typed.
+    const originalUserQuery = message;
+
     // Inject fetched paper content into the message so the workflow generator and
     // response synthesizer both see the actual paper text.
     if (paperContentResult) {
@@ -3199,6 +3203,25 @@ Rules:
         intent.type = 'clinical_genomics';
       }
 
+    }
+
+    // Paper-question guard (FINAL gate):
+    // When the user has uploaded a PDF and is asking a question ABOUT it
+    // (summarize, what is this about, explain, findings, etc.) — never route
+    // to workflow generation. The paper content has already been extracted and
+    // will be used to answer directly via the LLM response synthesizer.
+    // This runs LAST so it overrides any earlier workflow_generation misclassification.
+    if (paperContentResult && actions.needsWorkflowGeneration) {
+      // Test against the ORIGINAL user query, not the paper-injected message —
+      // bioinformatics papers contain words like "pipeline", "run", "workflow"
+      // which would falsely match the negative condition and suppress the guard.
+      const _isPaperQuestion = /\b(what\s+(is|does|are|do)|tell\s+me|summarize|summary|explain|describe|findings?|abstract|key\s+points?|main\s+(finding|result|point|conclusion)|overview|about\s+this|this\s+paper|the\s+paper)\b/i.test(originalUserQuery)
+        && !/\b(run|execute|process|align|map|call|quantify|trim|filter|differential\s+expression|variant|genotype|assemble|pipeline|workflow)\b/i.test(originalUserQuery);
+      if (_isPaperQuestion) {
+        log('Paper-question guard: PDF attached + question about paper — routing to research_response, not workflow');
+        actions.needsWorkflowGeneration = false;
+        intent.type = 'research_question';
+      }
     }
 
     // Multi-turn data-provision override:
@@ -4977,7 +5000,8 @@ For SINGLE-intent messages (the common case), respond with a single JSON object:
   "preferred_domains": [],
   "key_terms": ["reverse complement"],
   "needs_thinking": false,
-  "chain_hint": null
+  "chain_hint": null,
+  "rationale": "User pasted a raw nucleotide sequence inline with no file attachment — this is a direct in-line computation request, not a pipeline execution."
 }
 
 The above example uses needsWorkflowGeneration: false because the user pasted their data inline (a sequence) — BioMate computes directly via run_code.
@@ -5660,6 +5684,9 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       // Remove any remaining backticks that might be inside string values
       resultText = resultText.replace(/`/g, "'");
 
+      // Log the raw LLM response so we can see the rationale before JSON parsing
+      console.log('[Intent Classifier RAW]', resultText.slice(0, 1500));
+
       // Try strict parse first; fall back to jsonrepair for Gemini quirks
       // (unescaped quotes in strings, trailing commas, etc.)
       let result: any;
@@ -5833,6 +5860,13 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
 
     // Single-intent format: flat object with type, keywords, etc.
     const intentType = result.type || 'general_question';
+    const intentRationale: string | undefined = typeof result.rationale === 'string' ? result.rationale : undefined;
+
+    console.log(
+      `[Intent Classifier] type=${intentType} confidence=${result.confidence ?? '?'}` +
+      (intentRationale ? `\n  rationale: ${intentRationale}` : '')
+    );
+
     const singleIntent: DecomposedIntent = {
       id: 'intent_1',
       type: intentType,

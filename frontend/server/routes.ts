@@ -5152,7 +5152,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             voltage_kv:               String(wfSummary?.data?.voltage_kv              ?? params?.voltage_kv ?? params?.voltage ?? 'MISSING'),
             symmetry:                 String(wfSummary?.data?.symmetry                ?? params?.symmetry   ?? 'C1'),
             steps_completed:          String(wfSummary?.data?.steps_completed         ?? 'MISSING'),
-            s3_output_path:           s3OutputBase,
             completion_time:          String(wfSummary?.data?.completion_time         ?? completedAt ?? 'MISSING'),
             cs_project_uid:           proj,
           };
@@ -5221,8 +5220,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `1. STUDY OVERVIEW`,
             `-`.repeat(40),
             `Workflow: ${workflowName}`,
-            `Invocation ID: ${invocationId}`,
-            `Nextflow Run ID: ${nfRunId}`,
             `Execution status: ${runStatus}`,
             `Started: ${startedAt}`,
             completedAt ? `Completed: ${completedAt}` : '',
@@ -5240,9 +5237,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `-`.repeat(40),
             outputInventory,
             ``,
-            `5. DATA LOCATION`,
+            `5. NEXT STEPS`,
             `-`.repeat(40),
-            `All outputs: ${s3OutputBase}`,
+            `Download your results using the BioMate run panel, or contact support if outputs are missing.`,
           ].filter(l => l !== undefined).join('\n');
           res.setHeader('Content-Type', 'text/plain; charset=utf-8');
           res.setHeader('Content-Disposition', `attachment; filename="run_report_${invocationId}.txt"`);
@@ -5255,14 +5252,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const executionBlock = `=== EXECUTION METADATA ===
 WORKFLOW: ${workflowName}
-INVOCATION ID: ${invocationId}
-NEXTFLOW RUN ID: ${nfRunId}
 EXECUTION STATUS: ${runStatus}
 START TIME: ${startedAt}
 COMPLETION TIME: ${completedAt || 'N/A'}
 TOTAL WALL TIME: ${wallTimeStr}
 CLOUD PLATFORM: AWS Batch (us-west-2 region)
-ORCHESTRATION: Nextflow DSL2 + AWS Batch`;
+ORCHESTRATION: BioMate pipeline on AWS Batch`;
 
         const commonTail = `
 === EXTRACTED METRICS (parsed from pipeline JSON reports — verified real numbers) ===
@@ -5289,10 +5284,8 @@ PIPELINE CONTEXT:
 Workflow: ${workflowName}
 Wall time: ${wallTimeStr}
 Steps completed: ${extractedMetrics.steps_completed}
-Platform: AWS Batch, CryoSPARC v5.0.2, Nextflow DSL2
+Platform: AWS Batch, CryoSPARC v5.0.2
 Pixel size: ${extractedMetrics.pixel_size_A} Å/px | Voltage: ${extractedMetrics.voltage_kv} kV | Symmetry: ${extractedMetrics.symmetry}
-Output path: ${extractedMetrics.s3_output_path}
-
 OUTPUT FILES PRODUCED:
 ${allOutputFiles.filter((f: string) => !f.includes('[binary]') || f.includes('.mrc')).slice(0, 20).join('\n')}
 
@@ -5436,8 +5429,6 @@ ${paramLines || '(none recorded)'}`;
           `${'='.repeat(60)}`,
           `Generated: ${new Date().toISOString()}`,
           `Workflow: ${workflowName}`,
-          `Invocation ID: ${invocationId}`,
-          `Nextflow Run ID: ${nfRunId}`,
           `Wall Time: ${wallTimeStr}`,
           `=`.repeat(60),
           ``,
@@ -9792,7 +9783,7 @@ ${paramLines || '(none recorded)'}`;
             executionEngine: 'nextflow',
             nextflowRunId: nextflowData.run_id,
             status: nextflowData.success ? 'running' : 'failed',
-            message: `Nextflow workflow queued (run_id: ${nextflowData.run_id})`,
+            message: `Workflow queued (run_id: ${nextflowData.run_id})`,
             outputs: nextflowData.outputs,
             results: nextflowData.results
           });
@@ -9821,7 +9812,7 @@ ${paramLines || '(none recorded)'}`;
           }).catch(() => {/* ignore email failures */});
 
           return res.status(500).json({
-            error: 'nextflow_execution_failed',
+            error: 'workflow_execution_failed',
             message: 'Something went wrong while starting the workflow. Our team has been notified. Please try again or come back later.',
             runId: executionRun?.id
           });
@@ -11220,11 +11211,7 @@ Rules:
       res.json({
         workflow_id: runId,
         status: run.execution?.status || 'unknown',
-        outdir,
         output_files: outputFiles,
-        download_commands: {
-          all_outputs: `aws s3 sync ${outdir}/ ./outputs/`,
-        },
       });
     } catch (error: any) {
       console.error('[output_files] Error:', error);
@@ -11491,12 +11478,6 @@ Rules:
         return res.status(404).json({ error: 'Run not found' });
       }
       const runId = req.params.id;
-      const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
-      // Prefer the stored outdir (e.g. CryoSPARC uses a UUID-based path, not the frontend run UUID)
-      const storedOutdir = (run as any).execution?.nextflowOutputDir || null;
-      const outdir = storedOutdir || `s3://${s3Bucket}/nextflow/outputs/${runId}`;
-      const workDir = `s3://${s3Bucket}/nextflow/work/${runId}`;
-
       // Attempt to list individual files with presigned download URLs from the Python backend
       let outputFiles: any[] = [];
       try {
@@ -11509,23 +11490,10 @@ Rules:
         }
       } catch (_) { /* non-fatal — fall back to S3 sync command */ }
 
-      // If no files from Galaxy, synthesize entries from the stored S3 outdir so the
-      // "download_commands contain S3 paths" assertion passes
-      if (outputFiles.length === 0 && storedOutdir) {
-        outputFiles = [{ url: storedOutdir, name: 'outputs', command: `aws s3 sync ${storedOutdir}/ ./outputs/` }];
-      }
-
       res.json({
         workflow_id: runId,
-        output_dir: outdir,
         files: outputFiles,
-        download_commands: {
-          all_outputs: `aws s3 sync ${outdir}/ ./outputs/`,
-          json_only: `aws s3 sync ${outdir}/ ./outputs/ --include '*.json' --exclude '*'`,
-          intermediate_files: {
-            work_dir: `aws s3 sync ${workDir}/ ./work/`,
-          },
-        },
+        download_commands: {},
       });
     } catch (error: any) {
       console.error('[download_commands] Error:', error);

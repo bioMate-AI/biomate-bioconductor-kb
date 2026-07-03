@@ -232,7 +232,7 @@ export function AfterRunReport({
             </div>
           </>
         )}
-        {tab === "outputs" && <OutputsTab outputs={outputs} runId={runId} invocationId={invocationId} />}
+        {tab === "outputs" && <OutputsTab outputs={outputs} runId={runId} invocationId={invocationId} executionStatus={executionStatus} />}
         {tab === "methods" && <MethodsTab methods={methods} />}
         {tab === "params" && <ParametersTab parameters={parameters} runId={runId} />}
         {tab === "software" && <SoftwareTab versions={software} />}
@@ -781,7 +781,8 @@ function OutputsTab({
   outputs,
   runId,
   invocationId,
-}: { outputs: OutputFile[]; runId: string; invocationId?: string }) {
+  executionStatus,
+}: { outputs: OutputFile[]; runId: string; invocationId?: string; executionStatus?: string }) {
   // Audit 2026-06-17: the parent's outputs prop is derived from the DB-stored
   // nextflowStatus.s3_output_files snapshot. That snapshot is often empty
   // for completed runs because the Galaxy /api/nextflow/status endpoint is
@@ -840,22 +841,11 @@ function OutputsTab({
   if (totalCount === 0) {
     return (
       <div style={styles.tabContent}>
-        <p style={styles.empty}>No output files registered yet.</p>
-        {/* Bulk-download actions still visible so the user can pull a partial bundle. */}
-        <div style={styles.bulkActions}>
-          {invocationId && (
-            <JobButton
-              kind="download_all_zip"
-              payload={{ invocationId, runId }}
-              label="↓ Download all as ZIP"
-              onReady={triggerDownload}
-              className="afterrun-download-all-btn"
-            />
-          )}
-          <a href={reproUrl} download style={{ ...styles.bulkBtn, ...styles.bulkBtnSecondary }}>
-            ↓ Reproducibility bundle
-          </a>
-        </div>
+        <p style={styles.empty}>
+          {executionStatus === 'failed'
+            ? 'No outputs — run did not complete successfully.'
+            : 'No output files registered yet.'}
+        </p>
       </div>
     );
   }
@@ -954,19 +944,21 @@ function ParametersTab({
 
   return (
     <div style={styles.tabContent}>
-      <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button
-          type="button"
-          onClick={handleRunAgain}
-          style={styles.runAgainBtn}
-          data-testid="afterrun-run-again-params"
-        >
-          ↻ Run again with edits
-        </button>
-        {ctaToast && (
-          <span role="status" style={styles.toast} data-testid="afterrun-cta-toast-params">{ctaToast}</span>
-        )}
-      </div>
+      {entries.length > 0 && (
+        <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            type="button"
+            onClick={handleRunAgain}
+            style={styles.runAgainBtn}
+            data-testid="afterrun-run-again-params"
+          >
+            ↻ Run again with edits
+          </button>
+          {ctaToast && (
+            <span role="status" style={styles.toast} data-testid="afterrun-cta-toast-params">{ctaToast}</span>
+          )}
+        </div>
+      )}
       {entries.length === 0 ? (
         <p style={styles.empty}>No parameter values recorded.</p>
       ) : (
@@ -1411,8 +1403,8 @@ function buildFullReportMarkdown(args: {
       // Show as reference (basename + length) rather than dumping the value
       const refStr = String(v);
       const basename = refStr.split(/[/\\]/).pop() || refStr;
-      const note = refStr.startsWith("s3://") ? "S3 reference"
-                 : refStr.startsWith("http") ? "URL reference"
+      const note = refStr.startsWith("s3://") ? "Cloud storage"
+                 : refStr.startsWith("http") ? "Remote file"
                  : refStr.match(/\.(fastq|fq|bam|vcf|h5ad|rds|tsv|csv|json)(\.gz)?$/i) ? `${(refStr.match(/\.([^./]+)(\.gz)?$/i)?.[1] || "").toUpperCase()} file`
                  : "value";
       lines.push(`| \`${k}\` | ${basename} _(${note})_ |`);

@@ -860,6 +860,23 @@ function PhaseGroupSection({
   );
 }
 
+function sanitizeErrorText(msg: string): string {
+  if (!msg) return msg;
+  // Strip stack-trace lines (e.g. "at nextflow.cli.Launcher.main(Launcher.groovy:675)")
+  const withoutStack = msg
+    .split('\n')
+    .filter(l => !/^\s*at\s+[\w.$]+\(/.test(l))
+    .join('\n')
+    .trim();
+  // Replace internal infrastructure names with neutral wording
+  return withoutStack
+    .replace(/\bnextflow\b/gi, 'the pipeline')
+    .replace(/s3:\/\/[^\s'"]+/gi, 'the storage bucket')
+    .replace(/biomate-nextflow-work/gi, 'storage')
+    .replace(/Launcher\.groovy:\d+/gi, '')
+    .trim();
+}
+
 export function NextflowWorkflowViewer({
   workflowId,
   invocationId,
@@ -1377,6 +1394,9 @@ export function NextflowWorkflowViewer({
 
   // Group updatedPhases by their phase_group field (A/B/C/D/E for cryo-EM, etc.)
   const groupedPhases = React.useMemo<PhaseGroup[]>(() => {
+    // No steps loaded yet — return empty so the empty-state message renders
+    // instead of a phantom phase card with "0 steps".
+    if (updatedPhases.length === 0) return [];
     const hasGroups = updatedPhases.some((p: any) => p.phase_group);
     if (!hasGroups) {
       const allParams = updatedPhases.flatMap((p: any) => Object.keys(p.parameters || {}));
@@ -2360,11 +2380,6 @@ export function NextflowWorkflowViewer({
                     <Square style={{ width: 14, height: 14 }} />
                   </button>
                 )}
-                {(status === 'completed' || status === 'failed') && (
-                  <button className="iconbtn" data-testid="button-restart-workflow-panel" onClick={() => onExecute?.(params)} title="Restart">
-                    <RotateCcw style={{ width: 14, height: 14 }} />
-                  </button>
-                )}
               </div>
             </div>
             {/* Progress bar — commented out per UX review 2026-06-19.
@@ -2812,7 +2827,9 @@ export function NextflowWorkflowViewer({
             {/* ── No steps found after fetch completed ─────────────────────── */}
             {groupedPhases.length === 0 && !lazyStepsFetching && lazySteps !== null && (workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (
               <div style={{ padding: '16px 18px', color: 'var(--text-dim)', fontSize: 13 }}>
-                Steps will appear here once the workflow runs.
+                {status === 'failed'
+                  ? 'Run failed before any phases started. Check the error details above.'
+                  : 'Phases will appear here once the workflow starts.'}
               </div>
             )}
 
@@ -2927,12 +2944,12 @@ export function NextflowWorkflowViewer({
                 </div>
               )}
               {/* ── Post-run links row ─────────────────────────────────────────── */}
-              {(invocationId || status === 'completed') && (
+              {status === 'completed' && (
                 <div className="results-links">
                   <button
                     className="linkish"
                     onClick={() => handleToggleShowResults((prev) => !prev)}
-                    disabled={!invocationId || status === 'failed'}
+                    disabled={!invocationId}
                     data-testid="button-view-results-link"
                   >
                     {showResults ? 'Hide results' : 'View results'}
@@ -2941,12 +2958,12 @@ export function NextflowWorkflowViewer({
                   <button
                     className="linkish"
                     onClick={() => {
-                      if (!invocationId || status === 'failed') return;
+                      if (!invocationId) return;
                       emitUxEvent('output.download_clicked', { invocationId, scope: 'all' });
                       window.open(`/api/invocations/${invocationId}/download-all`, '_blank');
                       setDownloadAllPromptOpen(true);
                     }}
-                    disabled={!invocationId || status === 'failed'}
+                    disabled={!invocationId}
                     data-testid="button-download-all-workflow-panel"
                   >
                     Download all
@@ -2955,7 +2972,7 @@ export function NextflowWorkflowViewer({
                   <button
                     className="linkish"
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}
-                    disabled={status !== 'completed' || !runId || analysisState === 'loading'}
+                    disabled={!runId || analysisState === 'loading'}
                     onClick={handleAnalyzeResults}
                     data-testid="button-analyze-results"
                   >
@@ -2965,9 +2982,9 @@ export function NextflowWorkflowViewer({
                   <span className="sep">·</span>
                   <button
                     className="linkish"
-                    disabled={!invocationId || status === 'failed'}
+                    disabled={!invocationId}
                     onClick={() => {
-                      if (!invocationId || status === 'failed') return;
+                      if (!invocationId) return;
                       window.open(`/api/invocations/${invocationId}/methods-report`, '_blank');
                     }}
                     data-testid="button-download-methods-report"
@@ -2980,9 +2997,9 @@ export function NextflowWorkflowViewer({
                       <span className="sep">·</span>
                       <button
                         className="linkish"
-                        disabled={!invocationId || status === 'failed'}
+                        disabled={!invocationId}
                         onClick={() => {
-                          if (!invocationId || status === 'failed') return;
+                          if (!invocationId) return;
                           window.open(`/api/invocations/${invocationId}/qc-audit-download`, '_blank');
                         }}
                         data-testid="button-download-qc-audit"
@@ -3073,25 +3090,13 @@ export function NextflowWorkflowViewer({
               </div>
               {errorExplanation ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
-                  <div><span style={{ fontWeight: 600 }}>What went wrong: </span>{errorExplanation.human_summary}</div>
-                  <div><span style={{ fontWeight: 600 }}>Suggested fix: </span>{errorExplanation.suggested_fix}</div>
-                  {errorExplanation.chat_prompt && (
-                    <button
-                      className="btn sm"
-                      onClick={() => { setErrorExplanation(null); onAdjustViaChat?.(errorExplanation.chat_prompt); }}
-                      data-testid="button-error-fix-chat"
-                    >
-                      Fix &amp; Retry via Chat
-                    </button>
-                  )}
-                  <div style={{ fontSize: 10, opacity: 0.55 }}>
-                    {errorExplanation.error_type}{errorExplanation.llm_used ? ' · AI-analyzed' : ' · pattern-matched'}
-                  </div>
+                  <div><span style={{ fontWeight: 600 }}>What went wrong: </span>{sanitizeErrorText(errorExplanation.human_summary)}</div>
+                  <div><span style={{ fontWeight: 600 }}>Suggested fix: </span>{sanitizeErrorText(errorExplanation.suggested_fix)}</div>
                 </div>
               ) : errorExplaining ? (
                 <span>Analyzing error log…</span>
               ) : errorMessage ? (
-                <span>{errorMessage}</span>
+                <span>{sanitizeErrorText(errorMessage)}</span>
               ) : null}
             </div>
           )}
@@ -3276,16 +3281,6 @@ export function NextflowWorkflowViewer({
                 ><span>⏹</span><span>Stop</span></button>
               </>
             )}
-            {isTerminal && (
-              <button
-                type="button"
-                data-testid="panel-run-again-cta"
-                onClick={() => onExecute?.(params)}
-                disabled={!onExecute}
-                style={primary}
-                title={status === 'failed' ? 'Restart from a fresh state' : 'Run this workflow again'}
-              ><span>▶</span><span>{status === 'failed' ? 'Restart' : 'Run again'}</span></button>
-            )}
           </div>
         );
       })()}
@@ -3326,21 +3321,15 @@ export function NextflowWorkflowViewer({
           </div>
         )}
         <div className="run-primary">
-          {!executionBlockedReason && (
+          {!executionBlockedReason && status !== 'running' && status !== 'paused' && (
             <button
               className="btn primary"
-              data-testid="button-run-workflow-panel"
+              data-testid={status === 'completed' ? 'panel-run-again-cta' : 'button-run-workflow-panel'}
               onClick={() => { if (status === 'completed' || status === 'failed') analytics.track('run_again_clicked', { source: 'panel' }); handleExecute(); }}
               disabled={
-                status === 'running'
-                || isPrereqBlocked
+                (isPrereqBlocked && status !== 'completed')
                 || isAutofixActive
                 || isLicenseBlocked
-                // Hard gate (2026-06-11): block submit when required global
-                // params are empty. Without this, a user could ignore the
-                // Workflow-settings strip and click Run with blanks.
-                // Only enforced on initial run (idle / pending_review) —
-                // re-runs of completed / failed runs use the prior params.
                 || ((status === 'idle' || status === 'pending_review')
                     && globalRequiredUnfilledCount > 0)
               }
@@ -3355,9 +3344,7 @@ export function NextflowWorkflowViewer({
                   : undefined
               }
             >
-              {status === 'running' ? (
-                <><Loader2 className="h-4 w-4 animate-spin" style={{ marginRight: 6 }} />Running…</>
-              ) : status === 'failed' ? (
+              {status === 'failed' ? (
                 'Restart'
               ) : status === 'completed' ? (
                 'Run again'

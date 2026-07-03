@@ -4704,8 +4704,16 @@ def _execute_nextflow_impl(
     # enough to keep the cache warm for the rest of the day.
     # The cache is read-only after extraction → safe for many concurrent
     # readers. Same .so is what every NF run loads regardless.
-    _shared_crt_cache = Path("/opt/nextflow/.aws-crt-cache")
-    _shared_crt_cache.mkdir(parents=True, exist_ok=True)
+    # Use the same base as NXF_HOME: /opt/nextflow on Docker/EC2, ~/.nextflow
+    # on local dev. Hardcoding /opt/nextflow here caused PermissionError on
+    # macOS where /opt is root-owned and /opt/nextflow doesn't exist.
+    _crt_base = _nxf_home if _nxf_home is not None else Path(os.environ.get("HOME", "/tmp")) / ".nextflow"
+    _shared_crt_cache = _crt_base / ".aws-crt-cache"
+    try:
+        _shared_crt_cache.mkdir(parents=True, exist_ok=True)
+    except Exception as _crt_e:
+        log.warning("[Nextflow run %s] CRT cache dir creation failed (%s) — CRT opts will be omitted", run_id, _crt_e)
+        _shared_crt_cache = None
     _existing_nxf_opts = env.get("NXF_OPTS", "")
     # Cap head JVM heap at 512 MB. The head process only parses the workflow,
     # submits Batch jobs, then polls task state + streams logs — most memory
@@ -4714,11 +4722,14 @@ def _execute_nextflow_impl(
     # if a specific pipeline ever needs more. Halving per-head footprint lets
     # us run 2x more concurrent workflows on the same host.
     _heap = os.environ.get("BIOMATE_NF_HEAP", "512m")
-    _crt_opts = (
-        f"-Xms128m -Xmx{_heap} "
-        f"-Daws.crt.lib.dir={_shared_crt_cache} "
-        f"-Daws.crt.disable.crt.in.client=true -Xss2m"
-    )
+    if _shared_crt_cache is not None:
+        _crt_opts = (
+            f"-Xms128m -Xmx{_heap} "
+            f"-Daws.crt.lib.dir={_shared_crt_cache} "
+            f"-Daws.crt.disable.crt.in.client=true -Xss2m"
+        )
+    else:
+        _crt_opts = f"-Xms128m -Xmx{_heap} -Daws.crt.disable.crt.in.client=true -Xss2m"
     env["NXF_OPTS"] = f"{_existing_nxf_opts} {_crt_opts}".strip()
 
     # Additional glibc-side mitigation. The CRT crash on Debian trixie's
