@@ -937,11 +937,16 @@ snapshot_for_rollback() {
 
 postsync_health_ok() {
   # Probe the dev host's mapped ports; retry to ride out HUP / cold start.
-  # $1 = number of 5s retries (default 24 = 120s).
+  # $1 = number of 5s retries (default 48 = 240s).
+  # Prints which port is failing so we can distinguish Galaxy vs Frontend issues.
   local tries="${1:-24}"
   ec2_ssh "
     for i in \$(seq 1 $tries); do
-      if curl -fsS -o /dev/null --max-time 8 http://localhost:8081/api/version && curl -fsS -o /dev/null --max-time 8 http://localhost:3000/api/health; then exit 0; fi
+      gx=0; fe=0
+      curl -fsS -o /dev/null --max-time 8 http://localhost:8081/api/version 2>/dev/null && gx=1
+      curl -fsS -o /dev/null --max-time 8 http://localhost:3000/api/health 2>/dev/null && fe=1
+      if [ \$gx -eq 1 ] && [ \$fe -eq 1 ]; then exit 0; fi
+      echo \"[probe \$i/$tries] galaxy=\$gx frontend=\$fe\"
       sleep 5
     done
     exit 1
