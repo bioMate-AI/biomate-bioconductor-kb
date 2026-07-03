@@ -85,7 +85,11 @@ class ToolSearchIndex:
 
         # Sanitize query for FTS5: quote terms with special characters
         # Replace hyphens with spaces to avoid FTS5 minus operator issues
+        # Also strip / and other FTS5 special chars that crash the parser
+        import re as _fts_re
+        query = _fts_re.sub(r'[/"\(\)\*\+\^\.@#]', ' ', query)
         query = query.replace('-', ' ')
+        query = ' '.join(query.split())
 
         with self._get_cursor() as cursor:
             # Use tool_id for JOIN (not rowid) since FTS5 rowids don't match tools.id

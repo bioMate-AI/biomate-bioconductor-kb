@@ -755,6 +755,29 @@ def _parse_nextflow_steps(nf_filename: str) -> Dict[str, Any]:
                 "parameters": {},
                 "inputs": {},
             }
+        # Strategy 3 (nf-core DSL2): `include { PROCESS_NAME [as ALIAS] }` declarations.
+        # nf-core subworkflows/pipelines don't use `process` blocks inline — they
+        # import them via `include`.  The import alias (or process name) is the step.
+        if not steps:
+            include_pat = re.compile(
+                r'include\s*\{\s*([A-Z][A-Z0-9_]+)(?:\s+as\s+([A-Z][A-Z0-9_]+))?\s*\}',
+            )
+            seen_includes: list = []
+            seen_names_incl: set = set()
+            for m in include_pat.finditer(content):
+                proc_name = (m.group(2) or m.group(1)).strip()
+                if proc_name not in seen_names_incl:
+                    seen_names_incl.add(proc_name)
+                    seen_includes.append(proc_name)
+            for proc_name in seen_includes:
+                human = proc_name.replace('_', ' ').title()
+                steps[str(idx)] = {
+                    "id": str(idx), "name": human, "tool_id": proc_name,
+                    "annotation": human, "description": "", "type": "tool",
+                    "parameters": {}, "inputs": {},
+                }
+                idx += 1
+
     except Exception as exc:
         log.warning(f"[NextflowSteps] Failed to parse steps from {nf_filename}: {exc}")
     # ── Enrich steps with phase groups and per-step params ──────────────────────

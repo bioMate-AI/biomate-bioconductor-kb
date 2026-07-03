@@ -261,13 +261,10 @@ const GEMINI_PRO_MODEL   = process.env.BIOMATE_INTENT_MODEL_PRO   || 'gemini-3.1
  *   - dense technical jargon (3+ tokens that look like gene names / drug names / IDs)
  * Otherwise routes Flash for cost/latency.
  */
-export function pickGeminiIntentModel(message: string): string {
-  const msg = String(message || '');
-  if (msg.length > 140) return GEMINI_PRO_MODEL;
-  if (/\b(compare|versus|vs\.?|triage|bake[- ]?off|strategy|design.*for)\b/i.test(msg)) return GEMINI_PRO_MODEL;
-  // Multi-entity: 3+ all-caps gene/drug-style tokens (e.g. PD-1, VEGF, BCMA, PCSK9)
-  const upperTokens = (msg.match(/\b[A-Z][A-Z0-9-]{1,}\b/g) || []).length;
-  if (upperTokens >= 3) return GEMINI_PRO_MODEL;
+export function pickGeminiIntentModel(_message: string): string {
+  // Always use Flash for intent classification — Pro hangs for 110s+ without timeout
+  // (rate-limiting / API latency) making the system unusable. Flash handles JSON
+  // intent parsing equally well and responds in <5s vs 110s+ for Pro.
   return GEMINI_FLASH_MODEL;
 }
 
@@ -1994,8 +1991,8 @@ export class GalaxyAssistant {
     // This prevents silent auth failures when ANTHROPIC_API_KEY is absent on a Gemini-only deployment.
     const computedModelConfig = { ...DEFAULT_MODEL_CONFIG, ...options.modelConfig };
     if (!options.anthropicApiKey && geminiKey && !computedModelConfig.responseModel?.startsWith('gemini-')) {
-      computedModelConfig.responseModel = 'gemini-3.5-flash';
-      console.log('[GalaxyAssistant] No ANTHROPIC_API_KEY — switching responseModel to gemini-3.5-flash');
+      computedModelConfig.responseModel = GEMINI_PRO_MODEL;
+      console.log('[GalaxyAssistant] No ANTHROPIC_API_KEY — switching responseModel to gemini pro (no thinking)');
     }
     this.modelConfig = computedModelConfig;
     this.sessionMemory = new SessionMemoryUpdater(this.claude);
@@ -2072,7 +2069,7 @@ export class GalaxyAssistant {
       systemInstruction: systemPrompt,
       // temperature=0 for determinism (BioMate is a scientific tool; see
       // sister Anthropic call where the same change was applied).
-      generationConfig: { maxOutputTokens: maxTokens, temperature: 0 },
+      generationConfig: { maxOutputTokens: maxTokens, temperature: 0, thinkingConfig: { thinkingBudget: 0 } } as any,
       ...(geminiTools ? { tools: geminiTools as any } : {}),
     });
 
@@ -5551,18 +5548,23 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
           // 2500, producing "Unexpected end of JSON input" and zero workflow_ready event.
           // Gemini thinking tokens count against this budget; 4096 leaves room for the
           // full intent + inlineParameters payload.
-          generationConfig: { temperature: 0, maxOutputTokens: 4096, responseMimeType: 'application/json' },
+          generationConfig: { temperature: 0, maxOutputTokens: 4096, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } } as any,
           systemInstruction: systemPrompt,
         });
         // Attempt Gemini; on 429 immediately fall back to Haiku — no slow retry loop.
         let geminiResult: any;
         let usedGeminiFallback = false;
         try {
-          geminiResult = await geminiModel.generateContent(message);
+          const geminiTimeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Gemini intent timeout after 30s')), 30_000)
+          );
+          geminiResult = await Promise.race([geminiModel.generateContent(message), geminiTimeout]);
         } catch (err: any) {
           const is429 = err?.message?.includes('429') || err?.status === 429;
-          if (is429) {
-            console.warn('[GalaxyAssistant] Gemini 429 — falling back to Haiku for intent classification (no delay)');
+          const isTimeout = err?.message?.includes('timeout');
+          if (is429 || isTimeout) {
+            if (isTimeout) console.warn('[GalaxyAssistant] Gemini intent classification timed out (>30s) — falling back to Flash chain');
+            else console.warn('[GalaxyAssistant] Gemini 429 — falling back to Haiku for intent classification (no delay)');
             usedGeminiFallback = true;
           } else {
             throw err;

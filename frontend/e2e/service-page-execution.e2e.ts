@@ -309,15 +309,11 @@ for (const ec of EXEC_CASES) {
     await shot(sharedPage, 'service-execution', `${ec.id}_04_terminal`);
 
     expect(
-      postStatus === 'completed' || postStatus === 'failed',
-      `[${ec.id}] Expected terminal status (completed|failed), got "${postStatus}"`
-    ).toBe(true);
+      postStatus,
+      `[${ec.id}] Workflow must complete successfully, got "${postStatus}"`
+    ).toBe('completed');
 
-    if (postStatus === 'failed') {
-      console.warn(`[${ec.id}] ⚠️ Workflow failed — checking after-run tabs anyway`);
-    } else {
-      console.log(`[${ec.id}] ✅ Workflow completed`);
-    }
+    console.log(`[${ec.id}] ✅ Workflow completed`);
 
     // ── Step 5: Verify after-run tabs ───────────────────────────────────────
     await pause(sharedPage, 2_000); // allow tabs to render

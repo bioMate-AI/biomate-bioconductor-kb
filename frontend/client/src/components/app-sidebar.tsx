@@ -8,6 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { SettingsDialog } from "./settings-dialog"
 import { WorkflowHistoryDialog } from "./workflow-history-dialog"
 import { RecentToolsDialog } from "./recent-tools-dialog"
+import { WorkflowUploadModal } from "./workflow-upload-modal"
 import { projectService } from "@/lib/projects"
 import type { Project } from "@shared/schema"
 import {
@@ -38,6 +39,7 @@ import {
   DollarSign,
   FlaskConical,
   BookOpen,
+  Upload,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { analytics } from "@/lib/analytics"
@@ -197,6 +199,7 @@ export function AppSidebar({
   }, []);
 
   const [showRecentToolsDialog, setShowRecentToolsDialog] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [, setLocation] = useLocation();
   const { user, logout } = useAuth();
 
@@ -305,6 +308,9 @@ export function AppSidebar({
         </button>
         <button className="side-link" data-testid="button-workflows-nav" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => { analytics.track('workflows_sidebar_opened'); setShowHistoryDialog(true); }}>
           <FlaskConical className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Workflows</span>{runningCount > 0 && (<span data-testid="workflows-running-badge" style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 999, background: 'oklch(0.92 0.04 230)', color: 'oklch(0.40 0.13 230)' }}>{runningCount}</span>)}
+        </button>
+        <button className="side-link" data-testid="button-import-workflow" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => { analytics.track('import_workflow_opened'); setShowUploadModal(true); }}>
+          <Upload className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Import Workflow</span>
         </button>
         {/* Workspaces — commented out until create flow is stable (500 on POST /api/workspaces)
         <button className="side-link" data-testid="button-workspaces-nav" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/workspaces')}>
@@ -461,6 +467,7 @@ export function AppSidebar({
       {/* Dialogs */}
       <SettingsDialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog} />
       <WorkflowHistoryDialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog} onOpenRun={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}`); } }} onRunAgain={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}&runAgain=${encodeURIComponent(row.runId)}`); } }} />
+      <WorkflowUploadModal open={showUploadModal} onOpenChange={setShowUploadModal} />
 <RecentToolsDialog open={showRecentToolsDialog} onOpenChange={setShowRecentToolsDialog}
         onToolSelect={(tool) => { if (onToolSelect) onToolSelect(tool as any); }}
       />

@@ -403,10 +403,13 @@ class LLMClient:
         async with httpx.AsyncClient() as client:
             # Gemini API endpoint format
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
+            # Use caller-supplied timeout or default 30s — fast-fail lets the fallback chain
+            # take over quickly instead of blocking for 2 min on a slow/hung Pro call.
+            _timeout = kwargs.get('timeout', 30.0)
             response = await client.post(
                 url,
                 json=data,
-                timeout=120.0
+                timeout=_timeout
             )
 
             if response.status_code == 200:

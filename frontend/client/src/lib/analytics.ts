@@ -67,7 +67,8 @@ export type AnalyticsEvent =
   // Gap 3 / Gap 4 — run reuse
   | 'run_again_clicked'
   | 'reset_to_defaults_clicked'
-  | 'workflows_sidebar_opened';
+  | 'workflows_sidebar_opened'
+  | 'import_workflow_opened';
 
 export interface AnalyticsProperties {
   userId?: string;
