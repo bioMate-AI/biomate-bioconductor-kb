@@ -94,12 +94,10 @@ _MULTI_TASK_CACHE_MAX = 128
 
 # Fastest/cheapest model per provider for lightweight classification calls.
 _FAST_CLASSIFICATION_MODELS: dict = {
-    'anthropic': 'claude-haiku-4-5',  # fallback only — Gemini Flash preferred
-    'gemini': 'gemini-3-flash-preview',
-    'google': 'gemini-3-flash-preview',
+    'anthropic': 'claude-haiku-4-5',
+    'gemini': 'gemini-3.5-flash',
+    'google': 'gemini-3.5-flash',
     'openai': 'gpt-3.5-turbo',
-    'gemini': 'gemini-1.5-flash',
-    'google': 'gemini-1.5-flash',
     'deepseek': 'deepseek-chat',
     'zhipu': 'glm-4-flash',
     # ollama / local: keep configured model (already fast locally)
@@ -676,7 +674,7 @@ class AIAssistant:
         if session_id:
             self._fast_llm_client.session_id = session_id
 
-        return self._fast_llm_client.generate(prompt, max_tokens=128, temperature=0.0)
+        return self._fast_llm_client.generate(prompt, max_tokens=128, temperature=0.0, use_fast_model=True)
 
     async def _handle_multi_task_clarification(self, query: str, context: dict) -> dict:
         """
@@ -1960,7 +1958,7 @@ Respond with a single JSON object — no other text:
 "flag" must be true only when you switch away from #1 due to a clear mismatch."""
 
         try:
-            raw = (self._fast_llm_client.generate(prompt, max_tokens=220, temperature=0.0) or "").strip()
+            raw = (self._fast_llm_client.generate(prompt, max_tokens=220, temperature=0.0, use_fast_model=True) or "").strip()
             # Extract JSON from response
             import re as _re
             m = _re.search(r'\{.*\}', raw, _re.DOTALL)
@@ -2796,6 +2794,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             text = LLMClient(self.config).call(
                 messages=[{"role": "user", "content": _ps_prompt}],
                 max_tokens=1024,  # S3 URIs can be long; 512 causes truncation
+                use_fast_model=True,
             ).strip()
             # Extract JSON array from response
             start = text.find("[")
