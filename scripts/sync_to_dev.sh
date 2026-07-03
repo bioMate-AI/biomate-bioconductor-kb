@@ -858,6 +858,25 @@ restart_galaxy() {
     # Ensure Galaxy database files are owned by galaxy user (docker cp sets host uid)
     docker exec -u root biomate-galaxy-dev chown galaxy:galaxy \
       /app/database/universe.sqlite /app/database/galaxy_ai_tools.db 2>/dev/null || true
+
+    # Wait for Galaxy to be healthy after HUP (up to 120s).
+    # Without this, a warm Docker layer cache lets the frontend build finish in
+    # ~30s — the health gate then starts before gunicorn workers have restarted
+    # their Python AI stack, causing every probe to fail with TCP-RST (workers
+    # not ready to recv()) and triggering a false-positive auto-rollback.
+    echo "[galaxy] Waiting for Galaxy (8081) to be healthy after HUP (up to 120s)..."
+    _galaxy_ok=0
+    for _gi in $(seq 1 24); do
+      if curl -fsS -o /dev/null --max-time 8 http://localhost:8081/api/version 2>/dev/null; then
+        echo "[galaxy] ✓ Galaxy healthy (attempt ${_gi}/24, ~$(((_gi - 1) * 5))s)"
+        _galaxy_ok=1
+        break
+      fi
+      sleep 5
+    done
+    if [ "$_galaxy_ok" -eq 0 ]; then
+      echo "[galaxy] WARNING: Galaxy did not respond within 120s after HUP — proceeding anyway (health gate will catch it)"
+    fi
   '
 }
 
@@ -1054,9 +1073,12 @@ do_sync() {
   $do_frontend  && deploy_frontend
 
   # --- Post-sync health gate + auto-rollback -------------------------------
+  # 48 retries × 5s = 240s (matches rollback's window). Galaxy is already
+  # confirmed healthy by restart_galaxy's internal wait; this gate mainly
+  # covers the frontend container's cold-start (Node.js + DB migrations).
   if [[ "$ROLLBACK_READY" == 1 ]]; then
     log "[health] Verifying dev health after sync..."
-    if postsync_health_ok 24; then
+    if postsync_health_ok 48; then
       log "[health] ✓ dev healthy after sync"
       SYNC_RESULT=healthy
     else
@@ -1066,7 +1088,7 @@ do_sync() {
   else
     # Snapshot wasn't taken — can't safely roll back. Still report real health.
     log "[health] No snapshot — health-gate without rollback safety"
-    if postsync_health_ok 24; then SYNC_RESULT=healthy; else SYNC_RESULT=failed; fi
+    if postsync_health_ok 48; then SYNC_RESULT=healthy; else SYNC_RESULT=failed; fi
   fi
 
   log "=== Sync complete for ${commit:0:8} (result=${SYNC_RESULT:-unknown}) ==="
