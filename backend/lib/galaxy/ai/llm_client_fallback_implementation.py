@@ -317,6 +317,12 @@ async def _try_provider_with_retry(
         # Inject provider timeout so _generate_gemini uses config timeout, not hardcoded 120s
         kwargs.setdefault('timeout', float(provider_config.timeout_seconds))
 
+        # Disable thinking tokens for Flash models — with thinkingBudget=-1 (dynamic),
+        # Flash can use 60s+ of thinking tokens on complex prompts. Setting budget=0
+        # forces fast-path responses (<5s). Pro requires budget≥1 (errors on 0).
+        if 'flash' in provider_config.model.lower():
+            kwargs.setdefault('thinking_budget', 0)
+
         # Try with exponential backoff
         for attempt in range(provider_config.retry_attempts):
             try:
