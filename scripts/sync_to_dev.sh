@@ -1069,26 +1069,38 @@ do_sync() {
 
   $do_backend   && deploy_backend_python
   $do_workflows && deploy_workflows
+  $do_db        && deploy_databases
   # HUP Galaxy when either backend Python OR workflow .nf files change.
   # Workflows used to skip the HUP on the theory that Nextflow reads .nf
   # from disk per-run, but Galaxy's in-process workflow_search keeps a
   # parsed step cache + tool DB cache that stays pinned to old file
   # contents until the worker process recycles. Skipping HUP caused the
   # 2026-05-21 class of "fix shipped but old behaviour persists" issues.
-  ($do_backend || $do_workflows) && restart_galaxy
-  $do_db        && deploy_databases
+  #
+  # ORDERING: restart_galaxy MUST run AFTER deploy_databases. deploy_databases
+  # does `docker stop/start` + `docker restart` on the Galaxy container (to
+  # safely copy the 270MB galaxy_ai_tools.db + 3.4MB universe.sqlite). Each
+  # of these restarts triggers a 3.5-minute Galaxy cold-start. If restart_galaxy
+  # (with its health wait) ran BEFORE deploy_databases, the health confirmation
+  # was worthless — the DB sync would immediately restart Galaxy again, and
+  # the post-sync health gate would start before Galaxy had time to boot.
+  # Root cause of sync 7 failure (2026-07-03): Docker build took ~2 min (warm
+  # cache), health gate started only ~2 min after the last `docker restart`,
+  # but Galaxy needs 3.5 min to boot → all 48 probes timed out.
+  ($do_backend || $do_workflows || $do_db) && restart_galaxy
   # Apply PostgreSQL migrations BEFORE deploying the frontend so the new bundle's
   # storage layer never hits a missing column on the new schema.
   $do_frontend  && apply_postgres_migrations
   $do_frontend  && deploy_frontend
 
   # --- Post-sync health gate + auto-rollback -------------------------------
-  # 48 retries × 5s = 240s (matches rollback's window). Galaxy is already
-  # confirmed healthy by restart_galaxy's internal wait; this gate mainly
+  # 120 retries × 5s = 600s (10 min). Galaxy is confirmed healthy by
+  # restart_galaxy's internal wait (which now runs AFTER deploy_databases),
+  # so this gate mainly covers frontend cold-start + rare Galaxy edge cases.
   # covers the frontend container's cold-start (Node.js + DB migrations).
   if [[ "$ROLLBACK_READY" == 1 ]]; then
     log "[health] Verifying dev health after sync..."
-    if postsync_health_ok 48; then
+    if postsync_health_ok 120; then
       log "[health] ✓ dev healthy after sync"
       SYNC_RESULT=healthy
     else
@@ -1098,7 +1110,7 @@ do_sync() {
   else
     # Snapshot wasn't taken — can't safely roll back. Still report real health.
     log "[health] No snapshot — health-gate without rollback safety"
-    if postsync_health_ok 48; then SYNC_RESULT=healthy; else SYNC_RESULT=failed; fi
+    if postsync_health_ok 120; then SYNC_RESULT=healthy; else SYNC_RESULT=failed; fi
   fi
 
   log "=== Sync complete for ${commit:0:8} (result=${SYNC_RESULT:-unknown}) ==="
