@@ -394,8 +394,8 @@ deploy_backend_python() {
 
     # Copy each file into the Galaxy container at /app/ path.
     # ! -name "._*" excludes any Apple Double resource-fork files that macOS tar may
-    # have bundled; copying them into alembic's versions_gxy/ causes a null-byte
-    # ValueError that crash-loops gunicorn (sync 8 root cause, 2026-07-03).
+    # have bundled; copying them into the alembic versions_gxy/ dir causes a
+    # null-byte ValueError that crash-loops gunicorn (sync 8 root cause, 2026-07-03).
     find /tmp/backend_py_extract/backend -name "*.py" ! -name "._*" | while read src; do
       rel="${src#/tmp/backend_py_extract/backend/}"
       dest="/app/lib/galaxy/${rel#lib/galaxy/}"
