@@ -355,7 +355,12 @@ deploy_backend_python() {
     git show "HEAD:$rel_path" > "$tmp_tar_dir/$rel_path" 2>/dev/null \
       || cp "$REPO_ROOT/$rel_path" "$tmp_tar_dir/$rel_path" 2>/dev/null || true
   done < <(sort -u "$tmp_list")
-  tar -czf "$tar_file" -C "$tmp_tar_dir" . 2>/dev/null || true
+  # COPYFILE_DISABLE=1 suppresses macOS ._* Apple Double resource-fork files from
+  # entering the archive. Without this, macOS tar bundles a ._<name>.py companion
+  # for every .py file; Linux extracts them as real files; alembic finds them,
+  # tries to compile them (binary → null bytes) → ValueError → gunicorn crash.
+  # Sync 8 root cause: this flag was present on the frontend tar but not here.
+  COPYFILE_DISABLE=1 tar -czf "$tar_file" -C "$tmp_tar_dir" --exclude='._*' . 2>/dev/null || true
 
   # Hard-fail if the upload itself didn't land. Previously this was silent:
   # scp printed "Failure" but the script continued, then the next ec2_ssh
@@ -378,15 +383,20 @@ deploy_backend_python() {
     tar -xzf /tmp/backend_py_sync.tar.gz -C /tmp/backend_py_extract
 
     # Sanity check: confirm extract is non-empty before mass-copying.
-    extracted=$(find /tmp/backend_py_extract/backend -name "*.py" 2>/dev/null | wc -l)
+    # Exclude ._* Apple Double resource-fork files (defense-in-depth; primary fix is
+    # COPYFILE_DISABLE=1 on the macOS tar creation side above).
+    extracted=$(find /tmp/backend_py_extract/backend -name "*.py" ! -name "._*" 2>/dev/null | wc -l)
     if [[ "$extracted" -lt 1 ]]; then
       echo "[backend] FATAL: tarball extracted zero .py files — refusing to docker cp" >&2
       exit 1
     fi
     echo "[backend] extracted $extracted python files into /tmp/backend_py_extract/"
 
-    # Copy each file into the Galaxy container at /app/ path
-    find /tmp/backend_py_extract/backend -name "*.py" | while read src; do
+    # Copy each file into the Galaxy container at /app/ path.
+    # ! -name "._*" excludes any Apple Double resource-fork files that macOS tar may
+    # have bundled; copying them into alembic's versions_gxy/ causes a null-byte
+    # ValueError that crash-loops gunicorn (sync 8 root cause, 2026-07-03).
+    find /tmp/backend_py_extract/backend -name "*.py" ! -name "._*" | while read src; do
       rel="${src#/tmp/backend_py_extract/backend/}"
       dest="/app/lib/galaxy/${rel#lib/galaxy/}"
       dir=$(dirname "$dest")
