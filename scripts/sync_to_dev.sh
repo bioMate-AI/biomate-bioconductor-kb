@@ -164,11 +164,16 @@ apply_postgres_migrations() {
 deploy_frontend() {
   log "[frontend] Building archive..."
   local tar_file="/tmp/biomate_frontend_sync.tar.gz"
-  tar -czf "$tar_file" \
+  # COPYFILE_DISABLE=1 suppresses macOS ._* resource-fork files from the archive.
+  # Without it, tar on macOS silently includes binary ._0018_*.sql files in
+  # migrations/, which the boot-time migration runner picks up and sends to PG
+  # as SQL — PG rejects with "invalid message format" and the container crashes.
+  COPYFILE_DISABLE=1 tar -czf "$tar_file" \
     --exclude='frontend/data/uploads' \
     --exclude='frontend/e2e/screenshots' \
     --exclude='frontend/e2e/reports' \
     --exclude='frontend/node_modules' \
+    --exclude='._*' \
     -C "$REPO_ROOT" \
     frontend/client/ frontend/server/ frontend/shared/ frontend/attached_assets/ \
     frontend/migrations/ \
