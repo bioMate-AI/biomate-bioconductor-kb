@@ -42,7 +42,7 @@ try:
     _dotenv_path = _backend_root / ".env"
     if _dotenv_path.exists():
         from dotenv import load_dotenv
-        load_dotenv(_dotenv_path, override=True)   # override=True: .env changes take effect on SIGHUP reload
+        load_dotenv(_dotenv_path, override=False)  # override=False: Docker env vars take precedence over .env defaults
         log.info(f"[Nextflow] Loaded environment from {_dotenv_path}")
 except Exception as _e:
     log.warning(f"[Nextflow] Could not load .env: {_e}")
@@ -70,6 +70,15 @@ _runs: Dict[str, Dict[str, Any]] = {}
 _runs_lock = threading.RLock()
 
 from galaxy.ai.runs import get_run_state_store  # noqa: E402
+
+# Start the orphan-completion poller on every gunicorn worker at module load,
+# not just when a run is submitted. Without this, workers that restart while
+# a run is in-flight never scan for orphaned runs until the NEXT submission.
+try:
+    from galaxy.ai.runs.bootstrap import ensure_poller_started as _ensure_poller
+    _ensure_poller()
+except Exception as _boot_exc:  # redis unavailable at import time is fine — poller silently skips
+    log.debug("[runs.bootstrap] module-level poller start skipped: %s", _boot_exc)
 
 
 def _find_run_by_invocation_id(invocation_id: str) -> Optional[tuple]:
