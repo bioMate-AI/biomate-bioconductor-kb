@@ -38,6 +38,7 @@ params.outfile           = 'scgwas_run'
 params.r_include         = 0.1
 params.r_exclude         = 0.05
 params.permutation       = true
+params.module_num        = 1000                            // number of random modules; set to 50-100 for smoke
 params.run_significance  = true                            // Phase C; set false to stop at jar output
 
 CONTAINER_SCGWAS = System.getenv('NEXTFLOW_USE_AWS') == 'true' \
@@ -61,7 +62,7 @@ process SCGWAS_INPUT_VALIDATE {
     python3 - <<'PY'
     import json, os, sys, shutil
 
-    baked = ${baked}
+    baked = ${baked ? 'True' : 'False'}
     panel = "${params.scrn_panel}"
     network = "${params.network_file}"
     exclude = "${params.exclude_genes}"
@@ -86,8 +87,21 @@ process SCGWAS_INPUT_VALIDATE {
         patched = _re.sub(
             r"\\.\\./data/([^\\s]+)",
             r"/opt/scgwas/data/\\1", patched)
-        shutil.copy(
-            "/opt/scgwas/example/Schizophrenia_Pardinas_2018.magma_boxcox.txt", ".")
+        # gwas_node_file is a bare filename in the example configure; make it
+        # absolute so Phase B's worker can find it without the file in its CWD.
+        patched = _re.sub(
+            r"(gwas_node_file=)([^/\\n])",
+            r"\\1/opt/scgwas/example/\\2", patched)
+        # The example configure has outfile=SCZ_DER22_output/... (nested dir).
+        # Phase B gets a fresh CWD so that subdir doesn't exist. Override to
+        # the flat params.outfile so Java writes directly to CWD.
+        patched = _re.sub(r"outfile=[^\\n]+", f"outfile={outfile}", patched)
+        # Allow overriding module_num for smoke tests (default 1000).
+        module_num = ${params.module_num}
+        if _re.search(r"module_num=", patched):
+            patched = _re.sub(r"module_num=\\d+", f"module_num={module_num}", patched)
+        else:
+            patched += f"\\nmodule_num={module_num}\\n"
         open("configure.txt", "w").write(patched)
     else:
         sumstats = "${params.gwas_sumstats}"
@@ -111,6 +125,7 @@ process SCGWAS_INPUT_VALIDATE {
             "r_exclude=${params.r_exclude}",
             f"outfile={outfile}",
             f"permutation={'true' if ${params.permutation} else 'false'}",
+            f"module_num=${params.module_num}",
             "verbose=true",
             f"exclude_genes_file={exclude}",
         ]
@@ -142,7 +157,7 @@ process SCGWAS_RUN {
     input:  tuple val(meta), path(configure_file), path(validate_json)
     output: tuple val(meta),
             path("${params.outfile}.combined-z.txt"),
-            path("${params.outfile}.shared_genes.scores.calibration.txt"),
+            path("${params.outfile}.shared_genes.scores.calibration.txt", optional: true),
             path("${params.outfile}.all.random_modules.txt"),
             path("run.json"), emit: out
 
