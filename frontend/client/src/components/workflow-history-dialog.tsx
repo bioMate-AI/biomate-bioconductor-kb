@@ -87,7 +87,6 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [importsSearch, setImportsSearch] = useState('');
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Upload tab state
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -234,23 +233,6 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
       // silently allow the dialog to stay open; user can retry
     } finally {
       setOpeningId(null);
-    }
-  }
-
-  async function handleDeletePersonal(wf: PersonalWorkflow) {
-    if (!confirm(`Delete "${wf.workflow_name}"? This cannot be undone.`)) return;
-    setDeletingId(wf.id);
-    try {
-      const res = await fetch(`/api/workflows/personal/${wf.id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setImports((prev) => prev.filter((w) => w.id !== wf.id));
-    } catch {
-      // silently keep the row — user can retry
-    } finally {
-      setDeletingId(null);
     }
   }
 
