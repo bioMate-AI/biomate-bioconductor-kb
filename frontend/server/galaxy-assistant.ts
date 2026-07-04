@@ -3796,9 +3796,10 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
         decomposition.penalizedDomains
       );
       if (tier1Workflow?.success && tier1Workflow?.nextflow_path) {
-        log(`Tier 1: Got workflow "${tier1Workflow.workflow_name || tier1Workflow.name}" (${tier1Workflow.nextflow_path}) — checking coverage`);
+        const _t1Name = tier1Workflow.workflow_name || tier1Workflow.workflow_ga?.name || tier1Workflow.name || tier1Workflow.nextflow_path?.split('/').pop() || 'workflow';
+        log(`Tier 1: Got workflow "${_t1Name}" (${tier1Workflow.nextflow_path}) — checking coverage`);
         const coverage = await this._checkWorkflowCoverage(
-          tier1Workflow.workflow_name || tier1Workflow.name || '',
+          _t1Name,
           tier1Workflow.description || tier1Workflow.message || '',
           decomposition.intents,
           message
@@ -3812,7 +3813,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
           log(`Tier 1 MATCH: returning single workflow card`);
           const allFacts = decomposition.intents.flatMap(i => i.facts);
           const t1Summary = this._buildPreExecutionSummary(tier1Workflow, message, context.sessionDatasets);
-          const t1BaseMsg = `I'll run the **${tier1Workflow.workflow_name || tier1Workflow.name}** workflow — it handles all your steps in one integrated pipeline.`;
+          const t1BaseMsg = `I'll run the **${_t1Name}** workflow — it handles all your steps in one integrated pipeline.`;
           return {
             message: t1Summary ? `${t1Summary}\n\n${t1BaseMsg}` : t1BaseMsg,
             intentType: 'workflow_generation',
@@ -3839,7 +3840,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
           tier1Workflow.parameters = { ...tier1Workflow.parameters, ...mergedParams };
           const allFacts = decomposition.intents.flatMap(i => i.facts);
           const t1mSummary = this._buildPreExecutionSummary(tier1Workflow, message, context.sessionDatasets);
-          const t1mBaseMsg = `I believe the **${tier1Workflow.workflow_name || tier1Workflow.name}** workflow covers your full request — it handles all the described steps in one integrated run. Please review and confirm this meets your needs before running.`;
+          const t1mBaseMsg = `I believe the **${_t1Name}** workflow covers your full request — it handles all the described steps in one integrated run. Please review and confirm this meets your needs before running.`;
           return {
             message: t1mSummary ? `${t1mSummary}\n\n${t1mBaseMsg}` : t1mBaseMsg,
             intentType: 'workflow_generation',
