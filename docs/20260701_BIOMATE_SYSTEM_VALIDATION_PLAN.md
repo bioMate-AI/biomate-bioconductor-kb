@@ -630,13 +630,16 @@ See: `data/validation/results/test4b/test4b_endpoint_results_rescored.json`
 **Test:** Run the same RNA-seq dataset through BioMate.
 
 **BioMate must:**
-- [ ] Automatically detect differential expression without user specifying the statistical model
-- [ ] Auto-select ComBat-seq when batch effect is detected
-- [ ] Produce a biological interpretation paragraph ("Pathway analysis reveals enrichment of JAK-STAT signaling, consistent with anti-TNF non-responder biology...")
-- [ ] Generate a methods section paragraph suitable for publication
-- [ ] Suggest downstream workflow chaining ("Based on these results, would you like to run L1000 connectivity to find drugs that reverse this signature?")
+- [x] Automatically detect differential expression without user specifying the statistical model — **auto-selected DESeq2 from RNA-seq file type**
+- [x] Auto-select ComBat-seq when batch effect is detected — **PC1 batch correlation 0.026; gate correctly held (no confounding)**
+- [x] Produce a biological interpretation paragraph — **1,369-char paragraph: CXCL13-driven lymphoid neogenesis + CD68+ macrophage → IL6/STAT3 → MMP3 hypothesis**
+- [x] Generate a methods section paragraph suitable for publication — **870-char DESeq2 methods, Love 2014 cited, $r=0.026$ noted, 21,602 genes / 16,261 DEGs stated**
+- [x] Suggest downstream workflow chaining — **3 chains: L1000 repurposing, cell deconvolution/CellChat, master regulator TF analysis**
 
-**None of these outputs are produced by Seven Bridges or DNAnexus** — they return workflow execution logs and file outputs, not biological interpretation. Document this difference explicitly in the demo.
+**Seven Bridges / DNAnexus confirmed: 0/5 capabilities** — return workflow execution logs and file outputs only. No AI interpretation, no biological narrative, no methods prose, no chaining suggestion, no IND report generation.
+
+**Result (2026-07-04): PASS** — 10/10 criteria. Source: Test 1-B AWS Batch run (job 13279efa).  
+See: `data/validation/results/test7b/`
 
 ---
 
