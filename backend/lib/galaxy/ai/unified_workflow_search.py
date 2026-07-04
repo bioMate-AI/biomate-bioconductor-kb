@@ -1383,12 +1383,21 @@ class UnifiedWorkflowSearch:
         # Serialize the cold init (model load + index build) so the warmup thread
         # and a first request don't double-load. Re-check readiness after taking
         # the lock — the thread that lost the race returns immediately.
-        with _EMBED_INIT_LOCK:
+        # Use a 5 s timeout: when a rebuild is running in another thread (67 s+),
+        # concurrent requests fall back to FTS-only rather than blocking the SSE
+        # stream for the entire rebuild duration.
+        acquired = _EMBED_INIT_LOCK.acquire(timeout=5)
+        if not acquired:
+            log.debug("[WorkflowEmbed] Init lock busy — FTS-only fallback for this request")
+            return _WF_EMBED_READY
+        try:
             if _WF_EMBED_READY:
                 return True
             if _WF_EMBED_FAILED:
                 return False
             return self._ensure_workflow_embeddings_locked()
+        finally:
+            _EMBED_INIT_LOCK.release()
 
     def _ensure_workflow_embeddings_locked(self) -> bool:
         global _WF_EMBED_MODEL, _WF_EMBED_IDS, _WF_EMBED_MATRIX, _WF_EMBED_READY, _WF_EMBED_FAILED, _WORKFLOW_EMBED_NPZ
