@@ -996,7 +996,7 @@ Track each test as: PASS / FAIL / PARTIAL / NOT YET RUN
 | M2 | 2-B: Parameter extraction F1 | NOT YET RUN | F1 per param type (boolean / numeric / enum) | |
 | M3 | 3-A: Batch effect gate | NOT YET RUN | Gate fire rate; post-correction PCA separation score | |
 | M3 | 3-B: Insufficient signal gate | NOT YET RUN | Threshold sensitivity | |
-| M3 | 3-C: hERG auto-loop gate | PARTIAL | hERG 97.7% (terfenadine correctly flagged); IC50 est 240nM vs 10nM known (calibration gap in prob→IC50 formula) | data/validation/results/test3c/ |
+| M3 | 3-C: hERG auto-loop gate | **PASS** | hERG 97.7% flagged; IC50 0.0101 µM (10.1nM) vs 10nM known (1.0× error); calibrated power-law logit IC50 = 10·((1-p)/p)^1.845 deployed | data/validation/results/test3c/ |
 | M3 | 3-D: CMap signature size gate | NOT YET RUN | Threshold sensitivity | |
 | M4 | 4-A: §2.6 narrative (3 drugs) | **PASS (baricitinib)** | §2.6.1+§2.6.2 present; JAK1/JAK2 mechanism; RA indication; 5 citations; no hallucinated DOIs | data/validation/results/test4a_baricitinib.json |
 | M4 | 4-B: Endpoint recommendation (20 drugs) | NOT YET RUN | Exact match %; partial match % | |
