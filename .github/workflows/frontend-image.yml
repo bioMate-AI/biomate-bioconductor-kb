@@ -49,6 +49,12 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # Automatically select environment based on tag type:
+    #   - dev-v*.*.*     → development environment (no approval)
+    #   - beta-v*.*.*    → staging environment (1 reviewer required)
+    #   - release-v*.*.* → production environment (2 reviewers + 5min wait)
+    environment:
+      name: ${{ startsWith(github.ref, 'refs/tags/release-v') && 'production' || startsWith(github.ref, 'refs/tags/beta-v') && 'staging' || 'development' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
