@@ -335,7 +335,6 @@ export function AppSidebar({
         >
           <Upload className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Import Workflow</span>
         </button>
-        {/* Connectors — commented out pending review
         <button
           className="side-link"
           data-testid="button-connectors-nav"
@@ -345,7 +344,6 @@ export function AppSidebar({
         >
           <Cable className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Connectors</span>
         </button>
-        */}
         {/* Workspaces — commented out until create flow is stable (500 on POST /api/workspaces)
         <button className="side-link" data-testid="button-workspaces-nav" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/workspaces')}>
           <FolderOpen className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Workspaces</span>
@@ -395,15 +393,15 @@ export function AppSidebar({
                 </button>
                 {isExpanded && (
                   <div style={{ paddingLeft: 28 }}>
-                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => onProjectSelect(proj.id)} data-testid={`project-link-chats-${proj.id}`}>
+                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => setLocation(`/projects?project=${proj.id}&tab=chat`)} data-testid={`project-link-chats-${proj.id}`}>
                       <MessageCircle className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
                       Chats
                     </button>
-                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => { onProjectSelect(proj.id); }} data-testid={`project-link-files-${proj.id}`}>
+                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => setLocation(`/projects?project=${proj.id}&tab=files`)} data-testid={`project-link-files-${proj.id}`}>
                       <FileText className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
                       Files
                     </button>
-                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} data-testid={`project-link-workflows-${proj.id}`}>
+                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => setLocation(`/projects?project=${proj.id}&tab=workflows`)} data-testid={`project-link-workflows-${proj.id}`}>
                       <FlaskConical className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
                       Workflows
                     </button>

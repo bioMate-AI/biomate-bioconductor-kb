@@ -79,16 +79,18 @@ export function CreateProjectDialog({
     setIsSubmitting(true)
     
     try {
-      const projectData: CreateProject = {
-        name: name.trim(),
-        description: description.trim() || undefined,
-        instructions: instructions.trim() || undefined,
-        category: category || undefined,
-        tags
-      }
-      
-      const newProject = projectService.createProject(projectData)
-      
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: name.trim(),
+          description: description.trim() || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to create project')
+
       // Reset form
       setName("")
       setDescription("")
@@ -97,14 +99,13 @@ export function CreateProjectDialog({
       setTags([])
       setCurrentTag("")
       setErrors({})
-      
-      // Close dialog and notify parent
+
       onOpenChange(false)
-      onProjectCreated?.(newProject.id)
-      
+      onProjectCreated?.(data.project.id)
+
     } catch (error) {
       console.error('Error creating project:', error)
-      setErrors({ submit: "Failed to create project. Please try again." })
+      setErrors({ submit: error instanceof Error ? error.message : "Failed to create project. Please try again." })
     } finally {
       setIsSubmitting(false)
     }

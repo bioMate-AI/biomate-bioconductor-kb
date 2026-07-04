@@ -14,7 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Search, Upload, Play, CheckCircle2, Info } from 'lucide-react';
+import { Loader2, Search, Upload, Play, CheckCircle2, Info, Trash2 } from 'lucide-react';
 import { analytics } from '@/lib/analytics';
 import { parseNfParams } from '@/lib/parse-nf-params';
 
@@ -86,6 +86,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
   const [importsLoading, setImportsLoading] = useState(false);
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [importsSearch, setImportsSearch] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Upload tab state
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -169,6 +170,24 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
     setImportsSearch(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => fetchImports(value), 300);
+  }
+
+  async function handleDeletePersonal(wf: PersonalWorkflow) {
+    if (!confirm(`Delete "${wf.workflow_name}"? This cannot be undone.`)) return;
+    setDeletingId(wf.id);
+    try {
+      const res = await fetch(`/api/workflows/personal/${wf.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setImports((prev) => prev.filter((w) => w.id !== wf.id));
+      analytics.track('personal_workflow_deleted', { workflow_name: wf.workflow_name });
+    } catch {
+      // silently keep the row — user can retry
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   async function handleOpenPersonal(wf: PersonalWorkflow) {
@@ -470,6 +489,12 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                   <input ref={uploadFileRef} type="file" accept=".nf,.ga,.yml,.yaml" className="hidden" data-testid="workflow-file-input"
                     onChange={(e) => {
                       const f = e.target.files?.[0] ?? null;
+                      if (f && f.size > 10 * 1024 * 1024) {
+                        setUploadError('File too large — maximum 10 MB for workflow files.');
+                        setUploadFile(null);
+                        e.target.value = '';
+                        return;
+                      }
                       setUploadFile(f);
                       setUploadError(null);
                       if (f && !uploadName) setUploadName(f.name.replace(/\.[^.]+$/, ''));
@@ -543,12 +568,25 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                       size="sm"
                       variant="default"
                       data-testid={`button-open-personal-${wf.id}`}
-                      disabled={openingId === wf.id}
+                      disabled={openingId === wf.id || deletingId === wf.id}
                       onClick={() => handleOpenPersonal(wf)}
                     >
                       {openingId === wf.id
                         ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         : <><Play className="w-3.5 h-3.5 mr-1" />Open</>
+                      }
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      data-testid={`button-delete-personal-${wf.id}`}
+                      disabled={deletingId === wf.id || openingId === wf.id}
+                      onClick={() => handleDeletePersonal(wf)}
+                      className="text-muted-foreground hover:text-red-600 hover:bg-red-50 px-2"
+                    >
+                      {deletingId === wf.id
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        : <Trash2 className="w-3.5 h-3.5" />
                       }
                     </Button>
                   </li>

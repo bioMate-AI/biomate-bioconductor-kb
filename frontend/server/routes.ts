@@ -7726,6 +7726,22 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
+  // DELETE /api/workflows/personal/:id — remove an imported workflow
+  app.delete('/api/workflows/personal/:id', optionalAuth, async (req: any, res) => {
+    try {
+      const user = req.user as any;
+      if (!user?.id) return res.status(401).json({ error: 'Authentication required' });
+      const result = await pool.query(
+        `DELETE FROM personal_workflows WHERE id = $1 AND user_id = $2 RETURNING id`,
+        [req.params.id, String(user.id)]
+      );
+      if (!result.rows.length) return res.status(404).json({ error: 'Not found' });
+      return res.json({ ok: true });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
   // GET /api/workflows/personal/:id — single workflow with file_content
   app.get('/api/workflows/personal/:id', optionalAuth, async (req: any, res) => {
     try {
