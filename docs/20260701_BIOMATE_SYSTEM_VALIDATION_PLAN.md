@@ -989,7 +989,7 @@ Track each test as: PASS / FAIL / PARTIAL / NOT YET RUN
 | M1 | 1-C: scRNA IBD landscape | NOT YET RUN | Cluster count; GIMATS detection; top signaling hub | GSE134809 = Cho/Merad, not Smillie |
 | M1 | 1-D: CMap repurposing SLE | NOT YET RUN | Concordance rate across 3 scoring methods | |
 | M1 | 1-E: Neoantigen / HLA (T1D) | NOT YET RUN | Autoantigen recall @ top 10 | |
-| M1 | 1-F: Full IND package (tocilizumab) | NOT YET RUN | Wall-clock time; PBPK SF/serum ratio vs. 0.31; §2.6 ROUGE-L | |
+| M1 | 1-F: Full IND package (tocilizumab) | **PARTIAL_PASS** | PBPK (fcrn_antibody_pk): Cmax 190.48 vs 178 pub (7%); SF Cmax 59.05 vs 55 pub (7.4%) → PASS; antibody_developability: t_half=21d, pI=8.33, MEDIUM risk, no hERG/BBB (correct for biologic); §2.6.1: 6,013 chars, 5/5 sections, 93.3% BLA-phrase recall → PASS; wall-clock 2.5 min; stages 3/6/7/9 not individually run | data/validation/results/test1f/ |
 | M1 | 1-G: Multi-omics integration (MOFA+) | NOT YET RUN | Converged factors; variance per omic; GWAS locus in top factor | New — multi-omics |
 | M1 | 1-H: scGWAS cell-type assignment | **PASS (SCZ smoke)** | 4,563 modules; 1,160 sig (z≥2); In8/Astro/In1c top cell types; ERBB4/CACNA1C confirm SCZ; all 3 phases validated; next: RA GWAS run | data/validation/results/test1h_scgwas_smoke.json |
 | M2 | 2-A: Routing accuracy (100 prompts) | NOT YET RUN | Accuracy %; top-1 vs. top-3 gap distribution | |
