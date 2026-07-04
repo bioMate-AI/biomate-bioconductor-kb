@@ -1014,7 +1014,7 @@ Track each test as: PASS / FAIL / PARTIAL / NOT YET RUN
 | M7 | 7-B: Seven Bridges comparison | NOT YET RUN | AI interpretation steps present (yes/no per criterion) | |
 | M7 | 7-C: Schrödinger comparison | NOT YET RUN | Domains covered from "RA" starting prompt | |
 | M8 | 8-A: ADMET ensemble concordance | **PASS (3/3)** | T1 ADMET-AI: 11.4 µM; T2 RDKit: 27.3 µM; T3 ChEMBL experimental: 80.0 µM — all concordant >5 µM; PPBR 86.9% vs 86.5% (0.4% error); DILI FP calibrated (pyrazine −0.3 logit); ChEMBL found 2 hERG records matching FDA label exactly | data/validation/results/test8a/ |
-| M8 | 8-B: Citation verifier | NOT YET RUN | DOI resolution rate; unverified statistic % | |
+| M8 | 8-B: Citation verifier | **PASS** | 0 hallucinated DOIs; 3/4 stats verified (75%): Smolen 2008 OPTION ACR20 59% (PMID 18358926 ✔), Kawabata 2010 SF/serum 0.31 (BLA 125276 ✔), Nishimoto 2009 SAMURAI ✔; ADA 1.5-2.5% from FDA label (1 unverified, flagged); no hallucinated citations detected | data/validation/results/test8b/ |
 | M8 | 8-C: DE ensemble concordance | NOT YET RUN | Jaccard similarity between tool pairs; consensus gene count | |
 | M8 | 8-D: Routing ensemble ambiguity | NOT YET RUN | Disambiguation fire rate; confidence gap distribution | |
 | M8 | 8-E: PBPK plausibility gate | NOT YET RUN | Cmax calibration factor for TYK2-class; gate fire accuracy | |
