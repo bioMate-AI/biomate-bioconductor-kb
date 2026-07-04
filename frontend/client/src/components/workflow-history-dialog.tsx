@@ -85,6 +85,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
   const [imports, setImports] = useState<PersonalWorkflow[]>([]);
   const [importsLoading, setImportsLoading] = useState(false);
   const [openingId, setOpeningId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [importsSearch, setImportsSearch] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -233,6 +234,23 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
       // silently allow the dialog to stay open; user can retry
     } finally {
       setOpeningId(null);
+    }
+  }
+
+  async function handleDeletePersonal(wf: PersonalWorkflow) {
+    if (!confirm(`Delete "${wf.workflow_name}"? This cannot be undone.`)) return;
+    setDeletingId(wf.id);
+    try {
+      const res = await fetch(`/api/workflows/personal/${wf.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setImports((prev) => prev.filter((w) => w.id !== wf.id));
+    } catch {
+      // silently keep the row — user can retry
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -581,6 +599,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                       variant="ghost"
                       data-testid={`button-delete-personal-${wf.id}`}
                       disabled={deletingId === wf.id || openingId === wf.id}
+                      title="Delete this workflow"
                       onClick={() => handleDeletePersonal(wf)}
                       className="text-muted-foreground hover:text-red-600 hover:bg-red-50 px-2"
                     >
