@@ -550,6 +550,29 @@ deploy_databases() {
       fi
       rm -f /tmp/galaxy_ai_tools_sync.db
     '
+    # Rebuild the workflow embedding NPZ inside the container so the next
+    # Galaxy startup finds a fresh index and never blocks at request time.
+    # The Python command uses only double quotes (no apostrophes) so the
+    # outer single-quoted ec2_ssh block is not broken.
+    log "[embed] Rebuilding workflow embeddings to match new DB (may take 60-120 s)..."
+    ec2_ssh '
+      docker exec -u galaxy biomate-galaxy-dev python3.9 -c "
+import sys, time
+sys.path.insert(0, \"/app/lib\")
+t0 = time.time()
+from galaxy.ai.unified_workflow_search import UnifiedWorkflowSearch
+import galaxy.ai.unified_workflow_search as _m
+_m._WF_EMBED_READY = False
+_m._WF_EMBED_FAILED = False
+_m._WF_EMBED_MODEL = None
+_m._WORKFLOW_EMBED_NPZ = None
+wfs = UnifiedWorkflowSearch(\"/app/database/galaxy_ai_tools.db\")
+ok = wfs._ensure_workflow_embeddings()
+label = \"ready\" if ok else \"FAILED\"
+print(\"[embed] %s elapsed=%.1fs\" % (label, time.time()-t0))
+sys.exit(0 if ok else 1)
+" && echo "[embed] Embedding rebuild OK" || echo "[embed] WARNING: embedding rebuild failed — server will use FTS-only on first request"
+    ' || log "[embed] WARNING: embedding rebuild ssh step failed"
     LAST_DB_SYNC="$local_db_mtime"
   else
     log "[db] galaxy_ai_tools.db unchanged — skipping"

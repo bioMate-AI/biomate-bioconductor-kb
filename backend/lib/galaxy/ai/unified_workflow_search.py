@@ -1417,11 +1417,22 @@ class UnifiedWorkflowSearch:
             if _WORKFLOW_EMBED_NPZ.exists():
                 self._load_workflow_embeddings()
                 # Staleness check: did the DB drift since the .npz was built?
+                # At runtime we never rebuild — that is a deploy-time operation
+                # handled by sync_to_dev.sh after galaxy_ai_tools.db is updated.
+                # A stale NPZ means the deploy step was skipped; fall back to
+                # FTS-only for this request rather than blocking for 60-120 s.
                 if self._workflow_embeddings_stale():
-                    log.info("[WorkflowEmbed] .npz is stale vs DB — rebuilding")
-                    self._build_workflow_embeddings()
+                    log.warning(
+                        "[WorkflowEmbed] NPZ is stale vs DB — run sync_to_dev.sh "
+                        "to rebuild. Using FTS-only search until next deploy."
+                    )
+                    return False
             else:
-                self._build_workflow_embeddings()
+                log.warning(
+                    "[WorkflowEmbed] NPZ not found at %s — run sync_to_dev.sh "
+                    "to build it. Using FTS-only search.", _WORKFLOW_EMBED_NPZ
+                )
+                return False
 
             _WF_EMBED_READY = (
                 _WF_EMBED_MATRIX is not None
