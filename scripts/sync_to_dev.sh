@@ -555,19 +555,26 @@ deploy_databases() {
     # The Python command uses only double quotes (no apostrophes) so the
     # outer single-quoted ec2_ssh block is not broken.
     log "[embed] Rebuilding workflow embeddings to match new DB (may take 60-120 s)..."
+    # Call _build_workflow_embeddings() directly — bypasses the runtime
+    # staleness gate (which now refuses to rebuild in the request path).
+    # No apostrophes in this block (see sync 9 root cause in CLAUDE.md).
     ec2_ssh '
       docker exec -u galaxy biomate-galaxy-dev python3.9 -c "
 import sys, time
 sys.path.insert(0, \"/app/lib\")
 t0 = time.time()
-from galaxy.ai.unified_workflow_search import UnifiedWorkflowSearch
+import pathlib
 import galaxy.ai.unified_workflow_search as _m
-_m._WF_EMBED_READY = False
-_m._WF_EMBED_FAILED = False
-_m._WF_EMBED_MODEL = None
-_m._WORKFLOW_EMBED_NPZ = None
+_m._WORKFLOW_EMBED_NPZ = pathlib.Path(\"/app/database/galaxy_ai_workflow_embeddings.npz\")
+if _m._WF_EMBED_MODEL is None:
+    print(\"[embed] Loading BGE model...\")
+    from sentence_transformers import SentenceTransformer as _ST
+    _m._WF_EMBED_MODEL = _ST(\"BAAI/bge-small-en-v1.5\", device=\"cpu\", local_files_only=True)
+from galaxy.ai.unified_workflow_search import UnifiedWorkflowSearch
 wfs = UnifiedWorkflowSearch(\"/app/database/galaxy_ai_tools.db\")
-ok = wfs._ensure_workflow_embeddings()
+print(\"[embed] Encoding all workflows...\")
+wfs._build_workflow_embeddings()
+ok = _m._WF_EMBED_MATRIX is not None and len(_m._WF_EMBED_IDS) > 0
 label = \"ready\" if ok else \"FAILED\"
 print(\"[embed] %s elapsed=%.1fs\" % (label, time.time()-t0))
 sys.exit(0 if ok else 1)
