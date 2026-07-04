@@ -8,7 +8,7 @@
  * Three representative use cases spanning different execution paths:
  *
  *   EX-1  ADMET Full Panel          — fast bioinformatics, has QC gates
- *   EX-2  Pharmacovigilance (FAERS) — single nextflow workflow
+ *   EX-2  BOIN Clinical Trial Simulation — single nextflow workflow (no file inputs)
  *   EX-3  PBPK Allometric Scaling   — single nextflow workflow (not a chain)
  *
  * Each flow exercises:
@@ -28,7 +28,7 @@
  *
  * Timeouts:
  *   - LLM routing:  90 s
- *   - AWS Batch execution: 20 min (ADMET/FAERS), 20 min (PBPK)
+ *   - AWS Batch execution: 20 min (ADMET/BOIN), 20 min (PBPK)
  *
  * Run locally:
  *   BIOMATE_URL=http://localhost:5000 \
@@ -84,9 +84,9 @@ const EXEC_CASES: ExecCase[] = [
   },
   {
     id: 'EX-2',
-    label: 'Pharmacovigilance FAERS',
-    prompt: 'Analyze FAERS adverse event data for metformin — run ROR and PRR disproportionality scoring to identify significant adverse drug reactions',
-    expectWorkflow: ['faers', 'FAERS', 'pharmacovigilance', 'adverse'],
+    label: 'BOIN Clinical Trial Simulation',
+    prompt: 'Run a BOIN Phase I dose-escalation simulation for a new oncology compound — starting dose 10 mg, max dose 400 mg, target DLT rate 25%, 1000 simulations to find the MTD',
+    expectWorkflow: ['boin', 'BOIN', 'clinical_trial', 'dose', 'escalation', 'simulation'],
     executionTimeoutMs: FAERS_TIMEOUT_MS,
     minAfterRunTabs: 2,
   },
