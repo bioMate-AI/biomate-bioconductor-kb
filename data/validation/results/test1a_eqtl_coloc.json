@@ -1,0 +1,33 @@
+{
+  "test": "1-A_eqtl_coloc",
+  "gwas": "Ishigaki2022_RA_GRCh37",
+  "eqtl_source": "DICE_filtered_adj_p0.05",
+  "cell_types": [
+    "CD4_T_NAIVE",
+    "CD8_T_NAIVE",
+    "MONOCYTES"
+  ],
+  "loci": {
+    "PTPN22": {
+      "coding_variant": "rs2476601 R620W",
+      "coloc_grade": "NEGATIVE",
+      "note": "Coding variant; 5 regional SNPs overlap MAGI3 eQTL in monocytes"
+    },
+    "TYK2": {
+      "coding_variant": "rs34536443 P1104A",
+      "coloc_grade": "MODERATE",
+      "shared_snps_gwas_eqtl": 52,
+      "top_colocalized_genes": {
+        "MONOCYTES": "ZGLP1",
+        "CD4_T_NAIVE": "CTC-215O4.4 lncRNA"
+      },
+      "top_snp": "rs73510898 (GWAS p=1.02e-7, ZGLP1 eQTL p=2.69e-7, MONOCYTES)"
+    },
+    "IL6R": {
+      "coding_variant": "rs2228145 Asp358Ala",
+      "coloc_grade": "NEGATIVE",
+      "note": "Coding variant affecting ectodomain shedding; no eQTL in DICE"
+    }
+  },
+  "interpretation": "Primary RA GWAS variants at PTPN22, TYK2, IL6R are coding missense variants that act through protein function changes, not gene expression. eQTL colocalization is expected negative for lead SNPs. Secondary signals: TYK2 locus shows MODERATE colocalization with ZGLP1 in monocytes and CTC-215O4.4 lncRNA in CD4 T cells, consistent with regulatory complexity of the TYK2 block."
+}

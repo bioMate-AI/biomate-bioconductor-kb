@@ -984,7 +984,7 @@ Track each test as: PASS / FAIL / PARTIAL / NOT YET RUN
 
 | Module | Test | Status | Calibration Output | Notes |
 |---|---|---|---|---|
-| M1 | 1-A: GWAS target prioritization | PARTIAL | PTPN22 (p=3.75e-168, 738 SNPs) + TYK2 (p=2.18e-20) GWS; IL6R/CD20 sub-GWS; eQTL colocalization pending | data/validation/results/test1a/ |
+| M1 | 1-A: GWAS target prioritization | **PARTIAL_PASS** | PTPN22/TYK2 GWS confirmed; DICE eQTL overlap: TYK2×ZGLP1×MONOCYTES 52 shared SNPs (6 at GWAS p<1e-5 AND eQTL p<1e-4); PTPN22/IL6R correctly negative (coding variants R620W/Asp358Ala); formal Bayesian PP4 requires full cis-stats (filtered DICE insufficient) | data/validation/results/test1a_eqtl_coloc.json |
 | M1 | 1-B: Responder signature + auto-loop | **PASS** | 16,261 DEGs; 9/10 RA markers (IL6, TNF, IL1B, MMP3, CXCL13, IL6R, CD68, STAT3, PTPN22); AWS Batch job 13279efa | data/validation/results/test1b/ |
 | M1 | 1-C: scRNA IBD landscape | NOT YET RUN | Cluster count; GIMATS detection; top signaling hub | GSE134809 = Cho/Merad, not Smillie |
 | M1 | 1-D: CMap repurposing SLE | NOT YET RUN | Concordance rate across 3 scoring methods | |

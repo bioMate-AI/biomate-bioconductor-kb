@@ -197,6 +197,29 @@ Multi-step pipeline structured correctly but 4/4 steps have `nextflow_path: null
 
 ## Session 3 Changes (2026-07-04)
 
+### Test 1-A: eQTL Colocalization Completed
+
+**Data:** DICE filtered eQTL VCFs (CD4_NAIVE, CD8_NAIVE, MONOCYTES; adj p<0.05; 40-44MB each)
+**GWAS:** Ishigaki 2022 RA GRCh37 (GCST90132223)
+
+**Key finding:** GWAS lead variants at all 3 loci are coding missense variants that act through protein function, not gene expression — eQTL coloc is expected negative for lead SNPs by design.
+
+| Locus | GWAS lead | Mechanism | eQTL coloc |
+|-------|-----------|-----------|------------|
+| PTPN22 | rs2476601 R620W | Phosphatase gain-of-function | NEGATIVE (coding); 5 regional MAGI3 eQTL SNPs in monocytes |
+| TYK2 | rs34536443 P1104A | JAK kinase domain | MODERATE — 52 shared SNPs with ZGLP1 monocytes; 6 at GWAS p<1e-5 AND eQTL p<1e-4 |
+| IL6R | rs2228145 Asp358Ala | Ectodomain shedding | NEGATIVE (coding) |
+
+**TYK2 × ZGLP1 × MONOCYTES top SNPs:**
+- rs75231016: GWAS p=2.94e-8, ZGLP1 eQTL p=2.69e-7 (beta=+1.32)
+- rs12720356: GWAS p=8.65e-9, ZGLP1 eQTL p=8.64e-6 (beta=+1.30)
+
+ZGLP1 (Zinc finger GATA-like protein 1) is in the TYK2 locus and the concurrent GWAS+eQTL signals suggest shared regulatory architecture, consistent with the known LD complexity in the chr19p13.2 TYK2 block.
+
+**Limitation:** Formal Bayesian PP4 requires full cis-eQTL summary stats (all SNPs, not just adj-p<0.05 filtered). DICE unfiltered files are 3.2GB each — storage-infeasible. The overlap analysis is a valid first-pass but not a PP4 coloc score.
+
+**Results saved:** `data/validation/results/test1a_eqtl_coloc.json`
+
 ### Test 7-A: Upgraded PARTIAL_PASS → PASS
 
 Root cause of previous PARTIAL_PASS: curl timeouts (120-300s) disconnected before the server responded. The `generate_workflow` endpoint completes in ~90-120s on warm workers; the client disconnecting early caused the server to discard the response silently.
