@@ -1,7 +1,7 @@
 {
   "test_id": "4-A",
   "test_name": "\u00a72.6 Narrative Coherence \u2014 Deucravacitinib + Anifrolumab",
-  "date_run": "2026-07-04T13:40:12.279437",
+  "date_run": "2026-07-04T13:45:44.672841",
   "prior_baricitinib": "PASS (see test4a_baricitinib.json)",
   "results": [
     {
@@ -9,8 +9,8 @@
       "brand": "Sotyktu",
       "nda": "NDA 214958",
       "indication": "moderate-to-severe plaque psoriasis",
-      "narrative_chars": 9070,
-      "elapsed_s": 19.0,
+      "narrative_chars": 9125,
+      "elapsed_s": 34.0,
       "sections_present": {
         "2.6.1.1": true,
         "2.6.1.2": true,
@@ -34,8 +34,8 @@
       "brand": "Saphnelo",
       "nda": "BLA 761123",
       "indication": "moderate-to-severe systemic lupus erythematosus (SLE)",
-      "narrative_chars": 12241,
-      "elapsed_s": 23.6,
+      "narrative_chars": 10331,
+      "elapsed_s": 31.6,
       "sections_present": {
         "2.6.1.1": true,
         "2.6.1.2": true,

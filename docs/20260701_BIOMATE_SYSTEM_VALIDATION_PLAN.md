@@ -433,9 +433,13 @@ top 3 cell types per GWAS locus
 **Scoring:** Exact match (ACR20 vs. ACR20 = correct); partial match (DAS28 vs. DAS28-CRP = partial); wrong (CDAI for RA instead of ACR = wrong).
 
 **Pass criteria:**
-- [ ] Exact match rate ≥ 60% across 20 test cases
-- [ ] Exact + partial match rate ≥ 80%
-- [ ] Zero hallucinated endpoint names (endpoints must exist in AACT vocabulary)
+- [x] Exact match rate ≥ 60% across 20 test cases — **75% (15/20)**
+- [x] Exact + partial match rate ≥ 80% — **85% (17/20)**
+- [x] Zero hallucinated endpoint names — **0 hallucinated**
+
+**Result (2026-07-04): PASS** — Model: gemini-3.5-flash. 15/20 exact, 17/20 combined, 0 hallucinated.  
+Failures: ixekizumab (sPGA vs PASI 75 scale confusion), risankizumab psoriasis (sPGA vs PASI 90), ustekinumab CD ("clinical response" vs "clinical remission").  
+See: `data/validation/results/test4b/test4b_endpoint_results_rescored.json`
 
 ---
 

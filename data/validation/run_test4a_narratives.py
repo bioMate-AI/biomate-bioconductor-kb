@@ -23,9 +23,9 @@ from datetime import datetime
 
 warnings.filterwarnings("ignore")
 
-import google.generativeai as genai
-genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
-model = genai.GenerativeModel("gemini-2.5-flash")
+from google import genai
+client = genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
+MODEL = "gemini-3.5-flash"
 
 OUT_DIR = Path(__file__).parent / "results" / "test4a"
 OUT_DIR.mkdir(exist_ok=True)
@@ -114,7 +114,7 @@ Output ONLY the §2.6.1 narrative text. No commentary, no introduction.
 
     print(f"\nGenerating §2.6.1 for {drug['name']}...")
     start = time.time()
-    resp = model.generate_content(prompt)
+    resp = client.models.generate_content(model=MODEL, contents=prompt)
     elapsed = time.time() - start
     text = resp.text
     print(f"  Generated {len(text)} chars in {elapsed:.1f}s")
