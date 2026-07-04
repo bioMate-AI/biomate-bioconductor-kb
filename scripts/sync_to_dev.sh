@@ -558,8 +558,11 @@ deploy_databases() {
     # Call _build_workflow_embeddings() directly — bypasses the runtime
     # staleness gate (which now refuses to rebuild in the request path).
     # No apostrophes in this block (see sync 9 root cause in CLAUDE.md).
+    # timeout 660: kills the SSH+docker-exec if embedding hangs (no-timeout bug caused
+    # a 30+ min hang when the container stalled; 660s = 11 min is 50% over the observed
+    # worst-case 424s so it won't false-positive on slow-but-working runs).
     ec2_ssh '
-      docker exec -u galaxy biomate-galaxy-dev python3.9 -c "
+      timeout 660 docker exec -u galaxy biomate-galaxy-dev python3.9 -c "
 import sys, time
 sys.path.insert(0, \"/app/lib\")
 t0 = time.time()
