@@ -3366,7 +3366,11 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         log.info(f"[UnifiedWorkflowGeneration] Starting for intent: {user_intent}")
 
         # C1b — Inject recent user corrections into the intent for personalized search/generation
-        if MEMORY_AVAILABLE and self.agentic_memory and user_id:
+        # Only attempt when user_id is a UUID (LTM tables key on UUID, not Galaxy integer IDs).
+        _user_id_is_uuid = bool(
+            user_id and len(user_id) == 36 and user_id.count("-") == 4
+        )
+        if MEMORY_AVAILABLE and self.agentic_memory and _user_id_is_uuid:
             try:
                 corrections = self.agentic_memory.get_recent_corrections(user_id, limit=5)
                 if corrections:
