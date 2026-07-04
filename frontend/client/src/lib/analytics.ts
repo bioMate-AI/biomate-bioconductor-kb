@@ -68,7 +68,9 @@ export type AnalyticsEvent =
   | 'run_again_clicked'
   | 'reset_to_defaults_clicked'
   | 'workflows_sidebar_opened'
-  | 'import_workflow_opened';
+  | 'import_workflow_opened'
+  | 'personal_workflow_opened'
+  | 'workflow_imported';
 
 export interface AnalyticsProperties {
   userId?: string;

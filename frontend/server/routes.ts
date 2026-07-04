@@ -7726,6 +7726,24 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
+  // GET /api/workflows/personal/:id — single workflow with file_content
+  app.get('/api/workflows/personal/:id', optionalAuth, async (req: any, res) => {
+    try {
+      const user = req.user as any;
+      if (!user?.id) return res.status(401).json({ error: 'Authentication required' });
+      const result = await pool.query(
+        `SELECT id, user_id, name AS workflow_name, description, file_type,
+                file_content, created_at, updated_at
+         FROM personal_workflows WHERE id = $1 AND user_id = $2`,
+        [req.params.id, String(user.id)]
+      );
+      if (!result.rows.length) return res.status(404).json({ error: 'Not found' });
+      return res.json(result.rows[0]);
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
   // POST /api/files/preview — render a preview of an S3 file (used by MCP preview_file)
   // Returns { content_type, preview_text?, download_url?, rows?, truncated }
   app.post("/api/files/preview", optionalAuth, async (req, res) => {
@@ -9765,9 +9783,24 @@ ${paramLines || '(none recorded)'}`;
           const stagedParamsClean = { ...stagedParams };
           delete (stagedParamsClean as any).__outputLocation;
 
+          // If a personal (user-uploaded) workflow was selected, fetch its
+          // file_content from the DB and pass it to the Galaxy backend so it
+          // can write the file to /tmp and execute it without needing a
+          // pre-staged path on the Galaxy filesystem.
+          let personalFileContent: string | undefined;
+          if (request.workflowDefinition?.personal_workflow_id) {
+            const pwRes = await pool.query(
+              `SELECT file_content FROM personal_workflows
+               WHERE id = $1 AND user_id = $2`,
+              [request.workflowDefinition.personal_workflow_id, String(req.user?.id)]
+            );
+            personalFileContent = pwRes.rows[0]?.file_content;
+          }
+
           const _nfBody = JSON.stringify({
               history_id: galaxyHistoryId,
               nextflow_path: request.workflowDefinition.nextflow_path,
+              ...(personalFileContent ? { file_content: personalFileContent } : {}),
               parameters: stagedParamsClean,
               ...(__outputLocation ? { output_location: __outputLocation } : {}),
               // ⚠️ DO NOT REVERT to `docker`. Third re-application of 2885eb960 / 140502f23.

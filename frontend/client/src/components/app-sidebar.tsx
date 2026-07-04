@@ -8,7 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { SettingsDialog } from "./settings-dialog"
 import { WorkflowHistoryDialog } from "./workflow-history-dialog"
 import { RecentToolsDialog } from "./recent-tools-dialog"
-import { WorkflowUploadModal } from "./workflow-upload-modal"
+import { ConnectorsDialog } from "./connectors-dialog"
 import { projectService } from "@/lib/projects"
 import type { Project } from "@shared/schema"
 import {
@@ -40,6 +40,7 @@ import {
   FlaskConical,
   BookOpen,
   Upload,
+  Cable,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { analytics } from "@/lib/analytics"
@@ -179,11 +180,12 @@ export function AppSidebar({
     return () => clearInterval(id)
   }, [fetchSessionStatuses])
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
-  const [projectsExpanded, setProjectsExpanded] = useState(false);
+  const [projectsExpanded, setProjectsExpanded] = useState(true);
   const [chatsExpanded, setChatsExpanded] = useState(true);
   const [toolCategoriesExpanded, setToolCategoriesExpanded] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [historyInitialTab, setHistoryInitialTab] = useState<'runs' | 'imports' | 'upload'>('runs');
   const [runningCount, setRunningCount] = useState<number>(0);
   useEffect(() => {
     let cancelled = false;
@@ -198,12 +200,21 @@ export function AppSidebar({
     return () => { cancelled = true; clearInterval(id); };
   }, []);
 
+  const [showConnectorsDialog, setShowConnectorsDialog] = useState(false);
   const [showRecentToolsDialog, setShowRecentToolsDialog] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [, setLocation] = useLocation();
   const { user, logout } = useAuth();
 
-  // Get recent projects
+  // Projects — fetched from API (not localStorage) so they survive page reload
+  const [apiProjects, setApiProjects] = useState<Array<{ id: string; name: string; status: string }>>([]);
+  const [expandedProjectIds, setExpandedProjectIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    fetch("/api/projects", { credentials: "include" })
+      .then((r) => r.ok ? r.json() : { projects: [] })
+      .then((d) => setApiProjects((d.projects ?? []).slice(0, 8)))
+      .catch(() => {});
+  }, []);
   const recentProjects = projectService.getAllProjects().slice(0, 5);
 
   const toggleCategory = (categoryName: string) => {
@@ -306,12 +317,35 @@ export function AppSidebar({
         <button className="side-link" onClick={onNewChat} data-testid="button-new-chat" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted, oklch(0.48 0.012 260))', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}>
           <Plus className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>New Chat</span>
         </button>
-        <button className="side-link" data-testid="button-workflows-nav" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => { analytics.track('workflows_sidebar_opened'); setShowHistoryDialog(true); }}>
+        <button
+          className="side-link"
+          data-testid="button-workflows-nav"
+          title="View run history, browse imported workflows, or upload a new Nextflow / Galaxy workflow"
+          style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
+          onClick={() => { analytics.track('workflows_sidebar_opened'); setHistoryInitialTab('runs'); setShowHistoryDialog(true); }}
+        >
           <FlaskConical className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Workflows</span>{runningCount > 0 && (<span data-testid="workflows-running-badge" style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 999, background: 'oklch(0.92 0.04 230)', color: 'oklch(0.40 0.13 230)' }}>{runningCount}</span>)}
         </button>
-        <button className="side-link" data-testid="button-import-workflow" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => { analytics.track('import_workflow_opened'); setShowUploadModal(true); }}>
+        <button
+          className="side-link"
+          data-testid="button-import-workflow"
+          title="Upload your own Nextflow (.nf) or Galaxy (.ga / .yml) workflow"
+          style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
+          onClick={() => { analytics.track('import_workflow_opened'); setHistoryInitialTab('upload'); setShowHistoryDialog(true); }}
+        >
           <Upload className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Import Workflow</span>
         </button>
+        {/* Connectors — commented out pending review
+        <button
+          className="side-link"
+          data-testid="button-connectors-nav"
+          title="Databases, LLM providers, scientific data sources, and AI platform integrations available in BioMate"
+          style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
+          onClick={() => setShowConnectorsDialog(true)}
+        >
+          <Cable className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Connectors</span>
+        </button>
+        */}
         {/* Workspaces — commented out until create flow is stable (500 on POST /api/workspaces)
         <button className="side-link" data-testid="button-workspaces-nav" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/workspaces')}>
           <FolderOpen className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Workspaces</span>
@@ -334,6 +368,59 @@ export function AppSidebar({
         </button>
         */}
       </div>
+
+      {/* Projects section — always visible */}
+      <div style={{ marginBottom: 8, borderTop: '1px solid var(--bm-border)', paddingTop: 8 }}>
+          <button
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px 4px', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', fontWeight: 600, width: '100%', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            onClick={() => setProjectsExpanded(p => !p)}
+            data-testid="button-projects-section"
+          >
+            {projectsExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+            <FolderOpen className="w-3 h-3" style={{ opacity: 0.7 }} />
+            Projects
+          </button>
+          {projectsExpanded && apiProjects.map((proj) => {
+            const isExpanded = expandedProjectIds.has(proj.id);
+            return (
+              <div key={proj.id}>
+                <button
+                  style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '4px 10px', borderRadius: 5, color: activeProjectId === proj.id ? 'var(--bm-text)' : 'var(--bm-text-muted)', background: activeProjectId === proj.id ? 'var(--bm-surface-3)' : 'transparent', fontSize: 12.5, cursor: 'pointer', border: 'none', width: '100%', textAlign: 'left' }}
+                  onClick={() => { onProjectSelect(proj.id); setExpandedProjectIds(prev => { const n = new Set(prev); if (n.has(proj.id)) n.delete(proj.id); else n.add(proj.id); return n; }); }}
+                  data-testid={`button-project-${proj.id}`}
+                >
+                  {isExpanded ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
+                  <FolderOpen className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--bm-accent, oklch(0.55 0.14 245))', opacity: 0.9 }} />
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{proj.name}</span>
+                </button>
+                {isExpanded && (
+                  <div style={{ paddingLeft: 28 }}>
+                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => onProjectSelect(proj.id)} data-testid={`project-link-chats-${proj.id}`}>
+                      <MessageCircle className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
+                      Chats
+                    </button>
+                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => { onProjectSelect(proj.id); }} data-testid={`project-link-files-${proj.id}`}>
+                      <FileText className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
+                      Files
+                    </button>
+                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} data-testid={`project-link-workflows-${proj.id}`}>
+                      <FlaskConical className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
+                      Workflows
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          <button
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '3px 10px', borderRadius: 5, color: 'var(--bm-text-dim)', fontSize: 11.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left', marginTop: 2 }}
+            onClick={onNewProject}
+            data-testid="button-new-project"
+          >
+            <Plus className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
+            New project
+          </button>
+        </div>
 
       {/* Chat history — scrollable, takes remaining space */}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
@@ -466,8 +553,8 @@ export function AppSidebar({
 
       {/* Dialogs */}
       <SettingsDialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog} />
-      <WorkflowHistoryDialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog} onOpenRun={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}`); } }} onRunAgain={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}&runAgain=${encodeURIComponent(row.runId)}`); } }} />
-      <WorkflowUploadModal open={showUploadModal} onOpenChange={setShowUploadModal} />
+      <WorkflowHistoryDialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog} initialTab={historyInitialTab} onOpenRun={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}`); } }} onRunAgain={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}&runAgain=${encodeURIComponent(row.runId)}`); } }} />
+      <ConnectorsDialog open={showConnectorsDialog} onOpenChange={setShowConnectorsDialog} />
 <RecentToolsDialog open={showRecentToolsDialog} onOpenChange={setShowRecentToolsDialog}
         onToolSelect={(tool) => { if (onToolSelect) onToolSelect(tool as any); }}
       />

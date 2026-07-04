@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import { projectService } from "@/lib/projects"
 import { ChatInterface } from "@/components/chat-interface"
+import { ProjectFileTree } from "@/components/project-file-tree"
 import type { Project, ChatSession, ProjectDocument } from "@shared/schema"
 import { cn } from "@/lib/utils"
 
@@ -44,25 +45,42 @@ export default function ProjectDetailPage({
   const [instructionsValue, setInstructionsValue] = useState("")
   const [activeTab, setActiveTab] = useState("chat")
 
-  // Load project data
+  // Load project data — try API first, fall back to localStorage
   useEffect(() => {
-    const loadProject = () => {
+    const loadProject = async () => {
+      try {
+        const res = await fetch(`/api/projects/${projectId}`, { credentials: "include" })
+        if (res.ok) {
+          const data = await res.json()
+          const p = data.project
+          if (p) {
+            // Adapt API shape to local Project type (API returns camelCase)
+            setProject({
+              ...p,
+              tags: p.tags ?? [],
+              documents: p.documents ?? [],
+              progress: p.progress ?? 0,
+              category: p.primaryDomain ?? p.category ?? null,
+              instructions: p.researchGoal ?? p.instructions ?? "",
+              lastActivity: new Date(p.updatedAt ?? p.createdAt),
+              createdAt: new Date(p.createdAt),
+              updatedAt: new Date(p.updatedAt ?? p.createdAt),
+            } as any)
+            setInstructionsValue(p.research_goal ?? p.instructions ?? "")
+            return
+          }
+        }
+      } catch { /* fall through to localStorage */ }
+      // localStorage fallback
       const projectData = projectService.getProject(projectId)
       if (projectData) {
         setProject(projectData)
         setInstructionsValue(projectData.instructions || "")
-        
-        // Load project chat sessions
         const chats = projectService.getProjectChatSessions(projectId)
         setProjectChats(chats)
-        
-        // Set current chat to the most recent one, or create a new one if none exist
-        if (chats.length > 0) {
-          setCurrentChatSession(chats[0])
-        }
+        if (chats.length > 0) setCurrentChatSession(chats[0])
       }
     }
-    
     loadProject()
   }, [projectId])
 
@@ -101,16 +119,25 @@ export default function ProjectDetailPage({
     setIsEditingInstructions(false)
   }
 
-  const getRelativeTime = (date: Date): string => {
+  const getRelativeTime = (date: Date | string | null | undefined): string => {
+    if (!date) return 'Unknown'
+    const d = new Date(date as any)
+    if (isNaN(d.getTime())) return 'Unknown'
     const now = new Date()
-    const diffMs = now.getTime() - new Date(date).getTime()
+    const diffMs = now.getTime() - d.getTime()
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-    
     if (diffHours < 1) return 'Just now'
     if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
     if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
     return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`
+  }
+
+  const formatDate = (date: Date | string | null | undefined): string => {
+    if (!date) return '—'
+    const d = new Date(date as any)
+    if (isNaN(d.getTime())) return '—'
+    return d.toLocaleDateString()
   }
 
   if (!project) {
@@ -172,7 +199,7 @@ export default function ProjectDetailPage({
           <div className="text-right text-sm text-muted-foreground">
             <div className="flex items-center gap-1 mb-1">
               <Clock className="w-3 h-3" />
-              Updated {getRelativeTime(project.lastActivity)}
+              Updated {getRelativeTime((project as any).updatedAt ?? project.lastActivity)}
             </div>
             <div>{projectChats.length} chat session{projectChats.length !== 1 ? 's' : ''}</div>
           </div>
@@ -253,14 +280,8 @@ export default function ProjectDetailPage({
               </div>
             </TabsContent>
 
-            <TabsContent value="files" className="flex-1 m-0 p-4">
-              <div className="text-center py-12">
-                <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">File management coming soon</h3>
-                <p className="text-muted-foreground">
-                  Upload and manage project documents, datasets, and files
-                </p>
-              </div>
+            <TabsContent value="files" className="flex-1 m-0 p-4" style={{ display: "flex", flexDirection: "column" }}>
+              <ProjectFileTree projectId={projectId} />
             </TabsContent>
           </Tabs>
         </div>
@@ -334,7 +355,7 @@ export default function ProjectDetailPage({
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Created:</span>
-                <span>{new Date(project.createdAt).toLocaleDateString()}</span>
+                <span>{formatDate(project.createdAt)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Progress:</span>

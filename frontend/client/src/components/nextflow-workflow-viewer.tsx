@@ -982,6 +982,15 @@ export function NextflowWorkflowViewer({
       : 'phases';
     setActiveTab(next);
   }, [status, tabAutoDefault]);
+
+  // Auto-open settings strip for user-imported workflows — they uploaded their own .nf and
+  // want to configure it immediately, not hunt for a collapsed strip.
+  useEffect(() => {
+    if ((workflowDefinition?.domain as string) === 'user_import' && status === 'idle') {
+      setGlobalParamsOpen(true);
+    }
+  }, [workflowDefinition?.domain, (workflowDefinition as any)?.id]);
+
   const [previewFile, setPreviewFile] = useState<{ name: string; path: string; extension: string } | null>(null);
   const [adjustStep, setAdjustStep] = useState<{ id: string; name: string; processName?: string; parameters?: Record<string, any> } | null>(null);
   // When user reruns from a step, track the new runId so the viewer polls the right run
@@ -2673,7 +2682,12 @@ export function NextflowWorkflowViewer({
             const optionalParams = globalParams.filter(p => !p.required && !(p as any).autoFilled);
             const requiredUnfilled = requiredParams.filter(p => p.required && (!p.value || p.value === ''));
 
-            if (globalParams.length === 0 && !mismatch) return null;
+            if (globalParams.length === 0 && !mismatch) return (
+              <div style={{ height: '100%', minHeight: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
+                <div style={{ marginBottom: 6 }}>This workflow has no configurable parameters.</div>
+                <div style={{ fontSize: 12, opacity: 0.75 }}>Click "Confirm and run workflow" below to start it.</div>
+              </div>
+            );
             return (
               <div>
                 <button
@@ -2686,7 +2700,7 @@ export function NextflowWorkflowViewer({
                   <span className="caret"><ChevronRight className="h-3.5 w-3.5" /></span>
                   <span className="label">
                     <Settings2 className="h-3.5 w-3.5" />
-                    Workflow settings
+                    Parameters
                     <span className="hint">({globalParams.length} params)</span>
                     {requiredUnfilled.length > 0 && (
                       <span className="chip err" style={{ fontSize: 10, padding: '1px 5px' }}>Required</span>
@@ -2735,63 +2749,59 @@ export function NextflowWorkflowViewer({
                         />
                       )}
 
-                      {/* Phase C — Output location picker. Per
-                       *  docs/20260619_OUTPUT_LOCKDOWN_PHASE_B_C_SPEC.md (C.1).
-                       *  Default: BioMate-managed (current behavior).
-                       *  Project: only shown when chat is in a project.
-                       *  My S3 bucket: advanced — user pastes s3:// uri. */}
+                      {/* Output location — only shown for Nextflow workflows.
+                       *  Galaxy .ga workflows write to Galaxy history automatically;
+                       *  no output path is configurable by the user. */}
+                      {(workflowDefinition as any)?.workflow_type !== 'galaxy' &&
+                       (workflowDefinition as any)?.format !== 'galaxy' && (
                       <div data-testid="output-location-section"
                            style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 8 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6, color: 'var(--text)' }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, color: 'var(--text)' }}>
                           Output location
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12 }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                        {/* Default — BioMate storage, always available, no config needed */}
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+                          Results are saved to BioMate storage and available in the{' '}
+                          <strong>After run → Outputs</strong> tab. Files are kept for 90 days.
+                        </div>
+                        {projectId && (
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 12 }}>
                             <input type="radio"
                                    name="output-location"
-                                   value="default"
-                                   checked={outputLocationType === 'default'}
-                                   onChange={() => setOutputLocationType('default')}
-                                   data-testid="output-location-default" />
-                            <span>Default (BioMate-managed, kept 90 days)</span>
+                                   value="project"
+                                   checked={outputLocationType === 'project'}
+                                   onChange={() => setOutputLocationType('project')}
+                                   data-testid="output-location-project" />
+                            <span>Also save to my project folder</span>
                           </label>
-                          {projectId && (
-                            <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                              <input type="radio"
-                                     name="output-location"
-                                     value="project"
-                                     checked={outputLocationType === 'project'}
-                                     onChange={() => setOutputLocationType('project')}
-                                     data-testid="output-location-project" />
-                              <span>My project folder</span>
-                            </label>
-                          )}
-                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                            <input type="radio"
-                                   name="output-location"
-                                   value="user_s3"
-                                   checked={outputLocationType === 'user_s3'}
-                                   onChange={() => setOutputLocationType('user_s3')}
-                                   data-testid="output-location-user-s3" />
-                            <span title="Advanced — your bucket must grant BioMate's service role write access. See docs/output-location-user-s3-setup.md">
-                              My S3 bucket <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>(Advanced)</span>
-                            </span>
-                          </label>
-                          {outputLocationType === 'user_s3' && (
+                        )}
+                        {/* Advanced: own S3 bucket — collapsed by default */}
+                        <details style={{ marginTop: 6 }} data-testid="output-location-advanced">
+                          <summary style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>
+                            Advanced: send outputs to my own S3 bucket
+                          </summary>
+                          <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                              Your bucket must grant BioMate's IAM role write access.
+                            </div>
                             <input
                               type="text"
                               placeholder="s3://my-bucket/my-prefix"
                               value={userS3Uri}
-                              onChange={(e) => setUserS3Uri(e.target.value)}
+                              onChange={(e) => {
+                                setUserS3Uri(e.target.value);
+                                setOutputLocationType(e.target.value.startsWith('s3://') ? 'user_s3' : 'default');
+                              }}
                               data-testid="output-location-user-s3-uri"
-                              style={{ marginLeft: 22, fontSize: 12, padding: '3px 6px',
-                                       border: '1px solid var(--border)', borderRadius: 3,
+                              style={{ fontSize: 12, padding: '4px 8px',
+                                       border: '1px solid var(--border)', borderRadius: 4,
                                        background: 'var(--surface)', color: 'var(--text)',
                                        fontFamily: 'var(--font-mono)', width: 320 }}
                             />
-                          )}
-                        </div>
+                          </div>
+                        </details>
                       </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -2800,10 +2810,11 @@ export function NextflowWorkflowViewer({
           })()}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-            </div>{/* end Settings-tab-only strip */}
+            </div>
+          </div>{/* end settings-tab-only section */}
 
-            {/* ── Phases-tab-only — phase cards + everything below ──────────── */}
-            <div style={{ display: activeTab === 'phases' ? 'contents' : 'none' }}>
+          {/* ── Phases-tab-only — phase cards + everything below ──────────── */}
+          <div style={{ display: activeTab === 'phases' ? 'contents' : 'none' }}>
             {/* ── Phase section label ──────────────────────────────────────────── */}
             {groupedPhases.length > 0 && (() => {
               const hasRealPhases = groupedPhases.some((g: any) => g.key !== 'all');
@@ -2826,10 +2837,17 @@ export function NextflowWorkflowViewer({
             )}
             {/* ── No steps found after fetch completed ─────────────────────── */}
             {groupedPhases.length === 0 && !lazyStepsFetching && lazySteps !== null && (workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (
-              <div style={{ padding: '16px 18px', color: 'var(--text-dim)', fontSize: 13 }}>
+              <div style={{ height: '100%', minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 18px', color: 'var(--text-dim)', fontSize: 13, textAlign: 'center' }}>
                 {status === 'failed'
                   ? 'Run failed before any phases started. Check the error details above.'
                   : 'Phases will appear here once the workflow starts.'}
+              </div>
+            )}
+            {/* ── Idle / no nextflow_path — personal workflow not yet run ─── */}
+            {groupedPhases.length === 0 && !lazyStepsFetching && lazySteps === null && status === 'idle' && (
+              <div style={{ height: '100%', minHeight: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
+                <div style={{ marginBottom: 6 }}>No phases defined yet.</div>
+                <div style={{ fontSize: 12, opacity: 0.75 }}>Execution phases will appear here once the workflow starts.</div>
               </div>
             )}
 
@@ -3200,7 +3218,6 @@ export function NextflowWorkflowViewer({
               )}
             </div>
           )}
-          </div>{/* end inner Phases-tab-only block (post-strip) */}
       </div>{/* end panel-body */}
       </div>{/* end shared panel-body wrapper (Settings + Phases tabs) */}
 
@@ -3213,7 +3230,9 @@ export function NextflowWorkflowViewer({
         const isRunning   = status === 'running';
         const isPaused    = status === 'paused';
         const isTerminal  = status === 'completed' || status === 'failed';
-        if (!isRunning && !isPaused && !isTerminal) return null;
+        // Terminal state (completed/failed) is handled by panel-foot below — don't render an empty dark bar here
+        if (!isRunning && !isPaused) return null;
+        void isTerminal;
 
         const barStyle: React.CSSProperties = {
           borderTop: '1px solid var(--border)',
