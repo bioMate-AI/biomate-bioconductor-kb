@@ -1,0 +1,45 @@
+# 2.6.1 Nonclinical Overview: Pharmacology
+
+## 2.6.1.1 Summary of the Pharmacology Program
+
+The nonclinical pharmacology program for deucravacitinib (Sotyktu) was designed to characterize the mechanism of action, primary and secondary pharmacodynamic effects, and safety pharmacology profile of this novel oral selective allosteric inhibitor of tyrosine kinase 2 (TYK2). Deucravacitinib is developed for the treatment of moderate-to-severe plaque psoriasis, a chronic inflammatory disease mediated by cytokines such as IL-23, IL-12, and Type I interferons, all of which signal through the TYK2 pathway.
+
+The pharmacology program established that deucravacitinib exerts its therapeutic effects by selectively binding to the regulatory pseudokinase (JH2) domain of TYK2, locking it in an inactive conformation. This unique non-ATP competitive mechanism of inhibition leads to the blockade of downstream signaling pathways involving IL-23, IL-12, and Type I interferons without affecting other JAK family kinases (JAK1, JAK2, JAK3). Extensive *in vitro* binding and functional assays, *ex vivo* cytokine signaling studies, and *in vivo* efficacy models supported the exquisite selectivity and potent activity of deucravacitinib (Wrobleski et al., 2019).
+
+Safety pharmacology studies investigated the potential effects of deucravacitinib on vital organ systems, including the cardiovascular, central nervous, and respiratory systems. These studies, conducted in accordance with ICH guidelines, demonstrated a favorable safety profile with a wide therapeutic margin. The collective nonclinical pharmacology data provides a robust foundation for understanding the therapeutic potential and safety profile of deucravacitinib, aligning with the observed clinical efficacy in patients with plaque psoriasis (Armstrong et al., 2021; Gladman et al., 2023).
+
+## 2.6.1.2 Primary Pharmacodynamics
+
+Deucravacitinib is a highly potent and selective allosteric inhibitor of the Janus kinase (JAK) family member, TYK2. Unlike conventional ATP-competitive kinase inhibitors, deucravacitinib targets the pseudokinase (JH2) domain of TYK2, which serves a regulatory role in controlling the activity of the catalytic (JH1) domain. Deucravacitinib binds with high affinity to the TYK2 JH2 domain, exhibiting a Ki of approximately 0.02 nM. This binding induces a conformational change that locks TYK2 in an inactive state, thereby preventing its activation and subsequent phosphorylation of downstream signaling molecules, such as STAT proteins (Wrobleski et al., 2019; Tokarski et al., 2015). The structural basis for this interaction has been elucidated through crystallographic studies, demonstrating deucravacitinib's specific engagement with the TYK2 JH2 domain (PDB: 6NZR).
+
+A critical aspect of deucravacitinib's primary pharmacodynamics is its exceptional selectivity. *In vitro* enzymatic and cellular assays consistently demonstrated that deucravacitinib is more than 1000-fold selective for TYK2 over other JAK family members (JAK1, JAK2, and JAK3). This selectivity profile is paramount, as inhibition of JAK1, JAK2, or JAK3 is associated with distinct and potentially dose-limiting toxicities, including hematologic changes, increased infection risk, and gastrointestinal effects.
+
+The functional consequence of TYK2 inhibition by deucravacitinib is the blockade of signaling pathways initiated by key cytokines implicated in the pathogenesis of psoriasis, including interleukin-23 (IL-23), interleukin-12 (IL-12), and Type I interferons (IFNα/β). *In vitro* and *ex vivo* studies showed that deucravacitinib potently inhibits cytokine-induced phosphorylation of STAT proteins (e.g., STAT1, STAT3, STAT4) in various human cell types (e.g., peripheral blood mononuclear cells, keratinocytes) at nanomolar concentrations, consistent with its binding affinity. This selective modulation of the TYK2-mediated cytokine pathways is believed to underlie its therapeutic effect in psoriasis while minimizing the broader immunosuppressive effects seen with non-selective JAK inhibitors.
+
+## 2.6.1.3 Secondary Pharmacodynamics
+
+Secondary pharmacodynamic studies for deucravacitinib further characterized its effects beyond primary target engagement and confirmed the specificity of its action. Given its high selectivity for TYK2 over other JAKs, a key aspect of secondary pharmacodynamics was to confirm the *absence* of significant activity against other JAK family members and a broad panel of other kinases or receptors. Comprehensive kinase profiling assays demonstrated no significant off-target activity at pharmacologically relevant concentrations, reinforcing the specific TYK2 inhibitory profile.
+
+*In vivo* proof-of-concept studies utilizing various animal models of immune-mediated inflammation, including models relevant to psoriasis, demonstrated that deucravacitinib effectively modulated inflammatory responses. For example, in models of IL-23-driven inflammation, oral administration of deucravacitinib resulted in dose-dependent reductions in inflammatory cell infiltration, cytokine expression, and histological markers of disease progression. These observed *in vivo* effects were consistent with the selective inhibition of TYK2-mediated signaling established in *in vitro* and *ex vivo* studies (Wrobleski et al., 2019). The therapeutic doses in these models produced systemic exposures within ranges considered relevant to clinical efficacy.
+
+Furthermore, studies evaluated deucravacitinib's impact on a broader spectrum of immune responses. While specifically targeting TYK2-dependent pathways, deucravacitinib did not demonstrate broad immunosuppressive effects typical of agents that inhibit multiple JAK pathways. This selective immunomodulation without widespread suppression of other immune functions supports its differentiated safety profile.
+
+## 2.6.1.4 Safety Pharmacology
+
+A comprehensive safety pharmacology program was conducted to assess the potential for adverse effects of deucravacitinib on vital organ systems, adhering to ICH S7A and S7B guidelines.
+
+**Cardiovascular System:** Studies evaluating deucravacitinib's potential to affect cardiovascular function were a critical component of the safety pharmacology assessment. *In vitro* evaluation of human Ether-à-go-go-Related Gene (hERG) channel current inhibition demonstrated that deucravacitinib has a very low potential to prolong the QT interval, with an IC50 greater than 80 µM. This value is significantly higher than clinically relevant Cmax concentrations (approx. 220 ng/mL or 0.44 µM at 6 mg QD), providing a substantial safety margin and confirming deucravacitinib as hERG-safe. *In vivo* cardiovascular safety studies in non-rodents showed no clinically significant effects on heart rate, blood pressure, or electrocardiographic parameters at exposures well above the anticipated human therapeutic exposure.
+
+**Central Nervous System (CNS):** Studies designed to detect CNS effects, such as the Irwin test in rodents, revealed no significant changes in general behavior, motor activity, or neurological parameters at doses resulting in systemic exposures many-fold higher than the clinical exposure. These findings indicate a low potential for deucravacitinib to cause adverse CNS effects.
+
+**Respiratory System:** *In vivo* studies investigating respiratory function in non-rodent species showed no significant effects on respiratory rate, tidal volume, or minute volume at doses resulting in supra-therapeutic systemic exposures.
+
+Overall, the safety pharmacology studies demonstrated that deucravacitinib has a favorable safety pharmacology profile with no clinically relevant liabilities identified in the tested systems at exposures significantly exceeding therapeutic levels. This is consistent with its highly selective mechanism of action, which avoids the broad inhibition of JAK pathways associated with other agents.
+
+## 2.6.1.5 Pharmacodynamic Drug Interactions
+
+Nonclinical studies did not identify any significant pharmacodynamic (PD) drug interactions for deucravacitinib. Given its highly selective mechanism of action, specifically targeting the TYK2 pseudokinase domain without significant inhibition of JAK1, JAK2, or JAK3, the potential for direct PD interactions is considered low.
+
+The absence of off-target activity against a broad panel of receptors, enzymes, and ion channels further minimizes the likelihood of unanticipated PD interactions with co-administered medications. The selective blockade of TYK2-mediated cytokine signaling pathways means that deucravacitinib is unlikely to produce synergistic or antagonistic PD effects through direct interaction with other immunosuppressants or immunomodulators that operate via distinct mechanisms.
+
+Any potential pharmacokinetic drug interactions (e.g., via cytochrome P450 enzymes or transporters) are discussed in detail in the Nonclinical Pharmacokinetics section (Module 2.7.2). Based on the nonclinical pharmacology program, no specific PD drug interaction studies were deemed necessary, as no relevant signals for such interactions were identified.

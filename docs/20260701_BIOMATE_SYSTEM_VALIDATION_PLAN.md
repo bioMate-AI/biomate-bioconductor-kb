@@ -998,7 +998,7 @@ Track each test as: PASS / FAIL / PARTIAL / NOT YET RUN
 | M3 | 3-B: Insufficient signal gate | NOT YET RUN | Threshold sensitivity | |
 | M3 | 3-C: hERG auto-loop gate | **PASS** | hERG 97.7% flagged; IC50 0.0101 µM (10.1nM) vs 10nM known (1.0× error); calibrated power-law logit IC50 = 10·((1-p)/p)^1.845 deployed | data/validation/results/test3c/ |
 | M3 | 3-D: CMap signature size gate | NOT YET RUN | Threshold sensitivity | |
-| M4 | 4-A: §2.6 narrative (3 drugs) | **PASS (baricitinib)** | §2.6.1+§2.6.2 present; JAK1/JAK2 mechanism; RA indication; 5 citations; no hallucinated DOIs | data/validation/results/test4a_baricitinib.json |
+| M4 | 4-A: §2.6 narrative (3 drugs) | **PASS (3/3)** | Baricitinib (RA/JAK1/2): ✓; Deucravacitinib (psoriasis/TYK2): all 5 sections, 4/4 citations, JH2/pseudokinase/allosteric ✓; Anifrolumab (SLE/Type I IFN): all 5 sections, 4/4 citations, IFNAR1/IFN ✓; generated via gemini-2.5-flash, 19s/23s | data/validation/results/test4a/ |
 | M4 | 4-B: Endpoint recommendation (20 drugs) | NOT YET RUN | Exact match %; partial match % | |
 | M5 | 5-A: TYK2 retrospective (ADMET) | **PASS** | hERG: 11.4 µM vs 80 µM known; PPBR: 86.9% vs 86.5%; logP: 1.73 vs 0.9; DILI FP flagged | data/validation/results/test5a/admet_results.json |
 | M5 | 5-A: TYK2 retrospective (docking) | FAIL → calibration | Vina-py -5.06 kcal/mol, threshold <-7.0; allosteric JH2 pocket under-scored by Vina (systematic -4-6 kcal/mol); need ADFRsuite prep or DiffDock | data/validation/results/test5a/docking_results.json |
