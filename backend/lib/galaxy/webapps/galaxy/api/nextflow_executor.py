@@ -42,7 +42,7 @@ try:
     _dotenv_path = _backend_root / ".env"
     if _dotenv_path.exists():
         from dotenv import load_dotenv
-        load_dotenv(_dotenv_path, override=True)   # override=True: .env changes take effect on SIGHUP reload
+        load_dotenv(_dotenv_path, override=False)  # override=False: Docker env vars take precedence over .env defaults
         log.info(f"[Nextflow] Loaded environment from {_dotenv_path}")
 except Exception as _e:
     log.warning(f"[Nextflow] Could not load .env: {_e}")
@@ -70,6 +70,15 @@ _runs: Dict[str, Dict[str, Any]] = {}
 _runs_lock = threading.RLock()
 
 from galaxy.ai.runs import get_run_state_store  # noqa: E402
+
+# Start the orphan-completion poller on every gunicorn worker at module load,
+# not just when a run is submitted. Without this, workers that restart while
+# a run is in-flight never scan for orphaned runs until the NEXT submission.
+try:
+    from galaxy.ai.runs.bootstrap import ensure_poller_started as _ensure_poller
+    _ensure_poller()
+except Exception as _boot_exc:  # redis unavailable at import time is fine — poller silently skips
+    log.debug("[runs.bootstrap] module-level poller start skipped: %s", _boot_exc)
 
 
 def _find_run_by_invocation_id(invocation_id: str) -> Optional[tuple]:
@@ -5138,6 +5147,103 @@ def _steps_from_db_metadata(nextflow_path: str) -> Dict[str, Any]:
     return out
 
 
+_TOOL_PHASE_ORDER = [
+    ("QC",                      ["fastqc", "falco", "nanoq", "nanostat", "pycoqc", "toulligqc"]),
+    ("Trimming",                 ["fastp", "trimgalore", "trim_galore", "cutadapt", "trimmomatic", "bbduk", "porechop", "nanolyse"]),
+    ("Alignment",                ["star", "hisat2", "bwa", "bowtie2", "minimap2", "bwamem2", "tophat2", "cellranger", "starsolo", "chromap", "bismark", "biscuit"]),
+    ("Quantification",           ["salmon", "kallisto", "featurecounts", "htseq", "rsem", "subread", "stringtie", "alevin"]),
+    ("BAM Processing",           ["samtools", "picard", "bamtools", "sambamba", "bedtools", "deeptools", "preseq"]),
+    ("Peak Calling",             ["macs2", "macs3", "homer", "sicer", "epic2", "hmmratac", "seacr"]),
+    ("Variant Calling",          ["gatk", "strelka", "mutect2", "freebayes", "deepvariant", "haplotypecaller", "octopus", "bcftools", "varscan", "lofreq"]),
+    ("SV Detection",             ["manta", "lumpy", "svaba", "gridss", "delly", "smoove"]),
+    ("CNV Analysis",             ["cnvkit", "wisecondorx", "freec", "sequenza", "controlfreec"]),
+    ("Methylation",              ["bismark", "biscuit", "methyldackel", "dnmtools", "deeptool"]),
+    ("Differential Expression",  ["deseq2", "edger", "limma", "sleuth", "monocle", "dexseq"]),
+    ("Single-cell Analysis",     ["seurat", "scanpy", "scran", "scdblfindr", "harmony", "celltypist", "leiden", "louvain"]),
+    ("Taxonomic Classification", ["kraken2", "bracken", "metaphlan", "kaiju", "centrifuge", "krona", "pavian"]),
+    ("Assembly",                 ["megahit", "spades", "flye", "unicycler", "hifiasm", "canu", "wtdbg2", "metabat"]),
+    ("Annotation",               ["prokka", "busco", "diamond", "blast", "hmmer", "interproscan", "eggnog"]),
+    ("Structure Prediction",     ["alphafold", "colabfold", "rosettafold", "esmfold", "omegafold"]),
+    ("Report",                   ["multiqc", "qualimap", "nanostat"]),
+]
+
+_TOOL_TO_PHASE: Dict[str, str] = {
+    tool: phase
+    for phase, tools in _TOOL_PHASE_ORDER
+    for tool in tools
+}
+_PHASE_ORDER: Dict[str, int] = {phase: i for i, (phase, _) in enumerate(_TOOL_PHASE_ORDER)}
+
+
+def _steps_synthetic_from_db(nextflow_path: str) -> Dict[str, Any]:
+    """Generate synthetic phase-step objects from DB tools_used / step_count metadata.
+    Used as a final fallback when neither the .nf file nor bioconductor step_metadata
+    is available (e.g. nf-core pipelines without local stubs, nfcore_subwf, etc.)."""
+    import sqlite3, json as _json, re as _re
+    from pathlib import Path as _Path
+    out: Dict[str, Any] = {}
+    try:
+        db = _Path(__file__).resolve().parents[5] / "database" / "galaxy_ai_tools.db"
+        if not db.exists():
+            return out
+        conn = sqlite3.connect(str(db))
+        row = conn.execute(
+            "SELECT name, tools_used, step_count, description FROM workflows "
+            "WHERE filename = ? OR filename LIKE ? LIMIT 1",
+            (nextflow_path, f"%{nextflow_path}"),
+        ).fetchone()
+        conn.close()
+        if not row:
+            return out
+        wf_name, tools_json, step_count, description = row
+        tools_raw: list = _json.loads(tools_json) if tools_json else []
+        tools = [str(t).lower().strip() for t in tools_raw if t]
+
+        # Map each tool to its phase, preserving canonical phase order.
+        seen_phases: Dict[str, list] = {}
+        unmatched: list = []
+        for t in tools:
+            phase = _TOOL_TO_PHASE.get(t)
+            if phase:
+                seen_phases.setdefault(phase, []).append(t)
+            else:
+                unmatched.append(t)
+
+        # Build ordered list of (phase, [tools]) by canonical phase index.
+        ordered = sorted(seen_phases.items(), key=lambda kv: _PHASE_ORDER.get(kv[0], 99))
+        if unmatched:
+            ordered.append(("Processing", unmatched))
+
+        # If we have no tool info but know the step count, emit generic numbered steps.
+        if not ordered and step_count:
+            for i in range(int(step_count)):
+                nm = f"Step {i + 1}"
+                out[str(i)] = {
+                    "id": str(i), "name": nm, "annotation": nm, "description": "",
+                    "tool_id": f"STEP_{i+1}", "type": "tool",
+                    "parameters": {}, "param_meta": [], "inputs": {},
+                    "phase_group": "", "phase_label": "",
+                    "visualizations": [], "qc": [], "outputs": [],
+                }
+            return out
+
+        # One step per phase (not per tool — phases are the viewer's unit).
+        for idx, (phase, phase_tools) in enumerate(ordered):
+            nm = phase
+            tool_label = ", ".join(phase_tools[:3])
+            desc = f"{phase} ({tool_label})" if tool_label else phase
+            out[str(idx)] = {
+                "id": str(idx), "name": nm, "annotation": nm, "description": desc,
+                "tool_id": _re.sub(r"[^A-Za-z0-9]+", "_", nm).upper()[:48],
+                "type": "tool", "parameters": {}, "param_meta": [], "inputs": {},
+                "phase_group": nm, "phase_label": nm,
+                "visualizations": [], "qc": [], "outputs": [],
+            }
+    except Exception:
+        return {}
+    return out
+
+
 @router.get("/api/nextflow/steps", summary="Parse workflow phase steps from a .nf file")
 def get_nextflow_steps(nextflow_path: str = "") -> Dict[str, Any]:
     """
@@ -5161,6 +5267,10 @@ def get_nextflow_steps(nextflow_path: str = "") -> Dict[str, Any]:
     # the better UI; richer DB metadata (>=2 steps, or matching the parser) still wins.
     if db_steps and not (len(db_steps) <= 1 < len(steps)):
         steps = db_steps
+    # Final fallback: generate synthetic phase steps from DB tools_used metadata.
+    # Covers nf-core pipelines without local stubs and nfcore_subwf entries.
+    if not steps:
+        steps = _steps_synthetic_from_db(nextflow_path)
     return {"steps": steps, "count": len(steps)}
 
 
@@ -9020,3 +9130,4 @@ async def browse_s3(
     except Exception as exc:
         log.exception("[browse_s3] Failed for bucket=%s prefix=%s: %s", bucket, prefix, exc)
         raise HTTPException(status_code=500, detail=str(exc))
+

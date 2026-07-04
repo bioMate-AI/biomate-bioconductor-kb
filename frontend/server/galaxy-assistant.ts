@@ -243,7 +243,7 @@ export function shouldEnableThinking(message: string, intent: string): boolean {
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {
   intentModel: 'gemini-3.5-flash',  // overridden by BIOMATE_INTENT_MODEL env var; gemini-3.5-flash in production
   toolRankingModel: 'claude-haiku-4-5',  // Haiku: fast lightweight ranking
-  responseModel: 'claude-sonnet-4-6',    // Default to Sonnet 4.6
+  responseModel: 'gemini-3.5-flash',     // Primary: Gemini Flash; Claude/OpenAI/Ollama as fallback chain
   enableThinking: false,                 // Disable thinking by default for lower latency
   thinkingBudget: 2000,
 };
@@ -261,13 +261,10 @@ const GEMINI_PRO_MODEL   = process.env.BIOMATE_INTENT_MODEL_PRO   || 'gemini-3.1
  *   - dense technical jargon (3+ tokens that look like gene names / drug names / IDs)
  * Otherwise routes Flash for cost/latency.
  */
-export function pickGeminiIntentModel(message: string): string {
-  const msg = String(message || '');
-  if (msg.length > 140) return GEMINI_PRO_MODEL;
-  if (/\b(compare|versus|vs\.?|triage|bake[- ]?off|strategy|design.*for)\b/i.test(msg)) return GEMINI_PRO_MODEL;
-  // Multi-entity: 3+ all-caps gene/drug-style tokens (e.g. PD-1, VEGF, BCMA, PCSK9)
-  const upperTokens = (msg.match(/\b[A-Z][A-Z0-9-]{1,}\b/g) || []).length;
-  if (upperTokens >= 3) return GEMINI_PRO_MODEL;
+export function pickGeminiIntentModel(_message: string): string {
+  // Always use Flash for intent classification — Pro hangs for 110s+ without timeout
+  // (rate-limiting / API latency) making the system unusable. Flash handles JSON
+  // intent parsing equally well and responds in <5s vs 110s+ for Pro.
   return GEMINI_FLASH_MODEL;
 }
 
@@ -1994,8 +1991,8 @@ export class GalaxyAssistant {
     // This prevents silent auth failures when ANTHROPIC_API_KEY is absent on a Gemini-only deployment.
     const computedModelConfig = { ...DEFAULT_MODEL_CONFIG, ...options.modelConfig };
     if (!options.anthropicApiKey && geminiKey && !computedModelConfig.responseModel?.startsWith('gemini-')) {
-      computedModelConfig.responseModel = 'gemini-3.5-flash';
-      console.log('[GalaxyAssistant] No ANTHROPIC_API_KEY — switching responseModel to gemini-3.5-flash');
+      computedModelConfig.responseModel = GEMINI_FLASH_MODEL;
+      console.log('[GalaxyAssistant] No ANTHROPIC_API_KEY — switching responseModel to gemini flash');
     }
     this.modelConfig = computedModelConfig;
     this.sessionMemory = new SessionMemoryUpdater(this.claude);
@@ -2072,7 +2069,7 @@ export class GalaxyAssistant {
       systemInstruction: systemPrompt,
       // temperature=0 for determinism (BioMate is a scientific tool; see
       // sister Anthropic call where the same change was applied).
-      generationConfig: { maxOutputTokens: maxTokens, temperature: 0 },
+      generationConfig: { maxOutputTokens: maxTokens, temperature: 0, thinkingConfig: { thinkingBudget: 0 } } as any,
       ...(geminiTools ? { tools: geminiTools as any } : {}),
     });
 
@@ -2208,7 +2205,7 @@ export class GalaxyAssistant {
     maxTokens = 4096,
   ): Promise<string> {
     const ollamaBase = process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
-    const model = this.modelConfig.responseModel;
+    const model = process.env.OLLAMA_MODEL ?? 'qwen3:32b';
     const body = JSON.stringify({
       model,
       messages: [
@@ -2235,6 +2232,53 @@ export class GalaxyAssistant {
     const reader = res.body?.getReader();
     const decoder = new TextDecoder();
     if (!reader) throw new Error('No response body from Ollama');
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      for (const line of decoder.decode(value).split('\n')) {
+        const trimmed = line.replace(/^data:\s*/, '').trim();
+        if (!trimmed || trimmed === '[DONE]') continue;
+        try {
+          const delta = JSON.parse(trimmed).choices?.[0]?.delta?.content;
+          if (delta) { rawResponse += delta; onResponseDelta?.(delta); }
+        } catch { /* skip malformed chunk */ }
+      }
+    }
+    return rawResponse;
+  }
+
+  /**
+   * Generate a response using OpenAI-compatible API (gpt-4o by default).
+   * Streaming via the standard SSE chat completions endpoint.
+   */
+  private async _generateWithOpenAI(
+    systemPrompt: string,
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+    onResponseDelta?: (text: string) => void,
+    maxTokens = 4096,
+  ): Promise<string> {
+    const openaiKey = process.env.OPENAI_API_KEY;
+    if (!openaiKey) throw new Error('OPENAI_API_KEY not set');
+    const model = process.env.OPENAI_MODEL ?? 'gpt-4o';
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages.map(m => ({ role: m.role, content: m.content })),
+        ],
+        stream: true,
+        temperature: 0,
+        max_tokens: maxTokens,
+      }),
+    });
+    if (!res.ok) throw new Error(`OpenAI HTTP ${res.status}: ${await res.text()}`);
+    let rawResponse = '';
+    const reader = res.body?.getReader();
+    if (!reader) throw new Error('No response body from OpenAI');
+    const decoder = new TextDecoder();
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -3752,9 +3796,10 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
         decomposition.penalizedDomains
       );
       if (tier1Workflow?.success && tier1Workflow?.nextflow_path) {
-        log(`Tier 1: Got workflow "${tier1Workflow.workflow_name || tier1Workflow.name}" (${tier1Workflow.nextflow_path}) — checking coverage`);
+        const _t1Name = tier1Workflow.workflow_name || tier1Workflow.workflow_ga?.name || tier1Workflow.name || tier1Workflow.nextflow_path?.split('/').pop() || 'workflow';
+        log(`Tier 1: Got workflow "${_t1Name}" (${tier1Workflow.nextflow_path}) — checking coverage`);
         const coverage = await this._checkWorkflowCoverage(
-          tier1Workflow.workflow_name || tier1Workflow.name || '',
+          _t1Name,
           tier1Workflow.description || tier1Workflow.message || '',
           decomposition.intents,
           message
@@ -3768,7 +3813,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
           log(`Tier 1 MATCH: returning single workflow card`);
           const allFacts = decomposition.intents.flatMap(i => i.facts);
           const t1Summary = this._buildPreExecutionSummary(tier1Workflow, message, context.sessionDatasets);
-          const t1BaseMsg = `I'll run the **${tier1Workflow.workflow_name || tier1Workflow.name}** workflow — it handles all your steps in one integrated pipeline.`;
+          const t1BaseMsg = `I'll run the **${_t1Name}** workflow — it handles all your steps in one integrated pipeline.`;
           return {
             message: t1Summary ? `${t1Summary}\n\n${t1BaseMsg}` : t1BaseMsg,
             intentType: 'workflow_generation',
@@ -3795,7 +3840,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
           tier1Workflow.parameters = { ...tier1Workflow.parameters, ...mergedParams };
           const allFacts = decomposition.intents.flatMap(i => i.facts);
           const t1mSummary = this._buildPreExecutionSummary(tier1Workflow, message, context.sessionDatasets);
-          const t1mBaseMsg = `I believe the **${tier1Workflow.workflow_name || tier1Workflow.name}** workflow covers your full request — it handles all the described steps in one integrated run. Please review and confirm this meets your needs before running.`;
+          const t1mBaseMsg = `I believe the **${_t1Name}** workflow covers your full request — it handles all the described steps in one integrated run. Please review and confirm this meets your needs before running.`;
           return {
             message: t1mSummary ? `${t1mSummary}\n\n${t1mBaseMsg}` : t1mBaseMsg,
             intentType: 'workflow_generation',
@@ -5551,18 +5596,23 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
           // 2500, producing "Unexpected end of JSON input" and zero workflow_ready event.
           // Gemini thinking tokens count against this budget; 4096 leaves room for the
           // full intent + inlineParameters payload.
-          generationConfig: { temperature: 0, maxOutputTokens: 4096, responseMimeType: 'application/json' },
+          generationConfig: { temperature: 0, maxOutputTokens: 4096, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } } as any,
           systemInstruction: systemPrompt,
         });
         // Attempt Gemini; on 429 immediately fall back to Haiku — no slow retry loop.
         let geminiResult: any;
         let usedGeminiFallback = false;
         try {
-          geminiResult = await geminiModel.generateContent(message);
+          const geminiTimeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Gemini intent timeout after 30s')), 30_000)
+          );
+          geminiResult = await Promise.race([geminiModel.generateContent(message), geminiTimeout]);
         } catch (err: any) {
           const is429 = err?.message?.includes('429') || err?.status === 429;
-          if (is429) {
-            console.warn('[GalaxyAssistant] Gemini 429 — falling back to Haiku for intent classification (no delay)');
+          const isTimeout = err?.message?.includes('timeout');
+          if (is429 || isTimeout) {
+            if (isTimeout) console.warn('[GalaxyAssistant] Gemini intent classification timed out (>30s) — falling back to Flash chain');
+            else console.warn('[GalaxyAssistant] Gemini 429 — falling back to Haiku for intent classification (no delay)');
             usedGeminiFallback = true;
           } else {
             throw err;
@@ -6906,14 +6956,14 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       let lastStopReason: string | null = null;
       const MAX_TOOL_TURNS = 5;
 
-      // ── Non-Claude backbone: Gemini or Ollama ────────────────────────────────
-      // Tool use is not supported on these paths (different function-call formats).
-      // All other BioMate pipeline stages (routing, context-building, RAG) still run.
+      // ── Response generation: Gemini (primary) → Claude → OpenAI → Ollama ──────
+      // Fallback chain mirrors llm_providers.yml. Claude path below this block
+      // provides the full agentic tool loop; this chain handles non-Claude primaries
+      // and serves as the fallback when Claude is unavailable.
       const responseModel = this.modelConfig.responseModel;
-      const isGeminiBackbone = responseModel.startsWith('gemini-');
-      const isOllamaBackbone = !responseModel.startsWith('claude-') && !isGeminiBackbone;
+      const isClaudeBackbone = responseModel.startsWith('claude-');
 
-      if (isGeminiBackbone || isOllamaBackbone) {
+      if (!isClaudeBackbone) {
         const plainMessages = [
           ...previousMessages.map(m => ({
             role: (m.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
@@ -6922,16 +6972,58 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           })),
           { role: 'user' as const, content: userPrompt },
         ];
-        try {
-          rawResponse = isGeminiBackbone
-            ? await this._generateWithGemini(systemPrompt, plainMessages, onResponseDelta)
-            : await this._generateWithOllama(systemPrompt, plainMessages, onResponseDelta);
-        } catch (err: any) {
-          console.error(`[GalaxyAssistant] ${isGeminiBackbone ? 'Gemini' : 'Ollama'} backbone error:`, err.message);
-          rawResponse = `I encountered an error generating a response: ${err.message}`;
+
+        // Provider chain: try each in order, stop on first success
+        const providers: Array<{ name: string; fn: () => Promise<string>; available: boolean }> = [
+          {
+            name: 'Gemini',
+            fn: () => this._generateWithGemini(systemPrompt, plainMessages, onResponseDelta),
+            available: !!this.gemini && responseModel.startsWith('gemini-'),
+          },
+          {
+            name: 'Claude',
+            fn: async () => {
+              if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
+              const res = await this.claude.messages.create({
+                model: 'claude-haiku-4-5-20251001',
+                max_tokens: 4096,
+                system: systemPrompt,
+                messages: plainMessages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+              });
+              const text = res.content[0]?.type === 'text' ? res.content[0].text : '';
+              if (text && onResponseDelta) onResponseDelta(text);
+              return text;
+            },
+            available: !!process.env.ANTHROPIC_API_KEY,
+          },
+          {
+            name: 'OpenAI',
+            fn: () => this._generateWithOpenAI(systemPrompt, plainMessages, onResponseDelta),
+            available: !!process.env.OPENAI_API_KEY,
+          },
+          {
+            name: 'Ollama',
+            fn: () => this._generateWithOllama(systemPrompt, plainMessages, onResponseDelta),
+            available: true,
+          },
+        ];
+
+        for (const provider of providers.filter(p => p.available)) {
+          try {
+            rawResponse = await provider.fn();
+            console.log(`[GalaxyAssistant] Response generated by ${provider.name}`);
+            break;
+          } catch (err: any) {
+            console.warn(`[GalaxyAssistant] ${provider.name} response failed — trying next:`, err.message);
+          }
+        }
+
+        if (!rawResponse) {
+          rawResponse = 'All response providers failed. Please try again in a moment.';
           if (onResponseDelta) onResponseDelta(rawResponse);
         }
-        // Skip the Anthropic agent loop entirely
+
+        // Skip the Claude agent loop entirely for non-Claude backbones
         const thinkingResult = thinkingDetector.detectThinking(rawResponse);
         const qualityEnforcedMessage = this.enforceDrugDevelopmentResponseQuality({
           userMessage: message,
@@ -6946,14 +7038,13 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         });
         const finalMessage = qualityEnforcedMessage || rawResponse;
         if (!finalMessage) {
-          // Gemini returned an empty response — surface a clear error rather than silence
           const emptyFallback = 'I\'m having trouble generating a response right now. Please try again in a moment.';
           if (onResponseDelta) onResponseDelta(emptyFallback);
           return { message: emptyFallback, truncated: false };
         }
         return { message: finalMessage, truncated: false };
       }
-      // ── End non-Claude backbone ───────────────────────────────────────────────
+      // ── End non-Claude backbone (falls through to Claude agentic loop) ─────────
 
       for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
         const isFirstTurn = turn === 0;

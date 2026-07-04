@@ -7704,14 +7704,21 @@ ${paramLines || '(none recorded)'}`;
       const user = req.user as any;
       if (!user?.id) return res.status(401).json({ error: 'Authentication required' });
 
+      const search = (req.query.search as string || '').trim();
+      const queryParams: any[] = [String(user.id)];
+      let whereClause = 'WHERE user_id = $1';
+      if (search) {
+        queryParams.push(`%${search}%`);
+        whereClause += ` AND name ILIKE $2`;
+      }
       const result = await pool.query(
         `SELECT id, user_id, name AS workflow_name, description, file_type,
                 created_at, updated_at
          FROM personal_workflows
-         WHERE user_id = $1
+         ${whereClause}
          ORDER BY created_at DESC
-         LIMIT 200`,
-        [String(user.id)]
+         LIMIT 500`,
+        queryParams
       );
       return res.json(result.rows);
     } catch (err: any) {

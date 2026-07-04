@@ -328,6 +328,57 @@ This standard applies to every PR that touches the workflow panel, sidebar, chat
 
 ---
 
+## Chat + Workflow Panel Presentation Standard
+
+**Every workflow execution must be visually correct in BOTH the chat panel (left) and the workflow panel (right). Both panels are user-facing; a failure in either is a bug.**
+
+### Chat panel — required presentation
+
+After sending a workflow request, the BioMate AI response must show:
+
+1. **Correct workflow name** — never "undefined", never blank. The name must match the workflow card title in the right panel.
+2. **Structured pre-execution summary** — bullet-point list of what the workflow will do, key steps, expected outputs. Not a vague one-liner.
+3. **Workflow card** — appears *below* the AI text, shows workflow name, domain badge, step count, and "In panel" badge when the panel is open.
+4. **No hallucinated parameters** — parameters mentioned in the chat message must correspond to real workflow params.
+5. **Correct intent** — if the user asked for ADMET, the message says ADMET, not some other workflow.
+
+### Workflow panel — required presentation per state
+
+| State | Panel must show |
+|-------|----------------|
+| **Pre-run (idle)** | Workflow name (not "undefined"), domain, param strip with filled values, "Confirm & Run" footer button |
+| **Running** | "Running…" footer, overall badge `data-status="running"`, at least one phase card with spinner |
+| **Completed** | "COMPLETED" badge, "Run again" footer, after-run tabs: Outputs + Findings + Parameters visible |
+| **Failed** | "FAILED" badge (red), "Restart" footer, error message in After Run section, Findings tab shows "Analysis not available — workflow did not complete successfully" (NOT "Analysis in progress…") |
+
+### Findings tab — required content (completed runs)
+
+- Summary paragraph with actual result values (not placeholder text)
+- Key Results table or metric list (collapsed by default, expandable)
+- "Download report" button visible and linked to the real report URL
+- If findings are still generating: "Analyzing outputs…" spinner — this must stop when findings arrive
+- If run failed: static error message (no spinner, no polling)
+
+### Iterative audit-fix loop — mandatory
+
+When running E2E tests that exercise real workflow execution (AWS Batch):
+
+1. **Run** the test suite → collect screenshots for every state (pre-run, running, completed/failed, findings)
+2. **Audit** every screenshot against the table above — check BOTH chat and workflow panel
+3. **List** every deviation found (wrong text, missing element, wrong state, spinner stuck, etc.)
+4. **Fix** each deviation at its root cause in the source code
+5. **Sync** to dev (pre-sync checklist: tsc + vitest first)
+6. **Repeat** from step 1
+
+**Do not mark the task done until:**
+- All three workflow execution tests pass (completed or known-failing due to data/infra, not UI bugs)
+- No screenshot shows "undefined" in any visible text
+- No screenshot shows "Analysis in progress…" on a failed run
+- Chat panel and workflow panel are in sync (same workflow name, consistent state)
+- Download report link is visible after a completed run
+
+---
+
 ## Billing System
 
 **Always use and test the AWS production billing stack. Never use or test against the local Lago Docker container.**

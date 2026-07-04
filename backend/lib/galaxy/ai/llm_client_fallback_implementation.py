@@ -192,6 +192,7 @@ async def generate_with_fallback(
     llm_client,
     prompt: str,
     fallback_manager: Optional[FallbackChainManager] = None,
+    use_fast_model: bool = False,
     **kwargs
 ) -> str:
     """
@@ -224,6 +225,12 @@ async def generate_with_fallback(
 
     if not provider_chain:
         raise Exception("No LLM providers configured or available")
+
+    # Fast mode: promote fallbacks[0] (Flash) to front of chain so cheap ranking
+    # calls don't burn the slow thinking-model primary. Falls back to primary
+    # automatically if the fast model fails — no hardcoded model names.
+    if use_fast_model and len(provider_chain) > 1:
+        provider_chain = [provider_chain[1], provider_chain[0]] + provider_chain[2:]
 
     errors = []
     total_attempts = 0
@@ -306,6 +313,15 @@ async def _try_provider_with_retry(
             llm_client.api_base = provider_config.base_url
 
         llm_client._setup_provider()  # Re-setup with new config
+
+        # Inject provider timeout so _generate_gemini uses config timeout, not hardcoded 120s
+        kwargs.setdefault('timeout', float(provider_config.timeout_seconds))
+
+        # Disable thinking tokens for Flash models — with thinkingBudget=-1 (dynamic),
+        # Flash can use 60s+ of thinking tokens on complex prompts. Setting budget=0
+        # forces fast-path responses (<5s). Pro requires budget≥1 (errors on 0).
+        if 'flash' in provider_config.model.lower():
+            kwargs.setdefault('thinking_budget', 0)
 
         # Try with exponential backoff
         for attempt in range(provider_config.retry_attempts):

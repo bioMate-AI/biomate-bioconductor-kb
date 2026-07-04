@@ -172,6 +172,24 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
     debounceRef.current = setTimeout(() => fetchImports(value), 300);
   }
 
+  async function handleDeletePersonal(wf: PersonalWorkflow) {
+    if (!confirm(`Delete "${wf.workflow_name}"? This cannot be undone.`)) return;
+    setDeletingId(wf.id);
+    try {
+      const res = await fetch(`/api/workflows/personal/${wf.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setImports((prev) => prev.filter((w) => w.id !== wf.id));
+      analytics.track('personal_workflow_deleted', { workflow_name: wf.workflow_name });
+    } catch {
+      // silently keep the row — user can retry
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   async function handleOpenPersonal(wf: PersonalWorkflow) {
     setOpeningId(wf.id);
     try {
@@ -215,23 +233,6 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
       // silently allow the dialog to stay open; user can retry
     } finally {
       setOpeningId(null);
-    }
-  }
-
-  async function handleDeletePersonal(wf: PersonalWorkflow) {
-    if (!confirm(`Delete "${wf.workflow_name}"? This cannot be undone.`)) return;
-    setDeletingId(wf.id);
-    try {
-      const res = await fetch(`/api/workflows/personal/${wf.id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setImports((prev) => prev.filter((w) => w.id !== wf.id));
-    } catch {
-      // silently keep the row — user can retry
-    } finally {
-      setDeletingId(null);
     }
   }
 
@@ -488,6 +489,12 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                   <input ref={uploadFileRef} type="file" accept=".nf,.ga,.yml,.yaml" className="hidden" data-testid="workflow-file-input"
                     onChange={(e) => {
                       const f = e.target.files?.[0] ?? null;
+                      if (f && f.size > 10 * 1024 * 1024) {
+                        setUploadError('File too large — maximum 10 MB for workflow files.');
+                        setUploadFile(null);
+                        e.target.value = '';
+                        return;
+                      }
                       setUploadFile(f);
                       setUploadError(null);
                       if (f && !uploadName) setUploadName(f.name.replace(/\.[^.]+$/, ''));
@@ -561,7 +568,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                       size="sm"
                       variant="default"
                       data-testid={`button-open-personal-${wf.id}`}
-                      disabled={openingId === wf.id}
+                      disabled={openingId === wf.id || deletingId === wf.id}
                       onClick={() => handleOpenPersonal(wf)}
                     >
                       {openingId === wf.id
@@ -573,13 +580,14 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                       size="sm"
                       variant="ghost"
                       data-testid={`button-delete-personal-${wf.id}`}
-                      disabled={deletingId === wf.id}
+                      disabled={deletingId === wf.id || openingId === wf.id}
                       title="Delete this workflow"
                       onClick={() => handleDeletePersonal(wf)}
+                      className="text-muted-foreground hover:text-red-600 hover:bg-red-50 px-2"
                     >
                       {deletingId === wf.id
                         ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        : <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                        : <Trash2 className="w-3.5 h-3.5" />
                       }
                     </Button>
                   </li>

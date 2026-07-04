@@ -37,13 +37,16 @@ interface FindingsData {
 interface FindingsCardProps {
   runId: string
   onContinueAnalysis?: (suggestion: string) => void
+  executionStatus?: string
 }
 
-export function FindingsCard({ runId, onContinueAnalysis }: FindingsCardProps) {
+export function FindingsCard({ runId, onContinueAnalysis, executionStatus }: FindingsCardProps) {
   const [data, setData] = useState<FindingsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [resultsExpanded, setResultsExpanded] = useState(false)
   const [citationsExpanded, setCitationsExpanded] = useState(false)
+
+  const runFailed = executionStatus === 'failed' || executionStatus === 'error'
 
   React.useEffect(() => {
     let cancelled = false
@@ -57,8 +60,8 @@ export function FindingsCard({ runId, onContinueAnalysis }: FindingsCardProps) {
             const json: FindingsData = await res.json()
             setData(json)
             setLoading(false)
-            if (json.status === 'pending') {
-              // Retry after 5 seconds
+            if (json.status === 'pending' && !runFailed) {
+              // Retry after 5 seconds only while run is still active
               pollTimer = setTimeout(poll, 5000)
             }
           } else {
@@ -76,7 +79,7 @@ export function FindingsCard({ runId, onContinueAnalysis }: FindingsCardProps) {
       cancelled = true
       if (pollTimer) clearTimeout(pollTimer)
     }
-  }, [runId])
+  }, [runId, runFailed])
 
   // useMemo MUST be called unconditionally (Rules of Hooks — no early returns before hooks).
   // We guard for null data by defaulting to empty values.
@@ -124,6 +127,13 @@ export function FindingsCard({ runId, onContinueAnalysis }: FindingsCardProps) {
   if (!data) return null
 
   if (data.status === 'pending') {
+    if (runFailed) {
+      return (
+        <div className="text-sm text-muted-foreground mt-2">
+          Analysis not available — workflow did not complete successfully.
+        </div>
+      )
+    }
     return (
       <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
         <BookOpen className="h-3.5 w-3.5 animate-pulse" />

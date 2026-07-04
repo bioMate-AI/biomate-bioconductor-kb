@@ -43,7 +43,7 @@ export async function applyPendingMigrations(): Promise<{ applied: string[]; ski
     let files: string[];
     try {
       files = readdirSync(MIGRATIONS_DIR)
-        .filter((f) => f.endsWith(".sql"))
+        .filter((f) => f.endsWith(".sql") && !f.startsWith("._"))
         .sort();
     } catch (err: any) {
       if (err?.code === "ENOENT") {

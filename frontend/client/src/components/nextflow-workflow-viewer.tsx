@@ -3133,6 +3133,7 @@ export function NextflowWorkflowViewer({
                 <FindingsCard
                   runId={activeRunId}
                   onContinueAnalysis={onAdjustViaChat}
+                  executionStatus={status}
                 />
               )}
             </div>
