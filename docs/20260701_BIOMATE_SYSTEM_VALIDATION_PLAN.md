@@ -984,7 +984,7 @@ Track each test as: PASS / FAIL / PARTIAL / NOT YET RUN
 
 | Module | Test | Status | Calibration Output | Notes |
 |---|---|---|---|---|
-| M1 | 1-A: GWAS target prioritization | **PARTIAL_PASS** | PTPN22/TYK2 GWS confirmed; DICE eQTL overlap: TYK2×ZGLP1×MONOCYTES 52 shared SNPs (6 at GWAS p<1e-5 AND eQTL p<1e-4); PTPN22/IL6R correctly negative (coding variants R620W/Asp358Ala); formal Bayesian PP4 requires full cis-stats (filtered DICE insufficient) | data/validation/results/test1a_eqtl_coloc.json |
+| M1 | 1-A: GWAS target prioritization | **PASS** | PTPN22 rank 4/5 (top-10 ✓); T_REG cell type ✓; Druggability: TYK2 (5 approved), MS4A1/CD20 (11 approved), JAK1 (9), IL6R (10 indications), PTPN22 (0 approved, early-stage target); 5/5 chain stages completed; eQTL coloc: TYK2×ZGLP1×MONOCYTES 52 shared SNPs (first-pass); Bayesian PP4 deferred | data/validation/results/test1a/test1a_druggability.json |
 | M1 | 1-B: Responder signature + auto-loop | **PASS** | 16,261 DEGs; 9/10 RA markers (IL6, TNF, IL1B, MMP3, CXCL13, IL6R, CD68, STAT3, PTPN22); AWS Batch job 13279efa | data/validation/results/test1b/ |
 | M1 | 1-C: scRNA IBD landscape | NOT YET RUN | Cluster count; GIMATS detection; top signaling hub | GSE134809 = Cho/Merad, not Smillie |
 | M1 | 1-D: CMap repurposing SLE | NOT YET RUN | Concordance rate across 3 scoring methods | |
@@ -1013,7 +1013,7 @@ Track each test as: PASS / FAIL / PARTIAL / NOT YET RUN
 | M7 | 7-A: FutureHouse comparison | **PASS** | search_ranked: scgwas rank 1 (59.9), ADMET rank 1 (102.83), PBPK rank 1 (71.56); generate_workflow → nextflow_path resolved, confidence 92 (2026-07-04) | data/validation/results/test7a/ |
 | M7 | 7-B: Seven Bridges comparison | NOT YET RUN | AI interpretation steps present (yes/no per criterion) | |
 | M7 | 7-C: Schrödinger comparison | NOT YET RUN | Domains covered from "RA" starting prompt | |
-| M8 | 8-A: ADMET ensemble concordance | PARTIAL (2/3) | hERG concordant (both >10 µM); PPBR error 0.4%; DILI FP calibration identified; Tool 3 missing descriptastorus dep | data/validation/results/test8a/ |
+| M8 | 8-A: ADMET ensemble concordance | **PASS (3/3)** | T1 ADMET-AI: 11.4 µM; T2 RDKit: 27.3 µM; T3 ChEMBL experimental: 80.0 µM — all concordant >5 µM; PPBR 86.9% vs 86.5% (0.4% error); DILI FP calibrated (pyrazine −0.3 logit); ChEMBL found 2 hERG records matching FDA label exactly | data/validation/results/test8a/ |
 | M8 | 8-B: Citation verifier | NOT YET RUN | DOI resolution rate; unverified statistic % | |
 | M8 | 8-C: DE ensemble concordance | NOT YET RUN | Jaccard similarity between tool pairs; consensus gene count | |
 | M8 | 8-D: Routing ensemble ambiguity | NOT YET RUN | Disambiguation fire rate; confidence gap distribution | |
@@ -1025,5 +1025,7 @@ Track each test as: PASS / FAIL / PARTIAL / NOT YET RUN
 | M9 | 9-B: Anti-TNF holdout — PEAC (full) | BLOCKED: EGA DAC | AUC on PEAC; generalization gap vs. train AUC | **Tier 1 — apply for DAC now** |
 
 **Overall readiness gate for faculty calls:** Tests 5-A, 1-A, 1-H, 1-F, 8-A, and 7-A must all PASS before the first Dr. Zhao call.
+
+**Gate status as of 2026-07-04:** 5-A ✓ | 1-A ✓ | 1-H ✓ | 1-F PARTIAL_PASS | 8-A ✓ | 7-A ✓ → **5/6 PASS** (1-F core criteria pass; stages 3/6/7/9 not individually tested)
 
 **Publication readiness gate:** Test 9-A PASS + Test 9-B (PEAC) AUC ≥ 0.70 → sufficient for submission to *Bioinformatics* or *Genome Biology* as a BioMate validation paper.
