@@ -121,6 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const mappedUser = mapResponseToUser(data)
     setUser(mappedUser)
+    setIsLoading(false) // login() has authoritative user data — don't block RootRoute on checkAuth
     analytics.identify(mappedUser.id, { plan: mappedUser.role, email: mappedUser.email, name: mappedUser.name })
     analytics.track('user_logged_in', { plan: mappedUser.role })
     setLocation('/')

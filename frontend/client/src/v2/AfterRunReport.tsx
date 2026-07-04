@@ -81,7 +81,7 @@ export function AfterRunReport({
   // directory toolbar work; intentionally unread in v0.
   void nextflowOutputDir;
   const isFailed = executionStatus === "failed" || executionStatus === "cancelled" || executionStatus === "error";
-  const [tab, setTab] = useState<TabId>("findings");
+  const [tab, setTab] = useState<TabId>("outputs");
 
   // Outputs come from the parent's executionRun state (no /steps endpoint exists).
   const outputs = outputsProp ?? [];

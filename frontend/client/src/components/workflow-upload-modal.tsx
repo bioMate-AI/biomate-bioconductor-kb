@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Upload, CheckCircle2 } from "lucide-react";
+import { Loader2, Upload, CheckCircle2, Info } from "lucide-react";
 
 interface WorkflowUploadModalProps {
   open: boolean;
@@ -83,6 +83,29 @@ export function WorkflowUploadModal({ open, onOpenChange }: WorkflowUploadModalP
         <DialogHeader>
           <DialogTitle>Import Workflow</DialogTitle>
         </DialogHeader>
+
+        {/* Click-tip: explain what this dialog does */}
+        {!result && (
+          <div
+            style={{
+              display: 'flex',
+              gap: 8,
+              padding: '10px 12px',
+              background: 'oklch(0.97 0.01 240)',
+              borderRadius: 6,
+              border: '1px solid oklch(0.88 0.03 240)',
+              marginBottom: 4,
+            }}
+            data-testid="import-workflow-tip"
+          >
+            <Info style={{ width: 14, height: 14, flexShrink: 0, marginTop: 1, color: 'oklch(0.50 0.12 240)' }} />
+            <p style={{ fontSize: 12, lineHeight: 1.5, color: 'oklch(0.42 0.04 240)', margin: 0 }}>
+              Upload your own <strong>Nextflow (.nf)</strong> or <strong>Galaxy (.ga / .yml)</strong> workflow.
+              Once imported it appears under <em>Workflow History → My Imports</em> and can be launched from any chat.
+              BioMate will run it on AWS Batch with your configured environment.
+            </p>
+          </div>
+        )}
 
         {result ? (
           <div className="space-y-3 py-2">

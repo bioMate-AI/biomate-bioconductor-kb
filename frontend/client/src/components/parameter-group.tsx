@@ -338,10 +338,10 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
   return (
     <Accordion type="single" collapsible value={accordionValue} onValueChange={setAccordionValue} className={cn("w-full border rounded-lg bg-card text-card-foreground shadow-sm", className)}>
       <AccordionItem value={id} className="border-b-0">
-        <AccordionTrigger className="px-4 py-3 hover:bg-accent/50 transition-colors">
+        <AccordionTrigger className="px-4 py-3 hover:bg-accent/50 hover:no-underline transition-colors">
           <div className="flex flex-col items-start text-left">
             <span className="font-semibold">{title}</span>
-            {description && <span className="text-sm text-muted-foreground font-normal mt-1">{description}</span>}
+            {description && accordionValue !== id && <span className="text-sm text-muted-foreground font-normal mt-1">{description}</span>}
           </div>
         </AccordionTrigger>
         <AccordionContent className="px-4 py-4 space-y-4 border-t">

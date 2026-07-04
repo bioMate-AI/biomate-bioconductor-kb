@@ -117,7 +117,7 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   required placeholder="••••••••"
                   value={password} onChange={e => setPassword(e.target.value)} disabled={isLoading}
-                  style={{ ...inputStyle, paddingRight: 38 }}
+                  style={{ ...inputStyle, paddingRight: 48 }}
                   onFocus={e => e.target.style.borderColor = V2.borderFoc}
                   onBlur={e => e.target.style.borderColor = V2.border}
                 />
@@ -127,12 +127,13 @@ export default function LoginPage() {
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   tabIndex={-1}
                   style={{
-                    position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                    background: 'transparent', border: 'none', cursor: 'pointer', padding: 4,
-                    color: V2.muted, display: 'flex', alignItems: 'center'
+                    position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)',
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    padding: '0 12px', height: 44, minWidth: 44,
+                    color: V2.muted, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>

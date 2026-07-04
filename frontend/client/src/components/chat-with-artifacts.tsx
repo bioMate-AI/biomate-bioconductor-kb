@@ -544,6 +544,19 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     }
   }, [currentRun?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Listen for personal workflow open events dispatched by WorkflowHistoryDialog
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const wf = (e as CustomEvent).detail
+      if (!wf) return
+      setPanelWorkflowMessageId(null)
+      setPanelWorkflow(wf)
+      setPanelOpen(true)
+    }
+    window.addEventListener('biomate:open-personal-workflow', handler)
+    return () => window.removeEventListener('biomate:open-personal-workflow', handler)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (currentRun?.id) {
       setFocusedRunId(currentRun.id)
@@ -2055,6 +2068,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                 </button>
               )}
               <div className="ml-auto flex items-center gap-2">
+                {/* Tutorial button — commented out; replace with contextual help later
                 {!isMobile && (
                   <button
                     className="tut-btn"
@@ -2065,6 +2079,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                     <span style={{ fontSize: 9 }}>▶</span> Tutorial
                   </button>
                 )}
+                */}
                 <button
                   onClick={handleClosePanelWorkflow}
                   className="rounded-sm p-1 hover:bg-muted"

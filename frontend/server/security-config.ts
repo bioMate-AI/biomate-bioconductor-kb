@@ -251,6 +251,11 @@ export function configureCORS(app: Express) {
     cors({
       origin: (origin, callback) => {
         if (!origin) return callback(null, true);
+        // In development allow any localhost port (Vite module requests include Origin even same-origin)
+        const isDev = process.env.NODE_ENV !== 'production';
+        if (isDev && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+          return callback(null, true);
+        }
         if (config.corsOrigins.includes(origin)) {
           callback(null, true);
         } else {
