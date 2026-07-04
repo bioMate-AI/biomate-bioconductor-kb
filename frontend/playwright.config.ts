@@ -1,8 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 import { config as dotenvConfig } from 'dotenv';
 
-// Load .env so E2E_TEST_TOKEN (and other server env vars) are available to tests
+// Load .env, then .env.local (worktree overrides) if present
 dotenvConfig();
+dotenvConfig({ path: '.env.local', override: true });
 
 /**
  * Playwright configuration for BioMate E2E tests
