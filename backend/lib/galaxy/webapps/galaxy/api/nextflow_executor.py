@@ -969,6 +969,10 @@ def _default_nf_profile() -> str:
 
 class NextflowExecuteRequest(BaseModel):
     nextflow_path: str
+    # When set, the .nf content is written to a temp file and used as the
+    # actual nextflow_path. Allows user-uploaded workflows stored in the
+    # frontend DB to be executed without staging files on the Galaxy host.
+    file_content: Optional[str] = None
     parameters: Optional[Dict[str, Any]] = None
     profile: Optional[str] = None  # None → resolved at execution time from BIOMATE_NF_PROFILE
     entry: Optional[str] = None
@@ -4215,6 +4219,20 @@ def execute_nextflow(
     Returning the run_id up front and launching in the background removes that
     whole class of false-fail; status flows configuring → running → completed.
     """
+    # If file_content is provided, write it to a temp path and override
+    # nextflow_path so _resolve_nextflow_path() finds an actual file.
+    if request.file_content:
+        import re as _re
+        _safe_name = _re.sub(r'[^A-Za-z0-9._-]', '_', os.path.basename(request.nextflow_path or 'workflow.nf'))
+        _user_tag = _re.sub(r'[^A-Za-z0-9_-]', '', (request.user_id or 'anon'))[:32]
+        _tmp_dir = Path("/tmp/biomate_user_nf") / _user_tag
+        _tmp_dir.mkdir(parents=True, exist_ok=True)
+        _tmp_path = _tmp_dir / _safe_name
+        _tmp_path.write_text(request.file_content, encoding='utf-8')
+        log.info("[Nextflow] Wrote user-uploaded workflow to %s (%d bytes)", _tmp_path, len(request.file_content))
+        # Mutate the request so all downstream code (path resolution, logging) uses the real path
+        request = request.model_copy(update={"nextflow_path": str(_tmp_path), "file_content": None})
+
     # Fast, synchronous input validation so an obviously-bad request still gets
     # an immediate 4xx rather than a deferred failed-run.
     try:
