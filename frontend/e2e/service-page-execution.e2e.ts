@@ -412,7 +412,7 @@ test('EX-RT — real-time status tracking: idle→running→completed', async ()
 
   // Verify pre-run idle state — give the panel 20 s to render
   const panelExists = await sharedPage
-    .locator('[data-testid="nextflow-workflow-viewer"]')
+    .locator('[data-testid="workflow-artifact-panel"]')
     .isVisible({ timeout: 20_000 }).catch(() => false);
 
   if (!panelExists) {
