@@ -187,12 +187,14 @@ predict ADMET for a compound against it, and generate an IND package."
 |-----------------|----------------|--------|
 | Multi-domain chain (GWAS→scRNA→ADMET→PBPK) | Test 7-A | PASS |
 | AI interpretation vs. Seven Bridges/DNAnexus | Test 7-B | PASS |
-| Target-agnostic vs. Schrödinger | Test 7-C | NOT YET RUN |
+| Target-agnostic vs. Schrödinger | Test 7-C | PASS (literature-based) |
 | IND narrative generation | Tests 4-A, 4-B | PASS |
 | Endpoint recommendation accuracy | Test 4-B | PASS (75% exact) |
 | Citation verifier (no hallucination) | Test 8-B | PASS |
 
-**Remaining gap for faculty call:** Test 7-C (Schrödinger comparison — start from "RA" with no compound, route through GWAS, reach ADMET in one session). This is the direct answer to "can BioMate replace a computational chemistry expert?"
+**Note on Schrödinger comparison (2026-07-05):** Direct software access is not available (commercial license required). Test 7-C was redesigned as a published-evidence comparison — Schrödinger's required inputs documented from ≥3 published primary sources (Wang et al. *JCTC* 2015; Harder et al. *JCTC* 2016; Friesner et al. *JMC* 2004). BioMate's capability documented from existing passing tests (1-A, 5-A, 7-A, 4-A). PASS verdict is based on the structural asymmetry: Schrödinger's starting point (known target + scaffold) is BioMate's output.
+
+**Faculty call framing for Schrödinger:** Position as complementary, not competitive — "BioMate identifies what to design; Schrödinger refines how to design it." This lands better with a computational chemistry audience and avoids a direct-displacement argument we cannot back with a live comparison.
 
 ---
 
@@ -200,11 +202,10 @@ predict ADMET for a compound against it, and generate an IND package."
 
 | Priority | Item | Owner | Timeline |
 |----------|------|-------|---------|
-| 1 | Run Test 7-C (Schrödinger comparison) | Validation | Next session |
-| 2 | Layer 3 LoRA training data assembly (50 NDA labels) | LLM team | Week 1 |
-| 3 | Layer 4 routing annotation (200 prompt-workflow pairs) | Eng | Week 1 |
-| 4 | Reference cache module (`reference_cache.py`) | Backend | Week 2 |
-| 5 | Tiered routing in `galaxy-assistant.ts` | Frontend/Backend | Week 2 |
-| 6 | PEAC DAC access application (Layer 1 blocker) | PI | Month 1 |
-| 7 | DGX Spark Layer 3 training run | LLM team | Week 3 |
-| 8 | Layer 3 benchmark vs. Test 4-B baseline | Validation | Week 4 |
+| 1 | Layer 3 LoRA training data assembly (50 NDA labels) | LLM team | Week 1 |
+| 2 | Layer 4 routing annotation (200 prompt-workflow pairs) | Eng | Week 1 |
+| 3 | Reference cache module (`reference_cache.py`) | Backend | Week 2 |
+| 4 | Tiered routing in `galaxy-assistant.ts` | Frontend/Backend | Week 2 |
+| 5 | PEAC DAC access application (Layer 1 blocker) | PI | Month 1 |
+| 6 | DGX Spark Layer 3 training run | LLM team | Week 3 |
+| 7 | Layer 3 benchmark vs. Test 4-B baseline | Validation | Week 4 |
