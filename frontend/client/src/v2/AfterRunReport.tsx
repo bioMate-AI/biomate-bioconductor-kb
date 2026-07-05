@@ -110,13 +110,14 @@ export function AfterRunReport({
       ["outputs", "Outputs"],
       ["findings", "Findings"],
     ];
-    if (qcEvents.length > 0) t.push(["qc", "QC report"]);
+    // QC tab always visible — shows "all passed" for good runs, blocked gate info for failed
+    t.push(["qc", "QC report"]);
     if (methods.hasRealContent) t.push(["methods", "Methods"]);
     if (citations.length > 0) t.push(["citations", "Citations"]);
     t.push(["params", "Parameters"]);
     if (Object.keys(software).length > 0) t.push(["software", "Software"]);
     return t;
-  }, [methods.hasRealContent, software, citations.length, qcEvents.length]);
+  }, [methods.hasRealContent, software, citations.length]);
 
   const handleDownload = () => {
     if (downloadState !== 'idle') return; // dedup double-click
@@ -188,7 +189,7 @@ export function AfterRunReport({
           parameters={parameters}
         />
       )}
-      <div role="tablist" style={styles.tabBar}>
+      <div role="tablist" style={styles.tabBar} data-visible-tabs={visibleTabs.map(([id]) => id).join(',')}>
         {visibleTabs.map(([id, label]) => (
           <button
             key={id}
@@ -850,16 +851,28 @@ function OutputsTab({
     );
   }
 
-  const byStep = effectiveOutputs.reduce<Record<string, OutputFile[]>>((acc, o) => {
-    (acc[o.step] = acc[o.step] || []).push(o);
-    return acc;
-  }, {});
+  const [previewFile, setPreviewFile] = useState<OutputFile | null>(null);
+
+  const fileUrl = (f: OutputFile, download = false) =>
+    `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(f.path || f.name)}${download ? '&download=1' : ''}`;
+
+  const iconForExt = (ext: string) => {
+    if (['png','jpg','jpeg','gif','svg','webp','tiff'].includes(ext)) return '🖼';
+    if (['csv','tsv','xlsx'].includes(ext)) return '📊';
+    if (['html','htm'].includes(ext)) return '🌐';
+    if (['pdf'].includes(ext)) return '📄';
+    if (['json','yaml','yml'].includes(ext)) return '{}';
+    if (['fastq','fq','fa','fasta'].includes(ext)) return '🧬';
+    if (['bam','vcf','bed','gtf','gff'].includes(ext)) return '🗂';
+    return '📁';
+  };
+
+  const canPreview = (ext: string) =>
+    ['png','jpg','jpeg','gif','svg','webp','csv','tsv','html','htm','txt','log','json','yaml','yml','md'].includes(ext);
 
   return (
     <div style={styles.tabContent}>
-      {/* Bulk-download actions — for intermediate / large outputs where
-          per-file preview isn't useful, the user grabs everything as a
-          ZIP and inspects locally. */}
+      {/* Bulk-download actions */}
       <div style={styles.bulkActions}>
         {invocationId && (
           <JobButton
@@ -882,29 +895,80 @@ function OutputsTab({
 
       <InteractiveToolsRow outputs={effectiveOutputs} />
 
-      {Object.entries(byStep).map(([step, files]) => (
-        <div key={step} style={{ marginBottom: 12 }}>
-          <div style={styles.outputStep}>{step}</div>
-          <ul style={styles.outputList}>
-            {files.map((f) => {
-              const fileUrl = `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(f.path || f.name)}&download=1`;
-              return (
-                <li key={f.path || f.name} style={styles.outputItem}>
-                  <a
-                    href={fileUrl}
-                    download
-                    style={{ ...styles.outputName, textDecoration: 'none', color: 'inherit' }}
-                    title={`Download ${f.name}`}
-                  >
-                    {f.name}
-                  </a>
-                  <span style={styles.outputExt}>{f.ext}</span>
-                </li>
-              );
-            })}
-          </ul>
+      {/* Per-file table matching design reference */}
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'ui-monospace, monospace' }}>
+          <thead>
+            <tr style={{ background: 'oklch(0.96 0.004 260)', textAlign: 'left' }}>
+              <th style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--text-muted)', fontSize: 11 }}>Step</th>
+              <th style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--text-muted)', fontSize: 11 }}>File</th>
+              <th style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--text-muted)', fontSize: 11, width: 60 }}>Type</th>
+              <th style={{ padding: '6px 8px', width: 90 }}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {effectiveOutputs.map((f, i) => (
+              <tr key={f.path || f.name + i} style={{ borderTop: '1px solid var(--border)' }}>
+                <td style={{ padding: '6px 8px', color: 'var(--text-muted)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    title={f.step}>{f.step}</td>
+                <td style={{ padding: '6px 8px' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ fontSize: 13 }}>{iconForExt(f.ext)}</span>
+                    <span style={{ color: 'var(--text)' }}>{f.name}</span>
+                  </span>
+                </td>
+                <td style={{ padding: '6px 8px', color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: 10 }}>{f.ext || '—'}</td>
+                <td style={{ padding: '6px 8px', fontFamily: 'var(--font-ui, system-ui)' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    {canPreview(f.ext) && (
+                      <button
+                        onClick={() => setPreviewFile(f)}
+                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 11 }}
+                      >view</button>
+                    )}
+                    <a
+                      href={fileUrl(f, true)}
+                      download
+                      style={{ color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 11, textDecoration: 'none' }}
+                    >dl</a>
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Inline preview overlay */}
+      {previewFile && (
+        <div
+          onClick={() => setPreviewFile(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'var(--bg, #fff)', borderRadius: 8, padding: 20, maxWidth: 720, width: '90vw', maxHeight: '80vh', overflow: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div>
+                <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, fontWeight: 600 }}>{previewFile.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{previewFile.step}</div>
+              </div>
+              <button onClick={() => setPreviewFile(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
+            </div>
+            {['png','jpg','jpeg','gif','svg','webp'].includes(previewFile.ext) ? (
+              <img src={fileUrl(previewFile)} alt={previewFile.name} style={{ maxWidth: '100%', borderRadius: 4 }} />
+            ) : ['html','htm'].includes(previewFile.ext) ? (
+              <iframe src={fileUrl(previewFile)} title={previewFile.name} style={{ width: '100%', height: 480, border: '1px solid var(--border)', borderRadius: 4 }} />
+            ) : (
+              <iframe src={fileUrl(previewFile)} title={previewFile.name} style={{ width: '100%', height: 400, border: '1px solid var(--border)', borderRadius: 4, fontFamily: 'ui-monospace, monospace' }} />
+            )}
+            <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+              <a href={fileUrl(previewFile, true)} download style={{ fontSize: 12, color: 'var(--accent, oklch(0.55 0.18 260))' }}>↓ Download</a>
+            </div>
+          </div>
         </div>
-      ))}
+      )}
     </div>
   );
 }
@@ -1029,6 +1093,32 @@ function QcAuditTab({ events, eSignature }: QcAuditTabProps) {
   const passed = events.filter(e => isPassedStatus(e.status)).length;
   const autoCorrected = events.filter(e => !isPassedStatus(e.status) && isAutoCorrectedStatus(e.status)).length;
   const manualInterventions = events.length - passed - autoCorrected;
+
+  if (events.length === 0) {
+    return (
+      <div style={styles.tabContent} data-testid="qc-audit-tab">
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '48px 24px',
+          gap: 8,
+          textAlign: 'center',
+          color: 'oklch(0.62 0.16 145)',
+        }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <div style={{ fontWeight: 600, fontSize: 15 }} data-testid="qc-all-passed">All quality gates passed</div>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 320 }}>
+            No QC thresholds were exceeded during this run. All metrics are within acceptable ranges.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.tabContent} data-testid="qc-audit-tab">

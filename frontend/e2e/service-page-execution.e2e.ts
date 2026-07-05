@@ -172,16 +172,17 @@ async function getOverallStatus(page: Page): Promise<string> {
 }
 
 /**
- * Waits until at least one phase card shows data-status="running".
- * Returns true if running state was observed, false on timeout.
+ * Waits until the overall status badge shows "running".
+ * Returns true ONLY if an actual running state was observed (not completed).
+ * Returns false if the workflow completed before the poll caught a running frame.
  */
 async function waitForRunningState(page: Page, timeoutMs = 120_000): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const status = await getOverallStatus(page);
     if (status === 'running') return true;
-    // Also accept if already completed (fast workflows)
-    if (status === 'completed' || status === 'failed') return true;
+    // Workflow already terminal before we could catch a running frame — skip screenshot
+    if (status === 'completed' || status === 'failed') return false;
     await pause(page, 3_000);
   }
   return false;
@@ -335,10 +336,13 @@ for (const ec of EXEC_CASES) {
     // Check for known after-run tabs
     const hasOutputs  = tabs.some(t => /outputs?/i.test(t));
     const hasFindings = tabs.some(t => /finding/i.test(t));
+    const hasQc       = tabs.some(t => /qc|quality/i.test(t));
     const hasMethods  = tabs.some(t => /method/i.test(t));
     const hasParams   = tabs.some(t => /param/i.test(t));
 
-    console.log(`[${ec.id}]   Outputs: ${hasOutputs ? '✅' : '❌'}  Findings: ${hasFindings ? '✅' : '❌'}  Methods: ${hasMethods ? '✅' : '❌'}  Params: ${hasParams ? '✅' : '❌'}`);
+    console.log(`[${ec.id}]   Outputs: ${hasOutputs ? '✅' : '❌'}  Findings: ${hasFindings ? '✅' : '❌'}  QC report: ${hasQc ? '✅' : '❌'}  Methods: ${hasMethods ? '✅' : '❌'}  Params: ${hasParams ? '✅' : '❌'}`);
+
+    expect(hasQc, `[${ec.id}] Expected "QC report" tab in after-run section, got: [${tabs.join(', ')}]`).toBe(true);
 
     // Outputs + Findings + Parameters are always shown (even on failed runs).
     // Assert tabs are present regardless of completion status.
@@ -362,7 +366,28 @@ for (const ec of EXEC_CASES) {
       console.log(`[${ec.id}] ✅ Findings tab clicked`);
     }
 
-    // ── Step 7: Click Methods if present ────────────────────────────────────
+    // ── Step 7: Click QC report tab and verify content ──────────────────────
+    const qcBtn = sharedPage.locator('[data-testid="after-tab-qc"]').first();
+    const qcVisible = await qcBtn.isVisible({ timeout: 5_000 }).catch(() => false);
+    if (qcVisible) {
+      await qcBtn.click();
+      await pause(sharedPage, 1_000);
+      await shot(sharedPage, 'service-execution', `${ec.id}_07_qc`);
+
+      // Verify QC tab body rendered — either "all passed" or audit table
+      const qcBody = await sharedPage.locator('[data-testid="qc-audit-tab"]').first()
+        .isVisible({ timeout: 5_000 }).catch(() => false);
+      const qcAllPassed = await sharedPage.locator('[data-testid="qc-all-passed"]').first()
+        .isVisible({ timeout: 2_000 }).catch(() => false);
+      const qcSummary = await sharedPage.locator('[data-testid="qc-summary"]').first()
+        .isVisible({ timeout: 2_000 }).catch(() => false);
+      console.log(`[${ec.id}] QC tab: body=${qcBody ? '✅' : '❌'}  all-passed=${qcAllPassed ? '✅' : '—'}  audit-table=${qcSummary ? '✅' : '—'}`);
+      expect(qcBody, `[${ec.id}] QC tab body must render after clicking "QC report" tab`).toBe(true);
+    } else {
+      console.warn(`[${ec.id}] ⚠️ QC report tab button not visible — skipping click`);
+    }
+
+    // ── Step 8: Click Methods if present ────────────────────────────────────
     if (hasMethods) {
       const methodsBtn = sharedPage.locator('[data-testid="after-tab-methods"]').first();
       const methodsVisible = await methodsBtn.isVisible({ timeout: 3_000 }).catch(() => false);
