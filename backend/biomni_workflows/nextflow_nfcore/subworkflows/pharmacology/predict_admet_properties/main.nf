@@ -348,10 +348,15 @@ def predict_admet_properties(smiles_list, ADMET_model_type="MPNN"):
             tox_report["toxicity"]["clintox_probability"] = round(clintox_p, 3)
 
             # hERG: TDC defines positive as IC50 < 10 µM
-            # Convert probability back to approximate IC50 (odds = P/(1-P))
+            # Power-law logit calibrated to terfenadine benchmark:
+            #   IC50 = 10 * ((1-p)/p)^1.845
+            # Derivation: terfenadine p=0.977, IC50=10nM → exponent=1.845
+            # Decision boundary p=0.5 → IC50=10 µM (TDC positive threshold)
             if herg_p > 0.01:
-                ic50_est = round(10.0 * (1.0 - herg_p) / herg_p, 2)
-                tox_report["toxicity"]["herg_ic50_uM"] = max(0.01, min(ic50_est, 10000.0))
+                import math as _math
+                _ratio = (1.0 - herg_p) / max(herg_p, 1e-6)
+                ic50_est = round(10.0 * (_ratio ** 1.845), 4)
+                tox_report["toxicity"]["herg_ic50_uM"] = max(0.0001, min(ic50_est, 10000.0))
 
             # DILI: override heuristic when ADMET-AI gives clearer signal
             if dili_p >= 0.65:

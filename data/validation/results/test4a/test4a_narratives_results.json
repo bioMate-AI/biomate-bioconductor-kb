@@ -1,0 +1,60 @@
+{
+  "test_id": "4-A",
+  "test_name": "\u00a72.6 Narrative Coherence \u2014 Deucravacitinib + Anifrolumab",
+  "date_run": "2026-07-04T13:45:44.672841",
+  "prior_baricitinib": "PASS (see test4a_baricitinib.json)",
+  "results": [
+    {
+      "drug": "deucravacitinib",
+      "brand": "Sotyktu",
+      "nda": "NDA 214958",
+      "indication": "moderate-to-severe plaque psoriasis",
+      "narrative_chars": 9125,
+      "elapsed_s": 34.0,
+      "sections_present": {
+        "2.6.1.1": true,
+        "2.6.1.2": true,
+        "2.6.1.3": true,
+        "2.6.1.4": true,
+        "2.6.1.5": true
+      },
+      "all_sections_present": true,
+      "citation_count": 4,
+      "keywords_found": {
+        "JH2": true,
+        "pseudokinase": true,
+        "TYK2": true,
+        "allosteric": true
+      },
+      "mechanism_correct": true,
+      "pass": true
+    },
+    {
+      "drug": "anifrolumab",
+      "brand": "Saphnelo",
+      "nda": "BLA 761123",
+      "indication": "moderate-to-severe systemic lupus erythematosus (SLE)",
+      "narrative_chars": 10331,
+      "elapsed_s": 31.6,
+      "sections_present": {
+        "2.6.1.1": true,
+        "2.6.1.2": true,
+        "2.6.1.3": true,
+        "2.6.1.4": true,
+        "2.6.1.5": true
+      },
+      "all_sections_present": true,
+      "citation_count": 4,
+      "keywords_found": {
+        "IFNAR1": true,
+        "Type I": true,
+        "interferon": true,
+        "IFN": true
+      },
+      "mechanism_correct": true,
+      "pass": true
+    }
+  ],
+  "verdict": "PASS",
+  "verdict_note": "\u00a72.6.1 narratives generated for 2/2 new drugs. Baricitinib narrative already PASS from prior session. All 3 drugs (PASS) \u2192 Test 4-A fully complete."
+}

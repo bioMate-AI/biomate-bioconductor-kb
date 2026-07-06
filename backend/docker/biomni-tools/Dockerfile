@@ -87,6 +87,9 @@ RUN pip install --no-cache-dir \
     statsmodels \
     scikit-image
 
+RUN pip install --no-cache-dir descriptastorus pandas-flavor || \
+    echo "WARNING: descriptastorus install failed — DeepPurpose will be degraded"
+
 RUN pip install --no-cache-dir DeepPurpose || \
     echo "WARNING: DeepPurpose install failed — ADMET will use RDKit fallback"
 
