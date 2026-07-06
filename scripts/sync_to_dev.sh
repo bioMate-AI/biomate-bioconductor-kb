@@ -3,7 +3,7 @@
 #   1. Frontend (React/Express) — Docker rebuild + restart
 #   2. Backend Python files    — docker cp into running Galaxy container + restart
 #   3. Galaxy databases        — galaxy_ai_tools.db (workflow search), universe.sqlite
-#   4. Nextflow workflow files — .nf files in biomni_workflows/
+#   4. Nextflow workflow files — .nf files in biomni_workflows/ + nf-core-workflows/modules/biomate-ai-tools/
 #
 # NOTE: Marketing website (webpage_design_v2/) is NOT synced here.
 #       Use scripts/deploy_marketing.sh instead.
@@ -443,7 +443,8 @@ deploy_workflows() {
   tar -czf "$tar_file" \
     --exclude='*/.nextflow' \
     --exclude='*/.nextflow.log*' \
-    backend/biomni_workflows/ 2>/dev/null
+    backend/biomni_workflows/ \
+    backend/nf-core-workflows/modules/biomate-ai-tools/ 2>/dev/null
   log "[workflows] Archive: $(du -sh $tar_file | cut -f1)"
 
   ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/workflows_sync.tar.gz"
@@ -463,12 +464,24 @@ deploy_workflows() {
       set -e
       cd /tmp && mkdir -p workflows_extract_in
       tar -xzf workflows_sync.tar.gz -C workflows_extract_in
-      # Per-file replacement (handles symlink-vs-dir conflicts that defeat cp -r).
-      # Walk the source, remove the dest entry whatever its type, then move new in.
+
+      # Per-file replacement for biomni_workflows (handles symlink-vs-dir conflicts).
       cd workflows_extract_in/backend/biomni_workflows
       find . -mindepth 1 \( -type f -o -type l \) | while read -r rel; do
         rel=\${rel#./}
         dest=/app/biomni_workflows/\$rel
+        mkdir -p \"\$(dirname \"\$dest\")\"
+        rm -rf \"\$dest\" 2>/dev/null
+        cp -P \"\$rel\" \"\$dest\"
+      done
+
+      # Per-file replacement for nf-core-workflows/modules/biomate-ai-tools.
+      # New custom BioMate wrappers (magma, scgwas, ldsc, etc.) are added here
+      # and must reach dev EC2 — previously this directory was never synced.
+      cd /tmp/workflows_extract_in/backend/nf-core-workflows/modules/biomate-ai-tools
+      find . -mindepth 1 \( -type f -o -type l \) | while read -r rel; do
+        rel=\${rel#./}
+        dest=/app/nf-core-workflows/modules/biomate-ai-tools/\$rel
         mkdir -p \"\$(dirname \"\$dest\")\"
         rm -rf \"\$dest\" 2>/dev/null
         cp -P \"\$rel\" \"\$dest\"
@@ -500,7 +513,7 @@ deploy_workflows() {
 deploy_databases() {
   log "[db] Syncing Galaxy databases..."
 
-  # galaxy_ai_tools.db — 270MB, sync via direct scp (NOT S3).
+  # galaxy_ai_tools.db — 304MB, sync via direct scp (NOT S3).
   #
   # WHY scp instead of S3 (2026-05-22):
   # The dev EC2 host has stale ~/.aws/credentials (Oct 2025) whose access
@@ -1066,7 +1079,7 @@ do_sync() {
   # Determine what changed
   echo "$changed_paths" | grep -q "^frontend/" && do_frontend=true
   echo "$changed_paths" | grep -q "^backend/lib/" && do_backend=true
-  echo "$changed_paths" | grep -q "^backend/biomni_workflows/" && do_workflows=true
+  echo "$changed_paths" | grep -qE "^backend/biomni_workflows/|^backend/nf-core-workflows/modules/biomate-ai-tools/" && do_workflows=true
   echo "$changed_paths" | grep -q "^backend/database/" && do_db=true
 
   # Always sync logo
@@ -1122,7 +1135,7 @@ do_sync() {
   #
   # ORDERING: restart_galaxy MUST run AFTER deploy_databases. deploy_databases
   # does `docker stop/start` + `docker restart` on the Galaxy container (to
-  # safely copy the 270MB galaxy_ai_tools.db + 3.4MB universe.sqlite). Each
+  # safely copy the 304MB galaxy_ai_tools.db + 3.4MB universe.sqlite). Each
   # of these restarts triggers a 3.5-minute Galaxy cold-start. If restart_galaxy
   # (with its health wait) ran BEFORE deploy_databases, the health confirmation
   # was worthless — the DB sync would immediately restart Galaxy again, and
@@ -1171,7 +1184,7 @@ log "Mode: manual one-shot | Target: https://dev-public.biomate.ai"
 # Refuse to run if there are uncommitted source changes. Caller must commit
 # or stash first. Auto-commit-before-sync was removed (bypassed code review).
 DIRTY_SOURCE=$(git -C "$REPO_ROOT" diff --name-only HEAD 2>/dev/null | \
-  grep -E "^(frontend/client/|frontend/server/|frontend/shared/|backend/lib/|backend/biomni_workflows/)" || true)
+  grep -E "^(frontend/client/|frontend/server/|frontend/shared/|backend/lib/|backend/biomni_workflows/|backend/nf-core-workflows/modules/biomate-ai-tools/)" || true)
 if [[ -n "$DIRTY_SOURCE" ]]; then
   dirty_count=$(echo "$DIRTY_SOURCE" | wc -l)
   log "ERROR: ${dirty_count} uncommitted source file(s) in working tree:"
@@ -1190,7 +1203,7 @@ fi
 # Sync all tracked layers in one pass and exit. No polling, no retries.
 #
 # Layer detection strategy:
-#   Code layers (frontend/, backend/lib/, backend/biomni_workflows/):
+#   Code layers (frontend/, backend/lib/, backend/biomni_workflows/, backend/nf-core-workflows/modules/biomate-ai-tools/):
 #     git diff against last-synced commit — only files in those trees
 #     that actually changed get included.
 #   DB layer (galaxy_ai_tools.db):
