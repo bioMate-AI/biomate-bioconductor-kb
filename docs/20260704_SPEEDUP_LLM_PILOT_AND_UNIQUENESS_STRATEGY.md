@@ -47,6 +47,42 @@ Eliminate 3–8s API round-trips that currently block every target prioritizatio
 Cache invalidation: nightly cron job refreshes from live APIs. Cache TTL: 24h.
 Implementation: `backend/lib/galaxy/webapps/galaxy/api/reference_cache.py` (new module).
 
+### 1-D: Nextflow `-resume` for QC-Loop Reruns (60–80% latency reduction on partial reruns)
+
+**Added 2026-07-06.** The auto-loop QC gate reruns a workflow after remediation (e.g., hERG gate fires → structural modification → re-ADMET). Today every rerun starts from scratch. Nextflow's built-in `-resume` flag caches completed process outputs by input hash and skips any process whose inputs are unchanged.
+
+Concrete impact on the ADMET auto-loop:
+- First run: ADMET ensemble (3 tools) + PBPK = ~18 min
+- hERG gate fires; structural modification changes only the SMILES
+- Rerun with `-resume`: RDKit featurization reruns (SMILES changed); Chemprop model inference reruns; PBPK reruns — but any upstream steps with unchanged inputs (file staging, reference data loading) are cached
+- Expected rerun time: ~6–8 min (60–65% reduction)
+
+For the DE ensemble QC loop (batch correction gate fires → ComBat-seq → re-DE):
+- ComBat-seq output changes; downstream DESeq2 must rerun
+- But edgeR and limma-voom jobs that completed before the gate fired can be resumed if inputs are the same
+- Expected rerun time: ~5 min instead of ~18 min (72% reduction)
+
+Implementation: pass `-resume` flag in `nextflow_executor.py` `run_nextflow()` call when `run_mode == 'autoloop_rerun'`. Nextflow work directory must be retained between runs (currently deleted on completion — change to retain for 24h).
+
+### 1-E: AWS Batch Array Jobs for Compound Libraries (50× throughput on ADMET screening)
+
+**Added 2026-07-06.** Today each compound in an ADMET screen is submitted as a separate Batch job, each with its own job startup overhead (~30–60s per job for container pull + init). For a 1,000-compound library this means 1,000 sequential job submissions or 1,000 concurrent jobs each paying full startup cost.
+
+AWS Batch array jobs submit N tasks as a single job definition with a job index environment variable (`AWS_BATCH_JOB_ARRAY_INDEX`). The container starts once per compute instance and processes its assigned compound index. Result: startup cost paid once per instance, not once per compound.
+
+| Library size | Current (individual jobs) | Array jobs | Speedup |
+|-------------|--------------------------|-----------|---------|
+| 100 compounds | ~60 min (60s startup × 100) | ~3 min | 20× |
+| 1,000 compounds | ~600 min | ~12 min | 50× |
+| 10,000 compounds | Not feasible | ~90 min | >100× |
+
+Implementation:
+1. `nextflow_executor.py`: detect when `input_type == 'compound_library'` and `n_compounds > 10`; switch job submission to `submit_job(arrayProperties={'size': n})` 
+2. ADMET Nextflow process: read `$AWS_BATCH_JOB_ARRAY_INDEX` to select compound from input list
+3. Aggregation step: collect all array task outputs into single results JSON
+
+This directly enables the TL1A PPI fragment screen (Test 5-B) and any virtual screening workflow at scale.
+
 ---
 
 ## 2. Pilot LLM Adaptation to Autoimmune
@@ -104,6 +140,28 @@ Sources:
 
 Requires full RA GWAS training run (Ishigaki 2022 GCST90132223, already downloaded) + Open Targets clinical precedence labels as positive training signal. Compute: ~4 GPU-hours. Deferred until Layer 3 and 4 are validated.
 
+### SLE Autoimmune Pilot — Banchereau 2016 as Gold Standard (Added 2026-07-06)
+
+**Why this is the fastest path to demonstrating model adaptation advantage:**
+
+Banchereau et al. *Nature Medicine* 2016 (DOI: 10.1038/nm.4032, PMID: 26974307) is the landmark SLE transcriptomics paper — 158 pediatric SLE patients, 7 IFN gene modules, published patient stratification that predicts flare and organ damage. The data is on GEO (GSE65391). The published expected outputs (IFN module scores, flare-correlated clusters) are the gold standard against which BioMate's outputs can be directly compared.
+
+**What makes this ideal as a pilot benchmark:**
+
+1. Published expected output — IFN module 1 (M1.2) correlates with nephritis; Module 3 (M3.4) with disease activity. BioMate must recover these cluster-to-module assignments.
+2. No DAC required — GEO public access.
+3. Directly relevant to the Zhi Lab demo — SLE IFN signature stratification is the exact use case.
+4. Cross-validates the Layer 1 cell state model — if the fine-tuned Geneformer recovers Banchereau IFN modules better than the base model, adaptation advantage is demonstrated.
+
+**Protocol:**
+1. Download GSE65391 (Banchereau 2016, 158 SLE + 20 healthy PBMC, microarray)
+2. Run BioMate DESeq2/limma pipeline on SLE vs. healthy comparison
+3. Run gene set enrichment on BioMate DE output using the 7 published Banchereau IFN module gene lists
+4. Compare: does BioMate's unsupervised DE output recover the published Module 1.2 vs 3.4 distinction?
+5. Run Geneformer base model vs. fine-tuned model — which better separates the 3 patient clusters (low/medium/high disease activity)?
+
+**Pass criterion:** BioMate DE output enriches for ≥5 of 7 Banchereau IFN modules (p < 0.05 by GSEA). Demonstrates that BioMate can reproduce a landmark published finding on an independent dataset — proof of biological validity, not just benchmark gaming.
+
 ---
 
 ## 3. Cross-Domain Multi-Specialty Use Case — Proving Uniqueness
@@ -114,6 +172,15 @@ Requires full RA GWAS training run (Ishigaki 2022 GCST90132223, already download
 
 ### The "RA from Scratch" Canonical Demo
 
+**⚠️ Demo integrity requirement (2026-07-06):** This demo must run through BioMate's production chat interface — not assembled from separate validation scripts. Each step must be triggered by a real BioMate routing decision, execute a real workflow on AWS Batch, and return real output to the user. A demo assembled from cached script outputs is not acceptable and would not survive a faculty question like "can I try it myself?"
+
+**Current status:** Steps 1–6 are individually validated. They have NOT been run as a connected single BioMate session. Test 1-H (scGWAS cell-type) ran on SCZ smoke data, not RA GWAS. The full connected demo is the remaining prep work before the Zhao Lab call.
+
+**What needs to happen before this demo is ready:**
+1. Test 1-H upgrade: run scGWAS on Ishigaki 2022 RA GWAS → confirm PTPN22 → Treg (in progress)
+2. Stage a single BioMate chat session on dev that routes the full prompt through all 6 steps with live AWS Batch execution
+3. Capture real screenshots of each workflow card completing in the BioMate UI
+
 Single user prompt → 6-step cross-domain chain:
 
 ```
@@ -121,14 +188,14 @@ Single user prompt → 6-step cross-domain chain:
 predict ADMET for a compound against it, and generate an IND package."
 ```
 
-| Step | Specialty | BioMate action | Evidence already run |
-|------|-----------|---------------|----------------------|
-| 1 | Statistical genetics | coloc/SMR on GWAS → PTPN22/TYK2/IL6R ranked | Test 1-A PASS |
-| 2 | Single-cell immunology | scGWAS → Treg cell type for PTPN22 | Test 1-H PASS |
-| 3 | Structural biology | PDB 6NZR → TYK2 JH2 binding pocket | Test 5-A PASS |
-| 4 | Cheminformatics | ADMET ensemble → hERG 80µM, PPBR 86.9% | Test 8-A PASS |
-| 5 | Clinical pharmacology | PBPK → synovial Cmax 220 ng/mL | Test 5-A PASS |
-| 6 | Regulatory science | §2.6.1 narrative + DOCX download | Test 4-A PASS |
+| Step | Specialty | BioMate action | Evidence | Ready for live demo? |
+|------|-----------|---------------|----------|----------------------|
+| 1 | Statistical genetics | coloc/SMR on GWAS → PTPN22/TYK2/IL6R ranked | Test 1-A PASS | ✓ (runs on AWS Batch) |
+| 2 | Single-cell immunology | scGWAS → Treg cell type for PTPN22 | Test 1-H — SCZ smoke only | ✗ RA GWAS upgrade in progress |
+| 3 | Structural biology | PDB 6NZR → TYK2 JH2 binding pocket | Test 5-A PASS | ✓ |
+| 4 | Cheminformatics | ADMET ensemble → hERG 80µM, PPBR 86.9% | Test 8-A PASS | ✓ |
+| 5 | Clinical pharmacology | PBPK → synovial Cmax 220 ng/mL | Test 5-A PASS | ✓ |
+| 6 | Regulatory science | §2.6.1 narrative + DOCX download | Test 4-A PASS | ✓ |
 
 **No competitor covers all 6 steps:**
 
