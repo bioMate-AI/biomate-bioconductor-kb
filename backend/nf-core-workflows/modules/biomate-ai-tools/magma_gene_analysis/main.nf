@@ -292,31 +292,51 @@ process MAGMA_GENE_ANALYSIS {
         n_spec = "N"
 
     # Build MAGMA gene-analysis command.
-    # MAGMA requires --bfile even in snp-wise mode — the reference panel SNP list
-    # is needed for gene-boundary filtering regardless of the LD model.
-    # g1000_eur is baked into the biomate/magma:v1.10 container.
+    #
+    # Phase A was run with --snp-loc (no bfile), so genes.annot stores rsIDs (not
+    # bfile indices). Phase B must NOT pass --bfile when using snp-wise model:
+    # MAGMA crashes after reading synonyms if --bfile is given but genes.annot is
+    # in ID-based (not index-based) format. snp-wise does not need LD estimation,
+    # so --bfile is optional and we omit it for snp-wise mode.
+    # For multi model (LD correction required), we would need to re-run Phase A
+    # with --bfile to produce an index-based annotation first.
+    if model == "snp-wise":
+        bfile_arg = []
+    else:
+        # multi model needs bfile for LD matrix; requires Phase A was also run
+        # with the same bfile (index-based genes.annot). Using bfile here with
+        # an ID-based genes.annot will crash — switch to snp-wise if that happens.
+        bfile_arg = ["--bfile", "/opt/magma/ref/g1000_eur"]
+
     model_arg = ["--gene-model", model]
 
     cmd = [
         "/opt/magma/magma",
-        "--bfile", "/opt/magma/ref/g1000_eur",
+    ] + bfile_arg + [
         "--gene-annot", str("${genes_annot}"),
-        "--pval", "pval.txt",
-        f"pval={pval_col}",
-        f"ncol={n_spec}",
+        "--pval", "pval.txt", "snp-id=SNP", "pval=P", "ncol=N",
     ] + model_arg + [
         "--out", outfile,
     ]
 
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+    # Diagnostic: print pval.txt head so we can verify format
+    with open("pval.txt") as _pv:
+        _lines = _pv.readlines()
+    print(f"[magma:phaseB] pval.txt: {len(_lines)-1} SNPs, header={_lines[0].strip()!r}, "
+          f"first={_lines[1].strip()!r if len(_lines)>1 else 'EMPTY'}")
+
+    with open("magma_stdout.log", "w") as _logf:
+        result = subprocess.run(cmd, stdout=_logf, stderr=subprocess.STDOUT, timeout=600)
+    magma_stdout = open("magma_stdout.log").read()
+    print(f"[magma:phaseB] MAGMA exit={result.returncode}, stdout_len={len(magma_stdout)}")
+    print(magma_stdout[-3000:])  # always print last 3000 chars
+
     if result.returncode != 0:
-        print(f"[magma:phaseB] STDERR:\\n{result.stderr}", file=sys.stderr)
         # Emit empty outputs so chain continues
         open(f"{outfile}.genes.out", "w").write(
             "GENE\\tCHR\\tSTART\\tSTOP\\tNSNPS\\tNPARAM\\tN\\tZSTAT\\tP\\n")
         open(f"{outfile}.genes.raw", "w").write("")
     else:
-        print(result.stdout[-2000:] if result.stdout else "[magma:phaseB] gene analysis complete")
         # Ensure .genes.raw exists (MAGMA may not write it in snp-wise mode)
         if not os.path.exists(f"{outfile}.genes.raw"):
             open(f"{outfile}.genes.raw", "w").write("")
@@ -330,10 +350,10 @@ process MAGMA_GENE_ANALYSIS {
     json.dump({
         "phase": "B",
         "gene_model": model,
-        "bfile_used": "g1000_eur",
+        "bfile_used": "g1000_eur" if bfile_arg else "none (snp-wise, id-based annotation)",
         "n_genes_output": n_genes,
         "gene_analysis_ok": result.returncode == 0,
-        "magma_log_tail": result.stdout[-1000:] if result.stdout else "",
+        "magma_log_tail": magma_stdout[-5000:],
     }, open("gene_analysis.json", "w"), indent=2)
     PY
     """
@@ -453,7 +473,7 @@ process MAGMA_FORMAT {
         f"# MAGMA gene analysis report\\n\\n"
         f"- Genes tested: {len(rows)}\\n"
         f"- Significant (Bonferroni ≤ 2.5×10⁻⁶): **{n_sig}**\\n"
-        f"- Box-Cox λ: {boxcox_lambda:.4f if boxcox_lambda is not None else 'N/A'}\\n\\n"
+        f"- Box-Cox λ: {f'{boxcox_lambda:.4f}' if boxcox_lambda is not None else 'N/A'}\\n\\n"
         f"## Top 5 genes by p-value\\n\\n"
         f"{top_str}\\n\\n"
         f"## Next steps\\n\\n"
