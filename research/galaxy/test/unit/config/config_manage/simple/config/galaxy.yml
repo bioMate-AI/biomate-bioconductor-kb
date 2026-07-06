@@ -1,4 +1,0 @@
-galaxy:
-  bootstrap_admin_api_key: changethis
-  config_dir: 'false'
-  helpsite_url: 'https://help.galaxyproject.org/'

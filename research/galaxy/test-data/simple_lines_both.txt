@@ -1,2 +1,0 @@
-This is a line of text.
-This is a different line of text.

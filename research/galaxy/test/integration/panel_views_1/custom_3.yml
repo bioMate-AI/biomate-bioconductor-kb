@@ -1,8 +1,0 @@
-name: Filtered Test Section
-type: activity
-items:
-- type: section
-  id: test
-  excludes:
-  - tool_id_regex: 'multi_data_.*'
-  - tool_id_regex: '.*_text_option'

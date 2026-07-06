@@ -1,3 +1,0 @@
-"""
-Galaxy web controllers.
-"""

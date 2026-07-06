@@ -97,13 +97,19 @@
   },
   "suites": [
     {
+<<<<<<< Updated upstream
       "title": "researcher-journey.e2e.ts",
       "file": "researcher-journey.e2e.ts",
+=======
+      "title": "service-page-execution.e2e.ts",
+      "file": "service-page-execution.e2e.ts",
+>>>>>>> Stashed changes
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
+<<<<<<< Updated upstream
           "title": "Researcher Journey",
           "file": "researcher-journey.e2e.ts",
           "line": 47,
@@ -142,6 +148,83 @@
                     }
                   ],
                   "status": "expected"
+=======
+          "title": "EX-RT — real-time status tracking: idle→running→completed",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 1350000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 193542,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "\n[EX-RT] Real-time status tracking audit\n"
+                    },
+                    {
+                      "text": "[EX-RT] Pre-run status: \"idle\"\n"
+                    },
+                    {
+                      "text": "[Screenshot] service-execution/EX-RT_01_idle.png\n"
+                    },
+                    {
+                      "text": "[demo] Waiting for all active runs to complete...\n"
+                    },
+                    {
+                      "text": "[demo] All runs idle (no running/queued phase cards)\n"
+                    },
+                    {
+                      "text": "[demo] Workflow submitted — polling for completion...\n"
+                    },
+                    {
+                      "text": "[EX-RT] ✅ Running state captured\n"
+                    },
+                    {
+                      "text": "[Screenshot] service-execution/EX-RT_02_running.png\n"
+                    },
+                    {
+                      "text": "[demo] execute response — runId: fa87056f-a158-430b-9bc4-a53191557785 status: \u001b[33m200\u001b[39m\n"
+                    },
+                    {
+                      "text": "[demo] Terminal status detected in execution UI\n"
+                    },
+                    {
+                      "text": "[EX-RT] Final status: \"completed\", terminal: true, running captured: true\n"
+                    },
+                    {
+                      "text": "[Screenshot] service-execution/EX-RT_03_terminal.png\n"
+                    },
+                    {
+                      "text": "[EX-RT] After-run tabs: [Outputs, Findings, Parameters]\n"
+                    },
+                    {
+                      "text": "[Screenshot] service-execution/EX-RT_04_tabs.png\n"
+                    },
+                    {
+                      "text": "[EX-RT] ✅ Status transition audit complete\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-04T05:43:14.899Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/kky/biomate/frontend/e2e/test-results/service-page-execution.e2e-31456-king-idle→running→completed-chromium/test-finished-1.png"
+                    }
+                  ]
+>>>>>>> Stashed changes
                 }
               ],
               "id": "abb80f0db7b034fb11fd-97ac06b2ecf3dd40eea9",
@@ -749,6 +832,7 @@
               "line": 318,
               "column": 3
             }
+<<<<<<< Updated upstream
           ]
         },
         {
@@ -1318,15 +1402,28 @@
               "column": 3
             }
           ]
+=======
+          ],
+          "id": "d4014e3d910560dba620-7b8ef2bf8aeef7b28e69",
+          "file": "service-page-execution.e2e.ts",
+          "line": 394,
+          "column": 1
+>>>>>>> Stashed changes
         }
       ]
     }
   ],
   "errors": [],
   "stats": {
+<<<<<<< Updated upstream
     "startTime": "2026-07-06T20:24:23.914Z",
     "duration": 92254.292,
     "expected": 30,
+=======
+    "startTime": "2026-07-04T05:43:14.328Z",
+    "duration": 197485.098,
+    "expected": 1,
+>>>>>>> Stashed changes
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

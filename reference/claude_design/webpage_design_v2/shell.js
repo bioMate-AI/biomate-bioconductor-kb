@@ -44,7 +44,8 @@
               { divider: true },
               { label: 'About BioMate', href: 'about.html' },
               { label: 'Pricing',       href: 'pricing.html' },
-              { label: 'Compare',       href: 'compare.html' },
+              { divider: true },
+              { label: 'BioMate vs. The Alternatives', href: 'compare.html' },
               { divider: true },
               { label: 'Contact',       href: 'contact.html' }
             ])}
@@ -64,10 +65,10 @@
               { label: 'Publications', href: 'publications.html' }
             ])}
             ${dropdown('newsroom', 'Newsroom', 'blog.html', [
-              { label: 'Scientific Articles', href: 'blog.html?cat=science' },
-              { label: 'Company News',        href: 'blog.html?cat=news' },
+              { label: 'Scientific Articles',        href: 'blog.html?cat=science' },
+              { label: 'Company News',               href: 'blog.html?cat=news' },
               { divider: true },
-              { label: 'All Posts &rarr;',    href: 'blog.html', bold: true }
+              { label: 'All Posts &rarr;',           href: 'blog.html', bold: true }
             ])}
             <li><a href="https://dev-public.biomate.ai/login" class="bm-nav-login">Log in</a></li>
             <li><a href="https://dev-public.biomate.ai/register" class="bm-nav-cta">Start free</a></li>
@@ -115,7 +116,6 @@
                 <li><a href="features.html">Features</a></li>
                 <li><a href="benchmarks.html">Benchmarks</a></li>
                 <li><a href="pricing.html">Pricing</a></li>
-                <li><a href="compare.html">Compare</a></li>
                 <li><a href="https://dev-public.biomate.ai/register">Start free</a></li>
               </ul>
             </div>

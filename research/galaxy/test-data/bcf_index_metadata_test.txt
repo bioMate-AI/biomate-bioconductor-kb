@@ -1,1 +1,0 @@
-Blocked GNU Zip Format (BGZF; gzip compatible)

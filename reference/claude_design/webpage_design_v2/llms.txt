@@ -2,6 +2,8 @@
 
 > AI assistant for biomedical research and application — serving pharma, biotech, academic labs, and core facilities. Provides 4,000+ validated workflows with AI-guided QC and audit-ready results.
 
+## Last updated: 2026-07-03
+
 BioMate AI is an AI assistant for biomedical research and application, founded in 2025 and headquartered in Houston, Texas (Texas Medical Center). Wikidata entity: Q140074014 (https://www.wikidata.org/wiki/Q140074014). It enables researchers to run complex bioinformatics and drug discovery workflows through plain-English requests — no command-line expertise required. Results arrive structured, quality-graded, and reproducible.
 
 ## Key facts

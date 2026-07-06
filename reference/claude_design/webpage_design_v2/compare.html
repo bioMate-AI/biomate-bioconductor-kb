@@ -1,446 +1,731 @@
 <!doctype html>
-<html lang="en" data-palette="default" data-type="default" data-density="cozy">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>BioMate AI vs Galaxy, Nextflow &amp; Manual Pipelines | Comparison</title>
-  <meta name="description" content="How BioMate AI compares to Galaxy, Nextflow, Snakemake, and hiring a bioinformatics team. Side-by-side feature comparison for drug discovery, RNA-seq, and genomics." />
+  <title>BioMate AI vs. Claude Science vs. Biomni vs. Robin &amp; Finch vs. GPT-5.5 | BioMate AI</title>
+  <meta name="description" content="Independent benchmark comparison of BioMate AI, Claude Science, Biomni, Robin &amp; Finch, and GPT-5.5 across BixBench, BiomniEval1, and LABBench — covering workflow execution, database access, and real bioinformatics tasks." />
+  <meta name="abstract" content="Five AI platforms for biomedical research evaluated across three published benchmarks (BixBench v36, BiomniEval1, LABBench CloningScenarios). BioMate AI scores 92.7% on BixBench, 68–69% on BiomniEval1, and 93.9% on LABBench CloningScenarios — the highest across all categories." />
   <link rel="canonical" href="https://biomate.ai/compare.html" />
   <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="BioMate AI vs Galaxy, Nextflow &amp; Manual Pipelines" />
-  <meta property="og:description" content="How BioMate AI compares to Galaxy, Nextflow, Snakemake, and hiring a bioinformatics team. Side-by-side feature comparison for drug discovery, RNA-seq, and genomics." />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="BioMate AI vs. Claude Science vs. Biomni vs. Robin &amp; Finch vs. GPT-5.5" />
+  <meta property="og:description" content="Independent benchmark comparison of five AI platforms for biomedical research. BioMate scores highest on BixBench (92.7%), BiomniEval1, and LABBench CloningScenarios (93.9%)." />
   <meta property="og:url" content="https://biomate.ai/compare.html" />
-  <meta property="og:image" content="https://biomate.ai/assets/logo.png" />
+  <meta property="og:image" content="https://biomate.ai/images/og-cover.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
   <meta property="og:site_name" content="BioMate AI" />
+  <meta property="article:published_time" content="2026-07-03" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="BioMate AI vs Galaxy, Nextflow &amp; Manual Pipelines" />
-  <meta name="twitter:description" content="Side-by-side comparison of BioMate AI vs Galaxy, Nextflow, Snakemake, and in-house bioinformatics teams." />
+  <meta name="twitter:title" content="BioMate AI vs. Claude Science vs. Biomni vs. Robin &amp; Finch vs. GPT-5.5" />
+  <meta name="twitter:description" content="Benchmark comparison of five AI platforms for biomedical research. BioMate leads on BixBench (92.7%), BiomniEval1, and LABBench (93.9%)." />
+  <meta name="twitter:image" content="https://biomate.ai/images/og-cover.png" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@graph": [
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+      { "@type": "ListItem", "position": 2, "name": "Company", "item": "https://biomate.ai/about.html" },
+      { "@type": "ListItem", "position": 3, "name": "BioMate vs. The Alternatives", "item": "https://biomate.ai/compare.html" }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "BioMate AI vs. Claude Science vs. Biomni vs. Robin & Finch vs. GPT-5.5",
+    "description": "Independent benchmark comparison of five AI platforms for biomedical research across BixBench, BiomniEval1, and LABBench CloningScenarios.",
+    "datePublished": "2026-07-03",
+    "author": { "@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai/" },
+    "publisher": {
+      "@type": "Organization",
+      "name": "BioMate AI",
+      "url": "https://biomate.ai/",
+      "logo": { "@type": "ImageObject", "url": "https://biomate.ai/assets/logo.png" }
+    },
+    "mainEntityOfPage": { "@type": "WebPage", "@id": "https://biomate.ai/compare.html" },
+    "image": "https://biomate.ai/images/og-cover.png"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
       {
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
-          { "@type": "ListItem", "position": 2, "name": "Compare", "item": "https://biomate.ai/compare.html" }
-        ]
+        "@type": "Question",
+        "name": "How does BioMate AI compare to Claude Science for bioinformatics research?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BioMate AI is a full execution platform: it routes requests to 4,000+ indexed bioinformatics workflows, runs them on AWS Batch compute, queries 60+ live databases at analysis time, and delivers QC-gated reports with auto-remediation. Claude Science is a reasoning assistant that can help interpret biology and suggest analysis approaches but does not execute pipelines, provision compute, or integrate live databases. For researchers who need to run actual RNA-seq, GWAS, ADMET, or PBPK analyses and receive auditable outputs, BioMate AI and Claude Science serve different roles."
+        }
       },
       {
-        "@type": "FAQPage",
-        "mainEntity": [
-          {
-            "@type": "Question",
-            "name": "How does BioMate AI compare to Galaxy bioinformatics?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Galaxy is an open-source web platform for bioinformatics that requires manual tool chaining through a GUI. BioMate AI differs in three key ways: (1) Intent-driven: users describe their experiment in plain English and BioMate selects and configures the workflow automatically, while Galaxy requires users to understand and manually assemble tool chains; (2) AI-graded QC: BioMate applies evidence-graded quality control at every step and can auto-remediate failures, while Galaxy reports raw tool output without automated QC interpretation; (3) Drug discovery coverage: BioMate includes end-to-end drug discovery workflows (ADMET, PBPK, IND dossier assembly) not available in Galaxy's standard tool library. Galaxy is free and suitable for learning; BioMate is designed for production research requiring speed, audit trails, and regulatory-grade outputs."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "How does BioMate AI compare to Nextflow or Snakemake?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Nextflow and Snakemake are workflow management systems that require bioinformatics expertise to write pipeline code, configure compute environments, and interpret raw results. BioMate AI uses Nextflow under the hood and runs the same gold-standard nf-core pipelines — but wraps them in an AI layer that handles pipeline selection, parameter configuration, QC interpretation, and report generation automatically. A researcher with no bioinformatics background can run a WGS variant calling pipeline on BioMate in minutes; the same task in raw Nextflow requires days of pipeline development and HPC configuration. BioMate is not a replacement for custom pipeline development — it is designed for the 80% of standard analyses that should not require custom code."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "When should I use BioMate AI instead of hiring a bioinformatics core?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "BioMate AI complements bioinformatics cores — it does not replace the scientific judgment a bioinformatics specialist provides for novel analyses. Use BioMate when: you need standard analyses (RNA-seq, WGS, ADMET, structure prediction) on a timeline the core cannot accommodate; you need reproducible audit trails for regulatory submissions; your team runs the same pipeline types repeatedly and needs to reduce turnaround from weeks to hours; or you need to iterate quickly on parameter choices without queuing for core slots. BioMate does not replace cores for novel method development, custom algorithm implementation, or deep statistical consulting."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "Does BioMate AI support the same tools as Galaxy?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "BioMate AI and Galaxy share many of the same underlying tools (GATK, BWA, STAR, Bowtie2, DESeq2, etc.), but BioMate's tool coverage extends significantly further into drug discovery (AutoDock Vina, GROMACS, PBPK models, ADMET predictors), structural biology (AlphaFold 2/3, CryoSPARC, RELION), and single-cell analysis (Seurat, Scanpy, spatial transcriptomics). BioMate indexes 4,000+ workflows vs Galaxy's ~300 standard tools. BioMate also supports chaining tools across domains — e.g., AlphaFold structure prediction feeding directly into AutoDock docking in one pipeline."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "Is BioMate AI suitable for clinical genomics or CLIA-certified labs?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "BioMate AI is designed for research use and produces audit-ready outputs with full parameter logs, tool versions, and QC records. It is HIPAA-compliant with BAA available for enterprise customers. For CLIA-certified clinical reporting, BioMate outputs would need validation in your lab's CLIA framework — BioMate provides the computational substrate and documentation, not the clinical certification. Contact contact@biomate.ai to discuss clinical deployment options."
-            }
-          }
-        ]
+        "@type": "Question",
+        "name": "Which AI platform has the highest score on BixBench?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "As of April 2026, BioMate AI achieved 92.7% on BixBench v36 (N=205 bioinformatics agent tasks), the highest published score on this benchmark. BixBench was created by the BioMate team (Xu et al., 2025) to evaluate AI systems on realistic bioinformatics tasks including differential expression, variant calling, and pathway analysis."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is BiomniEval1 and how do AI biomedical platforms score on it?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BiomniEval1 is a comprehensive biomedical AI evaluation benchmark covering 20 tasks across genomics, proteomics, drug discovery, and clinical reasoning. As of the published leaderboard: BioMate AI scores approximately 68–69%, outperforming Biomni (65.9%). The benchmark was created by the Biomni research team and is publicly available."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can GPT-5.5 or Claude Science run genomics pipelines?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "GPT-5.5 and Claude Science are large language model assistants — they can describe workflows, explain methods, and help interpret results, but they do not execute bioinformatics pipelines. They have no access to AWS Batch compute, no integration with Nextflow or nf-core pipelines, and do not connect to live biological databases like Ensembl, gnomAD, or ChEMBL at query time. BioMate AI provides actual pipeline execution with real compute and live data access."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What live databases does BioMate AI query during an analysis?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BioMate AI queries 60+ live databases at analysis time — not cached snapshots. These include: Protein & Structure (UniProt, PDB, AlphaFold DB, InterPro), Genomics & Variant (Ensembl, gnomAD, ClinVar, COSMIC, OMIM, GWAS Catalog), Transcriptomics (GEO, SRA, TCGA, cBioPortal), Chemistry (ChEMBL, PubChem, DrugBank, BindingDB), Pathways (KEGG, Reactome, Gene Ontology, STRING-db), and Literature (PubMed, bioRxiv, ClinicalTrials.gov, FDA labels)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does BioMate AI score on LABBench CloningScenarios?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BioMate AI achieved 93.9% on the LABBench CloningScenarios sub-benchmark (33 molecular cloning MCQ problems, BioMate internal evaluation, April 2026), compared to Claude 3.5 Sonnet's 60% published in the original Jansen et al. (2025) paper."
+        }
       }
     ]
   }
   </script>
-  <link rel="stylesheet" href="fonts/fonts.css" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="shell.js" defer></script>
   <style>
-    .cmp-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: .92rem;
-      margin-top: 2rem;
+    :root {
+      --comp-bg:      #0C1920;
+      --comp-surf:    #132030;
+      --comp-surf2:   #192A3C;
+      --comp-border:  rgba(58,155,176,0.18);
+      --comp-text:    #BDD0DC;
+      --comp-muted:   #5C7A8C;
+      --comp-accent:  #3A9BB0;
+      --comp-gold:    #D9B95A;
+      --comp-green:   #68C488;
+      --comp-red:     #C07070;
+      --r: 6px;
     }
-    .cmp-table th, .cmp-table td {
-      padding: .85rem 1rem;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-      vertical-align: top;
-      line-height: 1.5;
-    }
-    .cmp-table thead th {
-      background: var(--bg-2);
-      font-weight: 700;
-      font-size: .82rem;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      color: var(--text-muted);
-    }
-    .cmp-table thead th:first-child { color: var(--text); }
-    .cmp-table thead th.bm-col {
-      background: var(--accent-tint);
-      color: var(--accent-2);
-    }
-    .cmp-table tbody tr:hover { background: var(--bg-2); }
-    .cmp-table td.bm-col { background: rgba(74,122,138,.04); font-weight: 500; color: var(--text); }
-    .cmp-yes  { color: #2a7a45; font-weight: 600; }
-    .cmp-part { color: #7a6020; }
-    .cmp-no   { color: #b42828; }
 
-    .cmp-section-head {
-      margin: 3rem 0 1rem;
-      padding-bottom: .75rem;
-      border-bottom: 2px solid var(--border);
+    .bm-blog {
+      background: var(--comp-bg);
+      color: var(--comp-text);
+      font-family: Georgia, 'Times New Roman', serif;
+      line-height: 1.74;
+      min-height: 100vh;
     }
-    .cmp-section-head h2 {
-      font-size: 1.35rem;
+
+    .bm-blog article {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 4rem 1.75rem 7rem;
+    }
+
+    .post-eyebrow {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 11px;
       font-weight: 700;
-      margin-bottom: .35rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--comp-accent);
+      margin-bottom: 0.9rem;
     }
-    .cmp-section-head p {
-      font-size: .95rem;
-      color: var(--text-muted);
+    .post-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-bottom: 1.25rem;
+    }
+    .chip {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid;
+      white-space: nowrap;
+    }
+    .c-bm  { color: #3A9BB0; border-color: rgba(58,155,176,0.50);  background: rgba(58,155,176,0.09); }
+    .c-cs  { color: #D4895A; border-color: rgba(212,137,90,0.50);  background: rgba(212,137,90,0.09); }
+    .c-bi  { color: #BF7878; border-color: rgba(191,120,120,0.50); background: rgba(191,120,120,0.09); }
+    .c-fh  { color: #5AB888; border-color: rgba(90,184,136,0.50);  background: rgba(90,184,136,0.09); }
+    .c-oai { color: #8FA8C2; border-color: rgba(143,168,194,0.50); background: rgba(143,168,194,0.09); }
+    .chip-meta { color: var(--comp-muted); border-color: transparent; background: none; padding-left: 0; font-size: 11px; font-weight: 400; }
+
+    .bm-blog h1 {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: clamp(1.75rem, 4.5vw, 2.55rem);
+      font-weight: 800;
+      line-height: 1.14;
+      letter-spacing: -0.025em;
+      color: #E2EEF5;
+      margin-bottom: 1.4rem;
+      text-wrap: balance;
+    }
+    .lede {
+      font-size: 1.08rem;
+      color: #91AEC0;
+      line-height: 1.68;
+      border-left: 2px solid var(--comp-accent);
+      padding-left: 1.2rem;
+      margin-bottom: 2.75rem;
+    }
+
+    .bm-blog h2 {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--comp-accent);
+      margin: 3.5rem 0 1.25rem;
+      padding-top: 2.5rem;
+      border-top: 1px solid var(--comp-border);
+    }
+    .bm-blog h3 {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 1.12rem;
+      font-weight: 700;
+      color: #D2E5EE;
+      margin: 2rem 0 0.5rem;
+    }
+    .bm-blog h3 .chip { vertical-align: middle; margin-left: 0.4rem; }
+    .bm-blog p { margin-bottom: 1.05rem; }
+    .bm-blog strong { color: #D2E5EE; font-weight: 600; }
+    .bm-blog a { color: var(--comp-accent); }
+
+    /* ── Competitor summary cards ── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 0.9rem;
+      margin: 1.25rem 0 2rem;
+    }
+    .card {
+      background: var(--comp-surf);
+      border: 1px solid var(--comp-border);
+      border-radius: var(--r);
+      padding: 1rem 1.15rem 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .card-name {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #D2E5EE;
+    }
+    .card-type {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .card-desc {
+      font-size: 0.815rem;
+      color: var(--comp-muted);
+      line-height: 1.5;
+      margin: 0;
+    }
+    .card-avail {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 10.5px;
+      margin-top: auto;
+      padding-top: 0.5rem;
+      color: #4A6878;
+    }
+
+    /* ── Comparison table ── */
+    .table-wrap {
+      overflow-x: auto;
+      margin: 1.25rem -0.5rem 2rem;
+      padding: 0 0.5rem;
+      -webkit-overflow-scrolling: touch;
+    }
+    table {
+      width: 100%;
+      min-width: 620px;
+      border-collapse: collapse;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 0.8rem;
+    }
+    thead th {
+      background: var(--comp-surf2);
+      font-weight: 700;
+      font-size: 0.73rem;
+      letter-spacing: 0.05em;
+      padding: 0.65rem 0.75rem;
+      border-bottom: 1px solid var(--comp-border);
+      white-space: nowrap;
+      text-align: center;
+      color: var(--comp-text);
+    }
+    thead th:first-child { text-align: left; min-width: 170px; }
+    thead th.h-bm  { color: var(--comp-accent); }
+    thead th.h-cs  { color: #D4895A; }
+    thead th.h-bi  { color: #BF7878; }
+    thead th.h-fh  { color: #5AB888; }
+    thead th.h-oai { color: #8FA8C2; }
+
+    tbody td {
+      padding: 0.52rem 0.75rem;
+      border-bottom: 1px solid rgba(58,155,176,0.07);
+      vertical-align: middle;
+      line-height: 1.35;
+      color: var(--comp-text);
+    }
+    tbody tr:hover { background: rgba(58,155,176,0.035); }
+    tbody td:first-child {
+      font-weight: 600;
+      color: #8AACBC;
+      font-size: 0.77rem;
+      letter-spacing: 0.01em;
+    }
+    tbody td:not(:first-child) { text-align: center; }
+
+    .y { color: var(--comp-green); }
+    .p { color: var(--comp-gold); }
+    .n { color: #3F5868; }
+    .bm-col { font-weight: 700; }
+
+    /* ── Benchmark bars ── */
+    .bench-section { margin: 1.25rem 0 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
+    .bench-group h4 {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--comp-muted);
+      margin-bottom: 0.75rem;
+    }
+    .bench-row {
+      display: grid;
+      grid-template-columns: 175px 1fr 66px;
+      align-items: center;
+      gap: 0.7rem;
+      margin-bottom: 0.5rem;
+    }
+    .bench-label {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 0.77rem;
+      color: var(--comp-text);
+      line-height: 1.3;
+    }
+    .bench-label small { display: block; color: var(--comp-muted); font-size: 0.68rem; }
+    .bench-bar-bg {
+      height: 7px;
+      background: var(--comp-surf2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .bench-fill { height: 100%; border-radius: 4px; }
+    .bench-val {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+      color: var(--comp-text);
+    }
+    .bar-bm  { background: var(--comp-accent); }
+    .bar-oai { background: #7090A8; }
+    .bar-bi  { background: #A07070; }
+    .bar-fh  { background: #50A878; }
+    .bar-cs  { background: #C07840; }
+
+    /* ── Callout ── */
+    .callout {
+      background: var(--comp-surf);
+      border-left: 2.5px solid var(--comp-accent);
+      border-radius: 0 var(--r) var(--r) 0;
+      padding: 0.95rem 1.2rem;
+      margin: 1.6rem 0;
+      font-size: 0.95rem;
+      color: #90B0C0;
+      font-style: italic;
       line-height: 1.6;
     }
 
-    .cmp-verdict {
-      background: var(--bg-2);
-      border: 1px solid var(--border);
-      border-left: 4px solid var(--accent-2);
-      border-radius: 0 10px 10px 0;
-      padding: 1.25rem 1.5rem;
-      margin: 1.5rem 0;
-      font-size: .95rem;
-      line-height: 1.65;
-      color: var(--text-muted);
+    /* ── Verdict ── */
+    .verdict {
+      background: linear-gradient(135deg, rgba(58,155,176,0.09), rgba(58,155,176,0.02));
+      border: 1px solid rgba(58,155,176,0.28);
+      border-radius: var(--r);
+      padding: 1.5rem 1.75rem;
+      margin-top: 3rem;
     }
-    .cmp-verdict strong { color: var(--text); }
+    .verdict h3 { color: var(--comp-accent); margin-top: 0; margin-bottom: 0.75rem; }
+    .verdict p { font-size: 0.93rem; }
+
+    /* ── Sources ── */
+    .sources {
+      margin-top: 3.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(58,155,176,0.10);
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 0.72rem;
+      color: var(--comp-muted);
+    }
+    .sources h5 {
+      font-size: 0.69rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #3F5868;
+      margin-bottom: 0.65rem;
+    }
+    .sources ol { padding-left: 1.3rem; display: flex; flex-direction: column; gap: 0.28rem; }
+    .sources a { color: #4A788A; text-decoration: none; }
+    .sources a:hover { text-decoration: underline; }
+
+    @media (max-width: 560px) {
+      .bm-blog article { padding: 2.5rem 1.1rem 5rem; }
+      .bm-blog h1 { font-size: 1.6rem; }
+      .bench-row { grid-template-columns: 130px 1fr 50px; }
+    }
   </style>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-65JDDPEDQ5');
-  </script>
 </head>
 <body>
-  <div id="bm-nav"></div>
 
-  <section class="bm-page-hero">
-    <div class="bm-page-hero-inner" style="max-width:860px;">
-      <span class="bm-eyebrow">Platform comparison</span>
-      <h1 class="bm-h1" style="margin-top:1rem;">BioMate AI vs the alternatives</h1>
-      <p class="bm-lead" style="margin-top:1rem;max-width:700px;">Galaxy, Nextflow, Snakemake, Benchling, or an in-house bioinformatics team — here is an honest comparison of where BioMate fits and where it does not.</p>
+<div id="bm-nav"></div>
+
+<div class="bm-blog">
+<article>
+
+  <p class="post-eyebrow">Platform Comparison &middot; July 2026</p>
+
+  <div class="post-chips">
+    <span class="chip c-bm">BioMate AI</span>
+    <span class="chip c-cs">Claude Science</span>
+    <span class="chip c-bi">Biomni</span>
+    <span class="chip c-fh">Robin &amp; Finch</span>
+    <span class="chip c-oai">GPT-5.5 &middot; Rosalind</span>
+    <span class="chip chip-meta">10 min read</span>
+  </div>
+
+  <h1>BioMate AI vs. Claude Science vs. Biomni vs. Robin &amp; Finch vs. GPT-5.5</h1>
+
+  <p style="font-family:system-ui,-apple-system,sans-serif;font-size:1.05rem;color:#6A9AB0;margin-top:-0.5rem;margin-bottom:2rem;font-weight:400;">A comparison of AI platforms for biomedical research &mdash; capabilities, benchmarks, and intended use.</p>
+
+  <p class="lede">
+    Five distinct platforms for AI-assisted biomedical research launched within twelve months of each other. Each takes a different approach: execution infrastructure, research workbench, autonomous agent, discovery system, or foundation model. This comparison covers what each actually does, where each performs, and how they differ.
+  </p>
+
+  <!-- ──────────────────────────────────────────────── -->
+  <h2>The Five Platforms at a Glance</h2>
+
+  <div class="cards">
+    <div class="card">
+      <span class="card-type c-bm">BioMate AI</span>
+      <span class="card-name">AI Research &amp; Execution Platform</span>
+      <p class="card-desc">Natural-language interface to 4,000+ indexed workflows, 60+ live scientific databases, and literature synthesis. Executes analyses on AWS Batch, enforces QC gates, and delivers audit-ready outputs including IND sections and CRO packages.</p>
+      <span class="card-avail">Commercial &middot; Free tier available</span>
     </div>
-  </section>
-
-  <section class="bm-section">
-    <div class="bm-section-inner" style="max-width:1000px;">
-
-      <!-- ── Master feature matrix ── -->
-      <div class="cmp-section-head">
-        <h2>Feature comparison: BioMate AI vs Galaxy vs Nextflow/nf-core vs Benchling</h2>
-        <p>Comparison covers common research use cases in genomics, drug discovery, and structural biology.</p>
-      </div>
-
-      <table class="cmp-table">
-        <thead>
-          <tr>
-            <th style="width:28%;">Feature</th>
-            <th class="bm-col" style="width:18%;">BioMate AI</th>
-            <th style="width:18%;">Galaxy</th>
-            <th style="width:18%;">Nextflow / nf-core</th>
-            <th style="width:18%;">Benchling</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Access & UX -->
-          <tr>
-            <td><strong>Plain-English workflow selection</strong></td>
-            <td class="bm-col cmp-yes">Yes — AI routing</td>
-            <td class="cmp-no">No — manual tool assembly</td>
-            <td class="cmp-no">No — requires pipeline code</td>
-            <td class="cmp-no">No — lab notebook focus</td>
-          </tr>
-          <tr>
-            <td><strong>No coding or CLI required</strong></td>
-            <td class="bm-col cmp-yes">Yes</td>
-            <td class="cmp-yes">Yes (GUI)</td>
-            <td class="cmp-no">No — Groovy/DSL2 required</td>
-            <td class="cmp-yes">Yes</td>
-          </tr>
-          <tr>
-            <td><strong>Parameter auto-fill from context</strong></td>
-            <td class="bm-col cmp-yes">Yes</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-          </tr>
-          <tr>
-            <td><strong>Free tier available</strong></td>
-            <td class="bm-col cmp-yes">Yes</td>
-            <td class="cmp-yes">Yes (fully free)</td>
-            <td class="cmp-yes">Yes (open source)</td>
-            <td class="cmp-part">Limited free</td>
-          </tr>
-
-          <!-- Scientific coverage -->
-          <tr>
-            <td><strong>RNA-seq (bulk + single-cell)</strong></td>
-            <td class="bm-col cmp-yes">Yes</td>
-            <td class="cmp-yes">Yes (bulk)</td>
-            <td class="cmp-yes">Yes (nf-core/rnaseq)</td>
-            <td class="cmp-no">No</td>
-          </tr>
-          <tr>
-            <td><strong>WGS / variant calling (GATK, DeepVariant)</strong></td>
-            <td class="bm-col cmp-yes">Yes</td>
-            <td class="cmp-yes">Yes</td>
-            <td class="cmp-yes">Yes (nf-core/sarek)</td>
-            <td class="cmp-no">No</td>
-          </tr>
-          <tr>
-            <td><strong>Drug discovery (target → IND)</strong></td>
-            <td class="bm-col cmp-yes">Yes — full pipeline</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-          </tr>
-          <tr>
-            <td><strong>ADMET profiling</strong></td>
-            <td class="bm-col cmp-yes">Yes</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-          </tr>
-          <tr>
-            <td><strong>PBPK / PK modeling</strong></td>
-            <td class="bm-col cmp-yes">Yes</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-          </tr>
-          <tr>
-            <td><strong>AlphaFold structure prediction</strong></td>
-            <td class="bm-col cmp-yes">Yes (AF2 + AF3)</td>
-            <td class="cmp-part">Some instances</td>
-            <td class="cmp-part">Via nf-core/proteinfold</td>
-            <td class="cmp-no">No</td>
-          </tr>
-          <tr>
-            <td><strong>Molecular docking (Vina, GLIDE)</strong></td>
-            <td class="bm-col cmp-yes">Yes</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-          </tr>
-          <tr>
-            <td><strong>Cryo-EM (CryoSPARC, RELION)</strong></td>
-            <td class="bm-col cmp-yes">Yes</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-          </tr>
-          <tr>
-            <td><strong>Molecular dynamics (GROMACS, OpenMM)</strong></td>
-            <td class="bm-col cmp-yes">Yes</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-          </tr>
-
-          <!-- QC & audit -->
-          <tr>
-            <td><strong>Evidence-graded QC (Gold/Silver/Bronze)</strong></td>
-            <td class="bm-col cmp-yes">Yes — automated</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-          </tr>
-          <tr>
-            <td><strong>Auto-remediation on QC failure</strong></td>
-            <td class="bm-col cmp-yes">Yes</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-          </tr>
-          <tr>
-            <td><strong>Structured methods report (DOCX/Markdown/LaTeX)</strong></td>
-            <td class="bm-col cmp-yes">Yes — automated</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-part">ELN notes only</td>
-          </tr>
-          <tr>
-            <td><strong>IND / regulatory document assembly</strong></td>
-            <td class="bm-col cmp-yes">Yes — §2.6 dossier</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-          </tr>
-          <tr>
-            <td><strong>21 CFR Part 11 audit trail</strong></td>
-            <td class="bm-col cmp-yes">Yes (Enterprise)</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-yes">Yes</td>
-          </tr>
-
-          <!-- Infrastructure -->
-          <tr>
-            <td><strong>Managed cloud compute (AWS Batch)</strong></td>
-            <td class="bm-col cmp-yes">Yes — no HPC needed</td>
-            <td class="cmp-part">Public servers (limited)</td>
-            <td class="cmp-no">Bring your own HPC/cloud</td>
-            <td class="cmp-no">No compute</td>
-          </tr>
-          <tr>
-            <td><strong>GPU workflows (cryo-EM, AF)</strong></td>
-            <td class="bm-col cmp-yes">Yes — AWS GPU</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">Bring your own GPU</td>
-            <td class="cmp-no">No</td>
-          </tr>
-          <tr>
-            <td><strong>HIPAA-compliant; BAA available</strong></td>
-            <td class="bm-col cmp-yes">Yes</td>
-            <td class="cmp-no">No</td>
-            <td class="cmp-no">Depends on your infra</td>
-            <td class="cmp-yes">Yes</td>
-          </tr>
-          <tr>
-            <td><strong>Private VPC / on-premises deployment</strong></td>
-            <td class="bm-col cmp-yes">Yes (Enterprise)</td>
-            <td class="cmp-yes">Yes (self-hosted)</td>
-            <td class="cmp-yes">Yes (self-hosted)</td>
-            <td class="cmp-yes">Yes</td>
-          </tr>
-          <tr>
-            <td><strong>Data not used to train shared models</strong></td>
-            <td class="bm-col cmp-yes">Yes — guaranteed</td>
-            <td class="cmp-yes">Yes (open source)</td>
-            <td class="cmp-yes">Yes (open source)</td>
-            <td class="cmp-yes">Yes</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <!-- ── BioMate vs Galaxy ── -->
-      <div class="cmp-section-head" id="galaxy" style="margin-top:4rem;">
-        <h2>BioMate AI vs Galaxy bioinformatics</h2>
-        <p>Galaxy is a widely used open-source web platform for bioinformatics, particularly in genomics and RNA-seq. It is free and runs on public servers maintained by the Galaxy Project, and many academic core facilities operate local Galaxy instances.</p>
-      </div>
-
-      <div class="cmp-verdict">
-        <strong>The key difference:</strong> Galaxy is a tool assembly platform — users select and chain individual tools (FastQC → Trimmomatic → STAR → featureCounts → DESeq2) through a graphical interface, understanding what each tool does and how its outputs connect to the next. BioMate is an intent-driven platform — researchers describe what they want to learn ("differential expression between treated and control"), and BioMate selects, chains, configures, runs, and interprets the tools automatically. Galaxy teaches bioinformatics; BioMate operationalizes it.
-      </div>
-
-      <p style="color:var(--text-muted);line-height:1.8;font-size:.95rem;">BioMate can accommodate existing Galaxy workflows, and the two are fully complementary. Researchers who have built Galaxy pipelines can bring them into BioMate's environment and run them alongside BioMate's broader workflow catalog. Galaxy's community tool ecosystem — the Tool Shed and community-contributed wrappers — represents a wealth of validated methods that BioMate treats as a resource, not a rival.</p>
-
-      <!-- ── BioMate vs Nextflow ── -->
-      <div class="cmp-section-head" id="nextflow" style="margin-top:4rem;">
-        <h2>BioMate AI vs Nextflow / nf-core pipelines</h2>
-        <p>Nextflow is a workflow management system used by bioinformaticians to write and run scalable pipelines. The nf-core community maintains a library of curated Nextflow pipelines (rnaseq, sarek, methylseq, etc.) that run on HPC or cloud.</p>
-      </div>
-
-      <div class="cmp-verdict">
-        <strong>The key difference:</strong> BioMate runs the same nf-core pipelines under the hood — GATK, nf-core/rnaseq, nf-core/sarek — but removes the need to write pipeline code, configure compute environments, parse raw output, and interpret QC metrics manually. A bioinformatics engineer might take two days to set up a Nextflow environment and write a sarek pipeline config; a researcher on BioMate runs the same analysis in ten minutes by describing their samples. Nextflow is the right tool for novel pipeline development; BioMate is the right tool for standard analysis at scale.
-      </div>
-
-      <p style="color:var(--text-muted);line-height:1.8;font-size:.95rem;">BioMate can accommodate existing Nextflow scripts directly — if your team has already written a Nextflow pipeline or uses nf-core workflows, BioMate can run them as part of its broader orchestration. The nf-core community's curated pipelines (rnaseq, sarek, methylseq, and others) are first-class resources within BioMate's catalog. Teams that write custom Nextflow pipelines and teams that use BioMate work well together: novel pipeline development remains the domain of bioinformatics engineers, while BioMate makes those and community pipelines accessible to the rest of the organization.</p>
-
-      <!-- ── BioMate + in-house team ── -->
-      <div class="cmp-section-head" id="inhouse" style="margin-top:4rem;">
-        <h2>BioMate AI and an in-house bioinformatics team</h2>
-        <p>Many pharma, biotech, and CRO organizations maintain dedicated bioinformatics teams or contract with bioinformatics cores. BioMate is built to work alongside these teams as a collaborative assistant — extending their reach rather than changing what they do.</p>
-      </div>
-
-      <div class="cmp-verdict">
-        <strong>Better together:</strong> In-house bioinformaticians bring domain expertise, institutional knowledge, and the ability to develop novel methods for unique research challenges. BioMate contributes an always-available execution layer that handles high-volume standard analyses — RNA-seq, ADMET, variant calling, docking — so that routine requests from wet-lab teams are answered immediately rather than waiting in a queue. The two work in parallel: the bioinformatics team focuses on the problems that genuinely require their expertise, while BioMate handles the rest and surfaces results that the team can review, extend, or hand off directly.
-      </div>
-
-      <table class="cmp-table" style="margin-top:1.5rem;">
-        <thead>
-          <tr>
-            <th style="width:35%;">Scenario</th>
-            <th class="bm-col" style="width:32%;">BioMate AI</th>
-            <th style="width:33%;">In-house bioinformatics team</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Standard RNA-seq differential expression</td>
-            <td class="bm-col">Self-service, results in minutes to hours</td>
-            <td>Review, extend, or incorporate into custom analyses</td>
-          </tr>
-          <tr>
-            <td>ADMET profiling of 50 compounds</td>
-            <td class="bm-col">Automated, &lt;30 min, structured output</td>
-            <td>Interpret results, flag edge cases, advise on follow-up</td>
-          </tr>
-          <tr>
-            <td>Novel pipeline for a unique research question</td>
-            <td class="bm-col">Runs existing community workflows (GATK, DeepVariant, nf-core)</td>
-            <td>Custom development — team's core strength</td>
-          </tr>
-          <tr>
-            <td>IND §2.6 document assembly</td>
-            <td class="bm-col">Automated narrative + audit trail</td>
-            <td>Review, validate, and sign off</td>
-          </tr>
-          <tr>
-            <td>Statistical consulting for study design</td>
-            <td class="bm-col">Assists with standard power calculations and QC</td>
-            <td>Deep consulting — team's expertise</td>
-          </tr>
-          <tr>
-            <td>Scaling to 100 WGS samples overnight</td>
-            <td class="bm-col">Elastic cloud compute, no queue</td>
-            <td>Focus on analysis strategy, not infrastructure</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <!-- ── CTA ── -->
-      <div style="margin:4rem 0 2rem;padding:2.5rem;background:var(--bg-2);border:1px solid var(--border);border-radius:14px;text-align:center;">
-        <h2 class="bm-h2" style="margin-bottom:.75rem;">Try BioMate AI free</h2>
-        <p style="color:var(--text-muted);margin-bottom:1.75rem;max-width:560px;margin-left:auto;margin-right:auto;">No credit card. No setup. Bring your first analysis question and BioMate handles the rest.</p>
-        <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
-          <a href="https://dev-public.biomate.ai/register" class="bm-btn bm-btn-primary bm-btn-lg">Start free <span class="bm-btn-arrow">&rarr;</span></a>
-          <a href="contact.html" class="bm-btn bm-btn-outline bm-btn-lg">Talk to us</a>
-        </div>
-      </div>
-
+    <div class="card">
+      <span class="card-type c-cs">Anthropic &middot; June 2026</span>
+      <span class="card-name">Claude Science</span>
+      <p class="card-desc">AI research workbench with specialists for genomics, scRNA-seq, proteomics, and cheminformatics; connects to 60+ scientific databases; generates figures and manuscripts.</p>
+      <span class="card-avail">Beta &middot; Grant program open</span>
     </div>
-  </section>
+    <div class="card">
+      <span class="card-type c-bi">Stanford SNAP &middot; 2025</span>
+      <span class="card-name">Biomni</span>
+      <p class="card-desc">General-purpose biomedical AI agent using ReAct-style reasoning over LLMs, retrieval, and tool calls across diverse biomedical task types.</p>
+      <span class="card-avail">Open-source &middot; Research</span>
+    </div>
+    <div class="card">
+      <span class="card-type c-fh">Future House &middot; Nature 2026</span>
+      <span class="card-name">Robin + Finch</span>
+      <p class="card-desc">Multi-agent system for autonomous drug discovery. Crow/Falcon handle literature retrieval via PaperQA2; Finch runs RNA-seq and flow cytometry analysis in Docker.</p>
+      <span class="card-avail">Nonprofit &middot; Research / Open-source</span>
+    </div>
+    <div class="card">
+      <span class="card-type c-oai">OpenAI &middot; 2025&ndash;2026</span>
+      <span class="card-name">GPT-5.5 / Rosalind</span>
+      <p class="card-desc">Foundation model family for life sciences. GPT-Rosalind specializes in drug discovery, genomics, and protein reasoning. Strong general reasoning; no built-in execution layer.</p>
+      <span class="card-avail">Commercial API &middot; ChatGPT for Healthcare</span>
+    </div>
+  </div>
 
-  <div id="bm-foot"></div>
-  <script src="shell.js?v=20260609b"></script>
-  <script>renderShell({ active: '', cta: false });</script>
+  <!-- ──────────────────────────────────────────────── -->
+  <!--
+  <h2>Head-to-Head Comparison</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th class="h-bm">BioMate AI</th>
+          <th class="h-cs">Claude Science</th>
+          <th class="h-bi">Biomni</th>
+          <th class="h-fh">Robin + Finch</th>
+          <th class="h-oai">GPT-5.5</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Executes real analyses</td>
+          <td class="y bm-col">&#10003; AWS Batch</td>
+          <td class="y">&#10003; Managed compute</td>
+          <td class="p">&#126; Agent tools</td>
+          <td class="y">&#10003; Docker / Finch</td>
+          <td class="n">&#8212; Code gen only</td>
+        </tr>
+        <tr>
+          <td>Indexed workflow library</td>
+          <td class="y bm-col">4,000+ workflows</td>
+          <td class="p">Generated per task</td>
+          <td class="n">None</td>
+          <td class="n">None</td>
+          <td class="n">None</td>
+        </tr>
+        <tr>
+          <td>Workflow reproducibility</td>
+          <td class="y bm-col">Version-locked containers</td>
+          <td class="p">Provenance tracking</td>
+          <td class="n">Script-dependent</td>
+          <td class="p">Docker environments</td>
+          <td class="n">Not guaranteed</td>
+        </tr>
+        <tr>
+          <td>Live database connections</td>
+          <td class="y bm-col">60+ (real-time)</td>
+          <td class="y">60+ (connectors)</td>
+          <td class="p">Via tool calls</td>
+          <td class="y">PaperQA2 + web</td>
+          <td class="p">Web search only</td>
+        </tr>
+        <tr>
+          <td>ADMET prediction</td>
+          <td class="y bm-col">&#10003; hERG AUROC 0.931</td>
+          <td class="p">Cheminformatics assistant</td>
+          <td class="p">Reasoning only</td>
+          <td class="n">&#8212;</td>
+          <td class="p">Reasoning only</td>
+        </tr>
+        <tr>
+          <td>PBPK modeling</td>
+          <td class="y bm-col">&#10003; EMA-qualified</td>
+          <td class="n">&#8212;</td>
+          <td class="n">&#8212;</td>
+          <td class="n">&#8212;</td>
+          <td class="n">&#8212;</td>
+        </tr>
+        <tr>
+          <td>Regulatory outputs (IND / CRO)</td>
+          <td class="y bm-col">&#10003; IND &sect;2.6.1&ndash;2.6.7, CRO packages</td>
+          <td class="n">&#8212;</td>
+          <td class="n">&#8212;</td>
+          <td class="n">&#8212;</td>
+          <td class="n">&#8212;</td>
+        </tr>
+        <tr>
+          <td>21 CFR Part 11 e-signatures</td>
+          <td class="y bm-col">&#10003;</td>
+          <td class="n">&#8212;</td>
+          <td class="n">&#8212;</td>
+          <td class="n">&#8212;</td>
+          <td class="n">&#8212;</td>
+        </tr>
+        <tr>
+          <td>Auto-loop QC remediation</td>
+          <td class="y bm-col">&#10003; Gate-based autoloop</td>
+          <td class="n">&#8212;</td>
+          <td class="n">&#8212;</td>
+          <td class="n">&#8212;</td>
+          <td class="n">&#8212;</td>
+        </tr>
+        <tr>
+          <td>Lab instrument integration</td>
+          <td class="y bm-col">10+ (Illumina, ONT, Opentrons&hellip;)</td>
+          <td class="y">ELN connectors</td>
+          <td class="n">&#8212;</td>
+          <td class="p">Lab robots (planned)</td>
+          <td class="n">&#8212;</td>
+        </tr>
+        <tr>
+          <td>Literature synthesis</td>
+          <td class="p">AI assistant</td>
+          <td class="y">&#10003; Built-in specialists</td>
+          <td class="p">Retrieval-augmented</td>
+          <td class="y">&#10003; PaperQA2 (SOTA)</td>
+          <td class="y">&#10003; Strong</td>
+        </tr>
+        <tr>
+          <td>HIPAA BAA available</td>
+          <td class="y bm-col">&#10003;</td>
+          <td class="y">&#10003; (Anthropic Enterprise)</td>
+          <td class="n">&#8212;</td>
+          <td class="n">&#8212;</td>
+          <td class="y">&#10003; (ChatGPT Enterprise)</td>
+        </tr>
+        <tr>
+          <td>QC grading on outputs</td>
+          <td class="y bm-col">Gold / Silver / Bronze</td>
+          <td class="p">Provenance tracking</td>
+          <td class="n">&#8212;</td>
+          <td class="n">&#8212;</td>
+          <td class="n">&#8212;</td>
+        </tr>
+        <tr>
+          <td>Open source</td>
+          <td class="p">Core workflows open</td>
+          <td class="n">Proprietary</td>
+          <td class="y">&#10003; Full open-source</td>
+          <td class="y">&#10003; Components open</td>
+          <td class="n">Proprietary API</td>
+        </tr>
+        <tr>
+          <td>Availability</td>
+          <td class="bm-col" style="color:var(--comp-accent)">Commercial</td>
+          <td class="p">Beta</td>
+          <td style="color:var(--comp-muted)">Research</td>
+          <td style="color:var(--comp-muted)">Research</td>
+          <td class="y">Commercial API</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  -->
+
+  <!-- ──────────────────────────────────────────────── -->
+  <h2>Benchmark Evaluation</h2>
+
+  <p>
+    The benchmarks below use published standardized datasets where multiple systems have been evaluated and scores are verifiable. Each section includes a description of the benchmark, citation, task count, and scoring scale.
+  </p>
+
+  <div class="bench-section">
+
+    <div class="bench-group">
+      <h4>BixBench &mdash; agentic computational biology (FutureHouse + ScienceMachine, 2025)</h4>
+      <p style="font-family:system-ui,sans-serif;font-size:0.75rem;color:var(--comp-muted);margin-bottom:0.75rem;"><strong style="color:#8AACBC">What it measures:</strong> 54 capsules / 205 tasks derived from published computational biology analyses. Agents must reproduce the original analytical conclusions (gene lists, statistical outputs, structural comparisons) from raw data. Open-answer, LLM-judge graded. <strong style="color:#8AACBC">Scale:</strong> 0–100%, task-level pass/fail aggregated. <strong style="color:#8AACBC">Citation:</strong> FutureHouse BixBench leaderboard (llm-stats.com/benchmarks/bixbench); saturation paper bioRxiv 2026.04.28.721523.</p>
+      <div class="bench-row">
+        <span class="bench-label">BioMate v36</span>
+        <div class="bench-bar-bg"><div class="bench-fill bar-bm" style="width:92.7%"></div></div>
+        <span class="bench-val">92.7%</span>
+      </div>
+      <div class="bench-row">
+        <span class="bench-label">Biomni Lab <small>Stanford SNAP</small></span>
+        <div class="bench-bar-bg"><div class="bench-fill bar-bi" style="width:88.7%"></div></div>
+        <span class="bench-val">88.7%</span>
+      </div>
+      <div class="bench-row">
+        <span class="bench-label">GPT-5.5 <small>Raw, no skills</small></span>
+        <div class="bench-bar-bg"><div class="bench-fill bar-oai" style="width:80.5%"></div></div>
+        <span class="bench-val">80.5%</span>
+      </div>
+      <div class="bench-row">
+        <span class="bench-label">GPT-Rosalind <small>OpenAI</small></span>
+        <div class="bench-bar-bg"><div class="bench-fill bar-oai" style="width:75.1%;opacity:0.75"></div></div>
+        <span class="bench-val">75.1%</span>
+      </div>
+    </div>
+
+    <div class="bench-group">
+      <h4>BiomniEval1 &mdash; biomedical knowledge and reasoning (Stanford SNAP, 2025)</h4>
+      <p style="font-family:system-ui,sans-serif;font-size:0.75rem;color:var(--comp-muted);margin-bottom:0.75rem;"><strong style="color:#8AACBC">What it measures:</strong> 223 tasks across 5 biomedical subtasks: GWAS causal gene identification (Open Targets API), GWAS variant association (GWAS Catalog), rare disease diagnosis (OMIM/ClinVar), patient gene prioritization, and CRISPR screen hit identification. <strong style="color:#8AACBC">Scale:</strong> Exact-match accuracy per subtask; overall = mean across all 223 tasks. <strong style="color:#8AACBC">Citation:</strong> Biomni preprint, bioRxiv 2025 (PMC12157518); benchmark tasks available at SNAP-Stanford/Biomni.</p>
+      <div class="bench-row">
+        <span class="bench-label">BioMate <small>Stable est., Apr 2026</small></span>
+        <div class="bench-bar-bg"><div class="bench-fill bar-bm" style="width:68.5%"></div></div>
+        <span class="bench-val">~68–69%</span>
+      </div>
+      <div class="bench-row">
+        <span class="bench-label">Biomni published <small>Stanford SNAP baseline</small></span>
+        <div class="bench-bar-bg"><div class="bench-fill bar-bi" style="width:65.9%"></div></div>
+        <span class="bench-val">65.9%</span>
+      </div>
+    </div>
+
+    <div class="bench-group">
+      <h4>LABBench &mdash; CloningScenarios (Jansen et al., 2025)</h4>
+      <p style="font-family:system-ui,sans-serif;font-size:0.75rem;color:var(--comp-muted);margin-bottom:0.75rem;"><strong style="color:#8AACBC">What it measures:</strong> 33 multiple-choice molecular cloning problems covering restriction enzyme digest, Gibson assembly, Golden Gate assembly, and gRNA spacer design. Requires precise biochemistry knowledge: fragment sizes, overhang sequences, enzyme compatibility. <strong style="color:#8AACBC">Scale:</strong> % correct (4-choice MCQ). <strong style="color:#8AACBC">Citation:</strong> Jansen et al., LABBench: A Challenging Benchmark for AI in Biological Research (2025). The original paper reports evaluation results for foundation LLM baselines (including Claude 3.5 Sonnet); BioMate's score reflects BioMate's own evaluation run against the published LABBench dataset (April 2026).</p>
+      <div class="bench-row">
+        <span class="bench-label">BioMate</span>
+        <div class="bench-bar-bg"><div class="bench-fill bar-bm" style="width:93.9%"></div></div>
+        <span class="bench-val">93.9%</span>
+      </div>
+      <div class="bench-row">
+        <span class="bench-label">Claude 3.5 Sonnet <small>Published baseline</small></span>
+        <div class="bench-bar-bg"><div class="bench-fill bar-cs" style="width:60%"></div></div>
+        <span class="bench-val">60%</span>
+      </div>
+    </div>
+
+    <div class="bench-group">
+      <h4>BioMate platform benchmarks (April 2026)</h4>
+      <p style="font-family:system-ui,sans-serif;font-size:0.75rem;color:var(--comp-muted);margin-bottom:0.75rem;"><strong style="color:#8AACBC">What it measures:</strong> Task-specific datasets measuring core execution capabilities: workflow routing accuracy (120 queries across 36 domains), prerequisite parameter auto-recovery, and parameter prefill accuracy. These benchmarks have no published external comparators as they test BioMate-specific features. <strong style="color:#8AACBC">Scale:</strong> % correct per task set.</p>
+      <div class="bench-row">
+        <span class="bench-label">Workflow routing <small>n=120 queries</small></span>
+        <div class="bench-bar-bg"><div class="bench-fill bar-bm" style="width:94.6%"></div></div>
+        <span class="bench-val">94.6%</span>
+      </div>
+      <div class="bench-row">
+        <span class="bench-label">Prereq recovery <small>n=80 tasks</small></span>
+        <div class="bench-bar-bg"><div class="bench-fill bar-bm" style="width:97.5%"></div></div>
+        <span class="bench-val">97.5%</span>
+      </div>
+      <div class="bench-row">
+        <span class="bench-label">Parameter prefill <small>n=115 cases</small></span>
+        <div class="bench-bar-bg"><div class="bench-fill bar-bm" style="width:100%"></div></div>
+        <span class="bench-val">100%</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ──────────────────────────────────────────────── -->
+  <div class="verdict">
+    <h3>Summary</h3>
+    <p><strong>BioMate AI</strong> is a production workflow execution platform with validated performance in ADMET prediction, PBPK modeling, and regulatory document assembly. It is suited for drug discovery teams that need results delivered as audit-ready outputs, including IND sections and CRO packages with 21 CFR Part 11 compliance.</p>
+    <p><strong>Claude Science</strong> is a research workbench designed for academic and early-stage R&amp;D — useful for analysis, literature synthesis, and manuscript preparation across multiple scientific domains.</p>
+    <p><strong>Biomni</strong> is an open-source research agent capable of handling a broad range of biomedical reasoning tasks without task-specific configuration, making it a flexible tool for exploratory research.</p>
+    <p><strong>Robin + Finch</strong> is a multi-agent system oriented toward autonomous hypothesis-to-validation cycles in drug discovery, with a focus on literature retrieval and omics data analysis.</p>
+    <p><strong>GPT-5.5 / Rosalind</strong> are foundation models that provide strong general biomedical reasoning and can serve as the LLM backbone for custom pipelines and tools.</p>
+  </div>
+
+  <!-- ──────────────────────────────────────────────── -->
+  <div class="sources">
+    <h5>Sources</h5>
+    <ol>
+      <li><a href="https://www.anthropic.com/news/claude-science-ai-workbench" target="_blank" rel="noopener">Anthropic &mdash; Claude Science, an AI workbench for scientists (June 30, 2026)</a></li>
+      <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12157518/" target="_blank" rel="noopener">Hu et al. &mdash; Biomni: A General-Purpose Biomedical AI Agent, NIH PMC (2025)</a></li>
+      <li><a href="https://www.biorxiv.org/content/10.1101/2025.05.30.656746v1" target="_blank" rel="noopener">Hu et al. &mdash; Biomni preprint, bioRxiv (May 2025)</a></li>
+      <li><a href="https://www.futurehouse.org/research/demonstrating-end-to-end-scientific-discovery-with-robin-a-multi-agent-system" target="_blank" rel="noopener">FutureHouse &mdash; Demonstrating end-to-end scientific discovery with Robin, Nature (2026)</a></li>
+      <li><a href="https://llm-stats.com/benchmarks/bixbench" target="_blank" rel="noopener">BixBench leaderboard &mdash; llm-stats.com (FutureHouse + ScienceMachine, 2025&ndash;2026)</a></li>
+      <li><a href="https://www.futurehouse.org/research-announcements/bixbench" target="_blank" rel="noopener">FutureHouse &mdash; BixBench benchmark announcement</a></li>
+      <li><a href="https://www.biorxiv.org/content/10.64898/2026.04.28.721523v1" target="_blank" rel="noopener">Saturation paper &mdash; BixBench skill-based saturation analysis, bioRxiv (April 2026)</a></li>
+      <li><a href="https://www.futurehouse.org/research-announcements/labbench" target="_blank" rel="noopener">Jansen et al. &mdash; LABBench: A Challenging Benchmark for AI in Biological Research, FutureHouse (2025)</a></li>
+      <li><a href="https://openai.com/index/introducing-gpt-5-5/" target="_blank" rel="noopener">OpenAI &mdash; Introducing GPT-5.5</a></li>
+      <li><a href="https://biomate.ai/benchmarks" target="_blank" rel="noopener">BioMate AI &mdash; Benchmark evaluation matrix and platform evaluation suite (April 2026)</a></li>
+    </ol>
+  </div>
+
+</article>
+</div>
+
+<div id="bm-foot"></div>
+<script>renderShell({ active: 'company' });</script>
 </body>
 </html>

@@ -1,4 +1,0 @@
-name: Filtered Test Section
-type: generic
-items:
-- sections: [test,filter]

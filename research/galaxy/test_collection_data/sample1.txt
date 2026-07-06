@@ -1,4 +1,0 @@
-Sample 1 Data
-这是第一个样本
-测试云执行
-AWS Batch

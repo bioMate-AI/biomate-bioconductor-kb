@@ -68,7 +68,7 @@ CONTAINER_MAGMA = System.getenv('NEXTFLOW_USE_AWS') == 'true' \
 // [Phase A] SNP annotation — map GWAS SNPs to NCBI gene coordinates
 process MAGMA_ANNOTATE {
     tag "magma:phaseA"
-    label 'process_low'
+    label 'process_medium'
     container CONTAINER_MAGMA
     publishDir "${params.outdir}/phaseA_annotate", mode: 'copy'
 
@@ -90,7 +90,7 @@ process MAGMA_ANNOTATE {
     python3 - <<'PY'
     import json, os, sys, subprocess, tempfile
 
-    baked     = ${baked}
+    baked     = ${baked ? 'True' : 'False'}
     genome    = "${genome}"
     win_up    = ${winUp}
     win_down  = ${winDown}
@@ -134,32 +134,40 @@ process MAGMA_ANNOTATE {
         if sumstats in ("null", ""):
             print("ERROR: gwas_sumstats required when use_baked_toy=false", file=sys.stderr)
             sys.exit(1)
-        import shutil
-        shutil.copy(sumstats, "sumstats.tmp")
+        if sumstats.startswith("s3://"):
+            import boto3
+            parts = sumstats[5:].split("/", 1)
+            boto3.client("s3").download_file(parts[0], parts[1], "sumstats.tmp")
+        else:
+            import shutil
+            shutil.copy(sumstats, "sumstats.tmp")
 
     # Build SNP location file (SNP CHR BP) that MAGMA --annotate needs.
-    # Read header to locate the required columns.
-    import csv
-    rows_read = []
-    with open("sumstats.tmp") as fh:
+    # Stream directly to snp.loc — do NOT accumulate all rows; Ishigaki has 13M rows.
+    import csv, gzip as _gz
+    # Auto-detect gzip by magic bytes so .tsv.gz inputs are handled transparently.
+    def _open_sumstats(path):
+        with open(path, "rb") as _f:
+            magic = _f.read(2)
+        return _gz.open(path, "rt") if magic == b"\\x1f\\x8b" else open(path)
+    n_snps = 0
+    with _open_sumstats("sumstats.tmp") as fh, open("snp.loc", "w") as out:
         reader = csv.DictReader(fh, delimiter="\\t")
         header = reader.fieldnames or []
         # Tolerate case-insensitive column matching
         col_map = {c.upper(): c for c in header}
         s_col = col_map.get(snp_col.upper(), snp_col)
-        c_col = col_map.get("CHR", col_map.get("CHROMOSOME", None))
-        b_col = col_map.get("BP", col_map.get("POS", col_map.get("POSITION", None)))
+        c_col = col_map.get("CHR", col_map.get("CHROMOSOME", col_map.get("CHROM", None)))
+        b_col = col_map.get("BP", col_map.get("POS", col_map.get("POSITION",
+                col_map.get("BASE_PAIR_LOCATION", col_map.get("BPLOCATION", None)))))
         if not (c_col and b_col):
             print(f"ERROR: need CHR and BP columns in sumstats; found: {header}", file=sys.stderr)
             sys.exit(1)
+        out.write("SNP\\tCHR\\tBP\\n")
         for row in reader:
-            rows_read.append((row[s_col], row[c_col], row[b_col]))
-
-    with open("snp.loc", "w") as f:
-        f.write("SNP\\tCHR\\tBP\\n")
-        for snp, chrom, bp in rows_read:
-            chrom_clean = str(chrom).replace("chr", "").replace("Chr", "")
-            f.write(f"{snp}\\t{chrom_clean}\\t{bp}\\n")
+            chrom_clean = str(row[c_col]).replace("chr", "").replace("Chr", "")
+            out.write(f"{row[s_col]}\\t{chrom_clean}\\t{row[b_col]}\\n")
+            n_snps += 1
 
     # Run magma --annotate
     cmd = [
@@ -178,7 +186,6 @@ process MAGMA_ANNOTATE {
     else:
         print(result.stdout[-1000:] if result.stdout else "[magma:phaseA] annotation complete")
 
-    n_snps = len(rows_read)
     json.dump({
         "phase": "A",
         "baked_toy": baked,
@@ -255,11 +262,24 @@ process MAGMA_GENE_ANALYSIS {
         pval_col  = "P"
         n_spec    = "N"
     else:
-        # Build pval file from real sumstats
+        # Build pval file from real sumstats — stream to avoid OOM on large GWAS
         if gwas_sumstats in ("null", ""):
             print("ERROR: gwas_sumstats required", file=sys.stderr)
             sys.exit(1)
-        with open(gwas_sumstats) as fh, open("pval.txt", "w") as out:
+        # Download from S3 if needed; auto-detect gzip
+        if gwas_sumstats.startswith("s3://"):
+            import boto3, gzip as _gz
+            parts = gwas_sumstats[5:].split("/", 1)
+            boto3.client("s3").download_file(parts[0], parts[1], "sumstats_b.tmp")
+            psum = "sumstats_b.tmp"
+        else:
+            import gzip as _gz
+            psum = gwas_sumstats
+        def _open_b(path):
+            with open(path, "rb") as _f:
+                magic = _f.read(2)
+            return _gz.open(path, "rt") if magic == b"\\x1f\\x8b" else open(path)
+        with _open_b(psum) as fh, open("pval.txt", "w") as out:
             reader = csv.DictReader(fh, delimiter="\\t")
             col_map = {c.upper(): c for c in (reader.fieldnames or [])}
             s_col = col_map.get(snp_col.upper(), snp_col)

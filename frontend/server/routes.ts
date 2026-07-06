@@ -890,6 +890,28 @@ const OPEN_CLAW_TOOLS = [
       required: ["source_id"],
     },
   },
+  // ── Bioconductor knowledge ────────────────────────────────────────────────
+  {
+    name: "bioconductor_skill",
+    description:
+      "Look up authoritative usage guidance for a Bioconductor R package. " +
+      "Returns: when to use it, required inputs, key parameters, code recipes, " +
+      "pitfalls, and alternatives. Covers 200 high-value packages (top-100 by " +
+      "downloads + top-100 rising stars). Use this BEFORE running a Bioconductor " +
+      "workflow to confirm the right tool and parameters for the analysis. " +
+      "Examples: bioconductor_skill('deseq2') before an RNA-seq run; " +
+      "bioconductor_skill('seurat') before a single-cell analysis.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        package: {
+          type: "string",
+          description: "Bioconductor package name (case-insensitive). E.g. 'DESeq2', 'edgeR', 'limma', 'Seurat', 'clusterProfiler', 'minfi', 'phyloseq'",
+        },
+      },
+      required: ["package"],
+    },
+  },
 ];
 
 /**
@@ -997,6 +1019,9 @@ async function executeOpenClaudeTool(
           remote_path: input.remote_path,
           url: input.url,
         });
+
+      case "bioconductor_skill":
+        return await get(`/api/bioconductor/skill/${encodeURIComponent(input.package)}`);
 
       default:
         return { error: `Unknown tool: ${toolName}` };
@@ -7977,6 +8002,38 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
+  // GET /api/bioconductor/skill/:package
+  // Returns the SKILL.md content for a Bioconductor package from the local knowledge base.
+  app.get("/api/bioconductor/skill/:package", optionalAuth, async (req, res) => {
+    const pkgRaw = req.params.package || "";
+    const pkg = pkgRaw.toLowerCase().replace(/[^a-z0-9._-]/g, "");
+    if (!pkg) return res.status(400).json({ error: "package name required" });
+
+    const manifestPath = path.join(process.cwd(), "..", "bioconductor_skill", "MANIFEST.json");
+
+    try {
+      // Search manifest for the package (case-insensitive)
+      const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
+      const entry = (manifest.packages as Array<{ name: string; path: string; domain: string }> | undefined)
+        ?.find((p) => p.name.toLowerCase() === pkg || p.path.toLowerCase().includes(`/${pkg}/`));
+
+      if (!entry) {
+        // Return a curated not-found with a pointer to the full knowledge base
+        return res.json({
+          found: false,
+          package: pkgRaw,
+          message: `No skill found for '${pkgRaw}' in the local 200-package knowledge base. The full BioMate KB has 1,818 Bioconductor packages at biomate.ai. Try search_workflow to find a matching pipeline.`,
+        });
+      }
+
+      const skillPath = path.join(path.dirname(manifestPath), entry.path);
+      const content = await fs.readFile(skillPath, "utf8");
+      return res.json({ found: true, package: entry.name, domain: entry.domain, skill_md: content });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/data/browse", authenticateStaticApiKey, authenticateToken, async (req, res) => {
     // Proxies to Galaxy's /api/remote_files which lists contents of a file source path.
     try {
@@ -13897,6 +13954,7 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
       let currentMessages = messages;
       let iterations = 0;
       const MAX_ITERATIONS = 10;
+      const collectedRunIds: string[] = [];
 
       while (iterations < MAX_ITERATIONS) {
         iterations++;
@@ -13964,13 +14022,18 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
           const toolResult = await executeOpenClaudeTool(block.name, block.input, userId, req);
           safeSend("tool_result", { tool_use_id: block.id, name: block.name, result: toolResult });
           toolResults.push({ type: "tool_result", tool_use_id: block.id, content: JSON.stringify(toolResult) });
+          // Capture run_id from run_workflow so the MCP server can fetch outputs post-loop
+          if (block.name === "run_workflow") {
+            const rid = toolResult?.runId || toolResult?.run_id || toolResult?.id;
+            if (rid) collectedRunIds.push(String(rid));
+          }
         }
 
         // Add tool results to messages for next iteration
         currentMessages = [...currentMessages, { role: "user", content: toolResults }];
       }
 
-      safeSend("complete", { iterations });
+      safeSend("complete", { iterations, run_ids: collectedRunIds });
       res.end();
     } catch (err: any) {
       safeSend("error", { message: err.message });

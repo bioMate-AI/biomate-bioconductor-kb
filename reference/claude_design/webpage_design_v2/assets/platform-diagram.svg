@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" width="1200" height="600" role="img" aria-labelledby="pd-title pd-desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" width="1200" height="760" role="img" aria-labelledby="pd-title pd-desc">
   <title id="pd-title">BioMate AI Platform Architecture</title>
-  <desc id="pd-desc">BioMate AI connects to 25+ integrations including MCP, Slack, WeChat Work, and 10 lab instruments. The AI orchestration layer routes requests to 4,000+ indexed workflows across 36 biomedical domains using hybrid vector search with 94.6% routing accuracy. Execution runs on AWS Batch via Nextflow and nf-core. Every output receives Gold/Silver/Bronze QC grading and includes an immutable audit trail. Outputs include structured reports, DOCX export, IND sections, CRO submission packages, and 21 CFR Part 11 e-signatures.</desc>
+  <desc id="pd-desc">BioMate AI connects to 25+ integrations including MCP, Slack, WeChat Work, and 10 lab instruments. The AI orchestration layer routes requests to 4,000+ indexed workflows across 36 biomedical domains. Execution runs on AWS Batch via Nextflow and nf-core. Data is sourced from 60+ named live databases including UniProt, PDB, AlphaFold, Ensembl, gnomAD, ChEMBL, GEO, Reactome, KEGG, PubMed, and more — queried in real time, not cached. Every output receives Gold/Silver/Bronze QC grading and includes an immutable audit trail.</desc>
 
   <defs>
     <!-- Background gradient -->
@@ -37,6 +37,11 @@
       <path d="M0,0 L8,3 L0,6 Z" fill="#A6E2C4"/>
     </marker>
 
+    <!-- Arrow marker purple (data sources → center) -->
+    <marker id="arrow-purple" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#C4AAFF"/>
+    </marker>
+
     <!-- Subtle glow filter for center panel -->
     <filter id="center-glow" x="-2%" y="-2%" width="104%" height="104%">
       <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
@@ -52,13 +57,13 @@
   <!-- ═══════════════════════════════════════════════════
        BACKGROUND
   ═══════════════════════════════════════════════════ -->
-  <rect width="1200" height="600" fill="url(#bg-grad)"/>
+  <rect width="1200" height="760" fill="url(#bg-grad)"/>
 
   <!-- Subtle grid texture -->
   <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
     <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(143,214,234,0.04)" stroke-width="0.5"/>
   </pattern>
-  <rect width="1200" height="600" fill="url(#grid)"/>
+  <rect width="1200" height="760" fill="url(#grid)"/>
 
   <!-- ═══════════════════════════════════════════════════
        LEFT PANEL — CONNECT
@@ -339,9 +344,81 @@
   <text x="1068" y="567" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="13" fill="#A6E2C4" text-anchor="middle">audit-ready output</text>
 
   <!-- ═══════════════════════════════════════════════════
+       DATA SOURCES → CENTER ARROW (upward)
+  ═══════════════════════════════════════════════════ -->
+  <line x1="600" y1="607" x2="600" y2="582" stroke="#C4AAFF" stroke-width="1.8" marker-end="url(#arrow-purple)"/>
+
+  <!-- ═══════════════════════════════════════════════════
+       DATA SOURCES PANEL (full-width, below main panels)
+  ═══════════════════════════════════════════════════ -->
+  <g filter="url(#panel-shadow)">
+    <rect x="10" y="610" width="1180" height="118" rx="12" fill="rgba(28,20,52,0.92)" stroke="rgba(196,170,255,0.25)" stroke-width="1"/>
+  </g>
+
+  <!-- DATA SOURCES label -->
+  <text x="600" y="631" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12" font-weight="700" fill="#C4AAFF" letter-spacing="3" text-anchor="middle">DATA SOURCES</text>
+  <line x1="30" y1="639" x2="1170" y2="639" stroke="rgba(196,170,255,0.15)" stroke-width="0.8"/>
+
+  <!-- ── Row 1: Protein · Genomics · Omics ── -->
+  <rect x="34"   y="645" width="88" height="20" rx="3" fill="rgba(42,30,74,0.70)" stroke="rgba(196,170,255,0.28)" stroke-width="0.6"/>
+  <text x="78"   y="659" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF" text-anchor="middle">UniProt</text>
+  <rect x="129"  y="645" width="88" height="20" rx="3" fill="rgba(42,30,74,0.70)" stroke="rgba(196,170,255,0.28)" stroke-width="0.6"/>
+  <text x="173"  y="659" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF" text-anchor="middle">PDB</text>
+  <rect x="224"  y="645" width="88" height="20" rx="3" fill="rgba(42,30,74,0.70)" stroke="rgba(196,170,255,0.28)" stroke-width="0.6"/>
+  <text x="268"  y="659" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF" text-anchor="middle">AlphaFold</text>
+  <rect x="319"  y="645" width="88" height="20" rx="3" fill="rgba(42,30,74,0.70)" stroke="rgba(196,170,255,0.28)" stroke-width="0.6"/>
+  <text x="363"  y="659" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF" text-anchor="middle">InterPro</text>
+  <rect x="414"  y="645" width="88" height="20" rx="3" fill="rgba(42,30,74,0.70)" stroke="rgba(196,170,255,0.28)" stroke-width="0.6"/>
+  <text x="458"  y="659" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF" text-anchor="middle">Ensembl</text>
+  <rect x="509"  y="645" width="88" height="20" rx="3" fill="rgba(42,30,74,0.70)" stroke="rgba(196,170,255,0.28)" stroke-width="0.6"/>
+  <text x="553"  y="659" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF" text-anchor="middle">gnomAD</text>
+  <rect x="604"  y="645" width="88" height="20" rx="3" fill="rgba(42,30,74,0.70)" stroke="rgba(196,170,255,0.28)" stroke-width="0.6"/>
+  <text x="648"  y="659" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF" text-anchor="middle">ClinVar</text>
+  <rect x="699"  y="645" width="88" height="20" rx="3" fill="rgba(42,30,74,0.70)" stroke="rgba(196,170,255,0.28)" stroke-width="0.6"/>
+  <text x="743"  y="659" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF" text-anchor="middle">NCBI Gene</text>
+  <rect x="794"  y="645" width="88" height="20" rx="3" fill="rgba(42,30,74,0.70)" stroke="rgba(196,170,255,0.28)" stroke-width="0.6"/>
+  <text x="838"  y="659" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF" text-anchor="middle">GEO</text>
+  <rect x="889"  y="645" width="88" height="20" rx="3" fill="rgba(42,30,74,0.70)" stroke="rgba(196,170,255,0.28)" stroke-width="0.6"/>
+  <text x="933"  y="659" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF" text-anchor="middle">SRA</text>
+  <rect x="984"  y="645" width="88" height="20" rx="3" fill="rgba(42,30,74,0.70)" stroke="rgba(196,170,255,0.28)" stroke-width="0.6"/>
+  <text x="1028" y="659" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF" text-anchor="middle">PRIDE</text>
+  <rect x="1079" y="645" width="88" height="20" rx="3" fill="rgba(42,30,74,0.70)" stroke="rgba(196,170,255,0.28)" stroke-width="0.6"/>
+  <text x="1123" y="659" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#FFFFFF" text-anchor="middle">STRING-db</text>
+
+  <!-- ── Row 2: Chemical · Pathway · Clinical · Literature ── -->
+  <rect x="34"   y="672" width="88" height="20" rx="3" fill="rgba(30,22,60,0.70)" stroke="rgba(196,170,255,0.18)" stroke-width="0.6"/>
+  <text x="78"   y="686" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#C4AAFF" text-anchor="middle">ChEMBL</text>
+  <rect x="129"  y="672" width="88" height="20" rx="3" fill="rgba(30,22,60,0.70)" stroke="rgba(196,170,255,0.18)" stroke-width="0.6"/>
+  <text x="173"  y="686" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#C4AAFF" text-anchor="middle">ChEBI</text>
+  <rect x="224"  y="672" width="88" height="20" rx="3" fill="rgba(30,22,60,0.70)" stroke="rgba(196,170,255,0.18)" stroke-width="0.6"/>
+  <text x="268"  y="686" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#C4AAFF" text-anchor="middle">KEGG</text>
+  <rect x="319"  y="672" width="88" height="20" rx="3" fill="rgba(30,22,60,0.70)" stroke="rgba(196,170,255,0.18)" stroke-width="0.6"/>
+  <text x="363"  y="686" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#C4AAFF" text-anchor="middle">Reactome</text>
+  <rect x="414"  y="672" width="88" height="20" rx="3" fill="rgba(30,22,60,0.70)" stroke="rgba(196,170,255,0.18)" stroke-width="0.6"/>
+  <text x="458"  y="686" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#C4AAFF" text-anchor="middle">Gene Ontology</text>
+  <rect x="509"  y="672" width="88" height="20" rx="3" fill="rgba(30,22,60,0.70)" stroke="rgba(196,170,255,0.18)" stroke-width="0.6"/>
+  <text x="553"  y="686" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#C4AAFF" text-anchor="middle">GWAS Catalog</text>
+  <rect x="604"  y="672" width="88" height="20" rx="3" fill="rgba(30,22,60,0.70)" stroke="rgba(196,170,255,0.18)" stroke-width="0.6"/>
+  <text x="648"  y="686" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#C4AAFF" text-anchor="middle">OMIM</text>
+  <rect x="699"  y="672" width="88" height="20" rx="3" fill="rgba(30,22,60,0.70)" stroke="rgba(196,170,255,0.18)" stroke-width="0.6"/>
+  <text x="743"  y="686" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#C4AAFF" text-anchor="middle">cBioPortal</text>
+  <rect x="794"  y="672" width="88" height="20" rx="3" fill="rgba(30,22,60,0.70)" stroke="rgba(196,170,255,0.18)" stroke-width="0.6"/>
+  <text x="838"  y="686" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#C4AAFF" text-anchor="middle">Europe PMC</text>
+  <rect x="889"  y="672" width="88" height="20" rx="3" fill="rgba(30,22,60,0.70)" stroke="rgba(196,170,255,0.18)" stroke-width="0.6"/>
+  <text x="933"  y="686" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#C4AAFF" text-anchor="middle">PubMed</text>
+  <rect x="984"  y="672" width="88" height="20" rx="3" fill="rgba(30,22,60,0.70)" stroke="rgba(196,170,255,0.18)" stroke-width="0.6"/>
+  <text x="1028" y="686" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#C4AAFF" text-anchor="middle">MetaboLights</text>
+  <rect x="1079" y="672" width="88" height="20" rx="3" fill="rgba(30,22,60,0.70)" stroke="rgba(196,170,255,0.18)" stroke-width="0.6"/>
+  <text x="1123" y="686" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="10.5" fill="#C4AAFF" text-anchor="middle">OpenFDA</text>
+
+  <!-- Count badge -->
+  <rect x="480" y="700" width="240" height="22" rx="11" fill="rgba(196,170,255,0.10)" stroke="rgba(196,170,255,0.30)" stroke-width="0.8"/>
+  <text x="600" y="715" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12" fill="#C4AAFF" text-anchor="middle">60+ databases · queried live · not cached</text>
+
+  <!-- ═══════════════════════════════════════════════════
        BOTTOM FOOTER
   ═══════════════════════════════════════════════════ -->
-  <line x1="40" y1="588" x2="1160" y2="588" stroke="rgba(143,214,234,0.08)" stroke-width="0.6"/>
-  <text x="600" y="596" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12" fill="#8BA3B8" text-anchor="middle">Wikidata Q140074014 · biomate.ai · contact@biomate.ai</text>
+  <line x1="40" y1="748" x2="1160" y2="748" stroke="rgba(143,214,234,0.08)" stroke-width="0.6"/>
+  <text x="600" y="757" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,sans-serif" font-size="12" fill="#8BA3B8" text-anchor="middle">Wikidata Q140074014 · biomate.ai · contact@biomate.ai</text>
 
 </svg>
