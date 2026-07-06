@@ -291,21 +291,20 @@ process MAGMA_GENE_ANALYSIS {
                 out.write(f"{row[s_col]}\\t{row[p_col]}\\t{n_val}\\n")
         n_spec = "N"
 
-    # Build MAGMA gene-analysis command
-    bfile_arg = []
-    if model == "multi":
-        # Use 1KG EUR LD reference baked at /opt/magma/ref/g1000_eur
-        bfile_arg = ["--bfile", "/opt/magma/ref/g1000_eur"]
-    # snp-wise = minimum across SNPs, no LD needed
+    # Build MAGMA gene-analysis command.
+    # MAGMA requires --bfile even in snp-wise mode — the reference panel SNP list
+    # is needed for gene-boundary filtering regardless of the LD model.
+    # g1000_eur is baked into the biomate/magma:v1.10 container.
     model_arg = ["--gene-model", model]
 
     cmd = [
         "/opt/magma/magma",
+        "--bfile", "/opt/magma/ref/g1000_eur",
         "--gene-annot", str("${genes_annot}"),
         "--pval", "pval.txt",
         f"pval={pval_col}",
         f"ncol={n_spec}",
-    ] + model_arg + bfile_arg + [
+    ] + model_arg + [
         "--out", outfile,
     ]
 
@@ -331,7 +330,7 @@ process MAGMA_GENE_ANALYSIS {
     json.dump({
         "phase": "B",
         "gene_model": model,
-        "bfile_used": "g1000_eur" if model == "multi" else "none (snp-wise)",
+        "bfile_used": "g1000_eur",
         "n_genes_output": n_genes,
         "gene_analysis_ok": result.returncode == 0,
         "magma_log_tail": result.stdout[-1000:] if result.stdout else "",
