@@ -2303,7 +2303,12 @@ def _generate_executor_config(
             or os.environ.get("GPU_BATCH_QUEUE", "")
             or "biomate-gpu-spot-queue"
         )
-        if gpu_queue:
+        # Skip GPU process label/name selectors for user-uploaded personal workflows.
+        # Personal workflows live under /tmp/biomate_user_nf/ and don't use BioMate
+        # process labels (process_gpu, PRODUCTION_MD). Nextflow 24+ strict mode exits
+        # code 1 when a withName selector matches no process in the workflow.
+        _is_personal_wf = "/tmp/biomate_user_nf/" in nf_path
+        if gpu_queue and not _is_personal_wf:
             lines += [
                 "process {",
                 "    withLabel: 'process_gpu' {",
@@ -3508,13 +3513,15 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                 _total_steps = len(_trace_lines)
             except Exception:
                 pass
-        if returncode == 0 and _looks_like_false_success(
+        _nf_path_for_check = str(_run_snap.get("nextflow_path", ""))
+        _is_personal_nf_run = _nf_path_for_check.startswith("/tmp/biomate_user_nf/")
+        if returncode == 0 and not _is_personal_nf_run and _looks_like_false_success(
             log_full_text=_log_text,
             total_steps=_total_steps,
             duration_s=_duration_s,
             s3_output_files=[],
             workflow_domain=_run_snap.get("workflow_domain", ""),
-            nextflow_path=_run_snap.get("nextflow_path", ""),
+            nextflow_path=_nf_path_for_check,
         ):
             log.warning(
                 "[Nextflow run %s] exit 0 but looks like false success — marking failed",
@@ -4345,6 +4352,25 @@ def _execute_nextflow_impl(
         if not compute.get("s3_bucket"):
             compute["s3_bucket"] = s3_bucket_default
 
+    # Personal workflows (written to /tmp/biomate_user_nf/ from file_content at
+    # request time) must run locally — they are ad-hoc user scripts that don't
+    # carry BioMate's Batch process labels, and cannot initialise an S3 work dir.
+    # This override must come AFTER the awsbatch routing block so it wins.
+    _nf_path_str = str(request.nextflow_path or "")
+    if _nf_path_str.startswith("/tmp/biomate_user_nf/"):
+        compute["executor"] = "local"
+        params.pop("outdir", None)
+        # Params from the UI may contain default values from the script's params {}
+        # block (the viewer panel seeds them automatically). Passing them back via
+        # --params-file causes "Parameter X was specified on the command line or
+        # params file but is not declared in the script or config" in Nextflow 25+
+        # when strict-mode validation checks params against the nextflow.config
+        # rather than the script body. Personal workflows use their own script-level
+        # defaults — drop all user-supplied params so the script runs with its own
+        # declared defaults.
+        params.clear()
+        log.info("[Nextflow] Personal workflow — forcing local executor, cleared S3 outdir, cleared all params")
+
     # Auto-detect S3 outdir → route to AWS Batch automatically.
     # If the caller passes outdir=s3://..., we treat that as an implicit request
     # for cloud execution — no separate compute_config.executor needed.
@@ -4509,14 +4535,20 @@ def _execute_nextflow_impl(
         )
 
     # Profile — explicit request value wins; fall back to param then BIOMATE_NF_PROFILE env var.
+    # Personal workflows run with the standard profile — the aws profile initialises
+    # AWS clients that are unnecessary (and may fail) for local execution.
     profile = request.profile or _param_profile or _default_nf_profile()
+    if _nf_path_str.startswith("/tmp/biomate_user_nf/") and profile not in ("standard", "test"):
+        profile = "standard"
     cmd += ["-profile", profile]
 
     # Real-mode guard: for any non-mock profile, ensure mock_mode is off.
     # Workflows default params.mock_mode = true; command-line params override defaults.
     # This keeps the logic centralised here rather than scattered across workflow configs.
     _mock_profiles = {"standard", "test", "test_full", "test_cache"}
-    if not any(p.strip() in _mock_profiles for p in profile.split(",")) and "mock_mode" not in params:
+    if (not any(p.strip() in _mock_profiles for p in profile.split(","))
+            and "mock_mode" not in params
+            and not _nf_path_str.startswith("/tmp/biomate_user_nf/")):
         params["mock_mode"] = False
         log.info(f"[Nextflow run {run_id}] profile={profile!r} → injecting --mock_mode false")
 
@@ -4609,7 +4641,7 @@ def _execute_nextflow_impl(
                 _params_for_json[key] = value
             else:
                 _params_for_json[key] = str(value)
-        if "outdir" not in _params_for_json:
+        if "outdir" not in _params_for_json and not _nf_path_str.startswith("/tmp/biomate_user_nf/"):
             _params_for_json["outdir"] = str(outdir)
         _params_json_path = log_dir / "nf-params.json"
         _params_json_path.write_text(_ml_json.dumps(_params_for_json, indent=2))
@@ -4617,7 +4649,8 @@ def _execute_nextflow_impl(
         log.info(f"[Nextflow run {run_id}] --params-file (scalar only): {list(_params_for_json.keys())}")
     else:
         # Standard path: pass params as individual --key value flags.
-        if "outdir" not in params:
+        # Personal workflows don't declare params.outdir — skip the injection.
+        if "outdir" not in params and not _nf_path_str.startswith("/tmp/biomate_user_nf/"):
             cmd += ["--outdir", str(outdir)]
         for key, value in params.items():
             # Defense in depth: never pass INTERNAL config vars (e.g. _useAws,
@@ -5580,14 +5613,16 @@ def get_nextflow_status(
             has_results = len(real_subdirs) > 0
 
             fallback_status = "succeeded" if has_results else "failed"
-            if fallback_status == "succeeded" and _looks_like_false_success(
+            _fb_nf_path = _disk_timing.get("nextflow_path", "")
+            _fb_is_personal = str(_fb_nf_path).startswith("/tmp/biomate_user_nf/")
+            if fallback_status == "succeeded" and not _fb_is_personal and _looks_like_false_success(
                 log_full_text=log_full_text,
                 log_tail=log_tail_fallback,
                 total_steps=0,
                 duration_s=_fb_duration_s,
                 s3_output_files=[],
                 workflow_domain=_disk_timing.get("workflow_domain", ""),
-                nextflow_path=_disk_timing.get("nextflow_path", ""),
+                nextflow_path=_fb_nf_path,
             ):
                 fallback_status = "failed"
             return {
@@ -5670,14 +5705,16 @@ def get_nextflow_status(
                                 })
                     except Exception:
                         pass
-                if not trace_failed and _looks_like_false_success(
+                _s3fb_nf_path = _disk_timing.get("nextflow_path", "")
+                _s3fb_is_personal = str(_s3fb_nf_path).startswith("/tmp/biomate_user_nf/")
+                if not trace_failed and not _s3fb_is_personal and _looks_like_false_success(
                     log_full_text=log_full_text,
                     log_tail=log_tail_fallback,
                     total_steps=total_steps_fb,
                     duration_s=_fb_duration_s,
                     s3_output_files=_s3_files_fb,
                     workflow_domain=_disk_timing.get("workflow_domain", ""),
-                    nextflow_path=_disk_timing.get("nextflow_path", ""),
+                    nextflow_path=_s3fb_nf_path,
                 ):
                     trace_failed = True
                 _fb_processes = _build_processes_from_s3_files(
@@ -5939,14 +5976,16 @@ def get_nextflow_status(
                 _info_status = "completed"
                 completed_at = completed_at or now
 
-    if _info_status in ("succeeded", "completed") and _looks_like_false_success(
+    _nf_path_for_status = info.get("nextflow_path", "")
+    _is_personal_nf_status = str(_nf_path_for_status).startswith("/tmp/biomate_user_nf/")
+    if _info_status in ("succeeded", "completed") and not _is_personal_nf_status and _looks_like_false_success(
         log_full_text=log_full_text,
         log_tail=log_tail,
         total_steps=progress.get("totalTasks", progress.get("totalSteps", 0)),
         duration_s=duration_s,
         s3_output_files=s3_files,
         workflow_domain=workflow_domain,
-        nextflow_path=info.get("nextflow_path", ""),
+        nextflow_path=_nf_path_for_status,
     ):
         log.warning(
             "[Nextflow] Downgrading false success for run %s (steps=%s, duration=%ss, outputs=%d)",

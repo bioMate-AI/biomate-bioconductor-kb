@@ -9815,7 +9815,10 @@ ${paramLines || '(none recorded)'}`;
 
           const _nfBody = JSON.stringify({
               history_id: galaxyHistoryId,
-              nextflow_path: request.workflowDefinition.nextflow_path,
+              // When file_content is provided (personal workflow), the Galaxy backend
+              // writes the content to a temp file and overrides nextflow_path internally.
+              // We still must supply a non-null nextflow_path to pass Pydantic validation.
+              nextflow_path: request.workflowDefinition.nextflow_path || (personalFileContent ? 'personal_workflow/main.nf' : ''),
               ...(personalFileContent ? { file_content: personalFileContent } : {}),
               parameters: stagedParamsClean,
               ...(__outputLocation ? { output_location: __outputLocation } : {}),

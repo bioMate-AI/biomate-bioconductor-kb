@@ -1,7 +1,7 @@
 {
   "config": {
-    "configFile": "/Users/kky/biomate/frontend/playwright.config.ts",
-    "rootDir": "/Users/kky/biomate/frontend/e2e",
+    "configFile": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/playwright.config.ts",
+    "rootDir": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e",
     "forbidOnly": false,
     "fullyParallel": false,
     "globalSetup": null,
@@ -39,7 +39,7 @@
     "quiet": false,
     "projects": [
       {
-        "outputDir": "/Users/kky/biomate/frontend/e2e/test-results",
+        "outputDir": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -47,15 +47,15 @@
         },
         "id": "chromium",
         "name": "chromium",
-        "testDir": "/Users/kky/biomate/frontend/e2e",
+        "testDir": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.e2e.ts"
         ],
-        "timeout": 2700000
+        "timeout": 120000
       },
       {
-        "outputDir": "/Users/kky/biomate/frontend/e2e/demo-artifacts",
+        "outputDir": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/demo-artifacts",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -63,15 +63,15 @@
         },
         "id": "demo",
         "name": "demo",
-        "testDir": "/Users/kky/biomate/frontend/e2e",
+        "testDir": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.demo.ts"
         ],
-        "timeout": 2700000
+        "timeout": 120000
       },
       {
-        "outputDir": "/Users/kky/biomate/frontend/e2e/test-results",
+        "outputDir": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -79,12 +79,12 @@
         },
         "id": "firefox",
         "name": "firefox",
-        "testDir": "/Users/kky/biomate/frontend/e2e",
+        "testDir": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.e2e.ts"
         ],
-        "timeout": 2700000
+        "timeout": 120000
       }
     ],
     "shard": null,
@@ -97,159 +97,1236 @@
   },
   "suites": [
     {
-      "title": "tutorial-use-cases.e2e.ts",
-      "file": "tutorial-use-cases.e2e.ts",
+      "title": "researcher-journey.e2e.ts",
+      "file": "researcher-journey.e2e.ts",
       "column": 0,
       "line": 0,
-      "specs": [
+      "specs": [],
+      "suites": [
         {
-          "title": "Tutorial workflow routing — all 7 domain scenarios",
-          "ok": true,
-          "tags": [],
-          "tests": [
+          "title": "Researcher Journey",
+          "file": "researcher-journey.e2e.ts",
+          "line": 47,
+          "column": 6,
+          "specs": [
             {
-              "timeout": 900000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "firefox",
-              "projectName": "firefox",
-              "results": [
+              "title": "Step 1: create project via sidebar dialog",
+              "ok": true,
+              "tags": [],
+              "tests": [
                 {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 707699,
-                  "errors": [],
-                  "stdout": [
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
                     {
-                      "text": "\n[T1] transcriptomics — sending: \"Run nf-core rnaseq then differential expression and GSEA\"\n"
-                    },
-                    {
-                      "text": "[T1] ✅ workflow=\"nf-core/rnaseq\" → OK\n"
-                    },
-                    {
-                      "text": "[Screenshot] tutorial-cases/T1_transcriptomics.png\n"
-                    },
-                    {
-                      "text": "\n[T2] single_cell — sending: \"Run single-cell RNA-seq QC, clustering and annotation from Cell Ranger output\"\n"
-                    },
-                    {
-                      "text": "[T2] ✅ workflow=\"Workflow\" → OK (name fallback — keyword matched in AI message text)\n"
-                    },
-                    {
-                      "text": "[Screenshot] tutorial-cases/T2_single_cell.png\n"
-                    },
-                    {
-                      "text": "\n[T3] variant_calling — sending: \"Germline variant calling annotation and filtering on this WGS sample\"\n"
-                    },
-                    {
-                      "text": "[T3] ✅ workflow=\"Wgs Germline Gatk\" → OK\n"
-                    },
-                    {
-                      "text": "[Screenshot] tutorial-cases/T3_variant_calling.png\n"
-                    },
-                    {
-                      "text": "\n[T4] epigenomics — sending: \"Annotate my ChIP-seq peaks and run pathway enrichment\"\n"
-                    },
-                    {
-                      "text": "[T4] ✅ workflow=\"nf-core/chipseq\" → OK\n"
-                    },
-                    {
-                      "text": "[Screenshot] tutorial-cases/T4_epigenomics.png\n"
-                    },
-                    {
-                      "text": "\n[T5] proteomics — sending: \"Bioconductor MSnBase proteomics pipeline — DDA label-free protein differential expression with limma\"\n"
-                    },
-                    {
-                      "text": "[T5] ✅ workflow=\"nf-core/proteomicslfq\" → OK\n"
-                    },
-                    {
-                      "text": "[Screenshot] tutorial-cases/T5_proteomics.png\n"
-                    },
-                    {
-                      "text": "\n[T6] metagenomics — sending: \"MAG recovery with binning and taxonomy assignment\"\n"
-                    },
-                    {
-                      "text": "[T6] ✅ workflow=\"nf-core/mag\" → OK\n"
-                    },
-                    {
-                      "text": "[Screenshot] tutorial-cases/T6_metagenomics.png\n"
-                    },
-                    {
-                      "text": "\n[T7] metabolomics — sending: \"Untargeted metabolomics multi-method analysis\"\n"
-                    },
-                    {
-                      "text": "[T7] ✅ workflow=\"Lc Ms Proteomics Metabolomics\" → OK\n"
-                    },
-                    {
-                      "text": "[Screenshot] tutorial-cases/T7_metabolomics.png\n"
-                    },
-                    {
-                      "text": "\n══════════════════════════════════════════\n"
-                    },
-                    {
-                      "text": "Tutorial Routing Audit Summary\n"
-                    },
-                    {
-                      "text": "══════════════════════════════════════════\n"
-                    },
-                    {
-                      "text": "  ✅ T1 (transcriptomics): nf-core/rnaseq — OK\n"
-                    },
-                    {
-                      "text": "  ✅ T2 (single_cell): Workflow — OK (name fallback — keyword matched in AI message text)\n"
-                    },
-                    {
-                      "text": "  ✅ T3 (variant_calling): Wgs Germline Gatk — OK\n"
-                    },
-                    {
-                      "text": "  ✅ T4 (epigenomics): nf-core/chipseq — OK\n"
-                    },
-                    {
-                      "text": "  ✅ T5 (proteomics): nf-core/proteomicslfq — OK\n"
-                    },
-                    {
-                      "text": "  ✅ T6 (metagenomics): nf-core/mag — OK\n"
-                    },
-                    {
-                      "text": "  ✅ T7 (metabolomics): Lc Ms Proteomics Metabolomics — OK\n"
-                    },
-                    {
-                      "text": "\nResult: 7/7 scenarios routed correctly\n"
-                    },
-                    {
-                      "text": "══════════════════════════════════════════\n"
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2997,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:24:24.322Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--c1863--project-via-sidebar-dialog-chromium/test-finished-1.png"
+                        }
+                      ]
                     }
                   ],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-06-23T18:09:57.805Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/tutorial-use-cases.e2e.ts--80dcb-ng-—-all-7-domain-scenarios-firefox/test-finished-1.png"
-                    }
-                  ]
+                  "status": "expected"
                 }
               ],
-              "status": "expected"
+              "id": "abb80f0db7b034fb11fd-97ac06b2ecf3dd40eea9",
+              "file": "researcher-journey.e2e.ts",
+              "line": 51,
+              "column": 3
+            },
+            {
+              "title": "Step 2: navigate to project and save research instructions",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1195,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:24:27.948Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--70c0d--save-research-instructions-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-38d4cce76c542f67139d",
+              "file": "researcher-journey.e2e.ts",
+              "line": 92,
+              "column": 3
+            },
+            {
+              "title": "Step 3: instructions persist after navigation away and back",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1477,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:24:29.151Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--ff400-er-navigation-away-and-back-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-8ac016abd6f3cd633381",
+              "file": "researcher-journey.e2e.ts",
+              "line": 123,
+              "column": 3
+            },
+            {
+              "title": "Step 4: Files tab renders with upload button",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1277,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:24:30.635Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--50ed9--renders-with-upload-button-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-fc1be4cf4e21509f54c5",
+              "file": "researcher-journey.e2e.ts",
+              "line": 149,
+              "column": 3
+            },
+            {
+              "title": "Step 5: import custom workflow via Import Workflow dialog",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1376,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:24:31.920Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--897a6--via-Import-Workflow-dialog-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-3bcd8430cfc1afcd9f19",
+              "file": "researcher-journey.e2e.ts",
+              "line": 172,
+              "column": 3
+            },
+            {
+              "title": "Step 6: My Imports shows workflow; Open loads it in the right panel",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1923,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:24:33.303Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--957dc-loads-it-in-the-right-panel-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-8c1cfb96b51027817e6d",
+              "file": "researcher-journey.e2e.ts",
+              "line": 214,
+              "column": 3
+            },
+            {
+              "title": "Step 7: run imported workflow to completion — track status idle→running→completed",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 300000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 12094,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:24:35.234Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--ce8cd-atus-idle→running→completed-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-9ac8ce9dfab425b33c00",
+              "file": "researcher-journey.e2e.ts",
+              "line": 259,
+              "column": 3
+            },
+            {
+              "title": "Step 8: cleanup — delete imported workflow and archive project",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2040,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:24:47.335Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--3a4dc-orkflow-and-archive-project-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-15dd947a4ee96c01e63f",
+              "file": "researcher-journey.e2e.ts",
+              "line": 318,
+              "column": 3
+            },
+            {
+              "title": "Step 1: create project via sidebar dialog",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4347,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:25:12.105Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--c1863--project-via-sidebar-dialog-firefox/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-48ba9a23de33d1d137e9",
+              "file": "researcher-journey.e2e.ts",
+              "line": 51,
+              "column": 3
+            },
+            {
+              "title": "Step 2: navigate to project and save research instructions",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1654,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:25:17.832Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--70c0d--save-research-instructions-firefox/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-fcc387cdaccf3eaad728",
+              "file": "researcher-journey.e2e.ts",
+              "line": 92,
+              "column": 3
+            },
+            {
+              "title": "Step 3: instructions persist after navigation away and back",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2988,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:25:19.498Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--ff400-er-navigation-away-and-back-firefox/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-9c68e57d36fee18556a1",
+              "file": "researcher-journey.e2e.ts",
+              "line": 123,
+              "column": 3
+            },
+            {
+              "title": "Step 4: Files tab renders with upload button",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2086,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:25:22.497Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--50ed9--renders-with-upload-button-firefox/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-4c9302bc8409fb6ba8ed",
+              "file": "researcher-journey.e2e.ts",
+              "line": 149,
+              "column": 3
+            },
+            {
+              "title": "Step 5: import custom workflow via Import Workflow dialog",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1417,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:25:24.594Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--897a6--via-Import-Workflow-dialog-firefox/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-205dc29ab9e1cac80997",
+              "file": "researcher-journey.e2e.ts",
+              "line": 172,
+              "column": 3
+            },
+            {
+              "title": "Step 6: My Imports shows workflow; Open loads it in the right panel",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2675,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:25:26.025Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--957dc-loads-it-in-the-right-panel-firefox/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-6d74c59c3ee51659aaef",
+              "file": "researcher-journey.e2e.ts",
+              "line": 214,
+              "column": 3
+            },
+            {
+              "title": "Step 7: run imported workflow to completion — track status idle→running→completed",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 300000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 12065,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:25:28.714Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--ce8cd-atus-idle→running→completed-firefox/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-9176f47ad8ec93879090",
+              "file": "researcher-journey.e2e.ts",
+              "line": 259,
+              "column": 3
+            },
+            {
+              "title": "Step 8: cleanup — delete imported workflow and archive project",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3273,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:25:40.791Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--3a4dc-orkflow-and-archive-project-firefox/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-c44effa3cce1c1c2ded5",
+              "file": "researcher-journey.e2e.ts",
+              "line": 318,
+              "column": 3
             }
-          ],
-          "id": "27614cb5a3034d6d86c7-5824b82b01e57e2f74d3",
-          "file": "tutorial-use-cases.e2e.ts",
-          "line": 174,
-          "column": 1
+          ]
+        },
+        {
+          "title": "Researcher Journey — My Imports bulk lifecycle",
+          "file": "researcher-journey.e2e.ts",
+          "line": 380,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Bulk Step 1: upload 3 workflows via API",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 165,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:24:49.383Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--f1a6a--upload-3-workflows-via-API-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-07ef463b905e0c310669",
+              "file": "researcher-journey.e2e.ts",
+              "line": 381,
+              "column": 3
+            },
+            {
+              "title": "Bulk Step 2: open My Imports — all 3 workflows visible",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1575,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:24:49.556Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--17df9-s-—-all-3-workflows-visible-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-4536ecd06ebde99c6c29",
+              "file": "researcher-journey.e2e.ts",
+              "line": 390,
+              "column": 3
+            },
+            {
+              "title": "Bulk Step 3: delete BulkA via UI — row disappears, BulkB+C remain",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1706,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:24:51.138Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--b808c-w-disappears-BulkB-C-remain-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-ec5dbf83afd096c42636",
+              "file": "researcher-journey.e2e.ts",
+              "line": 401,
+              "column": 3
+            },
+            {
+              "title": "Bulk Step 4: delete BulkB via UI — BulkC alone remains",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1809,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:24:52.852Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--cac0c-ia-UI-—-BulkC-alone-remains-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-d95fc6c65c7a0ddc33ba",
+              "file": "researcher-journey.e2e.ts",
+              "line": 418,
+              "column": 3
+            },
+            {
+              "title": "Bulk Step 5: close + reopen dialog — only BulkC visible (reload test)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2692,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:24:54.674Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--685a6--BulkC-visible-reload-test--chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-19ff76df7ad25117ecd7",
+              "file": "researcher-journey.e2e.ts",
+              "line": 432,
+              "column": 3
+            },
+            {
+              "title": "Bulk Step 6: cleanup — delete BulkC via API",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 165,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:24:57.379Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--00d3d-anup-—-delete-BulkC-via-API-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-76bb201feba7d7f398f4",
+              "file": "researcher-journey.e2e.ts",
+              "line": 460,
+              "column": 3
+            },
+            {
+              "title": "Settings: generate and revoke an MCP API key",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1998,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:24:57.553Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--9e7fe-e-and-revoke-an-MCP-API-key-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-52260a374b21155b9ee2",
+              "file": "researcher-journey.e2e.ts",
+              "line": 473,
+              "column": 3
+            },
+            {
+              "title": "Bulk Step 1: upload 3 workflows via API",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 238,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:25:44.078Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--f1a6a--upload-3-workflows-via-API-firefox/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-ef0b7585324a5a1d1fa5",
+              "file": "researcher-journey.e2e.ts",
+              "line": 381,
+              "column": 3
+            },
+            {
+              "title": "Bulk Step 2: open My Imports — all 3 workflows visible",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1891,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:25:44.324Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--17df9-s-—-all-3-workflows-visible-firefox/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-6cca3c781de48bb90d9d",
+              "file": "researcher-journey.e2e.ts",
+              "line": 390,
+              "column": 3
+            },
+            {
+              "title": "Bulk Step 3: delete BulkA via UI — row disappears, BulkB+C remain",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2205,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:25:46.223Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--b808c-w-disappears-BulkB-C-remain-firefox/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-a4a27f7ae8a1d6caae65",
+              "file": "researcher-journey.e2e.ts",
+              "line": 401,
+              "column": 3
+            },
+            {
+              "title": "Bulk Step 4: delete BulkB via UI — BulkC alone remains",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2048,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:25:48.437Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--cac0c-ia-UI-—-BulkC-alone-remains-firefox/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-6e424484cf20b4b3e3df",
+              "file": "researcher-journey.e2e.ts",
+              "line": 418,
+              "column": 3
+            },
+            {
+              "title": "Bulk Step 5: close + reopen dialog — only BulkC visible (reload test)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3029,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:25:50.496Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--685a6--BulkC-visible-reload-test--firefox/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-c5dbc5d0cb72251f286c",
+              "file": "researcher-journey.e2e.ts",
+              "line": 432,
+              "column": 3
+            },
+            {
+              "title": "Bulk Step 6: cleanup — delete BulkC via API",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 182,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:25:53.533Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--00d3d-anup-—-delete-BulkC-via-API-firefox/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-600cd2cdd3ed87700f36",
+              "file": "researcher-journey.e2e.ts",
+              "line": 460,
+              "column": 3
+            },
+            {
+              "title": "Settings: generate and revoke an MCP API key",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1754,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-06T20:25:53.724Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/.claude/worktrees/workflow-upload-integration/frontend/e2e/test-results/researcher-journey.e2e.ts--9e7fe-e-and-revoke-an-MCP-API-key-firefox/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-8ee3da5e4914fce77641",
+              "file": "researcher-journey.e2e.ts",
+              "line": 473,
+              "column": 3
+            }
+          ]
         }
       ]
     }
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-06-23T18:09:56.848Z",
-    "duration": 724180.914,
-    "expected": 1,
+    "startTime": "2026-07-06T20:24:23.914Z",
+    "duration": 92254.292,
+    "expected": 30,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

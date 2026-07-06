@@ -101,16 +101,21 @@ export default function ProjectDetailPage({
     )
   }
 
-  const handleSaveInstructions = () => {
+  const handleSaveInstructions = async () => {
     if (!project) return
-    
-    const updated = projectService.updateProject(project.id, {
-      instructions: instructionsValue.trim() || undefined
-    })
-    
-    if (updated) {
-      setProject(updated)
-      setIsEditingInstructions(false)
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ researchGoal: instructionsValue.trim() || null }),
+      })
+      if (res.ok) {
+        setProject(prev => prev ? { ...prev, instructions: instructionsValue.trim() } : prev)
+        setIsEditingInstructions(false)
+      }
+    } catch {
+      // silently keep editing state open on network error
     }
   }
 

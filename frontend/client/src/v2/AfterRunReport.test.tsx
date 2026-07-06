@@ -115,7 +115,9 @@ describe("v2/AfterRunReport — FindingsFiguresPanel (data-driven figures)", () 
 
   it("renders all 3 figure kinds when findings.figures is populated", async () => {
     render(<AfterRunReport {...baseProps} />);
-    // Findings is the default tab — wait for the panel to mount after the job poll
+    // Default tab is "outputs" — switch to Findings before checking for the panel
+    fireEvent.click(screen.getByTestId("after-tab-findings"));
+    // Wait for panel to mount after the async job poll completes
     const panel = await screen.findByTestId("findings-figures-panel", {}, { timeout: 5000 });
     expect(within(panel).getByTestId("finding-fig-bars")).toBeInTheDocument();
     expect(within(panel).getByTestId("finding-fig-composition")).toBeInTheDocument();
@@ -124,6 +126,7 @@ describe("v2/AfterRunReport — FindingsFiguresPanel (data-driven figures)", () 
 
   it("highlights the row matching figure.highlight in FigBars", async () => {
     render(<AfterRunReport {...baseProps} />);
+    fireEvent.click(screen.getByTestId("after-tab-findings"));
     const hl = await screen.findByTestId("finding-fig-bars-row-highlight", {}, { timeout: 5000 });
     expect(hl).toHaveTextContent(/apoptotic process/);
   });
@@ -132,6 +135,8 @@ describe("v2/AfterRunReport — FindingsFiguresPanel (data-driven figures)", () 
     // 2026-06-11 audit A1: the note was hoisted out of FindingsFiguresPanel
     // so it always renders on the Findings tab, even when figures are absent.
     render(<AfterRunReport {...baseProps} />);
+    // Default tab is "outputs" — switch to Findings first
+    fireEvent.click(screen.getByTestId("after-tab-findings"));
     // Wait for the figures panel to mount so we know findings finished loading
     await screen.findByTestId("findings-figures-panel", {}, { timeout: 5000 });
     const note = screen.getByTestId("findings-manifest-note");

@@ -241,7 +241,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const { logout } = useAuth()
   const [, setLocation] = useLocation()
   const [settings, setSettings] = useState<UserSettings>(userSettingsService.getSettings())
-  const [activeTab, setActiveTab] = useState("profile")
+  const [activeTab, setActiveTab] = useState("api-keys")
   const s3 = useS3Credentials(open)
   const apiKeysState = useApiKeys(open)
 
@@ -297,109 +297,44 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+      <DialogContent className="max-w-2xl max-h-[90vh] p-0">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
-            Settings
+            <Key className="w-5 h-5" />
+            API Keys
           </DialogTitle>
         </DialogHeader>
 
+        {/* Only the API Keys section is shown — other settings tabs are commented out until needed */}
         <div className="flex flex-1 overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-1" orientation="vertical">
-            {/* Settings Navigation */}
-            <div className="w-64 border-r bg-muted/50 p-4">
+            {/* Settings Navigation — all tabs except api-keys are commented out */}
+            <div className="w-48 border-r bg-muted/50 p-4">
               <TabsList className="grid w-full grid-cols-1 h-auto gap-1 bg-transparent">
-                <TabsTrigger value="profile" className="justify-start gap-2 p-3" data-testid="tab-profile">
-                  <User className="w-4 h-4" />
-                  Profile
-                </TabsTrigger>
-                <TabsTrigger value="general" className="justify-start gap-2 p-3" data-testid="tab-general">
-                  <Settings className="w-4 h-4" />
-                  General
-                </TabsTrigger>
-                <TabsTrigger value="appearance" className="justify-start gap-2 p-3" data-testid="tab-appearance">
-                  <Palette className="w-4 h-4" />
-                  Appearance
-                </TabsTrigger>
-                <TabsTrigger value="chat" className="justify-start gap-2 p-3" data-testid="tab-chat">
-                  <MessageSquare className="w-4 h-4" />
-                  Chat
-                </TabsTrigger>
-                <TabsTrigger value="data" className="justify-start gap-2 p-3" data-testid="tab-data">
-                  <Database className="w-4 h-4" />
-                  Data
-                </TabsTrigger>
-                <TabsTrigger value="notifications" className="justify-start gap-2 p-3" data-testid="tab-notifications">
-                  <Bell className="w-4 h-4" />
-                  Notifications
-                </TabsTrigger>
-                <TabsTrigger value="privacy" className="justify-start gap-2 p-3" data-testid="tab-privacy">
-                  <Shield className="w-4 h-4" />
-                  Privacy
-                </TabsTrigger>
-                <TabsTrigger value="security" className="justify-start gap-2 p-3" data-testid="tab-security">
-                  <Shield className="w-4 h-4" />
-                  Security
-                </TabsTrigger>
+                {/* Other settings tabs commented out — only API Keys needed for now
+                <TabsTrigger value="profile" ...>Profile</TabsTrigger>
+                <TabsTrigger value="general" ...>General</TabsTrigger>
+                <TabsTrigger value="appearance" ...>Appearance</TabsTrigger>
+                <TabsTrigger value="chat" ...>Chat</TabsTrigger>
+                <TabsTrigger value="data" ...>Data</TabsTrigger>
+                <TabsTrigger value="notifications" ...>Notifications</TabsTrigger>
+                <TabsTrigger value="privacy" ...>Privacy</TabsTrigger>
+                <TabsTrigger value="security" ...>Security</TabsTrigger>
+                <TabsTrigger value="advanced" ...>Advanced</TabsTrigger>
+                */}
                 <TabsTrigger value="api-keys" className="justify-start gap-2 p-3" data-testid="tab-api-keys">
                   <Key className="w-4 h-4" />
                   API Keys
                 </TabsTrigger>
-                <TabsTrigger value="advanced" className="justify-start gap-2 p-3" data-testid="tab-advanced">
-                  <Code className="w-4 h-4" />
-                  Advanced
-                </TabsTrigger>
               </TabsList>
 
-              <Separator className="my-4" />
-
-              {/* Quick Actions */}
-              <div className="space-y-2">
-                <Button variant="outline" size="sm" onClick={exportSettings} className="w-full justify-start gap-2" data-testid="button-export-settings">
-                  <Download className="w-4 h-4" />
-                  Export Settings
-                </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start gap-2" data-testid="button-import-settings">
-                  <Upload className="w-4 h-4" />
-                  <label htmlFor="import-settings" className="cursor-pointer">
-                    Import Settings
-                  </label>
-                </Button>
-                <input
-                  id="import-settings"
-                  type="file"
-                  accept=".json"
-                  className="hidden"
-                  onChange={importSettings}
-                />
-                <Button variant="outline" size="sm" onClick={resetToDefaults} className="w-full justify-start gap-2" data-testid="button-reset-settings">
-                  <RotateCcw className="w-4 h-4" />
-                  Reset to Defaults
-                </Button>
-              </div>
-
-              <Separator className="my-4" />
-
-              {/* Help & Support */}
-              <div className="space-y-2">
-                <Button variant="ghost" size="sm" className="w-full justify-start gap-2" data-testid="button-help">
-                  <HelpCircle className="w-4 h-4" />
-                  Get Help
-                </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start gap-2" data-testid="button-documentation">
-                  <ExternalLink className="w-4 h-4" />
-                  Documentation
-                </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-destructive hover:text-destructive" data-testid="button-logout" onClick={handleLogout}>
-                  <LogOut className="w-4 h-4" />
-                  Log Out
-                </Button>
-              </div>
+              {/* Quick Actions and Help sections commented out — not needed for API keys only view */}
             </div>
 
             {/* Settings Content */}
             <ScrollArea className="flex-1 p-6">
+              {/* Non-api-keys tabs commented out — only API Keys needed for now */}
+              {false && (<>
               {/* Profile Tab */}
               <TabsContent value="profile" className="space-y-6 m-0">
                 <div>
@@ -841,6 +776,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   <MfaSettings />
                 </div>
               </TabsContent>
+              </>)}{/* end commented-out non-api-keys tabs */}
 
               {/* API Keys Tab */}
               <TabsContent value="api-keys" className="space-y-6 m-0" data-testid="tab-content-api-keys">
@@ -967,8 +903,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 </div>
               </TabsContent>
 
-              {/* Advanced Tab */}
-              <TabsContent value="advanced" className="space-y-6 m-0">
+              {/* Advanced Tab — commented out */}
+              {false && <TabsContent value="advanced" className="space-y-6 m-0">
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Advanced Settings</h3>
 
@@ -1023,7 +959,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     </CardContent>
                   </Card>
                 </div>
-              </TabsContent>
+              </TabsContent>}
             </ScrollArea>
           </Tabs>
         </div>

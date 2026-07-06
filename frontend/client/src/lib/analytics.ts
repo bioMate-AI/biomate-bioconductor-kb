@@ -70,6 +70,7 @@ export type AnalyticsEvent =
   | 'workflows_sidebar_opened'
   | 'import_workflow_opened'
   | 'personal_workflow_opened'
+  | 'personal_workflow_deleted'
   | 'workflow_imported';
 
 export interface AnalyticsProperties {

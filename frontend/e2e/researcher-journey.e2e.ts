@@ -245,35 +245,70 @@ test.describe("Researcher Journey", () => {
   });
 
   // ──────────────────────────────────────────────────────────────────────────
-  // STEP 7 — Ask BioMate about the RNA-seq analysis; AI responds
+  // STEP 7 — Run the imported workflow to completion
   //
-  // Timeout: 90 s per CLAUDE.md §"E2E plan discipline" rule 6 — LLM calls
-  // can take 30-90 s.
+  // Opens the imported workflow in the right panel, clicks Run, then waits for
+  // the workflow to reach a terminal state (completed or failed) by watching
+  // the workflow-overall-status-badge data-status attribute via SSE/polling.
+  //
+  // The NF_STUB is `Channel.of('DESeq2 placeholder') | view` — trivial work
+  // that completes in seconds once Nextflow is invoked.
+  //
+  // Timeout budget: 5 minutes — Galaxy backend + Nextflow startup latency.
   // ──────────────────────────────────────────────────────────────────────────
-  test("Step 7: chat — ask BioMate to run DESeq2; AI responds with content", async ({ page }) => {
-    test.setTimeout(120_000); // generous timeout for LLM round-trip
+  test("Step 7: run imported workflow to completion — track status idle→running→completed", async ({ page }) => {
+    test.setTimeout(300_000); // 5 min — Nextflow start + execution + SSE round-trip
     await loginAsFixture(page);
+    expect(workflowId, "workflowId not set — Step 5 must pass first").toBeTruthy();
 
     await page.goto(`${BASE_URL}/`);
 
-    // Wait for chat input
-    await expect(page.getByTestId("chat-input")).toBeVisible({ timeout: 10_000 });
+    // ── 7a: Reopen the uploaded workflow in the right panel ─────────────────
+    await page.getByTestId("button-import-workflow").click();
+    await expect(page.getByTestId("tab-my-imports")).toBeVisible({ timeout: 8_000 });
+    await page.getByTestId("tab-my-imports").click();
+    await expect(page.locator(`text=${WORKFLOW_NAME}`)).toBeVisible({ timeout: 8_000 });
 
-    const query = "Run DESeq2 differential expression analysis on treated vs. control RNA-seq samples";
-    await page.getByTestId("chat-input").fill(query);
-    await page.getByTestId("chat-send-button").click();
+    const openBtn = page.getByTestId(`button-open-personal-${workflowId}`);
+    await expect(openBtn).toBeVisible({ timeout: 5_000 });
+    await openBtn.click();
 
-    // Stop button appears while streaming
-    await expect(page.getByTestId("chat-stop-button")).toBeVisible({ timeout: 15_000 });
+    // Dialog closes and panel opens (160 ms dispatch delay in handleOpenPersonal)
+    const panel = page.getByTestId("workflow-right-panel");
+    await expect(panel).toBeVisible({ timeout: 5_000 });
 
-    // Wait for stream to finish (stop button disappears, send re-enabled)
-    await expect(page.getByTestId("chat-stop-button")).not.toBeVisible({ timeout: 90_000 });
+    // Overall status badge in idle state is present in DOM but hidden (display:none).
+    // Use toHaveAttribute (not toBeVisible) so it works on the hidden idle span.
+    const badge = panel.locator('[data-testid="workflow-overall-status-badge"]');
+    await expect(badge).toHaveAttribute("data-status", "idle", { timeout: 5_000 });
 
-    // At least one assistant message must now exist
-    const assistantMsg = page.locator('[data-role="assistant"]').first();
-    await expect(assistantMsg).toBeVisible({ timeout: 5_000 });
-    const msgText = await assistantMsg.textContent();
-    expect(msgText?.length ?? 0).toBeGreaterThan(10);
+    // ── 7b: Click Run ────────────────────────────────────────────────────────
+    const runBtn = panel.getByTestId("button-run-workflow-panel");
+    await expect(runBtn).toBeVisible({ timeout: 5_000 });
+    await runBtn.click();
+
+    // ── 7c: Verify running state immediately after click ─────────────────────
+    // The footer button changes text, and the overall badge flips to running.
+    await expect(badge).toHaveAttribute("data-status", "running", { timeout: 30_000 });
+
+    // ── 7d: Wait for terminal state (completed or failed) ────────────────────
+    // Poll via waitForFunction — SSE delivers status updates in real time.
+    await page.waitForFunction(
+      () => {
+        const b = document.querySelector('[data-testid="workflow-overall-status-badge"]');
+        const s = b?.getAttribute("data-status");
+        return s === "completed" || s === "failed";
+      },
+      undefined,
+      { timeout: 240_000, polling: 1_000 },
+    );
+
+    // ── 7e: Assert completed (not failed) ────────────────────────────────────
+    const finalStatus = await badge.getAttribute("data-status");
+    expect(finalStatus, `Workflow ended with status '${finalStatus}' — expected 'completed'`).toBe("completed");
+
+    // Run-again CTA appears in the footer for completed state
+    await expect(panel.getByTestId("panel-run-again-cta")).toBeVisible({ timeout: 5_000 });
   });
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -428,5 +463,87 @@ test.describe("Researcher Journey — My Imports bulk lifecycle", () => {
       const res = await page.request.delete(`${BASE_URL}/api/workflows/personal/${bulkIds[2]}`);
       expect(res.ok(), `cleanup delete failed: ${await res.text()}`).toBeTruthy();
     }
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Settings — MCP API key generation
+  // Verifies: sidebar Settings entry visible → dialog opens → API Keys tab →
+  // Generate key → plaintext shown once → copy works → revoke cleans up.
+  // ─────────────────────────────────────────────────────────────────────────────
+  test("Settings: generate and revoke an MCP API key", async ({ page }) => {
+    await loginAsFixture(page);
+    await page.goto(`${BASE_URL}/`);
+
+    // ── 1. Run Manager mobile layout: open panel, controls must be visible ──
+    const rmToggle = page.getByTestId("button-toggle-run-manager");
+    await expect(rmToggle).toBeVisible({ timeout: 8_000 });
+    await rmToggle.click();
+    const rmPanel = page.getByTestId("run-manager-panel");
+    await expect(rmPanel).toBeVisible({ timeout: 4_000 });
+    // Scope toggle must be rendered and clickable
+    const scopeToggle = page.getByTestId("run-manager-scope-toggle");
+    await expect(scopeToggle).toBeVisible();
+    await page.getByTestId("run-manager-scope-all-chats").click();
+    await expect(page.getByTestId("run-manager-scope-all-chats")).toHaveClass(/bg-primary/);
+    // Close panel
+    await rmToggle.click();
+    await expect(rmPanel).not.toBeVisible({ timeout: 3_000 });
+
+    // ── 2. Open Settings via the new sidebar entry ──────────────────────────
+    // The sidebar Settings & API Keys button is now uncommented.
+    const settingsBtn = page.getByTestId("button-settings-sidebar");
+    await expect(settingsBtn).toBeVisible({ timeout: 8_000 });
+    await settingsBtn.click();
+
+    // Settings dialog should open
+    await expect(page.getByRole("dialog")).toBeVisible({ timeout: 5_000 });
+
+    // ── 3. Navigate to API Keys tab ─────────────────────────────────────────
+    await page.getByTestId("tab-api-keys").click();
+    const apiKeysContent = page.getByTestId("tab-content-api-keys");
+    await expect(apiKeysContent).toBeVisible({ timeout: 4_000 });
+
+    // ── 4. Generate a new key ───────────────────────────────────────────────
+    await page.getByTestId("input-api-key-name").fill("Playwright MCP test key");
+    await page.getByTestId("button-create-api-key").click();
+
+    // Freshly created key card must appear and show the plaintext
+    const freshCard = page.getByTestId("fresh-api-key-card");
+    await expect(freshCard).toBeVisible({ timeout: 8_000 });
+    const keyInput = page.getByTestId("input-fresh-api-key");
+    const keyValue = await keyInput.inputValue();
+    // Key format: bm_live_<base64url-random> — base64url uses A-Z a-z 0-9 _ -
+    expect(keyValue).toMatch(/^bm_live_[A-Za-z0-9_-]+$/);
+
+    // Copy button should work (does not throw)
+    await page.getByTestId("button-copy-fresh-key").click();
+    // Dismiss the fresh card
+    await page.getByTestId("button-dismiss-fresh-key").click();
+    await expect(freshCard).not.toBeVisible({ timeout: 3_000 });
+
+    // ── 5. Key appears in the list — get its ID from the API ────────────────
+    const keysList = page.getByTestId("api-keys-list");
+    await expect(keysList).toBeVisible();
+
+    // Fetch the key list to find the ID of the key we just created (newest first)
+    const listRes = await page.request.get(`${BASE_URL}/api/user/api-keys`);
+    const allKeys: any[] = await listRes.json();
+    // Pick the most recently created "Playwright MCP test key" that isn't revoked
+    const createdKey = allKeys
+      .filter((k: any) => (k.name || '').includes('Playwright MCP test key') && !k.revokedAt)
+      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+    expect(createdKey, 'created key should appear in list').toBeTruthy();
+    const keyId = createdKey.id;
+
+    // Row must be visible in the UI
+    await expect(page.getByTestId(`api-key-row-${keyId}`)).toBeVisible({ timeout: 4_000 });
+
+    // ── 6. Revoke it — row stays but shows "Revoked" badge, button gone ──────
+    const revokeBtn = page.getByTestId(`button-revoke-api-key-${keyId}`);
+    await expect(revokeBtn).toBeVisible({ timeout: 4_000 });
+    await revokeBtn.click();
+    // After revocation: Revoke button disappears (revokedAt is now set)
+    await expect(revokeBtn).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByTestId(`api-key-row-${keyId}`).locator("text=Revoked")).toBeVisible({ timeout: 3_000 });
   });
 });

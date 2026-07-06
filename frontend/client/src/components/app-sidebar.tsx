@@ -486,8 +486,20 @@ export function AppSidebar({
           </div>
         )}
 
+        {/* Settings entry — visible in sidebar nav as well as the footer gear icon */}
+        <div style={{ marginTop: 12, borderTop: '1px solid var(--bm-border)', paddingTop: 8 }}>
+          <button
+            style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
+            onClick={() => { analytics.track('settings_opened'); setShowSettingsDialog(true); }}
+            data-testid="button-settings-sidebar"
+          >
+            <Settings className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} />
+            <span>Settings &amp; API Keys</span>
+          </button>
+        </div>
+
         {/* Beta: Actions panel hidden — Starred Workflows, Recent Tools,
-            Billing, Settings dialogs aren't wired up to backend yet.
+            Billing — dialogs not yet wired to backend.
             Re-enable once each action lands a real implementation.
 
         <div style={{ marginTop: 16, borderTop: '1px solid var(--bm-border)', paddingTop: 10 }}>
