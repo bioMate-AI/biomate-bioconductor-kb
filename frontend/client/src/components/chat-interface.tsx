@@ -720,6 +720,7 @@ export function ChatInterface({
       abortControllerRef.current = new AbortController()
       const response = await fetch('/api/chat/stream', {
         method: 'POST',
+        credentials: 'include', // ensure auth cookie is sent on mobile browsers
         signal: abortControllerRef.current.signal,
         headers: {
           'Content-Type': 'application/json',

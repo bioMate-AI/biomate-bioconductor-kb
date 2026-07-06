@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { flushSync } from 'react-dom'
 import { useLocation } from 'wouter'
 import { analytics } from '@/lib/analytics'
 
@@ -120,8 +121,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const mappedUser = mapResponseToUser(data)
-    setUser(mappedUser)
-    setIsLoading(false) // login() has authoritative user data — don't block RootRoute on checkAuth
+    // flushSync commits setUser + setIsLoading synchronously before setLocation('/') fires.
+    // Without this, wouter's navigation can trigger a RootRoute re-render while
+    // isAuthenticated is still false, causing the redirect-to-/login useEffect to fire.
+    // This race is more pronounced on mobile where renders are slower.
+    flushSync(() => {
+      setUser(mappedUser)
+      setIsLoading(false) // login() has authoritative user data — don't block RootRoute on checkAuth
+    })
     analytics.identify(mappedUser.id, { plan: mappedUser.role, email: mappedUser.email, name: mappedUser.name })
     analytics.track('user_logged_in', { plan: mappedUser.role })
     setLocation('/')

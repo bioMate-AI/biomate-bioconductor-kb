@@ -5643,7 +5643,7 @@ ${paramLines || '(none recorded)'}`;
         if (!res.writableEnded && !abortController.signal.aborted) {
           res.write(': heartbeat\n\n');
         }
-      }, 10_000);
+      }, 3_000); // 3s keeps iOS Safari from dropping the SSE connection mid-stream
 
       safeSend("ready", { ok: true });
 

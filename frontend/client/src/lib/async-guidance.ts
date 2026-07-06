@@ -18,12 +18,26 @@ function classifyError(error: string) {
     lower.includes("timed out") ||
     lower.includes("deadline exceeded") ||
     lower.includes("etimedout");
+
+  // Only match genuine browser-side network failures.
+  // Server-side errors (DB pool exhausted, Galaxy backend unreachable, POSIX codes like
+  // ECONNREFUSED / ECONNRESET, PostgreSQL "connection terminated") must NOT trigger
+  // "Connection error" — they are internal infrastructure problems unrelated to the
+  // user's own network connection. Previously "connection" and standalone "fetch"
+  // were included here, which caused DB errors to be misclassified as network errors.
   const isNetworkRelated =
-    lower.includes("network") ||
-    lower.includes("failed to fetch") ||
-    lower.includes("fetch") ||
-    lower.includes("connection");
+    lower.includes("network") ||        // "The network connection was lost" (iOS Safari)
+    lower.includes("failed to fetch") || // Chrome / Edge / Firefox standard error
+    lower.includes("load failed");       // iOS Safari: "Load failed"
+
   return { isTimeout, isNetworkRelated };
+}
+
+// Returns a sanitized, user-friendly reason string — strips raw infrastructure details
+// (POSIX codes, DB messages, stack traces) that must never be shown to users.
+function sanitizeReason(error: string, fallback: string): string {
+  const isRawInfraError = /econnrefused|enotfound|econnreset|epipe|pool.*drain|connection terminated|connection refused|could not connect/i.test(error);
+  return isRawInfraError ? "The service encountered a temporary issue. Please try again in a moment." : (error || fallback);
 }
 
 export function getExecutionAsyncGuidance(
@@ -32,9 +46,10 @@ export function getExecutionAsyncGuidance(
 ): AsyncGuidance {
   const error = normalizeError(rawError);
   const { isTimeout, isNetworkRelated } = classifyError(error);
+  // navigator.onLine is unreliable on mobile — use only as supplementary context, not alone.
   const isOnline = options.isOnline ?? true;
 
-  if (!isOnline || isNetworkRelated) {
+  if (isNetworkRelated || (!isOnline && !error)) {
     return {
       title: "Connection issue during execution",
       reason:
@@ -64,7 +79,7 @@ export function getExecutionAsyncGuidance(
 
   return {
     title: "Execution failed",
-    reason: error || "The workflow could not be executed due to an unexpected backend or validation issue.",
+    reason: sanitizeReason(error, "The workflow could not be executed due to an unexpected issue."),
     retry:
       "Retry after confirming required inputs, file paths, and parameters are valid. You can rerun directly from the workflow card.",
     escalation:
@@ -80,9 +95,10 @@ export function getChatAsyncGuidance(
 ): AsyncGuidance {
   const error = normalizeError(rawError);
   const { isTimeout, isNetworkRelated } = classifyError(error);
+  // navigator.onLine is unreliable on mobile — use only as supplementary context, not alone.
   const isOnline = options.isOnline ?? true;
 
-  if (!isOnline || isNetworkRelated) {
+  if (isNetworkRelated || (!isOnline && !error)) {
     return {
       title: "Connection error",
       reason:
@@ -98,7 +114,7 @@ export function getChatAsyncGuidance(
   if (isTimeout) {
     return {
       title: "Response timed out",
-      reason: error || "Workflow generation exceeded the response time budget.",
+      reason: "Workflow generation exceeded the response time budget.",
       retry: "Retry with a narrower request or simpler input context.",
       escalation: "If timeouts persist, report issue with timestamp and prompt summary.",
       isTimeout: true,
@@ -120,7 +136,7 @@ export function getChatAsyncGuidance(
 
   return {
     title: "Workflow generation failed",
-    reason: error || "The service returned an unexpected error while generating your workflow.",
+    reason: sanitizeReason(error, "The service returned an unexpected error while generating your workflow."),
     retry: "Rephrase the request with data type and analysis goal, then try again.",
     escalation: "If this persists, use Report issue so the backend trace can be reviewed.",
     isTimeout: false,

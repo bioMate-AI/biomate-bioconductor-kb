@@ -78,6 +78,7 @@ function ProjectsRouter() {
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
   const projectId = searchParams.get('project');
+  const initialTab = searchParams.get('tab') ?? undefined;
 
   const handleProjectSelect = (id: string) => {
     setLocation(`/projects?project=${id}`);
@@ -92,6 +93,7 @@ function ProjectsRouter() {
       <ProjectDetailPage
         projectId={projectId}
         onBack={handleBackToProjects}
+        initialTab={initialTab}
       />
     );
   } else {

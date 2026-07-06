@@ -2343,12 +2343,10 @@ export function NextflowWorkflowViewer({
           ? `${meaningfulDomain.replace(/_/g, ' ').toUpperCase()} · WORKFLOW`
           : 'WORKFLOW';
         const hasRealPhases = groupedPhases.some((g: any) => g.key !== 'all');
-        const phaseCount = hasRealPhases ? groupedPhases.length : 0;
+        const phaseCount = hasRealPhases ? groupedPhases.length : groupedPhases.length > 0 ? 1 : 0;
         const stepCount = updatedPhases.length;
         const subtitleParts: string[] = [];
-        if (stepCount > 0) subtitleParts.push(`${stepCount} ${stepCount === 1 ? 'process' : 'processes'}`);
         if (phaseCount > 0) subtitleParts.push(`${phaseCount} ${phaseCount === 1 ? 'phase' : 'phases'}`);
-        else if (stepCount > 0) subtitleParts.push('no phases');
         const panelSub = subtitleParts.length > 0
           ? subtitleParts.join(' · ')
           : ((workflowDefinition?.description || '') as string).split(/[.—]/)[0].trim().slice(0, 60);
@@ -2414,7 +2412,7 @@ export function NextflowWorkflowViewer({
       {/* ── Top-level tabs (Step A MVP — phases tab keeps current view) ─────── */}
       {(() => {
         const hasRealPhases = groupedPhases.some((g: any) => g.key !== 'all');
-        const phaseCount = hasRealPhases ? groupedPhases.length : 0;
+        const phaseCount = hasRealPhases ? groupedPhases.length : groupedPhases.length > 0 ? 1 : 0;
         const paramCount = renderedParameters.length;
         const showAfterRunDot = status === 'completed' || status === 'failed';
         // Per-tab hover tips so the user can see what each tab contains
@@ -2820,7 +2818,7 @@ export function NextflowWorkflowViewer({
               const hasRealPhases = groupedPhases.some((g: any) => g.key !== 'all');
               const label = hasRealPhases
                 ? `PHASES · ${groupedPhases.length}`
-                : `PROCESSES · ${updatedPhases.length}`;
+                : `STEPS · ${updatedPhases.length}`;
               return (
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-dim)', padding: '10px 18px 4px', textTransform: 'uppercase' }}>
                   {label}
