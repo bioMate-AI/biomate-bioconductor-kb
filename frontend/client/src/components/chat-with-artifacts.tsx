@@ -1736,6 +1736,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
               </select>
             </div>
           </div>
+          {/* On mobile the 5 buckets stack vertically and can exceed the viewport.
+              Cap the grid and let it scroll internally so the controls above stay visible. */}
+          <div className="overflow-y-auto" style={{ maxHeight: 'min(calc(100dvh - 220px), 60vh)' }}>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
             {(["needs_attention", "running", "queued", "failed", "completed"] as RunBucket[]).map((bucket) => (
               <div
@@ -1799,6 +1802,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
               </div>
             ))}
           </div>
+          </div>{/* end scrollable bucket grid wrapper */}
         </div>
       )}
 

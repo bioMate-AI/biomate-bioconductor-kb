@@ -278,7 +278,7 @@ function PlatformLayout({
   }
 
   return (
-    <div className="h-screen w-full flex flex-col" style={{ background: 'var(--bm-bg, hsl(var(--background)))' }}>
+    <div className="h-dvh w-full flex flex-col" style={{ background: 'var(--bm-bg, hsl(var(--background)))' }}>
       {/* Mobile header bar — only on small screens */}
       {isMobile && (
         <div
