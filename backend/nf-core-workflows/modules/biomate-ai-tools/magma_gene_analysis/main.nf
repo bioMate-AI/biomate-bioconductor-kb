@@ -320,10 +320,12 @@ process MAGMA_GENE_ANALYSIS {
     ]
 
     # Diagnostic: print pval.txt head so we can verify format
+    # Count lines without loading all into memory (13M rows × ~100B Python overhead = OOM)
     with open("pval.txt") as _pv:
-        _lines = _pv.readlines()
-    print(f"[magma:phaseB] pval.txt: {len(_lines)-1} SNPs, header={repr(_lines[0].strip())}, "
-          f"first={repr(_lines[1].strip()) if len(_lines)>1 else 'EMPTY'}")
+        _h = _pv.readline().strip()
+        _f = _pv.readline().strip()
+        _n = sum(1 for _ in _pv)
+    print(f"[magma:phaseB] pval.txt: {_n} SNPs, header={repr(_h)}, first={repr(_f)}")
 
     with open("magma_stdout.log", "w") as _logf:
         result = subprocess.run(cmd, stdout=_logf, stderr=subprocess.STDOUT, timeout=600)
