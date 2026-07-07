@@ -495,7 +495,7 @@ process MAGMA_FORMAT {
     def outfile = params.outfile
     """
     python3 - <<'PY'
-    import json, csv, math, os
+    import json, csv, math, os, sys
     import numpy as np
     from scipy import stats
 
@@ -527,21 +527,37 @@ process MAGMA_FORMAT {
             "GENE\\tCHR\\tSTART\\tSTOP\\tNSNPS\\tNPARAM\\tN\\tZSTAT\\tP\\n")
 
     # Box-Cox transform of ZSTAT column for scGWAS input.
-    # scGWAS expects gene-level Z-scores after a Box-Cox normalization; the
-    # original Pardinas 2018 example uses the same transformation.
-    # We shift ZSTAT to be strictly positive (add offset = |min| + 1) before
-    # applying Box-Cox, then write as a 2-column file: GENE  ZSTAT_BOXCOX
+    # scGWAS expects gene-level enrichment scores; a Box-Cox normalization
+    # is applied to make the distribution more normal.
+    # Strategy:
+    #   1. Filter out NaN/inf Z values (numeric issues from edge-case chi² calls)
+    #   2. Shift to strictly positive: offset = max(0, -min) + 1
+    #   3. Try Box-Cox MLE; fall back to log1p if optimization diverges
+    #      (highly skewed RA GWAS data causes Brent bracket failure)
     boxcox_rows = []
     if rows:
         z_vals = np.array([r["ZSTAT"] for r in rows], dtype=float)
-        offset = max(0, -z_vals.min()) + 1.0
+        valid_mask = np.isfinite(z_vals)
+        z_finite = z_vals[valid_mask]
+        offset = max(0.0, -float(z_finite.min())) + 1.0
         z_pos  = z_vals + offset
+        z_pos_finite = z_pos[valid_mask]
+        lam = None
         try:
-            z_bc, lam = stats.boxcox(z_pos)
-            z_bc_list = z_bc.tolist()
+            z_bc_finite, lam = stats.boxcox(z_pos_finite)
+            # Reconstruct full array (non-finite positions get NaN)
+            z_bc_arr = np.full_like(z_vals, fill_value=0.0)
+            z_bc_arr[valid_mask] = z_bc_finite
+            z_bc_arr[~valid_mask] = float(np.nanmean(z_bc_finite))
+            z_bc_list = z_bc_arr.tolist()
+            print(f"[magma:phaseC] Box-Cox λ={lam:.4f}, offset={offset:.3f}")
         except Exception as e:
-            print(f"[magma:phaseC] Box-Cox failed ({e}); using log1p fallback", file=sys.stderr)
-            z_bc_list = np.log1p(z_pos).tolist()
+            # Brent bracket failure on heavily right-skewed RA GWAS distribution
+            # → use log1p as equivalent monotone normalization for scGWAS
+            print(f"[magma:phaseC] Box-Cox failed ({type(e).__name__}): {e}; using log1p", file=sys.stderr)
+            z_bc_arr = np.log1p(z_pos)
+            z_bc_arr[~valid_mask] = float(np.nanmean(z_bc_arr[valid_mask]))
+            z_bc_list = z_bc_arr.tolist()
             lam = None
         # Write in the format scGWAS magma_boxcox.txt expects:
         # GENE  CHR  START  STOP  NSNPS  NPARAM  N  ZSTAT  P
