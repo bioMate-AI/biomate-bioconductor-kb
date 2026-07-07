@@ -4301,6 +4301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // SSE endpoint for QC gate events - used by workflow-artifact.tsx
   // Accepts connections with only invocationId (no workflowId required)
   app.get("/api/workflows/:invocationId/events", (req, res) => {
+    console.log(`[SSE-DIAG] GET /api/workflows/${req.params.invocationId}/events — connection request`);
     sseManager.handleConnectionByInvocationId(req, res);
   });
 

@@ -1940,12 +1940,14 @@ export function NextflowWorkflowViewer({
 
   // SSE listener for QC gate events — mirrors workflow-artifact.tsx logic
   useEffect(() => {
+    console.log(`[SSE-DIAG] viewer invocationId effect: "${invocationId}"`);
     if (!invocationId) return;
     let stopped = false;
     // Reset auto-loop panel when the invocationId changes (new run)
     setAutoLoopPanel({ gateResults: null, remediations: [], complete: null });
 
     const es = new EventSource(`/api/workflows/${invocationId}/events`);
+    console.log(`[SSE-DIAG] EventSource created for invocationId="${invocationId}"`);
 
     // Workflow-progress chat lines from the backend narrator (workflow.submitted,
     // workflow.phase_started, workflow.completed, workflow.failed, etc.). The
