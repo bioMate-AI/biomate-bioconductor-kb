@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 import type { ChatSession } from "@shared/schema"
+import { type Message } from "./chat-message"
 import { AlertTriangle, MessageCircle, Layers, RefreshCw, Play, CheckCircle2, XCircle, Clock, X, FlaskConical } from "lucide-react"
 import { PostRunMicroSurvey } from "./feedback/post-run-micro-survey"
 import { ReportConfusionButton } from "./feedback/report-confusion-button"
@@ -826,6 +827,36 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       onChatUpdated(freshSession);
     }
   };
+
+  // Receives chat_progress SSE events from the panel NextflowWorkflowViewer and
+  // appends them to the current chat session so speaker pills render in the chat.
+  // Mirrors handleWorkflowProgress in chat-interface.tsx.
+  const handlePanelWorkflowProgress = useCallback((event: { kind: string; friendly_message: string; ts?: number; technical?: any; invocationId?: string }) => {
+    if (!currentChatSession?.id) return
+    const session = chatHistoryService.getSession(currentChatSession.id)
+    if (!session) return
+    const last = [...session.messages].reverse().find(
+      (m) => m.metadata?.type === 'workflow_progress' && (m as any).invocationId === event.invocationId,
+    )
+    if (last && last.metadata?.kind === event.kind && (last.metadata as any)?.ts === event.ts) return
+    const progressMsg: Message = {
+      id: `progress-${event.invocationId ?? 'inv'}-${event.kind}-${event.ts ?? Date.now()}`,
+      role: 'assistant',
+      content: event.friendly_message,
+      timestamp: new Date(),
+      invocationId: event.invocationId,
+      metadata: {
+        type: 'workflow_progress',
+        kind: event.kind,
+        ts: event.ts,
+        technical: event.technical,
+      } as any,
+    }
+    const updatedSession = chatHistoryService.updateSession(session.id, {
+      messages: [...session.messages, progressMsg],
+    })
+    if (updatedSession) onChatUpdated(updatedSession)
+  }, [currentChatSession?.id, onChatUpdated])
 
   const handleRunWorkflow = async (workflow: any, steps: any[]) => {
     emitUxEvent('workflow.run_clicked', {
@@ -2210,6 +2241,10 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                       runId={currentRun?.id}
                       executionEngine={currentRun?.execution?.executionEngine}
                       executionMetrics={currentRun?.metrics}
+                      onWorkflowProgress={(ev) => handlePanelWorkflowProgress({
+                        ...ev,
+                        invocationId: currentRun?.execution?.galaxyInvocationId || currentRun?.id,
+                      })}
                     />
                   )
                 })()

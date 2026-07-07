@@ -55,7 +55,7 @@ import {
 const FIXTURE_EMAIL    = 'lifeifei163361@163.com';
 const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || 'WpmFixture!2026';
 const E2E_TOKEN        = process.env.E2E_TEST_TOKEN ?? 'biomate-e2e-bypass-token-dev-only';
-const EXEC_TIMEOUT_MS  = 20 * 60_000; // 20 min per workflow
+const EXEC_TIMEOUT_MS  = 30 * 60_000; // 30 min per workflow (AWS Batch cold-start can vary)
 
 interface WorkflowStep {
   id: string;
