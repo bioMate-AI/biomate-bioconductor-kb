@@ -91,10 +91,16 @@ async function assertPanelOpened(page: Page, label: string): Promise<string | nu
       latestMsg?.includes("ENOTFOUND") ||
       latestMsg?.includes("unreachable") ||
       latestMsg?.includes("backend connection") ||
-      latestMsg?.includes("AI Assistant not available");
+      latestMsg?.includes("AI Assistant not available") ||
+      // Galaxy transient failures: HTTP 500 or socket hang up under load.
+      // "Could not generate workflow" + a server-side error signal means the
+      // Galaxy backend failed, not that BioMate routed wrong.  Skip rather
+      // than fail so a single overloaded worker doesn't hide real routing bugs.
+      (latestMsg?.includes("Could not generate workflow") &&
+        /server error|socket|timeout|\b500\b|connection.*error|error.*connection/i.test(latestMsg ?? ""));
 
     if (isInfra) {
-      console.warn(`[${label}] INFRA-SKIP: Galaxy backend unavailable — skipping test`);
+      console.warn(`[${label}] INFRA-SKIP: Galaxy backend unavailable or overloaded — skipping test`);
       return null;
     }
 
@@ -373,16 +379,22 @@ test("UC-6b: extractInlineDataWithLLM preserves multi-value data (array or strin
   await newSession(page);
   await ss(page, "UC6b_00_new_session");
 
-  // Record log size before sending so we only scan new lines
-  const logFiles = fs.readdirSync("/tmp").filter(f => /^biomate_server_v\d+\.log$/.test(f))
+  // Record log size before sending so we only scan new lines.
+  // Match both versioned (biomate_server_v10.log) and plain (biomate_server.log)
+  // naming — the startup script may use either convention.
+  const logFiles = fs.readdirSync("/tmp").filter(f => /^biomate_server(_v\d+)?\.log$/.test(f))
     .map(f => path.join("/tmp", f))
     .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
   const serverLog = logFiles[0] ?? null;
   const logSizeBefore = serverLog ? fs.statSync(serverLog).size : 0;
   console.log("[UC-6b] Reading server log:", serverLog, "size before:", logSizeBefore);
 
+  // Use an ADMET+SMILES request so the ADMET fast path fires
+  // (needsWorkflowGeneration=true) and extractInlineDataWithLLM is called.
+  // "Calculate molecular weight" is classified as direct computation and
+  // bypasses the workflow path, so extractInlineDataWithLLM is never invoked.
   const message = [
-    "Calculate molecular weight and LogP for each compound:",
+    "Run ADMET screening on these drug candidates and flag any hERG liabilities:",
     "name,smiles",
     "aspirin,CC(=O)Oc1ccccc1C(=O)O",
     "caffeine,Cn1cnc2c1c(=O)n(C)c(=O)n2C",
