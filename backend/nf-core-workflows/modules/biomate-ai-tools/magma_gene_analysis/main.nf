@@ -40,11 +40,15 @@
  * Real GWAS (caller supplies sumstats):
  *   nextflow run main.nf \
  *       --gwas_sumstats s3://bucket/my_gwas.tsv \
- *       --snp_col SNP --pval_col P --n_col N \
+ *       --snp_col variant_id --pval_col p_value --n_col fixed \
  *       --genome_build hg19 \
- *       --gene_model multi \
+ *       --gene_model snp-wise \
  *       --outfile my_run \
  *       --outdir s3://bucket/runs/magma-001
+ *
+ * Phase A uses --snp-loc (position-based annotation) so SNP IDs do not need
+ * to match the LD reference panel. Works with any GWAS format that has CHR+BP.
+ * Phase B (snp-wise) requires no LD bfile; genes are scored from p-value only.
  */
 nextflow.enable.dsl = 2
 
@@ -65,7 +69,7 @@ CONTAINER_MAGMA = System.getenv('NEXTFLOW_USE_AWS') == 'true' \
     ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/magma:v1.10' \
     : 'biomate/magma:v1.10'
 
-// [Phase A] SNP annotation — map GWAS SNPs to NCBI gene coordinates
+// [Phase A] SNP annotation — map GWAS SNPs to NCBI gene coordinates via position
 process MAGMA_ANNOTATE {
     tag "magma:phaseA"
     label 'process_medium'
@@ -76,56 +80,129 @@ process MAGMA_ANNOTATE {
     output: tuple val(meta), path("${params.outfile}.genes.annot"), path("annotate.json"), emit: out
 
     script:
-    def baked    = params.use_baked_toy as Boolean
-    def genome   = params.genome_build
-    def winUp    = params.window_upstream_kb
-    def winDown  = params.window_downstream_kb
-    def outfile  = params.outfile
+    def baked     = params.use_baked_toy as Boolean
+    def genome    = params.genome_build
+    def winUp     = params.window_upstream_kb
+    def winDown   = params.window_downstream_kb
+    def outfile   = params.outfile
+    def snpCol    = params.snp_col
+    def sumstats  = params.gwas_sumstats
     """
     set -euo pipefail
     python3 - <<'PY'
-    import json, os, sys, subprocess
+    import json, os, sys, subprocess, csv, gzip as _gz, shutil
 
-    baked    = ${baked ? 'True' : 'False'}
-    genome   = "${genome}"
-    win_up   = ${winUp}
-    win_down = ${winDown}
-    outfile  = "${outfile}"
+    baked         = ${baked ? 'True' : 'False'}
+    genome        = "${genome}"
+    win_up        = ${winUp}
+    win_down      = ${winDown}
+    outfile       = "${outfile}"
+    snp_col       = "${snpCol}"
+    gwas_sumstats = "${sumstats}"
 
-    # Gene location files baked into container under /opt/magma/ref/
     gene_loc_map = {
         "hg19": "/opt/magma/ref/NCBI37.3.gene.loc",
         "hg38": "/opt/magma/ref/NCBI38.gene.loc",
     }
     gene_loc = gene_loc_map.get(genome, gene_loc_map["hg19"])
 
-    # Standard MAGMA workflow: annotate using the g1000_eur reference panel.
-    # This creates an INDEX-BASED genes.annot (bfile column indices, not rsIDs).
-    # Phase B MUST use the same --bfile so the indices match.
-    # GWAS sumstats are NOT needed in Phase A — only gene coordinates and the
-    # reference SNP positions matter for annotation.
+    def _open_s(path):
+        with open(path, "rb") as _f:
+            magic = _f.read(2)
+        return _gz.open(path, "rt") if magic == b"\\x1f\\x8b" else open(path)
+
+    # Build snp.loc (SNP CHR BP) for --snp-loc annotation.
+    # Position-based annotation does not require SNP IDs to match the LD reference
+    # panel. Works with any GWAS format that contains chromosome and position columns.
+    n_snps = 0
+    if baked:
+        import random
+        random.seed(42)
+        rows = []
+        for i in range(200):
+            rows.append((f"rs_cl1_{i}", "1", str(random.randint(50_000_000, 55_000_000))))
+        for i in range(1800):
+            rows.append((f"rs_bg_{i}", "1", str(random.randint(1_000_000, 249_000_000))))
+        with open("snp.loc", "w") as f:
+            f.write("SNP\\tCHR\\tBP\\n")
+            for r in rows:
+                f.write("\\t".join(r) + "\\n")
+        n_snps = len(rows)
+    else:
+        if gwas_sumstats in ("null", ""):
+            print("ERROR: gwas_sumstats required when use_baked_toy=false", file=sys.stderr)
+            sys.exit(1)
+        if gwas_sumstats.startswith("s3://"):
+            import boto3
+            parts = gwas_sumstats[5:].split("/", 1)
+            boto3.client("s3").download_file(parts[0], parts[1], "sumstats.tmp")
+            psum = "sumstats.tmp"
+        else:
+            shutil.copy(gwas_sumstats, "sumstats.tmp")
+            psum = "sumstats.tmp"
+
+        with _open_s(psum) as fh, open("snp.loc", "w") as out:
+            reader = csv.DictReader(fh, delimiter="\\t")
+            col_map = {c.upper(): c for c in (reader.fieldnames or [])}
+
+            # SNP ID column
+            s_col = col_map.get(snp_col.upper())
+            if s_col is None:
+                for alias in ("VARIANT_ID", "SNP_ID", "RSID", "RS_ID", "ID",
+                              "MARKERNAME", "SNPID", "NAME", "VARIANT"):
+                    if alias in col_map:
+                        s_col = col_map[alias]; break
+            if s_col is None:
+                print(f"ERROR: SNP column '{snp_col}' not found. Columns: {list(col_map.keys())}", file=sys.stderr)
+                sys.exit(1)
+
+            # CHR column
+            chr_col = (col_map.get("CHR") or col_map.get("CHROMOSOME") or col_map.get("CHROM"))
+            if chr_col is None:
+                print(f"ERROR: CHR column not found. Columns: {list(col_map.keys())}", file=sys.stderr)
+                sys.exit(1)
+
+            # BP/position column
+            bp_col = (col_map.get("BP") or col_map.get("POS") or col_map.get("POSITION") or
+                      col_map.get("BASE_PAIR_LOCATION") or col_map.get("BASE_PAIR_LOCATION_HG19") or
+                      col_map.get("BASE_PAIR_LOCATION_GRCH37") or col_map.get("BPLOC"))
+            if bp_col is None:
+                print(f"ERROR: BP/position column not found. Columns: {list(col_map.keys())}", file=sys.stderr)
+                sys.exit(1)
+
+            print(f"[magma:phaseA] columns: snp={s_col}, chr={chr_col}, bp={bp_col}")
+            out.write("SNP\\tCHR\\tBP\\n")
+            for row in reader:
+                chr_val = row[chr_col].lstrip("chrChr")
+                out.write(f"{row[s_col]}\\t{chr_val}\\t{row[bp_col]}\\n")
+                n_snps += 1
+
+        print(f"[magma:phaseA] snp.loc: {n_snps} SNPs written")
+
     cmd = [
         "/opt/magma/magma",
         "--annotate",
         f"window={win_up},{win_down}",
-        "--bfile", "/opt/magma/ref/g1000_eur",
+        "--snp-loc", "snp.loc",
         "--gene-loc", gene_loc,
         "--out", outfile,
     ]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    print(f"[magma:phaseA] exit={result.returncode}")
+    if result.stdout:
+        print(result.stdout[-2000:])
+    if result.stderr:
+        print(result.stderr[-500:], file=sys.stderr)
     if result.returncode != 0:
-        print(f"[magma:phaseA] STDERR:\\n{result.stderr}", file=sys.stderr)
-        # Graceful: write empty .annot so Phase B can report
         open(f"{outfile}.genes.annot", "w").write("")
-    else:
-        print(result.stdout[-1000:] if result.stdout else "[magma:phaseA] annotation complete")
 
     json.dump({
         "phase": "A",
         "baked_toy": baked,
         "genome_build": genome,
         "gene_loc_file": gene_loc,
-        "annot_type": "bfile_index",
+        "n_snps_input": n_snps,
+        "annot_type": "snp_loc",
         "window_kb": [win_up, win_down],
         "annot_ok": result.returncode == 0,
     }, open("annotate.json", "w"), indent=2)
@@ -168,12 +245,8 @@ process MAGMA_GENE_ANALYSIS {
 
     baked = annot.get("baked_toy", False)
 
-    # Re-build sumstats.tmp from phaseA (phaseA wrote it but publishDir copies;
-    # we copy the sumstats file path from the annotate.json baked flag to
-    # reconstruct. Simpler: write pval file directly from the available sumstats.)
-    # We need the actual sumstats — they weren't emitted as a phase output.
-    # If baked: regenerate. If real: caller must have re-staged via .nf input.
-    # For simplicity we regenerate the pval file here from params.
+    # Re-build pval.txt from sumstats. The GWAS file is not passed as a Nextflow
+    # channel input (too large for staging), so we download it again here.
     gwas_sumstats = "${params.gwas_sumstats}"
 
     if baked:
@@ -200,14 +273,13 @@ process MAGMA_GENE_ANALYSIS {
         if gwas_sumstats in ("null", ""):
             print("ERROR: gwas_sumstats required", file=sys.stderr)
             sys.exit(1)
-        # Download from S3 if needed; auto-detect gzip
+        import gzip as _gz
         if gwas_sumstats.startswith("s3://"):
-            import boto3, gzip as _gz
+            import boto3
             parts = gwas_sumstats[5:].split("/", 1)
             boto3.client("s3").download_file(parts[0], parts[1], "sumstats_b.tmp")
             psum = "sumstats_b.tmp"
         else:
-            import gzip as _gz
             psum = gwas_sumstats
         def _open_b(path):
             with open(path, "rb") as _f:
@@ -216,18 +288,43 @@ process MAGMA_GENE_ANALYSIS {
         with _open_b(psum) as fh, open("pval.txt", "w") as out:
             reader = csv.DictReader(fh, delimiter="\\t")
             col_map = {c.upper(): c for c in (reader.fieldnames or [])}
-            s_col = col_map.get(snp_col.upper(), snp_col)
-            p_col = col_map.get(pval_col.upper(), pval_col)
+
+            # SNP ID column — must match IDs used in Phase A snp.loc
+            s_col = col_map.get(snp_col.upper())
+            if s_col is None:
+                for alias in ("VARIANT_ID", "SNP_ID", "RSID", "RS_ID", "ID",
+                              "MARKERNAME", "SNPID", "NAME", "VARIANT"):
+                    if alias in col_map:
+                        s_col = col_map[alias]; break
+            if s_col is None:
+                print(f"ERROR: SNP column '{snp_col}' not found. Columns: {list(col_map.keys())}", file=sys.stderr)
+                sys.exit(1)
+
+            # P-value column
+            p_col = col_map.get(pval_col.upper())
+            if p_col is None:
+                for alias in ("P_VALUE", "PVALUE", "PVAL", "P.VALUE", "LOG10P"):
+                    if alias in col_map:
+                        p_col = col_map[alias]; break
+            if p_col is None:
+                print(f"ERROR: P-value column '{pval_col}' not found. Columns: {list(col_map.keys())}", file=sys.stderr)
+                sys.exit(1)
+
             n_spec = col_map.get(n_col.upper(), None)
+            print(f"[magma:phaseB] columns: snp={s_col}, p={p_col}, n={n_spec or 'fixed='+str(n_fixed)}")
             out.write("SNP\\tP\\tN\\n")
             for row in reader:
                 n_val = row[n_spec] if n_spec and n_spec in row else str(n_fixed)
                 out.write(f"{row[s_col]}\\t{row[p_col]}\\t{n_val}\\n")
         n_spec = "N"
 
-    # Standard MAGMA Phase B: Phase A now creates index-based annotation via --bfile.
-    # Both phases MUST use the same --bfile so SNP indices in genes.annot are resolved.
-    bfile_arg = ["--bfile", "/opt/magma/ref/g1000_eur"]
+    # Phase A used --snp-loc (ID-based annotation). For snp-wise model, no --bfile needed.
+    # For multi model, --bfile is required but Phase A must also use --bfile for an
+    # index-based annotation (mixing snp_loc annotation + multi model crashes MAGMA).
+    if model == "snp-wise":
+        bfile_arg = []
+    else:
+        bfile_arg = ["--bfile", "/opt/magma/ref/g1000_eur"]
     model_arg = ["--gene-model", model]
 
     cmd = [
@@ -239,13 +336,12 @@ process MAGMA_GENE_ANALYSIS {
         "--out", outfile,
     ]
 
-    # Diagnostic: print pval.txt head so we can verify format
-    # Count lines without loading all into memory (13M rows × ~100B Python overhead = OOM)
+    # Diagnostic: count pval.txt rows without loading all into memory
     with open("pval.txt") as _pv:
         _h = _pv.readline().strip()
         _f = _pv.readline().strip()
-        _n = sum(1 for _ in _pv)
-    print(f"[magma:phaseB] pval.txt: {_n} SNPs, header={repr(_h)}, first={repr(_f)}")
+        _n = sum(1 for _ in _pv) + 1  # +1 for the already-read first data line
+    print(f"[magma:phaseB] pval.txt: {_n} SNPs, header={_h!r}, first={_f!r}")
 
     with open("magma_stdout.log", "w") as _logf:
         result = subprocess.run(cmd, stdout=_logf, stderr=subprocess.STDOUT, timeout=600)
@@ -272,7 +368,7 @@ process MAGMA_GENE_ANALYSIS {
     json.dump({
         "phase": "B",
         "gene_model": model,
-        "bfile_used": "g1000_eur",
+        "bfile_used": "g1000_eur" if bfile_arg else "none (snp-wise, id-based annotation)",
         "n_genes_output": n_genes,
         "gene_analysis_ok": result.returncode == 0,
         "magma_log_tail": magma_stdout[-5000:],
