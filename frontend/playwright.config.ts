@@ -30,7 +30,7 @@ export default defineConfig({
   timeout: 2_700_000,
 
   use: {
-    baseURL: process.env.BIOMATE_URL || 'http://localhost:5000',
+    baseURL: process.env.BIOMATE_URL || 'https://dev-public.biomate.ai',
     trace: 'retain-on-failure',
     screenshot: 'on', // Capture screenshots for every test — audit trail
     video: {
