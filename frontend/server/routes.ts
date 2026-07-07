@@ -9856,19 +9856,27 @@ ${paramLines || '(none recorded)'}`;
                 return req.user ? _pe.includes(String((req.user as any).email || '').toLowerCase()) : false;
               })(),
             });
-          // Retry up to 3 times on transient Galaxy backend errors (502/503/504 from
-          // gunicorn worker recycles). Fixed 3s delay — gunicorn recycles in <5s.
+          // Retry up to 3 times on transient Galaxy backend errors:
+          //   - HTTP 502/503/504: gunicorn worker recycled mid-request
+          //   - TypeError "fetch failed": ECONNREFUSED during worker restart (<1s window)
+          // Fixed 3s delay — gunicorn recycles in <5s.
           let nextflowResponse: Response | null = null;
           for (let _attempt = 0; _attempt < 3; _attempt++) {
             if (_attempt > 0) {
               await new Promise(r => setTimeout(r, 3000));
               console.log(`[Nextflow Direct] Retry attempt ${_attempt} after transient Galaxy error`);
             }
-            nextflowResponse = await fetch(`${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/execute`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'X-API-Key': process.env.GALAXY_API_KEY || '' },
-              body: _nfBody,
-            });
+            try {
+              nextflowResponse = await fetch(`${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/execute`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-API-Key': process.env.GALAXY_API_KEY || '' },
+                body: _nfBody,
+              });
+            } catch (fetchErr: any) {
+              console.warn(`[Nextflow Direct] Galaxy fetch error (attempt ${_attempt + 1}/3): ${fetchErr.message}`);
+              if (_attempt < 2) continue; // retry on network error (ECONNREFUSED during worker restart)
+              throw fetchErr;             // last attempt — propagate
+            }
             if (nextflowResponse.ok || ![502, 503, 504].includes(nextflowResponse.status)) break;
             console.warn(`[Nextflow Direct] Galaxy returned ${nextflowResponse.status} (attempt ${_attempt + 1}/3) — will retry`);
           }
