@@ -3076,8 +3076,11 @@ Rules:
     const _hasSmilesPattern = /(?:CC\(=O\)|c1ccc|[A-Z][a-z]?(?:c|C)\d|[A-Z]=O|SMILES\s*[:=]\s*\S{5,})/i.test(message)
       || /\b[A-Z][CNOPSFIBrcl0-9@=#\-+\[\]()\/.\\]{6,}\b/.test(message);
     const _hasAdmetKeywords = /(ADMET|hERG|DILI|Ames\s+mutagenicity|cardiotox|hepatotox|ClinTox|toxicity\s+screen|drug\s+toxicity)/i.test(message);
-    if (_hasSmilesPattern && _hasAdmetKeywords && !actions.needsWorkflowGeneration) {
-      log('ADMET+SMILES fast path: forcing needsWorkflowGeneration=true');
+    // Chemistry property calculations (MW, LogP, pKa, etc.) also require RDKit which is only
+    // available in AWS Batch workflows, not in the run_code sandbox. Route to ADMET workflow.
+    const _hasChemPropertyKeywords = /(molecular\s+weight|MW\b|LogP|log\s*P\b|pKa\b|solubility|lipophilicity|physicochemical|drug.like|Lipinski|Veber|QED|rule\s+of\s+five|RO5|calculate\s+(the\s+)?(properties|descriptors)|compound\s+properties)/i.test(message);
+    if (_hasSmilesPattern && (_hasAdmetKeywords || _hasChemPropertyKeywords) && !actions.needsWorkflowGeneration) {
+      log('ADMET+SMILES fast path: forcing needsWorkflowGeneration=true (ADMET or chemistry property keywords)');
       actions.needsWorkflowGeneration = true;
     }
 

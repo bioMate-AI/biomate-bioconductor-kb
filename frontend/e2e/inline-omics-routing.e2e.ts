@@ -389,12 +389,12 @@ test("UC-6b: extractInlineDataWithLLM preserves multi-value data (array or strin
   const logSizeBefore = serverLog ? fs.statSync(serverLog).size : 0;
   console.log("[UC-6b] Reading server log:", serverLog, "size before:", logSizeBefore);
 
-  // Use an ADMET+SMILES request so the ADMET fast path fires
-  // (needsWorkflowGeneration=true) and extractInlineDataWithLLM is called.
-  // "Calculate molecular weight" is classified as direct computation and
-  // bypasses the workflow path, so extractInlineDataWithLLM is never invoked.
+  // extractInlineDataWithLLM is called in generateResponse for ALL messages,
+  // regardless of needsWorkflowGeneration. "Calculate molecular weight" is a
+  // direct computation (needsWorkflowGeneration=false) but extraction still runs.
+  // Gemini sees the `smiles` CSV column and extracts the SMILES array.
   const message = [
-    "Run ADMET screening on these drug candidates and flag any hERG liabilities:",
+    "Calculate molecular weight and LogP for each compound:",
     "name,smiles",
     "aspirin,CC(=O)Oc1ccccc1C(=O)O",
     "caffeine,Cn1cnc2c1c(=O)n(C)c(=O)n2C",
