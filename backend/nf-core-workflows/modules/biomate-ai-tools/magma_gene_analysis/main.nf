@@ -332,13 +332,9 @@ process MAGMA_GENE_ANALYSIS {
                     sloc.write(f"{row[s_col]}\\t{chr_val}\\t{row[bp_col]}\\n")
         n_spec = "N"
 
-    # Phase A used --snp-loc (ID-based annotation without bfile).
-    # Phase B snp-wise: use --snp-loc (avoids OOM from loading 22M-SNP bfile).
-    # Phase B multi: use --bfile (LD needed; Phase A must also use --bfile for index annotation).
-    if model == "snp-wise":
-        snp_data_arg = ["--snp-loc", "snp.loc"]
-    else:
-        snp_data_arg = ["--bfile", "/opt/magma/ref/g1000_eur"]
+    # --bfile is required for --gene-annot regardless of model.
+    # snp-wise uses it for SNP lookup only (no LD estimation), so memory is manageable.
+    snp_data_arg = ["--bfile", "/opt/magma/ref/g1000_eur"]
     model_arg = ["--gene-model", model]
 
     cmd = [
@@ -382,7 +378,7 @@ process MAGMA_GENE_ANALYSIS {
     json.dump({
         "phase": "B",
         "gene_model": model,
-        "snp_data": "snp_loc" if model == "snp-wise" else "bfile_g1000_eur",
+        "bfile_used": "g1000_eur",
         "n_genes_output": n_genes,
         "gene_analysis_ok": result.returncode == 0,
         "magma_log_tail": magma_stdout[-5000:],
