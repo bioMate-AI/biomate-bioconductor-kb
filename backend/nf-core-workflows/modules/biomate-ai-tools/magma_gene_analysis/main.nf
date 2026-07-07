@@ -322,8 +322,8 @@ process MAGMA_GENE_ANALYSIS {
     # Diagnostic: print pval.txt head so we can verify format
     with open("pval.txt") as _pv:
         _lines = _pv.readlines()
-    print(f"[magma:phaseB] pval.txt: {len(_lines)-1} SNPs, header={_lines[0].strip()!r}, "
-          f"first={_lines[1].strip()!r if len(_lines)>1 else 'EMPTY'}")
+    print(f"[magma:phaseB] pval.txt: {len(_lines)-1} SNPs, header={repr(_lines[0].strip())}, "
+          f"first={repr(_lines[1].strip()) if len(_lines)>1 else 'EMPTY'}")
 
     with open("magma_stdout.log", "w") as _logf:
         result = subprocess.run(cmd, stdout=_logf, stderr=subprocess.STDOUT, timeout=600)
