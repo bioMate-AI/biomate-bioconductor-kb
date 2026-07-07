@@ -947,12 +947,29 @@ async function executeOpenClaudeTool(
         return await post("/api/workflows/search", { query: input.query, limit: input.limit ?? 5, defer_param_prefill: true });
 
       // ── Execution ────────────────────────────────────────────────────────
-      case "run_workflow":
-        return await post("/api/workflows/execute", {
-          workflow_id: input.workflow_id,
-          params: input.params ?? {},
-          message: input.message,
+      case "run_workflow": {
+        // /api/workflows/execute requires a full workflowDefinition object, not a
+        // bare workflow_id. Resolve it by calling search first to get workflow_ga.
+        const searchResult = await post("/api/workflows/search", {
+          query: input.workflow_id,
+          limit: 1,
+          defer_param_prefill: true,
         });
+        const workflowDef = searchResult?.workflow_ga;
+        if (!workflowDef) {
+          return {
+            error: "WORKFLOW_NOT_FOUND",
+            message: `No workflow found matching '${input.workflow_id}'. Use search_workflow first to find the correct workflow name.`,
+          };
+        }
+        if (input.params && Object.keys(input.params).length > 0) {
+          workflowDef.parameters = { ...(workflowDef.parameters ?? {}), ...input.params };
+        }
+        return await post("/api/workflows/execute", {
+          workflowDefinition: workflowDef,
+          ...(input.message ? { message: input.message } : {}),
+        });
+      }
       case "get_run_status":
         return await get(`/api/workflows/runs/${input.run_id}/status`);
       case "get_run_results":
