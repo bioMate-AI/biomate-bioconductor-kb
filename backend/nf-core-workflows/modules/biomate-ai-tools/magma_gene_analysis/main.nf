@@ -262,14 +262,16 @@ process MAGMA_GENE_ANALYSIS {
             bp = random.randint(1_000_000, 249_000_000)
             p  = random.uniform(0.01, 0.99)
             rows.append((f"rs_bg_{i}", "1", str(bp), f"{p:.6e}", "50000"))
-        with open("pval.txt", "w") as f:
+        with open("pval.txt", "w") as f, open("snp.loc", "w") as sl:
             f.write("SNP\\tP\\tN\\n")
+            sl.write("SNP\\tCHR\\tBP\\n")
             for r in rows[1:]:
                 f.write(f"{r[0]}\\t{r[3]}\\t{r[4]}\\n")
+                sl.write(f"{r[0]}\\t{r[1]}\\t{r[2]}\\n")
         pval_col  = "P"
         n_spec    = "N"
     else:
-        # Build pval file from real sumstats — stream to avoid OOM on large GWAS
+        # Build pval.txt and snp.loc simultaneously from real sumstats (single-pass)
         if gwas_sumstats in ("null", ""):
             print("ERROR: gwas_sumstats required", file=sys.stderr)
             sys.exit(1)
@@ -285,7 +287,7 @@ process MAGMA_GENE_ANALYSIS {
             with open(path, "rb") as _f:
                 magic = _f.read(2)
             return _gz.open(path, "rt") if magic == b"\\x1f\\x8b" else open(path)
-        with _open_b(psum) as fh, open("pval.txt", "w") as out:
+        with _open_b(psum) as fh, open("pval.txt", "w") as out, open("snp.loc", "w") as sloc:
             reader = csv.DictReader(fh, delimiter="\\t")
             col_map = {c.upper(): c for c in (reader.fieldnames or [])}
 
@@ -310,26 +312,38 @@ process MAGMA_GENE_ANALYSIS {
                 print(f"ERROR: P-value column '{pval_col}' not found. Columns: {list(col_map.keys())}", file=sys.stderr)
                 sys.exit(1)
 
+            # CHR/BP columns for snp.loc (used by Phase B --snp-loc to avoid --bfile OOM)
+            chr_col = (col_map.get("CHR") or col_map.get("CHROMOSOME") or col_map.get("CHROM"))
+            bp_col  = (col_map.get("BP") or col_map.get("POS") or col_map.get("POSITION") or
+                       col_map.get("BASE_PAIR_LOCATION") or col_map.get("BASE_PAIR_LOCATION_HG19") or
+                       col_map.get("BASE_PAIR_LOCATION_GRCH37") or col_map.get("BPLOC"))
+            has_pos = chr_col is not None and bp_col is not None
+            print(f"[magma:phaseB] has_pos={has_pos}, chr={chr_col}, bp={bp_col}")
+
             n_spec = col_map.get(n_col.upper(), None)
             print(f"[magma:phaseB] columns: snp={s_col}, p={p_col}, n={n_spec or 'fixed='+str(n_fixed)}")
             out.write("SNP\\tP\\tN\\n")
+            sloc.write("SNP\\tCHR\\tBP\\n")
             for row in reader:
                 n_val = row[n_spec] if n_spec and n_spec in row else str(n_fixed)
                 out.write(f"{row[s_col]}\\t{row[p_col]}\\t{n_val}\\n")
+                if has_pos:
+                    chr_val = row[chr_col].lstrip("chrChr")
+                    sloc.write(f"{row[s_col]}\\t{chr_val}\\t{row[bp_col]}\\n")
         n_spec = "N"
 
-    # Phase A used --snp-loc (ID-based annotation). For snp-wise model, no --bfile needed.
-    # For multi model, --bfile is required but Phase A must also use --bfile for an
-    # index-based annotation (mixing snp_loc annotation + multi model crashes MAGMA).
+    # Phase A used --snp-loc (ID-based annotation without bfile).
+    # Phase B snp-wise: use --snp-loc (avoids OOM from loading 22M-SNP bfile).
+    # Phase B multi: use --bfile (LD needed; Phase A must also use --bfile for index annotation).
     if model == "snp-wise":
-        bfile_arg = []
+        snp_data_arg = ["--snp-loc", "snp.loc"]
     else:
-        bfile_arg = ["--bfile", "/opt/magma/ref/g1000_eur"]
+        snp_data_arg = ["--bfile", "/opt/magma/ref/g1000_eur"]
     model_arg = ["--gene-model", model]
 
     cmd = [
         "/opt/magma/magma",
-    ] + bfile_arg + [
+    ] + snp_data_arg + [
         "--gene-annot", str("${genes_annot}"),
         "--pval", "pval.txt", "snp-id=SNP", "pval=P", "ncol=N",
     ] + model_arg + [
@@ -368,7 +382,7 @@ process MAGMA_GENE_ANALYSIS {
     json.dump({
         "phase": "B",
         "gene_model": model,
-        "bfile_used": "g1000_eur" if bfile_arg else "none (snp-wise, id-based annotation)",
+        "snp_data": "snp_loc" if model == "snp-wise" else "bfile_g1000_eur",
         "n_genes_output": n_genes,
         "gene_analysis_ok": result.returncode == 0,
         "magma_log_tail": magma_stdout[-5000:],
