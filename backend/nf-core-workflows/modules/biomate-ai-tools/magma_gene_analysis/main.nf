@@ -76,30 +76,21 @@ process MAGMA_ANNOTATE {
     output: tuple val(meta), path("${params.outfile}.genes.annot"), path("annotate.json"), emit: out
 
     script:
-    def baked     = params.use_baked_toy as Boolean
-    def genome    = params.genome_build
-    def winUp     = params.window_upstream_kb
-    def winDown   = params.window_downstream_kb
-    def outfile   = params.outfile
-    def snp_col   = params.snp_col
-    def pval_col  = params.pval_col
-    def n_col     = params.n_col
-    def n_fixed   = params.sample_size
+    def baked    = params.use_baked_toy as Boolean
+    def genome   = params.genome_build
+    def winUp    = params.window_upstream_kb
+    def winDown  = params.window_downstream_kb
+    def outfile  = params.outfile
     """
     set -euo pipefail
     python3 - <<'PY'
-    import json, os, sys, subprocess, tempfile
+    import json, os, sys, subprocess
 
-    baked     = ${baked ? 'True' : 'False'}
-    genome    = "${genome}"
-    win_up    = ${winUp}
-    win_down  = ${winDown}
-    outfile   = "${outfile}"
-    snp_col   = "${snp_col}"
-    pval_col  = "${pval_col}"
-    n_col     = "${n_col}"
-    n_fixed   = ${n_fixed}
-    sumstats  = "${params.gwas_sumstats}"
+    baked    = ${baked ? 'True' : 'False'}
+    genome   = "${genome}"
+    win_up   = ${winUp}
+    win_down = ${winDown}
+    outfile  = "${outfile}"
 
     # Gene location files baked into container under /opt/magma/ref/
     gene_loc_map = {
@@ -108,80 +99,23 @@ process MAGMA_ANNOTATE {
     }
     gene_loc = gene_loc_map.get(genome, gene_loc_map["hg19"])
 
-    if baked:
-        # Synthetic chr1 sumstats: 2000 SNPs with realistic MAF + random p-values.
-        # Includes a tight cluster around APOE-region proxy (chr1:200M) to ensure
-        # at least one gene hits significance for smoke validation.
-        import random
-        random.seed(42)
-        rows = ["SNP\tCHR\tBP\tP\tN"]
-        # Cluster 1 (strong signal, chr1 50–55 Mb, gene PTPN22 region)
-        for i in range(200):
-            bp = random.randint(50_000_000, 55_000_000)
-            p  = 10 ** -random.uniform(5, 9)
-            rows.append(f"rs_cl1_{i}\\t1\\t{bp}\\t{p:.6e}\\t50000")
-        # Background noise
-        for i in range(1800):
-            bp = random.randint(1_000_000, 249_000_000)
-            p  = random.uniform(0.01, 0.99)
-            rows.append(f"rs_bg_{i}\\t1\\t{bp}\\t{p:.6e}\\t50000")
-        with open("sumstats.tmp", "w") as f:
-            f.write("\\n".join(rows))
-        snp_col  = "SNP"
-        pval_col = "P"
-        n_col    = "N"
-    else:
-        if sumstats in ("null", ""):
-            print("ERROR: gwas_sumstats required when use_baked_toy=false", file=sys.stderr)
-            sys.exit(1)
-        if sumstats.startswith("s3://"):
-            import boto3
-            parts = sumstats[5:].split("/", 1)
-            boto3.client("s3").download_file(parts[0], parts[1], "sumstats.tmp")
-        else:
-            import shutil
-            shutil.copy(sumstats, "sumstats.tmp")
-
-    # Build SNP location file (SNP CHR BP) that MAGMA --annotate needs.
-    # Stream directly to snp.loc — do NOT accumulate all rows; Ishigaki has 13M rows.
-    import csv, gzip as _gz
-    # Auto-detect gzip by magic bytes so .tsv.gz inputs are handled transparently.
-    def _open_sumstats(path):
-        with open(path, "rb") as _f:
-            magic = _f.read(2)
-        return _gz.open(path, "rt") if magic == b"\\x1f\\x8b" else open(path)
-    n_snps = 0
-    with _open_sumstats("sumstats.tmp") as fh, open("snp.loc", "w") as out:
-        reader = csv.DictReader(fh, delimiter="\\t")
-        header = reader.fieldnames or []
-        # Tolerate case-insensitive column matching
-        col_map = {c.upper(): c for c in header}
-        s_col = col_map.get(snp_col.upper(), snp_col)
-        c_col = col_map.get("CHR", col_map.get("CHROMOSOME", col_map.get("CHROM", None)))
-        b_col = col_map.get("BP", col_map.get("POS", col_map.get("POSITION",
-                col_map.get("BASE_PAIR_LOCATION", col_map.get("BPLOCATION", None)))))
-        if not (c_col and b_col):
-            print(f"ERROR: need CHR and BP columns in sumstats; found: {header}", file=sys.stderr)
-            sys.exit(1)
-        out.write("SNP\\tCHR\\tBP\\n")
-        for row in reader:
-            chrom_clean = str(row[c_col]).replace("chr", "").replace("Chr", "")
-            out.write(f"{row[s_col]}\\t{chrom_clean}\\t{row[b_col]}\\n")
-            n_snps += 1
-
-    # Run magma --annotate
+    # Standard MAGMA workflow: annotate using the g1000_eur reference panel.
+    # This creates an INDEX-BASED genes.annot (bfile column indices, not rsIDs).
+    # Phase B MUST use the same --bfile so the indices match.
+    # GWAS sumstats are NOT needed in Phase A — only gene coordinates and the
+    # reference SNP positions matter for annotation.
     cmd = [
         "/opt/magma/magma",
         "--annotate",
         f"window={win_up},{win_down}",
-        "--snp-loc", "snp.loc",
+        "--bfile", "/opt/magma/ref/g1000_eur",
         "--gene-loc", gene_loc,
         "--out", outfile,
     ]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
     if result.returncode != 0:
         print(f"[magma:phaseA] STDERR:\\n{result.stderr}", file=sys.stderr)
-        # Graceful: if annotation failed, write empty .annot so Phase B can report
+        # Graceful: write empty .annot so Phase B can report
         open(f"{outfile}.genes.annot", "w").write("")
     else:
         print(result.stdout[-1000:] if result.stdout else "[magma:phaseA] annotation complete")
@@ -191,7 +125,7 @@ process MAGMA_ANNOTATE {
         "baked_toy": baked,
         "genome_build": genome,
         "gene_loc_file": gene_loc,
-        "n_snps_input": n_snps,
+        "annot_type": "bfile_index",
         "window_kb": [win_up, win_down],
         "annot_ok": result.returncode == 0,
     }, open("annotate.json", "w"), indent=2)
@@ -291,23 +225,9 @@ process MAGMA_GENE_ANALYSIS {
                 out.write(f"{row[s_col]}\\t{row[p_col]}\\t{n_val}\\n")
         n_spec = "N"
 
-    # Build MAGMA gene-analysis command.
-    #
-    # Phase A was run with --snp-loc (no bfile), so genes.annot stores rsIDs (not
-    # bfile indices). Phase B must NOT pass --bfile when using snp-wise model:
-    # MAGMA crashes after reading synonyms if --bfile is given but genes.annot is
-    # in ID-based (not index-based) format. snp-wise does not need LD estimation,
-    # so --bfile is optional and we omit it for snp-wise mode.
-    # For multi model (LD correction required), we would need to re-run Phase A
-    # with --bfile to produce an index-based annotation first.
-    if model == "snp-wise":
-        bfile_arg = []
-    else:
-        # multi model needs bfile for LD matrix; requires Phase A was also run
-        # with the same bfile (index-based genes.annot). Using bfile here with
-        # an ID-based genes.annot will crash — switch to snp-wise if that happens.
-        bfile_arg = ["--bfile", "/opt/magma/ref/g1000_eur"]
-
+    # Standard MAGMA Phase B: Phase A now creates index-based annotation via --bfile.
+    # Both phases MUST use the same --bfile so SNP indices in genes.annot are resolved.
+    bfile_arg = ["--bfile", "/opt/magma/ref/g1000_eur"]
     model_arg = ["--gene-model", model]
 
     cmd = [
@@ -352,7 +272,7 @@ process MAGMA_GENE_ANALYSIS {
     json.dump({
         "phase": "B",
         "gene_model": model,
-        "bfile_used": "g1000_eur" if bfile_arg else "none (snp-wise, id-based annotation)",
+        "bfile_used": "g1000_eur",
         "n_genes_output": n_genes,
         "gene_analysis_ok": result.returncode == 0,
         "magma_log_tail": magma_stdout[-5000:],
