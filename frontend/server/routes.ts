@@ -891,27 +891,12 @@ const OPEN_CLAW_TOOLS = [
     },
   },
   // ── Bioconductor knowledge ────────────────────────────────────────────────
-  {
-    name: "bioconductor_skill",
-    description:
-      "Look up authoritative usage guidance for a Bioconductor R package. " +
-      "Returns: when to use it, required inputs, key parameters, code recipes, " +
-      "pitfalls, and alternatives. Covers 200 high-value packages (top-100 by " +
-      "downloads + top-100 rising stars). Use this BEFORE running a Bioconductor " +
-      "workflow to confirm the right tool and parameters for the analysis. " +
-      "Examples: bioconductor_skill('deseq2') before an RNA-seq run; " +
-      "bioconductor_skill('seurat') before a single-cell analysis.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        package: {
-          type: "string",
-          description: "Bioconductor package name (case-insensitive). E.g. 'DESeq2', 'edgeR', 'limma', 'Seurat', 'clusterProfiler', 'minfi', 'phyloseq'",
-        },
-      },
-      required: ["package"],
-    },
-  },
+  // Commented out: BioMate's search_workflow already covers this via the live
+  // workflow DB (2,455 workflows). Static per-package skill files are redundant.
+  // {
+  //   name: "bioconductor_skill",
+  //   ...
+  // },
 ];
 
 /**
@@ -1020,8 +1005,7 @@ async function executeOpenClaudeTool(
           url: input.url,
         });
 
-      case "bioconductor_skill":
-        return await get(`/api/bioconductor/skill/${encodeURIComponent(input.package)}`);
+      // case "bioconductor_skill": removed — use search_workflow instead
 
       default:
         return { error: `Unknown tool: ${toolName}` };
@@ -8002,37 +7986,9 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
-  // GET /api/bioconductor/skill/:package
-  // Returns the SKILL.md content for a Bioconductor package from the local knowledge base.
-  app.get("/api/bioconductor/skill/:package", optionalAuth, async (req, res) => {
-    const pkgRaw = req.params.package || "";
-    const pkg = pkgRaw.toLowerCase().replace(/[^a-z0-9._-]/g, "");
-    if (!pkg) return res.status(400).json({ error: "package name required" });
-
-    const manifestPath = path.join(process.cwd(), "..", "bioconductor_skill", "MANIFEST.json");
-
-    try {
-      // Search manifest for the package (case-insensitive)
-      const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
-      const entry = (manifest.packages as Array<{ name: string; path: string; domain: string }> | undefined)
-        ?.find((p) => p.name.toLowerCase() === pkg || p.path.toLowerCase().includes(`/${pkg}/`));
-
-      if (!entry) {
-        // Return a curated not-found with a pointer to the full knowledge base
-        return res.json({
-          found: false,
-          package: pkgRaw,
-          message: `No skill found for '${pkgRaw}' in the local 200-package knowledge base. The full BioMate KB has 1,818 Bioconductor packages at biomate.ai. Try search_workflow to find a matching pipeline.`,
-        });
-      }
-
-      const skillPath = path.join(path.dirname(manifestPath), entry.path);
-      const content = await fs.readFile(skillPath, "utf8");
-      return res.json({ found: true, package: entry.name, domain: entry.domain, skill_md: content });
-    } catch (err: any) {
-      return res.status(500).json({ error: err.message });
-    }
-  });
+  // GET /api/bioconductor/skill/:package — commented out.
+  // BioMate's search_workflow covers this via the live workflow DB.
+  // app.get("/api/bioconductor/skill/:package", ...);
 
   app.get("/api/data/browse", authenticateStaticApiKey, authenticateToken, async (req, res) => {
     // Proxies to Galaxy's /api/remote_files which lists contents of a file source path.
@@ -11404,6 +11360,22 @@ Rules:
 
       if (!outdir || !String(outdir).startsWith('s3://')) {
         outdir = `s3://${s3Bucket}/nextflow/outputs/${runId}`;
+      }
+
+      // Inject download_url for every file that doesn't already have one.
+      // Files from nfStatus.s3_output_files only carry {s3_uri, name, size, extension};
+      // the S3-listing fallback above already sets download_endpoint + downloadUrl.
+      // This ensures MCP clients always get an authenticated HTTP download URL.
+      for (const f of outputFiles) {
+        if (!f.download_url && !f.download_endpoint && !f.downloadUrl) {
+          const fname = encodeURIComponent(f.name || f.filename || '');
+          if (fname) {
+            f.download_url = `/api/runs/${runId}/output/${fname}`;
+            f.download_endpoint = f.download_url;
+          }
+        } else if (!f.download_url) {
+          f.download_url = f.download_endpoint || f.downloadUrl;
+        }
       }
 
       res.json({
