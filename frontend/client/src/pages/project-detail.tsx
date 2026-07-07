@@ -6,11 +6,11 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
-import { 
-  ArrowLeft, 
-  MessageCircle, 
-  FileText, 
-  Settings, 
+import {
+  ArrowLeft,
+  MessageCircle,
+  FileText,
+  Settings,
   Plus,
   Edit3,
   Save,
@@ -19,7 +19,12 @@ import {
   Download,
   Trash2,
   Clock,
-  Tag
+  Tag,
+  FlaskConical,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  Circle,
 } from "lucide-react"
 import { projectService } from "@/lib/projects"
 import { ChatInterface } from "@/components/chat-interface"
@@ -45,7 +50,10 @@ export default function ProjectDetailPage({
   const [currentChatSession, setCurrentChatSession] = useState<ChatSession | null>(null)
   const [isEditingInstructions, setIsEditingInstructions] = useState(false)
   const [instructionsValue, setInstructionsValue] = useState("")
-  const [activeTab, setActiveTab] = useState(initialTab || "chat")
+  const validTabs = ["chat", "files", "workflows"]
+  const [activeTab, setActiveTab] = useState(validTabs.includes(initialTab || "") ? initialTab! : "chat")
+  const [projectRuns, setProjectRuns] = useState<any[]>([])
+  const [runsLoading, setRunsLoading] = useState(false)
 
   // Load project data — try API first, fall back to localStorage
   useEffect(() => {
@@ -85,6 +93,17 @@ export default function ProjectDetailPage({
     }
     loadProject()
   }, [projectId])
+
+  // Load workflow runs for this project when the Workflows tab is active
+  useEffect(() => {
+    if (activeTab !== "workflows") return
+    setRunsLoading(true)
+    fetch(`/api/workflows/runs?projectId=${projectId}&limit=50`, { credentials: "include" })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setProjectRuns(Array.isArray(data) ? data : []))
+      .catch(() => setProjectRuns([]))
+      .finally(() => setRunsLoading(false))
+  }, [activeTab, projectId])
 
   const handleCreateNewChat = () => {
     if (!project) return
@@ -227,6 +246,10 @@ export default function ProjectDetailPage({
                 <FileText className="w-4 h-4" />
                 Files
               </TabsTrigger>
+              <TabsTrigger value="workflows" className="flex items-center gap-2" data-testid="tab-project-workflows">
+                <FlaskConical className="w-4 h-4" />
+                Workflows
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="chat" className="flex-1 m-0">
@@ -289,6 +312,57 @@ export default function ProjectDetailPage({
 
             <TabsContent value="files" className="flex-1 m-0 p-4" style={{ display: "flex", flexDirection: "column" }}>
               <ProjectFileTree projectId={projectId} />
+            </TabsContent>
+
+            <TabsContent value="workflows" className="flex-1 m-0 p-4" data-testid="tab-content-workflows">
+              <div className="h-full flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium text-sm">Workflow runs in this project</h3>
+                </div>
+                {runsLoading ? (
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm py-8 justify-center">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading runs…
+                  </div>
+                ) : projectRuns.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                    <FlaskConical className="w-10 h-10 mb-3 opacity-40" />
+                    <p className="text-sm font-medium mb-1">No workflow runs yet</p>
+                    <p className="text-xs">Start a chat and ask BioMate to run a workflow.</p>
+                  </div>
+                ) : (
+                  <ScrollArea className="flex-1">
+                    <div className="space-y-2">
+                      {projectRuns.map((run: any) => {
+                        const status = run.execution?.status ?? run.status ?? "unknown"
+                        const name = run.workflowName ?? run.execution?.workflowName ?? run.id
+                        const ts = run.createdAt ?? run.execution?.createdAt
+                        const relTime = ts ? new Date(ts).toLocaleString() : ""
+                        const statusIcon =
+                          status === "completed" ? <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" /> :
+                          status === "failed" || status === "errored" ? <XCircle className="w-4 h-4 text-red-500 flex-shrink-0" /> :
+                          status === "running" ? <Loader2 className="w-4 h-4 text-blue-500 animate-spin flex-shrink-0" /> :
+                          <Circle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        return (
+                          <div key={run.id} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/40 transition-colors">
+                            {statusIcon}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{name}</p>
+                              <p className="text-xs text-muted-foreground">{status} · {relTime}</p>
+                            </div>
+                            {run.chatSessionId && (
+                              <Button size="sm" variant="outline" className="text-xs h-7 px-2 flex-shrink-0"
+                                onClick={() => window.location.assign(`/?session=${encodeURIComponent(run.chatSessionId)}`)}>
+                                Open
+                              </Button>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </ScrollArea>
+                )}
+              </div>
             </TabsContent>
           </Tabs>
         </div>
