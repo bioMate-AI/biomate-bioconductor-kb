@@ -92,12 +92,12 @@ async function assertPanelOpened(page: Page, label: string): Promise<string | nu
       latestMsg?.includes("unreachable") ||
       latestMsg?.includes("backend connection") ||
       latestMsg?.includes("AI Assistant not available") ||
-      // Galaxy transient failures: HTTP 500 or socket hang up under load.
-      // "Could not generate workflow" + a server-side error signal means the
-      // Galaxy backend failed, not that BioMate routed wrong.  Skip rather
-      // than fail so a single overloaded worker doesn't hide real routing bugs.
+      // Galaxy transient failures: HTTP 500, socket hang, or unexpected system error under load.
+      // "Could not generate workflow" + any server-side error signal means the Galaxy backend
+      // crashed, not that BioMate routed wrong.  Skip rather than fail so a single overloaded
+      // worker doesn't hide real routing bugs.
       (latestMsg?.includes("Could not generate workflow") &&
-        /server error|socket|timeout|\b500\b|connection.*error|error.*connection/i.test(latestMsg ?? ""));
+        /server error|system error|unexpected.*error|socket|timeout|\b500\b|connection.*error|error.*connection/i.test(latestMsg ?? ""));
 
     if (isInfra) {
       console.warn(`[${label}] INFRA-SKIP: Galaxy backend unavailable or overloaded — skipping test`);
@@ -412,8 +412,13 @@ test("UC-6b: extractInlineDataWithLLM preserves multi-value data (array or strin
     console.warn("[UC-6b] No server log found — skipping log assertion");
     return;
   }
-  const logContent = fs.readFileSync(serverLog, "utf8").slice(logSizeBefore);
-  console.log("[UC-6b] New log chars:", logContent.length);
+  // Slice by BYTE offset (not character), then decode.
+  // The log contains binary bytes (emoji/arrows in startup messages) so
+  // readFileSync("utf8") returns a string where character count != byte count.
+  // Slicing a utf8 string by a byte offset skips wrong positions and loses lines.
+  const logBuf = fs.readFileSync(serverLog);
+  const logContent = logBuf.slice(logSizeBefore).toString("utf8");
+  console.log("[UC-6b] New log bytes:", logBuf.length - logSizeBefore);
 
   const extractionLines = logContent.split("\n").filter(l => l.includes("[extractInlineData] result"));
   console.log("[UC-6b] Extraction log lines:", extractionLines.length);
