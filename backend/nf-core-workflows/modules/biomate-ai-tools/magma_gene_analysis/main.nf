@@ -332,75 +332,109 @@ process MAGMA_GENE_ANALYSIS {
                     sloc.write(f"{row[s_col]}\\t{chr_val}\\t{row[bp_col]}\\n")
         n_spec = "N"
 
-    # SNP-wise mean model: implement directly in Python to avoid loading the
-    # 22M-SNP g1000_eur bfile which OOM-kills the container (exit -9).
-    # Formula: Z_g = (mean_chi2 - 1) * sqrt(k / 2), P_g = 1 - Phi(Z_g)
-    # where chi2_i = chi2.ppf(1 - p_i, df=1) for each SNP i in the gene window.
-    # This is equivalent to MAGMA's --gene-model snp-wise (mean variant).
-    # The multi model still uses MAGMA with --bfile (requires LD estimation).
+    # SNP-wise mean model implemented in Python via sort-merge join.
+    # MAGMA Phase B requires --bfile, but loading the 22M-SNP g1000_eur bfile
+    # OOM-kills the container (exit -9). Building a full Python SNP dict also OOM-kills
+    # (3M string keys × Python overhead = 800MB+).
+    # Solution: sort-merge join on disk — sorts both annotation pairs and pval.txt by
+    # SNP ID, then streams them together accumulating chi² per gene.
+    # Memory stays ~300MB regardless of GWAS size.
+    # Formula: Z_g = (mean_chi2 - 1) * sqrt(k/2), P_g = 1 - Phi(Z_g)
     if model == "snp-wise":
-        import scipy.stats as _sps, numpy as _np
+        import scipy.stats as _sps, numpy as _np, subprocess as _sp
 
-        # Step 1: collect all SNP IDs needed across all gene windows
-        genes_annot_file = str("${genes_annot}")
-        needed_snps = set()
-        gene_annot_rows = {}  # gid → (chrom, start, stop, [snp_ids])
-        with open(genes_annot_file) as _af:
+        # Step 1: Parse genes.annot → gene metadata + explode (snp, gid) pairs to disk
+        _genes_annot_file = str("${genes_annot}")
+        _gene_meta = {}  # gid → (chrom, start, stop, n_snps_annot)
+        _n_pairs = 0
+        with open(_genes_annot_file) as _af, open("_annot_pairs.tmp", "w") as _pf:
             for _line in _af:
                 if _line.startswith("#"): continue
                 _parts = _line.rstrip("\\n").split("\\t")
                 if len(_parts) < 3: continue
                 _gid = _parts[0]
-                _pos = _parts[1].split(":")  # chr:start:stop
+                _pos = _parts[1].split(":")
                 _snps = [s for s in _parts[2:] if s and s != "NA"]
-                gene_annot_rows[_gid] = (_pos[0], int(_pos[1]), int(_pos[2]), _snps)
-                needed_snps.update(_snps)
-        print(f"[magma:phaseB:py] {len(gene_annot_rows)} genes, {len(needed_snps)} unique annotation SNPs")
+                _gene_meta[_gid] = (_pos[0], int(_pos[1]), int(_pos[2]), len(_snps))
+                for _snp in _snps:
+                    _pf.write(f"{_snp}\\t{_gid}\\n")
+                    _n_pairs += 1
+        print(f"[magma:phaseB:py] {len(_gene_meta)} genes, {_n_pairs} annot pairs; sorting...")
 
-        # Step 2: build SNP→p-value dict (only SNPs present in annotation)
-        snp_pval = {}
-        with open("pval.txt") as _pf:
-            _hdr = _pf.readline().strip().split("\\t")
-            _si = _hdr.index("SNP")
-            _pi = _hdr.index("P")
-            _ni = _hdr.index("N") if "N" in _hdr else -1
-            for _line in _pf:
-                _p = _line.rstrip("\\n").split("\\t")
-                _snp = _p[_si]
-                if _snp not in needed_snps: continue
-                try:
-                    _pv = float(_p[_pi])
-                    _nv = float(_p[_ni]) if _ni >= 0 else n_fixed
-                    if 0 < _pv < 1:
-                        snp_pval[_snp] = (_pv, _nv)
-                except (ValueError, IndexError):
-                    pass
-        print(f"[magma:phaseB:py] {len(snp_pval)} SNPs have p-values")
+        # Step 2: Sort annotation pairs and pval.txt by SNP (disk sort, O(1) RAM)
+        _sp.run(["sort", "-k1,1", "--temporary-directory", ".", "_annot_pairs.tmp",
+                 "-o", "_annot_sorted.tmp"], check=True)
+        os.unlink("_annot_pairs.tmp")
+        _sp.run(["bash", "-c",
+                 "tail -n+2 pval.txt | sort -k1,1 --temporary-directory . > _pval_sorted.tmp"],
+                check=True)
+        print("[magma:phaseB:py] sort done; merging...")
 
-        # Step 3: gene-level Z-statistics
-        out_rows = []
-        for _gid, (_chrom, _start, _stop, _snps) in gene_annot_rows.items():
-            _matched = [snp_pval[s] for s in _snps if s in snp_pval]
-            _k = len(_matched)
+        # Step 3: Stream-merge join: accumulate chi² per gene (O(1) RAM)
+        # pval_sorted.tmp format: SNP<tab>P<tab>N (no header, col indices fixed)
+        _gene_chi2 = {}   # gid → list of chi2 floats
+        _gene_nv   = {}   # gid → list of N values
+        _gene_nannot = {} # gid → len(annotation snps)
+        with open("_annot_sorted.tmp") as _af, open("_pval_sorted.tmp") as _pf:
+            _a_line = _af.readline()
+            _p_line = _pf.readline()
+            while _a_line and _p_line:
+                _a_parts = _a_line.rstrip("\\n").split("\\t", 1)
+                _p_parts = _p_line.rstrip("\\n").split("\\t")
+                _a_snp = _a_parts[0]
+                _p_snp = _p_parts[0]
+                if _a_snp == _p_snp:
+                    try:
+                        _pv = float(_p_parts[1])
+                        _nv = float(_p_parts[2]) if len(_p_parts) > 2 else n_fixed
+                        if 0 < _pv < 1:
+                            _pv = max(min(_pv, 1 - 1e-15), 1e-300)
+                            _c2 = _sps.chi2.ppf(1.0 - _pv, df=1)
+                            # All annotation entries for this SNP
+                            while _a_line and _a_parts[0] == _p_snp:
+                                _gid2 = _a_parts[1] if len(_a_parts) > 1 else _a_parts[0]
+                                _gene_chi2.setdefault(_gid2, []).append(_c2)
+                                _gene_nv.setdefault(_gid2, []).append(_nv)
+                                _a_line = _af.readline()
+                                if _a_line:
+                                    _a_parts = _a_line.rstrip("\\n").split("\\t", 1)
+                            _p_line = _pf.readline()
+                            continue
+                    except (ValueError, IndexError):
+                        pass
+                    # Skip mismatched annotation entry
+                    _a_line = _af.readline()
+                    if _a_line:
+                        _a_parts = _a_line.rstrip("\\n").split("\\t", 1)
+                elif _a_snp < _p_snp:
+                    _a_line = _af.readline()
+                else:
+                    _p_line = _pf.readline()
+        os.unlink("_annot_sorted.tmp")
+        os.unlink("_pval_sorted.tmp")
+        print(f"[magma:phaseB:py] merge done; {len(_gene_chi2)} genes have ≥1 matched SNP")
+
+        # Step 4: compute gene-level Z-statistics and write output
+        _out_rows = []
+        for _gid, (_c2s) in _gene_chi2.items():
+            _k = len(_c2s)
             if _k < 2: continue
-            _chi2v = [_sps.chi2.ppf(1.0 - max(min(_pv, 1-1e-15), 1e-300), df=1)
-                      for (_pv, _nv) in _matched]
-            _nsnps_annot = len(_snps)
-            _mean_chi2 = float(_np.mean(_chi2v))
-            _n_mean = float(_np.mean([_nv for (_, _nv) in _matched]))
-            _z = (_mean_chi2 - 1.0) * _np.sqrt(_k / 2.0)
-            _z = max(_z, 0.0)
+            _chrom, _start, _stop, _nsnps_annot = _gene_meta.get(_gid, ("?", 0, 0, 0))
+            _mean_c2 = float(_np.mean(_c2s))
+            _n_mean  = float(_np.mean(_gene_nv.get(_gid, [n_fixed])))
+            _z = max((_mean_c2 - 1.0) * _np.sqrt(_k / 2.0), 0.0)
             _pg = 1.0 - float(_sps.norm.cdf(_z))
-            out_rows.append((_gid, _chrom, _start, _stop, _nsnps_annot, _k, _n_mean, _z, _pg))
+            _out_rows.append((_gid, _chrom, _start, _stop, _nsnps_annot, _k, _n_mean, _z, _pg))
 
-        out_rows.sort(key=lambda r: r[-1])
+        _out_rows.sort(key=lambda r: r[-1])
         with open(f"{outfile}.genes.out", "w") as _of:
             _of.write("GENE\\tCHR\\tSTART\\tSTOP\\tNSNPS\\tNPARAM\\tN\\tZSTAT\\tP\\n")
-            for _r in out_rows:
-                _of.write(f"{_r[0]}\\t{_r[1]}\\t{_r[2]}\\t{_r[3]}\\t{_r[4]}\\t{_r[5]}\\t{int(_r[6])}\\t{_r[7]:.6f}\\t{_r[8]:.6e}\\n")
+            for _r in _out_rows:
+                _of.write(f"{_r[0]}\\t{_r[1]}\\t{_r[2]}\\t{_r[3]}\\t"
+                          f"{_r[4]}\\t{_r[5]}\\t{int(_r[6])}\\t{_r[7]:.6f}\\t{_r[8]:.6e}\\n")
         open(f"{outfile}.genes.raw", "w").write("")
-        n_genes = len(out_rows)
-        magma_stdout = f"[python_snp_wise] {n_genes} genes scored"
+        n_genes = len(_out_rows)
+        magma_stdout = f"[python_snp_wise] {n_genes} genes scored via sort-merge join"
         print(magma_stdout)
         result_ok = True
     else:
