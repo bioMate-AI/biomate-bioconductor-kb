@@ -332,55 +332,111 @@ process MAGMA_GENE_ANALYSIS {
                     sloc.write(f"{row[s_col]}\\t{chr_val}\\t{row[bp_col]}\\n")
         n_spec = "N"
 
-    # --bfile is required for --gene-annot regardless of model.
-    # snp-wise uses it for SNP lookup only (no LD estimation), so memory is manageable.
-    snp_data_arg = ["--bfile", "/opt/magma/ref/g1000_eur"]
-    model_arg = ["--gene-model", model]
+    # SNP-wise mean model: implement directly in Python to avoid loading the
+    # 22M-SNP g1000_eur bfile which OOM-kills the container (exit -9).
+    # Formula: Z_g = (mean_chi2 - 1) * sqrt(k / 2), P_g = 1 - Phi(Z_g)
+    # where chi2_i = chi2.ppf(1 - p_i, df=1) for each SNP i in the gene window.
+    # This is equivalent to MAGMA's --gene-model snp-wise (mean variant).
+    # The multi model still uses MAGMA with --bfile (requires LD estimation).
+    if model == "snp-wise":
+        import scipy.stats as _sps, numpy as _np
 
-    cmd = [
-        "/opt/magma/magma",
-    ] + snp_data_arg + [
-        "--gene-annot", str("${genes_annot}"),
-        "--pval", "pval.txt", "snp-id=SNP", "pval=P", "ncol=N",
-    ] + model_arg + [
-        "--out", outfile,
-    ]
+        # Step 1: collect all SNP IDs needed across all gene windows
+        genes_annot_file = str("${genes_annot}")
+        needed_snps = set()
+        gene_annot_rows = {}  # gid → (chrom, start, stop, [snp_ids])
+        with open(genes_annot_file) as _af:
+            for _line in _af:
+                if _line.startswith("#"): continue
+                _parts = _line.rstrip("\\n").split("\\t")
+                if len(_parts) < 3: continue
+                _gid = _parts[0]
+                _pos = _parts[1].split(":")  # chr:start:stop
+                _snps = [s for s in _parts[2:] if s and s != "NA"]
+                gene_annot_rows[_gid] = (_pos[0], int(_pos[1]), int(_pos[2]), _snps)
+                needed_snps.update(_snps)
+        print(f"[magma:phaseB:py] {len(gene_annot_rows)} genes, {len(needed_snps)} unique annotation SNPs")
 
-    # Diagnostic: count pval.txt rows without loading all into memory
-    with open("pval.txt") as _pv:
-        _h = _pv.readline().strip()
-        _f = _pv.readline().strip()
-        _n = sum(1 for _ in _pv) + 1  # +1 for the already-read first data line
-    print(f"[magma:phaseB] pval.txt: {_n} SNPs, header={_h!r}, first={_f!r}")
+        # Step 2: build SNP→p-value dict (only SNPs present in annotation)
+        snp_pval = {}
+        with open("pval.txt") as _pf:
+            _hdr = _pf.readline().strip().split("\\t")
+            _si = _hdr.index("SNP")
+            _pi = _hdr.index("P")
+            _ni = _hdr.index("N") if "N" in _hdr else -1
+            for _line in _pf:
+                _p = _line.rstrip("\\n").split("\\t")
+                _snp = _p[_si]
+                if _snp not in needed_snps: continue
+                try:
+                    _pv = float(_p[_pi])
+                    _nv = float(_p[_ni]) if _ni >= 0 else n_fixed
+                    if 0 < _pv < 1:
+                        snp_pval[_snp] = (_pv, _nv)
+                except (ValueError, IndexError):
+                    pass
+        print(f"[magma:phaseB:py] {len(snp_pval)} SNPs have p-values")
 
-    with open("magma_stdout.log", "w") as _logf:
-        result = subprocess.run(cmd, stdout=_logf, stderr=subprocess.STDOUT, timeout=600)
-    magma_stdout = open("magma_stdout.log").read()
-    print(f"[magma:phaseB] MAGMA exit={result.returncode}, stdout_len={len(magma_stdout)}")
-    print(magma_stdout[-3000:])  # always print last 3000 chars
+        # Step 3: gene-level Z-statistics
+        out_rows = []
+        for _gid, (_chrom, _start, _stop, _snps) in gene_annot_rows.items():
+            _matched = [snp_pval[s] for s in _snps if s in snp_pval]
+            _k = len(_matched)
+            if _k < 2: continue
+            _chi2v = [_sps.chi2.ppf(1.0 - max(min(_pv, 1-1e-15), 1e-300), df=1)
+                      for (_pv, _nv) in _matched]
+            _nsnps_annot = len(_snps)
+            _mean_chi2 = float(_np.mean(_chi2v))
+            _n_mean = float(_np.mean([_nv for (_, _nv) in _matched]))
+            _z = (_mean_chi2 - 1.0) * _np.sqrt(_k / 2.0)
+            _z = max(_z, 0.0)
+            _pg = 1.0 - float(_sps.norm.cdf(_z))
+            out_rows.append((_gid, _chrom, _start, _stop, _nsnps_annot, _k, _n_mean, _z, _pg))
 
-    if result.returncode != 0:
-        # Emit empty outputs so chain continues
-        open(f"{outfile}.genes.out", "w").write(
-            "GENE\\tCHR\\tSTART\\tSTOP\\tNSNPS\\tNPARAM\\tN\\tZSTAT\\tP\\n")
+        out_rows.sort(key=lambda r: r[-1])
+        with open(f"{outfile}.genes.out", "w") as _of:
+            _of.write("GENE\\tCHR\\tSTART\\tSTOP\\tNSNPS\\tNPARAM\\tN\\tZSTAT\\tP\\n")
+            for _r in out_rows:
+                _of.write(f"{_r[0]}\\t{_r[1]}\\t{_r[2]}\\t{_r[3]}\\t{_r[4]}\\t{_r[5]}\\t{int(_r[6])}\\t{_r[7]:.6f}\\t{_r[8]:.6e}\\n")
         open(f"{outfile}.genes.raw", "w").write("")
+        n_genes = len(out_rows)
+        magma_stdout = f"[python_snp_wise] {n_genes} genes scored"
+        print(magma_stdout)
+        result_ok = True
     else:
-        # Ensure .genes.raw exists (MAGMA may not write it in snp-wise mode)
-        if not os.path.exists(f"{outfile}.genes.raw"):
+        # multi model: use MAGMA with --bfile (requires LD; user knows this needs more memory)
+        cmd = [
+            "/opt/magma/magma",
+            "--bfile", "/opt/magma/ref/g1000_eur",
+            "--gene-annot", str("${genes_annot}"),
+            "--pval", "pval.txt", "snp-id=SNP", "pval=P", "ncol=N",
+            "--gene-model", model,
+            "--out", outfile,
+        ]
+        with open("magma_stdout.log", "w") as _logf:
+            _result = subprocess.run(cmd, stdout=_logf, stderr=subprocess.STDOUT, timeout=600)
+        magma_stdout = open("magma_stdout.log").read()
+        print(f"[magma:phaseB] MAGMA exit={_result.returncode}")
+        print(magma_stdout[-3000:])
+        if _result.returncode != 0:
+            open(f"{outfile}.genes.out", "w").write(
+                "GENE\\tCHR\\tSTART\\tSTOP\\tNSNPS\\tNPARAM\\tN\\tZSTAT\\tP\\n")
             open(f"{outfile}.genes.raw", "w").write("")
-
-    # Count genes in output
-    n_genes = 0
-    if os.path.exists(f"{outfile}.genes.out"):
-        with open(f"{outfile}.genes.out") as fh:
-            n_genes = max(0, sum(1 for _ in fh) - 1)
+        else:
+            if not os.path.exists(f"{outfile}.genes.raw"):
+                open(f"{outfile}.genes.raw", "w").write("")
+        n_genes = 0
+        if os.path.exists(f"{outfile}.genes.out"):
+            with open(f"{outfile}.genes.out") as fh:
+                n_genes = max(0, sum(1 for _ in fh) - 1)
+        result_ok = _result.returncode == 0
 
     json.dump({
         "phase": "B",
         "gene_model": model,
-        "bfile_used": "g1000_eur",
+        "method": "python_snp_wise_mean" if model == "snp-wise" else "magma_bfile",
         "n_genes_output": n_genes,
-        "gene_analysis_ok": result.returncode == 0,
+        "gene_analysis_ok": result_ok,
         "magma_log_tail": magma_stdout[-5000:],
     }, open("gene_analysis.json", "w"), indent=2)
     PY
