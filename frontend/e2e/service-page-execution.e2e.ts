@@ -285,6 +285,7 @@ async function runWorkflowStep(page: Page, step: WorkflowStep): Promise<void> {
     await pause(page, 1_500);
     await shot(page, 'service-execution', `${step.id}_06_findings`);
 
+    // Verify no "Analysis in progress…" spinner on a completed run
     const spinner = await page.locator('[data-testid="findings-loading"]').isVisible({ timeout: 500 }).catch(() => false);
     if (spinner) console.warn(`[${step.id}] ⚠️ findings spinner still visible after completion`);
     console.log(`[${step.id}] findings spinner: ${spinner ? '⚠️ still running' : '✅ none'}`);
@@ -297,8 +298,8 @@ async function runWorkflowStep(page: Page, step: WorkflowStep): Promise<void> {
     await pause(page, 1_000);
     await shot(page, 'service-execution', `${step.id}_07_qc`);
 
-    const qcBody    = await page.locator('[data-testid="qc-audit-tab"]').isVisible({ timeout: 5_000 }).catch(() => false);
-    const qcAllPass = await page.locator('[data-testid="qc-all-passed"]').isVisible({ timeout: 2_000 }).catch(() => false);
+    const qcBody     = await page.locator('[data-testid="qc-audit-tab"]').isVisible({ timeout: 5_000 }).catch(() => false);
+    const qcAllPass  = await page.locator('[data-testid="qc-all-passed"]').isVisible({ timeout: 2_000 }).catch(() => false);
     console.log(`[${step.id}] qc body=${qcBody ? '✅' : '❌'}  all-passed=${qcAllPass ? '✅' : '—'}`);
     expect(qcBody, `[${step.id}] QC tab body must render`).toBe(true);
   }
@@ -309,6 +310,7 @@ async function runWorkflowStep(page: Page, step: WorkflowStep): Promise<void> {
   console.log(`[${step.id}] download report: ${downloadVisible ? '✅' : '⚠️ not found'}`);
 
   if (downloadVisible) {
+    // Show download button in Findings context, not QC context
     const findingsBtnDl = page.locator('[data-testid="after-tab-findings"]').first();
     if (await findingsBtnDl.isVisible({ timeout: 2_000 }).catch(() => false)) {
       await findingsBtnDl.click();
@@ -324,28 +326,22 @@ async function runWorkflowStep(page: Page, step: WorkflowStep): Promise<void> {
   console.log(`[${step.id}] ✅ complete`);
 }
 
-// ── Shared session ─────────────────────────────────────────────────────────────
-
-let sharedPage: Page;
-
-test.beforeAll(async ({ browser }) => {
-  sharedPage = await browser.newPage();
-  await login(sharedPage);
-});
-
-test.afterAll(async () => {
-  await sharedPage.close().catch(() => {});
-});
-
 // ── The test ───────────────────────────────────────────────────────────────────
 
-test('Full execution flow — ADMET → BOIN → PBPK', async () => {
+test('Full execution flow — ADMET → BOIN → PBPK', async ({ browser }) => {
   // Total: (90 s LLM + 20 min exec + 60 s overhead) × 3 workflows
   test.setTimeout((90_000 + EXEC_TIMEOUT_MS + 60_000) * 3);
 
-  for (const step of WORKFLOW_STEPS) {
-    await runWorkflowStep(sharedPage, step);
-  }
+  const page = await browser.newPage();
+  try {
+    await login(page);
 
-  console.log('\n✅ Full execution flow complete (ADMET → BOIN → PBPK)');
+    for (const step of WORKFLOW_STEPS) {
+      await runWorkflowStep(page, step);
+    }
+
+    console.log('\n✅ Full execution flow complete (ADMET → BOIN → PBPK)');
+  } finally {
+    await page.close().catch(() => {});
+  }
 });

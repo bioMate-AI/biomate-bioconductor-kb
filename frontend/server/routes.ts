@@ -11364,8 +11364,8 @@ Rules:
 
       // Inject download_url for every file that doesn't already have one.
       // Files from nfStatus.s3_output_files only carry {s3_uri, name, size, extension};
-      // the S3-listing fallback above already sets download_endpoint + downloadUrl.
-      // This ensures MCP clients always get an authenticated HTTP download URL.
+      // the S3-listing fallback path above already sets download_endpoint + downloadUrl.
+      // This ensures MCP clients and API consumers always get an authenticated HTTP URL.
       for (const f of outputFiles) {
         if (!f.download_url && !f.download_endpoint && !f.downloadUrl) {
           const fname = encodeURIComponent(f.name || f.filename || '');
@@ -11374,6 +11374,7 @@ Rules:
             f.download_endpoint = f.download_url;
           }
         } else if (!f.download_url) {
+          // Normalise: always expose download_url alongside download_endpoint
           f.download_url = f.download_endpoint || f.downloadUrl;
         }
       }
