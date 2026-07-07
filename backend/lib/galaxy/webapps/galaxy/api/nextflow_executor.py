@@ -198,6 +198,62 @@ def _resolve_rationale_id(
         return None
 
 
+# Module-level cache for the resolved SSE inject URL.  Populated on first call
+# to _resolve_frontend_url() and reused for the lifetime of the process so
+# we don't probe the network on every chat-progress event.
+_frontend_url_cache: Dict[str, Optional[str]] = {"url": None}
+
+
+def _resolve_frontend_url() -> str:
+    """
+    Return the base URL of the frontend SSE inject endpoint.
+
+    Resolution order:
+    1. ``FRONTEND_URL`` env var (authoritative — set this in production).
+    2. Docker service names tried by TCP probe (dev / compose environments
+       where ``FRONTEND_URL`` is not explicitly set).
+    3. Localhost fallbacks.
+
+    Result is cached for the lifetime of the process so only the first call
+    pays the probe cost.
+    """
+    if _frontend_url_cache["url"] is not None:
+        return _frontend_url_cache["url"]
+
+    import os as _os
+    import socket as _socket
+    from urllib.parse import urlparse as _urlparse
+
+    explicit = _os.environ.get("FRONTEND_URL")
+    if explicit:
+        _frontend_url_cache["url"] = explicit
+        log.info("[SSE] FRONTEND_URL explicit: %s", explicit)
+        return explicit
+
+    _candidates = [
+        "http://biomate-dev-frontend:3000",
+        "http://biomate-frontend:3000",
+        "http://localhost:3000",
+        "http://localhost:5000",
+    ]
+    for base in _candidates:
+        try:
+            u = _urlparse(base)
+            with _socket.create_connection((u.hostname, u.port or 80), timeout=2):
+                _frontend_url_cache["url"] = base
+                log.info("[SSE] resolved frontend URL: %s", base)
+                return base
+        except Exception:
+            continue
+
+    # Last resort — may fail silently if nothing is reachable, which is fine
+    # for tests / offline dev.
+    fallback = _candidates[-1]
+    _frontend_url_cache["url"] = fallback
+    log.warning("[SSE] no frontend reachable; falling back to %s", fallback)
+    return fallback
+
+
 def _narrate_chat(invocation_id: str, kind: str, technical: Optional[Dict[str, Any]] = None) -> None:
     """
     Emit a workflow-progress chat line to the frontend's SSE inject endpoint.
@@ -211,12 +267,10 @@ def _narrate_chat(invocation_id: str, kind: str, technical: Optional[Dict[str, A
     except Exception:
         return
 
-    import os as _os
     import json as _json
     import urllib.request as _urllib
 
-    frontend_url = _os.environ.get("FRONTEND_URL", "http://localhost:5000")
-    inject_url = f"{frontend_url}/internal/sse-inject"
+    inject_url = f"{_resolve_frontend_url()}/internal/sse-inject"
 
     def _post_sse(event_type: str, data: Dict[str, Any]) -> None:
         try:
@@ -241,12 +295,10 @@ def _narrate_chat(invocation_id: str, kind: str, technical: Optional[Dict[str, A
 
 def _post_sse_direct(invocation_id: str, event_type: str, data: Dict[str, Any]) -> None:
     """Module-level SSE inject — usable outside _narrate_chat."""
-    import os as _os
-    frontend_url = _os.environ.get("FRONTEND_URL", "http://localhost:5000")
     try:
         import requests as _req
         _req.post(
-            f"{frontend_url}/internal/sse-inject",
+            f"{_resolve_frontend_url()}/internal/sse-inject",
             json={"invocation_id": invocation_id, "event_type": event_type, "data": data},
             timeout=2,
         )
@@ -2684,11 +2736,10 @@ def _evaluate_qc_from_s3(
         # AutoLoopPanel receives autoloop_gate_results / autoloop_update
         # events. Previously this was a no-op which left the UI empty
         # even when gates were correctly evaluated.
-        import os as _os, urllib.request as _urllib
-        _frontend_url = _os.environ.get("FRONTEND_URL", "http://localhost:5000")
-        _inject_url = f"{_frontend_url}/internal/sse-inject"
+        import urllib.request as _urllib
 
         def _sse_emit(event_type: str, data: Dict[str, Any]) -> None:
+            _inject_url = f"{_resolve_frontend_url()}/internal/sse-inject"
             try:
                 req = _urllib.Request(
                     _inject_url,
@@ -2774,49 +2825,11 @@ def _start_qc_monitor(
         log.warning("[QC Monitor] QC gate handler not available — skipping QC monitoring")
         return
 
-    import os as _os
     import json as _json
     import urllib.request as _urllib
 
-    # FRONTEND_URL when set is authoritative. Otherwise try the dev/prod
-    # docker-compose service names on their actual listen ports (Node app
-    # binds 3000, not 5000), then localhost as last resort. Probing order
-    # matters: the first reachable URL is cached for the lifetime of this
-    # callback closure.
-    _explicit = _os.environ.get("FRONTEND_URL")
-    _candidates = ([_explicit] if _explicit else [
-        "http://biomate-dev-frontend:3000",
-        "http://biomate-frontend:3000",
-        "http://localhost:3000",
-        "http://localhost:5000",
-    ])
-    inject_url_cache: dict = {"url": None}
-
-    def _resolve_inject_url() -> str:
-        if inject_url_cache["url"]:
-            return inject_url_cache["url"]
-        import socket as _socket
-        for base in _candidates:
-            url = f"{base}/internal/sse-inject"
-            # Reachability check is a raw TCP connect to host:port, NOT an
-            # HTTP probe. HTTP probes with an empty body return 4xx which
-            # an HTTPError except would falsely treat as "unreachable", and
-            # any real body would mutate state. TCP connect succeeds iff
-            # the listener is alive.
-            try:
-                from urllib.parse import urlparse as _urlparse
-                u = _urlparse(base)
-                with _socket.create_connection((u.hostname, u.port or 80), timeout=2):
-                    inject_url_cache["url"] = url
-                    log.info("[QC Monitor] SSE inject endpoint: %s", url)
-                    return url
-            except Exception:
-                continue
-        inject_url_cache["url"] = f"{_candidates[0]}/internal/sse-inject"
-        log.warning("[QC Monitor] No SSE inject endpoint reachable; falling back to %s", inject_url_cache["url"])
-        return inject_url_cache["url"]
-
     def _sse_callback(event_type: str, data: dict) -> None:
+        inject_url = f"{_resolve_frontend_url()}/internal/sse-inject"
         payload = _json.dumps({
             "invocation_id": invocation_id,
             "event_type": event_type,
@@ -2824,7 +2837,7 @@ def _start_qc_monitor(
         }).encode("utf-8")
         try:
             req = _urllib.Request(
-                _resolve_inject_url(),
+                inject_url,
                 data=payload,
                 headers={"Content-Type": "application/json"},
             )
