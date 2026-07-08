@@ -118,13 +118,13 @@ inject_key() {
 
 ec2_ssh() {
   inject_key > /dev/null
-  ssh -i "$KEY_FILE" -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
+  ssh -i "$KEY_FILE" -o StrictHostKeyChecking=no -o ConnectTimeout=15 -o IdentitiesOnly=yes \
     "${EC2_USER}@${EC2_HOST}" "$@"
 }
 
 ec2_scp() {
   inject_key > /dev/null
-  scp -i "$KEY_FILE" -o StrictHostKeyChecking=no "$@"
+  scp -i "$KEY_FILE" -o StrictHostKeyChecking=no -o IdentitiesOnly=yes "$@"
 }
 
 # ---------------------------------------------------------------------------
