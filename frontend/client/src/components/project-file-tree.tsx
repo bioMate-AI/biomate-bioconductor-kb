@@ -39,6 +39,7 @@ interface ProjectFile {
   content_type: string;
   source: "upload" | "run_output" | string;
   run_id: string | null;
+  workflow_name: string | null;
   created_at: string;
 }
 
@@ -74,9 +75,14 @@ function buildTree(files: ProjectFile[]): TreeNode[] {
     root.push({ type: "folder", name: "inputs", path: "inputs", children: inputs });
   }
   for (const [runId, nodes] of Object.entries(outputsByRun)) {
+    // Use the workflow name stored on any file in this run (they all share the same run).
+    const wfName = nodes[0]?.file?.workflow_name;
+    const label = wfName
+      ? `${wfName} (${runId.slice(0, 6)}…)`
+      : `outputs / ${runId.slice(0, 8)}…`;
     root.push({
       type: "folder",
-      name: `outputs / ${runId.slice(0, 8)}…`,
+      name: label,
       path: `outputs/${runId}`,
       children: nodes,
     });

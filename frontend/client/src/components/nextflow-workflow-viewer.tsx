@@ -2498,6 +2498,7 @@ export function NextflowWorkflowViewer({
             runId={runId || invocationId || ''}
             invocationId={invocationId}
             workflowName={workflowDefinition?.name}
+            projectId={projectId || undefined}
             parameters={params as Record<string, unknown>}
             executionStatus={
               status === 'completed' ? 'completed'

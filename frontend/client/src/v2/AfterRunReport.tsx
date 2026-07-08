@@ -35,6 +35,9 @@ interface AfterRunReportProps {
   nextflowOutputDir?: string;
   logTail?: string[];
   failedSteps?: string[];
+  /** Project this run is associated with (if any) — used to link to the
+   *  project file tree and to auto-populate the Save-to-Project picker. */
+  projectId?: string;
   /** Inline autofix summary from currentRun.execution.nextflowStatus.autofix —
    *  if state === 'failed' here, the run only "failed" after exhausting fix
    *  attempts; the FailedRunSection should make that visible. */
@@ -76,6 +79,7 @@ export function AfterRunReport({
   failedSteps,
   autofix,
   onContinueAnalysis,
+  projectId,
 }: AfterRunReportProps) {
   // nextflowOutputDir is forwarded by the parent for future Outputs-tab
   // directory toolbar work; intentionally unread in v0.
@@ -233,7 +237,7 @@ export function AfterRunReport({
             </div>
           </>
         )}
-        {tab === "outputs" && <OutputsTab outputs={outputs} runId={runId} invocationId={invocationId} executionStatus={executionStatus} />}
+        {tab === "outputs" && <OutputsTab outputs={outputs} runId={runId} invocationId={invocationId} executionStatus={executionStatus} projectId={projectId} />}
         {tab === "methods" && <MethodsTab methods={methods} />}
         {tab === "params" && <ParametersTab parameters={parameters} runId={runId} />}
         {tab === "software" && <SoftwareTab versions={software} />}
@@ -783,7 +787,8 @@ function OutputsTab({
   runId,
   invocationId,
   executionStatus,
-}: { outputs: OutputFile[]; runId: string; invocationId?: string; executionStatus?: string }) {
+  projectId: initialProjectId,
+}: { outputs: OutputFile[]; runId: string; invocationId?: string; executionStatus?: string; projectId?: string }) {
   // Audit 2026-06-17: the parent's outputs prop is derived from the DB-stored
   // nextflowStatus.s3_output_files snapshot. That snapshot is often empty
   // for completed runs because the Galaxy /api/nextflow/status endpoint is
@@ -842,6 +847,53 @@ function OutputsTab({
   // Must be declared before any early return — Rules of Hooks.
   const [previewFile, setPreviewFile] = useState<OutputFile | null>(null);
 
+  // Save-to-Project state — declared before any early return (Rules of Hooks).
+  const [savedProjectId, setSavedProjectId] = useState<string | undefined>(initialProjectId);
+  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
+  const [showProjectPicker, setShowProjectPicker] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [savedProjectName, setSavedProjectName] = useState<string>("");
+
+  // Fetch project list lazily when the picker is opened.
+  useEffect(() => {
+    if (!showProjectPicker || projects.length > 0) return;
+    fetch("/api/projects", { credentials: "include" })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then((data: any) => {
+        const list = Array.isArray(data) ? data : (data?.projects ?? []);
+        setProjects(list.map((p: any) => ({ id: String(p.id || p._id || ""), name: String(p.name || p.title || "Untitled") })));
+        if (list.length > 0 && !selectedProjectId) setSelectedProjectId(String(list[0].id || list[0]._id || ""));
+      })
+      .catch(() => { /* picker still shows, just no options */ });
+  }, [showProjectPicker, projects.length, selectedProjectId]);
+
+  const handleSaveToProject = async () => {
+    if (!selectedProjectId || saveState === "saving") return;
+    setSaveState("saving");
+    try {
+      const r = await fetch(`/api/workflows/runs/${encodeURIComponent(runId)}/save-to-project`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ projectId: selectedProjectId }),
+      });
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        throw new Error(j?.error || `HTTP ${r.status}`);
+      }
+      const proj = projects.find(p => p.id === selectedProjectId);
+      setSavedProjectId(selectedProjectId);
+      setSavedProjectName(proj?.name || "Project");
+      setSaveState("saved");
+      setShowProjectPicker(false);
+    } catch (e: any) {
+      console.error("[SaveToProject]", e);
+      setSaveState("error");
+      setTimeout(() => setSaveState("idle"), 3000);
+    }
+  };
+
   if (totalCount === 0) {
     return (
       <div style={styles.tabContent}>
@@ -892,6 +944,68 @@ function OutputsTab({
         >
           ↓ Reproducibility bundle
         </a>
+
+        {/* Save-to-Project affordance */}
+        {savedProjectId ? (
+          <a
+            href={`/project/${savedProjectId}`}
+            style={{ ...styles.bulkBtn, background: 'oklch(0.93 0.07 145)', color: 'oklch(0.35 0.12 145)', border: '1px solid oklch(0.78 0.10 145)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            title="Open project file browser"
+          >
+            ✓ Saved to {savedProjectName || "project"} ↗
+          </a>
+        ) : (
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <button
+              onClick={() => setShowProjectPicker(v => !v)}
+              style={{ ...styles.bulkBtn, ...styles.bulkBtnSecondary, cursor: 'pointer', border: '1px solid var(--border)' }}
+              title="Copy outputs to your project file browser"
+            >
+              📁 Save to Project
+            </button>
+            {showProjectPicker && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, zIndex: 50, marginTop: 4,
+                background: 'var(--surface, #fff)', border: '1px solid var(--border)',
+                borderRadius: 8, padding: 12, boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+                minWidth: 240,
+              }}>
+                <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: 'var(--text)' }}>
+                  Save outputs to project
+                </div>
+                {projects.length === 0 ? (
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>Loading…</div>
+                ) : (
+                  <select
+                    value={selectedProjectId}
+                    onChange={e => setSelectedProjectId(e.target.value)}
+                    style={{ width: '100%', fontSize: 12, padding: '4px 8px', borderRadius: 4, border: '1px solid var(--border)', marginBottom: 8 }}
+                  >
+                    {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                )}
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    onClick={handleSaveToProject}
+                    disabled={!selectedProjectId || saveState === 'saving' || projects.length === 0}
+                    style={{ flex: 1, fontSize: 12, padding: '4px 10px', borderRadius: 4, cursor: 'pointer', background: 'oklch(0.22 0.01 260)', color: '#fff', border: 'none', opacity: saveState === 'saving' ? 0.6 : 1 }}
+                  >
+                    {saveState === 'saving' ? 'Saving…' : saveState === 'error' ? 'Error — retry' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => setShowProjectPicker(false)}
+                    style={{ fontSize: 12, padding: '4px 10px', borderRadius: 4, cursor: 'pointer', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
+                  Files will appear in the project's Files tab.
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <InteractiveToolsRow outputs={effectiveOutputs} />

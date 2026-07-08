@@ -11811,6 +11811,73 @@ Rules:
     }
   });
 
+  // Save run outputs to a project's file directory.
+  // Body: { projectId: string }
+  // Reads output files from nextflowStatus.s3_output_files (or triggers a
+  // fresh S3 scan via /api/workflows/runs/:id/output_files) and bulk-inserts
+  // them into project_files with source='run_output'.
+  app.post("/api/workflows/runs/:id/save-to-project", optionalAuth, async (req, res) => {
+    try {
+      const run = await storage.getExecutionRun(req.params.id);
+      if (!run) return res.status(404).json({ error: "Execution run not found" });
+
+      const { projectId } = req.body as { projectId?: string };
+      if (!projectId) return res.status(400).json({ error: "projectId required" });
+
+      const uid = (req as any).user?.id ? String((req as any).user.id) : run.userId ?? "system";
+
+      // Collect output files from stored nextflowStatus first.
+      const ns: any = run.execution?.nextflowStatus;
+      let rawFiles: any[] = Array.isArray(ns?.s3_output_files) ? ns.s3_output_files : [];
+
+      // If empty, do a live fetch from the Galaxy backend.
+      if (rawFiles.length === 0) {
+        try {
+          const galUrl = process.env.GALAXY_URL || "http://localhost:8081";
+          const nfRunId = run.execution?.nextflowRunId || ns?.run_id;
+          if (nfRunId) {
+            const r = await fetch(`${galUrl}/api/nextflow/status?run_id=${nfRunId}`, {
+              headers: { "X-API-Key": process.env.GALAXY_API_KEY || "" },
+            });
+            if (r.ok) {
+              const live = await r.json();
+              rawFiles = Array.isArray(live?.s3_output_files) ? live.s3_output_files : [];
+            }
+          }
+        } catch { /* live fetch optional */ }
+      }
+
+      if (rawFiles.length === 0) {
+        return res.status(422).json({ error: "No output files found for this run yet. Try again after the run completes." });
+      }
+
+      const { registerRunOutputsInProject } = await import("./project-routes");
+      const files = rawFiles.map((f: any) => {
+        const uri: string = f.s3_uri || f.path || "";
+        const s3Key = uri.startsWith("s3://") ? uri.replace(/^s3:\/\/[^/]+\//, "") : uri;
+        return {
+          name: f.filename || f.name || s3Key.split("/").pop() || "file",
+          s3Key,
+          size: f.size ?? 0,
+          contentType: f.content_type || "application/octet-stream",
+        };
+      }).filter((f: any) => f.s3Key);
+
+      const workflowName: string = (run as any).workflowName || "Workflow";
+      const count = await registerRunOutputsInProject({ projectId, userId: uid, runId: run.id, workflowName, files });
+
+      // Also persist projectId on the run so the UI can navigate to it.
+      if (!(run as any).projectId) {
+        await pool.query(`UPDATE execution_runs SET project_id = $1 WHERE id = $2`, [projectId, run.id]);
+      }
+
+      res.json({ ok: true, registered: count, total: files.length });
+    } catch (e: any) {
+      console.error("[save-to-project]", e?.message ?? e);
+      res.status(500).json({ error: e?.message ?? "Failed" });
+    }
+  });
+
   // Pause execution run
   app.post("/api/workflows/runs/:id/pause", optionalAuth, async (req, res) => {
     try {

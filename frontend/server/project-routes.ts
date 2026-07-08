@@ -49,6 +49,8 @@ async function ensureProjectFilesTable(): Promise<void> {
     )
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS project_files_project_idx ON project_files(project_id)`);
+  // Idempotent column additions for run_output support.
+  await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS workflow_name TEXT`).catch(() => {});
 }
 // Run once on startup — idempotent
 ensureProjectFilesTable().catch(e => console.error("[project_files] table init failed:", e?.message ?? e));
@@ -220,7 +222,7 @@ export function registerProjectRoutes(app: Express): void {
         return res.status(404).json({ error: "Project not found" });
       }
       const result = await pool.query(
-        `SELECT id, name, s3_key, size, content_type, source, run_id, created_at
+        `SELECT id, name, s3_key, size, content_type, source, run_id, workflow_name, created_at
          FROM project_files WHERE project_id = $1 ORDER BY created_at DESC`,
         [id]
       );
@@ -320,4 +322,53 @@ export function registerProjectRoutes(app: Express): void {
       res.status(500).json({ error: "Failed to generate download URL" });
     }
   });
+}
+
+// ─── Exported helper ──────────────────────────────────────────────────────────
+// Called by routes.ts from the save-to-project endpoint (and optionally the
+// output_files auto-register path). Inserts each file as source='run_output'
+// using an ON CONFLICT DO NOTHING upsert on (project_id, s3_key) so repeated
+// calls are idempotent.
+export async function registerRunOutputsInProject(opts: {
+  projectId: string;
+  userId: string;
+  runId: string;
+  workflowName: string;
+  files: Array<{ name: string; s3Key: string; size?: number; contentType?: string }>;
+}): Promise<number> {
+  const { projectId, userId, runId, workflowName, files } = opts;
+  if (!files.length) return 0;
+
+  // Ensure the unique constraint exists — idempotent DDL.
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS project_files_project_s3key_idx
+      ON project_files(project_id, s3_key)
+  `).catch(() => { /* already exists */ });
+
+  let inserted = 0;
+  for (const f of files) {
+    try {
+      const res = await pool.query(
+        `INSERT INTO project_files
+           (project_id, user_id, name, s3_key, size, content_type, source, run_id, workflow_name)
+         VALUES ($1, $2, $3, $4, $5, $6, 'run_output', $7, $8)
+         ON CONFLICT (project_id, s3_key) DO NOTHING`,
+        [
+          projectId,
+          userId,
+          f.name || f.s3Key.split("/").pop() || "file",
+          f.s3Key,
+          f.size ?? 0,
+          f.contentType || "application/octet-stream",
+          runId,
+          workflowName,
+        ]
+      );
+      if ((res.rowCount ?? 0) > 0) inserted++;
+    } catch (e: any) {
+      console.warn(`[registerRunOutputs] skipped ${f.s3Key}:`, e?.message);
+    }
+  }
+  console.log(`[registerRunOutputs] registered ${inserted}/${files.length} files for run ${runId} → project ${projectId}`);
+  return inserted;
 }
