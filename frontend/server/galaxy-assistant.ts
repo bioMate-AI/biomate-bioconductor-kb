@@ -3695,7 +3695,7 @@ Rules:
                   !p.autoFilled
     );
     const warning = unfilledRequired.length > 0
-      ? `\n⚠️ Fill in required parameters before running: ${unfilledRequired.map((p: any) => `\`${p.name}\``).join(', ')}`
+      ? `\n⚠️ **${unfilledRequired.length} required parameter${unfilledRequired.length === 1 ? '' : 's'}** need to be filled — open the panel to configure before running.`
       : '';
     return `**${workflowName}** is ready in the panel — check the steps and parameters, then click **Confirm & Run**.${warning}`;
   }

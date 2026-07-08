@@ -609,7 +609,11 @@ function PhaseGroupSection({
                           style={{ fontSize: 11, padding: '2px 4px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 3, color: 'var(--text)' }}
                           onChange={e => onParamChange(p.id, e.target.value)}
                         >
-                          {p.options.map((o: string) => <option key={o} value={o}>{o}</option>)}
+                          {p.options.map((o: any) => {
+                            const val = o !== null && typeof o === 'object' ? String(o.value ?? '') : String(o);
+                            const lbl = o !== null && typeof o === 'object' ? String(o.label ?? o.value ?? '') : String(o);
+                            return <option key={val} value={val}>{lbl}</option>;
+                          })}
                         </select>
                       ) : (
                         <input

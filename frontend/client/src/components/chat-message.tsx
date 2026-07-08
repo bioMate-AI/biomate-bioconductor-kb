@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useRef } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
@@ -160,6 +160,11 @@ export function ChatMessage({
   // and delivered via the workflow SSE stream. Rendered as a single line, not
   // a full assistant card.
   const isProgressMessage = !isUser && message.metadata?.type === "workflow_progress"
+  // Once this message's workflow has been opened in the right panel, remember it
+  // so that closing the panel shows the wf-chip (not the full card again).
+  const wasInPanelRef = useRef(false);
+  if (isInPanel) wasInPanelRef.current = true;
+  const everInPanel = isInPanel || wasInPanelRef.current;
   const { toast } = useToast()
   const [downloadPromptOpen, setDownloadPromptOpen] = useState(false)
   const effectiveInvocationId =
@@ -480,16 +485,19 @@ export function ChatMessage({
             />
           )}
 
-          {/* wf-chip: compact workflow card shown in chat when workflow is open in the panel */}
-          {isWorkflowMessage && isInPanel && message.metadata?.workflow && (() => {
+          {/* wf-chip: compact workflow card shown in chat when workflow is open in the panel,
+              or was previously in the panel (panel closed after opening) */}
+          {isWorkflowMessage && everInPanel && message.metadata?.workflow && (() => {
               const runStatus = currentExecutionRun?.execution?.status;
               const chipClass = runStatus === 'failed' ? 'chip-fail' : runStatus === 'running' ? 'chip-run' : 'chip-ok';
-              const chipLabel = runStatus === 'failed' ? 'Failed' : runStatus === 'completed' ? 'Done' : runStatus === 'running' ? 'Running' : 'In panel';
+              const chipLabel = runStatus === 'failed' ? 'Failed' : runStatus === 'completed' ? 'Done' : runStatus === 'running' ? 'Running' : isInPanel ? 'In panel' : 'Open in panel';
               const hint = runStatus === 'failed'
                 ? 'This run did not complete. Check the panel for details and try again.'
                 : runStatus === 'completed'
                 ? 'Run complete — results are available in the panel.'
-                : 'You can keep chatting while this run continues in the background.';
+                : isInPanel
+                ? 'You can keep chatting while this run continues in the background.'
+                : 'Click Open to view this workflow in the panel.';
               return (
                 <>
                   <div className="wf-chip" data-tour="chat-handoff">
@@ -511,6 +519,14 @@ export function ChatMessage({
                       <span className="dot" />
                       {chipLabel}
                     </span>
+                    {!isInPanel && onOpenInPanel && (
+                      <button
+                        onClick={onOpenInPanel}
+                        style={{ marginLeft: 8, fontSize: 11, padding: '2px 8px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                      >
+                        Open
+                      </button>
+                    )}
                   </div>
                   <div
                     className="wf-chip-hint"
@@ -597,10 +613,9 @@ export function ChatMessage({
           )}
 
           {/* Nextflow Workflow Viewer - Replaces WorkflowArtifact */}
-          {/* When the workflow is open in the right panel (isInPanel=true), render nothing
-              here — all workflow UI lives exclusively in the panel. The AI text response
-              above already tells the user to look at the panel. */}
-          {isWorkflowMessage && !isInPanel && (
+          {/* When the workflow has ever been in the right panel, show only the wf-chip
+              above. The full card is only shown before the user has opened the panel. */}
+          {isWorkflowMessage && !everInPanel && (
             (() => {
               const invocationId = effectiveInvocationId;
               const executionStatus = currentExecutionRun?.execution?.status || (isWorkflowRunning ? 'running' : 'idle');
