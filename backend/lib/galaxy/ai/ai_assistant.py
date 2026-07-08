@@ -2470,6 +2470,8 @@ Respond with a single JSON object — no other text:
                     continue
                 if param_def.get('hidden', False):
                     continue
+                if param_name in self._NEXTFLOW_INTERNAL_PARAMS:
+                    continue
 
                 ptype = self._schema_type_to_param_type(param_name, param_def)
                 default = param_def.get('default', None)
