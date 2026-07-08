@@ -10192,6 +10192,11 @@ ${paramLines || '(none recorded)'}`;
   app.get("/api/workflows/runs/:id", async (req, res) => {
     try {
       let run = await storage.getExecutionRun(req.params.id);
+      // Fall back to Galaxy invocation ID lookup (session restore may have stored
+      // the Galaxy UUID instead of the DB primary key).
+      if (!run) {
+        run = await storage.getExecutionRunByGalaxyId(req.params.id);
+      }
       if (!run) {
         return res.status(404).json({ error: "Execution run not found" });
       }

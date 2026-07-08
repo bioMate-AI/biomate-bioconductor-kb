@@ -770,9 +770,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   useEffect(() => {
     if (!currentChatSession?.id || currentRun) return; // already have a run
     const messages = currentChatSession.messages ?? [];
-    // Scan messages newest-first for one with an invocationId
+    // Scan messages newest-first for one with an invocationId.
+    // Skip workflow_progress pills — their invocationId is the Galaxy UUID,
+    // not the DB execution run UUID, and loadRun() looks up by DB primary key.
     for (let i = messages.length - 1; i >= 0; i--) {
       const msg = messages[i];
+      if (msg.metadata?.type === 'workflow_progress') continue;
       const invId = msg.invocationId || msg.metadata?.invocationId;
       if (!invId) continue;
       // Load the run regardless of terminal status. The previous skip-on-terminal
@@ -1124,7 +1127,10 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             chain_run_id: chainRunId,
             [stepsKey]: syncedSteps,
           },
-          invocationId: runId || chainRunId,
+          // Only set invocationId to the DB execution run UUID; chain_run_id is a
+          // Galaxy-side ID and loadRun() looks up by DB primary key — using it
+          // here would cause 404 on session restore.
+          ...(runId ? { invocationId: runId } : {}),
         },
       };
     });

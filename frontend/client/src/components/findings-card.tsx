@@ -35,7 +35,7 @@ interface FindingsData {
 }
 
 interface FindingsCardProps {
-  runId: string
+  runId: string | null | undefined
   onContinueAnalysis?: (suggestion: string) => void
   executionStatus?: string
 }
@@ -49,6 +49,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus }: Fin
   const runFailed = executionStatus === 'failed' || executionStatus === 'error'
 
   React.useEffect(() => {
+    if (!runId) return;
     let cancelled = false
     let pollTimer: ReturnType<typeof setTimeout> | null = null
 
