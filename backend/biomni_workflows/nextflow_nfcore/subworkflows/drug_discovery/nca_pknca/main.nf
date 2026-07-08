@@ -413,7 +413,7 @@ output:
 ---
 
 ``` {r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+knitr::opts_chunk\$set(echo = FALSE, message = FALSE, warning = FALSE)
 library(readr)
 library(dplyr)
 library(tidyr)
@@ -425,13 +425,13 @@ library(jsonlite)
 ``` {r load-data}
 nca_df   <- read_csv("''' + nca_csv + '''", show_col_types = FALSE)
 smry     <- fromJSON("''' + nca_json + '''")
-info     <- smry$study_info
-dose_val <- info$dose
-route    <- info$route
-time_u   <- info$time_unit
-conc_u   <- info$conc_unit
-auc_u    <- info$auc_unit
-n_subj   <- info$n_subjects
+info     <- smry\$study_info
+dose_val <- info\$dose
+route    <- info\$route
+time_u   <- info\$time_unit
+conc_u   <- info\$conc_unit
+auc_u    <- info\$auc_unit
+n_subj   <- info\$n_subjects
 ```
 
 ## Study Information
@@ -482,20 +482,25 @@ if (!is.null(validated)) {
 ## NCA Parameters by Subject
 
 ``` {r nca-table}
+# Robust to NCA parameters PKNCA may omit for a given dataset: CL_F / Vd_F are
+# undefined for extravascular data without an IV reference, so select only the
+# columns actually present and label them to match.
+label_map <- c(
+    subject_id = "Subject",
+    AUClast    = paste0("AUClast (", auc_u, ")"),
+    AUCinf     = paste0("AUCinf (", auc_u, ")"),
+    Cmax       = paste0("Cmax (", conc_u, ")"),
+    Tmax       = paste0("Tmax (", time_u, ")"),
+    t_half     = paste0("t_half (", time_u, ")"),
+    CL_F       = paste0("CL/F (L/", time_u, ")"),
+    Vd_F       = "Vd/F (L)"
+)
+present <- intersect(names(label_map), names(nca_df))
 display_df <- nca_df %>%
-    select(subject_id, AUClast, AUCinf, Cmax, Tmax, t_half, CL_F, Vd_F) %>%
+    select(all_of(present)) %>%
     mutate(across(where(is.numeric), ~ round(.x, 2)))
 
-kable(display_df,
-      col.names = c("Subject",
-                    paste0("AUClast (", auc_u, ")"),
-                    paste0("AUCinf (", auc_u, ")"),
-                    paste0("Cmax (", conc_u, ")"),
-                    paste0("Tmax (", time_u, ")"),
-                    paste0("t_half (", time_u, ")"),
-                    paste0("CL/F (L/", time_u, ")"),
-                    "Vd/F (L)"),
-      align = "c")
+kable(display_df, col.names = unname(label_map[present]), align = "c")
 ```
 
 ## NCA Assumptions
