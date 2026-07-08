@@ -124,7 +124,7 @@ process SCGWAS_INPUT_VALIDATE {
             "r_include=${params.r_include}",
             "r_exclude=${params.r_exclude}",
             f"outfile={outfile}",
-            f"permutation={'true' if ${params.permutation} else 'false'}",
+            "permutation=${params.permutation ? 'true' : 'false'}",
             f"module_num=${params.module_num}",
             "verbose=true",
             f"exclude_genes_file={exclude}",
@@ -154,7 +154,10 @@ process SCGWAS_RUN {
     container CONTAINER_SCGWAS
     publishDir "${params.outdir}/phaseB_scgwas", mode: 'copy'
 
-    input:  tuple val(meta), path(configure_file), path(validate_json)
+    // gwas_file is staged by Nextflow from S3 → lands as basename in work dir,
+    // matching the gwas_node_file= line in configure.txt.
+    // For baked example, pass a dummy path; configure.txt uses absolute /opt/scgwas paths.
+    input:  tuple val(meta), path(configure_file), path(validate_json), path(gwas_file)
     output: tuple val(meta),
             path("${params.outfile}.combined-z.txt"),
             path("${params.outfile}.shared_genes.scores.calibration.txt", optional: true),
@@ -264,6 +267,18 @@ process SCGWAS_SIGNIFICANCE {
 workflow {
     meta_ch = Channel.of([id: 'scgwas_immune_cell'])
     a = SCGWAS_INPUT_VALIDATE(meta_ch)
-    b = SCGWAS_RUN(a.out)
+
+    // Stage the GWAS sumstats file so Nextflow copies it to Phase B's work dir.
+    // For the baked example, configure.txt already uses absolute /opt/scgwas paths,
+    // so we pass a sentinel empty file to satisfy the path() channel type.
+    if (params.use_baked_example as Boolean) {
+        gwas_ch = Channel.value(file('/opt/scgwas/example/Schizophrenia_Pardinas_2018.magma_boxcox.txt'))
+    } else {
+        gwas_ch = Channel.fromPath(params.gwas_sumstats)
+    }
+
+    // Combine Phase A outputs with the staged GWAS file for Phase B
+    b_input = a.out.combine(gwas_ch)
+    b = SCGWAS_RUN(b_input)
     SCGWAS_SIGNIFICANCE(b.out)
 }
