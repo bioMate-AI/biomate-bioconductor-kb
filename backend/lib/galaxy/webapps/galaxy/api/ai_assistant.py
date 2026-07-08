@@ -2868,33 +2868,98 @@ _pilot_runs: Dict[str, Dict[str, Any]] = {}
 
 
 class DatabaseQueryRequest(BaseModel):
-    database: str = Field(default="auto", description="Target database name or 'auto' to detect from query")
+    database: str = Field(
+        default="federated",
+        description="Target database or 'federated'/'auto' to fan-out to all relevant sources"
+    )
     query: str = Field(..., description="Search term or entity identifier")
+    entity_type: Optional[str] = Field(
+        default=None,
+        description="Override entity type detection: gene, protein, compound, variant, pathway, structure, disease, literature"
+    )
+    sources: Optional[List[str]] = Field(
+        default=None,
+        description="Explicit list of sources to query (skips entity detection)"
+    )
 
 
 @router.post(
     "/api/databases/query",
-    summary="Query a biological database (UniProt, NCBI Gene, KEGG, PDB, etc.)"
+    summary="Query biological databases — single source or federated fan-out"
 )
 def query_biological_database(
     request: DatabaseQueryRequest,
     trans: ProvidesUserContext = DependsOnTrans
 ) -> Dict[str, Any]:
     """
-    Route a biological entity query to the appropriate public REST API.
-    Supports: auto (detect from query), ncbi_gene, uniprot, pdb, alphafold,
-              kegg, reactome, go, hpo, chebi, chembl, interpro, string,
-              ensembl, gnomad, dbsnp, clinvar, pubmed.
+    Route a biological entity query to public REST APIs.
+    Pass database='federated' (default) to fan-out to all relevant sources in parallel.
+    Pass a specific database name for single-source queries.
+    Supported single sources: ncbi_gene, uniprot, pdb, alphafold, kegg, reactome,
+    go, hpo, chebi, chembl, interpro, string, ensembl, gnomad, dbsnp, clinvar,
+    pubmed, europepmc, semantic_scholar, openalex.
     """
+    db = request.database.lower().strip()
+
+    # Direct federated path — bypass AIAssistant for speed
+    if db in ("federated", "auto"):
+        try:
+            from galaxy.ai.federated_query import federated_query
+            return {
+                "success": True,
+                **federated_query(
+                    request.query,
+                    entity_type=request.entity_type,
+                    sources=request.sources,
+                )
+            }
+        except Exception as e:
+            log.warning(f"[databases/query] federated({request.query}): {e}")
+            return {"success": False, "error": str(e)}
+
     ai = get_ai_assistant(trans)
     if not ai:
         return {"success": False, "error": "AI assistant not available"}
     try:
-        return ai.query_database(request.database, request.query)
+        return ai.query_database(db, request.query)
     except Exception as e:
         import traceback
         log.warning(f"[databases/query] {request.database}({request.query}): {e}")
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
+
+
+class LiteratureSearchRequest(BaseModel):
+    query: str = Field(..., description="Literature search query")
+    max_depth: int = Field(default=3, ge=1, le=5, description="Max iterative refinement depth")
+    min_results: int = Field(default=10, ge=1, le=50, description="Target minimum result count")
+
+
+@router.post(
+    "/api/literature/search",
+    summary="Iterative literature search across PubMed, EuropePMC, Semantic Scholar, OpenAlex"
+)
+def literature_search(
+    request: LiteratureSearchRequest,
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """
+    Open Deep Research-style depth loop: searches all literature sources in parallel,
+    detects gaps, refines query, and deepens until min_results are collected or
+    max_depth is reached. Returns all results + the search trace.
+    """
+    try:
+        from galaxy.ai.federated_query import iterative_literature_search
+        return {
+            "success": True,
+            **iterative_literature_search(
+                request.query,
+                max_depth=request.max_depth,
+                min_results=request.min_results,
+            )
+        }
+    except Exception as e:
+        log.warning(f"[literature/search] {request.query}: {e}")
+        return {"success": False, "error": str(e)}
 
 
 @router.get(

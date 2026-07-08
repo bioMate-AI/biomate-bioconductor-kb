@@ -7852,16 +7852,59 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // POST /api/databases/query — query biological databases (used by MCP query_database)
-  // Proxies to Galaxy /api/databases/query which routes to UniProt, PDB, NCBI, etc.
+  // Pass database="federated" (or omit) to fan-out to all relevant sources in parallel.
+  // Pass a specific database name to hit a single source.
   app.post("/api/databases/query", optionalAuth, async (req, res) => {
     try {
-      const { database, query } = req.body || {};
+      const { database, query, entity_type, sources } = req.body || {};
       if (!query) return res.status(400).json({ error: "query is required" });
       const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
       const upstream = await fetch(`${galaxyUrl}/api/databases/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ database: database || "auto", query }),
+        body: JSON.stringify({
+          database: database || "federated",
+          query,
+          entity_type: entity_type || null,
+          sources: sources || null,
+        }),
+      });
+      const data = await upstream.json();
+      res.status(upstream.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/databases/federated — explicit federated fan-out endpoint
+  app.post("/api/databases/federated", optionalAuth, async (req, res) => {
+    try {
+      const { query, entity_type, sources } = req.body || {};
+      if (!query) return res.status(400).json({ error: "query is required" });
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const upstream = await fetch(`${galaxyUrl}/api/databases/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ database: "federated", query, entity_type, sources }),
+      });
+      const data = await upstream.json();
+      res.status(upstream.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/literature/search — iterative depth-loop literature search
+  // Hits PubMed + EuropePMC + Semantic Scholar + OpenAlex, detects gaps, deepens.
+  app.post("/api/literature/search", optionalAuth, async (req, res) => {
+    try {
+      const { query, max_depth, min_results } = req.body || {};
+      if (!query) return res.status(400).json({ error: "query is required" });
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const upstream = await fetch(`${galaxyUrl}/api/literature/search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, max_depth: max_depth || 3, min_results: min_results || 10 }),
       });
       const data = await upstream.json();
       res.status(upstream.status).json(data);

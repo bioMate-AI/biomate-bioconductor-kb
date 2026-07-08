@@ -559,20 +559,46 @@ process MAGMA_FORMAT {
             z_bc_arr[~valid_mask] = float(np.nanmean(z_bc_arr[valid_mask]))
             z_bc_list = z_bc_arr.tolist()
             lam = None
-        # Write in the format scGWAS magma_boxcox.txt expects:
-        # GENE  CHR  START  STOP  NSNPS  NPARAM  N  ZSTAT  P
-        # (same columns as .magma.txt but with ZSTAT replaced by box-cox value)
-        keys = list(rows[0].keys())
+        # Write scGWAS-compatible magma_boxcox.txt:
+        #   Two-column format: GENE (HGNC symbol) + ZSTAT (Box-Cox value)
+        # MAGMA outputs Entrez gene IDs; scGWAS network/panel uses HGNC symbols.
+        # Convert Entrez → HGNC via mygene.info REST API (no pip install needed).
+        import urllib.request, urllib.parse
+        def _entrez_to_hgnc(entrez_ids):
+            mapping = {}
+            for i in range(0, len(entrez_ids), 1000):
+                chunk = entrez_ids[i:i+1000]
+                payload = urllib.parse.urlencode({
+                    'ids': ','.join(str(x) for x in chunk),
+                    'fields': 'symbol',
+                    'species': 'human',
+                }).encode()
+                req = urllib.request.Request(
+                    'https://mygene.info/v3/gene',
+                    data=payload,
+                    headers={'Content-Type': 'application/x-www-form-urlencoded'}
+                )
+                try:
+                    with urllib.request.urlopen(req, timeout=60) as resp:
+                        for hit in json.load(resp):
+                            if isinstance(hit, dict) and 'symbol' in hit:
+                                mapping[str(hit.get('_id',''))] = hit['symbol']
+                except Exception as _e:
+                    print(f"[magma:phaseC] mygene.info batch failed: {_e}", file=sys.stderr)
+            return mapping
+        entrez_ids = [r.get("GENE", "") for r in rows]
+        hgnc_map = _entrez_to_hgnc(entrez_ids)
+        n_mapped = sum(1 for eid in entrez_ids if str(eid) in hgnc_map)
+        print(f"[magma:phaseC] Entrez→HGNC: {n_mapped}/{len(entrez_ids)} mapped")
         with open(f"{outfile}.magma_boxcox.txt", "w") as f:
-            f.write("\\t".join(keys) + "\\n")
+            f.write("GENE\\tZSTAT\\n")
             for r, zbc in zip(rows, z_bc_list):
-                r2 = dict(r)
-                r2["ZSTAT"] = round(float(zbc), 6)
-                f.write("\\t".join(str(r2.get(k, "")) for k in keys) + "\\n")
+                eid = str(r.get("GENE", ""))
+                symbol = hgnc_map.get(eid, eid)  # fallback to Entrez ID if not found
+                f.write(f"{symbol}\\t{round(float(zbc), 6)}\\n")
         boxcox_lambda = lam
     else:
-        open(f"{outfile}.magma_boxcox.txt", "w").write(
-            "GENE\\tCHR\\tSTART\\tSTOP\\tNSNPS\\tNPARAM\\tN\\tZSTAT\\tP\\n")
+        open(f"{outfile}.magma_boxcox.txt", "w").write("GENE\\tZSTAT\\n")
         boxcox_lambda = None
 
     n_sig = sum(1 for r in rows if r.get("P", 1.0) <= 2.5e-6)   # Bonferroni ~20k genes

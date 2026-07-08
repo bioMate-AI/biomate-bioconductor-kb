@@ -2845,13 +2845,20 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 return []
             # Validate: name must exist in inferable params, value must not be empty
             valid_names = {p["name"] for p in inferable}
-            return [
+            suggestions = [
                 s for s in suggestions
                 if isinstance(s, dict)
                 and s.get("name") in valid_names
                 and s.get("value") is not None
                 and str(s.get("value", "")).strip() != ""
             ]
+            # Resolve chemical names → SMILES for any SMILES-type params
+            try:
+                from galaxy.ai.federated_query import resolve_smiles_params
+                suggestions = resolve_smiles_params(suggestions)
+            except Exception as _resolve_exc:
+                log.debug("[ParamSuggest] SMILES resolution skipped: %s", _resolve_exc)
+            return suggestions
         except Exception as exc:
             log.debug("[ParamSuggest] LLM inference failed: %s", exc)
             return []
@@ -5038,13 +5045,29 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
     def query_database(self, database: str, query: str) -> Dict:
         """
         Route a biological database query to the appropriate public REST API.
-        Supports: auto, ncbi_gene, uniprot, pdb, alphafold, kegg, reactome, go,
-                  hpo, chebi, chembl, interpro, string, ensembl, gnomad,
-                  dbsnp, clinvar, pubmed.
+        Supports: auto, federated, ncbi_gene, uniprot, pdb, alphafold, kegg,
+                  reactome, go, hpo, chebi, chembl, interpro, string, ensembl,
+                  gnomad, dbsnp, clinvar, pubmed,
+                  europepmc, semantic_scholar, openalex.
+
+        Pass database='federated' (or 'auto') to fan-out to all relevant sources
+        in parallel and receive a merged result set.
         """
         db = database.lower().strip()
-        if db == 'auto':
-            db = self._detect_database_from_query(query)
+
+        # Federated path: parallel fan-out to all relevant sources
+        if db in ('federated', 'auto'):
+            try:
+                from galaxy.ai.federated_query import federated_query
+                result = federated_query(query)
+                result['success'] = True
+                return result
+            except Exception as e:
+                import logging as _log
+                _log.getLogger(__name__).warning(
+                    f"[query_database] federated({query}) failed: {e}, falling back to single-source"
+                )
+                db = self._detect_database_from_query(query)
 
         handlers = {
             'ncbi_gene': self._query_ncbi_gene,
@@ -5065,10 +5088,24 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             'clinvar': lambda q: self._query_ncbi_entrez(q, 'clinvar'),
             'pubmed': lambda q: self._query_ncbi_entrez(q, 'pubmed'),
         }
+        # New literature sources — delegate to federated_query module
+        if db in ('europepmc', 'semantic_scholar', 'openalex'):
+            try:
+                import importlib
+                fq = importlib.import_module('galaxy.ai.federated_query')
+                fetcher = fq._FETCHERS.get(db)
+                if fetcher:
+                    result = fetcher(query)
+                    result['success'] = True
+                    return result
+            except Exception as e:
+                return {"success": False, "source": db, "error": str(e)}
+
         handler = handlers.get(db)
         if not handler:
             return {"success": False, "error": f"Unknown database: {db}",
-                    "supported": list(handlers.keys())}
+                    "supported": list(handlers.keys()) +
+                                 ['federated', 'europepmc', 'semantic_scholar', 'openalex']}
         try:
             result = handler(query)
             result['success'] = True
