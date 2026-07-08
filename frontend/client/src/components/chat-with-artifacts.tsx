@@ -784,7 +784,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       // completed run just sets currentRun to the final state.
       // See docs/20260519_CS14_DEFINITIVE_FINDING.md.
       console.log(`[ChatWithArtifacts] Session restore: loading run ${invId} from message ${msg.id}`);
-      loadRun(invId).catch(err =>
+      loadRun(invId, { silent: true }).catch(err =>
         console.warn('[ChatWithArtifacts] Session restore loadRun failed:', err)
       );
       return;
@@ -796,7 +796,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     const latestWf = currentChatSession.workflows?.[0];
     if (latestWf?.id) {
       console.log(`[ChatWithArtifacts] Session restore fallback: loading run ${latestWf.id} from session.workflows`);
-      loadRun(latestWf.id).catch(err =>
+      loadRun(latestWf.id, { silent: true }).catch(err =>
         console.warn('[ChatWithArtifacts] Session restore (workflows fallback) loadRun failed:', err)
       );
     }
@@ -1003,9 +1003,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         const freshSession = chatHistoryService.getSession(currentChatSession.id);
         if (freshSession) {
           const updatedMessages = [...freshSession.messages];
-          const invocationForMessage =
-            run.execution?.galaxyInvocationId ||
-            run.id;
+          // Always use the execution run UUID (not galaxyInvocationId) so that
+          // session-restore loadRun() can find it via DB UUID lookup.
+          const invocationForMessage = run.id;
 
           // Prefer exact workflow-name match, but always fall back to latest workflow message.
           let targetIndex = updatedMessages.findIndex(
@@ -1648,11 +1648,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         padding: '0 18px',
         background: 'var(--bm-bg-elev, hsl(var(--background)))',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, overflow: 'hidden' }}>
           <span style={{
             fontWeight: 600, fontSize: 14,
             color: 'var(--bm-text, hsl(var(--foreground)))',
             fontFamily: 'var(--bm-font-ui)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {currentChatSession?.title || 'New thread'}
           </span>

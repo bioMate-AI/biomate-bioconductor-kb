@@ -596,9 +596,11 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
   }, [autoConnectSSE, connectToSSE, startPolling]);
 
   /**
-   * Load an existing run by ID
+   * Load an existing run by ID.
+   * Pass { silent: true } for background session-restore calls so that a 404
+   * (e.g. stale invocationId) does not surface as an error banner in the UI.
    */
-  const loadRun = useCallback(async (runId: string) => {
+  const loadRun = useCallback(async (runId: string, opts?: { silent?: boolean }) => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
@@ -634,7 +636,7 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
       setState((prev) => ({
         ...prev,
         isLoading: false,
-        error: error.message,
+        ...(opts?.silent ? {} : { error: error.message }),
       }));
       throw error;
     }

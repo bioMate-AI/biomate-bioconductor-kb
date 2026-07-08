@@ -839,6 +839,9 @@ function OutputsTab({
     a.remove();
   };
 
+  // Must be declared before any early return — Rules of Hooks.
+  const [previewFile, setPreviewFile] = useState<OutputFile | null>(null);
+
   if (totalCount === 0) {
     return (
       <div style={styles.tabContent}>
@@ -850,8 +853,6 @@ function OutputsTab({
       </div>
     );
   }
-
-  const [previewFile, setPreviewFile] = useState<OutputFile | null>(null);
 
   const fileUrl = (f: OutputFile, download = false) =>
     `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(f.path || f.name)}${download ? '&download=1' : ''}`;

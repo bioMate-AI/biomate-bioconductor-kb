@@ -297,7 +297,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] p-0">
+      <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] p-0">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="flex items-center gap-2">
             <Key className="w-5 h-5" />
@@ -308,8 +308,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         {/* Only the API Keys section is shown — other settings tabs are commented out until needed */}
         <div className="flex flex-1 overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-1" orientation="vertical">
-            {/* Settings Navigation — all tabs except api-keys are commented out */}
-            <div className="w-48 border-r bg-muted/50 p-4">
+            {/* Settings Navigation — hidden on mobile since only API Keys tab exists */}
+            <div className="hidden sm:block w-48 border-r bg-muted/50 p-4">
               <TabsList className="grid w-full grid-cols-1 h-auto gap-1 bg-transparent">
                 {/* Other settings tabs commented out — only API Keys needed for now
                 <TabsTrigger value="profile" ...>Profile</TabsTrigger>

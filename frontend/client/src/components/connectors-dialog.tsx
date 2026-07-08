@@ -246,7 +246,7 @@ export function ConnectorsDialog({ open, onOpenChange }: ConnectorsDialogProps) 
           ))}
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
           {activeTab === 'databases' && <ConnectorTable rows={DB} />}
           {activeTab === 'ai'        && <ConnectorTable rows={AI} />}
           {activeTab === 'skills'    && <SkillsTab />}

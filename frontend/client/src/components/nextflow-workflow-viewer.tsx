@@ -2747,59 +2747,6 @@ export function NextflowWorkflowViewer({
                         />
                       )}
 
-                      {/* Output location — only shown for Nextflow workflows.
-                       *  Galaxy .ga workflows write to Galaxy history automatically;
-                       *  no output path is configurable by the user. */}
-                      {(workflowDefinition as any)?.workflow_type !== 'galaxy' &&
-                       (workflowDefinition as any)?.format !== 'galaxy' && (
-                      <div data-testid="output-location-section"
-                           style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 8 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, color: 'var(--text)' }}>
-                          Output location
-                        </div>
-                        {/* Default — BioMate storage, always available, no config needed */}
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
-                          Results are saved to BioMate storage and available in the{' '}
-                          <strong>After run → Outputs</strong> tab. Files are kept for 90 days.
-                        </div>
-                        {projectId && (
-                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 12 }}>
-                            <input type="radio"
-                                   name="output-location"
-                                   value="project"
-                                   checked={outputLocationType === 'project'}
-                                   onChange={() => setOutputLocationType('project')}
-                                   data-testid="output-location-project" />
-                            <span>Also save to my project folder</span>
-                          </label>
-                        )}
-                        {/* Advanced: own S3 bucket — collapsed by default */}
-                        <details style={{ marginTop: 6 }} data-testid="output-location-advanced">
-                          <summary style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>
-                            Advanced: send outputs to my own S3 bucket
-                          </summary>
-                          <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                              Your bucket must grant BioMate's IAM role write access.
-                            </div>
-                            <input
-                              type="text"
-                              placeholder="s3://my-bucket/my-prefix"
-                              value={userS3Uri}
-                              onChange={(e) => {
-                                setUserS3Uri(e.target.value);
-                                setOutputLocationType(e.target.value.startsWith('s3://') ? 'user_s3' : 'default');
-                              }}
-                              data-testid="output-location-user-s3-uri"
-                              style={{ fontSize: 12, padding: '4px 8px',
-                                       border: '1px solid var(--border)', borderRadius: 4,
-                                       background: 'var(--surface)', color: 'var(--text)',
-                                       fontFamily: 'var(--font-mono)', width: 320 }}
-                            />
-                          </div>
-                        </details>
-                      </div>
-                      )}
                     </div>
                   </div>
                 )}
