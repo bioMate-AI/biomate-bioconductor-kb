@@ -1839,12 +1839,51 @@ class AIAssistant:
         if any('subworkflow' in t for t in tags):
             return False
 
-        # Prefer canonical runnable entry scripts.
+        # Prefer canonical runnable entry scripts — but a filename ending in
+        # /main.nf is NOT sufficient: an nf-core subworkflow whose stored path
+        # slips past the substring excludes above (e.g. real nf-core/rnaseq
+        # FASTQ_QC_TRIM_FILTER_SETSTRANDEDNESS) is a `take:`-only named workflow
+        # with no anonymous `workflow {}`. Launching it via `-entry` aborts with
+        # "declares N input channels but 0 were given" (the RC-1 failure). Verify
+        # on disk that the resolved file is actually standalone-runnable.
         if filename.endswith('/main.nf'):
+            resolved = self._find_nf_file(getattr(match, 'filename', '') or '')
+            if resolved is not None and not self._nf_file_is_standalone_runnable(resolved):
+                return False
             return True
         if filename.endswith('.nf') and ('/workflows/' in filename or 'biomni_nf/' in filename):
             return True
         return False
+
+    def _nf_file_is_standalone_runnable(self, nf_path: Any) -> bool:
+        """True iff the `.nf` at `nf_path` can be launched directly.
+
+        Runnable ⟺ it has an anonymous `workflow {` block (Nextflow's default
+        entry). A file whose only entry is a named `workflow NAME { take: … }`
+        cannot be launched via `-entry` — the `take:` channels are unbindable —
+        so it is NOT standalone-runnable. Exception: Bioconductor subworkflows
+        under `/bioconductor/` are made runnable at execution time by
+        `_build_bioc_entry_wrapper`, so they stay eligible. If the file can't be
+        read (e.g. resolved off-box), don't over-reject — return True."""
+        p = str(nf_path)
+        try:
+            text = Path(p).read_text(errors='replace')
+        except Exception:
+            return True
+        # Anonymous `workflow {` → Nextflow default entry → runnable.
+        if re.search(r'(?m)^\s*workflow\s*\{', text):
+            return True
+        has_named = re.search(r'(?m)^\s*workflow\s+[A-Za-z_]', text) is not None
+        # No workflow entry at all (a parameter stub — e.g. nfcore/rnaseq,
+        # nfcore/sarek — with only params + processes) → "No entry workflow".
+        if not has_named:
+            return False
+        # Named-only workflow with a `take:` block → unbindable via -entry, except
+        # Bioconductor subworkflows which _build_bioc_entry_wrapper wraps at run time.
+        if re.search(r'(?m)^\s*take\s*:', text):
+            return '/bioconductor/' in p
+        # Named workflow(s) without take: → runnable via `-entry <name>`.
+        return True
 
     def _nextflow_workflow_key(self, filename: str) -> Optional[str]:
         """
