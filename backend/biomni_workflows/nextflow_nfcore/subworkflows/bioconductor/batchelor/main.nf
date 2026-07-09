@@ -149,7 +149,7 @@ process BIOC_BATCHELOR_FAST_MNN_CORRECTION {
     # per-cell QC metrics — alias semantics to cell QC metrics; reports
     # cells-flagged fraction by detecting library-size outliers via MAD.
     .pcqc_outlier_frac <- NA_real_; .pcqc_files <- character(0)
-    for (.pcqc_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.pcqc_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .pcqc_obj <- tryCatch(readRDS(.pcqc_rds), error = function(e) NULL)
       .pcqc_mat <- if (is.matrix(.pcqc_obj) || is.data.frame(.pcqc_obj)) .pcqc_obj else NULL
       if (!is.null(.pcqc_mat) && ncol(.pcqc_mat) >= 10) {
@@ -187,7 +187,7 @@ process BIOC_BATCHELOR_FAST_MNN_CORRECTION {
     # matrix artifact. Pass when columns (cells) ≥ 50 and rows (features) ≥ 200
     # (Luecken & Theis 2019 single-cell QC floor).
     .cqc_ncells <- NA_real_; .cqc_nfeats <- NA_real_; .cqc_files <- character(0)
-    for (.cqc_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.cqc_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .cqc_obj <- tryCatch(readRDS(.cqc_rds), error = function(e) NULL)
       .cqc_mat <- if (is.matrix(.cqc_obj) || is.data.frame(.cqc_obj)) .cqc_obj else NULL
       if (!is.null(.cqc_mat) && nrow(.cqc_mat) > 100) {
@@ -207,7 +207,7 @@ process BIOC_BATCHELOR_FAST_MNN_CORRECTION {
     # HVG selection — count rows with high CV. Pass when 1000-3000 HVGs
     # (Stuart 2019 Cell Seurat v3 default range).
     .hvg_count <- NA_real_; .hvg_files <- character(0)
-    for (.hvg_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.hvg_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .hvg_obj <- tryCatch(readRDS(.hvg_rds), error = function(e) NULL)
       .hvg_mat <- if (is.matrix(.hvg_obj) || is.data.frame(.hvg_obj)) .hvg_obj else NULL
       if (!is.null(.hvg_mat) && nrow(.hvg_mat) > 200) {

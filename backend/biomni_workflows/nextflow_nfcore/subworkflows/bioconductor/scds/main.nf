@@ -141,7 +141,7 @@ process BIOC_SCDS_DOUBLET_ANNOTATION {
 
     # doublet detection — SCE/Seurat with doublet column; pass: rate ≤ 10%.
     .dbl_rate <- NA_real_
-    for (.dbl_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.dbl_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .dbl_obj <- tryCatch(readRDS(.dbl_rds), error = function(e) NULL)
       .dbl_calls <- NULL
       if (!is.null(.dbl_obj)) {
@@ -176,7 +176,7 @@ process BIOC_SCDS_DOUBLET_ANNOTATION {
     # matrix artifact. Pass when columns (cells) ≥ 50 and rows (features) ≥ 200
     # (Luecken & Theis 2019 single-cell QC floor).
     .cqc_ncells <- NA_real_; .cqc_nfeats <- NA_real_; .cqc_files <- character(0)
-    for (.cqc_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.cqc_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .cqc_obj <- tryCatch(readRDS(.cqc_rds), error = function(e) NULL)
       .cqc_mat <- if (is.matrix(.cqc_obj) || is.data.frame(.cqc_obj)) .cqc_obj else NULL
       if (!is.null(.cqc_mat) && nrow(.cqc_mat) > 100) {

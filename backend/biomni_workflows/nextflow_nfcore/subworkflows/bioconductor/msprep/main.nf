@@ -143,7 +143,7 @@ process BIOC_MSPREP_DATAFRAME_PIPELINE {
     # missing-value handling — scan .rds matrix/data.frame artifacts for max NA fraction
     .mv_na_fracs <- numeric(0)
     .mv_scanned <- character(0)
-    for (.mv_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.mv_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .mv_obj <- tryCatch(readRDS(.mv_rds), error = function(e) NULL)
       .mv_mat <- if (is.matrix(.mv_obj) || is.data.frame(.mv_obj)) .mv_obj else NULL
       if (!is.null(.mv_mat)) {

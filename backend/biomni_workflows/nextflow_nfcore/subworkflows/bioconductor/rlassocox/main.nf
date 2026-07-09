@@ -146,7 +146,7 @@ process BIOC_RLASSOCOX_RLASSO_COX_SURVIVAL_PREDICTION {
 
     # input validation — workflow-level pass when expected output files exist
     # and have non-zero size. Binary pass: at least one .rds or .csv emitted.
-    .iv_artifacts <- c(list.files(".", pattern = "\\.rds\$"), list.files(".", pattern = "\\.csv\$"))
+    .iv_artifacts <- c(list.files(".", pattern = "\\\\.rds\$"), list.files(".", pattern = "\\\\.csv\$"))
     .iv_passes <- length(.iv_artifacts) > 0
     .gates_by_label[["input validation"]] <- list(
       gate_row = "bioc_input_validation",

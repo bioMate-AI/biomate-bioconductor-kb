@@ -225,7 +225,7 @@ process BIOC_PHYLOSEQ_EXPLORATORY_ANALYSIS_AND_VISUALIZATION {
 
     # microbiome prevalence/abundance filtering (Callahan 2017 F1000).
     .pa_kept <- NA_real_
-    for (.pa_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.pa_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .pa_obj <- tryCatch(readRDS(.pa_rds), error = function(e) NULL)
       .pa_mat <- if (is.matrix(.pa_obj) || is.data.frame(.pa_obj)) .pa_obj else NULL
       if (!is.null(.pa_mat) && nrow(.pa_mat) > 50) {

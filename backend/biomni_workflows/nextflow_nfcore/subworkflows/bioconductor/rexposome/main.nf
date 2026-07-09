@@ -230,7 +230,7 @@ process BIOC_REXPOSOME_STANDARD_EXPOSOME_ANALYSIS {
     # diagnostic MA/PCA QC — PC1 variance explained on any large matrix.
     # Pass when PC1 > 10% (Risso 2014 RUV-seq diagnostic).
     .pca_pc1 <- NA_real_; .pca_files <- character(0)
-    for (.pca_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.pca_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .pca_obj <- tryCatch(readRDS(.pca_rds), error = function(e) NULL)
       .pca_mat <- if (is.matrix(.pca_obj) || is.data.frame(.pca_obj)) .pca_obj else NULL
       if (!is.null(.pca_mat) && ncol(.pca_mat) >= 3 && nrow(.pca_mat) >= 100) {
@@ -257,7 +257,7 @@ process BIOC_REXPOSOME_STANDARD_EXPOSOME_ANALYSIS {
     # missing-value handling — scan .rds matrix/data.frame artifacts for max NA fraction
     .mv_na_fracs <- numeric(0)
     .mv_scanned <- character(0)
-    for (.mv_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.mv_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .mv_obj <- tryCatch(readRDS(.mv_rds), error = function(e) NULL)
       .mv_mat <- if (is.matrix(.mv_obj) || is.data.frame(.mv_obj)) .mv_obj else NULL
       if (!is.null(.mv_mat)) {

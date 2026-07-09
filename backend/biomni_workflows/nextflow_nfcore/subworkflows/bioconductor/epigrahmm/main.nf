@@ -225,7 +225,7 @@ process BIOC_EPIGRAHMM_CONSENSUS_PEAK_CALLING {
     # missing-value handling — scan .rds matrix/data.frame artifacts for max NA fraction
     .mv_na_fracs <- numeric(0)
     .mv_scanned <- character(0)
-    for (.mv_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.mv_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .mv_obj <- tryCatch(readRDS(.mv_rds), error = function(e) NULL)
       .mv_mat <- if (is.matrix(.mv_obj) || is.data.frame(.mv_obj)) .mv_obj else NULL
       if (!is.null(.mv_mat)) {
@@ -251,7 +251,7 @@ process BIOC_EPIGRAHMM_CONSENSUS_PEAK_CALLING {
     # as a proxy diagnostic. Threshold = 0.7 (Bullard 2010 BMC Bioinf).
     .cn_lib_cvs <- numeric(0)
     .cn_scanned <- character(0)
-    for (.cn_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.cn_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .cn_obj <- tryCatch(readRDS(.cn_rds), error = function(e) NULL)
       .cn_mat <- if (is.matrix(.cn_obj) || is.data.frame(.cn_obj)) .cn_obj else NULL
       if (!is.null(.cn_mat) && ncol(.cn_mat) >= 2 && nrow(.cn_mat) >= 2) {

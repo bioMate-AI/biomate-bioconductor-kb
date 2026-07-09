@@ -170,7 +170,7 @@ process BIOC_MLSEQ_RNA_SEQ_CLASSIFICATION {
     # as a proxy diagnostic. Threshold = 0.7 (Bullard 2010 BMC Bioinf).
     .cn_lib_cvs <- numeric(0)
     .cn_scanned <- character(0)
-    for (.cn_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.cn_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .cn_obj <- tryCatch(readRDS(.cn_rds), error = function(e) NULL)
       .cn_mat <- if (is.matrix(.cn_obj) || is.data.frame(.cn_obj)) .cn_obj else NULL
       if (!is.null(.cn_mat) && ncol(.cn_mat) >= 2 && nrow(.cn_mat) >= 2) {
@@ -193,7 +193,7 @@ process BIOC_MLSEQ_RNA_SEQ_CLASSIFICATION {
 
     # voom — limma EList\$weights present, range > 0 (Law 2014 GB).
     .voom_w_range <- NA_real_
-    for (.voom_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.voom_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .voom_obj <- tryCatch(readRDS(.voom_rds), error = function(e) NULL)
       if (!is.null(.voom_obj) && inherits(.voom_obj, "EList")) {
         .voom_w <- tryCatch(.voom_obj\$weights, error = function(e) NULL)

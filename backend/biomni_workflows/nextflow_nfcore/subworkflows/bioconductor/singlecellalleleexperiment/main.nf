@@ -192,7 +192,7 @@ process BIOC_SINGLECELLALLELEEXPERIMENT_ALLELE_AWARE_SINGLE_CELL_ANALYSIS {
     # matrix artifact. Pass when columns (cells) ≥ 50 and rows (features) ≥ 200
     # (Luecken & Theis 2019 single-cell QC floor).
     .cqc_ncells <- NA_real_; .cqc_nfeats <- NA_real_; .cqc_files <- character(0)
-    for (.cqc_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.cqc_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .cqc_obj <- tryCatch(readRDS(.cqc_rds), error = function(e) NULL)
       .cqc_mat <- if (is.matrix(.cqc_obj) || is.data.frame(.cqc_obj)) .cqc_obj else NULL
       if (!is.null(.cqc_mat) && nrow(.cqc_mat) > 100) {
@@ -212,7 +212,7 @@ process BIOC_SINGLECELLALLELEEXPERIMENT_ALLELE_AWARE_SINGLE_CELL_ANALYSIS {
     # HVG selection — count rows with high CV. Pass when 1000-3000 HVGs
     # (Stuart 2019 Cell Seurat v3 default range).
     .hvg_count <- NA_real_; .hvg_files <- character(0)
-    for (.hvg_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.hvg_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .hvg_obj <- tryCatch(readRDS(.hvg_rds), error = function(e) NULL)
       .hvg_mat <- if (is.matrix(.hvg_obj) || is.data.frame(.hvg_obj)) .hvg_obj else NULL
       if (!is.null(.hvg_mat) && nrow(.hvg_mat) > 200) {
