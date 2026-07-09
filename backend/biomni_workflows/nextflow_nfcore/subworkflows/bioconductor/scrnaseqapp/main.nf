@@ -165,7 +165,7 @@ process BIOC_SCRNASEQAPP_SCRNASEQ_APP_DEPLOYMENT {
     # as a proxy diagnostic. Threshold = 0.7 (Bullard 2010 BMC Bioinf).
     .cn_lib_cvs <- numeric(0)
     .cn_scanned <- character(0)
-    for (.cn_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.cn_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .cn_obj <- tryCatch(readRDS(.cn_rds), error = function(e) NULL)
       .cn_mat <- if (is.matrix(.cn_obj) || is.data.frame(.cn_obj)) .cn_obj else NULL
       if (!is.null(.cn_mat) && ncol(.cn_mat) >= 2 && nrow(.cn_mat) >= 2) {
@@ -189,7 +189,7 @@ process BIOC_SCRNASEQAPP_SCRNASEQ_APP_DEPLOYMENT {
     # HVG selection — count rows with high CV. Pass when 1000-3000 HVGs
     # (Stuart 2019 Cell Seurat v3 default range).
     .hvg_count <- NA_real_; .hvg_files <- character(0)
-    for (.hvg_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.hvg_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .hvg_obj <- tryCatch(readRDS(.hvg_rds), error = function(e) NULL)
       .hvg_mat <- if (is.matrix(.hvg_obj) || is.data.frame(.hvg_obj)) .hvg_obj else NULL
       if (!is.null(.hvg_mat) && nrow(.hvg_mat) > 200) {

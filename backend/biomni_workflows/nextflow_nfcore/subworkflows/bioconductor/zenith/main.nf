@@ -143,7 +143,7 @@ process BIOC_ZENITH_ZENITH_GSA_WORKFLOW {
     # filter low-expression genes — alias of low-count filtering metric
     # (Chen 2016 F1000 edgeR filterByExpr semantics).
     .fleg_kept <- NA_real_; .fleg_files <- character(0)
-    for (.fleg_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.fleg_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .fleg_obj <- tryCatch(readRDS(.fleg_rds), error = function(e) NULL)
       .fleg_mat <- if (is.matrix(.fleg_obj) || is.data.frame(.fleg_obj)) .fleg_obj else NULL
       if (!is.null(.fleg_mat) && nrow(.fleg_mat) > 100) {
@@ -164,7 +164,7 @@ process BIOC_ZENITH_ZENITH_GSA_WORKFLOW {
 
     # TMM normalization — DGEList\$samples\$norm.factors set (Robinson & Oshlack 2010).
     .tmm_factors <- NULL; .tmm_n_nontrivial <- NA_real_
-    for (.tmm_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.tmm_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .tmm_obj <- tryCatch(readRDS(.tmm_rds), error = function(e) NULL)
       if (!is.null(.tmm_obj) && inherits(.tmm_obj, "DGEList")) {
         .tmm_f <- tryCatch(.tmm_obj\$samples\$norm.factors, error = function(e) NULL)
@@ -184,7 +184,7 @@ process BIOC_ZENITH_ZENITH_GSA_WORKFLOW {
 
     # voom — limma EList\$weights present, range > 0 (Law 2014 GB).
     .voom_w_range <- NA_real_
-    for (.voom_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.voom_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .voom_obj <- tryCatch(readRDS(.voom_rds), error = function(e) NULL)
       if (!is.null(.voom_obj) && inherits(.voom_obj, "EList")) {
         .voom_w <- tryCatch(.voom_obj\$weights, error = function(e) NULL)

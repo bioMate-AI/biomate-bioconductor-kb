@@ -172,7 +172,7 @@ process BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS {
     # filter low-expression genes — alias of low-count filtering metric
     # (Chen 2016 F1000 edgeR filterByExpr semantics).
     .fleg_kept <- NA_real_; .fleg_files <- character(0)
-    for (.fleg_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.fleg_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .fleg_obj <- tryCatch(readRDS(.fleg_rds), error = function(e) NULL)
       .fleg_mat <- if (is.matrix(.fleg_obj) || is.data.frame(.fleg_obj)) .fleg_obj else NULL
       if (!is.null(.fleg_mat) && nrow(.fleg_mat) > 100) {
@@ -195,7 +195,7 @@ process BIOC_SASER_ABERRANT_EXPRESSION_ANALYSIS {
     # Pass band 30-60% per Chen 2016 F1000 (edgeR filterByExpr convention).
     .lcf_kept_fractions <- numeric(0)
     .lcf_scanned <- character(0)
-    for (.lcf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.lcf_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .lcf_obj <- tryCatch(readRDS(.lcf_rds), error = function(e) NULL)
       .lcf_mat <- if (is.matrix(.lcf_obj) || is.data.frame(.lcf_obj)) .lcf_obj else NULL
       if (!is.null(.lcf_mat) && nrow(.lcf_mat) > 100) {

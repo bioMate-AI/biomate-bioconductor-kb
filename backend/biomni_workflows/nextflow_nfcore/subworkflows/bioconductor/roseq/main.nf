@@ -134,7 +134,7 @@ process BIOC_ROSEQ_ROSEQ_DE_ANALYSIS {
 
     # voom — limma EList\$weights present, range > 0 (Law 2014 GB).
     .voom_w_range <- NA_real_
-    for (.voom_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.voom_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .voom_obj <- tryCatch(readRDS(.voom_rds), error = function(e) NULL)
       if (!is.null(.voom_obj) && inherits(.voom_obj, "EList")) {
         .voom_w <- tryCatch(.voom_obj\$weights, error = function(e) NULL)

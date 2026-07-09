@@ -144,7 +144,7 @@ process BIOC_NEBULOSA_SINGLE_CELL_EXPERIMENT_DENSITY {
     # per-cell QC metrics — alias semantics to cell QC metrics; reports
     # cells-flagged fraction by detecting library-size outliers via MAD.
     .pcqc_outlier_frac <- NA_real_; .pcqc_files <- character(0)
-    for (.pcqc_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.pcqc_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .pcqc_obj <- tryCatch(readRDS(.pcqc_rds), error = function(e) NULL)
       .pcqc_mat <- if (is.matrix(.pcqc_obj) || is.data.frame(.pcqc_obj)) .pcqc_obj else NULL
       if (!is.null(.pcqc_mat) && ncol(.pcqc_mat) >= 10) {
@@ -169,7 +169,7 @@ process BIOC_NEBULOSA_SINGLE_CELL_EXPERIMENT_DENSITY {
     # Pass band 30-60% per Chen 2016 F1000 (edgeR filterByExpr convention).
     .lcf_kept_fractions <- numeric(0)
     .lcf_scanned <- character(0)
-    for (.lcf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.lcf_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .lcf_obj <- tryCatch(readRDS(.lcf_rds), error = function(e) NULL)
       .lcf_mat <- if (is.matrix(.lcf_obj) || is.data.frame(.lcf_obj)) .lcf_obj else NULL
       if (!is.null(.lcf_mat) && nrow(.lcf_mat) > 100) {
@@ -196,7 +196,7 @@ process BIOC_NEBULOSA_SINGLE_CELL_EXPERIMENT_DENSITY {
     # matrix artifact. Pass when columns (cells) ≥ 50 and rows (features) ≥ 200
     # (Luecken & Theis 2019 single-cell QC floor).
     .cqc_ncells <- NA_real_; .cqc_nfeats <- NA_real_; .cqc_files <- character(0)
-    for (.cqc_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.cqc_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .cqc_obj <- tryCatch(readRDS(.cqc_rds), error = function(e) NULL)
       .cqc_mat <- if (is.matrix(.cqc_obj) || is.data.frame(.cqc_obj)) .cqc_obj else NULL
       if (!is.null(.cqc_mat) && nrow(.cqc_mat) > 100) {
@@ -216,7 +216,7 @@ process BIOC_NEBULOSA_SINGLE_CELL_EXPERIMENT_DENSITY {
     # HVG selection — count rows with high CV. Pass when 1000-3000 HVGs
     # (Stuart 2019 Cell Seurat v3 default range).
     .hvg_count <- NA_real_; .hvg_files <- character(0)
-    for (.hvg_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.hvg_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .hvg_obj <- tryCatch(readRDS(.hvg_rds), error = function(e) NULL)
       .hvg_mat <- if (is.matrix(.hvg_obj) || is.data.frame(.hvg_obj)) .hvg_obj else NULL
       if (!is.null(.hvg_mat) && nrow(.hvg_mat) > 200) {
@@ -240,7 +240,7 @@ process BIOC_NEBULOSA_SINGLE_CELL_EXPERIMENT_DENSITY {
 
     # clustering QC — n_clusters ∈ [2,50] proxy (silhouette needs cluster pkg).
     .clu_n <- NA_real_
-    for (.clu_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.clu_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .clu_obj <- tryCatch(readRDS(.clu_rds), error = function(e) NULL)
       .clu_v <- NULL
       if (!is.null(.clu_obj)) {

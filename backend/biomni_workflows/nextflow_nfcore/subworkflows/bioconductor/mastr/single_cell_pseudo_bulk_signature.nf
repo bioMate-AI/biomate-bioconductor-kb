@@ -103,7 +103,7 @@ process BIOC_MASTR_SINGLE_CELL_PSEUDO_BULK_SIGNATURE {
     # matrix artifact. Pass when columns (cells) ≥ 50 and rows (features) ≥ 200
     # (Luecken & Theis 2019 single-cell QC floor).
     .cqc_ncells <- NA_real_; .cqc_nfeats <- NA_real_; .cqc_files <- character(0)
-    for (.cqc_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.cqc_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .cqc_obj <- tryCatch(readRDS(.cqc_rds), error = function(e) NULL)
       .cqc_mat <- if (is.matrix(.cqc_obj) || is.data.frame(.cqc_obj)) .cqc_obj else NULL
       if (!is.null(.cqc_mat) && nrow(.cqc_mat) > 100) {
@@ -125,7 +125,7 @@ process BIOC_MASTR_SINGLE_CELL_PSEUDO_BULK_SIGNATURE {
     # as a proxy diagnostic. Threshold = 0.7 (Bullard 2010 BMC Bioinf).
     .cn_lib_cvs <- numeric(0)
     .cn_scanned <- character(0)
-    for (.cn_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.cn_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .cn_obj <- tryCatch(readRDS(.cn_rds), error = function(e) NULL)
       .cn_mat <- if (is.matrix(.cn_obj) || is.data.frame(.cn_obj)) .cn_obj else NULL
       if (!is.null(.cn_mat) && ncol(.cn_mat) >= 2 && nrow(.cn_mat) >= 2) {
@@ -150,7 +150,7 @@ process BIOC_MASTR_SINGLE_CELL_PSEUDO_BULK_SIGNATURE {
     # Pass band 30-60% per Chen 2016 F1000 (edgeR filterByExpr convention).
     .lcf_kept_fractions <- numeric(0)
     .lcf_scanned <- character(0)
-    for (.lcf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.lcf_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .lcf_obj <- tryCatch(readRDS(.lcf_rds), error = function(e) NULL)
       .lcf_mat <- if (is.matrix(.lcf_obj) || is.data.frame(.lcf_obj)) .lcf_obj else NULL
       if (!is.null(.lcf_mat) && nrow(.lcf_mat) > 100) {

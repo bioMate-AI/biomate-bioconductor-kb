@@ -317,7 +317,7 @@ process BIOC_ASURAT_MULTIFACETED_SIGN_ANALYSIS {
 
     # clustering QC — n_clusters ∈ [2,50] proxy (silhouette needs cluster pkg).
     .clu_n <- NA_real_
-    for (.clu_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.clu_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .clu_obj <- tryCatch(readRDS(.clu_rds), error = function(e) NULL)
       .clu_v <- NULL
       if (!is.null(.clu_obj)) {

@@ -152,7 +152,7 @@ process BIOC_EDGER_CLASSIC_PIPELINE {
     # filter low-expression genes — alias of low-count filtering metric
     # (Chen 2016 F1000 edgeR filterByExpr semantics).
     .fleg_kept <- NA_real_; .fleg_files <- character(0)
-    for (.fleg_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.fleg_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .fleg_obj <- tryCatch(readRDS(.fleg_rds), error = function(e) NULL)
       .fleg_mat <- if (is.matrix(.fleg_obj) || is.data.frame(.fleg_obj)) .fleg_obj else NULL
       if (!is.null(.fleg_mat) && nrow(.fleg_mat) > 100) {

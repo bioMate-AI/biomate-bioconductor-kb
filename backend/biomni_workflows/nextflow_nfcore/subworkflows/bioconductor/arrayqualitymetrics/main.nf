@@ -182,7 +182,7 @@ process BIOC_ARRAYQUALITYMETRICS_STANDARD_QC_REPORT {
 
     # VSN — DESeqTransform / vsd matrix; mean-SD slope ≤ 0.5 (vsn::meanSdPlot).
     .vsn_slope <- NA_real_
-    for (.vsn_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.vsn_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .vsn_obj <- tryCatch(readRDS(.vsn_rds), error = function(e) NULL)
       .vsn_mat <- NULL
       if (!is.null(.vsn_obj)) {

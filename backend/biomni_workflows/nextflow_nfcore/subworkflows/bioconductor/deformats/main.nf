@@ -153,7 +153,7 @@ process BIOC_DEFORMATS_DEFORMATS_INTEROPERABILITY_PIPELINE {
     # dispersion/size-factor estimation — object-type-aware. Try DESeq2
     # DESeqDataSet (mcols\$dispOutlier), then edgeR DGEList (common.dispersion).
     .dsf_value <- NA_real_; .dsf_kind <- "none"
-    for (.dsf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.dsf_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .dsf_obj <- tryCatch(readRDS(.dsf_rds), error = function(e) NULL)
       if (!is.null(.dsf_obj)) {
         if (inherits(.dsf_obj, "DESeqDataSet")) {

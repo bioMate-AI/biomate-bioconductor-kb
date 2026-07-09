@@ -193,7 +193,7 @@ process BIOC_DESCAN2_DIFFERENTIAL_ENRICHMENT_WORKFLOW {
     # dispersion/size-factor estimation — object-type-aware. Try DESeq2
     # DESeqDataSet (mcols\$dispOutlier), then edgeR DGEList (common.dispersion).
     .dsf_value <- NA_real_; .dsf_kind <- "none"
-    for (.dsf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.dsf_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .dsf_obj <- tryCatch(readRDS(.dsf_rds), error = function(e) NULL)
       if (!is.null(.dsf_obj)) {
         if (inherits(.dsf_obj, "DESeqDataSet")) {
@@ -220,7 +220,7 @@ process BIOC_DESCAN2_DIFFERENTIAL_ENRICHMENT_WORKFLOW {
     # diagnostic MA/PCA QC — PC1 variance explained on any large matrix.
     # Pass when PC1 > 10% (Risso 2014 RUV-seq diagnostic).
     .pca_pc1 <- NA_real_; .pca_files <- character(0)
-    for (.pca_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.pca_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .pca_obj <- tryCatch(readRDS(.pca_rds), error = function(e) NULL)
       .pca_mat <- if (is.matrix(.pca_obj) || is.data.frame(.pca_obj)) .pca_obj else NULL
       if (!is.null(.pca_mat) && ncol(.pca_mat) >= 3 && nrow(.pca_mat) >= 100) {
@@ -248,7 +248,7 @@ process BIOC_DESCAN2_DIFFERENTIAL_ENRICHMENT_WORKFLOW {
     # Pass band 30-60% per Chen 2016 F1000 (edgeR filterByExpr convention).
     .lcf_kept_fractions <- numeric(0)
     .lcf_scanned <- character(0)
-    for (.lcf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.lcf_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .lcf_obj <- tryCatch(readRDS(.lcf_rds), error = function(e) NULL)
       .lcf_mat <- if (is.matrix(.lcf_obj) || is.data.frame(.lcf_obj)) .lcf_obj else NULL
       if (!is.null(.lcf_mat) && nrow(.lcf_mat) > 100) {
