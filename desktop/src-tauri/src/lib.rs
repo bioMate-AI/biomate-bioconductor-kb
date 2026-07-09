@@ -106,6 +106,29 @@ async fn pick_output_directory(app: AppHandle) -> Result<Option<String>, String>
          .map(|p| p.to_string_lossy().to_string()))
 }
 
+// ── Update check ───────────────────────────────────────────────────────────
+
+#[tauri::command]
+async fn check_for_update(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    use tauri_plugin_updater::UpdaterExt;
+
+    match app.updater() {
+        Ok(updater) => {
+            match updater.check().await {
+                Ok(Some(update)) => Ok(serde_json::json!({
+                    "available": true,
+                    "version": update.version,
+                    "currentVersion": update.current_version,
+                    "body": update.body
+                })),
+                Ok(None) => Ok(serde_json::json!({ "available": false })),
+                Err(e) => Err(e.to_string()),
+            }
+        }
+        Err(e) => Err(e.to_string()),
+    }
+}
+
 // ── App info ───────────────────────────────────────────────────────────────
 
 #[derive(Serialize)]
@@ -135,6 +158,7 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             get_token,
             set_token,
@@ -144,6 +168,7 @@ pub fn run() {
             pick_files,
             pick_output_directory,
             get_app_info,
+            check_for_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running BioMate Desktop");

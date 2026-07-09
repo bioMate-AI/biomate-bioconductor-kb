@@ -4,7 +4,7 @@
  * Renders nothing in the browser.
  */
 import { useState, useEffect } from "react";
-import { Globe, Server, CheckCircle2 } from "lucide-react";
+import { Globe, Server, CheckCircle2, RefreshCw, ArrowUpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,9 @@ import {
   desktopGetServerUrl,
   desktopSetServerUrl,
   desktopGetAppInfo,
+  desktopCheckForUpdate,
   AppInfo,
+  UpdateInfo,
 } from "@/lib/desktop";
 
 const CLOUD_URL = "https://dev-public.biomate.ai";
@@ -24,6 +26,8 @@ export function DesktopConnectionSettings() {
   const [customUrl, setCustomUrl] = useState("");
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [saved, setSaved] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "uptodate" | "available">("idle");
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
 
   useEffect(() => {
     if (!isDesktop()) return;
@@ -109,6 +113,57 @@ export function DesktopConnectionSettings() {
           Saved — reconnecting…
         </div>
       )}
+
+      <div className="space-y-2 pt-2 border-t border-border">
+        <h3 className="text-sm font-semibold">Updates</h3>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 px-3 text-xs"
+            disabled={updateStatus === "checking"}
+            onClick={async () => {
+              setUpdateStatus("checking");
+              setUpdateInfo(null);
+              const result = await desktopCheckForUpdate();
+              if (result?.available) {
+                setUpdateInfo(result);
+                setUpdateStatus("available");
+              } else {
+                setUpdateStatus("uptodate");
+              }
+            }}
+          >
+            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${updateStatus === "checking" ? "animate-spin" : ""}`} />
+            {updateStatus === "checking" ? "Checking…" : "Check for Updates"}
+          </Button>
+          {updateStatus === "uptodate" && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+              Up to date (v{appInfo?.version})
+            </span>
+          )}
+        </div>
+        {updateStatus === "available" && updateInfo && (
+          <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-xs space-y-1">
+            <div className="flex items-center gap-1.5 font-medium text-primary">
+              <ArrowUpCircle className="h-3.5 w-3.5" />
+              Update available: v{updateInfo.version}
+            </div>
+            {updateInfo.body && (
+              <p className="text-muted-foreground line-clamp-3">{updateInfo.body}</p>
+            )}
+            <a
+              href="https://github.com/bioMate-AI/biomate/releases"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline underline-offset-2"
+            >
+              Download from GitHub Releases →
+            </a>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

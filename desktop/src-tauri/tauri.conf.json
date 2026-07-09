@@ -29,6 +29,15 @@
     }
   },
 
+  "plugins": {
+    "updater": {
+      "pubkey": "",
+      "endpoints": [
+        "https://github.com/bioMate-AI/biomate/releases/latest/download/latest.json"
+      ]
+    }
+  },
+
   "build": {
     "beforeDevCommand": "",
     "devUrl": "http://localhost:5000",

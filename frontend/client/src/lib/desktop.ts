@@ -121,6 +121,30 @@ export function desktopNotify(title: string, body: string): void {
   }
 }
 
+// ── Update check ───────────────────────────────────────────────────────────
+
+export interface UpdateInfo {
+  available: boolean;
+  version?: string;
+  currentVersion?: string;
+  body?: string;
+}
+
+/**
+ * Check for a new desktop app version via GitHub Releases.
+ * Returns null in the browser. Returns { available: false } when already up to date.
+ * The pubkey in tauri.conf.json must be filled in before this is functional.
+ */
+export async function desktopCheckForUpdate(): Promise<UpdateInfo | null> {
+  const invoke = getInvoke();
+  if (!invoke) return null;
+  try {
+    return (await invoke("check_for_update")) as UpdateInfo;
+  } catch {
+    return null;
+  }
+}
+
 // ── Convenience: upload picked files via the BioMate API ──────────────────
 
 /**

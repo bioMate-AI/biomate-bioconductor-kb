@@ -18,6 +18,7 @@
     "store:allow-set",
     "store:allow-delete",
     "store:allow-load",
-    "store:allow-save"
+    "store:allow-save",
+    "updater:default"
   ]
 }

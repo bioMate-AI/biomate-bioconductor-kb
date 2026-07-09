@@ -1,9 +1,35 @@
 import { useState, useEffect, useCallback } from "react"
+import { useLocation } from "wouter"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   ArrowLeft,
   MessageCircle,
@@ -21,6 +47,10 @@ import {
   Circle,
   ExternalLink,
   RefreshCw,
+  MoreHorizontal,
+  Archive,
+  Trash2,
+  Pencil,
 } from "lucide-react"
 import { projectService } from "@/lib/projects"
 import { ProjectFileTree } from "@/components/project-file-tree"
@@ -35,6 +65,7 @@ interface ProjectDetailPageProps {
 }
 
 export default function ProjectDetailPage({ projectId, onBack, initialTab }: ProjectDetailPageProps) {
+  const [, navigate] = useLocation()
   const [project, setProject] = useState<Project | null>(null)
   const [loadingProject, setLoadingProject] = useState(true)
   const [isEditingInstructions, setIsEditingInstructions] = useState(false)
@@ -49,6 +80,13 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   const [runsLoading, setRunsLoading] = useState(false)
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null)
   const [projectFiles, setProjectFiles] = useState<{ name: string; size?: number }[]>([])
+
+  // Project lifecycle dialogs
+  const [renameOpen, setRenameOpen] = useState(false)
+  const [renameValue, setRenameValue] = useState("")
+  const [archiveOpen, setArchiveOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
 
   useEffect(() => {
     setLoadingProject(true)
@@ -136,6 +174,66 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
     openChatWithProject(undefined, msg)
   }
 
+  const handleRename = async () => {
+    if (!project || !renameValue.trim()) return
+    setActionLoading(true)
+    try {
+      const r = await fetch(`/api/projects/${project.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name: renameValue.trim() }),
+      })
+      if (r.ok) {
+        setProject(prev => prev ? { ...prev, name: renameValue.trim() } : prev)
+        setRenameOpen(false)
+      }
+    } catch { /* keep open */ }
+    finally { setActionLoading(false) }
+  }
+
+  const handleToggleStatus = async () => {
+    if (!project) return
+    const newStatus = project.status === "completed" ? "active" : "completed"
+    try {
+      const r = await fetch(`/api/projects/${project.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status: newStatus }),
+      })
+      if (r.ok) setProject(prev => prev ? { ...prev, status: newStatus } : prev)
+    } catch { /* ignore */ }
+  }
+
+  const handleArchive = async () => {
+    if (!project) return
+    setActionLoading(true)
+    try {
+      const r = await fetch(`/api/projects/${project.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status: "archived" }),
+      })
+      if (r.ok) navigate("/projects")
+    } catch { /* ignore */ }
+    finally { setActionLoading(false) }
+  }
+
+  const handleDelete = async () => {
+    if (!project) return
+    setActionLoading(true)
+    try {
+      const r = await fetch(`/api/projects/${project.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      })
+      if (r.ok) navigate("/projects")
+    } catch { /* ignore */ }
+    finally { setActionLoading(false) }
+  }
+
   const relTime = (d?: string | Date | null) => {
     if (!d) return "—"
     const diff = Date.now() - new Date(d as any).getTime()
@@ -203,9 +301,34 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
               ))}
             </div>
           </div>
-          <Button onClick={() => openChatWithProject()} className="shrink-0" data-testid="button-open-project-chat">
-            <MessageCircle className="w-4 h-4 mr-2" />Chat
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button onClick={() => openChatWithProject()} data-testid="button-open-project-chat">
+              <MessageCircle className="w-4 h-4 mr-2" />Chat
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" data-testid="button-project-actions">
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => { setRenameValue(project.name); setRenameOpen(true) }}>
+                  <Pencil className="w-4 h-4 mr-2" />Rename
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleToggleStatus}>
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  {project.status === "completed" ? "Mark as Active" : "Mark as Complete"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setArchiveOpen(true)} className="text-muted-foreground">
+                  <Archive className="w-4 h-4 mr-2" />Archive
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="text-destructive focus:text-destructive">
+                  <Trash2 className="w-4 h-4 mr-2" />Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
 
@@ -475,6 +598,68 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
           </div>
         </div>
       </div>
+
+      {/* Rename Dialog */}
+      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Rename project</DialogTitle>
+          </DialogHeader>
+          <Input
+            value={renameValue}
+            onChange={e => setRenameValue(e.target.value)}
+            placeholder="Project name"
+            onKeyDown={e => e.key === "Enter" && handleRename()}
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameOpen(false)}>Cancel</Button>
+            <Button onClick={handleRename} disabled={actionLoading || !renameValue.trim()}>
+              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Archive Confirmation */}
+      <AlertDialog open={archiveOpen} onOpenChange={setArchiveOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive this project?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The project and its linked chats and runs will be archived. You can restore it later by changing its status.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleArchive} disabled={actionLoading}>
+              {actionLoading ? "Archiving…" : "Archive"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this project?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes the project and all linked data. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={actionLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {actionLoading ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
