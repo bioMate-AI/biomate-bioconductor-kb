@@ -78,7 +78,7 @@ process STAR_ALIGN {
         --outSAMattributes NH HI AS NM \
         --outdir ${params.outdir} \
         ${params.save_unaligned ? '--outReadsUnmapped Fastx' : ''} \
-        ${params.read_length ? "--sjdbOverhang $((${params.read_length} - 1))" : ''}
+        ${params.read_length ? "--sjdbOverhang ${(params.read_length as Integer) - 1}" : ''}
     """
 }
 
