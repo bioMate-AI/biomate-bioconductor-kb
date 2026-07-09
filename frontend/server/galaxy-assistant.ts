@@ -312,6 +312,12 @@ export interface ChatContext {
   galaxyAPIOverride?: any;
   /** Explicitly selected expert skill IDs (from SkillSelector UI). Auto-detected when absent. */
   activeSkillIds?: string[];
+  /**
+   * Project context string built from the active project's name + researchGoal.
+   * Injected into the system prompt as <project_context> so the LLM knows the
+   * user's research background without the user repeating it every session.
+   */
+  projectContext?: string;
 }
 
 export interface ToolRecommendation {
@@ -6690,6 +6696,10 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       ? `<long_term_memory>\n${context.ltmContextBlock}\n</long_term_memory>\nNote: long-term memory reflects patterns across past sessions — use it to personalise responses but let the current conversation take precedence.\n\n`
       : '';
 
+    const projectContextBlock = context.projectContext
+      ? `<project_context>\n${context.projectContext}\n</project_context>\nNote: The above describes the user's active research project. Use it to tailor responses and workflow suggestions — treat it as standing background context for every message in this session.\n\n`
+      : '';
+
     // Compute isWorkflowTurn here so it is available for both the system prompt
     // selection (below) and the agent-tools gate (further down in the Claude branch).
     const isWorkflowTurn = workflowSuggestion.shouldGenerate || !!generatedWorkflow;
@@ -6707,7 +6717,7 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       || RESEARCH_INTENT_TYPES_FOR_PROMPT.has((intent as any)?.type ?? '')
       || !isWorkflowTurn;
     const systemPrompt = isResearchIntent
-      ? `${sessionMemoryBlock}${ltmBlock}${inlineDataBlock}${sessionDatasetsBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge.
+      ? `${sessionMemoryBlock}${ltmBlock}${projectContextBlock}${inlineDataBlock}${sessionDatasetsBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge.
 
 PROACTIVE-WORK RULE (highest priority):
 - Do everything you can with the information already on the table BEFORE asking the user a clarifying question.
@@ -6767,7 +6777,7 @@ RESPONSE STRUCTURE (use this for every substantive answer):
 
 Do NOT strip explanation for "give me a number" questions — keep the number first, then a one-line rationale. The previous "print only value" pattern was overfitted to benchmark scoring and is removed.
 For trivial arithmetic, answer directly without invoking run_code.`
-      : `${sessionMemoryBlock}${ltmBlock}${inlineDataBlock}${sessionDatasetsBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant.
+      : `${sessionMemoryBlock}${ltmBlock}${projectContextBlock}${inlineDataBlock}${sessionDatasetsBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant.
 
 PROACTIVE-WORK RULE (highest priority):
 - Do everything you can with what's on the table BEFORE asking the user a clarifying question. Use literature defaults (typical human dose/route, standard population, well-characterized PK values for known drugs) and STATE assumptions explicitly.

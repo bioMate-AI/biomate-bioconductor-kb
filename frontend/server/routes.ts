@@ -5802,12 +5802,35 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
+      // Load project researchGoal for LLM context injection when a project is active.
+      let _projectContext: string | undefined;
+      if (_resolvedProjectId) {
+        try {
+          const _proj = await pool.query(
+            `SELECT name, description, research_goal, instructions FROM projects WHERE id = $1 LIMIT 1`,
+            [_resolvedProjectId]
+          );
+          const _p = _proj.rows?.[0];
+          if (_p) {
+            const parts: string[] = [];
+            if (_p.name) parts.push(`Project: ${_p.name}`);
+            if (_p.description) parts.push(`Description: ${_p.description}`);
+            if (_p.research_goal) parts.push(`Research goal: ${_p.research_goal}`);
+            if (_p.instructions) parts.push(`Background instructions: ${_p.instructions}`);
+            if (parts.length > 0) _projectContext = parts.join('\n');
+          }
+        } catch {
+          // Non-fatal — never break chat on a project lookup failure.
+        }
+      }
+
       const enrichedContext = {
         ...(context || {}),
         // Normalise session identity: frontend sends memorySessionId; processMessage uses sessionId.
         // If both are present, prefer the explicit sessionId; fall back to memorySessionId.
         sessionId: _resolvedSessionId,
         projectId: _resolvedProjectId,
+        projectContext: _projectContext,
         // memorySessionId must be the LTM sessions.id (uuid) so recordEpisode's
         // project_episodes.session_id FK is satisfied. If the bridge call
         // failed (no LTM session created), leave it undefined and let
