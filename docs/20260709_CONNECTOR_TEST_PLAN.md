@@ -1,5 +1,5 @@
 # BioMate Connector Test Plan
-**5 surfaces · 25 test cases · All tests run against live BioMate backend — no mocks**
+**6 surfaces · 30 test cases · All tests run against live BioMate backend — no mocks**
 
 ---
 
@@ -8,10 +8,18 @@
 | Surface | Transport | Auth | Entry point |
 |---|---|---|---|
 | Claude Code | stdio MCP | `BIOMATE_AUTH_TOKEN` in `~/.claude.json` | Type in Claude Code terminal |
-| Claude Science | streamable HTTP MCP (port 8001) | `Authorization: Bearer <token>` | Add `http://localhost:8001/mcp` in Claude Science settings |
+| Claude Science | streamable HTTP MCP — **`https://localhost:8001/mcp`** | `Authorization: Bearer <token>` | Settings → MCP Servers → Add URL |
 | Codex CLI | stdio MCP | `BIOMATE_AUTH_TOKEN` in `~/.codex/config.toml` | `codex "<prompt>"` |
+| ChatGPT | OpenAPI + OAuth 2.1 / PKCE | User OAuth flow | GPT Actions → import `openapi.json` |
 | Slack | Slash command `/biomate` | `BIOMATE_API_KEY` service account | `/biomate <query>` in any channel |
 | Feishu / Lark | Bot events (`im.message.receive_v1`) | `bind <api_key>` per user | @-mention bot or DM |
+
+> **Claude Science note:** The server must run with `--ssl` (HTTPS). Start with `./mcp/start_http_server.sh` — it auto-generates a self-signed cert at `mcp/localhost.crt` on first run. To suppress the browser trust warning permanently on macOS:
+> ```bash
+> sudo security add-trusted-cert -d -r trustRoot \
+>   -k /Library/Keychains/System.keychain mcp/localhost.crt
+> ```
+> Then register `https://localhost:8001/mcp` in Claude Science (not `http://`).
 
 ---
 
@@ -571,16 +579,120 @@ unbind
 
 ---
 
+---
+
+## 6. ChatGPT
+
+**Transport:** OpenAPI 3.1 + OAuth 2.1 / PKCE · **Auth:** user OAuth flow via `connectors/chatgpt/` · **Config:** `connectors/chatgpt/openapi.json`
+
+### Setup
+
+1. In ChatGPT: Explore GPTs → Create → Configure → Add Action → Import from URL or paste `openapi.json`
+2. Set OAuth: Authorization URL, Token URL, Client ID, Scope from the BioMate OAuth server
+3. Or for testing: set Authentication to API Key and use a BioMate API key directly
+
+```
+BIOMATE_API_URL = https://app.biomate.ai   (or dev-public.biomate.ai for testing)
+OAuth client ID and secret from connectors/chatgpt/ config
+```
+
+---
+
+### TC-GP-1 · OAuth flow — user connects BioMate account
+
+**Input:** Click "Connect" in the GPT action settings → complete OAuth PKCE flow
+
+**Expected:**
+- Browser opens BioMate login/authorize page
+- After login: redirect back to ChatGPT with access token
+- GPT can now call BioMate tools on behalf of this user
+- Token stored — subsequent calls don't require re-auth
+
+- [ ] Pass  · [ ] Fail
+
+---
+
+### TC-GP-2 · ADMET screening via GPT prompt
+
+**Input:**
+```
+Screen aspirin, ibuprofen, and naproxen for hERG and CYP3A4 inhibition using BioMate.
+Flag any compound with hERG IC50 < 1 µM.
+```
+
+**Expected:**
+- GPT calls `biomate_session` or `run_workflow` via OpenAPI action
+- Returns workflow card with run ID and status
+- After completion: per-compound ADMET values displayed
+- "View in BioMate" deep link included
+
+- [ ] Pass  · [ ] Fail
+
+---
+
+### TC-GP-3 · Literature search via GPT
+
+**Input:**
+```
+Search BioMate for recent papers on PD-L1 checkpoint inhibitor resistance mechanisms in NSCLC.
+```
+
+**Expected:**
+- `search_literature` called via OpenAPI action
+- Returns ≥ 10 papers with titles, authors, DOIs
+- Papers are real (spot-check 2–3 DOIs via PubMed)
+- No hallucinated citations
+
+- [ ] Pass  · [ ] Fail
+
+---
+
+### TC-GP-4 · Database lookup — compound target profile
+
+**Input:**
+```
+Look up osimertinib in BioMate's biological databases. I want its known targets and clinical trial status.
+```
+
+**Expected:**
+- `query_database` called with `entity_type="compound"`
+- Returns ChEMBL bioactivity data (EGFR T790M IC50)
+- Clinical trials from OpenFDA / ClinicalTrials.gov if available
+- No fabricated assay values
+
+- [ ] Pass  · [ ] Fail
+
+---
+
+### TC-GP-5 · Run status + results retrieval
+
+**Input:**
+```
+Check the status of my most recent BioMate run and show me the output files.
+```
+
+**Expected:**
+- `list_runs(limit=1)` → most recent run ID
+- `get_run_status` → current status
+- If completed: `get_run_results` → output file list with download URLs
+- GPT presents results in readable format, not raw JSON
+
+- [ ] Pass  · [ ] Fail
+
+---
+
 ## Test execution order
 
 ```
 TC-FE-2   (unbound gate — must run before TC-FE-1)
 TC-FE-1   (bind)
-TC-CS-1   (auth gate)
-TC-CS-2   (tool count)
+TC-CS-1   (auth gate — no token → 401)
+TC-CS-2   (tool count — verify 11 tools)
+TC-GP-1   (OAuth flow — must complete before other GP tests)
 TC-CC-1 → TC-CC-2 → TC-CC-3 → TC-CC-4 → TC-CC-5
 TC-CS-3 → TC-CS-4 → TC-CS-5
 TC-CX-1 → TC-CX-2 → TC-CX-3 → TC-CX-4 (use run_id from CX-2) → TC-CX-5
+TC-GP-2 → TC-GP-3 → TC-GP-4 → TC-GP-5
 TC-SL-1 → TC-SL-2 → TC-SL-3 → TC-SL-4 → TC-SL-5
 TC-FE-3 → TC-FE-4 → TC-FE-5
 ```
