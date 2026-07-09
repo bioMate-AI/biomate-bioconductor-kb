@@ -157,3 +157,8 @@ yarn-error.log*
 .last_dev_sync_commit
 .last_dev_sync_db_md5
 .mcp.json
+
+# Large build artifacts and data files
+desktop/src-tauri/target/
+data/validation/gwas/*.tsv.gz
+data/validation/gwas/*.gz
