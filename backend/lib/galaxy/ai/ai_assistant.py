@@ -3559,6 +3559,24 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             except Exception as chain_exc:
                 log.warning("[UnifiedWorkflowGeneration] Chain lookup failed: %s", chain_exc)
 
+            # Microarray: prevent embedding search from returning nf-core/rnaseq.
+            # Microarray intensities are continuous log-ratios; DESeq2/edgeR/rnaseq pipeline
+            # assumes Poisson-distributed integer counts — fundamentally wrong model.
+            _MICROARRAY_PAT = re.compile(
+                r'\b(microarray|affymetrix|agilent|illumina\s+beadchip|expression\s+array|'
+                r'probe\s+intensit|cel\s+file|gpl\d+|\.cel\b|affy\b|limma\b|'
+                r'differential\s+expression.*array|array.*differential\s+expression)\b',
+                re.IGNORECASE,
+            )
+            if _MICROARRAY_PAT.search(user_intent):
+                user_intent = user_intent + (
+                    "\n[Routing: microarray gene expression — use limma or differentialabundance, "
+                    "NOT nf-core/rnaseq. rnaseq requires raw integer counts (Poisson model); "
+                    "microarray uses log-ratio intensities (Gaussian model). "
+                    "Preferred: limma_microarray_analysis or nf-core/differentialabundance.]"
+                )
+                log.info("[UnifiedWorkflowGeneration] Microarray pattern detected — injected limma routing hint")
+
             # Plan B / synthetic biology: codon optimization before mRNA-LNP engineering.
             _CODON_MRNA_PAT = re.compile(
                 r'\b(optimize\s+codons?|codon\s+optimi[sz]ation|heterologous\s+expression|'

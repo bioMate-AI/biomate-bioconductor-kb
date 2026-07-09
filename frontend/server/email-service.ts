@@ -45,8 +45,9 @@ class EmailService {
   }
 
   private isSesConfigured(): boolean {
-    // SES works when AWS credentials are available — same creds used for S3/Batch
-    return !!(process.env.AWS_REGION && (process.env.AWS_ACCESS_KEY_ID || process.env.AWS_ROLE_ARN));
+    // AWS_REGION is sufficient — on EC2 the SDK resolves credentials from the instance
+    // IAM role automatically; explicit AWS_ACCESS_KEY_ID only needed locally.
+    return !!(process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION);
   }
 
   private isSmtpConfigured(): boolean {

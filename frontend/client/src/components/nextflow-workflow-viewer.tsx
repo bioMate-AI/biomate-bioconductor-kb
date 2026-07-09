@@ -1449,7 +1449,11 @@ export function NextflowWorkflowViewer({
   );
   const displayedQcThresholds = React.useMemo(() => {
     const merged: Record<string, { bound: number; direction: string; rationale?: string; source: 'default' | 'profile' | 'user' }> = {};
+    const wfDomain = (workflowDefinition?.domain || '').toLowerCase();
     Object.entries(qcDefaults).forEach(([k, meta]) => {
+      // Skip domain-specific metrics that don't apply to this workflow
+      const allowedDomains = (meta as any).domains as string[] | undefined;
+      if (allowedDomains && wfDomain && !allowedDomains.includes(wfDomain)) return;
       merged[k] = { bound: meta.bound, direction: meta.direction, rationale: meta.rationale, source: 'default' };
     });
     if (activeQcProfile) {
