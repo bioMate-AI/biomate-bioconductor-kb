@@ -42,16 +42,13 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   const validTabs = ["chat", "files", "workflows"]
   const [activeTab, setActiveTab] = useState(validTabs.includes(initialTab || "") ? initialTab! : "files")
 
-  // Chat sessions
   const [sessions, setSessions] = useState<any[]>([])
   const [sessionsLoading, setSessionsLoading] = useState(false)
 
-  // Workflow runs
   const [runs, setRuns] = useState<any[]>([])
   const [runsLoading, setRunsLoading] = useState(false)
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null)
 
-  // ── Load project ──────────────────────────────────────────────────────────
   useEffect(() => {
     setLoadingProject(true)
     fetch(`/api/projects/${projectId}`, { credentials: "include" })
@@ -72,7 +69,6 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
           } as any)
           setInstructionsValue(p.researchGoal ?? p.research_goal ?? p.instructions ?? "")
         } else {
-          // localStorage fallback for local-only projects
           const loc = projectService.getProject(projectId)
           if (loc) { setProject(loc); setInstructionsValue(loc.instructions || "") }
         }
@@ -84,7 +80,6 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
       .finally(() => setLoadingProject(false))
   }, [projectId])
 
-  // ── Load chat sessions ────────────────────────────────────────────────────
   const loadSessions = useCallback(async () => {
     setSessionsLoading(true)
     try {
@@ -96,7 +91,6 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
 
   useEffect(() => { loadSessions() }, [loadSessions])
 
-  // ── Load workflow runs ────────────────────────────────────────────────────
   const loadRuns = useCallback(async () => {
     setRunsLoading(true)
     try {
@@ -109,7 +103,6 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
 
   useEffect(() => { if (activeTab === "workflows") loadRuns() }, [activeTab, loadRuns])
 
-  // ── Save instructions ────────────────────────────────────────────────────
   const handleSaveInstructions = async () => {
     if (!project) return
     try {
@@ -123,16 +116,14 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
         setProject(prev => prev ? { ...prev, instructions: instructionsValue.trim() } : prev)
         setIsEditingInstructions(false)
       }
-    } catch { /* keep editing state open */ }
+    } catch { /* keep editing open */ }
   }
 
-  // ── Open chat with this project active ───────────────────────────────────
   const openChatWithProject = (sessionId?: string) => {
     try { localStorage.setItem("biomate-active-project-id", projectId) } catch { /* ignore */ }
     window.location.assign(sessionId ? `/?session=${encodeURIComponent(sessionId)}` : "/")
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
   const relTime = (d?: string | Date | null) => {
     if (!d) return "—"
     const diff = Date.now() - new Date(d as any).getTime()
@@ -151,7 +142,6 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
     return <Circle className="w-4 h-4 text-muted-foreground shrink-0" />
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
   if (loadingProject) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -173,7 +163,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="border-b border-border px-6 py-4 shrink-0">
         <div className="flex items-center gap-3 mb-3">
           <Button variant="ghost" size="sm" onClick={onBack} data-testid="button-back-to-projects">
@@ -201,27 +191,22 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
               ))}
             </div>
           </div>
-          {/* Primary action: open chat */}
-          <Button
-            onClick={() => openChatWithProject()}
-            className="shrink-0"
-            data-testid="button-open-project-chat"
-          >
-            <MessageCircle className="w-4 h-4 mr-2" />
-            Chat
+          <Button onClick={() => openChatWithProject()} className="shrink-0" data-testid="button-open-project-chat">
+            <MessageCircle className="w-4 h-4 mr-2" />Chat
           </Button>
         </div>
       </div>
 
-      {/* ── Body: tabs (left) + instructions sidebar (right) ── */}
+      {/* Body */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Main content */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
             <TabsList className="w-fit mx-4 mt-3 mb-0 shrink-0">
               <TabsTrigger value="chat" className="flex items-center gap-1.5" data-testid="tab-project-chat">
                 <MessageCircle className="w-3.5 h-3.5" />Chat
-                {sessions.length > 0 && <span className="text-xs bg-muted rounded px-1">{sessions.length}</span>}
+                {sessions.length > 0 && (
+                  <span className="text-xs bg-muted rounded px-1">{sessions.length}</span>
+                )}
               </TabsTrigger>
               <TabsTrigger value="files" className="flex items-center gap-1.5" data-testid="tab-project-files">
                 <FileText className="w-3.5 h-3.5" />Files
@@ -231,33 +216,34 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
               </TabsTrigger>
             </TabsList>
 
-            {/* ── CHAT TAB ── */}
+            {/* CHAT TAB */}
             <TabsContent value="chat" className="flex-1 m-0 overflow-hidden">
-              <div className="h-full flex flex-col p-4 gap-4">
-                {/* Launch new chat */}
+              <div className="h-full flex flex-col p-4 gap-4 overflow-y-auto">
                 <div
-                  className="rounded-xl border-2 border-dashed border-border p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-all"
+                  className="rounded-xl border-2 border-dashed border-border p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-all shrink-0"
                   onClick={() => openChatWithProject()}
                   data-testid="panel-new-project-chat"
                 >
                   <MessageCircle className="w-8 h-8 mx-auto mb-3 text-muted-foreground/60" />
                   <p className="font-medium mb-1">Start a new chat about this project</p>
                   <p className="text-sm text-muted-foreground mb-4">
-                    BioMate will keep track of project files, workflow runs, and research context.
+                    BioMate tracks project files, workflow runs, and research context automatically.
                   </p>
-                  <Button onClick={e => { e.stopPropagation(); openChatWithProject() }} data-testid="button-new-project-chat">
+                  <Button
+                    onClick={e => { e.stopPropagation(); openChatWithProject() }}
+                    data-testid="button-new-project-chat"
+                  >
                     <Plus className="w-4 h-4 mr-2" />New Chat
                   </Button>
                 </div>
 
-                {/* Recent sessions */}
                 {sessionsLoading ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center py-4">
                     <Loader2 className="w-4 h-4 animate-spin" />Loading sessions…
                   </div>
                 ) : sessions.length > 0 ? (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
+                  <>
+                    <div className="flex items-center justify-between shrink-0">
                       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Recent chats ({sessions.length})
                       </p>
@@ -265,43 +251,56 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                         <RefreshCw className="w-3 h-3" />
                       </button>
                     </div>
-                    <ScrollArea className="flex-1">
-                      <div className="space-y-1.5">
-                        {sessions.map((s: any) => {
-                          const id = s.session_id ?? s.id
-                          return (
-                            <div
-                              key={id}
-                              className="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5 hover:bg-muted/40 cursor-pointer group"
-                              onClick={() => openChatWithProject(id)}
-                              data-testid={`session-row-${id}`}
-                            >
-                              <MessageCircle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">{s.title || "Untitled chat"}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {s.message_count ?? 0} messages · {relTime(s.last_activity ?? s.created_at)}
-                                </p>
-                              </div>
-                              <ExternalLink className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0" />
+                    <div className="space-y-1.5">
+                      {sessions.map((s: any) => {
+                        const id = s.session_id ?? s.id
+                        return (
+                          <div
+                            key={id}
+                            className="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5 hover:bg-muted/40 cursor-pointer group"
+                            onClick={() => openChatWithProject(id)}
+                            data-testid={`session-row-${id}`}
+                          >
+                            <MessageCircle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{s.title || "Untitled chat"}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {s.message_count ?? 0} messages · {relTime(s.last_activity ?? s.created_at)}
+                              </p>
                             </div>
-                          )
-                        })}
-                      </div>
-                    </ScrollArea>
-                  </div>
+                            <ExternalLink className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0" />
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </>
                 ) : null}
               </div>
             </TabsContent>
 
-            {/* ── FILES TAB ── */}
-            <TabsContent value="files" className="flex-1 m-0 p-4 min-h-0" style={{ display: "flex", flexDirection: "column" }}>
-              <ProjectFileTree projectId={projectId} />
+            {/* FILES TAB */}
+            <TabsContent value="files" className="flex-1 m-0 min-h-0" style={{ display: "flex", flexDirection: "column" }}>
+              <div className="flex-1 p-4 min-h-0 flex flex-col">
+                <ProjectFileTree projectId={projectId} />
+              </div>
+              <div className="border-t border-border px-4 py-3 bg-muted/20 shrink-0 flex items-center justify-between gap-4">
+                <p className="text-xs text-muted-foreground">
+                  Upload data files, then let BioMate select and run the right workflow for you.
+                </p>
+                <Button
+                  size="sm"
+                  onClick={() => openChatWithProject()}
+                  className="gap-1.5 shrink-0"
+                  data-testid="button-analyze-files"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  Analyze with BioMate
+                </Button>
+              </div>
             </TabsContent>
 
-            {/* ── WORKFLOW RUNS TAB ── */}
+            {/* WORKFLOW RUNS TAB */}
             <TabsContent value="workflows" className="flex-1 m-0 min-h-0 overflow-hidden" data-testid="tab-content-workflows">
-              {/* Split: run list left, viewer right */}
               <div className="h-full flex min-h-0">
                 {/* Run list */}
                 <div className="w-72 border-r border-border flex flex-col shrink-0">
@@ -327,17 +326,17 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                         {runs.map((run: any) => {
                           const id = run.id ?? run.runId
                           const status = run.execution?.status ?? run.status ?? "unknown"
-                          const name = run.workflowName ?? run.execution?.workflowName ?? id
+                          const name = run.workflowName ?? id
                           const ts = run.createdAt ?? run.execution?.createdAt
-                          const isSelected = selectedRunId === id
+                          const isSel = selectedRunId === id
                           return (
                             <button
                               key={id}
                               className={cn(
                                 "w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-muted/40 transition-colors border-b border-border/50",
-                                isSelected && "bg-muted"
+                                isSel && "bg-muted"
                               )}
-                              onClick={() => setSelectedRunId(isSelected ? null : id)}
+                              onClick={() => setSelectedRunId(isSel ? null : id)}
                               data-testid={`run-row-${id}`}
                             >
                               {statusIcon(status)}
@@ -353,13 +352,13 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                   </div>
                 </div>
 
-                {/* Workflow viewer panel */}
+                {/* Workflow viewer */}
                 <div className="flex-1 overflow-y-auto">
                   {selectedRunId ? (
                     (() => {
                       const run = runs.find((r: any) => (r.id ?? r.runId) === selectedRunId)
                       const status = run?.execution?.status ?? run?.status ?? "unknown"
-                      const wfStatus: any =
+                      const wfStatus: "idle" | "running" | "paused" | "completed" | "failed" | "pending_review" =
                         status === "completed" ? "completed" :
                         status === "failed" || status === "errored" ? "failed" :
                         status === "running" ? "running" : "idle"
@@ -367,10 +366,10 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                         <NextflowWorkflowViewer
                           runId={selectedRunId}
                           sessionId={run?.chatSessionId}
-                          workflowId={run?.workflowName ?? run?.execution?.workflowName}
-                          workflowDefinition={run?.workflowDefinition ?? run?.execution?.workflowGa}
+                          workflowId={run?.workflowName}
+                          workflowDefinition={run?.workflowDefinition}
                           status={wfStatus}
-                          errorMessage={run?.execution?.errorMessage ?? run?.errorMessage}
+                          errorMessage={run?.execution?.errorMessage}
                         />
                       )
                     })()
@@ -384,88 +383,20 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                 </div>
               </div>
             </TabsContent>
-
-            <TabsContent value="files" className="flex-1 m-0 min-h-0" style={{ display: "flex", flexDirection: "column" }}>
-              <div className="flex-1 p-4 min-h-0 flex flex-col">
-                <ProjectFileTree projectId={projectId} />
-              </div>
-              {/* Analyze CTA — fixed footer inside Files tab */}
-              <div className="border-t border-border px-4 py-3 bg-muted/20 shrink-0 flex items-center justify-between gap-4">
-                <p className="text-xs text-muted-foreground">Upload genomics, proteomics, or any research data files above.</p>
-                <Button
-                  size="sm"
-                  onClick={() => openChatWithProject()}
-                  className="gap-1.5 shrink-0"
-                  data-testid="button-analyze-files"
-                >
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  Analyze with BioMate
-                </Button>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="workflows" className="flex-1 m-0 min-h-0 overflow-hidden" data-testid="tab-content-workflows">
-              <div className="h-full flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-sm">Workflow runs in this project</h3>
-                </div>
-                {runsLoading ? (
-                  <div className="flex items-center gap-2 text-muted-foreground text-sm py-8 justify-center">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Loading runs…
-                  </div>
-                ) : projectRuns.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-                    <FlaskConical className="w-10 h-10 mb-3 opacity-40" />
-                    <p className="text-sm font-medium mb-1">No workflow runs yet</p>
-                    <p className="text-xs">Start a chat and ask BioMate to run a workflow.</p>
-                  </div>
-                ) : (
-                  <ScrollArea className="flex-1">
-                    <div className="space-y-2">
-                      {projectRuns.map((run: any) => {
-                        const status = run.execution?.status ?? run.status ?? "unknown"
-                        const name = run.workflowName ?? run.execution?.workflowName ?? run.id
-                        const ts = run.createdAt ?? run.execution?.createdAt
-                        const relTime = ts ? new Date(ts).toLocaleString() : ""
-                        const statusIcon =
-                          status === "completed" ? <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" /> :
-                          status === "failed" || status === "errored" ? <XCircle className="w-4 h-4 text-red-500 flex-shrink-0" /> :
-                          status === "running" ? <Loader2 className="w-4 h-4 text-blue-500 animate-spin flex-shrink-0" /> :
-                          <Circle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                        return (
-                          <div key={run.id} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/40 transition-colors">
-                            {statusIcon}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">{name}</p>
-                              <p className="text-xs text-muted-foreground">{status} · {relTime}</p>
-                            </div>
-                            {run.chatSessionId && (
-                              <Button size="sm" variant="outline" className="text-xs h-7 px-2 flex-shrink-0"
-                                onClick={() => window.location.assign(`/?session=${encodeURIComponent(run.chatSessionId)}`)}>
-                                Open
-                              </Button>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </ScrollArea>
-                )}
-              </div>
-            </TabsContent>
           </Tabs>
         </div>
 
-        {/* ── Right sidebar: Instructions + metadata ── */}
+        {/* Right sidebar */}
         <div className="w-72 border-l border-border bg-muted/20 shrink-0 flex flex-col overflow-hidden">
           <div className="p-4 flex-1 overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-medium text-sm">Instructions</h3>
               {!isEditingInstructions && (
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
+                <Button
+                  variant="ghost" size="sm" className="h-7 w-7 p-0"
                   onClick={() => setIsEditingInstructions(true)}
-                  data-testid="button-edit-instructions">
+                  data-testid="button-edit-instructions"
+                >
                   <Edit3 className="w-3.5 h-3.5" />
                 </Button>
               )}
@@ -476,7 +407,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                 <Textarea
                   value={instructionsValue}
                   onChange={e => setInstructionsValue(e.target.value)}
-                  placeholder="Add background context, guidelines, or instructions for this project..."
+                  placeholder="Add context, guidelines, or background for this project…"
                   className="min-h-[160px] resize-none text-sm"
                   data-testid="textarea-edit-instructions"
                 />
@@ -484,9 +415,11 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                   <Button size="sm" className="h-7 text-xs" onClick={handleSaveInstructions} data-testid="button-save-instructions">
                     <Save className="w-3 h-3 mr-1" />Save
                   </Button>
-                  <Button variant="outline" size="sm" className="h-7 text-xs"
+                  <Button
+                    variant="outline" size="sm" className="h-7 text-xs"
                     onClick={() => { setInstructionsValue(project.instructions || ""); setIsEditingInstructions(false) }}
-                    data-testid="button-cancel-instructions">
+                    data-testid="button-cancel-instructions"
+                  >
                     <X className="w-3 h-3 mr-1" />Cancel
                   </Button>
                 </div>
@@ -497,22 +430,23 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
               <div className="text-center py-6 text-muted-foreground">
                 <FileText className="w-7 h-7 mx-auto mb-2 opacity-30" />
                 <p className="text-xs">No instructions yet</p>
-                <p className="text-xs opacity-70 mt-0.5">Add context to help the AI</p>
+                <p className="text-xs opacity-70 mt-0.5">Add context to help BioMate</p>
               </div>
             )}
           </div>
 
-          {/* Metadata */}
           <div className="border-t border-border p-4 shrink-0">
             <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-2">Details</h4>
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Created</span>
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <Clock className="w-3 h-3" />Created
+                </span>
                 <span>{new Date(project.createdAt).toLocaleDateString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Chats</span>
-                <span>{sessions.length}</span>
+                <span>{sessions.length > 0 ? sessions.length : "—"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Runs</span>

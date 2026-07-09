@@ -7,6 +7,7 @@ import { useAfterRunFlavor } from "@/hooks/use-ui-flavor"
 import { AfterRunReport } from "@/v2/AfterRunReport"
 import { extractSubmittedParams } from "@/hooks/useRunAgainParamCarryover"
 import { useUnifiedExecution } from "@/hooks/useUnifiedExecution"
+import { useActiveProject } from "@/contexts/active-project-context"
 import { applyWorkflowEdits, type WorkflowEdit } from "@/lib/workflow-edits"
 import { extractWorkflowEdits } from "@/lib/workflow-edits-extract"
 import { normalizePrereqChecklist } from "@/lib/prereq-normalizer"
@@ -496,6 +497,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     cancelRun,
     loadRun,
   } = useUnifiedExecution()
+  const { activeProjectId } = useActiveProject()
   const { isOnline } = useNetworkStatus()
 
   // Update progress based on execution run
@@ -969,6 +971,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         workflowDefinition,
         workflowName: workflow.name || 'bioMate Workflow',
         chatSessionId: currentChatSession?.id || undefined,
+        projectId: activeProjectId || undefined,
         executionConfig: {
           mode: 'sandbox',
           dataScope: { fraction: 1.0, samplingStrategy: 'sequential', sampledIds: [] },
