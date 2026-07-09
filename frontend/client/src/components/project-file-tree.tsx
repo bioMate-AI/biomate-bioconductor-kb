@@ -10,6 +10,7 @@
  *   - Delete uploaded files (source='upload' only)
  */
 import { useState, useEffect, useRef, useCallback } from "react";
+import { isDesktop, desktopPickAndUpload } from "@/lib/desktop";
 import {
   Folder,
   FolderOpen,
@@ -308,21 +309,46 @@ export function ProjectFileTree({ projectId, onPickFile }: ProjectFileTreeProps)
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30 shrink-0">
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex-1">Files</span>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-6 px-2 text-xs gap-1"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-          data-testid="project-files-upload-btn"
-        >
-          {uploading ? (
-            <RefreshCw className="h-3 w-3 animate-spin" />
-          ) : (
-            <Upload className="h-3 w-3" />
-          )}
-          Upload
-        </Button>
+        {/* Desktop: native file picker. Browser: standard input. */}
+        {isDesktop() ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 px-2 text-xs gap-1"
+            disabled={uploading}
+            data-testid="project-files-upload-btn"
+            onClick={async () => {
+              setUploading(true);
+              try {
+                await desktopPickAndUpload(projectId);
+                await load();
+              } catch (e: any) {
+                setError(e?.message ?? "Upload failed");
+              } finally {
+                setUploading(false);
+              }
+            }}
+          >
+            {uploading ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+            Upload
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 px-2 text-xs gap-1"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            data-testid="project-files-upload-btn"
+          >
+            {uploading ? (
+              <RefreshCw className="h-3 w-3 animate-spin" />
+            ) : (
+              <Upload className="h-3 w-3" />
+            )}
+            Upload
+          </Button>
+        )}
         <Button
           size="sm"
           variant="ghost"
