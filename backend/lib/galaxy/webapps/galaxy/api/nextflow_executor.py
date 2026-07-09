@@ -1278,6 +1278,28 @@ def _detect_nextflow_entry(nf_path: Path) -> Optional[str]:
     return preferred[0] if preferred else named_entries[0]
 
 
+def _entry_workflow_has_take(nf_path: Path, entry_name: str) -> bool:
+    """True if the named workflow `entry_name` in `nf_path` declares a `take:` block.
+
+    A `take:` workflow consumes input channels that `-entry <name>` cannot bind; unless an
+    entry wrapper is generated to supply them, Nextflow aborts at invocation with
+    "Workflow `<name>` declares N input channels but 0 were given" (the RC-1 failure mode —
+    an nf-core subworkflow launched standalone instead of through its parent pipeline)."""
+    if not entry_name:
+        return False
+    try:
+        text = nf_path.read_text(errors="replace")
+    except OSError:
+        return False
+    m = re.search(r"(?m)^\s*workflow\s+" + re.escape(entry_name) + r"\s*\{", text)
+    if not m:
+        return False
+    rest = text[m.end():]
+    nxt = re.search(r"(?m)^\s*workflow\s+[A-Za-z_]", rest)
+    body = rest[: nxt.start()] if nxt else rest
+    return re.search(r"(?m)^\s*take\s*:", body) is not None
+
+
 # Declared-input contract for regenerated Bioconductor subworkflows.
 # Each main.nf carries a `// Input: <name>, <name>` comment naming the base filenames the
 # R body reads (e.g. read_input_file("cts")), a single process that consumes
@@ -4527,6 +4549,25 @@ def _execute_nextflow_impl(
     if _bioc_wrapper is not None:
         cmd = [nf_bin, "run", str(_bioc_wrapper)]
         selected_entry = None     # wrapper provides an anonymous workflow { } entry
+
+    # RC-1 fail-fast guard: a named-only workflow whose `-entry` target declares a `take:`
+    # block, for which no entry wrapper could be generated, CANNOT run — Nextflow aborts at
+    # invocation with "declares N input channels but 0 were given" (and, pre-fix, that abort
+    # was mis-reported as success by the finalizer). Refuse up front with an actionable error
+    # instead of launching a doomed AWS Batch run. (Bioconductor take: workflows do not reach
+    # here — _build_bioc_entry_wrapper sets selected_entry=None and supplies the channel.)
+    if selected_entry and _entry_workflow_has_take(nf_path, selected_entry):
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Workflow entry '{selected_entry}' declares input channels (a `take:` block) "
+                f"that `-entry` alone cannot bind, and no entry wrapper could be generated for "
+                f"it. This is an nf-core subworkflow being launched standalone rather than "
+                f"through its parent pipeline. Route this run via a runnable pipeline entry "
+                f"(a main.nf with an anonymous `workflow {{ }}` block that wires the samplesheet/"
+                f"reference channels) instead of the bare subworkflow file."
+            ),
+        )
 
     if selected_entry:
         cmd += ["-entry", selected_entry]
