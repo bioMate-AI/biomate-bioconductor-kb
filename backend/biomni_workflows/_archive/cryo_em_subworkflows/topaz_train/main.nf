@@ -155,7 +155,12 @@ workflow {
     ====================================================================
     """.stripIndent()
 
-    def test_dir = file("${params.outdir}/test_input")
+    // Generate the synthetic demo inputs under the LOCAL launch dir, not params.outdir:
+    // when outdir is an s3:// URI (AWS Batch), file("${params.outdir}/…").text = … writes
+    // via the local FS provider to a non-existent /bucket/… path → NoSuchFileException and
+    // the run aborts before any task. launchDir is always local + writable; Nextflow then
+    // stages these files into the TOPAZ_TRAIN task.
+    def test_dir = file("${workflow.launchDir}/test_input")
     test_dir.mkdirs()
 
     // Synthetic micrographs_ctf.cs
