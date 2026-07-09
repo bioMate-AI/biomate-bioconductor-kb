@@ -310,11 +310,26 @@ export default function ProjectDetailPage({
               </div>
             </TabsContent>
 
-            <TabsContent value="files" className="flex-1 m-0 p-4" style={{ display: "flex", flexDirection: "column" }}>
-              <ProjectFileTree projectId={projectId} />
+            <TabsContent value="files" className="flex-1 m-0 min-h-0" style={{ display: "flex", flexDirection: "column" }}>
+              <div className="flex-1 p-4 min-h-0 flex flex-col">
+                <ProjectFileTree projectId={projectId} />
+              </div>
+              {/* Analyze CTA — fixed footer inside Files tab */}
+              <div className="border-t border-border px-4 py-3 bg-muted/20 shrink-0 flex items-center justify-between gap-4">
+                <p className="text-xs text-muted-foreground">Upload genomics, proteomics, or any research data files above.</p>
+                <Button
+                  size="sm"
+                  onClick={() => openChatWithProject()}
+                  className="gap-1.5 shrink-0"
+                  data-testid="button-analyze-files"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  Analyze with BioMate
+                </Button>
+              </div>
             </TabsContent>
 
-            <TabsContent value="workflows" className="flex-1 m-0 p-4" data-testid="tab-content-workflows">
+            <TabsContent value="workflows" className="flex-1 m-0 min-h-0 overflow-hidden" data-testid="tab-content-workflows">
               <div className="h-full flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-medium text-sm">Workflow runs in this project</h3>

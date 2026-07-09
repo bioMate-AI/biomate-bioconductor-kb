@@ -1625,6 +1625,16 @@ export function NextflowWorkflowViewer({
     });
   }, [workflowDefinition, params, toolHintMap]);
 
+  // Count params that belong to the Workflow Settings tab (not pinned to any phase).
+  // Used for the tab badge — total count (renderedParameters.length) is misleading because
+  // it includes phase-specific params that are shown inside phase cards, not the settings tab.
+  const settingsParamCount = React.useMemo(() => {
+    const phaseNames = new Set(
+      groupedPhases.filter((g: any) => g.key !== 'all').flatMap((g: any) => g.phaseParams as string[])
+    );
+    return renderedParameters.filter((p: any) => !phaseNames.has(p.id || p.name || '')).length;
+  }, [groupedPhases, renderedParameters]);
+
   // At panel-generation time: build a one-time map from param semantic group → phase key.
   // Each param carries a group name like "Motion Correction" or "CTF Estimation" from the
   // .nf section headers. Match against phase labels so PhaseGroupSection can do a direct lookup.
@@ -2421,7 +2431,6 @@ export function NextflowWorkflowViewer({
       {(() => {
         const hasRealPhases = groupedPhases.some((g: any) => g.key !== 'all');
         const phaseCount = hasRealPhases ? groupedPhases.length : groupedPhases.length > 0 ? 1 : 0;
-        const paramCount = renderedParameters.length;
         const showAfterRunDot = status === 'completed' || status === 'failed';
         // Per-tab hover tips so the user can see what each tab contains
         // without clicking. Native `title` keeps this dependency-free.
@@ -2492,7 +2501,7 @@ export function NextflowWorkflowViewer({
             {/* Settings tab: the existing Workflow-settings collapsible strip
                 that today lives at the TOP of panel-body. Same content; just
                 moved into its own tab via CSS-hide (no JSX restructure). */}
-            {tabBtn('settings', 'Workflow settings', countBadge(paramCount))}
+            {tabBtn('settings', 'Workflow settings', settingsParamCount > 0 ? countBadge(settingsParamCount) : undefined)}
             {tabBtn('phases', 'Phases', countBadge(phaseCount))}
             {tabBtn('after-run', 'After run', showAfterRunDot ? dotBadge : null)}
           </div>
