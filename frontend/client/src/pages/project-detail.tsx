@@ -48,6 +48,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   const [runs, setRuns] = useState<any[]>([])
   const [runsLoading, setRunsLoading] = useState(false)
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null)
+  const [projectFiles, setProjectFiles] = useState<{ name: string; size?: number }[]>([])
 
   useEffect(() => {
     setLoadingProject(true)
@@ -119,9 +120,20 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
     } catch { /* keep editing open */ }
   }
 
-  const openChatWithProject = (sessionId?: string) => {
+  const openChatWithProject = (sessionId?: string, prefilledMessage?: string) => {
     try { localStorage.setItem("biomate-active-project-id", projectId) } catch { /* ignore */ }
-    window.location.assign(sessionId ? `/?session=${encodeURIComponent(sessionId)}` : "/")
+    let url = sessionId ? `/?session=${encodeURIComponent(sessionId)}` : "/"
+    if (prefilledMessage && !sessionId) url += `?q=${encodeURIComponent(prefilledMessage)}`
+    window.location.assign(url)
+  }
+
+  const handleAnalyzeClick = () => {
+    let msg: string | undefined
+    if (projectFiles.length > 0) {
+      const fileList = projectFiles.map(f => `- ${f.name}`).join("\n")
+      msg = `I've uploaded these files to my project:\n${fileList}\nPlease suggest the right workflow and run it.`
+    }
+    openChatWithProject(undefined, msg)
   }
 
   const relTime = (d?: string | Date | null) => {
@@ -281,7 +293,10 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
             {/* FILES TAB */}
             <TabsContent value="files" className="flex-1 m-0 min-h-0" style={{ display: "flex", flexDirection: "column" }}>
               <div className="flex-1 p-4 min-h-0 flex flex-col">
-                <ProjectFileTree projectId={projectId} />
+                <ProjectFileTree
+                  projectId={projectId}
+                  onFilesChanged={(files) => setProjectFiles(files)}
+                />
               </div>
               <div className="border-t border-border px-4 py-3 bg-muted/20 shrink-0 flex items-center justify-between gap-4">
                 <p className="text-xs text-muted-foreground">
@@ -289,7 +304,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                 </p>
                 <Button
                   size="sm"
-                  onClick={() => openChatWithProject()}
+                  onClick={handleAnalyzeClick}
                   className="gap-1.5 shrink-0"
                   data-testid="button-analyze-files"
                 >

@@ -200,9 +200,11 @@ export interface ProjectFileTreeProps {
   projectId: string;
   /** Called with the S3 key when the user picks a file to use as a workflow input */
   onPickFile?: (s3Key: string, fileName: string) => void;
+  /** Called whenever the file list changes (load, upload, delete) */
+  onFilesChanged?: (files: { name: string; size?: number }[]) => void;
 }
 
-export function ProjectFileTree({ projectId, onPickFile }: ProjectFileTreeProps) {
+export function ProjectFileTree({ projectId, onPickFile, onFilesChanged }: ProjectFileTreeProps) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -219,7 +221,9 @@ export function ProjectFileTree({ projectId, onPickFile }: ProjectFileTreeProps)
       const res = await fetch(`/api/projects/${projectId}/files`, { credentials: "include" });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      setFiles(data.files ?? []);
+      const loaded: ProjectFile[] = data.files ?? [];
+      setFiles(loaded);
+      onFilesChanged?.(loaded.filter(f => f.source === "upload").map(f => ({ name: f.name, size: f.size })));
     } catch (e: any) {
       setError(e?.message ?? "Failed to load files");
     } finally {
@@ -259,7 +263,11 @@ export function ProjectFileTree({ projectId, onPickFile }: ProjectFileTreeProps)
         credentials: "include",
       });
       if (!res.ok) throw new Error(await res.text());
-      setFiles((prev) => prev.filter((f) => f.id !== fileId));
+      setFiles((prev) => {
+        const next = prev.filter((f) => f.id !== fileId);
+        onFilesChanged?.(next.filter(f => f.source === "upload").map(f => ({ name: f.name, size: f.size })));
+        return next;
+      });
     } catch (e: any) {
       setError(e?.message ?? "Delete failed");
     }

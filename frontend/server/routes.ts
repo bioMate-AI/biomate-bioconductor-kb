@@ -7078,6 +7078,23 @@ ${paramLines || '(none recorded)'}`;
         req.user!.id,
         status as 'active' | 'archived' | 'completed' | undefined
       );
+      if (projects.length > 0) {
+        const ids = projects.map(p => p.id);
+        const [sessRows, runRows] = await Promise.all([
+          pool.query<{ project_id: string; count: string }>(
+            `SELECT project_id, COUNT(*) AS count FROM chat_sessions WHERE project_id = ANY($1) GROUP BY project_id`,
+            [ids]
+          ),
+          pool.query<{ project_id: string; count: string }>(
+            `SELECT project_id, COUNT(*) AS count FROM execution_runs WHERE project_id = ANY($1) GROUP BY project_id`,
+            [ids]
+          ),
+        ]);
+        const sessCounts = Object.fromEntries(sessRows.rows.map(r => [r.project_id, parseInt(r.count, 10)]));
+        const runCounts = Object.fromEntries(runRows.rows.map(r => [r.project_id, parseInt(r.count, 10)]));
+        const enriched = projects.map(p => ({ ...p, sessionCount: sessCounts[p.id] ?? 0, runCount: runCounts[p.id] ?? 0 }));
+        return res.json(enriched);
+      }
       res.json(projects);
     } catch (error: any) {
       console.error('[API] Get projects failed:', error);

@@ -263,6 +263,17 @@ export default function ProjectsPage({ onProjectSelect }: ProjectsPageProps) {
                       {project.description}
                     </CardDescription>
                   )}
+                  {(((project as any).sessionCount ?? 0) > 0 || ((project as any).runCount ?? 0) > 0) && (
+                    <div className="flex gap-2 text-xs text-muted-foreground mt-1">
+                      {(project as any).sessionCount > 0 && (
+                        <span>{(project as any).sessionCount} chat{(project as any).sessionCount !== 1 ? 's' : ''}</span>
+                      )}
+                      {(project as any).sessionCount > 0 && (project as any).runCount > 0 && <span>·</span>}
+                      {(project as any).runCount > 0 && (
+                        <span>{(project as any).runCount} run{(project as any).runCount !== 1 ? 's' : ''}</span>
+                      )}
+                    </div>
+                  )}
                 </CardHeader>
 
                 <CardContent className="pt-0">
