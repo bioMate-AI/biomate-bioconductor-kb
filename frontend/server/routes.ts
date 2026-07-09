@@ -7913,6 +7913,53 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
+  // ── Skills API — expert role injection ──────────────────────────────────
+  // GET  /api/skills          — list all available skills
+  // POST /api/skills/detect   — auto-detect from query
+  // POST /api/skills/block    — build system prompt block for skill IDs
+
+  app.get("/api/skills", optionalAuth, async (_req, res) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const upstream = await fetch(`${galaxyUrl}/api/skills`);
+      res.status(upstream.status).json(await upstream.json());
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/skills/detect", optionalAuth, async (req, res) => {
+    try {
+      const { query, preferred_domains } = req.body || {};
+      if (!query) return res.status(400).json({ error: "query required" });
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const upstream = await fetch(`${galaxyUrl}/api/skills/detect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, preferred_domains }),
+      });
+      res.status(upstream.status).json(await upstream.json());
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/skills/block", optionalAuth, async (req, res) => {
+    try {
+      const { skill_ids } = req.body || {};
+      if (!skill_ids?.length) return res.status(400).json({ error: "skill_ids required" });
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const upstream = await fetch(`${galaxyUrl}/api/skills/block`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skill_ids }),
+      });
+      res.status(upstream.status).json(await upstream.json());
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // ── Accession resolver (resolve_accession MCP tool) ─────────────────────
   // POST /api/accession/resolve
   // Given a public archive accession (GEO GSE*, SRA SRR*, ENA ERR*, etc.) returns

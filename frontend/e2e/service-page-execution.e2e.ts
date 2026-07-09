@@ -255,6 +255,18 @@ async function runWorkflowStep(page: Page, step: WorkflowStep): Promise<void> {
     `[${step.id}] workflow must complete successfully, got "${postStatus}"`
   ).toBe('completed');
 
+  // 4a. Chat progress pills — verify WF speaker pills appeared during execution.
+  // At least one workflow_progress message (WF pill) must be visible in the chat
+  // by the time the workflow completes. These are emitted by the Galaxy backend
+  // narrator (workflow.submitted, workflow.phase_started, etc.) via SSE inject.
+  const progressPillCount = await page.evaluate(() => {
+    return document.querySelectorAll('[data-message-type="workflow_progress"]').length;
+  }).catch(() => 0);
+  console.log(`[${step.id}] chat progress pills: ${progressPillCount}`);
+  if (progressPillCount === 0) {
+    console.warn(`[${step.id}] ⚠️ No WF speaker pills in chat — check Galaxy FRONTEND_URL / SSE inject path`);
+  }
+
   // 5. After-run tabs
   await pause(page, 2_000);
 
@@ -333,6 +345,13 @@ test('Full execution flow — ADMET → BOIN → PBPK', async ({ browser }) => {
   test.setTimeout((90_000 + EXEC_TIMEOUT_MS + 60_000) * 3);
 
   const page = await browser.newPage();
+  // Capture browser console logs to diagnose SSE EventSource invocationId
+  page.on('console', msg => {
+    const text = msg.text();
+    if (text.includes('[SSE-DIAG]') || text.includes('[ChatWithArtifacts]') || text.includes('[UnifiedExecution]') || text.includes('Failed to') || msg.type() === 'error') {
+      console.log(`[browser:${msg.type()}] ${text}`);
+    }
+  });
   try {
     await login(page);
 

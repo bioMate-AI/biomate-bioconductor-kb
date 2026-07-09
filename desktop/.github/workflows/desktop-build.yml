@@ -1,0 +1,106 @@
+name: BioMate Desktop Build
+
+on:
+  push:
+    branches: [integration/next-phase]
+    tags: ['desktop-v*']
+  pull_request:
+    paths:
+      - 'desktop/**'
+      - 'frontend/client/**'
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Create a release'
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: universal-apple-darwin
+            artifact: '*.dmg'
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: '*.msi'
+
+    runs-on: ${{ matrix.os }}
+    name: Build (${{ matrix.os }})
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workdir: desktop/src-tauri
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+        env:
+          VITE_APP_MODE: desktop
+          VITE_DEFAULT_SERVER: https://dev-public.biomate.ai
+
+      - name: Install desktop dependencies
+        working-directory: desktop
+        run: npm ci
+
+      - name: Build Tauri app (macOS universal)
+        if: matrix.os == 'macos-latest'
+        working-directory: desktop
+        run: npm run build -- --target universal-apple-darwin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Build Tauri app (Windows)
+        if: matrix.os == 'windows-latest'
+        working-directory: desktop
+        run: npm run build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: biomate-desktop-${{ matrix.os }}
+          path: |
+            desktop/src-tauri/target/release/bundle/**/${{ matrix.artifact }}
+            desktop/src-tauri/target/universal-apple-darwin/release/bundle/**/${{ matrix.artifact }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/desktop-v') || github.event.inputs.release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            desktop/src-tauri/target/**/release/bundle/**/${{ matrix.artifact }}
+          tag_name: ${{ github.ref_name }}
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

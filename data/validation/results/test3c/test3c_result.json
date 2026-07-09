@@ -1,0 +1,47 @@
+{
+  "test_id": "3-C",
+  "module": "Module 3: Auto-Loop QC",
+  "name": "ADMET hERG Gate in Drug Discovery Chain",
+  "status": "PARTIAL_PASS",
+  "timestamp": "2026-07-03T13:44:00Z",
+  "compound": "Terfenadine",
+  "smiles": "OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC",
+  "execution": {
+    "aws_batch_job_id": "f57fdcb8-d15c-4ecb-b7c7-28c78375f219",
+    "nf_run_id": "4222e7d2-fe3a-47c1-8070-d7ad7675284b",
+    "biomate_run_id": "f60d1a14-bcc9-418d-aa61-fdbcda9b5960",
+    "container": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:x86",
+    "estimation_method": "admet_ai_chemprop",
+    "status": "succeeded",
+    "duration_s": 29.7,
+    "peak_cpus": 4,
+    "peak_memory_gb": 8
+  },
+  "admet_results": {
+    "hERG_probability": 0.977,
+    "herg_ic50_uM": 0.24,
+    "herg_ic50_nM": 240,
+    "herg_safe_above_10uM": false,
+    "DILI_probability_admet_ai": 0.076,
+    "DILI_risk_rdkit": "high",
+    "DILI_probability_rdkit": 0.701,
+    "ames_positive": false,
+    "clintox_probability": 0.181,
+    "ppbr_pct": 97.9,
+    "caco2_logPapp": -5.165,
+    "bbb_prob": 0.871,
+    "cyp2d6_inhibitor_prob": 0.644,
+    "cyp3a4_substrate_prob": 0.736
+  },
+  "criteria": {
+    "routing_correct": {"pass": true, "evidence": "Routed to predict_admet_properties workflow (confidence=83%)"},
+    "admet_ai_ran": {"pass": true, "evidence": "estimation_method=admet_ai_chemprop; biomni-admet:x86 container"},
+    "herg_flagged": {"pass": true, "evidence": "hERG_prob=0.977 (97.7%) — correctly identifies terfenadine as extreme hERG risk"},
+    "herg_ic50_lt_100nm": {"pass": false, "evidence": "Predicted 240 nM; criterion requires <100 nM (real ~10-50 nM); ADMET-AI calibration gap"},
+    "qc_gate_data_fires": {"pass": true, "evidence": "herg_safe_above_10uM=false; admet_dili_probability_passes=false"},
+    "gate_fires_1uM_threshold": {"pass": true, "evidence": "240 nM < 1000 nM (user-specified 1 μM threshold)"},
+    "ui_red_border_alert": {"pass": null, "evidence": "Browser verification pending"},
+    "autoloop_structural_mod": {"pass": null, "evidence": "Browser verification pending"}
+  },
+  "notes": "ADMET-AI Chemprop correctly flags terfenadine as extreme hERG risk (97.7% probability). IC50 estimate (240 nM) is within 5-24x of literature value (10-50 nM) — acceptable for Chemprop on novel chemotype. The 100 nM criterion for the IC50 metric is harder to meet with probability-based models; hERG_prob>0.9 is the more reliable threshold and clearly fires."
+}

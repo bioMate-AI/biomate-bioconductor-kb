@@ -17,7 +17,7 @@ extensions, CI pipelines, and lab-instrument integrations. All endpoints are und
 | Environment | URL |
 |-------------|-----|
 | BioMate Cloud | `https://app.biomate.ai` |
-| Dev EC2 | `http://dev.biomate.ai` (or the dev EC2 IP) |
+| Dev EC2 | `https://dev-public.biomate.ai` |
 | Local dev | `http://localhost:5000` |
 
 ### Error format

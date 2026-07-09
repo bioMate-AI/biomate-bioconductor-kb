@@ -79,13 +79,16 @@ export function CreateProjectDialog({
     setIsSubmitting(true)
     
     try {
-      const res = await fetch('/api/projects', {
+      const res = await fetch('/api/memory/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           name: name.trim(),
           description: description.trim() || undefined,
+          researchGoal: instructions.trim() || undefined,
+          category: category || undefined,
+          tags: tags.length > 0 ? tags : undefined,
         }),
       })
       const data = await res.json()
@@ -101,7 +104,10 @@ export function CreateProjectDialog({
       setErrors({})
 
       onOpenChange(false)
-      onProjectCreated?.(data.project.id)
+      // Signal sidebar + any other listener to refresh the projects list
+      window.dispatchEvent(new CustomEvent('biomate:projects-updated'))
+      // Backend returns the project object directly (not wrapped in { project: ... })
+      onProjectCreated?.(data.id || data.project?.id)
 
     } catch (error) {
       console.error('Error creating project:', error)

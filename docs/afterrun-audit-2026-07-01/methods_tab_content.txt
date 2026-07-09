@@ -1,0 +1,66 @@
+AFTER RUN
+↓ Download report
+Outputs
+Findings
+Methods
+Citations
+Parameters
+BioMate AI — Report
+============================================================
+Generated: 2026-07-01T10:47:52.515Z
+Workflow: Predict ADMET Properties (AI)
+Invocation ID: 61c338f7-f01c-4753-bc28-fe2da0a19093
+Nextflow Run ID: 42b32893-1acb-418b-88db-9cf1ce160d8e
+Wall Time: 2m 14s
+============================================================
+
+### 1. ABSTRACT
+This study presents a computational ADMET pharmacological assessment evaluating 2 compounds for cardiac, hepatic, and genotoxic safety profiles. Leveraging an MPNN model architecture executed on an AWS Batch cloud platform, we predicted key toxicity endpoints to guide preclinical candidate selection. The most potent hERG inhibition risk observed was an IC50 of 1.871 µM, remaining above the strict 1 µM clinical safety threshold. However, the maximum predicted Drug-Induced Liver Injury (DILI) risk was flagged as high, with a peak probability of 0.675. Mutagenicity assessments yielded an Ames positive result of false, indicating an absence of genotoxic potential. These findings highlight a favorable structural safety profile regarding mutagenicity and cardiotoxicity, while emphasizing the need for targeted in vitro hepatic safety screening.
+
+### 2. STUDY OVERVIEW
+The primary biological objective of this study was the comprehensive safety profiling of small molecule candidates prior to advanced preclinical testing. We assessed 2 compounds, defined by the input SMILES strings `CC(=O)OC1=CC=CC=C1C(=O)O` and `OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC`. The investigation focused on evaluating critical predictive endpoints—specifically cardiac liability (hERG channel inhibition), hepatic toxicity (Drug-Induced Liver Injury, DILI), and genotoxic risk (Ames mutagenicity)—to identify potential safety liabilities early in the drug discovery lifecycle.
+
+### 3. COMPUTATIONAL ENVIRONMENT
+Computations were orchestrated using Nextflow DSL2 integrated with the AWS Batch cloud platform (us-west-2 region). The analysis was executed via the BioMate ADMET Pipeline, which utilizes RDKit descriptor-based heuristics for physicochemical property calculation alongside an advanced MPNN (Message Passing Neural Network) model architecture for toxicity endpoint predictions. The DeepPurpose library status was not actively invoked for this specific execution, relying instead on the `admet_ai_chemprop` estimation method.
+
+### 4. METHODS
+
+**4.1 Input Preparation**
+Compound structures were ingested via SMILES strings and subjected to standardization protocols. Molecular descriptor calculation was performed to derive essential physicochemical properties, including logP, molecular weight (MW), and topological polar surface area (TPSA), establishing the baseline for predictive modeling.
+
+**4.2 hERG Cardiotoxicity Assessment**
+Cardiac liability was evaluated via hERG channel IC50 prediction. The pipeline identified a minimum hERG IC50 (`herg_ic50_min_uM`) of 1.871 µM. This value was evaluated against the 1 µM clinical safety threshold established by the ICH E14 regulatory guideline to determine proarrhythmic risk.
+
+**4.3 Drug-Induced Liver Injury (DILI)**
+Hepatotoxicity was predicted using a dedicated probability model. The maximum DILI probability (`dili_probability_max`) was calculated at 0.675, leading to a maximum risk classification (`dili_risk_max`) of "high" for the evaluated compound set.
+
+**4.4 Ames Mutagenicity**
+Genotoxic potential was assessed using a structural alert method mapped against the Kazius-Bursi dataset (`kazius_structural_alerts`). The overall `ames_positive` result was returned as false, supported by a low maximum `ames_probability` of 0.1.
+
+**4.5 Lipophilicity and Druglikeness**
+Compounds were evaluated for general druglikeness and Lipinski Rule of Five compliance. The calculated `logP_range` spanned from 1.31 to 7.01, while the `mw_range` spanned from 180.2 to 499.7 Da, providing a macroscopic view of the physicochemical space occupied by the candidates.
+
+### 5. RESULTS
+
+*Note: Per strict reporting protocols, only discrete values explicitly generated in the primary extracted metrics are tabulated. Unlisted compound-specific data points are marked as unavailable.*
+
+| Compound | SMILES (abbreviated) | logP | MW (Da) | hERG IC50 (µM) | DILI Risk | DILI Prob | Ames |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 1 | `CC(=O)OC1=CC...` | 1.31 | 180.2 | [data not available] | high | 0.675 | false |
+| 2 | `OC(CCCN1CCC...` | 7.01 | 499.7 | 1.871 | [data not available] | [data not available] | false |
+
+### 6. SAFETY INTERPRETATION
+Based on the predicted ADMET profiles, safety thresholds were evaluated against standard clinical benchmarks. The minimum hERG IC50 observed was 1.871 µM. Because this value is > 1 µM, the compounds do not cross the high cardiotoxicity risk threshold defined by ICH E14 guidelines, suggesting a manageable proarrhythmic profile compared to highly restricted drugs. Conversely, hepatic safety presents a significant concern; the maximum DILI probability reached 0.675 (exceeding the standard 0.5 threshold), resulting in a "high" DILI risk classification. Both compounds demonstrated an Ames probability of 0.1 and an `ames_positive` status of false, indicating no structural alerts for mutagenicity, which is consistent with the safety profiles of approved non-oncology therapeutics.
+
+### 7. PIPELINE EXECUTION
+The predictive workflow was successfully executed in a total wall time of 2m 14s. Operations were deployed on the AWS Batch cloud platform using Nextflow DSL2 orchestration. The underlying software environment was driven by the BioMate ADMET Pipeline, leveraging RDKit and MPNN architectures.
+
+### 8. LIMITATIONS AND NEXT STEPS
+A primary limitation of this computational assessment is the reliance on in silico predictions, which require empirical confirmation. The DeepPurpose library status was unconfirmed for this run, and while ClinTox predictions were generated by the underlying model, specific ClinTox probabilities were not extracted in the primary metrics, representing a gap in the automated safety reporting. Next steps must include rigorous in vitro validation—particularly focused on hepatocyte clearance and DILI assays—to confirm the high hepatic risk flagged by the model before advancing these candidates to in vivo studies.
+
+### N. REFERENCES
+1. RDKit: Open-source cheminformatics. PMID: 19997329.
+2. Kazius J, McGuire R, Bursi R. Derivation and validation of toxicophores for mutagenicity prediction. J Med Chem. 2005;48(1):312-320. PMID: 15832503.
+3. Lipinski CA, et al. Experimental and computational approaches to estimate solubility and permeability in drug discovery and development settings. Adv Drug Deliv Rev. 2001;46(1-3):3-26. PMID: 11259830.
+4. International Council for Harmonisation (ICH). ICH E14: The Clinical Evaluation of QT/QTc Interval Prolongation and Proarrhythmic Potential for Non-Antiarrhythmic Drugs.
+5. Thakkar S, et al. Drug-induced liver injury (DILI) in drug development: computational approaches. Drug Discov Today. 2020;25(1):213-221. PMID: 31134006.

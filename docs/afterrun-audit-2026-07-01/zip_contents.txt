@@ -1,0 +1,14 @@
+Archive:  /tmp/afterrun-audit-2026-07-01T11-46-53/Predict ADMET Properties (AI)_outputs_0426886f.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+     1063  07-01-2026 11:46   pipeline_info/dag.dot
+  2964202  07-01-2026 11:46   pipeline_info/report.html
+   251985  07-01-2026 11:46   pipeline_info/timeline.html
+     1438  07-01-2026 11:46   run/pk_summary.json
+     1110  07-01-2026 11:46   run/predict_admet_properties_output.txt
+     1148  07-01-2026 11:46   run/predict_admet_properties_results.json
+      560  07-01-2026 11:46   run/qc_metrics.json
+     2410  07-01-2026 11:46   run/toxicity_report.json
+      159  07-01-2026 11:46   run/versions.yml
+---------                     -------
+  3224075                     9 files

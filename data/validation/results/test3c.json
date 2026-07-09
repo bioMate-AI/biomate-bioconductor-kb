@@ -1,0 +1,26 @@
+{
+  "test_id": "3-C",
+  "test_name": "ADMET hERG Gate \u2014 Terfenadine",
+  "compound": "Terfenadine",
+  "smiles": "OC(c1ccc(cc1)C(c1ccccc1)(c1ccccc1)O)CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1",
+  "known_herg_ic50_nm": 10,
+  "elapsed_seconds": 25.15936779975891,
+  "response_text": "**Could not generate workflow** \u2014 An internal system error occurred while attempting to instantiate the combined ADMET and CYP profiling pipeline for the provided Terfenadine SMILES string.\n\n**Closest available option:** `predict_admet_properties` \u2014 A workflow that predicts 6 key ADMET endpoints (hERG cardiac liability, DILI hepatotoxicity, solubility, Caco-2 permeability, BBB penetration, and Ames mutagenicity) directly from a SMILES input.\n\nWould you like to run the `predict_admet_properties` workflow with your provided Terfenadine SMILES to evaluate its cardiac and hepatic safety margins?\n\n### Required inputs\n- Input data files (e.g., structures/SMILES, assay data, or concentration-time table)\n- Basic study metadata (condition, units, and endpoint definitions)\n\n### Next step\n- Confirm the intended analysis priority and upload the required inputs so I can produce a runnable, decision-ready workflow.\n\n### Why generation failed\n- Tool gap: one or more required capabilities are missing or unavailable in the current runtime.\n- Input gap: provide required input files and metadata before execution.\n\n### Targeted follow-up questions\n1. Which analysis should be prioritized first (docking, ADMET, or PK/NCA)?\n2. What exact input files do you have now (format + example filenames)?",
+  "workflow_data": {
+    "success": false,
+    "error": "Error"
+  },
+  "analysis": {
+    "herg_mentioned": true,
+    "gate_fired": false,
+    "gate_indicators": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "admet_workflow": true
+  },
+  "pass": "PARTIAL"
+}

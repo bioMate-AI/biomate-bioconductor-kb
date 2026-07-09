@@ -39,7 +39,6 @@ import {
   DollarSign,
   FlaskConical,
   BookOpen,
-  Upload,
   Cable,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -202,18 +201,22 @@ export function AppSidebar({
 
   const [showConnectorsDialog, setShowConnectorsDialog] = useState(false);
   const [showRecentToolsDialog, setShowRecentToolsDialog] = useState(false);
-  const [showUploadModal, setShowUploadModal] = useState(false);
   const [, setLocation] = useLocation();
   const { user, logout } = useAuth();
 
   // Projects — fetched from API (not localStorage) so they survive page reload
   const [apiProjects, setApiProjects] = useState<Array<{ id: string; name: string; status: string }>>([]);
   const [expandedProjectIds, setExpandedProjectIds] = useState<Set<string>>(new Set());
-  useEffect(() => {
+  const refreshProjects = () => {
     fetch("/api/projects", { credentials: "include" })
       .then((r) => r.ok ? r.json() : { projects: [] })
-      .then((d) => setApiProjects((d.projects ?? []).slice(0, 8)))
+      .then((d) => setApiProjects((d.projects ?? []).slice(0, 12)))
       .catch(() => {});
+  };
+  useEffect(() => {
+    refreshProjects();
+    window.addEventListener('biomate:projects-updated', refreshProjects);
+    return () => window.removeEventListener('biomate:projects-updated', refreshProjects);
   }, []);
   const recentProjects = projectService.getAllProjects().slice(0, 5);
 
@@ -314,57 +317,47 @@ export function AppSidebar({
       {/* Workspace nav */}
       <div style={{ marginBottom: 8 }}>
         <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600 }}>Workspace</div>
-        <button className="side-link" onClick={onNewChat} data-testid="button-new-chat" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted, oklch(0.48 0.012 260))', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}>
-          <Plus className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>New Chat</span>
+        <button className="side-link" onClick={onNewChat} data-testid="button-new-chat" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted, oklch(0.48 0.012 260))', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}>
+          <Plus className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span>New Chat</span>
+            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Start a fresh AI conversation</span>
+          </span>
         </button>
         <button
           className="side-link"
           data-testid="button-workflows-nav"
-          title="View run history, browse imported workflows, or upload a new Nextflow / Galaxy workflow"
-          style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
+          style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
           onClick={() => { analytics.track('workflows_sidebar_opened'); setHistoryInitialTab('runs'); setShowHistoryDialog(true); }}
         >
-          <FlaskConical className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Workflows</span>{runningCount > 0 && (<span data-testid="workflows-running-badge" style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 999, background: 'oklch(0.92 0.04 230)', color: 'oklch(0.40 0.13 230)' }}>{runningCount}</span>)}
-        </button>
-        <button
-          className="side-link"
-          data-testid="button-import-workflow"
-          title="Upload your own Nextflow (.nf) or Galaxy (.ga / .yml) workflow"
-          style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
-          onClick={() => { analytics.track('import_workflow_opened'); setHistoryInitialTab('upload'); setShowHistoryDialog(true); }}
-        >
-          <Upload className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Import Workflow</span>
+          <FlaskConical className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              Workflows
+              {runningCount > 0 && (<span data-testid="workflows-running-badge" style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 999, background: 'oklch(0.92 0.04 230)', color: 'oklch(0.40 0.13 230)' }}>{runningCount}</span>)}
+            </span>
+            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Run history, browse & import pipelines</span>
+          </span>
         </button>
         <button
           className="side-link"
           data-testid="button-connectors-nav"
-          title="Databases, LLM providers, scientific data sources, and AI platform integrations available in BioMate"
-          style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
+          style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
           onClick={() => setShowConnectorsDialog(true)}
         >
-          <Cable className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Connectors</span>
+          <Cable className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span>Connectors</span>
+            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Databases, LLMs & platform integrations</span>
+          </span>
         </button>
-        {/* Workspaces — commented out until create flow is stable (500 on POST /api/workspaces)
-        <button className="side-link" data-testid="button-workspaces-nav" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/workspaces')}>
-          <FolderOpen className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Workspaces</span>
+        <button className="side-link" data-testid="button-ind-report" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/ind-report')}>
+          <FileText className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span>IND Report</span>
+            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Generate regulatory submission documents</span>
+          </span>
         </button>
-        */}
-        {/* CRO Library — commented out until fully implemented and validated
-        <button className="side-link" data-testid="button-cro-compliance" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/drug-discovery-cro')}>
-          <Database className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>CRO Library</span>
-        </button>
-        */}
-        <button className="side-link" data-testid="button-ind-report" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/ind-report')}>
-          <FileText className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>IND Report</span>
-        </button>
-        {/*
-        <button className="side-link" data-testid="button-capabilities" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/capabilities')}>
-          <BookOpen className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Capabilities</span>
-        </button>
-        <button className="side-link" data-testid="button-blog" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/blog')}>
-          <BookOpen className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Research notes</span>
-        </button>
-        */}
       </div>
 
       {/* Projects section — always visible */}

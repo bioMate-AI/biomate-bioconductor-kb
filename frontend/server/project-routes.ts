@@ -233,6 +233,32 @@ export function registerProjectRoutes(app: Express): void {
     }
   });
 
+  // ─── GET /api/projects/:id/sessions ──────────────────────────────────
+  // List chat sessions linked to a project, newest first (max 50).
+  app.get("/api/projects/:id/sessions", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const id = req.params.id;
+    try {
+      const existing = await memoryService.projects.getProject(id);
+      if (!existing || existing.userId !== uid) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+      const result = await pool.query(
+        `SELECT session_id, title, status, created_at, last_activity,
+                jsonb_array_length(messages) AS message_count
+         FROM chat_sessions
+         WHERE project_id = $1 AND user_id = $2
+         ORDER BY last_activity DESC LIMIT 50`,
+        [id, uid]
+      );
+      res.json({ sessions: result.rows });
+    } catch (e: any) {
+      console.error("[project_sessions] list failed:", e?.message ?? e);
+      res.status(500).json({ error: "Failed to list project sessions" });
+    }
+  });
+
   // ─── POST /api/projects/:id/files/upload ──────────────────────────────
   // Multipart upload: saves to S3 under projects/<projectId>/inputs/<filename>,
   // then records metadata in project_files.

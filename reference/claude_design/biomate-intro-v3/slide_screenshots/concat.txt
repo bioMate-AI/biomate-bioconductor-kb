@@ -1,8 +1,0 @@
-file '/Users/kky/biomate/reference/claude_design/biomate-intro-v3/slide_screenshots/clip_00.mp4'
-file '/Users/kky/biomate/reference/claude_design/biomate-intro-v3/slide_screenshots/clip_01.mp4'
-file '/Users/kky/biomate/reference/claude_design/biomate-intro-v3/slide_screenshots/clip_02.mp4'
-file '/Users/kky/biomate/reference/claude_design/biomate-intro-v3/slide_screenshots/clip_03.mp4'
-file '/Users/kky/biomate/reference/claude_design/biomate-intro-v3/slide_screenshots/clip_04.mp4'
-file '/Users/kky/biomate/reference/claude_design/biomate-intro-v3/slide_screenshots/clip_05.mp4'
-file '/Users/kky/biomate/reference/claude_design/biomate-intro-v3/slide_screenshots/clip_06.mp4'
-file '/Users/kky/biomate/reference/claude_design/biomate-intro-v3/slide_screenshots/clip_08.mp4'

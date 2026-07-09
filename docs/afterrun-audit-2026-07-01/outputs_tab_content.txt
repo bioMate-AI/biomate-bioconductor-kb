@@ -1,0 +1,24 @@
+AFTER RUN
+↓ Download report
+Outputs
+Findings
+Citations
+Parameters
+↓ Download all (6) as ZIP
+↓ Reproducibility bundle
+EXPLORE IN
+⌥
+Jupyter
+RUN
+pk_summary.json
+JSON
+predict_admet_properties_output.txt
+TXT
+predict_admet_properties_results.json
+JSON
+qc_metrics.json
+JSON
+toxicity_report.json
+JSON
+versions.yml
+YML

@@ -1,0 +1,48 @@
+{
+  "test_id": "1-A",
+  "test_name": "GWAS Target Prioritization - RA",
+  "gwas_input": "GCST90132223_ishigaki2022_RA_GWAS_GRCh37.tsv.gz",
+  "total_gwas_significant_hits": 35226,
+  "known_target_loci_detected": {
+    "PTPN22": {
+      "best_pval": "3.75e-168",
+      "best_beta": -0.544,
+      "sig_snps": 738,
+      "status": "GENOME_WIDE_SIGNIFICANT",
+      "note": "Top non-HLA RA risk locus; therapeutic target for T cell hyperactivation"
+    },
+    "TYK2": {
+      "best_pval": "2.18e-20",
+      "best_beta": -0.440,
+      "sig_snps": 28,
+      "status": "GENOME_WIDE_SIGNIFICANT",
+      "note": "Allosteric pseudokinase target; deucravacitinib validated"
+    },
+    "IL6R": {
+      "best_pval": "5.26e-07",
+      "best_beta": -0.066,
+      "status": "SUB_GENOME_WIDE_SIGNIFICANT",
+      "note": "rs2228145 weak GWAS signal; therapeutic validated via RCT (tocilizumab)"
+    },
+    "MS4A1_CD20": {
+      "best_pval": "1.66e-07",
+      "best_beta": -0.068,
+      "status": "SUB_GENOME_WIDE_SIGNIFICANT",
+      "note": "Rituximab target; expression-level therapeutic not pure GWAS signal"
+    },
+    "JAK1": {
+      "best_pval": "not_found_at_p<1e-5",
+      "status": "NOT_DETECTED",
+      "note": "JAK1 is a therapeutic target via JAK pathway, not a primary RA GWAS risk locus"
+    }
+  },
+  "pass_criteria_status": {
+    "PTPN22_detected_GWS": true,
+    "TYK2_detected_GWS": true,
+    "IL6R_detected_subGWS": true,
+    "CD20_detected_subGWS": true,
+    "JAK1_detected": false,
+    "note": "2/5 targets GWS without eQTL colocalization layer. Full pipeline (GWAS+eQTL+druggability) needed for complete ranking."
+  },
+  "next_step": "Run coloc R package with DICE eQTL data to colocalize GWAS signals with immune eQTLs"
+}

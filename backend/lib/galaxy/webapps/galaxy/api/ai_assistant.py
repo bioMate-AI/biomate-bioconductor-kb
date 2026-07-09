@@ -5902,3 +5902,86 @@ async def paperqa_synthesize(
             "error": str(exc),
             "question": request.question,
         }
+
+
+# ── Skills API ────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/api/skills",
+    summary="List all available skills (expert + Bioconductor)"
+)
+def list_skills(
+    source: Optional[str] = Query(default=None, description="Filter by source: 'expert' or 'bioconductor'"),
+    domain: Optional[str] = Query(default=None, description="Filter Bioconductor skills by domain"),
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """Return metadata for all available Skills. Use ?source=expert for expert roles only,
+    ?source=bioconductor&domain=transcriptomics for Bioconductor skills by domain."""
+    try:
+        from galaxy.ai.skill_manager import get_skill_manager
+        mgr = get_skill_manager()
+        if source == "expert":
+            skills = mgr.list_expert_skills()
+        elif source == "bioconductor":
+            skills = mgr.list_bioc_skills(domain=domain)
+        else:
+            skills = mgr.list_skills()
+        return {
+            "success": True,
+            "skills": skills,
+            "bioc_domains": mgr.list_bioc_domains(),
+            "total": len(skills),
+        }
+    except Exception as e:
+        log.warning("[skills] list failed: %s", e)
+        return {"success": False, "error": str(e), "skills": [], "bioc_domains": []}
+
+
+class SkillDetectRequest(BaseModel):
+    query: str = Field(..., description="User message to auto-detect skills from")
+    preferred_domains: Optional[List[str]] = Field(default=None)
+
+
+@router.post(
+    "/api/skills/detect",
+    summary="Auto-detect relevant skills from a user query"
+)
+def detect_skills(
+    request: SkillDetectRequest,
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """Returns up to 3 skills auto-detected from the query text and domain signals."""
+    try:
+        from galaxy.ai.skill_manager import get_skill_manager
+        mgr = get_skill_manager()
+        detected = mgr.detect_skills(request.query, request.preferred_domains)
+        return {
+            "success": True,
+            "detected": [s.to_dict() for s in detected],
+        }
+    except Exception as e:
+        log.warning("[skills] detect failed: %s", e)
+        return {"success": False, "error": str(e), "detected": []}
+
+
+class SkillBlockRequest(BaseModel):
+    skill_ids: List[str] = Field(..., description="Skill IDs to build system block for")
+
+
+@router.post(
+    "/api/skills/block",
+    summary="Build the system prompt block for a set of active skills"
+)
+def build_skill_block(
+    request: SkillBlockRequest,
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """Returns the <active_skills> XML block ready for injection into a system prompt."""
+    try:
+        from galaxy.ai.skill_manager import get_skill_manager
+        mgr = get_skill_manager()
+        block = mgr.build_system_block_by_ids(request.skill_ids)
+        return {"success": True, "block": block, "skill_ids": request.skill_ids}
+    except Exception as e:
+        log.warning("[skills] block failed: %s", e)
+        return {"success": False, "error": str(e), "block": ""}

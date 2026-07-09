@@ -99,7 +99,7 @@ After any significant fix or feature:
 2. Cover all features: workflow execution, auto-loop QC, AI findings, final report download, parameter overrides, real-time SSE step updates
 3. Commit changes with `git add + git commit`
 4. Run `scripts/sync_to_dev.sh` to push to dev EC2
-5. Re-test the same use cases on dev (http://dev.biomate.ai or the dev EC2 URL)
+5. Re-test the same use cases on dev (https://dev-public.biomate.ai)
 6. Fix any regressions found on dev and repeat from step 1
 
 Never ship a fix that only works locally — always verify on dev.

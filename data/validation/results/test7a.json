@@ -1,0 +1,101 @@
+{
+  "test_id": "7-A",
+  "test_name": "FutureHouse Comparison Prompt",
+  "prompt": "I have GWAS summary statistics for RA and a synovial scRNA-seq dataset. Identify the most genetically supported causal cell type, find a druggable target, predict ADMET for the top compound, and tell me the expected synovial joint exposure.",
+  "elapsed_seconds": 33.24705696105957,
+  "response_text": "I've planned a **4-step sequential pipeline** for you:\n\n  1. **Identify the most genetically supported causal cell type using GWAS summary statistics for RA and a synovial scRNA-seq dataset.** (workflow path TBD)\n  2. **Find a druggable target and top compound for the identified causal cell type.** (workflow path TBD)\n     \u2192 Input: identified causal cell type and associated genes from step 1\n  3. **Predict ADMET for the top compound.** (workflow path TBD)\n     \u2192 Input: top compound from step 2\n  4. **Predict the expected synovial joint exposure for the compound.** (workflow path TBD)\n     \u2192 Input: compound and its ADMET properties from step 3\n\nReview the steps below, then click **Confirm & Run** to execute them in order.\n\n\u26a0\ufe0f 4 step(s) could not be resolved to specific workflow paths \u2014 you may need to confirm them before running.",
+  "workflow_data": {
+    "success": true,
+    "workflow_type": "pipeline",
+    "name": "Sequential Pipeline (4 steps)",
+    "pipeline_steps": [
+      {
+        "id": "step_1",
+        "step_number": 1,
+        "workflow_name": "Identify the most genetically supported causal cell type using GWAS summary statistics for RA and a synovial scRNA-seq dataset.",
+        "nextflow_path": null,
+        "params": {},
+        "status": "pending",
+        "output_types": [],
+        "input_from": null,
+        "uses_description": null,
+        "output_description": "identified causal cell type and associated genes"
+      },
+      {
+        "id": "step_2",
+        "step_number": 2,
+        "workflow_name": "Find a druggable target and top compound for the identified causal cell type.",
+        "nextflow_path": null,
+        "params": {},
+        "status": "pending",
+        "output_types": [],
+        "input_from": "step_1",
+        "uses_description": "identified causal cell type and associated genes from step 1",
+        "output_description": "prioritized druggable target and top compound"
+      },
+      {
+        "id": "step_3",
+        "step_number": 3,
+        "workflow_name": "Predict ADMET for the top compound.",
+        "nextflow_path": null,
+        "params": {},
+        "status": "pending",
+        "output_types": [],
+        "input_from": "step_2",
+        "uses_description": "top compound from step 2",
+        "output_description": "ADMET properties of the compound"
+      },
+      {
+        "id": "step_4",
+        "step_number": 4,
+        "workflow_name": "Predict the expected synovial joint exposure for the compound.",
+        "nextflow_path": null,
+        "params": {},
+        "status": "pending",
+        "output_types": [],
+        "input_from": "step_3",
+        "uses_description": "compound and its ADMET properties from step 3",
+        "output_description": "predicted synovial joint exposure profile"
+      }
+    ],
+    "step_count": 4,
+    "source": "biomate_sequential"
+  },
+  "analysis": {
+    "domains_covered": [
+      "GWAS / genetic evidence",
+      "scRNA / cell type",
+      "ADMET",
+      "PBPK / exposure",
+      "Drug target / druggability"
+    ],
+    "domain_detail": {
+      "GWAS / genetic evidence": [
+        "gwas",
+        "genetic"
+      ],
+      "scRNA / cell type": [
+        "scrna",
+        "cell type"
+      ],
+      "ADMET": [
+        "admet",
+        "adme"
+      ],
+      "PBPK / exposure": [
+        "exposure",
+        "synovial"
+      ],
+      "Drug target / druggability": [
+        "druggab",
+        "target",
+        "compound"
+      ]
+    },
+    "domains_count": 5,
+    "has_workflow_card": true,
+    "workflow_event_count": 0,
+    "response_length": 840
+  },
+  "pass": "PASS"
+}

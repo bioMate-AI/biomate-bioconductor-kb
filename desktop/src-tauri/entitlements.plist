@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Allow outbound network connections to BioMate cloud + PubChem + external APIs -->
+  <key>com.apple.security.network.client</key>
+  <true/>
+  <!-- Allow reading user-selected files (file picker) -->
+  <key>com.apple.security.files.user-selected.read-only</key>
+  <true/>
+  <!-- Allow writing to user-selected locations (output directory) -->
+  <key>com.apple.security.files.user-selected.read-write</key>
+  <true/>
+</dict>
+</plist>

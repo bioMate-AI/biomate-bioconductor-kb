@@ -1,0 +1,11 @@
+{
+  "test_id": "1-B",
+  "job_id": "4ed1c98d-901c-43f9-906e-49f77650ce0f",
+  "final_status": "FAILED",
+  "job_detail": {
+    "jobName": "biomate-validation-test1b-deseq2",
+    "status": "FAILED",
+    "statusReason": "ECS was unable to assume the role 'arn:aws:iam::399683337364:role/biomate-nextflow-batch-role' that was provided for this task. Please verify that the role being passed has the proper trust relationship and permissions and that your IAM user has permissions to pass this role.",
+    "createdAt": 1783054987807
+  }
+}

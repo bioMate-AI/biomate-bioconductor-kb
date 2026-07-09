@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -30,15 +30,56 @@ export default function ProjectsPage({ onProjectSelect }: ProjectsPageProps) {
   const [sortBy, setSortBy] = useState<"activity" | "created" | "name">("activity")
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "completed" | "archived">("all")
   const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [allProjects, setAllProjects] = useState<Project[]>(projectService.getAllProjects())
+  const [allProjects, setAllProjects] = useState<Project[]>([])
+  const [loadingProjects, setLoadingProjects] = useState(true)
+
+  // Load from backend API; fall back to localStorage demo data
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/memory/projects', { credentials: 'include' })
+        if (res.ok) {
+          const data = await res.json()
+          const projects: Project[] = (Array.isArray(data) ? data : []).map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            description: p.description || '',
+            instructions: p.researchGoal || p.instructions || '',
+            status: (p.status || 'active') as Project['status'],
+            category: p.primaryDomain || p.category || null,
+            tags: p.tags || [],
+            progress: p.progress || 0,
+            createdAt: new Date(p.createdAt),
+            updatedAt: new Date(p.updatedAt || p.createdAt),
+            lastActivity: new Date(p.updatedAt || p.createdAt),
+            chatSessions: [],
+            documents: [],
+          }))
+          setAllProjects(projects.length > 0 ? projects : projectService.getAllProjects())
+        } else {
+          setAllProjects(projectService.getAllProjects())
+        }
+      } catch {
+        setAllProjects(projectService.getAllProjects())
+      } finally {
+        setLoadingProjects(false)
+      }
+    }
+    load()
+  }, [])
 
   // Filter and sort projects
   const filteredProjects = useMemo(() => {
     let projects = allProjects
 
-    // Filter by search query
+    // Filter by search query — filter from API-loaded state, not localStorage
     if (searchQuery.trim()) {
-      projects = projectService.searchProjects(searchQuery)
+      const q = searchQuery.toLowerCase()
+      projects = projects.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        (p.description || '').toLowerCase().includes(q) ||
+        (p.tags || []).some(t => t.toLowerCase().includes(q))
+      )
     }
 
     // Filter by status
@@ -60,10 +101,26 @@ export default function ProjectsPage({ onProjectSelect }: ProjectsPageProps) {
     })
   }, [allProjects, searchQuery, sortBy, filterStatus])
 
-  const handleProjectCreated = (projectId: string) => {
-    // Refresh projects list
-    setAllProjects(projectService.getAllProjects())
-    // Navigate to the new project
+  const handleProjectCreated = async (projectId: string) => {
+    // Re-fetch from backend to get the new project in the list
+    try {
+      const res = await fetch('/api/memory/projects', { credentials: 'include' })
+      if (res.ok) {
+        const data = await res.json()
+        const projects: Project[] = (Array.isArray(data) ? data : []).map((p: any) => ({
+          id: p.id, name: p.name, description: p.description || '',
+          instructions: p.researchGoal || p.instructions || '',
+          status: (p.status || 'active') as Project['status'],
+          category: p.primaryDomain || p.category || null,
+          tags: p.tags || [], progress: p.progress || 0,
+          createdAt: new Date(p.createdAt), updatedAt: new Date(p.updatedAt || p.createdAt),
+          lastActivity: new Date(p.updatedAt || p.createdAt), chatSessions: [], documents: [],
+        }))
+        setAllProjects(projects)
+      }
+    } catch {
+      setAllProjects(projectService.getAllProjects())
+    }
     onProjectSelect?.(projectId)
   }
 
@@ -157,15 +214,20 @@ export default function ProjectsPage({ onProjectSelect }: ProjectsPageProps) {
 
       {/* Projects Grid */}
       <div className="flex-1 p-6">
-        {filteredProjects.length === 0 ? (
+        {loadingProjects ? (
+          <div className="text-center py-12">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading projects…</p>
+          </div>
+        ) : filteredProjects.length === 0 ? (
           <div className="text-center py-12">
             <FolderOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">
               {searchQuery ? "No projects found" : "No projects yet"}
             </h3>
             <p className="text-muted-foreground mb-4">
-              {searchQuery 
-                ? "Try adjusting your search or filters" 
+              {searchQuery
+                ? "Try adjusting your search or filters"
                 : "Create your first project to get started with organized research"
               }
             </p>

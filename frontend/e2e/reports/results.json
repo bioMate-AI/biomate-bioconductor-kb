@@ -97,18 +97,18 @@
   },
   "suites": [
     {
-      "title": "service-page-execution.e2e.ts",
-      "file": "service-page-execution.e2e.ts",
+      "title": "inline-omics-routing.e2e.ts",
+      "file": "inline-omics-routing.e2e.ts",
       "column": 0,
       "line": 0,
       "specs": [
         {
-          "title": "Full execution flow — ADMET → BOIN → PBPK",
+          "title": "UC-1: 10x scRNA-seq barcode matrix routes to single-cell workflow (not bulk DE)",
           "ok": true,
           "tags": [],
           "tests": [
             {
-              "timeout": 4050000,
+              "timeout": 1200000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
@@ -118,238 +118,49 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 774655,
+                  "duration": 93458,
                   "errors": [],
                   "stdout": [
                     {
-                      "text": "\n[ADMET] ── ADMET Full Panel\n"
+                      "text": "[Auth] Fixture login complete\n"
                     },
                     {
-                      "text": "[ADMET] routing: \"Predict ADMET Properties (AI)\" → ✅\n"
+                      "text": "[SS] /tmp/inline-omics-e2e/UC1_00_new_session.png\n"
                     },
                     {
-                      "text": "[Screenshot] service-execution/ADMET_01_routed.png\n"
+                      "text": "[SS] /tmp/inline-omics-e2e/UC1_01_response.png\n"
                     },
                     {
-                      "text": "[ADMET] pre-run status: \"idle\"\n"
+                      "text": "[UC-1] Response length: \u001b[33m1146\u001b[39m\n"
                     },
                     {
-                      "text": "[Screenshot] service-execution/ADMET_02_prerun.png\n"
+                      "text": "[UC-1] Response (first 200): BioMateworkflow is ready in the panel — check the steps and parameters, then click Confirm & Run.\n⚠️ Fill in required parameters before running: input, outdir\nSeurat Single-Cell Clustering and UMAP Wo\n"
                     },
                     {
-                      "text": "[demo] Waiting for all active runs to complete...\n"
+                      "text": "[UC-1] Panel opened — content (first 300): TRANSCRIPTOMICS · WORKFLOWnf-core/scrnaseq5 phasesWorkflow settings42Phases5After runClick a phase to expand its steps and parameters. Each phase can be run individually once the workflow starts.Parameters(35 params)RequiredRequired parametersOutdir*Optional parameters34 params — collapsed by defaul\n"
                     },
                     {
-                      "text": "[demo] All runs idle (no running/queued phase cards)\n"
+                      "text": "[UC-1] Workflow chip in chat: true\n"
                     },
                     {
-                      "text": "[ADMET] clicking Run…\n"
+                      "text": "[UC-1] Routes to bulk-DE-only: \u001b[33mfalse\u001b[39m\n"
                     },
                     {
-                      "text": "[demo] Workflow submitted — polling for completion...\n"
+                      "text": "[SS] /tmp/inline-omics-e2e/UC1_02_panel_verified.png\n"
                     },
                     {
-                      "text": "[demo] execute response — runId: b80153c3-25eb-4308-8164-d076b83b5e98 status: \u001b[33m200\u001b[39m\n"
-                    },
-                    {
-                      "text": "[ADMET] ✅ running state captured\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/ADMET_03_running.png\n"
-                    },
-                    {
-                      "text": "[demo] Terminal status detected in execution UI\n"
-                    },
-                    {
-                      "text": "[ADMET] terminal: status=\"completed\", terminal=true\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/ADMET_04_terminal.png\n"
-                    },
-                    {
-                      "text": "[ADMET] tabs: [Outputs, Findings, QC report, Citations, Parameters]  outputs=✅  findings=✅  qc=✅\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/ADMET_05_tabs.png\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/ADMET_06_findings.png\n"
-                    },
-                    {
-                      "text": "[ADMET] findings spinner: ✅ none\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/ADMET_07_qc.png\n"
-                    },
-                    {
-                      "text": "[ADMET] qc body=✅  all-passed=✅\n"
-                    },
-                    {
-                      "text": "[ADMET] download report: ✅\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/ADMET_08_download.png\n"
-                    },
-                    {
-                      "text": "[ADMET] ✅ complete\n"
-                    },
-                    {
-                      "text": "\n[BOIN] ── BOIN Clinical Trial Simulation\n"
-                    },
-                    {
-                      "text": "[BOIN] routing: \"clinical_trial_simulation\" → ✅\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/BOIN_01_routed.png\n"
-                    },
-                    {
-                      "text": "[BOIN] pre-run status: \"idle\"\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/BOIN_02_prerun.png\n"
-                    },
-                    {
-                      "text": "[demo] Waiting for all active runs to complete...\n"
-                    },
-                    {
-                      "text": "[demo] All runs idle (no running/queued phase cards)\n"
-                    },
-                    {
-                      "text": "[BOIN] clicking Run…\n"
-                    },
-                    {
-                      "text": "[demo] Workflow submitted — polling for completion...\n"
-                    },
-                    {
-                      "text": "[demo] execute response — runId: e74ad13e-fe60-4051-b96d-3d6f046ea843 status: \u001b[33m200\u001b[39m\n"
-                    },
-                    {
-                      "text": "[BOIN] ✅ running state captured\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/BOIN_03_running.png\n"
-                    },
-                    {
-                      "text": "[demo] Terminal status detected in execution UI\n"
-                    },
-                    {
-                      "text": "[BOIN] terminal: status=\"completed\", terminal=true\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/BOIN_04_terminal.png\n"
-                    },
-                    {
-                      "text": "[BOIN] tabs: [Outputs, Findings, QC report, Parameters]  outputs=✅  findings=✅  qc=✅\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/BOIN_05_tabs.png\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/BOIN_06_findings.png\n"
-                    },
-                    {
-                      "text": "[BOIN] findings spinner: ✅ none\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/BOIN_07_qc.png\n"
-                    },
-                    {
-                      "text": "[BOIN] qc body=✅  all-passed=✅\n"
-                    },
-                    {
-                      "text": "[BOIN] download report: ✅\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/BOIN_08_download.png\n"
-                    },
-                    {
-                      "text": "[BOIN] ✅ complete\n"
-                    },
-                    {
-                      "text": "\n[PBPK] ── PBPK Allometric Scaling\n"
-                    },
-                    {
-                      "text": "[PBPK] routing: \"pbpk_pediatric\" → ✅\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/PBPK_01_routed.png\n"
-                    },
-                    {
-                      "text": "[PBPK] pre-run status: \"idle\"\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/PBPK_02_prerun.png\n"
-                    },
-                    {
-                      "text": "[demo] Waiting for all active runs to complete...\n"
-                    },
-                    {
-                      "text": "[demo] All runs idle (no running/queued phase cards)\n"
-                    },
-                    {
-                      "text": "[PBPK] clicking Run…\n"
-                    },
-                    {
-                      "text": "[demo] Workflow submitted — polling for completion...\n"
-                    },
-                    {
-                      "text": "[demo] execute response — runId: 72ce32aa-fe04-44c3-881a-41deb10357e5 status: \u001b[33m200\u001b[39m\n"
-                    },
-                    {
-                      "text": "[PBPK] ✅ running state captured\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/PBPK_03_running.png\n"
-                    },
-                    {
-                      "text": "[demo] Terminal status detected in execution UI\n"
-                    },
-                    {
-                      "text": "[PBPK] terminal: status=\"completed\", terminal=true\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/PBPK_04_terminal.png\n"
-                    },
-                    {
-                      "text": "[PBPK] tabs: [Outputs, Findings, QC report, Citations, Parameters]  outputs=✅  findings=✅  qc=✅\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/PBPK_05_tabs.png\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/PBPK_06_findings.png\n"
-                    },
-                    {
-                      "text": "[PBPK] findings spinner: ✅ none\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/PBPK_07_qc.png\n"
-                    },
-                    {
-                      "text": "[PBPK] qc body=✅  all-passed=✅\n"
-                    },
-                    {
-                      "text": "[PBPK] download report: ✅\n"
-                    },
-                    {
-                      "text": "[Screenshot] service-execution/PBPK_08_download.png\n"
-                    },
-                    {
-                      "text": "[PBPK] ✅ complete\n"
-                    },
-                    {
-                      "text": "\n✅ Full execution flow complete (ADMET → BOIN → PBPK)\n"
+                      "text": "[UC-1] PASS — single-cell workflow routed; bulk-DE routing rejected\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-06T22:19:33.920Z",
+                  "startTime": "2026-07-07T14:25:37.849Z",
                   "annotations": [],
                   "attachments": [
                     {
                       "name": "screenshot",
                       "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/service-page-execution.e2e-1c043--flow-—-ADMET-→-BOIN-→-PBPK-chromium/test-finished-1.png"
+                      "path": "/Users/kky/biomate/frontend/e2e/test-results/inline-omics-routing.e2e.t-99f53--cell-workflow-not-bulk-DE--chromium/test-finished-1.png"
                     }
                   ]
                 }
@@ -357,19 +168,1327 @@
               "status": "expected"
             }
           ],
-          "id": "d4014e3d910560dba620-069b4894b47305052198",
-          "file": "service-page-execution.e2e.ts",
-          "line": 342,
+          "id": "43b14fee33cb356b9d9d-edb151f61a9a03bcb080",
+          "file": "inline-omics-routing.e2e.ts",
+          "line": 143,
           "column": 1
+        },
+        {
+          "title": "UC-2: tab-separated VCF variants route to variant analysis workflow",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 1200000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 92791,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "[SS] /tmp/inline-omics-e2e/UC2_00_new_session.png\n"
+                    },
+                    {
+                      "text": "[SS] /tmp/inline-omics-e2e/UC2_01_response.png\n"
+                    },
+                    {
+                      "text": "[UC-2] Response length: \u001b[33m1086\u001b[39m\n"
+                    },
+                    {
+                      "text": "[UC-2] Response (first 200): BioMateCould not generate workflow — The system encountered an internal server error (status code 500) while attempting to compile the variant annotation and filtering pipeline for your provided VCF d\n"
+                    },
+                    {
+                      "text": "[UC-2] No panel — latest response (first 250): BioMateCould not generate workflow — The system encountered an internal server error (status code 500) while attempting to compile the variant annotation and filtering pipeline for your provided VCF data.\nClosest available option: wgs_germline_gatk —\n"
+                    }
+                  ],
+                  "stderr": [
+                    {
+                      "text": "[UC-2] INFRA-SKIP: Galaxy backend unavailable or overloaded — skipping test\n"
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-07-07T14:27:14.490Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/kky/biomate/frontend/e2e/test-results/inline-omics-routing.e2e.t-1eb65-o-variant-analysis-workflow-chromium/test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "43b14fee33cb356b9d9d-64707640d293a8fd6999",
+          "file": "inline-omics-routing.e2e.ts",
+          "line": 197,
+          "column": 1
+        },
+        {
+          "title": "UC-3: SMILES drug candidates route to ADMET screening workflow",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 1200000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 93592,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "[SS] /tmp/inline-omics-e2e/UC3_00_new_session.png\n"
+                    },
+                    {
+                      "text": "[SS] /tmp/inline-omics-e2e/UC3_01_response.png\n"
+                    },
+                    {
+                      "text": "[UC-3] Response length: \u001b[33m1019\u001b[39m\n"
+                    },
+                    {
+                      "text": "[UC-3] Response (first 200): BioMateworkflow is ready in the panel — check the steps and parameters, then click Confirm & Run.\npredict_admet_properties — Predicts critical absorption, distribution, metabolism, excretion, and toxi\n"
+                    },
+                    {
+                      "text": "[UC-3] Panel opened — content (first 300): DRUG DISCOVERY · WORKFLOWcpa_drug_combination_synergy_gpu1 phaseWorkflow settings12Phases1After runParameters(12 params)STEPS · 11Steps1 stepRunParameters(12 configured)editDrug A Name: trametinib · Drug A Smiles: null · Drug A Targets: MAP2K1,MAP2K2 · Drug A Dose Nm: 50① Cpa Synergy GpuParamsdrug_a\n"
+                    },
+                    {
+                      "text": "[UC-3] Workflow chip in chat: true\n"
+                    },
+                    {
+                      "text": "[UC-3] ADMET/drug workflow detected: \u001b[33mtrue\u001b[39m\n"
+                    },
+                    {
+                      "text": "[SS] /tmp/inline-omics-e2e/UC3_02_panel_verified.png\n"
+                    },
+                    {
+                      "text": "[UC-3] PASS — ADMET workflow routed; response mentions drug properties\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-07T14:28:47.287Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/kky/biomate/frontend/e2e/test-results/inline-omics-routing.e2e.t-4277d-to-ADMET-screening-workflow-chromium/test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "43b14fee33cb356b9d9d-95b02c3fe2a3cb6676d3",
+          "file": "inline-omics-routing.e2e.ts",
+          "line": 247,
+          "column": 1
+        },
+        {
+          "title": "UC-6: compound name+SMILES table routes to property workflow without re-asking for structures",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 1200000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 92712,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "[SS] /tmp/inline-omics-e2e/UC6_00_new_session.png\n"
+                    },
+                    {
+                      "text": "[SS] /tmp/inline-omics-e2e/UC6_01_response.png\n"
+                    },
+                    {
+                      "text": "[UC-6] Response length: \u001b[33m941\u001b[39m\n"
+                    },
+                    {
+                      "text": "[UC-6] Response (first 300): BioMateworkflow is ready in the panel — check the steps and parameters, then click Confirm & Run.\npredict_admet_properties — A comprehensive ADMET and physicochemical property profiling pipeline that calculates molecular weight, LogP, hydrogen bond donors/acceptors, and key safety endpoints directly\n"
+                    },
+                    {
+                      "text": "[UC-6] Workflow cards found: \u001b[33m0\u001b[39m\n"
+                    },
+                    {
+                      "text": "[SS] /tmp/inline-omics-e2e/UC6_02_verified.png\n"
+                    },
+                    {
+                      "text": "[UC-6] PASS — compound table processed; assistant did not re-request structures\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-07T14:30:20.944Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/kky/biomate/frontend/e2e/test-results/inline-omics-routing.e2e.t-ec141-ut-re-asking-for-structures-chromium/test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "43b14fee33cb356b9d9d-06c964f17f96dc0f56a9",
+          "file": "inline-omics-routing.e2e.ts",
+          "line": 311,
+          "column": 1
+        },
+        {
+          "title": "UC-6b: extractInlineDataWithLLM preserves multi-value data (array or string) in inlineDataMap",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 1200000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 93891,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "[SS] /tmp/inline-omics-e2e/UC6b_00_new_session.png\n"
+                    },
+                    {
+                      "text": "[UC-6b] Reading server log: /tmp/biomate_server.log size before: \u001b[33m2911187\u001b[39m\n"
+                    },
+                    {
+                      "text": "[SS] /tmp/inline-omics-e2e/UC6b_01_response.png\n"
+                    },
+                    {
+                      "text": "[UC-6b] New log bytes: \u001b[33m19398\u001b[39m\n"
+                    },
+                    {
+                      "text": "[UC-6b] Extraction log lines: \u001b[33m1\u001b[39m\n"
+                    },
+                    {
+                      "text": "[UC-6b] Extraction details: [extractInlineData] result keys=smiles arrayKeys=smiles map={\"smiles\":\"[\\\"CC(=O)Oc1ccccc1C(=O)O\\\",\\\"Cn1cnc2c1c(=O)n(C)c(=O)n2C\\\",\\\"CC(C)Cc1ccc(cc1)C(C)C(=O)O\\\"]\"} (cache-hit)\n"
+                    },
+                    {
+                      "text": "[UC-6b] Array branch WAS hit: [extractInlineData] result keys=smiles arrayKeys=smiles map={\"smiles\":\"[\\\"CC(=O)Oc1ccccc1C(=O)O\\\",\\\"Cn1cnc2c1c(=O)n(C)c(=O)n2C\\\",\\\"CC(C)Cc1ccc(cc1)C(C)C(=O)O\\\"]\"} (cache-hit)\n"
+                    },
+                    {
+                      "text": "[UC-6b] Array values preserved: [\n  \u001b[32m'[\"CC(=O)Oc1ccccc1C(=O)O\",\"Cn1cnc2c1c(=O)n(C)c(=O)n2C\",\"CC(C)Cc1ccc(cc1)C(C)C(=O)O\"]'\u001b[39m\n]\n"
+                    },
+                    {
+                      "text": "[SS] /tmp/inline-omics-e2e/UC6b_02_log_verified.png\n"
+                    },
+                    {
+                      "text": "[UC-6b] PASS — extractInlineDataWithLLM preserved multi-value data\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-07-07T14:31:53.664Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/kky/biomate/frontend/e2e/test-results/inline-omics-routing.e2e.t-ea52b--or-string-in-inlineDataMap-chromium/test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "43b14fee33cb356b9d9d-df493061f7e9594615bd",
+          "file": "inline-omics-routing.e2e.ts",
+          "line": 377,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "project-create.e2e.ts",
+      "file": "project-create.e2e.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "project-create",
+          "file": "project-create.e2e.ts",
+          "line": 17,
+          "column": 6,
+          "specs": [
+            {
+              "title": "POST /api/projects requires auth",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1329,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:33:27.754Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/project-create.e2e.ts-proj-4a6a1--api-projects-requires-auth-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "c6fd69c4fdb2bcb1a104-eeb8bf4a64be5e78fedd",
+              "file": "project-create.e2e.ts",
+              "line": 18,
+              "column": 3
+            },
+            {
+              "title": "create project dialog opens from sidebar",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2625,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:33:29.094Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/project-create.e2e.ts-proj-a1bae-t-dialog-opens-from-sidebar-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "c6fd69c4fdb2bcb1a104-480d5a8b45d58207c81d",
+              "file": "project-create.e2e.ts",
+              "line": 27,
+              "column": 3
+            },
+            {
+              "title": "project creation calls real API and succeeds",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2449,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:33:31.732Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/project-create.e2e.ts-proj-4f80a-calls-real-API-and-succeeds-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "c6fd69c4fdb2bcb1a104-19a8cb417fcd3e3a471c",
+              "file": "project-create.e2e.ts",
+              "line": 41,
+              "column": 3
+            },
+            {
+              "title": "project created via API appears in GET /api/projects list",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 343,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:33:34.205Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/project-create.e2e.ts-proj-22c1d-rs-in-GET-api-projects-list-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "c6fd69c4fdb2bcb1a104-4ab4d6ac924da42ae6e0",
+              "file": "project-create.e2e.ts",
+              "line": 75,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "researcher-journey.e2e.ts",
+      "file": "researcher-journey.e2e.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Researcher Journey",
+          "file": "researcher-journey.e2e.ts",
+          "line": 47,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Step 1: create project via sidebar dialog",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2363,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:33:34.582Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/researcher-journey.e2e.ts--c1863--project-via-sidebar-dialog-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-97ac06b2ecf3dd40eea9",
+              "file": "researcher-journey.e2e.ts",
+              "line": 51,
+              "column": 3
+            },
+            {
+              "title": "Step 2: navigate to project and save research instructions",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1650,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:33:36.953Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/researcher-journey.e2e.ts--70c0d--save-research-instructions-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-38d4cce76c542f67139d",
+              "file": "researcher-journey.e2e.ts",
+              "line": 92,
+              "column": 3
+            },
+            {
+              "title": "Step 3: instructions persist after navigation away and back",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2158,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:33:38.623Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/researcher-journey.e2e.ts--ff400-er-navigation-away-and-back-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-8ac016abd6f3cd633381",
+              "file": "researcher-journey.e2e.ts",
+              "line": 123,
+              "column": 3
+            },
+            {
+              "title": "Step 4: Files tab renders with upload button",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1636,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:33:40.794Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/researcher-journey.e2e.ts--50ed9--renders-with-upload-button-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-fc1be4cf4e21509f54c5",
+              "file": "researcher-journey.e2e.ts",
+              "line": 149,
+              "column": 3
+            },
+            {
+              "title": "Step 5: import custom workflow via Import Workflow dialog",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1432,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:33:42.452Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/researcher-journey.e2e.ts--897a6--via-Import-Workflow-dialog-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-3bcd8430cfc1afcd9f19",
+              "file": "researcher-journey.e2e.ts",
+              "line": 172,
+              "column": 3
+            },
+            {
+              "title": "Step 6: My Imports shows workflow; Open loads it in the right panel",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2275,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:33:43.894Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/researcher-journey.e2e.ts--957dc-loads-it-in-the-right-panel-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-8c1cfb96b51027817e6d",
+              "file": "researcher-journey.e2e.ts",
+              "line": 214,
+              "column": 3
+            },
+            {
+              "title": "Step 7: run imported workflow to completion — track status idle→running→completed",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 300000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 12394,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:33:46.184Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/researcher-journey.e2e.ts--ce8cd-atus-idle→running→completed-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-9ac8ce9dfab425b33c00",
+              "file": "researcher-journey.e2e.ts",
+              "line": 259,
+              "column": 3
+            },
+            {
+              "title": "Step 8: cleanup — delete imported workflow and archive project",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3521,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:33:58.586Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/researcher-journey.e2e.ts--3a4dc-orkflow-and-archive-project-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-15dd947a4ee96c01e63f",
+              "file": "researcher-journey.e2e.ts",
+              "line": 318,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Researcher Journey — My Imports bulk lifecycle",
+          "file": "researcher-journey.e2e.ts",
+          "line": 380,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Bulk Step 1: upload 3 workflows via API",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 242,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:34:02.120Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/researcher-journey.e2e.ts--f1a6a--upload-3-workflows-via-API-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-07ef463b905e0c310669",
+              "file": "researcher-journey.e2e.ts",
+              "line": 381,
+              "column": 3
+            },
+            {
+              "title": "Bulk Step 2: open My Imports — all 3 workflows visible",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1923,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:34:02.374Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/researcher-journey.e2e.ts--17df9-s-—-all-3-workflows-visible-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-4536ecd06ebde99c6c29",
+              "file": "researcher-journey.e2e.ts",
+              "line": 390,
+              "column": 3
+            },
+            {
+              "title": "Bulk Step 3: delete BulkA via UI — row disappears, BulkB+C remain",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2073,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:34:04.310Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/researcher-journey.e2e.ts--b808c-w-disappears-BulkB-C-remain-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-ec5dbf83afd096c42636",
+              "file": "researcher-journey.e2e.ts",
+              "line": 401,
+              "column": 3
+            },
+            {
+              "title": "Bulk Step 4: delete BulkB via UI — BulkC alone remains",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1995,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:34:06.398Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/researcher-journey.e2e.ts--cac0c-ia-UI-—-BulkC-alone-remains-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-d95fc6c65c7a0ddc33ba",
+              "file": "researcher-journey.e2e.ts",
+              "line": 418,
+              "column": 3
+            },
+            {
+              "title": "Bulk Step 5: close + reopen dialog — only BulkC visible (reload test)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3042,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:34:08.408Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/researcher-journey.e2e.ts--685a6--BulkC-visible-reload-test--chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-19ff76df7ad25117ecd7",
+              "file": "researcher-journey.e2e.ts",
+              "line": 432,
+              "column": 3
+            },
+            {
+              "title": "Bulk Step 6: cleanup — delete BulkC via API",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 166,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:34:11.459Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/researcher-journey.e2e.ts--00d3d-anup-—-delete-BulkC-via-API-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-76bb201feba7d7f398f4",
+              "file": "researcher-journey.e2e.ts",
+              "line": 460,
+              "column": 3
+            },
+            {
+              "title": "Settings: generate and revoke an MCP API key",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2001,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:34:11.636Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/researcher-journey.e2e.ts--9e7fe-e-and-revoke-an-MCP-API-key-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb80f0db7b034fb11fd-52260a374b21155b9ee2",
+              "file": "researcher-journey.e2e.ts",
+              "line": 473,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "workflow-upload.e2e.ts",
+      "file": "workflow-upload.e2e.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "workflow-upload",
+          "file": "workflow-upload.e2e.ts",
+          "line": 33,
+          "column": 6,
+          "specs": [
+            {
+              "title": "sidebar Import Workflow button opens modal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1297,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:34:13.661Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/workflow-upload.e2e.ts-wor-6e29f-Workflow-button-opens-modal-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "27aa6978e1edce388c87-54ac4fb4f9d61e7c5988",
+              "file": "workflow-upload.e2e.ts",
+              "line": 34,
+              "column": 3
+            },
+            {
+              "title": "modal submit is disabled until a file is selected",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1240,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:34:14.968Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/workflow-upload.e2e.ts-wor-4c86b-ed-until-a-file-is-selected-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "27aa6978e1edce388c87-74516cd4849a0a4c2fb7",
+              "file": "workflow-upload.e2e.ts",
+              "line": 45,
+              "column": 3
+            },
+            {
+              "title": "upload .nf workflow succeeds and appears in personal list",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1434,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:34:16.228Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/workflow-upload.e2e.ts-wor-30d4f-nd-appears-in-personal-list-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "27aa6978e1edce388c87-d0b9617f7bacd0cd0867",
+              "file": "workflow-upload.e2e.ts",
+              "line": 56,
+              "column": 3
+            },
+            {
+              "title": "upload .ga Galaxy workflow succeeds and appears in personal list",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1482,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:34:17.669Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/kky/biomate/frontend/e2e/test-results/workflow-upload.e2e.ts-wor-cb952-nd-appears-in-personal-list-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "27aa6978e1edce388c87-a4ba5d84aad7760aacbe",
+              "file": "workflow-upload.e2e.ts",
+              "line": 91,
+              "column": 3
+            },
+            {
+              "title": "GET /api/workflows/personal returns 401 when not authenticated",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 6,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:34:19.158Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "27aa6978e1edce388c87-7827dbe983cb71d91df0",
+              "file": "workflow-upload.e2e.ts",
+              "line": 125,
+              "column": 3
+            },
+            {
+              "title": "POST /api/workflows/upload-file returns 401 when not authenticated",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 2700000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T14:34:19.172Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "27aa6978e1edce388c87-68ba66168fdcc0925a23",
+              "file": "workflow-upload.e2e.ts",
+              "line": 130,
+              "column": 3
+            }
+          ]
         }
       ]
     }
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-07-06T22:19:32.134Z",
-    "duration": 783952.085,
-    "expected": 1,
+    "startTime": "2026-07-07T14:25:37.380Z",
+    "duration": 522110.306,
+    "expected": 30,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

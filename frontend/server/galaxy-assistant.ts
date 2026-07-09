@@ -310,6 +310,8 @@ export interface ChatContext {
    * generation returns "currently unavailable".
    */
   galaxyAPIOverride?: any;
+  /** Explicitly selected expert skill IDs (from SkillSelector UI). Auto-detected when absent. */
+  activeSkillIds?: string[];
 }
 
 export interface ToolRecommendation {
@@ -1109,6 +1111,69 @@ export function buildDomainSpecialistBlock(preferredDomains: string[]): string {
     .filter((g): g is string => !!g);
   if (guidance.length === 0) return '';
   return `<domain_specialist>\n${guidance.join('\n\n')}\n</domain_specialist>\n`;
+}
+
+// ============================================================================
+// Skills System — Expert Role Injection
+// ============================================================================
+
+const GALAXY_URL = process.env.GALAXY_URL || 'http://localhost:8081';
+
+/**
+ * Fetch active skills from the Galaxy backend and build a system-prompt block.
+ * Auto-detects from message + preferred domains unless the session has explicitly
+ * set skill_ids via context.activeSkillIds.
+ * Returns empty string on any error (non-blocking).
+ */
+export async function buildSkillBlock(
+  message: string,
+  preferredDomains: string[],
+  context: { activeSkillIds?: string[] }
+): Promise<string> {
+  try {
+    let url: string;
+    let body: object;
+
+    if (context.activeSkillIds && context.activeSkillIds.length > 0) {
+      // Explicit skill selection
+      url = `${GALAXY_URL}/api/skills/block`;
+      body = { skill_ids: context.activeSkillIds };
+    } else {
+      // Auto-detect from message
+      url = `${GALAXY_URL}/api/skills/detect`;
+      body = { query: message, preferred_domains: preferredDomains };
+    }
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(3000),
+    });
+
+    if (!res.ok) return '';
+    const data = await res.json() as any;
+
+    if (context.activeSkillIds && context.activeSkillIds.length > 0) {
+      return (data.block as string) || '';
+    } else {
+      // Build block from detected skills inline
+      const detected: Array<{ id: string; title: string }> = data.detected || [];
+      if (!detected.length) return '';
+      // Fetch the full block for detected skill ids
+      const blockRes = await fetch(`${GALAXY_URL}/api/skills/block`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skill_ids: detected.map((s: any) => s.id) }),
+        signal: AbortSignal.timeout(3000),
+      });
+      if (!blockRes.ok) return '';
+      const blockData = await blockRes.json() as any;
+      return (blockData.block as string) || '';
+    }
+  } catch {
+    return '';  // skills are best-effort, never block the response
+  }
 }
 
 // ============================================================================
@@ -6773,7 +6838,7 @@ ${isDrugDevelopmentQuery ? `- For drug-development WORKFLOW GENERATION FAILURES 
 Workflow routing (use these specific workflows when the user's intent matches):
 ${buildWorkflowRoutingBlock(preferredDomains)}
 
-${cryoEmContextBlock ? `${cryoEmContextBlock}\n\n` : ''}${buildDomainSpecialistBlock(preferredDomains)}${buildDomainCatalogBlock(preferredDomains)}${(generatedWorkflow as any)?._nearTieAlternative ? `\n[NEAR-TIE NOTE] The workflow search found "${(generatedWorkflow as any)._nearTieAlternative}" with a very similar match score. At the end of your response, add exactly one sentence: "If you were looking for ${(generatedWorkflow as any)._nearTieAlternative} instead, let me know and I'll switch." Do not ask this as a question — state it as a note.\n` : ''}Style guide:
+${cryoEmContextBlock ? `${cryoEmContextBlock}\n\n` : ''}${buildDomainSpecialistBlock(preferredDomains)}${buildDomainCatalogBlock(preferredDomains)}${await buildSkillBlock(message, preferredDomains, context)}${(generatedWorkflow as any)?._nearTieAlternative ? `\n[NEAR-TIE NOTE] The workflow search found "${(generatedWorkflow as any)._nearTieAlternative}" with a very similar match score. At the end of your response, add exactly one sentence: "If you were looking for ${(generatedWorkflow as any)._nearTieAlternative} instead, let me know and I'll switch." Do not ask this as a question — state it as a note.\n` : ''}Style guide:
 - Be concise and practical
 - When mentioning tools, use the primary user-facing name (e.g. "CryoSPARC", "BWA-MEM2", "GATK") — never use internal pipeline paths or tool IDs
 - Explain workflow steps and expected outputs clearly

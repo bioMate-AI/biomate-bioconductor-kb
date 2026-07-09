@@ -227,36 +227,32 @@ test.describe("project-files", () => {
   });
 
   // ────────────────────────────────────────────────────────────────────────────
-  // UC-C  My Imports: upload → row visible → delete → gone
+  // UC-C  My Imports: upload via API → appears in Workflows dialog → delete → gone
+  // Note: "Import Workflow" was merged into the "Workflows" nav button.
+  //       Open that dialog then switch to the My Imports tab.
   // ────────────────────────────────────────────────────────────────────────────
   test("My Imports tab shows workflow after upload", async ({ page }) => {
     await loginAsFixture(page);
+
+    // Upload a workflow via API for a deterministic known state
+    const wfName = `My Imports E2E ${Date.now()}`;
+    const upRes = await page.request.post(`${BASE_URL}/api/workflows/upload-file`, {
+      multipart: {
+        file: { name: "imports_test.nf", mimeType: "text/plain", buffer: Buffer.from(NF_STUB) },
+        workflowName: wfName,
+      },
+    });
+    expect(upRes.ok(), `workflow upload failed: ${await upRes.text()}`).toBeTruthy();
+
     await page.goto(`${BASE_URL}/`);
 
-    // Open Workflows dialog on Import Workflow tab
-    await page.getByTestId("button-import-workflow").click();
-    await expect(page.getByTestId("workflow-upload-modal")).toBeVisible({ timeout: 8000 });
+    // Open Workflows dialog via the sidebar nav button
+    await expect(page.getByTestId("button-workflows-nav")).toBeVisible({ timeout: 10000 });
+    await page.getByTestId("button-workflows-nav").click();
 
-    // Upload a .nf workflow
-    const wfName = `My Imports E2E ${Date.now()}`;
-    await page.getByTestId("workflow-name-input").fill(wfName);
-    await page.getByTestId("workflow-file-input").setInputFiles({
-      name: "imports_test.nf",
-      mimeType: "text/plain",
-      buffer: Buffer.from(NF_STUB),
-    });
-
-    await expect(page.getByTestId("workflow-upload-submit")).toBeEnabled({ timeout: 3000 });
-    await page.getByTestId("workflow-upload-submit").click();
-
-    // Wait for success state (green check + workflow name in success div)
-    await expect(
-      page.locator('[data-testid="workflow-upload-modal"] .text-green-700, [data-testid="workflow-upload-modal"] .text-green-400')
-    ).toBeVisible({ timeout: 10000 });
-
-    // Click "View in My Imports" button from the success state — this calls
-    // setActiveTab('imports') + fetchImports('') in the dialog.
-    await page.getByRole("button", { name: /view in my imports/i }).click();
+    // Switch to the My Imports tab
+    await expect(page.getByTestId("tab-my-imports")).toBeVisible({ timeout: 8000 });
+    await page.getByTestId("tab-my-imports").click();
 
     // The workflow name should appear in the list
     await expect(page.locator(`text=${wfName}`)).toBeVisible({ timeout: 8000 });
@@ -278,9 +274,11 @@ test.describe("project-files", () => {
     const wfId = upBody?.id ?? upBody?.workflow?.id;
     expect(wfId).toBeTruthy();
 
-    // Navigate to My Imports tab
     await page.goto(`${BASE_URL}/`);
-    await page.getByTestId("button-import-workflow").click();
+
+    // Open Workflows dialog and switch to My Imports tab
+    await expect(page.getByTestId("button-workflows-nav")).toBeVisible({ timeout: 10000 });
+    await page.getByTestId("button-workflows-nav").click();
     await expect(page.getByTestId("tab-my-imports")).toBeVisible({ timeout: 8000 });
     await page.getByTestId("tab-my-imports").click();
 

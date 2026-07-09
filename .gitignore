@@ -156,3 +156,4 @@ yarn-error.log*
 # sync_to_dev.sh local state
 .last_dev_sync_commit
 .last_dev_sync_db_md5
+.mcp.json

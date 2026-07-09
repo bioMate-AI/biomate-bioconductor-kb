@@ -696,6 +696,14 @@ export function ChatInterface({
         try { return typeof window !== 'undefined' ? localStorage.getItem('biomate-active-project-id') : null }
         catch { return null }
       })()
+      const _activeSkillIds = (() => {
+        try {
+          const raw = typeof window !== 'undefined' ? localStorage.getItem('biomate-active-skills') : null
+          if (!raw) return undefined
+          const ids = JSON.parse(raw)
+          return Array.isArray(ids) && ids.length > 0 ? ids : undefined
+        } catch { return undefined }
+      })()
       // Build the history payload. See:
       //   docs/20260610_REAL_USER_FULL_CHAT_LOGS.md  (wjunlin@HKU)
       //   docs/20260610_CHAT_CONTEXT_AUDIT_4_QUESTIONS.md
@@ -736,6 +744,7 @@ export function ChatInterface({
             // are idempotent (no duplicate messages).
             ...(sessionId && { memorySessionId: sessionId, sessionId }),
             ...(_activeProjectId && { projectId: _activeProjectId }),
+            ...(_activeSkillIds && { activeSkillIds: _activeSkillIds }),
             assistantMessageId: placeholderId,
             // Caller-supplied override (e.g. intentOverride from
             // IntentClarificationCard re-submit). Spread LAST so it can
