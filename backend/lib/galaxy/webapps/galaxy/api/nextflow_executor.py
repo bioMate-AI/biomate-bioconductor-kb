@@ -2403,6 +2403,24 @@ def _generate_executor_config(
                 "}",
             ]
             log.info(f"[Nextflow] GPU queue routing: process_gpu → {gpu_queue}")
+        # Per-label CPU/memory for the standard nf-core resource tiers. Without this,
+        # processes labelled `process_low|medium|high` carry NO `memory` directive, so the
+        # awsbatch executor falls back to the Batch job-definition default (~1-2 GB). That
+        # OOM-kills memory-heavy R/Bioconductor tasks while they merely LOAD their package
+        # stack (e.g. VariantAnnotation+Rsamtools+Biostrings → SIGKILL before any compute),
+        # surfacing as a cryptic "Killed" with no output. Values mirror
+        # galaxy.ai.resource_resolver.RESOURCE_TIERS. withLabel selectors that match no
+        # process are harmless (unlike withName under strict mode).
+        if not _is_personal_wf:
+            lines += [
+                "process {",
+                "    withLabel: 'process_low'         { cpus = 2;  memory = '12.GB' }",
+                "    withLabel: 'process_medium'      { cpus = 6;  memory = '36.GB' }",
+                "    withLabel: 'process_high'        { cpus = 12; memory = '72.GB' }",
+                "    withLabel: 'process_high_memory' { cpus = 12; memory = '200.GB' }",
+                "}",
+            ]
+            log.info("[Nextflow] injected process_low/medium/high memory tiers (12/36/72 GB)")
         # For nf-core pipelines: emit a slimmer aws.client block.
         # Their own nextflow.config often sets `aws.client.anonymous = true`
         # globally (so iGenomes public-bucket reads work). That makes ALL
