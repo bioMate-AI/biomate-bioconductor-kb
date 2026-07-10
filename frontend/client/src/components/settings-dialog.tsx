@@ -133,6 +133,58 @@ function useApiKeys(open: boolean) {
 }
 
 // ---------------------------------------------------------------------------
+// Per-user LLM API keys (bring-your-own Anthropic key)
+// ---------------------------------------------------------------------------
+function useLlmApiKeys(open: boolean) {
+  const [hasAnthropicKey, setHasAnthropicKey] = useState(false);
+  const [anthropicInput, setAnthropicInput] = useState('');
+  const [showKey, setShowKey] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [statusMsg, setStatusMsg] = useState('');
+  const [isError, setIsError] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    fetch('/api/user/llm-api-keys', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setHasAnthropicKey(!!d.anthropic); })
+      .catch(() => {});
+  }, [open]);
+
+  const save = useCallback(async () => {
+    if (!anthropicInput.trim()) { setIsError(true); setStatusMsg('Paste your Anthropic API key first.'); return; }
+    setSaving(true); setStatusMsg(''); setIsError(false);
+    try {
+      const r = await fetch('/api/user/llm-api-keys', {
+        method: 'PATCH', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: 'anthropic', key: anthropicInput.trim() }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setHasAnthropicKey(true); setAnthropicInput(''); setStatusMsg('Key saved — your chats now use your own Anthropic quota.');
+    } catch (err: any) { setIsError(true); setStatusMsg(err.message); }
+    finally { setSaving(false); }
+  }, [anthropicInput]);
+
+  const remove = useCallback(async () => {
+    setRemoving(true); setStatusMsg(''); setIsError(false);
+    try {
+      const r = await fetch('/api/user/llm-api-keys', {
+        method: 'PATCH', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: 'anthropic', key: '' }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setHasAnthropicKey(false); setStatusMsg('Key removed — chats now use the shared system quota.');
+    } catch (err: any) { setIsError(true); setStatusMsg(err.message); }
+    finally { setRemoving(false); }
+  }, []);
+
+  return { hasAnthropicKey, anthropicInput, setAnthropicInput, showKey, setShowKey, saving, removing, save, remove, statusMsg, isError };
+}
+
+// ---------------------------------------------------------------------------
 // S3 credential state
 // ---------------------------------------------------------------------------
 interface S3Creds {
@@ -244,6 +296,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [activeTab, setActiveTab] = useState("api-keys")
   const s3 = useS3Credentials(open)
   const apiKeysState = useApiKeys(open)
+  const llmKeys = useLlmApiKeys(open)
 
   const handleLogout = async () => {
     onOpenChange(false)
@@ -900,6 +953,84 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                       </div>
                     ))}
                   </div>
+                </div>
+
+                {/* ── Bring-your-own Anthropic API key ─────────────────── */}
+                <Separator />
+                <div>
+                  <h3 className="text-lg font-semibold mb-1">Your LLM API Key</h3>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Supply your own <span className="font-medium">Anthropic API key</span> and BioMate will use your
+                    personal quota for all AI calls in your chats. Leave blank to use the shared system key.
+                    The key is stored encrypted and never returned to the browser.
+                  </p>
+
+                  {llmKeys.hasAnthropicKey ? (
+                    <Card className="mb-3 border-green-500/40" data-testid="llm-key-set-card">
+                      <CardContent className="pt-4 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-sm">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                          <span>Anthropic key saved — your chats use your own quota.</span>
+                        </div>
+                        <Button
+                          size="sm" variant="ghost"
+                          className="h-7 text-xs text-destructive hover:text-destructive gap-1 shrink-0"
+                          onClick={llmKeys.remove} disabled={llmKeys.removing}
+                          data-testid="button-remove-llm-key"
+                        >
+                          {llmKeys.removing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                          Remove
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card className="mb-3">
+                      <CardContent className="pt-4 space-y-3">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="anthropic-api-key" className="text-xs">Anthropic API Key</Label>
+                          <div className="flex items-center gap-2">
+                            <div className="relative flex-1">
+                              <Input
+                                id="anthropic-api-key"
+                                type={llmKeys.showKey ? 'text' : 'password'}
+                                placeholder="sk-ant-…"
+                                value={llmKeys.anthropicInput}
+                                onChange={e => llmKeys.setAnthropicInput(e.target.value)}
+                                className="font-mono text-xs h-8 pr-8"
+                                data-testid="input-anthropic-api-key"
+                              />
+                              <Button
+                                type="button" size="icon" variant="ghost"
+                                className="absolute right-1 top-1 h-6 w-6 text-muted-foreground"
+                                onClick={() => llmKeys.setShowKey(v => !v)}
+                                tabIndex={-1}
+                              >
+                                {llmKeys.showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                              </Button>
+                            </div>
+                            <Button
+                              size="sm" className="h-8 text-xs gap-1.5 shrink-0"
+                              onClick={llmKeys.save} disabled={llmKeys.saving}
+                              data-testid="button-save-llm-key"
+                            >
+                              {llmKeys.saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Key className="h-3.5 w-3.5" />}
+                              Save key
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {llmKeys.statusMsg && (
+                    <div className={`flex items-start gap-2 text-xs rounded p-2 ${llmKeys.isError ? 'bg-destructive/10 text-destructive' : 'bg-green-500/10 text-green-700'}`}
+                      data-testid="llm-key-status">
+                      {llmKeys.isError
+                        ? <XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                        : <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-green-600" />}
+                      <span>{llmKeys.statusMsg}</span>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 

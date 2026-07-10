@@ -56,7 +56,7 @@ import passport from "passport";
 import { oauthService } from "./oauth-service";
 import { stripeService } from "./stripe-service";
 import { auditService, auditMiddleware } from "./audit-service";
-import { decryptField } from "./field-encrypt";
+import { decryptField, encryptField } from "./field-encrypt";
 import { checkSafety, hashMessage } from "./safety-guardrails";
 import { conversationStateManager, createEmptyState, type ConversationState } from "./conversation-state";
 import {
@@ -5824,6 +5824,19 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
+      // Load user's own Anthropic key if stored; decrypt for this request only.
+      let _userAnthropicApiKey: string | undefined;
+      if (req.user?.id) {
+        try {
+          const _keyRow = await pool.query(
+            `SELECT llm_api_keys FROM users WHERE id = $1 LIMIT 1`,
+            [req.user.id]
+          );
+          const _enc = (_keyRow.rows[0]?.llm_api_keys as any)?.anthropic;
+          if (_enc) _userAnthropicApiKey = decryptField(_enc);
+        } catch { /* non-fatal — fall back to system key */ }
+      }
+
       const enrichedContext = {
         ...(context || {}),
         // Normalise session identity: frontend sends memorySessionId; processMessage uses sessionId.
@@ -5831,6 +5844,7 @@ ${paramLines || '(none recorded)'}`;
         sessionId: _resolvedSessionId,
         projectId: _resolvedProjectId,
         projectContext: _projectContext,
+        userAnthropicApiKey: _userAnthropicApiKey,
         // memorySessionId must be the LTM sessions.id (uuid) so recordEpisode's
         // project_episodes.session_id FK is satisfied. If the bridge call
         // failed (no LTM session created), leave it undefined and let
@@ -6674,6 +6688,51 @@ ${paramLines || '(none recorded)'}`;
     } catch (error: any) {
       console.error('[api-keys] revoke error:', error?.message || error);
       res.status(500).json({ error: 'Failed to revoke API key' });
+    }
+  });
+
+  // ── Per-user LLM provider API keys ──────────────────────────────────────────
+  // Users can supply their own Anthropic key so chats use their quota.
+  // The key is stored encrypted; GET only returns a boolean (never the value).
+
+  app.get("/api/user/llm-api-keys", authenticateToken, async (req, res) => {
+    try {
+      const row = await pool.query(
+        `SELECT llm_api_keys FROM users WHERE id = $1`,
+        [req.user!.id]
+      );
+      const stored = row.rows[0]?.llm_api_keys ?? {};
+      res.json({ anthropic: !!(stored as any)?.anthropic });
+    } catch (error: any) {
+      console.error('[llm-api-keys] get error:', error?.message);
+      res.status(500).json({ error: 'Failed to get LLM API keys' });
+    }
+  });
+
+  app.patch("/api/user/llm-api-keys", authenticateToken, express.json(), async (req, res) => {
+    try {
+      const { provider, key } = req.body ?? {};
+      if (typeof provider !== 'string' || !['anthropic'].includes(provider)) {
+        return res.status(400).json({ error: 'provider must be "anthropic"' });
+      }
+      const rowResult = await pool.query(
+        `SELECT llm_api_keys FROM users WHERE id = $1`,
+        [req.user!.id]
+      );
+      const existing: Record<string, string> = rowResult.rows[0]?.llm_api_keys ?? {};
+      if (typeof key === 'string' && key.trim().length > 0) {
+        existing[provider] = encryptField(key.trim());
+      } else {
+        delete existing[provider];
+      }
+      await pool.query(
+        `UPDATE users SET llm_api_keys = $1::jsonb, updated_at = NOW() WHERE id = $2`,
+        [JSON.stringify(existing), req.user!.id]
+      );
+      res.json({ ok: true, anthropic: !!existing.anthropic });
+    } catch (error: any) {
+      console.error('[llm-api-keys] patch error:', error?.message);
+      res.status(500).json({ error: 'Failed to update LLM API keys' });
     }
   });
 

@@ -27,6 +27,12 @@ import { resolveCanonicalChainStepPath } from './canonical-chain-steps';
 // per-user Galaxy API key for that single in-flight request only (no leakage
 // across concurrent users). See ChatContext.galaxyAPIOverride for rationale.
 const _galaxyAPIRequestStorage = new AsyncLocalStorage<GalaxyAPIProxy>();
+
+// Per-request override for the Anthropic client. When a user supplies their
+// own API key (stored encrypted in users.llm_api_keys), processMessage() runs
+// inside this storage so _getClaude() returns a client scoped to their key.
+// Falls back to the singleton's this.claude (system key) when not set.
+const _anthropicOverride = new AsyncLocalStorage<Anthropic>();
 import { conversationStateManager } from './conversation-state';
 import { shouldInjectDatasets } from './dataset-injection-gate';
 import { userPatternsService, type UserContext } from './user-patterns-service';
@@ -318,6 +324,12 @@ export interface ChatContext {
    * user's research background without the user repeating it every session.
    */
   projectContext?: string;
+  /**
+   * Per-user Anthropic API key decrypted from the users.llm_api_keys column.
+   * When set, this request's LLM calls use the user's own key/quota instead
+   * of the system key. Never logged or stored beyond the request lifecycle.
+   */
+  userAnthropicApiKey?: string;
 }
 
 export interface ToolRecommendation {
@@ -2087,6 +2099,13 @@ export class GalaxyAssistant {
     return _galaxyAPIRequestStorage.getStore() ?? this.galaxyAPI;
   }
 
+  /** Returns the Anthropic client for the current request.
+   *  Uses the per-user key stored in AsyncLocalStorage when set by processMessage();
+   *  falls back to the singleton system key otherwise. */
+  private _getClaude(): Anthropic {
+    return _anthropicOverride.getStore() ?? this.claude;
+  }
+
   /**
    * Generate a response using Gemini as the backbone LLM.
    * Handles streaming via Google's GenerativeAI SDK.
@@ -2984,11 +3003,21 @@ Rules:
     // to this turn via AsyncLocalStorage so every `this._api()` call in any
     // helper method picks it up. Skip the wrapper if no override is provided.
     const overrideProxy = context.galaxyAPIOverride as GalaxyAPIProxy | undefined;
-    if (overrideProxy) {
-      return _galaxyAPIRequestStorage.run(overrideProxy, () =>
-        this._processMessageInner(message, context, onResponseDelta, onToolEvent));
+    const userAnthropicKey = context.userAnthropicApiKey;
+
+    const runInner = () => {
+      if (overrideProxy) {
+        return _galaxyAPIRequestStorage.run(overrideProxy, () =>
+          this._processMessageInner(message, context, onResponseDelta, onToolEvent));
+      }
+      return this._processMessageInner(message, context, onResponseDelta, onToolEvent);
+    };
+
+    if (userAnthropicKey) {
+      const userClaude = new Anthropic({ apiKey: userAnthropicKey });
+      return _anthropicOverride.run(userClaude, runInner);
     }
-    return this._processMessageInner(message, context, onResponseDelta, onToolEvent);
+    return runInner();
   }
 
   private async _processMessageInner(
@@ -5721,7 +5750,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
             // Direct Haiku only when we have a real key
             const haiku = 'claude-haiku-4-5-20251001';
             const fallbackCompletion = await this._withAnthropicRetry(
-              () => this.claude.messages.create({
+              () => this._getClaude().messages.create({
                 model: haiku,
                 max_tokens: 4096,
                 system: systemPrompt,
@@ -5750,7 +5779,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         // Anthropic path (default)
         // Note: temperature is deprecated for Claude 4.x models
         const completion = await this._withAnthropicRetry(
-          () => this.claude.messages.create({
+          () => this._getClaude().messages.create({
             model: this.modelConfig.intentModel,
             max_tokens: 4096,
             system: [
@@ -6174,7 +6203,7 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
         });
 
         const completion = await this._withAnthropicRetry(
-          () => this.claude.messages.create({
+          () => this._getClaude().messages.create({
             model: this.modelConfig.toolRankingModel,
             max_tokens: 2000,
             system: [
@@ -6512,7 +6541,7 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     // Deterministically extract inline data from the message.
     // The extracted map is injected into the system prompt as structured facts so the LLM
     // never needs to ask for parameters already present in the message.
-    const inlineDataMap = await extractInlineDataWithLLM(message, this.claude);
+    const inlineDataMap = await extractInlineDataWithLLM(message, this._getClaude());
     // Treat a canonical fixture name (airway, pasilla, pbmc3k, SRR\d+, etc.)
     // as if it were inline data. The fixture is the data — `data(airway)`
     // loads counts + metadata from the airway R package; SRA accessions
@@ -7062,7 +7091,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             name: 'Claude',
             fn: async () => {
               if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
-              const res = await this.claude.messages.create({
+              const res = await this._getClaude().messages.create({
                 model: 'claude-haiku-4-5-20251001',
                 max_tokens: 4096,
                 system: systemPrompt,
@@ -7135,7 +7164,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         // ── Streaming (first turn) ────────────────────────────────────────────
         if (isFirstTurn && onResponseDelta) {
           const stream = await this._withAnthropicRetry(
-            () => this.claude.messages.create({ ...requestOptions, stream: true } as any),
+            () => this._getClaude().messages.create({ ...requestOptions, stream: true } as any),
             'response-stream',
           );
 
@@ -7192,7 +7221,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
 
         // ── Non-streaming (subsequent tool turns) ─────────────────────────────
         const completion = await this._withAnthropicRetry(
-          () => this.claude.messages.create(requestOptions),
+          () => this._getClaude().messages.create(requestOptions),
           `tool-turn-${turn}`,
         );
         console.log('[GalaxyAssistant] Response API response:', {

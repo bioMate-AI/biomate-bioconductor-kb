@@ -7,7 +7,8 @@ import { PhaseCard } from "./phase-card";
 import { ParameterGroup } from "./parameter-group";
 import { StepOutputPreview } from "./step-output-preview";
 import { StepAdjustModal } from "./step-adjust-modal";
-import { Loader2, CheckCircle2, XCircle, AlertTriangle, Download, RotateCcw, Square, ChevronRight, Settings2, ShieldCheck, Activity, Clock, SkipForward } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, AlertTriangle, Download, RotateCcw, Square, ChevronRight, Settings2, ShieldCheck, Activity, Clock, SkipForward, FolderOpen } from "lucide-react";
+import { useLocation } from 'wouter';
 import { ReportConfusionButton } from "./feedback/report-confusion-button";
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt";
 import { ChatOutputAttachments } from "./chat-output-attachments";
@@ -69,6 +70,8 @@ interface NextflowWorkflowViewerProps {
    * The parent should apply the width to the panel container.
    */
   onResize?: (width: number) => void;
+  /** When provided, shows a "Go to project" chip in the panel header. */
+  projectId?: string;
 }
 
 type ViewerParameter = {
@@ -906,7 +909,9 @@ export function NextflowWorkflowViewer({
   onWorkflowProgress,
   executionMetrics,
   onResize,
+  projectId: projectIdProp,
 }: NextflowWorkflowViewerProps) {
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   const [params, setParams] = useState<Record<string, any>>(
     initialParams || workflowDefinition?.parameters || workflowDefinition?.inline_parameters || {}
@@ -1010,8 +1015,8 @@ export function NextflowWorkflowViewer({
   const [outputLocationType, setOutputLocationType] = useState<'default' | 'project' | 'user_s3'>('default');
   const [userS3Uri, setUserS3Uri] = useState<string>('');
   // projectId for "My project folder" — sourced from the active chat session's
-  // project_id. Falls back to undefined → option is hidden when no project.
-  const projectId = (workflowDefinition as any)?.projectId ?? null;
+  // project_id, or the explicit prop passed by the project detail Workflow Runs tab.
+  const projectId = projectIdProp ?? (workflowDefinition as any)?.projectId ?? null;
   const [availableQcProfiles, setAvailableQcProfiles] = useState<Array<{ id: string; description: string; domain_hint: string; overrides: Record<string, number> }>>([]);
   const [qcDefaults, setQcDefaults] = useState<Record<string, { bound: number; direction: string; rationale?: string }>>({});
   const [qcOverrides, setQcOverrides] = useState<Record<string, number>>({});
@@ -2377,6 +2382,20 @@ export function NextflowWorkflowViewer({
                 {panelSub && <div className="panel-sub">{panelSub}</div>}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                {projectId && (
+                  <button
+                    onClick={() => navigate(`/projects?project=${projectId}`)}
+                    data-testid="viewer-goto-project"
+                    title="Go to project"
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
+                             padding: '2px 8px', borderRadius: 4, border: '1px solid var(--bm-border, hsl(var(--border)))',
+                             background: 'transparent', cursor: 'pointer', color: 'var(--bm-text-muted)',
+                             flexShrink: 0 }}
+                  >
+                    <FolderOpen style={{ width: 12, height: 12 }} />
+                    Project
+                  </button>
+                )}
                 {workflowDefinition?.qc_profile && (
                   <span className="chip ok" style={{ fontSize: '10px' }}>
                     QC: {(workflowDefinition.qc_profile as string).replace(/_/g, ' ')}

@@ -56,6 +56,11 @@ export const users = pgTable("users", {
   galaxyApiKey: text("galaxy_api_key"),
   galaxyUsername: text("galaxy_username"),
 
+  // Per-user LLM API keys (AES-256-GCM encrypted).
+  // Schema: { anthropic?: string }
+  // Added in migration 0019_user_llm_api_keys.sql
+  llmApiKeys: jsonb("llm_api_keys"),
+
   // Invite code (set at registration) — FK added via migration; lazy ref avoids circular init
   inviteCodeId: varchar("invite_code_id"),
   // NOTE: .references(() => inviteCodes.id) can't be set here because inviteCodes is defined
