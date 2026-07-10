@@ -117,7 +117,7 @@ process BIOC_RIBOSOMEPROFILINGQC_FLOSS_ANALYSIS {
     .gates_by_label <- list()
 
     # outlier diagnostics — alias of outlier detection per the YAML.
-    .odi_artifacts <- list.files(".", pattern = "\\.(rds|csv|tsv|txt|log|pdf)\$")
+    .odi_artifacts <- list.files(".", pattern = "\\\\.(rds|csv|tsv|txt|log|pdf)\$")
     .odi_passes <- length(.odi_artifacts) > 0
     .gates_by_label[["outlier diagnostics"]] <- list(
       gate_row = "bioc_outlier_detection",

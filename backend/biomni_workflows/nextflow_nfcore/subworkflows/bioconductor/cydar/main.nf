@@ -239,7 +239,7 @@ process BIOC_CYDAR_DIFFERENTIAL_ABUNDANCE_ANALYSIS {
     )
 
     # expression-level QC — declarative; emit when any expression artifact present.
-    .elq_artifacts <- list.files(".", pattern = "\\.(rds|csv|tsv)\$")
+    .elq_artifacts <- list.files(".", pattern = "\\\\.(rds|csv|tsv)\$")
     .elq_passes <- length(.elq_artifacts) > 0
     .gates_by_label[["expression-level QC"]] <- list(
       gate_row = "bioc_expression_level_qc",

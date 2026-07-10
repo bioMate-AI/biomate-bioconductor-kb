@@ -160,7 +160,7 @@ process BIOC_ITALICS_ITALICS_NORMALIZATION_AND_CALLING {
     # outlier detection — declarative gate per qc_evidence.yaml. Always emit
     # the row with passes=TRUE when the workflow produced any artifact;
     # downstream review confirms whether outlier flagging actually fired.
-    .od_artifacts <- list.files(".", pattern = "\\.(rds|csv|tsv|txt|log)\$")
+    .od_artifacts <- list.files(".", pattern = "\\\\.(rds|csv|tsv|txt|log)\$")
     .od_passes <- length(.od_artifacts) > 0
     .gates_by_label[["outlier detection"]] <- list(
       gate_row = "bioc_outlier_detection",
