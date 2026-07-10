@@ -81,6 +81,46 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null)
   const [projectFiles, setProjectFiles] = useState<{ name: string; size?: number }[]>([])
 
+  // Inline tag editing
+  const [editingTags, setEditingTags] = useState<string[]>([])
+  const [addingTag, setAddingTag] = useState(false)
+  const [tagInput, setTagInput] = useState("")
+
+  useEffect(() => {
+    if (project) setEditingTags(project.tags || [])
+  }, [project?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const removeTag = async (tag: string) => {
+    if (!project) return
+    const prev = editingTags
+    const next = editingTags.filter(t => t !== tag)
+    setEditingTags(next)
+    try {
+      const r = await fetch(`/api/projects/${project.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        credentials: "include", body: JSON.stringify({ tags: next }),
+      })
+      if (!r.ok) setEditingTags(prev)
+    } catch { setEditingTags(prev) }
+  }
+
+  const addTag = async (tag: string) => {
+    const trimmed = tag.trim()
+    if (!project || !trimmed || editingTags.includes(trimmed)) { setAddingTag(false); setTagInput(""); return }
+    const prev = editingTags
+    const next = [...editingTags, trimmed]
+    setEditingTags(next)
+    setAddingTag(false)
+    setTagInput("")
+    try {
+      const r = await fetch(`/api/projects/${project.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        credentials: "include", body: JSON.stringify({ tags: next }),
+      })
+      if (!r.ok) setEditingTags(prev)
+    } catch { setEditingTags(prev) }
+  }
+
   // Project lifecycle dialogs
   const [renameOpen, setRenameOpen] = useState(false)
   const [renameValue, setRenameValue] = useState("")
@@ -294,11 +334,42 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                 project.status === "archived" && "bg-gray-100 text-gray-600",
                 project.status === "active" && "bg-blue-100 text-blue-700",
               )}>{project.status}</Badge>
-              {(project.tags || []).slice(0, 3).map(tag => (
-                <Badge key={tag} variant="secondary" className="text-xs">
-                  <Tag className="w-3 h-3 mr-1" />{tag}
-                </Badge>
+              {editingTags.map(tag => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary text-secondary-foreground px-2 py-0.5 text-xs"
+                >
+                  <Tag className="w-3 h-3 opacity-60" />{tag}
+                  <button
+                    onClick={() => removeTag(tag)}
+                    className="ml-0.5 opacity-50 hover:opacity-100 leading-none"
+                    aria-label={`Remove tag ${tag}`}
+                  >×</button>
+                </span>
               ))}
+              {addingTag ? (
+                <input
+                  autoFocus
+                  value={tagInput}
+                  onChange={e => setTagInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") addTag(tagInput)
+                    if (e.key === "Escape") { setAddingTag(false); setTagInput("") }
+                  }}
+                  onBlur={() => { if (tagInput.trim()) addTag(tagInput); else { setAddingTag(false); setTagInput("") } }}
+                  placeholder="tag name"
+                  className="h-5 w-24 rounded-full border border-primary/50 bg-background px-2 text-xs outline-none focus:border-primary"
+                />
+              ) : (
+                <button
+                  onClick={() => setAddingTag(true)}
+                  className="inline-flex items-center gap-0.5 rounded-full border border-dashed border-border px-2 py-0.5 text-xs text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+                  aria-label="Add tag"
+                  data-testid="button-add-tag"
+                >
+                  <Plus className="w-3 h-3" />tag
+                </button>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">

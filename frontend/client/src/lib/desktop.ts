@@ -145,6 +145,37 @@ export async function desktopCheckForUpdate(): Promise<UpdateInfo | null> {
   }
 }
 
+// ── Deep link handling ─────────────────────────────────────────────────────
+
+/**
+ * Returns the URL that launched the app on cold start (e.g. biomate://project/123),
+ * or null if the app wasn't launched from a deep link or we're in a browser.
+ */
+export async function desktopGetPendingDeepLink(): Promise<string | null> {
+  const invoke = getInvoke();
+  if (!invoke) return null;
+  try {
+    return (await invoke("get_pending_deep_link")) as string | null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Subscribe to deep links received while the app is already open.
+ * Returns an unsubscribe function — call it in the useEffect cleanup.
+ */
+export function desktopOnDeepLink(callback: (url: string) => void): () => void {
+  if (!isDesktop()) return () => {};
+  const listenPromise = (window as any).__TAURI__?.event?.listen(
+    'deep-link',
+    (event: any) => callback(event.payload as string)
+  );
+  return () => {
+    if (listenPromise) listenPromise.then((f: () => void) => f());
+  };
+}
+
 // ── Convenience: upload picked files via the BioMate API ──────────────────
 
 /**

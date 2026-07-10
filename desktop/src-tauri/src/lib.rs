@@ -129,6 +129,19 @@ async fn check_for_update(app: tauri::AppHandle) -> Result<serde_json::Value, St
     }
 }
 
+// ── Deep link (cold-start: get current URL; warm: event emitted via on_open_urls) ──
+
+#[tauri::command]
+fn get_pending_deep_link(app: tauri::AppHandle) -> Option<String> {
+    use tauri_plugin_deep_link::DeepLinkExt;
+    app.deep_link()
+        .get_current()
+        .ok()
+        .flatten()
+        .and_then(|urls| urls.into_iter().next())
+        .map(|u| u.to_string())
+}
+
 // ── App info ───────────────────────────────────────────────────────────────
 
 #[derive(Serialize)]
@@ -152,6 +165,18 @@ fn get_app_info() -> AppInfo {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .setup(|app| {
+            use tauri_plugin_deep_link::DeepLinkExt;
+            let handle = app.handle().clone();
+            app.deep_link().on_open_urls(move |event| {
+                if let Some(url) = event.urls().first() {
+                    if let Some(window) = handle.get_webview_window("main") {
+                        let _ = window.emit("deep-link", url.to_string());
+                    }
+                }
+            });
+            Ok(())
+        })
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_http::init())
@@ -159,6 +184,7 @@ pub fn run() {
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_deep_link::init())
         .invoke_handler(tauri::generate_handler![
             get_token,
             set_token,
@@ -169,6 +195,7 @@ pub fn run() {
             pick_output_directory,
             get_app_info,
             check_for_update,
+            get_pending_deep_link,
         ])
         .run(tauri::generate_context!())
         .expect("error while running BioMate Desktop");

@@ -19,6 +19,7 @@
     "store:allow-delete",
     "store:allow-load",
     "store:allow-save",
-    "updater:default"
+    "updater:default",
+    "deep-link:default"
   ]
 }

@@ -25,7 +25,8 @@ import { useSearch } from "wouter";
 import { PanelLeft, Plus, FlaskConical, MessageCircle, Menu, FolderOpen, X } from "lucide-react";
 import { useActiveProject } from "@/contexts/active-project-context";
 import type { ChatSession } from "@shared/schema";
-import { analytics } from "@/lib/analytics";
+import { analytics } from "@/lib/analytics"
+import { isDesktop, desktopGetPendingDeepLink, desktopOnDeepLink } from "@/lib/desktop";
 
 // Import new pages
 import LoginPage from "@/pages/auth/login";
@@ -636,6 +637,21 @@ function App() {
   useEffect(() => {
     analytics.track('page_viewed', { page: location })
   }, [location])
+
+  // Desktop deep link handling: biomate://project/<id> and biomate://session/<id>
+  useEffect(() => {
+    if (!isDesktop()) return
+    const handleDeepLink = (url: string) => {
+      const match = url.match(/^biomate:\/\/(project|session)\/([^?#]+)/)
+      if (!match) return
+      const [, type, id] = match
+      if (type === 'project') setLocation(`/projects?project=${encodeURIComponent(id)}`)
+      if (type === 'session') setLocation(`/?session=${encodeURIComponent(id)}`)
+    }
+    desktopGetPendingDeepLink().then(url => { if (url) handleDeepLink(url) })
+    const unlisten = desktopOnDeepLink(handleDeepLink)
+    return unlisten
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { user } = useAuth()
 

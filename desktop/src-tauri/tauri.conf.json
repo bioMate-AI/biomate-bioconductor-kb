@@ -35,6 +35,10 @@
       "endpoints": [
         "https://github.com/bioMate-AI/biomate/releases/latest/download/latest.json"
       ]
+    },
+    "deep-link": {
+      "mobile": [],
+      "desktop": [{ "schemes": ["biomate"] }]
     }
   },
 
@@ -57,7 +61,8 @@
     ],
     "macOS": {
       "entitlements": "entitlements.plist",
-      "signingIdentity": null
+      "signingIdentity": null,
+      "urlSchemes": ["biomate"]
     },
     "windows": {
       "certificateThumbprint": null,
