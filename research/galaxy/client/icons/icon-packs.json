@@ -1,8 +1,0 @@
-{
-    "galaxy" : {
-        "prefix": "gx",
-        "folder": "galaxy",
-        "license": "MIT",
-        "repository": "https://github.com/galaxyproject/galaxy"
-    }
-}

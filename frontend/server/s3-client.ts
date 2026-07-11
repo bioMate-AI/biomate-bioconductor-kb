@@ -4,6 +4,7 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   CreateMultipartUploadCommand,
   UploadPartCommand,
   CompleteMultipartUploadCommand,
@@ -323,6 +324,45 @@ export class S3Service {
       console.error(`Error deleting file ${key}:`, error);
       return false;
     }
+  }
+
+  /**
+   * List objects under a prefix (non-recursive — returns both files and common prefixes / "folders")
+   */
+  async listObjects(prefix: string): Promise<{ key: string; size: number; lastModified: Date }[]> {
+    const results: { key: string; size: number; lastModified: Date }[] = [];
+    let continuationToken: string | undefined;
+    do {
+      const command = new ListObjectsV2Command({
+        Bucket: this.bucket,
+        Prefix: prefix,
+        ContinuationToken: continuationToken,
+        MaxKeys: 1000,
+      });
+      const response = await this.s3Client.send(command);
+      for (const obj of response.Contents ?? []) {
+        if (obj.Key) {
+          results.push({ key: obj.Key, size: obj.Size ?? 0, lastModified: obj.LastModified ?? new Date() });
+        }
+      }
+      continuationToken = response.NextContinuationToken;
+    } while (continuationToken);
+    return results;
+  }
+
+  /**
+   * Upload a buffer directly to S3 (for server-side uploads via multer disk storage)
+   */
+  async putObject(key: string, body: Buffer, contentType: string, userId: string): Promise<void> {
+    const command = new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+      ServerSideEncryption: 'AES256',
+      Tagging: buildTagging(userId, { upload_type: 'project_file' }),
+    });
+    await this.s3Client.send(command);
   }
 
   /**

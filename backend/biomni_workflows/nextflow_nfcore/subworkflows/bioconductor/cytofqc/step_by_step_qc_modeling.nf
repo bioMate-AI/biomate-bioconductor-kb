@@ -152,7 +152,7 @@ process BIOC_CYTOFQC_STEP_BY_STEP_QC_MODELING {
 
     # doublet detection — SCE/Seurat with doublet column; pass: rate ≤ 10%.
     .dbl_rate <- NA_real_
-    for (.dbl_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.dbl_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .dbl_obj <- tryCatch(readRDS(.dbl_rds), error = function(e) NULL)
       .dbl_calls <- NULL
       if (!is.null(.dbl_obj)) {

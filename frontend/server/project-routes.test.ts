@@ -16,7 +16,7 @@ import * as path from "path";
 const SRC = fs.readFileSync(path.join(__dirname, "project-routes.ts"), "utf-8");
 
 describe("project-routes — contract", () => {
-  it("registers all six endpoints", () => {
+  it("registers all core endpoints", () => {
     expect(SRC.match(/app\.get\("\/api\/projects"/)?.length).toBe(1);
     expect(SRC.match(/app\.post\("\/api\/projects"/)?.length).toBe(1);
     expect(SRC.match(/app\.get\("\/api\/projects\/:id"/)?.length).toBe(1);
@@ -25,9 +25,13 @@ describe("project-routes — contract", () => {
     expect(SRC.match(/app\.delete\("\/api\/projects\/:id"/)?.length).toBe(1);
   });
 
+  it("registers project sessions list endpoint", () => {
+    expect(SRC.match(/app\.get\("\/api\/projects\/:id\/sessions"/)?.length).toBe(1);
+  });
+
   it("every endpoint goes through authenticateToken", () => {
     const handlerLines = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects[^"]*",\s*authenticateToken/g) ?? [];
-    expect(handlerLines.length).toBe(6);
+    expect(handlerLines.length).toBe(10);
   });
 
   it("404 on cross-user access (does not leak existence)", () => {

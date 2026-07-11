@@ -541,7 +541,7 @@ class NextflowComposer:
 
     def _call_llm(self, prompt: str) -> str:
         llm = self._get_llm()
-        response = llm.generate(prompt, max_tokens=4096)
+        response = llm.generate(prompt, max_tokens=4096, use_fast_model=True)
         # Strip markdown fences if LLM ignored the instruction
         response = re.sub(r"^```[a-z]*\n?", "", response.strip(), flags=re.MULTILINE)
         response = re.sub(r"\n?```$", "", response.strip(), flags=re.MULTILINE)

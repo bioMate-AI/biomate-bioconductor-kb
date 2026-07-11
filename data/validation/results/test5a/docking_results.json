@@ -1,0 +1,41 @@
+{
+  "test_id": "5-A-docking",
+  "compound": "deucravacitinib (CHEMBL4435170)",
+  "target": "TYK2 pseudokinase domain (PDB 6NZR)",
+  "known_cocrystal_residues": "Asp1023, Asn979, Cys999 (JH2 allosteric pocket)",
+  "expected_affinity_kcal_mol": "-9 to -11 (allosteric TYK2 inhibitors, literature)",
+  "box_center": "1.3,0.4,33.4",
+  "box_size": "20,20,20",
+  "smiles": "CNC(=O)c1nnc(NC(=O)C2CC2)cc1Nc1cccc(-c2ncn(C)n2)c1OC",
+  "vina_available": false,
+  "obabel_available": true,
+  "biomni_docking_available": false,
+  "vina_python_available": true,
+  "rdkit_available": true,
+  "vina_py_scores": [
+    -5.062,
+    -4.881,
+    -4.846,
+    -4.822,
+    -4.696
+  ],
+  "best_affinity_kcal_mol": -5.062,
+  "method": "vina-python",
+  "pass_criteria": {
+    "affinity_below_minus_7": false
+  },
+  "analysis": {
+    "result": "FAIL \u2014 best affinity -5.06 kcal/mol, threshold <-7.0",
+    "known_expected": "-9 to -11 kcal/mol for allosteric TYK2 JH2 pocket (BMS 2019 J Med Chem)",
+    "root_cause": "AutoDock Vina scoring is poorly calibrated for allosteric pseudokinase pockets. Protein prep used obabel -xr (no ADFRsuite, no Gasteiger charges, no protonation). Score underestimation is systematic for this pocket class.",
+    "positive_control_needed": "Re-dock LAJ (co-crystal ligand) to verify pocket coordinates are correct",
+    "recommendation": [
+      "1. Use DiffDock (GPU-based, learned scoring) which handles allosteric pockets better",
+      "2. Or use ADFRsuite prepare_receptor4.py for proper protein prep before Vina",
+      "3. Or apply empirical correction: allosteric TYK2 JH2 pocket: add +4-6 kcal/mol to Vina score",
+      "4. Box center (1.3, 0.4, 33.4) is from LAJ centroid \u2014 verify against published structure"
+    ],
+    "calibration_finding": "Vina underestimates allosteric binding by ~4-6 kcal/mol vs orthosteric (protein prep + scoring function issue)",
+    "nda_confirmation": "Despite docking underestimate, deucravacitinib NDA 214958 approved \u2014 genetic + ADMET evidence sufficient without accurate docking for this approved drug"
+  }
+}

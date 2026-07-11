@@ -157,7 +157,7 @@ process BIOC_TCC_MULTI_GROUP_REPLICATES {
 
     # TMM normalization — DGEList\$samples\$norm.factors set (Robinson & Oshlack 2010).
     .tmm_factors <- NULL; .tmm_n_nontrivial <- NA_real_
-    for (.tmm_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.tmm_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .tmm_obj <- tryCatch(readRDS(.tmm_rds), error = function(e) NULL)
       if (!is.null(.tmm_obj) && inherits(.tmm_obj, "DGEList")) {
         .tmm_f <- tryCatch(.tmm_obj\$samples\$norm.factors, error = function(e) NULL)

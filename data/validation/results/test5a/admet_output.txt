@@ -1,0 +1,26 @@
+Test 5-A: TYK2 Deucravacitinib ADMET Validation
+Compound: deucravacitinib (Sotyktu, NDA 214958, CHEMBL4435170)
+SMILES: CNC(=O)c1nnc(NC(=O)C2CC2)cc1Nc1cccc(-c2ncn(C)n2)c1OC
+
+RDKit properties: {"logp": 1.732, "mw": 422.45, "hbd": 3, "hba": 8, "tpsa": 135.95, "rot": 7, "fsp3": 0.3}
+ADMET-AI: {
+  "hERG_prob": 0.4675,
+  "DILI_prob": 0.9906,
+  "ppbr_pct": 86.9297,
+  "caco2_logPapp": -5.3187,
+  "hia_prob": 0.9991,
+  "bbb_prob": 0.5928,
+  "oral_bioavailability_prob": 0.9206,
+  "cyp2d6_inhibitor_prob": 0.0119,
+  "cyp3a4_substrate_prob": 0.6012,
+  "clintox_prob": 0.2363,
+  "aqueous_solubility_log": -4.7511,
+  "hepatocyte_clearance": 18.2513,
+  "herg_ic50_estimated_uM": 11.39
+}
+Pass criteria: {
+  "logp_within_1_5_units": true,
+  "herg_above_10uM_heuristic": true,
+  "herg_above_10uM_admet_ai": true,
+  "ppbr_within_15pct": true
+}

@@ -147,7 +147,7 @@ process BIOC_DINO_STANDARD_MATRIX_NORMALIZATION_AND_SEURAT {
     # Pass band 30-60% per Chen 2016 F1000 (edgeR filterByExpr convention).
     .lcf_kept_fractions <- numeric(0)
     .lcf_scanned <- character(0)
-    for (.lcf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.lcf_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .lcf_obj <- tryCatch(readRDS(.lcf_rds), error = function(e) NULL)
       .lcf_mat <- if (is.matrix(.lcf_obj) || is.data.frame(.lcf_obj)) .lcf_obj else NULL
       if (!is.null(.lcf_mat) && nrow(.lcf_mat) > 100) {
@@ -173,7 +173,7 @@ process BIOC_DINO_STANDARD_MATRIX_NORMALIZATION_AND_SEURAT {
     # HVG selection — count rows with high CV. Pass when 1000-3000 HVGs
     # (Stuart 2019 Cell Seurat v3 default range).
     .hvg_count <- NA_real_; .hvg_files <- character(0)
-    for (.hvg_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.hvg_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .hvg_obj <- tryCatch(readRDS(.hvg_rds), error = function(e) NULL)
       .hvg_mat <- if (is.matrix(.hvg_obj) || is.data.frame(.hvg_obj)) .hvg_obj else NULL
       if (!is.null(.hvg_mat) && nrow(.hvg_mat) > 200) {
@@ -197,7 +197,7 @@ process BIOC_DINO_STANDARD_MATRIX_NORMALIZATION_AND_SEURAT {
 
     # clustering QC — n_clusters ∈ [2,50] proxy (silhouette needs cluster pkg).
     .clu_n <- NA_real_
-    for (.clu_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.clu_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .clu_obj <- tryCatch(readRDS(.clu_rds), error = function(e) NULL)
       .clu_v <- NULL
       if (!is.null(.clu_obj)) {

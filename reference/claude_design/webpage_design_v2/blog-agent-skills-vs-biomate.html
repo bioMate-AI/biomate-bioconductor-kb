@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bioinformatics Agent Skills vs. BioMate: An Honest Comparison — BioMate AI Blog</title>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+  /* Blog article theme — scoped to .bm-blog so the shared site nav/footer (styles.css) is unaffected */
+  .bm-blog {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+    background:#f5f0e4; color:#1c2b32; font-family:'Open Sans',sans-serif; line-height:1.6; font-size:16px;
+  }
+  .bm-blog a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  .bm-blog a:hover { color:var(--accent); }
+  .bm-blog img { max-width:100%; display:block; }
+
+  /* Article hero */
+  .article-hero { width:100%; max-height:420px; overflow:hidden; position:relative; }
+  .article-hero img { width:100%; height:420px; object-fit:cover; display:block; }
+  .article-hero-overlay { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(15,22,28,.35),rgba(15,22,28,.65)); }
+
+  /* Breadcrumb */
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+
+  /* Article layout */
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+
+  /* Article header */
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+
+  /* Article body */
+  .article-body { font-size:.95rem; color:var(--text); line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text); }
+  .article-body p.lead { font-size:1.08rem; color:var(--text); font-weight:400; margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.45rem; color:var(--text); margin:2.25rem 0 .75rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.2rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body ul { margin:0 0 1.25rem 1.25rem; color:var(--text); }
+  .article-body ul li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body code { font-family:'Courier New',monospace; background:var(--bg-card); padding:1px 5px; border-radius:4px; font-size:.88em; }
+  .article-body .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .article-body .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .article-body .callout p { margin:0; font-size:.88rem; }
+  .article-divider { border:none; border-top:1px solid var(--border); margin:2rem 0; }
+  /* Comparison table */
+  .article-body table { width:100%; border-collapse:collapse; margin:1.75rem 0; font-size:.9rem; }
+  .article-body table th, .article-body table td { border:1px solid var(--border); padding:.6rem .8rem; text-align:left; vertical-align:top; }
+  .article-body table th { background:var(--bg-card); color:var(--text); font-weight:700; }
+  .article-body table td { color:var(--text); }
+  .article-body table td strong { color:var(--accent-light); }
+  .article-body table caption { caption-side:bottom; font-size:.8rem; color:var(--text-muted); margin-top:.6rem; text-align:left; }
+
+  /* Sidebar */
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; padding:0; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+
+  /* CTA button — scoped ABOVE .bm-blog a so the white text wins */
+  .bm-blog .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .bm-blog .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .bm-blog .btn-primary:hover { background:var(--accent-light); color:#fff; }
+  </style>
+  <meta name="description" content="Public bioinformatics 'agent skills' got better in 2026 — real R DESeq2, citations, even CI. But CI checks the document, not the run. What skills give you, what's missing, and why execution is the line." />
+  <meta name="keywords" content="AI agent skills, bioinformatics skills, DESeq2 skill, Claude agent skills, SKILL.md, execution validation, RNA-seq agent, BioMate AI" />
+  <link rel="canonical" href="https://biomate.ai/blog-agent-skills-vs-biomate.html" />
+  <meta property="og:title" content="Bioinformatics Agent Skills vs. BioMate: An Honest Comparison" />
+  <meta property="og:description" content="The public bioinformatics skill libraries improved this year — but their CI validates the document, not the run. What a skill gives you, what it leaves to you, and why execution is the line." />
+  <meta property="og:url" content="https://biomate.ai/blog-agent-skills-vs-biomate.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:image" content="https://biomate.ai/images/blog-agent-skills-vs-biomate-hero.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Bioinformatics Agent Skills vs. BioMate: An Honest Comparison" />
+  <meta name="twitter:description" content="The public bioinformatics skill libraries improved this year — but their CI validates the document, not the run. A skill tells an agent how; BioMate runs it." />
+  <meta name="twitter:image" content="https://biomate.ai/images/blog-agent-skills-vs-biomate-hero.png" />
+  <meta name="abstract" content="Public bioinformatics agent-skill libraries improved in 2026, shipping genuine R DESeq2 skills with citations and continuous integration. But that CI validates document structure, not whether the code runs. This piece examines what skills give you, what they leave to you, and why execution is the line that separates a recipe from a result." />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="article:published_time" content="2026-06-29" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Bioinformatics Agent Skills vs. BioMate: An Honest Comparison",
+    "description": "The public bioinformatics agent-skill libraries improved in 2026, but their continuous integration validates document structure, not whether the code runs. A skill describes an analysis; BioMate executes it.",
+    "datePublished": "2026-06-29",
+    "author": {"@type": "Organization", "name": "BioMate AI"},
+    "publisher": {"@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai"},
+    "url": "https://biomate.ai/blog-agent-skills-vs-biomate.html",
+    "image": "https://biomate.ai/images/blog-agent-skills-vs-biomate-hero.png",
+    "articleSection": "Comparison"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+      { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://biomate.ai/blog.html" },
+      { "@type": "ListItem", "position": 3, "name": "Bioinformatics Agent Skills vs. BioMate", "item": "https://biomate.ai/blog-agent-skills-vs-biomate.html" }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      { "@type": "Question", "name": "Are public bioinformatics agent skills good enough to run an analysis?", "acceptedAnswer": { "@type": "Answer", "text": "They have improved — the better libraries now ship a genuine R/Bioconductor DESeq2 skill with citations and a troubleshooting table, and a few run continuous integration. But that CI validates the document (frontmatter fields, section headings, a valid date), not whether the code runs. No public skill library we examined executes its DESeq2 code against a real count matrix in CI, so correctness still depends on the agent assembling, versioning, and running it." } },
+      { "@type": "Question", "name": "What is the difference between an agent skill and a BioMate workflow?", "acceptedAnswer": { "@type": "Answer", "text": "An agent skill is a Markdown file (SKILL.md) describing how to do a task for an AI agent to read. A BioMate workflow is executable, container-pinned code that has been run end to end on real input with the output verified. A skill tells an agent how the analysis goes; BioMate runs it and returns the result." } },
+      { "@type": "Question", "name": "Do agent skills pin tool versions and ship a runnable environment?", "acceptedAnswer": { "@type": "Answer", "text": "Generally no. A skill typically states version compatibility as guidance (for example 'pydeseq2 0.4+') rather than pinning an exact environment or shipping a per-skill container; the agent resolves Bioconductor and system libraries at runtime. BioMate workflows run in dependency-complete, version-pinned containers, so there is no version-mismatch hunt." } }
+    ]
+  }
+  </script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+</head>
+<body>
+<div id="bm-nav"></div>
+<div class="bm-blog">
+
+<div class="article-hero">
+  <img src="images/blog-agent-skills-vs-biomate-hero.png" alt="Bioinformatics agent skills versus BioMate — a recipe is not a result" />
+  <div class="article-hero-overlay"></div>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Comparison
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Comparison</span>
+      <h1>Bioinformatics Agent Skills vs. BioMate: An Honest Comparison</h1>
+      <div class="article-meta">
+        <span><strong>June 29, 2026</strong></span>
+        <span>8 min read</span>
+        <span>BioMate Team</span>
+      </div>
+    </div>
+    <div class="article-body">
+
+      <p class="lead">The public "agent skill" libraries for bioinformatics got genuinely better this year. A year ago the only differential-expression skill on offer was a thin wrapper around a partial Python re-implementation of DESeq2; today the strongest libraries ship a real R/Bioconductor DESeq2 skill — with citations, a troubleshooting table, and even continuous integration. We went back and read them. Here is what they give you, what they still leave to you, and the single line that separates a skill from a result.</p>
+
+      <h2>First, credit where it's due</h2>
+      <p>We last surveyed this ecosystem in mid-2026 and concluded that no public library shipped a genuine R DESeq2 skill — only a ~160-line wrapper around <code>PyDESeq2</code>, a partial Python re-implementation of the canonical R package, with no troubleshooting and no citations. <strong>That is no longer true, and it's worth saying plainly.</strong></p>
+      <p>The better collections today ship a real DESeq2 skill written in actual R — hundreds of lines that call <code>library(DESeq2)</code>, build a <code>DESeqDataSetFromMatrix</code>, estimate dispersions, fit the model, apply <code>apeglm</code> log-fold-change shrinkage, handle multi-factor and interaction designs, and close with a troubleshooting table and DOIs to the methods papers (Love 2014; Zhu 2019). Some libraries now offer the R and Python variants side by side and cross-link them. A few run automated checks on every skill on each commit. If you used these a year ago and walked away, they are meaningfully more rigorous now.</p>
+      <p>So this isn't a takedown. It's a question worth asking precisely <em>because</em> the prose got good: does a better-written skill actually get you a correct result — or just a better-written description of one?</p>
+
+      <h2>What an "agent skill" actually is</h2>
+      <p>A skill is a Markdown file — a <code>SKILL.md</code> — that an AI agent reads to learn how to perform a task. A good one has an overview, when-to-use guidance, prerequisites, the ordered steps, key parameters, a troubleshooting section, and references. Many ship a folder of example <code>.R</code> / <code>.py</code> / <code>.sh</code> scripts beside the prose.</p>
+      <p>That is a real, useful artifact. It is also, fundamentally, <em>documentation written for an agent to read</em> — not a pipeline that has been run. And that distinction turns out to be the whole story.</p>
+
+      <h2>What "validated" means inside a skill library</h2>
+      <p>The most reassuring development is that a few leading libraries now run continuous integration on every skill — which sounds like the gap just closed. So read what the CI actually checks.</p>
+      <p>It validates the <em>document</em>: that the YAML frontmatter has a name and a license, that the required section headings are present, that the category matches the directory it lives in, that the date is a valid ISO date. Useful hygiene. But it does not run the R. In every public library we examined, <strong>no skill executes its DESeq2 code against a real count matrix and checks the result.</strong> The validation is structural — it confirms the recipe is well-formatted, not that the dish comes out of the oven.</p>
+      <blockquote>A skill can pass every CI check and still contain code that is subtly wrong: a stale argument, a function renamed two releases ago, a data-contract mismatch between step three's output and step four's input. Structure is checked. Execution is not.</blockquote>
+      <p>We have measured exactly this failure surface. In a 20-task Bioconductor benchmark, an ungrounded model cited <em>real</em> functions only <strong>71.4%</strong> of the time; checking every function against the package's NAMESPACE lifts that to <strong>88.2%</strong> — and yet even a workflow that passes every structural check can still fail to run, because versions drift and data contracts don't line up. (We wrote that up separately: <a href="blog-why-ai-bioconductor-doesnt-run.html">why AI writes Bioconductor code that doesn't run</a>.) A skill's CI lives one level <em>below</em> even structure grounding — it checks the Markdown, not the code.</p>
+
+      <h2>The five things a skill still leaves to you</h2>
+      <p>A skill <em>describes</em> the analysis. To get a result, you — or the agent acting on the skill — still have to:</p>
+      <ul>
+        <li><strong>Pin the versions.</strong> "Version compatibility: <code>pydeseq2 0.4+</code>" tells the agent to <em>check</em>, not what to install. There is no per-skill locked environment.</li>
+        <li><strong>Build the environment.</strong> No skill ships a container or a lockfile per task. You resolve Bioconductor, its annotation databases, and the system libraries yourself.</li>
+        <li><strong>Stage the data into the exact shape the next step expects.</strong> The input contract is prose, not a validated schema.</li>
+        <li><strong>Carry outputs across steps.</strong> Step three's object has to match step four's input — and nothing checks that it does.</li>
+        <li><strong>Be right.</strong> Because the code was never executed against real data, correctness rests on the author and the agent — exactly the three-in-ten failure surface above.</li>
+      </ul>
+      <p>None of this is a criticism of the authors; it is the category. A skill is documentation for an agent. Documentation is not execution.</p>
+
+      <h2>What BioMate does instead</h2>
+      <p>BioMate is the execution layer. You describe the analysis in plain language, and BioMate routes only to workflows that have actually been <em>run</em> — end to end, in a dependency-complete container, on real input, with the output verified. For DESeq2 specifically, BioMate doesn't hand you a description of <code>lfcShrink</code>; it runs the whole pipeline — <code>DESeqDataSetFromMatrix</code>, dispersion estimation, the model fit, <code>apeglm</code> shrinkage — in a container where DESeq2 <em>and</em> apeglm are already resolved, on managed compute, and returns the results table, the shrunk fold-changes, the diagnostic plots, and an audit trail of exactly what ran. If a dependency were missing, the workflow is fixed and re-validated before it is ever offered — it doesn't fail in your hands.</p>
+
+      <table>
+        <thead><tr><th></th><th>Public agent skill</th><th>BioMate workflow</th></tr></thead>
+        <tbody>
+          <tr><td><strong>What it is</strong></td><td>A <code>SKILL.md</code>: prose + an example snippet for an agent to read</td><td>Executable workflow code (Nextflow + R), pinned to a container image</td></tr>
+          <tr><td><strong>"Validation" means</strong></td><td>CI checks the document — headings, frontmatter, date</td><td>Run end to end on real input; the output is verified</td></tr>
+          <tr><td><strong>Versions</strong></td><td>Guidance ("0.4+") — not pinned</td><td>Exact image, pinned and reproducible</td></tr>
+          <tr><td><strong>Environment</strong></td><td>You build it</td><td>Already dependency-complete</td></tr>
+          <tr><td><strong>Step-to-step data contract</strong></td><td>Described in prose</td><td>Carried and checked by the pipeline</td></tr>
+          <tr><td><strong>Run it by asking</strong></td><td>No — an agent assembles it and hopes</td><td>Yes — plain-English request &rarr; result</td></tr>
+          <tr><td><strong>Provenance</strong></td><td>None</td><td>An audit trail of exactly what ran</td></tr>
+          <tr><td><strong>If it would fail</strong></td><td>It fails in your hands, at runtime</td><td>It's fixed and re-validated before it's offered</td></tr>
+        </tbody>
+        <caption>A skill describes the analysis; a BioMate workflow is the analysis, executed. The columns aren't better and worse versions of the same thing — they're different categories.</caption>
+      </table>
+
+      <p>This is grounded in the same work as our open knowledge base, <strong>BioMate-KB</strong> — 15,641 Bioconductor workflow steps, NAMESPACE-validated, linked to container images and software DOIs, and, for the validated head of the collection, confirmed by real end-to-end execution. The public bundle covering the top 200 packages is free under CC-BY-4.0; clone it and build on it: <a href="https://github.com/bioMate-AI/biomate-bioconductor-kb" target="_blank" rel="noopener">github.com/bioMate-AI/biomate-bioconductor-kb</a>.</p>
+
+      <h2>When a skill is the right tool</h2>
+      <p>To be fair to the skill libraries: they are good for what they are. If you are an expert who wants a well-organized reference your agent can pull <em>how-to</em> guidance from — parameter hints, a troubleshooting table, the canonical citation — a good skill is genuinely useful, and the better libraries are worth reading. The honest line is not "skills are bad." It's that a skill and a validated, executed workflow are different categories: one tells an agent how the analysis goes; the other is the analysis, already run, ready to return a result. If what you want is a correct result without spending the afternoon resolving Bioconductor versions and chasing a data-contract mismatch, that difference <em>is</em> the product.</p>
+
+      <hr class="article-divider" />
+      <p><em>BioMate is a life-sciences AI platform that turns validated computational workflows into something you can run by asking. The skill ecosystem is getting better at telling an agent how an analysis goes. <a href="https://www.biomate.ai">BioMate is the part that actually runs it.</a></em></p>
+
+      <div class="callout">
+        <strong>The takeaway</strong>
+        <p>Bioinformatics agent skills improved in 2026 — real R DESeq2, citations, even CI. But that CI validates the document, not the run; the code is never executed against real data. A skill tells an agent how an analysis goes. BioMate runs it — in a dependency-complete container, on real input, with the output verified — and returns the result.</p>
+      </div>
+    </div>
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Posts</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-why-ai-bioconductor-doesnt-run.html">Why AI Writes Bioconductor Code That Doesn't Run — and What Actually Fixes It</a><div class="meta">June 9, 2026</div></li>
+        <li><a href="blog-bioconductor.html">The R Ecosystem, Accessible to Everyone: Bioconductor Methods in BioMate</a><div class="meta">April 20, 2026</div></li>
+        <li><a href="blog-auto-qc-loop.html">Quality That Never Settles: BioMate's Evidence-Graded Auto-QC Loop</a><div class="meta">March 12, 2026</div></li>
+        <li><a href="blog-workflow-routing.html">Finding the Right Workflow: BioMate's Hybrid Semantic Search</a><div class="meta">April 15, 2026</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">Agent Skills</span><span class="topic-chip">Bioconductor</span><span class="topic-chip">DESeq2</span><span class="topic-chip">Execution Validation</span><span class="topic-chip">Reproducibility</span><span class="topic-chip">Comparison</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">Everything described here runs live on the platform. Start free.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Stay updated</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:.9rem;">New posts on workflow validation, QC, and platform updates &mdash; no spam.</p>
+      <form class="bm-sub" onsubmit="return bmSubscribe(this,event)">
+        <input type="email" name="email" required placeholder="your@email.com" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:.85rem;margin-bottom:.6rem;font-family:var(--font-body);" />
+        <input type="hidden" name="_subject" value="Newsletter signup (blog)" />
+        <button type="submit" class="btn btn-primary">Subscribe</button>
+        <p class="bm-sub-msg" style="font-size:.78rem;margin-top:.5rem;display:none;"></p>
+      </form>
+    </div>
+    <script>
+    function bmSubscribe(form,ev){ev.preventDefault();var m=form.querySelector('.bm-sub-msg');
+      fetch('https://formspree.io/f/xlgvqqvz',{method:'POST',headers:{'Accept':'application/json'},body:new FormData(form)})
+      .then(function(r){if(!r.ok)throw 0;form.innerHTML='<p style="font-size:.85rem;color:var(--accent);font-weight:600;">You\'re subscribed &mdash; thanks!</p>';})
+      .catch(function(){m.style.color='#b42828';m.textContent='Something went wrong — email contact@biomate.ai';m.style.display='';});
+      return false;}
+    </script>
+  </aside>
+</div>
+
+</div><!-- /bm-blog -->
+<div id="bm-foot"></div>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'newsroom' });</script>
+</body>
+</html>

@@ -161,7 +161,7 @@ process BIOC_COMPSPOT_MUTATION_HOTSPOT_ANALYSIS {
     .gates_by_label <- list()
     .na_fracs <- numeric(0)
     .scanned_files <- character(0)
-    for (.rds_file in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.rds_file in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .obj <- tryCatch(readRDS(.rds_file), error = function(e) NULL)
       .mat <- if (is.matrix(.obj) || is.data.frame(.obj)) .obj else NULL
       if (!is.null(.mat)) {

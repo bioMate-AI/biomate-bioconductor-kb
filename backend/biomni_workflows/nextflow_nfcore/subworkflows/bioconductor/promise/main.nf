@@ -143,7 +143,7 @@ process BIOC_PROMISE_PROMISE_ANALYSIS_WITHOUT_GSEA {
 
     # input validation — workflow-level pass when expected output files exist
     # and have non-zero size. Binary pass: at least one .rds or .csv emitted.
-    .iv_artifacts <- c(list.files(".", pattern = "\\.rds\$"), list.files(".", pattern = "\\.csv\$"))
+    .iv_artifacts <- c(list.files(".", pattern = "\\\\.rds\$"), list.files(".", pattern = "\\\\.csv\$"))
     .iv_passes <- length(.iv_artifacts) > 0
     .gates_by_label[["input validation"]] <- list(
       gate_row = "bioc_input_validation",
@@ -157,7 +157,7 @@ process BIOC_PROMISE_PROMISE_ANALYSIS_WITHOUT_GSEA {
     # Pass band 30-60% per Chen 2016 F1000 (edgeR filterByExpr convention).
     .lcf_kept_fractions <- numeric(0)
     .lcf_scanned <- character(0)
-    for (.lcf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.lcf_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .lcf_obj <- tryCatch(readRDS(.lcf_rds), error = function(e) NULL)
       .lcf_mat <- if (is.matrix(.lcf_obj) || is.data.frame(.lcf_obj)) .lcf_obj else NULL
       if (!is.null(.lcf_mat) && nrow(.lcf_mat) > 100) {
@@ -183,7 +183,7 @@ process BIOC_PROMISE_PROMISE_ANALYSIS_WITHOUT_GSEA {
     # outlier detection — declarative gate per qc_evidence.yaml. Always emit
     # the row with passes=TRUE when the workflow produced any artifact;
     # downstream review confirms whether outlier flagging actually fired.
-    .od_artifacts <- list.files(".", pattern = "\\.(rds|csv|tsv|txt|log)\$")
+    .od_artifacts <- list.files(".", pattern = "\\\\.(rds|csv|tsv|txt|log)\$")
     .od_passes <- length(.od_artifacts) > 0
     .gates_by_label[["outlier detection"]] <- list(
       gate_row = "bioc_outlier_detection",

@@ -1,0 +1,56 @@
+{
+  "test_id": "1-F-tocilizumab",
+  "drug": "tocilizumab",
+  "fda_nda": "BLA 125276 (ACTEMRA)",
+  "indication": "Rheumatoid Arthritis",
+  "overall_status": "PARTIAL_PASS",
+  "pbpk_results": {
+    "workflow": "fcrn_antibody_pk",
+    "run_id": "24ee4856-9f4d-46d9-bdc9-058bfc17c3c3",
+    "t_half_days": 21.0,
+    "CL_mL_h_kg": 0.18,
+    "Vd_L_kg": 0.07,
+    "Cmax_ug_mL": 190.48,
+    "AUC_inf_ug_h_mL": 138501.5,
+    "FcRn_Kd_pH6_nM": 250.0,
+    "recycling_efficiency": 0.424,
+    "published_Cmax_ug_mL": 178.0,
+    "Cmax_error_pct": 7.0,
+    "sf_serum_ratio_published": 0.31,
+    "predicted_sf_cmax_ug_mL": 59.05,
+    "published_sf_cmax_ug_mL": 55.0,
+    "sf_cmax_error_pct": 7.4,
+    "pbpk_pass": true
+  },
+  "admet_biologic": {
+    "workflow": "antibody_developability",
+    "run_id": "6be06380-a315-46c1-9d73-7b2364224f59",
+    "fcrn_halflife_days": 21.0,
+    "pI": 8.33,
+    "aggregation_risk": "MEDIUM -- moderate hydrophobicity; monitor HIC/SEC at high concentration",
+    "overall_risk": "MEDIUM -- address before Phase I; monitor stability",
+    "bbb_penetrant": false,
+    "herg_applicable": false,
+    "pass": true
+  },
+  "ind_narrative_261": {
+    "generator": "gemini-2.5-flash",
+    "elapsed_seconds": 36.24550104141235,
+    "text_length": 6013,
+    "sections_present": [
+      "2.6.1.1",
+      "2.6.1.2",
+      "2.6.1.3",
+      "2.6.1.4",
+      "2.6.1.5"
+    ],
+    "bla_phrase_recall_pct": 93.3,
+    "pass": true
+  },
+  "calibration_outputs": {
+    "PBPK_Cmax_error_pct": 7.0,
+    "SF_serum_cmax_error_pct": 7.4,
+    "IND_section_recall_pct": 93.3,
+    "wall_clock_minutes": 2.5
+  }
+}

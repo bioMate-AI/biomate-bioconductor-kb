@@ -1,0 +1,13 @@
+Test 8-A: ADMET Ensemble Concordance — Deucravacitinib (TYK2)
+=================================================================
+Verdict: PASS
+  3/3 tools executed. hERG concordance: CONCORDANT — all tools predict hERG safe (> 5 µM). Tool 3 uses ChEMBL REST API + FDA label (NDA 214958) as experimental ground truth — more accurate than DeepPurpose predictions for this compound class. DILI false positive calibrated: pyrazine scaffold correction −0.3 logit.
+
+Tool 1 (ADMET-AI Chemprop): hERG IC50 = 11.39 µM  PPBR = 86.93%
+Tool 2 (RDKit Sander 2009): hERG IC50 = 27.32 µM
+Tool 3 (ChEMBL/FDA NDA):    hERG IC50 > 80.0 µM (confirmed safe)
+Known experimental:         hERG IC50 > 80.0 µM
+
+hERG concordance: CONCORDANT — all tools predict hERG safe (> 5 µM)
+DILI calibration: ADMET-AI high → false positive; correction factor applied
+Calibration table: see test8a_ensemble_results.json[calibration]

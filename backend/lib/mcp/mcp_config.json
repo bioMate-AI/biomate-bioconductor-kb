@@ -1,5 +1,5 @@
 {
-  "_comment": "BioMate MCP server configuration. The canonical server is at backend/mcp/biomate_mcp_server.py (v1.1.0).",
+  "_comment": "DEPRECATED config for the in-repo v1.1.0 server (backend/mcp/biomate_mcp_server.py). Both in-repo MCP servers are unmaintained; the maintained server is in the biomate-connector repo (v2.0.0) — install via `npx @biomate/connect`. Kept for historical configs only.",
   "name": "biomate",
   "version": "1.1.0",
   "description": "BioMate scientific workflow platform — 2,100+ bioinformatics pipelines via MCP",

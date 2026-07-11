@@ -1,0 +1,19 @@
+AFTER RUN
+↓ Download report
+Outputs
+Findings
+Citations
+Parameters
+Findings Summary
+
+ADMET properties were computationally predicted for two compounds using the ADMET-AI workflow. The first compound (aspirin-like structure) exhibits high DILI risk but low hERG inhibition, while the second compound (terfenadine-like structure) shows high hERG inhibition probability and high plasma protein binding, but low DILI risk.
+
+Key Results
+
+Caveats
+
+All values are computational predictions for hypothesis generation only and require experimental confirmation before regulatory submissions.
+The renal clearance fraction is based on a directional BCS/logP heuristic only.
+The DILI risk aggregation in the toxicity report is based on the worst-performing compound in the panel.
+Download report
+Findings are generated directly from the run manifest. Numbers and figures in this section come from the workflow outputs.

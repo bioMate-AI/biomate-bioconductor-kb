@@ -86,6 +86,7 @@ config/*
 !config/workflow_intent_anchors.yaml
 !config/entity_canonicals.yaml
 !config/qc_evidence.yaml
+!config/interactivetools_conf.xml
 config/plugins/interactive_environments/**/*.ini
 config/plugins/**/.cache
 config/plugins/**/.parcel-cache

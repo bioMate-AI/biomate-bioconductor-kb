@@ -448,11 +448,11 @@ function ParameterInput({
             <SelectValue placeholder="Select..." />
           </SelectTrigger>
           <SelectContent>
-            {param.options.map(option => (
-              <SelectItem key={option} value={option}>
-                {option}
-              </SelectItem>
-            ))}
+            {param.options.map((option: any) => {
+              const val = option !== null && typeof option === 'object' ? String(option.value ?? '') : String(option);
+              const lbl = option !== null && typeof option === 'object' ? String(option.label ?? option.value ?? '') : String(option);
+              return <SelectItem key={val} value={val}>{lbl}</SelectItem>;
+            })}
           </SelectContent>
         </Select>
       )}

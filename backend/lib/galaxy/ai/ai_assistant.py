@@ -94,12 +94,10 @@ _MULTI_TASK_CACHE_MAX = 128
 
 # Fastest/cheapest model per provider for lightweight classification calls.
 _FAST_CLASSIFICATION_MODELS: dict = {
-    'anthropic': 'claude-haiku-4-5',  # fallback only — Gemini Flash preferred
-    'gemini': 'gemini-3-flash-preview',
-    'google': 'gemini-3-flash-preview',
+    'anthropic': 'claude-haiku-4-5',
+    'gemini': 'gemini-3.5-flash',
+    'google': 'gemini-3.5-flash',
     'openai': 'gpt-3.5-turbo',
-    'gemini': 'gemini-1.5-flash',
-    'google': 'gemini-1.5-flash',
     'deepseek': 'deepseek-chat',
     'zhipu': 'glm-4-flash',
     # ollama / local: keep configured model (already fast locally)
@@ -676,7 +674,7 @@ class AIAssistant:
         if session_id:
             self._fast_llm_client.session_id = session_id
 
-        return self._fast_llm_client.generate(prompt, max_tokens=128, temperature=0.0)
+        return self._fast_llm_client.generate(prompt, max_tokens=128, temperature=0.0, use_fast_model=True)
 
     async def _handle_multi_task_clarification(self, query: str, context: dict) -> dict:
         """
@@ -1841,12 +1839,51 @@ class AIAssistant:
         if any('subworkflow' in t for t in tags):
             return False
 
-        # Prefer canonical runnable entry scripts.
+        # Prefer canonical runnable entry scripts — but a filename ending in
+        # /main.nf is NOT sufficient: an nf-core subworkflow whose stored path
+        # slips past the substring excludes above (e.g. real nf-core/rnaseq
+        # FASTQ_QC_TRIM_FILTER_SETSTRANDEDNESS) is a `take:`-only named workflow
+        # with no anonymous `workflow {}`. Launching it via `-entry` aborts with
+        # "declares N input channels but 0 were given" (the RC-1 failure). Verify
+        # on disk that the resolved file is actually standalone-runnable.
         if filename.endswith('/main.nf'):
+            resolved = self._find_nf_file(getattr(match, 'filename', '') or '')
+            if resolved is not None and not self._nf_file_is_standalone_runnable(resolved):
+                return False
             return True
         if filename.endswith('.nf') and ('/workflows/' in filename or 'biomni_nf/' in filename):
             return True
         return False
+
+    def _nf_file_is_standalone_runnable(self, nf_path: Any) -> bool:
+        """True iff the `.nf` at `nf_path` can be launched directly.
+
+        Runnable ⟺ it has an anonymous `workflow {` block (Nextflow's default
+        entry). A file whose only entry is a named `workflow NAME { take: … }`
+        cannot be launched via `-entry` — the `take:` channels are unbindable —
+        so it is NOT standalone-runnable. Exception: Bioconductor subworkflows
+        under `/bioconductor/` are made runnable at execution time by
+        `_build_bioc_entry_wrapper`, so they stay eligible. If the file can't be
+        read (e.g. resolved off-box), don't over-reject — return True."""
+        p = str(nf_path)
+        try:
+            text = Path(p).read_text(errors='replace')
+        except Exception:
+            return True
+        # Anonymous `workflow {` → Nextflow default entry → runnable.
+        if re.search(r'(?m)^\s*workflow\s*\{', text):
+            return True
+        has_named = re.search(r'(?m)^\s*workflow\s+[A-Za-z_]', text) is not None
+        # No workflow entry at all (a parameter stub — e.g. nfcore/rnaseq,
+        # nfcore/sarek — with only params + processes) → "No entry workflow".
+        if not has_named:
+            return False
+        # Named-only workflow with a `take:` block → unbindable via -entry, except
+        # Bioconductor subworkflows which _build_bioc_entry_wrapper wraps at run time.
+        if re.search(r'(?m)^\s*take\s*:', text):
+            return '/bioconductor/' in p
+        # Named workflow(s) without take: → runnable via `-entry <name>`.
+        return True
 
     def _nextflow_workflow_key(self, filename: str) -> Optional[str]:
         """
@@ -1960,7 +1997,7 @@ Respond with a single JSON object — no other text:
 "flag" must be true only when you switch away from #1 due to a clear mismatch."""
 
         try:
-            raw = (self._fast_llm_client.generate(prompt, max_tokens=220, temperature=0.0) or "").strip()
+            raw = (self._fast_llm_client.generate(prompt, max_tokens=220, temperature=0.0, use_fast_model=True) or "").strip()
             # Extract JSON from response
             import re as _re
             m = _re.search(r'\{.*\}', raw, _re.DOTALL)
@@ -2433,6 +2470,8 @@ Respond with a single JSON object — no other text:
                     continue
                 if param_def.get('hidden', False):
                     continue
+                if param_name in self._NEXTFLOW_INTERNAL_PARAMS:
+                    continue
 
                 ptype = self._schema_type_to_param_type(param_name, param_def)
                 default = param_def.get('default', None)
@@ -2796,6 +2835,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             text = LLMClient(self.config).call(
                 messages=[{"role": "user", "content": _ps_prompt}],
                 max_tokens=1024,  # S3 URIs can be long; 512 causes truncation
+                use_fast_model=True,
             ).strip()
             # Extract JSON array from response
             start = text.find("[")
@@ -2807,13 +2847,20 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 return []
             # Validate: name must exist in inferable params, value must not be empty
             valid_names = {p["name"] for p in inferable}
-            return [
+            suggestions = [
                 s for s in suggestions
                 if isinstance(s, dict)
                 and s.get("name") in valid_names
                 and s.get("value") is not None
                 and str(s.get("value", "")).strip() != ""
             ]
+            # Resolve chemical names → SMILES for any SMILES-type params
+            try:
+                from galaxy.ai.federated_query import resolve_smiles_params
+                suggestions = resolve_smiles_params(suggestions)
+            except Exception as _resolve_exc:
+                log.debug("[ParamSuggest] SMILES resolution skipped: %s", _resolve_exc)
+            return suggestions
         except Exception as exc:
             log.debug("[ParamSuggest] LLM inference failed: %s", exc)
             return []
@@ -3164,10 +3211,22 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         # (connector execute_workflow, chat auto-execute) send workflow_ga straight
         # to /api/workflows/execute; without this they run with NO params and the
         # extracted value is dropped ([Nextflow Direct] Parameters: undefined).
+        # BUT exclude INTERNAL config vars (e.g. _useAws, _ECR, CHEM_CONTAINER)
+        # whose "default" is a Groovy/nextflow config EXPRESSION, not a literal.
+        # These are resolved inside nextflow.config — passing them on the CLI as
+        # `--_useAws "params.use_aws || System.getenv(...)"` makes Nextflow abort
+        # at parse time ("Dynamic parameter expected a value of the form a=b")
+        # → run dies instantly with zero output (e.g. cyp_ddi_panel, 2026-06-29).
+        def _is_internal_param(_name, _val):
+            if str(_name).startswith('_'):
+                return True
+            _s = str(_val)
+            return ('params.' in _s) or ('System.getenv' in _s) or ('${' in _s)
         for _p in req + opt:
             _pn = _p.get('name', '')
-            if _pn and _p.get('default') not in (None, ''):
-                _exec_params.setdefault(_pn, _p.get('default'))
+            _pv = _p.get('default')
+            if _pn and _pv not in (None, '') and not _is_internal_param(_pn, _pv):
+                _exec_params.setdefault(_pn, _pv)
         return {
             'success': True,
             'nextflow_path': match.filename,
@@ -3355,7 +3414,11 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         log.info(f"[UnifiedWorkflowGeneration] Starting for intent: {user_intent}")
 
         # C1b — Inject recent user corrections into the intent for personalized search/generation
-        if MEMORY_AVAILABLE and self.agentic_memory and user_id:
+        # Only attempt when user_id is a UUID (LTM tables key on UUID, not Galaxy integer IDs).
+        _user_id_is_uuid = bool(
+            user_id and len(user_id) == 36 and user_id.count("-") == 4
+        )
+        if MEMORY_AVAILABLE and self.agentic_memory and _user_id_is_uuid:
             try:
                 corrections = self.agentic_memory.get_recent_corrections(user_id, limit=5)
                 if corrections:
@@ -3495,6 +3558,24 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     return chain_result
             except Exception as chain_exc:
                 log.warning("[UnifiedWorkflowGeneration] Chain lookup failed: %s", chain_exc)
+
+            # Microarray: prevent embedding search from returning nf-core/rnaseq.
+            # Microarray intensities are continuous log-ratios; DESeq2/edgeR/rnaseq pipeline
+            # assumes Poisson-distributed integer counts — fundamentally wrong model.
+            _MICROARRAY_PAT = re.compile(
+                r'\b(microarray|affymetrix|agilent|illumina\s+beadchip|expression\s+array|'
+                r'probe\s+intensit|cel\s+file|gpl\d+|\.cel\b|affy\b|limma\b|'
+                r'differential\s+expression.*array|array.*differential\s+expression)\b',
+                re.IGNORECASE,
+            )
+            if _MICROARRAY_PAT.search(user_intent):
+                user_intent = user_intent + (
+                    "\n[Routing: microarray gene expression — use limma or differentialabundance, "
+                    "NOT nf-core/rnaseq. rnaseq requires raw integer counts (Poisson model); "
+                    "microarray uses log-ratio intensities (Gaussian model). "
+                    "Preferred: limma_microarray_analysis or nf-core/differentialabundance.]"
+                )
+                log.info("[UnifiedWorkflowGeneration] Microarray pattern detected — injected limma routing hint")
 
             # Plan B / synthetic biology: codon optimization before mRNA-LNP engineering.
             _CODON_MRNA_PAT = re.compile(
@@ -4984,13 +5065,29 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
     def query_database(self, database: str, query: str) -> Dict:
         """
         Route a biological database query to the appropriate public REST API.
-        Supports: auto, ncbi_gene, uniprot, pdb, alphafold, kegg, reactome, go,
-                  hpo, chebi, chembl, interpro, string, ensembl, gnomad,
-                  dbsnp, clinvar, pubmed.
+        Supports: auto, federated, ncbi_gene, uniprot, pdb, alphafold, kegg,
+                  reactome, go, hpo, chebi, chembl, interpro, string, ensembl,
+                  gnomad, dbsnp, clinvar, pubmed,
+                  europepmc, semantic_scholar, openalex.
+
+        Pass database='federated' (or 'auto') to fan-out to all relevant sources
+        in parallel and receive a merged result set.
         """
         db = database.lower().strip()
-        if db == 'auto':
-            db = self._detect_database_from_query(query)
+
+        # Federated path: parallel fan-out to all relevant sources
+        if db in ('federated', 'auto'):
+            try:
+                from galaxy.ai.federated_query import federated_query
+                result = federated_query(query)
+                result['success'] = True
+                return result
+            except Exception as e:
+                import logging as _log
+                _log.getLogger(__name__).warning(
+                    f"[query_database] federated({query}) failed: {e}, falling back to single-source"
+                )
+                db = self._detect_database_from_query(query)
 
         handlers = {
             'ncbi_gene': self._query_ncbi_gene,
@@ -5011,10 +5108,24 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             'clinvar': lambda q: self._query_ncbi_entrez(q, 'clinvar'),
             'pubmed': lambda q: self._query_ncbi_entrez(q, 'pubmed'),
         }
+        # New literature sources — delegate to federated_query module
+        if db in ('europepmc', 'semantic_scholar', 'openalex'):
+            try:
+                import importlib
+                fq = importlib.import_module('galaxy.ai.federated_query')
+                fetcher = fq._FETCHERS.get(db)
+                if fetcher:
+                    result = fetcher(query)
+                    result['success'] = True
+                    return result
+            except Exception as e:
+                return {"success": False, "source": db, "error": str(e)}
+
         handler = handlers.get(db)
         if not handler:
             return {"success": False, "error": f"Unknown database: {db}",
-                    "supported": list(handlers.keys())}
+                    "supported": list(handlers.keys()) +
+                                 ['federated', 'europepmc', 'semantic_scholar', 'openalex']}
         try:
             result = handler(query)
             result['success'] = True

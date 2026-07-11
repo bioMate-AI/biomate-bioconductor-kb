@@ -275,7 +275,7 @@ process BIOC_MONOCLE_SINGLE_CELL_TRAJECTORY_ANALYSIS {
     # dispersion/size-factor estimation — object-type-aware. Try DESeq2
     # DESeqDataSet (mcols\$dispOutlier), then edgeR DGEList (common.dispersion).
     .dsf_value <- NA_real_; .dsf_kind <- "none"
-    for (.dsf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.dsf_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .dsf_obj <- tryCatch(readRDS(.dsf_rds), error = function(e) NULL)
       if (!is.null(.dsf_obj)) {
         if (inherits(.dsf_obj, "DESeqDataSet")) {
@@ -301,7 +301,7 @@ process BIOC_MONOCLE_SINGLE_CELL_TRAJECTORY_ANALYSIS {
 
     # clustering QC — n_clusters ∈ [2,50] proxy (silhouette needs cluster pkg).
     .clu_n <- NA_real_
-    for (.clu_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.clu_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .clu_obj <- tryCatch(readRDS(.clu_rds), error = function(e) NULL)
       .clu_v <- NULL
       if (!is.null(.clu_obj)) {

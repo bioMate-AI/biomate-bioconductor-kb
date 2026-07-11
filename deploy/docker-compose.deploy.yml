@@ -42,6 +42,19 @@ services:
       # GALAXY_API_URL=http://galaxy-backend-deploy:8080). /internal/ is exempt
       # from the frontend's HTTPS redirect so this plain-HTTP call isn't 301'd.
       - FRONTEND_URL=http://biomate-frontend-deploy:3000
+      # Route ALL workflow runs to AWS Batch (design: every production workflow
+      # runs on Batch). Without this the backend defaults to the LOCAL executor,
+      # which lacks baked tool modules (e.g. rdkit) → "Missing required runtime
+      # modules" 503 on hERG/ADMET. Was previously only in the host .env on test;
+      # baked here so test/prod can't silently drift back to local execution.
+      - NEXTFLOW_USE_AWS=true
+      # Persist in-flight run state in Redis so records survive gunicorn worker
+      # recycles (workers:1, max_requests recycles often) — otherwise a completed
+      # run's record (incl. s3_output_files) vanishes and /api/invocations/:id/
+      # outputs → analyze_results return empty. Falls back to InMemory gracefully
+      # if REDIS_URL is unset/unreachable (get_run_state_store pings first). The
+      # L3 fix from docs/20260615_RUNS_PERSISTENCE_DESIGN.md.
+      - RUN_STATE_STORE=redis
     # Persist ONLY the workflow catalog (galaxy_ai_tools.db, ~279MB, ~2600
     # workflows) across container recreates via a single-file bind-mount. The
     # catalog is NOT baked into the image (the image ships only a 20KB stub),
@@ -74,6 +87,16 @@ services:
     volumes:
       - /opt/biomate/data/galaxy_ai_tools.db:/app/database/galaxy_ai_tools.db
       - /opt/biomate/data/nextflow_nfcore:/app/biomni_workflows/nextflow_nfcore
+      # Prebuilt BGE workflow-embeddings index (dense retrieval). Keyed to the
+      # catalog's content signature — built once offline against the catalog above
+      # (~2632 workflows, 3.7MB) and persisted on the host. With it,
+      # _ensure_workflow_embeddings() LOADS in ~2s at boot; WITHOUT it, the first
+      # request per worker triggers a ~4-min _build (and re-builds on every worker
+      # recycle → churn). Rebuild this file whenever galaxy_ai_tools.db changes
+      # (else the staleness check rebuilds it once at runtime). Absent host file →
+      # Docker makes a dir → load fails gracefully → BGE stays disabled (FTS still
+      # works), never breaks boot.
+      - /opt/biomate/data/galaxy_ai_workflow_embeddings.npz:/app/database/galaxy_ai_workflow_embeddings.npz
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/api/version"]
@@ -98,6 +121,11 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - GALAXY_API_URL=http://galaxy-backend-deploy:8080
+      # Must match the backend: makes the frontend send the AWS-Batch profile
+      # (not 'standard'/local) and stage local file params to S3 before dispatch.
+      # The backend also force-overrides to awsbatch, but keeping them in sync
+      # avoids 'standard' leaking into runs that bypass that override.
+      - NEXTFLOW_USE_AWS=true
     depends_on:
       galaxy-backend-deploy:
         condition: service_healthy

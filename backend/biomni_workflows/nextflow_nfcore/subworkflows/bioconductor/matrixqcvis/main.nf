@@ -295,7 +295,7 @@ process BIOC_MATRIXQCVIS_MATRIXQCVIS_PROTEOMICS_PIPELINE {
     # missing-value handling — scan .rds matrix/data.frame artifacts for max NA fraction
     .mv_na_fracs <- numeric(0)
     .mv_scanned <- character(0)
-    for (.mv_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.mv_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .mv_obj <- tryCatch(readRDS(.mv_rds), error = function(e) NULL)
       .mv_mat <- if (is.matrix(.mv_obj) || is.data.frame(.mv_obj)) .mv_obj else NULL
       if (!is.null(.mv_mat)) {
@@ -318,7 +318,7 @@ process BIOC_MATRIXQCVIS_MATRIXQCVIS_PROTEOMICS_PIPELINE {
 
     # VSN — DESeqTransform / vsd matrix; mean-SD slope ≤ 0.5 (vsn::meanSdPlot).
     .vsn_slope <- NA_real_
-    for (.vsn_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.vsn_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .vsn_obj <- tryCatch(readRDS(.vsn_rds), error = function(e) NULL)
       .vsn_mat <- NULL
       if (!is.null(.vsn_obj)) {

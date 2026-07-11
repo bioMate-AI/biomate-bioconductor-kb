@@ -56,7 +56,7 @@ import passport from "passport";
 import { oauthService } from "./oauth-service";
 import { stripeService } from "./stripe-service";
 import { auditService, auditMiddleware } from "./audit-service";
-import { decryptField } from "./field-encrypt";
+import { decryptField, encryptField } from "./field-encrypt";
 import { checkSafety, hashMessage } from "./safety-guardrails";
 import { conversationStateManager, createEmptyState, type ConversationState } from "./conversation-state";
 import {
@@ -505,6 +505,31 @@ galaxyPoller.on('workflow_completed', async (data: { invocation_id: string; stat
       );
       console.log(`[WorkflowComplete] Updated execution run ${executionRun.id} to ${finalStatus} (state=${data.state})`);
 
+      // Persist workflow metadata to chat_sessions.workflows so that
+      // GET /api/sessions/:id returns a non-empty workflows array and
+      // the right panel can render the AfterRunReport/interactive tools.
+      if (finalStatus === 'completed' && executionRun.chatSessionId) {
+        try {
+          const wfName = (executionRun as any).workflowName ||
+                         (executionRun as any).workflowDefinition?.name ||
+                         (executionRun as any).workflowDefinition?.chain_name ||
+                         'Workflow';
+          const wfEntry = JSON.stringify([{
+            workflow_id: executionRun.id,
+            workflow_name: wfName,
+            status: 'completed',
+          }]);
+          await pool.query(
+            `UPDATE chat_sessions SET workflows = $1::jsonb, last_activity = NOW()
+             WHERE session_id = $2`,
+            [wfEntry, executionRun.chatSessionId]
+          );
+          console.log(`[WorkflowComplete] Wrote workflow entry to chat_sessions for session ${executionRun.chatSessionId}`);
+        } catch (sessErr: any) {
+          console.error('[WorkflowComplete] Failed to update chat_sessions.workflows:', sessErr?.message);
+        }
+      }
+
       // CRITICAL FIX: Retrieve and store workflow outputs from Galaxy
       if (finalStatus === 'completed' && executionRun.execution.galaxyWorkflowId) {
         try {
@@ -865,6 +890,13 @@ const OPEN_CLAW_TOOLS = [
       required: ["source_id"],
     },
   },
+  // ── Bioconductor knowledge ────────────────────────────────────────────────
+  // Commented out: BioMate's search_workflow already covers this via the live
+  // workflow DB (2,455 workflows). Static per-package skill files are redundant.
+  // {
+  //   name: "bioconductor_skill",
+  //   ...
+  // },
 ];
 
 /**
@@ -907,15 +939,37 @@ async function executeOpenClaudeTool(
     switch (toolName) {
       // ── Discovery ────────────────────────────────────────────────────────
       case "search_workflow":
-        return await post("/api/workflows/search", { query: input.query, limit: input.limit ?? 5 });
+        // defer_param_prefill: the connector's client extracts params from the
+        // user's request itself, so the backend's inline LLM prefill is redundant
+        // here and only adds ~1-2s (up to ~13s under concurrency) to the search.
+        // Skip it → sub-second search. (run_workflow takes params from the client,
+        // not from the search response.)
+        return await post("/api/workflows/search", { query: input.query, limit: input.limit ?? 5, defer_param_prefill: true });
 
       // ── Execution ────────────────────────────────────────────────────────
-      case "run_workflow":
-        return await post("/api/workflows/execute", {
-          workflow_id: input.workflow_id,
-          params: input.params ?? {},
-          message: input.message,
+      case "run_workflow": {
+        // /api/workflows/execute requires a full workflowDefinition object, not a
+        // bare workflow_id. Resolve it by calling search first to get workflow_ga.
+        const searchResult = await post("/api/workflows/search", {
+          query: input.workflow_id,
+          limit: 1,
+          defer_param_prefill: true,
         });
+        const workflowDef = searchResult?.workflow_ga;
+        if (!workflowDef) {
+          return {
+            error: "WORKFLOW_NOT_FOUND",
+            message: `No workflow found matching '${input.workflow_id}'. Use search_workflow first to find the correct workflow name.`,
+          };
+        }
+        if (input.params && Object.keys(input.params).length > 0) {
+          workflowDef.parameters = { ...(workflowDef.parameters ?? {}), ...input.params };
+        }
+        return await post("/api/workflows/execute", {
+          workflowDefinition: workflowDef,
+          ...(input.message ? { message: input.message } : {}),
+        });
+      }
       case "get_run_status":
         return await get(`/api/workflows/runs/${input.run_id}/status`);
       case "get_run_results":
@@ -968,6 +1022,8 @@ async function executeOpenClaudeTool(
           url: input.url,
         });
 
+      // case "bioconductor_skill": removed — use search_workflow instead
+
       default:
         return { error: `Unknown tool: ${toolName}` };
     }
@@ -1008,9 +1064,9 @@ const prerequisitesValidator = _hasAnyLLMKey ? new WorkflowPrerequisitesValidato
 const memoryIntegration = galaxyAssistant ? createMemoryIntegration(galaxyAssistant) : null;
 
 // Configure multer for file uploads
-// AWS workflows require file upload first, so we constrain to 5GB to reduce latency
-const MAX_FILE_SIZE_GB = 5;
-const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_GB * 1024 * 1024 * 1024; // 5GB
+// 10 GB per-file upload limit. Subject to the user's overall storage quota.
+const MAX_FILE_SIZE_GB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_GB * 1024 * 1024 * 1024; // 10 GB
 
 const uploadDir = path.join(process.cwd(), 'data', 'uploads');
 
@@ -3346,6 +3402,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const datasetId = uuidv4();
       const description = req.body.description || ''; // Get optional description from request body
 
+      // Rename the multer-generated file to use datasetId as the filename prefix,
+      // so that getUploadedFile() fallback scan (f.startsWith(datasetId)) works after server restart.
+      const fileExt = path.extname(file.originalname);
+      const namedFilename = `${datasetId}${fileExt}`;
+      const namedFilePath = path.join(path.dirname(file.path), namedFilename);
+      await fs.rename(file.path, namedFilePath);
+      file.path = namedFilePath;
+      file.filename = namedFilename;
+
       console.log(`[FileUpload] File uploaded: ${file.originalname} -> ${file.filename}`);
       console.log(`[FileUpload] Dataset ID: ${datasetId}`);
       if (description) {
@@ -4383,7 +4448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // SSE endpoint for LangGraph pipeline task-status events.
   // The Python backend publishes to Redis channel biomate:pipeline:{id};
   // this endpoint relays those events to the browser.
-  app.get("/api/pipelines/:pipelineId/events", (req, res) => {
+  app.get("/api/pipelines/:pipelineId/events", async (req, res) => {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache, no-transform");
     res.setHeader("Connection", "keep-alive");
@@ -4396,7 +4461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // If Redis is available, subscribe to the pipeline channel
     let redisSub: any = null;
     try {
-      const { getRedisClient } = require('./redis-session');
+      const { getRedisClient } = await import('./redis-session');
       const client = getRedisClient?.();
       if (client) {
         redisSub = client.duplicate();
@@ -4459,6 +4524,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           finalizedBy: finalized_by ? String(finalized_by) : 'orphan_poller',
         },
       } as any);
+
+      // Persist workflow metadata to chat_sessions.workflows on completion.
+      if (status === 'completed' && run.chatSessionId) {
+        try {
+          const wfName = (run as any).workflowName ||
+                         (run as any).workflowDefinition?.name ||
+                         (run as any).workflowDefinition?.chain_name ||
+                         'Workflow';
+          const wfEntry = JSON.stringify([{
+            workflow_id: run.id,
+            workflow_name: wfName,
+            status: 'completed',
+          }]);
+          await pool.query(
+            `UPDATE chat_sessions SET workflows = $1::jsonb, last_activity = NOW()
+             WHERE session_id = $2`,
+            [wfEntry, run.chatSessionId]
+          );
+          console.log(`[OrphanFinalizer] Wrote workflow entry to chat_sessions for session ${run.chatSessionId}`);
+        } catch (sessErr: any) {
+          console.error('[OrphanFinalizer] Failed to update chat_sessions.workflows:', sessErr?.message);
+        }
+      }
+
       return res.json({ ok: true, runId: run.id, status });
     } catch (e: any) {
       return res.status(500).json({ error: 'update failed', message: e?.message ?? String(e) });
@@ -5152,7 +5241,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             voltage_kv:               String(wfSummary?.data?.voltage_kv              ?? params?.voltage_kv ?? params?.voltage ?? 'MISSING'),
             symmetry:                 String(wfSummary?.data?.symmetry                ?? params?.symmetry   ?? 'C1'),
             steps_completed:          String(wfSummary?.data?.steps_completed         ?? 'MISSING'),
-            s3_output_path:           s3OutputBase,
             completion_time:          String(wfSummary?.data?.completion_time         ?? completedAt ?? 'MISSING'),
             cs_project_uid:           proj,
           };
@@ -5221,8 +5309,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `1. STUDY OVERVIEW`,
             `-`.repeat(40),
             `Workflow: ${workflowName}`,
-            `Invocation ID: ${invocationId}`,
-            `Nextflow Run ID: ${nfRunId}`,
             `Execution status: ${runStatus}`,
             `Started: ${startedAt}`,
             completedAt ? `Completed: ${completedAt}` : '',
@@ -5240,9 +5326,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `-`.repeat(40),
             outputInventory,
             ``,
-            `5. DATA LOCATION`,
+            `5. NEXT STEPS`,
             `-`.repeat(40),
-            `All outputs: ${s3OutputBase}`,
+            `Download your results using the BioMate run panel, or contact support if outputs are missing.`,
           ].filter(l => l !== undefined).join('\n');
           res.setHeader('Content-Type', 'text/plain; charset=utf-8');
           res.setHeader('Content-Disposition', `attachment; filename="run_report_${invocationId}.txt"`);
@@ -5255,14 +5341,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const executionBlock = `=== EXECUTION METADATA ===
 WORKFLOW: ${workflowName}
-INVOCATION ID: ${invocationId}
-NEXTFLOW RUN ID: ${nfRunId}
 EXECUTION STATUS: ${runStatus}
 START TIME: ${startedAt}
 COMPLETION TIME: ${completedAt || 'N/A'}
 TOTAL WALL TIME: ${wallTimeStr}
 CLOUD PLATFORM: AWS Batch (us-west-2 region)
-ORCHESTRATION: Nextflow DSL2 + AWS Batch`;
+ORCHESTRATION: BioMate pipeline on AWS Batch`;
 
         const commonTail = `
 === EXTRACTED METRICS (parsed from pipeline JSON reports — verified real numbers) ===
@@ -5289,10 +5373,8 @@ PIPELINE CONTEXT:
 Workflow: ${workflowName}
 Wall time: ${wallTimeStr}
 Steps completed: ${extractedMetrics.steps_completed}
-Platform: AWS Batch, CryoSPARC v5.0.2, Nextflow DSL2
+Platform: AWS Batch, CryoSPARC v5.0.2
 Pixel size: ${extractedMetrics.pixel_size_A} Å/px | Voltage: ${extractedMetrics.voltage_kv} kV | Symmetry: ${extractedMetrics.symmetry}
-Output path: ${extractedMetrics.s3_output_path}
-
 OUTPUT FILES PRODUCED:
 ${allOutputFiles.filter((f: string) => !f.includes('[binary]') || f.includes('.mrc')).slice(0, 20).join('\n')}
 
@@ -5436,8 +5518,6 @@ ${paramLines || '(none recorded)'}`;
           `${'='.repeat(60)}`,
           `Generated: ${new Date().toISOString()}`,
           `Workflow: ${workflowName}`,
-          `Invocation ID: ${invocationId}`,
-          `Nextflow Run ID: ${nfRunId}`,
           `Wall Time: ${wallTimeStr}`,
           `=`.repeat(60),
           ``,
@@ -5652,7 +5732,7 @@ ${paramLines || '(none recorded)'}`;
         if (!res.writableEnded && !abortController.signal.aborted) {
           res.write(': heartbeat\n\n');
         }
-      }, 10_000);
+      }, 3_000); // 3s keeps iOS Safari from dropping the SSE connection mid-stream
 
       safeSend("ready", { ok: true });
 
@@ -5785,12 +5865,49 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
+      // Load project researchGoal for LLM context injection when a project is active.
+      let _projectContext: string | undefined;
+      if (_resolvedProjectId) {
+        try {
+          const _proj = await pool.query(
+            `SELECT name, description, research_goal, instructions FROM projects WHERE id = $1 LIMIT 1`,
+            [_resolvedProjectId]
+          );
+          const _p = _proj.rows?.[0];
+          if (_p) {
+            const parts: string[] = [];
+            if (_p.name) parts.push(`Project: ${_p.name}`);
+            if (_p.description) parts.push(`Description: ${_p.description}`);
+            if (_p.research_goal) parts.push(`Research goal: ${_p.research_goal}`);
+            if (_p.instructions) parts.push(`Background instructions: ${_p.instructions}`);
+            if (parts.length > 0) _projectContext = parts.join('\n');
+          }
+        } catch {
+          // Non-fatal — never break chat on a project lookup failure.
+        }
+      }
+
+      // Load user's own Anthropic key if stored; decrypt for this request only.
+      let _userAnthropicApiKey: string | undefined;
+      if (req.user?.id) {
+        try {
+          const _keyRow = await pool.query(
+            `SELECT llm_api_keys FROM users WHERE id = $1 LIMIT 1`,
+            [req.user.id]
+          );
+          const _enc = (_keyRow.rows[0]?.llm_api_keys as any)?.anthropic;
+          if (_enc) _userAnthropicApiKey = decryptField(_enc);
+        } catch { /* non-fatal — fall back to system key */ }
+      }
+
       const enrichedContext = {
         ...(context || {}),
         // Normalise session identity: frontend sends memorySessionId; processMessage uses sessionId.
         // If both are present, prefer the explicit sessionId; fall back to memorySessionId.
         sessionId: _resolvedSessionId,
         projectId: _resolvedProjectId,
+        projectContext: _projectContext,
+        userAnthropicApiKey: _userAnthropicApiKey,
         // memorySessionId must be the LTM sessions.id (uuid) so recordEpisode's
         // project_episodes.session_id FK is satisfied. If the bridge call
         // failed (no LTM session created), leave it undefined and let
@@ -6637,6 +6754,51 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
+  // ── Per-user LLM provider API keys ──────────────────────────────────────────
+  // Users can supply their own Anthropic key so chats use their quota.
+  // The key is stored encrypted; GET only returns a boolean (never the value).
+
+  app.get("/api/user/llm-api-keys", authenticateToken, async (req, res) => {
+    try {
+      const row = await pool.query(
+        `SELECT llm_api_keys FROM users WHERE id = $1`,
+        [req.user!.id]
+      );
+      const stored = row.rows[0]?.llm_api_keys ?? {};
+      res.json({ anthropic: !!(stored as any)?.anthropic });
+    } catch (error: any) {
+      console.error('[llm-api-keys] get error:', error?.message);
+      res.status(500).json({ error: 'Failed to get LLM API keys' });
+    }
+  });
+
+  app.patch("/api/user/llm-api-keys", authenticateToken, express.json(), async (req, res) => {
+    try {
+      const { provider, key } = req.body ?? {};
+      if (typeof provider !== 'string' || !['anthropic'].includes(provider)) {
+        return res.status(400).json({ error: 'provider must be "anthropic"' });
+      }
+      const rowResult = await pool.query(
+        `SELECT llm_api_keys FROM users WHERE id = $1`,
+        [req.user!.id]
+      );
+      const existing: Record<string, string> = rowResult.rows[0]?.llm_api_keys ?? {};
+      if (typeof key === 'string' && key.trim().length > 0) {
+        existing[provider] = encryptField(key.trim());
+      } else {
+        delete existing[provider];
+      }
+      await pool.query(
+        `UPDATE users SET llm_api_keys = $1::jsonb, updated_at = NOW() WHERE id = $2`,
+        [JSON.stringify(existing), req.user!.id]
+      );
+      res.json({ ok: true, anthropic: !!existing.anthropic });
+    } catch (error: any) {
+      console.error('[llm-api-keys] patch error:', error?.message);
+      res.status(500).json({ error: 'Failed to update LLM API keys' });
+    }
+  });
+
   app.get("/api/users/credentials/map", optionalAuth, async (req, res) => {
     try {
       const proxy = userProxy(req);
@@ -7038,6 +7200,23 @@ ${paramLines || '(none recorded)'}`;
         req.user!.id,
         status as 'active' | 'archived' | 'completed' | undefined
       );
+      if (projects.length > 0) {
+        const ids = projects.map(p => p.id);
+        const [sessRows, runRows] = await Promise.all([
+          pool.query<{ project_id: string; count: string }>(
+            `SELECT project_id, COUNT(*) AS count FROM chat_sessions WHERE project_id = ANY($1) GROUP BY project_id`,
+            [ids]
+          ),
+          pool.query<{ project_id: string; count: string }>(
+            `SELECT project_id, COUNT(*) AS count FROM execution_runs WHERE project_id = ANY($1) GROUP BY project_id`,
+            [ids]
+          ),
+        ]);
+        const sessCounts = Object.fromEntries(sessRows.rows.map(r => [r.project_id, parseInt(r.count, 10)]));
+        const runCounts = Object.fromEntries(runRows.rows.map(r => [r.project_id, parseInt(r.count, 10)]));
+        const enriched = projects.map(p => ({ ...p, sessionCount: sessCounts[p.id] ?? 0, runCount: runCounts[p.id] ?? 0 }));
+        return res.json(enriched);
+      }
       res.json(projects);
     } catch (error: any) {
       console.error('[API] Get projects failed:', error);
@@ -7606,13 +7785,17 @@ ${paramLines || '(none recorded)'}`;
   // Proxies to Python backend /api/ai_assistant/search_nextflow_workflow
   app.post("/api/workflows/search", optionalAuth, async (req, res) => {
     try {
-      const { query, limit } = req.body || {};
+      const { query, limit, defer_param_prefill } = req.body || {};
       if (!query) return res.status(400).json({ error: "query is required" });
       const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
       const upstream = await fetch(`${galaxyUrl}/api/ai_assistant/search_nextflow_workflow`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_intent: query, limit: limit ?? 5 }),
+        // defer_param_prefill: skip the backend's inline LLM param-prefill (~1-2s,
+        // up to ~13s under concurrent retry) and return search sub-second. The
+        // connector's search_workflow sets this — its LLM client extracts params
+        // itself, so the inline prefill is redundant there.
+        body: JSON.stringify({ user_intent: query, limit: limit ?? 5, defer_param_prefill: !!defer_param_prefill }),
       });
       const data = await upstream.json();
       res.status(upstream.status).json(data);
@@ -7642,6 +7825,129 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
+  // -----------------------------------------------------------------------
+  // Personal workflow upload / listing
+  // -----------------------------------------------------------------------
+
+  // Dedicated multer config for workflow definition files (small, text-based).
+  // Stored in memory so we can read them without touching disk long-term.
+  const workflowUploadMemory = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB max — workflow files are tiny
+    fileFilter: (_req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      if (['.nf', '.ga', '.yml', '.yaml'].includes(ext)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only .nf, .ga, .yml, and .yaml workflow files are supported'));
+      }
+    },
+  });
+
+  // POST /api/workflows/upload-file — import a personal workflow file
+  // Stored directly in the frontend PostgreSQL DB (personal_workflows table).
+  // No Galaxy backend call required — self-contained.
+  app.post(
+    '/api/workflows/upload-file',
+    optionalAuth,
+    workflowUploadMemory.single('file'),
+    async (req: any, res) => {
+      try {
+        const user = req.user as any;
+        if (!user?.id) return res.status(401).json({ error: 'Authentication required' });
+
+        if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+        const fileContent = req.file.buffer.toString('utf-8');
+        const ext = path.extname(req.file.originalname).toLowerCase().replace('.', '');
+        const fileType = ext === 'yaml' ? 'yaml' : ext;
+
+        const workflowName = (req.body?.workflowName as string)?.trim()
+          || req.file.originalname.replace(/\.[^.]+$/, '');
+        const description = (req.body?.description as string)?.trim() || '';
+
+        const result = await pool.query(
+          `INSERT INTO personal_workflows (user_id, name, description, file_type, file_content)
+           VALUES ($1, $2, $3, $4, $5)
+           RETURNING id, name AS workflow_name`,
+          [String(user.id), workflowName, description, fileType, fileContent]
+        );
+        const row = result.rows[0];
+        return res.json({
+          id: row.id,
+          workflow_name: row.workflow_name,
+          file_type: fileType,
+          message: `Workflow '${row.workflow_name}' imported successfully.`,
+        });
+      } catch (err: any) {
+        console.error('[workflow-upload]', err);
+        return res.status(500).json({ error: err.message || 'Upload failed' });
+      }
+    }
+  );
+
+  // GET /api/workflows/personal — list the calling user's uploaded workflows
+  app.get('/api/workflows/personal', optionalAuth, async (req: any, res) => {
+    try {
+      const user = req.user as any;
+      if (!user?.id) return res.status(401).json({ error: 'Authentication required' });
+
+      const search = (req.query.search as string || '').trim();
+      const queryParams: any[] = [String(user.id)];
+      let whereClause = 'WHERE user_id = $1';
+      if (search) {
+        queryParams.push(`%${search}%`);
+        whereClause += ` AND name ILIKE $2`;
+      }
+      const result = await pool.query(
+        `SELECT id, user_id, name AS workflow_name, description, file_type,
+                created_at, updated_at
+         FROM personal_workflows
+         ${whereClause}
+         ORDER BY created_at DESC
+         LIMIT 500`,
+        queryParams
+      );
+      return res.json(result.rows);
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // DELETE /api/workflows/personal/:id — remove an imported workflow
+  app.delete('/api/workflows/personal/:id', optionalAuth, async (req: any, res) => {
+    try {
+      const user = req.user as any;
+      if (!user?.id) return res.status(401).json({ error: 'Authentication required' });
+      const result = await pool.query(
+        `DELETE FROM personal_workflows WHERE id = $1 AND user_id = $2 RETURNING id`,
+        [req.params.id, String(user.id)]
+      );
+      if (!result.rows.length) return res.status(404).json({ error: 'Not found' });
+      return res.json({ ok: true });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/workflows/personal/:id — single workflow with file_content
+  app.get('/api/workflows/personal/:id', optionalAuth, async (req: any, res) => {
+    try {
+      const user = req.user as any;
+      if (!user?.id) return res.status(401).json({ error: 'Authentication required' });
+      const result = await pool.query(
+        `SELECT id, user_id, name AS workflow_name, description, file_type,
+                file_content, created_at, updated_at
+         FROM personal_workflows WHERE id = $1 AND user_id = $2`,
+        [req.params.id, String(user.id)]
+      );
+      if (!result.rows.length) return res.status(404).json({ error: 'Not found' });
+      return res.json(result.rows[0]);
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
   // POST /api/files/preview — render a preview of an S3 file (used by MCP preview_file)
   // Returns { content_type, preview_text?, download_url?, rows?, truncated }
   app.post("/api/files/preview", optionalAuth, async (req, res) => {
@@ -7666,9 +7972,17 @@ ${paramLines || '(none recorded)'}`;
       const TEXT_EXTS = new Set(['csv','tsv','txt','log','fasta','fa','fastq','vcf','bed','gff','gtf','json','html','htm','tabular']);
       const IMAGE_EXTS = new Set(['png','jpg','jpeg','gif','svg']);
 
-      const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+      const { GetObjectCommand } = await import('@aws-sdk/client-s3');
       const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
-      const s3 = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' });
+      // Pin the client to the BUCKET's real region. biomate-nextflow-work lives
+      // in us-east-1 while the deploy host's AWS_REGION is us-west-2 — a region-
+      // mismatched client (the old `new S3Client({ region: AWS_REGION })`) gets
+      // "The bucket you are attempting to access must be addressed using the
+      // specified endpoint" (PermanentRedirect → HTTP 500) on both GetObject and
+      // the presigned URL. _s3ClientForBucket resolves the region via
+      // GetBucketLocation, same as the Nextflow write path. (connector preview_file
+      // incident 2026-06-30 — execution wrote S3 fine, only the read side broke.)
+      const s3 = await _s3ClientForBucket(bucket);
       const cmd = new GetObjectCommand({ Bucket: bucket, Key: key });
 
       if (IMAGE_EXTS.has(ext)) {
@@ -7700,19 +8014,109 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // POST /api/databases/query — query biological databases (used by MCP query_database)
-  // Proxies to Galaxy /api/databases/query which routes to UniProt, PDB, NCBI, etc.
+  // Pass database="federated" (or omit) to fan-out to all relevant sources in parallel.
+  // Pass a specific database name to hit a single source.
   app.post("/api/databases/query", optionalAuth, async (req, res) => {
     try {
-      const { database, query } = req.body || {};
+      const { database, query, entity_type, sources } = req.body || {};
       if (!query) return res.status(400).json({ error: "query is required" });
       const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
       const upstream = await fetch(`${galaxyUrl}/api/databases/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ database: database || "auto", query }),
+        body: JSON.stringify({
+          database: database || "federated",
+          query,
+          entity_type: entity_type || null,
+          sources: sources || null,
+        }),
       });
       const data = await upstream.json();
       res.status(upstream.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/databases/federated — explicit federated fan-out endpoint
+  app.post("/api/databases/federated", optionalAuth, async (req, res) => {
+    try {
+      const { query, entity_type, sources } = req.body || {};
+      if (!query) return res.status(400).json({ error: "query is required" });
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const upstream = await fetch(`${galaxyUrl}/api/databases/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ database: "federated", query, entity_type, sources }),
+      });
+      const data = await upstream.json();
+      res.status(upstream.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/literature/search — iterative depth-loop literature search
+  // Hits PubMed + EuropePMC + Semantic Scholar + OpenAlex, detects gaps, deepens.
+  app.post("/api/literature/search", optionalAuth, async (req, res) => {
+    try {
+      const { query, max_depth, min_results } = req.body || {};
+      if (!query) return res.status(400).json({ error: "query is required" });
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const upstream = await fetch(`${galaxyUrl}/api/literature/search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, max_depth: max_depth || 3, min_results: min_results || 10 }),
+      });
+      const data = await upstream.json();
+      res.status(upstream.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ── Skills API — expert role injection ──────────────────────────────────
+  // GET  /api/skills          — list all available skills
+  // POST /api/skills/detect   — auto-detect from query
+  // POST /api/skills/block    — build system prompt block for skill IDs
+
+  app.get("/api/skills", optionalAuth, async (_req, res) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const upstream = await fetch(`${galaxyUrl}/api/skills`);
+      res.status(upstream.status).json(await upstream.json());
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/skills/detect", optionalAuth, async (req, res) => {
+    try {
+      const { query, preferred_domains } = req.body || {};
+      if (!query) return res.status(400).json({ error: "query required" });
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const upstream = await fetch(`${galaxyUrl}/api/skills/detect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, preferred_domains }),
+      });
+      res.status(upstream.status).json(await upstream.json());
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/skills/block", optionalAuth, async (req, res) => {
+    try {
+      const { skill_ids } = req.body || {};
+      if (!skill_ids?.length) return res.status(400).json({ error: "skill_ids required" });
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const upstream = await fetch(`${galaxyUrl}/api/skills/block`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skill_ids }),
+      });
+      res.status(upstream.status).json(await upstream.json());
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -7850,6 +8254,10 @@ ${paramLines || '(none recorded)'}`;
       res.status(500).json({ error: err.message });
     }
   });
+
+  // GET /api/bioconductor/skill/:package — commented out.
+  // BioMate's search_workflow covers this via the live workflow DB.
+  // app.get("/api/bioconductor/skill/:package", ...);
 
   app.get("/api/data/browse", authenticateStaticApiKey, authenticateToken, async (req, res) => {
     // Proxies to Galaxy's /api/remote_files which lists contents of a file source path.
@@ -9673,9 +10081,27 @@ ${paramLines || '(none recorded)'}`;
           const stagedParamsClean = { ...stagedParams };
           delete (stagedParamsClean as any).__outputLocation;
 
+          // If a personal (user-uploaded) workflow was selected, fetch its
+          // file_content from the DB and pass it to the Galaxy backend so it
+          // can write the file to /tmp and execute it without needing a
+          // pre-staged path on the Galaxy filesystem.
+          let personalFileContent: string | undefined;
+          if (request.workflowDefinition?.personal_workflow_id) {
+            const pwRes = await pool.query(
+              `SELECT file_content FROM personal_workflows
+               WHERE id = $1 AND user_id = $2`,
+              [request.workflowDefinition.personal_workflow_id, String(req.user?.id)]
+            );
+            personalFileContent = pwRes.rows[0]?.file_content;
+          }
+
           const _nfBody = JSON.stringify({
               history_id: galaxyHistoryId,
-              nextflow_path: request.workflowDefinition.nextflow_path,
+              // When file_content is provided (personal workflow), the Galaxy backend
+              // writes the content to a temp file and overrides nextflow_path internally.
+              // We still must supply a non-null nextflow_path to pass Pydantic validation.
+              nextflow_path: request.workflowDefinition.nextflow_path || (personalFileContent ? 'personal_workflow/main.nf' : ''),
+              ...(personalFileContent ? { file_content: personalFileContent } : {}),
               parameters: stagedParamsClean,
               ...(__outputLocation ? { output_location: __outputLocation } : {}),
               // ⚠️ DO NOT REVERT to `docker`. Third re-application of 2885eb960 / 140502f23.
@@ -9698,19 +10124,27 @@ ${paramLines || '(none recorded)'}`;
                 return req.user ? _pe.includes(String((req.user as any).email || '').toLowerCase()) : false;
               })(),
             });
-          // Retry up to 3 times on transient Galaxy backend errors (502/503/504 from
-          // gunicorn worker recycles). Fixed 3s delay — gunicorn recycles in <5s.
+          // Retry up to 3 times on transient Galaxy backend errors:
+          //   - HTTP 502/503/504: gunicorn worker recycled mid-request
+          //   - TypeError "fetch failed": ECONNREFUSED during worker restart (<1s window)
+          // Fixed 3s delay — gunicorn recycles in <5s.
           let nextflowResponse: Response | null = null;
           for (let _attempt = 0; _attempt < 3; _attempt++) {
             if (_attempt > 0) {
               await new Promise(r => setTimeout(r, 3000));
               console.log(`[Nextflow Direct] Retry attempt ${_attempt} after transient Galaxy error`);
             }
-            nextflowResponse = await fetch(`${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/execute`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'X-API-Key': process.env.GALAXY_API_KEY || '' },
-              body: _nfBody,
-            });
+            try {
+              nextflowResponse = await fetch(`${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/execute`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-API-Key': process.env.GALAXY_API_KEY || '' },
+                body: _nfBody,
+              });
+            } catch (fetchErr: any) {
+              console.warn(`[Nextflow Direct] Galaxy fetch error (attempt ${_attempt + 1}/3): ${fetchErr.message}`);
+              if (_attempt < 2) continue; // retry on network error (ECONNREFUSED during worker restart)
+              throw fetchErr;             // last attempt — propagate
+            }
             if (nextflowResponse.ok || ![502, 503, 504].includes(nextflowResponse.status)) break;
             console.warn(`[Nextflow Direct] Galaxy returned ${nextflowResponse.status} (attempt ${_attempt + 1}/3) — will retry`);
           }
@@ -9780,7 +10214,7 @@ ${paramLines || '(none recorded)'}`;
             executionEngine: 'nextflow',
             nextflowRunId: nextflowData.run_id,
             status: nextflowData.success ? 'running' : 'failed',
-            message: `Nextflow workflow queued (run_id: ${nextflowData.run_id})`,
+            message: `Workflow queued (run_id: ${nextflowData.run_id})`,
             outputs: nextflowData.outputs,
             results: nextflowData.results
           });
@@ -9809,7 +10243,7 @@ ${paramLines || '(none recorded)'}`;
           }).catch(() => {/* ignore email failures */});
 
           return res.status(500).json({
-            error: 'nextflow_execution_failed',
+            error: 'workflow_execution_failed',
             message: 'Something went wrong while starting the workflow. Our team has been notified. Please try again or come back later.',
             runId: executionRun?.id
           });
@@ -10010,6 +10444,11 @@ ${paramLines || '(none recorded)'}`;
   app.get("/api/workflows/runs/:id", async (req, res) => {
     try {
       let run = await storage.getExecutionRun(req.params.id);
+      // Fall back to Galaxy invocation ID lookup (session restore may have stored
+      // the Galaxy UUID instead of the DB primary key).
+      if (!run) {
+        run = await storage.getExecutionRunByGalaxyId(req.params.id);
+      }
       if (!run) {
         return res.status(404).json({ error: "Execution run not found" });
       }
@@ -11205,14 +11644,27 @@ Rules:
         outdir = `s3://${s3Bucket}/nextflow/outputs/${runId}`;
       }
 
+      // Inject download_url for every file that doesn't already have one.
+      // Files from nfStatus.s3_output_files only carry {s3_uri, name, size, extension};
+      // the S3-listing fallback path above already sets download_endpoint + downloadUrl.
+      // This ensures MCP clients and API consumers always get an authenticated HTTP URL.
+      for (const f of outputFiles) {
+        if (!f.download_url && !f.download_endpoint && !f.downloadUrl) {
+          const fname = encodeURIComponent(f.name || f.filename || '');
+          if (fname) {
+            f.download_url = `/api/runs/${runId}/output/${fname}`;
+            f.download_endpoint = f.download_url;
+          }
+        } else if (!f.download_url) {
+          // Normalise: always expose download_url alongside download_endpoint
+          f.download_url = f.download_endpoint || f.downloadUrl;
+        }
+      }
+
       res.json({
         workflow_id: runId,
         status: run.execution?.status || 'unknown',
-        outdir,
         output_files: outputFiles,
-        download_commands: {
-          all_outputs: `aws s3 sync ${outdir}/ ./outputs/`,
-        },
       });
     } catch (error: any) {
       console.error('[output_files] Error:', error);
@@ -11227,7 +11679,10 @@ Rules:
     try {
       const r = await fetch(
         `http://localhost:${process.env.PORT || 5000}/api/workflows/runs/${req.params.id}/output_files`,
-        { headers: { Authorization: req.headers.authorization || '', cookie: req.headers.cookie || '' } as any }
+        // X-Forwarded-Proto: https — without it this self-fetch is 301'd to
+        // https on a plain-HTTP port by forceHTTPS (only /internal/ is exempt)
+        // and fails on the deploy stack. Same class as the analyze fix above.
+        { headers: { Authorization: req.headers.authorization || '', cookie: req.headers.cookie || '', 'X-Forwarded-Proto': 'https' } as any }
       );
       const data: any = await r.json().catch(() => ({}));
       res.status(r.status).json(data.output_files || []);
@@ -11476,12 +11931,6 @@ Rules:
         return res.status(404).json({ error: 'Run not found' });
       }
       const runId = req.params.id;
-      const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
-      // Prefer the stored outdir (e.g. CryoSPARC uses a UUID-based path, not the frontend run UUID)
-      const storedOutdir = (run as any).execution?.nextflowOutputDir || null;
-      const outdir = storedOutdir || `s3://${s3Bucket}/nextflow/outputs/${runId}`;
-      const workDir = `s3://${s3Bucket}/nextflow/work/${runId}`;
-
       // Attempt to list individual files with presigned download URLs from the Python backend
       let outputFiles: any[] = [];
       try {
@@ -11494,23 +11943,10 @@ Rules:
         }
       } catch (_) { /* non-fatal — fall back to S3 sync command */ }
 
-      // If no files from Galaxy, synthesize entries from the stored S3 outdir so the
-      // "download_commands contain S3 paths" assertion passes
-      if (outputFiles.length === 0 && storedOutdir) {
-        outputFiles = [{ url: storedOutdir, name: 'outputs', command: `aws s3 sync ${storedOutdir}/ ./outputs/` }];
-      }
-
       res.json({
         workflow_id: runId,
-        output_dir: outdir,
         files: outputFiles,
-        download_commands: {
-          all_outputs: `aws s3 sync ${outdir}/ ./outputs/`,
-          json_only: `aws s3 sync ${outdir}/ ./outputs/ --include '*.json' --exclude '*'`,
-          intermediate_files: {
-            work_dir: `aws s3 sync ${workDir}/ ./work/`,
-          },
-        },
+        download_commands: {},
       });
     } catch (error: any) {
       console.error('[download_commands] Error:', error);
@@ -11624,6 +12060,73 @@ Rules:
     } catch (error: any) {
       console.error("[ExecutionRun] Error updating run:", error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Save run outputs to a project's file directory.
+  // Body: { projectId: string }
+  // Reads output files from nextflowStatus.s3_output_files (or triggers a
+  // fresh S3 scan via /api/workflows/runs/:id/output_files) and bulk-inserts
+  // them into project_files with source='run_output'.
+  app.post("/api/workflows/runs/:id/save-to-project", optionalAuth, async (req, res) => {
+    try {
+      const run = await storage.getExecutionRun(req.params.id);
+      if (!run) return res.status(404).json({ error: "Execution run not found" });
+
+      const { projectId } = req.body as { projectId?: string };
+      if (!projectId) return res.status(400).json({ error: "projectId required" });
+
+      const uid = (req as any).user?.id ? String((req as any).user.id) : run.userId ?? "system";
+
+      // Collect output files from stored nextflowStatus first.
+      const ns: any = run.execution?.nextflowStatus;
+      let rawFiles: any[] = Array.isArray(ns?.s3_output_files) ? ns.s3_output_files : [];
+
+      // If empty, do a live fetch from the Galaxy backend.
+      if (rawFiles.length === 0) {
+        try {
+          const galUrl = process.env.GALAXY_URL || "http://localhost:8081";
+          const nfRunId = run.execution?.nextflowRunId || ns?.run_id;
+          if (nfRunId) {
+            const r = await fetch(`${galUrl}/api/nextflow/status?run_id=${nfRunId}`, {
+              headers: { "X-API-Key": process.env.GALAXY_API_KEY || "" },
+            });
+            if (r.ok) {
+              const live = await r.json();
+              rawFiles = Array.isArray(live?.s3_output_files) ? live.s3_output_files : [];
+            }
+          }
+        } catch { /* live fetch optional */ }
+      }
+
+      if (rawFiles.length === 0) {
+        return res.status(422).json({ error: "No output files found for this run yet. Try again after the run completes." });
+      }
+
+      const { registerRunOutputsInProject } = await import("./project-routes");
+      const files = rawFiles.map((f: any) => {
+        const uri: string = f.s3_uri || f.path || "";
+        const s3Key = uri.startsWith("s3://") ? uri.replace(/^s3:\/\/[^/]+\//, "") : uri;
+        return {
+          name: f.filename || f.name || s3Key.split("/").pop() || "file",
+          s3Key,
+          size: f.size ?? 0,
+          contentType: f.content_type || "application/octet-stream",
+        };
+      }).filter((f: any) => f.s3Key);
+
+      const workflowName: string = (run as any).workflowName || "Workflow";
+      const count = await registerRunOutputsInProject({ projectId, userId: uid, runId: run.id, workflowName, files });
+
+      // Also persist projectId on the run so the UI can navigate to it.
+      if (!(run as any).projectId) {
+        await pool.query(`UPDATE execution_runs SET project_id = $1 WHERE id = $2`, [projectId, run.id]);
+      }
+
+      res.json({ ok: true, registered: count, total: files.length });
+    } catch (e: any) {
+      console.error("[save-to-project]", e?.message ?? e);
+      res.status(500).json({ error: e?.message ?? "Failed" });
     }
   });
 
@@ -11881,9 +12384,18 @@ Rules:
       let outputSamples: Array<{ name: string; content: string; type: string }> = [];
       try {
         const localUrl = `http://localhost:${process.env.PORT || 5000}`;
+        // X-Forwarded-Proto: https is REQUIRED. On the deploy stack the app
+        // force-redirects plain HTTP → HTTPS (security-config forceHTTPS, only
+        // /internal/ is exempt). Without this header the self-fetch to
+        // http://localhost:3000/api/invocations/:id/outputs gets a 301 to
+        // https://localhost:3000 (a plain-HTTP port) → the fetch fails → caught
+        // below → outputSamples stays empty → analyze_results silently returns
+        // the generic template with output_files_sampled: []. Same self-call
+        // redirect class as the open-claw tools (PR #65). 30s timeout: the
+        // first /outputs call does a live S3 scan that can exceed 10s.
         const outRes = await fetch(`${localUrl}/api/invocations/${runIdForOutputs}/outputs`, {
-          headers: { Authorization: req.headers.authorization || '' },
-          signal: AbortSignal.timeout(10_000),
+          headers: { Authorization: req.headers.authorization || '', 'X-Forwarded-Proto': 'https' },
+          signal: AbortSignal.timeout(30_000),
         });
         if (outRes.ok) {
           const outData = await outRes.json() as any;
@@ -13094,8 +13606,17 @@ Respond ONLY with valid JSON (no markdown wrapper):
         message: `Interactive tool launched. ${result.entry_point_url ? 'Access URL provided.' : 'Waiting for session.'}`
       });
     } catch (error: any) {
-      console.error("[Interactive] Error launching:", error);
-      res.status(500).json({
+      console.error("[Interactive] Error launching:", error.message);
+      // If Galaxy responded at all (any status code), our server code is working fine —
+      // Galaxy rejected the request (e.g. tool not configured, not available).
+      // Return 400 so callers can distinguish "Galaxy rejected" from "our server crashed" (500).
+      // 500 is reserved for: no Galaxy response (network down) or our own code throwing.
+      //
+      // Note: galaxy-api-proxy.ts interceptor re-throws AxiosError as a GalaxyAPIError with
+      // status_code (not error.response.status), so check both fields.
+      const galaxyStatus = error?.response?.status ?? error?.status_code;
+      const status = galaxyStatus ? 400 : 500;
+      res.status(status).json({
         error: 'InteractiveLaunchError',
         message: error.message || 'Failed to launch interactive tool',
       });
@@ -13108,11 +13629,11 @@ Respond ONLY with valid JSON (no markdown wrapper):
       const sessions = await galaxyAPIProxy.getActiveInteractiveSessions();
       res.json({ sessions, count: sessions.length });
     } catch (error: any) {
-      console.error("[Interactive] Error getting sessions:", error);
-      res.status(500).json({
-        error: 'SessionsError',
-        message: error.message || 'Failed to get interactive sessions',
-      });
+      // Galaxy /api/entry_points returns 5xx when interactive tools aren't configured.
+      // That means "0 active sessions" — not a server crash. Always return 200 with
+      // an empty list so callers don't see spurious 500s for unconfigured environments.
+      console.error("[Interactive] Error getting sessions (returning empty list):", error.message);
+      res.json({ sessions: [], count: 0 });
     }
   });
 
@@ -13349,7 +13870,36 @@ Respond ONLY with valid JSON (no markdown wrapper):
         [req.params.sessionId, req.user.id]
       );
       if (!rows.rows.length) return res.status(404).json({ error: 'Session not found' });
-      res.json(rows.rows[0]);
+      const session = rows.rows[0];
+
+      // If the stored workflows array is empty, dynamically populate it from
+      // execution_runs so that historical runs (completed before this column
+      // was written) still surface the AfterRunReport in the right panel.
+      if (!session.workflows || session.workflows.length === 0) {
+        try {
+          const runRows = await pool.query(
+            `SELECT id, workflow_name, status AS run_status
+             FROM execution_runs
+             WHERE chat_session_id = $1
+               AND status IN ('completed', 'failed', 'running')
+             ORDER BY created_at DESC
+             LIMIT 5`,
+            [req.params.sessionId]
+          );
+          if (runRows.rows.length > 0) {
+            session.workflows = runRows.rows.map((r: any) => ({
+              workflow_id: r.id,
+              workflow_name: r.workflow_name || 'Workflow',
+              status: r.run_status || 'completed',
+            }));
+          }
+        } catch (dynErr: any) {
+          // Non-fatal: fall back to empty array
+          console.warn('[sessions/:id] Failed to backfill workflows from execution_runs:', dynErr?.message);
+        }
+      }
+
+      res.json(session);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -13726,6 +14276,7 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
       let currentMessages = messages;
       let iterations = 0;
       const MAX_ITERATIONS = 10;
+      const collectedRunIds: string[] = [];
 
       while (iterations < MAX_ITERATIONS) {
         iterations++;
@@ -13793,13 +14344,18 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
           const toolResult = await executeOpenClaudeTool(block.name, block.input, userId, req);
           safeSend("tool_result", { tool_use_id: block.id, name: block.name, result: toolResult });
           toolResults.push({ type: "tool_result", tool_use_id: block.id, content: JSON.stringify(toolResult) });
+          // Capture run_id from run_workflow so the MCP server can fetch outputs post-loop
+          if (block.name === "run_workflow") {
+            const rid = toolResult?.runId || toolResult?.run_id || toolResult?.id;
+            if (rid) collectedRunIds.push(String(rid));
+          }
         }
 
         // Add tool results to messages for next iteration
         currentMessages = [...currentMessages, { role: "user", content: toolResults }];
       }
 
-      safeSend("complete", { iterations });
+      safeSend("complete", { iterations, run_ids: collectedRunIds });
       res.end();
     } catch (err: any) {
       safeSend("error", { message: err.message });

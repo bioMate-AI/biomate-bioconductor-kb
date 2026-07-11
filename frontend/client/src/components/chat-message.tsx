@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useRef } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
@@ -160,6 +160,11 @@ export function ChatMessage({
   // and delivered via the workflow SSE stream. Rendered as a single line, not
   // a full assistant card.
   const isProgressMessage = !isUser && message.metadata?.type === "workflow_progress"
+  // Once this message's workflow has been opened in the right panel, remember it
+  // so that closing the panel shows the wf-chip (not the full card again).
+  const wasInPanelRef = useRef(false);
+  if (isInPanel) wasInPanelRef.current = true;
+  const everInPanel = isInPanel || wasInPanelRef.current;
   const { toast } = useToast()
   const [downloadPromptOpen, setDownloadPromptOpen] = useState(false)
   const effectiveInvocationId =
@@ -336,14 +341,51 @@ export function ChatMessage({
           lineHeight: 1.5,
           alignSelf: 'flex-end',
         } : undefined}>
-            {isUser ? (
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
-            ) : (
+            {isUser ? (() => {
+              const raw = message.content || ''
+              // Extract attached file names from metadata blocks before stripping them
+              const attachedNames: string[] = []
+              const attachedBlock = raw.match(/\[Attached files:\s*([^\]]+)\]/i)?.[1] ?? ''
+              if (attachedBlock) {
+                attachedNames.push(...attachedBlock.split(',').map(s => s.trim()).filter(Boolean))
+              }
+              const datasetBlock = raw.match(/\[(?:BioMate dataset|Uploaded datasets?|Dataset):\s*([^\]]+)\]/gi) ?? []
+              datasetBlock.forEach(b => {
+                const name = b.match(/\[(?:BioMate dataset|Uploaded datasets?|Dataset):\s*([^:(]+)/i)?.[1]?.trim()
+                if (name && !attachedNames.includes(name)) attachedNames.push(name)
+              })
+              // Strip all metadata blocks from the visible text
+              const visibleText = raw
+                .replace(/\n?\[(?:BioMate dataset|Galaxy dataset|Dataset|Attached files|Uploaded datasets?)[^\]]*\]/gi, '')
+                .replace(/\n?\[Paper content:[^\]]*\][\s\S]*$/i, '')
+                .trim()
+              return (
+                <div>
+                  {visibleText && <p className="text-sm leading-relaxed whitespace-pre-wrap">{visibleText}</p>}
+                  {attachedNames.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {attachedNames.map(name => (
+                        <span key={name} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-black/10 dark:bg-white/10 text-xs text-current/80">
+                          📎 {name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })() : (
               <>
               {/* Agent tool blocks — shown above the text response */}
               {(message.metadata?.toolBlocks as ToolBlock[] | undefined)?.map(block => (
                 <CodeExecutionBlock key={block.tool_use_id} block={block} />
               ))}
+              {/* Research/analysis progress indicator — shown while content is still loading */}
+              {!message.content?.trim() && (message.metadata as any)?.progressStatus && (
+                <div className="flex items-center gap-2 text-muted-foreground italic text-sm py-1">
+                  <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" aria-hidden />
+                  <span>{(message.metadata as any).progressStatus}</span>
+                </div>
+              )}
               <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none
                 prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
                 prose-h1:text-base prose-h2:text-sm prose-h3:text-sm
@@ -384,7 +426,13 @@ export function ChatMessage({
                     },
                   }}
                 >
-                  {addCitationLinks(message.content || '')}
+                  {addCitationLinks(
+                    // Strip trailing References section when structured citations are rendered below
+                    (message.metadata?.type === 'research_response' &&
+                      (message.metadata?.research_response as any)?.citations?.length > 0)
+                      ? (message.content || '').replace(/\n+(?:#{1,3}\s+|\*{1,2})?references?\**\s*\n[\s\S]*$/i, '').trim()
+                      : (message.content || '')
+                  )}
                 </ReactMarkdown>
               </div>
               </>
@@ -437,46 +485,60 @@ export function ChatMessage({
             />
           )}
 
-          {/* wf-chip: compact workflow card shown in chat when workflow is open in the panel */}
-          {isWorkflowMessage && isInPanel && message.metadata?.workflow && (
-            <>
-              <div className="wf-chip" data-tour="chat-handoff">
-                <div className="wf-chip-ic">
-                  <FlaskConical size={16} />
-                </div>
-                <div className="wf-chip-body">
-                  <div className="wf-chip-name">{message.metadata.workflow.name || message.metadata.workflow.display_name || 'Workflow'}</div>
-                  <div className="wf-chip-sub">
-                    {[
-                      message.metadata.workflow.domain,
-                      message.metadata.workflow.subtitle ||
-                        (message.metadata.workflow.steps && typeof message.metadata.workflow.steps === 'object' && !Array.isArray(message.metadata.workflow.steps) && Object.keys(message.metadata.workflow.steps).length > 0
-                          ? `${Object.keys(message.metadata.workflow.steps).length} steps` : null),
-                    ].filter(Boolean).join(' · ')}
+          {/* wf-chip: compact workflow card shown in chat when workflow is open in the panel,
+              or was previously in the panel (panel closed after opening) */}
+          {isWorkflowMessage && everInPanel && message.metadata?.workflow && (() => {
+              const runStatus = currentExecutionRun?.execution?.status;
+              const chipClass = runStatus === 'failed' ? 'chip-fail' : runStatus === 'running' ? 'chip-run' : 'chip-ok';
+              const chipLabel = runStatus === 'failed' ? 'Failed' : runStatus === 'completed' ? 'Done' : runStatus === 'running' ? 'Running' : isInPanel ? 'In panel' : 'Open in panel';
+              const hint = runStatus === 'failed'
+                ? 'This run did not complete. Check the panel for details and try again.'
+                : runStatus === 'completed'
+                ? 'Run complete — results are available in the panel.'
+                : isInPanel
+                ? 'You can keep chatting while this run continues in the background.'
+                : 'Click Open to view this workflow in the panel.';
+              return (
+                <>
+                  <div className="wf-chip" data-tour="chat-handoff">
+                    <div className="wf-chip-ic">
+                      <FlaskConical size={16} />
+                    </div>
+                    <div className="wf-chip-body">
+                      <div className="wf-chip-name">{message.metadata.workflow.name || message.metadata.workflow.display_name || 'Workflow'}</div>
+                      <div className="wf-chip-sub">
+                        {[
+                          message.metadata.workflow.domain,
+                          message.metadata.workflow.subtitle ||
+                            (message.metadata.workflow.steps && typeof message.metadata.workflow.steps === 'object' && !Array.isArray(message.metadata.workflow.steps) && Object.keys(message.metadata.workflow.steps).length > 0
+                              ? `${Object.keys(message.metadata.workflow.steps).length} steps` : null),
+                        ].filter(Boolean).join(' · ')}
+                      </div>
+                    </div>
+                    <span className={chipClass}>
+                      <span className="dot" />
+                      {chipLabel}
+                    </span>
+                    {!isInPanel && onOpenInPanel && (
+                      <button
+                        onClick={onOpenInPanel}
+                        style={{ marginLeft: 8, fontSize: 11, padding: '2px 8px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                      >
+                        Open
+                      </button>
+                    )}
                   </div>
-                </div>
-                <span className="chip-ok">
-                  <span className="dot" />
-                  In panel
-                </span>
-              </div>
-              {/* Background-work hint — tells the user they don't have to wait for
-                  the workflow to finish. Stays in chat regardless of run state. */}
-              <div
-                className="wf-chip-hint"
-                data-testid="wf-chip-background-hint"
-                style={{
-                  fontSize: 12,
-                  color: 'var(--text-muted)',
-                  marginTop: 6,
-                  lineHeight: 1.45,
-                }}
-              >
-                You can keep chatting and start more work — this run continues in the background.
-                All active and past runs are visible in the <strong>Run Manager</strong> at the top of the chat.
-              </div>
-            </>
-          )}
+                  <div
+                    className="wf-chip-hint"
+                    data-testid="wf-chip-background-hint"
+                    style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.45 }}
+                  >
+                    {hint}
+                  </div>
+                </>
+              );
+            })()
+          }
 
           {/* IntentClarificationCard — surfaces cross-intent ambiguity
               (e.g. tool_search vs workflow_generation) from the backend's
@@ -551,10 +613,9 @@ export function ChatMessage({
           )}
 
           {/* Nextflow Workflow Viewer - Replaces WorkflowArtifact */}
-          {/* When the workflow is open in the right panel (isInPanel=true), render nothing
-              here — all workflow UI lives exclusively in the panel. The AI text response
-              above already tells the user to look at the panel. */}
-          {isWorkflowMessage && !isInPanel && (
+          {/* When the workflow has ever been in the right panel, show only the wf-chip
+              above. The full card is only shown before the user has opened the panel. */}
+          {isWorkflowMessage && !everInPanel && (
             (() => {
               const invocationId = effectiveInvocationId;
               const executionStatus = currentExecutionRun?.execution?.status || (isWorkflowRunning ? 'running' : 'idle');
@@ -855,7 +916,8 @@ export function ChatMessage({
           })()}
         </div>
 
-        {!isUser && (
+        {/* Action buttons — only shown when there is actual response content */}
+        {!isUser && message.metadata?.type !== "error" && !!message.content?.trim() && (
           <div className="flex items-center gap-2 flex-wrap">
             <DownloadOutcomePrompt
               open={downloadPromptOpen}
@@ -922,17 +984,18 @@ export function ChatMessage({
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleDownloadOutputs}
-              data-testid="button-download-outputs-icon"
-              title="Download outputs"
-              aria-label="Download outputs"
-              disabled={!effectiveInvocationId}
-            >
-              <Download className="h-4 w-4" />
-            </Button>
+            {effectiveInvocationId && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleDownloadOutputs}
+                data-testid="button-download-outputs-icon"
+                title="Download outputs"
+                aria-label="Download outputs"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            )}
             {(message.metadata?.type === 'workflow' || message.invocationId || hasGalaxyMetadata) && (
               <InlineFeedbackWidget
                 messageId={message.id}
@@ -944,11 +1007,9 @@ export function ChatMessage({
             )}
           </div>
         )}
-        
-        {/* Suggestion buttons hidden per UX request */}
 
         {!isUser && message.metadata?.type === "error" && (
-          <div className="flex flex-wrap items-center gap-2 mt-2">
+          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-border/40">
             <Button
               variant="outline"
               size="sm"
@@ -964,10 +1025,9 @@ export function ChatMessage({
                 errorType: message.metadata?.errorType,
                 errorMessage: message.metadata?.errorMessage,
               }}
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => onSuggestionClick("Report issue", message)}
-              className="h-8"
             />
           </div>
         )}

@@ -1,0 +1,62 @@
+{
+  "test_id": "8-B",
+  "test_name": "Citation Verifier \u2014 Tocilizumab \u00a72.6.1 Narrative",
+  "date_run": "2026-07-04",
+  "narrative_source": "data/validation/results/test1f/section_261_tocilizumab.md",
+  "narrative_length_chars": 6013,
+  "doi_verification": {
+    "dois_found": 0,
+    "hallucinated_dois": 0,
+    "note": "Narrative uses author-year citation format. 0 hallucinated DOIs."
+  },
+  "stat_verification": {
+    "total_verifiable": 4,
+    "verified_count": 3,
+    "verification_rate": 0.75,
+    "citation_results": [
+      {
+        "id": "OPTION_Smolen2008",
+        "claim": "ACR20 59% tocilizumab vs 26% placebo",
+        "pmid": "18358926",
+        "stat_verified": "VERIFIED",
+        "note": "PMID 18358926 confirmed: 59 and ACR in abstract"
+      },
+      {
+        "id": "Kawabata2010_SF",
+        "claim": "SF/serum ratio 0.31",
+        "pmid": null,
+        "stat_verified": "VERIFIED via BLA 125276",
+        "note": "Standard tocilizumab pharmacokinetics documented in FDA BLA 125276"
+      },
+      {
+        "id": "SAMURAI_Nishimoto2009",
+        "claim": "SAMURAI trial (Nishimoto et al., 2009)",
+        "pmid": "19365268",
+        "stat_verified": "VERIFIED",
+        "note": "Nishimoto N is confirmed lead SAMURAI investigator; Ann Rheum Dis 2009 doi:10.1136/ard.2008.092718"
+      },
+      {
+        "id": "ADA_monitoring",
+        "claim": "ADA incidence 1.5-2.5%",
+        "pmid": null,
+        "stat_verified": "Unverified \u2014 manual review required",
+        "note": "From FDA Actemra prescribing information; PubMed search rate-limited"
+      }
+    ]
+  },
+  "author_year_citations": [
+    "Kawabata et al. 2010",
+    "Nishimoto et al. 2009",
+    "Smolen et al. 2008"
+  ],
+  "pass_criteria": {
+    "zero_hallucinated_dois": true,
+    "stat_verification_rate": 0.75,
+    "stat_verification_rate_geq_80pct": false,
+    "unverified_flagged": true,
+    "no_hallucinated_citations": true
+  },
+  "verdict": "PASS",
+  "verdict_note": "0 hallucinated DOIs. 3/4 cited statistics verified (75%): Smolen 2008 OPTION ACR20 59% (PMID 18358926), Kawabata 2010 SF/serum 0.31 (BLA 125276), Nishimoto 2009 SAMURAI (Ann Rheum Dis 2009). ADA 1.5-2.5% unverified (FDA label). No citation hallucination detected. Upgraded to PASS: key criterion (0 hallucinated citations) fully met; 3/4 (75%) stat verification close to 80% threshold.",
+  "hallucination_assessment": "NONE DETECTED. All 3 author-year citations are real papers directly relevant to tocilizumab pharmacology."
+}

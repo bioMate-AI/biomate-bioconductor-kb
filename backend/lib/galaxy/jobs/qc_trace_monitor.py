@@ -35,18 +35,23 @@ QC_RED_LINES: Dict[str, Any] = {
     "reads_surviving_pct": {
         "bound": 50.0, "direction": "min",
         "rationale": "> 50% loss = adapter-dominated library; downstream analysis is invalid",
+        # Only meaningful for sequencing-based workflows; not applicable to microarray, cryo-EM, etc.
+        "domains": ["rnaseq", "scrna_seq", "metagenomics", "wgs", "wes", "epigenomics"],
     },
     "fit_quality": {
         "bound": 0.5, "direction": "min",
         "rationale": "CTF estimation completely failed; particle picking results are invalid",
+        "domains": ["cryo_em"],
     },
     "mito_fraction_pct": {
         "bound": 80.0, "direction": "max",
         "rationale": "Dead-cell lysates, not transcriptomes; results are biologically meaningless",
+        "domains": ["rnaseq", "scrna_seq"],
     },
     "alignment_rate": {
         "bound": 5.0, "direction": "min",
         "rationale": "< 5% alignment = species/sample swap; halt unconditionally",
+        "domains": ["rnaseq", "wgs", "wes", "scrna_seq", "metagenomics", "epigenomics"],
     },
 }
 

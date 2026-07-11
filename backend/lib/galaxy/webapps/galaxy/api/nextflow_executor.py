@@ -42,7 +42,7 @@ try:
     _dotenv_path = _backend_root / ".env"
     if _dotenv_path.exists():
         from dotenv import load_dotenv
-        load_dotenv(_dotenv_path, override=True)   # override=True: .env changes take effect on SIGHUP reload
+        load_dotenv(_dotenv_path, override=False)  # override=False: Docker env vars take precedence over .env defaults
         log.info(f"[Nextflow] Loaded environment from {_dotenv_path}")
 except Exception as _e:
     log.warning(f"[Nextflow] Could not load .env: {_e}")
@@ -54,9 +54,31 @@ router = Router(tags=["nextflow"])
 # adds a parallel write to RunStateStore at the init site. Reads still go
 # through _runs; subsequent stages flip reads over cluster-by-cluster.
 _runs: Dict[str, Dict[str, Any]] = {}
-_runs_lock = threading.Lock()
+# REENTRANT by design. Several locked sections (_stream_logs completion at the
+# `with _runs_lock` around the status/inv-id reads, resume_nextflow_run,
+# _execute_nextflow_impl resume lookup) call the helpers `_run_lookup()` /
+# `_find_run_by_invocation_id()`, which ALSO take this lock. With a plain
+# threading.Lock() that is a self-deadlock on a single thread: the completion
+# thread holds the lock, blocks forever trying to re-acquire it, and starves
+# every other consumer (`/api/nextflow/execute` and `/api/nextflow/status` both
+# `with _runs_lock`) → the Node dispatch then trips undici's 300s headers
+# timeout → connector "fetch failed". Introduced by the Stage 2c/2d persistence
+# refactor (it replaced direct `_runs.get()` with the lock-taking helpers but
+# left the call sites inside existing locked sections). RLock allows the same
+# thread to re-enter; all critical sections only guard the in-memory dict, so
+# reentrancy is safe. Incident 2026-06-30 (connector hERG, 5 consecutive fails).
+_runs_lock = threading.RLock()
 
 from galaxy.ai.runs import get_run_state_store  # noqa: E402
+
+# Start the orphan-completion poller on every gunicorn worker at module load,
+# not just when a run is submitted. Without this, workers that restart while
+# a run is in-flight never scan for orphaned runs until the NEXT submission.
+try:
+    from galaxy.ai.runs.bootstrap import ensure_poller_started as _ensure_poller
+    _ensure_poller()
+except Exception as _boot_exc:  # redis unavailable at import time is fine — poller silently skips
+    log.debug("[runs.bootstrap] module-level poller start skipped: %s", _boot_exc)
 
 
 def _find_run_by_invocation_id(invocation_id: str) -> Optional[tuple]:
@@ -176,6 +198,62 @@ def _resolve_rationale_id(
         return None
 
 
+# Module-level cache for the resolved SSE inject URL.  Populated on first call
+# to _resolve_frontend_url() and reused for the lifetime of the process so
+# we don't probe the network on every chat-progress event.
+_frontend_url_cache: Dict[str, Optional[str]] = {"url": None}
+
+
+def _resolve_frontend_url() -> str:
+    """
+    Return the base URL of the frontend SSE inject endpoint.
+
+    Resolution order:
+    1. ``FRONTEND_URL`` env var (authoritative — set this in production).
+    2. Docker service names tried by TCP probe (dev / compose environments
+       where ``FRONTEND_URL`` is not explicitly set).
+    3. Localhost fallbacks.
+
+    Result is cached for the lifetime of the process so only the first call
+    pays the probe cost.
+    """
+    if _frontend_url_cache["url"] is not None:
+        return _frontend_url_cache["url"]
+
+    import os as _os
+    import socket as _socket
+    from urllib.parse import urlparse as _urlparse
+
+    explicit = _os.environ.get("FRONTEND_URL")
+    if explicit:
+        _frontend_url_cache["url"] = explicit
+        log.info("[SSE] FRONTEND_URL explicit: %s", explicit)
+        return explicit
+
+    _candidates = [
+        "http://biomate-dev-frontend:3000",
+        "http://biomate-frontend:3000",
+        "http://localhost:3000",
+        "http://localhost:5000",
+    ]
+    for base in _candidates:
+        try:
+            u = _urlparse(base)
+            with _socket.create_connection((u.hostname, u.port or 80), timeout=2):
+                _frontend_url_cache["url"] = base
+                log.info("[SSE] resolved frontend URL: %s", base)
+                return base
+        except Exception:
+            continue
+
+    # Last resort — may fail silently if nothing is reachable, which is fine
+    # for tests / offline dev.
+    fallback = _candidates[-1]
+    _frontend_url_cache["url"] = fallback
+    log.warning("[SSE] no frontend reachable; falling back to %s", fallback)
+    return fallback
+
+
 def _narrate_chat(invocation_id: str, kind: str, technical: Optional[Dict[str, Any]] = None) -> None:
     """
     Emit a workflow-progress chat line to the frontend's SSE inject endpoint.
@@ -189,12 +267,10 @@ def _narrate_chat(invocation_id: str, kind: str, technical: Optional[Dict[str, A
     except Exception:
         return
 
-    import os as _os
     import json as _json
     import urllib.request as _urllib
 
-    frontend_url = _os.environ.get("FRONTEND_URL", "http://localhost:5000")
-    inject_url = f"{frontend_url}/internal/sse-inject"
+    inject_url = f"{_resolve_frontend_url()}/internal/sse-inject"
 
     def _post_sse(event_type: str, data: Dict[str, Any]) -> None:
         try:
@@ -219,12 +295,10 @@ def _narrate_chat(invocation_id: str, kind: str, technical: Optional[Dict[str, A
 
 def _post_sse_direct(invocation_id: str, event_type: str, data: Dict[str, Any]) -> None:
     """Module-level SSE inject — usable outside _narrate_chat."""
-    import os as _os
-    frontend_url = _os.environ.get("FRONTEND_URL", "http://localhost:5000")
     try:
         import requests as _req
         _req.post(
-            f"{frontend_url}/internal/sse-inject",
+            f"{_resolve_frontend_url()}/internal/sse-inject",
             json={"invocation_id": invocation_id, "event_type": event_type, "data": data},
             timeout=2,
         )
@@ -956,6 +1030,10 @@ def _default_nf_profile() -> str:
 
 class NextflowExecuteRequest(BaseModel):
     nextflow_path: str
+    # When set, the .nf content is written to a temp file and used as the
+    # actual nextflow_path. Allows user-uploaded workflows stored in the
+    # frontend DB to be executed without staging files on the Galaxy host.
+    file_content: Optional[str] = None
     parameters: Optional[Dict[str, Any]] = None
     profile: Optional[str] = None  # None → resolved at execution time from BIOMATE_NF_PROFILE
     entry: Optional[str] = None
@@ -1198,6 +1276,28 @@ def _detect_nextflow_entry(nf_path: Path) -> Optional[str]:
 
     preferred = [name for name in named_entries if name.lower() in ("main", "run", "workflow")]
     return preferred[0] if preferred else named_entries[0]
+
+
+def _entry_workflow_has_take(nf_path: Path, entry_name: str) -> bool:
+    """True if the named workflow `entry_name` in `nf_path` declares a `take:` block.
+
+    A `take:` workflow consumes input channels that `-entry <name>` cannot bind; unless an
+    entry wrapper is generated to supply them, Nextflow aborts at invocation with
+    "Workflow `<name>` declares N input channels but 0 were given" (the RC-1 failure mode —
+    an nf-core subworkflow launched standalone instead of through its parent pipeline)."""
+    if not entry_name:
+        return False
+    try:
+        text = nf_path.read_text(errors="replace")
+    except OSError:
+        return False
+    m = re.search(r"(?m)^\s*workflow\s+" + re.escape(entry_name) + r"\s*\{", text)
+    if not m:
+        return False
+    rest = text[m.end():]
+    nxt = re.search(r"(?m)^\s*workflow\s+[A-Za-z_]", rest)
+    body = rest[: nxt.start()] if nxt else rest
+    return re.search(r"(?m)^\s*take\s*:", body) is not None
 
 
 # Declared-input contract for regenerated Bioconductor subworkflows.
@@ -2277,7 +2377,12 @@ def _generate_executor_config(
             or os.environ.get("GPU_BATCH_QUEUE", "")
             or "biomate-gpu-spot-queue"
         )
-        if gpu_queue:
+        # Skip GPU process label/name selectors for user-uploaded personal workflows.
+        # Personal workflows live under /tmp/biomate_user_nf/ and don't use BioMate
+        # process labels (process_gpu, PRODUCTION_MD). Nextflow 24+ strict mode exits
+        # code 1 when a withName selector matches no process in the workflow.
+        _is_personal_wf = "/tmp/biomate_user_nf/" in nf_path
+        if gpu_queue and not _is_personal_wf:
             lines += [
                 "process {",
                 "    withLabel: 'process_gpu' {",
@@ -2298,6 +2403,24 @@ def _generate_executor_config(
                 "}",
             ]
             log.info(f"[Nextflow] GPU queue routing: process_gpu → {gpu_queue}")
+        # Per-label CPU/memory for the standard nf-core resource tiers. Without this,
+        # processes labelled `process_low|medium|high` carry NO `memory` directive, so the
+        # awsbatch executor falls back to the Batch job-definition default (~1-2 GB). That
+        # OOM-kills memory-heavy R/Bioconductor tasks while they merely LOAD their package
+        # stack (e.g. VariantAnnotation+Rsamtools+Biostrings → SIGKILL before any compute),
+        # surfacing as a cryptic "Killed" with no output. Values mirror
+        # galaxy.ai.resource_resolver.RESOURCE_TIERS. withLabel selectors that match no
+        # process are harmless (unlike withName under strict mode).
+        if not _is_personal_wf:
+            lines += [
+                "process {",
+                "    withLabel: 'process_low'         { cpus = 2;  memory = '12.GB' }",
+                "    withLabel: 'process_medium'      { cpus = 6;  memory = '36.GB' }",
+                "    withLabel: 'process_high'        { cpus = 12; memory = '72.GB' }",
+                "    withLabel: 'process_high_memory' { cpus = 12; memory = '200.GB' }",
+                "}",
+            ]
+            log.info("[Nextflow] injected process_low/medium/high memory tiers (12/36/72 GB)")
         # For nf-core pipelines: emit a slimmer aws.client block.
         # Their own nextflow.config often sets `aws.client.anonymous = true`
         # globally (so iGenomes public-bucket reads work). That makes ALL
@@ -2653,11 +2776,10 @@ def _evaluate_qc_from_s3(
         # AutoLoopPanel receives autoloop_gate_results / autoloop_update
         # events. Previously this was a no-op which left the UI empty
         # even when gates were correctly evaluated.
-        import os as _os, urllib.request as _urllib
-        _frontend_url = _os.environ.get("FRONTEND_URL", "http://localhost:5000")
-        _inject_url = f"{_frontend_url}/internal/sse-inject"
+        import urllib.request as _urllib
 
         def _sse_emit(event_type: str, data: Dict[str, Any]) -> None:
+            _inject_url = f"{_resolve_frontend_url()}/internal/sse-inject"
             try:
                 req = _urllib.Request(
                     _inject_url,
@@ -2743,49 +2865,11 @@ def _start_qc_monitor(
         log.warning("[QC Monitor] QC gate handler not available — skipping QC monitoring")
         return
 
-    import os as _os
     import json as _json
     import urllib.request as _urllib
 
-    # FRONTEND_URL when set is authoritative. Otherwise try the dev/prod
-    # docker-compose service names on their actual listen ports (Node app
-    # binds 3000, not 5000), then localhost as last resort. Probing order
-    # matters: the first reachable URL is cached for the lifetime of this
-    # callback closure.
-    _explicit = _os.environ.get("FRONTEND_URL")
-    _candidates = ([_explicit] if _explicit else [
-        "http://biomate-dev-frontend:3000",
-        "http://biomate-frontend:3000",
-        "http://localhost:3000",
-        "http://localhost:5000",
-    ])
-    inject_url_cache: dict = {"url": None}
-
-    def _resolve_inject_url() -> str:
-        if inject_url_cache["url"]:
-            return inject_url_cache["url"]
-        import socket as _socket
-        for base in _candidates:
-            url = f"{base}/internal/sse-inject"
-            # Reachability check is a raw TCP connect to host:port, NOT an
-            # HTTP probe. HTTP probes with an empty body return 4xx which
-            # an HTTPError except would falsely treat as "unreachable", and
-            # any real body would mutate state. TCP connect succeeds iff
-            # the listener is alive.
-            try:
-                from urllib.parse import urlparse as _urlparse
-                u = _urlparse(base)
-                with _socket.create_connection((u.hostname, u.port or 80), timeout=2):
-                    inject_url_cache["url"] = url
-                    log.info("[QC Monitor] SSE inject endpoint: %s", url)
-                    return url
-            except Exception:
-                continue
-        inject_url_cache["url"] = f"{_candidates[0]}/internal/sse-inject"
-        log.warning("[QC Monitor] No SSE inject endpoint reachable; falling back to %s", inject_url_cache["url"])
-        return inject_url_cache["url"]
-
     def _sse_callback(event_type: str, data: dict) -> None:
+        inject_url = f"{_resolve_frontend_url()}/internal/sse-inject"
         payload = _json.dumps({
             "invocation_id": invocation_id,
             "event_type": event_type,
@@ -2793,7 +2877,7 @@ def _start_qc_monitor(
         }).encode("utf-8")
         try:
             req = _urllib.Request(
-                _resolve_inject_url(),
+                inject_url,
                 data=payload,
                 headers={"Content-Type": "application/json"},
             )
@@ -3482,13 +3566,15 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                 _total_steps = len(_trace_lines)
             except Exception:
                 pass
-        if returncode == 0 and _looks_like_false_success(
+        _nf_path_for_check = str(_run_snap.get("nextflow_path", ""))
+        _is_personal_nf_run = _nf_path_for_check.startswith("/tmp/biomate_user_nf/")
+        if returncode == 0 and not _is_personal_nf_run and _looks_like_false_success(
             log_full_text=_log_text,
             total_steps=_total_steps,
             duration_s=_duration_s,
             s3_output_files=[],
             workflow_domain=_run_snap.get("workflow_domain", ""),
-            nextflow_path=_run_snap.get("nextflow_path", ""),
+            nextflow_path=_nf_path_for_check,
         ):
             log.warning(
                 "[Nextflow run %s] exit 0 but looks like false success — marking failed",
@@ -3574,25 +3660,43 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
             "returncode": returncode,
         })
 
+        # Enumerate S3 output files + evaluate QC gates on success (Batch runs
+        # have no local work dir). CRITICAL: these do blocking network I/O (S3
+        # LIST + object downloads in _evaluate_qc_from_s3) that can stall for
+        # minutes on throttling, a large file, or boto retries. They MUST run
+        # OUTSIDE _runs_lock — holding the lock across them starves every other
+        # run-registry consumer (execute/status block on `with _runs_lock` and
+        # hang until the worker restarts). Incident 2026-06-30: the connector
+        # hERG "fetch failed" was this lock starvation (one run's completion
+        # wedged in S3 QC eval under the lock), NOT a launch timeout. Read the
+        # inputs under a brief lock, compute lock-free, write results back under
+        # a second brief lock.
+        with _runs_lock:
+            _present = run_id in _runs
+            _outdir_for_s3 = _runs[run_id].get("outdir", "") if _present else ""
+            _wf_domain_for_qc = _runs[run_id].get("workflow_domain", "") if _present else ""
+            _qc_overrides_for_qc = dict(_runs[run_id].get("qc_overrides", {})) if _present else {}
+
+        _s3_output_files: list = []
+        _qc_gates_s3 = None
+        if _present and returncode == 0 and str(_outdir_for_s3).startswith("s3://"):
+            _s3_output_files = _s3_files_for_salvage or _list_s3_output_files(_outdir_for_s3)
+            _qc_gates_s3 = _evaluate_qc_from_s3(
+                run_id=run_id,
+                s3_output_files=_s3_output_files,
+                workflow_domain=_wf_domain_for_qc,
+                qc_overrides=_qc_overrides_for_qc,
+            )
+            if _qc_gates_s3:
+                log.info("[QC Gate] S3 evaluation for %s: %d gate(s)", run_id, len(_qc_gates_s3))
+
+        run_meta: Dict[str, Any] = {}
         with _runs_lock:
             if run_id in _runs:
-                # Enumerate S3 output files on success (including salvaged false failures).
-                if returncode == 0:
-                    outdir = _runs[run_id].get("outdir", "")
-                    if str(outdir).startswith("s3://"):
-                        _runs[run_id]["s3_output_files"] = (
-                            _s3_files_for_salvage or _list_s3_output_files(outdir)
-                        )
-                        # Evaluate QC gates from S3 output files (Batch runs have no local work dir)
-                        _qc_gates_s3 = _evaluate_qc_from_s3(
-                            run_id=run_id,
-                            s3_output_files=_runs[run_id]["s3_output_files"],
-                            workflow_domain=_runs[run_id].get("workflow_domain", ""),
-                            qc_overrides=_runs[run_id].get("qc_overrides", {}),
-                        )
-                        if _qc_gates_s3:
-                            _runs[run_id]["qc_gates"] = _qc_gates_s3
-                            log.info("[QC Gate] S3 evaluation for %s: %d gate(s)", run_id, len(_qc_gates_s3))
+                if _s3_output_files:
+                    _runs[run_id]["s3_output_files"] = _s3_output_files
+                if _qc_gates_s3:
+                    _runs[run_id]["qc_gates"] = _qc_gates_s3
                 run_meta = dict(_runs[run_id])
         log.info("[Nextflow run %s] finished — status=%s returncode=%d", run_id, final_status, returncode)
 
@@ -4135,13 +4239,131 @@ def _accession_chain_thread(
 # Routes
 # ---------------------------------------------------------------------------
 
+def _fail_run(run_id: str, message: str) -> None:
+    """Mark a run failed in both the in-proc dict and the persistence store.
+
+    Used when the (now background) launch path raises before the run reaches a
+    live state — so a launch error still surfaces to the caller via run status.
+    """
+    try:
+        with _runs_lock:
+            rec = _runs.get(run_id) or {"run_id": run_id}
+            rec["status"] = "failed"
+            rec["returncode"] = -1
+            rec["error"] = message
+            _runs[run_id] = rec
+            snapshot = dict(rec)
+        try:
+            get_run_state_store().set_run(run_id, snapshot)
+        except Exception:
+            pass
+    except Exception as _e:
+        log.debug("[runs] _fail_run failed for %s: %s", run_id, _e)
+
+
+def _narrate_launch_failure(invocation_id: str, run_id: str, message: str) -> None:
+    """Fire the workflow.failed SSE narration so the frontend reconciles a run
+    that failed during the (background) launch before any process started."""
+    if not invocation_id:
+        return
+    try:
+        _narrate_chat(invocation_id, "workflow.failed", {"run_id": run_id, "reason": message})
+    except Exception as _e:
+        log.debug("[runs] launch-failure narration failed for %s: %s", run_id, _e)
+
+
 @router.post("/api/nextflow/execute", summary="Launch a Nextflow workflow")
 def execute_nextflow(
     request: NextflowExecuteRequest,
 ) -> Dict[str, Any]:
     """
-    Launch a Nextflow workflow by path.  Returns immediately with a run_id.
-    The workflow runs as a background subprocess.
+    Launch a Nextflow workflow by path. Returns IMMEDIATELY with a run_id; the
+    (sometimes slow) prep + launch run in a background thread.
+
+    Why async: the Node→Galaxy dispatch `fetch()` previously awaited this whole
+    handler. Slow-to-launch workflows (e.g. first-time AWS Batch job-definition
+    registration for a new container) made the prep take long enough to trip
+    undici's headers timeout → "fetch failed" → the run was marked failed even
+    though it had actually launched (connector hERG incident 2026-06-30).
+    Returning the run_id up front and launching in the background removes that
+    whole class of false-fail; status flows configuring → running → completed.
+    """
+    # If file_content is provided, write it to a temp path and override
+    # nextflow_path so _resolve_nextflow_path() finds an actual file.
+    if request.file_content:
+        import re as _re
+        _safe_name = _re.sub(r'[^A-Za-z0-9._-]', '_', os.path.basename(request.nextflow_path or 'workflow.nf'))
+        _user_tag = _re.sub(r'[^A-Za-z0-9_-]', '', (request.user_id or 'anon'))[:32]
+        _tmp_dir = Path("/tmp/biomate_user_nf") / _user_tag
+        _tmp_dir.mkdir(parents=True, exist_ok=True)
+        _tmp_path = _tmp_dir / _safe_name
+        _tmp_path.write_text(request.file_content, encoding='utf-8')
+        log.info("[Nextflow] Wrote user-uploaded workflow to %s (%d bytes)", _tmp_path, len(request.file_content))
+        # Mutate the request so all downstream code (path resolution, logging) uses the real path
+        request = request.model_copy(update={"nextflow_path": str(_tmp_path), "file_content": None})
+
+    # Fast, synchronous input validation so an obviously-bad request still gets
+    # an immediate 4xx rather than a deferred failed-run.
+    try:
+        _resolve_nextflow_path(request.nextflow_path)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+    run_id = str(uuid.uuid4())
+    invocation_id = str(uuid.uuid4())
+
+    # Register a minimal record up front so a status poll fired right after this
+    # returns "configuring" (not 404) while the background launch runs.
+    _pre_record = {
+        "run_id": run_id,
+        "invocation_id": invocation_id,
+        "status": "configuring",
+        "returncode": None,
+        "nextflow_path": str(request.nextflow_path),
+        "user_id": request.user_id or "anonymous",
+        "is_pilot": bool(request.is_pilot),
+        "started_at": time.time(),
+    }
+    with _runs_lock:
+        _runs[run_id] = dict(_pre_record)
+    try:
+        get_run_state_store().set_run(run_id, _pre_record)
+    except Exception as _e:
+        log.debug("[runs] pre-record set_run failed for %s: %s", run_id, _e)
+
+    def _launch_bg() -> None:
+        try:
+            _execute_nextflow_impl(request, _run_id=run_id, _invocation_id=invocation_id)
+        except HTTPException as he:
+            _msg = f"launch failed ({he.status_code}): {he.detail}"
+            _fail_run(run_id, _msg)
+            _narrate_launch_failure(invocation_id, run_id, _msg)
+        except Exception as exc:
+            log.error("[Nextflow run %s] background launch crashed: %s", run_id, exc)
+            _fail_run(run_id, f"launch failed: {exc}")
+            _narrate_launch_failure(invocation_id, run_id, f"launch failed: {exc}")
+
+    threading.Thread(
+        target=_launch_bg, daemon=True, name=f"nf-launch-{run_id[:8]}"
+    ).start()
+
+    return {
+        "success": True,
+        "run_id": run_id,
+        "invocation_id": invocation_id,
+        "status": "configuring",
+    }
+
+
+def _execute_nextflow_impl(
+    request: NextflowExecuteRequest,
+    _run_id: Optional[str] = None,
+    _invocation_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    The actual (sometimes slow) prep + launch. Spawned in a background thread by
+    execute_nextflow(); may also be called directly. Raises HTTPException on
+    launch errors — the caller converts those to a failed run via _fail_run.
     """
     try:
         nf_path = _resolve_nextflow_path(request.nextflow_path)
@@ -4182,6 +4404,25 @@ def execute_nextflow(
         compute["executor"] = "awsbatch"
         if not compute.get("s3_bucket"):
             compute["s3_bucket"] = s3_bucket_default
+
+    # Personal workflows (written to /tmp/biomate_user_nf/ from file_content at
+    # request time) must run locally — they are ad-hoc user scripts that don't
+    # carry BioMate's Batch process labels, and cannot initialise an S3 work dir.
+    # This override must come AFTER the awsbatch routing block so it wins.
+    _nf_path_str = str(request.nextflow_path or "")
+    if _nf_path_str.startswith("/tmp/biomate_user_nf/"):
+        compute["executor"] = "local"
+        params.pop("outdir", None)
+        # Params from the UI may contain default values from the script's params {}
+        # block (the viewer panel seeds them automatically). Passing them back via
+        # --params-file causes "Parameter X was specified on the command line or
+        # params file but is not declared in the script or config" in Nextflow 25+
+        # when strict-mode validation checks params against the nextflow.config
+        # rather than the script body. Personal workflows use their own script-level
+        # defaults — drop all user-supplied params so the script runs with its own
+        # declared defaults.
+        params.clear()
+        log.info("[Nextflow] Personal workflow — forcing local executor, cleared S3 outdir, cleared all params")
 
     # Auto-detect S3 outdir → route to AWS Batch automatically.
     # If the caller passes outdir=s3://..., we treat that as an implicit request
@@ -4252,8 +4493,8 @@ def execute_nextflow(
         )
 
     # Generate unique IDs
-    run_id = str(uuid.uuid4())
-    invocation_id = str(uuid.uuid4())
+    run_id = _run_id or str(uuid.uuid4())
+    invocation_id = _invocation_id or str(uuid.uuid4())
 
     # Work / output directory (local staging area for logs and config files).
     work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
@@ -4327,6 +4568,25 @@ def execute_nextflow(
         cmd = [nf_bin, "run", str(_bioc_wrapper)]
         selected_entry = None     # wrapper provides an anonymous workflow { } entry
 
+    # RC-1 fail-fast guard: a named-only workflow whose `-entry` target declares a `take:`
+    # block, for which no entry wrapper could be generated, CANNOT run — Nextflow aborts at
+    # invocation with "declares N input channels but 0 were given" (and, pre-fix, that abort
+    # was mis-reported as success by the finalizer). Refuse up front with an actionable error
+    # instead of launching a doomed AWS Batch run. (Bioconductor take: workflows do not reach
+    # here — _build_bioc_entry_wrapper sets selected_entry=None and supplies the channel.)
+    if selected_entry and _entry_workflow_has_take(nf_path, selected_entry):
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Workflow entry '{selected_entry}' declares input channels (a `take:` block) "
+                f"that `-entry` alone cannot bind, and no entry wrapper could be generated for "
+                f"it. This is an nf-core subworkflow being launched standalone rather than "
+                f"through its parent pipeline. Route this run via a runnable pipeline entry "
+                f"(a main.nf with an anonymous `workflow {{ }}` block that wires the samplesheet/"
+                f"reference channels) instead of the bare subworkflow file."
+            ),
+        )
+
     if selected_entry:
         cmd += ["-entry", selected_entry]
 
@@ -4347,14 +4607,20 @@ def execute_nextflow(
         )
 
     # Profile — explicit request value wins; fall back to param then BIOMATE_NF_PROFILE env var.
+    # Personal workflows run with the standard profile — the aws profile initialises
+    # AWS clients that are unnecessary (and may fail) for local execution.
     profile = request.profile or _param_profile or _default_nf_profile()
+    if _nf_path_str.startswith("/tmp/biomate_user_nf/") and profile not in ("standard", "test"):
+        profile = "standard"
     cmd += ["-profile", profile]
 
     # Real-mode guard: for any non-mock profile, ensure mock_mode is off.
     # Workflows default params.mock_mode = true; command-line params override defaults.
     # This keeps the logic centralised here rather than scattered across workflow configs.
     _mock_profiles = {"standard", "test", "test_full", "test_cache"}
-    if not any(p.strip() in _mock_profiles for p in profile.split(",")) and "mock_mode" not in params:
+    if (not any(p.strip() in _mock_profiles for p in profile.split(","))
+            and "mock_mode" not in params
+            and not _nf_path_str.startswith("/tmp/biomate_user_nf/")):
         params["mock_mode"] = False
         log.info(f"[Nextflow run {run_id}] profile={profile!r} → injecting --mock_mode false")
 
@@ -4447,7 +4713,7 @@ def execute_nextflow(
                 _params_for_json[key] = value
             else:
                 _params_for_json[key] = str(value)
-        if "outdir" not in _params_for_json:
+        if "outdir" not in _params_for_json and not _nf_path_str.startswith("/tmp/biomate_user_nf/"):
             _params_for_json["outdir"] = str(outdir)
         _params_json_path = log_dir / "nf-params.json"
         _params_json_path.write_text(_ml_json.dumps(_params_for_json, indent=2))
@@ -4455,9 +4721,20 @@ def execute_nextflow(
         log.info(f"[Nextflow run {run_id}] --params-file (scalar only): {list(_params_for_json.keys())}")
     else:
         # Standard path: pass params as individual --key value flags.
-        if "outdir" not in params:
+        # Personal workflows don't declare params.outdir — skip the injection.
+        if "outdir" not in params and not _nf_path_str.startswith("/tmp/biomate_user_nf/"):
             cmd += ["--outdir", str(outdir)]
         for key, value in params.items():
+            # Defense in depth: never pass INTERNAL config vars (e.g. _useAws,
+            # CHEM_CONTAINER) whose value is a Groovy/nextflow config EXPRESSION.
+            # `--_useAws "params.use_aws || System.getenv(...)"` makes Nextflow
+            # abort at parse ("Dynamic parameter expected a value of the form
+            # a=b") → run dies instantly, zero output. These resolve inside
+            # nextflow.config, not on the CLI.
+            _vstr = str(value)
+            if str(key).startswith("_") or "params." in _vstr or "System.getenv" in _vstr or "${" in _vstr:
+                log.info(f"[Nextflow run {run_id}] skipping internal/expr param --{key}")
+                continue
             if key == "outdir":
                 cmd += ["--outdir", str(value)]
             elif isinstance(value, bool):
@@ -4484,7 +4761,18 @@ def execute_nextflow(
     # /opt/nextflow/plugins/ — read-only after first download. NF's plugin
     # loader is safe for many concurrent readers, races only on first write.
     # Subsequent runs find the cache warm and skip download entirely.
-    env["NXF_HOME"] = "/opt/nextflow"
+    # Use /opt/nextflow (Docker/EC2) if it exists; fall back to ~/.nextflow (local dev).
+    # /opt/nextflow is baked into the container image with pre-fetched plugins.
+    # On macOS/local dev it doesn't exist — setting NXF_HOME to a non-existent
+    # path causes Nextflow to fail before submitting any Batch jobs.
+    _nxf_home_candidates = [
+        Path("/opt/nextflow"),
+        Path(os.environ.get("HOME", "/root")) / ".nextflow",
+    ]
+    _nxf_home = next((p for p in _nxf_home_candidates if p.is_dir()), None)
+    if _nxf_home:
+        env["NXF_HOME"] = str(_nxf_home)
+        log.info(f"[Nextflow run {run_id}] NXF_HOME={_nxf_home}")
 
     # Plugin pre-warm. DO NOT REVERT — without this, each run starts with an
     # empty {NXF_HOME}/plugins dir and Nextflow attempts to download nf-amazon
@@ -4548,8 +4836,16 @@ def execute_nextflow(
     # enough to keep the cache warm for the rest of the day.
     # The cache is read-only after extraction → safe for many concurrent
     # readers. Same .so is what every NF run loads regardless.
-    _shared_crt_cache = Path("/opt/nextflow/.aws-crt-cache")
-    _shared_crt_cache.mkdir(parents=True, exist_ok=True)
+    # Use the same base as NXF_HOME: /opt/nextflow on Docker/EC2, ~/.nextflow
+    # on local dev. Hardcoding /opt/nextflow here caused PermissionError on
+    # macOS where /opt is root-owned and /opt/nextflow doesn't exist.
+    _crt_base = _nxf_home if _nxf_home is not None else Path(os.environ.get("HOME", "/tmp")) / ".nextflow"
+    _shared_crt_cache = _crt_base / ".aws-crt-cache"
+    try:
+        _shared_crt_cache.mkdir(parents=True, exist_ok=True)
+    except Exception as _crt_e:
+        log.warning("[Nextflow run %s] CRT cache dir creation failed (%s) — CRT opts will be omitted", run_id, _crt_e)
+        _shared_crt_cache = None
     _existing_nxf_opts = env.get("NXF_OPTS", "")
     # Cap head JVM heap at 512 MB. The head process only parses the workflow,
     # submits Batch jobs, then polls task state + streams logs — most memory
@@ -4558,11 +4854,14 @@ def execute_nextflow(
     # if a specific pipeline ever needs more. Halving per-head footprint lets
     # us run 2x more concurrent workflows on the same host.
     _heap = os.environ.get("BIOMATE_NF_HEAP", "512m")
-    _crt_opts = (
-        f"-Xms128m -Xmx{_heap} "
-        f"-Daws.crt.lib.dir={_shared_crt_cache} "
-        f"-Daws.crt.disable.crt.in.client=true -Xss2m"
-    )
+    if _shared_crt_cache is not None:
+        _crt_opts = (
+            f"-Xms128m -Xmx{_heap} "
+            f"-Daws.crt.lib.dir={_shared_crt_cache} "
+            f"-Daws.crt.disable.crt.in.client=true -Xss2m"
+        )
+    else:
+        _crt_opts = f"-Xms128m -Xmx{_heap} -Daws.crt.disable.crt.in.client=true -Xss2m"
     env["NXF_OPTS"] = f"{_existing_nxf_opts} {_crt_opts}".strip()
 
     # Additional glibc-side mitigation. The CRT crash on Debian trixie's
@@ -4953,6 +5252,103 @@ def _steps_from_db_metadata(nextflow_path: str) -> Dict[str, Any]:
     return out
 
 
+_TOOL_PHASE_ORDER = [
+    ("QC",                      ["fastqc", "falco", "nanoq", "nanostat", "pycoqc", "toulligqc"]),
+    ("Trimming",                 ["fastp", "trimgalore", "trim_galore", "cutadapt", "trimmomatic", "bbduk", "porechop", "nanolyse"]),
+    ("Alignment",                ["star", "hisat2", "bwa", "bowtie2", "minimap2", "bwamem2", "tophat2", "cellranger", "starsolo", "chromap", "bismark", "biscuit"]),
+    ("Quantification",           ["salmon", "kallisto", "featurecounts", "htseq", "rsem", "subread", "stringtie", "alevin"]),
+    ("BAM Processing",           ["samtools", "picard", "bamtools", "sambamba", "bedtools", "deeptools", "preseq"]),
+    ("Peak Calling",             ["macs2", "macs3", "homer", "sicer", "epic2", "hmmratac", "seacr"]),
+    ("Variant Calling",          ["gatk", "strelka", "mutect2", "freebayes", "deepvariant", "haplotypecaller", "octopus", "bcftools", "varscan", "lofreq"]),
+    ("SV Detection",             ["manta", "lumpy", "svaba", "gridss", "delly", "smoove"]),
+    ("CNV Analysis",             ["cnvkit", "wisecondorx", "freec", "sequenza", "controlfreec"]),
+    ("Methylation",              ["bismark", "biscuit", "methyldackel", "dnmtools", "deeptool"]),
+    ("Differential Expression",  ["deseq2", "edger", "limma", "sleuth", "monocle", "dexseq"]),
+    ("Single-cell Analysis",     ["seurat", "scanpy", "scran", "scdblfindr", "harmony", "celltypist", "leiden", "louvain"]),
+    ("Taxonomic Classification", ["kraken2", "bracken", "metaphlan", "kaiju", "centrifuge", "krona", "pavian"]),
+    ("Assembly",                 ["megahit", "spades", "flye", "unicycler", "hifiasm", "canu", "wtdbg2", "metabat"]),
+    ("Annotation",               ["prokka", "busco", "diamond", "blast", "hmmer", "interproscan", "eggnog"]),
+    ("Structure Prediction",     ["alphafold", "colabfold", "rosettafold", "esmfold", "omegafold"]),
+    ("Report",                   ["multiqc", "qualimap", "nanostat"]),
+]
+
+_TOOL_TO_PHASE: Dict[str, str] = {
+    tool: phase
+    for phase, tools in _TOOL_PHASE_ORDER
+    for tool in tools
+}
+_PHASE_ORDER: Dict[str, int] = {phase: i for i, (phase, _) in enumerate(_TOOL_PHASE_ORDER)}
+
+
+def _steps_synthetic_from_db(nextflow_path: str) -> Dict[str, Any]:
+    """Generate synthetic phase-step objects from DB tools_used / step_count metadata.
+    Used as a final fallback when neither the .nf file nor bioconductor step_metadata
+    is available (e.g. nf-core pipelines without local stubs, nfcore_subwf, etc.)."""
+    import sqlite3, json as _json, re as _re
+    from pathlib import Path as _Path
+    out: Dict[str, Any] = {}
+    try:
+        db = _Path(__file__).resolve().parents[5] / "database" / "galaxy_ai_tools.db"
+        if not db.exists():
+            return out
+        conn = sqlite3.connect(str(db))
+        row = conn.execute(
+            "SELECT name, tools_used, step_count, description FROM workflows "
+            "WHERE filename = ? OR filename LIKE ? LIMIT 1",
+            (nextflow_path, f"%{nextflow_path}"),
+        ).fetchone()
+        conn.close()
+        if not row:
+            return out
+        wf_name, tools_json, step_count, description = row
+        tools_raw: list = _json.loads(tools_json) if tools_json else []
+        tools = [str(t).lower().strip() for t in tools_raw if t]
+
+        # Map each tool to its phase, preserving canonical phase order.
+        seen_phases: Dict[str, list] = {}
+        unmatched: list = []
+        for t in tools:
+            phase = _TOOL_TO_PHASE.get(t)
+            if phase:
+                seen_phases.setdefault(phase, []).append(t)
+            else:
+                unmatched.append(t)
+
+        # Build ordered list of (phase, [tools]) by canonical phase index.
+        ordered = sorted(seen_phases.items(), key=lambda kv: _PHASE_ORDER.get(kv[0], 99))
+        if unmatched:
+            ordered.append(("Processing", unmatched))
+
+        # If we have no tool info but know the step count, emit generic numbered steps.
+        if not ordered and step_count:
+            for i in range(int(step_count)):
+                nm = f"Step {i + 1}"
+                out[str(i)] = {
+                    "id": str(i), "name": nm, "annotation": nm, "description": "",
+                    "tool_id": f"STEP_{i+1}", "type": "tool",
+                    "parameters": {}, "param_meta": [], "inputs": {},
+                    "phase_group": "", "phase_label": "",
+                    "visualizations": [], "qc": [], "outputs": [],
+                }
+            return out
+
+        # One step per phase (not per tool — phases are the viewer's unit).
+        for idx, (phase, phase_tools) in enumerate(ordered):
+            nm = phase
+            tool_label = ", ".join(phase_tools[:3])
+            desc = f"{phase} ({tool_label})" if tool_label else phase
+            out[str(idx)] = {
+                "id": str(idx), "name": nm, "annotation": nm, "description": desc,
+                "tool_id": _re.sub(r"[^A-Za-z0-9]+", "_", nm).upper()[:48],
+                "type": "tool", "parameters": {}, "param_meta": [], "inputs": {},
+                "phase_group": nm, "phase_label": nm,
+                "visualizations": [], "qc": [], "outputs": [],
+            }
+    except Exception:
+        return {}
+    return out
+
+
 @router.get("/api/nextflow/steps", summary="Parse workflow phase steps from a .nf file")
 def get_nextflow_steps(nextflow_path: str = "") -> Dict[str, Any]:
     """
@@ -4976,6 +5372,10 @@ def get_nextflow_steps(nextflow_path: str = "") -> Dict[str, Any]:
     # the better UI; richer DB metadata (>=2 steps, or matching the parser) still wins.
     if db_steps and not (len(db_steps) <= 1 < len(steps)):
         steps = db_steps
+    # Final fallback: generate synthetic phase steps from DB tools_used metadata.
+    # Covers nf-core pipelines without local stubs and nfcore_subwf entries.
+    if not steps:
+        steps = _steps_synthetic_from_db(nextflow_path)
     return {"steps": steps, "count": len(steps)}
 
 
@@ -5285,14 +5685,16 @@ def get_nextflow_status(
             has_results = len(real_subdirs) > 0
 
             fallback_status = "succeeded" if has_results else "failed"
-            if fallback_status == "succeeded" and _looks_like_false_success(
+            _fb_nf_path = _disk_timing.get("nextflow_path", "")
+            _fb_is_personal = str(_fb_nf_path).startswith("/tmp/biomate_user_nf/")
+            if fallback_status == "succeeded" and not _fb_is_personal and _looks_like_false_success(
                 log_full_text=log_full_text,
                 log_tail=log_tail_fallback,
                 total_steps=0,
                 duration_s=_fb_duration_s,
                 s3_output_files=[],
                 workflow_domain=_disk_timing.get("workflow_domain", ""),
-                nextflow_path=_disk_timing.get("nextflow_path", ""),
+                nextflow_path=_fb_nf_path,
             ):
                 fallback_status = "failed"
             return {
@@ -5375,14 +5777,16 @@ def get_nextflow_status(
                                 })
                     except Exception:
                         pass
-                if not trace_failed and _looks_like_false_success(
+                _s3fb_nf_path = _disk_timing.get("nextflow_path", "")
+                _s3fb_is_personal = str(_s3fb_nf_path).startswith("/tmp/biomate_user_nf/")
+                if not trace_failed and not _s3fb_is_personal and _looks_like_false_success(
                     log_full_text=log_full_text,
                     log_tail=log_tail_fallback,
                     total_steps=total_steps_fb,
                     duration_s=_fb_duration_s,
                     s3_output_files=_s3_files_fb,
                     workflow_domain=_disk_timing.get("workflow_domain", ""),
-                    nextflow_path=_disk_timing.get("nextflow_path", ""),
+                    nextflow_path=_s3fb_nf_path,
                 ):
                     trace_failed = True
                 _fb_processes = _build_processes_from_s3_files(
@@ -5644,14 +6048,16 @@ def get_nextflow_status(
                 _info_status = "completed"
                 completed_at = completed_at or now
 
-    if _info_status in ("succeeded", "completed") and _looks_like_false_success(
+    _nf_path_for_status = info.get("nextflow_path", "")
+    _is_personal_nf_status = str(_nf_path_for_status).startswith("/tmp/biomate_user_nf/")
+    if _info_status in ("succeeded", "completed") and not _is_personal_nf_status and _looks_like_false_success(
         log_full_text=log_full_text,
         log_tail=log_tail,
         total_steps=progress.get("totalTasks", progress.get("totalSteps", 0)),
         duration_s=duration_s,
         s3_output_files=s3_files,
         workflow_domain=workflow_domain,
-        nextflow_path=info.get("nextflow_path", ""),
+        nextflow_path=_nf_path_for_status,
     ):
         log.warning(
             "[Nextflow] Downgrading false success for run %s (steps=%s, duration=%ss, outputs=%d)",
@@ -8835,3 +9241,4 @@ async def browse_s3(
     except Exception as exc:
         log.exception("[browse_s3] Failed for bucket=%s prefix=%s: %s", bucket, prefix, exc)
         raise HTTPException(status_code=500, detail=str(exc))
+

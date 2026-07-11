@@ -1,9 +1,0 @@
-{
-  "timestamp": "2026-04-14T11:38:46.889Z",
-  "query": "Query UniProt to get information about the BRCA1 protein",
-  "workflowFound": true,
-  "runButtonVisible": true,
-  "runButtonEnabled": true,
-  "pageContainsWorkflow": true,
-  "pageContainsUniProt": true
-}

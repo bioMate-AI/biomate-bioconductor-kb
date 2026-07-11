@@ -96,7 +96,7 @@ process BIOC_SCMETH_COMPREHENSIVE_QC_REPORT {
 
     # array detection QC — ExpressionSet detection p-values or detection-column data.frame.
     .adq_rate <- NA_real_
-    for (.adq_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.adq_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .adq_obj <- tryCatch(readRDS(.adq_rds), error = function(e) NULL)
       .adq_pv <- NULL
       if (!is.null(.adq_obj)) {

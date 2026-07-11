@@ -379,9 +379,6 @@ export function PilotRunPanel({
                 )}
               </div>
 
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Confidence: {(estimate.confidence * 100).toFixed(0)}%</span>
-              </div>
             </div>
 
             {/* Parameter Recommendations */}

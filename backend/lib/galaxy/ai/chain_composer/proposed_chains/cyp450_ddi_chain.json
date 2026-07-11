@@ -2,7 +2,7 @@
   "name": "cyp450_ddi_chain",
   "display_name": "CYP450 DDI Panel → Allometric Scaling → PBPK DDI Simulation",
   "domain": "drug_discovery",
-  "description": "CYP450 drug-drug interaction prediction for new chemical entities. Begins with the in vitro DDI panel (CYP inhibition IC50, hepatic clearance), scales to human via allometric scaling, then simulates clinical DDI exposure via PBPK to determine whether further clinical study is required (per FDA 2020 DDI guidance).",
+  "description": "CYP450 drug-drug interaction prediction for new chemical entities. Begins with the in vitro DDI panel (CYP inhibition IC50, hepatic clearance), scales to human via allometric scaling, then simulates clinical DDI exposure using a PBPK DDI sub-model to determine whether further clinical study is required (per FDA 2020 DDI guidance). Use this chain specifically for CYP inhibition, drug interaction, co-administration, or DDI assessment — NOT for general PK simulation or species-scaling without a co-administered drug.",
   "source": "curated",
   "steps": [
     {"order": 1, "workflow_name": "CYP450 DDI Panel + Hepatic Clearance", "role": "in_vitro_ddi_prediction", "params_template": {}},
@@ -24,9 +24,11 @@
   ],
   "example_queries": [
     "predict CYP450 inhibition and hepatic clearance for new chemical entity",
-    "CYP450 drug-drug interaction assessment with PBPK",
+    "CYP450 drug-drug interaction assessment",
     "in vitro to clinical DDI prediction",
-    "FDA DDI assessment for new molecular entity"
+    "FDA DDI assessment for new molecular entity",
+    "assess CYP inhibition risk before clinical trial",
+    "drug interaction risk CYP3A4 CYP2D6 inhibition IC50"
   ],
-  "tags": ["drug_discovery", "DDI", "CYP450", "PBPK", "FDA_DDI_guidance"]
+  "tags": ["drug_discovery", "DDI", "CYP450", "CYP_inhibition", "drug_drug_interaction", "FDA_DDI_guidance", "hepatic_clearance"]
 }

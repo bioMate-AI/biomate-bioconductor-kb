@@ -6,18 +6,22 @@ galaxy:
   check_migrate_tools: false
   database_connection: sqlite:///./database/universe.sqlite?isolation_level=IMMEDIATE
   enable_ai_assistant: true
+  # Enable Interactive Tools (Jupyter, RStudio, CellxGene)
+  # upstream_proxy=true: nginx/Caddy handles routing, no separate gx-it-proxy needed
+  interactivetools_enable: true
+  interactivetools_upstream_proxy: true
   file_path: database/files
   master_api_key: f17c618a6d8a9b0c397d6cc847a7f658
   new_file_path: database/tmp
   preload_tool_panel: false
-  tool_config_file: config/tool_conf.xml.sample,config/shed_tool_conf.xml
+  tool_config_file: config/tool_conf.xml.sample,config/shed_tool_conf.xml,config/interactivetools_conf.xml
   tool_dependency_dir: database/dependencies
 gravity:
   galaxy_user: galaxy
   gunicorn:
     bind: 0.0.0.0:8080
-    max_requests: 1000
-    max_requests_jitter: 50
+    max_requests: 3000
+    max_requests_jitter: 300
     # workers=4 + preload=true (option (a) from the 2026-06-09 rollback
     # writeup). With preload the master process loads ~600 tools + the
     # SQLite DB once at boot; workers fork via copy-on-write so they

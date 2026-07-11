@@ -269,7 +269,7 @@ process BIOC_ZITOOLS_ZERO_INFLATED_METAGENOMICS_ANALYSIS {
 
     # microbiome prevalence/abundance filtering (Callahan 2017 F1000).
     .pa_kept <- NA_real_
-    for (.pa_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.pa_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .pa_obj <- tryCatch(readRDS(.pa_rds), error = function(e) NULL)
       .pa_mat <- if (is.matrix(.pa_obj) || is.data.frame(.pa_obj)) .pa_obj else NULL
       if (!is.null(.pa_mat) && nrow(.pa_mat) > 50) {
@@ -290,7 +290,7 @@ process BIOC_ZITOOLS_ZERO_INFLATED_METAGENOMICS_ANALYSIS {
     # missing-value handling — scan .rds matrix/data.frame artifacts for max NA fraction
     .mv_na_fracs <- numeric(0)
     .mv_scanned <- character(0)
-    for (.mv_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.mv_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .mv_obj <- tryCatch(readRDS(.mv_rds), error = function(e) NULL)
       .mv_mat <- if (is.matrix(.mv_obj) || is.data.frame(.mv_obj)) .mv_obj else NULL
       if (!is.null(.mv_mat)) {

@@ -121,7 +121,11 @@ export interface DownloadAllZipPayload {
 export async function estimateSize(payload: DownloadAllZipPayload): Promise<number | undefined> {
   const ref = payload.invocationId || payload.runId;
   if (!ref) return undefined;
-  const invocation = await resolveInvocation(ref).catch(() => null);
+  let invocation = await resolveInvocation(ref).catch(() => null);
+  // Fallback: if invocationId resolved to nothing, try runId directly
+  if (!invocation && payload.runId && payload.runId !== ref) {
+    invocation = await resolveInvocation(payload.runId).catch(() => null);
+  }
   if (!invocation) return undefined;
   if (invocation._pipelineSource) {
     try {
@@ -149,7 +153,13 @@ export async function execute(
   if (!ref) {
     throw new Error("payload.invocationId is required");
   }
-  const invocation = await resolveInvocation(ref);
+  let invocation = await resolveInvocation(ref);
+  // Fallback: if invocationId resolved to nothing, try runId directly.
+  // ADMET/Nextflow runs carry a BioMate invocationId that differs from the
+  // execution_run UUID stored in runId — resolveInvocation must try both.
+  if (!invocation && job.payload?.runId && job.payload.runId !== ref) {
+    invocation = await resolveInvocation(job.payload.runId);
+  }
   if (!invocation) {
     throw new Error(`Run not found: ${ref}`);
   }

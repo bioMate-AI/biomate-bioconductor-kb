@@ -1,0 +1,43 @@
+{
+  "name": "multi_omics_mofa_chain",
+  "display_name": "Multi-Omics Integration — MOFA+ Factor Analysis & Biomarker Discovery",
+  "domain": "multi_omics",
+  "description": "Integrates multiple omics layers — RNA-seq, proteomics, and metabolomics — into a unified latent factor model using MOFA+ (Multi-Omics Factor Analysis v2). Step 1: per-modality preprocessing and normalisation (DESeq2 VST for RNA, MaxQuant LFQ for proteomics, XCMS for metabolomics). Step 2: MOFA+ joint factor decomposition to identify axes of variation shared across modalities. Step 3: downstream analysis — factor-to-phenotype association, cross-layer biomarker identification, and pathway enrichment per factor. Use for: multi-omics biomarker discovery, integrative cancer biology, systems biology phenotyping, and cross-modality mechanistic hypothesis generation.",
+  "source": "curated",
+  "steps": [
+    {"order": 1, "workflow_name": "rnaseq_deseq2_de", "role": "rna_preprocessing", "params_template": {}},
+    {"order": 2, "workflow_name": "bioc_proteomics_de_v2", "role": "proteomics_preprocessing", "params_template": {}},
+    {"order": 3, "workflow_name": "lcms_metabolomics_consensus", "role": "metabolomics_preprocessing", "params_template": {}},
+    {"order": 4, "workflow_name": "mofa_plus_integration", "role": "multi_omics_factor_analysis", "params_template": {"n_factors": 10}}
+  ],
+  "connections": [
+    {"from_step": 1, "from_output": "normalised_counts", "to_step": 4, "to_input": "rna_matrix"},
+    {"from_step": 2, "from_output": "protein_abundances", "to_step": 4, "to_input": "proteomics_matrix"},
+    {"from_step": 3, "from_output": "metabolite_intensities", "to_step": 4, "to_input": "metabolomics_matrix"}
+  ],
+  "required_inputs": [
+    {"name": "rna_count_matrix", "type": "csv", "description": "Gene x sample count matrix"},
+    {"name": "protein_abundance_matrix", "type": "csv", "description": "Protein x sample LFQ intensities"},
+    {"name": "metabolite_intensity_matrix", "type": "csv", "description": "Metabolite x sample intensities"},
+    {"name": "sample_metadata", "type": "csv", "description": "Sample annotations with group/condition"}
+  ],
+  "expected_outputs": [
+    {"name": "mofa_model", "type": "hdf5"},
+    {"name": "factor_loadings", "type": "csv"},
+    {"name": "cross_omics_biomarkers", "type": "tsv"},
+    {"name": "pathway_enrichment_per_factor", "type": "json"},
+    {"name": "integration_report", "type": "html"}
+  ],
+  "example_queries": [
+    "integrate RNA-seq proteomics and metabolomics with MOFA+ for biomarker discovery",
+    "multi-omics integration MOFA factor analysis",
+    "combine transcriptomics proteomics metabolomics to find shared variation",
+    "MOFA+ multi-omics factor decomposition cancer biology",
+    "cross-modality biomarker discovery from multi-omics data",
+    "joint analysis of RNA protein and metabolite data",
+    "systems biology multi-omics integration pathway enrichment",
+    "MOFA latent factor analysis omics integration"
+  ],
+  "tags": ["multi_omics", "MOFA", "MOFA_plus", "omics_integration", "RNA_seq", "proteomics",
+           "metabolomics", "biomarker_discovery", "systems_biology", "factor_analysis", "cross_modality"]
+}

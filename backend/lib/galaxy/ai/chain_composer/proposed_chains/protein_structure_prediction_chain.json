@@ -1,0 +1,44 @@
+{
+  "name": "protein_structure_prediction_chain",
+  "display_name": "Protein Structure Prediction — AlphaFold3 / ESMFold / Multimer Validation",
+  "domain": "structural_biology",
+  "description": "De novo protein 3D structure prediction using deep learning folding models. Step 1: sequence preprocessing and MSA generation. Step 2: structure prediction with AlphaFold3 or ESMFold (single chain or multimer complex). Step 3: structure validation and quality assessment (MolProbity, pLDDT scoring, Ramachandran analysis). Use this chain for: ab initio folding of unknown structures, multimer complex prediction, protein-protein interface prediction, structure-guided drug design starting points, and homology model generation. This is the correct chain when the goal is a predicted 3D coordinate file (PDB/mmCIF) — NOT for druggability scoring or target tractability assessment.",
+  "source": "curated",
+  "steps": [
+    {"order": 1, "workflow_name": "msa_colabfold_prep", "role": "sequence_msa_preparation", "params_template": {}},
+    {"order": 2, "workflow_name": "alphafold3_prediction", "role": "structure_prediction", "params_template": {"model": "alphafold3", "num_recycles": 3}},
+    {"order": 3, "workflow_name": "molprobity_validation", "role": "structure_quality_validation", "params_template": {}}
+  ],
+  "connections": [
+    {"from_step": 1, "from_output": "msa_output", "to_step": 2, "to_input": "msa"},
+    {"from_step": 2, "from_output": "predicted_structure", "to_step": 3, "to_input": "structure_pdb"}
+  ],
+  "required_inputs": [
+    {"name": "protein_sequence", "type": "fasta", "description": "Amino acid FASTA sequence(s) to fold"},
+    {"name": "prediction_mode", "type": "string", "description": "monomer or multimer"}
+  ],
+  "expected_outputs": [
+    {"name": "predicted_pdb", "type": "pdb"},
+    {"name": "plddt_scores", "type": "json"},
+    {"name": "molprobity_report", "type": "html"},
+    {"name": "ramachandran_plot", "type": "png"}
+  ],
+  "example_queries": [
+    "AlphaFold protein structure prediction from sequence",
+    "predict 3D structure of protein using AlphaFold3",
+    "ESMFold protein folding from amino acid sequence",
+    "AlphaFold2 multimer complex structure prediction",
+    "protein structure prediction and MolProbity validation",
+    "ab initio protein folding deep learning",
+    "predict protein tertiary structure from FASTA",
+    "ColabFold AlphaFold structure prediction pipeline",
+    "proteinfold nf-core AlphaFold Nextflow",
+    "protein 3D coordinates PDB prediction from sequence",
+    "multimer protein complex folding prediction pLDDT",
+    "Ramachandran plot structure quality assessment"
+  ],
+  "tags": ["structural_biology", "protein_structure", "AlphaFold", "AlphaFold3", "AlphaFold2",
+           "ESMFold", "ColabFold", "proteinfold", "protein_folding", "de_novo_folding",
+           "multimer", "structure_prediction", "MolProbity", "pLDDT", "Ramachandran",
+           "3D_structure", "PDB", "homology_modeling", "nf-core-proteinfold"]
+}

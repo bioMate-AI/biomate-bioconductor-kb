@@ -60,7 +60,9 @@ jobs:
                         pyotp 'qrcode[pil]' pdfplumber \
                         pyyaml typing-extensions \
                         anyio python-multipart \
+                        networkx \
                         httpx  # ind_actions_router transitively imports llm_client → httpx
+                               # and a graph builder (workflow_optimizer) → networkx
 
       - name: Run Pydantic model smoke
         run: python scripts/smoke_pydantic_models.py

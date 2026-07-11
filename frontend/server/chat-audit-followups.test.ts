@@ -22,7 +22,8 @@ describe("Q1: context compressor preserves dataset blocks", () => {
   const SRC = fs.readFileSync(path.join(ROOT, "context-compressor.ts"), "utf-8");
 
   it("declares a DATASET_BLOCK_RE", () => {
-    expect(/const\s+DATASET_BLOCK_RE\s*=\s*\/\\\[\(\?:Galaxy dataset\|Uploaded datasets\?\|Attached files\?\)/.test(SRC)).toBe(true);
+    // Pattern accepts BioMate dataset, Galaxy dataset, Uploaded datasets?, or Attached files?
+    expect(/const\s+DATASET_BLOCK_RE\s*=\s*\/\\\[\(\?:(?:BioMate dataset\|)?Galaxy dataset\|Uploaded datasets\?\|Attached files\?\)/.test(SRC)).toBe(true);
   });
 
   it("extracts blocks into preservedBlocks before summarization", () => {

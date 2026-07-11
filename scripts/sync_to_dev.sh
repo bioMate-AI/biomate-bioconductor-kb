@@ -3,7 +3,10 @@
 #   1. Frontend (React/Express) — Docker rebuild + restart
 #   2. Backend Python files    — docker cp into running Galaxy container + restart
 #   3. Galaxy databases        — galaxy_ai_tools.db (workflow search), universe.sqlite
-#   4. Nextflow workflow files — .nf files in biomni_workflows/
+#   4. Nextflow workflow files — .nf files in biomni_workflows/ + nf-core-workflows/modules/biomate-ai-tools/
+#
+# NOTE: Marketing website (webpage_design_v2/) is NOT synced here.
+#       Use scripts/deploy_marketing.sh instead.
 #
 # NOTE: Marketing website (webpage_design_v2/) is NOT synced here.
 #       Use scripts/deploy_marketing.sh instead.
@@ -118,13 +121,13 @@ inject_key() {
 
 ec2_ssh() {
   inject_key > /dev/null
-  ssh -i "$KEY_FILE" -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
+  ssh -i "$KEY_FILE" -o StrictHostKeyChecking=no -o ConnectTimeout=15 -o IdentitiesOnly=yes \
     "${EC2_USER}@${EC2_HOST}" "$@"
 }
 
 ec2_scp() {
   inject_key > /dev/null
-  scp -i "$KEY_FILE" -o StrictHostKeyChecking=no "$@"
+  scp -i "$KEY_FILE" -o StrictHostKeyChecking=no -o IdentitiesOnly=yes "$@"
 }
 
 # ---------------------------------------------------------------------------
@@ -164,11 +167,16 @@ apply_postgres_migrations() {
 deploy_frontend() {
   log "[frontend] Building archive..."
   local tar_file="/tmp/biomate_frontend_sync.tar.gz"
-  tar -czf "$tar_file" \
+  # COPYFILE_DISABLE=1 suppresses macOS ._* resource-fork files from the archive.
+  # Without it, tar on macOS silently includes binary ._0018_*.sql files in
+  # migrations/, which the boot-time migration runner picks up and sends to PG
+  # as SQL — PG rejects with "invalid message format" and the container crashes.
+  COPYFILE_DISABLE=1 tar -czf "$tar_file" \
     --exclude='frontend/data/uploads' \
     --exclude='frontend/e2e/screenshots' \
     --exclude='frontend/e2e/reports' \
     --exclude='frontend/node_modules' \
+    --exclude='._*' \
     -C "$REPO_ROOT" \
     frontend/client/ frontend/server/ frontend/shared/ frontend/attached_assets/ \
     frontend/migrations/ \
@@ -274,13 +282,27 @@ deploy_galaxy_yml() {
   fi
   log "[galaxy.yml] Shipping $(stat -c %s $src 2>/dev/null || echo ?) bytes..."
   ec2_scp "$src" "${EC2_USER}@${EC2_HOST}:/tmp/galaxy.yml"
+
+  # Sync interactivetools_conf.xml BEFORE the gunicorn restart below.
+  # galaxy.yml.docker references interactivetools_conf.xml in tool_config_file;
+  # Galaxy reads tool_config_file at startup — if the file is missing when gunicorn
+  # restarts, Galaxy crashes. Copy it first so both files land before the restart.
+  # (Registers Jupyter, RStudio, CellxGene in Galaxy's tool panel; not covered by
+  # the Python file diff sync.)
+  local it_src="$REPO_ROOT/backend/config/interactivetools_conf.xml"
+  if [[ -f "$it_src" ]]; then
+    ec2_scp "$it_src" "${EC2_USER}@${EC2_HOST}:/tmp/interactivetools_conf.xml"
+    ec2_ssh 'docker cp /tmp/interactivetools_conf.xml biomate-galaxy-dev:/app/config/interactivetools_conf.xml'
+    log "[galaxy.yml] interactivetools_conf.xml staged"
+  fi
+
   ec2_ssh '
     set -e
     docker cp /tmp/galaxy.yml biomate-galaxy-dev:/app/config/galaxy.yml
     # Verify the bind is correct (catch any future regression)
     BIND=$(docker exec biomate-galaxy-dev grep -E "^[[:space:]]+bind:" /app/config/galaxy.yml | head -1 | tr -d " ")
     echo "[galaxy.yml] applied; bind = ${BIND}"
-    # Reload gunicorn so it picks up the new bind (no-op if unchanged)
+    # Reload gunicorn so it picks up the new config (both galaxy.yml + interactivetools_conf.xml are now in place)
     docker exec biomate-galaxy-dev galaxyctl restart gunicorn 2>&1 | tail -1
   '
   log "[galaxy.yml] Done"
@@ -328,7 +350,12 @@ deploy_backend_python() {
     git show "HEAD:$rel_path" > "$tmp_tar_dir/$rel_path" 2>/dev/null \
       || cp "$REPO_ROOT/$rel_path" "$tmp_tar_dir/$rel_path" 2>/dev/null || true
   done < <(sort -u "$tmp_list")
-  tar -czf "$tar_file" -C "$tmp_tar_dir" . 2>/dev/null || true
+  # COPYFILE_DISABLE=1 suppresses macOS ._* Apple Double resource-fork files from
+  # entering the archive. Without this, macOS tar bundles a ._<name>.py companion
+  # for every .py file; Linux extracts them as real files; alembic finds them,
+  # tries to compile them (binary → null bytes) → ValueError → gunicorn crash.
+  # Sync 8 root cause: this flag was present on the frontend tar but not here.
+  COPYFILE_DISABLE=1 tar -czf "$tar_file" -C "$tmp_tar_dir" --exclude='._*' . 2>/dev/null || true
 
   # Hard-fail if the upload itself didn't land. Previously this was silent:
   # scp printed "Failure" but the script continued, then the next ec2_ssh
@@ -351,15 +378,20 @@ deploy_backend_python() {
     tar -xzf /tmp/backend_py_sync.tar.gz -C /tmp/backend_py_extract
 
     # Sanity check: confirm extract is non-empty before mass-copying.
-    extracted=$(find /tmp/backend_py_extract/backend -name "*.py" 2>/dev/null | wc -l)
+    # Exclude ._* Apple Double resource-fork files (defense-in-depth; primary fix is
+    # COPYFILE_DISABLE=1 on the macOS tar creation side above).
+    extracted=$(find /tmp/backend_py_extract/backend -name "*.py" ! -name "._*" 2>/dev/null | wc -l)
     if [[ "$extracted" -lt 1 ]]; then
       echo "[backend] FATAL: tarball extracted zero .py files — refusing to docker cp" >&2
       exit 1
     fi
     echo "[backend] extracted $extracted python files into /tmp/backend_py_extract/"
 
-    # Copy each file into the Galaxy container at /app/ path
-    find /tmp/backend_py_extract/backend -name "*.py" | while read src; do
+    # Copy each file into the Galaxy container at /app/ path.
+    # ! -name "._*" excludes any Apple Double resource-fork files that macOS tar may
+    # have bundled; copying them into the alembic versions_gxy/ dir causes a
+    # null-byte ValueError that crash-loops gunicorn (sync 8 root cause, 2026-07-03).
+    find /tmp/backend_py_extract/backend -name "*.py" ! -name "._*" | while read src; do
       rel="${src#/tmp/backend_py_extract/backend/}"
       dest="/app/lib/galaxy/${rel#lib/galaxy/}"
       dir=$(dirname "$dest")
@@ -406,7 +438,8 @@ deploy_workflows() {
   tar -czf "$tar_file" \
     --exclude='*/.nextflow' \
     --exclude='*/.nextflow.log*' \
-    backend/biomni_workflows/ 2>/dev/null
+    backend/biomni_workflows/ \
+    backend/nf-core-workflows/modules/biomate-ai-tools/ 2>/dev/null
   log "[workflows] Archive: $(du -sh $tar_file | cut -f1)"
 
   ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/workflows_sync.tar.gz"
@@ -426,12 +459,24 @@ deploy_workflows() {
       set -e
       cd /tmp && mkdir -p workflows_extract_in
       tar -xzf workflows_sync.tar.gz -C workflows_extract_in
-      # Per-file replacement (handles symlink-vs-dir conflicts that defeat cp -r).
-      # Walk the source, remove the dest entry whatever its type, then move new in.
+
+      # Per-file replacement for biomni_workflows (handles symlink-vs-dir conflicts).
       cd workflows_extract_in/backend/biomni_workflows
       find . -mindepth 1 \( -type f -o -type l \) | while read -r rel; do
         rel=\${rel#./}
         dest=/app/biomni_workflows/\$rel
+        mkdir -p \"\$(dirname \"\$dest\")\"
+        rm -rf \"\$dest\" 2>/dev/null
+        cp -P \"\$rel\" \"\$dest\"
+      done
+
+      # Per-file replacement for nf-core-workflows/modules/biomate-ai-tools.
+      # New custom BioMate wrappers (magma, scgwas, ldsc, etc.) are added here
+      # and must reach dev EC2 — previously this directory was never synced.
+      cd /tmp/workflows_extract_in/backend/nf-core-workflows/modules/biomate-ai-tools
+      find . -mindepth 1 \( -type f -o -type l \) | while read -r rel; do
+        rel=\${rel#./}
+        dest=/app/nf-core-workflows/modules/biomate-ai-tools/\$rel
         mkdir -p \"\$(dirname \"\$dest\")\"
         rm -rf \"\$dest\" 2>/dev/null
         cp -P \"\$rel\" \"\$dest\"
@@ -463,7 +508,7 @@ deploy_workflows() {
 deploy_databases() {
   log "[db] Syncing Galaxy databases..."
 
-  # galaxy_ai_tools.db — 270MB, sync via direct scp (NOT S3).
+  # galaxy_ai_tools.db — 304MB, sync via direct scp (NOT S3).
   #
   # WHY scp instead of S3 (2026-05-22):
   # The dev EC2 host has stale ~/.aws/credentials (Oct 2025) whose access
@@ -519,6 +564,39 @@ deploy_databases() {
       fi
       rm -f /tmp/galaxy_ai_tools_sync.db
     '
+    # Rebuild the workflow embedding NPZ inside the container so the next
+    # Galaxy startup finds a fresh index and never blocks at request time.
+    # The Python command uses only double quotes (no apostrophes) so the
+    # outer single-quoted ec2_ssh block is not broken.
+    log "[embed] Rebuilding workflow embeddings to match new DB (may take 60-120 s)..."
+    # Call _build_workflow_embeddings() directly — bypasses the runtime
+    # staleness gate (which now refuses to rebuild in the request path).
+    # No apostrophes in this block (see sync 9 root cause in CLAUDE.md).
+    # timeout 660: kills the SSH+docker-exec if embedding hangs (no-timeout bug caused
+    # a 30+ min hang when the container stalled; 660s = 11 min is 50% over the observed
+    # worst-case 424s so it won't false-positive on slow-but-working runs).
+    ec2_ssh '
+      timeout 660 docker exec -u galaxy biomate-galaxy-dev python3.9 -c "
+import sys, time
+sys.path.insert(0, \"/app/lib\")
+t0 = time.time()
+import pathlib
+import galaxy.ai.unified_workflow_search as _m
+_m._WORKFLOW_EMBED_NPZ = pathlib.Path(\"/app/database/galaxy_ai_workflow_embeddings.npz\")
+if _m._WF_EMBED_MODEL is None:
+    print(\"[embed] Loading BGE model...\")
+    from sentence_transformers import SentenceTransformer as _ST
+    _m._WF_EMBED_MODEL = _ST(\"BAAI/bge-small-en-v1.5\", device=\"cpu\", local_files_only=True)
+from galaxy.ai.unified_workflow_search import UnifiedWorkflowSearch
+wfs = UnifiedWorkflowSearch(\"/app/database/galaxy_ai_tools.db\")
+print(\"[embed] Encoding all workflows...\")
+wfs._build_workflow_embeddings()
+ok = _m._WF_EMBED_MATRIX is not None and len(_m._WF_EMBED_IDS) > 0
+label = \"ready\" if ok else \"FAILED\"
+print(\"[embed] %s elapsed=%.1fs\" % (label, time.time()-t0))
+sys.exit(0 if ok else 1)
+" && echo "[embed] Embedding rebuild OK" || echo "[embed] WARNING: embedding rebuild failed — server will use FTS-only on first request"
+    ' || log "[embed] WARNING: embedding rebuild ssh step failed"
     LAST_DB_SYNC="$local_db_mtime"
   else
     log "[db] galaxy_ai_tools.db unchanged — skipping"
@@ -842,6 +920,25 @@ restart_galaxy() {
     # Ensure Galaxy database files are owned by galaxy user (docker cp sets host uid)
     docker exec -u root biomate-galaxy-dev chown galaxy:galaxy \
       /app/database/universe.sqlite /app/database/galaxy_ai_tools.db 2>/dev/null || true
+
+    # Wait for Galaxy to be healthy after HUP (up to 120s).
+    # Without this, a warm Docker layer cache lets the frontend build finish in
+    # ~30s — the health gate then starts before gunicorn workers have restarted
+    # their Python AI stack, causing every probe to fail with TCP-RST (workers
+    # not ready to recv()) and triggering a false-positive auto-rollback.
+    echo "[galaxy] Waiting for Galaxy (8081) to be healthy after HUP (up to 120s)..."
+    _galaxy_ok=0
+    for _gi in $(seq 1 24); do
+      if curl -fsS -o /dev/null --max-time 8 http://localhost:8081/api/version 2>/dev/null; then
+        echo "[galaxy] ✓ Galaxy healthy (attempt ${_gi}/24, ~$(((_gi - 1) * 5))s)"
+        _galaxy_ok=1
+        break
+      fi
+      sleep 5
+    done
+    if [ "$_galaxy_ok" -eq 0 ]; then
+      echo "[galaxy] WARNING: Galaxy did not respond within 120s after HUP — proceeding anyway (health gate will catch it)"
+    fi
   '
 }
 
@@ -898,10 +995,15 @@ snapshot_for_rollback() {
 postsync_health_ok() {
   # Probe the dev host's mapped ports; retry to ride out HUP / cold start.
   # $1 = number of 5s retries (default 24 = 120s).
+  # Prints which port is failing so we can distinguish Galaxy vs Frontend issues.
   local tries="${1:-24}"
   ec2_ssh "
     for i in \$(seq 1 $tries); do
-      if curl -fsS -o /dev/null --max-time 8 http://localhost:8081/api/version && curl -fsS -o /dev/null --max-time 8 http://localhost:3000/api/health; then exit 0; fi
+      gx=0; fe=0
+      curl -fsS -o /dev/null --max-time 8 http://localhost:8081/api/version 2>/dev/null && gx=1
+      curl -fsS -o /dev/null --max-time 8 http://localhost:3000/api/health 2>/dev/null && fe=1
+      if [ \$gx -eq 1 ] && [ \$fe -eq 1 ]; then exit 0; fi
+      echo \"[probe \$i/$tries] galaxy=\$gx frontend=\$fe\"
       sleep 5
     done
     exit 1
@@ -916,8 +1018,12 @@ rollback_sync() {
     set -e
     NET=\$(cat /opt/biomate/rollback/galaxy.net)
     PORTS=\$(cat /opt/biomate/rollback/galaxy.ports)
+    # Write a filtered env file (drop shell-only vars that docker --env-file rejects)
+    grep -vE '^(PATH|HOME|TERM|HOSTNAME|SHELL|SHLVL|LOGNAME|USER|_)=' /opt/biomate/rollback/galaxy.env > /tmp/galaxy_rollback.env
     docker rm -f biomate-galaxy-dev >/dev/null 2>&1 || true
-    docker run -d --name biomate-galaxy-dev --network \"\$NET\" \$PORTS --restart unless-stopped \$(grep -vE '^(PATH|HOME|TERM|HOSTNAME)=' /opt/biomate/rollback/galaxy.env | awk '{print \"-e\", \$0}' | tr '\n' ' ') $RB_GALAXY_IMAGE >/dev/null
+    # Use --env-file instead of per-var -e flags: avoids word-splitting bugs when
+    # env values contain spaces or shell-special chars.
+    docker run -d --name biomate-galaxy-dev --network \"\$NET\" \$PORTS --restart unless-stopped --env-file /tmp/galaxy_rollback.env $RB_GALAXY_IMAGE >/dev/null
     docker network connect biomate-dev-net biomate-galaxy-dev 2>/dev/null || true
     echo '[rollback]   galaxy recreated from snapshot'
   "; then
@@ -974,7 +1080,7 @@ do_sync() {
   # Determine what changed
   echo "$changed_paths" | grep -q "^frontend/" && do_frontend=true
   echo "$changed_paths" | grep -q "^backend/lib/" && do_backend=true
-  echo "$changed_paths" | grep -q "^backend/biomni_workflows/" && do_workflows=true
+  echo "$changed_paths" | grep -qE "^backend/biomni_workflows/|^backend/nf-core-workflows/modules/biomate-ai-tools/" && do_workflows=true
   echo "$changed_paths" | grep -q "^backend/database/" && do_db=true
 
   # Always sync logo
@@ -1029,23 +1135,38 @@ do_sync() {
 
   $do_backend   && deploy_backend_python
   $do_workflows && deploy_workflows
+  $do_db        && deploy_databases
   # HUP Galaxy when either backend Python OR workflow .nf files change.
   # Workflows used to skip the HUP on the theory that Nextflow reads .nf
   # from disk per-run, but Galaxy's in-process workflow_search keeps a
   # parsed step cache + tool DB cache that stays pinned to old file
   # contents until the worker process recycles. Skipping HUP caused the
   # 2026-05-21 class of "fix shipped but old behaviour persists" issues.
-  ($do_backend || $do_workflows) && restart_galaxy
-  $do_db        && deploy_databases
+  #
+  # ORDERING: restart_galaxy MUST run AFTER deploy_databases. deploy_databases
+  # does `docker stop/start` + `docker restart` on the Galaxy container (to
+  # safely copy the 304MB galaxy_ai_tools.db + 3.4MB universe.sqlite). Each
+  # of these restarts triggers a 3.5-minute Galaxy cold-start. If restart_galaxy
+  # (with its health wait) ran BEFORE deploy_databases, the health confirmation
+  # was worthless — the DB sync would immediately restart Galaxy again, and
+  # the post-sync health gate would start before Galaxy had time to boot.
+  # Root cause of sync 7 failure (2026-07-03): Docker build took ~2 min (warm
+  # cache), health gate started only ~2 min after the last `docker restart`,
+  # but Galaxy needs 3.5 min to boot → all 48 probes timed out.
+  ($do_backend || $do_workflows || $do_db) && restart_galaxy
   # Apply PostgreSQL migrations BEFORE deploying the frontend so the new bundle's
   # storage layer never hits a missing column on the new schema.
   $do_frontend  && apply_postgres_migrations
   $do_frontend  && deploy_frontend
 
   # --- Post-sync health gate + auto-rollback -------------------------------
+  # 120 retries × 5s = 600s (10 min). Galaxy is confirmed healthy by
+  # restart_galaxy's internal wait (which now runs AFTER deploy_databases),
+  # so this gate mainly covers frontend cold-start + rare Galaxy edge cases.
+  # covers the frontend container's cold-start (Node.js + DB migrations).
   if [[ "$ROLLBACK_READY" == 1 ]]; then
     log "[health] Verifying dev health after sync..."
-    if postsync_health_ok 24; then
+    if postsync_health_ok 120; then
       log "[health] ✓ dev healthy after sync"
       SYNC_RESULT=healthy
     else
@@ -1055,7 +1176,7 @@ do_sync() {
   else
     # Snapshot wasn't taken — can't safely roll back. Still report real health.
     log "[health] No snapshot — health-gate without rollback safety"
-    if postsync_health_ok 24; then SYNC_RESULT=healthy; else SYNC_RESULT=failed; fi
+    if postsync_health_ok 120; then SYNC_RESULT=healthy; else SYNC_RESULT=failed; fi
   fi
 
   log "=== Sync complete for ${commit:0:8} (result=${SYNC_RESULT:-unknown}) ==="
@@ -1073,7 +1194,7 @@ log "Mode: manual one-shot | Target: https://dev-public.biomate.ai"
 # Refuse to run if there are uncommitted source changes. Caller must commit
 # or stash first. Auto-commit-before-sync was removed (bypassed code review).
 DIRTY_SOURCE=$(git -C "$REPO_ROOT" diff --name-only HEAD 2>/dev/null | \
-  grep -E "^(frontend/client/|frontend/server/|frontend/shared/|backend/lib/|backend/biomni_workflows/)" || true)
+  grep -E "^(frontend/client/|frontend/server/|frontend/shared/|backend/lib/|backend/biomni_workflows/|backend/nf-core-workflows/modules/biomate-ai-tools/)" || true)
 if [[ -n "$DIRTY_SOURCE" ]]; then
   dirty_count=$(echo "$DIRTY_SOURCE" | wc -l)
   log "ERROR: ${dirty_count} uncommitted source file(s) in working tree:"
@@ -1092,7 +1213,7 @@ fi
 # Sync all tracked layers in one pass and exit. No polling, no retries.
 #
 # Layer detection strategy:
-#   Code layers (frontend/, backend/lib/, backend/biomni_workflows/):
+#   Code layers (frontend/, backend/lib/, backend/biomni_workflows/, backend/nf-core-workflows/modules/biomate-ai-tools/):
 #     git diff against last-synced commit — only files in those trees
 #     that actually changed get included.
 #   DB layer (galaxy_ai_tools.db):

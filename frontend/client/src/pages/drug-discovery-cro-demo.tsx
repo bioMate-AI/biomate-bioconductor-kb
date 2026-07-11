@@ -749,7 +749,7 @@ function CampaignWizard({
 
       {step === 1 && (
         <div>
-          <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
+          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
             <div style={fieldStyle}>
               <label style={labelStyle}>Compound name</label>
               <input style={inputStyle} value={mol} onChange={e => setMol(e.target.value)} placeholder="e.g. BMT-4451" />
@@ -1352,8 +1352,10 @@ export default function DrugDiscoveryCroDemo() {
             <span style={{ color: "oklch(0.22 0.01 260)" }}>Drug Discovery · CRO Compliance</span>
           </div>
           <div className="flex-1" />
-          <RegChip variant="indigo">21 CFR Part 11</RegChip>
-          <RegChip>ICH M4</RegChip>
+          <div className="hidden sm:flex items-center gap-2">
+            <RegChip variant="indigo">21 CFR Part 11</RegChip>
+            <RegChip>ICH M4</RegChip>
+          </div>
         </div>
 
         {/* Campaign list */}
@@ -1515,22 +1517,24 @@ export default function DrugDiscoveryCroDemo() {
 
         <div className="flex-1" />
 
-        {/* Tutorial button */}
+        {/* Tutorial button — hidden on mobile */}
         <button
           data-tour="tut-btn"
           onClick={tour.start}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold cursor-pointer transition-colors"
+          className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold cursor-pointer transition-colors"
           style={{ background: "oklch(0.96 0.03 245)", color: "oklch(0.55 0.14 245)", border: "1px solid oklch(0.55 0.14 245)" }}
           title="Replay the tutorial"
         >
           <span style={{ fontSize: 10 }}>▶</span> Tutorial
         </button>
 
-        {/* Reg chips + user badge */}
+        {/* Reg chips + user badge — chips hidden on mobile */}
         <div className="flex items-center gap-2.5">
-          <RegChip variant="indigo">21 CFR Part 11</RegChip>
-          <RegChip>ICH M4</RegChip>
-          <span className="text-muted-foreground/40 text-sm">·</span>
+          <div className="hidden sm:flex items-center gap-2">
+            <RegChip variant="indigo">21 CFR Part 11</RegChip>
+            <RegChip>ICH M4</RegChip>
+          </div>
+          <span className="hidden sm:inline text-muted-foreground/40 text-sm">·</span>
           <div className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
             <div
               className="w-[22px] h-[22px] rounded-full grid place-items-center text-[10px] font-semibold shrink-0"

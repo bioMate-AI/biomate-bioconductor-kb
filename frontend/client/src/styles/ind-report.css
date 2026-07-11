@@ -1018,6 +1018,19 @@ body.ind-app {
   .ind-center    { grid-column: 2 / -1 !important; }
 }
 
+/* Mobile: stack left nav above center content, both full-width */
+@media (max-width: 767px) {
+  .ind-shell {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto 1fr !important;
+  }
+  .ind-topbar  { grid-row: 1; grid-column: 1 !important; }
+  .ind-left    { grid-row: 2; grid-column: 1 !important; max-height: 200px; overflow-y: auto; border-bottom: 1px solid var(--ind-border); }
+  .ind-center  { grid-row: 3; grid-column: 1 !important; }
+  .ind-doc-panel { display: none !important; }
+  .ind-doc-fab   { display: flex !important; }
+}
+
 /* TipTap paragraph: make the editor content flow inline so the finding-chip
  * and cite-add icon appear at the end of the paragraph text (like the
  * prototype's contentEditable <p>). Without this, the editor is block-level

@@ -102,7 +102,7 @@ process BIOC_TFBSTOOLS_TFBS_SEQUENCE_SCANNING {
       matrix_rows <- list()
       for (line in pfm_lines) {
         # Extract all integers from the line
-        nums <- as.integer(regmatches(line, gregexpr("\\d+", line))[[1]])
+        nums <- as.integer(regmatches(line, gregexpr("\\\\d+", line))[[1]])
         if (length(nums) > 0) {
           matrix_rows[[length(matrix_rows) + 1]] <- nums
         }

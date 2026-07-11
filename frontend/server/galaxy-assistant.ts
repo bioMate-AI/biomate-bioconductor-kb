@@ -12,6 +12,7 @@
  */
 
 import { resolveChainHintNames } from './chain-hint-fallback';
+import { jsonrepair } from 'jsonrepair';
 import Anthropic from '@anthropic-ai/sdk';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
@@ -26,7 +27,14 @@ import { resolveCanonicalChainStepPath } from './canonical-chain-steps';
 // per-user Galaxy API key for that single in-flight request only (no leakage
 // across concurrent users). See ChatContext.galaxyAPIOverride for rationale.
 const _galaxyAPIRequestStorage = new AsyncLocalStorage<GalaxyAPIProxy>();
+
+// Per-request override for the Anthropic client. When a user supplies their
+// own API key (stored encrypted in users.llm_api_keys), processMessage() runs
+// inside this storage so _getClaude() returns a client scoped to their key.
+// Falls back to the singleton's this.claude (system key) when not set.
+const _anthropicOverride = new AsyncLocalStorage<Anthropic>();
 import { conversationStateManager } from './conversation-state';
+import { shouldInjectDatasets } from './dataset-injection-gate';
 import { userPatternsService, type UserContext } from './user-patterns-service';
 import { thinkingDetector, type ThinkingDetectionResult } from './thinking-detector';
 import { memoryService } from './memory-repository';
@@ -241,7 +249,7 @@ export function shouldEnableThinking(message: string, intent: string): boolean {
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {
   intentModel: 'gemini-3.5-flash',  // overridden by BIOMATE_INTENT_MODEL env var; gemini-3.5-flash in production
   toolRankingModel: 'claude-haiku-4-5',  // Haiku: fast lightweight ranking
-  responseModel: 'claude-sonnet-4-6',    // Default to Sonnet 4.6
+  responseModel: 'gemini-3.5-flash',     // Primary: Gemini Flash; Claude/OpenAI/Ollama as fallback chain
   enableThinking: false,                 // Disable thinking by default for lower latency
   thinkingBudget: 2000,
 };
@@ -259,13 +267,10 @@ const GEMINI_PRO_MODEL   = process.env.BIOMATE_INTENT_MODEL_PRO   || 'gemini-3.1
  *   - dense technical jargon (3+ tokens that look like gene names / drug names / IDs)
  * Otherwise routes Flash for cost/latency.
  */
-export function pickGeminiIntentModel(message: string): string {
-  const msg = String(message || '');
-  if (msg.length > 140) return GEMINI_PRO_MODEL;
-  if (/\b(compare|versus|vs\.?|triage|bake[- ]?off|strategy|design.*for)\b/i.test(msg)) return GEMINI_PRO_MODEL;
-  // Multi-entity: 3+ all-caps gene/drug-style tokens (e.g. PD-1, VEGF, BCMA, PCSK9)
-  const upperTokens = (msg.match(/\b[A-Z][A-Z0-9-]{1,}\b/g) || []).length;
-  if (upperTokens >= 3) return GEMINI_PRO_MODEL;
+export function pickGeminiIntentModel(_message: string): string {
+  // Always use Flash for intent classification — Pro hangs for 110s+ without timeout
+  // (rate-limiting / API latency) making the system unusable. Flash handles JSON
+  // intent parsing equally well and responds in <5s vs 110s+ for Pro.
   return GEMINI_FLASH_MODEL;
 }
 
@@ -311,6 +316,20 @@ export interface ChatContext {
    * generation returns "currently unavailable".
    */
   galaxyAPIOverride?: any;
+  /** Explicitly selected expert skill IDs (from SkillSelector UI). Auto-detected when absent. */
+  activeSkillIds?: string[];
+  /**
+   * Project context string built from the active project's name + researchGoal.
+   * Injected into the system prompt as <project_context> so the LLM knows the
+   * user's research background without the user repeating it every session.
+   */
+  projectContext?: string;
+  /**
+   * Per-user Anthropic API key decrypted from the users.llm_api_keys column.
+   * When set, this request's LLM calls use the user's own key/quota instead
+   * of the system key. Never logged or stored beyond the request lifecycle.
+   */
+  userAnthropicApiKey?: string;
 }
 
 export interface ToolRecommendation {
@@ -853,7 +872,8 @@ function normalizeAdmetSmiles(
   // SMILES heuristic: extract the first whitespace-delimited token and test it.
   // The LLM sometimes appends prose after the SMILES string
   // (e.g. "Cc1ccc...n1 and predict hERG cardiac risk"), so strip trailing text.
-  const getSmilesToken = (v: string): string | null => {
+  const getSmilesToken = (v: unknown): string | null => {
+    if (typeof v !== 'string') return null;
     const token = v.split(/\s/)[0];
     return /[=#\[\]\/\\@]/.test(token) && token.length >= 5 ? token : null;
   };
@@ -861,13 +881,20 @@ function normalizeAdmetSmiles(
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(raw)) {
     if (k === 'smiles_list' || k === 'ADMET_model_type') {
-      out[k] = v;
+      // smiles_list may be a JSON array from the Galaxy backend — serialize it if needed
+      out[k] = Array.isArray(v) ? JSON.stringify(v) : String(v);
+    } else if (Array.isArray(v)) {
+      // Array of SMILES strings from the Galaxy backend — treat each element as a SMILES candidate
+      for (const item of v) {
+        const smilesToken = getSmilesToken(item);
+        if (smilesToken) smilesList.push(smilesToken);
+      }
     } else {
       const smilesToken = getSmilesToken(v);
       if (smilesToken) {
         smilesList.push(smilesToken);
-      } else {
-        out[k] = v;
+      } else if (v != null) {
+        out[k] = String(v);
       }
     }
   }
@@ -1105,6 +1132,69 @@ export function buildDomainSpecialistBlock(preferredDomains: string[]): string {
 }
 
 // ============================================================================
+// Skills System — Expert Role Injection
+// ============================================================================
+
+const GALAXY_URL = process.env.GALAXY_URL || 'http://localhost:8081';
+
+/**
+ * Fetch active skills from the Galaxy backend and build a system-prompt block.
+ * Auto-detects from message + preferred domains unless the session has explicitly
+ * set skill_ids via context.activeSkillIds.
+ * Returns empty string on any error (non-blocking).
+ */
+export async function buildSkillBlock(
+  message: string,
+  preferredDomains: string[],
+  context: { activeSkillIds?: string[] }
+): Promise<string> {
+  try {
+    let url: string;
+    let body: object;
+
+    if (context.activeSkillIds && context.activeSkillIds.length > 0) {
+      // Explicit skill selection
+      url = `${GALAXY_URL}/api/skills/block`;
+      body = { skill_ids: context.activeSkillIds };
+    } else {
+      // Auto-detect from message
+      url = `${GALAXY_URL}/api/skills/detect`;
+      body = { query: message, preferred_domains: preferredDomains };
+    }
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(3000),
+    });
+
+    if (!res.ok) return '';
+    const data = await res.json() as any;
+
+    if (context.activeSkillIds && context.activeSkillIds.length > 0) {
+      return (data.block as string) || '';
+    } else {
+      // Build block from detected skills inline
+      const detected: Array<{ id: string; title: string }> = data.detected || [];
+      if (!detected.length) return '';
+      // Fetch the full block for detected skill ids
+      const blockRes = await fetch(`${GALAXY_URL}/api/skills/block`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skill_ids: detected.map((s: any) => s.id) }),
+        signal: AbortSignal.timeout(3000),
+      });
+      if (!blockRes.ok) return '';
+      const blockData = await blockRes.json() as any;
+      return (blockData.block as string) || '';
+    }
+  } catch {
+    return '';  // skills are best-effort, never block the response
+  }
+}
+
+// ============================================================================
 // Multi-Intent Decomposition Types
 // ============================================================================
 
@@ -1150,7 +1240,7 @@ export function inferActionsFromType(type: string): ActionCategories {
     'workflow_modification': { needsToolSearch: true, needsWorkflowModification: true, needsLLMReasoning: true },
     'troubleshooting': { needsResearchAgent: true, needsToolSearch: true, needsLLMReasoning: true },
     'parameter_optimization': { needsBenchmarkAgent: true, needsResearchAgent: true, needsToolSearch: true, needsLLMReasoning: true },
-    'result_comparison': { needsToolSearch: true, needsBenchmarkAgent: true, needsLLMReasoning: true },
+    'result_comparison': { needsResearchAgent: true, needsLLMReasoning: true },
     // Research/knowledge intents — ALL route through ResearchAgent for live DB + literature
     'research_question': { needsResearchAgent: true, needsLLMReasoning: true },
     // Live database lookup: GWAS Catalog, Open Targets, OMIM, ClinVar, Ensembl, mygene.info
@@ -1169,7 +1259,7 @@ export function inferActionsFromType(type: string): ActionCategories {
     'protocol_guidance': { needsResearchAgent: true, needsLLMReasoning: true },
     'teaching_explanation': { needsLLMReasoning: true },
     'methods_writing': { needsResearchAgent: true, needsLLMReasoning: true },
-    'comparative_methodology': { needsResearchAgent: true, needsBenchmarkAgent: true, needsLLMReasoning: true },
+    'comparative_methodology': { needsResearchAgent: true, needsLLMReasoning: true },
     'regulatory_compliance': { needsResearchAgent: true, needsLLMReasoning: true },
     'cost_estimation': { needsBenchmarkAgent: true, needsLLMReasoning: true },
     'general_question': { needsLLMReasoning: true },
@@ -1535,34 +1625,57 @@ async function _extractPdfText(filePath: string, maxChars = 50000): Promise<stri
 
   const pythonScript = `
 import sys, json
-try:
-    import pdfplumber
-    with pdfplumber.open(sys.argv[1]) as pdf:
+
+def _try_pdfplumber(path, max_chars):
+    try:
+        import pdfplumber
         parts = []
         chars = 0
-        for page in pdf.pages:
+        pdf = pdfplumber.open(path)
+        page_count = 0
+        try:
+            page_count = len(pdf.pages)
+            for page in pdf.pages:
+                t = (page.extract_text() or '').strip()
+                if t:
+                    parts.append(t)
+                    chars += len(t)
+                if chars >= max_chars:
+                    break
+        finally:
+            try:
+                pdf.close()
+            except Exception:
+                pass
+        text = '\\n\\n'.join(parts)[:max_chars]
+        return (text, page_count) if text.strip() else (None, 0)
+    except Exception:
+        return (None, 0)
+
+def _try_pypdf(path, max_chars):
+    try:
+        from pypdf import PdfReader
+        reader = PdfReader(path)
+        parts = []
+        chars = 0
+        for page in reader.pages:
             t = (page.extract_text() or '').strip()
             if t:
                 parts.append(t)
                 chars += len(t)
-            if chars >= int(sys.argv[2]):
+            if chars >= max_chars:
                 break
-        text = '\\n\\n'.join(parts)[:int(sys.argv[2])]
-        print(json.dumps({'text': text, 'page_count': len(pdf.pages)}))
-except ImportError:
-    from pypdf import PdfReader
-    reader = PdfReader(sys.argv[1])
-    parts = []
-    chars = 0
-    for page in reader.pages:
-        t = (page.extract_text() or '').strip()
-        if t:
-            parts.append(t)
-            chars += len(t)
-        if chars >= int(sys.argv[2]):
-            break
-    text = '\\n\\n'.join(parts)[:int(sys.argv[2])]
-    print(json.dumps({'text': text, 'page_count': len(reader.pages)}))
+        text = '\\n\\n'.join(parts)[:max_chars]
+        return (text, len(reader.pages)) if text.strip() else (None, 0)
+    except Exception:
+        return (None, 0)
+
+path = sys.argv[1]
+max_chars = int(sys.argv[2])
+text, page_count = _try_pdfplumber(path, max_chars)
+if not text:
+    text, page_count = _try_pypdf(path, max_chars)
+print(json.dumps({'text': text or '', 'page_count': page_count}))
 `;
 
   const pythonCandidates = [
@@ -1615,8 +1728,52 @@ except ImportError:
 async function _fetchPaperContentFromMessage(
   message: string,
 ): Promise<{ ref: string; content: string } | null> {
-  // --- Attached PDF extraction (highest priority) ---
-  // Message format (from chat-interface.tsx):
+  // --- New chip format: [Dataset: name (id: <value>)] ---
+  // Emitted by chat-input.tsx when the user attaches a dataset chip.
+  // The "id" field may be a UUID, an S3 URI (s3://bucket/uploads/<uuid>/file.pdf),
+  // a local file path, or a Galaxy dataset ID. Extract all PDF refs and pull content.
+  const newFormatRefs = [...message.matchAll(/\[Dataset:\s*([^\(]+?)\s*\(id:\s*([^\)]+?)\s*\)\]/gi)];
+  if (newFormatRefs.length > 0) {
+    try {
+      const { getUploadedFile } = await import('./routes');
+      const textParts: string[] = [];
+      const refNames: string[] = [];
+      for (const m of newFormatRefs) {
+        const name = m[1].trim();
+        const rawId = m[2].trim();
+        // Resolve to a local file. Try the raw ID first, then extract a UUID from an S3 URI.
+        let localFile = getUploadedFile(rawId);
+        if (!localFile) {
+          // If rawId is an S3 URI like s3://bucket/uploads/<uuid>/file.pdf, extract the UUID
+          const uuidInS3 = rawId.match(/uploads\/([0-9a-f-]{36})\//i)?.[1];
+          if (uuidInS3) localFile = getUploadedFile(uuidInS3);
+        }
+        if (!localFile?.filePath) {
+          // Also skip non-PDF names — GalaxyDatasetBrowser can hold any file type
+          if (!name.toLowerCase().endsWith('.pdf')) continue;
+          console.warn(`[_fetchPaperContentFromMessage] No local file for dataset id=${rawId} (name: ${name})`);
+          continue;
+        }
+        if (!localFile.filePath.toLowerCase().endsWith('.pdf')) continue;
+        const text = await _extractPdfText(localFile.filePath, 40000);
+        if (text) {
+          textParts.push(`=== ${name} ===\n${text}`);
+          refNames.push(name);
+          console.log(`[_fetchPaperContentFromMessage] Extracted ${text.length} chars from ${name} (id=${rawId})`);
+        }
+      }
+      if (textParts.length > 0) {
+        return {
+          ref: refNames.join(', '),
+          content: textParts.join('\n\n---\n\n').slice(0, 50000),
+        };
+      }
+    } catch (err: any) {
+      console.warn(`[_fetchPaperContentFromMessage] New-format PDF extraction failed: ${err.message}`);
+    }
+  }
+
+  // --- Legacy format (from old chat-input.tsx) ---
   //   [Attached files: paper.pdf, other.pdf]
   //   [Uploaded datasets: paper.pdf: dataset_id=<uuid>[, galaxy_dataset_id=<gid>][; other.pdf: dataset_id=<uuid2>]]
   const _attachedBlock = message.match(/\[Attached files:\s*([^\]]+)\]/i)?.[1] ?? '';
@@ -1790,7 +1947,10 @@ async function extractInlineDataWithLLM(
   const { createHash } = await import('node:crypto');
   const cacheKey = createHash('sha256').update(message).digest('hex').slice(0, 16);
   if (_inlineDataCache.has(cacheKey)) {
-    return _inlineDataCache.get(cacheKey)!;
+    const cached = _inlineDataCache.get(cacheKey)!;
+    const _cArrayKeys = Object.keys(cached).filter(k => cached[k].startsWith('['));
+    console.log(`[extractInlineData] result keys=${Object.keys(cached).join(',') || 'none'} arrayKeys=${_cArrayKeys.join(',') || 'none'} map=${JSON.stringify(cached)} (cache-hit)`);
+    return cached;
   }
 
   const SYSTEM = `You are a scientific data extractor. Given a user message, identify any scientific
@@ -1810,6 +1970,7 @@ Parameter type names to detect (and any others you recognize):
 - sample_id: patient/sample/library identifier
 - coordinates: genomic coordinates (chr:start-end format)
 - uploaded_dataset: IDs from an "[Uploaded datasets: ...]" block in the message
+- count_matrix: a comma/tab-separated gene expression count matrix (header row + data rows with gene IDs and numeric counts, e.g. "gene,ctrl1,ctrl2\nGENE1,100,120")
 - any other scientific parameter you recognize as concrete input data
 
 Rules:
@@ -1830,19 +1991,29 @@ Rules:
     const cleaned = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
     const parsed = JSON.parse(cleaned);
     if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-      // Normalize: all values must be non-empty strings
+      // Normalize: string values kept as-is; arrays serialized to JSON so multi-SMILES
+      // and multi-value extractions are preserved rather than silently dropped.
       const result: InlineDataMap = {};
       for (const [k, v] of Object.entries(parsed)) {
-        if (typeof v === 'string' && v.trim()) result[k] = v.trim();
+        if (typeof v === 'string' && v.trim()) {
+          result[k] = v.trim();
+        } else if (Array.isArray(v) && v.length > 0) {
+          const strings = v.filter((item): item is string => typeof item === 'string' && item.trim() !== '');
+          if (strings.length > 0) result[k] = JSON.stringify(strings);
+        }
       }
       _inlineDataCache.set(cacheKey, result);
+      // Log structured extraction result so E2E tests can verify array preservation.
+      // Format: [extractInlineData] result keys=<k1,k2,...> arrayKeys=<k1,...> map=<JSON>
+      const arrayKeys = Object.keys(result).filter(k => result[k].startsWith('['));
+      console.log(`[extractInlineData] result keys=${Object.keys(result).join(',') || 'none'} arrayKeys=${arrayKeys.join(',') || 'none'} map=${JSON.stringify(result)}`);
       return result;
     }
   } catch (err: any) {
     console.warn('[extractInlineData] LLM extraction failed, using regex fallback:', err.message);
   }
 
-  // Regex fallback — high-confidence patterns only (accessions and file paths)
+  // Regex fallback — high-confidence patterns only (accessions, file paths, tabular data)
   const fallback: InlineDataMap = {};
   const sra = message.match(/\b((SRR|ERR|DRR|SRS|ERS|DRS|SRP|ERP|DRP|PRJNA|PRJEB)\d+)\b/i);
   if (sra) fallback.sra_accession = sra[1].toUpperCase();
@@ -1852,7 +2023,18 @@ Rules:
   if (file) fallback.file_path = file[1];
   const upload = message.match(/\[Uploaded datasets:\s*([^\]]+)\]/);
   if (upload) fallback.uploaded_dataset = upload[1].trim();
+  // Tabular data: ≥2 lines each with ≥2 comma/tab-separated tokens where at least one is
+  // numeric. Catches gene count matrices, sample metadata tables, and similar pasted inputs.
+  const tabularLines = message.split('\n').map((l: string) => l.trim()).filter(Boolean);
+  const numericTabularRows = tabularLines.filter((line: string) => {
+    const cols = line.split(/[,\t]/);
+    return cols.length >= 2 && cols.some((c: string) => /^\d+(\.\d+)?$/.test(c.trim()));
+  });
+  if (numericTabularRows.length >= 2) fallback.count_matrix = message.trim();
   _inlineDataCache.set(cacheKey, fallback);
+  // Log regex fallback result using same format as LLM path so E2E tests can observe both paths.
+  const _fbArrayKeys = Object.keys(fallback).filter(k => fallback[k].startsWith('['));
+  console.log(`[extractInlineData] result keys=${Object.keys(fallback).join(',') || 'none'} arrayKeys=${_fbArrayKeys.join(',') || 'none'} map=${JSON.stringify(fallback)} (regex-fallback)`);
   return fallback;
 }
 
@@ -1892,8 +2074,8 @@ export class GalaxyAssistant {
     // This prevents silent auth failures when ANTHROPIC_API_KEY is absent on a Gemini-only deployment.
     const computedModelConfig = { ...DEFAULT_MODEL_CONFIG, ...options.modelConfig };
     if (!options.anthropicApiKey && geminiKey && !computedModelConfig.responseModel?.startsWith('gemini-')) {
-      computedModelConfig.responseModel = 'gemini-3.5-flash';
-      console.log('[GalaxyAssistant] No ANTHROPIC_API_KEY — switching responseModel to gemini-3.5-flash');
+      computedModelConfig.responseModel = GEMINI_FLASH_MODEL;
+      console.log('[GalaxyAssistant] No ANTHROPIC_API_KEY — switching responseModel to gemini flash');
     }
     this.modelConfig = computedModelConfig;
     this.sessionMemory = new SessionMemoryUpdater(this.claude);
@@ -1915,6 +2097,13 @@ export class GalaxyAssistant {
    */
   private _api(): GalaxyAPIProxy {
     return _galaxyAPIRequestStorage.getStore() ?? this.galaxyAPI;
+  }
+
+  /** Returns the Anthropic client for the current request.
+   *  Uses the per-user key stored in AsyncLocalStorage when set by processMessage();
+   *  falls back to the singleton system key otherwise. */
+  private _getClaude(): Anthropic {
+    return _anthropicOverride.getStore() ?? this.claude;
   }
 
   /**
@@ -1970,7 +2159,7 @@ export class GalaxyAssistant {
       systemInstruction: systemPrompt,
       // temperature=0 for determinism (BioMate is a scientific tool; see
       // sister Anthropic call where the same change was applied).
-      generationConfig: { maxOutputTokens: maxTokens, temperature: 0 },
+      generationConfig: { maxOutputTokens: maxTokens, temperature: 0, thinkingConfig: { thinkingBudget: 0 } } as any,
       ...(geminiTools ? { tools: geminiTools as any } : {}),
     });
 
@@ -2012,9 +2201,24 @@ export class GalaxyAssistant {
       // Await the aggregated response to:
       //  1. Ensure SDK updates chat history before the next sendMessageStream call
       //  2. Reliably detect function calls (never split across stream chunks)
+      //  3. Fall back to aggregated text if streaming chunks produced no text
+      //     (some Gemini SDK versions emit text only in aggregated, not in stream chunks)
       const aggregated = await streamResult.response;
       const allParts: any[] = aggregated.candidates?.[0]?.content?.parts || [];
       console.log(`[GeminiLoop] turn=${turn} parts=${allParts.length} keys=${allParts.map((p: any) => Object.keys(p).join(',')).join('|')}`);
+
+      // If streaming produced no text but the aggregated response has text, extract it now.
+      if (!rawResponse) {
+        const aggregatedText = allParts
+          .filter((p: any) => p.text)
+          .map((p: any) => p.text as string)
+          .join('');
+        if (aggregatedText) {
+          rawResponse = aggregatedText;
+          onResponseDelta?.(aggregatedText);
+          console.log(`[GeminiLoop] Streaming produced no text — extracted ${aggregatedText.length} chars from aggregated response`);
+        }
+      }
 
       // Check for function calls
       const fnCalls = allParts.filter((p: any) => p.functionCall);
@@ -2091,7 +2295,7 @@ export class GalaxyAssistant {
     maxTokens = 4096,
   ): Promise<string> {
     const ollamaBase = process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
-    const model = this.modelConfig.responseModel;
+    const model = process.env.OLLAMA_MODEL ?? 'qwen3:32b';
     const body = JSON.stringify({
       model,
       messages: [
@@ -2118,6 +2322,53 @@ export class GalaxyAssistant {
     const reader = res.body?.getReader();
     const decoder = new TextDecoder();
     if (!reader) throw new Error('No response body from Ollama');
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      for (const line of decoder.decode(value).split('\n')) {
+        const trimmed = line.replace(/^data:\s*/, '').trim();
+        if (!trimmed || trimmed === '[DONE]') continue;
+        try {
+          const delta = JSON.parse(trimmed).choices?.[0]?.delta?.content;
+          if (delta) { rawResponse += delta; onResponseDelta?.(delta); }
+        } catch { /* skip malformed chunk */ }
+      }
+    }
+    return rawResponse;
+  }
+
+  /**
+   * Generate a response using OpenAI-compatible API (gpt-4o by default).
+   * Streaming via the standard SSE chat completions endpoint.
+   */
+  private async _generateWithOpenAI(
+    systemPrompt: string,
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+    onResponseDelta?: (text: string) => void,
+    maxTokens = 4096,
+  ): Promise<string> {
+    const openaiKey = process.env.OPENAI_API_KEY;
+    if (!openaiKey) throw new Error('OPENAI_API_KEY not set');
+    const model = process.env.OPENAI_MODEL ?? 'gpt-4o';
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages.map(m => ({ role: m.role, content: m.content })),
+        ],
+        stream: true,
+        temperature: 0,
+        max_tokens: maxTokens,
+      }),
+    });
+    if (!res.ok) throw new Error(`OpenAI HTTP ${res.status}: ${await res.text()}`);
+    let rawResponse = '';
+    const reader = res.body?.getReader();
+    if (!reader) throw new Error('No response body from OpenAI');
+    const decoder = new TextDecoder();
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -2752,11 +3003,21 @@ Rules:
     // to this turn via AsyncLocalStorage so every `this._api()` call in any
     // helper method picks it up. Skip the wrapper if no override is provided.
     const overrideProxy = context.galaxyAPIOverride as GalaxyAPIProxy | undefined;
-    if (overrideProxy) {
-      return _galaxyAPIRequestStorage.run(overrideProxy, () =>
-        this._processMessageInner(message, context, onResponseDelta, onToolEvent));
+    const userAnthropicKey = context.userAnthropicApiKey;
+
+    const runInner = () => {
+      if (overrideProxy) {
+        return _galaxyAPIRequestStorage.run(overrideProxy, () =>
+          this._processMessageInner(message, context, onResponseDelta, onToolEvent));
+      }
+      return this._processMessageInner(message, context, onResponseDelta, onToolEvent);
+    };
+
+    if (userAnthropicKey) {
+      const userClaude = new Anthropic({ apiKey: userAnthropicKey });
+      return _anthropicOverride.run(userClaude, runInner);
     }
-    return this._processMessageInner(message, context, onResponseDelta, onToolEvent);
+    return runInner();
   }
 
   private async _processMessageInner(
@@ -2887,6 +3148,10 @@ Rules:
     ]);
     log('Steps 2-3 complete');
 
+    // Capture user's original query before paper-content injection so the
+    // paper-question guard can test only what the user actually typed.
+    const originalUserQuery = message;
+
     // Inject fetched paper content into the message so the workflow generator and
     // response synthesizer both see the actual paper text.
     if (paperContentResult) {
@@ -2911,8 +3176,11 @@ Rules:
     const _hasSmilesPattern = /(?:CC\(=O\)|c1ccc|[A-Z][a-z]?(?:c|C)\d|[A-Z]=O|SMILES\s*[:=]\s*\S{5,})/i.test(message)
       || /\b[A-Z][CNOPSFIBrcl0-9@=#\-+\[\]()\/.\\]{6,}\b/.test(message);
     const _hasAdmetKeywords = /(ADMET|hERG|DILI|Ames\s+mutagenicity|cardiotox|hepatotox|ClinTox|toxicity\s+screen|drug\s+toxicity)/i.test(message);
-    if (_hasSmilesPattern && _hasAdmetKeywords && !actions.needsWorkflowGeneration) {
-      log('ADMET+SMILES fast path: forcing needsWorkflowGeneration=true');
+    // Chemistry property calculations (MW, LogP, pKa, etc.) also require RDKit which is only
+    // available in AWS Batch workflows, not in the run_code sandbox. Route to ADMET workflow.
+    const _hasChemPropertyKeywords = /(molecular\s+weight|MW\b|LogP|log\s*P\b|pKa\b|solubility|lipophilicity|physicochemical|drug.like|Lipinski|Veber|QED|rule\s+of\s+five|RO5|calculate\s+(the\s+)?(properties|descriptors)|compound\s+properties)/i.test(message);
+    if (_hasSmilesPattern && (_hasAdmetKeywords || _hasChemPropertyKeywords) && !actions.needsWorkflowGeneration) {
+      log('ADMET+SMILES fast path: forcing needsWorkflowGeneration=true (ADMET or chemistry property keywords)');
       actions.needsWorkflowGeneration = true;
     }
 
@@ -3082,6 +3350,25 @@ Rules:
         intent.type = 'clinical_genomics';
       }
 
+    }
+
+    // Paper-question guard (FINAL gate):
+    // When the user has uploaded a PDF and is asking a question ABOUT it
+    // (summarize, what is this about, explain, findings, etc.) — never route
+    // to workflow generation. The paper content has already been extracted and
+    // will be used to answer directly via the LLM response synthesizer.
+    // This runs LAST so it overrides any earlier workflow_generation misclassification.
+    if (paperContentResult && actions.needsWorkflowGeneration) {
+      // Test against the ORIGINAL user query, not the paper-injected message —
+      // bioinformatics papers contain words like "pipeline", "run", "workflow"
+      // which would falsely match the negative condition and suppress the guard.
+      const _isPaperQuestion = /\b(what\s+(is|does|are|do)|tell\s+me|summarize|summary|explain|describe|findings?|abstract|key\s+points?|main\s+(finding|result|point|conclusion)|overview|about\s+this|this\s+paper|the\s+paper)\b/i.test(originalUserQuery)
+        && !/\b(run|execute|process|align|map|call|quantify|trim|filter|differential\s+expression|variant|genotype|assemble|pipeline|workflow)\b/i.test(originalUserQuery);
+      if (_isPaperQuestion) {
+        log('Paper-question guard: PDF attached + question about paper — routing to research_response, not workflow');
+        actions.needsWorkflowGeneration = false;
+        intent.type = 'research_question';
+      }
     }
 
     // Multi-turn data-provision override:
@@ -3276,16 +3563,43 @@ Rules:
 
     if (actions.needsResearchAgent && !_skipResearchAgent) {
       log('Routing to research backend');
+      // Emit a progress status so the UI shows feedback during the long research query.
+      if (onToolEvent) {
+        onToolEvent({
+          type: 'status',
+          tool_use_id: 'research_agent',
+          name: 'research_query',
+          message: paperContentResult
+            ? `Reading your paper and searching relevant literature…`
+            : `Searching relevant literature and databases…`,
+        });
+      }
       try {
-        researchResponse = await this._api().queryResearch({
+        // When paper content is available, pass it directly to the research agent
+        // so it becomes the PRIMARY source for synthesis. The agent then
+        // cross-references with PubMed/Semantic Scholar for supporting literature.
+        const researchPayload: Record<string, unknown> = {
           query: message,
           context: { information_need: intent.type },
           include_citations: true,
           include_benchmark_evidence: true,
-        });
+        };
+        if (paperContentResult) {
+          researchPayload.paper_content = paperContentResult.content;
+          log(`Passing paper content to research agent: ${paperContentResult.ref} (${paperContentResult.content.length} chars)`);
+        }
+        researchResponse = await this._api().queryResearch(researchPayload);
         log('Research response received');
+        if (onToolEvent) {
+          onToolEvent({
+            type: 'status',
+            tool_use_id: 'research_agent',
+            name: 'research_query',
+            message: `Synthesizing findings and generating response…`,
+          });
+        }
       } catch (error: any) {
-        log('Research query failed: ' + error.message);
+        log('Research query failed: ' + (error.message ?? error.error ?? String(error)));
       }
     } else if (_skipResearchAgent) {
       log(`Skipping research agent — paper content (${paperContentResult!.content.length} chars) already in context; LLM will reason directly`);
@@ -3496,7 +3810,7 @@ Rules:
                   !p.autoFilled
     );
     const warning = unfilledRequired.length > 0
-      ? `\n⚠️ Fill in required parameters before running: ${unfilledRequired.map((p: any) => `\`${p.name}\``).join(', ')}`
+      ? `\n⚠️ **${unfilledRequired.length} required parameter${unfilledRequired.length === 1 ? '' : 's'}** need to be filled — open the panel to configure before running.`
       : '';
     return `**${workflowName}** is ready in the panel — check the steps and parameters, then click **Confirm & Run**.${warning}`;
   }
@@ -3600,9 +3914,10 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
         decomposition.penalizedDomains
       );
       if (tier1Workflow?.success && tier1Workflow?.nextflow_path) {
-        log(`Tier 1: Got workflow "${tier1Workflow.workflow_name || tier1Workflow.name}" (${tier1Workflow.nextflow_path}) — checking coverage`);
+        const _t1Name = tier1Workflow.workflow_name || tier1Workflow.workflow_ga?.name || tier1Workflow.name || tier1Workflow.nextflow_path?.split('/').pop() || 'workflow';
+        log(`Tier 1: Got workflow "${_t1Name}" (${tier1Workflow.nextflow_path}) — checking coverage`);
         const coverage = await this._checkWorkflowCoverage(
-          tier1Workflow.workflow_name || tier1Workflow.name || '',
+          _t1Name,
           tier1Workflow.description || tier1Workflow.message || '',
           decomposition.intents,
           message
@@ -3616,7 +3931,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
           log(`Tier 1 MATCH: returning single workflow card`);
           const allFacts = decomposition.intents.flatMap(i => i.facts);
           const t1Summary = this._buildPreExecutionSummary(tier1Workflow, message, context.sessionDatasets);
-          const t1BaseMsg = `I'll run the **${tier1Workflow.workflow_name || tier1Workflow.name}** workflow — it handles all your steps in one integrated pipeline.`;
+          const t1BaseMsg = `I'll run the **${_t1Name}** workflow — it handles all your steps in one integrated pipeline.`;
           return {
             message: t1Summary ? `${t1Summary}\n\n${t1BaseMsg}` : t1BaseMsg,
             intentType: 'workflow_generation',
@@ -3643,7 +3958,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
           tier1Workflow.parameters = { ...tier1Workflow.parameters, ...mergedParams };
           const allFacts = decomposition.intents.flatMap(i => i.facts);
           const t1mSummary = this._buildPreExecutionSummary(tier1Workflow, message, context.sessionDatasets);
-          const t1mBaseMsg = `I believe the **${tier1Workflow.workflow_name || tier1Workflow.name}** workflow covers your full request — it handles all the described steps in one integrated run. Please review and confirm this meets your needs before running.`;
+          const t1mBaseMsg = `I believe the **${_t1Name}** workflow covers your full request — it handles all the described steps in one integrated run. Please review and confirm this meets your needs before running.`;
           return {
             message: t1mSummary ? `${t1mSummary}\n\n${t1mBaseMsg}` : t1mBaseMsg,
             intentType: 'workflow_generation',
@@ -4848,7 +5163,8 @@ For SINGLE-intent messages (the common case), respond with a single JSON object:
   "preferred_domains": [],
   "key_terms": ["reverse complement"],
   "needs_thinking": false,
-  "chain_hint": null
+  "chain_hint": null,
+  "rationale": "User pasted a raw nucleotide sequence inline with no file attachment — this is a direct in-line computation request, not a pipeline execution."
 }
 
 The above example uses needsWorkflowGeneration: false because the user pasted their data inline (a sequence) — BioMate computes directly via run_code.
@@ -5398,18 +5714,23 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
           // 2500, producing "Unexpected end of JSON input" and zero workflow_ready event.
           // Gemini thinking tokens count against this budget; 4096 leaves room for the
           // full intent + inlineParameters payload.
-          generationConfig: { temperature: 0, maxOutputTokens: 4096, responseMimeType: 'application/json' },
+          generationConfig: { temperature: 0, maxOutputTokens: 4096, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } } as any,
           systemInstruction: systemPrompt,
         });
         // Attempt Gemini; on 429 immediately fall back to Haiku — no slow retry loop.
         let geminiResult: any;
         let usedGeminiFallback = false;
         try {
-          geminiResult = await geminiModel.generateContent(message);
+          const geminiTimeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Gemini intent timeout after 30s')), 30_000)
+          );
+          geminiResult = await Promise.race([geminiModel.generateContent(message), geminiTimeout]);
         } catch (err: any) {
           const is429 = err?.message?.includes('429') || err?.status === 429;
-          if (is429) {
-            console.warn('[GalaxyAssistant] Gemini 429 — falling back to Haiku for intent classification (no delay)');
+          const isTimeout = err?.message?.includes('timeout');
+          if (is429 || isTimeout) {
+            if (isTimeout) console.warn('[GalaxyAssistant] Gemini intent classification timed out (>30s) — falling back to Flash chain');
+            else console.warn('[GalaxyAssistant] Gemini 429 — falling back to Haiku for intent classification (no delay)');
             usedGeminiFallback = true;
           } else {
             throw err;
@@ -5444,7 +5765,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
             // Direct Haiku only when we have a real key
             const haiku = 'claude-haiku-4-5-20251001';
             const fallbackCompletion = await this._withAnthropicRetry(
-              () => this.claude.messages.create({
+              () => this._getClaude().messages.create({
                 model: haiku,
                 max_tokens: 4096,
                 system: systemPrompt,
@@ -5473,7 +5794,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         // Anthropic path (default)
         // Note: temperature is deprecated for Claude 4.x models
         const completion = await this._withAnthropicRetry(
-          () => this.claude.messages.create({
+          () => this._getClaude().messages.create({
             model: this.modelConfig.intentModel,
             max_tokens: 4096,
             system: [
@@ -5504,16 +5825,45 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         .replace(/\s*`+\s*$/g, '')
         .trim();
 
-      // Try to extract JSON object if there's extra text around it
-      const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        resultText = jsonMatch[0];
+      // Extract the JSON object using brace counting (not a greedy regex).
+      // Greedy /\{[\s\S]*\}/ expands to the LAST } in the text, which causes
+      // "Unexpected non-whitespace character after JSON" when Gemini appends
+      // trailing explanation text that itself contains a } character.
+      {
+        const firstBrace = resultText.indexOf('{');
+        if (firstBrace !== -1) {
+          let depth = 0;
+          let inStr = false;
+          let escape = false;
+          let end = -1;
+          for (let i = firstBrace; i < resultText.length; i++) {
+            const c = resultText[i];
+            if (escape) { escape = false; continue; }
+            if (c === '\\' && inStr) { escape = true; continue; }
+            if (c === '"') { inStr = !inStr; continue; }
+            if (inStr) continue;
+            if (c === '{') depth++;
+            else if (c === '}') { depth--; if (depth === 0) { end = i; break; } }
+          }
+          if (end !== -1) resultText = resultText.slice(firstBrace, end + 1);
+        }
       }
 
       // Remove any remaining backticks that might be inside string values
       resultText = resultText.replace(/`/g, "'");
 
-      const result = JSON.parse(resultText);
+      // Log the raw LLM response so we can see the rationale before JSON parsing
+      console.log('[Intent Classifier RAW]', resultText.slice(0, 1500));
+
+      // Try strict parse first; fall back to jsonrepair for Gemini quirks
+      // (unescaped quotes in strings, trailing commas, etc.)
+      let result: any;
+      try {
+        result = JSON.parse(resultText);
+      } catch (parseErr) {
+        const repaired = jsonrepair(resultText);
+        result = JSON.parse(repaired);
+      }
 
       // Parse into IntentDecomposition
       return this.parseIntentResult(result, message);
@@ -5526,29 +5876,42 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         // Re-throw so _generateResponse catch block can surface the correct error message
         throw error;
       }
-      // JSON parse failure: build a best-effort tool_search intent so the pipeline
-      // still attempts workflow search rather than silently skipping it.
-      // Extract keywords from the raw message via simple tokenisation.
+      // JSON parse failure: build a best-effort intent so the pipeline still
+      // attempts workflow search rather than silently skipping it.
+      // If the message contains inline data (tabular data, SRA/GEO accessions,
+      // SMILES, file paths), default to workflow_generation — inline data is
+      // strong evidence the user wants to run a pipeline, not just search tools.
       const rawKeywords = message
         .toLowerCase()
         .replace(/[^\w\s-]/g, ' ')
         .split(/\s+/)
         .filter(w => w.length > 3 && !['with','that','this','from','have','will','your','their','what','which','when','then','they','also','into','been','would','could'].includes(w))
         .slice(0, 8);
+      const _fallbackHasInlineData = (
+        /\b((SRR|ERR|DRR|SRS|ERS|DRS|SRP|ERP|DRP|PRJNA|PRJEB)\d+)\b/i.test(message) ||
+        /\b((GSE|GSM|GDS|GPL|E-MTAB-|E-GEOD-|PXD)\d+)\b/i.test(message) ||
+        /\b((?:s3|gs|ftp|http|https):\/\/\S+|\/\S+\.(?:fastq|fq|bam|vcf|fa|fasta|gz|csv|tsv|h5))\b/i.test(message) ||
+        /[=#\[\]\/\\@(][A-Za-z0-9@=#\-+\[\]()\/.\\]{4,}/.test(message) || // SMILES-like
+        (() => {
+          const lines = message.split('\n').map(l => l.trim()).filter(Boolean);
+          return lines.filter(l => { const c = l.split(/[,\t]/); return c.length >= 2 && c.some(x => /^\d+(\.\d+)?$/.test(x.trim())); }).length >= 2;
+        })()
+      );
+      const _fallbackType = _fallbackHasInlineData ? 'workflow_generation' : 'tool_search';
       const fallback: DecomposedIntent = {
         id: 'intent_fallback',
-        type: 'tool_search',
+        type: _fallbackType,
         subQuery: message,
         keywords: rawKeywords,
         inlineParameters: {},
-        needsToolSearch: true,
+        needsToolSearch: !_fallbackHasInlineData,
         needsDatasets: false,
         confidence: 0.4,
         facts: [],
         dependsOn: [],
-        actions: inferActionsFromType('tool_search'),
+        actions: inferActionsFromType(_fallbackType),
       };
-      console.warn('[GalaxyAssistant] Intent parse failed — using keyword fallback, needsToolSearch=true');
+      console.warn(`[GalaxyAssistant] Intent parse failed — using keyword fallback, type=${_fallbackType} (hasInlineData=${_fallbackHasInlineData})`);
       return {
         intents: [fallback],
         isMultiIntent: false,
@@ -5588,9 +5951,17 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
           'clinical_genomics', 'genomics_knowledge', 'database_lookup',
         ]);
         const mustUseResearch = researchAgentTypes.has(type);
+        // For types that require workflow generation, the LLM classifier must NOT be able
+        // to disable it by returning needsWorkflowGeneration: false — that skips generateWorkflow()
+        // entirely and returns an empty Gemini response, causing the "having trouble" fallback.
+        const workflowTypes = new Set([
+          'workflow_generation', 'data_format_conversion', 'external_db_retrieval',
+          'visualization', 'multi_step_procedure',
+        ]);
+        const mustGenerateWorkflow = workflowTypes.has(type);
         return {
           needsToolSearch: typeof raw.needsToolSearch === 'boolean' ? raw.needsToolSearch : base.needsToolSearch,
-          needsWorkflowGeneration: typeof raw.needsWorkflowGeneration === 'boolean' ? raw.needsWorkflowGeneration : base.needsWorkflowGeneration,
+          needsWorkflowGeneration: mustGenerateWorkflow ? true : (typeof raw.needsWorkflowGeneration === 'boolean' ? raw.needsWorkflowGeneration : base.needsWorkflowGeneration),
           needsWorkflowModification: typeof raw.needsWorkflowModification === 'boolean' ? raw.needsWorkflowModification : base.needsWorkflowModification,
           // If type requires research agent, always enable it regardless of what the classifier returns
           needsResearchAgent: mustUseResearch ? true : (typeof raw.needsResearchAgent === 'boolean' ? raw.needsResearchAgent : base.needsResearchAgent),
@@ -5657,6 +6028,13 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
 
     // Single-intent format: flat object with type, keywords, etc.
     const intentType = result.type || 'general_question';
+    const intentRationale: string | undefined = typeof result.rationale === 'string' ? result.rationale : undefined;
+
+    console.log(
+      `[Intent Classifier] type=${intentType} confidence=${result.confidence ?? '?'}` +
+      (intentRationale ? `\n  rationale: ${intentRationale}` : '')
+    );
+
     const singleIntent: DecomposedIntent = {
       id: 'intent_1',
       type: intentType,
@@ -5840,7 +6218,7 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
         });
 
         const completion = await this._withAnthropicRetry(
-          () => this.claude.messages.create({
+          () => this._getClaude().messages.create({
             model: this.modelConfig.toolRankingModel,
             max_tokens: 2000,
             system: [
@@ -6178,7 +6556,7 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     // Deterministically extract inline data from the message.
     // The extracted map is injected into the system prompt as structured facts so the LLM
     // never needs to ask for parameters already present in the message.
-    const inlineDataMap = await extractInlineDataWithLLM(message, this.claude);
+    const inlineDataMap = await extractInlineDataWithLLM(message, this._getClaude());
     // Treat a canonical fixture name (airway, pasilla, pbmc3k, SRR\d+, etc.)
     // as if it were inline data. The fixture is the data — `data(airway)`
     // loads counts + metadata from the airway R package; SRA accessions
@@ -6293,8 +6671,6 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       // docs/20260613_DATASET_INJECTION_GATE_DESIGN.md. Default-on
       // (false-skip cost > false-inject cost), but suppress on pure
       // abstract-knowledge turns where no signal points at data.
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { shouldInjectDatasets } = require('./dataset-injection-gate');
       const _gate = shouldInjectDatasets({
         message,
         intentType: (intent as any)?.type,
@@ -6364,6 +6740,10 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       ? `<long_term_memory>\n${context.ltmContextBlock}\n</long_term_memory>\nNote: long-term memory reflects patterns across past sessions — use it to personalise responses but let the current conversation take precedence.\n\n`
       : '';
 
+    const projectContextBlock = context.projectContext
+      ? `<project_context>\n${context.projectContext}\n</project_context>\nNote: The above describes the user's active research project. Use it to tailor responses and workflow suggestions — treat it as standing background context for every message in this session.\n\n`
+      : '';
+
     // Compute isWorkflowTurn here so it is available for both the system prompt
     // selection (below) and the agent-tools gate (further down in the Claude branch).
     const isWorkflowTurn = workflowSuggestion.shouldGenerate || !!generatedWorkflow;
@@ -6381,7 +6761,7 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       || RESEARCH_INTENT_TYPES_FOR_PROMPT.has((intent as any)?.type ?? '')
       || !isWorkflowTurn;
     const systemPrompt = isResearchIntent
-      ? `${sessionMemoryBlock}${ltmBlock}${inlineDataBlock}${sessionDatasetsBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge.
+      ? `${sessionMemoryBlock}${ltmBlock}${projectContextBlock}${inlineDataBlock}${sessionDatasetsBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge.
 
 PROACTIVE-WORK RULE (highest priority):
 - Do everything you can with the information already on the table BEFORE asking the user a clarifying question.
@@ -6441,7 +6821,7 @@ RESPONSE STRUCTURE (use this for every substantive answer):
 
 Do NOT strip explanation for "give me a number" questions — keep the number first, then a one-line rationale. The previous "print only value" pattern was overfitted to benchmark scoring and is removed.
 For trivial arithmetic, answer directly without invoking run_code.`
-      : `${sessionMemoryBlock}${ltmBlock}${inlineDataBlock}${sessionDatasetsBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant.
+      : `${sessionMemoryBlock}${ltmBlock}${projectContextBlock}${inlineDataBlock}${sessionDatasetsBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant.
 
 PROACTIVE-WORK RULE (highest priority):
 - Do everything you can with what's on the table BEFORE asking the user a clarifying question. Use literature defaults (typical human dose/route, standard population, well-characterized PK values for known drugs) and STATE assumptions explicitly.
@@ -6512,7 +6892,7 @@ ${isDrugDevelopmentQuery ? `- For drug-development WORKFLOW GENERATION FAILURES 
 Workflow routing (use these specific workflows when the user's intent matches):
 ${buildWorkflowRoutingBlock(preferredDomains)}
 
-${cryoEmContextBlock ? `${cryoEmContextBlock}\n\n` : ''}${buildDomainSpecialistBlock(preferredDomains)}${buildDomainCatalogBlock(preferredDomains)}${(generatedWorkflow as any)?._nearTieAlternative ? `\n[NEAR-TIE NOTE] The workflow search found "${(generatedWorkflow as any)._nearTieAlternative}" with a very similar match score. At the end of your response, add exactly one sentence: "If you were looking for ${(generatedWorkflow as any)._nearTieAlternative} instead, let me know and I'll switch." Do not ask this as a question — state it as a note.\n` : ''}Style guide:
+${cryoEmContextBlock ? `${cryoEmContextBlock}\n\n` : ''}${buildDomainSpecialistBlock(preferredDomains)}${buildDomainCatalogBlock(preferredDomains)}${await buildSkillBlock(message, preferredDomains, context)}${(generatedWorkflow as any)?._nearTieAlternative ? `\n[NEAR-TIE NOTE] The workflow search found "${(generatedWorkflow as any)._nearTieAlternative}" with a very similar match score. At the end of your response, add exactly one sentence: "If you were looking for ${(generatedWorkflow as any)._nearTieAlternative} instead, let me know and I'll switch." Do not ask this as a question — state it as a note.\n` : ''}Style guide:
 - Be concise and practical
 - When mentioning tools, use the primary user-facing name (e.g. "CryoSPARC", "BWA-MEM2", "GATK") — never use internal pipeline paths or tool IDs
 - Explain workflow steps and expected outputs clearly
@@ -6581,6 +6961,12 @@ ${runnableWorkflow
       : `FORMAT: Direct answer.
      - Answer the question directly and completely. No workflow format. No "Missing:" prefix.
      - Use run_code if computation is needed on data already in the prompt.`
+  : workflowGenerationFailed && hasInlineData && workflowFailureSignals?.error === 'clarification_needed'
+    ? `FORMAT: Pipeline selection needs one clarification.
+     - Do NOT say "internal routing error" or "could not generate" — this is a normal disambiguation step.
+     - Ask the specific clarification question from the failure details (clarification_question field).
+     - One line: name the closest pipeline option found.
+     - At most ONE question. Do not ask for data the user already provided.`
   : workflowGenerationFailed && hasInlineData
     ? `FORMAT: Technical failure — inline data was provided.
      - One sentence: why the exact workflow wasn't found
@@ -6692,14 +7078,14 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       let lastStopReason: string | null = null;
       const MAX_TOOL_TURNS = 5;
 
-      // ── Non-Claude backbone: Gemini or Ollama ────────────────────────────────
-      // Tool use is not supported on these paths (different function-call formats).
-      // All other BioMate pipeline stages (routing, context-building, RAG) still run.
+      // ── Response generation: Gemini (primary) → Claude → OpenAI → Ollama ──────
+      // Fallback chain mirrors llm_providers.yml. Claude path below this block
+      // provides the full agentic tool loop; this chain handles non-Claude primaries
+      // and serves as the fallback when Claude is unavailable.
       const responseModel = this.modelConfig.responseModel;
-      const isGeminiBackbone = responseModel.startsWith('gemini-');
-      const isOllamaBackbone = !responseModel.startsWith('claude-') && !isGeminiBackbone;
+      const isClaudeBackbone = responseModel.startsWith('claude-');
 
-      if (isGeminiBackbone || isOllamaBackbone) {
+      if (!isClaudeBackbone) {
         const plainMessages = [
           ...previousMessages.map(m => ({
             role: (m.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
@@ -6708,16 +7094,58 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           })),
           { role: 'user' as const, content: userPrompt },
         ];
-        try {
-          rawResponse = isGeminiBackbone
-            ? await this._generateWithGemini(systemPrompt, plainMessages, onResponseDelta)
-            : await this._generateWithOllama(systemPrompt, plainMessages, onResponseDelta);
-        } catch (err: any) {
-          console.error(`[GalaxyAssistant] ${isGeminiBackbone ? 'Gemini' : 'Ollama'} backbone error:`, err.message);
-          rawResponse = `I encountered an error generating a response: ${err.message}`;
+
+        // Provider chain: try each in order, stop on first success
+        const providers: Array<{ name: string; fn: () => Promise<string>; available: boolean }> = [
+          {
+            name: 'Gemini',
+            fn: () => this._generateWithGemini(systemPrompt, plainMessages, onResponseDelta),
+            available: !!this.gemini && responseModel.startsWith('gemini-'),
+          },
+          {
+            name: 'Claude',
+            fn: async () => {
+              if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
+              const res = await this._getClaude().messages.create({
+                model: 'claude-haiku-4-5-20251001',
+                max_tokens: 4096,
+                system: systemPrompt,
+                messages: plainMessages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+              });
+              const text = res.content[0]?.type === 'text' ? res.content[0].text : '';
+              if (text && onResponseDelta) onResponseDelta(text);
+              return text;
+            },
+            available: !!process.env.ANTHROPIC_API_KEY,
+          },
+          {
+            name: 'OpenAI',
+            fn: () => this._generateWithOpenAI(systemPrompt, plainMessages, onResponseDelta),
+            available: !!process.env.OPENAI_API_KEY,
+          },
+          {
+            name: 'Ollama',
+            fn: () => this._generateWithOllama(systemPrompt, plainMessages, onResponseDelta),
+            available: true,
+          },
+        ];
+
+        for (const provider of providers.filter(p => p.available)) {
+          try {
+            rawResponse = await provider.fn();
+            console.log(`[GalaxyAssistant] Response generated by ${provider.name}`);
+            break;
+          } catch (err: any) {
+            console.warn(`[GalaxyAssistant] ${provider.name} response failed — trying next:`, err.message);
+          }
+        }
+
+        if (!rawResponse) {
+          rawResponse = 'All response providers failed. Please try again in a moment.';
           if (onResponseDelta) onResponseDelta(rawResponse);
         }
-        // Skip the Anthropic agent loop entirely
+
+        // Skip the Claude agent loop entirely for non-Claude backbones
         const thinkingResult = thinkingDetector.detectThinking(rawResponse);
         const qualityEnforcedMessage = this.enforceDrugDevelopmentResponseQuality({
           userMessage: message,
@@ -6732,14 +7160,13 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         });
         const finalMessage = qualityEnforcedMessage || rawResponse;
         if (!finalMessage) {
-          // Gemini returned an empty response — surface a clear error rather than silence
           const emptyFallback = 'I\'m having trouble generating a response right now. Please try again in a moment.';
           if (onResponseDelta) onResponseDelta(emptyFallback);
           return { message: emptyFallback, truncated: false };
         }
         return { message: finalMessage, truncated: false };
       }
-      // ── End non-Claude backbone ───────────────────────────────────────────────
+      // ── End non-Claude backbone (falls through to Claude agentic loop) ─────────
 
       for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
         const isFirstTurn = turn === 0;
@@ -6752,7 +7179,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         // ── Streaming (first turn) ────────────────────────────────────────────
         if (isFirstTurn && onResponseDelta) {
           const stream = await this._withAnthropicRetry(
-            () => this.claude.messages.create({ ...requestOptions, stream: true } as any),
+            () => this._getClaude().messages.create({ ...requestOptions, stream: true } as any),
             'response-stream',
           );
 
@@ -6809,7 +7236,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
 
         // ── Non-streaming (subsequent tool turns) ─────────────────────────────
         const completion = await this._withAnthropicRetry(
-          () => this.claude.messages.create(requestOptions),
+          () => this._getClaude().messages.create(requestOptions),
           `tool-turn-${turn}`,
         );
         console.log('[GalaxyAssistant] Response API response:', {

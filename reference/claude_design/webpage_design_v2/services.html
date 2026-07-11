@@ -100,6 +100,21 @@
     .bm-cap-card p { color: var(--on-ink-mute); font-size: .88rem; line-height: 1.55; margin-bottom: 0; }
     .bm-cap-icon { width: 32px; height: 32px; margin-bottom: .85rem; color: var(--warm); }
     .bm-cap-icon svg { width: 32px; height: 32px; stroke: currentColor; }
+
+    /* ── Try-it link ── */
+    .bm-tryit {
+      display: inline-block;
+      margin-top: .9rem;
+      font-size: .75rem; font-weight: 600; font-family: var(--font-mono);
+      color: var(--accent-2);
+      text-decoration: none;
+      padding: 4px 10px;
+      border: 1px solid var(--accent-tint2);
+      border-radius: 5px;
+      background: var(--accent-tint);
+      transition: background .15s, border-color .15s;
+    }
+    .bm-tryit:hover { background: var(--accent-tint2); border-color: var(--accent-2); }
   </style>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
@@ -241,6 +256,7 @@
             <div class="bm-subcat-outputs-label">Outputs</div>
             <p>Ranked target list &middot; Druggability report &middot; Evidence summary</p>
           </div>
+          <a class="bm-tryit" data-q="Identify and rank therapeutic targets by genetic support, CRISPR essentiality, tissue expression, and pocket druggability — generate a ranked target list with druggability report">Try it &rarr;</a>
         </div>
 
         <div class="bm-subcat-card">
@@ -259,6 +275,7 @@
             <div class="bm-subcat-outputs-label">Outputs</div>
             <p>Top-scored hits &middot; Binding pose clusters &middot; Affinity table &middot; 3D structure overlays</p>
           </div>
+          <a class="bm-tryit" data-q="Screen a compound library against a target protein using AutoDock Vina and DiffDock — rank hits by binding pose and affinity, apply pharmacophore filtering, and flag ADMET liabilities">Try it &rarr;</a>
         </div>
 
         <div class="bm-subcat-card">
@@ -278,6 +295,7 @@
             <div class="bm-subcat-outputs-label">Outputs</div>
             <p>ADMET report &middot; QC grade per metric &middot; Cited thresholds &middot; Redesigned scaffold suggestions</p>
           </div>
+          <a class="bm-tryit" data-q="Run a full ADMET panel for a small molecule drug candidate — hERG cardiotoxicity, DILI, Ames mutagenicity, CYP450 drug-drug interactions, and Lipinski Ro5 compliance">Try it &rarr;</a>
         </div>
 
         <div class="bm-subcat-card">
@@ -296,6 +314,7 @@
             <div class="bm-subcat-outputs-label">Outputs</div>
             <p>PK profiles &middot; Species scaling tables &middot; CRO submission package &middot; Draft Methods section</p>
           </div>
+          <a class="bm-tryit" data-q="Run PBPK simulation for a drug candidate and scale the dose from mouse to human using allometric scaling — generate PK profiles, species scaling tables, and CRO submission package">Try it &rarr;</a>
         </div>
 
         <div class="bm-subcat-card">
@@ -314,6 +333,7 @@
             <div class="bm-subcat-outputs-label">Outputs</div>
             <p>PK/PD projections &middot; MTD estimate &middot; DDI risk report &middot; Clinical pharmacology summary</p>
           </div>
+          <a class="bm-tryit" data-q="Model population PK for a drug candidate, simulate dose-escalation to estimate MTD, and quantify drug-drug interaction risk with CYP3A4 inhibitors">Try it &rarr;</a>
         </div>
 
         <div class="bm-subcat-card">
@@ -331,6 +351,7 @@
             <div class="bm-subcat-outputs-label">Outputs</div>
             <p>Signal detection report &middot; ROR / PRR tables &middot; Narrative summary</p>
           </div>
+          <a class="bm-tryit" data-q="Analyze FAERS adverse event data for a drug — run ROR and PRR disproportionality scoring to detect emerging post-market safety signals">Try it &rarr;</a>
         </div>
 
       </div><!-- /subcat-grid -->
@@ -401,6 +422,7 @@
             <div class="bm-subcat-outputs-label">Outputs</div>
             <p>Annotated VCF &middot; ACMG-classified variants &middot; CNV calls &middot; QC report (coverage, TS/TV)</p>
           </div>
+          <a class="bm-tryit" data-q="Run whole-genome sequencing variant calling using nf-core/sarek with GATK HaplotypeCaller — annotate variants with VEP and classify by ACMG/AMP criteria">Try it &rarr;</a>
         </div>
 
         <div class="bm-subcat-card">
@@ -420,6 +442,7 @@
             <div class="bm-subcat-outputs-label">Outputs</div>
             <p>DEG tables &middot; Volcano / MA plots &middot; GSEA enrichment &middot; UMAP with cell-type labels</p>
           </div>
+          <a class="bm-tryit" data-q="Run bulk RNA-seq differential expression analysis comparing treated vs control samples with DESeq2 — identify DEGs and run GSEA pathway enrichment with clusterProfiler">Try it &rarr;</a>
         </div>
 
         <div class="bm-subcat-card">
@@ -439,6 +462,7 @@
             <div class="bm-subcat-outputs-label">Outputs</div>
             <p>Peak calls (BED/BigWig) &middot; Differential accessibility &middot; Motif enrichment &middot; DMR maps</p>
           </div>
+          <a class="bm-tryit" data-q="Run ATAC-seq chromatin accessibility analysis using nf-core/atacseq — call peaks with MACS3, identify differentially accessible regions, and run motif enrichment analysis">Try it &rarr;</a>
         </div>
 
         <div class="bm-subcat-card">
@@ -457,6 +481,7 @@
             <div class="bm-subcat-outputs-label">Outputs</div>
             <p>Protein quant tables &middot; Differential abundance &middot; PTM maps &middot; Pathway enrichment</p>
           </div>
+          <a class="bm-tryit" data-q="Run label-free proteomics DIA quantification with DIA-NN from mzML files — identify differentially abundant proteins and run pathway enrichment analysis">Try it &rarr;</a>
         </div>
 
         <div class="bm-subcat-card">
@@ -475,6 +500,7 @@
             <div class="bm-subcat-outputs-label">Outputs</div>
             <p>Feature tables &middot; Metabolite IDs &middot; Enriched pathways &middot; Heatmaps</p>
           </div>
+          <a class="bm-tryit" data-q="Run untargeted LC-MS metabolomics with XCMS — detect and align metabolite features, annotate against HMDB and KEGG, identify enriched metabolic pathways">Try it &rarr;</a>
         </div>
 
         <div class="bm-subcat-card">
@@ -493,6 +519,7 @@
             <div class="bm-subcat-outputs-label">Outputs</div>
             <p>Taxonomic composition &middot; Alpha/beta diversity &middot; Functional profiles &middot; Phylogenetic trees</p>
           </div>
+          <a class="bm-tryit" data-q="Run shotgun metagenomics taxonomic profiling with Kraken2 and MetaPhlAn4 — compute alpha and beta diversity, functional pathway profiles with HUMAnN3, and 16S rRNA analysis with QIIME2">Try it &rarr;</a>
         </div>
 
         <div class="bm-subcat-card" style="border-color:var(--accent-tint2);background:var(--accent-tint);">
@@ -511,6 +538,7 @@
             <div class="bm-subcat-outputs-label">Outputs</div>
             <p>Multi-omics factor loadings &middot; Cross-layer network &middot; Integrated pathway report</p>
           </div>
+          <a class="bm-tryit" data-q="Integrate RNA-seq, proteomics, and metabolomics datasets using MOFA+ — identify multi-omics factors, cross-layer biomarkers, and regulatory networks across modalities">Try it &rarr;</a>
         </div>
 
       </div><!-- /subcat-grid -->
@@ -523,6 +551,97 @@
           <a href="blog-bioconductor.html" style="color:var(--accent-2);text-decoration:none;">Bioconductor Methods in BioMate &rarr;</a>
           <a href="blog-memory.html" style="color:var(--accent-2);text-decoration:none;">Context That Compounds &rarr;</a>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ Clinical Research & Applications ════ -->
+  <section class="bm-svc-section" id="clinical-research">
+    <div class="bm-svc-inner">
+      <div class="bm-svc-head">
+        <span class="bm-eyebrow">Clinical Research &amp; Applications</span>
+        <h2 class="bm-h2">From bench to patient — computationally.</h2>
+        <p>BioMate supports the translational and clinical phases of research: trial design, population PK, pharmacogenomics, clinical genomics, and real-world evidence analysis. Every output is audit-ready and traceable to validated methods.</p>
+      </div>
+
+      <div class="bm-subcat-grid">
+
+        <div class="bm-subcat-card">
+          <div class="bm-subcat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18.4 9.6C17 8 14.5 7 12 7c-4.4 0-8 3.6-8 8"/><path d="M18 13l3-3-3-3"/></svg>
+          </div>
+          <h3>Clinical Trial Design</h3>
+          <p>Design dose-escalation studies with the BOIN (Bayesian Optimal Interval) model. Simulate population PK curves, estimate MTD/RP2D, and generate a draft protocol section with decision rules and safety stopping criteria.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">BOIN dose escalation</span>
+            <span class="bm-tool-tag">population PK/PD</span>
+            <span class="bm-tool-tag">exposure-response</span>
+            <span class="bm-tool-tag">NONMEM · Pumas</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>BOIN decision table &middot; dose-escalation chart &middot; PK simulation report &middot; protocol draft</p>
+          </div>
+          <a class="bm-tryit" data-q="Design a Phase I dose-escalation oncology trial using the BOIN model — simulate population PK curves, estimate MTD and RP2D, and generate the decision table with stopping rules">Try it &rarr;</a>
+        </div>
+
+        <div class="bm-subcat-card">
+          <div class="bm-subcat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+          </div>
+          <h3>Pharmacogenomics &amp; Patient Stratification</h3>
+          <p>Identify genetic variants that predict drug response or toxicity. Stratify patient cohorts by CYP genotype, HLA allele, or polygenic risk score. Integrate with variant calling outputs to move from genomic data to clinical insight.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">CYP genotyping</span>
+            <span class="bm-tool-tag">PGx annotation</span>
+            <span class="bm-tool-tag">polygenic risk score</span>
+            <span class="bm-tool-tag">PharmGKB</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>PGx report &middot; stratification matrix &middot; clinical decision support annotations</p>
+          </div>
+          <a class="bm-tryit" data-q="Run CYP2D6 and CYP2C19 pharmacogenomics genotyping to stratify patients by metabolizer phenotype and predict drug response using PharmGKB annotations">Try it &rarr;</a>
+        </div>
+
+        <div class="bm-subcat-card">
+          <div class="bm-subcat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h4M7 12h10M7 16h6"/></svg>
+          </div>
+          <h3>Clinical Genomics</h3>
+          <p>Variant calling on patient-derived samples with GATK4 and DeepVariant, annotated against ClinVar, OMIM, and population frequency databases. Structured VCF output with clinical interpretation — suitable for tumour board review and precision oncology programmes.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">GATK4 germline/somatic</span>
+            <span class="bm-tool-tag">ClinVar annotation</span>
+            <span class="bm-tool-tag">ACMG classification</span>
+            <span class="bm-tool-tag">TMB · MSI</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>Annotated VCF &middot; ACMG-classified variants &middot; tumour board summary &middot; audit-ready report</p>
+          </div>
+          <a class="bm-tryit" data-q="Run clinical somatic variant calling on a tumor sample with GATK4 — annotate against ClinVar and classify by ACMG criteria for precision oncology and tumour board review">Try it &rarr;</a>
+        </div>
+
+        <div class="bm-subcat-card">
+          <div class="bm-subcat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <h3>Real-World Evidence &amp; Biomarker Analysis</h3>
+          <p>Analyse retrospective cohort data, EHR-derived datasets, and biobank samples. Identify prognostic biomarkers, validate surrogate endpoints, and model time-to-event outcomes. Outputs include structured statistical summaries ready for regulatory submission.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">survival analysis</span>
+            <span class="bm-tool-tag">Cox PH model</span>
+            <span class="bm-tool-tag">biomarker discovery</span>
+            <span class="bm-tool-tag">propensity matching</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>Kaplan-Meier plots &middot; hazard ratio table &middot; forest plot &middot; biomarker significance report</p>
+          </div>
+          <a class="bm-tryit" data-q="Run survival analysis on a retrospective cancer cohort — Kaplan-Meier curves, Cox proportional hazards model, biomarker discovery, and propensity score matching">Try it &rarr;</a>
+        </div>
+
       </div>
     </div>
   </section>
@@ -555,6 +674,7 @@
             <div class="bm-subcat-outputs-label">Outputs</div>
             <p>Refined density map &middot; FSC / B-factor curves &middot; EMDB-ready package &middot; Resolution report</p>
           </div>
+          <a class="bm-tryit" data-q="Run CryoSPARC single particle analysis on cryo-EM micrographs — motion correction, CTF estimation, TOPAZ particle picking, 2D and 3D classification, and homogeneous refinement">Try it &rarr;</a>
         </div>
 
         <div class="bm-subcat-card">
@@ -573,6 +693,7 @@
             <div class="bm-subcat-outputs-label">Outputs</div>
             <p>PDB structure file &middot; pLDDT / PAE plots &middot; Ramachandran report &middot; Interface contacts</p>
           </div>
+          <a class="bm-tryit" data-q="Predict the 3D structure of a protein sequence using AlphaFold3 — validate the model with MolProbity, assess pLDDT and PAE scores, and score binding interfaces">Try it &rarr;</a>
         </div>
 
         <div class="bm-subcat-card">
@@ -591,6 +712,7 @@
             <div class="bm-subcat-outputs-label">Outputs</div>
             <p>Trajectory files &middot; RMSD / RMSF plots &middot; Binding free energy (&Delta;G) &middot; Contact maps</p>
           </div>
+          <a class="bm-tryit" data-q="Run GPU-accelerated GROMACS molecular dynamics simulation for a protein-ligand complex — compute RMSD, RMSF trajectories, contact maps, and estimate binding free energy with MMPBSA">Try it &rarr;</a>
         </div>
 
         <div class="bm-subcat-card">
@@ -609,6 +731,7 @@
             <div class="bm-subcat-outputs-label">Outputs</div>
             <p>Top-ranked poses &middot; Binding affinity scores &middot; Interaction fingerprint &middot; SAR guidance</p>
           </div>
+          <a class="bm-tryit" data-q="Dock a small molecule ligand into a target protein using AutoDock Vina — generate and cluster binding poses, compute affinity scores, and produce interaction fingerprint analysis">Try it &rarr;</a>
         </div>
 
       </div><!-- /subcat-grid -->
@@ -670,6 +793,17 @@
       </div>
     </div>
   </section>
+
+  <script>
+    // Wire up all try-it links with proper URL encoding
+    document.addEventListener('DOMContentLoaded', function() {
+      document.querySelectorAll('a.bm-tryit[data-q]').forEach(function(a) {
+        a.href = 'https://dev-public.biomate.ai/register?q=' + encodeURIComponent(a.dataset.q);
+        a.target = '_blank';
+        a.rel = 'noopener';
+      });
+    });
+  </script>
 
   <div id="bm-foot"></div>
   <script src="shell.js?v=20260609b"></script>

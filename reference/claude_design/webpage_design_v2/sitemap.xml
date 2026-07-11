@@ -134,6 +134,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://biomate.ai/blog-agent-skills-vs-biomate.html</loc>
+    <lastmod>2026-06-29</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://biomate.ai/blog-why-ai-bioconductor-doesnt-run.html</loc>
     <lastmod>2026-06-09</lastmod>
     <changefreq>yearly</changefreq>
@@ -276,5 +282,11 @@
     <lastmod>2026-06-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://biomate.ai/blog-databases.html</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
 </urlset>

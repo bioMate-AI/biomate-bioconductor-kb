@@ -144,7 +144,7 @@ library(regsplice)
     # Pass band 30-60% per Chen 2016 F1000 (edgeR filterByExpr convention).
     .lcf_kept_fractions <- numeric(0)
     .lcf_scanned <- character(0)
-    for (.lcf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.lcf_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .lcf_obj <- tryCatch(readRDS(.lcf_rds), error = function(e) NULL)
       .lcf_mat <- if (is.matrix(.lcf_obj) || is.data.frame(.lcf_obj)) .lcf_obj else NULL
       if (!is.null(.lcf_mat) && nrow(.lcf_mat) > 100) {
@@ -169,7 +169,7 @@ library(regsplice)
 
     # voom — limma EList\$weights present, range > 0 (Law 2014 GB).
     .voom_w_range <- NA_real_
-    for (.voom_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.voom_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .voom_obj <- tryCatch(readRDS(.voom_rds), error = function(e) NULL)
       if (!is.null(.voom_obj) && inherits(.voom_obj, "EList")) {
         .voom_w <- tryCatch(.voom_obj\$weights, error = function(e) NULL)

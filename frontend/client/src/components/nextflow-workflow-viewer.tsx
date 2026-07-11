@@ -8,7 +8,8 @@ import { ParameterGroup } from "./parameter-group";
 import { StepOutputPreview } from "./step-output-preview";
 import { useActiveProjectIdSafe } from "@/contexts/active-project-context";
 import { StepAdjustModal } from "./step-adjust-modal";
-import { Loader2, CheckCircle2, XCircle, AlertTriangle, Download, RotateCcw, Square, ChevronRight, Settings2, ShieldCheck, Activity, Clock, SkipForward } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, AlertTriangle, Download, RotateCcw, Square, ChevronRight, Settings2, ShieldCheck, Activity, Clock, SkipForward, FolderOpen } from "lucide-react";
+import { useLocation } from 'wouter';
 import { ReportConfusionButton } from "./feedback/report-confusion-button";
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt";
 import { ChatOutputAttachments } from "./chat-output-attachments";
@@ -70,6 +71,8 @@ interface NextflowWorkflowViewerProps {
    * The parent should apply the width to the panel container.
    */
   onResize?: (width: number) => void;
+  /** When provided, shows a "Go to project" chip in the panel header. */
+  projectId?: string;
 }
 
 type ViewerParameter = {
@@ -610,7 +613,11 @@ function PhaseGroupSection({
                           style={{ fontSize: 11, padding: '2px 4px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 3, color: 'var(--text)' }}
                           onChange={e => onParamChange(p.id, e.target.value)}
                         >
-                          {p.options.map((o: string) => <option key={o} value={o}>{o}</option>)}
+                          {p.options.map((o: any) => {
+                            const val = o !== null && typeof o === 'object' ? String(o.value ?? '') : String(o);
+                            const lbl = o !== null && typeof o === 'object' ? String(o.label ?? o.value ?? '') : String(o);
+                            return <option key={val} value={val}>{lbl}</option>;
+                          })}
                         </select>
                       ) : (
                         <input
@@ -861,6 +868,23 @@ function PhaseGroupSection({
   );
 }
 
+function sanitizeErrorText(msg: string): string {
+  if (!msg) return msg;
+  // Strip stack-trace lines (e.g. "at nextflow.cli.Launcher.main(Launcher.groovy:675)")
+  const withoutStack = msg
+    .split('\n')
+    .filter(l => !/^\s*at\s+[\w.$]+\(/.test(l))
+    .join('\n')
+    .trim();
+  // Replace internal infrastructure names with neutral wording
+  return withoutStack
+    .replace(/\bnextflow\b/gi, 'the pipeline')
+    .replace(/s3:\/\/[^\s'"]+/gi, 'the storage bucket')
+    .replace(/biomate-nextflow-work/gi, 'storage')
+    .replace(/Launcher\.groovy:\d+/gi, '')
+    .trim();
+}
+
 export function NextflowWorkflowViewer({
   workflowId,
   invocationId,
@@ -886,7 +910,9 @@ export function NextflowWorkflowViewer({
   onWorkflowProgress,
   executionMetrics,
   onResize,
+  projectId: projectIdProp,
 }: NextflowWorkflowViewerProps) {
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   const activeProjectId = useActiveProjectIdSafe();
   const [params, setParams] = useState<Record<string, any>>(
@@ -967,6 +993,15 @@ export function NextflowWorkflowViewer({
       : 'phases';
     setActiveTab(next);
   }, [status, tabAutoDefault]);
+
+  // Auto-open settings strip for user-imported workflows — they uploaded their own .nf and
+  // want to configure it immediately, not hunt for a collapsed strip.
+  useEffect(() => {
+    if ((workflowDefinition?.domain as string) === 'user_import' && status === 'idle') {
+      setGlobalParamsOpen(true);
+    }
+  }, [workflowDefinition?.domain, (workflowDefinition as any)?.id]);
+
   const [previewFile, setPreviewFile] = useState<{ name: string; path: string; extension: string } | null>(null);
   const [adjustStep, setAdjustStep] = useState<{ id: string; name: string; processName?: string; parameters?: Record<string, any> } | null>(null);
   // When user reruns from a step, track the new runId so the viewer polls the right run
@@ -982,8 +1017,8 @@ export function NextflowWorkflowViewer({
   const [outputLocationType, setOutputLocationType] = useState<'default' | 'project' | 'user_s3'>('default');
   const [userS3Uri, setUserS3Uri] = useState<string>('');
   // projectId for "My project folder" — sourced from the active chat session's
-  // project_id. Falls back to undefined → option is hidden when no project.
-  const projectId = (workflowDefinition as any)?.projectId ?? null;
+  // project_id, or the explicit prop passed by the project detail Workflow Runs tab.
+  const projectId = projectIdProp ?? (workflowDefinition as any)?.projectId ?? null;
   const [availableQcProfiles, setAvailableQcProfiles] = useState<Array<{ id: string; description: string; domain_hint: string; overrides: Record<string, number> }>>([]);
   const [qcDefaults, setQcDefaults] = useState<Record<string, { bound: number; direction: string; rationale?: string }>>({});
   const [qcOverrides, setQcOverrides] = useState<Record<string, number>>({});
@@ -1379,6 +1414,9 @@ export function NextflowWorkflowViewer({
 
   // Group updatedPhases by their phase_group field (A/B/C/D/E for cryo-EM, etc.)
   const groupedPhases = React.useMemo<PhaseGroup[]>(() => {
+    // No steps loaded yet — return empty so the empty-state message renders
+    // instead of a phantom phase card with "0 steps".
+    if (updatedPhases.length === 0) return [];
     const hasGroups = updatedPhases.some((p: any) => p.phase_group);
     if (!hasGroups) {
       const allParams = updatedPhases.flatMap((p: any) => Object.keys(p.parameters || {}));
@@ -1418,7 +1456,11 @@ export function NextflowWorkflowViewer({
   );
   const displayedQcThresholds = React.useMemo(() => {
     const merged: Record<string, { bound: number; direction: string; rationale?: string; source: 'default' | 'profile' | 'user' }> = {};
+    const wfDomain = (workflowDefinition?.domain || '').toLowerCase();
     Object.entries(qcDefaults).forEach(([k, meta]) => {
+      // Skip domain-specific metrics that don't apply to this workflow
+      const allowedDomains = (meta as any).domains as string[] | undefined;
+      if (allowedDomains && wfDomain && !allowedDomains.includes(wfDomain)) return;
       merged[k] = { bound: meta.bound, direction: meta.direction, rationale: meta.rationale, source: 'default' };
     });
     if (activeQcProfile) {
@@ -1589,6 +1631,16 @@ export function NextflowWorkflowViewer({
       };
     });
   }, [workflowDefinition, params, toolHintMap]);
+
+  // Count params that belong to the Workflow Settings tab (not pinned to any phase).
+  // Used for the tab badge — total count (renderedParameters.length) is misleading because
+  // it includes phase-specific params that are shown inside phase cards, not the settings tab.
+  const settingsParamCount = React.useMemo(() => {
+    const phaseNames = new Set(
+      groupedPhases.filter((g: any) => g.key !== 'all').flatMap((g: any) => g.phaseParams as string[])
+    );
+    return renderedParameters.filter((p: any) => !phaseNames.has(p.id || p.name || '')).length;
+  }, [groupedPhases, renderedParameters]);
 
   // At panel-generation time: build a one-time map from param semantic group → phase key.
   // Each param carries a group name like "Motion Correction" or "CTF Estimation" from the
@@ -2316,12 +2368,10 @@ export function NextflowWorkflowViewer({
           ? `${meaningfulDomain.replace(/_/g, ' ').toUpperCase()} · WORKFLOW`
           : 'WORKFLOW';
         const hasRealPhases = groupedPhases.some((g: any) => g.key !== 'all');
-        const phaseCount = hasRealPhases ? groupedPhases.length : 0;
+        const phaseCount = hasRealPhases ? groupedPhases.length : groupedPhases.length > 0 ? 1 : 0;
         const stepCount = updatedPhases.length;
         const subtitleParts: string[] = [];
-        if (stepCount > 0) subtitleParts.push(`${stepCount} ${stepCount === 1 ? 'process' : 'processes'}`);
         if (phaseCount > 0) subtitleParts.push(`${phaseCount} ${phaseCount === 1 ? 'phase' : 'phases'}`);
-        else if (stepCount > 0) subtitleParts.push('no phases');
         const panelSub = subtitleParts.length > 0
           ? subtitleParts.join(' · ')
           : ((workflowDefinition?.description || '') as string).split(/[.—]/)[0].trim().slice(0, 60);
@@ -2334,6 +2384,20 @@ export function NextflowWorkflowViewer({
                 {panelSub && <div className="panel-sub">{panelSub}</div>}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                {projectId && (
+                  <button
+                    onClick={() => navigate(`/projects?project=${projectId}`)}
+                    data-testid="viewer-goto-project"
+                    title="Go to project"
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
+                             padding: '2px 8px', borderRadius: 4, border: '1px solid var(--bm-border, hsl(var(--border)))',
+                             background: 'transparent', cursor: 'pointer', color: 'var(--bm-text-muted)',
+                             flexShrink: 0 }}
+                  >
+                    <FolderOpen style={{ width: 12, height: 12 }} />
+                    Project
+                  </button>
+                )}
                 {workflowDefinition?.qc_profile && (
                   <span className="chip ok" style={{ fontSize: '10px' }}>
                     QC: {(workflowDefinition.qc_profile as string).replace(/_/g, ' ')}
@@ -2362,11 +2426,6 @@ export function NextflowWorkflowViewer({
                     <Square style={{ width: 14, height: 14 }} />
                   </button>
                 )}
-                {(status === 'completed' || status === 'failed') && (
-                  <button className="iconbtn" data-testid="button-restart-workflow-panel" onClick={() => onExecute?.(params)} title="Restart">
-                    <RotateCcw style={{ width: 14, height: 14 }} />
-                  </button>
-                )}
               </div>
             </div>
             {/* Progress bar — commented out per UX review 2026-06-19.
@@ -2392,8 +2451,7 @@ export function NextflowWorkflowViewer({
       {/* ── Top-level tabs (Step A MVP — phases tab keeps current view) ─────── */}
       {(() => {
         const hasRealPhases = groupedPhases.some((g: any) => g.key !== 'all');
-        const phaseCount = hasRealPhases ? groupedPhases.length : 0;
-        const paramCount = renderedParameters.length;
+        const phaseCount = hasRealPhases ? groupedPhases.length : groupedPhases.length > 0 ? 1 : 0;
         const showAfterRunDot = status === 'completed' || status === 'failed';
         // Per-tab hover tips so the user can see what each tab contains
         // without clicking. Native `title` keeps this dependency-free.
@@ -2464,7 +2522,7 @@ export function NextflowWorkflowViewer({
             {/* Settings tab: the existing Workflow-settings collapsible strip
                 that today lives at the TOP of panel-body. Same content; just
                 moved into its own tab via CSS-hide (no JSX restructure). */}
-            {tabBtn('settings', 'Workflow settings', countBadge(paramCount))}
+            {tabBtn('settings', 'Workflow settings', settingsParamCount > 0 ? countBadge(settingsParamCount) : undefined)}
             {tabBtn('phases', 'Phases', countBadge(phaseCount))}
             {tabBtn('after-run', 'After run', showAfterRunDot ? dotBadge : null)}
           </div>
@@ -2478,6 +2536,7 @@ export function NextflowWorkflowViewer({
             runId={runId || invocationId || ''}
             invocationId={invocationId}
             workflowName={workflowDefinition?.name}
+            projectId={projectId || undefined}
             parameters={params as Record<string, unknown>}
             executionStatus={
               status === 'completed' ? 'completed'
@@ -2660,7 +2719,12 @@ export function NextflowWorkflowViewer({
             const optionalParams = globalParams.filter(p => !p.required && !(p as any).autoFilled);
             const requiredUnfilled = requiredParams.filter(p => p.required && (!p.value || p.value === ''));
 
-            if (globalParams.length === 0 && !mismatch) return null;
+            if (globalParams.length === 0 && !mismatch) return (
+              <div style={{ height: '100%', minHeight: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
+                <div style={{ marginBottom: 6 }}>This workflow has no configurable parameters.</div>
+                <div style={{ fontSize: 12, opacity: 0.75 }}>Click "Confirm and run workflow" below to start it.</div>
+              </div>
+            );
             return (
               <div>
                 <button
@@ -2673,7 +2737,7 @@ export function NextflowWorkflowViewer({
                   <span className="caret"><ChevronRight className="h-3.5 w-3.5" /></span>
                   <span className="label">
                     <Settings2 className="h-3.5 w-3.5" />
-                    Workflow settings
+                    Parameters
                     <span className="hint">({globalParams.length} params)</span>
                     {requiredUnfilled.length > 0 && (
                       <span className="chip err" style={{ fontSize: 10, padding: '1px 5px' }}>Required</span>
@@ -2787,16 +2851,17 @@ export function NextflowWorkflowViewer({
           })()}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-            </div>{/* end Settings-tab-only strip */}
+            </div>
+          </div>{/* end settings-tab-only section */}
 
-            {/* ── Phases-tab-only — phase cards + everything below ──────────── */}
-            <div style={{ display: activeTab === 'phases' ? 'contents' : 'none' }}>
+          {/* ── Phases-tab-only — phase cards + everything below ──────────── */}
+          <div style={{ display: activeTab === 'phases' ? 'contents' : 'none' }}>
             {/* ── Phase section label ──────────────────────────────────────────── */}
             {groupedPhases.length > 0 && (() => {
               const hasRealPhases = groupedPhases.some((g: any) => g.key !== 'all');
               const label = hasRealPhases
                 ? `PHASES · ${groupedPhases.length}`
-                : `PROCESSES · ${updatedPhases.length}`;
+                : `STEPS · ${updatedPhases.length}`;
               return (
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-dim)', padding: '10px 18px 4px', textTransform: 'uppercase' }}>
                   {label}
@@ -2813,8 +2878,17 @@ export function NextflowWorkflowViewer({
             )}
             {/* ── No steps found after fetch completed ─────────────────────── */}
             {groupedPhases.length === 0 && !lazyStepsFetching && lazySteps !== null && (workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (
-              <div style={{ padding: '16px 18px', color: 'var(--text-dim)', fontSize: 13 }}>
-                Steps will appear here once the workflow runs.
+              <div style={{ height: '100%', minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 18px', color: 'var(--text-dim)', fontSize: 13, textAlign: 'center' }}>
+                {status === 'failed'
+                  ? 'Run failed before any phases started. Check the error details above.'
+                  : 'Phases will appear here once the workflow starts.'}
+              </div>
+            )}
+            {/* ── Idle / no nextflow_path — personal workflow not yet run ─── */}
+            {groupedPhases.length === 0 && !lazyStepsFetching && lazySteps === null && status === 'idle' && (
+              <div style={{ height: '100%', minHeight: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
+                <div style={{ marginBottom: 6 }}>No phases defined yet.</div>
+                <div style={{ fontSize: 12, opacity: 0.75 }}>Execution phases will appear here once the workflow starts.</div>
               </div>
             )}
 
@@ -2929,12 +3003,12 @@ export function NextflowWorkflowViewer({
                 </div>
               )}
               {/* ── Post-run links row ─────────────────────────────────────────── */}
-              {(invocationId || status === 'completed') && (
+              {status === 'completed' && (
                 <div className="results-links">
                   <button
                     className="linkish"
                     onClick={() => handleToggleShowResults((prev) => !prev)}
-                    disabled={!invocationId || status === 'failed'}
+                    disabled={!invocationId}
                     data-testid="button-view-results-link"
                   >
                     {showResults ? 'Hide results' : 'View results'}
@@ -2943,12 +3017,12 @@ export function NextflowWorkflowViewer({
                   <button
                     className="linkish"
                     onClick={() => {
-                      if (!invocationId || status === 'failed') return;
+                      if (!invocationId) return;
                       emitUxEvent('output.download_clicked', { invocationId, scope: 'all' });
                       window.open(`/api/invocations/${invocationId}/download-all`, '_blank');
                       setDownloadAllPromptOpen(true);
                     }}
-                    disabled={!invocationId || status === 'failed'}
+                    disabled={!invocationId}
                     data-testid="button-download-all-workflow-panel"
                   >
                     Download all
@@ -2957,7 +3031,7 @@ export function NextflowWorkflowViewer({
                   <button
                     className="linkish"
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}
-                    disabled={status !== 'completed' || !runId || analysisState === 'loading'}
+                    disabled={!runId || analysisState === 'loading'}
                     onClick={handleAnalyzeResults}
                     data-testid="button-analyze-results"
                   >
@@ -2967,9 +3041,9 @@ export function NextflowWorkflowViewer({
                   <span className="sep">·</span>
                   <button
                     className="linkish"
-                    disabled={!invocationId || status === 'failed'}
+                    disabled={!invocationId}
                     onClick={() => {
-                      if (!invocationId || status === 'failed') return;
+                      if (!invocationId) return;
                       window.open(`/api/invocations/${invocationId}/methods-report`, '_blank');
                     }}
                     data-testid="button-download-methods-report"
@@ -2982,9 +3056,9 @@ export function NextflowWorkflowViewer({
                       <span className="sep">·</span>
                       <button
                         className="linkish"
-                        disabled={!invocationId || status === 'failed'}
+                        disabled={!invocationId}
                         onClick={() => {
-                          if (!invocationId || status === 'failed') return;
+                          if (!invocationId) return;
                           window.open(`/api/invocations/${invocationId}/qc-audit-download`, '_blank');
                         }}
                         data-testid="button-download-qc-audit"
@@ -3076,25 +3150,13 @@ export function NextflowWorkflowViewer({
               </div>
               {errorExplanation ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
-                  <div><span style={{ fontWeight: 600 }}>What went wrong: </span>{errorExplanation.human_summary}</div>
-                  <div><span style={{ fontWeight: 600 }}>Suggested fix: </span>{errorExplanation.suggested_fix}</div>
-                  {errorExplanation.chat_prompt && (
-                    <button
-                      className="btn sm"
-                      onClick={() => { setErrorExplanation(null); onAdjustViaChat?.(errorExplanation.chat_prompt); }}
-                      data-testid="button-error-fix-chat"
-                    >
-                      Fix &amp; Retry via Chat
-                    </button>
-                  )}
-                  <div style={{ fontSize: 10, opacity: 0.55 }}>
-                    {errorExplanation.error_type}{errorExplanation.llm_used ? ' · AI-analyzed' : ' · pattern-matched'}
-                  </div>
+                  <div><span style={{ fontWeight: 600 }}>What went wrong: </span>{sanitizeErrorText(errorExplanation.human_summary)}</div>
+                  <div><span style={{ fontWeight: 600 }}>Suggested fix: </span>{sanitizeErrorText(errorExplanation.suggested_fix)}</div>
                 </div>
               ) : errorExplaining ? (
                 <span>Analyzing error log…</span>
               ) : errorMessage ? (
-                <span>{errorMessage}</span>
+                <span>{sanitizeErrorText(errorMessage)}</span>
               ) : null}
             </div>
           )}
@@ -3113,6 +3175,7 @@ export function NextflowWorkflowViewer({
                 <FindingsCard
                   runId={activeRunId}
                   onContinueAnalysis={onAdjustViaChat}
+                  executionStatus={status}
                 />
               )}
             </div>
@@ -3211,7 +3274,9 @@ export function NextflowWorkflowViewer({
         const isRunning   = status === 'running';
         const isPaused    = status === 'paused';
         const isTerminal  = status === 'completed' || status === 'failed';
-        if (!isRunning && !isPaused && !isTerminal) return null;
+        // Terminal state (completed/failed) is handled by panel-foot below — don't render an empty dark bar here
+        if (!isRunning && !isPaused) return null;
+        void isTerminal;
 
         const barStyle: React.CSSProperties = {
           borderTop: '1px solid var(--border)',
@@ -3279,16 +3344,6 @@ export function NextflowWorkflowViewer({
                 ><span>⏹</span><span>Stop</span></button>
               </>
             )}
-            {isTerminal && (
-              <button
-                type="button"
-                data-testid="panel-run-again-cta"
-                onClick={() => onExecute?.(params)}
-                disabled={!onExecute}
-                style={primary}
-                title={status === 'failed' ? 'Restart from a fresh state' : 'Run this workflow again'}
-              ><span>▶</span><span>{status === 'failed' ? 'Restart' : 'Run again'}</span></button>
-            )}
           </div>
         );
       })()}
@@ -3329,21 +3384,15 @@ export function NextflowWorkflowViewer({
           </div>
         )}
         <div className="run-primary">
-          {!executionBlockedReason && (
+          {!executionBlockedReason && status !== 'running' && status !== 'paused' && (
             <button
               className="btn primary"
-              data-testid="button-run-workflow-panel"
+              data-testid={status === 'completed' ? 'panel-run-again-cta' : 'button-run-workflow-panel'}
               onClick={() => { if (status === 'completed' || status === 'failed') analytics.track('run_again_clicked', { source: 'panel' }); handleExecute(); }}
               disabled={
-                status === 'running'
-                || isPrereqBlocked
+                (isPrereqBlocked && status !== 'completed')
                 || isAutofixActive
                 || isLicenseBlocked
-                // Hard gate (2026-06-11): block submit when required global
-                // params are empty. Without this, a user could ignore the
-                // Workflow-settings strip and click Run with blanks.
-                // Only enforced on initial run (idle / pending_review) —
-                // re-runs of completed / failed runs use the prior params.
                 || ((status === 'idle' || status === 'pending_review')
                     && globalRequiredUnfilledCount > 0)
               }
@@ -3358,9 +3407,7 @@ export function NextflowWorkflowViewer({
                   : undefined
               }
             >
-              {status === 'running' ? (
-                <><Loader2 className="h-4 w-4 animate-spin" style={{ marginRight: 6 }} />Running…</>
-              ) : status === 'failed' ? (
+              {status === 'failed' ? (
                 'Restart'
               ) : status === 'completed' ? (
                 'Run again'

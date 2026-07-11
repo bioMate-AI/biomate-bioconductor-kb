@@ -221,7 +221,7 @@ process BIOC_EDASEQ_GENE_LEVEL_EDA_AND_NORMALIZATION {
     # dispersion/size-factor estimation — object-type-aware. Try DESeq2
     # DESeqDataSet (mcols\$dispOutlier), then edgeR DGEList (common.dispersion).
     .dsf_value <- NA_real_; .dsf_kind <- "none"
-    for (.dsf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.dsf_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .dsf_obj <- tryCatch(readRDS(.dsf_rds), error = function(e) NULL)
       if (!is.null(.dsf_obj)) {
         if (inherits(.dsf_obj, "DESeqDataSet")) {
@@ -249,7 +249,7 @@ process BIOC_EDASEQ_GENE_LEVEL_EDA_AND_NORMALIZATION {
     # Pass band 30-60% per Chen 2016 F1000 (edgeR filterByExpr convention).
     .lcf_kept_fractions <- numeric(0)
     .lcf_scanned <- character(0)
-    for (.lcf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.lcf_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .lcf_obj <- tryCatch(readRDS(.lcf_rds), error = function(e) NULL)
       .lcf_mat <- if (is.matrix(.lcf_obj) || is.data.frame(.lcf_obj)) .lcf_obj else NULL
       if (!is.null(.lcf_mat) && nrow(.lcf_mat) > 100) {

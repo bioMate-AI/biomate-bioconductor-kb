@@ -223,7 +223,7 @@ process BIOC_PIPECOMP_BULK_RNA_SEQ_DEA_BENCHMARKING {
     # filter low-expression genes — alias of low-count filtering metric
     # (Chen 2016 F1000 edgeR filterByExpr semantics).
     .fleg_kept <- NA_real_; .fleg_files <- character(0)
-    for (.fleg_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.fleg_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .fleg_obj <- tryCatch(readRDS(.fleg_rds), error = function(e) NULL)
       .fleg_mat <- if (is.matrix(.fleg_obj) || is.data.frame(.fleg_obj)) .fleg_obj else NULL
       if (!is.null(.fleg_mat) && nrow(.fleg_mat) > 100) {
@@ -244,7 +244,7 @@ process BIOC_PIPECOMP_BULK_RNA_SEQ_DEA_BENCHMARKING {
 
     # TMM normalization — DGEList\$samples\$norm.factors set (Robinson & Oshlack 2010).
     .tmm_factors <- NULL; .tmm_n_nontrivial <- NA_real_
-    for (.tmm_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.tmm_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .tmm_obj <- tryCatch(readRDS(.tmm_rds), error = function(e) NULL)
       if (!is.null(.tmm_obj) && inherits(.tmm_obj, "DGEList")) {
         .tmm_f <- tryCatch(.tmm_obj\$samples\$norm.factors, error = function(e) NULL)
@@ -265,7 +265,7 @@ process BIOC_PIPECOMP_BULK_RNA_SEQ_DEA_BENCHMARKING {
     # dispersion/size-factor estimation — object-type-aware. Try DESeq2
     # DESeqDataSet (mcols\$dispOutlier), then edgeR DGEList (common.dispersion).
     .dsf_value <- NA_real_; .dsf_kind <- "none"
-    for (.dsf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.dsf_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .dsf_obj <- tryCatch(readRDS(.dsf_rds), error = function(e) NULL)
       if (!is.null(.dsf_obj)) {
         if (inherits(.dsf_obj, "DESeqDataSet")) {

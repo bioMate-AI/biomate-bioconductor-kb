@@ -1,4 +1,0 @@
-.k8s_ci.Dockerfile
-.venv
-database
-node_modules

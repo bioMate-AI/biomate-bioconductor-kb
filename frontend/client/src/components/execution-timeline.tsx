@@ -267,7 +267,7 @@ export function ExecutionTimeline({
                     )}
                     {event.state === 'running' && (
                       <p className="text-xs text-blue-600 dark:text-blue-400 italic">
-                        Executing on Galaxy server...
+                        Executing...
                       </p>
                     )}
                     {event.state === 'ok' && (

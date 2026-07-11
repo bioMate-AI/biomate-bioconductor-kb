@@ -233,7 +233,7 @@ process BIOC_XDE_BAYESIAN_CROSS_STUDY_ANALYSIS {
 
     # input validation — workflow-level pass when expected output files exist
     # and have non-zero size. Binary pass: at least one .rds or .csv emitted.
-    .iv_artifacts <- c(list.files(".", pattern = "\\.rds\$"), list.files(".", pattern = "\\.csv\$"))
+    .iv_artifacts <- c(list.files(".", pattern = "\\\\.rds\$"), list.files(".", pattern = "\\\\.csv\$"))
     .iv_passes <- length(.iv_artifacts) > 0
     .gates_by_label[["input validation"]] <- list(
       gate_row = "bioc_input_validation",
@@ -246,7 +246,7 @@ process BIOC_XDE_BAYESIAN_CROSS_STUDY_ANALYSIS {
     # missing-value handling — scan .rds matrix/data.frame artifacts for max NA fraction
     .mv_na_fracs <- numeric(0)
     .mv_scanned <- character(0)
-    for (.mv_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.mv_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .mv_obj <- tryCatch(readRDS(.mv_rds), error = function(e) NULL)
       .mv_mat <- if (is.matrix(.mv_obj) || is.data.frame(.mv_obj)) .mv_obj else NULL
       if (!is.null(.mv_mat)) {

@@ -106,7 +106,7 @@ process BIOC_SPLATTER_SPLAT_STANDARD_SIMULATION {
     # diagnostic MA/PCA QC — PC1 variance explained on any large matrix.
     # Pass when PC1 > 10% (Risso 2014 RUV-seq diagnostic).
     .pca_pc1 <- NA_real_; .pca_files <- character(0)
-    for (.pca_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.pca_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .pca_obj <- tryCatch(readRDS(.pca_rds), error = function(e) NULL)
       .pca_mat <- if (is.matrix(.pca_obj) || is.data.frame(.pca_obj)) .pca_obj else NULL
       if (!is.null(.pca_mat) && ncol(.pca_mat) >= 3 && nrow(.pca_mat) >= 100) {
@@ -134,7 +134,7 @@ process BIOC_SPLATTER_SPLAT_STANDARD_SIMULATION {
     # matrix artifact. Pass when columns (cells) ≥ 50 and rows (features) ≥ 200
     # (Luecken & Theis 2019 single-cell QC floor).
     .cqc_ncells <- NA_real_; .cqc_nfeats <- NA_real_; .cqc_files <- character(0)
-    for (.cqc_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.cqc_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .cqc_obj <- tryCatch(readRDS(.cqc_rds), error = function(e) NULL)
       .cqc_mat <- if (is.matrix(.cqc_obj) || is.data.frame(.cqc_obj)) .cqc_obj else NULL
       if (!is.null(.cqc_mat) && nrow(.cqc_mat) > 100) {
@@ -156,7 +156,7 @@ process BIOC_SPLATTER_SPLAT_STANDARD_SIMULATION {
     # as a proxy diagnostic. Threshold = 0.7 (Bullard 2010 BMC Bioinf).
     .cn_lib_cvs <- numeric(0)
     .cn_scanned <- character(0)
-    for (.cn_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.cn_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .cn_obj <- tryCatch(readRDS(.cn_rds), error = function(e) NULL)
       .cn_mat <- if (is.matrix(.cn_obj) || is.data.frame(.cn_obj)) .cn_obj else NULL
       if (!is.null(.cn_mat) && ncol(.cn_mat) >= 2 && nrow(.cn_mat) >= 2) {

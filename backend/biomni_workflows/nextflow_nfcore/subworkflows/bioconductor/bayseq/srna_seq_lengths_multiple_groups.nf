@@ -177,7 +177,7 @@ process BIOC_BAYSEQ_SRNA_SEQ_LENGTHS_MULTIPLE_GROUPS {
     # diagnostic MA/PCA QC — PC1 variance explained on any large matrix.
     # Pass when PC1 > 10% (Risso 2014 RUV-seq diagnostic).
     .pca_pc1 <- NA_real_; .pca_files <- character(0)
-    for (.pca_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.pca_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .pca_obj <- tryCatch(readRDS(.pca_rds), error = function(e) NULL)
       .pca_mat <- if (is.matrix(.pca_obj) || is.data.frame(.pca_obj)) .pca_obj else NULL
       if (!is.null(.pca_mat) && ncol(.pca_mat) >= 3 && nrow(.pca_mat) >= 100) {

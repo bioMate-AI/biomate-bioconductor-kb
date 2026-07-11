@@ -11,11 +11,14 @@
   <meta property="og:title" content="BioMate AI Features | 4,000+ Bioinformatics Workflows" />
   <meta property="og:description" content="BioMate AI features: AI-guided analysis, evidence-graded QC, and 4,000+ indexed workflows for drug discovery, RNA-seq, genomics, and structural biology." />
   <meta property="og:url" content="https://biomate.ai/features.html" />
-  <meta property="og:image" content="https://biomate.ai/assets/logo.png" />
+  <meta property="og:image" content="https://biomate.ai/images/og-cover.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
   <meta property="og:site_name" content="BioMate AI" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="BioMate AI Features | 4,000+ Bioinformatics Workflows" />
   <meta name="twitter:description" content="BioMate AI features: AI-guided analysis, evidence-graded QC, and 4,000+ indexed workflows for drug discovery, RNA-seq, genomics, and structural biology." />
+  <meta name="twitter:image" content="https://biomate.ai/images/og-cover.png" />
   <link rel="stylesheet" href="fonts/fonts.css" />
   <link rel="stylesheet" href="styles.css" />
   <!-- Google tag (gtag.js) -->
@@ -77,6 +80,14 @@
         "acceptedAnswer": {
           "@type": "Answer",
           "text": "BioMate AI uses Nextflow under the hood and runs on AWS Batch for scalable compute — so you get the same gold-standard pipelines (nf-core, GATK, nf-core/rnaseq, etc.) without writing or maintaining pipeline code. The differences are: BioMate handles pipeline selection, parameter configuration, QC evaluation, and report generation automatically; results are structured and audit-ready by default; non-computational scientists can run analyses without a bioinformatics specialist. For teams that need custom pipeline logic, BioMate also supports parameter overrides and custom workflow registration."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What biological databases does BioMate AI access?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BioMate AI queries 60+ live biological databases at analysis time — not cached snapshots. Databases are organized into six groups: Protein & Structure (UniProt, PDB, AlphaFold DB, InterPro, Pfam, CATH, ModBase), Genomics & Variant (Ensembl, gnomAD, ClinVar, NCBI Gene, dbSNP, COSMIC, OMIM, GWAS Catalog), Transcriptomics & Expression (GEO, SRA, ArrayExpress, PRIDE, TCGA, cBioPortal), Chemistry & Pharmacology (ChEMBL, PubChem, DrugBank, BindingDB, ZINC, OpenFDA), Pathways & Interactions (KEGG, Reactome, Gene Ontology, STRING-db, BioGRID, DisGeNET), and Literature (PubMed/MEDLINE, Europe PMC, bioRxiv, ClinicalTrials.gov, FDA labels, EMA EPAR). All databases are queried live at analysis time to ensure current data."
         }
       }
     ]
@@ -465,7 +476,7 @@
         <div style="display:flex;flex-wrap:wrap;gap:10px;" id="bm-conn-chat">
           <noscript>
             <span class="bm-tech-chip"><div class="bm-tech-chip-name">Slack</div><div class="bm-tech-chip-role">/biomate slash command</div></span>
-            <span class="bm-tech-chip"><div class="bm-tech-chip-name">WeChat Work</div><div class="bm-tech-chip-role">企业微信 integration</div></span>
+            <span class="bm-tech-chip"><div class="bm-tech-chip-name">Feishu</div><div class="bm-tech-chip-role">Lark / 飞书 integration</div></span>
           </noscript>
         </div>
       </div>
@@ -489,15 +500,158 @@
         </div>
       </div>
 
-      <!-- Auth & SSO -->
-      <div>
-        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:1rem;">Auth &amp; SSO</div>
-        <div style="display:flex;flex-wrap:wrap;gap:10px;" id="bm-conn-auth">
-          <noscript>
-            <span class="bm-tech-chip"><div class="bm-tech-chip-name">Google OAuth</div><div class="bm-tech-chip-role">SSO login</div></span>
-            <span class="bm-tech-chip"><div class="bm-tech-chip-name">GitHub OAuth</div><div class="bm-tech-chip-role">SSO login</div></span>
-          </noscript>
+    </div>
+  </section>
+
+  <!-- ════ Data Sources ════ -->
+  <section id="data-sources" class="bm-section bm-bg-2">
+    <div class="bm-section-inner">
+      <div class="bm-section-head">
+        <span class="bm-eyebrow">Data sources</span>
+        <h2 class="bm-h2">60+ named live databases &mdash; queried in real time, not cached.</h2>
+        <p class="bm-lead">Every BioMate analysis draws from primary biological and chemical databases at query time. No stale snapshots. Results are always current.</p>
+      </div>
+
+      <style>
+        .ds-group { margin-bottom: 1.75rem; }
+        .ds-group-label {
+          font-family: var(--font-ui, system-ui, sans-serif);
+          font-size: 0.69rem;
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: var(--text-muted, #5C7A8C);
+          margin-bottom: 0.65rem;
+        }
+        .ds-chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.4rem;
+        }
+        .ds-chip {
+          font-family: var(--font-ui, system-ui, sans-serif);
+          font-size: 0.77rem;
+          font-weight: 500;
+          padding: 4px 11px;
+          border-radius: 20px;
+          border: 1px solid;
+          white-space: nowrap;
+          line-height: 1.4;
+        }
+        .ds-chip-w { color: #C8DDE8; border-color: rgba(200,221,232,0.30); background: rgba(200,221,232,0.07); }
+        .ds-chip-v { color: #8FBFCC; border-color: rgba(143,191,204,0.35); background: rgba(143,191,204,0.08); }
+        .ds-live-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-family: var(--font-ui, system-ui, sans-serif);
+          font-size: 0.72rem;
+          font-weight: 600;
+          letter-spacing: 0.04em;
+          color: #68C488;
+          background: rgba(104,196,136,0.10);
+          border: 1px solid rgba(104,196,136,0.28);
+          border-radius: 20px;
+          padding: 4px 12px;
+          margin-top: 1.5rem;
+        }
+        .ds-live-dot {
+          width: 7px; height: 7px;
+          border-radius: 50%;
+          background: #68C488;
+          flex-shrink: 0;
+          animation: ds-pulse 2s ease-in-out infinite;
+        }
+        @keyframes ds-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+        @media (prefers-reduced-motion: reduce) { .ds-live-dot { animation: none; } }
+      </style>
+
+      <div class="ds-group">
+        <p class="ds-group-label">Protein &amp; Structure</p>
+        <div class="ds-chips">
+          <span class="ds-chip ds-chip-w">UniProt / Swiss-Prot</span>
+          <span class="ds-chip ds-chip-w">PDB</span>
+          <span class="ds-chip ds-chip-w">AlphaFold DB</span>
+          <span class="ds-chip ds-chip-w">InterPro</span>
+          <span class="ds-chip ds-chip-w">Pfam</span>
+          <span class="ds-chip ds-chip-w">CATH / SCOP2</span>
+          <span class="ds-chip ds-chip-w">ModBase</span>
         </div>
+      </div>
+
+      <div class="ds-group">
+        <p class="ds-group-label">Genomics &amp; Variant</p>
+        <div class="ds-chips">
+          <span class="ds-chip ds-chip-w">Ensembl</span>
+          <span class="ds-chip ds-chip-w">gnomAD</span>
+          <span class="ds-chip ds-chip-w">ClinVar</span>
+          <span class="ds-chip ds-chip-w">NCBI Gene</span>
+          <span class="ds-chip ds-chip-w">dbSNP</span>
+          <span class="ds-chip ds-chip-w">COSMIC</span>
+          <span class="ds-chip ds-chip-w">ClinGen</span>
+          <span class="ds-chip ds-chip-w">GWAS Catalog</span>
+          <span class="ds-chip ds-chip-w">OMIM</span>
+        </div>
+      </div>
+
+      <div class="ds-group">
+        <p class="ds-group-label">Transcriptomics &amp; Omics</p>
+        <div class="ds-chips">
+          <span class="ds-chip ds-chip-w">GEO</span>
+          <span class="ds-chip ds-chip-w">SRA</span>
+          <span class="ds-chip ds-chip-w">ArrayExpress</span>
+          <span class="ds-chip ds-chip-w">PRIDE</span>
+          <span class="ds-chip ds-chip-w">MetaboLights</span>
+          <span class="ds-chip ds-chip-w">cBioPortal</span>
+          <span class="ds-chip ds-chip-w">TCGA</span>
+        </div>
+      </div>
+
+      <div class="ds-group">
+        <p class="ds-group-label">Chemistry &amp; Drug Discovery</p>
+        <div class="ds-chips">
+          <span class="ds-chip ds-chip-v">ChEMBL</span>
+          <span class="ds-chip ds-chip-v">ChEBI</span>
+          <span class="ds-chip ds-chip-v">PubChem</span>
+          <span class="ds-chip ds-chip-v">DrugBank</span>
+          <span class="ds-chip ds-chip-v">BindingDB</span>
+          <span class="ds-chip ds-chip-v">ZINC</span>
+          <span class="ds-chip ds-chip-v">OpenFDA</span>
+          <span class="ds-chip ds-chip-v">DailyMed</span>
+        </div>
+      </div>
+
+      <div class="ds-group">
+        <p class="ds-group-label">Pathways, Ontology &amp; Disease</p>
+        <div class="ds-chips">
+          <span class="ds-chip ds-chip-v">KEGG</span>
+          <span class="ds-chip ds-chip-v">Reactome</span>
+          <span class="ds-chip ds-chip-v">Gene Ontology</span>
+          <span class="ds-chip ds-chip-v">STRING-db</span>
+          <span class="ds-chip ds-chip-v">BioGRID</span>
+          <span class="ds-chip ds-chip-v">DisGeNET</span>
+          <span class="ds-chip ds-chip-v">HPO</span>
+          <span class="ds-chip ds-chip-v">Orphanet</span>
+        </div>
+      </div>
+
+      <div class="ds-group">
+        <p class="ds-group-label">Literature &amp; Clinical</p>
+        <div class="ds-chips">
+          <span class="ds-chip ds-chip-v">PubMed / MEDLINE</span>
+          <span class="ds-chip ds-chip-v">Europe PMC</span>
+          <span class="ds-chip ds-chip-v">bioRxiv / medRxiv</span>
+          <span class="ds-chip ds-chip-v">ClinicalTrials.gov</span>
+          <span class="ds-chip ds-chip-v">FDA labels (DailyMed)</span>
+          <span class="ds-chip ds-chip-v">EMA EPAR</span>
+        </div>
+      </div>
+
+      <div>
+        <span class="ds-live-badge"><span class="ds-live-dot"></span>All queried live at analysis time &mdash; not cached snapshots</span>
       </div>
     </div>
   </section>
@@ -513,7 +667,7 @@
       </div>
       <figure style="margin:0;">
         <img src="assets/platform-diagram.svg"
-             alt="BioMate AI platform architecture diagram: CONNECT layer (MCP, Open Claw, REST API, SSE, Slack, WeChat Work, 10 lab instruments) feeds into the ANALYZE layer (AI orchestration routing to 4,000+ workflows across 36 domains, executed on AWS Batch via Nextflow) which produces DELIVER outputs (structured reports, IND sections, CRO packages, Gold/Silver/Bronze QC grading, immutable audit trail)"
+             alt="BioMate AI platform architecture diagram: CONNECT layer (MCP, Open Claw, REST API, SSE, Slack, Feishu, 10 lab instruments) feeds into the ANALYZE layer (AI orchestration routing to 4,000+ workflows across 36 domains) which produces DELIVER outputs (structured reports, IND sections, CRO packages, Gold/Silver/Bronze QC grading, immutable audit trail)"
              width="1200" height="700"
              style="width:100%;height:auto;border-radius:12px;border:1px solid rgba(143,214,234,0.15);"
              loading="lazy" />
@@ -634,7 +788,7 @@
     ];
     const CONN_CHAT = [
       ['Slack', '/biomate slash command · Block Kit'],
-      ['WeChat Work (企业微信)', 'Message signing · XML encryption'],
+      ['Feishu', 'Lark / 飞书 · message signing · webhook'],
     ];
     const CONN_LAB = [
       ['Illumina BaseSpace', 'Sequencing run ingestion'],
@@ -648,10 +802,6 @@
       ['SiLA2', 'Standardized lab automation protocol'],
       ['Benchling LIMS', 'Samples, assay results, projects'],
     ];
-    const CONN_AUTH = [
-      ['Google OAuth', 'SSO login'],
-      ['GitHub OAuth', 'SSO login'],
-    ];
     function renderChips(id, arr) {
       document.getElementById(id).innerHTML = arr.map(([name, role]) => `
         <div class="bm-tech-chip">
@@ -662,7 +812,6 @@
     renderChips('bm-conn-ai',   CONN_AI);
     renderChips('bm-conn-chat', CONN_CHAT);
     renderChips('bm-conn-lab',  CONN_LAB);
-    renderChips('bm-conn-auth', CONN_AUTH);
   </script>
 
   <script type="text/babel" src="tweaks-panel.jsx"></script>

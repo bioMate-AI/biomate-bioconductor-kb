@@ -1,3 +1,0 @@
-lib/galaxy/jobs/metrics
-lib/galaxy/exceptions
-lib/galaxy/containers

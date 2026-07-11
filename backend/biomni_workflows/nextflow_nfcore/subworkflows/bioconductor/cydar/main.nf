@@ -214,7 +214,7 @@ process BIOC_CYDAR_DIFFERENTIAL_ABUNDANCE_ANALYSIS {
     # dispersion/size-factor estimation — object-type-aware. Try DESeq2
     # DESeqDataSet (mcols\$dispOutlier), then edgeR DGEList (common.dispersion).
     .dsf_value <- NA_real_; .dsf_kind <- "none"
-    for (.dsf_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.dsf_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .dsf_obj <- tryCatch(readRDS(.dsf_rds), error = function(e) NULL)
       if (!is.null(.dsf_obj)) {
         if (inherits(.dsf_obj, "DESeqDataSet")) {
@@ -239,7 +239,7 @@ process BIOC_CYDAR_DIFFERENTIAL_ABUNDANCE_ANALYSIS {
     )
 
     # expression-level QC — declarative; emit when any expression artifact present.
-    .elq_artifacts <- list.files(".", pattern = "\\.(rds|csv|tsv)\$")
+    .elq_artifacts <- list.files(".", pattern = "\\\\.(rds|csv|tsv)\$")
     .elq_passes <- length(.elq_artifacts) > 0
     .gates_by_label[["expression-level QC"]] <- list(
       gate_row = "bioc_expression_level_qc",

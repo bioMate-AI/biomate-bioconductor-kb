@@ -131,7 +131,7 @@ export class ContextCompressor {
     // for workflow parameter binding. Re-attach them verbatim above the
     // generated summary so the chat LLM can always recover the handle.
     // See docs/20260610_CHAT_CONTEXT_AUDIT_4_QUESTIONS.md (Q1).
-    const DATASET_BLOCK_RE = /\[(?:Galaxy dataset|Uploaded datasets?|Attached files?)\s*:[^\]]+\]/gi;
+    const DATASET_BLOCK_RE = /\[(?:BioMate dataset|Galaxy dataset|Uploaded datasets?|Attached files?)\s*:[^\]]+\]/gi;
     const preservedBlocks: string[] = [];
     const seen = new Set<string>();
     for (const m of oldMessages) {

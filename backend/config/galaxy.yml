@@ -2,6 +2,12 @@ galaxy:
   # Enable AI Assistant
   enable_ai_assistant: true
 
+  # Enable Interactive Tools (Jupyter, RStudio, CellxGene)
+  # interactivetools_upstream_proxy: true means the upstream nginx/proxy handles routing
+  # so Galaxy does not need a separate gx-it-proxy process
+  interactivetools_enable: true
+  interactivetools_upstream_proxy: true
+
   # Claude Sonnet 4.5 Configuration (Primary)
   ai_llm_provider: anthropic
   ai_llm_model: claude-sonnet-4-5
@@ -23,7 +29,7 @@ galaxy:
   check_migrate_tools: false
   # Include standard Galaxy tools, Biomni tools, and Biomate AI tools
   # Use absolute paths for custom tools
-  tool_config_file: tool_conf.xml.sample,/app/biomni_workflows/galaxy/tools/biomni/tool_conf_biomni.xml,/app/tools/biomate_ai_tools/tool_conf.xml
+  tool_config_file: tool_conf.xml.sample,/Users/kky/biomate/backend/biomni_workflows/galaxy/tools/biomni/tool_conf_biomni.xml
 
   # Memory optimization - load tools on demand instead of preloading
   preload_tool_panel: false
@@ -53,14 +59,15 @@ gravity:
     timeout: 300
     # Limit memory per worker
     worker_class: sync
-    max_requests: 1000
-    max_requests_jitter: 50
+    max_requests: 3000
+    max_requests_jitter: 300
     # Do NOT preload app - load toolbox per worker to reduce memory
     preload: false
     # Environment variables for AI Assistant
     environment:
       PYTHONPATH: '/app/lib'
       ANTHROPIC_API_KEY: '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'
+      OPENAI_API_KEY: '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'
       GITHUB_TOKEN: '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'
   celery:
     environment:

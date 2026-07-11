@@ -1,9 +1,0 @@
-{
-  "title": "BioMate - Simplified Bioinformatics Workflows",
-  "url": "http://localhost:5407/",
-  "inputCount": 1,
-  "buttonCount": 22,
-  "hasReact": false,
-  "bodyClasses": "",
-  "mainContent": "Show Sidebar\nToggle theme\nbioMate\nRun Manager\n1\n\nHello! I'm your BioMate AI assistant. I can help you discover bioinformatics tools, build workflows, and analyze your data. What would you like to work on today?\n\nAnalyze RNA-seq data\nFind variant calling tools\nBuild a custom workflow\nExplore genomics tools\n\nI have RNA-seq data from a cancer study and need to perform differential expression analysis. Can you help me set up a complete pipeline?\n\nAbsolutely! I'll help you create a complete RNA-seq a"
-}

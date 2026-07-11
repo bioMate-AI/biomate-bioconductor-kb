@@ -375,7 +375,10 @@ class BenchmarkKnowledgeDB:
         model = self._get_embedding_model()
 
         if not model:
-            return self._fallback_keyword_search(user_query, top_k)
+            results = self._fallback_keyword_search(user_query, top_k)
+            if not results:
+                results = self._query_tool_knowledge_fallback(user_query, top_k)
+            return results
 
         try:
             from sklearn.metrics.pairwise import cosine_similarity
@@ -431,7 +434,92 @@ class BenchmarkKnowledgeDB:
 
             enriched.append(result)
 
+        # If the benchmark tables are empty, fall back to tool_knowledge in galaxy_ai_tools.db
+        if not enriched:
+            enriched = self._query_tool_knowledge_fallback(user_query, top_k)
+
         return enriched
+
+    def _query_tool_knowledge_fallback(self, query: str, top_k: int) -> List[Dict]:
+        """
+        Fall back to galaxy_ai_tools.db → tool_knowledge when benchmark_knowledge.db is empty.
+        Matches tools by keyword overlap against tool_name + alternatives, then returns their
+        benchmark_papers as evidence. This surfaces real literature evidence even before the
+        structured benchmark tables are populated.
+        """
+        import os as _os
+        _here = _os.path.dirname(_os.path.abspath(__file__))
+        candidate_paths = [
+            _os.path.normpath(_os.path.join(_here, "..", "..", "..", "database", "galaxy_ai_tools.db")),
+            _os.path.normpath(_os.path.join(_here, "..", "..", "..", "galaxy_ai_tools.db")),
+            "/home/yzhang/biomate/backend/database/galaxy_ai_tools.db",
+        ]
+        db_path = next((p for p in candidate_paths if _os.path.exists(p)), None)
+        if not db_path:
+            return []
+
+        keywords = [kw.lower() for kw in query.split() if len(kw) > 2]
+        if not keywords:
+            return []
+
+        try:
+            conn = sqlite3.connect(db_path, timeout=3)
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT tool_name, benchmark_papers, alternatives, use_cases, limitations "
+                "FROM tool_knowledge "
+                "WHERE benchmark_papers IS NOT NULL AND benchmark_papers != '[]' AND benchmark_papers != ''"
+            )
+            rows = cur.fetchall()
+            conn.close()
+        except Exception as exc:
+            log.warning("tool_knowledge fallback query failed: %s", exc)
+            return []
+
+        scored = []
+        for tool_name, bench_raw, alts_raw, uses_raw, lims_raw in rows:
+            search_text = " ".join(filter(None, [
+                tool_name,
+                alts_raw or "",
+                uses_raw or "",
+            ])).lower()
+            score = sum(1 for kw in keywords if kw in search_text)
+            if score > 0:
+                try:
+                    papers = json.loads(bench_raw) if bench_raw else []
+                except Exception:
+                    papers = []
+                if papers:
+                    scored.append((score, tool_name, papers, alts_raw))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        results = []
+        for score, tool_name, papers, alts_raw in scored[:top_k]:
+            try:
+                alts = json.loads(alts_raw) if alts_raw else []
+            except Exception:
+                alts = []
+            best_paper = papers[0]
+            results.append({
+                "type": "tool",
+                "tool_name": tool_name,
+                "similarity": min(score / max(len(keywords), 1), 1.0),
+                "evidence_text": (
+                    f"{tool_name} benchmark: {best_paper.get('title', '')} "
+                    f"({best_paper.get('journal', '')} {best_paper.get('year', '')})"
+                ),
+                "benchmark_papers": papers[:3],
+                "alternatives": alts,
+                "source": "tool_knowledge",
+                # Fields expected by query_benchmarks endpoint
+                "tool_id": tool_name.lower().replace(" ", "_"),
+                "metric_name": "benchmark_evidence",
+                "metric_value": None,
+                "rank": None,
+                "study_name": best_paper.get("title", ""),
+                "doi": best_paper.get("doi"),
+            })
+        return results
 
     def _fallback_keyword_search(self, query: str, top_k: int) -> List[Dict]:
         """Keyword-based fallback when semantic search is disabled."""

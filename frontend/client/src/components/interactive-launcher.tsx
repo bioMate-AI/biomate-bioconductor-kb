@@ -279,7 +279,7 @@ export function InteractiveLauncher({
             <Alert>
               <Clock className="h-4 w-4" />
               <AlertDescription className="text-xs">
-                Interactive sessions timeout after 2 hours of inactivity. Your work is saved to the Galaxy history.
+                Interactive sessions timeout after 2 hours of inactivity. Your work is auto-saved.
               </AlertDescription>
             </Alert>
 

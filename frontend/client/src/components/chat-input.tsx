@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { Send, Plus, X, FileText, Eye, Clock, Square } from "lucide-react"
+import { Send, Plus, X, FileText, Eye, Clock, Square, Database } from "lucide-react"
 import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser"
 
 interface AttachedFile {
@@ -42,7 +42,7 @@ export function ChatInput({
   onSend,
   disabled = false,
   pendingCount = 0,
-  placeholder = "Ask BioMate to run a workflow, adjust parameters, or extend the pipeline...",
+  placeholder = "Ask BioMate anything — upload a paper, run a workflow, search literature, or analyze your data...",
   onFilesSelected,
   isStreaming = false,
   onStop,
@@ -51,6 +51,8 @@ export function ChatInput({
 }: ChatInputProps) {
   const [message, setMessage] = useState("")
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
+  // Dataset references selected from the browser — shown as chips, injected into message on send
+  const [selectedDatasets, setSelectedDatasets] = useState<Array<{ id: string; name: string; value: string }>>([])
   const [showDatasetBrowser, setShowDatasetBrowser] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -66,11 +68,18 @@ export function ChatInput({
   }, [onRegisterSetDraft])
 
   const handleSend = () => {
-    if (message.trim() || attachedFiles.length > 0) {
+    if (message.trim() || attachedFiles.length > 0 || selectedDatasets.length > 0) {
       const files = attachedFiles.map(f => f.file)
-      onSend(message.trim(), files.length > 0 ? files : undefined)
+      // Append dataset references invisibly so the AI/backend can resolve them,
+      // without forcing the user to see raw IDs in the textarea.
+      const datasetRefs = selectedDatasets
+        .map(d => `[BioMate dataset: ${d.name} (id: ${d.value})]`)
+        .join('\n')
+      const fullMessage = [message.trim(), datasetRefs].filter(Boolean).join('\n')
+      onSend(fullMessage, files.length > 0 ? files : undefined)
       setMessage("")
       setAttachedFiles([])
+      setSelectedDatasets([])
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto"
       }
@@ -95,6 +104,38 @@ export function ChatInput({
 
   const removeFile = (id: string) => {
     setAttachedFiles(prev => prev.filter(f => f.id !== id))
+  }
+
+  // Drag-and-drop onto the chat input
+  const [isDraggingOver, setIsDraggingOver] = useState(false)
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes('Files')) {
+      e.preventDefault()
+      setIsDraggingOver(true)
+    }
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear if leaving the container entirely
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDraggingOver(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDraggingOver(false)
+    const dropped = Array.from(e.dataTransfer.files)
+    if (dropped.length === 0) return
+    const newAttached: AttachedFile[] = dropped.map(f => ({
+      id: `${Date.now()}-${f.name}`,
+      name: f.name,
+      size: f.size,
+      file: f,
+    }))
+    setAttachedFiles(prev => [...prev, ...newAttached])
+    onFilesSelected?.(dropped)
   }
 
   // --- Local file preview ---
@@ -171,9 +212,15 @@ export function ChatInput({
   }
 
   return (
-    <div className="border-t bg-background p-4">
-      {/* Attached files chips */}
-      {attachedFiles.length > 0 && (
+    <div
+      className="border-t bg-background p-4"
+      style={{ position: 'relative' }}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Attached files + selected dataset chips */}
+      {(attachedFiles.length > 0 || selectedDatasets.length > 0) && (
         <div className="flex flex-wrap gap-2 mb-3">
           {attachedFiles.map(file => (
             <div
@@ -194,6 +241,21 @@ export function ChatInput({
               </button>
               <button
                 onClick={() => removeFile(file.id)}
+                className="p-0.5 rounded hover:bg-background transition-colors"
+              >
+                <X className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+              </button>
+            </div>
+          ))}
+          {selectedDatasets.map(ds => (
+            <div
+              key={ds.id}
+              className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-md text-sm"
+            >
+              <Database className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+              <span className="max-w-[150px] truncate">{ds.name}</span>
+              <button
+                onClick={() => setSelectedDatasets(prev => prev.filter(d => d.id !== ds.id))}
                 className="p-0.5 rounded hover:bg-background transition-colors"
               >
                 <X className="w-3 h-3 text-muted-foreground hover:text-foreground" />
@@ -224,13 +286,10 @@ export function ChatInput({
                 <p className="text-sm text-muted-foreground p-4">Loading preview…</p>
               ) : previewContent.length === 0 ? (
                 <div className="p-4 space-y-2">
-                  <p className="text-sm font-medium">Binary / large file — metadata only</p>
+                  <p className="text-sm font-medium">File attached</p>
                   <p className="text-xs text-muted-foreground">Name: {previewFile.name}</p>
                   <p className="text-xs text-muted-foreground">Size: {formatFileSize(previewFile.size)}</p>
                   <p className="text-xs text-muted-foreground">Type: {previewFile.file.type || 'application/octet-stream'}</p>
-                  <p className="text-xs text-muted-foreground mt-3">
-                    This file will be uploaded to Galaxy when you send your message. Preview is not available for binary formats.
-                  </p>
                 </div>
               ) : (['csv','tsv','tabular'].includes(previewFile.name.split('.').pop()?.toLowerCase() ?? '')) ? (
                 <div className="p-1">
@@ -250,9 +309,27 @@ export function ChatInput({
         </Dialog>
       )}
 
+      {/* Drag-over overlay */}
+      {isDraggingOver && (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 10,
+          background: 'rgba(99,102,241,0.06)',
+          border: '2px dashed var(--bm-primary, oklch(0.55 0.20 265))',
+          borderRadius: 'var(--bm-r-lg, 12px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          pointerEvents: 'none',
+        }}>
+          <span style={{ fontSize: 13, color: 'var(--bm-primary, oklch(0.55 0.20 265))', fontWeight: 500 }}>
+            Drop files to attach
+          </span>
+        </div>
+      )}
+
       {/* Reference design: pill input with attachment + textarea + send */}
       <div className="chat-input" style={{
-        border: '1px solid var(--bm-border, hsl(var(--border)))',
+        border: isDraggingOver
+          ? '1px solid var(--bm-primary, oklch(0.55 0.20 265))'
+          : '1px solid var(--bm-border, hsl(var(--border)))',
         borderRadius: 'var(--bm-r-lg, 12px)',
         background: 'var(--bm-bg-elev, hsl(var(--background)))',
         boxShadow: 'var(--bm-shadow-sm, 0 1px 2px rgba(15,23,42,0.04))',
@@ -293,7 +370,7 @@ export function ChatInput({
                 : 'var(--bm-text-dim, oklch(0.62 0.010 260))'
             const fontWeight = atCap ? 600 : 500
             const tooltip = atCap
-              ? `At the ${MAX_DATASET_REFS}-attachment cap — older entries will drop when you attach another. For bulk experiments, use a Galaxy collection (1 reference for N files).`
+              ? `At the ${MAX_DATASET_REFS}-attachment cap — older entries will drop when you attach another. For bulk experiments, use an S3 folder prefix (1 reference for N files).`
               : pct >= 0.76
                 ? `Approaching the ${MAX_DATASET_REFS}-attachment cap. Older entries will drop on overflow.`
                 : `${sessionDatasetCount} of ${MAX_DATASET_REFS} attachment references used in this conversation.`
@@ -356,13 +433,13 @@ export function ChatInput({
             <button
               data-testid="chat-send-button"
               onClick={handleSend}
-              disabled={!message.trim() && attachedFiles.length === 0}
+              disabled={!message.trim() && attachedFiles.length === 0 && selectedDatasets.length === 0}
               style={{
                 width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',
-                background: (!message.trim() && attachedFiles.length === 0)
+                background: (!message.trim() && attachedFiles.length === 0 && selectedDatasets.length === 0)
                   ? 'var(--bm-surface-3, oklch(0.945 0.005 240))'
                   : 'var(--bm-text, oklch(0.22 0.01 260))',
-                color: (!message.trim() && attachedFiles.length === 0)
+                color: (!message.trim() && attachedFiles.length === 0 && selectedDatasets.length === 0)
                   ? 'var(--bm-text-dim)' : 'white',
                 border: 'none', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -375,15 +452,16 @@ export function ChatInput({
         </div>
       </div>
 
-      {/* Galaxy dataset browser dialog */}
+      {/* Dataset browser dialog */}
       <GalaxyDatasetBrowser
         open={showDatasetBrowser}
         onClose={() => setShowDatasetBrowser(false)}
-        onSelect={(datasetId, datasetName) => {
-          // Append dataset reference to the message so the AI and workflow executor know about it
-          setMessage(prev => {
-            const ref = `[Galaxy dataset: ${datasetName} (id: ${datasetId})]`
-            return prev ? `${prev}\n${ref}` : ref
+        onSelect={(datasetValue, datasetName) => {
+          // Add as a chip — dataset reference is appended to message text on send,
+          // so the user sees a clean chip rather than raw ID text in the textarea.
+          setSelectedDatasets(prev => {
+            if (prev.some(d => d.value === datasetValue)) return prev
+            return [...prev, { id: `ds-${Date.now()}`, name: datasetName, value: datasetValue }]
           })
           setTimeout(() => textareaRef.current?.focus(), 0)
         }}

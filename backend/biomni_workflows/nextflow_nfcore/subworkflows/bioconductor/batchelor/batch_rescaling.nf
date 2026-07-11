@@ -122,7 +122,7 @@ process BIOC_BATCHELOR_BATCH_RESCALING {
     # diagnostic MA/PCA QC — PC1 variance explained on any large matrix.
     # Pass when PC1 > 10% (Risso 2014 RUV-seq diagnostic).
     .pca_pc1 <- NA_real_; .pca_files <- character(0)
-    for (.pca_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.pca_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .pca_obj <- tryCatch(readRDS(.pca_rds), error = function(e) NULL)
       .pca_mat <- if (is.matrix(.pca_obj) || is.data.frame(.pca_obj)) .pca_obj else NULL
       if (!is.null(.pca_mat) && ncol(.pca_mat) >= 3 && nrow(.pca_mat) >= 100) {
@@ -150,7 +150,7 @@ process BIOC_BATCHELOR_BATCH_RESCALING {
     # matrix artifact. Pass when columns (cells) ≥ 50 and rows (features) ≥ 200
     # (Luecken & Theis 2019 single-cell QC floor).
     .cqc_ncells <- NA_real_; .cqc_nfeats <- NA_real_; .cqc_files <- character(0)
-    for (.cqc_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.cqc_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .cqc_obj <- tryCatch(readRDS(.cqc_rds), error = function(e) NULL)
       .cqc_mat <- if (is.matrix(.cqc_obj) || is.data.frame(.cqc_obj)) .cqc_obj else NULL
       if (!is.null(.cqc_mat) && nrow(.cqc_mat) > 100) {
@@ -170,7 +170,7 @@ process BIOC_BATCHELOR_BATCH_RESCALING {
     # HVG selection — count rows with high CV. Pass when 1000-3000 HVGs
     # (Stuart 2019 Cell Seurat v3 default range).
     .hvg_count <- NA_real_; .hvg_files <- character(0)
-    for (.hvg_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.hvg_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .hvg_obj <- tryCatch(readRDS(.hvg_rds), error = function(e) NULL)
       .hvg_mat <- if (is.matrix(.hvg_obj) || is.data.frame(.hvg_obj)) .hvg_obj else NULL
       if (!is.null(.hvg_mat) && nrow(.hvg_mat) > 200) {

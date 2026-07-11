@@ -237,10 +237,12 @@ describe("NextflowWorkflowViewer — horizontal tabs MVP", () => {
     });
   });
 
-  it("Status-aware action bar shows Run-again button on completed", async () => {
+  it("panel-foot shows Run-again button on completed (action-bar not rendered for terminal states)", async () => {
     render(<NextflowWorkflowViewer {...(baseProps as any)} />);
     await waitFor(() => {
-      expect(screen.getByTestId("panel-action-bar")).toHaveAttribute("data-status", "completed");
+      // panel-action-bar is only rendered for running/paused; completed state
+      // moves the Run-again CTA into panel-foot instead.
+      expect(screen.queryByTestId("panel-action-bar")).not.toBeInTheDocument();
       expect(screen.getByTestId("panel-run-again-cta")).toBeInTheDocument();
     });
   });

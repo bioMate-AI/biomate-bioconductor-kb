@@ -1,0 +1,77 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "BioMate",
+  "version": "0.1.0",
+  "identifier": "ai.biomate.desktop",
+
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "title": "BioMate",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 960,
+        "minHeight": 640,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": true,
+        "center": true
+      }
+    ],
+    "macOSPrivateApi": true,
+    "trayIcon": {
+      "iconPath": "icons/tray.png",
+      "iconAsTemplate": true
+    },
+    "security": {
+      "csp": null
+    }
+  },
+
+  "plugins": {
+    "updater": {
+      "pubkey": "",
+      "endpoints": [
+        "https://github.com/bioMate-AI/biomate/releases/latest/download/latest.json"
+      ]
+    },
+    "deep-link": {
+      "mobile": [],
+      "desktop": [{ "schemes": ["biomate"] }]
+    }
+  },
+
+  "build": {
+    "beforeDevCommand": "",
+    "devUrl": "http://localhost:5000",
+    "beforeBuildCommand": "",
+    "frontendDist": "../frontend/client/dist"
+  },
+
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "entitlements": "entitlements.plist",
+      "signingIdentity": null,
+      "urlSchemes": ["biomate"]
+    },
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": ""
+    },
+    "linux": {
+      "deb": { "depends": [] },
+      "appimage": { "bundleMediaFramework": false }
+    }
+  }
+}

@@ -13,8 +13,8 @@ primary:
   api_key_env: GOOGLE_API_KEY
   max_tokens: 8192
   temperature: 0.7
-  retry_attempts: 2
-  timeout_seconds: 120
+  retry_attempts: 1  # No retry — fallback chain handles redundancy
+  timeout_seconds: 30  # Fast-fail: if Pro hangs >30s, fall immediately to Flash
 
 # Fallback Chain (in priority order)
 fallbacks:
@@ -25,8 +25,8 @@ fallbacks:
     api_key_env: GOOGLE_API_KEY
     max_tokens: 8192
     temperature: 0.7
-    retry_attempts: 2
-    timeout_seconds: 60
+    retry_attempts: 1  # No retry — fall through to Claude on failure
+    timeout_seconds: 30  # Flash is fast; 30s is generous
 
   # Fallback 2: Claude (high quality, reliable)
   - provider: anthropic
@@ -35,8 +35,8 @@ fallbacks:
     api_key_env: ANTHROPIC_API_KEY
     max_tokens: 8192
     temperature: 0.7
-    retry_attempts: 2
-    timeout_seconds: 120
+    retry_attempts: 1  # No retry
+    timeout_seconds: 60
 
   # Fallback 3: OpenAI GPT-4 (widely available)
   - provider: openai
@@ -45,8 +45,8 @@ fallbacks:
     api_key_env: OPENAI_API_KEY
     max_tokens: 8192
     temperature: 0.7
-    retry_attempts: 2
-    timeout_seconds: 120
+    retry_attempts: 1  # No retry
+    timeout_seconds: 60
 
   # Fallback 4: Local Ollama (always works if running)
   - provider: ollama
@@ -56,8 +56,8 @@ fallbacks:
     base_url: http://localhost:11434
     max_tokens: 8192
     temperature: 0.7
-    retry_attempts: 2
-    timeout_seconds: 180
+    retry_attempts: 1  # No retry
+    timeout_seconds: 120
     notes: "Runs on ARM supercomputer with 128GB RAM, uses FP16 precision"
 
 # Model-specific configurations
@@ -154,6 +154,7 @@ required_env_vars:
 # Notes:
 # - Gemini 3.1 Pro Preview and 3.0 Flash Preview both use the same GOOGLE_API_KEY
 # - Providers are tried in order: Gemini Pro → Gemini Flash → Claude → OpenAI → Ollama
-# - Each provider gets 2 retry attempts before moving to next
-# - Total possible attempts: 2 × 5 providers = 10 attempts before final failure
+# - Each provider gets 1 attempt (no retry) — the fallback chain IS the redundancy
+# - Total possible attempts: 1 × 5 providers = 5 attempts before final failure
 # - Expected success rate: >99% (only fails if all 5 providers completely down)
+# - Timeout 30s for Gemini (fast-fail enables quick fallback to Flash)

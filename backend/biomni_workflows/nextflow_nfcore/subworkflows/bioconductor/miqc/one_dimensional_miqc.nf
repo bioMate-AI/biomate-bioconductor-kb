@@ -123,7 +123,7 @@ process BIOC_MIQC_ONE_DIMENSIONAL_MIQC {
     # per-cell QC metrics — alias semantics to cell QC metrics; reports
     # cells-flagged fraction by detecting library-size outliers via MAD.
     .pcqc_outlier_frac <- NA_real_; .pcqc_files <- character(0)
-    for (.pcqc_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.pcqc_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .pcqc_obj <- tryCatch(readRDS(.pcqc_rds), error = function(e) NULL)
       .pcqc_mat <- if (is.matrix(.pcqc_obj) || is.data.frame(.pcqc_obj)) .pcqc_obj else NULL
       if (!is.null(.pcqc_mat) && ncol(.pcqc_mat) >= 10) {
@@ -148,7 +148,7 @@ process BIOC_MIQC_ONE_DIMENSIONAL_MIQC {
     # matrix artifact. Pass when columns (cells) ≥ 50 and rows (features) ≥ 200
     # (Luecken & Theis 2019 single-cell QC floor).
     .cqc_ncells <- NA_real_; .cqc_nfeats <- NA_real_; .cqc_files <- character(0)
-    for (.cqc_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.cqc_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .cqc_obj <- tryCatch(readRDS(.cqc_rds), error = function(e) NULL)
       .cqc_mat <- if (is.matrix(.cqc_obj) || is.data.frame(.cqc_obj)) .cqc_obj else NULL
       if (!is.null(.cqc_mat) && nrow(.cqc_mat) > 100) {

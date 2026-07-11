@@ -24,9 +24,11 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { chatHistoryService } from "@/lib/chat-history";
 import React, { useState, useEffect, useRef } from "react";
 import { useSearch } from "wouter";
-import { PanelLeft, Plus, FlaskConical, MessageCircle, Menu } from "lucide-react";
+import { PanelLeft, Plus, FlaskConical, MessageCircle, Menu, FolderOpen, X } from "lucide-react";
+import { useActiveProject } from "@/contexts/active-project-context";
 import type { ChatSession } from "@shared/schema";
-import { analytics } from "@/lib/analytics";
+import { analytics } from "@/lib/analytics"
+import { isDesktop, desktopGetPendingDeepLink, desktopOnDeepLink } from "@/lib/desktop";
 
 // Import new pages
 import LoginPage from "@/pages/auth/login";
@@ -80,6 +82,7 @@ function ProjectsRouter() {
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
   const projectId = searchParams.get('project');
+  const initialTab = searchParams.get('tab') ?? undefined;
 
   const handleProjectSelect = (id: string) => {
     setLocation(`/projects?project=${id}`);
@@ -94,6 +97,7 @@ function ProjectsRouter() {
       <ProjectDetailPage
         projectId={projectId}
         onBack={handleBackToProjects}
+        initialTab={initialTab}
       />
     );
   } else {
@@ -226,6 +230,51 @@ function AuthenticatedPageLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Thin bar shown at the top of the main content area when a project is active. */
+function ActiveProjectBanner() {
+  const { activeProject, setActiveProjectId } = useActiveProject()
+  const [, navigate] = useLocation()
+  if (!activeProject) return null
+  return (
+    <div
+      style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '4px 14px',
+        background: 'var(--bm-surface-2, hsl(var(--accent)))',
+        borderBottom: '1px solid var(--bm-border, hsl(var(--border)))',
+        fontSize: 12.5, flexShrink: 0,
+      }}
+      data-testid="active-project-banner"
+    >
+      <FolderOpen style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />
+      <span style={{ color: 'var(--bm-text-muted)', userSelect: 'none' }}>Project:</span>
+      <button
+        style={{ fontWeight: 600, color: 'var(--bm-text)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 'inherit', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+        onClick={() => navigate(`/projects?project=${activeProject.id}`)}
+        data-testid="active-project-banner-name"
+      >
+        {activeProject.name}
+      </button>
+      <span style={{ flex: 1 }} />
+      <button
+        style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4 }}
+        onClick={() => navigate(`/projects?project=${activeProject.id}`)}
+        data-testid="active-project-banner-goto"
+      >
+        Go to project
+      </button>
+      <button
+        style={{ display: 'flex', alignItems: 'center', color: 'var(--bm-text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 4, opacity: 0.7 }}
+        onClick={() => setActiveProjectId(null)}
+        aria-label="Clear active project"
+        data-testid="active-project-banner-clear"
+      >
+        <X style={{ width: 13, height: 13 }} />
+      </button>
+    </div>
+  )
+}
+
 // Platform layout with sidebar for chat interface
 function PlatformLayout({
   children,
@@ -278,7 +327,7 @@ function PlatformLayout({
   }
 
   return (
-    <div className="h-screen w-full flex flex-col" style={{ background: 'var(--bm-bg, hsl(var(--background)))' }}>
+    <div className="h-dvh w-full flex flex-col" style={{ background: 'var(--bm-bg, hsl(var(--background)))' }}>
       {/* Mobile header bar — only on small screens */}
       {isMobile && (
         <div
@@ -387,6 +436,7 @@ function PlatformLayout({
 
         {/* Main content — no separate header; chat-with-artifacts owns its own top bar */}
         <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+          <ActiveProjectBanner />
           {children}
         </div>
       </div>
@@ -605,6 +655,21 @@ function App() {
   useEffect(() => {
     analytics.track('page_viewed', { page: location })
   }, [location])
+
+  // Desktop deep link handling: biomate://project/<id> and biomate://session/<id>
+  useEffect(() => {
+    if (!isDesktop()) return
+    const handleDeepLink = (url: string) => {
+      const match = url.match(/^biomate:\/\/(project|session)\/([^?#]+)/)
+      if (!match) return
+      const [, type, id] = match
+      if (type === 'project') setLocation(`/projects?project=${encodeURIComponent(id)}`)
+      if (type === 'session') setLocation(`/?session=${encodeURIComponent(id)}`)
+    }
+    desktopGetPendingDeepLink().then(url => { if (url) handleDeepLink(url) })
+    const unlisten = desktopOnDeepLink(handleDeepLink)
+    return unlisten
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { user } = useAuth()
 

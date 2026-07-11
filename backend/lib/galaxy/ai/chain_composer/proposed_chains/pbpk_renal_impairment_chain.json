@@ -1,8 +1,8 @@
 {
   "name": "pbpk_renal_impairment_chain",
-  "display_name": "PBPK Renal/Hepatic Impairment — Virtual Patient Simulation",
+  "display_name": "PBPK Simulation — Allometric Scaling & Special Populations",
   "domain": "pharmacology",
-  "description": "Mechanistic PBPK simulation for organ-impaired patient populations required for IND/NDA regulatory submissions. Begins with allometric scaling to estimate human PK from preclinical data, runs the PBPK impairment submodel (renal or hepatic), then virtual patient cohort sampling for variability characterization. Used for Phase II dose selection and label recommendations in special populations.",
+  "description": "Mechanistic PBPK simulation for predicting human pharmacokinetics from preclinical animal data. Step 1: allometric scaling to estimate human PK parameters from rat, mouse, or dog data. Step 2: full PBPK simulation with compartmental model and organ-specific clearance (optional renal/hepatic impairment submodel for special population dosing). Step 3: virtual patient cohort Monte Carlo sampling for variability characterization. Use for: species scaling, IND/NDA PBPK packages, first-in-human dose projection, and special population (renal/hepatic impairment) dose adjustments. Required for regulatory PBPK submissions (EMA PBPK guideline, FDA PBPK reporting format).",
   "source": "curated",
   "steps": [
     {"order": 1, "workflow_name": "allometric_scaling", "role": "preclinical_to_human_pk", "params_template": {}},
@@ -24,10 +24,18 @@
     {"name": "dose_recommendation_brief", "type": "pdf"}
   ],
   "example_queries": [
+    "PBPK simulation allometric scaling from rat to human",
+    "physiologically based pharmacokinetics prediction from preclinical data",
+    "scale animal PK to human first-in-human dose estimate",
+    "PBPK model for IND submission species scaling",
     "PBPK simulation for renal impairment patients",
-    "PBPK simulation for hepatic impairment",
+    "PBPK simulation for hepatic impairment special population",
     "organ impairment PK modeling for regulatory submission",
-    "virtual patient cohort PBPK simulation for special population"
+    "virtual patient cohort PBPK Monte Carlo simulation",
+    "allometric scaling sunitinib rat to human PK",
+    "preclinical to clinical PK scaling PBPK"
   ],
-  "tags": ["pharmacology", "PBPK", "renal_impairment", "regulatory", "IND"]
+  "tags": ["pharmacology", "PBPK", "physiologically_based_pharmacokinetics", "allometric_scaling",
+           "species_scaling", "rat_to_human", "dose_projection", "IND", "NDA", "regulatory",
+           "renal_impairment", "hepatic_impairment", "first_in_human", "PK_prediction", "compartmental_model"]
 }

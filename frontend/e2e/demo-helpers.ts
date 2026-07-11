@@ -227,6 +227,44 @@ export async function shot(page: Page, dir: string, name: string): Promise<void>
 }
 
 // ---------------------------------------------------------------------------
+// Data attachment via "Add data" dialog
+// ---------------------------------------------------------------------------
+
+/**
+ * Attach a file reference via the "Add data" → "From URL" tab dialog.
+ * Use this instead of embedding URLs in the chat prompt text.
+ *
+ * Example:
+ *   await attachDataUrl(page, 's3://my-bucket/counts.csv');
+ *   await sendAndWait(page, 'Run DESeq2 differential expression analysis');
+ */
+export async function attachDataUrl(page: Page, url: string): Promise<void> {
+  // Open the "Add data" dialog
+  await page.locator('button[title="Add data"]').first().click();
+  await pause(page, 500);
+
+  // Switch to "From URL" tab
+  await page.getByRole('tab', { name: /from url/i })
+    .first().click().catch(() =>
+      page.locator('button:has-text("From URL"), [role="tab"]:has-text("From URL")').first().click()
+    );
+  await pause(page, 300);
+
+  // Enter the URL
+  const urlInput = page.locator('input[placeholder*="https"]').first();
+  await urlInput.fill(url);
+
+  // Click Import
+  await page.locator('button:has-text("Import")').first().click();
+
+  // Wait for dialog to close or dataset chip to appear (import succeeded)
+  await Promise.race([
+    page.locator('[data-testid="galaxy-dataset-browser"]').waitFor({ state: 'hidden', timeout: 15_000 }).catch(() => {}),
+    page.waitForTimeout(10_000),
+  ]);
+}
+
+// ---------------------------------------------------------------------------
 // Workflow interaction
 // ---------------------------------------------------------------------------
 

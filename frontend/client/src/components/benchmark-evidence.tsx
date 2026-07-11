@@ -246,6 +246,7 @@ export function BenchmarkEvidence({
                       </div>
 
                       <div className="flex items-center gap-2">
+                        {result.metric_value != null && result.metric_name !== 'benchmark_evidence' && (
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -259,6 +260,7 @@ export function BenchmarkEvidence({
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
+                        )}
 
                         <Button
                           size="sm"
@@ -303,7 +305,7 @@ export function BenchmarkEvidence({
                             onClick={() => onToolClick(result.tool_name, result.galaxy_tool_id)}
                           >
                             <ExternalLink className="h-3 w-3 mr-1" />
-                            View in Galaxy
+                            View tool
                           </Button>
                         )}
                       </div>
@@ -501,21 +503,6 @@ export function ResearchResponseDisplay({
         </div>
       )}
 
-      {/* Confidence indicator — only shown when confidence is meaningful */}
-      {(response.confidence > 0 || (response.methods_used && response.methods_used.length > 0)) && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Zap className="h-3 w-3" />
-          {response.confidence > 0 && (
-            <span>Confidence: {Math.round(response.confidence * 100)}%</span>
-          )}
-          {response.methods_used && response.methods_used.length > 0 && (
-            <>
-              {response.confidence > 0 && <span className="mx-1">|</span>}
-              Methods: {response.methods_used.join(", ")}
-            </>
-          )}
-        </div>
-      )}
     </div>
   );
 }

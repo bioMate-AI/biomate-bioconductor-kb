@@ -446,8 +446,7 @@ export class AuthService {
       // See docs/20260610_STALE_GALAXY_USER_DRIFT.md for the root cause.
       try {
         const decrypted = decryptField(user.galaxyApiKey);
-        const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8080';
-        const probe = await fetch(`${galaxyUrl}/api/users/current`, {
+        const probe = await fetch(`${GALAXY_URL}/api/users/current`, {
           method: 'GET',
           headers: { 'X-API-Key': decrypted || '' },
           signal: AbortSignal.timeout(5000),

@@ -133,6 +133,58 @@ function useApiKeys(open: boolean) {
 }
 
 // ---------------------------------------------------------------------------
+// Per-user LLM API keys (bring-your-own Anthropic key)
+// ---------------------------------------------------------------------------
+function useLlmApiKeys(open: boolean) {
+  const [hasAnthropicKey, setHasAnthropicKey] = useState(false);
+  const [anthropicInput, setAnthropicInput] = useState('');
+  const [showKey, setShowKey] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [statusMsg, setStatusMsg] = useState('');
+  const [isError, setIsError] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    fetch('/api/user/llm-api-keys', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setHasAnthropicKey(!!d.anthropic); })
+      .catch(() => {});
+  }, [open]);
+
+  const save = useCallback(async () => {
+    if (!anthropicInput.trim()) { setIsError(true); setStatusMsg('Paste your Anthropic API key first.'); return; }
+    setSaving(true); setStatusMsg(''); setIsError(false);
+    try {
+      const r = await fetch('/api/user/llm-api-keys', {
+        method: 'PATCH', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: 'anthropic', key: anthropicInput.trim() }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setHasAnthropicKey(true); setAnthropicInput(''); setStatusMsg('Key saved — your chats now use your own Anthropic quota.');
+    } catch (err: any) { setIsError(true); setStatusMsg(err.message); }
+    finally { setSaving(false); }
+  }, [anthropicInput]);
+
+  const remove = useCallback(async () => {
+    setRemoving(true); setStatusMsg(''); setIsError(false);
+    try {
+      const r = await fetch('/api/user/llm-api-keys', {
+        method: 'PATCH', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: 'anthropic', key: '' }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setHasAnthropicKey(false); setStatusMsg('Key removed — chats now use the shared system quota.');
+    } catch (err: any) { setIsError(true); setStatusMsg(err.message); }
+    finally { setRemoving(false); }
+  }, []);
+
+  return { hasAnthropicKey, anthropicInput, setAnthropicInput, showKey, setShowKey, saving, removing, save, remove, statusMsg, isError };
+}
+
+// ---------------------------------------------------------------------------
 // S3 credential state
 // ---------------------------------------------------------------------------
 interface S3Creds {
@@ -241,9 +293,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const { logout } = useAuth()
   const [, setLocation] = useLocation()
   const [settings, setSettings] = useState<UserSettings>(userSettingsService.getSettings())
-  const [activeTab, setActiveTab] = useState("profile")
+  const [activeTab, setActiveTab] = useState("api-keys")
   const s3 = useS3Credentials(open)
   const apiKeysState = useApiKeys(open)
+  const llmKeys = useLlmApiKeys(open)
 
   const handleLogout = async () => {
     onOpenChange(false)
@@ -297,109 +350,44 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+      <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] p-0">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
-            Settings
+            <Key className="w-5 h-5" />
+            API Keys
           </DialogTitle>
         </DialogHeader>
 
+        {/* Only the API Keys section is shown — other settings tabs are commented out until needed */}
         <div className="flex flex-1 overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-1" orientation="vertical">
-            {/* Settings Navigation */}
-            <div className="w-64 border-r bg-muted/50 p-4">
+            {/* Settings Navigation — hidden on mobile since only API Keys tab exists */}
+            <div className="hidden sm:block w-48 border-r bg-muted/50 p-4">
               <TabsList className="grid w-full grid-cols-1 h-auto gap-1 bg-transparent">
-                <TabsTrigger value="profile" className="justify-start gap-2 p-3" data-testid="tab-profile">
-                  <User className="w-4 h-4" />
-                  Profile
-                </TabsTrigger>
-                <TabsTrigger value="general" className="justify-start gap-2 p-3" data-testid="tab-general">
-                  <Settings className="w-4 h-4" />
-                  General
-                </TabsTrigger>
-                <TabsTrigger value="appearance" className="justify-start gap-2 p-3" data-testid="tab-appearance">
-                  <Palette className="w-4 h-4" />
-                  Appearance
-                </TabsTrigger>
-                <TabsTrigger value="chat" className="justify-start gap-2 p-3" data-testid="tab-chat">
-                  <MessageSquare className="w-4 h-4" />
-                  Chat
-                </TabsTrigger>
-                <TabsTrigger value="data" className="justify-start gap-2 p-3" data-testid="tab-data">
-                  <Database className="w-4 h-4" />
-                  Data
-                </TabsTrigger>
-                <TabsTrigger value="notifications" className="justify-start gap-2 p-3" data-testid="tab-notifications">
-                  <Bell className="w-4 h-4" />
-                  Notifications
-                </TabsTrigger>
-                <TabsTrigger value="privacy" className="justify-start gap-2 p-3" data-testid="tab-privacy">
-                  <Shield className="w-4 h-4" />
-                  Privacy
-                </TabsTrigger>
-                <TabsTrigger value="security" className="justify-start gap-2 p-3" data-testid="tab-security">
-                  <Shield className="w-4 h-4" />
-                  Security
-                </TabsTrigger>
+                {/* Other settings tabs commented out — only API Keys needed for now
+                <TabsTrigger value="profile" ...>Profile</TabsTrigger>
+                <TabsTrigger value="general" ...>General</TabsTrigger>
+                <TabsTrigger value="appearance" ...>Appearance</TabsTrigger>
+                <TabsTrigger value="chat" ...>Chat</TabsTrigger>
+                <TabsTrigger value="data" ...>Data</TabsTrigger>
+                <TabsTrigger value="notifications" ...>Notifications</TabsTrigger>
+                <TabsTrigger value="privacy" ...>Privacy</TabsTrigger>
+                <TabsTrigger value="security" ...>Security</TabsTrigger>
+                <TabsTrigger value="advanced" ...>Advanced</TabsTrigger>
+                */}
                 <TabsTrigger value="api-keys" className="justify-start gap-2 p-3" data-testid="tab-api-keys">
                   <Key className="w-4 h-4" />
                   API Keys
                 </TabsTrigger>
-                <TabsTrigger value="advanced" className="justify-start gap-2 p-3" data-testid="tab-advanced">
-                  <Code className="w-4 h-4" />
-                  Advanced
-                </TabsTrigger>
               </TabsList>
 
-              <Separator className="my-4" />
-
-              {/* Quick Actions */}
-              <div className="space-y-2">
-                <Button variant="outline" size="sm" onClick={exportSettings} className="w-full justify-start gap-2" data-testid="button-export-settings">
-                  <Download className="w-4 h-4" />
-                  Export Settings
-                </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start gap-2" data-testid="button-import-settings">
-                  <Upload className="w-4 h-4" />
-                  <label htmlFor="import-settings" className="cursor-pointer">
-                    Import Settings
-                  </label>
-                </Button>
-                <input
-                  id="import-settings"
-                  type="file"
-                  accept=".json"
-                  className="hidden"
-                  onChange={importSettings}
-                />
-                <Button variant="outline" size="sm" onClick={resetToDefaults} className="w-full justify-start gap-2" data-testid="button-reset-settings">
-                  <RotateCcw className="w-4 h-4" />
-                  Reset to Defaults
-                </Button>
-              </div>
-
-              <Separator className="my-4" />
-
-              {/* Help & Support */}
-              <div className="space-y-2">
-                <Button variant="ghost" size="sm" className="w-full justify-start gap-2" data-testid="button-help">
-                  <HelpCircle className="w-4 h-4" />
-                  Get Help
-                </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start gap-2" data-testid="button-documentation">
-                  <ExternalLink className="w-4 h-4" />
-                  Documentation
-                </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-destructive hover:text-destructive" data-testid="button-logout" onClick={handleLogout}>
-                  <LogOut className="w-4 h-4" />
-                  Log Out
-                </Button>
-              </div>
+              {/* Quick Actions and Help sections commented out — not needed for API keys only view */}
             </div>
 
             {/* Settings Content */}
             <ScrollArea className="flex-1 p-6">
+              {/* Non-api-keys tabs commented out — only API Keys needed for now */}
+              {false && (<>
               {/* Profile Tab */}
               <TabsContent value="profile" className="space-y-6 m-0">
                 <div>
@@ -841,6 +829,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   <MfaSettings />
                 </div>
               </TabsContent>
+              </>)}{/* end commented-out non-api-keys tabs */}
 
               {/* API Keys Tab */}
               <TabsContent value="api-keys" className="space-y-6 m-0" data-testid="tab-content-api-keys">
@@ -965,10 +954,88 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     ))}
                   </div>
                 </div>
+
+                {/* ── Bring-your-own Anthropic API key ─────────────────── */}
+                <Separator />
+                <div>
+                  <h3 className="text-lg font-semibold mb-1">Your LLM API Key</h3>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Supply your own <span className="font-medium">Anthropic API key</span> and BioMate will use your
+                    personal quota for all AI calls in your chats. Leave blank to use the shared system key.
+                    The key is stored encrypted and never returned to the browser.
+                  </p>
+
+                  {llmKeys.hasAnthropicKey ? (
+                    <Card className="mb-3 border-green-500/40" data-testid="llm-key-set-card">
+                      <CardContent className="pt-4 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-sm">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                          <span>Anthropic key saved — your chats use your own quota.</span>
+                        </div>
+                        <Button
+                          size="sm" variant="ghost"
+                          className="h-7 text-xs text-destructive hover:text-destructive gap-1 shrink-0"
+                          onClick={llmKeys.remove} disabled={llmKeys.removing}
+                          data-testid="button-remove-llm-key"
+                        >
+                          {llmKeys.removing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                          Remove
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card className="mb-3">
+                      <CardContent className="pt-4 space-y-3">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="anthropic-api-key" className="text-xs">Anthropic API Key</Label>
+                          <div className="flex items-center gap-2">
+                            <div className="relative flex-1">
+                              <Input
+                                id="anthropic-api-key"
+                                type={llmKeys.showKey ? 'text' : 'password'}
+                                placeholder="sk-ant-…"
+                                value={llmKeys.anthropicInput}
+                                onChange={e => llmKeys.setAnthropicInput(e.target.value)}
+                                className="font-mono text-xs h-8 pr-8"
+                                data-testid="input-anthropic-api-key"
+                              />
+                              <Button
+                                type="button" size="icon" variant="ghost"
+                                className="absolute right-1 top-1 h-6 w-6 text-muted-foreground"
+                                onClick={() => llmKeys.setShowKey(v => !v)}
+                                tabIndex={-1}
+                              >
+                                {llmKeys.showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                              </Button>
+                            </div>
+                            <Button
+                              size="sm" className="h-8 text-xs gap-1.5 shrink-0"
+                              onClick={llmKeys.save} disabled={llmKeys.saving}
+                              data-testid="button-save-llm-key"
+                            >
+                              {llmKeys.saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Key className="h-3.5 w-3.5" />}
+                              Save key
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {llmKeys.statusMsg && (
+                    <div className={`flex items-start gap-2 text-xs rounded p-2 ${llmKeys.isError ? 'bg-destructive/10 text-destructive' : 'bg-green-500/10 text-green-700'}`}
+                      data-testid="llm-key-status">
+                      {llmKeys.isError
+                        ? <XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                        : <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-green-600" />}
+                      <span>{llmKeys.statusMsg}</span>
+                    </div>
+                  )}
+                </div>
               </TabsContent>
 
-              {/* Advanced Tab */}
-              <TabsContent value="advanced" className="space-y-6 m-0">
+              {/* Advanced Tab — commented out */}
+              {false && <TabsContent value="advanced" className="space-y-6 m-0">
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Advanced Settings</h3>
 
@@ -1023,7 +1090,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     </CardContent>
                   </Card>
                 </div>
-              </TabsContent>
+              </TabsContent>}
             </ScrollArea>
           </Tabs>
         </div>

@@ -7,6 +7,7 @@ import { useAfterRunFlavor } from "@/hooks/use-ui-flavor"
 import { AfterRunReport } from "@/v2/AfterRunReport"
 import { extractSubmittedParams } from "@/hooks/useRunAgainParamCarryover"
 import { useUnifiedExecution } from "@/hooks/useUnifiedExecution"
+import { useActiveProject } from "@/contexts/active-project-context"
 import { applyWorkflowEdits, type WorkflowEdit } from "@/lib/workflow-edits"
 import { extractWorkflowEdits } from "@/lib/workflow-edits-extract"
 import { normalizePrereqChecklist } from "@/lib/prereq-normalizer"
@@ -21,6 +22,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 import type { ChatSession } from "@shared/schema"
+import { type Message } from "./chat-message"
 import { AlertTriangle, MessageCircle, Layers, RefreshCw, Play, CheckCircle2, XCircle, Clock, X, FlaskConical } from "lucide-react"
 import { PostRunMicroSurvey } from "./feedback/post-run-micro-survey"
 import { ReportConfusionButton } from "./feedback/report-confusion-button"
@@ -495,6 +497,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     cancelRun,
     loadRun,
   } = useUnifiedExecution()
+  const { activeProjectId } = useActiveProject()
   const { isOnline } = useNetworkStatus()
 
   // Update progress based on execution run
@@ -535,14 +538,27 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       currentRun.execution?.galaxyInvocationId ||
       currentRun.id
     )
-    // Auto-open panel on run restore (e.g. after page refresh mid-run).
-    // Only fires when the panel is closed and the run is active/running.
-    const isActive = ['running', 'queued'].includes(currentRun.execution?.status ?? '');
+    // Auto-open panel on run restore (e.g. after page refresh or ?session= nav).
+    // Open for active runs (show live progress) and completed runs (show AfterRunReport).
+    const isActive = ['running', 'queued', 'completed', 'failed'].includes(currentRun.execution?.status ?? '');
     if (isActive && !panelWorkflow && currentRun.workflowDefinition) {
       setPanelWorkflow(currentRun.workflowDefinition)
       setPanelOpen(true)
     }
   }, [currentRun?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Listen for personal workflow open events dispatched by WorkflowHistoryDialog
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const wf = (e as CustomEvent).detail
+      if (!wf) return
+      setPanelWorkflowMessageId(null)
+      setPanelWorkflow(wf)
+      setPanelOpen(true)
+    }
+    window.addEventListener('biomate:open-personal-workflow', handler)
+    return () => window.removeEventListener('biomate:open-personal-workflow', handler)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (currentRun?.id) {
@@ -756,9 +772,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   useEffect(() => {
     if (!currentChatSession?.id || currentRun) return; // already have a run
     const messages = currentChatSession.messages ?? [];
-    // Scan messages newest-first for one with an invocationId
+    // Scan messages newest-first for one with an invocationId.
+    // Skip workflow_progress pills — their invocationId is the Galaxy UUID,
+    // not the DB execution run UUID, and loadRun() looks up by DB primary key.
     for (let i = messages.length - 1; i >= 0; i--) {
       const msg = messages[i];
+      if (msg.metadata?.type === 'workflow_progress') continue;
       const invId = msg.invocationId || msg.metadata?.invocationId;
       if (!invId) continue;
       // Load the run regardless of terminal status. The previous skip-on-terminal
@@ -770,10 +789,21 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       // completed run just sets currentRun to the final state.
       // See docs/20260519_CS14_DEFINITIVE_FINDING.md.
       console.log(`[ChatWithArtifacts] Session restore: loading run ${invId} from message ${msg.id}`);
-      loadRun(invId).catch(err =>
+      loadRun(invId, { silent: true }).catch(err =>
         console.warn('[ChatWithArtifacts] Session restore loadRun failed:', err)
       );
-      break;
+      return;
+    }
+    // Fallback: if no message has an invocationId (e.g. session was created before
+    // invocationId was persisted in messages), restore from session.workflows.
+    // GET /api/sessions/:id dynamically backfills workflows from execution_runs,
+    // so session.workflows[0].id is always an execution_run UUID we can loadRun() with.
+    const latestWf = currentChatSession.workflows?.[0];
+    if (latestWf?.id) {
+      console.log(`[ChatWithArtifacts] Session restore fallback: loading run ${latestWf.id} from session.workflows`);
+      loadRun(latestWf.id, { silent: true }).catch(err =>
+        console.warn('[ChatWithArtifacts] Session restore (workflows fallback) loadRun failed:', err)
+      );
     }
   }, [currentChatSession?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -802,6 +832,36 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       onChatUpdated(freshSession);
     }
   };
+
+  // Receives chat_progress SSE events from the panel NextflowWorkflowViewer and
+  // appends them to the current chat session so speaker pills render in the chat.
+  // Mirrors handleWorkflowProgress in chat-interface.tsx.
+  const handlePanelWorkflowProgress = useCallback((event: { kind: string; friendly_message: string; ts?: number; technical?: any; invocationId?: string }) => {
+    if (!currentChatSession?.id) return
+    const session = chatHistoryService.getSession(currentChatSession.id)
+    if (!session) return
+    const last = [...session.messages].reverse().find(
+      (m) => m.metadata?.type === 'workflow_progress' && (m as any).invocationId === event.invocationId,
+    )
+    if (last && last.metadata?.kind === event.kind && (last.metadata as any)?.ts === event.ts) return
+    const progressMsg: Message = {
+      id: `progress-${event.invocationId ?? 'inv'}-${event.kind}-${event.ts ?? Date.now()}`,
+      role: 'assistant',
+      content: event.friendly_message,
+      timestamp: new Date(),
+      invocationId: event.invocationId,
+      metadata: {
+        type: 'workflow_progress',
+        kind: event.kind,
+        ts: event.ts,
+        technical: event.technical,
+      } as any,
+    }
+    const updatedSession = chatHistoryService.updateSession(session.id, {
+      messages: [...session.messages, progressMsg],
+    })
+    if (updatedSession) onChatUpdated(updatedSession)
+  }, [currentChatSession?.id, onChatUpdated])
 
   const handleRunWorkflow = async (workflow: any, steps: any[]) => {
     emitUxEvent('workflow.run_clicked', {
@@ -911,6 +971,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         workflowDefinition,
         workflowName: workflow.name || 'bioMate Workflow',
         chatSessionId: currentChatSession?.id || undefined,
+        projectId: activeProjectId || undefined,
         executionConfig: {
           mode: 'sandbox',
           dataScope: { fraction: 1.0, samplingStrategy: 'sequential', sampledIds: [] },
@@ -948,9 +1009,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         const freshSession = chatHistoryService.getSession(currentChatSession.id);
         if (freshSession) {
           const updatedMessages = [...freshSession.messages];
-          const invocationForMessage =
-            run.execution?.galaxyInvocationId ||
-            run.id;
+          // Always use the execution run UUID (not galaxyInvocationId) so that
+          // session-restore loadRun() can find it via DB UUID lookup.
+          const invocationForMessage = run.id;
 
           // Prefer exact workflow-name match, but always fall back to latest workflow message.
           let targetIndex = updatedMessages.findIndex(
@@ -1069,7 +1130,10 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             chain_run_id: chainRunId,
             [stepsKey]: syncedSteps,
           },
-          invocationId: runId || chainRunId,
+          // Only set invocationId to the DB execution run UUID; chain_run_id is a
+          // Galaxy-side ID and loadRun() looks up by DB primary key — using it
+          // here would cause 404 on session restore.
+          ...(runId ? { invocationId: runId } : {}),
         },
       };
     });
@@ -1593,11 +1657,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         padding: '0 18px',
         background: 'var(--bm-bg-elev, hsl(var(--background)))',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, overflow: 'hidden' }}>
           <span style={{
             fontWeight: 600, fontSize: 14,
             color: 'var(--bm-text, hsl(var(--foreground)))',
             fontFamily: 'var(--bm-font-ui)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {currentChatSession?.title || 'New thread'}
           </span>
@@ -1712,6 +1777,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
               </select>
             </div>
           </div>
+          {/* On mobile the 5 buckets stack vertically and can exceed the viewport.
+              Cap the grid and let it scroll internally so the controls above stay visible. */}
+          <div className="overflow-y-auto" style={{ maxHeight: 'min(calc(100dvh - 220px), 60vh)' }}>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
             {(["needs_attention", "running", "queued", "failed", "completed"] as RunBucket[]).map((bucket) => (
               <div
@@ -1775,6 +1843,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
               </div>
             ))}
           </div>
+          </div>{/* end scrollable bucket grid wrapper */}
         </div>
       )}
 
@@ -2044,6 +2113,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                 </button>
               )}
               <div className="ml-auto flex items-center gap-2">
+                {/* Tutorial button — commented out; replace with contextual help later
                 {!isMobile && (
                   <button
                     className="tut-btn"
@@ -2054,6 +2124,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                     <span style={{ fontSize: 9 }}>▶</span> Tutorial
                   </button>
                 )}
+                */}
                 <button
                   onClick={handleClosePanelWorkflow}
                   className="rounded-sm p-1 hover:bg-muted"
@@ -2180,6 +2251,10 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                       runId={currentRun?.id}
                       executionEngine={currentRun?.execution?.executionEngine}
                       executionMetrics={currentRun?.metrics}
+                      onWorkflowProgress={(ev) => handlePanelWorkflowProgress({
+                        ...ev,
+                        invocationId: currentRun?.execution?.galaxyInvocationId || currentRun?.id,
+                      })}
                     />
                   )
                 })()

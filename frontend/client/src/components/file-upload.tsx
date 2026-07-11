@@ -39,7 +39,7 @@ interface UploadedFile {
 interface FileUploadProps {
   accept?: string
   multiple?: boolean
-  maxSize?: number // in MB (for backward compatibility, capped at 5GB)
+  maxSize?: number // in MB (for backward compatibility, capped at MAX_LOCAL_FILE_SIZE_GB)
   onUploadComplete?: (files: UploadedFile[]) => void
   // Resource constraint info
   availableStorageGB?: number
@@ -49,12 +49,12 @@ interface FileUploadProps {
 export function FileUpload({
   accept = ".fastq,.fastq.gz,.bam,.sam,.mzML,.mzXML,.csv,.tsv,.txt",
   multiple = true,
-  maxSize = 5000, // 5GB default (capped by MAX_LOCAL_FILE_SIZE_GB)
+  maxSize = 10240, // 10GB default (capped by MAX_LOCAL_FILE_SIZE_GB)
   onUploadComplete,
   availableStorageGB = 50, // Default available storage
   totalUploadedGB = 0
 }: FileUploadProps) {
-  // Ensure maxSize doesn't exceed 5GB limit
+  // Ensure maxSize doesn't exceed 10GB limit
   const effectiveMaxSize = Math.min(maxSize, MAX_LOCAL_FILE_SIZE_GB * 1024)
   const [files, setFiles] = useState<UploadedFile[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -90,7 +90,7 @@ export function FileUpload({
       source: 'local' as const,
     }))
 
-    // Check individual file sizes (5GB limit)
+    // Check individual file sizes
     const oversizedFiles = newFiles.filter(f => f.size > MAX_LOCAL_FILE_SIZE_BYTES)
     if (oversizedFiles.length > 0) {
       // Show helpful error instead of browser alert
@@ -493,7 +493,7 @@ export function FileUpload({
                       Deferred (Recommended for large files)
                     </Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Galaxy downloads only when workflow needs the data. Start designing immediately, no waiting.
+                      BioMate downloads only when the workflow needs the data. Start designing immediately, no waiting.
                     </p>
                     <div className="flex flex-wrap gap-1 mt-2">
                       <Badge variant="secondary" className="text-xs">No upfront wait</Badge>
@@ -516,7 +516,7 @@ export function FileUpload({
                       Immediate Download
                     </Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Galaxy fetches the file now. Data available for preview before workflow runs.
+                      BioMate fetches the file now. Data available for preview before workflow runs.
                     </p>
                     <div className="flex flex-wrap gap-1 mt-2">
                       <Badge variant="outline" className="text-xs">Preview before run</Badge>
@@ -531,7 +531,7 @@ export function FileUpload({
               <div className="flex gap-1.5 items-start">
                 <Lightbulb className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />
                 <div>
-                  <span className="font-medium text-foreground">No size limit</span> — Galaxy fetches the file server-side; the 5 GB cap does not apply.
+                  <span className="font-medium text-foreground">No size limit</span> — BioMate fetches the file server-side; no local cap applies.
                 </div>
               </div>
               <div className="flex gap-1.5 items-start">

@@ -35,6 +35,9 @@ interface AfterRunReportProps {
   nextflowOutputDir?: string;
   logTail?: string[];
   failedSteps?: string[];
+  /** Project this run is associated with (if any) — used to link to the
+   *  project file tree and to auto-populate the Save-to-Project picker. */
+  projectId?: string;
   /** Inline autofix summary from currentRun.execution.nextflowStatus.autofix —
    *  if state === 'failed' here, the run only "failed" after exhausting fix
    *  attempts; the FailedRunSection should make that visible. */
@@ -76,12 +79,13 @@ export function AfterRunReport({
   failedSteps,
   autofix,
   onContinueAnalysis,
+  projectId,
 }: AfterRunReportProps) {
   // nextflowOutputDir is forwarded by the parent for future Outputs-tab
   // directory toolbar work; intentionally unread in v0.
   void nextflowOutputDir;
   const isFailed = executionStatus === "failed" || executionStatus === "cancelled" || executionStatus === "error";
-  const [tab, setTab] = useState<TabId>("findings");
+  const [tab, setTab] = useState<TabId>("outputs");
 
   // Outputs come from the parent's executionRun state (no /steps endpoint exists).
   const outputs = outputsProp ?? [];
@@ -110,13 +114,14 @@ export function AfterRunReport({
       ["outputs", "Outputs"],
       ["findings", "Findings"],
     ];
-    if (qcEvents.length > 0) t.push(["qc", "QC report"]);
+    // QC tab always visible — shows "all passed" for good runs, blocked gate info for failed
+    t.push(["qc", "QC report"]);
     if (methods.hasRealContent) t.push(["methods", "Methods"]);
     if (citations.length > 0) t.push(["citations", "Citations"]);
     t.push(["params", "Parameters"]);
     if (Object.keys(software).length > 0) t.push(["software", "Software"]);
     return t;
-  }, [methods.hasRealContent, software, citations.length, qcEvents.length]);
+  }, [methods.hasRealContent, software, citations.length]);
 
   const handleDownload = () => {
     if (downloadState !== 'idle') return; // dedup double-click
@@ -188,7 +193,7 @@ export function AfterRunReport({
           parameters={parameters}
         />
       )}
-      <div role="tablist" style={styles.tabBar}>
+      <div role="tablist" style={styles.tabBar} data-visible-tabs={visibleTabs.map(([id]) => id).join(',')}>
         {visibleTabs.map(([id, label]) => (
           <button
             key={id}
@@ -232,7 +237,7 @@ export function AfterRunReport({
             </div>
           </>
         )}
-        {tab === "outputs" && <OutputsTab outputs={outputs} runId={runId} invocationId={invocationId} />}
+        {tab === "outputs" && <OutputsTab outputs={outputs} runId={runId} invocationId={invocationId} executionStatus={executionStatus} projectId={projectId} />}
         {tab === "methods" && <MethodsTab methods={methods} />}
         {tab === "params" && <ParametersTab parameters={parameters} runId={runId} />}
         {tab === "software" && <SoftwareTab versions={software} />}
@@ -781,7 +786,9 @@ function OutputsTab({
   outputs,
   runId,
   invocationId,
-}: { outputs: OutputFile[]; runId: string; invocationId?: string }) {
+  executionStatus,
+  projectId: initialProjectId,
+}: { outputs: OutputFile[]; runId: string; invocationId?: string; executionStatus?: string; projectId?: string }) {
   // Audit 2026-06-17: the parent's outputs prop is derived from the DB-stored
   // nextflowStatus.s3_output_files snapshot. That snapshot is often empty
   // for completed runs because the Galaxy /api/nextflow/status endpoint is
@@ -837,39 +844,88 @@ function OutputsTab({
     a.remove();
   };
 
+  // Must be declared before any early return — Rules of Hooks.
+  const [previewFile, setPreviewFile] = useState<OutputFile | null>(null);
+
+  // Save-to-Project state — declared before any early return (Rules of Hooks).
+  const [savedProjectId, setSavedProjectId] = useState<string | undefined>(initialProjectId);
+  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
+  const [showProjectPicker, setShowProjectPicker] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [savedProjectName, setSavedProjectName] = useState<string>("");
+
+  // Fetch project list lazily when the picker is opened.
+  useEffect(() => {
+    if (!showProjectPicker || projects.length > 0) return;
+    fetch("/api/projects", { credentials: "include" })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then((data: any) => {
+        const list = Array.isArray(data) ? data : (data?.projects ?? []);
+        setProjects(list.map((p: any) => ({ id: String(p.id || p._id || ""), name: String(p.name || p.title || "Untitled") })));
+        if (list.length > 0 && !selectedProjectId) setSelectedProjectId(String(list[0].id || list[0]._id || ""));
+      })
+      .catch(() => { /* picker still shows, just no options */ });
+  }, [showProjectPicker, projects.length, selectedProjectId]);
+
+  const handleSaveToProject = async () => {
+    if (!selectedProjectId || saveState === "saving") return;
+    setSaveState("saving");
+    try {
+      const r = await fetch(`/api/workflows/runs/${encodeURIComponent(runId)}/save-to-project`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ projectId: selectedProjectId }),
+      });
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        throw new Error(j?.error || `HTTP ${r.status}`);
+      }
+      const proj = projects.find(p => p.id === selectedProjectId);
+      setSavedProjectId(selectedProjectId);
+      setSavedProjectName(proj?.name || "Project");
+      setSaveState("saved");
+      setShowProjectPicker(false);
+    } catch (e: any) {
+      console.error("[SaveToProject]", e);
+      setSaveState("error");
+      setTimeout(() => setSaveState("idle"), 3000);
+    }
+  };
+
   if (totalCount === 0) {
     return (
       <div style={styles.tabContent}>
-        <p style={styles.empty}>No output files registered yet.</p>
-        {/* Bulk-download actions still visible so the user can pull a partial bundle. */}
-        <div style={styles.bulkActions}>
-          {invocationId && (
-            <JobButton
-              kind="download_all_zip"
-              payload={{ invocationId, runId }}
-              label="↓ Download all as ZIP"
-              onReady={triggerDownload}
-              className="afterrun-download-all-btn"
-            />
-          )}
-          <a href={reproUrl} download style={{ ...styles.bulkBtn, ...styles.bulkBtnSecondary }}>
-            ↓ Reproducibility bundle
-          </a>
-        </div>
+        <p style={styles.empty}>
+          {executionStatus === 'failed'
+            ? 'No outputs — run did not complete successfully.'
+            : 'No output files registered yet.'}
+        </p>
       </div>
     );
   }
 
-  const byStep = effectiveOutputs.reduce<Record<string, OutputFile[]>>((acc, o) => {
-    (acc[o.step] = acc[o.step] || []).push(o);
-    return acc;
-  }, {});
+  const fileUrl = (f: OutputFile, download = false) =>
+    `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(f.path || f.name)}${download ? '&download=1' : ''}`;
+
+  const iconForExt = (ext: string) => {
+    if (['png','jpg','jpeg','gif','svg','webp','tiff'].includes(ext)) return '🖼';
+    if (['csv','tsv','xlsx'].includes(ext)) return '📊';
+    if (['html','htm'].includes(ext)) return '🌐';
+    if (['pdf'].includes(ext)) return '📄';
+    if (['json','yaml','yml'].includes(ext)) return '{}';
+    if (['fastq','fq','fa','fasta'].includes(ext)) return '🧬';
+    if (['bam','vcf','bed','gtf','gff'].includes(ext)) return '🗂';
+    return '📁';
+  };
+
+  const canPreview = (ext: string) =>
+    ['png','jpg','jpeg','gif','svg','webp','csv','tsv','html','htm','txt','log','json','yaml','yml','md'].includes(ext);
 
   return (
     <div style={styles.tabContent}>
-      {/* Bulk-download actions — for intermediate / large outputs where
-          per-file preview isn't useful, the user grabs everything as a
-          ZIP and inspects locally. */}
+      {/* Bulk-download actions */}
       <div style={styles.bulkActions}>
         {invocationId && (
           <JobButton
@@ -888,33 +944,146 @@ function OutputsTab({
         >
           ↓ Reproducibility bundle
         </a>
+
+        {/* Save-to-Project affordance */}
+        {savedProjectId ? (
+          <a
+            href={`/project/${savedProjectId}`}
+            style={{ ...styles.bulkBtn, background: 'oklch(0.93 0.07 145)', color: 'oklch(0.35 0.12 145)', border: '1px solid oklch(0.78 0.10 145)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            title="Open project file browser"
+          >
+            ✓ Saved to {savedProjectName || "project"} ↗
+          </a>
+        ) : (
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <button
+              onClick={() => setShowProjectPicker(v => !v)}
+              style={{ ...styles.bulkBtn, ...styles.bulkBtnSecondary, cursor: 'pointer', border: '1px solid var(--border)' }}
+              title="Copy outputs to your project file browser"
+            >
+              📁 Save to Project
+            </button>
+            {showProjectPicker && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, zIndex: 50, marginTop: 4,
+                background: 'var(--surface, #fff)', border: '1px solid var(--border)',
+                borderRadius: 8, padding: 12, boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+                minWidth: 240,
+              }}>
+                <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: 'var(--text)' }}>
+                  Save outputs to project
+                </div>
+                {projects.length === 0 ? (
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>Loading…</div>
+                ) : (
+                  <select
+                    value={selectedProjectId}
+                    onChange={e => setSelectedProjectId(e.target.value)}
+                    style={{ width: '100%', fontSize: 12, padding: '4px 8px', borderRadius: 4, border: '1px solid var(--border)', marginBottom: 8 }}
+                  >
+                    {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                )}
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    onClick={handleSaveToProject}
+                    disabled={!selectedProjectId || saveState === 'saving' || projects.length === 0}
+                    style={{ flex: 1, fontSize: 12, padding: '4px 10px', borderRadius: 4, cursor: 'pointer', background: 'oklch(0.22 0.01 260)', color: '#fff', border: 'none', opacity: saveState === 'saving' ? 0.6 : 1 }}
+                  >
+                    {saveState === 'saving' ? 'Saving…' : saveState === 'error' ? 'Error — retry' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => setShowProjectPicker(false)}
+                    style={{ fontSize: 12, padding: '4px 10px', borderRadius: 4, cursor: 'pointer', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
+                  Files will appear in the project's Files tab.
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <InteractiveToolsRow outputs={effectiveOutputs} />
 
-      {Object.entries(byStep).map(([step, files]) => (
-        <div key={step} style={{ marginBottom: 12 }}>
-          <div style={styles.outputStep}>{step}</div>
-          <ul style={styles.outputList}>
-            {files.map((f) => {
-              const fileUrl = `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(f.path || f.name)}&download=1`;
-              return (
-                <li key={f.path || f.name} style={styles.outputItem}>
-                  <a
-                    href={fileUrl}
-                    download
-                    style={{ ...styles.outputName, textDecoration: 'none', color: 'inherit' }}
-                    title={`Download ${f.name}`}
-                  >
-                    {f.name}
-                  </a>
-                  <span style={styles.outputExt}>{f.ext}</span>
-                </li>
-              );
-            })}
-          </ul>
+      {/* Per-file table matching design reference */}
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'ui-monospace, monospace' }}>
+          <thead>
+            <tr style={{ background: 'oklch(0.96 0.004 260)', textAlign: 'left' }}>
+              <th style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--text-muted)', fontSize: 11 }}>Step</th>
+              <th style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--text-muted)', fontSize: 11 }}>File</th>
+              <th style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--text-muted)', fontSize: 11, width: 60 }}>Type</th>
+              <th style={{ padding: '6px 8px', width: 90 }}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {effectiveOutputs.map((f, i) => (
+              <tr key={f.path || f.name + i} style={{ borderTop: '1px solid var(--border)' }}>
+                <td style={{ padding: '6px 8px', color: 'var(--text-muted)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    title={f.step}>{f.step}</td>
+                <td style={{ padding: '6px 8px' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ fontSize: 13 }}>{iconForExt(f.ext)}</span>
+                    <span style={{ color: 'var(--text)' }}>{f.name}</span>
+                  </span>
+                </td>
+                <td style={{ padding: '6px 8px', color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: 10 }}>{f.ext || '—'}</td>
+                <td style={{ padding: '6px 8px', fontFamily: 'var(--font-ui, system-ui)' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    {canPreview(f.ext) && (
+                      <button
+                        onClick={() => setPreviewFile(f)}
+                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 11 }}
+                      >view</button>
+                    )}
+                    <a
+                      href={fileUrl(f, true)}
+                      download
+                      style={{ color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 11, textDecoration: 'none' }}
+                    >dl</a>
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Inline preview overlay */}
+      {previewFile && (
+        <div
+          onClick={() => setPreviewFile(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'var(--bg, #fff)', borderRadius: 8, padding: 20, maxWidth: 720, width: '90vw', maxHeight: '80vh', overflow: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div>
+                <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, fontWeight: 600 }}>{previewFile.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{previewFile.step}</div>
+              </div>
+              <button onClick={() => setPreviewFile(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
+            </div>
+            {['png','jpg','jpeg','gif','svg','webp'].includes(previewFile.ext) ? (
+              <img src={fileUrl(previewFile)} alt={previewFile.name} style={{ maxWidth: '100%', borderRadius: 4 }} />
+            ) : ['html','htm'].includes(previewFile.ext) ? (
+              <iframe src={fileUrl(previewFile)} title={previewFile.name} style={{ width: '100%', height: 480, border: '1px solid var(--border)', borderRadius: 4 }} />
+            ) : (
+              <iframe src={fileUrl(previewFile)} title={previewFile.name} style={{ width: '100%', height: 400, border: '1px solid var(--border)', borderRadius: 4, fontFamily: 'ui-monospace, monospace' }} />
+            )}
+            <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+              <a href={fileUrl(previewFile, true)} download style={{ fontSize: 12, color: 'var(--accent, oklch(0.55 0.18 260))' }}>↓ Download</a>
+            </div>
+          </div>
         </div>
-      ))}
+      )}
     </div>
   );
 }
@@ -954,19 +1123,21 @@ function ParametersTab({
 
   return (
     <div style={styles.tabContent}>
-      <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button
-          type="button"
-          onClick={handleRunAgain}
-          style={styles.runAgainBtn}
-          data-testid="afterrun-run-again-params"
-        >
-          ↻ Run again with edits
-        </button>
-        {ctaToast && (
-          <span role="status" style={styles.toast} data-testid="afterrun-cta-toast-params">{ctaToast}</span>
-        )}
-      </div>
+      {entries.length > 0 && (
+        <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            type="button"
+            onClick={handleRunAgain}
+            style={styles.runAgainBtn}
+            data-testid="afterrun-run-again-params"
+          >
+            ↻ Run again with edits
+          </button>
+          {ctaToast && (
+            <span role="status" style={styles.toast} data-testid="afterrun-cta-toast-params">{ctaToast}</span>
+          )}
+        </div>
+      )}
       {entries.length === 0 ? (
         <p style={styles.empty}>No parameter values recorded.</p>
       ) : (
@@ -1037,6 +1208,32 @@ function QcAuditTab({ events, eSignature }: QcAuditTabProps) {
   const passed = events.filter(e => isPassedStatus(e.status)).length;
   const autoCorrected = events.filter(e => !isPassedStatus(e.status) && isAutoCorrectedStatus(e.status)).length;
   const manualInterventions = events.length - passed - autoCorrected;
+
+  if (events.length === 0) {
+    return (
+      <div style={styles.tabContent} data-testid="qc-audit-tab">
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '48px 24px',
+          gap: 8,
+          textAlign: 'center',
+          color: 'oklch(0.62 0.16 145)',
+        }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <div style={{ fontWeight: 600, fontSize: 15 }} data-testid="qc-all-passed">All quality gates passed</div>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 320 }}>
+            No QC thresholds were exceeded during this run. All metrics are within acceptable ranges.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.tabContent} data-testid="qc-audit-tab">
@@ -1411,8 +1608,8 @@ function buildFullReportMarkdown(args: {
       // Show as reference (basename + length) rather than dumping the value
       const refStr = String(v);
       const basename = refStr.split(/[/\\]/).pop() || refStr;
-      const note = refStr.startsWith("s3://") ? "S3 reference"
-                 : refStr.startsWith("http") ? "URL reference"
+      const note = refStr.startsWith("s3://") ? "Cloud storage"
+                 : refStr.startsWith("http") ? "Remote file"
                  : refStr.match(/\.(fastq|fq|bam|vcf|h5ad|rds|tsv|csv|json)(\.gz)?$/i) ? `${(refStr.match(/\.([^./]+)(\.gz)?$/i)?.[1] || "").toUpperCase()} file`
                  : "value";
       lines.push(`| \`${k}\` | ${basename} _(${note})_ |`);

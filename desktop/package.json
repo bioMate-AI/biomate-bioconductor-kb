@@ -1,0 +1,23 @@
+{
+  "name": "biomate-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "build:debug": "tauri build --debug",
+    "icons": "tauri icon ../frontend/client/public/favicon.png"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2",
+    "@tauri-apps/plugin-http": "^2",
+    "@tauri-apps/plugin-notification": "^2",
+    "@tauri-apps/plugin-os": "^2",
+    "@tauri-apps/plugin-shell": "^2",
+    "@tauri-apps/plugin-store": "^2"
+  }
+}

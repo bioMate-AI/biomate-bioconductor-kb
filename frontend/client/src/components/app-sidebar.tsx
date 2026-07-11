@@ -8,6 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { SettingsDialog } from "./settings-dialog"
 import { WorkflowHistoryDialog } from "./workflow-history-dialog"
 import { RecentToolsDialog } from "./recent-tools-dialog"
+import { ConnectorsDialog } from "./connectors-dialog"
 import { projectService } from "@/lib/projects"
 import type { Project } from "@shared/schema"
 import {
@@ -38,6 +39,7 @@ import {
   DollarSign,
   FlaskConical,
   BookOpen,
+  Cable,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { analytics } from "@/lib/analytics"
@@ -177,11 +179,12 @@ export function AppSidebar({
     return () => clearInterval(id)
   }, [fetchSessionStatuses])
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
-  const [projectsExpanded, setProjectsExpanded] = useState(false);
+  const [projectsExpanded, setProjectsExpanded] = useState(true);
   const [chatsExpanded, setChatsExpanded] = useState(true);
   const [toolCategoriesExpanded, setToolCategoriesExpanded] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [historyInitialTab, setHistoryInitialTab] = useState<'runs' | 'imports' | 'upload'>('runs');
   const [runningCount, setRunningCount] = useState<number>(0);
   useEffect(() => {
     let cancelled = false;
@@ -196,11 +199,25 @@ export function AppSidebar({
     return () => { cancelled = true; clearInterval(id); };
   }, []);
 
+  const [showConnectorsDialog, setShowConnectorsDialog] = useState(false);
   const [showRecentToolsDialog, setShowRecentToolsDialog] = useState(false);
   const [, setLocation] = useLocation();
   const { user, logout } = useAuth();
 
-  // Get recent projects
+  // Projects — fetched from API (not localStorage) so they survive page reload
+  const [apiProjects, setApiProjects] = useState<Array<{ id: string; name: string; status: string }>>([]);
+  const [expandedProjectIds, setExpandedProjectIds] = useState<Set<string>>(new Set());
+  const refreshProjects = () => {
+    fetch("/api/projects", { credentials: "include" })
+      .then((r) => r.ok ? r.json() : { projects: [] })
+      .then((d) => setApiProjects((d.projects ?? []).slice(0, 12)))
+      .catch(() => {});
+  };
+  useEffect(() => {
+    refreshProjects();
+    window.addEventListener('biomate:projects-updated', refreshProjects);
+    return () => window.removeEventListener('biomate:projects-updated', refreshProjects);
+  }, []);
   const recentProjects = projectService.getAllProjects().slice(0, 5);
 
   const toggleCategory = (categoryName: string) => {
@@ -300,34 +317,101 @@ export function AppSidebar({
       {/* Workspace nav */}
       <div style={{ marginBottom: 8 }}>
         <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600 }}>Workspace</div>
-        <button className="side-link" onClick={onNewChat} data-testid="button-new-chat" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted, oklch(0.48 0.012 260))', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}>
-          <Plus className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>New Chat</span>
+        <button className="side-link" onClick={onNewChat} data-testid="button-new-chat" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted, oklch(0.48 0.012 260))', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}>
+          <Plus className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span>New Chat</span>
+            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Start a fresh AI conversation</span>
+          </span>
         </button>
-        <button className="side-link" data-testid="button-workflows-nav" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => { analytics.track('workflows_sidebar_opened'); setShowHistoryDialog(true); }}>
-          <FlaskConical className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Workflows</span>{runningCount > 0 && (<span data-testid="workflows-running-badge" style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 999, background: 'oklch(0.92 0.04 230)', color: 'oklch(0.40 0.13 230)' }}>{runningCount}</span>)}
+        <button
+          className="side-link"
+          data-testid="button-workflows-nav"
+          style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
+          onClick={() => { analytics.track('workflows_sidebar_opened'); setHistoryInitialTab('runs'); setShowHistoryDialog(true); }}
+        >
+          <FlaskConical className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              Workflows
+              {runningCount > 0 && (<span data-testid="workflows-running-badge" style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 999, background: 'oklch(0.92 0.04 230)', color: 'oklch(0.40 0.13 230)' }}>{runningCount}</span>)}
+            </span>
+            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Run history, browse & import pipelines</span>
+          </span>
         </button>
-        {/* Workspaces — commented out until create flow is stable (500 on POST /api/workspaces)
-        <button className="side-link" data-testid="button-workspaces-nav" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/workspaces')}>
-          <FolderOpen className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Workspaces</span>
+        <button
+          className="side-link"
+          data-testid="button-connectors-nav"
+          style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
+          onClick={() => setShowConnectorsDialog(true)}
+        >
+          <Cable className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span>Connectors</span>
+            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Databases, LLMs & platform integrations</span>
+          </span>
         </button>
-        */}
-        {/* CRO Library — commented out until fully implemented and validated
-        <button className="side-link" data-testid="button-cro-compliance" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/drug-discovery-cro')}>
-          <Database className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>CRO Library</span>
+        <button className="side-link" data-testid="button-ind-report" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/ind-report')}>
+          <FileText className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span>IND Report</span>
+            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Generate regulatory submission documents</span>
+          </span>
         </button>
-        */}
-        <button className="side-link" data-testid="button-ind-report" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/ind-report')}>
-          <FileText className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>IND Report</span>
-        </button>
-        {/*
-        <button className="side-link" data-testid="button-capabilities" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/capabilities')}>
-          <BookOpen className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Capabilities</span>
-        </button>
-        <button className="side-link" data-testid="button-blog" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/blog')}>
-          <BookOpen className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Research notes</span>
-        </button>
-        */}
       </div>
+
+      {/* Projects section — always visible */}
+      <div style={{ marginBottom: 8, borderTop: '1px solid var(--bm-border)', paddingTop: 8 }}>
+          <button
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px 4px', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', fontWeight: 600, width: '100%', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            onClick={() => setProjectsExpanded(p => !p)}
+            data-testid="button-projects-section"
+          >
+            {projectsExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+            <FolderOpen className="w-3 h-3" style={{ opacity: 0.7 }} />
+            Projects
+          </button>
+          {projectsExpanded && apiProjects.map((proj) => {
+            const isExpanded = expandedProjectIds.has(proj.id);
+            return (
+              <div key={proj.id}>
+                <button
+                  style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '4px 10px', borderRadius: 5, color: activeProjectId === proj.id ? 'var(--bm-text)' : 'var(--bm-text-muted)', background: activeProjectId === proj.id ? 'var(--bm-surface-3)' : 'transparent', fontSize: 12.5, cursor: 'pointer', border: 'none', width: '100%', textAlign: 'left' }}
+                  onClick={() => { onProjectSelect(proj.id); setExpandedProjectIds(prev => { const n = new Set(prev); if (n.has(proj.id)) n.delete(proj.id); else n.add(proj.id); return n; }); }}
+                  data-testid={`button-project-${proj.id}`}
+                >
+                  {isExpanded ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
+                  <FolderOpen className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--bm-accent, oklch(0.55 0.14 245))', opacity: 0.9 }} />
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{proj.name}</span>
+                </button>
+                {isExpanded && (
+                  <div style={{ paddingLeft: 28 }}>
+                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => setLocation(`/projects?project=${proj.id}&tab=chat`)} data-testid={`project-link-chats-${proj.id}`}>
+                      <MessageCircle className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
+                      Chats
+                    </button>
+                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => setLocation(`/projects?project=${proj.id}&tab=files`)} data-testid={`project-link-files-${proj.id}`}>
+                      <FileText className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
+                      Files
+                    </button>
+                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => setLocation(`/projects?project=${proj.id}&tab=workflows`)} data-testid={`project-link-workflows-${proj.id}`}>
+                      <FlaskConical className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
+                      Workflows
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          <button
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '3px 10px', borderRadius: 5, color: 'var(--bm-text-dim)', fontSize: 11.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left', marginTop: 2 }}
+            onClick={onNewProject}
+            data-testid="button-new-project"
+          >
+            <Plus className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
+            New project
+          </button>
+        </div>
 
       {/* Chat history — scrollable, takes remaining space */}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
@@ -395,8 +479,20 @@ export function AppSidebar({
           </div>
         )}
 
+        {/* Settings entry — visible in sidebar nav as well as the footer gear icon */}
+        <div style={{ marginTop: 12, borderTop: '1px solid var(--bm-border)', paddingTop: 8 }}>
+          <button
+            style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
+            onClick={() => { analytics.track('settings_opened'); setShowSettingsDialog(true); }}
+            data-testid="button-settings-sidebar"
+          >
+            <Settings className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} />
+            <span>Settings &amp; API Keys</span>
+          </button>
+        </div>
+
         {/* Beta: Actions panel hidden — Starred Workflows, Recent Tools,
-            Billing, Settings dialogs aren't wired up to backend yet.
+            Billing — dialogs not yet wired to backend.
             Re-enable once each action lands a real implementation.
 
         <div style={{ marginTop: 16, borderTop: '1px solid var(--bm-border)', paddingTop: 10 }}>
@@ -460,7 +556,8 @@ export function AppSidebar({
 
       {/* Dialogs */}
       <SettingsDialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog} />
-      <WorkflowHistoryDialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog} onOpenRun={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}`); } }} onRunAgain={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}&runAgain=${encodeURIComponent(row.runId)}`); } }} />
+      <WorkflowHistoryDialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog} initialTab={historyInitialTab} onOpenRun={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}`); } }} onRunAgain={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}&runAgain=${encodeURIComponent(row.runId)}`); } }} />
+      <ConnectorsDialog open={showConnectorsDialog} onOpenChange={setShowConnectorsDialog} />
 <RecentToolsDialog open={showRecentToolsDialog} onOpenChange={setShowRecentToolsDialog}
         onToolSelect={(tool) => { if (onToolSelect) onToolSelect(tool as any); }}
       />

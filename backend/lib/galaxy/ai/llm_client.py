@@ -292,12 +292,13 @@ class LLMClient:
         if "gpt-5" not in self.model:
             data["temperature"] = kwargs.get('temperature', 0.0)
 
+        _timeout = kwargs.get('timeout', 60.0)
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{self.api_base}/chat/completions",
                 headers=self.headers,
                 json=data,
-                timeout=60.0  # Increased to 60s for slower models like gpt-5
+                timeout=_timeout
             )
             
             if response.status_code == 200:
@@ -334,12 +335,13 @@ class LLMClient:
             data["temperature"] = temperature
 
         t0 = time.monotonic()
+        _timeout = kwargs.get('timeout', 60.0)
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{self.api_base}/v1/messages",
                 headers=self.headers,
                 json=data,
-                timeout=120.0
+                timeout=_timeout
             )
 
             if response.status_code == 200:
@@ -403,10 +405,13 @@ class LLMClient:
         async with httpx.AsyncClient() as client:
             # Gemini API endpoint format
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
+            # Use caller-supplied timeout or default 30s — fast-fail lets the fallback chain
+            # take over quickly instead of blocking for 2 min on a slow/hung Pro call.
+            _timeout = kwargs.get('timeout', 30.0)
             response = await client.post(
                 url,
                 json=data,
-                timeout=120.0
+                timeout=_timeout
             )
 
             if response.status_code == 200:

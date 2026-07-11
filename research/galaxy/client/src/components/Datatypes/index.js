@@ -1,1 +1,0 @@
-export { getDatatypesMapper } from "./factory";

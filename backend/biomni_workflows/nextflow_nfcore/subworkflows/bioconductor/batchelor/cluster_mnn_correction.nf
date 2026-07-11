@@ -122,7 +122,7 @@ process BIOC_BATCHELOR_CLUSTER_MNN_CORRECTION {
     # HVG selection — count rows with high CV. Pass when 1000-3000 HVGs
     # (Stuart 2019 Cell Seurat v3 default range).
     .hvg_count <- NA_real_; .hvg_files <- character(0)
-    for (.hvg_rds in list.files(".", pattern = "\\.rds\$", recursive = FALSE)) {
+    for (.hvg_rds in list.files(".", pattern = "\\\\.rds\$", recursive = FALSE)) {
       .hvg_obj <- tryCatch(readRDS(.hvg_rds), error = function(e) NULL)
       .hvg_mat <- if (is.matrix(.hvg_obj) || is.data.frame(.hvg_obj)) .hvg_obj else NULL
       if (!is.null(.hvg_mat) && nrow(.hvg_mat) > 200) {

@@ -1,5 +1,6 @@
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 
 interface EmailConfig {
   host: string;
@@ -20,55 +21,82 @@ interface SendEmailOptions {
 
 class EmailService {
   private transporter: Transporter | null = null;
+  private sesClient: SESClient | null = null;
   private fromEmail: string;
   private appUrl: string;
 
   constructor() {
-    this.fromEmail = process.env.EMAIL_FROM || 'noreply@biomate.dev';
-    this.appUrl = process.env.APP_URL || 'http://localhost:5000';
+    this.fromEmail = process.env.EMAIL_FROM || 'noreply@biomate.ai';
+    this.appUrl = process.env.APP_URL || 'https://dev-public.biomate.ai';
 
-    // Only initialize if email configuration is provided
-    if (this.isConfigured()) {
+    if (this.isSesConfigured()) {
+      // Use AWS SES when AWS credentials are present (production/dev EC2 path)
+      this.sesClient = new SESClient({ region: process.env.AWS_REGION || 'us-west-2' });
+      console.log('[EmailService] AWS SES transport initialized');
+    } else if (this.isSmtpConfigured()) {
       try {
-        this.initializeTransporter();
+        this.initializeSmtpTransporter();
       } catch (error) {
-        console.error('[EmailService] Failed to initialize transporter:', error);
-        console.warn('[EmailService] Email service will not be available');
+        console.error('[EmailService] Failed to initialize SMTP transporter:', error);
       }
     } else {
-      console.warn('[EmailService] Email not configured. Set EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS in .env');
+      console.warn('[EmailService] Email not configured. Set AWS_REGION (for SES) or EMAIL_HOST/EMAIL_USER/EMAIL_PASS (for SMTP).');
     }
   }
 
-  private isConfigured(): boolean {
-    return !!(
-      process.env.EMAIL_HOST &&
-      process.env.EMAIL_USER &&
-      process.env.EMAIL_PASS
-    );
+  private isSesConfigured(): boolean {
+    // AWS_REGION is sufficient — on EC2 the SDK resolves credentials from the instance
+    // IAM role automatically; explicit AWS_ACCESS_KEY_ID only needed locally.
+    return !!(process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION);
   }
 
-  private initializeTransporter(): void {
+  private isSmtpConfigured(): boolean {
+    return !!(process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS);
+  }
+
+  private initializeSmtpTransporter(): void {
     const config: EmailConfig = {
       host: process.env.EMAIL_HOST!,
       port: parseInt(process.env.EMAIL_PORT || '587'),
-      secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
+      secure: process.env.EMAIL_SECURE === 'true',
       auth: {
         user: process.env.EMAIL_USER!,
         pass: process.env.EMAIL_PASS!,
       },
     };
-
     this.transporter = nodemailer.createTransport(config);
-    console.log('[EmailService] Email transporter initialized');
+    console.log('[EmailService] SMTP transporter initialized');
   }
 
   async sendEmail(options: SendEmailOptions): Promise<boolean> {
-    if (!this.transporter) {
-      console.error('[EmailService] Cannot send email - not configured');
-      return false;
+    // SES path (preferred on AWS)
+    if (this.sesClient) {
+      try {
+        const cmd = new SendEmailCommand({
+          Source: this.fromEmail,
+          Destination: { ToAddresses: [options.to] },
+          Message: {
+            Subject: { Data: options.subject, Charset: 'UTF-8' },
+            Body: {
+              Html: { Data: options.html, Charset: 'UTF-8' },
+              Text: { Data: options.text || this.stripHtml(options.html), Charset: 'UTF-8' },
+            },
+          },
+        });
+        await this.sesClient.send(cmd);
+        console.log(`[EmailService] SES sent to ${options.to}: ${options.subject}`);
+        return true;
+      } catch (error) {
+        console.error('[EmailService] SES send failed:', error);
+        return false;
+      }
     }
 
+    // SMTP path (fallback / local dev)
+    if (!this.transporter) {
+      console.error('[EmailService] Cannot send email — not configured');
+      return false;
+    }
     try {
       await this.transporter.sendMail({
         from: this.fromEmail,
@@ -77,11 +105,10 @@ class EmailService {
         html: options.html,
         text: options.text || this.stripHtml(options.html),
       });
-
-      console.log(`[EmailService] Email sent to ${options.to}: ${options.subject}`);
+      console.log(`[EmailService] SMTP sent to ${options.to}: ${options.subject}`);
       return true;
     } catch (error) {
-      console.error('[EmailService] Failed to send email:', error);
+      console.error('[EmailService] SMTP send failed:', error);
       return false;
     }
   }

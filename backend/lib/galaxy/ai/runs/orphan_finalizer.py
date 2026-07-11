@@ -29,6 +29,41 @@ from .run_state_store import RunStateStore
 log = logging.getLogger(__name__)
 
 
+# Nextflow log markers that mean the *session* failed even when every
+# DISPATCHED task shows COMPLETED/exit 0 in the trace. The canonical case is a
+# process whose `script:` block fails to compile (e.g. an unescaped `$` in an
+# embedded R/Python heredoc): that process never becomes a task, so it never
+# appears in the trace, yet Nextflow aborts the run with returncode=1. Trusting
+# the trace's "all tasks OK ⟹ success" heuristic here silently reports a broken
+# run as succeeded. These markers are authoritative for failure.
+_HARD_FAILURE_LOG_MARKERS = (
+    "script contains error(s)",
+    "ProcessUnrecoverableException",
+    "Execution cancelled",
+    "Execution aborted",
+    "Pipeline completed with errors",
+    "ERROR ~",
+)
+
+
+def _log_shows_hard_failure(log_path: Optional[str]) -> bool:
+    """True when the Nextflow launcher log contains a definitive session-abort
+    marker. Reads a generous tail because the abort banner lands after the last
+    task's output. Best-effort: any read error returns False (fall through)."""
+    if not log_path or not os.path.exists(log_path):
+        return False
+    try:
+        with open(log_path, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            size = f.tell()
+            f.seek(max(0, size - 32768))  # last 32KB — abort banner is near EOF
+            tail = f.read().decode("utf-8", errors="ignore")
+        return any(m in tail for m in _HARD_FAILURE_LOG_MARKERS)
+    except Exception as exc:  # pragma: no cover — defensive
+        log.debug("[orphan_finalizer] hard-failure log scan failed: %s", exc)
+        return False
+
+
 def _read_returncode_from_disk(run_record: Dict[str, Any]) -> Tuple[int, bool]:
     """Try to determine returncode from .nextflow.log / trace files.
 
@@ -45,6 +80,15 @@ def _read_returncode_from_disk(run_record: Dict[str, Any]) -> Tuple[int, bool]:
       5. Local outdir non-empty ⟹ success.
       6. Fall back to (-1, True) — caller treats as interrupted orphan.
     """
+    # ── 0. Authoritative session-abort markers ───────────────────────────────
+    # Check the launcher log for a hard-failure banner FIRST. A process that
+    # fails at script-compilation never enters the trace, so the trace heuristic
+    # below would otherwise see "all tasks COMPLETED exit 0" and wrongly report
+    # success (the orphan_finalizer / executor terminal-state disagreement).
+    if _log_shows_hard_failure(run_record.get("log_path")):
+        log.info("[orphan_finalizer] launcher log shows session-abort marker — failure (rc=1)")
+        return 1, True
+
     # ── 1. Trace file ────────────────────────────────────────────────────────
     trace_path = run_record.get("trace_path")
     if trace_path and os.path.exists(trace_path):

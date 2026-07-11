@@ -47,14 +47,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip3 install --no-cache-dir \
         numpy==1.26.4 \
         scipy==1.13.1 \
-        pandas==2.2.2
+        pandas==2.2.2 \
+        boto3==1.34.149
 
 # ─── MAGMA binary ───────────────────────────────────────────────────────────
-# Download v1.10 static Linux binary from the official distribution server.
-# Static build avoids libc version dependencies across worker node AMIs.
+# Download v1.10 static Linux binary.
+# URL updated 2026-07 — ctg.cncr.nl redirected to cncr.nl/research/dbg/magma/
+# and all files are now hosted on SURFsara (/index.php/s/<id>/download).
 RUN mkdir -p /opt/magma/bin \
-    && curl -sSL \
-        "https://ctg.cncr.nl/software/MAGMA/prog/magma_v${MAGMA_VERSION}_static.zip" \
+    && curl -fsSL \
+        "https://vu.data.surfsara.nl/index.php/s/lxDgt2dNdNr6DYt/download" \
         -o /tmp/magma.zip \
     && unzip /tmp/magma.zip -d /opt/magma/bin \
     && chmod +x /opt/magma/bin/magma \
@@ -64,27 +66,27 @@ RUN mkdir -p /opt/magma/bin \
 RUN ln -s /opt/magma/bin/magma /opt/magma/magma
 
 # ─── LD reference: g1000_eur (1000 Genomes Phase 3, EUR, hg19) ─────────────
-# Required for --gene-model multi (principal-component based gene analysis).
-# Smoke runs use --gene-model snp-wise (no LD ref needed), but production runs
-# should pass --gene_model multi for paper-faithful results per MAGMA docs.
+# Required for --gene-model multi; snp-wise mode (our default) does not need it
+# but we bake it in so the image is self-contained for production runs.
+# URL updated 2026-07 — now on SURFsara.
 RUN mkdir -p /opt/magma/ref \
-    && curl -sSL \
-        "https://ctg.cncr.nl/software/MAGMA/ref_data/g1000_eur.zip" \
+    && curl -fsSL \
+        "https://vu.data.surfsara.nl/index.php/s/VZNByNwpD8qqINe/download" \
         -o /tmp/g1000_eur.zip \
     && unzip /tmp/g1000_eur.zip -d /opt/magma/ref \
     && rm /tmp/g1000_eur.zip \
     && ls -lh /opt/magma/ref/g1000_eur.*
 
 # ─── Gene location files ────────────────────────────────────────────────────
-# NCBI37.3 = hg19 (standard for most older GWAS sumstats)
-# NCBI38    = hg38
-RUN curl -sSL \
-        "https://ctg.cncr.nl/software/MAGMA/aux_files/NCBI37.3.gene.loc" \
-        -o /opt/magma/ref/NCBI37.3.gene.loc \
-    && curl -sSL \
-        "https://ctg.cncr.nl/software/MAGMA/aux_files/NCBI38.gene.loc" \
-        -o /opt/magma/ref/NCBI38.gene.loc \
-    && wc -l /opt/magma/ref/NCBI37.3.gene.loc /opt/magma/ref/NCBI38.gene.loc
+# NCBI37.3 = hg19; NCBI38 = hg38.
+# URL updated 2026-07 — now on SURFsara (Build 37 bundle includes gene.loc).
+RUN curl -fsSL \
+        "https://vu.data.surfsara.nl/index.php/s/Pj2orwuF2JYyKxq/download" \
+        -o /tmp/gene_locs.zip \
+    && unzip /tmp/gene_locs.zip -d /opt/magma/ref \
+    && mv /opt/magma/ref/NCBI37.3.gene.loc /opt/magma/ref/NCBI37.3.gene.loc 2>/dev/null || true \
+    && rm /tmp/gene_locs.zip \
+    && wc -l /opt/magma/ref/*.gene.loc 2>/dev/null || echo "gene.loc files present"
 
 # ─── Smoke test ─────────────────────────────────────────────────────────────
 # Verify binary runs + gene.loc files are valid.

@@ -49,6 +49,58 @@ def test_returncode_unknown_when_no_log():
     assert rc == -1
 
 
+def _write_trace(tmp_path, rows):
+    """rows: list of (name, status, exit). Writes a Nextflow trace.txt whose
+    columns match the parser (task_id hash native_id name status exit ...)."""
+    trace = tmp_path / "trace.txt"
+    lines = ["task_id\thash\tnative_id\tname\tstatus\texit"]
+    for i, (name, status, code) in enumerate(rows, 1):
+        lines.append(f"{i}\tab/{i:06d}\t{1000+i}\t{name}\t{status}\t{code}")
+    trace.write_text("\n".join(lines) + "\n")
+    return trace
+
+
+def test_script_compile_failure_reports_failure_despite_all_tasks_ok(tmp_path):
+    """Regression (2026-07-08 test-container nca_pknca run): a process that
+    fails at script COMPILATION never enters the trace, so the trace shows only
+    the successfully-dispatched tasks (all COMPLETED exit 0). The launcher log,
+    however, aborts the session. The finalizer must report failure (rc=1) — not
+    infer success from the trace — else a broken run is silently 'succeeded'."""
+    trace = _write_trace(
+        tmp_path,
+        [("NCA_PKNCA:NCA_INPUT_VALIDATION", "COMPLETED", "0"),
+         ("NCA_PKNCA:NCA_PKNCA_ANALYSIS", "COMPLETED", "0")],
+    )
+    log_path = tmp_path / ".nextflow.log"
+    log_path.write_text(
+        "Jul-08 11:39:07 [Actor Thread 2] ERROR nextflow.processor.TaskProcessor - "
+        "Error executing process > 'NCA_PKNCA:NCA_REPORT_HTML (nca_report)'\n"
+        "  error [nextflow.exception.ProcessUnrecoverableException]: "
+        "Process `NCA_PKNCA:NCA_REPORT_HTML (nca_report)` script contains error(s)\n"
+        "Jul-08 11:39:07 [Actor Thread 2] INFO nextflow.Session - "
+        "Execution cancelled -- Finishing pending tasks before exit\n"
+    )
+    rc, _ = _read_returncode_from_disk(
+        {"trace_path": str(trace), "log_path": str(log_path)}
+    )
+    assert rc == 1, "session-abort log marker must override optimistic trace inference"
+
+
+def test_all_tasks_ok_and_clean_log_still_succeeds(tmp_path):
+    """Guard: the Bug-B fix must NOT flip genuine successes to failure. A trace
+    with all tasks COMPLETED exit 0 and a log with no abort marker => rc 0."""
+    trace = _write_trace(
+        tmp_path,
+        [("FOO:STEP_A", "COMPLETED", "0"), ("FOO:STEP_B", "COMPLETED", "0")],
+    )
+    log_path = tmp_path / ".nextflow.log"
+    log_path.write_text("Jul-08 [main] DEBUG nextflow.Session - Workflow completed\n")
+    rc, _ = _read_returncode_from_disk(
+        {"trace_path": str(trace), "log_path": str(log_path)}
+    )
+    assert rc == 0
+
+
 def test_returncode_local_outdir_with_files(tmp_path):
     """Heuristic: a non-S3 outdir with content => succeeded."""
     outdir = tmp_path / "out"

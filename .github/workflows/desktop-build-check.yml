@@ -1,0 +1,62 @@
+name: Desktop Build Check
+
+# Lightweight PR check: verifies the Tauri app compiles on Linux (no signing, no publish).
+# Only runs when desktop or frontend client code changes.
+
+on:
+  pull_request:
+    branches:
+      - main
+      - integration/next-phase
+    paths:
+      - 'desktop/**'
+      - 'frontend/client/**'
+      - 'frontend/package*.json'
+      - 'frontend/tsconfig*.json'
+      - '.github/workflows/desktop-*.yml'
+
+jobs:
+  build-check:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri -> target
+
+      - name: Install Linux system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - name: Install frontend deps
+        run: npm ci
+        working-directory: frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: frontend
+
+      - name: Build Tauri app (debug, no publish)
+        run: npm run build:debug
+        working-directory: desktop

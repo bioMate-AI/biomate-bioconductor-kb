@@ -125,6 +125,12 @@ _WORKFLOW_EMBED_NPZ: Optional[Path] = None  # set once DB_PATH is known
 
 # Module-level singletons — shared across all UnifiedWorkflowSearch instances
 # so embeddings are only loaded once per process.
+# Serializes the one-time embedding-model loads so a startup warmup thread and a
+# racing first request can't both pay the ~8-10s SentenceTransformer load (each
+# would clobber the global). The warm path early-returns BEFORE taking the lock,
+# so steady-state searches are never serialized on it.
+import threading as _threading
+_EMBED_INIT_LOCK = _threading.Lock()
 _WF_EMBED_MODEL: Optional[Any] = None       # SentenceTransformer instance
 _WF_EMBED_IDS: List[int] = []              # workflow DB ids in index order
 _WF_EMBED_MATRIX: Optional[Any] = None     # np.ndarray (n_workflows × dim)
@@ -476,6 +482,13 @@ class UnifiedWorkflowSearch:
             'mechanism of action rnaseq': 4.5, 'mechanism action rna': 4.0,
             'drug mechanism rnaseq': 4.5, 'drug effect rna': 3.5,
 
+            # Pharmacovigilance / FAERS signal detection
+            'faers': 4.0, 'pharmacovigilance': 4.0, 'disproportionality': 4.0,
+            'ror': 3.5, 'prr': 3.5, 'reporting odds ratio': 4.0,
+            'proportional reporting ratio': 4.0, 'adverse drug reaction': 3.5,
+            'signal detection': 3.5, 'spontaneous reporting': 3.5,
+            'drug safety surveillance': 3.5, 'post-marketing surveillance': 3.5,
+
             # Drug discovery / Pharmacology / ADMET
             'admet': 3.0, 'herg': 3.0, 'dili': 3.0,
             'toxicity': 2.5, 'cardiotoxicity': 3.0, 'hepatotoxicity': 2.5,
@@ -717,14 +730,25 @@ class UnifiedWorkflowSearch:
         )
 
         try:
-            raw = self._llm_client.generate(prompt, max_tokens=128, temperature=0.0)
+            # Use the fast model (fallbacks[0] from config) for Pass-0: cheap
+            # ranking call that doesn't need thinking-model quality. Falls back
+            # to the primary automatically if the fast model fails.
+            raw = self._llm_client.generate(prompt, max_tokens=512, temperature=0.0,
+                                            use_fast_model=True)
             # Extract JSON array from the response (strip any surrounding text)
             import re as _re
             m = _re.search(r"\[[\d,\s]+\]", raw or "")
             if not m:
-                log.debug("[Pass-0] LLM response has no JSON array: %r", raw)
-                return []
-            ids = [int(x) for x in m.group(0).strip("[]").split(",") if x.strip().isdigit()]
+                # Fallback: handle truncated responses like '[149' (missing closing bracket)
+                bare_ids = [int(x) for x in _re.findall(r'\d+', raw or '') if x.strip()]
+                if bare_ids:
+                    log.debug("[Pass-0] Extracted %d IDs from partial LLM response: %r", len(bare_ids), raw)
+                    ids = bare_ids
+                else:
+                    log.debug("[Pass-0] LLM response has no JSON array: %r", raw)
+                    return []
+            else:
+                ids = [int(x) for x in m.group(0).strip("[]").split(",") if x.strip().isdigit()]
             log.info("[Pass-0] LLM selected %d workflow IDs for query %r", len(ids), query[:60])
             return ids[:output_limit]
         except Exception as _exc:
@@ -1215,16 +1239,16 @@ class UnifiedWorkflowSearch:
         q = query.lower()
         found: List[str] = []
 
+        # Only anchor when the user explicitly typed the nf-core path format
+        # (e.g. "nf-core/rnaseq" or "nfcore rnaseq"). Loose word-scanning
+        # against known slugs is removed: it produces false positives (e.g.
+        # "RNA-seq" → "rnaseq" anchor) that override LLM routing, which is
+        # already responsible for semantic workflow selection.
         for m in re.finditer(r"nf[\s\-]?core[/\s]+([a-z][a-z0-9_-]+)", q):
             slug = self._normalise_pipeline_slug(m.group(1))
             if slug and slug not in negated and slug not in _NAMED_ANCHOR_BLOCKLIST:
                 if slug in _KNOWN_NFCORE_PIPELINE_SLUGS:
                     found.append(slug)
-
-        q_compact = self._normalise_pipeline_slug(q)
-        for slug in _KNOWN_NFCORE_PIPELINE_SLUGS:
-            if slug in q_compact and slug not in negated:
-                found.append(slug)
 
         if not found:
             return None
@@ -1356,6 +1380,27 @@ class UnifiedWorkflowSearch:
         if _WF_EMBED_FAILED or not _EMBEDDINGS_AVAILABLE:
             return False
 
+        # Serialize the cold init (model load + index build) so the warmup thread
+        # and a first request don't double-load. Re-check readiness after taking
+        # the lock — the thread that lost the race returns immediately.
+        # Use a 5 s timeout: when a rebuild is running in another thread (67 s+),
+        # concurrent requests fall back to FTS-only rather than blocking the SSE
+        # stream for the entire rebuild duration.
+        acquired = _EMBED_INIT_LOCK.acquire(timeout=5)
+        if not acquired:
+            log.debug("[WorkflowEmbed] Init lock busy — FTS-only fallback for this request")
+            return _WF_EMBED_READY
+        try:
+            if _WF_EMBED_READY:
+                return True
+            if _WF_EMBED_FAILED:
+                return False
+            return self._ensure_workflow_embeddings_locked()
+        finally:
+            _EMBED_INIT_LOCK.release()
+
+    def _ensure_workflow_embeddings_locked(self) -> bool:
+        global _WF_EMBED_MODEL, _WF_EMBED_IDS, _WF_EMBED_MATRIX, _WF_EMBED_READY, _WF_EMBED_FAILED, _WORKFLOW_EMBED_NPZ
         try:
             # Resolve .npz path next to the DB
             if _WORKFLOW_EMBED_NPZ is None:
@@ -1372,11 +1417,22 @@ class UnifiedWorkflowSearch:
             if _WORKFLOW_EMBED_NPZ.exists():
                 self._load_workflow_embeddings()
                 # Staleness check: did the DB drift since the .npz was built?
+                # At runtime we never rebuild — that is a deploy-time operation
+                # handled by sync_to_dev.sh after galaxy_ai_tools.db is updated.
+                # A stale NPZ means the deploy step was skipped; fall back to
+                # FTS-only for this request rather than blocking for 60-120 s.
                 if self._workflow_embeddings_stale():
-                    log.info("[WorkflowEmbed] .npz is stale vs DB — rebuilding")
-                    self._build_workflow_embeddings()
+                    log.warning(
+                        "[WorkflowEmbed] NPZ is stale vs DB — run sync_to_dev.sh "
+                        "to rebuild. Using FTS-only search until next deploy."
+                    )
+                    return False
             else:
-                self._build_workflow_embeddings()
+                log.warning(
+                    "[WorkflowEmbed] NPZ not found at %s — run sync_to_dev.sh "
+                    "to build it. Using FTS-only search.", _WORKFLOW_EMBED_NPZ
+                )
+                return False
 
             _WF_EMBED_READY = (
                 _WF_EMBED_MATRIX is not None
@@ -2032,16 +2088,20 @@ class UnifiedWorkflowSearch:
             return
         try:
             if _CHAIN_EMBED_MODEL is None:
-                log.info("[ChainIndex] Loading %s for chain embedding search", _CHAIN_EMBED_MODEL_NAME)
-                # Reuse VectorToolSearch's GPU-safe device detection when available;
-                # fall back to cpu so we never block startup on a broken CUDA driver.
-                try:
-                    from .vector_search import _detect_device_safe
-                    device = _detect_device_safe(timeout_seconds=5.0)
-                except Exception:
-                    device = "cpu"
-                _CHAIN_EMBED_MODEL = _ST(_CHAIN_EMBED_MODEL_NAME, device=device,
-                                        local_files_only=True)
+                # Double-checked lock: don't let a warmup thread + a first request
+                # both load the MiniLM weights (~2-3s each).
+                with _EMBED_INIT_LOCK:
+                    if _CHAIN_EMBED_MODEL is None:
+                        log.info("[ChainIndex] Loading %s for chain embedding search", _CHAIN_EMBED_MODEL_NAME)
+                        # Reuse VectorToolSearch's GPU-safe device detection when available;
+                        # fall back to cpu so we never block startup on a broken CUDA driver.
+                        try:
+                            from .vector_search import _detect_device_safe
+                            device = _detect_device_safe(timeout_seconds=5.0)
+                        except Exception:
+                            device = "cpu"
+                        _CHAIN_EMBED_MODEL = _ST(_CHAIN_EMBED_MODEL_NAME, device=device,
+                                                local_files_only=True)
             texts = [self._chain_embed_text(c) for c in chains]
             _CHAIN_EMBED_NAMES = [c.name for c in chains]
             import hashlib as _hashlib
@@ -2277,18 +2337,12 @@ class UnifiedWorkflowSearch:
         query: str,
         candidates: List["WorkflowChain"],
     ) -> Optional[List["WorkflowChain"]]:
-        """Ask the LLM to match the query against candidate chains with scope checking.
-
-        Chains are multi-step clinical pipelines with broad scope.  The LLM must
-        verify that the user's request clearly covers the FULL scope of the chain —
-        not just one component.  If it is uncertain, it should ask for clarification
-        rather than guessing.
+        """Ask the LLM to pick the best chain in ONE call (rank + scope-confirm combined).
 
         Returns:
           [chain]           — LLM confirmed a specific chain with high confidence
-          [chain(clarify)]  — LLM wants to clarify before committing; chain has
-                               clarification_needed=True and clarification_question set
-          []                — LLM explicitly says no chain matches
+          [chain(clarify)]  — LLM wants to clarify; chain has clarification_needed=True
+          []                — no chain matches
           None              — LLM unavailable; caller falls back to embedding ranking
 
         Response format (LLM):
@@ -2299,34 +2353,76 @@ class UnifiedWorkflowSearch:
         if self._llm_client is None or not candidates:
             return None
 
-        # Phase 2 — Robin's pairwise tournament with 3-run majority voting,
-        # then absolute confirm on the winner. See
-        # docs/20260618_BC10_CHAIN_RANKING_REQUIREMENT.md option C.
-        # Replaces the prior single-shot absolute judgment (which calibration-
-        # failed on BC-10 when Gemini returned '*' and the parser fell through
-        # to the embedding's wrong-domain top hit).
-        #
-        # Call budget for N candidates:
-        #   tournament: N*(N-1)/2 pairs × 3 votes per pair
-        #   confirm: 1 call on the winner
-        #   total: 1 + 3*N*(N-1)/2
-        # N=1: 1 call (trivial confirm path)
-        # N=2: 4 calls
-        # N=3 (current limit from _cosine_search_chains): 10 calls
-        try:
-            winner = self._pairwise_tournament(query, candidates, runs_per_pair=3)
-            if winner is None:
-                return []
+        def _format_chain(c: "WorkflowChain") -> str:
+            steps = ", ".join(
+                s.get("workflow_name", "") or s.get("name", "")
+                for s in (c.steps or [])[:5]
+            )
+            inputs = ", ".join(
+                f"{inp.get('name', '')} ({inp.get('type', '')})"
+                for inp in (c.required_inputs or [])[:3]
+            ) or "unspecified"
+            return (
+                f"  Name: {c.name}\n"
+                f"  Display: {c.display_name}\n"
+                f"  Domain: {getattr(c, 'domain', '?')}\n"
+                f"  Scope: {(c.description or '')[:200]}\n"
+                f"  Inputs: {inputs}\n"
+                f"  Steps: {steps}"
+            )
 
-            # Absolute confirm on the tournament winner — distinguishes
-            # "this is the best of N, AND it's a good match" from
-            # "this is the least-bad of N, but none is actually correct."
-            confirm = self._llm_confirm_chain(query, winner)
-            if confirm == "confirm":
-                log.info(f"[ChainIndex] tournament+confirm: {winner.name}")
+        chain_block = "\n\n".join(
+            f"Chain {i + 1}:\n{_format_chain(c)}" for i, c in enumerate(candidates)
+        )
+        names = [c.name for c in candidates]
+
+        prompt = (
+            f"You are a bioinformatics workflow router selecting the best pipeline chain.\n\n"
+            f"User request: \"{query}\"\n\n"
+            f"Candidates:\n{chain_block}\n\n"
+            f"RULES:\n"
+            f"1. Pick the candidate whose FULL scope (domain + all major steps + inputs) best matches the request.\n"
+            f"2. Confirm ONLY if the user's request clearly covers the chosen chain's FULL scope.\n"
+            f"3. A subset match (chain covers only ONE component the user asked for) → return 'none'.\n"
+            f"4. A cross-domain match (e.g. variant-calling chain for a single-cell query) → return 'none'.\n"
+            f"5. If a key context is missing (sample type, disease, data modality), ask ONE short clarifying question.\n"
+            f"6. Return EXACTLY one of these literal strings (use the exact chain Name field):\n"
+            f"   chain:<name>               (confident full-scope match)\n"
+            f"   clarify:<name>|<question>  (probable match, need one detail)\n"
+            f"   none                       (no chain matches or too narrow)\n"
+            f"No prose. Just the literal string."
+        )
+        try:
+            raw = (self._llm_client.generate(prompt, max_tokens=120, temperature=0.0,
+                                            use_fast_model=True) or "").strip()
+            log.info(f"[ChainIndex] select_chain response: {raw!r}")
+            low = raw.lower()
+
+            if low.startswith("chain:"):
+                picked_name = raw[6:].strip()
+                # Find candidate by name (exact, then prefix)
+                winner = next((c for c in candidates if c.name == picked_name), None)
+                if winner is None:
+                    winner = next((c for c in candidates if c.name.startswith(picked_name)), None)
+                if winner is None and candidates:
+                    log.warning(f"[ChainIndex] LLM returned unknown chain name {picked_name!r}; using top candidate")
+                    winner = candidates[0]
+                log.info(f"[ChainIndex] select_chain confirmed: {winner.name}")
                 return [winner]
-            if confirm.lower().startswith("clarify:"):
-                question = confirm[8:].strip() or (
+
+            if low.startswith("clarify:"):
+                rest = raw[8:].strip()
+                if "|" in rest:
+                    picked_name, question = rest.split("|", 1)
+                    picked_name = picked_name.strip()
+                    question = question.strip()
+                else:
+                    picked_name = rest.strip()
+                    question = ""
+                winner = next((c for c in candidates if c.name == picked_name), None)
+                if winner is None and candidates:
+                    winner = candidates[0]
+                question = question or (
                     f"Could you confirm the full scope? This pipeline covers: "
                     f"{(winner.description or '')[:120]}"
                 )
@@ -2334,16 +2430,13 @@ class UnifiedWorkflowSearch:
                 c_copy = copy.copy(winner)
                 c_copy.clarification_needed = True
                 c_copy.clarification_question = question
-                log.info(f"[ChainIndex] tournament winner needs clarification: {winner.name}: {question}")
+                log.info(f"[ChainIndex] clarification needed for {winner.name}: {question}")
                 return [c_copy]
-            # confirm == 'none' (or unrecognized → treated as none upstream)
-            log.info(f"[ChainIndex] tournament winner {winner.name} failed absolute confirm — returning []")
+
+            log.info(f"[ChainIndex] no chain match: {raw!r}")
             return []
         except Exception as exc:
-            log.warning(f"[ChainIndex] tournament path raised: {exc}; falling back to embedding top-1")
-            # Distinct from "LLM unavailable" — this is a code path bug. Still
-            # safest to return [] (no match) over the embedding's possibly-
-            # wrong top-1, matching the post-Phase-1 invariant.
+            log.warning(f"[ChainIndex] select_chain failed: {exc}; returning []")
             return []
 
     # ------------------------------------------------------------------
@@ -2423,7 +2516,14 @@ class UnifiedWorkflowSearch:
             return True
         # Check if any required input is a processed type
         for inp in chain.required_inputs:
-            inp_type = inp.get("type", "").lower()
+            # required_inputs may be stored as plain strings (legacy bioc_*_v2 chains)
+            # or as dicts with name/type/description — handle both safely.
+            if isinstance(inp, str):
+                inp_type = inp.lower()
+            elif isinstance(inp, dict):
+                inp_type = inp.get("type", "").lower()
+            else:
+                continue
             # Handle pipe-separated alternatives: "fastq|bam" → {"fastq","bam"}
             inp_subtypes = frozenset(t.strip() for t in inp_type.split("|"))
             if inp_subtypes & cls._PROCESSED_TYPES:
@@ -2523,7 +2623,8 @@ class UnifiedWorkflowSearch:
     # ------------------------------------------------------------------
 
     def search_chains(self, query: str, domain: Optional[str] = None,
-                      limit: int = 3, min_score: float = 0.25) -> List["WorkflowChain"]:
+                      limit: int = 3, min_score: float = 0.25,
+                      skip_llm_rerank: bool = False) -> List["WorkflowChain"]:
         """Return workflow chains matching the query.
 
         Search pipeline (three tiers, each falling back to the next):
@@ -2597,10 +2698,14 @@ class UnifiedWorkflowSearch:
                     return []
                 # LLM reranking from short candidate list
                 # Returns [chain] (match), [] (explicit no-match), or None (unavailable)
-                llm_result = self._llm_select_chain(query, top_candidates)
-                if llm_result is not None:
-                    return llm_result  # trust LLM decision (including explicit [])
-                # LLM unavailable — trust embedding ranking
+                # skip_llm_rerank: the ~3s LLM scope-check is the dominant chain-search
+                # latency and serializes concurrent requests. Callers on a latency-
+                # critical path (connector) skip it and trust the embedding ranking.
+                if not skip_llm_rerank:
+                    llm_result = self._llm_select_chain(query, top_candidates)
+                    if llm_result is not None:
+                        return llm_result  # trust LLM decision (including explicit [])
+                # LLM unavailable or skipped — trust embedding ranking
                 return top_candidates[:limit]
 
         # ── Tier 2: Jaccard fallback ───────────────────────────────────────────

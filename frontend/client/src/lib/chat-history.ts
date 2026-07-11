@@ -50,7 +50,12 @@ class ChatHistoryService {
    * Used when a session was synced from backend but only has metadata (empty messages).
    */
   async fetchSessionDetail(id: string): Promise<ChatSession | null> {
-    if (!BACKEND_SYNC_ENABLED || !this.backendSyncActive || this.backendSyncBlocked) {
+    // Do not gate on backendSyncActive: this is an explicit caller-driven fetch
+    // (e.g. ?session= URL param or sidebar click), not a background sync poll.
+    // backendSyncActive is a startup flag set by AppWithAuthSync; if this method
+    // is called it already means the caller knows the user is authenticated.
+    // The 401/403 path below sets backendSyncBlocked if auth truly fails.
+    if (!BACKEND_SYNC_ENABLED || this.backendSyncBlocked) {
       return this.getSession(id);
     }
     try {
@@ -123,7 +128,7 @@ class ChatHistoryService {
       lastActivity: new Date(),
       messages: [{
         id: "welcome",
-        content: "Hello! I'm your BioMate AI assistant. I can help you discover bioinformatics tools, build workflows, and analyze your data. What would you like to work on today?",
+        content: "Hello! I'm BioMate — your AI assistant for biomedical research. Upload a paper, describe your analysis, or ask a question to get started.",
         role: "assistant",
         timestamp: new Date(),
         suggestions: [
@@ -620,7 +625,7 @@ class ChatHistoryService {
         messages: [
           {
             id: "msg-1-1",
-            content: "Hello! I'm your BioMate AI assistant. I can help you discover bioinformatics tools, build workflows, and analyze your data. What would you like to work on today?",
+            content: "Hello! I'm BioMate — your AI assistant for biomedical research. Upload a paper, describe your analysis, or ask a question to get started.",
             role: "assistant",
             timestamp: hoursAgo(2.5),
             suggestions: ["Analyze RNA-seq data", "Find variant calling tools", "Build a custom workflow", "Explore genomics tools"]
@@ -727,7 +732,7 @@ class ChatHistoryService {
         messages: [
           {
             id: "msg-2-1",
-            content: "Hello! I'm your BioMate AI assistant. I can help you discover bioinformatics tools, build workflows, and analyze your data. What would you like to work on today?",
+            content: "Hello! I'm BioMate — your AI assistant for biomedical research. Upload a paper, describe your analysis, or ask a question to get started.",
             role: "assistant",
             timestamp: daysAgo(1.1),
             suggestions: ["Analyze RNA-seq data", "Find variant calling tools", "Build a custom workflow", "Explore genomics tools"]
@@ -799,7 +804,7 @@ class ChatHistoryService {
         messages: [
           {
             id: "msg-3-1",
-            content: "Hello! I'm your BioMate AI assistant. I can help you discover bioinformatics tools, build workflows, and analyze your data. What would you like to work on today?",
+            content: "Hello! I'm BioMate — your AI assistant for biomedical research. Upload a paper, describe your analysis, or ask a question to get started.",
             role: "assistant",
             timestamp: daysAgo(3.1),
             suggestions: ["Analyze RNA-seq data", "Find variant calling tools", "Build a custom workflow", "Explore genomics tools"]
@@ -830,7 +835,7 @@ class ChatHistoryService {
         messages: [
           {
             id: "msg-4-1",
-            content: "Hello! I'm your BioMate AI assistant. I can help you discover bioinformatics tools, build workflows, and analyze your data. What would you like to work on today?",
+            content: "Hello! I'm BioMate — your AI assistant for biomedical research. Upload a paper, describe your analysis, or ask a question to get started.",
             role: "assistant",
             timestamp: daysAgo(7.1),
             suggestions: ["Analyze RNA-seq data", "Find variant calling tools", "Build a custom workflow", "Explore genomics tools"]

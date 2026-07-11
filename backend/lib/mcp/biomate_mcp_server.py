@@ -1,7 +1,27 @@
 #!/usr/bin/env python3
 """
-BioMate MCP Server
-==================
+BioMate MCP Server  —  DEPRECATED (v1.0.0)
+==========================================
+
+.. deprecated:: 1.0.0
+    This standalone v1.0.0 stdio server is **superseded** and no longer
+    maintained. The current, maintained MCP server lives in the separate
+    connector repository:
+
+        github.com/bioMate-AI/biomate-connector  →  mcp/biomate_mcp_server.py (v2.0.0)
+
+    That server is schema-driven from a single ``tools_manifest.py`` (17 tools
+    with Directory-compliant ``title`` + ``annotations``), ships OAuth 2.1 +
+    PKCE, and is what is published as ``@biomate/connect`` and submitted to the
+    Anthropic Claude Directory.
+
+    This file's tool set is stale and is not wired into any deployment. It is
+    kept only so historical ``python -m backend.lib.mcp`` / Claude Desktop
+    configs do not hard-break. Do not add features here — make changes in the
+    connector repo. Removal is tracked; migrate any local config to
+    ``npx @biomate/connect`` before it is deleted.
+    (The sibling ``backend/mcp/biomate_mcp_server.py`` v1.1.0 is also deprecated.)
+
 Exposes BioMate's scientific workflow capabilities as MCP (Model Context Protocol) tools,
 enabling any MCP-compatible AI client (Claude Desktop, Cursor, etc.) to invoke BioMate
 workflows, search databases, and retrieve results.
@@ -25,6 +45,7 @@ MCP tools exposed:
     get_run_results     Retrieve output files from a completed run
     query_database      Query a biological database (UniProt, PDB, NCBI Gene, etc.)
     analyze_file        Run lightweight data analysis on an S3 key or inline data
+    biomate_session     End-to-end: NL goal → route → execute → poll → return outputs
 """
 
 import json
@@ -33,6 +54,7 @@ import os
 import logging
 import time
 import threading
+import warnings
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -288,6 +310,40 @@ TOOLS: List[Dict[str, Any]] = [
             "required": ["run_id"],
         },
     },
+    {
+        "name": "biomate_session",
+        "description": (
+            "Run a complete BioMate scientific session end-to-end from a natural-language goal. "
+            "BioMate automatically: (1) routes to the correct workflow, (2) extracts parameters "
+            "from context, (3) executes on AWS Batch, (4) waits for completion, (5) returns "
+            "outputs, QC results, findings, and a link to the live results panel. "
+            "Use this for hands-free execution when you know the scientific goal but not the "
+            "exact workflow ID or parameter names."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "goal": {
+                    "type": "string",
+                    "description": (
+                        "Natural language description of the analysis to run. "
+                        "Examples: 'Run DESeq2 differential expression on treated vs control', "
+                        "'Screen these SMILES for ADMET liabilities', "
+                        "'Predict the structure of this protein sequence with AlphaFold'."
+                    ),
+                },
+                "inputs": {
+                    "type": "object",
+                    "description": (
+                        "Optional structured inputs to merge with auto-extracted params. "
+                        "Use this to pass file paths, sample lists, SMILES strings, etc."
+                    ),
+                    "additionalProperties": True,
+                },
+            },
+            "required": ["goal"],
+        },
+    },
 ]
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -319,14 +375,23 @@ class BioMateClient:
             return {"error": str(exc), "results": []}
 
     def run_workflow(self, workflow_id: str, params: dict, session_message: Optional[str] = None) -> Dict[str, Any]:
-        payload: Dict[str, Any] = {"workflow_id": workflow_id, "params": params or {}}
+        # workflow_id should be the nextflow_path from search_workflow (e.g.
+        # "pharmacology/herg_cardiac_safety_qsar/main.nf").
+        # POST /api/workflows/execute expects a workflowDefinition envelope.
+        payload: Dict[str, Any] = {
+            "workflowDefinition": {
+                "nextflow_path": workflow_id,
+                "workflow_type": "nextflow",
+                "parameters": params or {},
+            }
+        }
         if session_message:
-            payload["message"] = session_message
+            payload["workflowDefinition"]["description"] = session_message
         try:
             r = self.session.post(
                 self._url("/api/workflows/execute"),
                 json=payload,
-                timeout=30,
+                timeout=60,
             )
             r.raise_for_status()
             return r.json()
@@ -423,6 +488,117 @@ class BioMateClient:
         except Exception as exc:
             return {"error": str(exc), "run_id": run_id}
 
+    def biomate_session(self, goal: str, inputs: Optional[dict] = None) -> Dict[str, Any]:
+        """End-to-end session: route NL goal → execute workflow → poll → return outputs."""
+        # Step 1: Route NL goal to the best matching workflow via search
+        log.warning(f"biomate_session: routing goal: {goal[:80]}")
+        try:
+            r = self.session.post(
+                self._url("/api/workflows/search"),
+                json={"query": goal, "limit": 1},
+                timeout=30,
+            )
+            r.raise_for_status()
+            wf_data = r.json()
+        except Exception as exc:
+            return {"error": f"Workflow routing failed: {exc}", "goal": goal}
+
+        if not wf_data.get("success"):
+            return {
+                "error": "No workflow matched the goal",
+                "goal": goal,
+                "routing_response": wf_data,
+            }
+
+        # Extract workflow identifier — prefer human-readable name over path
+        workflow_name = (
+            wf_data.get("chain_name")
+            or wf_data.get("workflow_name")
+        )
+        # Prefer chain_name / workflow_name as the invoke key; fall back to nextflow_path
+        workflow_id = workflow_name or wf_data.get("nextflow_path")
+        if not workflow_id:
+            return {
+                "error": "No workflow_id could be determined from routing result",
+                "goal": goal,
+                "routing_response": wf_data,
+            }
+
+        # Step 2: Merge auto-extracted default params with caller-supplied inputs
+        generated_params: Dict[str, Any] = {}
+        for p in wf_data.get("generated_parameters", []):
+            if p.get("default") is not None:
+                generated_params[p["name"]] = p["default"]
+        if inputs:
+            generated_params.update(inputs)
+
+        nextflow_path = wf_data.get("nextflow_path") or workflow_id
+        workflow_type = wf_data.get("workflow_type", "nextflow")
+        log.warning(
+            f"biomate_session: invoking nextflow_path={nextflow_path} "
+            f"params={list(generated_params.keys())}"
+        )
+
+        # Step 3: Invoke via /api/workflows/execute with workflowDefinition envelope
+        try:
+            r = self.session.post(
+                self._url("/api/workflows/execute"),
+                json={
+                    "workflowDefinition": {
+                        "nextflow_path": nextflow_path,
+                        "workflow_type": workflow_type,
+                        "parameters": generated_params,
+                    }
+                },
+                timeout=60,
+            )
+            r.raise_for_status()
+            invoke_data = r.json()
+        except Exception as exc:
+            return {"error": f"Invocation failed: {exc}", "workflow_id": workflow_id}
+
+        run_id = (
+            invoke_data.get("run_id")
+            or invoke_data.get("runId")
+            or invoke_data.get("id")
+        )
+        if not run_id:
+            return {"error": "No run_id in invocation response", "invoke_response": invoke_data}
+
+        log.warning(f"biomate_session: run_id={run_id} — polling for completion")
+
+        # Step 4: Poll until terminal state (max ~30 min)
+        status_data: Dict[str, Any] = {}
+        final_status = "unknown"
+        terminal = {"completed", "failed", "error", "cancelled"}
+        for _ in range(120):  # 120 * 15s = 30 min ceiling
+            time.sleep(15)
+            status_data = self.get_run_status(run_id)
+            final_status = status_data.get("status", "unknown")
+            if final_status in terminal:
+                break
+
+        log.warning(f"biomate_session: final_status={final_status}")
+
+        # Step 5: Fetch outputs on success
+        outputs: Dict[str, Any] = {}
+        if final_status == "completed":
+            try:
+                outputs = self.get_run_results(run_id)
+            except Exception as exc:
+                outputs = {"error": str(exc)}
+
+        return {
+            "goal": goal,
+            "workflow_name": workflow_name,
+            "workflow_id": workflow_id,
+            "run_id": run_id,
+            "status": final_status,
+            "outputs": outputs,
+            "panel_url": f"{self.base_url}/runs/{run_id}",
+            "raw_status": status_data,
+        }
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Tool dispatcher
@@ -481,6 +657,12 @@ def dispatch_tool(client: BioMateClient, tool_name: str, args: Dict[str, Any]) -
         return client.explain_error(
             run_id=args["run_id"],
             error_log=args.get("error_log", ""),
+        )
+
+    elif tool_name == "biomate_session":
+        return client.biomate_session(
+            goal=args["goal"],
+            inputs=args.get("inputs"),
         )
 
     else:
@@ -575,7 +757,18 @@ def handle_request(client: BioMateClient, msg: Dict[str, Any]) -> Optional[Dict[
 
 def run_server() -> None:
     client = BioMateClient(BIOMATE_API_URL, BIOMATE_API_KEY)
-    log.warning(f"BioMate MCP Server {SERVER_VERSION} starting (api={BIOMATE_API_URL})")
+    warnings.warn(
+        "backend/lib/mcp/biomate_mcp_server.py (v1.0.0) is DEPRECATED and "
+        "unmaintained. Use the connector repo's mcp/biomate_mcp_server.py "
+        "(v2.0.0) — install via `npx @biomate/connect`.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    log.warning(
+        f"BioMate MCP Server {SERVER_VERSION} starting (api={BIOMATE_API_URL}) "
+        "— DEPRECATED: this v1.0.0 server is superseded by the biomate-connector "
+        "repo (v2.0.0). See module docstring."
+    )
 
     for raw_line in sys.stdin:
         raw_line = raw_line.strip()

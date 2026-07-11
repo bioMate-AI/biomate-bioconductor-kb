@@ -22,6 +22,7 @@ import type {
   CreateExecutionRunRequest,
 } from '@shared/schema';
 import { emitUxEvent } from '@/lib/ux-telemetry';
+import { isDesktop, desktopNotify } from '@/lib/desktop';
 
 // ============================================================================
 // Types
@@ -270,6 +271,8 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
   const eventSourceRef = useRef<EventSource | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const artifactReadinessTelemetrySentRef = useRef<Set<string>>(new Set());
+  // Track runs already notified to avoid duplicate OS notifications
+  const notifiedRunsRef = useRef<Set<string>>(new Set());
   // Synchronous mirror of state.currentRun so polling can check without setState-callback timing issues
   const currentRunRef = useRef<ExecutionRun | null>(null);
 
@@ -307,6 +310,20 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
     eventSource.addEventListener('workflow_state', (event) => {
       const update = JSON.parse(event.data);
       console.log('[UnifiedExecution] Workflow state:', update.data.workflow_state);
+
+      // Fire OS notification on terminal state (SSE path)
+      if (isDesktop() && currentRunRef.current) {
+        const wfState = update.data.workflow_state;
+        const runId = currentRunRef.current.id;
+        if ((wfState === 'ok' || wfState === 'error' || wfState === 'failed') && !notifiedRunsRef.current.has(runId)) {
+          notifiedRunsRef.current.add(runId);
+          const name = currentRunRef.current.workflowName || 'Workflow';
+          desktopNotify(
+            wfState === 'ok' ? 'Run Complete' : 'Run Failed',
+            name
+          );
+        }
+      }
 
       setState((prev) => {
         if (!prev.currentRun) return prev;
@@ -497,6 +514,15 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
               invocationId: currentRunRef.current.execution.galaxyInvocationId,
               status: status.status,
             });
+            // Fire OS notification on terminal state (polling path)
+            if (isDesktop() && !notifiedRunsRef.current.has(runId)) {
+              notifiedRunsRef.current.add(runId);
+              const name = currentRunRef.current.workflowName || 'Workflow';
+              desktopNotify(
+                status.status === 'completed' ? 'Run Complete' : 'Run Failed',
+                name
+              );
+            }
           }
 
           setState((prev) => {
@@ -596,9 +622,11 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
   }, [autoConnectSSE, connectToSSE, startPolling]);
 
   /**
-   * Load an existing run by ID
+   * Load an existing run by ID.
+   * Pass { silent: true } for background session-restore calls so that a 404
+   * (e.g. stale invocationId) does not surface as an error banner in the UI.
    */
-  const loadRun = useCallback(async (runId: string) => {
+  const loadRun = useCallback(async (runId: string, opts?: { silent?: boolean }) => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
@@ -634,7 +662,7 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
       setState((prev) => ({
         ...prev,
         isLoading: false,
-        error: error.message,
+        ...(opts?.silent ? {} : { error: error.message }),
       }));
       throw error;
     }

@@ -431,6 +431,23 @@ code, pre, .font-mono {
   width: 6px; height: 6px; border-radius: 50%;
   background: currentColor; flex-shrink: 0;
 }
+.wf-chip .chip-run {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 600;
+  background: oklch(0.94 0.04 220); color: oklch(0.48 0.16 220);
+  white-space: nowrap;
+}
+.wf-chip .chip-run .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; animation: dot-pulse 1s ease-in-out infinite; }
+@keyframes dot-pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+.wf-chip .chip-fail {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 600;
+  background: oklch(0.96 0.03 25); color: oklch(0.50 0.18 25);
+  white-space: nowrap;
+}
+.wf-chip .chip-fail .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 .wf-chip .btn-open {
   display: inline-flex; align-items: center; gap: 5px;
   height: 28px; padding: 0 10px; border-radius: var(--bm-r-sm, 6px);

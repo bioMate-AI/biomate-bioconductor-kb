@@ -13,6 +13,13 @@
  * registered. Calling register costs rate-limit credit at best and 4xx
  * at worst. Registration round-trip testing belongs in
  * `server/auth-fixes-*.test.ts`, NOT here.
+ *
+ * WHY page.request.post() not page.evaluate()+fetch():
+ *   On dev (NODE_ENV=production), the server has CSRF protection enabled.
+ *   Browser-side fetch (page.evaluate) sends no CSRF token → 500/403.
+ *   page.request.post() uses Playwright's HTTP stack (not the browser's)
+ *   and bypasses CSRF. It also works regardless of whether the React app
+ *   has loaded, avoiding the page.goto hang on macOS 11 / bundled chromium.
  */
 import { type Page } from "@playwright/test";
 
@@ -25,48 +32,75 @@ export const BASE_URL = process.env.BIOMATE_URL || "http://localhost:5000";
 
 let cachedCookies: any[] | null = null;
 
-async function fetchTokenInBrowser(page: Page): Promise<string | null> {
-  return await page.evaluate(
-    async ({ baseUrl, email, password, token }) => {
-      // Login only — fixture user is already registered (CLAUDE.md rule 3).
-      const r = await fetch(`${baseUrl}/api/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-E2E-Test-Token": token,
-        },
-        credentials: "include",
-        body: JSON.stringify({ email, password }),
-      });
-      if (!r.ok) return null;
-      const body = await r.json().catch(() => ({}));
-      return body.token ?? null;
-    },
-    {
-      baseUrl: BASE_URL,
-      email: FIXTURE_EMAIL,
-      password: FIXTURE_PASSWORD,
-      token: E2E_TOKEN,
-    }
-  );
-}
-
 export async function loginAsFixture(page: Page): Promise<void> {
   if (cachedCookies) {
+    // Re-apply cookies + headers to this context (each test worker gets a
+    // fresh browser context so neither are inherited from the prior run).
     await page.context().addCookies(cachedCookies);
-    await page.goto(BASE_URL);
+    const biomate = cachedCookies.find((c) => c.name === "biomate_token");
+    if (biomate?.value) {
+      await page.context().setExtraHTTPHeaders({
+        Authorization: `Bearer ${biomate.value}`,
+        "X-E2E-Test-Token": E2E_TOKEN,
+        "X-Forwarded-Proto": "https",
+      });
+    }
     return;
   }
-  await page.goto(BASE_URL);
-  const token = await fetchTokenInBrowser(page);
-  if (!token) {
+
+  // Use page.request (Playwright native HTTP, not in-browser fetch) so this
+  // works regardless of whether the React app loads: the production build on
+  // dev has deferred resources that prevent the load/domcontentloaded event,
+  // causing page.goto + page.evaluate to hang indefinitely.
+  const resp = await page.request.post(`${BASE_URL}/api/auth/login`, {
+    headers: {
+      "Content-Type": "application/json",
+      "X-E2E-Test-Token": E2E_TOKEN,
+    },
+    data: { email: FIXTURE_EMAIL, password: FIXTURE_PASSWORD },
+  });
+
+  if (!resp.ok()) {
+    const body = await resp.json().catch(() => ({}));
     throw new Error(
-      `loginAsFixture failed for ${FIXTURE_EMAIL} — confirm E2E_FIXTURE_PASSWORD ` +
-        `env or that the dev backend has X-E2E-Test-Token bypass enabled.`
+      `loginAsFixture failed (${resp.status()}) for ${FIXTURE_EMAIL}: ` +
+        JSON.stringify(body)
     );
   }
+
+  const body = await resp.json();
+  const token: string | undefined = body.token;
+  if (!token) {
+    throw new Error(
+      `loginAsFixture: no token in response for ${FIXTURE_EMAIL}`
+    );
+  }
+
+  // 1. addCookies → page.request.* picks up biomate_token from the context
+  //    cookie jar (page.request uses context cookies, not extraHTTPHeaders).
+  const url = new URL(BASE_URL);
+  await page.context().addCookies([
+    {
+      name: "biomate_token",
+      value: token,
+      domain: url.hostname,
+      path: "/",
+      httpOnly: false,
+      secure: false,
+      sameSite: "Lax",
+    },
+  ]);
+
+  // 2. setExtraHTTPHeaders → browser-initiated fetch/XHR and page.goto send
+  //    Authorization so the React app works AND the forceHTTPS middleware
+  //    doesn't 301-redirect HTTP tunnel requests.
+  await page.context().setExtraHTTPHeaders({
+    Authorization: `Bearer ${token}`,
+    "X-E2E-Test-Token": E2E_TOKEN,
+    "X-Forwarded-Proto": "https",
+  });
+
   cachedCookies = (await page.context().storageState()).cookies;
-  await page.goto(BASE_URL);
 }
 
 export function resetFixtureCache(): void {

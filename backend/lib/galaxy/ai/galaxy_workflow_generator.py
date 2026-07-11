@@ -447,7 +447,7 @@ User Intent: "{user_intent}"
 Return ONLY the FTS5 query string, nothing else."""
 
         try:
-            response = self.llm_client.generate(prompt, max_tokens=100)
+            response = self.llm_client.generate(prompt, max_tokens=100, use_fast_model=True)
             fts_query = response.strip()
             # Remove quotes if LLM added them
             fts_query = fts_query.strip('"').strip("'")
@@ -639,9 +639,9 @@ Return valid JSON only - no additional text.
         full_prompt = f"{system_prompt}\n\n{user_prompt}"
 
         last_result = None
-        for attempt in range(2):  # at most 2 LLM calls
+        for attempt in range(1):  # single attempt — retry doubles latency for marginal gain
             try:
-                response_text = self.llm_client.generate(full_prompt, max_tokens=4096)
+                response_text = self.llm_client.generate(full_prompt, max_tokens=4096, use_fast_model=True)
                 log.info(f"LLM response received (attempt {attempt + 1}): {len(response_text)} chars")
 
                 # Parse JSON response

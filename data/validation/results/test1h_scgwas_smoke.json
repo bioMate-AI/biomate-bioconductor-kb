@@ -1,0 +1,83 @@
+{
+  "test": "1-H",
+  "name": "scGWAS Cell-type Assignment (SCZ smoke test)",
+  "status": "PASS",
+  "run_id": "3ffb5903-c486-4c92-a4de-c2fecc637211",
+  "batch_job_id": "217203d0-b76a-4522-a0ef-c1fdfc1b1f03",
+  "timestamp": "2026-07-03T19:24:51Z",
+  "details": {
+    "phase_A": "COMPLETED",
+    "phase_B": "COMPLETED",
+    "phase_B_exitcode": 0,
+    "phase_C": "COMPLETED (manual execution on Phase B outputs)",
+    "total_modules": 4563,
+    "significant_modules_z2": 1160,
+    "cell_types_profiled": 25,
+    "example_dataset": "Schizophrenia Pardinas 2018 + DER-22 brain panel",
+    "module_num": 50,
+    "gwas_genes": 18787,
+    "scrn_genes": 9425,
+    "shared_genes": 8529,
+    "top_cell_types_z2": [
+      {
+        "cell_type": "In8",
+        "n_modules": 61,
+        "max_z": 6.07,
+        "top_genes": [
+          "AKT3",
+          "ANKS1B",
+          "ERBB4"
+        ]
+      },
+      {
+        "cell_type": "Astro",
+        "n_modules": 53,
+        "max_z": 6.22,
+        "top_genes": [
+          "AKT3",
+          "ERBB4",
+          "MAGI2"
+        ]
+      },
+      {
+        "cell_type": "In1c",
+        "n_modules": 33,
+        "max_z": 6.11,
+        "top_genes": [
+          "ANKS1B",
+          "CACNA1C",
+          "ERBB4"
+        ]
+      },
+      {
+        "cell_type": "Per",
+        "n_modules": 71,
+        "max_z": 4.76,
+        "top_genes": [
+          "CACNA1C",
+          "CACNB2",
+          "HCN1"
+        ]
+      },
+      {
+        "cell_type": "Ex1",
+        "n_modules": 69,
+        "max_z": 4.6,
+        "top_genes": [
+          "ANKS1B",
+          "CACNB2",
+          "FOXP1"
+        ]
+      }
+    ],
+    "biological_validation": "CACNA1C, ERBB4, ANKS1B are established SCZ GWAS genes; neuronal+glial enrichment consistent with SCZ pathology",
+    "outputs": [
+      "test1h_scgwas_output.combined-z.txt",
+      "test1h_scgwas_output.all.random_modules.txt",
+      "significant_modules.tsv (manual Phase C)",
+      "significance.json (manual Phase C)"
+    ],
+    "s3_work_dir": "s3://biomate-nextflow-work/nextflow/work/validation_test/3ffb5903-c486-4c92-a4de-c2fecc637211/"
+  },
+  "notes": "All three scGWAS phases validated. Phase B completed on AWS Batch (exit 0). Phase C run manually from Phase B outputs (Nextflow orchestrator died mid-run due to RUN_STATE_STORE not set to redis \u2014 now fixed). Next: verify Redis RunStateStore fix holds, then run with RA GWAS (Ishigaki 2022) + immune cell panel for definitive RA cell-type validation."
+}
