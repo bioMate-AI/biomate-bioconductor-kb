@@ -6,7 +6,6 @@ import { emitUxEvent } from "@/lib/ux-telemetry";
 import { PhaseCard } from "./phase-card";
 import { ParameterGroup } from "./parameter-group";
 import { StepOutputPreview } from "./step-output-preview";
-import { useActiveProjectIdSafe } from "@/contexts/active-project-context";
 import { StepAdjustModal } from "./step-adjust-modal";
 import { Loader2, CheckCircle2, XCircle, AlertTriangle, Download, RotateCcw, Square, ChevronRight, Settings2, ShieldCheck, Activity, Clock, SkipForward, FolderOpen } from "lucide-react";
 import { useLocation } from 'wouter';
@@ -914,7 +913,6 @@ export function NextflowWorkflowViewer({
 }: NextflowWorkflowViewerProps) {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const activeProjectId = useActiveProjectIdSafe();
   const [params, setParams] = useState<Record<string, any>>(
     initialParams || workflowDefinition?.parameters || workflowDefinition?.inline_parameters || {}
   );
@@ -2786,63 +2784,6 @@ export function NextflowWorkflowViewer({
                         />
                       )}
 
-                      {/* Phase C — Output location picker. Per
-                       *  docs/20260619_OUTPUT_LOCKDOWN_PHASE_B_C_SPEC.md (C.1).
-                       *  Default: BioMate-managed (current behavior).
-                       *  Project: only shown when chat is in a project.
-                       *  My S3 bucket: advanced — user pastes s3:// uri. */}
-                      <div data-testid="output-location-section"
-                           style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 8 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6, color: 'var(--text)' }}>
-                          Output location
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12 }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                            <input type="radio"
-                                   name="output-location"
-                                   value="default"
-                                   checked={outputLocationType === 'default'}
-                                   onChange={() => setOutputLocationType('default')}
-                                   data-testid="output-location-default" />
-                            <span>Default (BioMate-managed, kept 90 days)</span>
-                          </label>
-                          {projectId && (
-                            <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                              <input type="radio"
-                                     name="output-location"
-                                     value="project"
-                                     checked={outputLocationType === 'project'}
-                                     onChange={() => setOutputLocationType('project')}
-                                     data-testid="output-location-project" />
-                              <span>My project folder</span>
-                            </label>
-                          )}
-                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                            <input type="radio"
-                                   name="output-location"
-                                   value="user_s3"
-                                   checked={outputLocationType === 'user_s3'}
-                                   onChange={() => setOutputLocationType('user_s3')}
-                                   data-testid="output-location-user-s3" />
-                            <span title="Advanced — your bucket must grant BioMate's service role write access. See docs/output-location-user-s3-setup.md">
-                              My S3 bucket <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>(Advanced)</span>
-                            </span>
-                          </label>
-                          {outputLocationType === 'user_s3' && (
-                            <input
-                              type="text"
-                              placeholder="s3://my-bucket/my-prefix"
-                              value={userS3Uri}
-                              onChange={(e) => setUserS3Uri(e.target.value)}
-                              data-testid="output-location-user-s3-uri"
-                              style={{ marginLeft: 22, fontSize: 12, padding: '3px 6px',
-                                       border: '1px solid var(--border)', borderRadius: 3,
-                                       background: 'var(--surface)', color: 'var(--text)',
-                                       fontFamily: 'var(--font-mono)', width: 320 }}
-                            />
-                          )}
-                        </div>
-                      </div>
                     </div>
                   </div>
                 )}
@@ -3122,7 +3063,6 @@ export function NextflowWorkflowViewer({
                   runId={activeRunId}
                   file={previewFile}
                   onClose={() => setPreviewFile(null)}
-                  projectId={activeProjectId}
                 />
               )}
               {adjustStep && activeRunId && (
@@ -3261,7 +3201,6 @@ export function NextflowWorkflowViewer({
               )}
             </div>
           )}
-          </div>{/* end inner Phases-tab-only block (post-strip) */}
       </div>{/* end panel-body */}
       </div>{/* end shared panel-body wrapper (Settings + Phases tabs) */}
 
