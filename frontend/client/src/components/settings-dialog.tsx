@@ -135,11 +135,6 @@ function useApiKeys(open: boolean) {
 // ---------------------------------------------------------------------------
 // LLM Provider selection (BioMate default or OpenRouter)
 // ---------------------------------------------------------------------------
-const OPENROUTER_QUICK_PICKS = [
-  { id: 'deepseek/deepseek-chat', label: 'DeepSeek Chat' },
-  { id: 'deepseek/deepseek-r1', label: 'DeepSeek R1' },
-  { id: 'qwen/qwen-2.5-72b-instruct', label: 'Qwen 2.5' },
-];
 
 function useLlmApiKeys(open: boolean) {
   const [hasAnthropicKey, setHasAnthropicKey] = useState(false);
@@ -1061,20 +1056,14 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                           <Label className="text-xs">Model <span className="text-muted-foreground font-normal">(any slug from openrouter.ai/models)</span></Label>
                           <Input
                             className="font-mono text-xs h-8"
-                            placeholder="e.g. deepseek/deepseek-chat"
+                            placeholder="paste model slug from openrouter.ai/models"
                             value={llmKeys.selectedModel}
                             onChange={e => llmKeys.setSelectedModel(e.target.value)}
                             data-testid="input-llm-model"
                           />
-                          <div className="flex gap-1.5 flex-wrap">
-                            {OPENROUTER_QUICK_PICKS.map(m => (
-                              <button key={m.id} type="button"
-                                className="text-xs px-2 py-0.5 rounded border border-border hover:bg-accent transition-colors"
-                                onClick={() => llmKeys.setSelectedModel(m.id)}>
-                                {m.label}
-                              </button>
-                            ))}
-                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Browse all models at <span className="font-mono">openrouter.ai/models</span> — filter by provider (DeepSeek, Qwen, etc.) and sort by price.
+                          </p>
                         </div>
                         {/* API key input */}
                         {llmKeys.hasOpenrouterKey ? (
