@@ -12071,14 +12071,25 @@ Rules:
 
       const { registerRunOutputsInProject } = await import("./project-routes");
 
-      // Build input context from run metadata — parameters + input file/dataset names.
-      const runParams = (run as any).parameters ?? {};
-      const inputDatasets: string[] = ((run as any).inputDatasets ?? []).map((d: any) => d.name || d.id || String(d));
+      // Build input context: user intent (the message that triggered the run) + input file names.
+      // Parameters are already in the workflow report — we don't repeat them here.
+      let userIntent: string | undefined;
+      if ((run as any).chatSessionId) {
+        try {
+          const sessRow = await pool.query(
+            `SELECT messages FROM chat_sessions WHERE session_id = $1 LIMIT 1`,
+            [(run as any).chatSessionId]
+          );
+          const msgs: Array<{ role: string; content: string }> = sessRow.rows[0]?.messages ?? [];
+          // Find the last user message before the run started — that's the intent.
+          const userMsgs = msgs.filter(m => m.role === 'user');
+          userIntent = userMsgs[userMsgs.length - 1]?.content?.slice(0, 300) || undefined;
+        } catch { /* non-fatal */ }
+      }
+      const inputFiles: string[] = ((run as any).inputDatasets ?? []).map((d: any) => d.name || d.filename || String(d)).filter(Boolean);
       const inputContext = {
-        workflow: (run as any).workflowName,
-        parameters: runParams?.toolParameters ?? runParams,
-        inputs: inputDatasets.length ? inputDatasets : undefined,
-        runId: run.id,
+        intent: userIntent,
+        inputFiles: inputFiles.length ? inputFiles : undefined,
       };
 
       const files = rawFiles.map((f: any) => {

@@ -246,24 +246,14 @@ function FileRow({
         )}
       </div>
       {previewOpen && previewUrl && <FilePreview url={previewUrl} name={file.name} />}
-      {previewOpen && file.input_context && (
-        <div className="ml-9 mt-1 mb-2 rounded border border-border bg-muted/30 p-2 text-xs space-y-1">
-          <div className="font-semibold text-muted-foreground mb-1">Input context</div>
-          {Array.isArray(file.input_context.inputs) && (file.input_context.inputs as string[]).length > 0 && (
-            <div><span className="text-muted-foreground">Inputs: </span>{(file.input_context.inputs as string[]).join(", ")}</div>
+      {previewOpen && file.input_context && (file.input_context.intent || file.input_context.inputFiles) && (
+        <div className="ml-9 mt-1 mb-2 rounded border border-border bg-muted/30 p-2 text-xs space-y-1.5">
+          {typeof file.input_context.intent === 'string' && (
+            <div className="italic text-foreground/80">"{file.input_context.intent}"</div>
           )}
-          {(file.input_context.parameters && typeof file.input_context.parameters === 'object')
-            ? (() => {
-                const paramStr = Object.entries(file.input_context!.parameters as Record<string, string>)
-                  .filter(([, v]) => v != null && String(v) !== "")
-                  .slice(0, 6)
-                  .map(([k, v]) => `${k}=${String(v)}`)
-                  .join("  ");
-                return paramStr
-                  ? <div><span className="text-muted-foreground">Parameters: </span><span className="font-mono">{paramStr}</span></div>
-                  : null;
-              })()
-            : null}
+          {Array.isArray(file.input_context.inputFiles) && (file.input_context.inputFiles as string[]).length > 0 && (
+            <div><span className="text-muted-foreground">Input files: </span>{(file.input_context.inputFiles as string[]).join(", ")}</div>
+          )}
         </div>
       )}
     </div>
