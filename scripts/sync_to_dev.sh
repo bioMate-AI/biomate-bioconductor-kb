@@ -29,6 +29,24 @@ AZ="us-west-2a"
 EC2_USER="ubuntu"
 EC2_HOST="52.42.49.175"
 KEY_FILE="/tmp/biomate_ec2_key_sync"
+
+# SSM session-manager-plugin — needed by ProxyCommand below.
+# We install it user-local so no sudo is required.
+export PATH="$HOME/bin:$PATH"
+if ! command -v session-manager-plugin &>/dev/null; then
+  _ARCH=$(uname -m)
+  _SSM_URL="https://s3.amazonaws.com/session-manager-downloads/plugin/latest/mac_arm64/sessionmanager-bundle.zip"
+  [[ "$_ARCH" != "arm64" ]] && _SSM_URL="https://s3.amazonaws.com/session-manager-downloads/plugin/latest/mac/sessionmanager-bundle.zip"
+  curl -sSL "$_SSM_URL" -o /tmp/ssm-bundle.zip 2>/dev/null && \
+    unzip -qo /tmp/ssm-bundle.zip -d /tmp/ssm-bundle/ 2>/dev/null && \
+    cp /tmp/ssm-bundle/sessionmanager-bundle/bin/session-manager-plugin "$HOME/bin/" && \
+    chmod +x "$HOME/bin/session-manager-plugin" && \
+    log "[ssm] session-manager-plugin installed to ~/bin"
+fi
+
+# SSH/SCP ProxyCommand — routes all connections through AWS SSM so that
+# port 22 does not need to be open in the security group.
+_SSM_PROXY="aws ssm start-session --target ${INSTANCE_ID} --document-name AWS-StartSSHSession --parameters portNumber=%p --region us-west-2"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 # Guard against accidentally running multiple syncs at once (per Lessons L7).
@@ -123,13 +141,17 @@ inject_key() {
 
 ec2_ssh() {
   inject_key > /dev/null
-  ssh -i "$KEY_FILE" -o StrictHostKeyChecking=no -o ConnectTimeout=15 -o IdentitiesOnly=yes \
-    "${EC2_USER}@${EC2_HOST}" "$@"
+  ssh -i "$KEY_FILE" \
+    -o ProxyCommand="$_SSM_PROXY" \
+    -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o IdentitiesOnly=yes \
+    "${EC2_USER}@${INSTANCE_ID}" "$@"
 }
 
 ec2_scp() {
   inject_key > /dev/null
-  scp -i "$KEY_FILE" -o StrictHostKeyChecking=no -o IdentitiesOnly=yes "$@"
+  scp -i "$KEY_FILE" \
+    -o ProxyCommand="$_SSM_PROXY" \
+    -o StrictHostKeyChecking=no -o IdentitiesOnly=yes "$@"
 }
 
 # ---------------------------------------------------------------------------
@@ -1286,13 +1308,9 @@ fi
 _LOCAL_DB_MD5="$(md5 -q "$_LOCAL_DB" 2>/dev/null || md5sum "$_LOCAL_DB" 2>/dev/null | cut -d' ' -f1 || echo '')"
 if [[ -n "$_LOCAL_DB_MD5" ]]; then
   # Fetch the actual dev DB md5 via SSH. One cheap round-trip saves 300MB transfer.
-  _DEV_DB_MD5="$(inject_key > /dev/null 2>&1; \
-    ssh -i "$KEY_FILE" -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o IdentitiesOnly=yes \
-      "${EC2_USER}@${EC2_HOST}" \
+  _DEV_DB_MD5="$(ec2_ssh \
       'docker exec biomate-galaxy-dev md5sum /app/database/galaxy_ai_tools.db 2>/dev/null | cut -d" " -f1' 2>/dev/null || echo '')"
-  _DEV_DB_SIZE="$(inject_key > /dev/null 2>&1; \
-    ssh -i "$KEY_FILE" -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o IdentitiesOnly=yes \
-      "${EC2_USER}@${EC2_HOST}" \
+  _DEV_DB_SIZE="$(ec2_ssh \
       'docker exec biomate-galaxy-dev stat -c %s /app/database/galaxy_ai_tools.db 2>/dev/null || echo 0' 2>/dev/null || echo '0')"
   if [[ "$_LOCAL_DB_MD5" != "$_DEV_DB_MD5" ]]; then
     CHANGED="$CHANGED"$'\n'"backend/database/"
