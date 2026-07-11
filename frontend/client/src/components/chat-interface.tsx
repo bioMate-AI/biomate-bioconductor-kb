@@ -483,6 +483,15 @@ export function ChatInterface({
   const [isCompressing, setIsCompressing] = useState(false)
   const [currentTokenCount, setCurrentTokenCount] = useState(0)
   const [compressionDismissed, setCompressionDismissed] = useState(false)
+
+  // Active LLM model badge (OpenRouter only)
+  const [activeLLMModel, setActiveLLMModel] = useState<string | null>(null)
+  useEffect(() => {
+    fetch('/api/user/llm-api-keys', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.openrouter && d.selected_model) setActiveLLMModel(d.selected_model) })
+      .catch(() => {})
+  }, [])
   const [onboardingDone, setOnboardingDone] = useState(() =>
     typeof window !== 'undefined' && localStorage.getItem(ONBOARDING_DONE_KEY) === '1'
   )
@@ -1870,13 +1879,23 @@ export function ChatInterface({
         data-highlighted-message-id={highlightedAnchorMessageId || ""}
         data-generating={isTypingLocal ? "true" : "false"}
       />
-      {/* Compression status badge */}
-      {currentTokenCount > 0 && (
-        <div className="flex justify-end p-2 border-b bg-background/95">
-          <CompressionStatusBadge
-            currentTokens={currentTokenCount}
-            tokenLimit={200000}
-          />
+      {/* Compression status badge + active LLM model badge */}
+      {(currentTokenCount > 0 || activeLLMModel) && (
+        <div className="flex items-center justify-between p-2 border-b bg-background/95">
+          {activeLLMModel ? (
+            <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
+              {activeLLMModel}
+              <button
+                onClick={() => { setActiveLLMModel(null); fetch('/api/user/llm-api-keys', { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'openrouter', key: '' }) }).catch(() => {}); }}
+                className="ml-0.5 hover:text-destructive"
+                title="Clear OpenRouter key — revert to BioMate default"
+                aria-label="Clear OpenRouter model"
+              >×</button>
+            </span>
+          ) : <span />}
+          {currentTokenCount > 0 && (
+            <CompressionStatusBadge currentTokens={currentTokenCount} tokenLimit={200000} />
+          )}
         </div>
       )}
 

@@ -14,6 +14,7 @@
 import { resolveChainHintNames } from './chain-hint-fallback';
 import { jsonrepair } from 'jsonrepair';
 import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { callGeminiFlash } from './gemini-flash';
@@ -33,6 +34,10 @@ const _galaxyAPIRequestStorage = new AsyncLocalStorage<GalaxyAPIProxy>();
 // inside this storage so _getClaude() returns a client scoped to their key.
 // Falls back to the singleton's this.claude (system key) when not set.
 const _anthropicOverride = new AsyncLocalStorage<Anthropic>();
+
+// Per-request OpenRouter client. Set in processMessage() when the user has
+// configured an OpenRouter key; _getOpenRouterClient() returns it or null.
+const _openrouterClientStorage = new AsyncLocalStorage<OpenAI>();
 import { conversationStateManager } from './conversation-state';
 import { shouldInjectDatasets } from './dataset-injection-gate';
 import { userPatternsService, type UserContext } from './user-patterns-service';
@@ -330,6 +335,16 @@ export interface ChatContext {
    * of the system key. Never logged or stored beyond the request lifecycle.
    */
   userAnthropicApiKey?: string;
+  /**
+   * OpenRouter API key (sk-or-…). When set alongside selectedModel, all LLM
+   * calls for this request route through OpenRouter instead of Anthropic.
+   */
+  openrouterKey?: string;
+  /**
+   * OpenRouter model slug, e.g. "deepseek/deepseek-chat-v3-5".
+   * Ignored unless openrouterKey is also set.
+   */
+  selectedModel?: string;
 }
 
 export interface ToolRecommendation {
@@ -2106,6 +2121,71 @@ export class GalaxyAssistant {
     return _anthropicOverride.getStore() ?? this.claude;
   }
 
+  /** Returns the OpenRouter OpenAI client if set for this request, otherwise null. */
+  private _getOpenRouterClient(): OpenAI | null {
+    return _openrouterClientStorage.getStore() ?? null;
+  }
+
+  /**
+   * Streaming chat via OpenRouter. Used when the user has configured their own
+   * OpenRouter key and selected model (e.g. DeepSeek, Qwen, Llama).
+   * Returns a full GalaxyAssistantResponse with text only — no workflow generation.
+   */
+  private async _generateChatWithOpenRouter(
+    message: string,
+    context: ChatContext,
+    onResponseDelta?: (chunk: string) => void,
+  ): Promise<GalaxyAssistantResponse> {
+    const client = this._getOpenRouterClient();
+    if (!client) throw new Error('OpenRouter client not set');
+    const model = context.selectedModel ?? 'deepseek/deepseek-chat-v3-5';
+
+    const ltmBlock = context.ltmContextBlock
+      ? `<long_term_memory>\n${context.ltmContextBlock}\n</long_term_memory>\n\n`
+      : '';
+    const projectBlock = context.projectContext
+      ? `<project_context>\n${context.projectContext}\n</project_context>\n\n`
+      : '';
+
+    const systemPrompt = `${ltmBlock}${projectBlock}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge across genomics, transcriptomics, proteomics, drug discovery, cryo-EM, and clinical research.
+
+Provide accurate, evidence-based answers. Be concise and direct. When you don't know something, say so. For computational analyses that require running code or workflows on biological data, let the user know they can switch to the BioMate default model which supports live workflow execution on AWS Batch.`;
+
+    const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
+      ...(context.previousMessages ?? []).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+      { role: 'user', content: message },
+    ];
+
+    const openaiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      { role: 'system', content: systemPrompt },
+      ...messages,
+    ];
+
+    let fullText = '';
+    try {
+      const stream = await client.chat.completions.create({
+        model,
+        messages: openaiMessages,
+        stream: true,
+        max_tokens: 4096,
+        temperature: 0.3,
+      });
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta?.content ?? '';
+        if (delta) {
+          fullText += delta;
+          onResponseDelta?.(delta);
+        }
+      }
+    } catch (err: any) {
+      const errMsg = `OpenRouter error (${model}): ${err.message ?? 'unknown error'}`;
+      onResponseDelta?.(errMsg);
+      return { message: errMsg, intentType: 'research_question', suggestions: [], sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: false, thinkingUsed: false, researchAgentUsed: false, benchmarkAgentUsed: false } };
+    }
+
+    return { message: fullText, intentType: 'research_question', suggestions: [], sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: false, thinkingUsed: false, researchAgentUsed: false, benchmarkAgentUsed: false } };
+  }
+
   /**
    * Generate a response using Gemini as the backbone LLM.
    * Handles streaming via Google's GenerativeAI SDK.
@@ -3004,6 +3084,23 @@ Rules:
     // helper method picks it up. Skip the wrapper if no override is provided.
     const overrideProxy = context.galaxyAPIOverride as GalaxyAPIProxy | undefined;
     const userAnthropicKey = context.userAnthropicApiKey;
+    const openrouterKey = context.openrouterKey;
+
+    // OpenRouter path: bypass the Anthropic pipeline entirely and stream directly
+    // through OpenRouter's OpenAI-compatible API. Tool use / workflow generation
+    // is not available on this path — users can switch back to default for that.
+    if (openrouterKey) {
+      const orClient = new OpenAI({
+        baseURL: 'https://openrouter.ai/api/v1',
+        apiKey: openrouterKey,
+        defaultHeaders: {
+          'HTTP-Referer': 'https://biomate.ai',
+          'X-Title': 'BioMate',
+        },
+      });
+      return _openrouterClientStorage.run(orClient, () =>
+        this._generateChatWithOpenRouter(message, context, onResponseDelta));
+    }
 
     const runInner = () => {
       if (overrideProxy) {

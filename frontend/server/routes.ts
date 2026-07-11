@@ -5824,16 +5824,22 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
-      // Load user's own Anthropic key if stored; decrypt for this request only.
+      // Load user's own LLM keys if stored; decrypt for this request only.
       let _userAnthropicApiKey: string | undefined;
+      let _openrouterKey: string | undefined;
+      let _selectedModel: string | undefined;
       if (req.user?.id) {
         try {
           const _keyRow = await pool.query(
             `SELECT llm_api_keys FROM users WHERE id = $1 LIMIT 1`,
             [req.user.id]
           );
-          const _enc = (_keyRow.rows[0]?.llm_api_keys as any)?.anthropic;
-          if (_enc) _userAnthropicApiKey = decryptField(_enc);
+          const _stored = _keyRow.rows[0]?.llm_api_keys as any;
+          const _encAnthropic = _stored?.anthropic;
+          if (_encAnthropic) _userAnthropicApiKey = decryptField(_encAnthropic);
+          const _encOpenrouter = _stored?.openrouter;
+          if (_encOpenrouter) _openrouterKey = decryptField(_encOpenrouter);
+          if (_stored?.selected_model) _selectedModel = _stored.selected_model;
         } catch { /* non-fatal — fall back to system key */ }
       }
 
@@ -5845,6 +5851,8 @@ ${paramLines || '(none recorded)'}`;
         projectId: _resolvedProjectId,
         projectContext: _projectContext,
         userAnthropicApiKey: _userAnthropicApiKey,
+        openrouterKey: _openrouterKey,
+        selectedModel: _selectedModel,
         // memorySessionId must be the LTM sessions.id (uuid) so recordEpisode's
         // project_episodes.session_id FK is satisfied. If the bridge call
         // failed (no LTM session created), leave it undefined and let
@@ -6701,8 +6709,12 @@ ${paramLines || '(none recorded)'}`;
         `SELECT llm_api_keys FROM users WHERE id = $1`,
         [req.user!.id]
       );
-      const stored = row.rows[0]?.llm_api_keys ?? {};
-      res.json({ anthropic: !!(stored as any)?.anthropic });
+      const stored = (row.rows[0]?.llm_api_keys ?? {}) as any;
+      res.json({
+        anthropic: !!stored.anthropic,
+        openrouter: !!stored.openrouter,
+        selected_model: stored.selected_model ?? null,
+      });
     } catch (error: any) {
       console.error('[llm-api-keys] get error:', error?.message);
       res.status(500).json({ error: 'Failed to get LLM API keys' });
@@ -6711,25 +6723,35 @@ ${paramLines || '(none recorded)'}`;
 
   app.patch("/api/user/llm-api-keys", authenticateToken, express.json(), async (req, res) => {
     try {
-      const { provider, key } = req.body ?? {};
-      if (typeof provider !== 'string' || !['anthropic'].includes(provider)) {
-        return res.status(400).json({ error: 'provider must be "anthropic"' });
+      const { provider, key, selected_model } = req.body ?? {};
+      const VALID_PROVIDERS = ['anthropic', 'openrouter'];
+      if (provider !== undefined && (typeof provider !== 'string' || !VALID_PROVIDERS.includes(provider))) {
+        return res.status(400).json({ error: `provider must be one of: ${VALID_PROVIDERS.join(', ')}` });
       }
       const rowResult = await pool.query(
         `SELECT llm_api_keys FROM users WHERE id = $1`,
         [req.user!.id]
       );
       const existing: Record<string, string> = rowResult.rows[0]?.llm_api_keys ?? {};
-      if (typeof key === 'string' && key.trim().length > 0) {
-        existing[provider] = encryptField(key.trim());
-      } else {
-        delete existing[provider];
+      if (provider) {
+        if (typeof key === 'string' && key.trim().length > 0) {
+          existing[provider] = encryptField(key.trim());
+        } else if (key !== undefined) {
+          delete existing[provider];
+        }
+      }
+      if (selected_model !== undefined) {
+        if (typeof selected_model === 'string' && selected_model.trim().length > 0) {
+          existing.selected_model = selected_model.trim();
+        } else {
+          delete existing.selected_model;
+        }
       }
       await pool.query(
         `UPDATE users SET llm_api_keys = $1::jsonb, updated_at = NOW() WHERE id = $2`,
         [JSON.stringify(existing), req.user!.id]
       );
-      res.json({ ok: true, anthropic: !!existing.anthropic });
+      res.json({ ok: true, anthropic: !!existing.anthropic, openrouter: !!existing.openrouter, selected_model: existing.selected_model ?? null });
     } catch (error: any) {
       console.error('[llm-api-keys] patch error:', error?.message);
       res.status(500).json({ error: 'Failed to update LLM API keys' });
