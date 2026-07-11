@@ -64,6 +64,11 @@ ROLLBACK_READY=0        # 1 once the pre-sync snapshot is taken
 RB_SNAPSHOT_FRONTEND=0  # 1 if the frontend image was snapshotted this run
 RB_GALAXY_IMAGE="biomate-galaxy-dev:rollback"   # snapshot tag (overwritten each run)
 
+# Persistent host directory that survives container recreation.
+# Mounted at /app/database inside every Galaxy container so the DB is never
+# wiped when the container is recreated from an older image.
+GALAXY_DB_HOST_PATH="/opt/biomate/galaxy_db"
+
 notify_sync() {
   local rc="$1" state subject note
   case "${SYNC_RESULT:-}" in
@@ -544,25 +549,26 @@ deploy_databases() {
       fi
       echo "[db] transfer verified: ${transferred_size} bytes"
     ' || { log "[db] transfer size check failed — aborting"; return 1; }
-    ec2_ssh '
-      docker stop biomate-galaxy-dev 2>/dev/null || true
-      docker cp /tmp/galaxy_ai_tools_sync.db \
-        biomate-galaxy-dev:/app/database/galaxy_ai_tools.db
-      docker start biomate-galaxy-dev
-      docker network connect biomate-dev-net biomate-galaxy-dev 2>/dev/null || true
-      sleep 3
-      docker exec -u root biomate-galaxy-dev chown galaxy:galaxy /app/database/galaxy_ai_tools.db
-      sleep 5
-      # Verify the copy landed correctly — catch any docker cp corruption.
-      dev_size=$(docker exec biomate-galaxy-dev stat -c %s /app/database/galaxy_ai_tools.db 2>/dev/null || echo 0)
-      dev_md5=$(docker exec biomate-galaxy-dev md5sum /app/database/galaxy_ai_tools.db 2>/dev/null | cut -d" " -f1)
-      if [[ "$dev_size" -lt 10485760 ]]; then
-        echo "[db] ERROR: dev DB is only ${dev_size}B after copy — DB may be corrupt" >&2
-      else
-        echo "[db] galaxy_ai_tools.db replaced OK (size=${dev_size}B md5=${dev_md5})"
+    ec2_ssh "
+      # Write to the host volume path directly — persists across container restarts.
+      mkdir -p $GALAXY_DB_HOST_PATH
+      mv /tmp/galaxy_ai_tools_sync.db $GALAXY_DB_HOST_PATH/galaxy_ai_tools.db
+      chown \$(id -u):\$(id -g) $GALAXY_DB_HOST_PATH/galaxy_ai_tools.db 2>/dev/null || true
+      # Verify the file landed correctly.
+      dev_size=\$(stat -c %s $GALAXY_DB_HOST_PATH/galaxy_ai_tools.db 2>/dev/null || echo 0)
+      dev_md5=\$(md5sum $GALAXY_DB_HOST_PATH/galaxy_ai_tools.db 2>/dev/null | cut -d' ' -f1)
+      if [[ \"\$dev_size\" -lt 10485760 ]]; then
+        echo '[db] ERROR: host-volume DB is only '\${dev_size}'B after copy — DB may be corrupt' >&2
+        exit 1
       fi
-      rm -f /tmp/galaxy_ai_tools_sync.db
-    '
+      echo \"[db] galaxy_ai_tools.db written to host volume (size=\${dev_size}B md5=\${dev_md5})\"
+      # Also update the live container's in-process copy so Galaxy picks it up
+      # without a restart (the volume mount will serve it on next restart anyway).
+      docker exec -u root biomate-galaxy-dev cp $GALAXY_DB_HOST_PATH/galaxy_ai_tools.db \
+        /app/database/galaxy_ai_tools.db 2>/dev/null \
+        && docker exec -u root biomate-galaxy-dev chown galaxy:galaxy \
+             /app/database/galaxy_ai_tools.db 2>/dev/null || true
+    "
     # Rebuild the workflow embedding NPZ inside the container so the next
     # Galaxy startup finds a fresh index and never blocks at request time.
     # The Python command uses only double quotes (no apostrophes) so the
@@ -712,6 +718,7 @@ resync_galaxy_env() {
       --network "$NETWORK" \
       $PORTS \
       $MOUNTS \
+      -v $GALAXY_DB_HOST_PATH:/app/database \
       --restart unless-stopped \
       --env-file "$ENV_FILE" \
       $(awk "{print \"-e\", \$0}" "$LIVE_ENV" | tr "\n" " ") \
@@ -991,6 +998,41 @@ snapshot_for_rollback() {
   fi
 }
 
+smoke_test_workflow() {
+  # Call workflow generation directly on Galaxy — validates the DB schema and
+  # AI stack are functional, not just that the HTTP server is up.
+  # Returns 0 (pass) or 1 (fail). Called after postsync_health_ok passes.
+  log "[smoke] Testing workflow generation (Galaxy localhost:8081)..."
+  ec2_ssh '
+    result=$(curl -s --max-time 25 http://localhost:8081/api/ai_assistant/generate_workflow \
+      -X POST -H "Content-Type: application/json" \
+      -d "{\"request_text\":\"run RNA-seq differential expression analysis\",\"user_id\":\"1\"}" 2>/dev/null)
+    if [[ -z "$result" ]]; then
+      echo "[smoke] FAIL — no response from Galaxy workflow endpoint" >&2
+      exit 1
+    fi
+    ok=$(echo "$result" | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    err = d.get(\"error\", \"\")
+    success = d.get(\"success\", False)
+    wf = bool(d.get(\"workflow_ga\") or d.get(\"nextflow_path\"))
+    if err == \"db_unavailable\":
+        print(\"FAIL db_unavailable\"); sys.exit(1)
+    if err:
+        print(f\"FAIL error={err}\"); sys.exit(1)
+    if not success or not wf:
+        print(f\"FAIL success={success} wf={wf}\"); sys.exit(1)
+    print(\"PASS workflow=\" + str(d.get(\"workflow_ga\",{}).get(\"name\",\"?\"))); sys.exit(0)
+except Exception as e:
+    print(f\"FAIL parse_error={e}\"); sys.exit(1)
+" 2>&1)
+    echo "[smoke] $ok"
+    echo "$ok" | grep -q "^PASS" && exit 0 || exit 1
+  '
+}
+
 postsync_health_ok() {
   # Probe the dev host's mapped ports; retry to ride out HUP / cold start.
   # $1 = number of 5s retries (default 48 = 240s).
@@ -1022,7 +1064,9 @@ rollback_sync() {
     docker rm -f biomate-galaxy-dev >/dev/null 2>&1 || true
     # Use --env-file instead of per-var -e flags: avoids word-splitting bugs when
     # env values contain spaces or shell-special chars.
-    docker run -d --name biomate-galaxy-dev --network \"\$NET\" \$PORTS --restart unless-stopped --env-file /tmp/galaxy_rollback.env $RB_GALAXY_IMAGE >/dev/null
+    docker run -d --name biomate-galaxy-dev --network \"\$NET\" \$PORTS \
+      -v $GALAXY_DB_HOST_PATH:/app/database \
+      --restart unless-stopped --env-file /tmp/galaxy_rollback.env $RB_GALAXY_IMAGE >/dev/null
     docker network connect biomate-dev-net biomate-galaxy-dev 2>/dev/null || true
     echo '[rollback]   galaxy recreated from snapshot'
   "; then
@@ -1076,8 +1120,12 @@ do_sync() {
 
   local do_frontend=false do_backend=false do_workflows=false do_db=false
 
-  # Determine what changed
-  echo "$changed_paths" | grep -q "^frontend/" && do_frontend=true
+  # Determine what changed.
+  # Test/spec files and e2e fixtures don't affect the production Docker image —
+  # exclude them so a test-only commit doesn't force an expensive full rebuild.
+  _runtime_frontend="$(echo "$changed_paths" | grep "^frontend/" | \
+    grep -vE '\.(test|spec)\.(ts|tsx|js)$|^frontend/e2e/' || true)"
+  [[ -n "$_runtime_frontend" ]] && do_frontend=true
   echo "$changed_paths" | grep -q "^backend/lib/" && do_backend=true
   echo "$changed_paths" | grep -qE "^backend/biomni_workflows/|^backend/nf-core-workflows/modules/biomate-ai-tools/" && do_workflows=true
   echo "$changed_paths" | grep -q "^backend/database/" && do_db=true
@@ -1157,8 +1205,13 @@ do_sync() {
   if [[ "$ROLLBACK_READY" == 1 ]]; then
     log "[health] Verifying dev health after sync..."
     if postsync_health_ok 120; then
-      log "[health] ✓ dev healthy after sync"
-      SYNC_RESULT=healthy
+      if smoke_test_workflow; then
+        log "[health] ✓ dev healthy + smoke test passed"
+        SYNC_RESULT=healthy
+      else
+        log "[health] ✗ smoke test FAILED (workflow generation broken) — auto-rolling back"
+        rollback_sync || true
+      fi
     else
       log "[health] ✗ dev UNHEALTHY after sync — auto-rolling back"
       rollback_sync || true
