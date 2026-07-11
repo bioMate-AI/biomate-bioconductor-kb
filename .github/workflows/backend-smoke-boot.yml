@@ -60,7 +60,7 @@ jobs:
                         pyotp 'qrcode[pil]' pdfplumber \
                         pyyaml typing-extensions \
                         anyio python-multipart \
-                        networkx \
+                        networkx numpy \
                         httpx  # ind_actions_router transitively imports llm_client → httpx
                                # and a graph builder (workflow_optimizer) → networkx
 
