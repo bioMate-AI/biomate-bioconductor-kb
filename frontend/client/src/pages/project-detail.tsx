@@ -263,8 +263,9 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   const handleAnalyzeClick = () => {
     let msg: string | undefined
     if (projectFiles.length > 0) {
-      const fileList = projectFiles.map(f => `- ${f.name}`).join("\n")
-      msg = `I've uploaded these files to my project:\n${fileList}\nPlease suggest the right workflow and run it.`
+      const fmt = (n?: number) => !n ? "" : n < 1024 ? ` (${n} B)` : n < 1048576 ? ` (${(n/1024).toFixed(1)} KB)` : ` (${(n/1048576).toFixed(1)} MB)`
+      const fileList = projectFiles.map(f => `- ${f.name}${fmt(f.size)}`).join("\n")
+      msg = `I've uploaded these files to my project:\n${fileList}\nPlease analyze these files and suggest the right workflow.`
     }
     openChatWithProject(undefined, msg)
   }

@@ -1,5 +1,6 @@
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
+use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_store::StoreExt;
 use serde::{Deserialize, Serialize};
 
@@ -106,6 +107,17 @@ async fn pick_output_directory(app: AppHandle) -> Result<Option<String>, String>
          .map(|p| p.to_string_lossy().to_string()))
 }
 
+// ── OS notifications ───────────────────────────────────────────────────────
+
+#[tauri::command]
+fn notify(app: AppHandle, title: String, body: String) {
+    let _ = app.notification()
+        .builder()
+        .title(&title)
+        .body(&body)
+        .show();
+}
+
 // ── Update check ───────────────────────────────────────────────────────────
 
 #[tauri::command]
@@ -194,6 +206,7 @@ pub fn run() {
             pick_files,
             pick_output_directory,
             get_app_info,
+            notify,
             check_for_update,
             get_pending_deep_link,
         ])

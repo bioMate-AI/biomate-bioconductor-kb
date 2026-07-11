@@ -111,14 +111,9 @@ export async function desktopGetAppInfo(): Promise<AppInfo | null> {
  * Requires `tauri-plugin-notification` to be registered (already done).
  */
 export function desktopNotify(title: string, body: string): void {
-  if (typeof window === 'undefined') return;
-  const notification = (window as any).__TAURI__?.notification;
-  if (!notification) return;
-  try {
-    notification.sendNotification({ title, body });
-  } catch {
-    // Non-fatal — notifications are best-effort
-  }
+  const invoke = getInvoke();
+  if (!invoke) return;
+  invoke("notify", { title, body }).catch(() => {/* best-effort */});
 }
 
 // ── Update check ───────────────────────────────────────────────────────────
