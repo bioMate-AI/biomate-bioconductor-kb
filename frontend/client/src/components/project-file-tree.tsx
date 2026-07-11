@@ -246,7 +246,7 @@ function FileRow({
         )}
       </div>
       {previewOpen && previewUrl && <FilePreview url={previewUrl} name={file.name} />}
-      {previewOpen && file.input_context && (file.input_context.intent || file.input_context.inputFiles) && (
+      {previewOpen && file.input_context && (typeof file.input_context.intent === 'string' || Array.isArray(file.input_context.inputFiles)) && (
         <div className="ml-9 mt-1 mb-2 rounded border border-border bg-muted/30 p-2 text-xs space-y-1.5">
           {typeof file.input_context.intent === 'string' && (
             <div className="italic text-foreground/80">"{file.input_context.intent}"</div>
