@@ -79,6 +79,8 @@ async function ensureProjectFilesTable(): Promise<void> {
   await pool.query(`CREATE INDEX IF NOT EXISTS project_files_project_idx ON project_files(project_id)`);
   // Idempotent column additions for run_output support.
   await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS workflow_name TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS step_name TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS input_context JSONB`).catch(() => {});
 }
 // Run once on startup — idempotent
 ensureProjectFilesTable().catch(e => console.error("[project_files] table init failed:", e?.message ?? e));
@@ -256,7 +258,7 @@ export function registerProjectRoutes(app: Express): void {
         return res.status(404).json({ error: "Project not found" });
       }
       const result = await pool.query(
-        `SELECT id, name, s3_key, size, content_type, source, run_id, workflow_name, created_at
+        `SELECT id, name, s3_key, size, content_type, source, run_id, workflow_name, step_name, input_context, created_at
          FROM project_files WHERE project_id = $1 ORDER BY created_at DESC`,
         [id]
       );
@@ -469,9 +471,10 @@ export async function registerRunOutputsInProject(opts: {
   userId: string;
   runId: string;
   workflowName: string;
-  files: Array<{ name: string; s3Key: string; size?: number; contentType?: string }>;
+  inputContext?: Record<string, unknown>; // run parameters + input file names
+  files: Array<{ name: string; s3Key: string; size?: number; contentType?: string; stepName?: string }>;
 }): Promise<number> {
-  const { projectId, userId, runId, workflowName, files } = opts;
+  const { projectId, userId, runId, workflowName, inputContext, files } = opts;
   if (!files.length) return 0;
 
   // Ensure the unique constraint exists — idempotent DDL.
@@ -480,13 +483,28 @@ export async function registerRunOutputsInProject(opts: {
       ON project_files(project_id, s3_key)
   `).catch(() => { /* already exists */ });
 
+  const inputCtxJson = inputContext ? JSON.stringify(inputContext) : null;
+
   let inserted = 0;
   for (const f of files) {
+    // Infer step name from S3 path when not explicitly provided.
+    // nf-core publishDir paths: .../output/<step_name>/filename
+    // We take the directory component immediately before the filename.
+    const stepName = f.stepName ?? (() => {
+      const parts = f.s3Key.split("/");
+      if (parts.length >= 2) {
+        const dir = parts[parts.length - 2];
+        // Skip generic dirs like 'output', 'results', 'work', UUIDs
+        if (dir && !/^(output|results|work|publish|[0-9a-f]{8,})$/i.test(dir)) return dir;
+      }
+      return null;
+    })();
+
     try {
       const res = await pool.query(
         `INSERT INTO project_files
-           (project_id, user_id, name, s3_key, size, content_type, source, run_id, workflow_name)
-         VALUES ($1, $2, $3, $4, $5, $6, 'run_output', $7, $8)
+           (project_id, user_id, name, s3_key, size, content_type, source, run_id, workflow_name, step_name, input_context)
+         VALUES ($1, $2, $3, $4, $5, $6, 'run_output', $7, $8, $9, $10)
          ON CONFLICT (project_id, s3_key) DO NOTHING`,
         [
           projectId,
@@ -497,6 +515,8 @@ export async function registerRunOutputsInProject(opts: {
           f.contentType || "application/octet-stream",
           runId,
           workflowName,
+          stepName ?? null,
+          inputCtxJson,
         ]
       );
       if ((res.rowCount ?? 0) > 0) inserted++;

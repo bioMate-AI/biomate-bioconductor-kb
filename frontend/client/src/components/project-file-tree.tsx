@@ -43,6 +43,8 @@ interface ProjectFile {
   source: "upload" | "run_output" | string;
   run_id: string | null;
   workflow_name: string | null;
+  step_name: string | null;
+  input_context: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -201,6 +203,11 @@ function FileRow({
       >
         <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         <span className="flex-1 truncate text-xs text-foreground">{file.name}</span>
+        {file.step_name && (
+          <span className="text-[10px] px-1 py-0.5 rounded bg-blue-100 text-blue-700 shrink-0 font-mono" title={`Produced by step: ${file.step_name}`}>
+            {file.step_name}
+          </span>
+        )}
         <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{formatBytes(file.size)}</span>
         {showPreview && (
           <button
@@ -239,6 +246,26 @@ function FileRow({
         )}
       </div>
       {previewOpen && previewUrl && <FilePreview url={previewUrl} name={file.name} />}
+      {previewOpen && file.input_context && (
+        <div className="ml-9 mt-1 mb-2 rounded border border-border bg-muted/30 p-2 text-xs space-y-1">
+          <div className="font-semibold text-muted-foreground mb-1">Input context</div>
+          {Array.isArray(file.input_context.inputs) && (file.input_context.inputs as string[]).length > 0 && (
+            <div><span className="text-muted-foreground">Inputs: </span>{(file.input_context.inputs as string[]).join(", ")}</div>
+          )}
+          {(file.input_context.parameters && typeof file.input_context.parameters === 'object')
+            ? (() => {
+                const paramStr = Object.entries(file.input_context!.parameters as Record<string, string>)
+                  .filter(([, v]) => v != null && String(v) !== "")
+                  .slice(0, 6)
+                  .map(([k, v]) => `${k}=${String(v)}`)
+                  .join("  ");
+                return paramStr
+                  ? <div><span className="text-muted-foreground">Parameters: </span><span className="font-mono">{paramStr}</span></div>
+                  : null;
+              })()
+            : null}
+        </div>
+      )}
     </div>
   );
 }

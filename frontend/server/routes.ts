@@ -12070,19 +12070,33 @@ Rules:
       }
 
       const { registerRunOutputsInProject } = await import("./project-routes");
+
+      // Build input context from run metadata — parameters + input file/dataset names.
+      const runParams = (run as any).parameters ?? {};
+      const inputDatasets: string[] = ((run as any).inputDatasets ?? []).map((d: any) => d.name || d.id || String(d));
+      const inputContext = {
+        workflow: (run as any).workflowName,
+        parameters: runParams?.toolParameters ?? runParams,
+        inputs: inputDatasets.length ? inputDatasets : undefined,
+        runId: run.id,
+      };
+
       const files = rawFiles.map((f: any) => {
         const uri: string = f.s3_uri || f.path || "";
         const s3Key = uri.startsWith("s3://") ? uri.replace(/^s3:\/\/[^/]+\//, "") : uri;
+        // step_name comes from the executor if present (task-level tagging), or inferred from path
+        const stepName: string | undefined = f.step_name || f.process_name || undefined;
         return {
           name: f.filename || f.name || s3Key.split("/").pop() || "file",
           s3Key,
           size: f.size ?? 0,
           contentType: f.content_type || "application/octet-stream",
+          stepName,
         };
       }).filter((f: any) => f.s3Key);
 
       const workflowName: string = (run as any).workflowName || "Workflow";
-      const count = await registerRunOutputsInProject({ projectId, userId: uid, runId: run.id, workflowName, files });
+      const count = await registerRunOutputsInProject({ projectId, userId: uid, runId: run.id, workflowName, inputContext, files });
 
       // Also persist projectId on the run so the UI can navigate to it.
       if (!(run as any).projectId) {
