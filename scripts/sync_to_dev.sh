@@ -296,6 +296,20 @@ deploy_galaxy_yml() {
     log "[galaxy.yml] interactivetools_conf.xml staged"
   fi
 
+  # Sync llm_providers.yml BEFORE the gunicorn restart too. The LLM fallback
+  # chain (FallbackChainManager) reads /app/config/llm_providers.yml at import;
+  # it controls per-provider retry_attempts + timeout_seconds. NOT covered by
+  # the Python file diff sync (it is a .yml under backend/config/, not backend/lib/),
+  # so without this the container keeps the image-baked config and latency fixes
+  # (retry 2->1, timeout 120->30) never reach dev. Caught 2026-07-10: workflow
+  # generation hung >120s on dev while the fix sat only in llm_providers.yml.
+  local llm_src="$REPO_ROOT/backend/config/llm_providers.yml"
+  if [[ -f "$llm_src" ]]; then
+    ec2_scp "$llm_src" "${EC2_USER}@${EC2_HOST}:/tmp/llm_providers.yml"
+    ec2_ssh 'docker cp /tmp/llm_providers.yml biomate-galaxy-dev:/app/config/llm_providers.yml'
+    log "[galaxy.yml] llm_providers.yml staged"
+  fi
+
   ec2_ssh '
     set -e
     docker cp /tmp/galaxy.yml biomate-galaxy-dev:/app/config/galaxy.yml
