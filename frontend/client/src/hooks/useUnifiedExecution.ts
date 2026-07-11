@@ -322,6 +322,18 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
             wfState === 'ok' ? 'Run Complete' : 'Run Failed',
             name
           );
+          // Auto-save outputs to project Files tab when run succeeds
+          if (wfState === 'ok') {
+            const activeProjectId = localStorage.getItem('biomate-active-project-id');
+            if (activeProjectId) {
+              fetch(`/api/workflows/runs/${runId}/save-to-project`, {
+                method: 'POST', credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectId: activeProjectId }),
+              }).then(() => window.dispatchEvent(new Event('biomate:project-files-updated')))
+                .catch(() => {});
+            }
+          }
         }
       }
 
@@ -522,6 +534,19 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
                 status.status === 'completed' ? 'Run Complete' : 'Run Failed',
                 name
               );
+            }
+            // Auto-save outputs to project Files tab when run succeeds
+            if (status.status === 'completed' && !notifiedRunsRef.current.has(runId + ':saved')) {
+              notifiedRunsRef.current.add(runId + ':saved');
+              const activeProjectId = localStorage.getItem('biomate-active-project-id');
+              if (activeProjectId) {
+                fetch(`/api/workflows/runs/${runId}/save-to-project`, {
+                  method: 'POST', credentials: 'include',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ projectId: activeProjectId }),
+                }).then(() => window.dispatchEvent(new Event('biomate:project-files-updated')))
+                  .catch(() => {});
+              }
             }
           }
 

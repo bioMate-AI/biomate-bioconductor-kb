@@ -154,6 +154,22 @@ fn get_pending_deep_link(app: tauri::AppHandle) -> Option<String> {
         .map(|u| u.to_string())
 }
 
+// ── Native save-file dialog ────────────────────────────────────────────────
+
+#[tauri::command]
+async fn save_file(app: AppHandle, suggested_name: String, base64: String) -> Result<(), String> {
+    use base64::{Engine as _, engine::general_purpose};
+    let bytes = general_purpose::STANDARD.decode(&base64).map_err(|e| e.to_string())?;
+    let path = app.dialog().file().set_file_name(&suggested_name).blocking_save_file();
+    match path {
+        Some(p) => {
+            let p = p.into_path().map_err(|e| e.to_string())?;
+            std::fs::write(&p, &bytes).map_err(|e| e.to_string())
+        }
+        None => Ok(()), // user cancelled
+    }
+}
+
 // ── App info ───────────────────────────────────────────────────────────────
 
 #[derive(Serialize)]
@@ -207,6 +223,7 @@ pub fn run() {
             pick_output_directory,
             get_app_info,
             notify,
+            save_file,
             check_for_update,
             get_pending_deep_link,
         ])

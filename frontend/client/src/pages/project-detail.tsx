@@ -53,6 +53,7 @@ import {
   Pencil,
   UserPlus,
   Users,
+  Download,
 } from "lucide-react"
 import {
   Select,
@@ -88,6 +89,8 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   const [runs, setRuns] = useState<any[]>([])
   const [runsLoading, setRunsLoading] = useState(false)
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null)
+  const [savingOutputs, setSavingOutputs] = useState(false)
+  const [saveOutputsMsg, setSaveOutputsMsg] = useState<string | null>(null)
   const [projectFiles, setProjectFiles] = useState<{ name: string; size?: number }[]>([])
 
   // Inline tag editing
@@ -627,15 +630,49 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                         status === "completed" ? "completed" :
                         status === "failed" || status === "errored" ? "failed" :
                         status === "running" ? "running" : "idle"
+                      const handleSaveOutputs = async () => {
+                        if (!projectId || !selectedRunId) return
+                        setSavingOutputs(true); setSaveOutputsMsg(null)
+                        try {
+                          const r = await fetch(`/api/workflows/runs/${selectedRunId}/save-to-project`, {
+                            method: 'POST', credentials: 'include',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ projectId }),
+                          })
+                          const d = await r.json()
+                          if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`)
+                          setSaveOutputsMsg(`${d.registered} file${d.registered !== 1 ? 's' : ''} saved to Files tab`)
+                          window.dispatchEvent(new Event('biomate:project-files-updated'))
+                        } catch (e: any) {
+                          setSaveOutputsMsg(`Error: ${e.message}`)
+                        } finally {
+                          setSavingOutputs(false)
+                        }
+                      }
                       return (
-                        <NextflowWorkflowViewer
-                          runId={selectedRunId}
-                          sessionId={run?.chatSessionId}
-                          workflowId={run?.workflowName}
-                          workflowDefinition={run?.workflowDefinition}
-                          status={wfStatus}
-                          errorMessage={run?.execution?.errorMessage}
-                        />
+                        <>
+                          {status === 'completed' && (
+                            <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/30">
+                              <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5"
+                                onClick={handleSaveOutputs} disabled={savingOutputs}>
+                                {savingOutputs
+                                  ? <><RefreshCw className="h-3 w-3 animate-spin" />Saving…</>
+                                  : <><Download className="h-3 w-3" />Save outputs to Files tab</>}
+                              </Button>
+                              {saveOutputsMsg && (
+                                <span className="text-xs text-muted-foreground">{saveOutputsMsg}</span>
+                              )}
+                            </div>
+                          )}
+                          <NextflowWorkflowViewer
+                            runId={selectedRunId}
+                            sessionId={run?.chatSessionId}
+                            workflowId={run?.workflowName}
+                            workflowDefinition={run?.workflowDefinition}
+                            status={wfStatus}
+                            errorMessage={run?.execution?.errorMessage}
+                          />
+                        </>
                       )
                     })()
                   ) : (
