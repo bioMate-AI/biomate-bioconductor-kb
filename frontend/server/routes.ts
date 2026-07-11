@@ -5843,6 +5843,13 @@ ${paramLines || '(none recorded)'}`;
         } catch { /* non-fatal — fall back to system key */ }
       }
 
+      // Fall back to system-level OpenRouter key if user has none.
+      // OPENROUTER_API_KEY in server env enables cheap Chinese models for all users.
+      if (!_openrouterKey && process.env.OPENROUTER_API_KEY) {
+        _openrouterKey = process.env.OPENROUTER_API_KEY;
+        if (!_selectedModel) _selectedModel = process.env.OPENROUTER_DEFAULT_MODEL || 'deepseek/deepseek-chat';
+      }
+
       const enrichedContext = {
         ...(context || {}),
         // Normalise session identity: frontend sends memorySessionId; processMessage uses sessionId.
