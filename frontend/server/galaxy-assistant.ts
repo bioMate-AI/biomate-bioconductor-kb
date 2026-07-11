@@ -2138,7 +2138,9 @@ export class GalaxyAssistant {
   ): Promise<GalaxyAssistantResponse> {
     const client = this._getOpenRouterClient();
     if (!client) throw new Error('OpenRouter client not set');
-    const model = context.selectedModel ?? 'deepseek/deepseek-chat-v3-5';
+    // Use the alias (no version suffix) so OpenRouter always routes to the latest model.
+    const FALLBACK_MODEL = 'deepseek/deepseek-chat';
+    const model = context.selectedModel || FALLBACK_MODEL;
 
     const ltmBlock = context.ltmContextBlock
       ? `<long_term_memory>\n${context.ltmContextBlock}\n</long_term_memory>\n\n`
@@ -2161,26 +2163,41 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
       ...messages,
     ];
 
-    let fullText = '';
-    try {
+    const tryStream = async (modelId: string): Promise<string> => {
       const stream = await client.chat.completions.create({
-        model,
+        model: modelId,
         messages: openaiMessages,
         stream: true,
         max_tokens: 4096,
         temperature: 0.3,
       });
+      let text = '';
       for await (const chunk of stream) {
         const delta = chunk.choices[0]?.delta?.content ?? '';
-        if (delta) {
-          fullText += delta;
-          onResponseDelta?.(delta);
-        }
+        if (delta) { text += delta; onResponseDelta?.(delta); }
       }
-    } catch (err: any) {
-      const errMsg = `OpenRouter error (${model}): ${err.message ?? 'unknown error'}`;
-      onResponseDelta?.(errMsg);
-      return { message: errMsg, intentType: 'research_question', suggestions: [], sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: false, thinkingUsed: false, researchAgentUsed: false, benchmarkAgentUsed: false } };
+      return text;
+    };
+
+    let fullText = '';
+    try {
+      fullText = await tryStream(model);
+    } catch (primaryErr: any) {
+      // Primary model failed — fall back to DeepSeek Chat (fast, cheap, reliable)
+      if (model !== FALLBACK_MODEL) {
+        try {
+          onResponseDelta?.(`\n\n*(${model} unavailable, switching to ${FALLBACK_MODEL})*\n\n`);
+          fullText = await tryStream(FALLBACK_MODEL);
+        } catch (fallbackErr: any) {
+          const errMsg = `OpenRouter error: ${fallbackErr.message ?? 'unknown error'}`;
+          onResponseDelta?.(errMsg);
+          return { message: errMsg, intentType: 'research_question', suggestions: [], sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: false, thinkingUsed: false, researchAgentUsed: false, benchmarkAgentUsed: false } };
+        }
+      } else {
+        const errMsg = `OpenRouter error (${model}): ${primaryErr.message ?? 'unknown error'}`;
+        onResponseDelta?.(errMsg);
+        return { message: errMsg, intentType: 'research_question', suggestions: [], sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: false, thinkingUsed: false, researchAgentUsed: false, benchmarkAgentUsed: false } };
+      }
     }
 
     return { message: fullText, intentType: 'research_question', suggestions: [], sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: false, thinkingUsed: false, researchAgentUsed: false, benchmarkAgentUsed: false } };

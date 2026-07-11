@@ -133,17 +133,13 @@ function useApiKeys(open: boolean) {
 }
 
 // ---------------------------------------------------------------------------
-// LLM Provider selection (BioMate default, Anthropic BYOK, or OpenRouter)
+// LLM Provider selection (BioMate default or OpenRouter)
 // ---------------------------------------------------------------------------
-const OPENROUTER_MODELS = [
-  { id: 'deepseek/deepseek-chat-v3-5', label: 'DeepSeek V3', note: 'recommended · ~10x cheaper' },
-  { id: 'deepseek/deepseek-r1', label: 'DeepSeek R1', note: 'reasoning' },
-  { id: 'qwen/qwen-2.5-72b-instruct', label: 'Qwen 2.5 72B', note: '' },
-  { id: 'qwen/qwen-2.5-coder-32b-instruct', label: 'Qwen 2.5 Coder 32B', note: '' },
-  { id: 'meta-llama/llama-3.1-405b-instruct', label: 'Llama 3.1 405B', note: '' },
-  { id: 'openai/gpt-4o', label: 'GPT-4o', note: '' },
-  { id: 'anthropic/claude-sonnet-4-6', label: 'Claude Sonnet 4.6', note: 'via OpenRouter' },
-] as const;
+const OPENROUTER_QUICK_PICKS = [
+  { id: 'deepseek/deepseek-chat', label: 'DeepSeek Chat' },
+  { id: 'deepseek/deepseek-r1', label: 'DeepSeek R1' },
+  { id: 'qwen/qwen-2.5-72b-instruct', label: 'Qwen 2.5' },
+];
 
 function useLlmApiKeys(open: boolean) {
   const [hasAnthropicKey, setHasAnthropicKey] = useState(false);
@@ -1062,20 +1058,23 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                       <CardContent className="pt-4 space-y-3">
                         {/* Model selector */}
                         <div className="space-y-1.5">
-                          <Label className="text-xs">Model</Label>
-                          <Select value={llmKeys.selectedModel} onValueChange={llmKeys.setSelectedModel}>
-                            <SelectTrigger className="h-8 text-xs" data-testid="select-llm-model">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {OPENROUTER_MODELS.map(m => (
-                                <SelectItem key={m.id} value={m.id} className="text-xs">
-                                  <span>{m.label}</span>
-                                  {m.note && <span className="ml-1.5 text-muted-foreground">{m.note}</span>}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <Label className="text-xs">Model <span className="text-muted-foreground font-normal">(any slug from openrouter.ai/models)</span></Label>
+                          <Input
+                            className="font-mono text-xs h-8"
+                            placeholder="e.g. deepseek/deepseek-chat"
+                            value={llmKeys.selectedModel}
+                            onChange={e => llmKeys.setSelectedModel(e.target.value)}
+                            data-testid="input-llm-model"
+                          />
+                          <div className="flex gap-1.5 flex-wrap">
+                            {OPENROUTER_QUICK_PICKS.map(m => (
+                              <button key={m.id} type="button"
+                                className="text-xs px-2 py-0.5 rounded border border-border hover:bg-accent transition-colors"
+                                onClick={() => llmKeys.setSelectedModel(m.id)}>
+                                {m.label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                         {/* API key input */}
                         {llmKeys.hasOpenrouterKey ? (
