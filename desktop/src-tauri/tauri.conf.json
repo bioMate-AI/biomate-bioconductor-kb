@@ -46,7 +46,7 @@
     "beforeDevCommand": "",
     "devUrl": "http://localhost:5000",
     "beforeBuildCommand": "",
-    "frontendDist": "../frontend/client/dist"
+    "frontendDist": "../../frontend/dist/public"
   },
 
   "bundle": {
@@ -61,8 +61,7 @@
     ],
     "macOS": {
       "entitlements": "entitlements.plist",
-      "signingIdentity": null,
-      "urlSchemes": ["biomate"]
+      "signingIdentity": null
     },
     "windows": {
       "certificateThumbprint": null,

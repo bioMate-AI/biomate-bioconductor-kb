@@ -1,4 +1,4 @@
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_store::StoreExt;
 use serde::{Deserialize, Serialize};
@@ -168,7 +168,7 @@ pub fn run() {
         .setup(|app| {
             use tauri_plugin_deep_link::DeepLinkExt;
             let handle = app.handle().clone();
-            app.deep_link().on_open_urls(move |event| {
+            app.deep_link().on_open_url(move |event| {
                 if let Some(url) = event.urls().first() {
                     if let Some(window) = handle.get_webview_window("main") {
                         let _ = window.emit("deep-link", url.to_string());
