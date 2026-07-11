@@ -78,11 +78,13 @@ function buildTree(files: ProjectFile[]): TreeNode[] {
     root.push({ type: "folder", name: "inputs", path: "inputs", children: inputs });
   }
   for (const [runId, nodes] of Object.entries(outputsByRun)) {
-    // Use the workflow name stored on any file in this run (they all share the same run).
-    const wfName = nodes[0]?.file?.workflow_name;
-    const label = wfName
-      ? `${wfName} (${runId.slice(0, 6)}…)`
-      : `outputs / ${runId.slice(0, 8)}…`;
+    const firstFile = nodes[0]?.file;
+    const wfName = firstFile?.workflow_name ?? "Workflow";
+    // Format: "nf-core/rnaseq · Jul 11 14:23" — lets users distinguish multiple runs
+    const ts = firstFile?.created_at
+      ? new Date(firstFile.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+      : runId.slice(0, 8);
+    const label = `${wfName} · ${ts}`;
     root.push({
       type: "folder",
       name: label,
