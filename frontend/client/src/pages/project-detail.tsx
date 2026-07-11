@@ -51,7 +51,16 @@ import {
   Archive,
   Trash2,
   Pencil,
+  UserPlus,
+  Users,
 } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { projectService } from "@/lib/projects"
 import { ProjectFileTree } from "@/components/project-file-tree"
 import { NextflowWorkflowViewer } from "@/components/nextflow-workflow-viewer"
@@ -121,6 +130,14 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
     } catch { setEditingTags(prev) }
   }
 
+  // Project sharing
+  const [isOwner, setIsOwner] = useState(false)
+  const [members, setMembers] = useState<Array<{ user_id: string; email: string; fullName?: string; role: string }>>([])
+  const [shareEmail, setShareEmail] = useState("")
+  const [shareRole, setShareRole] = useState<"viewer" | "editor">("viewer")
+  const [inviting, setInviting] = useState(false)
+  const [inviteError, setInviteError] = useState<string | null>(null)
+
   // Project lifecycle dialogs
   const [renameOpen, setRenameOpen] = useState(false)
   const [renameValue, setRenameValue] = useState("")
@@ -147,17 +164,55 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
             updatedAt: new Date(p.updatedAt ?? p.createdAt),
           } as any)
           setInstructionsValue(p.researchGoal ?? p.research_goal ?? p.instructions ?? "")
+          if (data.isOwner !== undefined) setIsOwner(data.isOwner)
         } else {
           const loc = projectService.getProject(projectId)
-          if (loc) { setProject(loc); setInstructionsValue(loc.instructions || "") }
+          if (loc) { setProject(loc); setInstructionsValue(loc.instructions || ""); setIsOwner(true) }
         }
       })
       .catch(() => {
         const loc = projectService.getProject(projectId)
-        if (loc) { setProject(loc); setInstructionsValue(loc.instructions || "") }
+        if (loc) { setProject(loc); setInstructionsValue(loc.instructions || ""); setIsOwner(true) }
       })
       .finally(() => setLoadingProject(false))
   }, [projectId])
+
+  const loadMembers = useCallback(async () => {
+    try {
+      const r = await fetch(`/api/projects/${projectId}/members`, { credentials: "include" })
+      if (r.ok) setMembers((await r.json()).members ?? [])
+    } catch { /* ignore */ }
+  }, [projectId])
+
+  useEffect(() => { loadMembers() }, [loadMembers])
+
+  const handleInvite = async () => {
+    if (!shareEmail.trim()) return
+    setInviting(true)
+    setInviteError(null)
+    try {
+      const r = await fetch(`/api/projects/${projectId}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: shareEmail.trim(), role: shareRole }),
+      })
+      const data = await r.json()
+      if (!r.ok) { setInviteError(data.error ?? "Failed to invite"); return }
+      setShareEmail("")
+      loadMembers()
+    } catch { setInviteError("Failed to invite") }
+    finally { setInviting(false) }
+  }
+
+  const handleRemoveMember = async (memberId: string) => {
+    try {
+      await fetch(`/api/projects/${projectId}/members/${memberId}`, {
+        method: "DELETE", credentials: "include",
+      })
+      setMembers(prev => prev.filter(m => m.user_id !== memberId))
+    } catch { /* ignore */ }
+  }
 
   const loadSessions = useCallback(async () => {
     setSessionsLoading(true)
@@ -640,6 +695,73 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                 <FileText className="w-7 h-7 mx-auto mb-2 opacity-30" />
                 <p className="text-xs">No instructions yet</p>
                 <p className="text-xs opacity-70 mt-0.5">Add context to help BioMate</p>
+              </div>
+            )}
+          </div>
+
+          {/* Share section — owner-only invite UI + member list visible to all */}
+          <div className="border-t border-border p-4 shrink-0">
+            <div className="flex items-center gap-1.5 mb-3">
+              <Users className="w-3.5 h-3.5 text-muted-foreground" />
+              <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground">Shared with</h4>
+            </div>
+
+            {isOwner && (
+              <div className="space-y-2 mb-3">
+                <div className="flex gap-1.5">
+                  <Input
+                    value={shareEmail}
+                    onChange={e => { setShareEmail(e.target.value); setInviteError(null) }}
+                    placeholder="email@example.com"
+                    className="h-7 text-xs flex-1"
+                    onKeyDown={e => e.key === "Enter" && handleInvite()}
+                    data-testid="input-share-email"
+                  />
+                  <Select value={shareRole} onValueChange={v => setShareRole(v as "viewer" | "editor")}>
+                    <SelectTrigger className="h-7 w-20 text-xs" data-testid="select-share-role">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="viewer">Viewer</SelectItem>
+                      <SelectItem value="editor">Editor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  size="sm" className="h-7 text-xs w-full gap-1.5"
+                  onClick={handleInvite}
+                  disabled={inviting || !shareEmail.trim()}
+                  data-testid="button-share-invite"
+                >
+                  {inviting ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserPlus className="w-3 h-3" />}
+                  Invite
+                </Button>
+                {inviteError && <p className="text-xs text-destructive">{inviteError}</p>}
+              </div>
+            )}
+
+            {members.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No collaborators yet.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {members.map(m => (
+                  <div key={m.user_id} className="flex items-center gap-2 text-xs" data-testid={`member-row-${m.user_id}`}>
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate font-medium">{m.fullName || m.email}</p>
+                      <p className="text-muted-foreground truncate">{m.role}</p>
+                    </div>
+                    {isOwner && (
+                      <button
+                        onClick={() => handleRemoveMember(m.user_id)}
+                        className="text-muted-foreground hover:text-destructive shrink-0"
+                        aria-label={`Remove ${m.email}`}
+                        data-testid={`button-remove-member-${m.user_id}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>

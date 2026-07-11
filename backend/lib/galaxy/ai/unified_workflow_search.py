@@ -573,6 +573,7 @@ class UnifiedWorkflowSearch:
                 )
             """)
             conn.commit()
+            self._migrate_schema(conn)
             count = conn.execute("SELECT COUNT(*) FROM workflows").fetchone()[0]
             if count == 0:
                 log.warning("[WorkflowSearch] workflows table is EMPTY — workflow suggestions unavailable until the DB is synced")
@@ -580,6 +581,45 @@ class UnifiedWorkflowSearch:
                 log.info("[WorkflowSearch] workflows table OK: %d entries", count)
         finally:
             conn.close()
+
+    def _migrate_schema(self, conn: sqlite3.Connection):
+        """Add missing columns and tables to an existing database without re-indexing."""
+        cursor = conn.cursor()
+
+        # Add missing columns to workflows table (ALTER TABLE ignores existing columns via try/except)
+        existing_cols = {row[1] for row in cursor.execute("PRAGMA table_info(workflows)")}
+        for col, definition in [
+            ("input_types",   "TEXT DEFAULT '[]'"),
+            ("output_types",  "TEXT DEFAULT '[]'"),
+            ("annotation_v2", "TEXT"),
+            ("step_metadata", "TEXT"),
+            ("params_schema", "TEXT"),
+        ]:
+            if col not in existing_cols:
+                cursor.execute(f"ALTER TABLE workflows ADD COLUMN {col} {definition}")
+                log.info("[WorkflowSearch] migrated: added column workflows.%s", col)
+
+        # Create workflow_chains table if absent — normally created by index_all_workflows.py
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS workflow_chains (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                display_name TEXT,
+                description TEXT,
+                domain TEXT,
+                steps TEXT NOT NULL DEFAULT '[]',
+                tags TEXT DEFAULT '[]',
+                input_schema TEXT DEFAULT '{}',
+                output_schema TEXT DEFAULT '{}',
+                usage_count INTEGER DEFAULT 0,
+                success_rate REAL DEFAULT 0.0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        conn.commit()
+        log.info("[WorkflowSearch] schema migration complete")
 
     def _ensure_fts_index(self):
         """Ensure FTS index exists and is populated."""

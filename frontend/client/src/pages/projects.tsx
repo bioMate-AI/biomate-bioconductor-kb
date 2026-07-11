@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import { projectService } from "@/lib/projects"
 import { CreateProjectDialog } from "@/components/create-project-dialog"
+import { getTemplateByTag } from "@/lib/project-templates"
 import type { Project } from "@shared/schema"
 import { cn } from "@/lib/utils"
 
@@ -251,6 +252,7 @@ export default function ProjectsPage({ onProjectSelect }: ProjectsPageProps) {
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
                       {getStatusIcon(project.status)}
+                      {(() => { const tpl = getTemplateByTag(project.tags || []); return tpl ? <span title={tpl.name}>{tpl.icon}</span> : null })()}
                       <CardTitle className="text-lg leading-tight">{project.name}</CardTitle>
                     </div>
                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
