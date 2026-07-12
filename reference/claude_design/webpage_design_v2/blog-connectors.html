@@ -377,8 +377,8 @@
     <p class="hero-eyebrow">Engineering · Connectors</p>
     <h1>Wiring Every AI Client to BioMate: The MCP Connector Architecture</h1>
     <p class="hero-lead">
-      One tool manifest, six AI surfaces, zero duplicated logic. How we built a
-      connector layer that lets Claude Code, Codex, ChatGPT, Slack, and Feishu
+      One tool manifest, five AI surfaces, zero duplicated logic. How we built a
+      connector layer that lets Claude Code, Claude Desktop, ChatGPT, Slack, and Feishu
       all drive the same bioinformatics execution engine.
     </p>
     <div class="hero-meta">
@@ -530,8 +530,8 @@
     <p>
       The Model Context Protocol (MCP) gives us a standard way to expose capabilities as
       typed tools that any compliant AI client can discover and call. The challenge was
-      supporting six very different surfaces — each with its own transport, auth model,
-      and UX contract — without duplicating the tool logic six times.
+      supporting five very different surfaces — each with its own transport, auth model,
+      and UX contract — without duplicating the tool logic five times.
     </p>
     <p>
       The solution is a single canonical tool manifest and a thin adapter per surface.
@@ -765,11 +765,11 @@
 
       <div class="surface-card">
         <div class="surface-card-head">
-          <div class="surface-icon">CS</div>
-          <h3>Claude Science</h3>
+          <div class="surface-icon">CD</div>
+          <h3>Claude Desktop</h3>
         </div>
-        <p class="surface-transport">Streamable HTTP · OAuth 2.1 + PKCE</p>
-        <p>Claude Science (claude.ai web) requires HTTPS even for localhost, and a full OAuth 2.1 flow for remote endpoints. The <code>remote_mcp/</code> package handles Dynamic Client Registration, per-user API key issuance, and bearer validation. Live at <code>mcp.stage-public.biomate.ai</code>.</p>
+        <p class="surface-transport">stdio · JSON-RPC 2.0</p>
+        <p>Same stdio transport as Claude Code. The installer writes the server entry into <code>~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS) or <code>%APPDATA%\Claude\claude_desktop_config.json</code> (Windows). Restart the app to pick up the new server.</p>
       </div>
 
       <div class="surface-card">
@@ -867,7 +867,7 @@
       </div>
       <div class="footer-links">
         <a href="https://github.com/bioMate-AI/biomate-connector" target="_blank" rel="noopener">github.com/bioMate-AI/biomate-connector</a>
-        <a href="https://biomate.ai/docs/connectors">biomate.ai/docs/connectors</a>
+        <a href="https://biomate.ai/connectors">biomate.ai/connectors</a>
         <a href="https://biomate.ai">biomate.ai</a>
       </div>
     </div>
