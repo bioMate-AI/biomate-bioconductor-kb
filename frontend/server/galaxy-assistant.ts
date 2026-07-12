@@ -5309,8 +5309,19 @@ preferred_domains: list of 0–3 domain strings most relevant to this query, cho
   [${PREFERRED_DOMAINS_PROMPT_LIST}]
   Leave empty [] when the query is domain-agnostic or unclear.
 
-key_terms: up to 8 specific technical terms (tool names, assay types, organisms) that should
-  boost workflow search recall. Omit generic words like "run", "analyze", "data".
+key_terms: up to 8 specific technical terms that boost workflow search recall. Prioritise:
+  1. The ASSAY TYPE / SEQUENCING TECHNOLOGY — e.g. "ATAC-seq", "ChIP-seq", "16S amplicon",
+     "DIA proteomics", "Hi-C", "CUT&RUN", "ancient DNA", "metagenome assembly"
+  2. The INPUT FILE FORMAT — e.g. "FASTQ", "BAM", "count matrix", ".idat", "BCL", ".raw mass-spec"
+  3. KEY TOOLS that appear in the workflow — e.g. "STAR", "GATK", "DESeq2", "MACS2",
+     "Bismark", "DIA-NN", "QIIME2", "Salmon", "sarek", "nf-core/rnaseq"
+  4. THE ANALYSIS GOAL in technical vocabulary — e.g. "differential expression",
+     "peak calling", "variant calling", "metagenome-assembled genomes", "DMR analysis"
+  For MULTI-HOP queries (user describes an outcome without naming the assay), infer the
+  assay from context: "accessible regions" → "ATAC-seq open chromatin"; "cell type composition
+  at single-cell resolution" → "scRNA-seq 10X Genomics"; "chromatin loops TADs" → "Hi-C";
+  "transcription factor binding" → "ChIP-seq peak calling MACS2".
+  Omit generic words like "run", "analyze", "data", "pipeline", "workflow".
 
 needs_thinking: true only when the query requires multi-step reasoning, pipeline design,
   troubleshooting, or methodology comparison. false for simple workflow execution requests.
@@ -5743,6 +5754,82 @@ IMPORTANT: Set needsResearchAgent: true whenever the user asks:
   "preferred_domains": ["clinical"],
   "key_terms": ["MPDL3280A", "IHC", "ORR", "clinical trial data extraction"],
   "needs_thinking": true,
+  "chain_hint": null
+}
+
+For MULTI-HOP workflow queries (user describes a biological goal without naming the assay):
+"Which genomic regions are accessible in my cell type? I want to identify active regulatory elements."
+{
+  "type": "workflow_generation",
+  "keywords": ["accessible chromatin", "regulatory elements"],
+  "inlineParameters": {},
+  "needsToolSearch": true,
+  "needsDatasets": false,
+  "confidence": 0.88,
+  "actions": {
+    "needsToolSearch": true,
+    "needsWorkflowGeneration": true,
+    "needsWorkflowModification": false,
+    "needsResearchAgent": false,
+    "needsBenchmarkAgent": false,
+    "needsDatasetAccess": false,
+    "needsLLMReasoning": false
+  },
+  "facts": [{"category": "data_type", "value": "ATAC-seq FASTQ", "confidence": 0.85}],
+  "workflowAmbiguity": null,
+  "preferred_domains": ["genomics"],
+  "key_terms": ["ATAC-seq", "open chromatin", "MACS2", "peak calling", "FASTQ", "Tn5 transposase"],
+  "needs_thinking": false,
+  "chain_hint": null
+}
+
+"Find genes that are up- or down-regulated between my treatment and control groups"
+{
+  "type": "workflow_generation",
+  "keywords": ["differential expression"],
+  "inlineParameters": {},
+  "needsToolSearch": true,
+  "needsDatasets": false,
+  "confidence": 0.82,
+  "actions": {
+    "needsToolSearch": true,
+    "needsWorkflowGeneration": true,
+    "needsWorkflowModification": false,
+    "needsResearchAgent": false,
+    "needsBenchmarkAgent": false,
+    "needsDatasetAccess": false,
+    "needsLLMReasoning": false
+  },
+  "facts": [{"category": "analysis_goal", "value": "differential expression", "confidence": 0.95}],
+  "workflowAmbiguity": "input_format",
+  "preferred_domains": ["transcriptomics"],
+  "key_terms": ["differential expression", "DESeq2", "count matrix", "RNA-seq"],
+  "needs_thinking": false,
+  "chain_hint": null
+}
+
+"I want to know what cell types are present in my tumor biopsy at single-cell resolution"
+{
+  "type": "workflow_generation",
+  "keywords": ["cell type annotation", "single-cell"],
+  "inlineParameters": {},
+  "needsToolSearch": true,
+  "needsDatasets": false,
+  "confidence": 0.88,
+  "actions": {
+    "needsToolSearch": true,
+    "needsWorkflowGeneration": true,
+    "needsWorkflowModification": false,
+    "needsResearchAgent": false,
+    "needsBenchmarkAgent": false,
+    "needsDatasetAccess": false,
+    "needsLLMReasoning": false
+  },
+  "facts": [{"category": "data_type", "value": "scRNA-seq FASTQ", "confidence": 0.87}],
+  "workflowAmbiguity": null,
+  "preferred_domains": ["transcriptomics"],
+  "key_terms": ["scRNA-seq", "10X Genomics", "cell barcode demultiplexing", "FASTQ", "STARsolo"],
+  "needs_thinking": false,
   "chain_hint": null
 }
 
