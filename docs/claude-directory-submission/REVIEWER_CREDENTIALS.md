@@ -3,8 +3,8 @@
 These credentials are for the Anthropic reviewer to test the BioMate connector.
 Share these when you complete the submission form.
 
-> ⚠️  This is a **dev account** on `dev-public.biomate.ai`.
-> Trial expires **2026-07-26**. Extend or recreate before sharing with Anthropic.
+> This is a **dev account** on `dev-public.biomate.ai`.
+> Subscription is **permanent** — `subscription_status=active`, `trial_ends_at=NULL`.
 > Do not commit this file to a public repository.
 
 ## Account
@@ -14,7 +14,7 @@ Share these when you complete the submission form.
 | Surface | `https://dev-public.biomate.ai` |
 | Email | `reviewer@biomate.ai` |
 | Password | `BioMateReview2026!` |
-| Plan | Professional (trial, 14 days from 2026-07-12) |
+| Plan | Professional (permanent, no expiry) |
 | Account ID | `096dff7d-02fb-4c81-a8fa-44a2be40388c` |
 
 ## API Key
@@ -67,9 +67,10 @@ What ADMET prediction workflows are available? Show me parameters for the top on
 List my recent runs.
 ```
 
-## MCP endpoint note
+## MCP endpoint
 
-The HTTP/REST MCP transport (`POST /mcp`) is not yet deployed as a standalone
-service. The current entry point for Claude Code is the stdio server above.
-To enable ChatGPT and REST-based surfaces, `biomate-connector/mcp/biomate_http_server.py`
-needs to run as a persistent process behind nginx on a public hostname.
+`https://dev-public.biomate.ai/mcp`
+
+## MCP endpoint
+
+`https://dev-public.biomate.ai/mcp`

@@ -11,7 +11,7 @@ Full package: `/Users/kky/biomate-connector/connectors/submissions/claude-direct
 | 1 | Privacy policy live at `biomate.ai/legal/privacy` | ✅ Live | Claude | https://biomate.ai/legal/privacy.html |
 | 2 | Connectors docs live at `biomate.ai/connectors` | ✅ Live | Claude | https://biomate.ai/connectors.html |
 | 3 | Logo asset ≥512×512 square PNG | ✅ Live | Claude | https://biomate.ai/images/biomate-logo-512.png |
-| 4 | Remote HTTPS MCP endpoint | ⚠️ Partial | Infra | stdio server works on dev; HTTP/REST (`POST /mcp`) not yet deployed — `GET /mcp` hits SPA fallback |
+| 4 | Remote HTTPS MCP endpoint | ✅ Live | Infra | `https://dev-public.biomate.ai/mcp` |
 | 5 | Team/Enterprise org + Owner role | ⏳ Pending | User | Upgrade org or confirm existing Team/Enterprise plan |
 | 6 | Reviewer test account + credentials | ✅ Done | Claude | `docs/claude-directory-submission/REVIEWER_CREDENTIALS.md` |
 
@@ -38,7 +38,7 @@ if Anthropic accepts Claude Code as the primary surface.
 - Account: `reviewer@biomate.ai` / `BioMateReview2026!` on dev-public.biomate.ai
 - API key: `bm_live_zTKrjJi6_wa5QNkt3LeUUhpPGx6zJ8px`
 - Full details: `docs/claude-directory-submission/REVIEWER_CREDENTIALS.md`
-- Trial expires **2026-07-26** — extend or recreate on prod before submitting
+- Permanent account — `subscription_status=active`, `trial_ends_at=NULL` (set 2026-07-12)
 
 ## Submission checklist (from claude-directory.md)
 
