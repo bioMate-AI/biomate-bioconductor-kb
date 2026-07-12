@@ -105,57 +105,80 @@ try:
         logging.warning(f"WiredWorkflowSearch upgrade skipped: {_we}")
     WORKFLOW_SEARCH_AVAILABLE = True
 
-    # Startup warmup — load the BGE workflow + MiniLM chain embedding models in a
-    # background daemon thread so the ~10s cold-start is paid at worker boot, not
-    # on the first production /api/workflows/search (which was tripping the
-    # connector's 15s timeout). Background (not blocking) so a recycled single
-    # gunicorn worker serves immediately; the double-checked _EMBED_INIT_LOCK in
-    # unified_workflow_search makes a request that races the warmup safe. Disable
-    # with WORKFLOW_SEARCH_WARMUP=false.
-    try:
-        import os as _oswarm
-        if _oswarm.getenv("WORKFLOW_SEARCH_WARMUP", "true").strip().lower() not in ("false", "0", "no"):
-            import threading as _wthreading
-
-            def _warm_workflow_search():
-                import time as _twarm
-                # Let the worker finish app init first — at bare module-import time
-                # list_chains() can still be empty (so search_chains would no-op) and
-                # the catalog may not be wired yet. Retry so the warm actually lands.
-                _twarm.sleep(3)
-                _t0 = _twarm.time()
-                _chains_n = 0
-                for _attempt in range(4):
-                    try:
-                        # BGE workflow embeddings (no-op where unavailable).
-                        _workflow_search._ensure_workflow_embeddings()
-                        # Build the chain (MiniLM) index DIRECTLY — this is the real
-                        # ~5-11s one-time-per-worker cold cost. Going through
-                        # search_chains() is unreliable (it early-returns when
-                        # list_chains() is momentarily empty), so build it by hand.
-                        _chains = _workflow_search.list_chains()
-                        _chains_n = len(_chains or [])
-                        if _chains:
-                            _workflow_search._rebuild_chain_embedding_index(_chains)
-                            _built = True
-                            break
-                    except Exception as _wexc:
-                        logging.warning("[WorkflowSearchWarmup] attempt %d failed: %s", _attempt, _wexc)
-                    _twarm.sleep(3)
-                else:
-                    _built = False
-                logging.info(
-                    "[WorkflowSearchWarmup] done in %.1fs (chains=%d, chain_index_built=%s)",
-                    _twarm.time() - _t0, _chains_n, locals().get("_built", False),
-                )
-
-            _wthreading.Thread(target=_warm_workflow_search, daemon=True, name="wf-search-warmup").start()
-    except Exception as _warm_setup_exc:
-        logging.warning(f"WorkflowSearch warmup not scheduled: {_warm_setup_exc}")
+    # Startup warmup is defined below as start_workflow_search_warmup() and is
+    # driven from gunicorn's post_fork hook (fork-safe). It is intentionally NOT
+    # started here at module-import time: under gunicorn --preload the import runs
+    # in the master, and starting the warmup thread here held _EMBED_INIT_LOCK at
+    # the moment gunicorn forked, so every worker inherited a locked mutex and
+    # search_chains() hung forever (fork-after-threads deadlock, 2026-07-12).
 except Exception as _e:
     logging.warning(f"UnifiedWorkflowSearch not available: {_e}")
     _workflow_search = None
     WORKFLOW_SEARCH_AVAILABLE = False
+
+
+_WF_WARMUP_STARTED = False
+
+
+def start_workflow_search_warmup() -> None:
+    """Pre-load the BGE workflow + MiniLM chain embedding models in a background
+    daemon thread so the ~10s cold start is paid at worker boot, not on the first
+    /api/workflows/search (which was tripping the connector's 15s timeout).
+
+    MUST be called per-worker AFTER gunicorn forks (from post_fork), never at
+    module-import under --preload: the old import-time thread held _EMBED_INIT_LOCK
+    at fork time, so children inherited a locked mutex → search_chains() hung
+    forever (fork-after-threads deadlock, 2026-07-12). Idempotent; a no-op when
+    WORKFLOW_SEARCH_WARMUP is false/0/no or workflow search is unavailable.
+    """
+    global _WF_WARMUP_STARTED
+    import os as _oswarm
+    if _WF_WARMUP_STARTED:
+        return
+    if _oswarm.getenv("WORKFLOW_SEARCH_WARMUP", "true").strip().lower() in ("false", "0", "no"):
+        return
+    if not WORKFLOW_SEARCH_AVAILABLE or _workflow_search is None:
+        return
+    _WF_WARMUP_STARTED = True
+
+    def _warm_workflow_search():
+        import time as _twarm
+        # Let the worker finish app init first — at bare boot time list_chains()
+        # can still be empty (so search_chains would no-op) and the catalog may not
+        # be wired yet. Retry so the warm actually lands.
+        _twarm.sleep(3)
+        _t0 = _twarm.time()
+        _chains_n = 0
+        for _attempt in range(4):
+            try:
+                # BGE workflow embeddings (no-op where unavailable).
+                _workflow_search._ensure_workflow_embeddings()
+                # Build the chain (MiniLM) index DIRECTLY — this is the real
+                # ~5-11s one-time-per-worker cold cost. Going through search_chains()
+                # is unreliable (early-returns when list_chains() is momentarily
+                # empty), so build it by hand.
+                _chains = _workflow_search.list_chains()
+                _chains_n = len(_chains or [])
+                if _chains:
+                    _workflow_search._rebuild_chain_embedding_index(_chains)
+                    _built = True
+                    break
+            except Exception as _wexc:
+                logging.warning("[WorkflowSearchWarmup] attempt %d failed: %s", _attempt, _wexc)
+            _twarm.sleep(3)
+        else:
+            _built = False
+        logging.info(
+            "[WorkflowSearchWarmup] done in %.1fs (chains=%d, chain_index_built=%s)",
+            _twarm.time() - _t0, _chains_n, locals().get("_built", False),
+        )
+
+    try:
+        import threading as _wthreading
+        _wthreading.Thread(target=_warm_workflow_search, daemon=True, name="wf-search-warmup").start()
+    except Exception as _warm_setup_exc:
+        _WF_WARMUP_STARTED = False
+        logging.warning(f"WorkflowSearch warmup not scheduled: {_warm_setup_exc}")
 
 # ── WorkflowSession Redis store ───────────────────────────────────────────────
 # Lazy singleton — initialized on first actual use, not at import time.
