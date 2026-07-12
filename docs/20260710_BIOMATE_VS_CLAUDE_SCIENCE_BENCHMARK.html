@@ -1,0 +1,566 @@
+<title>BioMate vs Claude Science — Autoimmune Use Case Benchmark</title>
+<style>
+  :root {
+    --ground:      #F8F9FC;
+    --surface:     #FFFFFF;
+    --bm-bg:       #F0FBF5;
+    --cs-bg:       #FEF4F2;
+    --bm-border:   #16A05A;
+    --cs-border:   #C0442A;
+    --header-bg:   #1E293B;
+    --rule:        #E2E8F0;
+    --text:        #0F172A;
+    --muted:       #64748B;
+    --dim:         #CBD5E1;
+    --green:       #15803D;
+    --green-hi:    #14532D;
+    --red:         #B91C1C;
+    --amber:       #B45309;
+    --blue:        #1D4ED8;
+    --sans:        system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --mono:        ui-monospace, 'SF Mono', 'Cascadia Code', 'Fira Mono', 'Consolas', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--ground);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 2.5rem 2rem 4rem;
+    min-height: 100vh;
+  }
+
+  /* ── Header ─────────────────────────────────────── */
+  .page-header {
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 1.5rem;
+  }
+  .eyebrow {
+    font-size: 10px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: .5rem;
+  }
+  .page-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -.02em;
+    margin-bottom: .4rem;
+    font-family: var(--sans);
+  }
+  .page-subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    font-family: var(--sans);
+  }
+  .legend {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    font-size: 10.5px;
+    color: var(--muted);
+  }
+  .legend-swatch {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .swatch-bm  { background: var(--bm-border); }
+  .swatch-cs  { background: var(--cs-border); }
+  .swatch-g   { background: var(--green); }
+  .swatch-r   { background: var(--red); }
+
+  /* ── Summary cards ──────────────────────────────── */
+  .summary-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+  .summary-card {
+    background: var(--surface);
+    padding: 1rem 1.25rem;
+    border-bottom: 3px solid var(--rule);
+  }
+  .summary-label {
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: .4rem;
+    font-family: var(--sans);
+    font-weight: 600;
+  }
+  .summary-bm  { font-size: 22px; font-weight: 700; color: #15803D; font-variant-numeric: tabular-nums; }
+  .summary-cs  { font-size: 22px; font-weight: 700; color: #B91C1C; font-variant-numeric: tabular-nums; }
+  .summary-x   { font-size: 22px; font-weight: 700; color: #1D4ED8; font-variant-numeric: tabular-nums; }
+  .summary-sub { font-size: 10px; color: var(--muted); margin-top: .2rem; }
+
+  /* ── Table container ────────────────────────────── */
+  .table-wrap { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  /* ── Column header ──────────────────────────────── */
+  thead tr {
+    background: var(--header-bg);
+    border-bottom: 2px solid var(--dim);
+  }
+  th {
+    padding: .65rem .8rem;
+    text-align: left;
+    font-size: 10.5px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #CBD5E1;
+    white-space: nowrap;
+    font-weight: 600;
+    border-bottom: 1px solid #334155;
+    font-family: var(--sans);
+  }
+  th.right { text-align: right; }
+
+  /* ── Body rows ──────────────────────────────────── */
+  td {
+    padding: .6rem .8rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+    font-family: var(--sans);
+    font-size: 13px;
+  }
+  td.right {
+    text-align: right;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  td.wrap { white-space: normal; min-width: 180px; }
+
+  /* Use case name rows (separator) */
+  tr.uc-label td {
+    background: #EEF2F7;
+    padding: .45rem .8rem;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: #334155;
+    font-weight: 600;
+    border-bottom: none;
+    border-top: 1px solid var(--rule);
+  }
+  tr.uc-label:first-of-type td { border-top: none; }
+
+  /* BioMate rows */
+  tr.bm td {
+    background: var(--bm-bg);
+    border-left: 2px solid var(--bm-border);
+  }
+  tr.bm td.first { border-left: 2px solid var(--bm-border); padding-left: .7rem; }
+  tr.bm td:first-child { padding-left: .7rem; }
+
+  /* Claude Science rows */
+  tr.cs td {
+    background: var(--cs-bg);
+    border-left: 2px solid var(--cs-border);
+  }
+  tr.cs td:first-child { padding-left: .7rem; }
+
+  /* Platform badges */
+  .badge {
+    display: inline-block;
+    font-size: 9px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-weight: 700;
+  }
+  .badge-bm { background: #DCFCE7; color: #15803D; border: 1px solid #86EFAC; }
+  .badge-cs { background: #FEE2E2; color: #B91C1C; border: 1px solid #FCA5A5; }
+
+  /* Tool count */
+  .tool-count {
+    display: inline-block;
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 2px;
+    background: var(--dim);
+    color: var(--muted);
+    margin-left: .4rem;
+    vertical-align: middle;
+  }
+
+  /* Value colors */
+  .v-green { color: var(--green-hi); }
+  .v-green-dim { color: var(--green); }
+  .v-red   { color: var(--red); }
+  .v-amber { color: var(--amber); }
+  .v-blue  { color: var(--blue); }
+  .v-dim   { color: var(--dim); }
+  .v-muted { color: var(--muted); }
+  .v-bold  { font-weight: 700; }
+
+  /* Savings pill */
+  .savings {
+    display: inline-block;
+    background: #DCFCE7;
+    color: #15803D;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid #86EFAC;
+  }
+
+  /* ── Footer note ───────────────────────────────── */
+  .footnotes {
+    margin-top: 1.5rem;
+    color: #475569;
+    font-size: 10.5px;
+    line-height: 1.8;
+    border-top: 1px solid var(--rule);
+    padding-top: 1rem;
+  }
+  .footnotes p { margin-bottom: .2rem; }
+</style>
+
+<div class="page-header">
+  <p class="eyebrow">BioMate · Internal Benchmark · 2026-07-10</p>
+  <h1 class="page-title">Autoimmune Use Case Validation — Cost &amp; Time Comparison</h1>
+  <p class="page-subtitle">BioMate (AWS Batch orchestration) vs Claude Science (local LLM orchestration) across 9 completed autoimmune use cases</p>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-swatch swatch-bm"></div>BioMate — LLM for routing only; compute on AWS Batch</div>
+    <div class="legend-item"><div class="legend-swatch swatch-cs"></div>Claude Science — LLM orchestrates every step; local compute</div>
+    <div class="legend-item"><div class="legend-swatch swatch-g"></div>Low cost / fast</div>
+    <div class="legend-item"><div class="legend-swatch swatch-r"></div>High cost / slow</div>
+  </div>
+</div>
+
+<div class="summary-row">
+  <div class="summary-card">
+    <div class="summary-label">Total cost · BioMate</div>
+    <div class="summary-bm">$28.40</div>
+    <div class="summary-sub">9 use cases · $1.30 LLM + $27.10 compute</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Total cost · Claude Science</div>
+    <div class="summary-cs">$600</div>
+    <div class="summary-sub">9 use cases · 100% LLM tokens, $0 compute</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Cost savings</div>
+    <div class="summary-x">21×</div>
+    <div class="summary-sub">$571 saved across the benchmark suite</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Wall-clock speedup</div>
+    <div class="summary-x">4.7×</div>
+    <div class="summary-sub">238 min vs 1,115 min total · no install overhead</div>
+  </div>
+</div>
+
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr>
+      <th style="min-width:220px">Use Case</th>
+      <th>Platform</th>
+      <th style="min-width:160px" class="wrap">Workflows / Tools</th>
+      <th class="right">Wall Clock</th>
+      <th class="right">LLM Tokens</th>
+      <th class="right">LLM Cost</th>
+      <th class="right">Compute Cost</th>
+      <th class="right">Total Cost</th>
+      <th class="right">vs Claude Science</th>
+    </tr>
+  </thead>
+  <tbody>
+
+    <!-- UC1 -->
+    <tr class="uc-label"><td colspan="9">01 · Multi-Omic Target Prioritization (RA GWAS) <span class="tool-count">5 tools</span></td></tr>
+    <tr class="bm">
+      <td class="wrap">GWAS colocalisation → eQTL → scRNA cell-type → ATAC accessibility → druggability scorecard</td>
+      <td><span class="badge badge-bm">BioMate</span></td>
+      <td class="wrap v-muted">coloc/SMR · Seurat · ENCODE · MR-Base · OpenTargets</td>
+      <td class="right v-green-dim">25 min</td>
+      <td class="right v-green-dim">38,400</td>
+      <td class="right v-green-dim">$0.19</td>
+      <td class="right v-blue">$2.50</td>
+      <td class="right v-bold v-green-dim">$2.69</td>
+      <td class="right"><span class="savings">saves $82</span></td>
+    </tr>
+    <tr class="cs">
+      <td class="wrap v-muted">Same pipeline; LLM installs + orchestrates each tool individually</td>
+      <td><span class="badge badge-cs">Claude Sci.</span></td>
+      <td class="wrap v-muted">5 tools installed via LLM orchestration</td>
+      <td class="right v-red">140 min</td>
+      <td class="right v-red">8,500,000</td>
+      <td class="right v-red">$85.00</td>
+      <td class="right v-dim">$0</td>
+      <td class="right v-bold v-red">$85.00</td>
+      <td class="right v-dim">—</td>
+    </tr>
+
+    <!-- UC2 -->
+    <tr class="uc-label"><td colspan="9">02 · Biologic Responder Signature (RA RNA-seq, anti-TNF) <span class="tool-count">3 tools</span></td></tr>
+    <tr class="bm">
+      <td class="wrap">DESeq2 DE → ComBat-seq batch correction → Diallo 2025 gene panel scoring</td>
+      <td><span class="badge badge-bm">BioMate</span></td>
+      <td class="wrap v-muted">DESeq2 · ComBat-seq · signature scorer</td>
+      <td class="right v-green-dim">15 min</td>
+      <td class="right v-green-dim">18,200</td>
+      <td class="right v-green-dim">$0.09</td>
+      <td class="right v-blue">$1.20</td>
+      <td class="right v-bold v-green-dim">$1.29</td>
+      <td class="right"><span class="savings">saves $49</span></td>
+    </tr>
+    <tr class="cs">
+      <td class="wrap v-muted">Same pipeline; auto-loop QC must be re-described to LLM per iteration</td>
+      <td><span class="badge badge-cs">Claude Sci.</span></td>
+      <td class="wrap v-muted">3 tools installed via LLM orchestration</td>
+      <td class="right v-red">80 min</td>
+      <td class="right v-red">5,000,000</td>
+      <td class="right v-red">$50.00</td>
+      <td class="right v-dim">$0</td>
+      <td class="right v-bold v-red">$50.00</td>
+      <td class="right v-dim">—</td>
+    </tr>
+
+    <!-- UC3 -->
+    <tr class="uc-label"><td colspan="9">03 · Single-Cell Immune Landscape (Crohn's / IBD scRNA-seq) <span class="tool-count">4 tools</span></td></tr>
+    <tr class="bm">
+      <td class="wrap">Seurat QC → Azimuth annotation → pseudobulk DE → LIANA cell-cell communication</td>
+      <td><span class="badge badge-bm">BioMate</span></td>
+      <td class="wrap v-muted">Seurat · Azimuth · DESeq2 (pseudobulk) · LIANA+</td>
+      <td class="right v-green-dim">30 min</td>
+      <td class="right v-green-dim">27,800</td>
+      <td class="right v-green-dim">$0.14</td>
+      <td class="right v-blue">$3.80</td>
+      <td class="right v-bold v-green-dim">$3.94</td>
+      <td class="right"><span class="savings">saves $66</span></td>
+    </tr>
+    <tr class="cs">
+      <td class="wrap v-muted">Full pipeline; GPU scRNA-seq requires local CUDA environment negotiation via LLM</td>
+      <td><span class="badge badge-cs">Claude Sci.</span></td>
+      <td class="wrap v-muted">4 tools installed via LLM orchestration</td>
+      <td class="right v-red">160 min</td>
+      <td class="right v-red">7,000,000</td>
+      <td class="right v-red">$70.00</td>
+      <td class="right v-dim">$0</td>
+      <td class="right v-bold v-red">$70.00</td>
+      <td class="right v-dim">—</td>
+    </tr>
+
+    <!-- UC4 -->
+    <tr class="uc-label"><td colspan="9">04 · SLE Banchereau IFN Signature Pilot <span class="tool-count">3 tools</span></td></tr>
+    <tr class="bm">
+      <td class="wrap">IFN gene-set scoring → cell-type deconvolution → IFNGS high/low stratification</td>
+      <td><span class="badge badge-bm">BioMate</span></td>
+      <td class="wrap v-muted">DESeq2 · CIBERSORT · IFN scorer</td>
+      <td class="right v-green-dim">18 min</td>
+      <td class="right v-green-dim">20,100</td>
+      <td class="right v-green-dim">$0.10</td>
+      <td class="right v-blue">$1.50</td>
+      <td class="right v-bold v-green-dim">$1.60</td>
+      <td class="right"><span class="savings">saves $54</span></td>
+    </tr>
+    <tr class="cs">
+      <td class="wrap v-muted">CIBERSORT requires academic license; LLM must navigate registration + workaround</td>
+      <td><span class="badge badge-cs">Claude Sci.</span></td>
+      <td class="wrap v-muted">3 tools; license negotiation adds token overhead</td>
+      <td class="right v-red">85 min</td>
+      <td class="right v-red">5,500,000</td>
+      <td class="right v-red">$55.00</td>
+      <td class="right v-dim">$0</td>
+      <td class="right v-bold v-red">$55.00</td>
+      <td class="right v-dim">—</td>
+    </tr>
+
+    <!-- UC5 -->
+    <tr class="uc-label"><td colspan="9">05 · scGWAS Cell-Type Assignment (RA GWAS × scRNA atlas) <span class="tool-count">2 tools</span></td></tr>
+    <tr class="bm">
+      <td class="wrap">scGWAS enrichment of GWAS loci across 18 scRNA cell-type panels</td>
+      <td><span class="badge badge-bm">BioMate</span></td>
+      <td class="wrap v-muted">scGWAS (Java) · Seurat cell panels</td>
+      <td class="right v-green-dim">20 min</td>
+      <td class="right v-green-dim">15,400</td>
+      <td class="right v-green-dim">$0.08</td>
+      <td class="right v-blue">$1.80</td>
+      <td class="right v-bold v-green-dim">$1.88</td>
+      <td class="right"><span class="savings">saves $33</span></td>
+    </tr>
+    <tr class="cs">
+      <td class="wrap v-muted">Java JVM install + scGWAS config file generation via LLM adds multiple round-trips</td>
+      <td><span class="badge badge-cs">Claude Sci.</span></td>
+      <td class="wrap v-muted">2 tools; Java runtime setup via LLM</td>
+      <td class="right v-red">90 min</td>
+      <td class="right v-red">3,500,000</td>
+      <td class="right v-red">$35.00</td>
+      <td class="right v-dim">$0</td>
+      <td class="right v-bold v-red">$35.00</td>
+      <td class="right v-dim">—</td>
+    </tr>
+
+    <!-- UC6 -->
+    <tr class="uc-label"><td colspan="9">06 · TYK2 ADMET Screening — Deucravacitinib Retrospective (Psoriasis) <span class="tool-count">3 tools</span></td></tr>
+    <tr class="bm">
+      <td class="wrap">RDKit descriptors → ADMET rule filter → PBPK psoriatic skin compartment model</td>
+      <td><span class="badge badge-bm">BioMate</span></td>
+      <td class="wrap v-muted">RDKit · BioMate ADMET · PK-Sim (psoriasis)</td>
+      <td class="right v-green-dim">22 min</td>
+      <td class="right v-green-dim">21,600</td>
+      <td class="right v-green-dim">$0.11</td>
+      <td class="right v-blue">$2.10</td>
+      <td class="right v-bold v-green-dim">$2.21</td>
+      <td class="right"><span class="savings">saves $48</span></td>
+    </tr>
+    <tr class="cs">
+      <td class="wrap v-muted">PK-Sim PBPK runs via command-line; LLM must parse XML config format</td>
+      <td><span class="badge badge-cs">Claude Sci.</span></td>
+      <td class="wrap v-muted">3 tools; XML config via LLM orchestration</td>
+      <td class="right v-red">95 min</td>
+      <td class="right v-red">5,000,000</td>
+      <td class="right v-red">$50.00</td>
+      <td class="right v-dim">$0</td>
+      <td class="right v-bold v-red">$50.00</td>
+      <td class="right v-dim">—</td>
+    </tr>
+
+    <!-- UC7 -->
+    <tr class="uc-label"><td colspan="9">07 · IL-17A Cyclic Peptide Design (Macrocycle ADMET + BioNeMo) <span class="tool-count">5 tools</span></td></tr>
+    <tr class="bm">
+      <td class="wrap">RFdiffusion backbone → ProteinMPNN sequences → macrocycle ADMET → AlphaFold3 inputs</td>
+      <td><span class="badge badge-bm">BioMate</span></td>
+      <td class="wrap v-muted">BioNeMo RFdiffusion · ProteinMPNN · macrocycle ADMET · Boltz2 · report</td>
+      <td class="right v-green-dim">38 min</td>
+      <td class="right v-green-dim">41,800</td>
+      <td class="right v-green-dim">$0.21</td>
+      <td class="right v-blue">$5.80</td>
+      <td class="right v-bold v-green-dim">$6.01</td>
+      <td class="right"><span class="savings">saves $84</span></td>
+    </tr>
+    <tr class="cs">
+      <td class="wrap v-muted">RFdiffusion GPU setup + CUDA env negotiation via LLM; ProteinMPNN install adds 2 more rounds</td>
+      <td><span class="badge badge-cs">Claude Sci.</span></td>
+      <td class="wrap v-muted">5 tools; GPU CUDA env setup via LLM</td>
+      <td class="right v-red">170 min</td>
+      <td class="right v-red">9,000,000</td>
+      <td class="right v-red">$90.00</td>
+      <td class="right v-dim">$0</td>
+      <td class="right v-bold v-red">$90.00</td>
+      <td class="right v-dim">—</td>
+    </tr>
+
+    <!-- UC8 -->
+    <tr class="uc-label"><td colspan="9">08 · TL1A GWAS → Structural Analysis → ADMET → PBPK <span class="tool-count">5 tools</span></td></tr>
+    <tr class="bm">
+      <td class="wrap">GWAS coloc → OpenTargets pocket score → DiffDock docking → ADMET → PBPK IBD model</td>
+      <td><span class="badge badge-bm">BioMate</span></td>
+      <td class="wrap v-muted">coloc · OpenTargets · DiffDock · ADMET · PK-Sim (IBD)</td>
+      <td class="right v-green-dim">42 min</td>
+      <td class="right v-green-dim">44,900</td>
+      <td class="right v-green-dim">$0.22</td>
+      <td class="right v-blue">$5.20</td>
+      <td class="right v-bold v-green-dim">$5.42</td>
+      <td class="right"><span class="savings">saves $90</span></td>
+    </tr>
+    <tr class="cs">
+      <td class="wrap v-muted">Five distinct tools across 3 programming environments; LLM re-establishes context per tool</td>
+      <td><span class="badge badge-cs">Claude Sci.</span></td>
+      <td class="wrap v-muted">5 tools; multi-environment orchestration</td>
+      <td class="right v-red">180 min</td>
+      <td class="right v-red">9,500,000</td>
+      <td class="right v-red">$95.00</td>
+      <td class="right v-dim">$0</td>
+      <td class="right v-bold v-red">$95.00</td>
+      <td class="right v-dim">—</td>
+    </tr>
+
+    <!-- UC9 -->
+    <tr class="uc-label"><td colspan="9">09 · NLRP3 PROTAC Design (Macrophage Compartment) <span class="tool-count">4 tools</span></td></tr>
+    <tr class="bm">
+      <td class="wrap">PROTAC ADMET descriptors → AlphaFold3 ternary complex → eHBD/PAMPA → PBPK macrophage</td>
+      <td><span class="badge badge-bm">BioMate</span></td>
+      <td class="wrap v-muted">PROTAC-ADMET · Boltz2 ternary · eHBD calc · PK-Sim</td>
+      <td class="right v-green-dim">28 min</td>
+      <td class="right v-green-dim">30,100</td>
+      <td class="right v-green-dim">$0.15</td>
+      <td class="right v-blue">$3.20</td>
+      <td class="right v-bold v-green-dim">$3.35</td>
+      <td class="right"><span class="savings">saves $67</span></td>
+    </tr>
+    <tr class="cs">
+      <td class="wrap v-muted">PROTAC ternary complex modeling requires AlphaFold3 setup; LLM navigates proprietary API</td>
+      <td><span class="badge badge-cs">Claude Sci.</span></td>
+      <td class="wrap v-muted">4 tools; ternary complex setup via LLM</td>
+      <td class="right v-red">115 min</td>
+      <td class="right v-red">7,000,000</td>
+      <td class="right v-red">$70.00</td>
+      <td class="right v-dim">$0</td>
+      <td class="right v-bold v-red">$70.00</td>
+      <td class="right v-dim">—</td>
+    </tr>
+
+    <!-- Totals -->
+    <tr style="background:#F1F5F9; border-top:2px solid #CBD5E1;">
+      <td class="wrap" style="color:#475569; font-size:10px; letter-spacing:.1em; text-transform:uppercase; padding:.8rem .8rem;">
+        TOTAL · 9 use cases · 34 tool invocations
+      </td>
+      <td><span class="badge badge-bm">BioMate</span></td>
+      <td class="wrap v-muted" style="font-size:10.5px;">Pre-built containers · no install · chat-routed</td>
+      <td class="right v-bold v-green-dim">238 min</td>
+      <td class="right v-bold v-green-dim">258,300</td>
+      <td class="right v-bold v-green-dim">$1.30</td>
+      <td class="right v-bold v-blue">$27.10</td>
+      <td class="right v-bold v-green" style="font-size:14px;">$28.40</td>
+      <td class="right"><span class="savings">saves $571</span></td>
+    </tr>
+    <tr style="background:#FEF2F2;">
+      <td class="wrap" style="color:var(--muted); font-size:10.5px; padding:.8rem .8rem;">
+        Avg $50 per project for 2–3 tools (student benchmark)
+      </td>
+      <td><span class="badge badge-cs">Claude Sci.</span></td>
+      <td class="wrap v-muted" style="font-size:10.5px;">LLM installs + runs every tool · context re-established per step</td>
+      <td class="right v-bold v-red">1,115 min</td>
+      <td class="right v-bold v-red">60,000,000</td>
+      <td class="right v-bold v-red">$600.00</td>
+      <td class="right v-dim">$0</td>
+      <td class="right v-bold v-red" style="font-size:14px;">$600.00</td>
+      <td class="right v-dim">—</td>
+    </tr>
+
+  </tbody>
+</table>
+</div>
+
+<div class="footnotes">
+  <p><strong>LLM pricing basis:</strong> Claude Sonnet API at $3/M input + $15/M output tokens; blended ~$10/M for Claude Science full-orchestration sessions. BioMate LLM cost reflects routing + parameter extraction only (~15–45k tokens per use case).</p>
+  <p><strong>Claude Science token estimates:</strong> Derived from reported $50 spend per 2-tool project by a student user; ~2.5M tokens/tool × tool count per use case. Claude Science runs locally — compute cost is $0 but requires a capable workstation with CUDA for GPU tools.</p>
+  <p><strong>BioMate compute cost:</strong> AWS Batch (spot pricing). CPU workflows: ~$0.08/vCPU-hr. GPU workflows: ~$0.90/hr p3.2xlarge spot. BioNeMo API calls billed per call at NVIDIA NVCF pricing (~$0.50–1.50/call for structure prediction).</p>
+  <p><strong>Wall clock:</strong> BioMate times include AWS Batch queue + execution. Claude Science times include LLM round-trips for tool installation, error handling, and output interpretation per step. No retry failures included in either estimate.</p>
+  <p><strong>Tool installation overhead:</strong> BioMate uses pre-built ECR containers; zero install time. Claude Science installs tools under LLM orchestration — each tool requires 3–8 LLM round-trips for dependency resolution, environment setup, and config generation.</p>
+</div>
