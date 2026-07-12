@@ -355,9 +355,8 @@
     .site-nav { display: none; }
     .hero h1 { font-size: 1.75rem; }
   }
-  .article-hero { width:100%; max-height:420px; overflow:hidden; position:relative; }
-  .article-hero img { width:100%; height:420px; object-fit:cover; object-position:center; display:block; }
-  .article-hero-overlay { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(10,14,26,.2),rgba(10,14,26,.55)); }
+  .article-hero-svg { width:100%; background:#060c1a; line-height:0; }
+  .article-hero-svg svg { width:100%; height:auto; display:block; max-height:420px; }
 </style>
 
 <header class="site-header">
@@ -396,9 +395,125 @@
     </div>
   </header>
 
-  <div class="article-hero">
-    <img src="images/blog-connectors-hero.png" alt="AI clients connecting to BioMate via MCP" />
-    <div class="article-hero-overlay"></div>
+  <div class="article-hero-svg">
+    <svg viewBox="0 0 1200 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AI clients connecting to BioMate MCP Server">
+      <defs>
+        <linearGradient id="bg-grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#060c1a"/>
+          <stop offset="100%" stop-color="#0b1428"/>
+        </linearGradient>
+        <linearGradient id="line-grad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#1e3a6e" stop-opacity="0.6"/>
+          <stop offset="50%" stop-color="#3b82f6" stop-opacity="0.9"/>
+          <stop offset="100%" stop-color="#1e3a6e" stop-opacity="0.6"/>
+        </linearGradient>
+        <filter id="hub-glow">
+          <feGaussianBlur stdDeviation="6" result="blur"/>
+          <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+        </filter>
+        <filter id="soft-glow">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+        </filter>
+      </defs>
+
+      <!-- Background -->
+      <rect width="1200" height="380" fill="url(#bg-grad)"/>
+
+      <!-- Subtle grid -->
+      <g stroke="#1a2a45" stroke-width="0.5" opacity="0.4">
+        <line x1="0" y1="95" x2="1200" y2="95"/>
+        <line x1="0" y1="190" x2="1200" y2="190"/>
+        <line x1="0" y1="285" x2="1200" y2="285"/>
+        <line x1="300" y1="0" x2="300" y2="380"/>
+        <line x1="600" y1="0" x2="600" y2="380"/>
+        <line x1="900" y1="0" x2="900" y2="380"/>
+      </g>
+
+      <!-- Column labels -->
+      <text x="152" y="32" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="9" font-weight="600" letter-spacing="2.5" fill="#3b6bb5" opacity="0.9">AI CLIENTS</text>
+      <text x="600" y="32" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="9" font-weight="600" letter-spacing="2.5" fill="#3b82f6">BIOMATE MCP SERVER</text>
+      <text x="1048" y="32" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="9" font-weight="600" letter-spacing="2.5" fill="#3b6bb5" opacity="0.9">CAPABILITIES</text>
+
+      <!-- Connector lines (client side) -->
+      <line x1="254" y1="88"  x2="440" y2="157" stroke="url(#line-grad)" stroke-width="1.2" opacity="0.7"/>
+      <line x1="254" y1="152" x2="440" y2="173" stroke="url(#line-grad)" stroke-width="1.2" opacity="0.7"/>
+      <line x1="254" y1="216" x2="440" y2="190" stroke="url(#line-grad)" stroke-width="1.2" opacity="0.7"/>
+      <line x1="254" y1="280" x2="440" y2="207" stroke="url(#line-grad)" stroke-width="1.2" opacity="0.7"/>
+      <line x1="254" y1="332" x2="440" y2="220" stroke="url(#line-grad)" stroke-width="1.2" opacity="0.7"/>
+
+      <!-- Connector lines (tool side) -->
+      <line x1="760" y1="157" x2="946" y2="100" stroke="url(#line-grad)" stroke-width="1.2" opacity="0.7"/>
+      <line x1="760" y1="173" x2="946" y2="172" stroke="url(#line-grad)" stroke-width="1.2" opacity="0.7"/>
+      <line x1="760" y1="190" x2="946" y2="244" stroke="url(#line-grad)" stroke-width="1.2" opacity="0.7"/>
+      <line x1="760" y1="207" x2="946" y2="316" stroke="url(#line-grad)" stroke-width="1.2" opacity="0.7"/>
+
+      <!-- ── CLIENT PILLS ─────────────────────────────── -->
+      <!-- Claude Code -->
+      <rect x="52" y="68" width="202" height="40" rx="6" fill="#0d1f3c" stroke="#2a4a7f" stroke-width="1"/>
+      <text x="153" y="84" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="11" font-weight="600" fill="#93c5fd">Claude Code</text>
+      <text x="153" y="99" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" fill="#4a6fa5">CLI · IDE extension · stdio</text>
+
+      <!-- Claude Desktop -->
+      <rect x="52" y="132" width="202" height="40" rx="6" fill="#0d1f3c" stroke="#2a4a7f" stroke-width="1"/>
+      <text x="153" y="148" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="11" font-weight="600" fill="#93c5fd">Claude Desktop</text>
+      <text x="153" y="163" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" fill="#4a6fa5">macOS · Windows · stdio</text>
+
+      <!-- ChatGPT -->
+      <rect x="52" y="196" width="202" height="40" rx="6" fill="#0d1f3c" stroke="#2a4a7f" stroke-width="1"/>
+      <text x="153" y="212" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="11" font-weight="600" fill="#93c5fd">ChatGPT</text>
+      <text x="153" y="227" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" fill="#4a6fa5">Custom GPT · REST Actions</text>
+
+      <!-- Slack -->
+      <rect x="52" y="260" width="202" height="40" rx="6" fill="#0d1f3c" stroke="#2a4a7f" stroke-width="1"/>
+      <text x="153" y="276" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="11" font-weight="600" fill="#93c5fd">Slack</text>
+      <text x="153" y="291" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" fill="#4a6fa5">Bot · slash commands · webhook</text>
+
+      <!-- Feishu -->
+      <rect x="52" y="312" width="202" height="40" rx="6" fill="#0d1f3c" stroke="#2a4a7f" stroke-width="1"/>
+      <text x="153" y="328" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="11" font-weight="600" fill="#93c5fd">Feishu / Lark</text>
+      <text x="153" y="343" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" fill="#4a6fa5">Enterprise messaging · webhook</text>
+
+      <!-- ── HUB BOX ──────────────────────────────────── -->
+      <rect x="440" y="110" width="320" height="160" rx="10" fill="#0a1628" stroke="#2563eb" stroke-width="1.5" filter="url(#hub-glow)"/>
+      <!-- hub inner line -->
+      <line x1="455" y1="148" x2="745" y2="148" stroke="#1a3060" stroke-width="1"/>
+
+      <text x="600" y="138" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="17" font-weight="700" letter-spacing="0.5" fill="#60a5fa">BioMate</text>
+      <text x="600" y="158" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" fill="#3b6bb5" letter-spacing="1">MCP Server · 19 tools</text>
+
+      <!-- Tool list in hub -->
+      <text x="600" y="178" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="8.5" fill="#4a7ab5">search_workflow · run_workflow · watch_run</text>
+      <text x="600" y="192" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="8.5" fill="#4a7ab5">query_database · search_literature · upload_file</text>
+      <text x="600" y="206" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="8.5" fill="#4a7ab5">analyze_results · export_report · recall_memory</text>
+      <text x="600" y="222" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="8.5" fill="#4a7ab5">…and 10 more</text>
+
+      <!-- hub bottom label -->
+      <line x1="455" y1="233" x2="745" y2="233" stroke="#1a3060" stroke-width="1"/>
+      <text x="600" y="252" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" fill="#2a4a7f">Single tool manifest · all transports</text>
+
+      <!-- ── CAPABILITY PILLS ────────────────────────── -->
+      <!-- Workflow Execution -->
+      <rect x="946" y="72" width="202" height="56" rx="6" fill="#0d1f3c" stroke="#2a4a7f" stroke-width="1"/>
+      <text x="1047" y="92" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="11" font-weight="600" fill="#93c5fd">Workflow Execution</text>
+      <text x="1047" y="107" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" fill="#4a6fa5">2,455 pipelines · AWS Batch</text>
+      <text x="1047" y="120" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" fill="#4a6fa5">RNA-seq · ADMET · WGS · Cryo-EM</text>
+
+      <!-- Database Search -->
+      <rect x="946" y="152" width="202" height="40" rx="6" fill="#0d1f3c" stroke="#2a4a7f" stroke-width="1"/>
+      <text x="1047" y="168" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="11" font-weight="600" fill="#93c5fd">Database Search</text>
+      <text x="1047" y="183" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" fill="#4a6fa5">60+ live sources · UniProt · PDB · GEO</text>
+
+      <!-- File Management -->
+      <rect x="946" y="216" width="202" height="40" rx="6" fill="#0d1f3c" stroke="#2a4a7f" stroke-width="1"/>
+      <text x="1047" y="232" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="11" font-weight="600" fill="#93c5fd">File Management</text>
+      <text x="1047" y="247" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" fill="#4a6fa5">S3 · project files · reports</text>
+
+      <!-- Run History -->
+      <rect x="946" y="288" width="202" height="40" rx="6" fill="#0d1f3c" stroke="#2a4a7f" stroke-width="1"/>
+      <text x="1047" y="304" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="11" font-weight="600" fill="#93c5fd">Run History</text>
+      <text x="1047" y="319" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" fill="#4a6fa5">audit trail · replay · SSE streaming</text>
+    </svg>
   </div>
 
   <!-- ── Why ───────────────────────────────────────────────────────── -->
@@ -434,7 +549,7 @@
       <h2>One manifest, many transports</h2>
     </div>
     <div class="arch-wrap">
-      <svg viewBox="0 0 900 380" width="900" height="380" xmlns="http://www.w3.org/2000/svg" aria-label="Connector architecture diagram">
+      <svg viewBox="0 0 900 330" width="900" height="330" xmlns="http://www.w3.org/2000/svg" aria-label="Connector architecture diagram">
         <defs>
           <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
             <polygon points="0 0, 8 3, 0 6" fill="#C8D6E3"/>
@@ -445,142 +560,110 @@
         </defs>
 
         <!-- Column labels -->
-        <text x="74" y="22" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#5A6E84" text-transform="uppercase">AI CLIENTS</text>
+        <text x="74"  y="22" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#5A6E84">AI CLIENTS</text>
         <text x="282" y="22" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#5A6E84">TRANSPORT</text>
         <text x="490" y="22" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#0B8A67">BIOMATE MCP</text>
         <text x="698" y="22" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#5A6E84">BIOMATE API</text>
         <text x="860" y="22" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#5A6E84">COMPUTE</text>
-
-        <!-- Separator lines under labels -->
         <line x1="10" y1="30" x2="890" y2="30" stroke="#EBF1F7" stroke-width="1"/>
 
-        <!-- AI Client boxes -->
-        <!-- Claude Code -->
-        <rect x="10" y="44" width="128" height="34" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
-        <text x="74" y="57" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" font-weight="600" fill="#0E1C2F">Claude Code</text>
-        <text x="74" y="70" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">CLI / IDE extension</text>
+        <!-- AI Client boxes (5 clients, no Codex) -->
+        <rect x="10" y="40"  width="128" height="34" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
+        <text x="74" y="53"  text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" font-weight="600" fill="#0E1C2F">Claude Code</text>
+        <text x="74" y="66"  text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">CLI · IDE extension</text>
 
-        <!-- Claude Science -->
-        <rect x="10" y="88" width="128" height="34" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
-        <text x="74" y="101" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" font-weight="600" fill="#0E1C2F">Claude Science</text>
-        <text x="74" y="114" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">claude.ai web (remote)</text>
+        <rect x="10" y="82"  width="128" height="34" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
+        <text x="74" y="95"  text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" font-weight="600" fill="#0E1C2F">Claude Desktop</text>
+        <text x="74" y="108" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">macOS · Windows</text>
 
-        <!-- Codex CLI -->
-        <rect x="10" y="132" width="128" height="34" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
-        <text x="74" y="145" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" font-weight="600" fill="#0E1C2F">Codex CLI</text>
-        <text x="74" y="158" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">OpenAI terminal agent</text>
+        <rect x="10" y="124" width="128" height="34" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
+        <text x="74" y="137" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" font-weight="600" fill="#0E1C2F">ChatGPT</text>
+        <text x="74" y="150" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">Custom GPT + Actions</text>
 
-        <!-- ChatGPT -->
-        <rect x="10" y="176" width="128" height="34" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
-        <text x="74" y="189" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" font-weight="600" fill="#0E1C2F">ChatGPT</text>
-        <text x="74" y="202" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">Custom GPT + Actions</text>
+        <rect x="10" y="166" width="128" height="34" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
+        <text x="74" y="179" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" font-weight="600" fill="#0E1C2F">Slack</text>
+        <text x="74" y="192" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">Bot · slash commands</text>
 
-        <!-- Slack -->
-        <rect x="10" y="220" width="128" height="34" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
-        <text x="74" y="233" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" font-weight="600" fill="#0E1C2F">Slack</text>
-        <text x="74" y="246" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">Bot + slash commands</text>
+        <rect x="10" y="208" width="128" height="34" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
+        <text x="74" y="221" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" font-weight="600" fill="#0E1C2F">Feishu / Lark</text>
+        <text x="74" y="234" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">Enterprise messaging</text>
 
-        <!-- Feishu -->
-        <rect x="10" y="264" width="128" height="34" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
-        <text x="74" y="277" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" font-weight="600" fill="#0E1C2F">Feishu / Lark</text>
-        <text x="74" y="290" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">Enterprise messaging</text>
+        <!-- Transport: stdio (Claude Code + Claude Desktop) -->
+        <rect x="172" y="40" width="160" height="88" fill="#F0F7F4" stroke="#0B8A67" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="252" y="57"  text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="9" font-weight="700" fill="#0B8A67">stdio · JSON-RPC 2.0</text>
+        <text x="252" y="71"  text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">biomate_mcp_server.py</text>
+        <text x="252" y="84"  text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">BIOMATE_API_URL + API key</text>
+        <text x="252" y="97"  text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">~/.mcp.json · spawned per session</text>
+        <text x="252" y="118" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#0B8A67">↕ Claude Code · Claude Desktop</text>
 
-        <!-- Transport column -->
-        <!-- stdio transport (shared by Claude Code + Codex) -->
-        <rect x="172" y="44" width="160" height="122" fill="#F0F7F4" stroke="#0B8A67" stroke-width="1" stroke-dasharray="4,3"/>
-        <text x="252" y="62" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="9" font-weight="700" fill="#0B8A67">stdio · JSON-RPC 2.0</text>
-        <text x="252" y="77" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">biomate_mcp_server.py</text>
-        <text x="252" y="90" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">BIOMATE_API_URL + API key</text>
-        <text x="252" y="106" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">~/.mcp.json  ·  ~/.codex/config.toml</text>
-        <text x="252" y="120" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">No server process — spawned per session</text>
-        <text x="252" y="150" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#0B8A67">↕ Claude Code · Codex</text>
-
-        <!-- Streamable HTTP (Claude Science) -->
-        <rect x="172" y="178" width="160" height="76" fill="#F0F7F4" stroke="#0B8A67" stroke-width="1" stroke-dasharray="4,3"/>
-        <text x="252" y="196" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="9" font-weight="700" fill="#0B8A67">Streamable HTTP · OAuth 2.1</text>
-        <text x="252" y="211" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">remote_mcp/ · mcp.stage-public.biomate.ai</text>
-        <text x="252" y="225" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">DCR + PKCE + per-user API key</text>
-        <text x="252" y="242" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#0B8A67">↕ Claude Science</text>
-
-        <!-- REST Actions (ChatGPT) -->
-        <rect x="172" y="266" width="160" height="76" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
-        <text x="252" y="284" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="9" font-weight="700" fill="#0E1C2F">REST Actions · OAuth 2.0</text>
-        <text x="252" y="299" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">chatgpt_adapter.py · /tools/* routes</text>
-        <text x="252" y="313" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">openapi.json consumed by Custom GPT</text>
-        <text x="252" y="330" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#5A6E84">↕ ChatGPT · Slack · Feishu</text>
+        <!-- Transport: REST Actions (ChatGPT / Slack / Feishu) -->
+        <rect x="172" y="140" width="160" height="102" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
+        <text x="252" y="157" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="9" font-weight="700" fill="#0E1C2F">REST Actions · OAuth 2.0</text>
+        <text x="252" y="171" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">chatgpt_adapter.py · /tools/* routes</text>
+        <text x="252" y="184" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">openapi.json · Slack event webhooks</text>
+        <text x="252" y="197" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8.5" fill="#5A6E84">Feishu card messages + callbacks</text>
+        <text x="252" y="231" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#5A6E84">↕ ChatGPT · Slack · Feishu</text>
 
         <!-- Arrows: clients → transports -->
-        <line x1="138" y1="61" x2="170" y2="82" stroke="#C8D6E3" stroke-width="1" marker-end="url(#arr)"/>
-        <line x1="138" y1="105" x2="170" y2="100" stroke="#C8D6E3" stroke-width="1" marker-end="url(#arr)"/>
-        <line x1="138" y1="149" x2="170" y2="118" stroke="#C8D6E3" stroke-width="1" marker-end="url(#arr)"/>
-        <line x1="138" y1="193" x2="170" y2="210" stroke="#C8D6E3" stroke-width="1" marker-end="url(#arr)"/>
-        <line x1="138" y1="237" x2="170" y2="300" stroke="#C8D6E3" stroke-width="1" marker-end="url(#arr)"/>
-        <line x1="138" y1="281" x2="170" y2="310" stroke="#C8D6E3" stroke-width="1" marker-end="url(#arr)"/>
+        <line x1="138" y1="57"  x2="170" y2="72"  stroke="#C8D6E3" stroke-width="1" marker-end="url(#arr)"/>
+        <line x1="138" y1="99"  x2="170" y2="88"  stroke="#C8D6E3" stroke-width="1" marker-end="url(#arr)"/>
+        <line x1="138" y1="141" x2="170" y2="170" stroke="#C8D6E3" stroke-width="1" marker-end="url(#arr)"/>
+        <line x1="138" y1="183" x2="170" y2="195" stroke="#C8D6E3" stroke-width="1" marker-end="url(#arr)"/>
+        <line x1="138" y1="225" x2="170" y2="215" stroke="#C8D6E3" stroke-width="1" marker-end="url(#arr)"/>
 
         <!-- BioMate MCP core box -->
-        <rect x="380" y="44" width="220" height="276" fill="#0E1C2F" stroke="#0B8A67" stroke-width="1.5"/>
-        <text x="490" y="67" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="1" fill="#0B8A67">TOOL MANIFEST</text>
-        <text x="490" y="84" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8.5" fill="#8BB8CC">tools_manifest.py</text>
-        <line x1="390" y1="93" x2="590" y2="93" stroke="#19283A" stroke-width="1"/>
-
-        <!-- Tool list inside box -->
-        <text x="395" y="108" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#6FD4A8">biomate_session</text>
-        <text x="395" y="121" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">search_workflow</text>
-        <text x="395" y="134" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">run_workflow</text>
-        <text x="395" y="147" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">watch_run</text>
-        <text x="395" y="160" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">get_run</text>
-        <text x="395" y="173" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">list_runs  ·  cancel_run</text>
-        <text x="395" y="186" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">search_literature</text>
-        <text x="395" y="199" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">query_database</text>
-        <text x="395" y="212" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">resolve_accession</text>
-        <text x="395" y="225" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">browse_data  ·  fetch_public_data</text>
-        <text x="395" y="238" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">upload_file</text>
-        <text x="395" y="251" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">preview_file  ·  export_report</text>
-        <text x="395" y="264" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">analyze_results  ·  explain_error</text>
-        <text x="395" y="277" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">recall_memory</text>
-
-        <line x1="390" y1="287" x2="590" y2="287" stroke="#19283A" stroke-width="1"/>
-        <text x="490" y="302" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#4A6478">dispatch_tool() → BioMateClient</text>
-        <text x="490" y="314" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#4A6478">19 tools · single source of truth</text>
+        <rect x="380" y="40" width="220" height="242" fill="#0E1C2F" stroke="#0B8A67" stroke-width="1.5"/>
+        <text x="490" y="60"  text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="1" fill="#0B8A67">TOOL MANIFEST</text>
+        <text x="490" y="75"  text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8.5" fill="#8BB8CC">tools_manifest.py</text>
+        <line x1="390" y1="83" x2="590" y2="83" stroke="#19283A" stroke-width="1"/>
+        <text x="395" y="97"  font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#6FD4A8">biomate_session</text>
+        <text x="395" y="110" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">search_workflow · run_workflow</text>
+        <text x="395" y="123" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">watch_run · get_run · list_runs</text>
+        <text x="395" y="136" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">cancel_run · search_literature</text>
+        <text x="395" y="149" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">query_database · resolve_accession</text>
+        <text x="395" y="162" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">browse_data · fetch_public_data</text>
+        <text x="395" y="175" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">upload_file · preview_file</text>
+        <text x="395" y="188" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">export_report · analyze_results</text>
+        <text x="395" y="201" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">explain_error · recall_memory</text>
+        <line x1="390" y1="212" x2="590" y2="212" stroke="#19283A" stroke-width="1"/>
+        <text x="490" y="226" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#4A6478">dispatch_tool() → BioMateClient</text>
+        <text x="490" y="238" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#4A6478">19 tools · single source of truth</text>
+        <text x="490" y="273" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#4A6478">app.biomate.ai</text>
 
         <!-- Arrows: transports → MCP core -->
-        <line x1="332" y1="105" x2="378" y2="150" stroke="#0B8A67" stroke-width="1.5" marker-end="url(#arr-acc)"/>
-        <line x1="332" y1="216" x2="378" y2="180" stroke="#0B8A67" stroke-width="1.5" marker-end="url(#arr-acc)"/>
-        <line x1="332" y1="304" x2="378" y2="250" stroke="#C8D6E3" stroke-width="1" marker-end="url(#arr)"/>
+        <line x1="332" y1="84"  x2="378" y2="130" stroke="#0B8A67" stroke-width="1.5" marker-end="url(#arr-acc)"/>
+        <line x1="332" y1="191" x2="378" y2="180" stroke="#C8D6E3" stroke-width="1"   marker-end="url(#arr)"/>
 
         <!-- BioMate API box -->
-        <rect x="628" y="44" width="148" height="120" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
-        <text x="702" y="62" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="1" fill="#5A6E84">BIOMATE API</text>
-        <text x="702" y="79" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#0E1C2F">dev-public.biomate.ai</text>
-        <text x="702" y="93" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#0E1C2F">test.stage-public.biomate.ai</text>
-        <line x1="638" y1="102" x2="766" y2="102" stroke="#EBF1F7" stroke-width="1"/>
-        <text x="702" y="116" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#5A6E84">/api/workflows/search</text>
-        <text x="702" y="128" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#5A6E84">/api/workflows/execute</text>
-        <text x="702" y="140" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#5A6E84">/api/literature/search</text>
-        <text x="702" y="152" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#5A6E84">/api/databases/query</text>
+        <rect x="628" y="40" width="148" height="104" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
+        <text x="702" y="57"  text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="1" fill="#5A6E84">BIOMATE API</text>
+        <text x="702" y="72"  text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#0E1C2F">app.biomate.ai</text>
+        <line x1="638" y1="80" x2="766" y2="80" stroke="#EBF1F7" stroke-width="1"/>
+        <text x="702" y="93"  text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#5A6E84">/api/workflows/search</text>
+        <text x="702" y="105" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#5A6E84">/api/workflows/execute</text>
+        <text x="702" y="117" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#5A6E84">/api/literature/search</text>
+        <text x="702" y="129" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#5A6E84">/api/databases/query</text>
 
         <!-- Compute box -->
-        <rect x="628" y="184" width="148" height="136" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
-        <text x="702" y="202" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="1" fill="#5A6E84">COMPUTE</text>
-        <line x1="638" y1="210" x2="766" y2="210" stroke="#EBF1F7" stroke-width="1"/>
-        <text x="702" y="226" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#0E1C2F">AWS Batch</text>
-        <text x="702" y="240" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#5A6E84">Nextflow / nf-core workflows</text>
-        <text x="702" y="254" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#5A6E84">Galaxy backend (Python)</text>
-        <text x="702" y="268" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#5A6E84">2,455 indexed workflows</text>
-        <text x="702" y="285" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#5A6E84">DESeq2 · nf-core/rnaseq</text>
-        <text x="702" y="298" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#5A6E84">nf-core/sarek · AlphaFold</text>
-        <text x="702" y="311" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#5A6E84">CryoSPARC · ADMET</text>
+        <rect x="628" y="158" width="148" height="124" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
+        <text x="702" y="175" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="1" fill="#5A6E84">COMPUTE</text>
+        <line x1="638" y1="183" x2="766" y2="183" stroke="#EBF1F7" stroke-width="1"/>
+        <text x="702" y="197" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#0E1C2F">AWS Batch</text>
+        <text x="702" y="210" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#5A6E84">Nextflow · nf-core workflows</text>
+        <text x="702" y="223" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#5A6E84">2,455 indexed workflows</text>
+        <text x="702" y="239" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#5A6E84">DESeq2 · nf-core/rnaseq</text>
+        <text x="702" y="252" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#5A6E84">nf-core/sarek · CryoSPARC</text>
+        <text x="702" y="265" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#5A6E84">ADMET · AlphaFold · PBPK</text>
 
-        <!-- Arrows: MCP core → API -->
-        <line x1="600" y1="150" x2="626" y2="104" stroke="#0B8A67" stroke-width="1.5" marker-end="url(#arr-acc)"/>
-        <!-- API → Compute -->
-        <line x1="702" y1="164" x2="702" y2="182" stroke="#C8D6E3" stroke-width="1" marker-end="url(#arr)"/>
+        <!-- Arrows: MCP core → API, API → Compute -->
+        <line x1="600" y1="140" x2="626" y2="92"  stroke="#0B8A67" stroke-width="1.5" marker-end="url(#arr-acc)"/>
+        <line x1="702" y1="144" x2="702" y2="156" stroke="#C8D6E3" stroke-width="1"   marker-end="url(#arr)"/>
 
         <!-- Redis SSE annotation -->
-        <rect x="820" y="44" width="72" height="40" fill="#FFF8F0" stroke="#B45309" stroke-width="1"/>
-        <text x="856" y="59" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" font-weight="700" fill="#B45309">Redis SSE</text>
-        <text x="856" y="72" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#B45309">ElastiCache</text>
-        <line x1="776" y1="64" x2="818" y2="64" stroke="#B45309" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr)"/>
+        <rect x="820" y="40" width="72" height="40" fill="#FFF8F0" stroke="#B45309" stroke-width="1"/>
+        <text x="856" y="55" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" font-weight="700" fill="#B45309">Redis SSE</text>
+        <text x="856" y="68" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#B45309">ElastiCache</text>
+        <line x1="776" y1="60" x2="818" y2="60" stroke="#B45309" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr)"/>
       </svg>
     </div>
     <p style="font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; color: var(--mid); margin-top: 0.6rem; text-align: center;">
