@@ -4,6 +4,7 @@ type RunOverviewScope = "current_chat" | "all_chats";
 
 type RunOverviewSortField = "createdAt" | "updatedAt" | "workflowName" | "status";
 type RunOverviewSortDirection = "asc" | "desc";
+export type RunType = "nextflow" | "chain" | "galaxy" | "research";
 
 interface RunOverviewStorage {
   getExecutionRuns(
@@ -23,6 +24,7 @@ export interface RunOverviewRow {
   updatedAt: Date;
   chatSessionId?: string;
   progressPercent: number;
+  runType: RunType;
   artifactReadiness?: {
     hasOutputs: boolean;
     estimatedOutputCount: number;
@@ -144,6 +146,14 @@ function toProgressPercent(run: ExecutionRun): number {
   return Math.max(0, Math.min(100, Math.round(candidate)));
 }
 
+function toRunType(run: ExecutionRun): RunType {
+  const engine = (run.execution as any)?.executionEngine as string | undefined;
+  if (engine === "nextflow" || (run.execution as any)?.nextflowRunId) return "nextflow";
+  if (engine === "chain") return "chain";
+  if (engine === "galaxy" || (run.execution as any)?.galaxyInvocationId) return "galaxy";
+  return "research";
+}
+
 function toLastLogLine(run: ExecutionRun): string | undefined {
   const logTail = run.execution?.nextflowStatus?.log_tail;
   if (Array.isArray(logTail) && logTail.length > 0) {
@@ -187,6 +197,7 @@ export function buildRunOverviewRow(run: ExecutionRun): RunOverviewRow {
     updatedAt: run.updatedAt,
     chatSessionId: run.chatSessionId,
     progressPercent: toProgressPercent(run),
+    runType: toRunType(run),
     artifactReadiness: toArtifactReadiness(run),
     ids: {
       galaxyInvocationId: run.execution?.galaxyInvocationId,

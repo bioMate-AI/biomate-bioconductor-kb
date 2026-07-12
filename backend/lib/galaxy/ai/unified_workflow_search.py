@@ -1446,13 +1446,20 @@ class UnifiedWorkflowSearch:
             if _WORKFLOW_EMBED_NPZ is None:
                 _WORKFLOW_EMBED_NPZ = self.db_path.parent / "galaxy_ai_workflow_embeddings.npz"
 
-            # Load model (shared with chain embeddings — same weights file)
+            # Load model only when the shared embed server is unavailable.
+            # When the server is running (gunicorn on_starting hook), workers
+            # delegate encode() calls to it and skip loading ~300 MB of weights.
             if _WF_EMBED_MODEL is None:
-                log.info("[WorkflowEmbed] Loading model %s …", _WORKFLOW_EMBED_MODEL_NAME)
-                # Force CPU: the current PyTorch build may not support the installed GPU
-                # (sm_121 vs sm_50/80/86/89/90 supported by wheels).  CPU is always safe.
-                _WF_EMBED_MODEL = _ST(_WORKFLOW_EMBED_MODEL_NAME, device="cpu",
-                                      local_files_only=True)
+                try:
+                    from galaxy.ai.embed_client import get_client as _get_embed_client
+                    if _get_embed_client().available():
+                        log.info("[WorkflowEmbed] Embed server available — skipping in-process model load")
+                    else:
+                        raise RuntimeError("embed server unavailable")
+                except Exception:
+                    log.info("[WorkflowEmbed] Loading model %s …", _WORKFLOW_EMBED_MODEL_NAME)
+                    _WF_EMBED_MODEL = _ST(_WORKFLOW_EMBED_MODEL_NAME, device="cpu",
+                                          local_files_only=True)
 
             if _WORKFLOW_EMBED_NPZ.exists():
                 self._load_workflow_embeddings()
@@ -1655,7 +1662,17 @@ class UnifiedWorkflowSearch:
         if not self._ensure_workflow_embeddings():
             return {}
         try:
-            q_vec = _WF_EMBED_MODEL.encode([query], convert_to_numpy=True)[0]
+            # Prefer the shared embed server; fall back to in-process model.
+            q_vec = None
+            try:
+                from galaxy.ai.embed_client import get_client as _get_embed_client
+                q_vec = _get_embed_client().encode_wf(query)
+            except Exception:
+                pass
+            if q_vec is None:
+                if _WF_EMBED_MODEL is None:
+                    return {}
+                q_vec = _WF_EMBED_MODEL.encode([query], convert_to_numpy=True)[0]
             q_norm = q_vec / (_np.linalg.norm(q_vec) + 1e-9)
             mat_norms = _np.linalg.norm(_WF_EMBED_MATRIX, axis=1, keepdims=True) + 1e-9
             mat_norm = _WF_EMBED_MATRIX / mat_norms
@@ -2127,30 +2144,36 @@ class UnifiedWorkflowSearch:
         if not _EMBEDDINGS_AVAILABLE:
             return
         try:
-            if _CHAIN_EMBED_MODEL is None:
-                # Double-checked lock: don't let a warmup thread + a first request
-                # both load the MiniLM weights (~2-3s each).
-                with _EMBED_INIT_LOCK:
-                    if _CHAIN_EMBED_MODEL is None:
-                        log.info("[ChainIndex] Loading %s for chain embedding search", _CHAIN_EMBED_MODEL_NAME)
-                        # Reuse VectorToolSearch's GPU-safe device detection when available;
-                        # fall back to cpu so we never block startup on a broken CUDA driver.
-                        try:
-                            from .vector_search import _detect_device_safe
-                            device = _detect_device_safe(timeout_seconds=5.0)
-                        except Exception:
-                            device = "cpu"
-                        _CHAIN_EMBED_MODEL = _ST(_CHAIN_EMBED_MODEL_NAME, device=device,
-                                                local_files_only=True)
             texts = [self._chain_embed_text(c) for c in chains]
             _CHAIN_EMBED_NAMES = [c.name for c in chains]
             import hashlib as _hashlib
             _CHAIN_EMBED_DESC_HASH = _hashlib.md5(
                 "|".join(f"{c.name}:{c.description or ''}:{','.join(c.tags)}" for c in chains).encode()
             ).hexdigest()
-            _CHAIN_EMBED_MATRIX = _CHAIN_EMBED_MODEL.encode(
-                texts, convert_to_numpy=True, show_progress_bar=False
-            )
+            # Prefer the shared embed server for batch encoding; fall back to
+            # in-process model load when the server is unavailable.
+            matrix = None
+            try:
+                from galaxy.ai.embed_client import get_client as _get_embed_client
+                matrix = _get_embed_client().encode_batch_chain(texts)
+            except Exception:
+                pass
+            if matrix is None:
+                if _CHAIN_EMBED_MODEL is None:
+                    with _EMBED_INIT_LOCK:
+                        if _CHAIN_EMBED_MODEL is None:
+                            log.info("[ChainIndex] Loading %s for chain embedding search", _CHAIN_EMBED_MODEL_NAME)
+                            try:
+                                from .vector_search import _detect_device_safe
+                                device = _detect_device_safe(timeout_seconds=5.0)
+                            except Exception:
+                                device = "cpu"
+                            _CHAIN_EMBED_MODEL = _ST(_CHAIN_EMBED_MODEL_NAME, device=device,
+                                                    local_files_only=True)
+                matrix = _CHAIN_EMBED_MODEL.encode(
+                    texts, convert_to_numpy=True, show_progress_bar=False
+                )
+            _CHAIN_EMBED_MATRIX = matrix
             log.info("[ChainIndex] Indexed %d chains (desc_hash=%s)", len(chains), _CHAIN_EMBED_DESC_HASH[:8])
         except Exception as exc:
             log.warning("[ChainIndex] Failed to build embedding index: %s", exc)
@@ -2182,7 +2205,17 @@ class UnifiedWorkflowSearch:
             return []
 
         try:
-            q_emb = _CHAIN_EMBED_MODEL.encode([query], convert_to_numpy=True)[0]
+            # Prefer the shared embed server; fall back to in-process model.
+            q_emb = None
+            try:
+                from galaxy.ai.embed_client import get_client as _get_embed_client
+                q_emb = _get_embed_client().encode_chain(query)
+            except Exception:
+                pass
+            if q_emb is None:
+                if _CHAIN_EMBED_MODEL is None:
+                    return []
+                q_emb = _CHAIN_EMBED_MODEL.encode([query], convert_to_numpy=True)[0]
             q_norm = q_emb / (_np.linalg.norm(q_emb) + 1e-9)
             mat_norm = _CHAIN_EMBED_MATRIX / (
                 _np.linalg.norm(_CHAIN_EMBED_MATRIX, axis=1, keepdims=True) + 1e-9

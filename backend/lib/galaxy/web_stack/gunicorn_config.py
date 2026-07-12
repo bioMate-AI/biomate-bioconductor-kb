@@ -18,6 +18,14 @@ def on_starting(server):
     Used on reloads when each worker exists twice.
     """
     server._worker_id_overload = set()
+    # Start shared embedding server before workers fork so each worker avoids
+    # loading ~600 MB of SentenceTransformer model weights independently.
+    try:
+        from galaxy.ai.embed_server import start_subprocess
+        server._embed_server_proc = start_subprocess()
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("EmbedServer start failed (non-fatal): %s", exc)
 
 
 def nworkers_changed(server, new_value, old_value):

@@ -1146,6 +1146,7 @@ def _candidate_bases() -> list[Path]:
         backend_root / "biomni_workflows" / "nextflow_nfcore" / "subworkflows",
         backend_root / "biomni_workflows" / "nextflow_nfcore" / "workflows",
         backend_root / "nf-core-workflows",
+        backend_root / "nf-core-workflows" / "modules",
         backend_root / "nf-core-workflows" / "modules" / "biomate-ai-tools",
         backend_root / "nf-core-modules",
         backend_root / "nf-core-modules" / "subworkflows" / "nf-core",
