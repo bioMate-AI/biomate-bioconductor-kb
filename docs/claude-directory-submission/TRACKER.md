@@ -8,9 +8,9 @@ Full package: `/Users/kky/biomate-connector/connectors/submissions/claude-direct
 
 | # | Blocker | Status | Owner | Output |
 |---|---------|--------|-------|--------|
-| 1 | Privacy policy live at `biomate.ai/legal/privacy` | ✅ Done | Claude | `webpage_design_v2/legal/privacy.html` |
-| 2 | Connectors docs live at `biomate.ai/connectors` | ✅ Done | Claude | `webpage_design_v2/connectors.html` |
-| 3 | Logo asset ≥512×512 square PNG | ✅ Done | Claude | `webpage_design_v2/images/biomate-logo-512.png` |
+| 1 | Privacy policy live at `biomate.ai/legal/privacy` | ✅ Live | Claude | https://biomate.ai/legal/privacy.html |
+| 2 | Connectors docs live at `biomate.ai/connectors` | ✅ Live | Claude | https://biomate.ai/connectors.html |
+| 3 | Logo asset ≥512×512 square PNG | ✅ Live | Claude | https://biomate.ai/images/biomate-logo-512.png |
 | 4 | Remote HTTPS MCP endpoint (`https://app.biomate.ai/mcp`) | ⏳ Pending | Infra | Deploy `mcp/biomate_http_server.py` behind SSL on app.biomate.ai |
 | 5 | Team/Enterprise org + Owner role | ⏳ Pending | User | Upgrade org or confirm existing Team/Enterprise plan |
 | 6 | Reviewer test account + credentials | ⏳ Pending | User | Prepare a scoped API key + test user for Anthropic reviewer |
