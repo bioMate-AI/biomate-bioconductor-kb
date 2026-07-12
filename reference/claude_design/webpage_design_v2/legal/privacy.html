@@ -1,0 +1,135 @@
+<title>Privacy Policy — BioMate Connector</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f9fafb;
+    --surface: #ffffff;
+    --border: #e5e7eb;
+    --text: #111827;
+    --mid: #6b7280;
+    --accent: #1d4ed8;
+    --ink: #374151;
+  }
+  body { font-family: ui-sans-serif, system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; font-size: 1rem; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .site-header { border-bottom: 1px solid var(--border); background: var(--surface); padding: 0 2rem; height: 56px; display: flex; align-items: center; gap: 1rem; }
+  .site-header a.home { font-weight: 700; font-size: 1rem; color: var(--text); letter-spacing: -0.01em; }
+  .site-header span { color: var(--border); }
+  .site-header .crumb { font-size: 0.875rem; color: var(--mid); }
+
+  .wrap { max-width: 740px; margin: 0 auto; padding: 3rem 2rem 6rem; }
+
+  .eyebrow { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mid); margin-bottom: 0.5rem; }
+  h1 { font-size: 1.875rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+  .meta { font-size: 0.875rem; color: var(--mid); margin-bottom: 2.5rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border); }
+
+  h2 { font-size: 1.125rem; font-weight: 700; margin: 2.5rem 0 0.75rem; }
+  p { color: var(--ink); margin-bottom: 1rem; }
+  ul { color: var(--ink); margin: 0.5rem 0 1rem 1.5rem; }
+  ul li { margin-bottom: 0.35rem; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.5rem; font-size: 0.9rem; }
+  th { text-align: left; font-weight: 600; font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--mid); padding: 0.5rem 0.75rem; border-bottom: 2px solid var(--border); }
+  td { padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--border); color: var(--ink); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td strong { color: var(--text); }
+  code { font-family: ui-monospace, 'SF Mono', Consolas, monospace; font-size: 0.85em; background: #f3f4f6; padding: 0.1em 0.35em; border-radius: 3px; }
+
+  .notice { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.9rem 1.1rem; margin: 1rem 0; font-size: 0.9rem; color: #1e40af; }
+
+  footer { margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border); font-size: 0.875rem; color: var(--mid); }
+  footer a { color: var(--mid); }
+</style>
+
+<header class="site-header">
+  <a class="home" href="/">BioMate</a>
+  <span>›</span><span class="crumb">Legal</span>
+  <span>›</span><span class="crumb">Privacy Policy — Connector</span>
+</header>
+
+<div class="wrap">
+  <p class="eyebrow">Legal</p>
+  <h1>Privacy Policy — BioMate Connector</h1>
+  <p class="meta">Effective date: July 2, 2026 &nbsp;·&nbsp; Last updated: July 2, 2026 &nbsp;·&nbsp; <a href="mailto:support@biomate.ai">support@biomate.ai</a></p>
+
+  <p>This policy governs the <strong>BioMate connector</strong> — the MCP server and API that lets AI assistants (Claude, ChatGPT, and others) run BioMate workflows on your behalf. It is referenced by the Claude Directory listing, the connector <code>README.md</code>, and the generated <code>tools_manifest.json</code>.</p>
+
+  <h2>1. Who we are</h2>
+  <p>BioMate AI ("BioMate", "we", "us") operates the BioMate scientific-workflow platform. This policy explains what data the connector sends to BioMate, how we use and store it, who it is shared with, and how long it is kept.</p>
+  <p><strong>Data controller:</strong> BioMate AI &nbsp;·&nbsp; <strong>Contact:</strong> <a href="mailto:support@biomate.ai">support@biomate.ai</a></p>
+
+  <h2>2. What data we collect</h2>
+  <p>When you use the BioMate connector, we process the following categories of data:</p>
+  <table>
+    <thead><tr><th>Category</th><th>Examples</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Account &amp; identity</strong></td><td>Email address, BioMate user ID, organization ID, plan tier</td><td>Your BioMate account</td></tr>
+      <tr><td><strong>Authentication</strong></td><td>OAuth 2.1 access/refresh tokens, granted scopes, API keys (hashed at rest)</td><td>OAuth flow / Settings → API Keys</td></tr>
+      <tr><td><strong>Request content</strong></td><td>Natural-language goals, prompts, and parameters passed to <code>biomate_session</code> / <code>run_workflow</code>; workflow IDs; accessions</td><td>Sent by the AI assistant on your instruction</td></tr>
+      <tr><td><strong>Scientific input data</strong></td><td>Files you upload (FASTQ, MRC, SMILES, sequences), S3 paths, database accessions</td><td>Uploaded by you or fetched at your request</td></tr>
+      <tr><td><strong>Run &amp; output data</strong></td><td>Run status, logs, QC results, structured findings, output files, generated reports</td><td>Produced by BioMate cloud on your runs</td></tr>
+      <tr><td><strong>Usage &amp; billing metering</strong></td><td>LLM token counts, vCPU-hours, memory-hours, GPU-hours, storage-hours, timestamps</td><td>Generated during execution</td></tr>
+      <tr><td><strong>Technical metadata</strong></td><td>IP address, request timestamps, user-agent of the calling surface, error/diagnostic logs</td><td>Automatically at request time</td></tr>
+    </tbody>
+  </table>
+  <div class="notice">We do <strong>not</strong> intentionally collect special-category personal data. Do not upload identifiable human-subject data unless your account is configured for it and you have the legal basis to do so.</div>
+
+  <h2>3. How we use your data</h2>
+  <p>We use the data above only to:</p>
+  <ul>
+    <li>Authenticate you and authorize the scopes you granted to the connector;</li>
+    <li>Select, configure, and execute the workflows you request;</li>
+    <li>Stream progress and return results, findings, and reports to your AI assistant;</li>
+    <li>Meter usage and enforce plan quotas and billing;</li>
+    <li>Diagnose failures, provide support, secure the platform, and prevent abuse;</li>
+    <li>Improve reliability and workflow routing in aggregate.</li>
+  </ul>
+  <div class="notice">We do <strong>not</strong> sell your data. We do <strong>not</strong> use your scientific input data or request content to train foundation models.</div>
+
+  <h2>4. Sub-processors</h2>
+  <p>To run workflows we route data to the following processors, only as needed to provide the service:</p>
+  <table>
+    <thead><tr><th>Sub-processor</th><th>Purpose</th><th>Data shared</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Amazon Web Services (AWS)</strong></td><td>Compute (Batch/GPU), storage (S3), cache (ElastiCache)</td><td>Input files, run data, output files, metering counters</td></tr>
+      <tr><td><strong>LLM providers</strong> (Anthropic, OpenAI, Google)</td><td>AI reasoning, parameter extraction, report narrative</td><td>Request content / prompts needed for the specific AI step</td></tr>
+      <tr><td><strong>Lago</strong> (usage metering)</td><td>Subscription and usage billing</td><td>User ID, aggregated usage counters</td></tr>
+    </tbody>
+  </table>
+  <p>Sub-processors are bound by contract to use data only to provide their service to BioMate. We share data with law enforcement only where legally required.</p>
+
+  <h2>5. Security &amp; storage</h2>
+  <ul>
+    <li>Scientific data and outputs are stored in BioMate's AWS S3 workspace.</li>
+    <li>OAuth refresh tokens are hashed at rest (HMAC-SHA256) and rotated on every use; access tokens are short-lived (30 minutes).</li>
+    <li>Authentication uses OAuth 2.1 + PKCE — no shared secrets or passwords are stored by the connector.</li>
+    <li>Scope grants are per-surface and individually revocable at <a href="https://biomate.ai/account/connectors">biomate.ai/account/connectors</a>.</li>
+  </ul>
+
+  <h2>6. Data retention</h2>
+  <ul>
+    <li><strong>Run data &amp; outputs:</strong> retained while your account is active and until you delete them.</li>
+    <li><strong>Uploaded inputs:</strong> retained in your workspace until you delete them or close your account.</li>
+    <li><strong>Authentication tokens:</strong> deleted on revocation, logout, or account closure.</li>
+    <li><strong>Billing/metering records:</strong> retained as required for accounting and legal obligations.</li>
+  </ul>
+  <p>On account deletion, we delete or anonymize your personal data within a reasonable period, subject to legal retention requirements.</p>
+
+  <h2>7. Your rights</h2>
+  <p>Depending on your jurisdiction, you may have the right to access, correct, export, or delete your personal data, and to withdraw consent by revoking the connector's access. To exercise these rights, revoke access at <a href="https://biomate.ai/account/connectors">biomate.ai/account/connectors</a> or email <a href="mailto:support@biomate.ai">support@biomate.ai</a>.</p>
+
+  <h2>8. Children's privacy</h2>
+  <p>BioMate is not directed to children under 16 and we do not knowingly collect their personal data.</p>
+
+  <h2>9. Changes to this policy</h2>
+  <p>We will update this page and the "Last updated" date when this policy changes. Material changes will be communicated through the product or by email.</p>
+
+  <h2>10. Contact</h2>
+  <p><a href="mailto:support@biomate.ai">support@biomate.ai</a> &nbsp;·&nbsp; <a href="https://biomate.ai/support">biomate.ai/support</a></p>
+
+  <footer>
+    <a href="/">biomate.ai</a> &nbsp;·&nbsp; <a href="/terms">Terms of Service</a> &nbsp;·&nbsp; Privacy Policy (Connector) &nbsp;·&nbsp; <a href="mailto:support@biomate.ai">support@biomate.ai</a>
+  </footer>
+</div>

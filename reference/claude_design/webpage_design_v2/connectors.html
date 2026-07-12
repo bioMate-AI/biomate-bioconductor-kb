@@ -1,0 +1,648 @@
+<title>BioMate Connectors — Connect Any AI Client to BioMate</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #F5F8FB;
+    --ink:      #0E1C2F;
+    --accent:   #0B8A67;
+    --accent-lt:#E4F4EE;
+    --mid:      #5A6E84;
+    --rule:     #C8D6E3;
+    --surface:  #EBF1F7;
+    --code-bg:  #19283A;
+    --code-ink: #8BB8CC;
+    --code-str: #6FD4A8;
+    --code-key: #78B4E8;
+    --code-cmt: #4A6478;
+  }
+
+  html { font-size: 16px; background: var(--bg); color: var(--ink); }
+  body { font-family: ui-sans-serif, system-ui, sans-serif; line-height: 1.65; -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  p { margin-bottom: 1rem; }
+
+  /* ── Site header ─────────────────────────────────────────────────── */
+  .site-header {
+    border-bottom: 1px solid var(--rule);
+    padding: 0 clamp(1.5rem, 5vw, 4rem);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .site-logo {
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+    letter-spacing: 0.04em;
+  }
+  .site-logo span { color: var(--accent); }
+  .site-nav { display: flex; gap: 1.75rem; list-style: none; }
+  .site-nav a {
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--mid);
+  }
+  .site-nav a:hover { color: var(--ink); }
+
+  /* ── Page layout ─────────────────────────────────────────────────── */
+  .page-wrap {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 0 clamp(1.5rem, 5vw, 4rem);
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 4rem;
+    align-items: start;
+    padding-top: 3rem;
+    padding-bottom: 6rem;
+  }
+
+  /* ── Sidebar nav ─────────────────────────────────────────────────── */
+  .sidenav {
+    position: sticky;
+    top: 72px;
+  }
+  .sidenav-group { margin-bottom: 2rem; }
+  .sidenav-group-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--mid);
+    margin-bottom: 0.5rem;
+  }
+  .sidenav-group a {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--mid);
+    text-decoration: none;
+    padding: 0.25rem 0;
+    border-left: 2px solid transparent;
+    padding-left: 0.75rem;
+    margin-left: -0.75rem;
+  }
+  .sidenav-group a:hover { color: var(--ink); border-left-color: var(--rule); }
+  .sidenav-group a.active { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+
+  /* ── Doc content ─────────────────────────────────────────────────── */
+  .doc-content {}
+
+  .page-hero {
+    padding-bottom: 2.5rem;
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .page-eyebrow {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+  }
+  .page-hero h1 {
+    font-size: clamp(1.6rem, 3vw, 2.25rem);
+    font-weight: 700;
+    line-height: 1.2;
+    text-wrap: balance;
+    margin-bottom: 0.9rem;
+  }
+  .page-hero p {
+    font-size: 1.05rem;
+    color: var(--mid);
+    max-width: 600px;
+    line-height: 1.65;
+  }
+
+  .doc-section {
+    margin-bottom: 3.5rem;
+    scroll-margin-top: 80px;
+  }
+
+  h2 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.25;
+    margin-bottom: 1rem;
+    color: var(--ink);
+  }
+  h3 {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin: 2rem 0 0.75rem;
+  }
+  h4 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 1.5rem 0 0.5rem;
+  }
+
+  strong { font-weight: 700; }
+
+  code {
+    font-family: ui-monospace, 'Cascadia Code', 'SF Mono', monospace;
+    font-size: 0.82em;
+    background: var(--surface);
+    color: var(--accent);
+    padding: 0.1em 0.35em;
+    border-radius: 2px;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 1.25rem 1.5rem;
+    overflow-x: auto;
+    margin: 0.75rem 0 1.5rem;
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+  pre code {
+    background: none;
+    color: var(--code-ink);
+    padding: 0;
+    font-size: 1em;
+  }
+  .token-str  { color: var(--code-str); }
+  .token-key  { color: var(--code-key); }
+  .token-cmt  { color: var(--code-cmt); }
+
+  ul { padding-left: 1.4rem; margin-bottom: 1rem; }
+  ul li { margin-bottom: 0.35rem; color: var(--ink); }
+
+  /* ── Surfaces grid ───────────────────────────────────────────────── */
+  .surface-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0 1.5rem;
+  }
+  .surface-card {
+    border: 1.5px solid var(--rule);
+    background: white;
+    padding: 1.1rem 1.25rem;
+    border-radius: 4px;
+  }
+  .surface-card .surf-name {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 0.2rem;
+  }
+  .surface-card .surf-transport {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--mid);
+    margin-bottom: 0.6rem;
+  }
+  .surface-card p {
+    font-size: 0.85rem;
+    color: var(--mid);
+    margin: 0;
+    line-height: 1.55;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.2em 0.55em;
+    border-radius: 2px;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+  }
+  .badge-green { background: var(--accent-lt); color: var(--accent); }
+  .badge-mid   { background: var(--surface); color: var(--mid); }
+
+  /* ── Tool table ──────────────────────────────────────────────────── */
+  .tool-table { width: 100%; border-collapse: collapse; margin: 0.75rem 0 1.5rem; font-size: 0.875rem; }
+  .tool-table th {
+    text-align: left;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--mid);
+    padding: 0.4rem 0.75rem;
+    border-bottom: 2px solid var(--rule);
+  }
+  .tool-table td {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+    color: var(--ink);
+  }
+  .tool-table tr:last-child td { border-bottom: none; }
+  .tool-table td:first-child code { background: var(--accent-lt); color: var(--accent); }
+  .tool-table .desc { color: var(--mid); font-size: 0.82rem; }
+
+  /* ── Step blocks ─────────────────────────────────────────────────── */
+  .steps { counter-reset: step; }
+  .step {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    align-items: flex-start;
+  }
+  .step-num {
+    flex-shrink: 0;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 0.78rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.1rem;
+  }
+  .step-body { flex: 1; }
+  .step-body strong { display: block; margin-bottom: 0.2rem; }
+  .step-body p { font-size: 0.9rem; color: var(--mid); margin: 0; }
+
+  /* ── Callout ─────────────────────────────────────────────────────── */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-lt);
+    padding: 0.9rem 1.1rem;
+    margin: 1rem 0 1.5rem;
+    border-radius: 0 4px 4px 0;
+    font-size: 0.9rem;
+    color: #0d5a44;
+  }
+  .callout strong { display: block; margin-bottom: 0.25rem; }
+  .callout-note {
+    border-left-color: var(--rule);
+    background: var(--surface);
+    color: var(--mid);
+  }
+
+  /* ── Section divider ─────────────────────────────────────────────── */
+  .divider { border: none; border-top: 1px solid var(--rule); margin: 2.5rem 0; }
+
+  /* ── Footer ──────────────────────────────────────────────────────── */
+  .site-footer {
+    border-top: 1px solid var(--rule);
+    padding: 2rem clamp(1.5rem, 5vw, 4rem);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.78rem;
+    color: var(--mid);
+  }
+  .site-footer a { color: var(--mid); }
+  .site-footer a:hover { color: var(--ink); text-decoration: underline; }
+
+  @media (max-width: 720px) {
+    .page-wrap { grid-template-columns: 1fr; }
+    .sidenav { display: none; }
+  }
+</style>
+
+<header class="site-header">
+  <a class="site-logo" href="/"><span>bio</span>mate</a>
+  <nav><ul class="site-nav">
+    <li><a href="/features">Features</a></li>
+    <li><a href="/benchmarks">Benchmarks</a></li>
+    <li><a href="/blog">Blog</a></li>
+    <li><a href="/connectors" style="color:var(--ink);font-weight:600">Connectors</a></li>
+    <li><a href="https://app.biomate.ai">Launch app</a></li>
+  </ul></nav>
+</header>
+
+<div class="page-wrap">
+
+  <!-- Sidebar -->
+  <aside class="sidenav">
+    <div class="sidenav-group">
+      <div class="sidenav-group-label">Overview</div>
+      <a href="#overview" class="active">What are connectors?</a>
+      <a href="#surfaces">Supported surfaces</a>
+      <a href="#tools">Available tools</a>
+    </div>
+    <div class="sidenav-group">
+      <div class="sidenav-group-label">Install</div>
+      <a href="#claude-code">Claude Code</a>
+      <a href="#claude-desktop">Claude Desktop</a>
+      <a href="#chatgpt">ChatGPT</a>
+      <a href="#slack">Slack</a>
+      <a href="#feishu">Feishu / Lark</a>
+    </div>
+    <div class="sidenav-group">
+      <div class="sidenav-group-label">Reference</div>
+      <a href="#auth">Authentication</a>
+      <a href="#manual-config">Manual config</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <div class="sidenav-group">
+      <div class="sidenav-group-label">Resources</div>
+      <a href="https://github.com/bioMate-AI/biomate-connector">GitHub repo ↗</a>
+      <a href="/blog-connectors">Architecture blog post ↗</a>
+      <a href="/legal/privacy">Privacy policy ↗</a>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="doc-content">
+
+    <div class="page-hero">
+      <p class="page-eyebrow">Connectors</p>
+      <h1>Connect any AI client to BioMate</h1>
+      <p>BioMate exposes a single MCP server with 19 tools. Install once, run from Claude Code, Claude Desktop, ChatGPT, Slack, or Feishu — every surface shares the same tool interface, the same workflow catalog, and the same runs history.</p>
+    </div>
+
+    <!-- Overview -->
+    <section class="doc-section" id="overview">
+      <h2>What are connectors?</h2>
+      <p>BioMate connectors let AI assistants call BioMate's scientific-workflow platform on your behalf. When you ask Claude Code to "run RNA-seq on these FASTQs," it calls the <code>run_workflow</code> tool rather than generating code — the run executes on BioMate cloud, and live phase and step updates stream back into the chat.</p>
+      <p>The connector stack has two transport families:</p>
+      <ul>
+        <li><strong>MCP stdio</strong> — Claude Code and Claude Desktop use a local proxy process. The AI client speaks JSON-RPC over stdio to a BioMate-issued binary that relays calls to <code>api.biomate.ai</code>.</li>
+        <li><strong>REST/webhook</strong> — ChatGPT, Slack, and Feishu reach <code>https://app.biomate.ai/mcp</code> directly over HTTPS. No local process needed.</li>
+      </ul>
+      <p>All surfaces authenticate with the same OAuth 2.1 + PKCE flow against <code>biomate.ai/oauth</code>. Your BioMate account, runs history, and workflow catalog are shared across every surface.</p>
+    </section>
+
+    <!-- Surfaces -->
+    <section class="doc-section" id="surfaces">
+      <h2>Supported surfaces</h2>
+      <div class="surface-grid">
+        <div class="surface-card">
+          <div class="surf-name">Claude Code <span class="badge badge-green">MCP stdio</span></div>
+          <div class="surf-transport">Terminal · CLI</div>
+          <p>Run BioMate workflows from your terminal. Results stream back inline as tool-use progress.</p>
+        </div>
+        <div class="surface-card">
+          <div class="surf-name">Claude Desktop <span class="badge badge-green">MCP stdio</span></div>
+          <div class="surf-transport">macOS · Windows</div>
+          <p>Integrate BioMate into the Claude Desktop app. Same tool set, same runs history.</p>
+        </div>
+        <div class="surface-card">
+          <div class="surf-name">ChatGPT <span class="badge badge-mid">REST</span></div>
+          <div class="surf-transport">Plugin / GPT Action</div>
+          <p>Register BioMate as a custom GPT action. OAuth handled by ChatGPT's built-in flow.</p>
+        </div>
+        <div class="surface-card">
+          <div class="surf-name">Slack <span class="badge badge-mid">REST</span></div>
+          <div class="surf-transport">Bot · Webhook</div>
+          <p>Add the BioMate bot to your workspace. Mention <code>@BioMate</code> to start a workflow from any channel.</p>
+        </div>
+        <div class="surface-card">
+          <div class="surf-name">Feishu / Lark <span class="badge badge-mid">REST</span></div>
+          <div class="surf-transport">Bot · Webhook</div>
+          <p>Integrate via Feishu's open-platform bot API. Supports message cards with run status.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tools -->
+    <section class="doc-section" id="tools">
+      <h2>Available tools (19)</h2>
+      <p>All surfaces expose the same tool set. Tools are annotated with read-only and destructive hints so the AI client can present appropriate confirmation prompts.</p>
+
+      <h3>Streaming agentic tool</h3>
+      <table class="tool-table">
+        <thead><tr><th>Tool</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>biomate_session</code></td><td class="desc">Natural-language goal in, BioMate orchestrates: selects workflow, fills params, submits to cloud, streams phase + step + QC + finding events back as progress notifications.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Workflow primitives</h3>
+      <table class="tool-table">
+        <thead><tr><th>Tool</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>search_workflow</code></td><td class="desc">Ranked catalog search across 2,455 workflows and 34 biological domains.</td></tr>
+          <tr><td><code>get_workflow_spec</code></td><td class="desc">Required + optional params, allowed values, default QC profile, cost estimate.</td></tr>
+          <tr><td><code>run_workflow</code></td><td class="desc">Start a run. Use <code>stream: true</code> for inline phase/step events.</td></tr>
+          <tr><td><code>cancel_run</code></td><td class="desc">Cancel an in-flight run.</td></tr>
+          <tr><td><code>list_runs</code></td><td class="desc">History with experiment, workflow, and status filters.</td></tr>
+          <tr><td><code>get_run</code></td><td class="desc">Single call: status + phases + steps + findings + output files.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Outputs, analysis, reporting</h3>
+      <table class="tool-table">
+        <thead><tr><th>Tool</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>preview_file</code></td><td class="desc">Server-side preview of FASTA / VCF / CSV / MRC / images / PDF.</td></tr>
+          <tr><td><code>export_report</code></td><td class="desc">Render methods + QC + findings as PDF or Markdown (IND/CRO-ready).</td></tr>
+          <tr><td><code>analyze_results</code></td><td class="desc">AI interpretation — free-form questions about a run's outputs.</td></tr>
+          <tr><td><code>explain_error</code></td><td class="desc">Root-cause diagnosis when a run fails.</td></tr>
+          <tr><td><code>recall_memory</code></td><td class="desc">Retrieve relevant prior runs, findings, and procedures.</td></tr>
+          <tr><td><code>upload_file</code></td><td class="desc">Get a signed S3 PUT URL for local file uploads.</td></tr>
+          <tr><td><code>query_database</code></td><td class="desc">UniProt / PDB / AlphaFold / NCBI / ChEMBL lookup by accession or query.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Account and quota</h3>
+      <table class="tool-table">
+        <thead><tr><th>Tool</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>get_account</code></td><td class="desc">Account info, plan tier, and remaining quota.</td></tr>
+          <tr><td><code>list_projects</code></td><td class="desc">Projects in your workspace.</td></tr>
+          <tr><td><code>create_project</code></td><td class="desc">Create a new project to group related runs.</td></tr>
+          <tr><td><code>manage_files</code></td><td class="desc">List, move, and delete workspace files.</td></tr>
+          <tr><td><code>manage_run_history</code></td><td class="desc">Tag, annotate, or archive past runs.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <hr class="divider">
+
+    <!-- Claude Code -->
+    <section class="doc-section" id="claude-code">
+      <h2>Claude Code</h2>
+      <p>The Claude Code connector runs as a local MCP server (stdio transport). It installs in 30 seconds and writes its config into <code>~/.claude.json</code>.</p>
+
+      <h4>Automatic install</h4>
+      <pre><code><span class="token-str">npx @biomate/connect claude-code</span></code></pre>
+      <p>The installer opens your browser, completes the OAuth 2.1 + PKCE flow against <code>biomate.ai</code>, and writes the server entry into your Claude Code config. Restart Claude Code to activate.</p>
+
+      <h4>Try it</h4>
+      <pre><code><span class="token-cmt"># ADMET screening</span>
+<span class="token-str">Screen aspirin and caffeine for hERG inhibition and CYP3A4 metabolism.</span>
+
+<span class="token-cmt"># RNA-seq differential expression</span>
+<span class="token-str">Run RNA-seq differential expression on s3://biomate-demo/treated_R1.fq.gz
+and s3://biomate-demo/control_R1.fq.gz. Compare treated vs control, GRCh38.</span>
+
+<span class="token-cmt"># Cryo-EM refinement</span>
+<span class="token-str">Refine s3://biomate-demo/particles.cs with CryoSPARC homogeneous refinement.
+Apply C2 symmetry.</span></code></pre>
+
+      <div class="callout">
+        <strong>Live streaming</strong>
+        Results are not delivered as a final answer — phase and step events stream back as <code>notifications/progress</code> and Claude renders the live timeline inline, just like the BioMate web UI.
+      </div>
+    </section>
+
+    <!-- Claude Desktop -->
+    <section class="doc-section" id="claude-desktop">
+      <h2>Claude Desktop</h2>
+      <p>Claude Desktop supports MCP stdio servers via the <code>claude_desktop_config.json</code> file.</p>
+
+      <h4>Automatic install</h4>
+      <pre><code><span class="token-str">npx @biomate/connect claude-desktop</span></code></pre>
+      <p>The installer handles OAuth and writes the server entry into <code>~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS) or <code>%APPDATA%\Claude\claude_desktop_config.json</code> (Windows). Restart Claude Desktop to activate.</p>
+
+      <h4>Manual config</h4>
+      <p>If you prefer to configure manually, add this entry under <code>mcpServers</code> in <code>claude_desktop_config.json</code>:</p>
+      <pre><code>{
+  <span class="token-key">"mcpServers"</span>: {
+    <span class="token-key">"biomate"</span>: {
+      <span class="token-key">"command"</span>: <span class="token-str">"npx"</span>,
+      <span class="token-key">"args"</span>: [<span class="token-str">"-y"</span>, <span class="token-str">"@biomate/mcp-server"</span>],
+      <span class="token-key">"env"</span>: {
+        <span class="token-key">"BIOMATE_API_KEY"</span>: <span class="token-str">"&lt;your-api-key&gt;"</span>
+      }
+    }
+  }
+}</code></pre>
+    </section>
+
+    <!-- ChatGPT -->
+    <section class="doc-section" id="chatgpt">
+      <h2>ChatGPT</h2>
+      <p>BioMate integrates with ChatGPT as a custom GPT action. The action calls <code>https://app.biomate.ai/mcp</code> over HTTPS — no local installation needed.</p>
+
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Open the GPT editor</strong><p>Go to <strong>ChatGPT → Explore GPTs → Create</strong>.</p></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Add an action</strong><p>Click <strong>Add actions</strong> and paste the OpenAPI schema URL: <code>https://app.biomate.ai/mcp/openapi.json</code></p></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Configure OAuth</strong><p>Set auth type to <strong>OAuth</strong>. Client ID and secret are available at <a href="https://biomate.ai/account/connectors">biomate.ai/account/connectors</a>. The authorization URL is <code>https://biomate.ai/oauth/authorize</code> and the token URL is <code>https://biomate.ai/oauth/token</code>.</p></div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-body"><strong>Save and test</strong><p>Save the GPT and ask it to list your workflows: <em>"What RNA-seq workflows are available in BioMate?"</em></p></div></div>
+      </div>
+    </section>
+
+    <!-- Slack -->
+    <section class="doc-section" id="slack">
+      <h2>Slack</h2>
+      <p>The BioMate Slack integration adds a bot to your workspace. Mention <code>@BioMate</code> in any channel to start a workflow, check run status, or query the database.</p>
+
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Add to Slack</strong><p>Visit <a href="https://biomate.ai/integrations/slack">biomate.ai/integrations/slack</a> and click <strong>Add to Slack</strong>. You'll be redirected through Slack's OAuth to authorize the bot.</p></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Connect your BioMate account</strong><p>After adding the bot, run <code>/biomate connect</code> in any channel. The bot sends a one-time link to authenticate with your BioMate account.</p></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Start using it</strong><p>Mention the bot with a natural-language task. Run status updates appear in the same thread as interactive cards.</p></div></div>
+      </div>
+
+      <h4>Example interactions</h4>
+      <pre><code><span class="token-cmt">@BioMate</span> <span class="token-str">Run GATK variant calling on s3://my-bucket/sample.bam, hg38</span>
+
+<span class="token-cmt">@BioMate</span> <span class="token-str">What's the status of my last run?</span>
+
+<span class="token-cmt">@BioMate</span> <span class="token-str">Look up UniProt P04637 and summarize cancer mutations</span></code></pre>
+
+      <div class="callout callout-note">
+        The Slack bot posts run progress as message updates in the originating thread. For long-running workflows (30+ minutes), it posts a final summary when the run completes.
+      </div>
+    </section>
+
+    <!-- Feishu -->
+    <section class="doc-section" id="feishu">
+      <h2>Feishu / Lark</h2>
+      <p>The BioMate Feishu integration connects as a Feishu open-platform bot. It supports interactive message cards that display run status and findings inline.</p>
+
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Add the bot</strong><p>Search for <strong>BioMate</strong> in the Feishu app directory, or visit <a href="https://biomate.ai/integrations/feishu">biomate.ai/integrations/feishu</a>.</p></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Authorize</strong><p>Click <strong>Add to organization</strong> and complete the Feishu OAuth flow. The bot is added to your organization's workspace.</p></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Connect BioMate account</strong><p>Send a direct message to the bot: <code>/connect</code>. It will send a one-time authentication link.</p></div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-body"><strong>Start using it</strong><p>Mention <code>@BioMate</code> in a group or send it a DM. Progress cards update in-thread as phases complete.</p></div></div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- Auth -->
+    <section class="doc-section" id="auth">
+      <h2>Authentication</h2>
+      <p>All surfaces use OAuth 2.1 + PKCE. No shared secrets or passwords are stored by the connector — only short-lived access tokens (30 min) and hashed refresh tokens.</p>
+
+      <h4>Scopes</h4>
+      <table class="tool-table">
+        <thead><tr><th>Scope</th><th>Grants</th></tr></thead>
+        <tbody>
+          <tr><td><code>workflows:read</code></td><td class="desc">Search catalog, get specs, list runs.</td></tr>
+          <tr><td><code>workflows:write</code></td><td class="desc">Start and cancel runs.</td></tr>
+          <tr><td><code>files:read</code></td><td class="desc">Preview and download output files.</td></tr>
+          <tr><td><code>files:write</code></td><td class="desc">Upload input files.</td></tr>
+          <tr><td><code>account:read</code></td><td class="desc">Account info and quota.</td></tr>
+        </tbody>
+      </table>
+
+      <p>Revoke any surface's access at any time at <a href="https://biomate.ai/account/connectors">biomate.ai/account/connectors</a>. Revoking one surface does not affect others.</p>
+
+      <h4>API keys</h4>
+      <p>For server-to-server use (no browser), generate a long-lived API key at <a href="https://biomate.ai/account/api-keys">biomate.ai/account/api-keys</a>. Pass it as <code>Authorization: Bearer &lt;key&gt;</code> or set it in the <code>BIOMATE_API_KEY</code> environment variable.</p>
+    </section>
+
+    <!-- Manual config -->
+    <section class="doc-section" id="manual-config">
+      <h2>Manual configuration</h2>
+      <p>If <code>npx @biomate/connect</code> is unavailable, set the server entry by hand. For Claude Code, add this to <code>~/.claude.json</code>:</p>
+      <pre><code>{
+  <span class="token-key">"mcpServers"</span>: {
+    <span class="token-key">"biomate"</span>: {
+      <span class="token-key">"type"</span>: <span class="token-str">"stdio"</span>,
+      <span class="token-key">"command"</span>: <span class="token-str">"npx"</span>,
+      <span class="token-key">"args"</span>: [<span class="token-str">"-y"</span>, <span class="token-str">"@biomate/mcp-server"</span>],
+      <span class="token-key">"env"</span>: {
+        <span class="token-key">"BIOMATE_API_KEY"</span>: <span class="token-str">"bm_sk_..."</span>
+      }
+    }
+  }
+}</code></pre>
+      <p>The <code>BIOMATE_API_KEY</code> value can be found at <a href="https://biomate.ai/account/api-keys">biomate.ai/account/api-keys</a>.</p>
+    </section>
+
+    <!-- FAQ -->
+    <section class="doc-section" id="faq">
+      <h2>FAQ</h2>
+
+      <h4>Does the connector send my data to Anthropic?</h4>
+      <p>No. The connector calls BioMate's API directly. Anthropic (Claude Code / Claude Desktop) only sees the tool names, their inputs, and their outputs — the same data visible in your chat session. See the <a href="/legal/privacy">privacy policy</a> for full details.</p>
+
+      <h4>Can I use the connector with a self-hosted BioMate instance?</h4>
+      <p>Yes. Set <code>BIOMATE_API_URL=https://your-instance.example.com</code> in the environment before running <code>npx @biomate/connect</code>.</p>
+
+      <h4>Is the connector open source?</h4>
+      <p>Yes. The server code and all surface adapters are at <a href="https://github.com/bioMate-AI/biomate-connector">github.com/bioMate-AI/biomate-connector</a> under the MIT license.</p>
+
+      <h4>What happens if a run exceeds my quota?</h4>
+      <p>The <code>run_workflow</code> tool returns an error with the quota details. The AI client surfaces this as a readable message. Upgrade your plan at <a href="https://biomate.ai/billing">biomate.ai/billing</a>.</p>
+
+      <h4>Can multiple team members share the same BioMate connector?</h4>
+      <p>Each team member authenticates with their own BioMate account. Runs, files, and project membership are governed by BioMate's project-level access controls — not the connector.</p>
+    </section>
+
+  </main>
+</div>
+
+<footer class="site-footer">
+  <span>© 2026 BioMate AI</span>
+  <span>
+    <a href="/legal/privacy">Privacy</a> &nbsp;·&nbsp;
+    <a href="mailto:support@biomate.ai">support@biomate.ai</a> &nbsp;·&nbsp;
+    <a href="https://github.com/bioMate-AI/biomate-connector">GitHub</a>
+  </span>
+</footer>
