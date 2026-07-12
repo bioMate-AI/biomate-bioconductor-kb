@@ -2333,6 +2333,16 @@ def search_nextflow_workflow(
             # bioconductor subworkflows and biomni custom workflows.
             if filename.startswith("nfcore/") and "/main.nf" in filename:
                 return True
+            # BioMate AI-tool subworkflows (nextflow_nfcore/subworkflows/<domain>/,
+            # e.g. pharmacology/predict_admet_properties, pharmacology/herg_cardiac_safety_qsar,
+            # amber_pmemd_md, gromacs_md) are standalone Batch-runnable entry points — they
+            # execute on AWS Batch exactly like top-level nfcore pipelines. The runnable_keys
+            # gate is intended ONLY for bioconductor subworkflows + biomni custom workflows
+            # (see comment above); applying it to these biomate-tool workflows wrongly rejected
+            # a correctly-ranked #1 match (e.g. ADMET) and fell back to an irrelevant but
+            # whitelisted bioconductor workflow. Exclude bioconductor (still gated below).
+            if filename.startswith("nextflow_nfcore/subworkflows/") and "/bioconductor/" not in filename:
+                return True
             key = _nextflow_workflow_key(filename)
             return bool(key and key in runnable_keys)
 
