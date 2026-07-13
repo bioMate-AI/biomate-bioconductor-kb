@@ -84,3 +84,16 @@ def post_fork(server, worker):
         from galaxy.web_stack import GunicornApplicationStack
 
         GunicornApplicationStack.late_postfork_event.set()
+
+    # Start the workflow-search embedding warmup HERE — per-worker, AFTER fork —
+    # not at module-import time. Under --preload the import runs in the master;
+    # starting the warmup thread there held the embedding init lock at fork, so
+    # every worker inherited a locked mutex and search_chains() hung forever
+    # (fork-after-threads deadlock, 2026-07-12). post_fork runs inside each freshly
+    # forked worker, so the thread + its locks are created cleanly. No-op when
+    # WORKFLOW_SEARCH_WARMUP is false or workflow search is unavailable.
+    try:
+        from galaxy.webapps.galaxy.api.ai_assistant import start_workflow_search_warmup
+        start_workflow_search_warmup()
+    except Exception:
+        pass
