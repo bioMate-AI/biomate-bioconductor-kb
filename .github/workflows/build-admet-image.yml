@@ -1,0 +1,39 @@
+name: Build biomni-admet image
+
+# Thin caller of the reusable build-biomni-image template. Builds the ADMET-AI
+# container, runs backend/docker/biomni-admet/smoke.py (ADMETModel.predict on aspirin)
+# inside the image, and only pushes :x86 if the smoke passes. Deps are locked via
+# backend/docker/biomni-admet/requirements.lock (see the Dockerfile).
+
+on:
+  workflow_dispatch:
+    inputs:
+      emit_lockfile:
+        description: "Print pip freeze to refresh requirements.lock"
+        required: false
+        default: false
+        type: boolean
+  push:
+    paths:
+      - backend/docker/biomni-admet/Dockerfile
+      - backend/docker/biomni-admet/requirements.lock
+      - backend/docker/biomni-admet/smoke.py
+      - .github/workflows/build-admet-image.yml
+      - .github/workflows/build-biomni-image.yml
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: build-admet-image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  admet:
+    uses: ./.github/workflows/build-biomni-image.yml
+    with:
+      image_repo: biomate/biomni-admet
+      dockerfile: backend/docker/biomni-admet/Dockerfile
+      smoke_script: backend/docker/biomni-admet/smoke.py
+      emit_lockfile: ${{ github.event_name == 'workflow_dispatch' && inputs.emit_lockfile || false }}
