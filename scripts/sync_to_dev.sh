@@ -1042,6 +1042,8 @@ try:
     wf = bool(d.get(\"workflow_ga\") or d.get(\"nextflow_path\"))
     if err == \"db_unavailable\":
         print(\"FAIL db_unavailable\"); sys.exit(1)
+    if err == \"clarification_needed\":
+        print(\"CLARIFY\"); sys.exit(2)
     if err:
         print(f\"FAIL error={err}\"); sys.exit(1)
     if not success or not wf:
@@ -1050,6 +1052,27 @@ try:
 except Exception as e:
     print(f\"FAIL parse_error={e}\"); sys.exit(1)
 " 2>&1)
+    if echo "$ok" | grep -q "^CLARIFY"; then
+      echo "[smoke] clarification_needed — retrying with specific query..."
+      result=$(curl -s --max-time 25 http://localhost:8081/api/ai_assistant/generate_workflow \
+        -X POST -H "Content-Type: application/json" \
+        -d "{\"request_text\":\"run DESeq2 differential expression on human RNA-seq FASTQ files, control vs treatment\",\"user_id\":\"1\"}" 2>/dev/null)
+      ok=$(echo "$result" | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    err = d.get(\"error\", \"\")
+    success = d.get(\"success\", False)
+    wf = bool(d.get(\"workflow_ga\") or d.get(\"nextflow_path\"))
+    if err:
+        print(f\"FAIL error={err}\"); sys.exit(1)
+    if not success or not wf:
+        print(f\"FAIL success={success} wf={wf}\"); sys.exit(1)
+    print(\"PASS workflow=\" + str(d.get(\"workflow_ga\",{}).get(\"name\",\"?\"))); sys.exit(0)
+except Exception as e:
+    print(f\"FAIL parse_error={e}\"); sys.exit(1)
+" 2>&1)
+    fi
     echo "[smoke] $ok"
     echo "$ok" | grep -q "^PASS" && exit 0 || exit 1
   '
