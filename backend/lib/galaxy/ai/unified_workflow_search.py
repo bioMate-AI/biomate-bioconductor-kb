@@ -57,8 +57,22 @@ _SEARCH_STOPWORDS: frozenset = frozenset({
 
 # Too generic to use as FTS named anchors (match hundreds of nf-core workflows).
 _NAMED_ANCHOR_BLOCKLIST: frozenset = frozenset({
+    # Infrastructure / meta words
     "nfcore", "nf", "core", "use", "plan", "not", "galaxy", "batch", "docker",
     "aws", "please", "workflow", "andv", "show", "card", "panel",
+    # Generic English words that appear after "run/using/via" but are NOT tool names
+    # (each was a false-positive anchor that excluded correct workflows from FTS results)
+    "experiment", "experiments", "data", "files", "output", "outputs", "results", "result",
+    "sample", "samples", "reads", "sequences", "genome", "genomes", "genes", "gene",
+    "cells", "cell", "protein", "proteins", "antibody", "antibodies", "reference",
+    "analysis", "analyses", "pipeline", "pipelines", "tool", "tools", "method", "methods",
+    "want", "need", "back", "convert", "generate", "compute", "compare", "identify",
+    "detect", "process", "accounting", "conditions", "condition", "regions", "region",
+    "domains", "domain", "loops", "loop", "table", "matrix", "index", "indices",
+    "run", "runs", "step", "steps", "report", "reports", "quality", "control",
+    "input", "inputs", "model", "models", "count", "counts", "call", "calls",
+    "map", "maps", "align", "alignment", "search", "find", "get", "set",
+    "individual", "complex", "raw", "clean", "trim", "filter", "merge",
 })
 
 # nf-core pipeline slugs that users cite by name in chat (normalised: lowercase, no punctuation).
@@ -1330,7 +1344,8 @@ class UnifiedWorkflowSearch:
             # "using <ToolName>", "with <ToolName>", "run <ToolName>", etc.
             r'\b(?:using|run|search with|via|through)\s+([A-Z][A-Za-z0-9_\-\.]+)',
             # "DrugCLIP for", "Boltz to", etc. — ToolName first, then preposition
-            r'\b([A-Z][A-Za-z0-9_\-\.]+)\s+(?:for|to|against|workflow|pipeline|model)',
+            # Word boundary \b required after the preposition so "to" doesn't match inside "topologically"
+            r'\b([A-Z][A-Za-z0-9_\-\.]+)\s+(?:for|to|against|workflow|pipeline|model)\b',
         ]
         candidates: List[str] = []
         for pat in _NAMED_TOOL_PATTERNS:
