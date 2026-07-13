@@ -106,6 +106,13 @@ jobs:
             echo "Skipping: Python 3.9 compat test not found"
           fi
 
+      - name: Guard — executor serializes list/dict params as JSON (not str())
+        # Hard gate (not the best-effort `pytest tests/` below): a regression to
+        # str() for list params re-breaks ~272 workflows (list-as-a-string → 1 bogus
+        # value → 0 molecules → tool crash). See test docstring / commit cb8ba2e08.
+        run: |
+          python -m pytest backend/tests/test_nextflow_executor_list_param_json.py -v
+
       - name: Run linting
         run: |
           cd backend
