@@ -1932,7 +1932,7 @@ class UnifiedWorkflowSearch:
             elif source in ("nfcore", "biomni_nextflow"):
                 score += 12.0
             elif source == "bioconductor":
-                score -= 10.0  # Bioconductor R packages are unlikely to be what they need
+                score -= 12.0  # Bioconductor R packages are unlikely to be what they need
 
         # 6. Domain preference bias (critical for avoiding cross-domain QC mismatches)
         # Use LLM-derived domain lists when provided (UQU output); fall back to rule-based inference.
