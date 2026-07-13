@@ -1185,6 +1185,8 @@ class UnifiedWorkflowSearch:
         'chip-seq reads', 'chip seq reads', 'atac-seq reads',
         'drop-seq', 'dropseq', 'smart-seq', 'smartseq', 'indrop',  # scRNA-seq protocols
         '10x chromium', 'seq-well', 'dip-c',
+        # CRISPR screens require NGS of sgRNA libraries — raw sequencing intent
+        'crispr screen', 'crispr knockout screen', 'knockout screen', 'crispr pooled',
         # Explicitly wants full pipeline from raw
         'run a pipeline', 'run the full pipeline', 'run nf-core', 'nextflow run',
         'run sarek', 'run rnaseq', 'run methylseq', 'run chipseq', 'run atacseq',
@@ -1928,9 +1930,9 @@ class UnifiedWorkflowSearch:
             if is_subworkflow:
                 score -= 4.0  # Subworkflows compete unfairly with full pipelines; penalise
             elif source in ("nfcore", "biomni_nextflow"):
-                score += 8.0
+                score += 12.0
             elif source == "bioconductor":
-                score -= 5.0  # Bioconductor R packages are unlikely to be what they need
+                score -= 10.0  # Bioconductor R packages are unlikely to be what they need
 
         # 6. Domain preference bias (critical for avoiding cross-domain QC mismatches)
         # Use LLM-derived domain lists when provided (UQU output); fall back to rule-based inference.
@@ -2550,12 +2552,13 @@ class UnifiedWorkflowSearch:
         q = query.lower()
         types: set = set()
         if re.search(
-            r'\bfastq\b|\.fastq|\.fq\b'           # explicit format
-            r'|raw reads?|sequencing reads?'         # "raw reads", "sequencing reads"
-            r'|paired.end reads?'                    # "paired-end reads"
-            r'|\balign\b.{0,40}\breads?\b'           # "align reads", "align the reads"
-            r'|\breads?\b.{0,20}\balign'             # "reads to align"
-            r'|\bseq(uencing)?\s+reads?\b',          # "seq reads", "sequencing reads"
+            r'\bfastq\b|\.fastq|\.fq\b'             # explicit format
+            r'|raw reads?|sequencing reads?'           # "raw reads", "sequencing reads"
+            r'|raw sequencing\b|sequencing files?\b'  # "raw sequencing files", "sequencing files"
+            r'|paired.end reads?'                      # "paired-end reads"
+            r'|\balign\b.{0,40}\breads?\b'             # "align reads", "align the reads"
+            r'|\breads?\b.{0,20}\balign'               # "reads to align"
+            r'|\bseq(uencing)?\s+reads?\b',            # "seq reads", "sequencing reads"
             q
         ):
             types.add("fastq")
