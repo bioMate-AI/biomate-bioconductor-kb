@@ -29,7 +29,7 @@ async function ensureProjectMembersTable(): Promise<void> {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS project_members (
       id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      project_id  UUID NOT NULL REFERENCES memory_projects(id) ON DELETE CASCADE,
+      project_id  UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
       user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       role        TEXT NOT NULL DEFAULT 'viewer' CHECK (role IN ('viewer', 'editor')),
       invited_by  UUID REFERENCES users(id) ON DELETE SET NULL,
