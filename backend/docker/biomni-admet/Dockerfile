@@ -45,33 +45,31 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxext6 \
     && rm -rf /var/lib/apt/lists/*
 
-# ── PyTorch CPU-only ───────────────────────────────────────────────────────
-# Install CPU-only PyTorch BEFORE admet-ai so pip doesn't pull the full
-# CUDA wheel (~2 GB). ADMET prediction is purely inference on small molecule
-# batches — GPU is not needed and adds no throughput benefit here.
-# CPU wheel: ~250 MB vs CUDA wheel: ~2 GB.
-RUN pip install --no-cache-dir \
-    torch \
-    --index-url https://download.pytorch.org/whl/cpu
+# ── Reproducible dependency lock ───────────────────────────────────────────
+# requirements.lock is a pip CONSTRAINTS file (full pip freeze, 170 pkgs) captured
+# from a VERIFIED build (ADMET-AI predict() → 98 endpoints, no crash / no RDKit
+# fallback). Passing it as `-c` to EVERY install pins the WHOLE transitive graph, so
+# a rebuild can't silently drift. This closes the entire "dependency drift broke
+# inference" bug class that produced, one at a time:
+#   • "cat() received ... (NoneType, dim=int)"  — chemprop/torch/admet-ai drift
+#   • "too many indices for array ..."           — numpy 2.x (chemprop 1.6.1 needs <2)
+# To bump versions deliberately: edit the constraint, rebuild, and let the CI smoke
+# (ADMETModel.predict) gate the change; then regenerate the lock from the new freeze.
+COPY backend/docker/biomni-admet/requirements.lock /tmp/biomni-admet.lock
 
-# ── scikit-learn + matplotlib (lightweight, needed for fallback models) ────
-RUN pip install --no-cache-dir \
-    scikit-learn \
-    matplotlib
+# CPU-only PyTorch (CPU wheel ~250 MB vs CUDA ~2 GB; ADMET is small-batch inference).
+# torch==2.3.1+cpu comes from the lock; the CPU index supplies the +cpu build.
+RUN pip install --no-cache-dir -c /tmp/biomni-admet.lock \
+    torch --index-url https://download.pytorch.org/whl/cpu
 
-# ── mordred (1826 molecular descriptors) ──────────────────────────────────
-RUN pip install --no-cache-dir "mordred==1.2.0"
+# Everything else — versions come from the lock (numpy 1.26.4, chemprop 1.6.1,
+# descriptastorus 2.8.0, admet-ai 1.3.1, mordred, PyTDC, sklearn, matplotlib,
+# chembl client + all transitive deps).
+RUN pip install --no-cache-dir -c /tmp/biomni-admet.lock \
+    numpy scikit-learn matplotlib mordred PyTDC chembl_webresource_client descriptastorus
 
-# ── PyTDC (TDC benchmark datasets + splits) ───────────────────────────────
-RUN pip install --no-cache-dir PyTDC
-
-# ── ChEMBL REST API client ─────────────────────────────────────────────────
-RUN pip install --no-cache-dir chembl_webresource_client
-
-# ── ADMET-AI (Chemprop-backed, bundled pre-trained models) ────────────────
-# admet-ai requires torch>=2.8.0 — already satisfied by CPU wheel above.
-# Chemprop will reuse the existing torch install, not pull a new one.
-RUN pip install --no-cache-dir admet-ai
+RUN pip install --no-cache-dir -c /tmp/biomni-admet.lock \
+    chemprop admet-ai
 
 # ── Package verification (pip show only — no import/execution) ───────────────
 # C extensions (RDKit, mordred, PyTorch/Chemprop) segfault under QEMU x86_64

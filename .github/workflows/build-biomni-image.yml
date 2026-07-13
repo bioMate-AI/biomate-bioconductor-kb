@@ -1,0 +1,116 @@
+name: Build biomni image (reusable)
+
+# Reusable build+verify+push for the biomni-* Batch containers. Builds on the x86
+# GitHub runner (native — no QEMU, so C extensions run in the smoke), runs a smoke
+# script INSIDE the freshly built image, and only pushes if the smoke passes. This is
+# the framework guard: a dependency drift that breaks the image fails CI here instead
+# of being discovered when a real workflow runs on Batch.
+#
+# Callers pass their ECR repo, Dockerfile, and a smoke script (a python file in the
+# repo, run inside the image via bind-mount). Optionally emit a pip-freeze lockfile.
+
+on:
+  workflow_call:
+    inputs:
+      image_repo:
+        description: "ECR repo, e.g. biomate/biomni-admet"
+        required: true
+        type: string
+      dockerfile:
+        description: "Path to the Dockerfile"
+        required: true
+        type: string
+      smoke_script:
+        description: "Path to a python smoke script run inside the image"
+        required: true
+        type: string
+      emit_lockfile:
+        description: "Print `pip freeze` (to derive/update a lockfile)"
+        required: false
+        default: false
+        type: boolean
+      smoke_cpus:
+        description: "Limit the smoke container to N cpus (reproduce a 1-vCPU Batch box); empty = unlimited"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-west-2
+  ECR_REGISTRY: 399683337364.dkr.ecr.us-west-2.amazonaws.com
+  ROLE_ARN: arn:aws:iam::399683337364:role/GitHubActionsECRPush
+
+jobs:
+  build-verify-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute tag
+        id: tags
+        run: echo "sha_tag=x86-${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build image with host docker (authed for private ECR base)
+        # Host `docker build` — NOT a buildx docker-container builder, which runs
+        # isolated buildkit that doesn't inherit the host ECR creds → 403 on the
+        # private FROM base. Runner is x86 → native amd64 build.
+        run: |
+          docker build \
+            --platform linux/amd64 \
+            -f "${{ inputs.dockerfile }}" \
+            -t "${ECR_REGISTRY}/${{ inputs.image_repo }}:${{ steps.tags.outputs.sha_tag }}" \
+            .
+
+      - name: Smoke test (inside the built image; gates the push)
+        run: |
+          test -f "${{ inputs.smoke_script }}" || { echo "::error::smoke script not found: ${{ inputs.smoke_script }}"; exit 1; }
+          CPUFLAG=""
+          if [ -n "${{ inputs.smoke_cpus }}" ]; then
+            N="${{ inputs.smoke_cpus }}"
+            # pin affinity (--cpuset-cpus 0..N-1) so os.sched_getaffinity/cpu_count sees N,
+            # + --cpus quota. This reproduces a 1-vCPU Batch container's view.
+            CPUFLAG="--cpus=${N} --cpuset-cpus=0-$((N-1))"
+            echo "smoke pinned to ${N} cpu(s): $CPUFLAG"
+          fi
+          docker run --rm $CPUFLAG \
+            -v "${{ github.workspace }}/${{ inputs.smoke_script }}:/smoke.py:ro" \
+            "${ECR_REGISTRY}/${{ inputs.image_repo }}:${{ steps.tags.outputs.sha_tag }}" \
+            python3 /smoke.py
+
+      - name: Dump full dependency freeze (lockfile source)
+        if: ${{ inputs.emit_lockfile }}
+        run: |
+          echo "=====PIPFREEZE_BEGIN====="
+          docker run --rm "${ECR_REGISTRY}/${{ inputs.image_repo }}:${{ steps.tags.outputs.sha_tag }}" \
+            python3 -m pip freeze --all | LC_ALL=C sort -f
+          echo "=====PIPFREEZE_END====="
+
+      - name: Push (only reached if smoke passed)
+        run: |
+          docker tag \
+            "${ECR_REGISTRY}/${{ inputs.image_repo }}:${{ steps.tags.outputs.sha_tag }}" \
+            "${ECR_REGISTRY}/${{ inputs.image_repo }}:x86"
+          docker push "${ECR_REGISTRY}/${{ inputs.image_repo }}:${{ steps.tags.outputs.sha_tag }}"
+          docker push "${ECR_REGISTRY}/${{ inputs.image_repo }}:x86"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### ${{ inputs.image_repo }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- tag: \`${{ inputs.image_repo }}:x86\` (+ \`${{ steps.tags.outputs.sha_tag }}\`)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- smoke: \`${{ inputs.smoke_script }}\` (native x86, run inside image before push)" >> "$GITHUB_STEP_SUMMARY"
