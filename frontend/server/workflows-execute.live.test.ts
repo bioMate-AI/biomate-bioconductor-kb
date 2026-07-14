@@ -103,3 +103,43 @@ describeLive("Live /api/workflows/execute confidence gate contract", () => {
   }, 120000);
 });
 
+describeLive("Live /api/workflows/execute required-parameter gate contract", () => {
+  // A minimal Nextflow workflow with one required param that has no default and
+  // no input steps — so only the required-param gate can block it.
+  const workflowWithRequiredParam = {
+    name: "Required Param Probe",
+    workflow_type: "nextflow",
+    nextflow_path: "nextflow_nfcore/subworkflows/drug_discovery/cyp_ddi_panel/main.nf",
+    required_params: [
+      { name: "smiles", label: "SMILES", description: "compound SMILES", type: "string", default: null },
+    ],
+  };
+
+  it("returns 400 missing_required_params (no Batch launch) when a required param is empty", async () => {
+    const res = await postJson("/api/workflows/execute", {
+      workflowDefinition: workflowWithRequiredParam,
+      inputData: { datasets: [] },
+      executionConfig: { executionEngine: "nextflow", computeConfig: { executor: "awsbatch" } },
+    }, 15000);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("missing_required_params");
+    expect(Array.isArray(res.body.missing)).toBe(true);
+    expect(res.body.missing.map((m: any) => m.name)).toContain("smiles");
+    // No run was created.
+    expect(res.body.runId).toBeUndefined();
+  }, 30000);
+
+  it("does NOT block on missing_required_params when the value is supplied via the params map", async () => {
+    const res = await postJson("/api/workflows/execute", {
+      workflowDefinition: workflowWithRequiredParam,
+      params: { smiles: "CC(=O)Oc1ccccc1C(=O)O" },
+      inputData: { datasets: [] },
+      executionConfig: { executionEngine: "nextflow", computeConfig: { executor: "awsbatch" } },
+    }, 60000);
+
+    // The required-param gate must be satisfied by the merged params value.
+    expect(res.body.error).not.toBe("missing_required_params");
+  }, 90000);
+});
+

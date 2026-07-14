@@ -9611,6 +9611,58 @@ ${paramLines || '(none recorded)'}`;
         });
       }
 
+      // Required-parameter gate. The frontend blocks a run when required params
+      // are unfilled (hasUnfilledRequired in nextflow-workflow-viewer.tsx), but
+      // that guard only protects the UI — API / connector / MCP callers could
+      // dispatch a workflow with empty required params and burn a Batch job that
+      // fails at launch. Enforce the same gate server-side so no caller can spend
+      // compute on a run that is missing required inputs.
+      //
+      // Also honour `request.params` (the documented openapi contract:
+      // "Parameter overrides — merged on top of workflow defaults"): the frontend
+      // fills values into workflowDefinition.required_params[].value, but API
+      // callers pass a `params` map, which was silently ignored. Merge those
+      // values onto the declared params BEFORE validating + dispatching so they
+      // are actually used downstream.
+      {
+        const isEmptyVal = (v: any) =>
+          v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+        const providedParams =
+          request.params && typeof request.params === 'object' ? request.params : {};
+        const reqParams: any[] = Array.isArray(request.workflowDefinition?.required_params)
+          ? request.workflowDefinition.required_params
+          : [];
+        const optParams: any[] = Array.isArray(request.workflowDefinition?.optional_params)
+          ? request.workflowDefinition.optional_params
+          : [];
+        // Merge caller-supplied param values onto the declared params in place so
+        // createExecutionRun (which reads request.workflowDefinition) picks them up.
+        for (const p of [...reqParams, ...optParams]) {
+          if (p && p.name && !isEmptyVal(providedParams[p.name])) {
+            p.value = providedParams[p.name];
+          }
+        }
+        // A required param is satisfied only if it now carries a usable value or
+        // a non-empty default. Anything still empty blocks the launch.
+        const missingParams = reqParams.filter(
+          (p: any) => p && p.name && isEmptyVal(p.value) && isEmptyVal(p.default),
+        );
+        if (missingParams.length > 0 && request.executionConfig?.allowLowConfidence !== true) {
+          return res.status(400).json({
+            error: "missing_required_params",
+            message: `Workflow "${request.workflowDefinition?.name || 'this workflow'}" needs ${missingParams.length} required parameter(s) before it can run. No compute was launched.`,
+            missing: missingParams.map((p: any) => ({
+              name: p.name,
+              label: p.label || p.name,
+              description: p.description || '',
+              type: p.type || 'string',
+            })),
+            guidance:
+              "Provide values for the listed parameters (fill them in the workflow params panel, or pass them in the request `params` map) and retry.",
+          });
+        }
+      }
+
       // Scientific + technical confidence gate.
       // Technical confidence: required inputs are present and generation didn't report tool-install blockers.
       // Scientific confidence: generation stage must not require user feedback/domain correction.
