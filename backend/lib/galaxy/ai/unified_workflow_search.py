@@ -603,11 +603,18 @@ class UnifiedWorkflowSearch:
         # Add missing columns to workflows table (ALTER TABLE ignores existing columns via try/except)
         existing_cols = {row[1] for row in cursor.execute("PRAGMA table_info(workflows)")}
         for col, definition in [
-            ("input_types",   "TEXT DEFAULT '[]'"),
-            ("output_types",  "TEXT DEFAULT '[]'"),
-            ("annotation_v2", "TEXT"),
-            ("step_metadata", "TEXT"),
-            ("params_schema", "TEXT"),
+            ("input_types",                 "TEXT DEFAULT '[]'"),
+            ("output_types",                "TEXT DEFAULT '[]'"),
+            ("annotation_v2",               "TEXT"),
+            ("step_metadata",               "TEXT"),
+            ("params_schema",               "TEXT"),
+            ("real_exec_status",            "TEXT"),
+            ("real_exec_at",                "TEXT"),
+            ("real_exec_produced",          "INTEGER"),
+            ("real_exec_err",               "TEXT"),
+            ("real_exec_provisional",       "INTEGER DEFAULT 0"),
+            ("workflow_correctness_score",  "REAL"),
+            ("workflow_correctness_verdict","TEXT"),
         ]:
             if col not in existing_cols:
                 cursor.execute(f"ALTER TABLE workflows ADD COLUMN {col} {definition}")
