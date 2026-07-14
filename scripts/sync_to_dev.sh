@@ -144,6 +144,7 @@ ec2_ssh() {
   ssh -i "$KEY_FILE" \
     -o ProxyCommand="$_SSM_PROXY" \
     -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o IdentitiesOnly=yes \
+    -o ServerAliveInterval=30 -o ServerAliveCountMax=4 \
     "${EC2_USER}@${INSTANCE_ID}" "$@"
 }
 
