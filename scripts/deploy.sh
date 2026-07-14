@@ -358,6 +358,12 @@ endpoints_ok() {
 workflow_smoke() {
   [ "\$SMOKE_MODE" = "off" ] && { echo 'wf-smoke: skipped (SMOKE_MODE=off)'; return 0; }
 
+  # Both probes send 'X-Forwarded-Proto: https' — the frontend force-redirects
+  # plain HTTP to HTTPS in production (FORCE_HTTPS), so a loopback /api/ call
+  # without it gets a 301, which the probes would misread as a broken stack and
+  # falsely roll back. This mirrors what Caddy sends (same as the compose
+  # frontend healthcheck), so the smoke is correct regardless of FORCE_HTTPS.
+
   # Probe 1 — routing/search (deterministic, no auth). GATES only on a broken
   # search STACK: a fork-deadlock hangs → -m 25 timeout (curl non-zero, empty
   # code); a broken router → 5xx. A well-formed HTTP 200 that simply found NO
@@ -371,6 +377,7 @@ workflow_smoke() {
     s_attempt=\$((s_attempt + 1))
     sbody=\$(curl -sS -m 25 -w '\\n%{http_code}' -X POST http://localhost:3000/api/workflows/search \\
         -H 'Content-Type: application/json' \\
+        -H 'X-Forwarded-Proto: https' \\
         -d '{"query":"predict hERG cardiac toxicity and ADMET for a list of SMILES","limit":3}' 2>/dev/null || true)
     scode=\$(printf '%s' "\$sbody" | tail -n1)
     if [ "\$scode" = "200" ]; then
@@ -402,6 +409,7 @@ workflow_smoke() {
     attempt=\$((attempt + 1))
     gbody=\$(curl -sS -m 150 -w '\\n%{http_code}' -X POST http://localhost:3000/api/ai_assistant/generate_workflow \\
         -H 'Content-Type: application/json' \\
+        -H 'X-Forwarded-Proto: https' \\
         -d '{"request_text":"Screen these SMILES for ADMET and hERG cardiac safety"}' 2>/dev/null || true)
     gcode=\$(printf '%s' "\$gbody" | tail -n1)
     if [ "\$gcode" = "200" ] && printf '%s' "\$gbody" | grep -q '"workflow_ga"' \\
