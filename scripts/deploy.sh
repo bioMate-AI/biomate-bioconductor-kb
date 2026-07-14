@@ -390,8 +390,10 @@ workflow_smoke() {
     fi
     echo "wf-smoke: search attempt \$s_attempt -> HTTP \${scode:-none} (retrying)"
   done
-  # if/elif (not case): bare `)` case-patterns don't parse inside the outer
-  # $(cat <<HOSTEOF ...) command substitution.
+  # if/elif, not case: bare close-paren case-patterns fail to parse inside the
+  # outer cat-heredoc command substitution that builds this host script. (Keep
+  # this comment free of dollar-paren and backticks — the heredoc is unquoted,
+  # so bash would EXECUTE them at build time.)
   if [ "\$search_state" = "ok" ]; then
     echo 'wf-smoke: search OK (routing returned a match)'
   elif [ "\$search_state" = "no_match" ]; then
