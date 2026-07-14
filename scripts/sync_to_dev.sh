@@ -1206,6 +1206,17 @@ do_sync() {
   [[ "$local_db_mtime" =~ ^[0-9]+$ ]] || local_db_mtime=0
   [[ "$local_db_mtime" -gt "${LAST_DB_SYNC:-0}" ]] && do_db=true
 
+  # Frontend-only override: ship just the frontend layer, leaving the Galaxy
+  # backend + workflow DB exactly as they are on dev. Use when a frontend/Node
+  # change must go out but the backend/DB layers are unchanged or known-bad for
+  # this commit (e.g. a stale workflow DB missing a column the merged backend
+  # queries — which would fail the smoke gate and roll the whole deploy back).
+  # Trigger via BIOMATE_ONLY_FRONTEND=1.
+  if [[ "${BIOMATE_ONLY_FRONTEND:-}" == "1" ]]; then
+    do_backend=false; do_workflows=false; do_db=false
+    log "[layers] BIOMATE_ONLY_FRONTEND=1 → forcing backend/workflows/db OFF (frontend only)"
+  fi
+
   # Diagnostic: log which layers will run (makes silent skips visible in the log)
   log "Layers: frontend=$do_frontend backend=$do_backend workflows=$do_workflows db=$do_db"
 
