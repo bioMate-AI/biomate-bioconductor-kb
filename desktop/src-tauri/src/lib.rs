@@ -1,5 +1,6 @@
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
+use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_store::StoreExt;
 use serde::{Deserialize, Serialize};
 
@@ -106,6 +107,17 @@ async fn pick_output_directory(app: AppHandle) -> Result<Option<String>, String>
          .map(|p| p.to_string_lossy().to_string()))
 }
 
+// ── OS notifications ───────────────────────────────────────────────────────
+
+#[tauri::command]
+fn notify(app: AppHandle, title: String, body: String) {
+    let _ = app.notification()
+        .builder()
+        .title(&title)
+        .body(&body)
+        .show();
+}
+
 // ── Update check ───────────────────────────────────────────────────────────
 
 #[tauri::command]
@@ -142,6 +154,22 @@ fn get_pending_deep_link(app: tauri::AppHandle) -> Option<String> {
         .map(|u| u.to_string())
 }
 
+// ── Native save-file dialog ────────────────────────────────────────────────
+
+#[tauri::command]
+async fn save_file(app: AppHandle, suggested_name: String, base64: String) -> Result<(), String> {
+    use base64::{Engine as _, engine::general_purpose};
+    let bytes = general_purpose::STANDARD.decode(&base64).map_err(|e| e.to_string())?;
+    let path = app.dialog().file().set_file_name(&suggested_name).blocking_save_file();
+    match path {
+        Some(p) => {
+            let p = p.into_path().map_err(|e| e.to_string())?;
+            std::fs::write(&p, &bytes).map_err(|e| e.to_string())
+        }
+        None => Ok(()), // user cancelled
+    }
+}
+
 // ── App info ───────────────────────────────────────────────────────────────
 
 #[derive(Serialize)]
@@ -168,7 +196,7 @@ pub fn run() {
         .setup(|app| {
             use tauri_plugin_deep_link::DeepLinkExt;
             let handle = app.handle().clone();
-            app.deep_link().on_open_urls(move |event| {
+            app.deep_link().on_open_url(move |event| {
                 if let Some(url) = event.urls().first() {
                     if let Some(window) = handle.get_webview_window("main") {
                         let _ = window.emit("deep-link", url.to_string());
@@ -194,6 +222,8 @@ pub fn run() {
             pick_files,
             pick_output_directory,
             get_app_info,
+            notify,
+            save_file,
             check_for_update,
             get_pending_deep_link,
         ])

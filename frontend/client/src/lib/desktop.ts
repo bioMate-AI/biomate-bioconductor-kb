@@ -111,13 +111,31 @@ export async function desktopGetAppInfo(): Promise<AppInfo | null> {
  * Requires `tauri-plugin-notification` to be registered (already done).
  */
 export function desktopNotify(title: string, body: string): void {
-  if (typeof window === 'undefined') return;
-  const notification = (window as any).__TAURI__?.notification;
-  if (!notification) return;
+  const invoke = getInvoke();
+  if (!invoke) return;
+  invoke("notify", { title, body }).catch(() => {/* best-effort */});
+}
+
+// ── Native save-file dialog ────────────────────────────────────────────────
+
+/**
+ * On desktop: show native Save File dialog and write the blob to the chosen path.
+ * Returns true if saved via native dialog, false if fell back (browser or cancelled).
+ */
+export async function desktopSaveFile(blob: Blob, suggestedName: string): Promise<boolean> {
+  const invoke = getInvoke();
+  if (!invoke) return false;
   try {
-    notification.sendNotification({ title, body });
+    const buffer = await blob.arrayBuffer();
+    // btoa requires latin1; use Uint8Array → string conversion for binary safety
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    const base64 = btoa(binary);
+    await invoke('save_file', { suggestedName, base64 });
+    return true;
   } catch {
-    // Non-fatal — notifications are best-effort
+    return false;
   }
 }
 

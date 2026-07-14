@@ -864,8 +864,12 @@ export class GalaxyAPIProxy {
   async healthCheck(): Promise<boolean> {
     try {
       await this.client.get('/api/version');
+      this.isConnected = true;
+      this.connectionError = null;
       return true;
-    } catch (error) {
+    } catch (error: any) {
+      this.isConnected = false;
+      this.connectionError = error.message || 'Connection failed';
       return false;
     }
   }

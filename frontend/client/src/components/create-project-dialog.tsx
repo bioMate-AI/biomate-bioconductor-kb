@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { X } from "lucide-react"
 import { projectService } from "@/lib/projects"
+import { PROJECT_TEMPLATES, type ProjectTemplate } from "@/lib/project-templates"
 import type { CreateProject } from "@shared/schema"
 
 interface CreateProjectDialogProps {
@@ -32,6 +33,7 @@ export function CreateProjectDialog({
   onOpenChange,
   onProjectCreated
 }: CreateProjectDialogProps) {
+  const [selectedTemplate, setSelectedTemplate] = useState<ProjectTemplate | null>(null)
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [instructions, setInstructions] = useState("")
@@ -40,6 +42,28 @@ export function CreateProjectDialog({
   const [currentTag, setCurrentTag] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const applyTemplate = (template: ProjectTemplate | null) => {
+    if (!template) {
+      setSelectedTemplate(null)
+      setName("")
+      setDescription("")
+      setInstructions("")
+      setCategory("")
+      setTags([])
+      return
+    }
+    if (selectedTemplate?.id === template.id) {
+      applyTemplate(null)
+      return
+    }
+    setSelectedTemplate(template)
+    setName(template.name)
+    setDescription(template.description)
+    setInstructions(template.researchGoal)
+    setCategory(template.category)
+    setTags(template.tags)
+  }
 
   const handleAddTag = () => {
     const trimmedTag = currentTag.trim()
@@ -118,6 +142,7 @@ export function CreateProjectDialog({
   }
 
   const handleCancel = () => {
+    setSelectedTemplate(null)
     setName("")
     setDescription("")
     setInstructions("")
@@ -139,6 +164,60 @@ export function CreateProjectDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Template picker */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Start from a template</Label>
+            <div className="flex flex-wrap gap-2">
+              {/* Blank option */}
+              <button
+                type="button"
+                onClick={() => applyTemplate(null)}
+                data-testid="template-blank"
+                style={{
+                  width: 110, minHeight: 72, padding: '8px 10px',
+                  borderRadius: 8, border: `1.5px solid ${!selectedTemplate ? 'hsl(var(--primary))' : 'hsl(var(--border))'}`,
+                  background: !selectedTemplate ? 'hsl(var(--accent))' : 'transparent',
+                  cursor: 'pointer', display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center', gap: 4,
+                  outline: !selectedTemplate ? '2px solid hsl(var(--primary))' : 'none',
+                  outlineOffset: 2,
+                }}
+              >
+                <span style={{ fontSize: 20 }}>📄</span>
+                <span style={{ fontSize: 11, fontWeight: 500, textAlign: 'center', lineHeight: 1.2 }}>Blank</span>
+              </button>
+
+              {PROJECT_TEMPLATES.map((tpl) => (
+                <button
+                  key={tpl.id}
+                  type="button"
+                  onClick={() => applyTemplate(tpl)}
+                  data-testid={`template-${tpl.id}`}
+                  title={tpl.description}
+                  style={{
+                    width: 110, minHeight: 72, padding: '8px 10px',
+                    borderRadius: 8, border: `1.5px solid ${selectedTemplate?.id === tpl.id ? 'hsl(var(--primary))' : 'hsl(var(--border))'}`,
+                    background: selectedTemplate?.id === tpl.id ? 'hsl(var(--accent))' : 'transparent',
+                    cursor: 'pointer', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: 4,
+                    outline: selectedTemplate?.id === tpl.id ? '2px solid hsl(var(--primary))' : 'none',
+                    outlineOffset: 2,
+                  }}
+                >
+                  <span style={{ fontSize: 20 }}>{tpl.icon}</span>
+                  <span style={{ fontSize: 10, fontWeight: 500, textAlign: 'center', lineHeight: 1.2, color: 'var(--foreground)' }}>
+                    {tpl.name.length > 22 ? tpl.name.slice(0, 20) + '…' : tpl.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+            {selectedTemplate && (
+              <p className="text-xs text-muted-foreground">
+                Template applied — fields pre-filled. You can edit them before creating.
+              </p>
+            )}
+          </div>
+
           {/* Project Name */}
           <div className="space-y-2">
             <Label htmlFor="project-name">What are you working on?</Label>

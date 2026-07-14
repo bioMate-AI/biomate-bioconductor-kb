@@ -335,6 +335,39 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // "New analysis" from sidebar — loads workflow definition into panel without
+  // auto-executing. The user arrives on a clean chat and can add new files /
+  // adjust parameters before clicking Run.
+  const handledReuseWorkflow = useRef<string | null>(null)
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    const runId = url.searchParams.get('reuseWorkflow')
+    if (!runId || handledReuseWorkflow.current === runId) return
+    handledReuseWorkflow.current = runId
+    ;(async () => {
+      try {
+        const r = await fetch(`/api/workflows/runs/${encodeURIComponent(runId)}`, { credentials: 'include' })
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        const run = await r.json()
+        const wf = run?.workflowDefinition
+        if (!wf) {
+          console.warn('[reuseWorkflow] run has no workflowDefinition; skipping')
+          return
+        }
+        // Load into panel so the user can review and edit before executing.
+        // Strip prior run-specific IDs so this is treated as a fresh analysis.
+        const template = { ...wf, nextflowRunId: undefined, galaxyInvocationId: undefined }
+        setPanelWorkflow(template)
+      } catch (e) {
+        console.warn('[reuseWorkflow] failed:', e)
+      } finally {
+        url.searchParams.delete('reuseWorkflow')
+        window.history.replaceState({}, '', url.toString())
+      }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // v2 AfterRunReport's Run-again CTA fires a `biomate:run-again-with-edits`
   // CustomEvent with { runId, parameters } in detail. Listen for it and reuse
   // the same rerun flow the ?runAgain= URL path uses above.

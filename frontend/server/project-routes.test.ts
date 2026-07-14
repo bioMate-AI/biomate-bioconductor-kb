@@ -31,7 +31,7 @@ describe("project-routes — contract", () => {
 
   it("every endpoint goes through authenticateToken", () => {
     const handlerLines = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects[^"]*",\s*authenticateToken/g) ?? [];
-    expect(handlerLines.length).toBe(10);
+    expect(handlerLines.length).toBe(13);
   });
 
   it("404 on cross-user access (does not leak existence)", () => {

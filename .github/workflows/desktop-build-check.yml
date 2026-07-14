@@ -30,7 +30,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: |
+            frontend/package-lock.json
+            desktop/package-lock.json
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -56,6 +58,14 @@ jobs:
       - name: Build frontend
         run: npm run build
         working-directory: frontend
+
+      # The Tauri build (build:debug -> `tauri build --debug`) needs the
+      # @tauri-apps/cli binary from desktop/node_modules. Without this install
+      # the step failed with "tauri: not found" (exit 127) on every run that
+      # touched desktop/ or frontend/package*.json.
+      - name: Install desktop deps
+        run: npm ci
+        working-directory: desktop
 
       - name: Build Tauri app (debug, no publish)
         run: npm run build:debug

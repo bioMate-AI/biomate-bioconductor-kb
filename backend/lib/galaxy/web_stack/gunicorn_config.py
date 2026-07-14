@@ -18,6 +18,14 @@ def on_starting(server):
     Used on reloads when each worker exists twice.
     """
     server._worker_id_overload = set()
+    # Start shared embedding server before workers fork so each worker avoids
+    # loading ~600 MB of SentenceTransformer model weights independently.
+    try:
+        from galaxy.ai.embed_server import start_subprocess
+        server._embed_server_proc = start_subprocess()
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("EmbedServer start failed (non-fatal): %s", exc)
 
 
 def nworkers_changed(server, new_value, old_value):
@@ -76,3 +84,16 @@ def post_fork(server, worker):
         from galaxy.web_stack import GunicornApplicationStack
 
         GunicornApplicationStack.late_postfork_event.set()
+
+    # Start the workflow-search embedding warmup HERE — per-worker, AFTER fork —
+    # not at module-import time. Under --preload the import runs in the master;
+    # starting the warmup thread there held the embedding init lock at fork, so
+    # every worker inherited a locked mutex and search_chains() hung forever
+    # (fork-after-threads deadlock, 2026-07-12). post_fork runs inside each freshly
+    # forked worker, so the thread + its locks are created cleanly. No-op when
+    # WORKFLOW_SEARCH_WARMUP is false or workflow search is unavailable.
+    try:
+        from galaxy.webapps.galaxy.api.ai_assistant import start_workflow_search_warmup
+        start_workflow_search_warmup()
+    except Exception:
+        pass

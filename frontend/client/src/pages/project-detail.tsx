@@ -51,7 +51,17 @@ import {
   Archive,
   Trash2,
   Pencil,
+  UserPlus,
+  Users,
+  Download,
 } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { projectService } from "@/lib/projects"
 import { ProjectFileTree } from "@/components/project-file-tree"
 import { NextflowWorkflowViewer } from "@/components/nextflow-workflow-viewer"
@@ -79,6 +89,8 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   const [runs, setRuns] = useState<any[]>([])
   const [runsLoading, setRunsLoading] = useState(false)
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null)
+  const [savingOutputs, setSavingOutputs] = useState(false)
+  const [saveOutputsMsg, setSaveOutputsMsg] = useState<string | null>(null)
   const [projectFiles, setProjectFiles] = useState<{ name: string; size?: number }[]>([])
 
   // Inline tag editing
@@ -121,6 +133,14 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
     } catch { setEditingTags(prev) }
   }
 
+  // Project sharing
+  const [isOwner, setIsOwner] = useState(false)
+  const [members, setMembers] = useState<Array<{ user_id: string; email: string; fullName?: string; role: string }>>([])
+  const [shareEmail, setShareEmail] = useState("")
+  const [shareRole, setShareRole] = useState<"viewer" | "editor">("viewer")
+  const [inviting, setInviting] = useState(false)
+  const [inviteError, setInviteError] = useState<string | null>(null)
+
   // Project lifecycle dialogs
   const [renameOpen, setRenameOpen] = useState(false)
   const [renameValue, setRenameValue] = useState("")
@@ -147,17 +167,55 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
             updatedAt: new Date(p.updatedAt ?? p.createdAt),
           } as any)
           setInstructionsValue(p.researchGoal ?? p.research_goal ?? p.instructions ?? "")
+          if (data.isOwner !== undefined) setIsOwner(data.isOwner)
         } else {
           const loc = projectService.getProject(projectId)
-          if (loc) { setProject(loc); setInstructionsValue(loc.instructions || "") }
+          if (loc) { setProject(loc); setInstructionsValue(loc.instructions || ""); setIsOwner(true) }
         }
       })
       .catch(() => {
         const loc = projectService.getProject(projectId)
-        if (loc) { setProject(loc); setInstructionsValue(loc.instructions || "") }
+        if (loc) { setProject(loc); setInstructionsValue(loc.instructions || ""); setIsOwner(true) }
       })
       .finally(() => setLoadingProject(false))
   }, [projectId])
+
+  const loadMembers = useCallback(async () => {
+    try {
+      const r = await fetch(`/api/projects/${projectId}/members`, { credentials: "include" })
+      if (r.ok) setMembers((await r.json()).members ?? [])
+    } catch { /* ignore */ }
+  }, [projectId])
+
+  useEffect(() => { loadMembers() }, [loadMembers])
+
+  const handleInvite = async () => {
+    if (!shareEmail.trim()) return
+    setInviting(true)
+    setInviteError(null)
+    try {
+      const r = await fetch(`/api/projects/${projectId}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: shareEmail.trim(), role: shareRole }),
+      })
+      const data = await r.json()
+      if (!r.ok) { setInviteError(data.error ?? "Failed to invite"); return }
+      setShareEmail("")
+      loadMembers()
+    } catch { setInviteError("Failed to invite") }
+    finally { setInviting(false) }
+  }
+
+  const handleRemoveMember = async (memberId: string) => {
+    try {
+      await fetch(`/api/projects/${projectId}/members/${memberId}`, {
+        method: "DELETE", credentials: "include",
+      })
+      setMembers(prev => prev.filter(m => m.user_id !== memberId))
+    } catch { /* ignore */ }
+  }
 
   const loadSessions = useCallback(async () => {
     setSessionsLoading(true)
@@ -208,8 +266,9 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   const handleAnalyzeClick = () => {
     let msg: string | undefined
     if (projectFiles.length > 0) {
-      const fileList = projectFiles.map(f => `- ${f.name}`).join("\n")
-      msg = `I've uploaded these files to my project:\n${fileList}\nPlease suggest the right workflow and run it.`
+      const fmt = (n?: number) => !n ? "" : n < 1024 ? ` (${n} B)` : n < 1048576 ? ` (${(n/1024).toFixed(1)} KB)` : ` (${(n/1048576).toFixed(1)} MB)`
+      const fileList = projectFiles.map(f => `- ${f.name}${fmt(f.size)}`).join("\n")
+      msg = `I've uploaded these files to my project:\n${fileList}\nPlease analyze these files and suggest the right workflow.`
     }
     openChatWithProject(undefined, msg)
   }
@@ -571,15 +630,49 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                         status === "completed" ? "completed" :
                         status === "failed" || status === "errored" ? "failed" :
                         status === "running" ? "running" : "idle"
+                      const handleSaveOutputs = async () => {
+                        if (!projectId || !selectedRunId) return
+                        setSavingOutputs(true); setSaveOutputsMsg(null)
+                        try {
+                          const r = await fetch(`/api/workflows/runs/${selectedRunId}/save-to-project`, {
+                            method: 'POST', credentials: 'include',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ projectId }),
+                          })
+                          const d = await r.json()
+                          if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`)
+                          setSaveOutputsMsg(`${d.registered} file${d.registered !== 1 ? 's' : ''} saved to Files tab`)
+                          window.dispatchEvent(new Event('biomate:project-files-updated'))
+                        } catch (e: any) {
+                          setSaveOutputsMsg(`Error: ${e.message}`)
+                        } finally {
+                          setSavingOutputs(false)
+                        }
+                      }
                       return (
-                        <NextflowWorkflowViewer
-                          runId={selectedRunId}
-                          sessionId={run?.chatSessionId}
-                          workflowId={run?.workflowName}
-                          workflowDefinition={run?.workflowDefinition}
-                          status={wfStatus}
-                          errorMessage={run?.execution?.errorMessage}
-                        />
+                        <>
+                          {status === 'completed' && (
+                            <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/30">
+                              <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5"
+                                onClick={handleSaveOutputs} disabled={savingOutputs}>
+                                {savingOutputs
+                                  ? <><RefreshCw className="h-3 w-3 animate-spin" />Saving…</>
+                                  : <><Download className="h-3 w-3" />Save outputs to Files tab</>}
+                              </Button>
+                              {saveOutputsMsg && (
+                                <span className="text-xs text-muted-foreground">{saveOutputsMsg}</span>
+                              )}
+                            </div>
+                          )}
+                          <NextflowWorkflowViewer
+                            runId={selectedRunId}
+                            sessionId={run?.chatSessionId}
+                            workflowId={run?.workflowName}
+                            workflowDefinition={run?.workflowDefinition}
+                            status={wfStatus}
+                            errorMessage={run?.execution?.errorMessage}
+                          />
+                        </>
                       )
                     })()
                   ) : (
@@ -640,6 +733,73 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                 <FileText className="w-7 h-7 mx-auto mb-2 opacity-30" />
                 <p className="text-xs">No instructions yet</p>
                 <p className="text-xs opacity-70 mt-0.5">Add context to help BioMate</p>
+              </div>
+            )}
+          </div>
+
+          {/* Share section — owner-only invite UI + member list visible to all */}
+          <div className="border-t border-border p-4 shrink-0">
+            <div className="flex items-center gap-1.5 mb-3">
+              <Users className="w-3.5 h-3.5 text-muted-foreground" />
+              <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground">Shared with</h4>
+            </div>
+
+            {isOwner && (
+              <div className="space-y-2 mb-3">
+                <div className="flex gap-1.5">
+                  <Input
+                    value={shareEmail}
+                    onChange={e => { setShareEmail(e.target.value); setInviteError(null) }}
+                    placeholder="email@example.com"
+                    className="h-7 text-xs flex-1"
+                    onKeyDown={e => e.key === "Enter" && handleInvite()}
+                    data-testid="input-share-email"
+                  />
+                  <Select value={shareRole} onValueChange={v => setShareRole(v as "viewer" | "editor")}>
+                    <SelectTrigger className="h-7 w-20 text-xs" data-testid="select-share-role">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="viewer">Viewer</SelectItem>
+                      <SelectItem value="editor">Editor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  size="sm" className="h-7 text-xs w-full gap-1.5"
+                  onClick={handleInvite}
+                  disabled={inviting || !shareEmail.trim()}
+                  data-testid="button-share-invite"
+                >
+                  {inviting ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserPlus className="w-3 h-3" />}
+                  Invite
+                </Button>
+                {inviteError && <p className="text-xs text-destructive">{inviteError}</p>}
+              </div>
+            )}
+
+            {members.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No collaborators yet.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {members.map(m => (
+                  <div key={m.user_id} className="flex items-center gap-2 text-xs" data-testid={`member-row-${m.user_id}`}>
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate font-medium">{m.fullName || m.email}</p>
+                      <p className="text-muted-foreground truncate">{m.role}</p>
+                    </div>
+                    {isOwner && (
+                      <button
+                        onClick={() => handleRemoveMember(m.user_id)}
+                        className="text-muted-foreground hover:text-destructive shrink-0"
+                        aria-label={`Remove ${m.email}`}
+                        data-testid={`button-remove-member-${m.user_id}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>

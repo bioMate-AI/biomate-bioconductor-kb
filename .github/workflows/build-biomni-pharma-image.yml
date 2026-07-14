@@ -1,0 +1,20 @@
+name: Build biomni-pharma image
+
+# Dispatch-only (large image, not currently broken). Applies the reusable
+# build+smoke+push template. NOTE: biomni-pharma FROMs biomni-tools:x86, so build/push
+# biomni-tools first if that base changed.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  pharma:
+    uses: ./.github/workflows/build-biomni-image.yml
+    with:
+      image_repo: biomate/biomni-pharma
+      dockerfile: backend/docker/biomni-pharma/Dockerfile
+      smoke_script: backend/docker/biomni-pharma/smoke.py

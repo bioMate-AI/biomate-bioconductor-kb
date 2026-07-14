@@ -4711,6 +4711,14 @@ def _execute_nextflow_impl(
                 _params_for_json[key] = value
             elif isinstance(value, (int, float)):
                 _params_for_json[key] = value
+            elif isinstance(value, (list, dict)):
+                # Serialize collections as JSON, NOT str() — str([...]) emits a
+                # Python repr with single quotes ("['CC(=O)...']") which the
+                # workflows' auto_convert(json.loads) can't parse, so the whole
+                # list-as-a-string was fed to the tool as ONE value (e.g. one
+                # SMILES → 0 valid molecules → admet-ai crash). json.dumps yields
+                # valid JSON that json.loads round-trips. Fixes ~272 workflows.
+                _params_for_json[key] = _ml_json.dumps(value)
             else:
                 _params_for_json[key] = str(value)
         if "outdir" not in _params_for_json and not _nf_path_str.startswith("/tmp/biomate_user_nf/"):
@@ -4739,6 +4747,12 @@ def _execute_nextflow_impl(
                 cmd += ["--outdir", str(value)]
             elif isinstance(value, bool):
                 cmd += [f"--{key}", "true" if value else "false"]
+            elif isinstance(value, (list, dict)):
+                # JSON, not str() — see the --params-file path above: str([...])
+                # emits a single-quoted Python repr that auto_convert(json.loads)
+                # can't parse, so a list param was consumed as one string value.
+                import json as _cli_json
+                cmd += [f"--{key}", _cli_json.dumps(value)]
             else:
                 cmd += [f"--{key}", str(value)]
 

@@ -29,6 +29,7 @@ tauri-plugin-updater = "2"
 tauri-plugin-deep-link = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+base64 = "0.22"
 
 [features]
 # Enables custom protocol for asset loading in production builds

@@ -133,11 +133,17 @@ function useApiKeys(open: boolean) {
 }
 
 // ---------------------------------------------------------------------------
-// Per-user LLM API keys (bring-your-own Anthropic key)
+// LLM Provider selection (BioMate default or OpenRouter)
 // ---------------------------------------------------------------------------
+
 function useLlmApiKeys(open: boolean) {
   const [hasAnthropicKey, setHasAnthropicKey] = useState(false);
+  const [hasOpenrouterKey, setHasOpenrouterKey] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('deepseek/deepseek-chat-v3-5');
+
+  const [provider, setProvider] = useState<'default' | 'anthropic' | 'openrouter'>('default');
   const [anthropicInput, setAnthropicInput] = useState('');
+  const [openrouterInput, setOpenrouterInput] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -148,11 +154,19 @@ function useLlmApiKeys(open: boolean) {
     if (!open) return;
     fetch('/api/user/llm-api-keys', { credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setHasAnthropicKey(!!d.anthropic); })
+      .then(d => {
+        if (!d) return;
+        setHasAnthropicKey(!!d.anthropic);
+        setHasOpenrouterKey(!!d.openrouter);
+        if (d.selected_model) setSelectedModel(d.selected_model);
+        if (d.openrouter) setProvider('openrouter');
+        else if (d.anthropic) setProvider('anthropic');
+        else setProvider('default');
+      })
       .catch(() => {});
   }, [open]);
 
-  const save = useCallback(async () => {
+  const saveAnthropicKey = useCallback(async () => {
     if (!anthropicInput.trim()) { setIsError(true); setStatusMsg('Paste your Anthropic API key first.'); return; }
     setSaving(true); setStatusMsg(''); setIsError(false);
     try {
@@ -162,26 +176,70 @@ function useLlmApiKeys(open: boolean) {
         body: JSON.stringify({ provider: 'anthropic', key: anthropicInput.trim() }),
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      setHasAnthropicKey(true); setAnthropicInput(''); setStatusMsg('Key saved — your chats now use your own Anthropic quota.');
+      setHasAnthropicKey(true); setAnthropicInput('');
+      setStatusMsg('Anthropic key saved — your chats use your own quota.');
     } catch (err: any) { setIsError(true); setStatusMsg(err.message); }
     finally { setSaving(false); }
   }, [anthropicInput]);
 
-  const remove = useCallback(async () => {
+  const saveOpenrouterKey = useCallback(async () => {
+    if (!openrouterInput.trim()) { setIsError(true); setStatusMsg('Paste your OpenRouter API key first.'); return; }
+    setSaving(true); setStatusMsg(''); setIsError(false);
+    try {
+      const r = await fetch('/api/user/llm-api-keys', {
+        method: 'PATCH', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: 'openrouter', key: openrouterInput.trim(), selected_model: selectedModel }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setHasOpenrouterKey(true); setOpenrouterInput('');
+      setStatusMsg(`OpenRouter key saved — chats will use ${selectedModel}.`);
+    } catch (err: any) { setIsError(true); setStatusMsg(err.message); }
+    finally { setSaving(false); }
+  }, [openrouterInput, selectedModel]);
+
+  const saveModelOnly = useCallback(async () => {
+    setSaving(true); setStatusMsg(''); setIsError(false);
+    try {
+      const r = await fetch('/api/user/llm-api-keys', {
+        method: 'PATCH', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ selected_model: selectedModel }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setStatusMsg(`Model updated to ${selectedModel}.`);
+    } catch (err: any) { setIsError(true); setStatusMsg(err.message); }
+    finally { setSaving(false); }
+  }, [selectedModel]);
+
+  const removeProvider = useCallback(async (prov: 'anthropic' | 'openrouter') => {
     setRemoving(true); setStatusMsg(''); setIsError(false);
     try {
       const r = await fetch('/api/user/llm-api-keys', {
         method: 'PATCH', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider: 'anthropic', key: '' }),
+        body: JSON.stringify({ provider: prov, key: '' }),
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      setHasAnthropicKey(false); setStatusMsg('Key removed — chats now use the shared system quota.');
+      if (prov === 'anthropic') setHasAnthropicKey(false);
+      if (prov === 'openrouter') setHasOpenrouterKey(false);
+      setProvider('default');
+      setStatusMsg('Key removed — chats now use the BioMate system model.');
     } catch (err: any) { setIsError(true); setStatusMsg(err.message); }
     finally { setRemoving(false); }
   }, []);
 
-  return { hasAnthropicKey, anthropicInput, setAnthropicInput, showKey, setShowKey, saving, removing, save, remove, statusMsg, isError };
+  return {
+    provider, setProvider,
+    hasAnthropicKey, anthropicInput, setAnthropicInput,
+    hasOpenrouterKey, openrouterInput, setOpenrouterInput,
+    selectedModel, setSelectedModel,
+    showKey, setShowKey,
+    saving, removing,
+    saveAnthropicKey, saveOpenrouterKey, saveModelOnly,
+    removeProvider,
+    statusMsg, isError,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -955,69 +1013,162 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   </div>
                 </div>
 
-                {/* ── Bring-your-own Anthropic API key ─────────────────── */}
+                {/* ── LLM Provider selection ───────────────────────────── */}
                 <Separator />
                 <div>
-                  <h3 className="text-lg font-semibold mb-1">Your LLM API Key</h3>
+                  <h3 className="text-lg font-semibold mb-1">LLM Provider</h3>
                   <p className="text-xs text-muted-foreground mb-4">
-                    Supply your own <span className="font-medium">Anthropic API key</span> and BioMate will use your
-                    personal quota for all AI calls in your chats. Leave blank to use the shared system key.
-                    The key is stored encrypted and never returned to the browser.
+                    Choose which AI model powers your BioMate chats. The default uses BioMate's shared Claude quota
+                    and supports full workflow execution. OpenRouter lets you use economic models (DeepSeek, Qwen, Llama)
+                    with your own key — keys are stored encrypted and never returned to the browser.
                   </p>
 
-                  {llmKeys.hasAnthropicKey ? (
-                    <Card className="mb-3 border-green-500/40" data-testid="llm-key-set-card">
-                      <CardContent className="pt-4 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 text-sm">
-                          <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-                          <span>Anthropic key saved — your chats use your own quota.</span>
+                  {/* Provider radio group */}
+                  <div className="space-y-2 mb-4">
+                    {([
+                      { value: 'default', label: 'BioMate Default', desc: 'Claude Sonnet — workflow execution, no key needed' },
+                      { value: 'openrouter', label: 'OpenRouter', desc: '200+ models including DeepSeek, Qwen, Llama · bring your own key' },
+                      { value: 'anthropic', label: 'Anthropic (BYOK)', desc: 'Your own Anthropic key and quota' },
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => llmKeys.setProvider(opt.value)}
+                        className={`w-full flex items-start gap-3 rounded-md border px-3 py-2.5 text-left transition-colors ${llmKeys.provider === opt.value ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'}`}
+                      >
+                        <div className={`mt-0.5 h-4 w-4 rounded-full border-2 shrink-0 flex items-center justify-center ${llmKeys.provider === opt.value ? 'border-primary' : 'border-muted-foreground/40'}`}>
+                          {llmKeys.provider === opt.value && <div className="h-2 w-2 rounded-full bg-primary" />}
                         </div>
-                        <Button
-                          size="sm" variant="ghost"
-                          className="h-7 text-xs text-destructive hover:text-destructive gap-1 shrink-0"
-                          onClick={llmKeys.remove} disabled={llmKeys.removing}
-                          data-testid="button-remove-llm-key"
-                        >
-                          {llmKeys.removing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                          Remove
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ) : (
+                        <div>
+                          <p className="text-sm font-medium leading-none mb-0.5">{opt.label}</p>
+                          <p className="text-xs text-muted-foreground">{opt.desc}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* OpenRouter section */}
+                  {llmKeys.provider === 'openrouter' && (
                     <Card className="mb-3">
                       <CardContent className="pt-4 space-y-3">
+                        {/* Model selector */}
                         <div className="space-y-1.5">
-                          <Label htmlFor="anthropic-api-key" className="text-xs">Anthropic API Key</Label>
-                          <div className="flex items-center gap-2">
-                            <div className="relative flex-1">
-                              <Input
-                                id="anthropic-api-key"
-                                type={llmKeys.showKey ? 'text' : 'password'}
-                                placeholder="sk-ant-…"
-                                value={llmKeys.anthropicInput}
-                                onChange={e => llmKeys.setAnthropicInput(e.target.value)}
-                                className="font-mono text-xs h-8 pr-8"
-                                data-testid="input-anthropic-api-key"
-                              />
-                              <Button
-                                type="button" size="icon" variant="ghost"
-                                className="absolute right-1 top-1 h-6 w-6 text-muted-foreground"
-                                onClick={() => llmKeys.setShowKey(v => !v)}
-                                tabIndex={-1}
-                              >
-                                {llmKeys.showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          <Label className="text-xs">Model <span className="text-muted-foreground font-normal">(any slug from openrouter.ai/models)</span></Label>
+                          <Input
+                            className="font-mono text-xs h-8"
+                            placeholder="paste model slug from openrouter.ai/models"
+                            value={llmKeys.selectedModel}
+                            onChange={e => llmKeys.setSelectedModel(e.target.value)}
+                            data-testid="input-llm-model"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Browse all models at <span className="font-mono">openrouter.ai/models</span> — filter by provider (DeepSeek, Qwen, etc.) and sort by price.
+                          </p>
+                        </div>
+                        {/* API key input */}
+                        {llmKeys.hasOpenrouterKey ? (
+                          <div className="flex items-center justify-between gap-3 rounded-md bg-green-500/10 px-3 py-2">
+                            <div className="flex items-center gap-2 text-xs text-green-700">
+                              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                              <span>OpenRouter key saved</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                                onClick={llmKeys.saveModelOnly} disabled={llmKeys.saving}>
+                                {llmKeys.saving ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                                Update model
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive gap-1"
+                                onClick={() => llmKeys.removeProvider('openrouter')} disabled={llmKeys.removing}
+                                data-testid="button-remove-openrouter-key">
+                                {llmKeys.removing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                Remove
                               </Button>
                             </div>
-                            <Button
-                              size="sm" className="h-8 text-xs gap-1.5 shrink-0"
-                              onClick={llmKeys.save} disabled={llmKeys.saving}
-                              data-testid="button-save-llm-key"
-                            >
-                              {llmKeys.saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Key className="h-3.5 w-3.5" />}
-                              Save key
+                          </div>
+                        ) : (
+                          <div className="space-y-1.5">
+                            <Label htmlFor="openrouter-api-key" className="text-xs">OpenRouter API Key</Label>
+                            <div className="flex items-center gap-2">
+                              <div className="relative flex-1">
+                                <Input
+                                  id="openrouter-api-key"
+                                  type={llmKeys.showKey ? 'text' : 'password'}
+                                  placeholder="sk-or-…"
+                                  value={llmKeys.openrouterInput}
+                                  onChange={e => llmKeys.setOpenrouterInput(e.target.value)}
+                                  className="font-mono text-xs h-8 pr-8"
+                                  data-testid="input-openrouter-api-key"
+                                />
+                                <Button type="button" size="icon" variant="ghost"
+                                  className="absolute right-1 top-1 h-6 w-6 text-muted-foreground"
+                                  onClick={() => llmKeys.setShowKey(v => !v)} tabIndex={-1}>
+                                  {llmKeys.showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                </Button>
+                              </div>
+                              <Button size="sm" className="h-8 text-xs gap-1.5 shrink-0"
+                                onClick={llmKeys.saveOpenrouterKey} disabled={llmKeys.saving}
+                                data-testid="button-save-openrouter-key">
+                                {llmKeys.saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Key className="h-3.5 w-3.5" />}
+                                Save key
+                              </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Get a key at <span className="font-mono">openrouter.ai</span> — free tier available.
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Anthropic BYOK section */}
+                  {llmKeys.provider === 'anthropic' && (
+                    <Card className="mb-3">
+                      <CardContent className="pt-4 space-y-3">
+                        {llmKeys.hasAnthropicKey ? (
+                          <div className="flex items-center justify-between gap-3 rounded-md bg-green-500/10 px-3 py-2">
+                            <div className="flex items-center gap-2 text-xs text-green-700">
+                              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                              <span>Anthropic key saved — chats use your quota</span>
+                            </div>
+                            <Button size="sm" variant="ghost"
+                              className="h-7 text-xs text-destructive hover:text-destructive gap-1 shrink-0"
+                              onClick={() => llmKeys.removeProvider('anthropic')} disabled={llmKeys.removing}
+                              data-testid="button-remove-llm-key">
+                              {llmKeys.removing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                              Remove
                             </Button>
                           </div>
-                        </div>
+                        ) : (
+                          <div className="space-y-1.5">
+                            <Label htmlFor="anthropic-api-key" className="text-xs">Anthropic API Key</Label>
+                            <div className="flex items-center gap-2">
+                              <div className="relative flex-1">
+                                <Input
+                                  id="anthropic-api-key"
+                                  type={llmKeys.showKey ? 'text' : 'password'}
+                                  placeholder="sk-ant-…"
+                                  value={llmKeys.anthropicInput}
+                                  onChange={e => llmKeys.setAnthropicInput(e.target.value)}
+                                  className="font-mono text-xs h-8 pr-8"
+                                  data-testid="input-anthropic-api-key"
+                                />
+                                <Button type="button" size="icon" variant="ghost"
+                                  className="absolute right-1 top-1 h-6 w-6 text-muted-foreground"
+                                  onClick={() => llmKeys.setShowKey(v => !v)} tabIndex={-1}>
+                                  {llmKeys.showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                </Button>
+                              </div>
+                              <Button size="sm" className="h-8 text-xs gap-1.5 shrink-0"
+                                onClick={llmKeys.saveAnthropicKey} disabled={llmKeys.saving}
+                                data-testid="button-save-llm-key">
+                                {llmKeys.saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Key className="h-3.5 w-3.5" />}
+                                Save key
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   )}

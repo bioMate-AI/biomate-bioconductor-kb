@@ -5887,17 +5887,30 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
-      // Load user's own Anthropic key if stored; decrypt for this request only.
+      // Load user's own LLM keys if stored; decrypt for this request only.
       let _userAnthropicApiKey: string | undefined;
+      let _openrouterKey: string | undefined;
+      let _selectedModel: string | undefined;
       if (req.user?.id) {
         try {
           const _keyRow = await pool.query(
             `SELECT llm_api_keys FROM users WHERE id = $1 LIMIT 1`,
             [req.user.id]
           );
-          const _enc = (_keyRow.rows[0]?.llm_api_keys as any)?.anthropic;
-          if (_enc) _userAnthropicApiKey = decryptField(_enc);
+          const _stored = _keyRow.rows[0]?.llm_api_keys as any;
+          const _encAnthropic = _stored?.anthropic;
+          if (_encAnthropic) _userAnthropicApiKey = decryptField(_encAnthropic);
+          const _encOpenrouter = _stored?.openrouter;
+          if (_encOpenrouter) _openrouterKey = decryptField(_encOpenrouter);
+          if (_stored?.selected_model) _selectedModel = _stored.selected_model;
         } catch { /* non-fatal — fall back to system key */ }
+      }
+
+      // Fall back to system-level OpenRouter key if user has none.
+      // OPENROUTER_API_KEY in server env enables cheap Chinese models for all users.
+      if (!_openrouterKey && process.env.OPENROUTER_API_KEY) {
+        _openrouterKey = process.env.OPENROUTER_API_KEY;
+        if (!_selectedModel) _selectedModel = process.env.OPENROUTER_DEFAULT_MODEL || 'deepseek/deepseek-chat';
       }
 
       const enrichedContext = {
@@ -5908,6 +5921,8 @@ ${paramLines || '(none recorded)'}`;
         projectId: _resolvedProjectId,
         projectContext: _projectContext,
         userAnthropicApiKey: _userAnthropicApiKey,
+        openrouterKey: _openrouterKey,
+        selectedModel: _selectedModel,
         // memorySessionId must be the LTM sessions.id (uuid) so recordEpisode's
         // project_episodes.session_id FK is satisfied. If the bridge call
         // failed (no LTM session created), leave it undefined and let
@@ -6764,8 +6779,12 @@ ${paramLines || '(none recorded)'}`;
         `SELECT llm_api_keys FROM users WHERE id = $1`,
         [req.user!.id]
       );
-      const stored = row.rows[0]?.llm_api_keys ?? {};
-      res.json({ anthropic: !!(stored as any)?.anthropic });
+      const stored = (row.rows[0]?.llm_api_keys ?? {}) as any;
+      res.json({
+        anthropic: !!stored.anthropic,
+        openrouter: !!stored.openrouter,
+        selected_model: stored.selected_model ?? null,
+      });
     } catch (error: any) {
       console.error('[llm-api-keys] get error:', error?.message);
       res.status(500).json({ error: 'Failed to get LLM API keys' });
@@ -6774,25 +6793,35 @@ ${paramLines || '(none recorded)'}`;
 
   app.patch("/api/user/llm-api-keys", authenticateToken, express.json(), async (req, res) => {
     try {
-      const { provider, key } = req.body ?? {};
-      if (typeof provider !== 'string' || !['anthropic'].includes(provider)) {
-        return res.status(400).json({ error: 'provider must be "anthropic"' });
+      const { provider, key, selected_model } = req.body ?? {};
+      const VALID_PROVIDERS = ['anthropic', 'openrouter'];
+      if (provider !== undefined && (typeof provider !== 'string' || !VALID_PROVIDERS.includes(provider))) {
+        return res.status(400).json({ error: `provider must be one of: ${VALID_PROVIDERS.join(', ')}` });
       }
       const rowResult = await pool.query(
         `SELECT llm_api_keys FROM users WHERE id = $1`,
         [req.user!.id]
       );
       const existing: Record<string, string> = rowResult.rows[0]?.llm_api_keys ?? {};
-      if (typeof key === 'string' && key.trim().length > 0) {
-        existing[provider] = encryptField(key.trim());
-      } else {
-        delete existing[provider];
+      if (provider) {
+        if (typeof key === 'string' && key.trim().length > 0) {
+          existing[provider] = encryptField(key.trim());
+        } else if (key !== undefined) {
+          delete existing[provider];
+        }
+      }
+      if (selected_model !== undefined) {
+        if (typeof selected_model === 'string' && selected_model.trim().length > 0) {
+          existing.selected_model = selected_model.trim();
+        } else {
+          delete existing.selected_model;
+        }
       }
       await pool.query(
         `UPDATE users SET llm_api_keys = $1::jsonb, updated_at = NOW() WHERE id = $2`,
         [JSON.stringify(existing), req.user!.id]
       );
-      res.json({ ok: true, anthropic: !!existing.anthropic });
+      res.json({ ok: true, anthropic: !!existing.anthropic, openrouter: !!existing.openrouter, selected_model: existing.selected_model ?? null });
     } catch (error: any) {
       console.error('[llm-api-keys] patch error:', error?.message);
       res.status(500).json({ error: 'Failed to update LLM API keys' });
@@ -9645,6 +9674,58 @@ ${paramLines || '(none recorded)'}`;
         });
       }
 
+      // Required-parameter gate. The frontend blocks a run when required params
+      // are unfilled (hasUnfilledRequired in nextflow-workflow-viewer.tsx), but
+      // that guard only protects the UI — API / connector / MCP callers could
+      // dispatch a workflow with empty required params and burn a Batch job that
+      // fails at launch. Enforce the same gate server-side so no caller can spend
+      // compute on a run that is missing required inputs.
+      //
+      // Also honour `request.params` (the documented openapi contract:
+      // "Parameter overrides — merged on top of workflow defaults"): the frontend
+      // fills values into workflowDefinition.required_params[].value, but API
+      // callers pass a `params` map, which was silently ignored. Merge those
+      // values onto the declared params BEFORE validating + dispatching so they
+      // are actually used downstream.
+      {
+        const isEmptyVal = (v: any) =>
+          v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+        const providedParams =
+          request.params && typeof request.params === 'object' ? request.params : {};
+        const reqParams: any[] = Array.isArray(request.workflowDefinition?.required_params)
+          ? request.workflowDefinition.required_params
+          : [];
+        const optParams: any[] = Array.isArray(request.workflowDefinition?.optional_params)
+          ? request.workflowDefinition.optional_params
+          : [];
+        // Merge caller-supplied param values onto the declared params in place so
+        // createExecutionRun (which reads request.workflowDefinition) picks them up.
+        for (const p of [...reqParams, ...optParams]) {
+          if (p && p.name && !isEmptyVal(providedParams[p.name])) {
+            p.value = providedParams[p.name];
+          }
+        }
+        // A required param is satisfied only if it now carries a usable value or
+        // a non-empty default. Anything still empty blocks the launch.
+        const missingParams = reqParams.filter(
+          (p: any) => p && p.name && isEmptyVal(p.value) && isEmptyVal(p.default),
+        );
+        if (missingParams.length > 0 && request.executionConfig?.allowLowConfidence !== true) {
+          return res.status(400).json({
+            error: "missing_required_params",
+            message: `Workflow "${request.workflowDefinition?.name || 'this workflow'}" needs ${missingParams.length} required parameter(s) before it can run. No compute was launched.`,
+            missing: missingParams.map((p: any) => ({
+              name: p.name,
+              label: p.label || p.name,
+              description: p.description || '',
+              type: p.type || 'string',
+            })),
+            guidance:
+              "Provide values for the listed parameters (fill them in the workflow params panel, or pass them in the request `params` map) and retry.",
+          });
+        }
+      }
+
       // Scientific + technical confidence gate.
       // Technical confidence: required inputs are present and generation didn't report tool-install blockers.
       // Scientific confidence: generation stage must not require user feedback/domain correction.
@@ -12104,19 +12185,44 @@ Rules:
       }
 
       const { registerRunOutputsInProject } = await import("./project-routes");
+
+      // Build input context: user intent (the message that triggered the run) + input file names.
+      // Parameters are already in the workflow report — we don't repeat them here.
+      let userIntent: string | undefined;
+      if ((run as any).chatSessionId) {
+        try {
+          const sessRow = await pool.query(
+            `SELECT messages FROM chat_sessions WHERE session_id = $1 LIMIT 1`,
+            [(run as any).chatSessionId]
+          );
+          const msgs: Array<{ role: string; content: string }> = sessRow.rows[0]?.messages ?? [];
+          // Find the last user message before the run started — that's the intent.
+          const userMsgs = msgs.filter(m => m.role === 'user');
+          userIntent = userMsgs[userMsgs.length - 1]?.content?.slice(0, 300) || undefined;
+        } catch { /* non-fatal */ }
+      }
+      const inputFiles: string[] = ((run as any).inputDatasets ?? []).map((d: any) => d.name || d.filename || String(d)).filter(Boolean);
+      const inputContext = {
+        intent: userIntent,
+        inputFiles: inputFiles.length ? inputFiles : undefined,
+      };
+
       const files = rawFiles.map((f: any) => {
         const uri: string = f.s3_uri || f.path || "";
         const s3Key = uri.startsWith("s3://") ? uri.replace(/^s3:\/\/[^/]+\//, "") : uri;
+        // step_name comes from the executor if present (task-level tagging), or inferred from path
+        const stepName: string | undefined = f.step_name || f.process_name || undefined;
         return {
           name: f.filename || f.name || s3Key.split("/").pop() || "file",
           s3Key,
           size: f.size ?? 0,
           contentType: f.content_type || "application/octet-stream",
+          stepName,
         };
       }).filter((f: any) => f.s3Key);
 
       const workflowName: string = (run as any).workflowName || "Workflow";
-      const count = await registerRunOutputsInProject({ projectId, userId: uid, runId: run.id, workflowName, files });
+      const count = await registerRunOutputsInProject({ projectId, userId: uid, runId: run.id, workflowName, inputContext, files });
 
       // Also persist projectId on the run so the UI can navigate to it.
       if (!(run as any).projectId) {

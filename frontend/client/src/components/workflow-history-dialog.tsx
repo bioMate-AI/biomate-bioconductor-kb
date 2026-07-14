@@ -26,6 +26,7 @@ interface RunRow {
   updatedAt: string;
   chatSessionId?: string;
   progressPercent: number;
+  runType?: string;
 }
 
 interface PersonalWorkflow {
@@ -120,6 +121,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
           updatedAt: row.updatedAt,
           chatSessionId: row.chatSessionId,
           progressPercent: row.progressPercent ?? 0,
+          runType: row.runType || 'nextflow',
         }));
         setRows(list);
         setTotal(data?.total ?? list.length);
@@ -377,7 +379,10 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                       />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium truncate">{r.workflowName}</div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                          {r.runType === 'research' && (
+                            <span className="px-1 py-0.5 rounded text-[10px] bg-purple-100 text-purple-700 font-medium">Research</span>
+                          )}
                           {r.status} · {formatWhen(r.createdAt)}
                         </div>
                       </div>
@@ -395,20 +400,19 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                         >
                           Open
                         </Button>
-                        {(r.status === 'completed' || r.status === 'ok' || r.status === 'succeeded' || r.status === 'failed' || r.status === 'error') && (
+                        {r.runType !== 'research' && (r.status === 'completed' || r.status === 'ok' || r.status === 'succeeded' || r.status === 'failed' || r.status === 'error') && (
                           <Button
                             size="sm"
                             variant="default"
                             data-testid={`button-run-again-${r.runId}`}
-                            disabled={!r.chatSessionId}
-                            title={!r.chatSessionId ? 'This run has no linked chat session' : undefined}
+                            title="Start a new analysis with this workflow — add new files or adjust parameters"
                             onClick={() => {
                               analytics.track('run_again_clicked', { workflow_name: r.workflowName, source: 'sidebar_history' });
                               onRunAgain?.(r);
                               onOpenChange(false);
                             }}
                           >
-                            Run again
+                            New analysis
                           </Button>
                         )}
                       </div>

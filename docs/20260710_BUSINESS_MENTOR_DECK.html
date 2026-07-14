@@ -1,0 +1,877 @@
+<title>BioMate — Business Strategy Review</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F5F6F8;
+    --ink: #0D1521;
+    --accent: #1848B8;
+    --green: #3D7A5E;
+    --alert: #BE4218;
+    --muted: #7A8799;
+    --border: #DDE2EC;
+    --card: #FFFFFF;
+    --card-hover: #F9FAFB;
+    --priority: #FDF1EE;
+  }
+
+  html { scroll-behavior: smooth; background: var(--bg); color: var(--ink); }
+
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(245,246,248,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 3rem;
+    height: 52px;
+  }
+  .nav-brand {
+    font-family: "Baskerville", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    font-size: 1.1rem;
+    font-weight: normal;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+  .nav-links a {
+    font-size: 0.78rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .nav-links a:hover { color: var(--accent); }
+  .nav-date {
+    font-size: 0.75rem;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    color: var(--muted);
+  }
+
+  /* SIDE DOTS */
+  .side-nav {
+    position: fixed;
+    right: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .side-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+    border: none;
+    display: block;
+  }
+  .side-dot.active { background: var(--accent); transform: scale(1.5); }
+  .side-dot:hover { background: var(--accent); }
+
+  /* SECTIONS */
+  section {
+    min-height: 100vh;
+    padding: 7rem 3rem 4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  /* EYEBROW */
+  .eyebrow {
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .eyebrow::after {
+    content: '';
+    display: block;
+    height: 1px;
+    width: 2.5rem;
+    background: var(--border);
+  }
+
+  /* PRIORITY TAG */
+  .priority-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--priority);
+    color: var(--alert);
+    border: 1px solid rgba(190,66,24,0.2);
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.68rem;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .priority-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--alert);
+  }
+
+  /* DONE TAG */
+  .done-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #EDF7F2;
+    color: var(--green);
+    border: 1px solid rgba(61,122,94,0.25);
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.68rem;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* HEADINGS */
+  h1 {
+    font-family: "Baskerville", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    font-size: clamp(2.4rem, 5vw, 4rem);
+    font-weight: normal;
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    text-wrap: balance;
+    margin-bottom: 1.5rem;
+  }
+  h2 {
+    font-family: "Baskerville", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+    font-weight: normal;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+    text-wrap: balance;
+    margin-bottom: 1.5rem;
+  }
+  h3 {
+    font-size: 0.88rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+    margin-bottom: 0.3rem;
+  }
+  p {
+    color: #3A4555;
+    line-height: 1.7;
+    max-width: 68ch;
+  }
+
+  /* TITLE SLIDE */
+  #title {
+    justify-content: flex-end;
+    padding-bottom: 5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .title-super {
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    margin-bottom: 1rem;
+  }
+  .title-h1 {
+    font-family: "Baskerville", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    font-size: clamp(3rem, 7vw, 5.5rem);
+    font-weight: normal;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    margin-bottom: 0.5rem;
+  }
+  .title-sub {
+    font-size: 1.1rem;
+    color: var(--muted);
+    margin-bottom: 3rem;
+    max-width: 52ch;
+  }
+  .title-meta {
+    display: flex;
+    gap: 3rem;
+    flex-wrap: wrap;
+  }
+  .title-meta-item { font-size: 0.8rem; color: var(--muted); }
+  .title-meta-item strong { display: block; color: var(--ink); font-size: 0.88rem; }
+
+  /* ACCENT LINE */
+  .accent-line {
+    width: 3rem;
+    height: 3px;
+    background: var(--accent);
+    margin-bottom: 2.5rem;
+    border-radius: 2px;
+  }
+
+  /* GRID CARDS */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 2rem;
+  }
+  .card {
+    background: var(--card);
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    transition: background 0.15s;
+  }
+  .card:hover { background: var(--card-hover); }
+  .card-icon {
+    font-size: 1.1rem;
+    margin-bottom: 0.4rem;
+    display: block;
+  }
+  .card p {
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.55;
+    max-width: none;
+  }
+
+  /* TWO-COL */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+    margin-top: 2rem;
+  }
+  @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* LIST */
+  .item-list { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 1.5rem; }
+  .item-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.85rem 1.1rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.88rem;
+  }
+  .item-row-label { font-weight: 600; color: var(--ink); flex: 0 0 auto; }
+  .item-row-desc { color: var(--muted); font-size: 0.82rem; }
+
+  /* CONNECTOR BADGE */
+  .connector-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    background: var(--card);
+    color: var(--ink);
+  }
+  .connector-badge .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .dot-green { background: #3D9E70; }
+  .dot-blue { background: var(--accent); }
+
+  .badge-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1.75rem;
+  }
+
+  /* PRIORITY SECTION */
+  .priority-section {
+    border-left: 3px solid var(--alert);
+    padding-left: 1.5rem;
+    margin-top: 0;
+  }
+
+  /* TIMELINE */
+  .timeline { display: flex; flex-direction: column; gap: 0; margin-top: 1.75rem; }
+  .tl-item {
+    display: grid;
+    grid-template-columns: 7rem 1px 1fr;
+    gap: 0 1.25rem;
+    position: relative;
+  }
+  .tl-date {
+    font-size: 0.75rem;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    color: var(--muted);
+    text-align: right;
+    padding: 0.75rem 0;
+    padding-top: 1rem;
+  }
+  .tl-line {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .tl-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    margin-top: 1.15rem;
+    z-index: 1;
+  }
+  .tl-connector {
+    flex: 1;
+    width: 1px;
+    background: var(--border);
+  }
+  .tl-item:last-child .tl-connector { display: none; }
+  .tl-content { padding: 0.75rem 0 1.5rem; }
+  .tl-content h3 { font-size: 0.9rem; margin-bottom: 0.2rem; }
+  .tl-content p { font-size: 0.8rem; color: var(--muted); max-width: none; }
+
+  /* CHANNEL CARDS */
+  .channel-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  .channel-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .channel-name { font-weight: 600; font-size: 0.9rem; }
+  .channel-role { font-size: 0.78rem; color: var(--muted); }
+  .channel-icon { font-size: 1.4rem; }
+
+  /* STAT ROW */
+  .stat-row {
+    display: flex;
+    gap: 3rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+  }
+  .stat { display: flex; flex-direction: column; }
+  .stat-num {
+    font-family: "Baskerville", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    font-size: 2.4rem;
+    line-height: 1.1;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-label { font-size: 0.78rem; color: var(--muted); margin-top: 0.15rem; }
+
+  /* FOOTNOTE */
+  .footnote {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    font-style: italic;
+  }
+
+  /* FOCUS: avoid :focus on mouse users */
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<!-- SIDE NAV DOTS -->
+<nav>
+  <a class="nav-brand" href="#title">BioMate</a>
+  <ul class="nav-links">
+    <li><a href="#usecases">Use Cases</a></li>
+    <li><a href="#desktop">Desktop</a></li>
+    <li><a href="#connectors">Connectors</a></li>
+    <li><a href="#marketing">Marketing</a></li>
+    <li><a href="#compliance">Compliance</a></li>
+    <li><a href="#strategy">Strategy</a></li>
+    <li><a href="#manuscripts">Manuscripts</a></li>
+  </ul>
+  <span class="nav-date">July 2026</span>
+</nav>
+
+<div class="side-nav" id="sideDots"></div>
+
+<!-- ── SLIDE 1: TITLE ── -->
+<section id="title">
+  <div class="title-super">Business Mentor Meeting · July 2026</div>
+  <div class="title-h1">BioMate</div>
+  <p class="title-sub">AI-native drug discovery platform — strategy review, shipped milestones, and high-priority next moves.</p>
+  <div class="title-meta">
+    <div class="title-meta-item"><strong>Status</strong>Desktop shipped · Autoimmune pipeline live</div>
+    <div class="title-meta-item"><strong>High Priority</strong>SOC 2 / HIPAA · Consultants · Manuscripts</div>
+    <div class="title-meta-item"><strong>Opportunity</strong>Virtual Cell Challenge · Zhao Lab</div>
+  </div>
+</section>
+
+<!-- ── SLIDE 2: AUTOIMMUNE USE CASES ── -->
+<section id="usecases">
+  <div class="eyebrow">Shipped</div>
+  <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;">
+    <h2>Autoimmune Use Cases</h2>
+    <span class="done-tag"><span style="width:5px;height:5px;border-radius:50%;background:var(--green);"></span>Finished</span>
+  </div>
+  <p>End-to-end pipelines across six autoimmune indications — from raw GWAS or RNA-seq data to drug target candidates and regulatory narratives, all orchestrated by BioMate in a single session.</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <span class="card-icon">🦴</span>
+      <h3>Rheumatoid Arthritis</h3>
+      <p>GWAS → MAGMA gene scoring → cell-type enrichment → ADMET screening → §2.6.1 IND narrative. Ishigaki 2022 GWAS validated end-to-end.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🧠</span>
+      <h3>Multiple Sclerosis</h3>
+      <p>WGS variant calling (nf-core/sarek) → immune gene panel annotation → candidate target prioritization and CNS ADMET filter.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🔴</span>
+      <h3>Lupus (SLE)</h3>
+      <p>Bulk RNA-seq → DESeq2 differential expression → interferon pathway enrichment → target list with toxicity pre-screen.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🫀</span>
+      <h3>Inflammatory Bowel Disease</h3>
+      <p>Multi-GWAS meta-analysis → MAGMA → mucosal immune cell enrichment → JAK/STAT inhibitor ADMET panel.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🩸</span>
+      <h3>Type 1 Diabetes</h3>
+      <p>Polygenic risk score construction → β-cell vs. immune cell specificity analysis → candidate compound screening.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🔵</span>
+      <h3>Psoriatic Arthritis</h3>
+      <p>IL-17/IL-23 pathway ADMET screen → PBPK dose modelling → clinical trial design (BOIN dose escalation).</p>
+    </div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat"><span class="stat-num">6</span><span class="stat-label">Indications covered</span></div>
+    <div class="stat"><span class="stat-num">2,455</span><span class="stat-label">Indexed workflows</span></div>
+    <div class="stat"><span class="stat-num">34</span><span class="stat-label">Biological domains</span></div>
+  </div>
+</section>
+
+<!-- ── SLIDE 3: DESKTOP ── -->
+<section id="desktop">
+  <div class="eyebrow">Shipped</div>
+  <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;">
+    <h2>Desktop Version</h2>
+    <span class="done-tag"><span style="width:5px;height:5px;border-radius:50%;background:var(--green);"></span>Development Complete</span>
+  </div>
+  <p>Full-featured desktop application with real-time workflow execution, AI chat interface, and live SSE step tracking. Runs the same production stack as the web app against AWS Batch.</p>
+
+  <div class="two-col" style="margin-top:2rem;">
+    <div>
+      <h3 style="margin-bottom:1rem;">What shipped</h3>
+      <div class="item-list">
+        <div class="item-row"><span class="item-row-label">Chat + Panel</span><span class="item-row-desc">AI chat left, workflow execution panel right — synchronized state across both views.</span></div>
+        <div class="item-row"><span class="item-row-label">Real-time SSE</span><span class="item-row-desc">Live per-step status updates as Nextflow phases run on AWS Batch.</span></div>
+        <div class="item-row"><span class="item-row-label">Auto-loop QC</span><span class="item-row-desc">Automated QC gating with threshold editor; remediation loop re-runs with corrected parameters.</span></div>
+        <div class="item-row"><span class="item-row-label">After-Run Report</span><span class="item-row-desc">AI-generated findings tab + downloadable DOCX/PDF narrative on run completion.</span></div>
+        <div class="item-row"><span class="item-row-label">Param Prefill</span><span class="item-row-desc">Context extraction from user prompt auto-populates workflow parameters before execution.</span></div>
+      </div>
+    </div>
+    <div>
+      <h3 style="margin-bottom:1rem;">Differentiators vs. web</h3>
+      <div class="item-list">
+        <div class="item-row"><span class="item-row-label">Offline access</span><span class="item-row-desc">Local parameter cache and run history; works without internet for configuration steps.</span></div>
+        <div class="item-row"><span class="item-row-label">File drag-drop</span><span class="item-row-desc">Direct local file staging into S3 without a browser upload dialog.</span></div>
+        <div class="item-row"><span class="item-row-label">Native notifications</span><span class="item-row-desc">OS-level alerts when long-running Batch jobs complete.</span></div>
+        <div class="item-row"><span class="item-row-label">CRO Library</span><span class="item-row-desc">Drug discovery CRO management panel — campaign tracking, ADMET result attachment, compliance export.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SLIDE 4: CONNECTORS ── -->
+<section id="connectors">
+  <div class="eyebrow">Built &amp; Tested</div>
+  <h2>Connectors</h2>
+  <p>Integrations verified in production — each connector has been exercised by at least one end-to-end workflow run against real data.</p>
+
+  <div style="margin-top:2rem;">
+    <h3 style="font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem;">Execution &amp; Compute</h3>
+    <div class="badge-grid">
+      <span class="connector-badge"><span class="dot dot-green"></span>AWS Batch</span>
+      <span class="connector-badge"><span class="dot dot-green"></span>Nextflow 25.x</span>
+      <span class="connector-badge"><span class="dot dot-green"></span>nf-core modules</span>
+      <span class="connector-badge"><span class="dot dot-green"></span>Galaxy API</span>
+      <span class="connector-badge"><span class="dot dot-green"></span>Docker ECR</span>
+    </div>
+  </div>
+
+  <div style="margin-top:1.5rem;">
+    <h3 style="font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem;">Storage &amp; State</h3>
+    <div class="badge-grid">
+      <span class="connector-badge"><span class="dot dot-green"></span>S3 (data lake)</span>
+      <span class="connector-badge"><span class="dot dot-green"></span>Redis ElastiCache</span>
+      <span class="connector-badge"><span class="dot dot-green"></span>PostgreSQL</span>
+    </div>
+  </div>
+
+  <div style="margin-top:1.5rem;">
+    <h3 style="font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem;">AI &amp; Knowledge</h3>
+    <div class="badge-grid">
+      <span class="connector-badge"><span class="dot dot-green"></span>Claude API</span>
+      <span class="connector-badge"><span class="dot dot-green"></span>MCP server</span>
+      <span class="connector-badge"><span class="dot dot-green"></span>PubMed</span>
+      <span class="connector-badge"><span class="dot dot-green"></span>UniProt</span>
+      <span class="connector-badge"><span class="dot dot-green"></span>mygene.info</span>
+      <span class="connector-badge"><span class="dot dot-green"></span>ClinicalTrials.gov</span>
+    </div>
+  </div>
+
+  <div style="margin-top:1.5rem;">
+    <h3 style="font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem;">Billing &amp; Metering</h3>
+    <div class="badge-grid">
+      <span class="connector-badge"><span class="dot dot-green"></span>Lago (usage metering)</span>
+      <span class="connector-badge"><span class="dot dot-green"></span>Java billing service</span>
+      <span class="connector-badge"><span class="dot dot-green"></span>EventBridge triggers</span>
+    </div>
+  </div>
+
+  <div style="margin-top:1.5rem;">
+    <h3 style="font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem;">Auth &amp; Identity</h3>
+    <div class="badge-grid">
+      <span class="connector-badge"><span class="dot dot-green"></span>JWT session auth</span>
+      <span class="connector-badge"><span class="dot dot-green"></span>Email verification</span>
+      <span class="connector-badge"><span class="dot dot-blue"></span>SSO (in progress)</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── SLIDE 5: MARKETING ── -->
+<section id="marketing">
+  <div class="eyebrow">Growth</div>
+  <h2>Marketing Channels</h2>
+  <p>Multi-channel presence targeting computational biologists, drug discovery teams, and academic researchers — organic content strategy powered by Advoo.ai.</p>
+
+  <div class="channel-grid">
+    <div class="channel-card">
+      <span class="channel-icon">🔷</span>
+      <div class="channel-name">Advoo.ai</div>
+      <div class="channel-role">Content generation &amp; scheduling backbone. Converts BioMate run outputs and findings into shareable posts.</div>
+    </div>
+    <div class="channel-card">
+      <span class="channel-icon">✖️</span>
+      <div class="channel-name">X / Twitter</div>
+      <div class="channel-role">Primary technical audience — #bioinformatics, #drugdiscovery, #openscience threads. Screenshots of real runs.</div>
+    </div>
+    <div class="channel-card">
+      <span class="channel-icon">🟠</span>
+      <div class="channel-name">Reddit</div>
+      <div class="channel-role">r/bioinformatics, r/MachineLearning, r/science — demo posts, tool comparisons, community Q&amp;A.</div>
+    </div>
+    <div class="channel-card">
+      <span class="channel-icon">📸</span>
+      <div class="channel-name">Instagram</div>
+      <div class="channel-role">Visual science content — pathway diagrams, cell illustrations, behind-the-scenes of BioMate building new tools.</div>
+    </div>
+  </div>
+
+  <div class="item-list" style="margin-top:1.5rem;">
+    <div class="item-row">
+      <span class="item-row-label">Content angle</span>
+      <span class="item-row-desc">"Watch BioMate discover a drug target from a GWAS in 3 minutes" — real run screenshots, not marketing copy.</span>
+    </div>
+    <div class="item-row">
+      <span class="item-row-label">Cadence</span>
+      <span class="item-row-desc">3× / week across channels, coordinated via Advoo.ai scheduler. Each manuscript submission generates a corresponding post thread.</span>
+    </div>
+    <div class="item-row">
+      <span class="item-row-label">Target personas</span>
+      <span class="item-row-desc">Computational biologist at pharma; academic PI running GWAS studies; biotech startup with no bioinformatics headcount.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── SLIDE 6: COMPLIANCE ── -->
+<section id="compliance">
+  <div class="eyebrow">High Priority</div>
+  <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;">
+    <h2>SOC 2 &amp; HIPAA</h2>
+    <span class="priority-tag"><span class="priority-dot"></span>High Priority</span>
+  </div>
+
+  <div class="priority-section">
+    <p>Pharma and hospital system customers cannot sign without both SOC 2 Type II and HIPAA BAA in place. Vanta automates evidence collection and continuous monitoring — the fastest path from zero to audit-ready.</p>
+  </div>
+
+  <div class="two-col" style="margin-top:2rem;">
+    <div>
+      <h3 style="margin-bottom:1rem;">Vanta scope</h3>
+      <div class="item-list">
+        <div class="item-row"><span class="item-row-label">SOC 2 Type II</span><span class="item-row-desc">Security, availability, confidentiality controls. 6-month observation window → audit by Q1 2027.</span></div>
+        <div class="item-row"><span class="item-row-label">HIPAA</span><span class="item-row-desc">PHI handling policies, BAA template, access audit logs. Required for any clinical genomics customer.</span></div>
+        <div class="item-row"><span class="item-row-label">Continuous monitoring</span><span class="item-row-desc">Vanta agent on AWS checks 180+ controls daily — encryption at rest, MFA enforcement, audit trails.</span></div>
+      </div>
+    </div>
+    <div>
+      <h3 style="margin-bottom:1rem;">Immediate actions</h3>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-date">Week 1</div>
+          <div class="tl-line"><div class="tl-dot"></div><div class="tl-connector"></div></div>
+          <div class="tl-content"><h3>Vanta onboarding</h3><p>Connect AWS, GitHub, Google Workspace. Run initial gap assessment.</p></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-date">Week 2–4</div>
+          <div class="tl-line"><div class="tl-dot"></div><div class="tl-connector"></div></div>
+          <div class="tl-content"><h3>Policy library</h3><p>Draft and sign 20 required policies (access control, incident response, data retention).</p></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-date">Month 2–7</div>
+          <div class="tl-line"><div class="tl-dot"></div><div class="tl-connector"></div></div>
+          <div class="tl-content"><h3>Observation period</h3><p>Collect 6 months of evidence. Fix control failures as Vanta flags them.</p></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-date">Q1 2027</div>
+          <div class="tl-line"><div class="tl-dot"></div><div class="tl-connector"></div></div>
+          <div class="tl-content"><h3>SOC 2 Type II report</h3><p>Auditor review → report issued → first enterprise contract unlocked.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SLIDE 7: STRATEGY ── -->
+<section id="strategy">
+  <div class="eyebrow">Plan</div>
+  <h2>Autoimmune Drug Development Strategy</h2>
+  <p>Position BioMate as the computational backbone for early-stage autoimmune drug discovery — from population genetics to IND filing — targeting the gap between academic GWAS output and actionable drug programs.</p>
+
+  <div class="card-grid" style="margin-top:2rem;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));">
+    <div class="card">
+      <h3>Layer 1 — Target Discovery</h3>
+      <p>GWAS → MAGMA gene scoring → immune cell enrichment → ranked target list. Differentiator: 2,455 indexed workflows run overnight vs. months of manual bioinformatics.</p>
+    </div>
+    <div class="card">
+      <h3>Layer 2 — Target Validation</h3>
+      <p>RNA-seq expression profiles, protein structure (AlphaFold3), druggability scoring, literature evidence aggregation — all in one BioMate session.</p>
+    </div>
+    <div class="card">
+      <h3>Layer 3 — Lead Optimization</h3>
+      <p>ADMET prediction, PBPK dose modelling, hERG / BBB / CYP filtering. Auto-loop QC remediates compounds that fail thresholds.</p>
+    </div>
+    <div class="card">
+      <h3>Layer 4 — Regulatory Package</h3>
+      <p>AI-generated §2.6.1 pharmacological narrative, BOIN dose escalation design, clinical trial endpoint specification — exportable as DOCX.</p>
+    </div>
+  </div>
+
+  <div class="item-list" style="margin-top:1.5rem;">
+    <div class="item-row">
+      <span class="item-row-label">Moat</span>
+      <span class="item-row-desc">The chain runs as a single conversation — researchers without bioinformatics training produce IND-quality outputs. No other tool closes this loop.</span>
+    </div>
+    <div class="item-row">
+      <span class="item-row-label">Revenue model</span>
+      <span class="item-row-desc">Usage metering (vCPU-hours, LLM tokens, S3 storage) + per-report export fee + enterprise subscription for compliance features.</span>
+    </div>
+  </div>
+
+  <div style="margin-top:2rem;padding:1.25rem 1.5rem;background:var(--card);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:6px;">
+    <h3 style="margin-bottom:0.35rem;">Virtual Cell Challenge — Relevance</h3>
+    <p style="font-size:0.85rem;max-width:none;">The Chan Zuckerberg Initiative's Virtual Cell Challenge (2025–2026) asks: can AI build predictive models of cell behavior from multi-omics data? BioMate's execution layer — GPU Batch jobs, scRNA-seq pipelines, protein structure prediction — is exactly the infrastructure needed. Positioning BioMate as a Virtual Cell tooling platform opens CZI grant eligibility and academic partnership channels.</p>
+  </div>
+</section>
+
+<!-- ── SLIDE 8: CONSULTANTS ── -->
+<section id="consultants">
+  <div class="eyebrow">High Priority</div>
+  <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;">
+    <h2>Scientific Consultants</h2>
+    <span class="priority-tag"><span class="priority-dot"></span>High Priority</span>
+  </div>
+
+  <div class="priority-section">
+    <p>A named scientific advisory board in computational biology and autoimmune drug discovery de-risks BioMate for enterprise customers, strengthens grant applications, and opens academic data-sharing channels. The Zhao Lab conversation is the first concrete lead.</p>
+  </div>
+
+  <div class="two-col" style="margin-top:2rem;">
+    <div>
+      <h3 style="margin-bottom:1rem;">Dr. Zhao Lab (scGWAS)</h3>
+      <div class="item-list">
+        <div class="item-row"><span class="item-row-label">Method</span><span class="item-row-desc">scGWAS — single-cell GWAS enrichment (Genome Biology 2022). Maps GWAS signal to specific cell types in sc-RNA atlases.</span></div>
+        <div class="item-row"><span class="item-row-label">Fit</span><span class="item-row-desc">BioMate wraps their tool end-to-end. Demonstration: RA GWAS → MAGMA → scGWAS → ADMET in one session.</span></div>
+        <div class="item-row"><span class="item-row-label">Ask</span><span class="item-row-desc">Consulting agreement (½ day/month), co-authorship on BioMate validation manuscript, access to unpublished immune cell atlas.</span></div>
+        <div class="item-row"><span class="item-row-label">Next step</span><span class="item-row-desc">Send proposal doc with BioMate run results on their RA GWAS data. Schedule 30-min demo call.</span></div>
+      </div>
+    </div>
+    <div>
+      <h3 style="margin-bottom:1rem;">Additional profiles to recruit</h3>
+      <div class="item-list">
+        <div class="item-row"><span class="item-row-label">GWAS / Statistical Genetics</span><span class="item-row-desc">Validates MAGMA pipeline outputs; provides LD reference panels and population stratification expertise.</span></div>
+        <div class="item-row"><span class="item-row-label">Autoimmune Immunologist</span><span class="item-row-desc">Biological QC on ranked target lists; connects to clinical trial investigators.</span></div>
+        <div class="item-row"><span class="item-row-label">Medicinal Chemist</span><span class="item-row-desc">ADMET threshold calibration; review of compound screening outputs for pharma-grade quality.</span></div>
+        <div class="item-row"><span class="item-row-label">Regulatory Specialist</span><span class="item-row-desc">IND narrative review; §2.6.1 section completeness against FDA expectations.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SLIDE 9: MANUSCRIPTS ── -->
+<section id="manuscripts">
+  <div class="eyebrow">High Priority</div>
+  <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;">
+    <h2>Manuscripts &amp; Posts</h2>
+    <span class="priority-tag"><span class="priority-dot"></span>High Priority</span>
+  </div>
+
+  <div class="priority-section">
+    <p>Published peer-reviewed work is the trust signal that unlocks academic institution licenses, grants, and expert advisory relationships. Each manuscript anchors a content campaign across social channels.</p>
+  </div>
+
+  <div class="item-list" style="margin-top:2rem;">
+    <div class="item-row" style="flex-direction:column;gap:0.5rem;align-items:flex-start;">
+      <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+        <span class="item-row-label">Manuscript 1 — BioMate Platform</span>
+        <span style="font-size:0.72rem;font-family:ui-monospace,'SF Mono',Menlo,monospace;color:var(--muted);">Target: Bioinformatics (OUP)</span>
+      </div>
+      <span class="item-row-desc">"BioMate: an AI-native orchestration layer for end-to-end drug discovery workflows." Covers architecture, benchmark scores (routing ≥80%, param prefill ≥70%), 6 autoimmune use cases. <em>Corresponding posts:</em> X thread + r/bioinformatics launch post.</span>
+    </div>
+    <div class="item-row" style="flex-direction:column;gap:0.5rem;align-items:flex-start;">
+      <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+        <span class="item-row-label">Manuscript 2 — Autoimmune Pipeline</span>
+        <span style="font-size:0.72rem;font-family:ui-monospace,'SF Mono',Menlo,monospace;color:var(--muted);">Target: Nature Methods / PLOS Comp Bio</span>
+      </div>
+      <span class="item-row-desc">"Automated GWAS-to-IND pipeline for autoimmune drug discovery." Validation on RA, SLE, MS. Co-authored with scientific advisors. <em>Corresponding posts:</em> Instagram carousel of the pipeline, X thread tagging GWAS researchers.</span>
+    </div>
+    <div class="item-row" style="flex-direction:column;gap:0.5rem;align-items:flex-start;">
+      <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+        <span class="item-row-label">Manuscript 3 — Benchmark</span>
+        <span style="font-size:0.72rem;font-family:ui-monospace,'SF Mono',Menlo,monospace;color:var(--muted);">Target: arXiv preprint first</span>
+      </div>
+      <span class="item-row-desc">Systematic evaluation of parameter extraction, workflow routing, and biological output quality across BioMate's 34 domains vs. manual expert baselines. <em>Corresponding posts:</em> Benchmark results card shared across all channels.</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem;">
+    <div style="padding:1.1rem 1.25rem;background:var(--card);border:1px solid var(--border);border-radius:6px;">
+      <h3 style="margin-bottom:0.5rem;">Post cadence</h3>
+      <p style="font-size:0.82rem;max-width:none;">Every major BioMate run → one X thread (methodology) + one Reddit post (tool demo) + one Instagram visual. Manuscript preprints get a 5-post campaign week of release.</p>
+    </div>
+    <div style="padding:1.1rem 1.25rem;background:var(--card);border:1px solid var(--border);border-radius:6px;">
+      <h3 style="margin-bottom:0.5rem;">Authorship strategy</h3>
+      <p style="font-size:0.82rem;max-width:none;">Invite scientific consultants as co-authors on manuscript 2. Creates mutual incentive to recruit advisors and builds the advisory board in parallel with the writing process.</p>
+    </div>
+  </div>
+
+  <p class="footnote">All manuscripts include BioMate run reproducibility links — readers can reproduce results by opening the BioMate session URL.</p>
+</section>
+
+<!-- ── SLIDE 10: NEXT STEPS ── -->
+<section id="nextsteps" style="border-bottom:none;">
+  <div class="eyebrow">For Discussion</div>
+  <h2>Open Questions for Mentor</h2>
+
+  <div class="item-list" style="margin-top:2rem;">
+    <div class="item-row" style="border-left:3px solid var(--alert);">
+      <span class="item-row-label" style="color:var(--alert);">1</span>
+      <span class="item-row-desc"><strong style="color:var(--ink);">Vanta vs. hire a compliance officer?</strong> Vanta automates evidence collection at ~$25K/yr; a compliance officer is ~$120K/yr. Is Vanta sufficient for first enterprise deals?</span>
+    </div>
+    <div class="item-row" style="border-left:3px solid var(--alert);">
+      <span class="item-row-label" style="color:var(--alert);">2</span>
+      <span class="item-row-desc"><strong style="color:var(--ink);">Consultant equity vs. cash?</strong> Scientific advisors typically get 0.1–0.25% for 2 years. Given early stage, is equity preferable or does cash create cleaner IP ownership?</span>
+    </div>
+    <div class="item-row" style="border-left:3px solid var(--alert);">
+      <span class="item-row-label" style="color:var(--alert);">3</span>
+      <span class="item-row-desc"><strong style="color:var(--ink);">Manuscript timing vs. competitive risk?</strong> Publishing the pipeline in detail reveals the approach. Is there a first-mover advantage to publishing fast, or should we file provisional patents first?</span>
+    </div>
+    <div class="item-row" style="border-left:3px solid var(--alert);">
+      <span class="item-row-label" style="color:var(--alert);">4</span>
+      <span class="item-row-desc"><strong style="color:var(--ink);">Virtual Cell Challenge — apply or partner?</strong> CZI wants teams to build virtual cell models. BioMate is infrastructure, not a model itself. Should we apply as tooling partner or find a model team to co-apply with?</span>
+    </div>
+  </div>
+
+  <div style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+    <div>
+      <div style="font-family:'Baskerville','Palatino Linotype',Georgia,serif;font-size:1.4rem;color:var(--ink);">BioMate</div>
+      <div style="font-size:0.75rem;color:var(--muted);margin-top:0.2rem;">biomate.ai · July 2026</div>
+    </div>
+    <div style="font-size:0.75rem;color:var(--muted);max-width:40ch;text-align:right;">
+      Confidential — prepared for business mentor meeting. Not for distribution.
+    </div>
+  </div>
+</section>
+
+<script>
+  const sections = ['title','usecases','desktop','connectors','marketing','compliance','strategy','consultants','manuscripts','nextsteps'];
+  const labels = ['Intro','Use Cases','Desktop','Connectors','Marketing','Compliance','Strategy','Consultants','Manuscripts','Next Steps'];
+
+  const dotsContainer = document.getElementById('sideDots');
+  sections.forEach((id, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'side-dot';
+    btn.title = labels[i];
+    btn.setAttribute('aria-label', labels[i]);
+    btn.addEventListener('click', () => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }));
+    dotsContainer.appendChild(btn);
+  });
+
+  const dots = dotsContainer.querySelectorAll('.side-dot');
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const idx = sections.indexOf(entry.target.id);
+        dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+      }
+    });
+  }, { threshold: 0.4 });
+
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) observer.observe(el);
+  });
+</script>

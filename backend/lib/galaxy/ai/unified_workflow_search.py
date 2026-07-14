@@ -57,8 +57,22 @@ _SEARCH_STOPWORDS: frozenset = frozenset({
 
 # Too generic to use as FTS named anchors (match hundreds of nf-core workflows).
 _NAMED_ANCHOR_BLOCKLIST: frozenset = frozenset({
+    # Infrastructure / meta words
     "nfcore", "nf", "core", "use", "plan", "not", "galaxy", "batch", "docker",
     "aws", "please", "workflow", "andv", "show", "card", "panel",
+    # Generic English words that appear after "run/using/via" but are NOT tool names
+    # (each was a false-positive anchor that excluded correct workflows from FTS results)
+    "experiment", "experiments", "data", "files", "output", "outputs", "results", "result",
+    "sample", "samples", "reads", "sequences", "genome", "genomes", "genes", "gene",
+    "cells", "cell", "protein", "proteins", "antibody", "antibodies", "reference",
+    "analysis", "analyses", "pipeline", "pipelines", "tool", "tools", "method", "methods",
+    "want", "need", "back", "convert", "generate", "compute", "compare", "identify",
+    "detect", "process", "accounting", "conditions", "condition", "regions", "region",
+    "domains", "domain", "loops", "loop", "table", "matrix", "index", "indices",
+    "run", "runs", "step", "steps", "report", "reports", "quality", "control",
+    "input", "inputs", "model", "models", "count", "counts", "call", "calls",
+    "map", "maps", "align", "alignment", "search", "find", "get", "set",
+    "individual", "complex", "raw", "clean", "trim", "filter", "merge",
 })
 
 # nf-core pipeline slugs that users cite by name in chat (normalised: lowercase, no punctuation).
@@ -573,6 +587,7 @@ class UnifiedWorkflowSearch:
                 )
             """)
             conn.commit()
+            self._migrate_schema(conn)
             count = conn.execute("SELECT COUNT(*) FROM workflows").fetchone()[0]
             if count == 0:
                 log.warning("[WorkflowSearch] workflows table is EMPTY — workflow suggestions unavailable until the DB is synced")
@@ -580,6 +595,45 @@ class UnifiedWorkflowSearch:
                 log.info("[WorkflowSearch] workflows table OK: %d entries", count)
         finally:
             conn.close()
+
+    def _migrate_schema(self, conn: sqlite3.Connection):
+        """Add missing columns and tables to an existing database without re-indexing."""
+        cursor = conn.cursor()
+
+        # Add missing columns to workflows table (ALTER TABLE ignores existing columns via try/except)
+        existing_cols = {row[1] for row in cursor.execute("PRAGMA table_info(workflows)")}
+        for col, definition in [
+            ("input_types",   "TEXT DEFAULT '[]'"),
+            ("output_types",  "TEXT DEFAULT '[]'"),
+            ("annotation_v2", "TEXT"),
+            ("step_metadata", "TEXT"),
+            ("params_schema", "TEXT"),
+        ]:
+            if col not in existing_cols:
+                cursor.execute(f"ALTER TABLE workflows ADD COLUMN {col} {definition}")
+                log.info("[WorkflowSearch] migrated: added column workflows.%s", col)
+
+        # Create workflow_chains table if absent — normally created by index_all_workflows.py
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS workflow_chains (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                display_name TEXT,
+                description TEXT,
+                domain TEXT,
+                steps TEXT NOT NULL DEFAULT '[]',
+                tags TEXT DEFAULT '[]',
+                input_schema TEXT DEFAULT '{}',
+                output_schema TEXT DEFAULT '{}',
+                usage_count INTEGER DEFAULT 0,
+                success_rate REAL DEFAULT 0.0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        conn.commit()
+        log.info("[WorkflowSearch] schema migration complete")
 
     def _ensure_fts_index(self):
         """Ensure FTS index exists and is populated."""
@@ -1131,6 +1185,8 @@ class UnifiedWorkflowSearch:
         'chip-seq reads', 'chip seq reads', 'atac-seq reads',
         'drop-seq', 'dropseq', 'smart-seq', 'smartseq', 'indrop',  # scRNA-seq protocols
         '10x chromium', 'seq-well', 'dip-c',
+        # CRISPR screens require NGS of sgRNA libraries — raw sequencing intent
+        'crispr screen', 'crispr knockout screen', 'knockout screen', 'crispr pooled',
         # Explicitly wants full pipeline from raw
         'run a pipeline', 'run the full pipeline', 'run nf-core', 'nextflow run',
         'run sarek', 'run rnaseq', 'run methylseq', 'run chipseq', 'run atacseq',
@@ -1290,7 +1346,8 @@ class UnifiedWorkflowSearch:
             # "using <ToolName>", "with <ToolName>", "run <ToolName>", etc.
             r'\b(?:using|run|search with|via|through)\s+([A-Z][A-Za-z0-9_\-\.]+)',
             # "DrugCLIP for", "Boltz to", etc. — ToolName first, then preposition
-            r'\b([A-Z][A-Za-z0-9_\-\.]+)\s+(?:for|to|against|workflow|pipeline|model)',
+            # Word boundary \b required after the preposition so "to" doesn't match inside "topologically"
+            r'\b([A-Z][A-Za-z0-9_\-\.]+)\s+(?:for|to|against|workflow|pipeline|model)\b',
         ]
         candidates: List[str] = []
         for pat in _NAMED_TOOL_PATTERNS:
@@ -1406,13 +1463,20 @@ class UnifiedWorkflowSearch:
             if _WORKFLOW_EMBED_NPZ is None:
                 _WORKFLOW_EMBED_NPZ = self.db_path.parent / "galaxy_ai_workflow_embeddings.npz"
 
-            # Load model (shared with chain embeddings — same weights file)
+            # Load model only when the shared embed server is unavailable.
+            # When the server is running (gunicorn on_starting hook), workers
+            # delegate encode() calls to it and skip loading ~300 MB of weights.
             if _WF_EMBED_MODEL is None:
-                log.info("[WorkflowEmbed] Loading model %s …", _WORKFLOW_EMBED_MODEL_NAME)
-                # Force CPU: the current PyTorch build may not support the installed GPU
-                # (sm_121 vs sm_50/80/86/89/90 supported by wheels).  CPU is always safe.
-                _WF_EMBED_MODEL = _ST(_WORKFLOW_EMBED_MODEL_NAME, device="cpu",
-                                      local_files_only=True)
+                try:
+                    from galaxy.ai.embed_client import get_client as _get_embed_client
+                    if _get_embed_client().available():
+                        log.info("[WorkflowEmbed] Embed server available — skipping in-process model load")
+                    else:
+                        raise RuntimeError("embed server unavailable")
+                except Exception:
+                    log.info("[WorkflowEmbed] Loading model %s …", _WORKFLOW_EMBED_MODEL_NAME)
+                    _WF_EMBED_MODEL = _ST(_WORKFLOW_EMBED_MODEL_NAME, device="cpu",
+                                          local_files_only=True)
 
             if _WORKFLOW_EMBED_NPZ.exists():
                 self._load_workflow_embeddings()
@@ -1615,7 +1679,17 @@ class UnifiedWorkflowSearch:
         if not self._ensure_workflow_embeddings():
             return {}
         try:
-            q_vec = _WF_EMBED_MODEL.encode([query], convert_to_numpy=True)[0]
+            # Prefer the shared embed server; fall back to in-process model.
+            q_vec = None
+            try:
+                from galaxy.ai.embed_client import get_client as _get_embed_client
+                q_vec = _get_embed_client().encode_wf(query)
+            except Exception:
+                pass
+            if q_vec is None:
+                if _WF_EMBED_MODEL is None:
+                    return {}
+                q_vec = _WF_EMBED_MODEL.encode([query], convert_to_numpy=True)[0]
             q_norm = q_vec / (_np.linalg.norm(q_vec) + 1e-9)
             mat_norms = _np.linalg.norm(_WF_EMBED_MATRIX, axis=1, keepdims=True) + 1e-9
             mat_norm = _WF_EMBED_MATRIX / mat_norms
@@ -1856,9 +1930,9 @@ class UnifiedWorkflowSearch:
             if is_subworkflow:
                 score -= 4.0  # Subworkflows compete unfairly with full pipelines; penalise
             elif source in ("nfcore", "biomni_nextflow"):
-                score += 8.0
+                score += 12.0
             elif source == "bioconductor":
-                score -= 5.0  # Bioconductor R packages are unlikely to be what they need
+                score -= 12.0  # Bioconductor R packages are unlikely to be what they need
 
         # 6. Domain preference bias (critical for avoiding cross-domain QC mismatches)
         # Use LLM-derived domain lists when provided (UQU output); fall back to rule-based inference.
@@ -2087,30 +2161,36 @@ class UnifiedWorkflowSearch:
         if not _EMBEDDINGS_AVAILABLE:
             return
         try:
-            if _CHAIN_EMBED_MODEL is None:
-                # Double-checked lock: don't let a warmup thread + a first request
-                # both load the MiniLM weights (~2-3s each).
-                with _EMBED_INIT_LOCK:
-                    if _CHAIN_EMBED_MODEL is None:
-                        log.info("[ChainIndex] Loading %s for chain embedding search", _CHAIN_EMBED_MODEL_NAME)
-                        # Reuse VectorToolSearch's GPU-safe device detection when available;
-                        # fall back to cpu so we never block startup on a broken CUDA driver.
-                        try:
-                            from .vector_search import _detect_device_safe
-                            device = _detect_device_safe(timeout_seconds=5.0)
-                        except Exception:
-                            device = "cpu"
-                        _CHAIN_EMBED_MODEL = _ST(_CHAIN_EMBED_MODEL_NAME, device=device,
-                                                local_files_only=True)
             texts = [self._chain_embed_text(c) for c in chains]
             _CHAIN_EMBED_NAMES = [c.name for c in chains]
             import hashlib as _hashlib
             _CHAIN_EMBED_DESC_HASH = _hashlib.md5(
                 "|".join(f"{c.name}:{c.description or ''}:{','.join(c.tags)}" for c in chains).encode()
             ).hexdigest()
-            _CHAIN_EMBED_MATRIX = _CHAIN_EMBED_MODEL.encode(
-                texts, convert_to_numpy=True, show_progress_bar=False
-            )
+            # Prefer the shared embed server for batch encoding; fall back to
+            # in-process model load when the server is unavailable.
+            matrix = None
+            try:
+                from galaxy.ai.embed_client import get_client as _get_embed_client
+                matrix = _get_embed_client().encode_batch_chain(texts)
+            except Exception:
+                pass
+            if matrix is None:
+                if _CHAIN_EMBED_MODEL is None:
+                    with _EMBED_INIT_LOCK:
+                        if _CHAIN_EMBED_MODEL is None:
+                            log.info("[ChainIndex] Loading %s for chain embedding search", _CHAIN_EMBED_MODEL_NAME)
+                            try:
+                                from .vector_search import _detect_device_safe
+                                device = _detect_device_safe(timeout_seconds=5.0)
+                            except Exception:
+                                device = "cpu"
+                            _CHAIN_EMBED_MODEL = _ST(_CHAIN_EMBED_MODEL_NAME, device=device,
+                                                    local_files_only=True)
+                matrix = _CHAIN_EMBED_MODEL.encode(
+                    texts, convert_to_numpy=True, show_progress_bar=False
+                )
+            _CHAIN_EMBED_MATRIX = matrix
             log.info("[ChainIndex] Indexed %d chains (desc_hash=%s)", len(chains), _CHAIN_EMBED_DESC_HASH[:8])
         except Exception as exc:
             log.warning("[ChainIndex] Failed to build embedding index: %s", exc)
@@ -2142,7 +2222,17 @@ class UnifiedWorkflowSearch:
             return []
 
         try:
-            q_emb = _CHAIN_EMBED_MODEL.encode([query], convert_to_numpy=True)[0]
+            # Prefer the shared embed server; fall back to in-process model.
+            q_emb = None
+            try:
+                from galaxy.ai.embed_client import get_client as _get_embed_client
+                q_emb = _get_embed_client().encode_chain(query)
+            except Exception:
+                pass
+            if q_emb is None:
+                if _CHAIN_EMBED_MODEL is None:
+                    return []
+                q_emb = _CHAIN_EMBED_MODEL.encode([query], convert_to_numpy=True)[0]
             q_norm = q_emb / (_np.linalg.norm(q_emb) + 1e-9)
             mat_norm = _CHAIN_EMBED_MATRIX / (
                 _np.linalg.norm(_CHAIN_EMBED_MATRIX, axis=1, keepdims=True) + 1e-9
@@ -2462,12 +2552,13 @@ class UnifiedWorkflowSearch:
         q = query.lower()
         types: set = set()
         if re.search(
-            r'\bfastq\b|\.fastq|\.fq\b'           # explicit format
-            r'|raw reads?|sequencing reads?'         # "raw reads", "sequencing reads"
-            r'|paired.end reads?'                    # "paired-end reads"
-            r'|\balign\b.{0,40}\breads?\b'           # "align reads", "align the reads"
-            r'|\breads?\b.{0,20}\balign'             # "reads to align"
-            r'|\bseq(uencing)?\s+reads?\b',          # "seq reads", "sequencing reads"
+            r'\bfastq\b|\.fastq|\.fq\b'             # explicit format
+            r'|raw reads?|sequencing reads?'           # "raw reads", "sequencing reads"
+            r'|raw sequencing\b|sequencing files?\b'  # "raw sequencing files", "sequencing files"
+            r'|paired.end reads?'                      # "paired-end reads"
+            r'|\balign\b.{0,40}\breads?\b'             # "align reads", "align the reads"
+            r'|\breads?\b.{0,20}\balign'               # "reads to align"
+            r'|\bseq(uencing)?\s+reads?\b',            # "seq reads", "sequencing reads"
             q
         ):
             types.add("fastq")

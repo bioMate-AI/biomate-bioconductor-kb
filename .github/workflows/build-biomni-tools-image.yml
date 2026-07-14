@@ -1,0 +1,20 @@
+name: Build biomni-tools image
+
+# Dispatch-only (this image is large and not currently broken). Applies the reusable
+# build+smoke+push template: build → run backend/docker/biomni-tools/smoke.py inside
+# the image → push :x86 only if the smoke passes.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  tools:
+    uses: ./.github/workflows/build-biomni-image.yml
+    with:
+      image_repo: biomate/biomni-tools
+      dockerfile: backend/docker/biomni-tools/Dockerfile
+      smoke_script: backend/docker/biomni-tools/smoke.py

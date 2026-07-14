@@ -10,7 +10,7 @@
  *   - Delete uploaded files (source='upload' only)
  */
 import { useState, useEffect, useRef, useCallback } from "react";
-import { isDesktop, desktopPickAndUpload } from "@/lib/desktop";
+import { isDesktop, desktopPickAndUpload, desktopSaveFile } from "@/lib/desktop";
 import {
   Folder,
   FolderOpen,
@@ -28,6 +28,8 @@ import {
   Database,
   Code2,
   FileArchive,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -41,6 +43,8 @@ interface ProjectFile {
   source: "upload" | "run_output" | string;
   run_id: string | null;
   workflow_name: string | null;
+  step_name: string | null;
+  input_context: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -76,11 +80,13 @@ function buildTree(files: ProjectFile[]): TreeNode[] {
     root.push({ type: "folder", name: "inputs", path: "inputs", children: inputs });
   }
   for (const [runId, nodes] of Object.entries(outputsByRun)) {
-    // Use the workflow name stored on any file in this run (they all share the same run).
-    const wfName = nodes[0]?.file?.workflow_name;
-    const label = wfName
-      ? `${wfName} (${runId.slice(0, 6)}…)`
-      : `outputs / ${runId.slice(0, 8)}…`;
+    const firstFile = nodes[0]?.file;
+    const wfName = firstFile?.workflow_name ?? "Workflow";
+    // Format: "nf-core/rnaseq · Jul 11 14:23" — lets users distinguish multiple runs
+    const ts = firstFile?.created_at
+      ? new Date(firstFile.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+      : runId.slice(0, 8);
+    const label = `${wfName} · ${ts}`;
     root.push({
       type: "folder",
       name: label,
@@ -111,14 +117,62 @@ function formatBytes(n: number): string {
   return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`;
 }
 
+const PREVIEW_EXTS = new Set(["csv","tsv","txt","log","md","png","jpg","jpeg","gif","webp","svg"]);
+
+function canPreview(file: ProjectFile): boolean {
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  return PREVIEW_EXTS.has(ext) && file.size < 1024 * 1024; // < 1 MB
+}
+
+function FilePreview({ url, name }: { url: string; name: string }) {
+  const ext = name.split(".").pop()?.toLowerCase() ?? "";
+  const isImage = ["png","jpg","jpeg","gif","webp","svg"].includes(ext);
+  const [content, setContent] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isImage) return;
+    fetch(url).then(r => r.text()).then(t => setContent(t)).catch(() => setContent("(preview failed)"));
+  }, [url, isImage]);
+
+  if (isImage) {
+    return <img src={url} alt={name} className="max-w-[200px] max-h-40 rounded mt-1 mb-1 ml-9" />;
+  }
+  if (content === null) return <div className="ml-9 mt-1 text-xs text-muted-foreground">Loading…</div>;
+  const lines = content.split("\n").slice(0, ext === "csv" || ext === "tsv" ? 6 : 20);
+  if ((ext === "csv" || ext === "tsv") && lines.length > 0) {
+    const sep = ext === "tsv" ? "\t" : ",";
+    const rows = lines.map(l => l.split(sep));
+    return (
+      <div className="ml-9 mt-1 mb-1 overflow-x-auto">
+        <table className="text-xs border-collapse">
+          {rows.map((row, i) => (
+            <tr key={i} className={i === 0 ? "font-semibold bg-muted/40" : ""}>
+              {row.map((cell, j) => (
+                <td key={j} className="border border-border px-1.5 py-0.5 max-w-[120px] truncate">{cell}</td>
+              ))}
+            </tr>
+          ))}
+        </table>
+      </div>
+    );
+  }
+  return (
+    <pre className="ml-9 mt-1 mb-1 text-xs font-mono bg-muted/40 rounded p-2 overflow-x-auto max-h-40 whitespace-pre-wrap">
+      {lines.join("\n")}
+    </pre>
+  );
+}
+
 function FileRow({
   file,
+  projectId,
   onDelete,
   onDownload,
   copiedId,
   onCopy,
 }: {
   file: ProjectFile;
+  projectId: string;
   onDelete: (id: string) => void;
   onDownload: (id: string) => void;
   copiedId: string | null;
@@ -126,45 +180,81 @@ function FileRow({
 }) {
   const Icon = fileIcon(file.name, file.content_type);
   const isCopied = copiedId === file.id;
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const showPreview = canPreview(file);
+
+  const handleTogglePreview = async () => {
+    if (!previewOpen && !previewUrl) {
+      try {
+        const res = await fetch(`/api/projects/${projectId}/files/${file.id}/url`, { credentials: "include" });
+        if (res.ok) { const d = await res.json(); setPreviewUrl(d.url); }
+      } catch { /* ignore */ }
+    }
+    setPreviewOpen(v => !v);
+  };
 
   return (
-    <div
-      className="group flex items-center gap-1.5 px-2 py-1 rounded hover:bg-muted/60 text-sm cursor-default"
-      style={{ paddingLeft: 36 }}
-      title={file.s3_key}
-    >
-      <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-      <span className="flex-1 truncate text-xs text-foreground">{file.name}</span>
-      <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{formatBytes(file.size)}</span>
-      <button
-        title="Copy S3 path"
-        onClick={() => onCopy(file.id, file.s3_key)}
-        className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted"
-        data-testid={`file-copy-${file.id}`}
+    <div>
+      <div
+        className="group flex items-center gap-1.5 px-2 py-1 rounded hover:bg-muted/60 text-sm cursor-default"
+        style={{ paddingLeft: 36 }}
+        title={file.s3_key}
       >
-        {isCopied ? (
-          <Check className="h-3 w-3 text-green-600" />
-        ) : (
-          <Copy className="h-3 w-3 text-muted-foreground" />
+        <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <span className="flex-1 truncate text-xs text-foreground">{file.name}</span>
+        {file.step_name && (
+          <span className="text-[10px] px-1 py-0.5 rounded bg-blue-100 text-blue-700 shrink-0 font-mono" title={`Produced by step: ${file.step_name}`}>
+            {file.step_name}
+          </span>
         )}
-      </button>
-      <button
-        title="Download"
-        onClick={() => onDownload(file.id)}
-        className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted"
-        data-testid={`file-download-${file.id}`}
-      >
-        <Download className="h-3 w-3 text-muted-foreground" />
-      </button>
-      {file.source === "upload" && (
+        <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{formatBytes(file.size)}</span>
+        {showPreview && (
+          <button
+            title={previewOpen ? "Hide preview" : "Preview"}
+            onClick={handleTogglePreview}
+            className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted"
+          >
+            {previewOpen ? <EyeOff className="h-3 w-3 text-muted-foreground" /> : <Eye className="h-3 w-3 text-muted-foreground" />}
+          </button>
+        )}
         <button
-          title="Delete"
-          onClick={() => onDelete(file.id)}
-          className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-50 hover:text-red-600"
-          data-testid={`file-delete-${file.id}`}
+          title="Copy S3 path"
+          onClick={() => onCopy(file.id, file.s3_key)}
+          className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted"
+          data-testid={`file-copy-${file.id}`}
         >
-          <Trash2 className="h-3 w-3" />
+          {isCopied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
         </button>
+        <button
+          title="Download"
+          onClick={() => onDownload(file.id)}
+          className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted"
+          data-testid={`file-download-${file.id}`}
+        >
+          <Download className="h-3 w-3 text-muted-foreground" />
+        </button>
+        {file.source === "upload" && (
+          <button
+            title="Delete"
+            onClick={() => onDelete(file.id)}
+            className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-50 hover:text-red-600"
+            data-testid={`file-delete-${file.id}`}
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        )}
+      </div>
+      {previewOpen && previewUrl && <FilePreview url={previewUrl} name={file.name} />}
+      {previewOpen && file.input_context && (typeof file.input_context.intent === 'string' || Array.isArray(file.input_context.inputFiles)) && (
+        <div className="ml-9 mt-1 mb-2 rounded border border-border bg-muted/30 p-2 text-xs space-y-1.5">
+          {typeof file.input_context.intent === 'string' && (
+            <div className="italic text-foreground/80">"{file.input_context.intent}"</div>
+          )}
+          {Array.isArray(file.input_context.inputFiles) && (file.input_context.inputFiles as string[]).length > 0 && (
+            <div><span className="text-muted-foreground">Input files: </span>{(file.input_context.inputFiles as string[]).join(", ")}</div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -233,6 +323,13 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged }: Proje
 
   useEffect(() => { load(); }, [load]);
 
+  // Refresh when another component saves run outputs to this project.
+  useEffect(() => {
+    const handler = () => load();
+    window.addEventListener('biomate:project-files-updated', handler);
+    return () => window.removeEventListener('biomate:project-files-updated', handler);
+  }, [load]);
+
   const handleUpload = async (fileList: FileList | null) => {
     if (!fileList?.length) return;
     setUploading(true);
@@ -278,6 +375,13 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged }: Proje
       const res = await fetch(`/api/projects/${projectId}/files/${fileId}/url`, { credentials: "include" });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
+      // On desktop: fetch blob and show native save dialog
+      if (isDesktop()) {
+        const blob = await fetch(data.url).then(r => r.blob());
+        const saved = await desktopSaveFile(blob, data.name);
+        if (saved) return;
+      }
+      // Browser fallback
       const a = document.createElement("a");
       a.href = data.url;
       a.download = data.name;
@@ -414,6 +518,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged }: Proje
                         <FileRow
                           key={child.file.id}
                           file={child.file}
+                          projectId={projectId}
                           onDelete={handleDelete}
                           onDownload={handleDownload}
                           copiedId={copiedId}
