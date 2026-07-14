@@ -2127,6 +2127,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // (dev/local environments). In production the email is delivered normally
       // and surfacing the token would show the "Dev mode" bypass box to real users.
       const _emailConfigured = !!(process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS);
+      await auditService.logAuth(
+        'register',
+        result.user.id,
+        req.ip || req.socket.remoteAddress || 'unknown',
+        req.headers['user-agent'] || 'unknown',
+        true,
+        undefined,
+        { email: result.user.email, reason: 'ok' }
+      );
+
       res.status(201).json({
         success: true,
         user: { ...result.user, verificationToken: _emailConfigured ? null : _verificationToken },
@@ -2135,6 +2145,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('[Auth] Registration error:', error);
+      // Record the failed registration attempt with the attempted email +
+      // reason (e.g. email already registered) so a stuck user — can't log in,
+      // can't register — is diagnosable from the audit log alone.
+      await auditService.logAuth(
+        'register',
+        null,
+        req.ip || req.socket.remoteAddress || 'unknown',
+        req.headers['user-agent'] || 'unknown',
+        false,
+        error.message,
+        { email: req.body?.email, reason: error.code || (/(exist|registered|taken)/i.test(error.message || '') ? 'EMAIL_EXISTS' : 'unknown') }
+      );
       res.status(400).json({
         success: false,
         error: error.message || 'Registration failed',
@@ -2180,7 +2202,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         result.user.id,
         req.ip || req.socket.remoteAddress || 'unknown',
         req.headers['user-agent'] || 'unknown',
-        true
+        true,
+        undefined,
+        { email: result.user.email, reason: 'ok' }
       );
 
       res.json({
@@ -2199,7 +2223,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.ip || req.socket.remoteAddress || 'unknown',
         req.headers['user-agent'] || 'unknown',
         false,
-        error.message
+        error.message,
+        { email: req.body?.email, reason: error.code || 'unknown' }
       );
 
       if (error.message === 'TRIAL_EXPIRED') {

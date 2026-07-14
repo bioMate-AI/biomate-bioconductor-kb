@@ -146,8 +146,17 @@ export class AuditService {
     ipAddress: string,
     userAgent: string,
     success: boolean,
-    errorMessage?: string
+    errorMessage?: string,
+    // Attempted identity + machine-readable outcome. Recorded even when the
+    // attempt fails and userId is null (the common case), so a failed login
+    // is traceable to an email + a specific reason instead of an anonymous
+    // "Invalid credentials" with no subject. The email is NOT the client-facing
+    // message — it only lands in the server-side audit row.
+    meta?: { email?: string; reason?: string }
   ): Promise<void> {
+    const details: Record<string, any> = {};
+    if (meta?.email) details.email = meta.email;
+    if (meta?.reason) details.reason = meta.reason;
     await this.log({
       userId,
       action: `auth.${action}`,
@@ -157,6 +166,7 @@ export class AuditService {
       userAgent,
       status: success ? 'success' : 'failure',
       errorMessage,
+      details: Object.keys(details).length ? details : undefined,
     });
   }
 
