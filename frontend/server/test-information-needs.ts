@@ -62,11 +62,22 @@ interface NeedTestCase {
   description: string;
 }
 
+// NOTE (2026-07): expectations aligned with the action-flag routing redesign in
+// galaxy-assistant.ts `inferActionsFromType` (commit c6fceb828, 2026-04-07).
+// Two design decisions the original 2026-02 expectations predated:
+//   1. workflow-generation-type intents (workflow_generation, data_format_conversion,
+//      external_db_retrieval, visualization, multi_step_procedure) do NOT set
+//      needsToolSearch — the backend's generate_workflow searches its own tool
+//      index internally, so a separate frontend tool search is redundant.
+//   2. comparison intents (result_comparison, comparative_methodology) route to the
+//      ResearchAgent (literature/reasoning), NOT the BenchmarkAgent (harness runs).
+// These stale expectations were masked for months because db.ts crashed this gate
+// at import before it could run (fixed in the lazy-init change).
 const testCases: NeedTestCase[] = [
   {
     type: 'workflow_generation',
     label: '1. Build/Run Analysis',
-    expectedFlags: { toolSearch: true, workflowGen: true, llm: true },
+    expectedFlags: { toolSearch: false, workflowGen: true, llm: true },
     description: 'Run DE analysis on my RNA-seq data',
   },
   {
@@ -90,7 +101,7 @@ const testCases: NeedTestCase[] = [
   {
     type: 'result_comparison',
     label: '5. Tool Comparison',
-    expectedFlags: { benchmark: true, llm: true },
+    expectedFlags: { research: true, benchmark: false, llm: true },
     description: 'How does Bowtie2 compare to BWA?',
   },
   {
@@ -144,13 +155,13 @@ const testCases: NeedTestCase[] = [
   {
     type: 'data_format_conversion',
     label: '14. Data Format/Conversion',
-    expectedFlags: { toolSearch: true, workflowGen: true, llm: true },
+    expectedFlags: { toolSearch: false, workflowGen: true, llm: true },
     description: 'Convert my BAM file to FASTQ',
   },
   {
     type: 'external_db_retrieval',
     label: '15. External DB Retrieval',
-    expectedFlags: { toolSearch: true, workflowGen: true, llm: true },
+    expectedFlags: { toolSearch: false, workflowGen: true, llm: true },
     description: 'Download the hg38 reference genome from UCSC',
   },
   {
@@ -168,13 +179,13 @@ const testCases: NeedTestCase[] = [
   {
     type: 'visualization',
     label: '18. Visualization',
-    expectedFlags: { toolSearch: true, workflowGen: true, llm: true },
+    expectedFlags: { toolSearch: false, workflowGen: true, llm: true },
     description: 'Create a heatmap of my gene expression data',
   },
   {
     type: 'comparative_methodology',
     label: '19. Comparative Methodology',
-    expectedFlags: { research: true, benchmark: true, llm: true },
+    expectedFlags: { research: true, benchmark: false, llm: true },
     description: 'Compare single-cell vs bulk RNA-seq approaches for tumor profiling',
   },
   {
@@ -192,7 +203,7 @@ const testCases: NeedTestCase[] = [
   {
     type: 'multi_step_procedure',
     label: '22. Multi-Step Procedure',
-    expectedFlags: { toolSearch: true, workflowGen: true, llm: true },
+    expectedFlags: { toolSearch: false, workflowGen: true, llm: true },
     description: 'Build a pipeline: QC, trimming, alignment, counting, DE',
   },
 ];
@@ -275,7 +286,10 @@ function runInformationNeedTests() {
 
   const compMeth = inferActionsFromType('comparative_methodology');
   const compAgents = Object.entries(compMeth).filter(([_, v]) => v).length;
-  assert(compAgents === 3, `comparative_methodology activates 3 agents (got ${compAgents})`);
+  // comparative_methodology routes to ResearchAgent + LLM (2 agents). It does
+  // NOT invoke the BenchmarkAgent — comparing methodologies is a literature/
+  // reasoning task, not a benchmark-harness run (see inferActionsFromType).
+  assert(compAgents === 2, `comparative_methodology activates 2 agents (got ${compAgents})`);
 
   // Summary
   console.log('\n' + '='.repeat(72));
