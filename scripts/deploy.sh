@@ -65,6 +65,17 @@ FRONTEND_REPO="${FRONTEND_REPO:-biomate/dev-frontend}"
 BACKEND_IMAGE="$ECR_REGISTRY/$BACKEND_REPO:$TAG"
 FRONTEND_IMAGE="$ECR_REGISTRY/$FRONTEND_REPO:$TAG"
 
+# Post-deploy functional smoke mode — proves a workflow can be routed/generated,
+# not just that the containers booted (a boot health check passes every one of
+# the regressions in docs: search fork-deadlock, missing embeddings, nf-core
+# routing, generation 500). Runs host-side in Step 6 as part of the health gate.
+#   search  (default) — deterministic routing probe GATES auto-rollback; the LLM
+#                       generation probe is advisory (won't roll back a good
+#                       image on a provider hiccup)
+#   full              — both routing AND generation probes gate auto-rollback
+#   off               — skip the functional smoke (boot health check only)
+POSTDEPLOY_WF_SMOKE="${POSTDEPLOY_WF_SMOKE:-search}"
+
 # --- Failure/rollback notification (real guardrail, previously only documented) ---
 # deploy.yml's header claimed "auto-rollback (L17)" and "notify" were enforced in
 # this script — they were not. Step 6 below implements the rollback on the host;
@@ -308,6 +319,7 @@ RESULT_FILE=/tmp/biomate_deploy_result
 
 NEW_BACKEND='$BACKEND_IMAGE'
 NEW_FRONTEND='$FRONTEND_IMAGE'
+SMOKE_MODE='$POSTDEPLOY_WF_SMOKE'
 
 # Capture the images currently in service so we can roll back to them. They are
 # still present locally (we never prune — past-incident L3), so the revert is
@@ -335,6 +347,83 @@ endpoints_ok() {
     && curl -fsS http://localhost:3000/api/health >/dev/null 2>&1
 }
 
+# Post-deploy FUNCTIONAL smoke — a boot health check only proves the containers
+# are up; this proves a workflow can actually be routed and generated. It runs
+# against the Node frontend on :3000 (the real user-facing path).
+#   SMOKE_MODE=off    -> skip entirely (boot check only)
+#   SMOKE_MODE=search -> routing probe GATES rollback; generation is advisory (default)
+#   SMOKE_MODE=full   -> routing AND generation both gate rollback
+# Returns non-zero only when a GATING probe fails, which fails the health gate
+# and triggers the same auto-rollback path the boot check uses.
+workflow_smoke() {
+  [ "\$SMOKE_MODE" = "off" ] && { echo 'wf-smoke: skipped (SMOKE_MODE=off)'; return 0; }
+
+  # Probe 1 — routing/search (deterministic, no auth). GATES only on a broken
+  # search STACK: a fork-deadlock hangs → -m 25 timeout (curl non-zero, empty
+  # code); a broken router → 5xx. A well-formed HTTP 200 that simply found NO
+  # match is a DATA issue (empty/absent host catalog DB), NOT an image
+  # regression — rolling back to the prior image can't fix a missing host file
+  # and would wedge every deploy — so no-match is advisory, never a rollback.
+  # Two attempts absorb a slow cold first call; a 200 (match or not) is a
+  # settled data state, so we stop retrying once we get one.
+  local sbody scode s_attempt=0 search_state=broken
+  while [ "\$s_attempt" -lt 2 ]; do
+    s_attempt=\$((s_attempt + 1))
+    sbody=\$(curl -sS -m 25 -w '\\n%{http_code}' -X POST http://localhost:3000/api/workflows/search \\
+        -H 'Content-Type: application/json' \\
+        -d '{"query":"predict hERG cardiac toxicity and ADMET for a list of SMILES","limit":3}' 2>/dev/null || true)
+    scode=\$(printf '%s' "\$sbody" | tail -n1)
+    if [ "\$scode" = "200" ]; then
+      if printf '%s' "\$sbody" | grep -qE '"success"[[:space:]]*:[[:space:]]*true'; then
+        search_state=ok
+      else
+        search_state=no_match
+      fi
+      break
+    fi
+    echo "wf-smoke: search attempt \$s_attempt -> HTTP \${scode:-none} (retrying)"
+  done
+  # if/elif (not case): bare `)` case-patterns don't parse inside the outer
+  # $(cat <<HOSTEOF ...) command substitution.
+  if [ "\$search_state" = "ok" ]; then
+    echo 'wf-smoke: search OK (routing returned a match)'
+  elif [ "\$search_state" = "no_match" ]; then
+    echo "::warning:: wf-smoke: search reachable but NO match — likely empty/absent host catalog DB (data, not image). Advisory, not gating."
+  else
+    echo '*** wf-smoke: SEARCH STACK FAILED (timeout/connection/5xx) — deadlock or broken router ***'
+    return 1
+  fi
+
+  # Probe 2 — workflow generation (LLM path, optionalAuth). Generous timeout +
+  # one retry to absorb provider latency. Advisory unless SMOKE_MODE=full, so a
+  # transient LLM hiccup never rolls back an otherwise-healthy image.
+  local gbody gcode attempt=0 gen_ok=0
+  while [ "\$attempt" -lt 2 ]; do
+    attempt=\$((attempt + 1))
+    gbody=\$(curl -sS -m 150 -w '\\n%{http_code}' -X POST http://localhost:3000/api/ai_assistant/generate_workflow \\
+        -H 'Content-Type: application/json' \\
+        -d '{"request_text":"Screen these SMILES for ADMET and hERG cardiac safety"}' 2>/dev/null || true)
+    gcode=\$(printf '%s' "\$gbody" | tail -n1)
+    if [ "\$gcode" = "200" ] && printf '%s' "\$gbody" | grep -q '"workflow_ga"' \\
+         && ! printf '%s' "\$gbody" | grep -qE '"name"[[:space:]]*:[[:space:]]*("undefined"|"")'; then
+      gen_ok=1; break
+    fi
+    echo "wf-smoke: generate attempt \$attempt -> HTTP \${gcode:-none} (retrying)"
+  done
+
+  if [ "\$gen_ok" = "1" ]; then
+    echo 'wf-smoke: generate OK (workflow_ga returned with a real name)'
+  elif [ "\$gcode" = "401" ] || [ "\$gcode" = "402" ]; then
+    echo "wf-smoke: generate SKIPPED (HTTP \$gcode = auth/quota, not a workflow regression)"
+  elif [ "\$SMOKE_MODE" = "full" ]; then
+    echo '*** wf-smoke: GENERATE FAILED and SMOKE_MODE=full — gating rollback ***'
+    return 1
+  else
+    echo "::warning:: wf-smoke: generate probe failed (HTTP \${gcode:-none}) — advisory only (set POSTDEPLOY_WF_SMOKE=full to gate)"
+  fi
+  return 0
+}
+
 finish() {   # \$1 = state, \$2 = exit code; persist marker to file AND stdout
   echo "DEPLOY_RESULT=\$1"
   echo "DEPLOY_RESULT=\$1" > "\$RESULT_FILE" 2>/dev/null || true
@@ -349,7 +438,10 @@ export FRONTEND_IMAGE="\$NEW_FRONTEND"
 docker compose -f docker-compose.deploy.yml down --timeout 30 || true
 
 # New image gets up to 180s to go healthy (Galaxy cold start is ~60-90s).
-if bring_up "\$NEW_BACKEND" "\$NEW_FRONTEND" 180 && endpoints_ok; then
+# Health gate = boot (docker healthchecks) + endpoints (version/health HTTP) +
+# functional smoke (a workflow can be routed/generated). Any gating failure
+# falls through to the rollback below.
+if bring_up "\$NEW_BACKEND" "\$NEW_FRONTEND" 180 && endpoints_ok && workflow_smoke; then
   finish healthy 0
 fi
 

@@ -14,6 +14,11 @@ name: Deploy to environment
 #   - Calls scripts/deploy.sh which uses SSM Run Command to target the
 #     env's EC2 (tag-based), pulls the image, force-recreates compose,
 #     external healthcheck, auto-rollback to previous tag on failure.
+#   - Health gate is boot (docker healthchecks) + endpoints (version/health) +
+#     a FUNCTIONAL workflow smoke (POSTDEPLOY_WF_SMOKE, default `search`): the
+#     deterministic routing probe gates auto-rollback, the LLM generation probe
+#     is advisory. This catches the class of regressions a boot check misses
+#     (search fork-deadlock, missing embeddings, routing/generation 500).
 #   - Concurrency group per env so two deploys can't race.
 #
 # Past-incident guardrails enforced (in scripts/deploy.sh itself):
@@ -23,6 +28,7 @@ name: Deploy to environment
 #   - L17 (auto-rollback to previous tag)
 #   - L20 (SSM not SSH)
 #   - L21 (HTTP healthcheck gate)
+#   - L22 (post-deploy functional workflow smoke: routing gates rollback)
 
 on:
   workflow_run:
