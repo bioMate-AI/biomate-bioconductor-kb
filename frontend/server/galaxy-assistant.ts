@@ -3752,6 +3752,44 @@ Rules:
     );
     log('Step 6 complete');
 
+    // Step 6b: LLM reselection — confirm or override FTS workflow choice.
+    // The text-generating LLM (Step 6) has full routing rules and domain knowledge;
+    // the FTS search (Step 4) does not. When the generated text describes a different
+    // workflow than what FTS selected, we ask a cheap LLM call to pick from the top
+    // candidates using both the user message and the generated text as context.
+    if (generatedWorkflow?.success && generatedWorkflow?.candidate_workflows?.length > 1) {
+      try {
+        const reselectedName = await this._reselectWorkflow(
+          message,
+          response.message,
+          generatedWorkflow.candidate_workflows,
+          decomposition.preferredDomains ?? []
+        );
+        if (reselectedName && reselectedName !== generatedWorkflow.workflow_name) {
+          log(`Step 6b: LLM reselected workflow "${reselectedName}" (was "${generatedWorkflow.workflow_name}")`);
+          const reselected = await this._lookupWorkflowByName(reselectedName);
+          if (reselected?.success) {
+            // Preserve param extraction from original search; only swap identity fields
+            generatedWorkflow = {
+              ...generatedWorkflow,
+              ...reselected,
+              // Keep params from FTS result — they were extracted from the user message
+              required_params: generatedWorkflow.required_params,
+              optional_params: generatedWorkflow.optional_params,
+              param_prefill_deferred: generatedWorkflow.param_prefill_deferred,
+              source: 'llm_reselection',
+            };
+            workflowGenerated = !!(generatedWorkflow.workflow_ga || generatedWorkflow.nextflow_path);
+            log(`Step 6b: reselection applied — panel will show "${reselectedName}"`);
+          }
+        } else {
+          log(`Step 6b: LLM confirmed "${generatedWorkflow.workflow_name}" — no change`);
+        }
+      } catch (err: any) {
+        log(`Step 6b: reselection failed (${err.message}) — keeping FTS result`);
+      }
+    }
+
     // Step 7: Generate follow-up suggestions
     log('Step 7: Generating suggestions');
     const suggestions = this.generateSuggestions(
@@ -6571,6 +6609,80 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       relevanceScore: 0.7,
       reasoning: 'Retrieved from BioMNI catalog',
     }));
+  }
+
+  /**
+   * Post-text LLM reselection: given the generated text response and top candidates,
+   * ask a cheap LLM call which workflow best matches. Returns the workflow name or null.
+   */
+  private async _reselectWorkflow(
+    userMessage: string,
+    generatedText: string,
+    candidates: Array<{ name: string; description: string; domain: string; score: number }>,
+    preferredDomains: string[]
+  ): Promise<string | null> {
+    if (!candidates?.length) return null;
+    const candidateList = candidates
+      .map((c, i) => `${i + 1}. "${c.name}" [${c.domain}]: ${c.description}`)
+      .join('\n');
+    // Include relevant routing rules for the detected domain
+    const routingContext = buildWorkflowRoutingBlock(preferredDomains);
+    const prompt = `You are a bioinformatics workflow router. A user sent this request:
+"${userMessage.slice(0, 600)}"
+
+The AI assistant generated this response describing what it will do:
+"${generatedText.slice(0, 800)}"
+
+The workflow database search returned these candidates:
+${candidateList}
+
+Routing rules:
+${routingContext.slice(0, 1000)}
+
+Selection rules:
+- Base your selection primarily on what the AI response describes — the tools, methods, and scientific approach it mentions.
+- EXPLICIT TOOL REQUEST: If the user message says "using <Tool>", "run <Tool>", or "with <Tool>" as the primary method, select that tool's workflow.
+  POSITIVE example: user says "run DiffDock on my protein" → select DiffDock workflow.
+  POSITIVE example: user says "using HADDOCK for docking" → select HADDOCK workflow.
+- COMPARISON / ALTERNATIVES: If the user lists tools as options ("benchmark DiffDock or HADDOCK", "like DiffDock but for cyclic peptides", "DiffDock vs HADDOCK"), do NOT lock onto the first named tool. Select the workflow that fits the actual scientific goal.
+  NEGATIVE example: user says "benchmark DiffDock or HADDOCK-based docking" but the AI response describes cyclic peptide design → select the cyclic peptide workflow, not DiffDock.
+  NEGATIVE example: user says "like DiffDock but for macrolactam PPI" → select the macrolactam/PPI workflow, not DiffDock.
+
+Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
+
+    try {
+      const llm = this._getClaude();
+      const raw = await llm.messages.create({
+        model: this.modelConfig.intentModel,
+        max_tokens: 4,
+        temperature: 0,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      const pick = parseInt(((raw.content[0] as any)?.text || '').trim(), 10);
+      if (pick > 0 && pick <= candidates.length) {
+        return candidates[pick - 1].name;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Direct workflow lookup by name — used after LLM reselection.
+   */
+  private async _lookupWorkflowByName(name: string): Promise<any> {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const resp = await fetch(
+        `${galaxyUrl}/api/ai_assistant/workflow_by_name?name=${encodeURIComponent(name)}`,
+        { headers: { 'x-api-key': process.env.GALAXY_MASTER_API_KEY || '' } }
+      );
+      if (!resp.ok) return null;
+      return await resp.json();
+    } catch {
+      return null;
+    }
   }
 
   /**

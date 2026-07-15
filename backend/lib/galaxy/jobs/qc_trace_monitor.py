@@ -1351,6 +1351,7 @@ class NextflowQCGateHandler:
                 invocation_id=self.invocation_id,
                 sse_callback=self.sse_callback,
                 qc_profile=self.active_profile,
+                current_params=self.current_parameters or None,
             )
         except ImportError:
             pass  # bridge not installed — skip silently

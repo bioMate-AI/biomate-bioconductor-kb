@@ -55,55 +55,6 @@ _SEARCH_STOPWORDS: frozenset = frozenset({
     "execute", "do", "using", "via", "of", "at", "as", "by",
 })
 
-# Too generic to use as FTS named anchors (match hundreds of nf-core workflows).
-_NAMED_ANCHOR_BLOCKLIST: frozenset = frozenset({
-    # Infrastructure / meta words
-    "nfcore", "nf", "core", "use", "plan", "not", "galaxy", "batch", "docker",
-    "aws", "please", "workflow", "andv", "show", "card", "panel",
-    # Generic English words that appear after "run/using/via" but are NOT tool names
-    # (each was a false-positive anchor that excluded correct workflows from FTS results)
-    "experiment", "experiments", "data", "files", "output", "outputs", "results", "result",
-    "sample", "samples", "reads", "sequences", "genome", "genomes", "genes", "gene",
-    "cells", "cell", "protein", "proteins", "antibody", "antibodies", "reference",
-    "analysis", "analyses", "pipeline", "pipelines", "tool", "tools", "method", "methods",
-    "want", "need", "back", "convert", "generate", "compute", "compare", "identify",
-    "detect", "process", "accounting", "conditions", "condition", "regions", "region",
-    "domains", "domain", "loops", "loop", "table", "matrix", "index", "indices",
-    "run", "runs", "step", "steps", "report", "reports", "quality", "control",
-    "input", "inputs", "model", "models", "count", "counts", "call", "calls",
-    "map", "maps", "align", "alignment", "search", "find", "get", "set",
-    "individual", "complex", "raw", "clean", "trim", "filter", "merge",
-})
-
-# nf-core pipeline slugs that users cite by name in chat (normalised: lowercase, no punctuation).
-_KNOWN_NFCORE_PIPELINE_SLUGS: frozenset = frozenset({
-    "epitopeprediction", "mhcquant", "rnaseq", "sarek", "chipseq", "atacseq",
-    "scrnaseq", "proteomicslfq", "diaproteomics", "methylseq", "ampliseq",
-    "mag", "taxprofiler", "proteinfold", "airrflow", "nanoseq",
-})
-
-# Computational epitope prediction vs LC-MS immunopeptidomics (nf-co.re docs).
-_EPI_TOPE_PREDICTION_SIGNALS = (
-    "epitopeprediction", "epitope prediction", "neoepitope", "mhcnuggets", "mhcflurry",
-    "netmhc", "binding prediction", "binding scores", "class i epitope", "hla-a", "hla-b",
-    "immunoinformatics", "vaccine", "immunogen", "samplesheet",
-)
-_MHCQUANT_MS_SIGNALS = (
-    "dda", "data-dependent acquisition", "mass spectrometry", "mass spec", "mzml", "mzxml",
-    "immunopeptidomics data", "lc-ms", "lcms", "openms", "comet", "percolator",
-)
-# Plan B / synthetic biology — codon optimization, mRNA construct QC (BioMNI subworkflows).
-_CODON_MRNA_SIGNALS = (
-    "optimize codons", "codon optimization", "codon optimisation", "heterologous expression",
-    "optimize_codons_for_heterologous_expression",
-    "target_sequence", "host_codon_usage", "mrna-lnp", "mrna lnp", "codon usage",
-    "synthetic_biology", "10813",
-)
-# ANDV inhibitor / pharmacology — site-directed AutoDock Vina (BioMNI subworkflow).
-_DOCKING_VINA_SIGNALS = (
-    "autodock vina", "autodock_vina", "docking_autodock_vina", "docking autodock vina",
-    "site-directed docking", "site directed docking", "vina docking", "12824",
-)
 
 try:
     import numpy as _np
@@ -784,7 +735,15 @@ class UnifiedWorkflowSearch:
             f"- Never rank a [subworkflow (pipeline component)] above a complete pipeline that covers "
             f"the same analysis. Subworkflows are implementation details inside larger pipelines; they "
             f"are not standalone tools a user would run directly.\n"
-            f"- If an nf-core pipeline and a subworkflow both match the query, always prefer the pipeline.\n\n"
+            f"- If an nf-core pipeline and a subworkflow both match the query, always prefer the pipeline.\n"
+            f"- EXPLICIT TOOL REQUEST: If the query says 'using <Tool>', 'run <Tool>', or 'with <Tool>' "
+            f"as the primary method, rank that tool's workflow #1. "
+            f"  POSITIVE: 'run DiffDock on my protein' → DiffDock workflow should be #1. "
+            f"  POSITIVE: 'using HADDOCK for docking' → HADDOCK workflow should be #1. "
+            f"  NEGATIVE: 'benchmark DiffDock or HADDOCK' → the user is comparing tools, "
+            f"not requesting DiffDock specifically; pick the workflow that best fits the overall goal.\n"
+            f"  NEGATIVE: 'like DiffDock but for cyclic peptides' → the user is describing style, "
+            f"not requesting DiffDock; pick the cyclic peptide workflow.\n\n"
             f"Return ONLY a JSON array of the {output_limit} workflow IDs (integers) "
             f"that best match the user query, ordered by relevance (best first). "
             f"Example: [42, 7, 15]. No explanation, just the JSON array."
@@ -871,16 +830,6 @@ class UnifiedWorkflowSearch:
                 if extra:
                     effective_query = f"{query} {extra}"
             fts_query = self._build_fts_query(effective_query)
-
-            # Named-tool anchoring: if the query contains an explicit tool/workflow name
-            # (pattern: "using X", "with X", "run X for", "search X") extract that name,
-            # check it exists in FTS, and AND-require it so the named workflow always ranks #1.
-            # This is query-agnostic — it works for any workflow in the DB.
-            _named_anchor = self._extract_named_tool_anchor(effective_query, cursor)
-            if _named_anchor:
-                # Wrap existing OR query so named anchor must appear in every result
-                fts_query = f'{_named_anchor} AND ({fts_query})'
-                log.debug("[WorkflowSearch] Named-tool anchor=%s applied", _named_anchor)
 
             # When preferred_domains is provided (LLM-derived), use penalized_domains too
             # if the caller passed them. When neither is provided, _calculate_score falls
@@ -1158,18 +1107,6 @@ class UnifiedWorkflowSearch:
             preferred.update({'drug_discovery', 'biochemistry', 'structural_biology'})
             penalized.update({'microbiology', 'metagenomics', 'transcriptomics'})
 
-        # Computational epitope / vaccine immunoinformatics (not LC-MS proteomics).
-        # Plan B mRNA-LNP queries mention "vaccine" but are codon optimization — do not
-        # boost immunoinformatics when codon/mRNA construct signals are present.
-        has_codon_intent = any(tok in q for tok in _CODON_MRNA_SIGNALS)
-        if has_codon_intent:
-            preferred.update({'synthetic_biology', 'general'})
-            penalized.update({'immunoinformatics'})
-        elif any(tok in q for tok in _EPI_TOPE_PREDICTION_SIGNALS):
-            preferred.update({'immunoinformatics', 'general'})
-            if not any(tok in q for tok in _MHCQUANT_MS_SIGNALS):
-                penalized.update({'proteomics'})
-
         return preferred, penalized
 
     # Tokens that signal "I have raw data to process" or "I want to run a pipeline"
@@ -1235,177 +1172,7 @@ class UnifiedWorkflowSearch:
             first_compact = self._normalise_pipeline_slug(first_token)
             if first_compact:
                 negated.add(first_compact)
-            for known in _KNOWN_NFCORE_PIPELINE_SLUGS:
-                if known in phrase_compact:
-                    negated.add(known)
-            # "not … immunopeptidomics" excludes LC-MS mhcquant, not codon optimization.
-            if "immunopeptidomic" in phrase_compact:
-                negated.add("mhcquant")
-        q_low = query.lower()
-        if re.search(r"\bnot\b", q_low) and "immunopeptidomic" in q_low.replace(" ", ""):
-            negated.add("mhcquant")
         return negated
-
-    def _resolve_pipeline_slug_conflict(self, slugs: List[str], query: str) -> str:
-        """When multiple nf-core slugs appear, pick the one that matches query intent."""
-        q = query.lower()
-        if len(slugs) == 1:
-            return slugs[0]
-        has_pred = any(s in q for s in _EPI_TOPE_PREDICTION_SIGNALS)
-        has_ms = any(s in q for s in _MHCQUANT_MS_SIGNALS)
-        if has_pred and not has_ms and "epitopeprediction" in slugs:
-            return "epitopeprediction"
-        if has_ms and not has_pred and "mhcquant" in slugs:
-            return "mhcquant"
-        if "epitopeprediction" in slugs:
-            return "epitopeprediction"
-        return slugs[0]
-
-    def _extract_biomni_subworkflow_anchor(self, query: str, cursor) -> Optional[str]:
-        """Named BioMNI subworkflow paths (e.g. optimize_codons, docking_autodock_vina)."""
-        q = query.lower()
-        token_groups: List[tuple] = []
-        if any(s in q for s in _CODON_MRNA_SIGNALS):
-            token_groups.append(
-                (
-                    "optimize_codons_for_heterologous_expression",
-                    "optimize_codons",
-                    "heterologous_expression",
-                )
-            )
-        if any(s in q for s in _DOCKING_VINA_SIGNALS) and "diffdock" not in q:
-            token_groups.append(
-                (
-                    "docking_autodock_vina",
-                    "autodock_vina",
-                    "autodock",
-                )
-            )
-        for _ANCHOR_TOKENS in token_groups:
-            for token in _ANCHOR_TOKENS:
-                try:
-                    cursor.execute(
-                        "SELECT count(*) FROM workflows_fts WHERE workflows_fts MATCH ?",
-                        (token,),
-                    )
-                    row = cursor.fetchone()
-                    if row and row[0] > 0:
-                        log.debug("[WorkflowSearch] BioMNI subworkflow anchor=%s", token)
-                        return token
-                except Exception:
-                    continue
-        return None
-
-    def _extract_explicit_pipeline_slug(self, query: str) -> Optional[str]:
-        """Return an nf-core pipeline slug when the user names it (e.g. epitopeprediction)."""
-        negated = self._extract_negated_pipeline_slugs(query)
-        q = query.lower()
-        found: List[str] = []
-
-        # Only anchor when the user explicitly typed the nf-core path format
-        # (e.g. "nf-core/rnaseq" or "nfcore rnaseq"). Loose word-scanning
-        # against known slugs is removed: it produces false positives (e.g.
-        # "RNA-seq" → "rnaseq" anchor) that override LLM routing, which is
-        # already responsible for semantic workflow selection.
-        for m in re.finditer(r"nf[\s\-]?core[/\s]+([a-z][a-z0-9_-]+)", q):
-            slug = self._normalise_pipeline_slug(m.group(1))
-            if slug and slug not in negated and slug not in _NAMED_ANCHOR_BLOCKLIST:
-                if slug in _KNOWN_NFCORE_PIPELINE_SLUGS:
-                    found.append(slug)
-
-        if not found:
-            return None
-        # Deduplicate preserving order
-        seen: set = set()
-        unique = [s for s in found if not (s in seen or seen.add(s))]  # type: ignore[func-returns-value]
-        return self._resolve_pipeline_slug_conflict(unique, query)
-
-    def _extract_named_tool_anchor(self, query: str, cursor) -> Optional[str]:
-        """Extract an explicitly named workflow tool from the query and return it as an FTS5 anchor.
-
-        Detects patterns like "using Boltz", "with DrugCLIP", "Run ProTrek", etc.
-        The extracted name is lowercased, stripped of punctuation, then checked against
-        the FTS index. Returns the FTS token if it matches at least one indexed workflow;
-        returns None otherwise (safe fallback — never breaks the search).
-        """
-        # Plan B: codon/mRNA subworkflows are named explicitly — prefer them over
-        # incidental nf-core slug matches (e.g. "not epitope prediction").
-        biomni_anchor = self._extract_biomni_subworkflow_anchor(query, cursor)
-        if biomni_anchor:
-            return biomni_anchor
-
-        explicit_slug = self._extract_explicit_pipeline_slug(query)
-        if explicit_slug:
-            try:
-                cursor.execute(
-                    "SELECT count(*) FROM workflows_fts WHERE workflows_fts MATCH ?",
-                    (explicit_slug,),
-                )
-                row = cursor.fetchone()
-                if row and row[0] > 0:
-                    log.debug("[WorkflowSearch] Explicit nf-core slug anchor=%s", explicit_slug)
-                    return explicit_slug
-            except Exception:
-                pass
-
-        # Patterns that signal the user is naming a specific tool
-        _NAMED_TOOL_PATTERNS = [
-            # "using <ToolName>", "with <ToolName>", "run <ToolName>", etc.
-            r'\b(?:using|run|search with|via|through)\s+([A-Z][A-Za-z0-9_\-\.]+)',
-            # "DrugCLIP for", "Boltz to", etc. — ToolName first, then preposition
-            # Word boundary \b required after the preposition so "to" doesn't match inside "topologically"
-            r'\b([A-Z][A-Za-z0-9_\-\.]+)\s+(?:for|to|against|workflow|pipeline|model)\b',
-        ]
-        candidates: List[str] = []
-        for pat in _NAMED_TOOL_PATTERNS:
-            for m in re.finditer(pat, query, re.IGNORECASE):
-                raw = m.group(1)
-                # Normalise: lowercase, remove non-alphanumeric (single token)
-                token = re.sub(r'[^a-z0-9]', '', raw.lower())
-                # Phrase form: lowercase, replace hyphens/underscores/dots with spaces
-                # e.g. "PK-Sim" → 'pk sim' (wrapped in "" for FTS5 phrase search)
-                phrase = re.sub(r'[-_\.]', ' ', raw.lower()).strip()
-                if (
-                    token
-                    and len(token) > 2
-                    and token not in _SEARCH_STOPWORDS
-                    and token not in _NAMED_ANCHOR_BLOCKLIST
-                ):
-                    candidates.append((token, phrase))
-
-        # Deduplicate preserving order
-        seen: set = set()
-        unique_candidates = [c for c in candidates if not (c[0] in seen or seen.add(c[0]))]  # type: ignore[func-returns-value]
-
-        for token, phrase in unique_candidates:
-            # Try 1: single normalised token (e.g. "boltz", "cryosparc")
-            try:
-                cursor.execute(
-                    "SELECT count(*) FROM workflows_fts WHERE workflows_fts MATCH ?",
-                    (token,),
-                )
-                row = cursor.fetchone()
-                if row and row[0] > 0:
-                    return token  # Single-token hit — done
-            except Exception:
-                pass
-
-            # Try 2: phrase search for hyphenated names like "PK-Sim" → '"pk sim"'
-            # FTS5 splits on hyphens, so "PK-Sim" is indexed as tokens "pk" and "sim".
-            # A phrase query '"pk sim"' requires both tokens adjacent → precise match.
-            if phrase and phrase != token and len(phrase) > len(token):
-                phrase_fts = f'"{phrase}"'
-                try:
-                    cursor.execute(
-                        "SELECT count(*) FROM workflows_fts WHERE workflows_fts MATCH ?",
-                        (phrase_fts,),
-                    )
-                    row = cursor.fetchone()
-                    if row and row[0] > 0:
-                        return phrase_fts  # Phrase hit (e.g. '"pk sim"')
-                except Exception:
-                    pass  # Silently skip on FTS syntax errors
-        return None
 
     # ------------------------------------------------------------------
     # Dense retrieval — BGE workflow embeddings
@@ -1898,31 +1665,10 @@ class UnifiedWorkflowSearch:
             elif len(bare_name) >= 6 and bare_name in q_bare:
                 score += 12.0  # Name appears as substring in query (e.g., "Generate the drug_moa_rnaseq workflow")
 
-        # 4c. Epitopeprediction vs mhcquant disambiguation (Plan A / vaccine immunoinformatics).
+        # 4c. Explicit negation — user said "not X" or "avoid X"
         negated_slugs = self._extract_negated_pipeline_slugs(query_lower)
-        has_pred_intent = any(s in query_lower for s in _EPI_TOPE_PREDICTION_SIGNALS)
-        has_ms_intent = any(s in query_lower for s in _MHCQUANT_MS_SIGNALS)
-        if bare_name == "epitopeprediction":
-            if has_pred_intent:
-                score += 20.0
-            if "epitopeprediction" in q_bare.replace(" ", ""):
-                score += 15.0
-        if bare_name == "mhcquant":
-            if "mhcquant" in negated_slugs or "not mhcquant" in query_lower:
-                score -= 35.0
-            elif has_pred_intent and not has_ms_intent:
-                score -= 18.0
-            elif has_ms_intent:
-                score += 6.0
-
-        has_codon_intent = any(s in query_lower for s in _CODON_MRNA_SIGNALS)
-        if has_codon_intent:
-            if "optimize" in bare_name and "codon" in bare_name:
-                score += 22.0
-            if bare_name == "mhcquant" or bare_name == "epitopeprediction":
-                score -= 28.0
-            if has_pred_intent and not has_ms_intent and "mhc" in bare_name:
-                score -= 15.0
+        if self._normalise_pipeline_slug(name_lower.split("/")[-1]) in negated_slugs:
+            score -= 35.0
 
         # 5. Source priority — boosted to make nfcore clearly win over bioconductor
         source_bonus = SOURCE_PRIORITY.get(source, 0) / 15.0  # ~6.7 max (nfcore=6.67, bioconductor=5.0)

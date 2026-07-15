@@ -2850,6 +2850,7 @@ def _start_qc_monitor(
     is_batch: bool = False,
     s3_outdir: Optional[str] = None,
     s3_work_dir: Optional[str] = None,
+    current_parameters: Optional[Dict[str, Any]] = None,
 ) -> None:
     """
     Spawn a background thread that polls the Nextflow trace file and fires
@@ -2892,6 +2893,7 @@ def _start_qc_monitor(
         sse_callback=_sse_callback,
         app=None,
         workflow_domain=workflow_domain,
+        current_parameters=current_parameters or {},
         qc_overrides=qc_overrides,
         qc_profile=qc_profile,
         s3_outdir=s3_outdir,
@@ -5064,6 +5066,7 @@ def _execute_nextflow_impl(
             is_batch=_is_batch,
             s3_outdir=str(outdir) if _is_batch and str(outdir).startswith("s3://") else None,
             s3_work_dir=_s3_work_dir if _is_batch and _s3_work_dir else None,
+            current_parameters=params,
         )
         return {
             "success": True,
@@ -5186,6 +5189,7 @@ def _execute_nextflow_impl(
         is_batch=_is_batch,
         s3_outdir=str(outdir) if _is_batch and str(outdir).startswith("s3://") else None,
         s3_work_dir=_s3_work_dir if _is_batch and _s3_work_dir else None,
+        current_parameters=params,
     )
 
     return {

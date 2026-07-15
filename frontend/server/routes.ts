@@ -6562,6 +6562,20 @@ ${paramLines || '(none recorded)'}`;
   // ============================================================================
 
   // Get benchmark results for a scenario
+  // Direct workflow lookup by name — used by LLM reselection path
+  app.get("/api/ai_assistant/workflow_by_name", async (req, res) => {
+    try {
+      const name = req.query.name as string;
+      if (!name) return res.status(400).json({ success: false, error: "name required" });
+      const response = await galaxyAPIProxy.client.get(
+        `/api/ai_assistant/workflow_by_name?name=${encodeURIComponent(name)}`
+      );
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   app.get("/api/ai_assistant/benchmarks/:scenario", async (req, res) => {
     try {
       const { scenario } = req.params;

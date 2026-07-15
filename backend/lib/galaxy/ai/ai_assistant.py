@@ -31,8 +31,6 @@ from .workflow_optimizer import WorkflowOptimizer, WorkflowValidator, Optimizati
 from .unified_workflow_search import (
     UnifiedWorkflowSearch as _BaseUnifiedWorkflowSearch,
     get_workflow_search,
-    _CODON_MRNA_SIGNALS,
-    _DOCKING_VINA_SIGNALS,
 )
 # Wired workflow search: applies workflow_intent priority + inject when
 # BIOMATE_WORKFLOW_INTENT_PRIORITIZE=1 (+ optional INJECT=1). Bit-identical
@@ -3148,7 +3146,6 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         # Skip when the user already supplied explicit values (common in Plan B E2E / CLI
         # parity prompts) — gemini param inference can exceed the Node proxy timeout.
         _q_low = user_intent.lower()
-        _has_codon_intent = any(s in _q_low for s in _CODON_MRNA_SIGNALS)
         _explicit_registry_10813 = bool(
             re.search(r'\b10813\b', _q_low)
             or 'optimize_codons_for_heterologous_expression' in _q_low
@@ -3156,7 +3153,6 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         _required_names = {p.get('name') for p in req if p.get('required', True)}
         _explicit_names = {s.get('name') for s in explicit_suggestions if s.get('name')}
         _explicit_covers_required = _required_names and _required_names.issubset(_explicit_names)
-        _has_dock_intent = any(s in _q_low for s in _DOCKING_VINA_SIGNALS)
         _explicit_dock_12824 = bool(
             re.search(r'\b12824\b', _q_low)
             or 'docking_autodock_vina' in _q_low
@@ -3164,9 +3160,8 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         )
         _skip_param_llm = (
             _explicit_covers_required
-            or (_has_codon_intent and _explicit_registry_10813 and len(explicit_suggestions) >= 2)
-            or (_has_codon_intent and _explicit_registry_10813)
-            or (_has_dock_intent and _explicit_dock_12824 and 'pdb_input' in _q_low)
+            or _explicit_registry_10813
+            or (_explicit_dock_12824 and 'pdb_input' in _q_low)
         )
         if not _skip_param_llm:
             llm_suggestions = self._infer_params_from_intent_llm(user_intent, match.name, req, opt)
@@ -3293,12 +3288,11 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         import re as _re_fast
 
         q_low = user_intent.lower()
-        has_codon = any(s in q_low for s in _CODON_MRNA_SIGNALS)
         explicit_10813 = bool(
             _re_fast.search(r'\b10813\b', q_low)
             or 'optimize_codons_for_heterologous_expression' in q_low
         )
-        if not (has_codon and explicit_10813):
+        if not explicit_10813:
             return None
 
         # Direct registry lookup — skip BGE embedding search (cold start can exceed
@@ -3345,13 +3339,12 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         import re as _re_dock
 
         q_low = user_intent.lower()
-        has_dock = any(s in q_low for s in _DOCKING_VINA_SIGNALS)
         explicit_vina = bool(
             _re_dock.search(r'\b12824\b', q_low)
             or 'docking_autodock_vina' in q_low
             or 'autodock vina' in q_low
         )
-        if not (has_dock and explicit_vina):
+        if not explicit_vina:
             return None
 
         top = self.workflow_search.get_workflow(12824)
@@ -3822,7 +3815,6 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 # mentions vaccine/ANDV context.
                 if _needs_verify and search_results:
                     _q_low = user_intent.lower()
-                    _has_codon_intent = any(s in _q_low for s in _CODON_MRNA_SIGNALS)
                     _explicit_registry_10813 = bool(
                         re.search(r'\b10813\b', _q_low)
                         or 'optimize_codons_for_heterologous_expression' in _q_low
@@ -3832,7 +3824,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                         _top.name.split("/")[-1]
                     )
                     _top_fn = (_top.filename or "").lower()
-                    if _explicit_registry_10813 and _has_codon_intent:
+                    if _explicit_registry_10813:
                         _needs_verify = False
                         log.info(
                             "[UnifiedWorkflowGeneration] Skipping LLM routing verify — "

@@ -2570,6 +2570,15 @@ def search_nextflow_workflow(
                 },
             }
 
+        # Top-5 candidates for client-side LLM reselection.
+        # Includes the winner plus runners-up so the Node.js layer can ask the
+        # response-generating LLM to confirm or override the FTS selection.
+        _candidate_workflows = [
+            {"name": r.name, "description": (r.description or "")[:200],
+             "domain": r.domain, "score": int(r.score), "filename": r.filename or ""}
+            for r in results[:5]
+        ]
+
         _return_dict: dict = {
             "success": True,
             "workflow_type": best.format,
@@ -2582,6 +2591,7 @@ def search_nextflow_workflow(
             "description": best.description,
             "domain": best.domain,
             "step_count": best.step_count,
+            "candidate_workflows": _candidate_workflows,
             "scientific_rationale": scientific_rationale,
             "parameter_metadata": _wf_parameter_metadata,
             "required_params": _req_params,
@@ -2754,6 +2764,16 @@ def get_ai_assistant(trans) -> Optional[AIAssistant]:
             _ai_assistant_instance = AIAssistant(ai_config, galaxy_app=None)
             log.info("[DEBUG] AIAssistant instance created!")
             log.info("AI Assistant initialized successfully (without galaxy_app to avoid OOM)")
+
+            # Wire Pass-0 LLM into workflow search for multi-signal retrieval.
+            # Without this, the search engine falls back to FTS-only.
+            if WORKFLOW_SEARCH_AVAILABLE and _workflow_search is not None:
+                try:
+                    from galaxy.ai.llm_client import LLMClient  # noqa: PLC0415
+                    _workflow_search.set_llm_client(LLMClient(ai_config))
+                    log.info("[WorkflowSearch] Pass-0 LLM wired — multi-signal retrieval active")
+                except Exception as _llm_wire_exc:
+                    log.warning("[WorkflowSearch] Pass-0 LLM wiring failed: %s", _llm_wire_exc)
 
         except Exception as e:
             log.error(f"Failed to initialize AI Assistant: {e}")
@@ -5999,6 +6019,80 @@ def detect_skills(
 
 class SkillBlockRequest(BaseModel):
     skill_ids: List[str] = Field(..., description="Skill IDs to build system block for")
+
+
+@router.get(
+    "/api/ai_assistant/workflow_by_name",
+    summary="Direct workflow lookup by exact name for LLM reselection"
+)
+def workflow_by_name(
+    name: str,
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """Return full workflow object for a given workflow name.
+    Used by the Node.js layer after LLM reselection to fetch the canonical
+    workflow record without running FTS search again."""
+    try:
+        _engine = _get_workflow_search_engine()
+        if _engine is None:
+            return {"success": False, "error": "search_engine_unavailable"}
+        conn = _engine._get_connection()
+        try:
+            row = conn.execute(
+                """SELECT w.id, w.name, w.description, w.domain, w.source, w.format,
+                          w.step_count, w.tools_used, w.tags, w.filename
+                   FROM workflows w WHERE w.name = ? LIMIT 1""",
+                (name,)
+            ).fetchone()
+        finally:
+            conn.close()
+        if not row:
+            # Fuzzy fallback: case-insensitive LIKE
+            conn2 = _engine._get_connection()
+            try:
+                row = conn2.execute(
+                    """SELECT w.id, w.name, w.description, w.domain, w.source, w.format,
+                              w.step_count, w.tools_used, w.tags, w.filename
+                       FROM workflows w WHERE lower(w.name) = lower(?) LIMIT 1""",
+                    (name,)
+                ).fetchone()
+            finally:
+                conn2.close()
+        if not row:
+            return {"success": False, "error": f"workflow_not_found: {name}"}
+        wf_id, wf_name, wf_desc, wf_domain, wf_source, wf_format, wf_steps, wf_tools, wf_tags, wf_filename = row
+        return {
+            "success": True,
+            "workflow_name": wf_name,
+            "workflow_type": wf_format,
+            "nextflow_path": wf_filename if wf_format == "nextflow" else None,
+            "description": wf_desc,
+            "domain": wf_domain,
+            "step_count": wf_steps or 0,
+            "source": "llm_reselection",
+            "workflow_ga": {
+                "name": wf_name,
+                "description": wf_desc,
+                "annotation": wf_desc,
+                "tags": wf_tags.split(",") if wf_tags else [],
+                "format": wf_format,
+                "nextflow_path": wf_filename if wf_format == "nextflow" else None,
+                "domain": wf_domain,
+                "steps": {},
+            },
+        }
+    except Exception as exc:
+        log.warning("[workflow_by_name] failed: %s", exc)
+        return {"success": False, "error": str(exc)}
+
+
+def _get_workflow_search_engine():
+    """Return the singleton UnifiedWorkflowSearch instance."""
+    try:
+        from galaxy.ai.unified_workflow_search import get_workflow_search
+        return get_workflow_search()
+    except Exception:
+        return None
 
 
 @router.post(
