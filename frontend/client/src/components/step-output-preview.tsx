@@ -17,9 +17,10 @@
  */
 
 import { useState, useEffect, useRef } from "react";
-import { Loader2, X, FileText, Download, ZoomIn, ChevronDown, ChevronUp, Laptop } from "lucide-react";
+import { Loader2, X, FileText, Download, ZoomIn, ChevronDown, ChevronUp, Laptop, Pin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, stripAnsi } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import { DensityMapViewer } from "./viewers/density-map-viewer";
 import { FscCurveChart } from "./viewers/fsc-curve-chart";
 import { MotionHistogramChart } from "./viewers/motion-histogram-chart";
@@ -36,6 +37,76 @@ export interface StepOutputPreviewProps {
   runId: string;
   file: { name: string; path: string; extension: string };
   onClose: () => void;
+  /**
+   * Optional project ID. When provided, a "Pin to Workbench" button appears
+   * in the preview header and POSTs the file to
+   * /api/projects/:projectId/workbench/pins. If absent, the button is hidden
+   * (silently no-op — callers without project context still get a working preview).
+   */
+  projectId?: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// PinToWorkbenchButton — header affordance that POSTs the active file to the
+// project's workbench pin list. Hidden when projectId is absent.
+// ---------------------------------------------------------------------------
+
+export function PinToWorkbenchButton({
+  runId, file, projectId,
+}: {
+  runId: string;
+  file: { name: string; path: string; extension: string };
+  projectId?: string | null;
+}) {
+  const [pinning, setPinning] = useState(false);
+  const { toast } = useToast();
+  if (!projectId) return null;
+
+  const onPin = async () => {
+    if (pinning) return;
+    setPinning(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/workbench/pins`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          runId,
+          filePath: file.path,
+          fileName: file.name,
+        }),
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(`HTTP ${res.status}${txt ? `: ${txt}` : ""}`);
+      }
+      toast({ title: "Pinned to Workbench", description: file.name });
+    } catch (e: any) {
+      toast({
+        title: "Pin failed",
+        description: e?.message ?? "Could not pin file",
+        variant: "destructive",
+      });
+    } finally {
+      setPinning(false);
+    }
+  };
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-6 px-1.5 shrink-0 gap-1 text-[11px]"
+      onClick={onPin}
+      disabled={pinning}
+      aria-label="Pin to Workbench"
+      data-testid="button-pin-to-workbench"
+      title="Pin to Workbench"
+    >
+      <Pin className="h-3.5 w-3.5" />
+      {pinning ? "Pinning…" : "Pin"}
+    </Button>
+  );
 }
 
 interface FetchedContent {
@@ -380,7 +451,7 @@ function InlineTextViewer({ text }: { text: string }) {
 
 // Density viewer wrapper — renders DensityMapViewer without going through
 // the blob/text fetch machinery (the viewer fetches its own data).
-function DensityPreview({ runId, file, onClose }: StepOutputPreviewProps) {
+function DensityPreview({ runId, file, onClose, projectId }: StepOutputPreviewProps) {
   const stepFileUrl = `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(file.path)}&name=${encodeURIComponent(file.name)}`;
   return (
     <div className="mt-2">
@@ -389,9 +460,12 @@ function DensityPreview({ runId, file, onClose }: StepOutputPreviewProps) {
           <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
         </div>
-        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
-          <X className="h-3.5 w-3.5" />
-        </Button>
+        <div className="flex items-center gap-1 shrink-0">
+          <PinToWorkbenchButton runId={runId} file={file} projectId={projectId} />
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
       <DensityMapViewer src={stepFileUrl} name={file.name} />
     </div>
@@ -414,7 +488,7 @@ interface RdsSummary {
 /** R object viewer — RDS/RData are binary. If the run produced a `<name>.rds.json`
  * sidecar (object class, dims, assays, reductions, colData), render it inline; otherwise
  * fall back to the RStudio launcher. */
-function RObjectPreview({ runId, file, onClose }: StepOutputPreviewProps) {
+function RObjectPreview({ runId, file, onClose, projectId }: StepOutputPreviewProps) {
   const [launcherOpen, setLauncherOpen] = useState(false);
   const [summary, setSummary] = useState<RdsSummary | null>(null);
   const [sidecarTried, setSidecarTried] = useState(false);
@@ -452,9 +526,12 @@ function RObjectPreview({ runId, file, onClose }: StepOutputPreviewProps) {
           <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
         </div>
-        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
-          <X className="h-3.5 w-3.5" />
-        </Button>
+        <div className="flex items-center gap-1 shrink-0">
+          <PinToWorkbenchButton runId={runId} file={file} projectId={projectId} />
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
 
       {summary ? (
@@ -554,7 +631,7 @@ function resolveCryoChartViewer(fileName: string): 'fsc-curve' | 'motion-histogr
 }
 
 /** Fetches JSON from step-file and renders a CryoEM chart component */
-function CryoChartPreview({ runId, file, onClose, chartType }: StepOutputPreviewProps & {
+function CryoChartPreview({ runId, file, onClose, projectId, chartType }: StepOutputPreviewProps & {
   chartType: 'fsc-curve' | 'motion-histogram' | 'ctf-quality'
 }) {
   const [data, setData] = useState<any>(null);
@@ -572,9 +649,12 @@ function CryoChartPreview({ runId, file, onClose, chartType }: StepOutputPreview
     <div className="mt-2">
       <div className="flex items-center justify-between mb-2 gap-2 px-1">
         <span className="text-xs font-mono font-medium truncate">{file.name}</span>
-        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose}>
-          <X className="h-3.5 w-3.5" />
-        </Button>
+        <div className="flex items-center gap-1 shrink-0">
+          <PinToWorkbenchButton runId={runId} file={file} projectId={projectId} />
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose}>
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
       {error && <p className="text-xs text-destructive">{error}</p>}
       {data && chartType === 'fsc-curve'         && <FscCurveChart data={data} />}
@@ -584,18 +664,18 @@ function CryoChartPreview({ runId, file, onClose, chartType }: StepOutputPreview
   );
 }
 
-export function StepOutputPreview({ runId, file, onClose }: StepOutputPreviewProps) {
+export function StepOutputPreview({ runId, file, onClose, projectId }: StepOutputPreviewProps) {
   const ext = file.extension.toLowerCase().replace(/^\./, '');
   const viewer = resolveViewer(ext);
 
   // Route density files to a separate component (avoids hook-after-conditional).
   if (viewer === 'density') {
-    return <DensityPreview runId={runId} file={file} onClose={onClose} />;
+    return <DensityPreview runId={runId} file={file} onClose={onClose} projectId={projectId} />;
   }
 
   // R object files — binary, no inline preview; offer RStudio launch instead.
   if (viewer === 'r-object') {
-    return <RObjectPreview runId={runId} file={file} onClose={onClose} />;
+    return <RObjectPreview runId={runId} file={file} onClose={onClose} projectId={projectId} />;
   }
 
   // Single-cell AnnData/Loom files — binary; offer CellxGene launch.
@@ -607,15 +687,15 @@ export function StepOutputPreview({ runId, file, onClose }: StepOutputPreviewPro
   if (ext === 'json') {
     const chartType = resolveCryoChartViewer(file.name);
     if (chartType) {
-      return <CryoChartPreview runId={runId} file={file} onClose={onClose} chartType={chartType} />;
+      return <CryoChartPreview runId={runId} file={file} onClose={onClose} projectId={projectId} chartType={chartType} />;
     }
   }
 
-  return <FetchingPreview runId={runId} file={file} onClose={onClose} viewer={viewer} ext={ext} />;
+  return <FetchingPreview runId={runId} file={file} onClose={onClose} projectId={projectId} viewer={viewer} ext={ext} />;
 }
 
 function FetchingPreview({
-  runId, file, onClose, viewer, ext,
+  runId, file, onClose, projectId, viewer, ext,
 }: StepOutputPreviewProps & { viewer: ViewerKind; ext: string }) {
   const [content, setContent] = useState<FetchedContent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -678,9 +758,12 @@ function FetchingPreview({
           <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
         </div>
-        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
-          <X className="h-3.5 w-3.5" />
-        </Button>
+        <div className="flex items-center gap-1 shrink-0">
+          <PinToWorkbenchButton runId={runId} file={file} projectId={projectId} />
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
 
       {loading && (

@@ -1,0 +1,372 @@
+{
+  "meta": {
+    "timestamp": "20260529T003002Z",
+    "baseline_run": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z",
+    "baseline_results": "research/anti-virus/runs/publication_20260528T223525Z/zinc150_screen/vina/docking_autodock_vina_results.json",
+    "pockets_json": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/01_pocket/structure_pockets.json",
+    "box_center": [
+      173.607,
+      208.847,
+      174.042
+    ],
+    "box_size": [
+      20.27508093773169,
+      20.27508093773169,
+      20.27508093773169
+    ],
+    "smiles_list": [
+      "N=C(N)NC(=O)c1nccnc1N",
+      "CNC1=NC(N)=C2NCCN=C2N1",
+      "Nc1oc2c(N)[n+]([O-])n(O)c2c1O",
+      "O=C(O)[C@@H]1O[C@H](O)[C@@H](O)[C@H](O)[C@@H]1O",
+      "C[C@]12NCCN3CCN(CCN1)[C@@H]32",
+      "N=C(N)C1=C[C@@H](O)[C@@H](O)[C@@H](CO)O1",
+      "NC[C@H]1O[C@@H](O)[C@@H](O)[C@@H](O)[C@@H]1O",
+      "CO[C@@]12C[C@H](CN)O[C@H]1NC(=O)N2",
+      "NC(=O)CC(O)(CC(N)=O)C(N)=O",
+      "O=C1NC(=O)c2[nH]c(=O)c(O)nc21",
+      "C[C@]12NCCN[C@@]1(C)NCCN2",
+      "O=C1CN2C(=O)CCN[C@H]2CN1",
+      "O=C(O)[C@@H](O)[C@H]1O[C@H](O)[C@H](O)[C@H]1O",
+      "O=C(O)[C@H](O)C[C@H](O)[C@H](O)CO",
+      "OC[C@@H]1O[C@H](O)[C@@H](F)[C@@H](O)[C@@H]1O"
+    ],
+    "n_conformers": 6,
+    "conformers": [
+      {
+        "label": "top_pocket",
+        "source": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/01_pocket/structure_top_pocket.pdb",
+        "deposit_id": null
+      },
+      {
+        "label": "9P3I",
+        "source": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260529T003002Z/track_inh_ensemble/receptors/9P3I.pdb",
+        "deposit_id": "9P3I"
+      },
+      {
+        "label": "9P3Y",
+        "source": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260529T003002Z/track_inh_ensemble/receptors/9P3Y.pdb",
+        "deposit_id": "9P3Y"
+      },
+      {
+        "label": "9P3X",
+        "source": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260529T003002Z/track_inh_ensemble/receptors/9P3X.pdb",
+        "deposit_id": "9P3X"
+      },
+      {
+        "label": "9P3L",
+        "source": "/home/yzhang/biomate/research/anti-virus/structures/9P3L.cif",
+        "deposit_id": "9P3L"
+      },
+      {
+        "label": "9P3M",
+        "source": "/home/yzhang/biomate/research/anti-virus/structures/9P3M.cif",
+        "deposit_id": "9P3M"
+      }
+    ],
+    "dry_run": false
+  },
+  "conformer_runs": [
+    {
+      "label": "top_pocket",
+      "deposit_id": null,
+      "receptor_source": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/01_pocket/structure_top_pocket.pdb",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260529T003002Z/top_pocket.pdb",
+      "run_id": "6bde5cfc-4493-48b5-b16e-3ee86dd7d6fc",
+      "status": "failed",
+      "error": "docking ended with status='failed'"
+    },
+    {
+      "label": "9P3I",
+      "deposit_id": "9P3I",
+      "receptor_source": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260529T003002Z/track_inh_ensemble/receptors/9P3I.pdb",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260529T003002Z/9P3I.pdb",
+      "run_id": "35517f02-7d33-47be-a0c3-f88448ed0913",
+      "status": "failed",
+      "error": "docking ended with status='failed'"
+    },
+    {
+      "label": "9P3Y",
+      "deposit_id": "9P3Y",
+      "receptor_source": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260529T003002Z/track_inh_ensemble/receptors/9P3Y.pdb",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260529T003002Z/9P3Y.pdb",
+      "run_id": "f69a7974-7dff-4de1-a821-e8326f96956d",
+      "status": "failed",
+      "error": "docking ended with status='failed'"
+    },
+    {
+      "label": "9P3X",
+      "deposit_id": "9P3X",
+      "receptor_source": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260529T003002Z/track_inh_ensemble/receptors/9P3X.pdb",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260529T003002Z/9P3X.pdb",
+      "run_id": "d5b5f3e9-4a72-411f-8e77-7f9fb263cd05",
+      "status": "failed",
+      "error": "docking ended with status='failed'"
+    },
+    {
+      "label": "9P3L",
+      "deposit_id": "9P3L",
+      "receptor_source": "/home/yzhang/biomate/research/anti-virus/structures/9P3L.cif",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260529T003002Z/9P3L.pdb",
+      "run_id": "805cb0a4-7a4c-48fa-a0e6-9adcabcda7cc",
+      "status": "failed",
+      "error": "docking ended with status='failed'"
+    },
+    {
+      "label": "9P3M",
+      "deposit_id": "9P3M",
+      "receptor_source": "/home/yzhang/biomate/research/anti-virus/structures/9P3M.cif",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260529T003002Z/9P3M.pdb",
+      "run_id": "ec628cc7-8df7-4447-a980-ee34f6fc8b0e",
+      "status": "failed",
+      "error": "docking ended with status='failed'"
+    }
+  ],
+  "aggregate": {
+    "n_compounds": 15,
+    "n_improved_vs_baseline": 0,
+    "best_compound": null,
+    "compounds": [
+      {
+        "smiles": "N=C(N)NC(=O)c1nccnc1N",
+        "baseline_affinity_kcal_mol": -6.267,
+        "ensemble_best_affinity_kcal_mol": null,
+        "ensemble_best_conformer": null,
+        "delta_kcal_mol": null,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "top_pocket": null,
+          "9P3I": null,
+          "9P3Y": null,
+          "9P3X": null,
+          "9P3L": null,
+          "9P3M": null
+        }
+      },
+      {
+        "smiles": "CNC1=NC(N)=C2NCCN=C2N1",
+        "baseline_affinity_kcal_mol": -5.881,
+        "ensemble_best_affinity_kcal_mol": null,
+        "ensemble_best_conformer": null,
+        "delta_kcal_mol": null,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "top_pocket": null,
+          "9P3I": null,
+          "9P3Y": null,
+          "9P3X": null,
+          "9P3L": null,
+          "9P3M": null
+        }
+      },
+      {
+        "smiles": "Nc1oc2c(N)[n+]([O-])n(O)c2c1O",
+        "baseline_affinity_kcal_mol": -5.678,
+        "ensemble_best_affinity_kcal_mol": null,
+        "ensemble_best_conformer": null,
+        "delta_kcal_mol": null,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "top_pocket": null,
+          "9P3I": null,
+          "9P3Y": null,
+          "9P3X": null,
+          "9P3L": null,
+          "9P3M": null
+        }
+      },
+      {
+        "smiles": "O=C(O)[C@@H]1O[C@H](O)[C@@H](O)[C@H](O)[C@@H]1O",
+        "baseline_affinity_kcal_mol": -5.603,
+        "ensemble_best_affinity_kcal_mol": null,
+        "ensemble_best_conformer": null,
+        "delta_kcal_mol": null,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "top_pocket": null,
+          "9P3I": null,
+          "9P3Y": null,
+          "9P3X": null,
+          "9P3L": null,
+          "9P3M": null
+        }
+      },
+      {
+        "smiles": "C[C@]12NCCN3CCN(CCN1)[C@@H]32",
+        "baseline_affinity_kcal_mol": -5.599,
+        "ensemble_best_affinity_kcal_mol": null,
+        "ensemble_best_conformer": null,
+        "delta_kcal_mol": null,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "top_pocket": null,
+          "9P3I": null,
+          "9P3Y": null,
+          "9P3X": null,
+          "9P3L": null,
+          "9P3M": null
+        }
+      },
+      {
+        "smiles": "N=C(N)C1=C[C@@H](O)[C@@H](O)[C@@H](CO)O1",
+        "baseline_affinity_kcal_mol": -5.56,
+        "ensemble_best_affinity_kcal_mol": null,
+        "ensemble_best_conformer": null,
+        "delta_kcal_mol": null,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "top_pocket": null,
+          "9P3I": null,
+          "9P3Y": null,
+          "9P3X": null,
+          "9P3L": null,
+          "9P3M": null
+        }
+      },
+      {
+        "smiles": "NC[C@H]1O[C@@H](O)[C@@H](O)[C@@H](O)[C@@H]1O",
+        "baseline_affinity_kcal_mol": -5.554,
+        "ensemble_best_affinity_kcal_mol": null,
+        "ensemble_best_conformer": null,
+        "delta_kcal_mol": null,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "top_pocket": null,
+          "9P3I": null,
+          "9P3Y": null,
+          "9P3X": null,
+          "9P3L": null,
+          "9P3M": null
+        }
+      },
+      {
+        "smiles": "CO[C@@]12C[C@H](CN)O[C@H]1NC(=O)N2",
+        "baseline_affinity_kcal_mol": -5.531,
+        "ensemble_best_affinity_kcal_mol": null,
+        "ensemble_best_conformer": null,
+        "delta_kcal_mol": null,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "top_pocket": null,
+          "9P3I": null,
+          "9P3Y": null,
+          "9P3X": null,
+          "9P3L": null,
+          "9P3M": null
+        }
+      },
+      {
+        "smiles": "NC(=O)CC(O)(CC(N)=O)C(N)=O",
+        "baseline_affinity_kcal_mol": -5.489,
+        "ensemble_best_affinity_kcal_mol": null,
+        "ensemble_best_conformer": null,
+        "delta_kcal_mol": null,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "top_pocket": null,
+          "9P3I": null,
+          "9P3Y": null,
+          "9P3X": null,
+          "9P3L": null,
+          "9P3M": null
+        }
+      },
+      {
+        "smiles": "O=C1NC(=O)c2[nH]c(=O)c(O)nc21",
+        "baseline_affinity_kcal_mol": -5.425,
+        "ensemble_best_affinity_kcal_mol": null,
+        "ensemble_best_conformer": null,
+        "delta_kcal_mol": null,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "top_pocket": null,
+          "9P3I": null,
+          "9P3Y": null,
+          "9P3X": null,
+          "9P3L": null,
+          "9P3M": null
+        }
+      },
+      {
+        "smiles": "C[C@]12NCCN[C@@]1(C)NCCN2",
+        "baseline_affinity_kcal_mol": -5.422,
+        "ensemble_best_affinity_kcal_mol": null,
+        "ensemble_best_conformer": null,
+        "delta_kcal_mol": null,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "top_pocket": null,
+          "9P3I": null,
+          "9P3Y": null,
+          "9P3X": null,
+          "9P3L": null,
+          "9P3M": null
+        }
+      },
+      {
+        "smiles": "O=C1CN2C(=O)CCN[C@H]2CN1",
+        "baseline_affinity_kcal_mol": -5.4,
+        "ensemble_best_affinity_kcal_mol": null,
+        "ensemble_best_conformer": null,
+        "delta_kcal_mol": null,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "top_pocket": null,
+          "9P3I": null,
+          "9P3Y": null,
+          "9P3X": null,
+          "9P3L": null,
+          "9P3M": null
+        }
+      },
+      {
+        "smiles": "O=C(O)[C@@H](O)[C@H]1O[C@H](O)[C@H](O)[C@H]1O",
+        "baseline_affinity_kcal_mol": -5.389,
+        "ensemble_best_affinity_kcal_mol": null,
+        "ensemble_best_conformer": null,
+        "delta_kcal_mol": null,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "top_pocket": null,
+          "9P3I": null,
+          "9P3Y": null,
+          "9P3X": null,
+          "9P3L": null,
+          "9P3M": null
+        }
+      },
+      {
+        "smiles": "O=C(O)[C@H](O)C[C@H](O)[C@H](O)CO",
+        "baseline_affinity_kcal_mol": -5.297,
+        "ensemble_best_affinity_kcal_mol": null,
+        "ensemble_best_conformer": null,
+        "delta_kcal_mol": null,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "top_pocket": null,
+          "9P3I": null,
+          "9P3Y": null,
+          "9P3X": null,
+          "9P3L": null,
+          "9P3M": null
+        }
+      },
+      {
+        "smiles": "OC[C@@H]1O[C@H](O)[C@@H](F)[C@@H](O)[C@@H]1O",
+        "baseline_affinity_kcal_mol": -5.273,
+        "ensemble_best_affinity_kcal_mol": null,
+        "ensemble_best_conformer": null,
+        "delta_kcal_mol": null,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "top_pocket": null,
+          "9P3I": null,
+          "9P3Y": null,
+          "9P3X": null,
+          "9P3L": null,
+          "9P3M": null
+        }
+      }
+    ]
+  }
+}

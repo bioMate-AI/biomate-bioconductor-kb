@@ -11,6 +11,8 @@ import { ChatWithArtifacts } from "@/components/chat-with-artifacts";
 import ProjectsPage from "@/pages/projects";
 import WorkspacesPage from "@/pages/workspaces";
 import ProjectDetailPage from "@/pages/project-detail";
+import ProjectNotesPage from "@/pages/project-notes";
+import ProjectWorkbenchPage from "@/pages/project-workbench";
 import NotFound from "@/pages/not-found";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -600,6 +602,22 @@ function Router({
           procedures, cross-session dataset isolation). See
           docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md. */}
       <Route path="/workspaces" component={WorkspacesPage} />
+
+      {/* /projects/:projectId/notes — Stream-A LLM synthesis page.
+          Backend: frontend/server/notes-routes.ts (commit e3955d0da). */}
+      <Route path="/projects/:projectId/notes">
+        <AuthenticatedPageLayout>
+          <ProjectNotesPage />
+        </AuthenticatedPageLayout>
+      </Route>
+
+      {/* /projects/:projectId/workbench — Stream-A pinboard surface.
+          Backend: frontend/server/workbench-routes.ts (commit 0ba50ee96). */}
+      <Route path="/projects/:projectId/workbench">
+        <AuthenticatedPageLayout>
+          <ProjectWorkbenchPage />
+        </AuthenticatedPageLayout>
+      </Route>
 
       <Route path="/projects">
         <PlatformLayout

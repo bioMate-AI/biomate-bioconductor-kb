@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react"
+import { uploadFile as uploadFileShared } from "@/lib/upload"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,8 +12,15 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Upload, File, X, Check, AlertCircle, Loader2, Link2, Server, Info, HardDrive, Clock, Zap, FolderArchive, Lightbulb } from "lucide-react"
 import { analytics } from "@/lib/analytics"
 
-// Maximum file size: 10GB for local uploads (matches server-side multer limit)
-const MAX_LOCAL_FILE_SIZE_GB = 10
+// Size-branch threshold for FormData vs multipart lives in @/lib/upload now;
+// this file is only a UI shell over uploadFileShared().
+
+// Hard cap on a single uploaded file. S3 multipart with 64 MiB chunks tops
+// out at 640 GiB before hitting the 10,000-part limit, but anything beyond
+// ~50 GiB from a browser tab is impractical (long-lived JS context, no
+// app-level resume across reloads). 50 GiB matches the ceiling of every
+// public RNA-seq / WGS sample we’ve seen in practice.
+const MAX_LOCAL_FILE_SIZE_GB = 50
 const MAX_LOCAL_FILE_SIZE_BYTES = MAX_LOCAL_FILE_SIZE_GB * 1024 * 1024 * 1024
 
 interface UploadedFile {
@@ -235,53 +243,29 @@ export function FileUpload({
     }
   }
 
+  // All three call sites (this component, chat-interface attachments, the
+  // dataset browser) now delegate to the shared helper so the size-branch
+  // logic and multipart retry can't drift apart again.
   const uploadFile = async (file: File, uploadedFile: UploadedFile) => {
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('file_type', file.type || 'auto')
-
-      // Add description if available
-      if (uploadedFile.description) {
-        formData.append('description', uploadedFile.description)
-      }
-
-      // Simulate progress updates
-      const progressInterval = setInterval(() => {
-        setFiles(prev => prev.map(f =>
-          f.id === uploadedFile.id && f.progress < 90
-            ? { ...f, progress: f.progress + 10 }
-            : f
-        ))
-      }, 200)
-
-      const response = await fetch('/api/datasets/upload', {
-        method: 'POST',
-        body: formData,
+      const out = await uploadFileShared(file, {
+        description: uploadedFile.description,
+        onProgress: (pct) => {
+          setFiles(prev => prev.map(f => (f.id === uploadedFile.id ? { ...f, progress: pct } : f)))
+        },
       })
-
-      clearInterval(progressInterval)
-
-      if (!response.ok) {
-        const error = await response.text()
-        throw new Error(error || 'Upload failed')
-      }
-
-      const result = await response.json()
-
       setFiles(prev => prev.map(f =>
         f.id === uploadedFile.id
-          ? { ...f, status: 'completed', progress: 100, datasetId: result.dataset_id }
-          : f
+          ? { ...f, status: 'completed', progress: 100, datasetId: out.datasetId }
+          : f,
       ))
-
-      console.log(`[FileUpload] File uploaded successfully: ${file.name} -> ${result.dataset_id}`)
+      console.log(`[FileUpload] uploaded ${file.name} (${out.via}) -> ${out.datasetId ?? '(no id)'}`)
     } catch (error: any) {
       console.error(`[FileUpload] Failed to upload ${file.name}:`, error)
       setFiles(prev => prev.map(f =>
         f.id === uploadedFile.id
           ? { ...f, status: 'error', progress: 0, error: error.message }
-          : f
+          : f,
       ))
     }
   }
@@ -442,7 +426,7 @@ export function FileUpload({
                 Max {MAX_LOCAL_FILE_SIZE_GB} GB per file{multiple && ' · multiple files upload in parallel'}
               </p>
               <p className="text-xs text-muted-foreground/60 mt-1">
-                Folders: zip first · Files &gt;10 GB: use URL Import tab
+                Folders: zip first · Files &gt;5 GB: use URL Import tab
               </p>
               <input
                 ref={fileInputRef}

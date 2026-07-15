@@ -173,6 +173,15 @@ export function configureSecurityHeaders(app: Express) {
                 'https://*.analytics.google.com',
                 'https://*.googletagmanager.com',
                 'https://stats.g.doubleclick.net',
+                // Browser-direct S3 multipart upload — file-upload.tsx /
+                // chat-interface.tsx / galaxy-dataset-browser.tsx PUT chunks
+                // straight to the bucket via presigned URLs. Bucket lives
+                // in us-east-1 (LocationConstraint:null quirk) but the
+                // wildcard covers any region we might add later.
+                'https://*.s3.amazonaws.com',
+                'https://*.s3.us-east-1.amazonaws.com',
+                'https://*.s3.us-west-2.amazonaws.com',
+                'https://s3.amazonaws.com',
                 ...devConnectSrc,
               ],
               frameSrc: ["'none'"],

@@ -1,0 +1,140 @@
+{
+  "run_id": "6d06a360-34df-4278-9b9e-acc93f2757fa",
+  "invocation_id": "6d06a360-34df-4278-9b9e-acc93f2757fa",
+  "status": "succeeded",
+  "returncode": 0,
+  "outdir": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299",
+  "work_dir": "/tmp/nextflow_runs/6d06a360-34df-4278-9b9e-acc93f2757fa/work",
+  "log_tail": [
+    "Downloading plugin nf-amazon@3.4.1",
+    "Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/docking_autodock_vina/main.nf` [cheeky_moriondo] DSL2 - revision: 233fc333b1",
+    "[9b/507011] Submitted process > DOCKING_AUTODOCK_VINA_WORKFLOW:DOCKING_AUTODOCK_VINA (run)",
+    "Output: /biomate-nextflow-work/nextflow/work/inh-ensemble-20260527-9P3I/6d06a360-34df-4278-9b9e-acc93f2757fa/9b/50701100446289875624d9e8e53efe/docking_autodock_vina_output.txt",
+    "WARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info."
+  ],
+  "is_batch": true,
+  "s3_output_files": [
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/docking_autodock_vina_output.txt",
+      "filename": "docking_autodock_vina_output.txt",
+      "size": 933
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/docking_autodock_vina_results.json",
+      "filename": "docking_autodock_vina_results.json",
+      "size": 1986
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/docking_poses/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/docking_poses/pose_000.pdbqt",
+      "filename": "pose_000.pdbqt",
+      "size": 14670
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/docking_poses/pose_001.pdbqt",
+      "filename": "pose_001.pdbqt",
+      "size": 9045
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/docking_poses/pose_002.pdbqt",
+      "filename": "pose_002.pdbqt",
+      "size": 13257
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/pipeline_info/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/pipeline_info/dag.dot",
+      "filename": "dag.dot",
+      "size": 782
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/pipeline_info/report.html",
+      "filename": "report.html",
+      "size": 2951466
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/pipeline_info/timeline.html",
+      "filename": "timeline.html",
+      "size": 251975
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/versions.yml",
+      "filename": "versions.yml",
+      "size": 165
+    }
+  ],
+  "completedSteps": 0,
+  "totalSteps": 1,
+  "progressPercent": 100,
+  "processes": [
+    {
+      "id": "docking_autodock_vina_output.txt",
+      "name": "docking_autodock_vina_output.txt",
+      "process": "docking_autodock_vina_output.txt",
+      "step_dir": "docking_autodock_vina_output.txt",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/docking_autodock_vina_output.txt"
+      ]
+    },
+    {
+      "id": "docking_autodock_vina_results.json",
+      "name": "docking_autodock_vina_results.json",
+      "process": "docking_autodock_vina_results.json",
+      "step_dir": "docking_autodock_vina_results.json",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/docking_autodock_vina_results.json"
+      ]
+    },
+    {
+      "id": "docking_poses",
+      "name": "docking_poses",
+      "process": "docking_poses",
+      "step_dir": "docking_poses",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/docking_poses/pose_000.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/docking_poses/pose_001.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/docking_poses/pose_002.pdbqt"
+      ]
+    },
+    {
+      "id": "pipeline_info",
+      "name": "pipeline_info",
+      "process": "pipeline_info",
+      "step_dir": "pipeline_info",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/pipeline_info/dag.dot",
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/pipeline_info/report.html",
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/pipeline_info/timeline.html"
+      ]
+    },
+    {
+      "id": "versions.yml",
+      "name": "versions.yml",
+      "process": "versions.yml",
+      "step_dir": "versions.yml",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/4545b299/versions.yml"
+      ]
+    }
+  ],
+  "started_at": 1779911825.523338,
+  "completed_at": 1779911885.000982,
+  "duration_s": 59
+}

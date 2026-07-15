@@ -1419,6 +1419,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { registerNotesRoutes } = await import("./notes-routes");
   registerNotesRoutes(app);
 
+  // Project Workbench (pinboard) — Stream-A platform. Lets a user pin
+  // output files from any run in a project and render them side-by-side
+  // via the existing step-output-preview renderers. Reuses
+  // project_knowledge with knowledgeType='workbench_pin'.
+  const { registerWorkbenchRoutes } = await import("./workbench-routes");
+  registerWorkbenchRoutes(app);
+
+  // Evidence Search — cross-cutting feature. Parses a claim/hypothesis,
+  // queries registered evidence datasets in parallel (PubMed,
+  // OpenTargets, STRING for v1), LLM-reranks with citations.
+  const { registerEvidenceRoutes } = await import("./evidence-routes");
+  registerEvidenceRoutes(app);
+
   // Lane B3 — per-org adapter retrain queue. Mounted via dynamic import so
   // a missing module doesn't crash the rest of the app at boot. The route
   // file ships from a parallel work stream alongside this registration.
@@ -2114,6 +2127,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // (dev/local environments). In production the email is delivered normally
       // and surfacing the token would show the "Dev mode" bypass box to real users.
       const _emailConfigured = !!(process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS);
+      await auditService.logAuth(
+        'register',
+        result.user.id,
+        req.ip || req.socket.remoteAddress || 'unknown',
+        req.headers['user-agent'] || 'unknown',
+        true,
+        undefined,
+        { email: result.user.email, reason: 'ok' }
+      );
+
       res.status(201).json({
         success: true,
         user: { ...result.user, verificationToken: _emailConfigured ? null : _verificationToken },
@@ -2122,6 +2145,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('[Auth] Registration error:', error);
+      // Record the failed registration attempt with the attempted email +
+      // reason (e.g. email already registered) so a stuck user — can't log in,
+      // can't register — is diagnosable from the audit log alone.
+      await auditService.logAuth(
+        'register',
+        null,
+        req.ip || req.socket.remoteAddress || 'unknown',
+        req.headers['user-agent'] || 'unknown',
+        false,
+        error.message,
+        { email: req.body?.email, reason: error.code || (/(exist|registered|taken)/i.test(error.message || '') ? 'EMAIL_EXISTS' : 'unknown') }
+      );
       res.status(400).json({
         success: false,
         error: error.message || 'Registration failed',
@@ -2167,7 +2202,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         result.user.id,
         req.ip || req.socket.remoteAddress || 'unknown',
         req.headers['user-agent'] || 'unknown',
-        true
+        true,
+        undefined,
+        { email: result.user.email, reason: 'ok' }
       );
 
       res.json({
@@ -2186,7 +2223,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.ip || req.socket.remoteAddress || 'unknown',
         req.headers['user-agent'] || 'unknown',
         false,
-        error.message
+        error.message,
+        { email: req.body?.email, reason: error.code || 'unknown' }
       );
 
       if (error.message === 'TRIAL_EXPIRED') {
@@ -2772,8 +2810,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           expiresIn: uploadData.expires_in,
         });
       } else {
-        // For large files, use multipart upload
-        const multipartData = await s3Service.generateMultipartUploadUrls(
+        // For large files, use real S3 multipart upload (chunk to S3 directly).
+        const multipartData = await s3Service.startMultipartUpload(
           userId,
           filename,
           fileSize,
@@ -2785,14 +2823,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
           key: multipartData.key,
           partUrls: multipartData.partUrls,
           chunkSize: multipartData.chunkSize,
+          numParts: multipartData.numParts,
           method: 'multipart',
-          expiresIn: 3600,
+          expiresIn: 6 * 3600,
         });
       }
     } catch (error: any) {
       console.error('[S3] Upload init error:', error);
       res.status(500).json({
         error: 'Failed to initialize upload',
+        message: error.message,
+      });
+    }
+  });
+
+  // Finalise a multipart upload — assembles the parts into a single S3 object.
+  // Body: { key, uploadId, parts: [{ PartNumber, ETag }, ...] }
+  app.post("/api/s3/upload/complete", authenticateToken, async (req, res) => {
+    try {
+      const { key, uploadId, parts } = req.body ?? {};
+      if (!key || !uploadId || !Array.isArray(parts) || parts.length === 0) {
+        return res.status(400).json({
+          error: 'Missing required fields: key, uploadId, parts[]',
+        });
+      }
+      // Tenant isolation: caller can only complete uploads under their own prefix.
+      const userId = req.user!.id;
+      if (!String(key).startsWith(`users/${userId}/`)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      const out = await s3Service.completeMultipartUpload(key, uploadId, parts);
+      res.json({ key: out.key, bucket: out.bucket, location: out.location });
+    } catch (error: any) {
+      console.error('[S3] Upload complete error:', error);
+      res.status(500).json({
+        error: 'Failed to complete multipart upload',
+        message: error.message,
+      });
+    }
+  });
+
+  // Cancel an in-flight multipart upload so S3 stops billing the staged parts.
+  // Body: { key, uploadId }
+  app.post("/api/s3/upload/abort", authenticateToken, async (req, res) => {
+    try {
+      const { key, uploadId } = req.body ?? {};
+      if (!key || !uploadId) {
+        return res.status(400).json({ error: 'Missing required fields: key, uploadId' });
+      }
+      const userId = req.user!.id;
+      if (!String(key).startsWith(`users/${userId}/`)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      await s3Service.abortMultipartUpload(key, uploadId);
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error('[S3] Upload abort error:', error);
+      res.status(500).json({
+        error: 'Failed to abort multipart upload',
         message: error.message,
       });
     }

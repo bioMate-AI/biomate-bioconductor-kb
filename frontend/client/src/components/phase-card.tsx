@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StepOutputPreview } from "./step-output-preview";
+import { useActiveProjectIdSafe } from "@/contexts/active-project-context";
 
 /** Map Nextflow trace status strings to our internal status */
 function mapNfStatus(nfStatus: string): 'pending' | 'running' | 'completed' | 'failed' | 'paused' {
@@ -118,6 +119,7 @@ export function PhaseCard({
   const [inlinePreviewFile, setInlinePreviewFile] = useState<{ name: string; path: string; extension: string } | null>(null);
   const [paramOverrides, setParamOverrides] = useState<Record<string, any>>({});
   const [paramsDirty, setParamsDirty] = useState(false);
+  const activeProjectId = useActiveProjectIdSafe();
 
   const status = mapNfStatus(phase.status);
   const displayName = phase.processName ? shortProcessName(phase.processName) : phase.name;
@@ -375,6 +377,7 @@ export function PhaseCard({
                 runId={runId}
                 file={inlinePreviewFile}
                 onClose={() => setInlinePreviewFile(null)}
+                projectId={activeProjectId}
               />
             </div>
           )}
