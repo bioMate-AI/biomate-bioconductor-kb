@@ -50,6 +50,7 @@ def check(desc, cond):
 
 
 obj = types.SimpleNamespace()  # minimal 'self' — method only uses cache attrs
+obj._cached_fetch = types.MethodType(AIAssistant._cached_fetch, obj)  # _http_get_json delegates here
 
 # 1. First call hits the network once.
 d1 = _http_get_json(obj, "https://ref/a")
@@ -76,6 +77,38 @@ n_after_first_err = calls["n"]
 r2 = _http_get_json(obj, "https://ref/err")
 check("failure returns None and is not cached (retries)",
       r1 is None and r2 is None and calls["n"] == n_after_first_err + 1)
+
+# ── _cached_fetch (the shared helper used by KEGG-text + gnomAD-POST) ──────────
+_cached_fetch = AIAssistant._cached_fetch
+obj2 = types.SimpleNamespace()
+
+# 6. Non-None result cached; producer runs once.
+pc = {"n": 0}
+def _producer():
+    pc["n"] += 1
+    return "kegg\ttsv\ttext"
+t1 = _cached_fetch(obj2, "kegg_text:x", _producer)
+t2 = _cached_fetch(obj2, "kegg_text:x", _producer)
+check("_cached_fetch caches non-None result (producer runs once)",
+      t1 == t2 == "kegg\ttsv\ttext" and pc["n"] == 1)
+
+# 7. None result NOT cached (producer retries).
+nc = {"n": 0}
+def _none_producer():
+    nc["n"] += 1
+    return None
+_cached_fetch(obj2, "k:none", _none_producer)
+_cached_fetch(obj2, "k:none", _none_producer)
+check("_cached_fetch does not cache None (retries)", nc["n"] == 2)
+
+# 8. Empty list IS cached (valid 'no results', e.g. gnomAD).
+ec = {"n": 0}
+def _empty_producer():
+    ec["n"] += 1
+    return []
+_cached_fetch(obj2, "k:empty", _empty_producer)
+_cached_fetch(obj2, "k:empty", _empty_producer)
+check("_cached_fetch caches empty list (producer runs once)", ec["n"] == 1)
 
 print("ALL CACHE TESTS PASSED" if fails == 0 else f"{fails} CHECK(S) FAILED")
 sys.exit(fails)

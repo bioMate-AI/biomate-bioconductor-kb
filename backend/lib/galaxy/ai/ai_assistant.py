@@ -4746,48 +4746,58 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
     # Track 3A — Comprehensive Biological Database Query
     # =========================================================================
 
-    def _http_get_json(self, url: str, headers: Optional[Dict] = None) -> Optional[Dict]:
-        """Shared HTTP GET helper that returns parsed JSON or None on error.
+    def _cached_fetch(self, key: str, producer, ttl: Optional[int] = None):
+        """Run producer() and cache its non-None result under `key` for `ttl`s.
 
-        Results are cached in-process with a TTL. External reference lookups
-        (UniProt/PDB/AlphaFold/KEGG/Ensembl/STRING/ChEBI/ChEMBL/InterPro) are
-        near-static, so caching cuts repeat latency and avoids the 10s-timeout-
-        bounded network round-trip on a cache hit. Only successful responses are
-        cached (failures retry); the cache is size-bounded to stay memory-safe.
+        Shared in-process TTL cache for near-static external reference lookups
+        (GET-JSON, POST-JSON, and raw-text) so repeat lookups skip the network.
+        Only successful (non-None) results are cached (failures retry); the store
+        is size-bounded to stay memory-safe.
         """
         import time as _time
-        import urllib.request
-        import urllib.error
-        import json as _json
-
         cache = getattr(self, '_ref_http_cache', None)
         if cache is None:
             cache = self._ref_http_cache = {}
-        ttl = getattr(self, '_ref_http_cache_ttl', 21600)  # 6h — reference data is near-static
+        if ttl is None:
+            ttl = getattr(self, '_ref_http_cache_ttl', 21600)  # 6h — reference data is near-static
         now = _time.time()
-        key = url if not headers else url + '|' + repr(sorted(headers.items()))
         hit = cache.get(key)
         if hit is not None and (now - hit[0]) < ttl:
             return hit[1]
+        result = producer()
+        if result is not None:  # cache successes only; failures retry next time
+            if len(cache) >= 512:
+                for k in sorted(cache, key=lambda kk: cache[kk][0])[:256]:
+                    cache.pop(k, None)
+            cache[key] = (now, result)
+        return result
 
-        default_headers = {'User-Agent': 'BioMate/1.0 (biomate.ai; ai-assistant)'}
-        if headers:
-            default_headers.update(headers)
-        req = urllib.request.Request(url, headers=default_headers)
-        try:
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                data = _json.loads(resp.read().decode())
-        except Exception as e:
-            import logging as _log
-            _log.getLogger(__name__).debug(f"[DB query] HTTP GET failed for {url}: {e}")
-            return None
+    def _http_get_json(self, url: str, headers: Optional[Dict] = None) -> Optional[Dict]:
+        """Shared HTTP GET helper that returns parsed JSON or None on error.
 
-        # Cache only successful responses; bound memory by evicting the oldest half.
-        if len(cache) >= 512:
-            for k in sorted(cache, key=lambda kk: cache[kk][0])[:256]:
-                cache.pop(k, None)
-        cache[key] = (now, data)
-        return data
+        Cached via _cached_fetch (TTL): external reference lookups
+        (UniProt/PDB/AlphaFold/KEGG/Ensembl/STRING/ChEBI/ChEMBL/InterPro) are
+        near-static, so a cache hit skips the 10s-timeout-bounded round-trip.
+        """
+        import urllib.request
+        import json as _json
+
+        key = url if not headers else url + '|' + repr(sorted(headers.items()))
+
+        def _fetch():
+            default_headers = {'User-Agent': 'BioMate/1.0 (biomate.ai; ai-assistant)'}
+            if headers:
+                default_headers.update(headers)
+            req = urllib.request.Request(url, headers=default_headers)
+            try:
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    return _json.loads(resp.read().decode())
+            except Exception as e:
+                import logging as _log
+                _log.getLogger(__name__).debug(f"[DB query] HTTP GET failed for {url}: {e}")
+                return None
+
+        return self._cached_fetch(key, _fetch)
 
     def _query_uniprot(self, query: str) -> Dict:
         import urllib.parse
@@ -4894,23 +4904,22 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
     def _query_kegg(self, query: str) -> Dict:
         import urllib.parse
         q = urllib.parse.quote(query)
-        # Try pathway search first
-        data = self._http_get_json(f"https://rest.kegg.jp/find/pathway/{q}")
-        results = []
-        if data is None:
-            # KEGG returns plain text, not JSON — use raw fetch
+        url = f"https://rest.kegg.jp/find/pathway/{q}"
+        # KEGG returns plain TSV text (not JSON) — fetch once (cached) and parse.
+        def _fetch_text():
             import urllib.request
             try:
-                with urllib.request.urlopen(
-                    f"https://rest.kegg.jp/find/pathway/{q}", timeout=10
-                ) as resp:
-                    text = resp.read().decode()
-                    for line in text.strip().split('\n')[:5]:
-                        if '\t' in line:
-                            pid, name = line.split('\t', 1)
-                            results.append({"pathway_id": pid, "name": name})
+                with urllib.request.urlopen(url, timeout=10) as resp:
+                    return resp.read().decode()
             except Exception:
-                pass
+                return None
+        text = self._cached_fetch("kegg_text:" + url, _fetch_text)
+        results = []
+        if text:
+            for line in text.strip().split('\n')[:5]:
+                if '\t' in line:
+                    pid, name = line.split('\t', 1)
+                    results.append({"pathway_id": pid, "name": name})
         return {"source": "kegg", "query": query, "results": results}
 
     def _query_ensembl(self, query: str) -> Dict:
@@ -4964,20 +4973,25 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
           }
         }
         """
-        payload = _json.dumps({"query": gql, "variables": {"term": query}}).encode()
-        req = urllib.request.Request(
-            "https://gnomad.broadinstitute.org/api",
-            data=payload,
-            headers={"Content-Type": "application/json",
-                     "User-Agent": "BioMate/1.0"}
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                data = _json.loads(resp.read().decode())
-                results = data.get('data', {}).get('search', [])
-                return {"source": "gnomad", "query": query, "results": results[:5]}
-        except Exception as e:
-            return {"source": "gnomad", "query": query, "error": str(e)}
+        # POST (GraphQL) — cached via _cached_fetch keyed on the query term.
+        def _fetch():
+            payload = _json.dumps({"query": gql, "variables": {"term": query}}).encode()
+            req = urllib.request.Request(
+                "https://gnomad.broadinstitute.org/api",
+                data=payload,
+                headers={"Content-Type": "application/json",
+                         "User-Agent": "BioMate/1.0"}
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    data = _json.loads(resp.read().decode())
+                    return data.get('data', {}).get('search', [])
+            except Exception:
+                return None
+        results = self._cached_fetch("gnomad_post:" + query, _fetch)
+        if results is None:
+            return {"source": "gnomad", "query": query, "error": "no_response"}
+        return {"source": "gnomad", "query": query, "results": results[:5]}
 
     def _query_go(self, query: str) -> Dict:
         import urllib.parse, re
