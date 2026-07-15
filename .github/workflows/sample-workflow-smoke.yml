@@ -1,0 +1,125 @@
+name: Sample Workflow Execution Smoke
+
+# Runs a few SELF-CONTAINED workflows end-to-end against the deployed test env
+# (generate -> execute -> poll to completion -> verify outputs), proving the
+# AWS Batch execution path actually works — not just routing/generation (that
+# is the fast per-deploy gate inside deploy.sh's workflow_smoke).
+#
+# Real Batch runs cost money + minutes, so this is deliberately OFF the deploy
+# critical path and NON-BLOCKING: it runs AFTER a successful deploy, nightly,
+# or on demand, and alerts on failure (it never rolls a deploy back — that
+# decision is the fast boot/endpoint/routing gate's job).
+#
+# Auth: fetches the env's x-e2e-test-token from the running frontend container
+# at runtime (bypasses the generate_workflow guest rate limit) — no secret in
+# this workflow. Drives the host via SSM (same OIDC role as deploy.yml).
+
+on:
+  workflow_run:
+    workflows: ["Deploy to environment"]
+    types: [completed]
+  schedule:
+    - cron: '0 8 * * *'   # nightly ~08:00 UTC
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options: [test]
+        default: test
+      poll_timeout:
+        description: 'Per-workflow poll budget (seconds)'
+        required: false
+        type: string
+        default: '900'
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: sample-workflow-smoke-${{ github.event.inputs.env || 'test' }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-west-2
+  DEPLOY_ROLE: arn:aws:iam::399683337364:role/GitHubActionsDeploy
+
+jobs:
+  sample-exec-smoke:
+    # On a deploy's workflow_run, only proceed if that deploy succeeded.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.DEPLOY_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Resolve test instance
+        id: inst
+        run: |
+          ID=$(aws ec2 describe-instances --region "$AWS_REGION" \
+            --filters "Name=tag:Env,Values=test" "Name=instance-state-name,Values=running" \
+            --query 'Reservations[0].Instances[0].InstanceId' --output text)
+          if [[ -z "$ID" || "$ID" == "None" ]]; then echo "no running Env=test instance"; exit 1; fi
+          echo "id=$ID" >> "$GITHUB_OUTPUT"
+          echo "instance: $ID"
+
+      - name: Run sample-workflow execution smoke via SSM
+        env:
+          INSTANCE_ID: ${{ steps.inst.outputs.id }}
+          POLL_TIMEOUT: ${{ github.event.inputs.poll_timeout || '900' }}
+        run: |
+          set -euo pipefail
+          SCRIPT_B64=$(base64 < scripts/sample_workflow_smoke.sh | tr -d '\n')
+          # Host wrapper: pull the e2e token from the running frontend container
+          # (bypasses the generate guest rate limit), then run the smoke.
+          HOST_CMD="TOK=\$(docker exec biomate-frontend-deploy printenv E2E_TEST_TOKEN 2>/dev/null || echo ''); echo $SCRIPT_B64 | base64 -d > /tmp/sample_workflow_smoke.sh; SMOKE_E2E_TOKEN=\"\$TOK\" POLL_TIMEOUT=$POLL_TIMEOUT bash /tmp/sample_workflow_smoke.sh; rc=\$?; rm -f /tmp/sample_workflow_smoke.sh; exit \$rc"
+          CMD_B64=$(printf '%s' "$HOST_CMD" | base64 | tr -d '\n')
+
+          CID=$(aws ssm send-command --region "$AWS_REGION" --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --parameters "commands=[\"echo $CMD_B64 | base64 -d | bash\"]" \
+            --query 'Command.CommandId' --output text)
+          [[ -z "$CID" ]] && { echo "SSM send failed"; exit 1; }
+          echo "SSM command: $CID"
+
+          # Poll SSM up to ~35 min (2 Batch runs * up to 15 min + overhead).
+          STATUS=Pending
+          for i in $(seq 1 140); do
+            STATUS=$(aws ssm get-command-invocation --region "$AWS_REGION" \
+              --command-id "$CID" --instance-id "$INSTANCE_ID" --query 'Status' --output text 2>/dev/null || echo Pending)
+            case "$STATUS" in Success|Failed|Cancelled|TimedOut) break ;; esac
+            sleep 15
+          done
+
+          echo "----- host stdout -----"
+          OUT=$(aws ssm get-command-invocation --region "$AWS_REGION" --command-id "$CID" \
+            --instance-id "$INSTANCE_ID" --query 'StandardOutputContent' --output text 2>/dev/null || echo "")
+          echo "$OUT"
+          ERR=$(aws ssm get-command-invocation --region "$AWS_REGION" --command-id "$CID" \
+            --instance-id "$INSTANCE_ID" --query 'StandardErrorContent' --output text 2>/dev/null || echo "")
+          [[ -n "$ERR" ]] && { echo "----- host stderr -----"; echo "$ERR"; }
+
+          MARKER=$(printf '%s' "$OUT" | grep -oE 'SAMPLE_SMOKE_RESULT=(pass|fail)' | tail -1 | cut -d= -f2)
+          echo "SSM status: $STATUS ; smoke result: ${MARKER:-unknown}"
+          [[ "$MARKER" == "pass" ]] || { echo "::error:: sample-workflow execution smoke did not pass"; exit 1; }
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Sample Workflow Execution Smoke"
+            echo "- trigger: ${{ github.event_name }}"
+            echo "- instance: ${{ steps.inst.outputs.id }}"
+            echo "- conclusion: ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"
