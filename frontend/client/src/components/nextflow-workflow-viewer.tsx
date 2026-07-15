@@ -702,12 +702,17 @@ function PhaseGroupSection({
                   </div>
                 </div>
 
-                {/* Param meta (first 3 params inline, non-running non-done) */}
-                {!isRunning && !isDone && step.parameters && Object.keys(step.parameters).length > 0 && (
-                  <div className="step-meta">
-                    {Object.entries(step.parameters as Record<string,unknown>).slice(0,3).map(([k,v]) => `${k}: ${v}`).join(' · ')}
-                  </div>
-                )}
+                {/* Param meta (first 3 params with non-null values inline, non-running non-done) */}
+                {!isRunning && !isDone && step.parameters && (() => {
+                  const visible = Object.entries(step.parameters as Record<string,unknown>)
+                    .filter(([,v]) => v !== null && v !== undefined && v !== '');
+                  if (visible.length === 0) return null;
+                  return (
+                    <div className="step-meta">
+                      {visible.slice(0,3).map(([k,v]) => `${k}: ${v}`).join(' · ')}
+                    </div>
+                  );
+                })()}
 
                 {/* Output files */}
                 {hasOutputs && (
@@ -1091,6 +1096,7 @@ export function NextflowWorkflowViewer({
   const [autoLoopPanel, setAutoLoopPanel] = useState<AutoLoopPanelState>({
     gateResults: null,
     remediations: [],
+    regulatoryActions: [],
     complete: null,
   });
   // Per-phase auto-loop toggle: true = enabled (default), false = user suppressed
@@ -1966,7 +1972,7 @@ export function NextflowWorkflowViewer({
     if (!invocationId) return;
     let stopped = false;
     // Reset auto-loop panel when the invocationId changes (new run)
-    setAutoLoopPanel({ gateResults: null, remediations: [], complete: null });
+    setAutoLoopPanel({ gateResults: null, remediations: [], regulatoryActions: [], complete: null });
 
     const es = new EventSource(`/api/workflows/${invocationId}/events`);
 
@@ -2089,6 +2095,7 @@ export function NextflowWorkflowViewer({
         setAutoLoopPanel(prev => ({
           ...prev,
           remediations: data.remediations ?? [],
+          regulatoryActions: data.regulatory_actions ?? [],
           complete: {
             phase: data.phase,
             domain: data.domain,
@@ -2877,11 +2884,11 @@ export function NextflowWorkflowViewer({
                       // Auto-loop is locked while testing is in progress — no-op
                     }}
                     onDismissAutoloop={() =>
-                      setAutoLoopPanel({ gateResults: null, remediations: [], complete: null })
+                      setAutoLoopPanel({ gateResults: null, remediations: [], regulatoryActions: [], complete: null })
                     }
                     onAcceptAutoloop={(paramChanges) => {
                       setParams(prev => ({ ...prev, ...paramChanges }));
-                      setAutoLoopPanel({ gateResults: null, remediations: [], complete: null });
+                      setAutoLoopPanel({ gateResults: null, remediations: [], regulatoryActions: [], complete: null });
                       handleExecute();
                     }}
                     paramGroupToPhaseKey={paramGroupToPhaseKey}

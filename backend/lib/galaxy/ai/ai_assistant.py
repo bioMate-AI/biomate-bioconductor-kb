@@ -3819,28 +3819,11 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                         re.search(r'\b10813\b', _q_low)
                         or 'optimize_codons_for_heterologous_expression' in _q_low
                     )
-                    _top = search_results[0]
-                    _top_slug = self.workflow_search._normalise_pipeline_slug(
-                        _top.name.split("/")[-1]
-                    )
-                    _top_fn = (_top.filename or "").lower()
                     if _explicit_registry_10813:
                         _needs_verify = False
                         log.info(
                             "[UnifiedWorkflowGeneration] Skipping LLM routing verify — "
                             "explicit Plan B registry 10813 / optimize_codons in query"
-                        )
-                    elif _has_codon_intent and (
-                        _top.id == 10813
-                        or "codon" in _top_slug
-                        or "optimize_codons" in _top_fn
-                    ):
-                        _needs_verify = False
-                        log.info(
-                            "[UnifiedWorkflowGeneration] Skipping LLM routing verify — "
-                            "codon/mRNA intent with top hit %s (id=%s)",
-                            _top.name,
-                            _top.id,
                         )
                 if _needs_verify:
                     _routing_audit = self._llm_verify_routing(
