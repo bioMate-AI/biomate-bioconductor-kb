@@ -929,7 +929,7 @@ restart_galaxy() {
     # WHY: galaxy.yml.docker sets gunicorn preload=true. With --preload the
     # application is loaded in the gunicorn MASTER process; workers are
     # fork()ed from it. A SIGHUP only recycles workers, which inherit the
-    # master's stale in-memory module state. Fresh .py files on disk are
+    # master stale in-memory module state. Fresh .py files on disk are
     # ignored until the master itself restarts.
     #
     # deploy_galaxy_yml() already does a galaxyctl restart early in the sync
