@@ -291,8 +291,11 @@ test.describe.serial('project-workspace', () => {
       await expect(analyzeBtn).toBeVisible({ timeout: 5_000 });
       await analyzeBtn.click();
 
-      // Should navigate to / (chat root)
-      await expect(page).toHaveURL(/^\/?(\?.*)?$/, { timeout: 12_000 });
+      // Should navigate to / (chat root) — toHaveURL tests full URL, include origin
+      await expect(page).toHaveURL(
+        new RegExp(`^${BASE_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/?(?:\\?.*)?$`),
+        { timeout: 12_000 },
+      );
 
       // Active project banner must be visible
       await expect(page.getByTestId('active-project-banner')).toBeVisible({ timeout: 10_000 });
@@ -460,16 +463,17 @@ test.describe.serial('project-workspace', () => {
     await page.getByRole('tab', { name: /chat/i }).waitFor({ state: 'visible', timeout: 12_000 });
     await page.getByRole('tab', { name: /chat/i }).click();
 
-    // Click New Chat (the dashed card or button)
-    const newChatBtn = page
-      .getByTestId('button-new-project-chat')
-      .or(page.getByRole('button', { name: /new chat/i }))
-      .first();
+    // Click the project-specific "New Chat" card/button — NOT the sidebar's "New Chat"
+    // (the sidebar button also has role=button name="New Chat" and appears earlier in DOM)
+    const newChatBtn = page.getByTestId('button-new-project-chat');
     await expect(newChatBtn).toBeVisible({ timeout: 10_000 });
     await newChatBtn.click();
 
-    // Chat root must open
-    await expect(page).toHaveURL(/^\/?(\?.*)?$/, { timeout: 12_000 });
+    // Chat root must open — toHaveURL tests against full URL, so include origin
+    await expect(page).toHaveURL(
+      new RegExp(`^${BASE_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/?(?:\\?.*)?$`),
+      { timeout: 12_000 },
+    );
     await page.locator('[data-testid="chat-input"], textarea').first()
       .waitFor({ state: 'visible', timeout: 20_000 });
 
@@ -499,11 +503,7 @@ test.describe.serial('project-workspace', () => {
     await page.getByRole('heading', { level: 1 }).waitFor({ state: 'visible', timeout: 12_000 });
 
     // ── Rename ────────────────────────────────────────────────────────────────
-    const moreBtn = page
-      .getByTestId('project-actions-menu')
-      .or(page.locator('button').filter({ hasText: /^$/ }).filter({ has: page.locator('[data-lucide="more-horizontal"]') }))
-      .or(page.getByRole('button', { name: /more/i }))
-      .first();
+    const moreBtn = page.getByTestId('button-project-actions');
     await expect(moreBtn).toBeVisible({ timeout: 8_000 });
     await moreBtn.click();
 
@@ -562,20 +562,20 @@ test.describe.serial('project-workspace', () => {
   // ────────────────────────────────────────────────────────────────────────────
   test('UC-PW5: all project endpoints return 401 when not authenticated', async ({ request }) => {
     const fakeId = '00000000-0000-0000-0000-000000000001';
+    // Note: /api/workflows/runs uses optionalAuth (not projectAuth) — intentionally excluded
     const cases: [string, () => Promise<import('@playwright/test').APIResponse>][] = [
-      ['GET /api/projects',                () => request.get(`${BASE_URL}/api/projects`)],
-      ['POST /api/projects',               () => request.post(`${BASE_URL}/api/projects`, { data: { name: 'x' } })],
-      ['GET /api/projects/:id',            () => request.get(`${BASE_URL}/api/projects/${fakeId}`)],
-      ['PATCH /api/projects/:id',          () => request.patch(`${BASE_URL}/api/projects/${fakeId}`, { data: { name: 'y' } })],
-      ['DELETE /api/projects/:id',         () => request.delete(`${BASE_URL}/api/projects/${fakeId}`)],
-      ['GET /api/projects/:id/files',      () => request.get(`${BASE_URL}/api/projects/${fakeId}/files`)],
-      ['GET /api/workflows/runs?projectId',() => request.get(`${BASE_URL}/api/workflows/runs?projectId=${fakeId}`)],
+      ['GET /api/projects',           () => request.get(`${BASE_URL}/api/projects`)],
+      ['POST /api/projects',          () => request.post(`${BASE_URL}/api/projects`, { data: { name: 'x' } })],
+      ['GET /api/projects/:id',       () => request.get(`${BASE_URL}/api/projects/${fakeId}`)],
+      ['PATCH /api/projects/:id',     () => request.patch(`${BASE_URL}/api/projects/${fakeId}`, { data: { name: 'y' } })],
+      ['DELETE /api/projects/:id',    () => request.delete(`${BASE_URL}/api/projects/${fakeId}`)],
+      ['GET /api/projects/:id/files', () => request.get(`${BASE_URL}/api/projects/${fakeId}/files`)],
     ];
 
     for (const [label, fn] of cases) {
       const res = await fn();
       expect(res.status(), `${label} should return 401, got ${res.status()}`).toBe(401);
     }
-    console.log('[PW5] ✅ all 7 project endpoints correctly return 401 unauthenticated');
+    console.log('[PW5] ✅ all 6 project endpoints correctly return 401 unauthenticated');
   });
 });
