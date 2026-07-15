@@ -893,7 +893,7 @@ trigger_pi_suite() {
 }
 
 restart_galaxy() {
-  log "[galaxy] Clearing stale caches + reloading Galaxy gunicorn workers (HUP)..."
+  log "[galaxy] Clearing stale caches + reloading Galaxy gunicorn (full master restart)..."
   ec2_ssh '
     # Stale cache cleanup — addresses the class of "undetected issues" where
     # a code/workflow change ships but the runtime keeps serving the old
@@ -924,23 +924,24 @@ restart_galaxy() {
       echo \"  ✓ nextflow caches cleared\"
     " 2>&1 | tail -3
 
-    # Prefer HUP (graceful reload, no 30-min cold start) over docker restart.
-    # Use "docker kill -s HUP" from the host — the container has no kill binary.
-    # Try pid file first; fall back to pgrep for the gunicorn master process.
-    GPID=$(docker exec biomate-galaxy-dev cat /app/database/gravity/gunicorn.pid 2>/dev/null)
-    if [[ -z "$GPID" ]]; then
-      # pid file missing — find gunicorn master by looking for the process that
-      # owns child workers (lowest PID among gunicorn processes is the master).
-      GPID=$(docker exec biomate-galaxy-dev bash -c "pgrep -f 'gunicorn.*fast_factory' | sort -n | head -1" 2>/dev/null)
-    fi
-    if [[ -n "$GPID" ]]; then
-      docker exec biomate-galaxy-dev sh -c "kill -HUP $GPID" 2>/dev/null && \
-        echo "[galaxy] gunicorn HUP sent to PID $GPID" || \
-        echo "[galaxy] HUP failed (non-fatal — workers will pick up files on next request)"
-    else
-      echo "[galaxy] gunicorn not found — Galaxy may still be starting up"
-      echo "[galaxy] Python files copied; workers will use new code when Galaxy finishes loading"
-    fi
+    # Use galaxyctl restart (full master reload) — NOT kill -HUP.
+    #
+    # WHY: galaxy.yml.docker sets gunicorn preload=true. With --preload the
+    # application is loaded in the gunicorn MASTER process; workers are
+    # fork()ed from it. A SIGHUP only recycles workers, which inherit the
+    # master's stale in-memory module state. Fresh .py files on disk are
+    # ignored until the master itself restarts.
+    #
+    # deploy_galaxy_yml() already does a galaxyctl restart early in the sync
+    # to apply config changes — but that runs BEFORE Python files are copied
+    # (backend sync happens after). By the time restart_galaxy() runs, all
+    # .py files are on disk and the master must be restarted to load them.
+    #
+    # galaxyctl restart gunicorn is a graceful master restart (~5-15s) that
+    # re-imports all Python modules from the freshly synced .py files.
+    docker exec biomate-galaxy-dev galaxyctl restart gunicorn 2>&1 | tail -2 && \
+      echo "[galaxy] gunicorn master restarted (fresh module load)" || \
+      echo "[galaxy] galaxyctl restart failed — Galaxy may serve stale code"
 
     # Ensure Nextflow is installed (lost if container was recreated from image)
     if ! docker exec biomate-galaxy-dev which nextflow > /dev/null 2>&1; then
@@ -965,7 +966,7 @@ restart_galaxy() {
     docker exec -u root biomate-galaxy-dev chown galaxy:galaxy \
       /app/database/universe.sqlite /app/database/galaxy_ai_tools.db 2>/dev/null || true
 
-    # Wait for Galaxy to be healthy after HUP (up to 120s).
+    # Wait for Galaxy to be healthy after restart (up to 120s).
     # Without this, a warm Docker layer cache lets the frontend build finish in
     # ~30s — the health gate then starts before gunicorn workers have restarted
     # their Python AI stack, causing every probe to fail with TCP-RST (workers
