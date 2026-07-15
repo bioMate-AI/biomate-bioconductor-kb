@@ -51,16 +51,17 @@ test.describe("project-create", () => {
     // Fill in name
     await page.getByTestId("input-project-name").fill(UNIQUE_NAME);
 
-    // Intercept API call to verify it hits the real endpoint
+    // Intercept API call to verify it hits the canonical /api/projects endpoint
     const apiCallPromise = page.waitForRequest(
       (req) =>
-        req.url().includes("/api/projects") && req.method() === "POST"
+        /\/api\/projects$/.test(new URL(req.url()).pathname) && req.method() === "POST",
+      { timeout: 15000 }
     );
 
     // Submit
     await page.getByTestId("button-create-project").click();
 
-    // Verify real API was called (not localStorage)
+    // Verify real API was called
     const apiCall = await apiCallPromise;
     expect(apiCall.method()).toBe("POST");
     const body = JSON.parse(apiCall.postData() || "{}");

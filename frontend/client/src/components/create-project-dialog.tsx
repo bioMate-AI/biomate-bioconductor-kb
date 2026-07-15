@@ -103,7 +103,7 @@ export function CreateProjectDialog({
     setIsSubmitting(true)
     
     try {
-      const res = await fetch('/api/memory/projects', {
+      const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
