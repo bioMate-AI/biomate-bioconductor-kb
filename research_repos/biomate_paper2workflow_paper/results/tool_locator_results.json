@@ -1,0 +1,195 @@
+{
+  "db": "/home/yzhang/biomate/backend/database/galaxy_ai_tools.db",
+  "top_k": 5,
+  "n_pairs_scored": 14,
+  "n_dropped_no_target_in_db": 0,
+  "dropped_ids": [],
+  "Hit@1": 0.429,
+  "Hit@3": 0.714,
+  "Hit@5": 1.0,
+  "MRR": 0.631,
+  "per_pair": [
+    {
+      "id": "rnaseq_de_deseq2",
+      "paper": "Standard bulk RNA-seq differential expression (DESeq2)",
+      "hit_rank": 1,
+      "top1": "nf-core/differentialabundance",
+      "retrieved": [
+        "nf-core/differentialabundance",
+        "RNA-Seq Differential Expression Analysis with Visualization",
+        "nf-core/abundance_differential_filter",
+        "ABUNDANCE_DIFFERENTIAL_FILTER",
+        "BAM_STRINGTIE_MERGE"
+      ]
+    },
+    {
+      "id": "rnaseq_quant_pe",
+      "paper": "Paired-end RNA-seq quantification (Salmon)",
+      "hit_rank": 4,
+      "top1": "nf-core/rnaseq",
+      "retrieved": [
+        "nf-core/rnaseq",
+        "QUANTIFY_RSEM",
+        "nf-core/differentialabundance",
+        "RNA-Seq Analysis: Paired-End Read Processing and Quantification",
+        "RNA Velocity Analysis: Velocyto for 10X Data from Bundled Output"
+      ]
+    },
+    {
+      "id": "scrnaseq_scanpy",
+      "paper": "Single-cell RNA-seq clustering (Scanpy, 10x)",
+      "hit_rank": 3,
+      "top1": "Single-Cell RNA-seq Preprocessing: 10X Genomics v3 to Seurat and Scanpy Compatible Format",
+      "retrieved": [
+        "Single-Cell RNA-seq Preprocessing: 10X Genomics v3 to Seurat and Scanpy Compatible Format",
+        "Single-Cell RNA-seq Preprocessing: 10X Genomics CellPlex Multiplexed Samples",
+        "Single-Cell RNA-seq Analysis: Scanpy Preprocessing and Clustering",
+        "RNA Velocity Analysis: Velocyto for 10X Data from Bundled Output",
+        "RNA Velocity Analysis: Velocyto for 10X Data with Filtered Barcodes"
+      ]
+    },
+    {
+      "id": "scrnaseq_pseudobulk",
+      "paper": "Single-cell pseudobulk DE (edgeR)",
+      "hit_rank": 1,
+      "top1": "Single-Cell Pseudobulk Differential Expression Analysis with edgeR",
+      "retrieved": [
+        "Single-Cell Pseudobulk Differential Expression Analysis with edgeR",
+        "nf-core/differentialabundance",
+        "biomni_bioengineering_simulate_whole_cell_ode_model",
+        "nf-core/abundance_differential_filter",
+        "Analyze Atac Seq Differential Accessibility"
+      ]
+    },
+    {
+      "id": "chipseq_macs2_pe",
+      "paper": "ChIP-seq peak calling (MACS2, paired-end)",
+      "hit_rank": 1,
+      "top1": "biomni_genomics_perform_chipseq_peak_calling_with_macs2",
+      "retrieved": [
+        "biomni_genomics_perform_chipseq_peak_calling_with_macs2",
+        "Identify Transcription Factor Binding Sites",
+        "biomni_database_query_remap",
+        "Perform Chipseq Peak Calling With Macs2",
+        "biomni_genetics_identify_transcription_factor_binding_sites"
+      ]
+    },
+    {
+      "id": "atacseq",
+      "paper": "ATAC-seq chromatin accessibility",
+      "hit_rank": 4,
+      "top1": "biomni_immunology_analyze_atac_seq_differential_accessibility",
+      "retrieved": [
+        "biomni_immunology_analyze_atac_seq_differential_accessibility",
+        "nf-core/differentialabundance",
+        "Analyze Atac Seq Differential Accessibility",
+        "ATAC-seq Analysis: Chromatin Accessibility Profiling",
+        "biomni_genomics_perform_chipseq_peak_calling_with_macs2"
+      ]
+    },
+    {
+      "id": "cutandrun",
+      "paper": "CUT&RUN protein-DNA mapping",
+      "hit_rank": 2,
+      "top1": "biomni_database_query_stringdb",
+      "retrieved": [
+        "biomni_database_query_stringdb",
+        "CUT&RUN/CUT&TAG Analysis: Protein-DNA Interaction Mapping",
+        "biomni_pharmacology_analyze_interaction_mechanisms",
+        "Analyze Interaction Mechanisms",
+        "ATAC-seq Analysis: Chromatin Accessibility Profiling"
+      ]
+    },
+    {
+      "id": "hic",
+      "paper": "Hi-C contact maps (cooler)",
+      "hit_rank": 1,
+      "top1": "Capture Hi-C Processing: FASTQ to Balanced Cool Files",
+      "retrieved": [
+        "Capture Hi-C Processing: FASTQ to Balanced Cool Files",
+        "Hi-C Processing: FASTQ to Balanced Cool Files",
+        "Hi-C Format Conversion: Juicer Medium to Cooler Files",
+        "biomni_support_tools_show_with_capture",
+        "biomni_support_tools_savefig_with_capture"
+      ]
+    },
+    {
+      "id": "mag_metagenomics",
+      "paper": "Metagenome-assembled genomes",
+      "hit_rank": 4,
+      "top1": "nf-core/fasta_binning_concoct",
+      "retrieved": [
+        "nf-core/fasta_binning_concoct",
+        "FASTA_BINNING_CONCOCT",
+        "FASTA_BINNING_CONCOCT",
+        "Metagenome-Assembled Genomes (MAGs) generation",
+        "nf-core/fasta_build_add_kraken2"
+      ]
+    },
+    {
+      "id": "somatic_variant_manta",
+      "paper": "Somatic SV calling tumor-only (Manta)",
+      "hit_rank": 4,
+      "top1": "BAM_VARIANT_CALLING_SOMATIC_MANTA",
+      "retrieved": [
+        "BAM_VARIANT_CALLING_SOMATIC_MANTA",
+        "nf-core/bam_variant_demix_boot_freyja",
+        "BAM_TUMOR_ONLY_SOMATIC_VARIANT_CALLING_GATK",
+        "BAM_VARIANT_CALLING_TUMOR_ONLY_MANTA",
+        "BAM_VARIANT_CALLING_SOMATIC_TIDDIT"
+      ]
+    },
+    {
+      "id": "crispr_cas9",
+      "paper": "CRISPR-Cas9 genome editing analysis",
+      "hit_rank": 1,
+      "top1": "biomni_bioengineering_perform_crispr_cas9_genome_editing",
+      "retrieved": [
+        "biomni_bioengineering_perform_crispr_cas9_genome_editing",
+        "Perform Crispr Cas9 Genome Editing",
+        "Analyze Crispr Genome Editing",
+        "biomni_genetics_analyze_crispr_genome_editing",
+        "Get Rna Seq Archs4"
+      ]
+    },
+    {
+      "id": "metaproteomics",
+      "paper": "Clinical metaproteomics",
+      "hit_rank": 1,
+      "top1": "Clinical Metaproteomics Data Interpretation",
+      "retrieved": [
+        "Clinical Metaproteomics Data Interpretation",
+        "Clinical Metaproteomics Discovery Workflow",
+        "Clinical Metaproteomics Verification Workflow",
+        "Clinical Metaproteomics Quantitation",
+        "Generate a Clinical Metaproteomics Database"
+      ]
+    },
+    {
+      "id": "scrnaseq_se",
+      "paper": "Single-end RNA-seq quantification",
+      "hit_rank": 2,
+      "top1": "biomni_cancer_biology_perform_gene_expression_nmf_analysis",
+      "retrieved": [
+        "biomni_cancer_biology_perform_gene_expression_nmf_analysis",
+        "RNA-Seq Analysis: Single-End Read Processing and Quantification",
+        "Perform Gene Expression Nmf Analysis",
+        "biomni_synthetic_biology_optimize_codons_for_heterologous_expression",
+        "nf-core/rnaseq"
+      ]
+    },
+    {
+      "id": "rnaseq_viz",
+      "paper": "RNA-seq DE with visualization",
+      "hit_rank": 2,
+      "top1": "nf-core/differentialabundance",
+      "retrieved": [
+        "nf-core/differentialabundance",
+        "RNA-Seq Differential Expression Analysis with Visualization",
+        "Single-Cell Pseudobulk Differential Expression Analysis with edgeR",
+        "nf-core/abundance_differential_filter",
+        "Analyze Atac Seq Differential Accessibility"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "_comment": "Curated paper -> canonical-pipeline pairs. 'query' is a methods-style description as it would be distilled from a paper's Methods section (the methods-extractor stage output). 'target_patterns' are case-insensitive substrings; a retrieved workflow name matching ANY pattern is a correct hit. Pairs whose target is absent from the DB are dropped by the harness (reported).",
+  "pairs": [
+    {"id": "rnaseq_de_deseq2", "paper": "Standard bulk RNA-seq differential expression (DESeq2)", "query": "bulk RNA-seq differential gene expression analysis between two conditions using DESeq2 with STAR alignment to GRCh38 and adjusted p-value FDR 0.05", "target_patterns": ["differential expression", "differentialabundance"]},
+    {"id": "rnaseq_quant_pe", "paper": "Paired-end RNA-seq quantification (Salmon)", "query": "paired-end RNA sequencing read processing quantification transcript abundance with Salmon and gene-level counts", "target_patterns": ["RNA-Seq Analysis: Paired-End"]},
+    {"id": "scrnaseq_scanpy", "paper": "Single-cell RNA-seq clustering (Scanpy, 10x)", "query": "single-cell RNA-seq 10x Genomics preprocessing normalization clustering UMAP with Scanpy", "target_patterns": ["Single-Cell RNA-seq Analysis: Scanpy"]},
+    {"id": "scrnaseq_pseudobulk", "paper": "Single-cell pseudobulk DE (edgeR)", "query": "single-cell pseudobulk differential expression across samples aggregating counts per cell type with edgeR", "target_patterns": ["Pseudobulk Differential Expression"]},
+    {"id": "chipseq_macs2_pe", "paper": "ChIP-seq peak calling (MACS2, paired-end)", "query": "ChIP-seq paired-end reads transcription factor peak calling with MACS2 against input control", "target_patterns": ["ChIP-seq Analysis: Paired-End", "chipseq_peak_calling_with_macs2"]},
+    {"id": "atacseq", "paper": "ATAC-seq chromatin accessibility", "query": "ATAC-seq chromatin accessibility profiling nucleosome-free regions peak calling", "target_patterns": ["ATAC-seq Analysis: Chromatin Accessibility"]},
+    {"id": "cutandrun", "paper": "CUT&RUN protein-DNA mapping", "query": "CUT&RUN protein DNA interaction mapping histone modification profiling low input", "target_patterns": ["CUT&RUN"]},
+    {"id": "hic", "paper": "Hi-C contact maps (cooler)", "query": "Hi-C chromosome conformation capture FASTQ to balanced contact matrices cool files", "target_patterns": ["Hi-C Processing"]},
+    {"id": "mag_metagenomics", "paper": "Metagenome-assembled genomes", "query": "shotgun metagenomics assembly binning recovery of metagenome-assembled genomes MAGs from environmental samples", "target_patterns": ["Metagenome-Assembled Genomes"]},
+    {"id": "somatic_variant_manta", "paper": "Somatic SV calling tumor-only (Manta)", "query": "somatic structural variant calling tumor-only whole genome sequencing with Manta from aligned BAM", "target_patterns": ["VARIANT_CALLING_TUMOR_ONLY_MANTA", "variant calling"]},
+    {"id": "crispr_cas9", "paper": "CRISPR-Cas9 genome editing analysis", "query": "CRISPR Cas9 genome editing guide RNA efficiency indel quantification editing outcome analysis", "target_patterns": ["Crispr Cas9 Genome Editing", "crispr"]},
+    {"id": "metaproteomics", "paper": "Clinical metaproteomics", "query": "clinical metaproteomics mass spectrometry peptide identification microbial protein database search interpretation", "target_patterns": ["Metaproteomics"]},
+    {"id": "scrnaseq_se", "paper": "Single-end RNA-seq quantification", "query": "single-end RNA sequencing read alignment quantification gene expression matrix", "target_patterns": ["RNA-Seq Analysis: Single-End"]},
+    {"id": "rnaseq_viz", "paper": "RNA-seq DE with visualization", "query": "RNA-seq differential expression volcano plot heatmap PCA visualization of significant genes", "target_patterns": ["Differential Expression Analysis with Visualization"]}
+  ]
+}
