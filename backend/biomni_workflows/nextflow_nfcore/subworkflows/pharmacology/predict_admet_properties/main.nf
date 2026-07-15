@@ -20,33 +20,112 @@ params.outdir = './results'
 // Demonstrates QC gate triggering for hERG cardiotoxicity risk.
 params.smiles_list = '["CC(=O)OC1=CC=CC=C1C(=O)O", "OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC"]'
 params.ADMET_model_type = 'MPNN'
+// Compound-library parallelism: SMILES are sharded into chunks of this size and
+// the expensive ADMET-AI inference runs as one parallel Batch job per shard.
+// N <= admet_shard_size  →  exactly one shard  →  identical to single-job behavior.
+params.admet_shard_size = 25
 
-process PREDICT_ADMET_PROPERTIES {
+// ── MAP: run ADMET-AI (Chemprop) inference on one shard of SMILES ─────────────
+// Emits raw per-compound rows only; NO aggregation here (that lives in the reduce).
+process ADMET_INFER_SHARD {
     tag "$meta.id"
     label 'process_medium'
-    publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
+
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:x86' : 'biomate/biomni-admet:latest'
+
+    input:
+    tuple val(meta), val(smiles_json)
+
+    output:
+    path("shard_admet_${meta.id}.json"), emit: partial
+
+    script:
+    """
+    export PARAM_SMILES_LIST='${smiles_json}'
+    export SHARD_ID='${meta.id}'
+    python3 << 'PYEOF'
+import json, os, sys
+smiles = json.loads(os.environ.get("PARAM_SMILES_LIST", "[]") or "[]")
+if not isinstance(smiles, list):
+    smiles = [smiles]
+_COL = {
+    'hERG':'hERG_prob','DILI':'DILI_prob','PPBR_AZ':'ppbr_pct','Caco2_Wang':'caco2_logPapp',
+    'HIA_Hou':'hia_prob','BBB_Martins':'bbb_prob','Bioavailability_Ma':'oral_bioavailability_prob',
+    'Pgp_Broccatelli':'pgp_inhibitor_prob','CYP2C19_Veith':'cyp2c19_inhibitor_prob',
+    'CYP2D6_Veith':'cyp2d6_inhibitor_prob','CYP3A4_Substrate_CarbonMangels':'cyp3a4_substrate_prob',
+    'CYP2C9_Veith':'cyp2c9_inhibitor_prob','CYP1A2_Veith':'cyp1a2_inhibitor_prob',
+    'Solubility_AqSolDB':'aqueous_solubility_log','Lipophilicity_AstraZeneca':'lipophilicity_logD',
+    'HalfLife_Obach':'half_life_h','Clearance_Hepatocyte_AZ':'hepatocyte_clearance_uLminmg',
+    'LD50_Zhu':'ld50_log_mol_kg','ClinTox':'clintox_prob',
+}
+rows = []
+try:
+    from admet_ai import ADMETModel
+    model = ADMETModel()
+    valid = [s for s in smiles if s and str(s).strip()]
+    df = model.predict(smiles=valid)
+    for smi, row in zip(valid, df.itertuples(index=False)):
+        c = {'smiles': smi}
+        for col, key in _COL.items():
+            v = getattr(row, col, None)
+            if v is not None:
+                try:
+                    c[key] = round(float(v), 4)
+                except (ValueError, TypeError):
+                    pass
+        rows.append(c)
+except Exception as e:
+    # ADMET-AI unavailable/failed for this shard → emit empty; the reduce falls
+    # back to RDKit-only structural estimates (same as the unsharded path).
+    print("ADMET-AI shard error: " + str(e), file=sys.stderr)
+sid = os.environ.get("SHARD_ID", "x")
+with open("shard_admet_" + sid + ".json", "w") as f:
+    json.dump({"shard_id": sid, "per_compound_admet": rows}, f)
+PYEOF
+    """
+}
+
+// ── REDUCE: merge shard inference + run the single authoritative aggregation ──
+// The worst-case/QC aggregation lives ONLY here and runs once over ALL compounds,
+// so the global worst compound (across every shard) always drives the QC gate.
+process PREDICT_ADMET_PROPERTIES {
+    tag "admet-merge"
+    label 'process_medium'
+    publishDir "${params.outdir}/run", mode: 'copy'
 
     // biomni-admet: dedicated ADMET container (admet-ai/Chemprop, mordred, PyTDC)
     // Starts from biomate-nextflow-base directly — lean, not biomni-tools
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:x86' : 'biomate/biomni-admet:latest'
 
     input:
-    val(meta)  // Meta information for this run
+    path shard_admets
 
     output:
-    tuple val(meta), path("predict_admet_properties_results.json"), emit: results
-    tuple val(meta), path("predict_admet_properties_output.txt"), emit: output
-    tuple val(meta), path("toxicity_report.json"), emit: toxicity_report
-    tuple val(meta), path("pk_summary.json"), emit: pk_summary
-    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
+    path("predict_admet_properties_results.json"), emit: results
+    path("predict_admet_properties_output.txt"), emit: output
+    path("toxicity_report.json"), emit: toxicity_report
+    path("pk_summary.json"), emit: pk_summary
+    path("qc_metrics.json"), emit: qc_metrics
     path "versions.yml", emit: versions
 
     script:
-    def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
+    # Full compound list drives RDKit/Ames/PK recompute (cheap, deterministic).
     export PARAM_SMILES_LIST="${params.smiles_list?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_ADMET_MODEL_TYPE="${params.ADMET_model_type?.toString()?.replace('"', '\\"') ?: 'null'}"
+
+    # Merge ADMET-AI per-compound rows from all parallel shards
+    python3 << 'MERGE'
+import json, glob
+rows = []
+for fn in sorted(glob.glob("shard_admet_*.json")):
+    try:
+        rows.extend((json.load(open(fn)) or {}).get("per_compound_admet", []))
+    except Exception:
+        pass
+json.dump(rows, open("merged_admet.json", "w"))
+MERGE
+    export PARAM_PRECOMPUTED_ADMET_FILE="\$PWD/merged_admet.json"
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper — self-contained implementation
@@ -237,7 +316,7 @@ def compute_ames_alerts(smiles_input):
     }
 
 
-def predict_admet_properties(smiles_list, ADMET_model_type="MPNN"):
+def predict_admet_properties(smiles_list, ADMET_model_type="MPNN", precomputed_admet=None):
     # ── Phase 1: RDKit structural safety ────────────────────────────────────
     structural_safety = compute_structural_safety(smiles_list)
 
@@ -264,59 +343,70 @@ def predict_admet_properties(smiles_list, ADMET_model_type="MPNN"):
         tox_report["per_compound"] = per_compound
 
     research_log = ""
+    per_compound_admet = []
 
     # ── Phase 2: ADMET-AI (Chemprop-backed, bundled pre-trained models) ────
     # Swanson et al. 2023, Bioinformatics. doi:10.1093/bioinformatics/btae416
     # 41 TDC ADMET endpoints; AUROC >0.85 on 20/31 classification tasks.
-    # Models ship inside the admet-ai package — no separate download.
+    # When precomputed_admet is provided, the expensive Chemprop inference was
+    # already run in parallel shards (map step) — merge those rows here and skip
+    # model loading. Otherwise (direct/unsharded call) run inference inline.
     try:
-        from admet_ai import ADMETModel
+        if precomputed_admet is not None:
+            per_compound_admet = [c for c in (precomputed_admet or []) if c]
+            research_log = (
+                "ADMET-AI Predictions (merged from parallel shards; Chemprop-RDKit; "
+                "Swanson et al. 2023 Bioinformatics)\\n" + "=" * 65 + "\\n"
+            )
+        else:
+            from admet_ai import ADMETModel
 
-        model = ADMETModel()
-        valid_smiles = [s for s in items if s and s.strip()]
-        df = model.predict(smiles=valid_smiles)
+            model = ADMETModel()
+            valid_smiles = [s for s in items if s and s.strip()]
+            df = model.predict(smiles=valid_smiles)
 
-        # ADMET-AI column → BioMate key mapping (TDC canonical names)
-        _COL = {
-            'hERG':                              'hERG_prob',
-            'DILI':                              'DILI_prob',
-            'PPBR_AZ':                           'ppbr_pct',
-            'Caco2_Wang':                        'caco2_logPapp',
-            'HIA_Hou':                           'hia_prob',
-            'BBB_Martins':                       'bbb_prob',
-            'Bioavailability_Ma':                'oral_bioavailability_prob',
-            'Pgp_Broccatelli':                   'pgp_inhibitor_prob',
-            'CYP2C19_Veith':                     'cyp2c19_inhibitor_prob',
-            'CYP2D6_Veith':                      'cyp2d6_inhibitor_prob',
-            'CYP3A4_Substrate_CarbonMangels':    'cyp3a4_substrate_prob',
-            'CYP2C9_Veith':                      'cyp2c9_inhibitor_prob',
-            'CYP1A2_Veith':                      'cyp1a2_inhibitor_prob',
-            'Solubility_AqSolDB':                'aqueous_solubility_log',
-            'Lipophilicity_AstraZeneca':         'lipophilicity_logD',
-            'HalfLife_Obach':                    'half_life_h',
-            'Clearance_Hepatocyte_AZ':           'hepatocyte_clearance_uLminmg',
-            'LD50_Zhu':                          'ld50_log_mol_kg',
-            'ClinTox':                           'clintox_prob',
-        }
+            # ADMET-AI column → BioMate key mapping (TDC canonical names)
+            _COL = {
+                'hERG':                              'hERG_prob',
+                'DILI':                              'DILI_prob',
+                'PPBR_AZ':                           'ppbr_pct',
+                'Caco2_Wang':                        'caco2_logPapp',
+                'HIA_Hou':                           'hia_prob',
+                'BBB_Martins':                       'bbb_prob',
+                'Bioavailability_Ma':                'oral_bioavailability_prob',
+                'Pgp_Broccatelli':                   'pgp_inhibitor_prob',
+                'CYP2C19_Veith':                     'cyp2c19_inhibitor_prob',
+                'CYP2D6_Veith':                      'cyp2d6_inhibitor_prob',
+                'CYP3A4_Substrate_CarbonMangels':    'cyp3a4_substrate_prob',
+                'CYP2C9_Veith':                      'cyp2c9_inhibitor_prob',
+                'CYP1A2_Veith':                      'cyp1a2_inhibitor_prob',
+                'Solubility_AqSolDB':                'aqueous_solubility_log',
+                'Lipophilicity_AstraZeneca':         'lipophilicity_logD',
+                'HalfLife_Obach':                    'half_life_h',
+                'Clearance_Hepatocyte_AZ':           'hepatocyte_clearance_uLminmg',
+                'LD50_Zhu':                          'ld50_log_mol_kg',
+                'ClinTox':                           'clintox_prob',
+            }
 
-        per_compound_admet = []
-        research_log = (
-            "ADMET-AI Predictions (Chemprop-RDKit; Swanson et al. 2023 Bioinformatics)\\n"
-            + "=" * 65 + "\\n"
-        )
+            research_log = (
+                "ADMET-AI Predictions (Chemprop-RDKit; Swanson et al. 2023 Bioinformatics)\\n"
+                + "=" * 65 + "\\n"
+            )
 
-        for smiles_val, row in zip(valid_smiles, df.itertuples(index=False)):
-            compound = {'smiles': smiles_val}
-            for admet_col, bm_key in _COL.items():
-                val = getattr(row, admet_col, None)
-                if val is not None:
-                    try:
-                        compound[bm_key] = round(float(val), 4)
-                    except (ValueError, TypeError):
-                        pass
-            per_compound_admet.append(compound)
+            for smiles_val, row in zip(valid_smiles, df.itertuples(index=False)):
+                compound = {'smiles': smiles_val}
+                for admet_col, bm_key in _COL.items():
+                    val = getattr(row, admet_col, None)
+                    if val is not None:
+                        try:
+                            compound[bm_key] = round(float(val), 4)
+                        except (ValueError, TypeError):
+                            pass
+                per_compound_admet.append(compound)
 
-            research_log += f"\\nCompound: {smiles_val}\\n"
+        # Human-readable per-compound log (both paths)
+        for compound in per_compound_admet:
+            research_log += f"\\nCompound: {compound.get('smiles')}\\n"
             for label, key, fmt in [
                 ("hERG inhibition",       "hERG_prob",               ".3f"),
                 ("DILI probability",      "DILI_prob",               ".3f"),
@@ -561,10 +651,21 @@ def compute_pk_properties(smiles_list):
 
 
 # ── Execute ──────────────────────────────────────────────────────────────────
+# Reduce step: ADMET-AI rows were computed in parallel shards (map step) and
+# merged into PARAM_PRECOMPUTED_ADMET_FILE. If absent, inference runs inline.
+_precomputed_admet = None
+_pcf = os.environ.get("PARAM_PRECOMPUTED_ADMET_FILE", "")
+if _pcf and os.path.exists(_pcf):
+    try:
+        with open(_pcf) as _pf:
+            _precomputed_admet = json.load(_pf)
+    except Exception:
+        _precomputed_admet = None
 try:
     result = predict_admet_properties(
         smiles_list=auto_convert(os.environ.get("PARAM_SMILES_LIST", "")),
         ADMET_model_type=auto_convert(os.environ.get("PARAM_ADMET_MODEL_TYPE", "MPNN")),
+        precomputed_admet=_precomputed_admet,
     )
     success = True
     error_msg = None
@@ -698,10 +799,23 @@ PYEOF
 
 workflow PREDICT_ADMET_PROPERTIES_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta) ]
+    ch_input  // channel: [ val(meta) ] — retained for signature compatibility
 
     main:
-    PREDICT_ADMET_PROPERTIES(ch_input)
+    // Shard the compound list; the expensive ADMET-AI inference fans out across
+    // parallel Batch jobs (one per shard). N <= admet_shard_size => one shard =>
+    // identical to the previous single-job behavior.
+    def parsed = (params.smiles_list instanceof List) ? params.smiles_list
+        : new groovy.json.JsonSlurper().parseText((params.smiles_list ?: '[]').toString())
+    def shard_size = (params.admet_shard_size ?: 25) as int
+    def shard_tuples = []
+    parsed.collate(shard_size).eachWithIndex { chunk, i ->
+        shard_tuples << [ [id: "shard_${i}"], groovy.json.JsonOutput.toJson(chunk) ]
+    }
+    ch_shards = Channel.fromList(shard_tuples)
+
+    ADMET_INFER_SHARD(ch_shards)                                  // map: parallel per shard
+    PREDICT_ADMET_PROPERTIES(ADMET_INFER_SHARD.out.partial.collect())  // reduce: single merge
 
     emit:
     results        = PREDICT_ADMET_PROPERTIES.out.results
@@ -713,10 +827,11 @@ workflow PREDICT_ADMET_PROPERTIES_WORKFLOW {
 
 // Entry workflow for standalone execution
 workflow {
-    // Create channel with meta map
-    ch_input = Channel.of([id: 'run'])
+    if (!params.smiles_list) {
+        error "Please provide --smiles_list parameter"
+    }
 
-    PREDICT_ADMET_PROPERTIES_WORKFLOW(ch_input)
+    PREDICT_ADMET_PROPERTIES_WORKFLOW(Channel.of([id: 'run']))
 
     PREDICT_ADMET_PROPERTIES_WORKFLOW.out.output.view { "Output: $it" }
 }
