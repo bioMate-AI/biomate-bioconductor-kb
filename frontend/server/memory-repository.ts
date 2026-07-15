@@ -283,7 +283,7 @@ export class ProjectMemoryRepository {
    */
   async archiveProject(projectId: string): Promise<Project | null> {
     const [updated] = await db.update(ltmSchema.projects)
-      .set({ status: 'archived', updatedAt: new Date() })
+      .set({ status: 'archived', updatedAt: new Date(), archivedAt: new Date() })
       .where(eq(ltmSchema.projects.id, projectId))
       .returning();
     return updated || null;

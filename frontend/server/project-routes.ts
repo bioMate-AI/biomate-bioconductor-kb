@@ -199,6 +199,7 @@ export function registerProjectRoutes(app: Express): void {
       if (Array.isArray(organisms)) updates.organisms = organisms;
       if (Array.isArray(dataModalities)) updates.dataModalities = dataModalities;
       if (status) updates.status = status;
+      if (status === "archived" && !existing.archivedAt) updates.archivedAt = new Date();
       const project = await memoryService.projects.updateProject(id, updates);
       res.json({ project });
     } catch (e: any) {
