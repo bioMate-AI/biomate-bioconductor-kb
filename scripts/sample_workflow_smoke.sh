@@ -32,11 +32,18 @@ TOKEN="${SMOKE_E2E_TOKEN:-}"
 POLL_TIMEOUT="${POLL_TIMEOUT:-900}"
 REQUIRE_OUTPUTS="${REQUIRE_OUTPUTS:-1}"
 
-# Default sample set — self-contained workflows (no input-data staging needed),
-# both verified runnable on test (hERG QSAR, CNS penetration). One "label=intent"
-# per line; override via the SAMPLES env var (same format).
+# Default sample set — SELF-CONTAINED workflows (no input-data staging needed),
+# each verified to run green end-to-end on test (Batch, real outputs). Spans
+# pharmacology (hERG, CNS), ADMET-AI (MPNN), and clinical-trial (BOIN). One
+# "label=intent" per line; override via the SAMPLES env var (same format).
+# NOTE: "required_params: []" does NOT guarantee self-contained — e.g.
+# gene_set_enrichment_analysis reports no required params but still needs a gene
+# list and fails at launch, so it is deliberately excluded. Only add workflows
+# here after confirming they complete with outputs given ZERO staged input.
 DEFAULT_SAMPLES='admet_herg=Screen aspirin CC(=O)Oc1ccccc1C(=O)O for ADMET and hERG cardiac safety
-cns_penetration=Predict blood-brain barrier BBB permeability for a small molecule'
+cns_penetration=Predict blood-brain barrier BBB permeability for a small molecule
+admet_ai=Predict aqueous solubility and lipophilicity for a molecule
+clinical_trial=Perform BOIN dose escalation design for a phase I trial'
 SAMPLES="${SAMPLES:-$DEFAULT_SAMPLES}"
 
 CT='-H'; CTV='Content-Type: application/json'
