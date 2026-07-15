@@ -1937,9 +1937,9 @@ class UnifiedWorkflowSearch:
             if is_subworkflow:
                 score -= 4.0  # Subworkflows compete unfairly with full pipelines; penalise
             elif source in ("nfcore", "biomni_nextflow"):
-                score += 12.0
+                score += 8.0
             elif source == "bioconductor":
-                score -= 12.0  # Bioconductor R packages are unlikely to be what they need
+                score -= 5.0  # Bioconductor R packages are unlikely to be what they need
 
         # 6. Domain preference bias (critical for avoiding cross-domain QC mismatches)
         # Use LLM-derived domain lists when provided (UQU output); fall back to rule-based inference.
