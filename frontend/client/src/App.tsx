@@ -32,6 +32,7 @@ import { isDesktop, desktopGetPendingDeepLink, desktopOnDeepLink } from "@/lib/d
 // Import new pages
 import LoginPage from "@/pages/auth/login";
 import RegisterPage from "@/pages/auth/register";
+import JoinProjectPage from "@/pages/join-project";
 import ForgotPasswordPage from "@/pages/auth/forgot-password";
 import ResetPasswordPage from "@/pages/auth/reset-password";
 import VerifyEmailPage from "@/pages/auth/verify-email";
@@ -475,6 +476,7 @@ function Router({
       {/* Auth pages */}
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
+      <Route path="/join/:token" component={JoinProjectPage} />
 
       {/* Debug-only harness — see frontend/client/src/pages/DebugOutputs.tsx */}
       <Route path="/debug/outputs/:runId" component={DebugOutputs} />

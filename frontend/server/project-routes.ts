@@ -21,7 +21,7 @@ import { memoryService } from "./memory-repository";
 import { pool } from "./db";
 import { s3Service } from "./s3-client";
 import multer from "multer";
-import { randomUUID } from "crypto";
+import { randomUUID, randomBytes } from "crypto";
 import path from "path";
 import fs from "fs";
 
@@ -41,6 +41,23 @@ async function ensureProjectMembersTable(): Promise<void> {
   await pool.query(`CREATE INDEX IF NOT EXISTS project_members_user_idx    ON project_members(user_id)`);
 }
 ensureProjectMembersTable().catch(e => console.error("[project_members] table init failed:", e?.message ?? e));
+
+async function ensureProjectShareTokensTable(): Promise<void> {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS project_share_tokens (
+      id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      project_id  UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      token       TEXT UNIQUE NOT NULL,
+      role        TEXT NOT NULL DEFAULT 'viewer' CHECK (role IN ('viewer', 'editor')),
+      created_by  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      expires_at  TIMESTAMPTZ
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS pst_project_idx ON project_share_tokens(project_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS pst_token_idx   ON project_share_tokens(token)`);
+}
+ensureProjectShareTokensTable().catch(e => console.error("[project_share_tokens] table init failed:", e?.message ?? e));
 
 async function _isOwnerOrMember(projectId: string, uid: string): Promise<boolean> {
   const project = await memoryService.projects.getProject(projectId);
@@ -458,6 +475,133 @@ export function registerProjectRoutes(app: Express): void {
     } catch (e: any) {
       console.error("[project_members] remove failed:", e?.message ?? e);
       res.status(500).json({ error: "Failed to remove member" });
+    }
+  });
+
+  // ─── GET /api/projects/:id/share-link ────────────────────────────────────────
+  // Owner only — returns the existing share token, or { token: null } if none.
+  app.get("/api/projects/:id/share-link", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const id = req.params.id;
+    try {
+      const proj = await memoryService.projects.getProject(id);
+      if (!proj || proj.userId !== uid) return res.status(404).json({ error: "Project not found" });
+      const row = await pool.query(
+        `SELECT token, role, created_at, expires_at FROM project_share_tokens WHERE project_id = $1 LIMIT 1`,
+        [id]
+      );
+      if (!row.rows.length) return res.json({ token: null });
+      const { token, role, created_at, expires_at } = row.rows[0];
+      res.json({ token, role, createdAt: created_at, expiresAt: expires_at });
+    } catch (e: any) {
+      console.error("[project_share] get failed:", e?.message ?? e);
+      res.status(500).json({ error: "Failed to get share link" });
+    }
+  });
+
+  // ─── POST /api/projects/:id/share-link ───────────────────────────────────────
+  // Owner only — generates a token (idempotent: returns existing if one exists).
+  app.post("/api/projects/:id/share-link", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const id = req.params.id;
+    const { role = "viewer" } = req.body ?? {};
+    if (!["viewer", "editor"].includes(role)) return res.status(400).json({ error: "role must be viewer or editor" });
+    try {
+      const proj = await memoryService.projects.getProject(id);
+      if (!proj || proj.userId !== uid) return res.status(404).json({ error: "Project not found" });
+      const existing = await pool.query(
+        `SELECT token, role FROM project_share_tokens WHERE project_id = $1 LIMIT 1`, [id]
+      );
+      if (existing.rows.length) {
+        return res.json({ token: existing.rows[0].token, role: existing.rows[0].role });
+      }
+      const token = randomBytes(18).toString('base64url'); // 24-char URL-safe token
+      await pool.query(
+        `INSERT INTO project_share_tokens (project_id, token, role, created_by) VALUES ($1, $2, $3, $4)`,
+        [id, token, role, uid]
+      );
+      res.status(201).json({ token, role });
+    } catch (e: any) {
+      console.error("[project_share] create failed:", e?.message ?? e);
+      res.status(500).json({ error: "Failed to create share link" });
+    }
+  });
+
+  // ─── DELETE /api/projects/:id/share-link ─────────────────────────────────────
+  // Owner only — revokes the share token so the link stops working.
+  app.delete("/api/projects/:id/share-link", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const id = req.params.id;
+    try {
+      const proj = await memoryService.projects.getProject(id);
+      if (!proj || proj.userId !== uid) return res.status(404).json({ error: "Project not found" });
+      await pool.query(`DELETE FROM project_share_tokens WHERE project_id = $1`, [id]);
+      res.json({ ok: true });
+    } catch (e: any) {
+      console.error("[project_share] revoke failed:", e?.message ?? e);
+      res.status(500).json({ error: "Failed to revoke share link" });
+    }
+  });
+
+  // ─── GET /api/join/:token ────────────────────────────────────────────────────
+  // PUBLIC — no auth required. Returns project preview for the join landing page.
+  app.get("/api/join/:token", async (req: Request, res: Response) => {
+    const { token } = req.params;
+    try {
+      const row = await pool.query(
+        `SELECT pst.project_id, pst.role, pst.expires_at, p.name AS project_name, p.description
+         FROM project_share_tokens pst
+         JOIN projects p ON p.id = pst.project_id
+         WHERE pst.token = $1`,
+        [token]
+      );
+      if (!row.rows.length) return res.status(404).json({ error: "Invalid or expired share link" });
+      const { project_id, role, expires_at, project_name, description } = row.rows[0];
+      if (expires_at && new Date(expires_at) < new Date()) {
+        return res.status(410).json({ error: "This share link has expired" });
+      }
+      res.json({ projectId: project_id, projectName: project_name, description, role });
+    } catch (e: any) {
+      console.error("[project_join] preview failed:", e?.message ?? e);
+      res.status(500).json({ error: "Failed to look up share link" });
+    }
+  });
+
+  // ─── POST /api/join/:token/accept ────────────────────────────────────────────
+  // AUTHENTICATED — adds the calling user as a project member and returns projectId.
+  app.post("/api/join/:token/accept", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const { token } = req.params;
+    try {
+      const row = await pool.query(
+        `SELECT pst.project_id, pst.role, pst.expires_at, p.user_id AS owner_id
+         FROM project_share_tokens pst
+         JOIN projects p ON p.id = pst.project_id
+         WHERE pst.token = $1`,
+        [token]
+      );
+      if (!row.rows.length) return res.status(404).json({ error: "Invalid or expired share link" });
+      const { project_id, role, expires_at, owner_id } = row.rows[0];
+      if (expires_at && new Date(expires_at) < new Date()) {
+        return res.status(410).json({ error: "This share link has expired" });
+      }
+      if (owner_id === uid) {
+        return res.json({ projectId: project_id, alreadyMember: true });
+      }
+      await pool.query(
+        `INSERT INTO project_members (project_id, user_id, role, invited_by)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (project_id, user_id) DO UPDATE SET role = EXCLUDED.role`,
+        [project_id, uid, role, owner_id]
+      );
+      res.json({ projectId: project_id, role });
+    } catch (e: any) {
+      console.error("[project_join] accept failed:", e?.message ?? e);
+      res.status(500).json({ error: "Failed to join project" });
     }
   });
 }

@@ -140,6 +140,10 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   const [shareRole, setShareRole] = useState<"viewer" | "editor">("viewer")
   const [inviting, setInviting] = useState(false)
   const [inviteError, setInviteError] = useState<string | null>(null)
+  // Share link
+  const [shareToken, setShareToken] = useState<string | null>(null)
+  const [shareLinkLoading, setShareLinkLoading] = useState(false)
+  const [shareLinkCopied, setShareLinkCopied] = useState(false)
 
   // Project lifecycle dialogs
   const [renameOpen, setRenameOpen] = useState(false)
@@ -188,6 +192,46 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   }, [projectId])
 
   useEffect(() => { loadMembers() }, [loadMembers])
+
+  // Load existing share token (owner only — 404 is fine for non-owners)
+  useEffect(() => {
+    if (!isOwner) return
+    fetch(`/api/projects/${projectId}/share-link`, { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.token) setShareToken(data.token) })
+      .catch(() => {})
+  }, [projectId, isOwner])
+
+  const handleGenerateShareLink = async () => {
+    setShareLinkLoading(true)
+    try {
+      const r = await fetch(`/api/projects/${projectId}/share-link`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ role: "viewer" }),
+      })
+      const data = await r.json()
+      if (r.ok) setShareToken(data.token)
+    } catch { /* ignore */ }
+    finally { setShareLinkLoading(false) }
+  }
+
+  const handleRevokeShareLink = async () => {
+    try {
+      await fetch(`/api/projects/${projectId}/share-link`, { method: "DELETE", credentials: "include" })
+      setShareToken(null)
+    } catch { /* ignore */ }
+  }
+
+  const handleCopyShareLink = () => {
+    if (!shareToken) return
+    const link = `${window.location.origin}/join/${shareToken}`
+    navigator.clipboard.writeText(link).then(() => {
+      setShareLinkCopied(true)
+      setTimeout(() => setShareLinkCopied(false), 2000)
+    })
+  }
 
   const handleInvite = async () => {
     if (!shareEmail.trim()) return
@@ -743,6 +787,50 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
               <Users className="w-3.5 h-3.5 text-muted-foreground" />
               <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground">Shared with</h4>
             </div>
+
+            {/* Share link — owner only */}
+            {isOwner && (
+              <div className="mb-3 p-2.5 rounded-md bg-muted/40 border border-border">
+                <p className="text-xs font-medium mb-1.5">Invite link</p>
+                {shareToken ? (
+                  <div className="space-y-1.5">
+                    <div className="flex gap-1.5">
+                      <input
+                        readOnly
+                        value={`${window.location.origin}/join/${shareToken}`}
+                        className="flex-1 h-7 text-xs rounded border border-border bg-background px-2 font-mono truncate focus:outline-none"
+                        data-testid="input-share-link"
+                        onClick={e => (e.target as HTMLInputElement).select()}
+                      />
+                      <Button
+                        size="sm" variant="outline" className="h-7 text-xs px-2 shrink-0"
+                        onClick={handleCopyShareLink}
+                        data-testid="button-copy-share-link"
+                      >
+                        {shareLinkCopied ? "Copied!" : "Copy"}
+                      </Button>
+                    </div>
+                    <button
+                      className="text-xs text-muted-foreground hover:text-destructive"
+                      onClick={handleRevokeShareLink}
+                      data-testid="button-revoke-share-link"
+                    >
+                      Revoke link
+                    </button>
+                  </div>
+                ) : (
+                  <Button
+                    size="sm" variant="outline" className="h-7 text-xs w-full gap-1.5"
+                    onClick={handleGenerateShareLink}
+                    disabled={shareLinkLoading}
+                    data-testid="button-generate-share-link"
+                  >
+                    {shareLinkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ExternalLink className="w-3 h-3" />}
+                    Generate share link
+                  </Button>
+                )}
+              </div>
+            )}
 
             {isOwner && (
               <div className="space-y-2 mb-3">
