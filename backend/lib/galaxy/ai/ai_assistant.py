@@ -4747,21 +4747,47 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
     # =========================================================================
 
     def _http_get_json(self, url: str, headers: Optional[Dict] = None) -> Optional[Dict]:
-        """Shared HTTP GET helper that returns parsed JSON or None on error."""
+        """Shared HTTP GET helper that returns parsed JSON or None on error.
+
+        Results are cached in-process with a TTL. External reference lookups
+        (UniProt/PDB/AlphaFold/KEGG/Ensembl/STRING/ChEBI/ChEMBL/InterPro) are
+        near-static, so caching cuts repeat latency and avoids the 10s-timeout-
+        bounded network round-trip on a cache hit. Only successful responses are
+        cached (failures retry); the cache is size-bounded to stay memory-safe.
+        """
+        import time as _time
         import urllib.request
         import urllib.error
         import json as _json
+
+        cache = getattr(self, '_ref_http_cache', None)
+        if cache is None:
+            cache = self._ref_http_cache = {}
+        ttl = getattr(self, '_ref_http_cache_ttl', 21600)  # 6h — reference data is near-static
+        now = _time.time()
+        key = url if not headers else url + '|' + repr(sorted(headers.items()))
+        hit = cache.get(key)
+        if hit is not None and (now - hit[0]) < ttl:
+            return hit[1]
+
         default_headers = {'User-Agent': 'BioMate/1.0 (biomate.ai; ai-assistant)'}
         if headers:
             default_headers.update(headers)
         req = urllib.request.Request(url, headers=default_headers)
         try:
             with urllib.request.urlopen(req, timeout=10) as resp:
-                return _json.loads(resp.read().decode())
+                data = _json.loads(resp.read().decode())
         except Exception as e:
             import logging as _log
             _log.getLogger(__name__).debug(f"[DB query] HTTP GET failed for {url}: {e}")
             return None
+
+        # Cache only successful responses; bound memory by evicting the oldest half.
+        if len(cache) >= 512:
+            for k in sorted(cache, key=lambda kk: cache[kk][0])[:256]:
+                cache.pop(k, None)
+        cache[key] = (now, data)
+        return data
 
     def _query_uniprot(self, query: str) -> Dict:
         import urllib.parse
