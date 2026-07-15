@@ -1419,13 +1419,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { registerNotesRoutes } = await import("./notes-routes");
   registerNotesRoutes(app);
 
-  // Project Workbench (pinboard) — Stream-A platform. Lets a user pin
-  // output files from any run in a project and render them side-by-side
-  // via the existing step-output-preview renderers. Reuses
-  // project_knowledge with knowledgeType='workbench_pin'.
-  const { registerWorkbenchRoutes } = await import("./workbench-routes");
-  registerWorkbenchRoutes(app);
-
   // Evidence Search — cross-cutting feature. Parses a claim/hypothesis,
   // queries registered evidence datasets in parallel (PubMed,
   // OpenTargets, STRING for v1), LLM-reranks with citations.
@@ -7209,7 +7202,7 @@ ${paramLines || '(none recorded)'}`;
   // Record a correction
   app.post("/api/memory/user/corrections", authenticateToken, async (req, res) => {
     try {
-      await memoryService.users.ensureLtmUser(req.user!.id, (req.user as any).email).catch(() => {});
+      await memoryService.ensureLtmUser(req.user!.id, (req.user as any).email);
       const { sessionId, projectId, suggestedApproach, correctedApproach, workflowContext, userExplanation } = req.body;
       const correction = await memoryService.users.recordCorrection({
         userId: req.user!.id,
@@ -7281,10 +7274,12 @@ ${paramLines || '(none recorded)'}`;
   // Create a new project
   app.post("/api/memory/projects", authenticateToken, async (req, res) => {
     try {
-      // Auto-provision the LTM user record if it doesn't exist yet.
-      // Required when the auth user has never interacted with the memory system
-      // (e.g. eval accounts that were created directly in the auth DB).
-      await memoryService.users.ensureLtmUser(req.user!.id, (req.user as any).email).catch(() => {});
+      // Auto-provision (and reconcile) the LTM user record if it doesn't exist
+      // yet. Required when the auth user has never interacted with the memory
+      // system (e.g. eval accounts created directly in the auth DB) or when the
+      // Galaxy backend already minted an email-keyed row under a random id.
+      // Use the logging wrapper so a provisioning failure is visible, not swallowed.
+      await memoryService.ensureLtmUser(req.user!.id, (req.user as any).email);
       const { name, description, researchGoal, instructions, primaryDomain, organisms, tissueTypes, conditions, dataModalities, category, tags } = req.body;
       const project = await memoryService.projects.createProject({
         userId: req.user!.id,

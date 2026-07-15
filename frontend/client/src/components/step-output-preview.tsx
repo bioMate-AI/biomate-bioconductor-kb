@@ -17,10 +17,9 @@
  */
 
 import { useState, useEffect, useRef } from "react";
-import { Loader2, X, FileText, Download, ZoomIn, ChevronDown, ChevronUp, Laptop, Pin } from "lucide-react";
+import { Loader2, X, FileText, Download, ZoomIn, ChevronDown, ChevronUp, Laptop } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, stripAnsi } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
 import { DensityMapViewer } from "./viewers/density-map-viewer";
 import { FscCurveChart } from "./viewers/fsc-curve-chart";
 import { MotionHistogramChart } from "./viewers/motion-histogram-chart";
@@ -38,75 +37,9 @@ export interface StepOutputPreviewProps {
   file: { name: string; path: string; extension: string };
   onClose: () => void;
   /**
-   * Optional project ID. When provided, a "Pin to Workbench" button appears
-   * in the preview header and POSTs the file to
-   * /api/projects/:projectId/workbench/pins. If absent, the button is hidden
-   * (silently no-op — callers without project context still get a working preview).
+   * Optional project ID threaded through from callers with project context.
    */
   projectId?: string | null;
-}
-
-// ---------------------------------------------------------------------------
-// PinToWorkbenchButton — header affordance that POSTs the active file to the
-// project's workbench pin list. Hidden when projectId is absent.
-// ---------------------------------------------------------------------------
-
-export function PinToWorkbenchButton({
-  runId, file, projectId,
-}: {
-  runId: string;
-  file: { name: string; path: string; extension: string };
-  projectId?: string | null;
-}) {
-  const [pinning, setPinning] = useState(false);
-  const { toast } = useToast();
-  if (!projectId) return null;
-
-  const onPin = async () => {
-    if (pinning) return;
-    setPinning(true);
-    try {
-      const res = await fetch(`/api/projects/${projectId}/workbench/pins`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          runId,
-          filePath: file.path,
-          fileName: file.name,
-        }),
-      });
-      if (!res.ok) {
-        const txt = await res.text().catch(() => "");
-        throw new Error(`HTTP ${res.status}${txt ? `: ${txt}` : ""}`);
-      }
-      toast({ title: "Pinned to Workbench", description: file.name });
-    } catch (e: any) {
-      toast({
-        title: "Pin failed",
-        description: e?.message ?? "Could not pin file",
-        variant: "destructive",
-      });
-    } finally {
-      setPinning(false);
-    }
-  };
-
-  return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="h-6 px-1.5 shrink-0 gap-1 text-[11px]"
-      onClick={onPin}
-      disabled={pinning}
-      aria-label="Pin to Workbench"
-      data-testid="button-pin-to-workbench"
-      title="Pin to Workbench"
-    >
-      <Pin className="h-3.5 w-3.5" />
-      {pinning ? "Pinning…" : "Pin"}
-    </Button>
-  );
 }
 
 interface FetchedContent {
@@ -461,7 +394,6 @@ function DensityPreview({ runId, file, onClose, projectId }: StepOutputPreviewPr
           <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <PinToWorkbenchButton runId={runId} file={file} projectId={projectId} />
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
             <X className="h-3.5 w-3.5" />
           </Button>
@@ -527,7 +459,6 @@ function RObjectPreview({ runId, file, onClose, projectId }: StepOutputPreviewPr
           <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <PinToWorkbenchButton runId={runId} file={file} projectId={projectId} />
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
             <X className="h-3.5 w-3.5" />
           </Button>
@@ -650,7 +581,6 @@ function CryoChartPreview({ runId, file, onClose, projectId, chartType }: StepOu
       <div className="flex items-center justify-between mb-2 gap-2 px-1">
         <span className="text-xs font-mono font-medium truncate">{file.name}</span>
         <div className="flex items-center gap-1 shrink-0">
-          <PinToWorkbenchButton runId={runId} file={file} projectId={projectId} />
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose}>
             <X className="h-3.5 w-3.5" />
           </Button>
@@ -759,7 +689,6 @@ function FetchingPreview({
           <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <PinToWorkbenchButton runId={runId} file={file} projectId={projectId} />
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
             <X className="h-3.5 w-3.5" />
           </Button>

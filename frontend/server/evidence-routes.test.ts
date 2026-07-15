@@ -1,7 +1,7 @@
 /**
  * Evidence Search source-level contract tests.
  *
- * Same shape as notes-routes.test.ts / workbench-routes.test.ts —
+ * Same shape as notes-routes.test.ts —
  * lock in the policy invariants (auth, validation, caching, cost
  * caps, failure containment) without booting Postgres or making
  * real HTTP calls. The dispatcher functions (queryPubMed,
