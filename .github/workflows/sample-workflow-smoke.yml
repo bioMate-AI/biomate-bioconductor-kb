@@ -54,6 +54,12 @@ jobs:
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    # Required: the GitHubActionsDeploy OIDC trust policy only allows
+    # sub=repo:bioMate-AI/biomate:environment:test, so this job must run in the
+    # `test` environment (same as deploy.yml) to assume the role.
+    environment:
+      name: test
+      url: http://stage-public.biomate.ai
     steps:
       - name: Checkout
         uses: actions/checkout@v4
