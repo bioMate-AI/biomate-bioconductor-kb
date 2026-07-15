@@ -1538,3 +1538,433 @@
   disqualified: [scfv_antibody_design]
   confusable_with: structural_biology
   notes: "VHH-VHH fusion + albumin half-life extension → bispecific format=nanobody_fusion; not single scFv design"
+
+# =========================================================
+# DOMAIN 12: SINGLE-CELL (additional, 15 queries)
+# Source: BioMate DB — scrnaseq, scdownstream, scrna_doublet_qc,
+#         scrnaseq_standard_endtoend, scrnaseq_trajectory_pseudotime,
+#         hadge, scnanoseq
+# =========================================================
+
+- id: sc2_001
+  query: "End-to-end 10X single-cell RNA-seq: raw FASTQ to annotated cell types with UMAP"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: scrnaseq_standard_endtoend
+  acceptable_alts: [nf-core/scrnaseq]
+  disqualified: []
+  notes: "Full pipeline FASTQ → count matrix → cell type annotation → iSEE app"
+
+- id: sc2_002
+  query: "I have a pre-quantified scRNA-seq count matrix (h5ad). Cluster cells, detect doublets, and annotate cell types"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: nf-core/scdownstream
+  acceptable_alts: []
+  disqualified: [nf-core/scrnaseq]
+  notes: "scdownstream starts from count matrix not FASTQ; performs QC + doublet detection + clustering + annotation"
+
+- id: sc2_003
+  query: "Remove doublets from my scRNA-seq data — I see hybrid clusters co-expressing T-cell and myeloid markers"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: scrna_doublet_qc
+  acceptable_alts: [nf-core/scdownstream]
+  disqualified: []
+  notes: "Hybrid clusters = doublet artefacts; scrna_doublet_qc uses DoubletFinder + Scrublet"
+
+- id: sc2_004
+  query: "Run pseudotime trajectory analysis on my clustered scRNA-seq data to order cells along a differentiation path"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: scrnaseq_trajectory_pseudotime
+  acceptable_alts: []
+  disqualified: [nf-core/scrnaseq]
+  notes: "Slingshot + tradeSeq pseudotime; requires pre-clustered h5ad input"
+
+- id: sc2_005
+  query: "Align 10X Genomics scRNA-seq reads using STARsolo and produce per-cell count matrices"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: nf-core/scrnaseq
+  acceptable_alts: [scrnaseq_standard_endtoend]
+  disqualified: []
+  notes: "STARsolo is one of scrnaseq's aligners"
+
+- id: sc2_006
+  query: "Demultiplex pooled single-cell samples that were labeled with cell hashing antibodies"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: nf-core/hadge
+  acceptable_alts: []
+  disqualified: [nf-core/scrnaseq]
+  notes: "hadge = cell hashing + genetic demultiplexing for pooled scRNA-seq experiments"
+
+- id: sc2_007
+  query: "Single-cell RNA-seq from Oxford Nanopore long reads using 10X Chromium chemistry"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: nf-core/scnanoseq
+  acceptable_alts: []
+  disqualified: [nf-core/scrnaseq]
+  notes: "scnanoseq is the Nanopore-specific single-cell pipeline"
+
+- id: sc2_008
+  query: "Batch integration of scRNA-seq samples from multiple patients using Harmony, then clustering and UMAP"
+  difficulty: indirect
+  domain: single_cell
+  correct_workflow: nf-core/scdownstream
+  acceptable_alts: [scrnaseq_standard_endtoend]
+  disqualified: []
+  notes: "scdownstream includes batch correction with Harmony + clustering"
+
+- id: sc2_009
+  query: "My single-cell experiment has inflated per-cell gene counts — detect and remove artificial doublets before downstream analysis"
+  difficulty: indirect
+  domain: single_cell
+  correct_workflow: scrna_doublet_qc
+  acceptable_alts: [nf-core/scdownstream]
+  disqualified: []
+  notes: "Inflated counts = doublet artefacts; specialized doublet removal"
+
+- id: sc2_010
+  query: "Differential gene expression along a developmental trajectory in pancreatic beta cell differentiation"
+  difficulty: indirect
+  domain: single_cell
+  correct_workflow: scrnaseq_trajectory_pseudotime
+  acceptable_alts: []
+  disqualified: [nf-core/differentialabundance]
+  notes: "Trajectory-DE with tradeSeq / condiments; NOT static condition comparison"
+
+- id: sc2_011
+  query: "Classify cell types in a tumor microenvironment dataset using a pre-trained cell atlas"
+  difficulty: indirect
+  domain: single_cell
+  correct_workflow: scthi_tme_classification
+  acceptable_alts: [scrnaseq_standard_endtoend]
+  disqualified: []
+  notes: "scdownstream celltypist annotation step"
+
+- id: sc2_012
+  query: "I ran scRNA-seq on bone marrow aspirates — go from raw FASTQ to annotated hematopoietic cell types"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: scrnaseq_standard_endtoend
+  acceptable_alts: [nf-core/scrnaseq]
+  disqualified: []
+  notes: "Full pipeline; scrnaseq_standard_endtoend handles end-to-end including annotation"
+
+- id: sc2_013
+  query: "Filter dead cells by mitochondrial fraction and empty droplets in my scRNA-seq preprocessing"
+  difficulty: indirect
+  domain: single_cell
+  correct_workflow: nf-core/scdownstream
+  acceptable_alts: [scrna_doublet_qc]
+  disqualified: []
+  notes: "QC steps (mitoFrac + emptyDrops) are embedded in scdownstream"
+
+- id: sc2_014
+  query: "Align scRNA-seq FASTQ from a Parse Biosciences SPLiT-seq experiment"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: nf-core/scrnaseq
+  acceptable_alts: []
+  disqualified: []
+  notes: "Parse Bio / SPLiT-seq is one of scrnaseq's supported protocols"
+
+- id: sc2_015
+  query: "I have MARS-seq single-cell data from a sorted cell population — process it to gene expression counts"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: nf-core/marsseq
+  acceptable_alts: [nf-core/scrnaseq]
+  disqualified: []
+  notes: "nf-core/marsseq is the MARS-seq specific pipeline"
+
+# =========================================================
+# DOMAIN 13: SPATIAL OMICS (15 queries)
+# Source: BioMate DB — spatialvi, spatialxe, spatial_visium_banksy,
+#         visium_voyager_spatial_esda, spatial_deconvolution_rctd,
+#         molkart, nf-core/molkart
+# =========================================================
+
+- id: sp_001
+  query: "Process 10x Visium FFPE spatial transcriptomics data from raw FASTQ files with Space Ranger"
+  difficulty: direct
+  domain: spatial_omics
+  correct_workflow: nf-core/spatialvi
+  acceptable_alts: [visium_voyager_spatial_esda]
+  disqualified: []
+  notes: "spatialvi runs Space Ranger → spots + gene expression"
+
+- id: sp_002
+  query: "Find spatially variable genes in my Visium dataset using Moran's I autocorrelation"
+  difficulty: direct
+  domain: spatial_omics
+  correct_workflow: visium_voyager_spatial_esda
+  acceptable_alts: [nf-core/spatialvi]
+  disqualified: []
+  notes: "Voyager implements Moran's I for spatial ESDA"
+
+- id: sp_003
+  query: "Spatial clustering of 10x Visium spots using the BANKSY algorithm to identify tissue domains"
+  difficulty: direct
+  domain: spatial_omics
+  correct_workflow: spatial_visium_banksy
+  acceptable_alts: []
+  disqualified: [nf-core/spatialvi]
+  notes: "BANKSY is a specific spatial clustering algorithm in spatial_visium_banksy"
+
+- id: sp_004
+  query: "Deconvolve bulk cell type proportions from Visium spots using RCTD reference-based deconvolution"
+  difficulty: direct
+  domain: spatial_omics
+  correct_workflow: spatial_deconvolution_rctd
+  acceptable_alts: []
+  disqualified: []
+  notes: "RCTD = Robust Cell Type Decomposition for Visium spots"
+
+- id: sp_005
+  query: "Analyze 10x Xenium in situ spatial transcriptomics data: QC, segmentation, and gene expression"
+  difficulty: direct
+  domain: spatial_omics
+  correct_workflow: nf-core/spatialxe
+  acceptable_alts: []
+  disqualified: [nf-core/spatialvi]
+  notes: "spatialxe is the Xenium-specific pipeline"
+
+- id: sp_006
+  query: "Spatial exploratory data analysis of Visium DLPFC data: Getis-Ord Gi* statistics and MULTISPATI PCA"
+  difficulty: indirect
+  domain: spatial_omics
+  correct_workflow: visium_voyager_spatial_esda
+  acceptable_alts: []
+  disqualified: []
+  notes: "Getis-Ord + MULTISPATI PCA are Voyager functions in visium_voyager_spatial_esda"
+
+- id: sp_007
+  query: "Run Space Ranger on paired tissue image and FASTQ from a fresh-frozen Visium experiment"
+  difficulty: direct
+  domain: spatial_omics
+  correct_workflow: nf-core/spatialvi
+  acceptable_alts: []
+  disqualified: []
+  notes: "spatialvi runs Space Ranger for fresh-frozen Visium"
+
+- id: sp_008
+  query: "Identify spatial domains in brain cortex Visium data using neighborhood graph-based clustering"
+  difficulty: indirect
+  domain: spatial_omics
+  correct_workflow: spatial_visium_banksy
+  acceptable_alts: [nf-core/spatialvi]
+  disqualified: []
+  notes: "Spatial domain identification via BANKSY; cortex layering is a canonical use case"
+
+- id: sp_009
+  query: "Ligand-receptor interaction analysis in tumor microenvironment spatial transcriptomics data"
+  difficulty: indirect
+  domain: spatial_omics
+  correct_workflow: spatial_ligand_receptor_liana
+  acceptable_alts: [nf-core/spatialvi]
+  disqualified: []
+  notes: "L-R interactions often combined with cell type deconvolution in spatial data"
+
+- id: sp_010
+  query: "Bivariate Lee's L cross-correlation between two genes across Visium spots"
+  difficulty: adversarial
+  domain: spatial_omics
+  correct_workflow: visium_voyager_spatial_esda
+  acceptable_alts: []
+  disqualified: [nf-core/spatialvi]
+  confusable_with: single_cell
+  notes: "Lee's L is a Voyager-specific bivariate spatial statistic"
+
+- id: sp_011
+  query: "Process Molecular Cartography spatial in situ transcriptomics data"
+  difficulty: direct
+  domain: spatial_omics
+  correct_workflow: nf-core/molkart
+  acceptable_alts: []
+  disqualified: [nf-core/spatialvi]
+  notes: "molkart is the Molecular Cartography (Resolve Biosciences) pipeline"
+
+- id: sp_012
+  query: "My Visium dataset has multiple tissue sections from different patients — batch-correct and integrate them"
+  difficulty: indirect
+  domain: spatial_omics
+  correct_workflow: nf-core/spatialvi
+  acceptable_alts: [spatial_visium_banksy]
+  disqualified: []
+  notes: "spatialvi supports multi-sample Visium analysis"
+
+- id: sp_013
+  query: "Spatially resolved deconvolution of immune cell types from tumor biopsy Visium data"
+  difficulty: direct
+  domain: spatial_omics
+  correct_workflow: spatial_deconvolution_rctd
+  acceptable_alts: []
+  disqualified: []
+  notes: "RCTD deconvolution for tumor immune microenvironment"
+
+- id: sp_014
+  query: "I want to find co-expressed gene pairs that are also spatially correlated in Visium data"
+  difficulty: adversarial
+  domain: spatial_omics
+  correct_workflow: visium_voyager_spatial_esda
+  acceptable_alts: []
+  disqualified: []
+  confusable_with: transcriptomics
+  notes: "Bivariate spatial statistics (Lee's L) for spatial co-expression"
+
+- id: sp_015
+  query: "Generate a Voyager vignette-style spatial ESDA report with ranked spatially autocorrelated genes"
+  difficulty: direct
+  domain: spatial_omics
+  correct_workflow: visium_voyager_spatial_esda
+  acceptable_alts: []
+  disqualified: []
+  notes: "visium_voyager_spatial_esda produces ranked-genes table by spatial autocorrelation"
+
+# =========================================================
+# DOMAIN 14: MULTI-OMICS (15 queries)
+# Source: BioMate DB — nipalsmcia, scrapper_multimodal_rna_adt_analysis,
+#         cite_seq_preprocessing, nf-core/scdownstream,
+#         scrnaseq_standard_endtoend, nf-core/atacseq
+# =========================================================
+
+- id: mo_001
+  query: "Analyze CITE-seq data: RNA + surface protein (ADT) joint preprocessing and weighted nearest-neighbor integration"
+  difficulty: direct
+  domain: multi_omics
+  correct_workflow: scrapper_multimodal_rna_adt_analysis
+  acceptable_alts: [cite_seq_preprocessing]
+  disqualified: []
+  notes: "CITE-seq RNA+ADT joint analysis with WNN integration"
+
+- id: mo_002
+  query: "Preprocess 10X CITE-seq antibody-derived tag (ADT) counts for surface protein profiling"
+  difficulty: direct
+  domain: multi_omics
+  correct_workflow: cite_seq_preprocessing
+  acceptable_alts: [scrapper_multimodal_rna_adt_analysis]
+  disqualified: []
+  notes: "cite_seq_preprocessing handles ADT count normalization and QC"
+
+- id: mo_003
+  query: "Multi-omics integration of scRNA-seq and scATAC-seq from the same cells using WNN or MOFA"
+  difficulty: direct
+  domain: multi_omics
+  correct_workflow: multiome_rna_atac
+  acceptable_alts: []
+  disqualified: []
+  notes: "NIPALS-MCIA for multi-omics latent factor integration"
+
+- id: mo_004
+  query: "NIPALS MCIA latent factor integration for CITE-seq RNA and protein modalities"
+  difficulty: direct
+  domain: multi_omics
+  correct_workflow: nipalsmcia_single_cell_cite_seq_mcia
+  acceptable_alts: []
+  disqualified: []
+  notes: "nipalsmcia_single_cell_cite_seq_mcia exactly matches NIPALS-MCIA"
+
+- id: mo_005
+  query: "Integrated analysis of single-cell chromatin accessibility (ATAC-seq) and gene expression (RNA-seq) from matched samples"
+  difficulty: indirect
+  domain: multi_omics
+  correct_workflow: multiome_rna_atac
+  acceptable_alts: []
+  disqualified: [nf-core/atacseq]
+  notes: "Multi-omics integration at single-cell level; NIPALS-MCIA handles this"
+
+- id: mo_006
+  query: "Joint dimensionality reduction of paired scRNA + scATAC profiles from 10X Multiome data"
+  difficulty: direct
+  domain: multi_omics
+  correct_workflow: multiome_rna_atac
+  acceptable_alts: []
+  disqualified: []
+  notes: "10X Multiome RNA+ATAC → MCIA joint embedding"
+
+- id: mo_007
+  query: "Merge my scRNA-seq and scATAC-seq datasets from the same experiment and find joint cell clusters"
+  difficulty: indirect
+  domain: multi_omics
+  correct_workflow: multiome_rna_atac
+  acceptable_alts: [nf-core/scdownstream]
+  disqualified: []
+  notes: "Multi-omics joint clustering requires MCIA-style integration"
+
+- id: mo_008
+  query: "Protein and RNA co-embedding from CITE-seq for T cell activation state classification"
+  difficulty: indirect
+  domain: multi_omics
+  correct_workflow: scrapper_multimodal_rna_adt_analysis
+  acceptable_alts: [nipalsmcia_single_cell_cite_seq_mcia]
+  disqualified: []
+  notes: "T cell activation classification from CITE-seq protein + RNA"
+
+- id: mo_009
+  query: "ADT denoising and normalization for surface protein markers in CITE-seq"
+  difficulty: direct
+  domain: multi_omics
+  correct_workflow: cite_seq_preprocessing
+  acceptable_alts: []
+  disqualified: []
+  notes: "ADT preprocessing (CLR normalization, ambient removal)"
+
+- id: mo_010
+  query: "Spatial transcriptomics and scRNA-seq data integration using anchor-based transfer"
+  difficulty: indirect
+  domain: multi_omics
+  correct_workflow: spatial_multiomics_integration
+  acceptable_alts: []
+  disqualified: [nf-core/spatialvi]
+  notes: "Spatial+scRNA integration via multi-omics latent factor methods"
+
+- id: mo_011
+  query: "Multi-omics factor analysis to find shared and modality-specific sources of variation across RNA, ATAC, and protein"
+  difficulty: adversarial
+  domain: multi_omics
+  correct_workflow: nipalsmcia_single_cell_cite_seq_mcia
+  acceptable_alts: []
+  disqualified: []
+  confusable_with: single_cell
+  notes: "MOFA/MCIA for multi-omics factor decomposition"
+
+- id: mo_012
+  query: "Process paired-end bulk ATAC-seq from primary B cells to identify open chromatin regions"
+  difficulty: direct
+  domain: multi_omics
+  correct_workflow: nf-core/atacseq
+  acceptable_alts: []
+  disqualified: [nf-core/cutandrun]
+  notes: "nf-core/atacseq is the standard bulk ATAC-seq pipeline"
+
+- id: mo_013
+  query: "Hi-C contact matrix generation and 3D genome topology analysis from paired-end sequencing"
+  difficulty: direct
+  domain: multi_omics
+  correct_workflow: nf-core/hic
+  acceptable_alts: []
+  disqualified: []
+  notes: "nf-core/hic for 3D genome Hi-C analysis"
+
+- id: mo_014
+  query: "Identify TADs, compartments, and contact domains from Hi-C chromatin conformation capture data"
+  difficulty: indirect
+  domain: multi_omics
+  correct_workflow: nf-core/hic
+  acceptable_alts: []
+  disqualified: [nf-core/chipseq]
+  notes: "TADs/compartments are Hi-C outputs"
+
+- id: mo_015
+  query: "Run joint CITE-seq analysis with 14 surface markers and 3000 genes per cell to identify lymphocyte subsets"
+  difficulty: adversarial
+  domain: multi_omics
+  correct_workflow: scrapper_multimodal_rna_adt_analysis
+  acceptable_alts: [cite_seq_preprocessing]
+  disqualified: []
+  confusable_with: single_cell
+  notes: "Multi-surface-marker CITE-seq → scrapper_multimodal_rna_adt_analysis; adversarial due to single-cell-like framing"

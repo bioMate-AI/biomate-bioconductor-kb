@@ -1174,6 +1174,25 @@ class UnifiedWorkflowSearch:
                 negated.add(first_compact)
         return negated
 
+    def _extract_explicit_pipeline_slug(self, query: str) -> Optional[str]:
+        """Return an nf-core pipeline slug when the user explicitly types 'nf-core/X' or 'nfcore X'.
+
+        Only matches the nf-core path format to avoid false positives from loose word-scanning.
+        Negated slugs (e.g. 'NOT rnaseq') are excluded from the result.
+        """
+        negated = self._extract_negated_pipeline_slugs(query)
+        q = query.lower()
+        found: List[str] = []
+        for m in re.finditer(r"nf[\s\-]?core[/\s]+([a-z][a-z0-9_-]+)", q):
+            slug = self._normalise_pipeline_slug(m.group(1))
+            if slug and slug not in negated:
+                found.append(slug)
+        if not found:
+            return None
+        seen: set = set()
+        unique = [s for s in found if not (s in seen or seen.add(s))]  # type: ignore[func-returns-value]
+        return unique[0] if unique else None
+
     # ------------------------------------------------------------------
     # Dense retrieval — BGE workflow embeddings
     # ------------------------------------------------------------------
