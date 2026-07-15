@@ -60,6 +60,7 @@ env-files/
 frontend/demo_videos/
 frontend/e2e/demo-videos/
 frontend/e2e/demo-videos-v2/
+frontend/e2e/screenshots/
 frontend/.env.test.local
 GCF_*.fna
 GCF_*.fna.*
