@@ -4746,30 +4746,77 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
     # Track 3A — Comprehensive Biological Database Query
     # =========================================================================
 
+    def _get_ref_redis(self):
+        """Lazily return a Redis client for the reference cache, or None if
+        unavailable. Redis lets the cache survive gunicorn worker recycles
+        (~3 min on dev) and be shared across workers. Fully optional — any
+        failure (no REDIS_URL, missing package, unreachable) yields None and the
+        cache degrades to in-process only. Reuses the billing/RunState pattern.
+        """
+        r = getattr(self, '_ref_redis', 'unset')
+        if r != 'unset':
+            return r
+        client = None
+        try:
+            import os as _os
+            url = _os.environ.get('REDIS_URL')
+            if url:
+                import redis as _redis
+                client = _redis.from_url(url, decode_responses=True, socket_timeout=2)
+                client.ping()
+        except Exception:
+            client = None
+        self._ref_redis = client
+        return client
+
     def _cached_fetch(self, key: str, producer, ttl: Optional[int] = None):
         """Run producer() and cache its non-None result under `key` for `ttl`s.
 
-        Shared in-process TTL cache for near-static external reference lookups
-        (GET-JSON, POST-JSON, and raw-text) so repeat lookups skip the network.
-        Only successful (non-None) results are cached (failures retry); the store
-        is size-bounded to stay memory-safe.
+        Two-tier TTL cache for near-static external reference lookups (GET-JSON,
+        POST-JSON, raw-text): in-process first, then Redis (survives worker
+        recycles + shared across workers), then the producer. Only successful
+        (non-None) results are cached (failures retry); the in-process store is
+        size-bounded. Redis is optional and every Redis op falls back silently.
         """
         import time as _time
+        import json as _json
         cache = getattr(self, '_ref_http_cache', None)
         if cache is None:
             cache = self._ref_http_cache = {}
         if ttl is None:
             ttl = getattr(self, '_ref_http_cache_ttl', 21600)  # 6h — reference data is near-static
         now = _time.time()
+
+        # Tier 1: in-process (fastest).
         hit = cache.get(key)
         if hit is not None and (now - hit[0]) < ttl:
             return hit[1]
+
+        # Tier 2: Redis (survives the ~3-min worker recycle; shared across workers).
+        rkey = 'biomate:refcache:' + key
+        rc = self._get_ref_redis()
+        if rc is not None:
+            try:
+                raw = rc.get(rkey)
+                if raw is not None:
+                    val = _json.loads(raw)
+                    cache[key] = (now, val)  # warm the in-process tier
+                    return val
+            except Exception:
+                pass
+
+        # Tier 3: produce, then populate both tiers.
         result = producer()
         if result is not None:  # cache successes only; failures retry next time
             if len(cache) >= 512:
                 for k in sorted(cache, key=lambda kk: cache[kk][0])[:256]:
                     cache.pop(k, None)
             cache[key] = (now, result)
+            if rc is not None:
+                try:
+                    rc.setex(rkey, int(ttl), _json.dumps(result))
+                except Exception:
+                    pass
         return result
 
     def _http_get_json(self, url: str, headers: Optional[Dict] = None) -> Optional[Dict]:

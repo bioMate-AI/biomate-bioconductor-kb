@@ -49,8 +49,17 @@ def check(desc, cond):
         fails += 1
 
 
-obj = types.SimpleNamespace()  # minimal 'self' — method only uses cache attrs
-obj._cached_fetch = types.MethodType(AIAssistant._cached_fetch, obj)  # _http_get_json delegates here
+def _mk(redis_client=None):
+    """Minimal fake 'self' with the cache methods bound. redis_client=None disables
+    Redis (in-process only); pass a fake client to exercise the Redis tier."""
+    o = types.SimpleNamespace()
+    o._ref_redis = redis_client  # set (even to None) => _get_ref_redis skips connection
+    o._cached_fetch = types.MethodType(AIAssistant._cached_fetch, o)
+    o._get_ref_redis = types.MethodType(AIAssistant._get_ref_redis, o)
+    return o
+
+
+obj = _mk()  # Redis disabled -> pure in-process behavior
 
 # 1. First call hits the network once.
 d1 = _http_get_json(obj, "https://ref/a")
@@ -80,7 +89,7 @@ check("failure returns None and is not cached (retries)",
 
 # ── _cached_fetch (the shared helper used by KEGG-text + gnomAD-POST) ──────────
 _cached_fetch = AIAssistant._cached_fetch
-obj2 = types.SimpleNamespace()
+obj2 = _mk()
 
 # 6. Non-None result cached; producer runs once.
 pc = {"n": 0}
@@ -109,6 +118,30 @@ def _empty_producer():
 _cached_fetch(obj2, "k:empty", _empty_producer)
 _cached_fetch(obj2, "k:empty", _empty_producer)
 check("_cached_fetch caches empty list (producer runs once)", ec["n"] == 1)
+
+# ── Redis tier: survives worker recycle / shared across workers ────────────────
+class _FakeRedis:
+    def __init__(self):
+        self.store = {}
+    def get(self, k):
+        return self.store.get(k)
+    def setex(self, k, ttl, v):
+        self.store[k] = v
+    def ping(self):
+        return True
+
+fr = _FakeRedis()
+rp = {"n": 0}
+def _rprod():
+    rp["n"] += 1
+    return {"v": 1}
+
+w1 = _mk(fr)                       # "worker 1": produces once, writes through to Redis
+v1 = w1._cached_fetch("recycle:k", _rprod)
+w2 = _mk(fr)                       # "worker 2": fresh in-process cache (recycled), same Redis
+v2 = w2._cached_fetch("recycle:k", _rprod)
+check("Redis tier survives worker recycle (no re-produce)",
+      rp["n"] == 1 and v1 == v2 == {"v": 1} and "biomate:refcache:recycle:k" in fr.store)
 
 print("ALL CACHE TESTS PASSED" if fails == 0 else f"{fails} CHECK(S) FAILED")
 sys.exit(fails)
