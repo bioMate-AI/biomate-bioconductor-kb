@@ -78,10 +78,14 @@ if not INTERNAL_API_KEY:
         INTERNAL_API_KEY = "dev-insecure-key"
         log.warning("BILLING_DEV_MODE enabled: using insecure default INTERNAL_API_KEY")
     else:
-        raise RuntimeError(
-            "BILLING_INTERNAL_KEY environment variable is required. "
-            "Set it to a strong random key (e.g., openssl rand -base64 32). "
-            "For local development only, set BILLING_DEV_MODE=true to bypass this check."
+        # Do NOT crash the whole Galaxy backend when a billing secret is missing —
+        # that took down search, workflows, everything on a single misconfig.
+        # Degrade: boot, log loudly, and fail billing endpoints CLOSED at request
+        # time (require_internal_key returns 503 while INTERNAL_API_KEY is None).
+        log.error(
+            "BILLING_INTERNAL_KEY is not set — billing internal endpoints are "
+            "DISABLED (fail-closed). Set BILLING_INTERNAL_KEY to enable billing. "
+            "For local development only, set BILLING_DEV_MODE=true."
         )
 
 LAGO_WEBHOOK_SECRET = os.environ.get("LAGO_WEBHOOK_SECRET")
@@ -90,10 +94,13 @@ if not LAGO_WEBHOOK_SECRET:
         LAGO_WEBHOOK_SECRET = "dev-insecure-webhook-secret"
         log.warning("BILLING_DEV_MODE enabled: using insecure default LAGO_WEBHOOK_SECRET")
     else:
-        raise RuntimeError(
-            "LAGO_WEBHOOK_SECRET environment variable is required for webhook signature verification. "
-            "Get this from your Lago account settings. "
-            "For local development only, set BILLING_DEV_MODE=true to bypass this check."
+        # Degrade instead of crashing the backend. Webhook verification fails
+        # CLOSED while the secret is unset (verify_lago_signature rejects unless
+        # dev mode) — see the verify function below.
+        log.error(
+            "LAGO_WEBHOOK_SECRET is not set — Lago webhook verification is DISABLED "
+            "and webhooks will be REJECTED (fail-closed). Set LAGO_WEBHOOK_SECRET to "
+            "enable. For local development only, set BILLING_DEV_MODE=true."
         )
 
 _JWT_SECRET = os.environ.get("JWT_SECRET")
@@ -102,10 +109,13 @@ if not _JWT_SECRET:
         _JWT_SECRET = "dev-insecure-jwt-secret"
         log.warning("BILLING_DEV_MODE enabled: JWT validation disabled")
     else:
-        raise RuntimeError(
-            "JWT_SECRET environment variable is required for user authentication. "
-            "This should match the secret used by your auth service. "
-            "For local development only, set BILLING_DEV_MODE=true to bypass this check."
+        # Degrade instead of crashing the backend. User-facing billing endpoints
+        # fail CLOSED at request time (current_user_id returns 503 while
+        # _JWT_SECRET is None) — see current_user_id below.
+        log.error(
+            "JWT_SECRET is not set — user-facing billing endpoints are DISABLED "
+            "(fail-closed). Set JWT_SECRET (matching the auth service) to enable. "
+            "For local development only, set BILLING_DEV_MODE=true."
         )
 _JWT_ALGORITHM = "HS256"
 
@@ -129,6 +139,10 @@ calculator = CostCalculator()
 # ---------------------------------------------------------------------------
 
 def require_internal_key(x_internal_key: Optional[str] = Header(default=None)):
+    if INTERNAL_API_KEY is None:
+        # Key not configured — fail closed (never authenticate against an unset
+        # key) with a clear, ops-actionable status instead of a boot crash.
+        raise HTTPException(status_code=503, detail="Billing not configured (BILLING_INTERNAL_KEY unset)")
     if not x_internal_key or x_internal_key != INTERNAL_API_KEY:
         raise HTTPException(status_code=403, detail="Forbidden")
 
@@ -147,6 +161,10 @@ def current_user_id(authorization: str = Header(...)) -> str:
         if not token:
             raise HTTPException(status_code=401, detail="Empty user_id")
         return token
+    if _JWT_SECRET is None:
+        # Fail closed (and cleanly) when the JWT secret isn't configured — PyJWT
+        # would otherwise raise InvalidKeyError (not caught below) → a 500.
+        raise HTTPException(status_code=503, detail="Billing not configured (JWT_SECRET unset)")
     try:
         payload = _jwt.decode(token, _JWT_SECRET, algorithms=[_JWT_ALGORITHM])
     except _jwt.ExpiredSignatureError:
@@ -1023,7 +1041,9 @@ def _verify_lago_signature(body: bytes, signature: str, timestamp: Optional[str]
         True if signature valid and timestamp recent (< 5 minutes old)
     """
     if not LAGO_WEBHOOK_SECRET:
-        return True  # skip verification in dev mode
+        # Skip verification ONLY in dev mode. In production a missing secret must
+        # NOT accept unverified webhooks — fail closed (reject).
+        return _ALLOW_INSECURE_DEV_MODE
 
     # Verify HMAC signature
     expected = hmac.new(

@@ -69,9 +69,12 @@ export GALAXY_CONFIG_INSTALL_DATABASE_CONNECTION="sqlite:///${SQLITE}"
 export GALAXY_CONFIG_FILE="lib/galaxy/config/sample/galaxy.yml.sample"
 export GALAXY_CONFIG_ENABLE_AI_ASSISTANT="false"
 export BIOMATE_SMOKE_BOOT="1"
-# Bypass the billing-internal-key requirement during smoke (billing_router
-# raises at import time if BILLING_INTERNAL_KEY is unset and dev-mode is off)
-export BILLING_DEV_MODE="${BILLING_DEV_MODE:-true}"
+# Boot with billing UNCONFIGURED on purpose. billing_router no longer raises at
+# import when its secrets are missing — it degrades (boots, then fails billing
+# endpoints closed at request time). Running the smoke without BILLING_DEV_MODE
+# guards that boot-resilience: a reintroduced import-time billing crash fails
+# here. (Override BILLING_DEV_MODE=true locally for the dev-insecure defaults.)
+export BILLING_DEV_MODE="${BILLING_DEV_MODE:-}"
 # Don't reach out to real services on import
 export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-sk-fake-smoke}"
 export OPENAI_API_KEY="${OPENAI_API_KEY:-sk-fake-smoke}"
