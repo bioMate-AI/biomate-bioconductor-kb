@@ -3662,7 +3662,20 @@ Rules:
     };
 
     // Research agent
-    if (actions.needsResearchAgent) {
+    // Skip when the message already contains injected paper content — the LLM has everything
+    // it needs to answer directly. The research agent adds value for external knowledge queries
+    // (database lookups, literature search) but NOT when paper text is already in-context.
+    // Text-reasoning intents (protocol_guidance, data_interpretation, methods_writing,
+    // experiment_design, teaching_explanation) don't need the Python research agent when paper
+    // content is present; the LLM is the stronger reasoner for this task.
+    const _textReasoningIntents = new Set([
+      'protocol_guidance', 'data_interpretation', 'methods_writing',
+      'experiment_design', 'teaching_explanation', 'general_question',
+    ]);
+    const _hasPaperContent = paperContentResult !== null;
+    const _skipResearchAgent = _hasPaperContent && _textReasoningIntents.has(intent.type);
+
+    if (actions.needsResearchAgent && !_skipResearchAgent) {
       log('Routing to research backend');
       // Emit a progress status so the UI shows feedback during the long research query.
       if (onToolEvent) {
@@ -3702,6 +3715,8 @@ Rules:
       } catch (error: any) {
         log('Research query failed: ' + (error.message ?? error.error ?? String(error)));
       }
+    } else if (_skipResearchAgent) {
+      log(`Skipping research agent — paper content (${paperContentResult!.content.length} chars) already in context; LLM will reason directly`);
     }
 
     // Benchmark agent

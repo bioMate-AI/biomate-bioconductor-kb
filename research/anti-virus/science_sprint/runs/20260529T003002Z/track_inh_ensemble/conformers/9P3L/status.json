@@ -1,0 +1,53 @@
+{
+  "run_id": "805cb0a4-7a4c-48fa-a0e6-9adcabcda7cc",
+  "invocation_id": "bbcbddb2-1bea-4c1a-a12a-6b7874c675f4",
+  "status": "failed",
+  "returncode": 1,
+  "outdir": "s3://biomate-nextflow-work/nextflow/outputs/publication-inh-ensemble-top15-9P3L/7d381067",
+  "work_dir": "s3://biomate-nextflow-work/nextflow/work/publication-inh-ensemble-top15-9P3L/805cb0a4-7a4c-48fa-a0e6-9adcabcda7cc",
+  "log_tail": [
+    "May-29 00:41:55.166 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false",
+    "May-29 00:41:55.711 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false",
+    "May-29 00:41:55.718 [main] DEBUG nextflow.Session - Session await > all processes finished",
+    "May-29 00:41:55.922 [PublishDir-3] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'S3TransferManager' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false",
+    "May-29 00:42:04.822 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: awsbatch) - terminating tasks monitor poll loop",
+    "May-29 00:42:04.823 [main] DEBUG nextflow.Session - Session await > all barriers passed",
+    "May-29 00:42:04.823 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)",
+    "May-29 00:42:04.824 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)",
+    "May-29 00:42:04.830 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=1; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=4m 40s; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=4; peakMemory=8 GB; ]",
+    "May-29 00:42:05.244 [main] DEBUG n.cloud.aws.nio.S3FileSystemProvider - S3 upload file from=/tmp/nxf-928604787803650981.dot to=s3://biomate-nextflow-work/nextflow/outputs/publication-inh-ensemble-top15-9P3L/7d381067/pipeline_info/dag.dot",
+    "May-29 00:42:05.455 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.",
+    "May-29 00:42:05.455 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report",
+    "May-29 00:42:06.429 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline",
+    "May-29 00:42:06.695 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file",
+    "May-29 00:42:06.703 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done",
+    "May-29 00:42:06.715 [main] INFO  org.pf4j.AbstractPluginManager - Stop plugin 'nf-amazon@3.4.1'",
+    "May-29 00:42:06.715 [main] DEBUG nextflow.plugin.BasePlugin - Plugin stopped nf-amazon",
+    "May-29 00:42:06.716 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)",
+    "May-29 00:42:06.716 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'S3TransferManager' shutdown completed (hard=false)",
+    "May-29 00:42:06.716 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye"
+  ],
+  "is_batch": true,
+  "s3_output_files": [],
+  "qc_report": null,
+  "qc_gates": [],
+  "started_at": 1780015208.513972,
+  "completed_at": 1780015328.1088915,
+  "duration_s": 119,
+  "completedTasks": 1,
+  "failedTasks": 0,
+  "runningTasks": 0,
+  "totalTasks": 1,
+  "progressPercent": 100,
+  "processes": [
+    {
+      "id": "1",
+      "name": "DOCKING_AUTODOCK_VINA_WORKFLOW:DOCKING_AUTODOCK_VINA (run)",
+      "status": "COMPLETED",
+      "work_dir": "",
+      "task_files": [],
+      "outputs": [],
+      "process": "docking_autodock_vina (run)"
+    }
+  ]
+}

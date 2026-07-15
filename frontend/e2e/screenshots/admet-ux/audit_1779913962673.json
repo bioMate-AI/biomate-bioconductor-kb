@@ -1,0 +1,31 @@
+[
+  {
+    "testId": "AD-0",
+    "workflowName": "ADMET QC profiles API",
+    "runId": null,
+    "startTs": 1779913962673,
+    "endTs": 1779913962673,
+    "finalStatus": "completed",
+    "assertions": [
+      {
+        "name": "/api/qc/profiles responded with profile list",
+        "passed": true,
+        "note": "total=44, admet="
+      },
+      {
+        "name": "admet_standard registered",
+        "passed": false,
+        "note": "missing — gate defaults will be sourced from qc_evaluator.py QC_PROFILES"
+      },
+      {
+        "name": "admet_cns registered (stricter CNS profile)",
+        "passed": false
+      },
+      {
+        "name": "admet_oncology registered (oncology tolerant profile)",
+        "passed": false
+      }
+    ],
+    "screenshots": []
+  }
+]

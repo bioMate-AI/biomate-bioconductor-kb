@@ -391,13 +391,21 @@ export class AuthService {
     const [user] = await db.select().from(users).where(eq(users.email, data.email)).limit(1);
 
     if (!user) {
-      throw new Error('Invalid credentials');
+      // Client-facing message stays generic (do not reveal whether the email
+      // exists). The `code` lets the route log the real reason server-side.
+      throw Object.assign(new Error('Invalid credentials'), { code: 'USER_NOT_FOUND' });
     }
 
     // Verify password
-    const isValidPassword = await bcrypt.compare(data.password, user.password);
+    const hasUsablePassword = !!user.password && user.password.length > 0;
+    const isValidPassword = hasUsablePassword && (await bcrypt.compare(data.password, user.password));
     if (!isValidPassword) {
-      throw new Error('Invalid credentials');
+      // Distinguish "row has no password hash" (e.g. OAuth-created account with
+      // password '') from a genuine password mismatch — both are common causes
+      // of a user who "definitely typed the right password" but can't log in.
+      throw Object.assign(new Error('Invalid credentials'), {
+        code: hasUsablePassword ? 'BAD_PASSWORD' : 'NO_PASSWORD_SET',
+      });
     }
 
     // Trial-expiry policy (2026-06-12): when the 2-week trial has ended

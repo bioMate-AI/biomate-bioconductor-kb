@@ -1,0 +1,61 @@
+{
+  "run_id": "41eb8aec-802a-4499-acac-fbb33d4c4fee",
+  "invocation_id": "41eb8aec-802a-4499-acac-fbb33d4c4fee",
+  "status": "succeeded",
+  "returncode": 0,
+  "outdir": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/56f596e6",
+  "work_dir": "/tmp/nextflow_runs/41eb8aec-802a-4499-acac-fbb33d4c4fee/work",
+  "log_tail": [
+    "Downloading plugin nf-amazon@3.4.1",
+    "Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/docking_autodock_vina/main.nf` [cranky_sax] DSL2 - revision: fd49259465",
+    "[b3/bed33a] Submitted process > DOCKING_AUTODOCK_VINA_WORKFLOW:DOCKING_AUTODOCK_VINA (run)",
+    "Output: [[id:run], /biomate-nextflow-work/nextflow/work/inh-ensemble-20260527-9P3I/41eb8aec-802a-4499-acac-fbb33d4c4fee/b3/bed33ac42a3e76768d571676fb7222/docking_autodock_vina_output.txt]",
+    "ERROR ~ Unexpected error while finalizing task 'DOCKING_AUTODOCK_VINA_WORKFLOW:DOCKING_AUTODOCK_VINA (run)' - cause: No such property: meta for class: nextflow.script.dsl.ProcessDslV1",
+    " -- Check '.nextflow.log' file for details",
+    "WARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.",
+    "WARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info."
+  ],
+  "is_batch": true,
+  "s3_output_files": [
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/56f596e6/pipeline_info/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/56f596e6/pipeline_info/dag.dot",
+      "filename": "dag.dot",
+      "size": 782
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/56f596e6/pipeline_info/report.html",
+      "filename": "report.html",
+      "size": 2947525
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/56f596e6/pipeline_info/timeline.html",
+      "filename": "timeline.html",
+      "size": 251819
+    }
+  ],
+  "completedSteps": 0,
+  "totalSteps": 1,
+  "progressPercent": 100,
+  "processes": [
+    {
+      "id": "pipeline_info",
+      "name": "pipeline_info",
+      "process": "pipeline_info",
+      "step_dir": "pipeline_info",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/56f596e6/pipeline_info/dag.dot",
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/56f596e6/pipeline_info/report.html",
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/56f596e6/pipeline_info/timeline.html"
+      ]
+    }
+  ],
+  "started_at": 1779910169.7870145,
+  "completed_at": 1779910221.6790776,
+  "duration_s": 51
+}

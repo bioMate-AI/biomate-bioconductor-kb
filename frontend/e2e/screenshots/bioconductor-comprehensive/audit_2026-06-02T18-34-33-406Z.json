@@ -1,0 +1,103 @@
+{
+  "suiteId": "bioconductor-comprehensive",
+  "generatedAt": "2026-06-02T18:34:33.406Z",
+  "passed": 1,
+  "total": 2,
+  "runs": [
+    {
+      "testId": "BC-01",
+      "runId": null,
+      "startTs": 1780424685222,
+      "endTs": 1780424828503,
+      "finalStatus": "n/a",
+      "wallTimeSec": null,
+      "steps": [],
+      "rstudio": null,
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true
+        },
+        {
+          "name": "deseq2-matched-in-page",
+          "passed": true,
+          "note": "Page should mention DESeq2 or differential expression"
+        },
+        {
+          "name": "qc-section-hidden-by-default",
+          "passed": true,
+          "note": "QC settings should be hidden until gate edit"
+        },
+        {
+          "name": "phase-cards-rendered",
+          "passed": true,
+          "note": "Found 1 phase-group-* cards"
+        },
+        {
+          "name": "phase-cards-have-status",
+          "passed": true,
+          "note": "1/1 cards had status"
+        },
+        {
+          "name": "run-button-visible",
+          "passed": true
+        },
+        {
+          "name": "param-strip-rendered",
+          "passed": false
+        }
+      ],
+      "screenshots": [
+        "/Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc01_00_ready.png",
+        "/Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc01_01_response.png",
+        "/Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc01_02_card.png",
+        "/Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc01_03_phase_cards.png",
+        "/Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc01_04_run_btn.png"
+      ]
+    },
+    {
+      "testId": "BC-02",
+      "runId": null,
+      "startTs": 1780424829323,
+      "endTs": 1780425030357,
+      "finalStatus": "n/a",
+      "wallTimeSec": null,
+      "steps": [],
+      "rstudio": null,
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true
+        },
+        {
+          "name": "expected-workflow-keywords-in-page",
+          "passed": true,
+          "note": "Expected edger|differential.*expres in page text"
+        },
+        {
+          "name": "phase-cards-rendered",
+          "passed": true,
+          "note": "Found 1 cards"
+        },
+        {
+          "name": "run-button-visible",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "/Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc02_00_ready.png",
+        "/Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc02_01_response.png",
+        "/Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc02_02_card.png",
+        "/Users/kky/biomate/frontend/e2e/screenshots/bioconductor-comprehensive/bc02_03_panel.png"
+      ]
+    }
+  ]
+}

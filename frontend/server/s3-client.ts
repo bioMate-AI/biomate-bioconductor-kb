@@ -1,4 +1,16 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  HeadObjectCommand,
+  ListObjectsV2Command,
+  CreateMultipartUploadCommand,
+  UploadPartCommand,
+  CompleteMultipartUploadCommand,
+  AbortMultipartUploadCommand,
+  GetBucketLocationCommand,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
 
@@ -23,10 +35,21 @@ interface PresignedUploadUrl {
 }
 
 interface MultipartUploadData {
+  // S3-issued upload id (NOT a UUID — required verbatim by every UploadPart and CompleteMultipartUpload call)
   uploadId: string;
+  // Single S3 object key that all parts compose into
   key: string;
+  // Presigned PUT URLs for parts 1..N, in order
   partUrls: string[];
+  // Bytes per part the client must use (S3 requires every non-final part be the same size)
   chunkSize: number;
+  // Total parts the client must upload
+  numParts: number;
+}
+
+interface CompletedPart {
+  PartNumber: number;
+  ETag: string;
 }
 
 export class S3Service {
@@ -61,7 +84,54 @@ export class S3Service {
         accessKeyId,
         secretAccessKey,
       },
+      // For non-presigned SDK calls, if the bucket is actually in another
+      // region the SDK follows the 307 redirect transparently. Presigned
+      // URLs are signed for THIS client's region — see ensureBucketRegion()
+      // which rebuilds the client against the bucket's real region.
+      followRegionRedirects: true,
     });
+    this.configuredRegion = region;
+    this.configuredCredentials = { accessKeyId, secretAccessKey };
+  }
+
+  private configuredRegion: string = 'us-east-1';
+  private configuredCredentials: { accessKeyId: string; secretAccessKey: string } | null = null;
+  private bucketRegionEnsured = false;
+
+  /**
+   * Detect the bucket's real region (one GetBucketLocation, cached) and
+   * rebuild the S3Client against it if it differs from what we were configured
+   * with. Without this, presigned PUT URLs are signed for the wrong endpoint
+   * and the browser PUT fails signature validation after the 307 redirect.
+   *
+   * Called lazily by every method that issues a presigned URL.
+   */
+  private async ensureBucketRegion(): Promise<void> {
+    if (this.bucketRegionEnsured || !this.bucket) return;
+    try {
+      const loc = await this.s3Client.send(
+        new GetBucketLocationCommand({ Bucket: this.bucket })
+      );
+      // AWS legacy quirk: us-east-1 buckets return null/empty LocationConstraint.
+      const actual = loc.LocationConstraint || 'us-east-1';
+      if (actual !== this.configuredRegion && this.configuredCredentials) {
+        console.log(
+          `[S3Service] bucket ${this.bucket} is in ${actual}, ` +
+          `not ${this.configuredRegion} — rebuilding client for presign correctness`
+        );
+        this.s3Client = new S3Client({
+          region: actual,
+          credentials: this.configuredCredentials,
+          followRegionRedirects: true,
+        });
+        this.configuredRegion = actual;
+      }
+    } catch (err) {
+      console.warn('[S3Service] GetBucketLocation failed (continuing with configured region):', err);
+    } finally {
+      // Cache the attempt either way — we don't want to retry on every call.
+      this.bucketRegionEnsured = true;
+    }
   }
 
   /**
@@ -73,6 +143,7 @@ export class S3Service {
     contentType: string,
     expiresIn: number = 3600
   ): Promise<PresignedUploadUrl> {
+    await this.ensureBucketRegion();
     const uploadId = randomUUID();
     const key = `users/${userId}/uploads/${uploadId}-${filename}`;
 
@@ -95,46 +166,102 @@ export class S3Service {
   }
 
   /**
-   * Generate multipart upload URLs for large files (>100MB)
+   * Real S3 multipart upload for files larger than the single-PUT limit.
+   *
+   * Browser then performs:
+   *   1. PUT each chunk to partUrls[i-1] (Blob.slice(start, end))
+   *   2. Capture the ETag header on each 200 response
+   *   3. POST {uploadId, key, parts: [{PartNumber, ETag}, ...]} to
+   *      /api/uploads/multipart/complete to assemble the object.
+   *
+   * If the user cancels or the browser closes, the server can call
+   * abortMultipartUpload(key, uploadId) so S3 stops billing the parts.
+   *
+   * S3 hard limits: every non-final part >= 5 MiB, <= 10,000 parts,
+   * max object 5 TiB. Default 64 MiB chunks → 640 GiB before raising chunkSize.
    */
-  async generateMultipartUploadUrls(
+  async startMultipartUpload(
     userId: string,
     filename: string,
     fileSize: number,
     contentType: string,
-    chunkSize: number = 10 * 1024 * 1024, // 10MB chunks
-    expiresIn: number = 3600
+    chunkSize: number = 64 * 1024 * 1024,
+    expiresIn: number = 6 * 3600
   ): Promise<MultipartUploadData> {
-    const uploadId = randomUUID();
-    const key = `users/${userId}/uploads/${uploadId}-${filename}`;
-
-    // Calculate number of parts
+    if (chunkSize < 5 * 1024 * 1024) {
+      throw new Error('S3 requires chunkSize >= 5 MiB');
+    }
+    await this.ensureBucketRegion();
     const numParts = Math.ceil(fileSize / chunkSize);
-
-    // Note: For full multipart upload support, we'd need to use S3's multipart upload API
-    // For P0, we'll use a simplified approach with multiple PUT requests
-    const partUrls: string[] = [];
-
-    for (let partNumber = 1; partNumber <= numParts; partNumber++) {
-      const partKey = `${key}.part${partNumber}`;
-      const command = new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: partKey,
-        ContentType: contentType,
-        ServerSideEncryption: 'AES256',
-        Tagging: buildTagging(userId, { upload_type: 'user_upload_multipart', part: String(partNumber) }),
-      });
-
-      const partUrl = await getSignedUrl(this.s3Client, command, { expiresIn });
-      partUrls.push(partUrl);
+    if (numParts > 10000) {
+      throw new Error(
+        `File would require ${numParts} parts; S3 caps at 10,000. ` +
+        `Increase chunkSize to at least ${Math.ceil(fileSize / 10000)} bytes.`
+      );
     }
 
-    return {
-      uploadId,
-      key,
-      partUrls,
-      chunkSize,
-    };
+    const objectKey = `users/${userId}/uploads/${randomUUID()}-${filename}`;
+
+    const created = await this.s3Client.send(
+      new CreateMultipartUploadCommand({
+        Bucket: this.bucket,
+        Key: objectKey,
+        ContentType: contentType,
+        ServerSideEncryption: 'AES256',
+        Tagging: buildTagging(userId, { upload_type: 'user_upload_multipart' }),
+      })
+    );
+    const s3UploadId = created.UploadId;
+    if (!s3UploadId) throw new Error('S3 did not return UploadId');
+
+    const partUrls: string[] = [];
+    for (let partNumber = 1; partNumber <= numParts; partNumber++) {
+      const url = await getSignedUrl(
+        this.s3Client,
+        new UploadPartCommand({
+          Bucket: this.bucket,
+          Key: objectKey,
+          UploadId: s3UploadId,
+          PartNumber: partNumber,
+        }),
+        { expiresIn }
+      );
+      partUrls.push(url);
+    }
+
+    return { uploadId: s3UploadId, key: objectKey, partUrls, chunkSize, numParts };
+  }
+
+  /** Assemble the parts into a single S3 object. */
+  async completeMultipartUpload(
+    key: string,
+    uploadId: string,
+    parts: CompletedPart[]
+  ): Promise<{ key: string; bucket: string; location?: string }> {
+    if (!parts.length) throw new Error('completeMultipartUpload: no parts supplied');
+    await this.ensureBucketRegion();
+    const sorted = [...parts].sort((a, b) => a.PartNumber - b.PartNumber);
+    const out = await this.s3Client.send(
+      new CompleteMultipartUploadCommand({
+        Bucket: this.bucket,
+        Key: key,
+        UploadId: uploadId,
+        MultipartUpload: { Parts: sorted },
+      })
+    );
+    return { key, bucket: this.bucket, location: out.Location };
+  }
+
+  /** Abort an in-flight multipart upload (frees S3 from billing the parts). */
+  async abortMultipartUpload(key: string, uploadId: string): Promise<void> {
+    await this.ensureBucketRegion();
+    await this.s3Client.send(
+      new AbortMultipartUploadCommand({
+        Bucket: this.bucket,
+        Key: key,
+        UploadId: uploadId,
+      })
+    );
   }
 
   /**
@@ -144,6 +271,7 @@ export class S3Service {
     key: string,
     expiresIn: number = 3600
   ): Promise<string> {
+    await this.ensureBucketRegion();
     const command = new GetObjectCommand({
       Bucket: this.bucket,
       Key: key,

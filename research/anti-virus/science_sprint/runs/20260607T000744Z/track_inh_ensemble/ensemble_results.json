@@ -1,0 +1,585 @@
+{
+  "meta": {
+    "timestamp": "20260607T000744Z",
+    "baseline_run": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z",
+    "baseline_results": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/post_hts_qc/publication_top20_baseline.json",
+    "pockets_json": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/01_pocket/structure_pockets.json",
+    "box_center": [
+      173.607,
+      208.847,
+      174.042
+    ],
+    "box_size": [
+      20.27508093773169,
+      20.27508093773169,
+      20.27508093773169
+    ],
+    "smiles_list": [
+      "CN1N[C@H](c2ccc(O)cc2)[C@@H]2C(=O)NC(=O)[C@H]21",
+      "NC(=O)NC(=O)c1nc2ccccc2[nH]c1=O",
+      "O=C1N[C@@]2(O)C(=O)c3ccccc3[C@]2(O)N1",
+      "C[C@@H]1CN(C)c2nc3c(c(=O)[nH]c(=O)n3C)n2C1",
+      "Cc1cc2c(cn1)CN(C(=O)[C@@H]1CNC(=O)N1)C2",
+      "O=C(NCCO)c1c(O)[nH]c2ccccc2c1=O",
+      "Cc1cc(N2CC3(CNC(=O)N3C)C2)nc(=N)[nH]1",
+      "O=C1c2ccccc2C[C@H]1n1ccc(O)nc1=O",
+      "Nc1nc(=O)c2c([nH]1)CN(Cc1ccccc1)C2",
+      "CC1=NNc2nc3c(c(=O)[nH]c(=O)n3C)n2[C@@H]1C",
+      "N=c1ccc(C(=O)N2C[C@H](O)[C@@H](F)C2)c[nH]1",
+      "O=C1N[C@@H](c2ccccc2)C(=O)N2C[C@H](O)C[C@@H]12",
+      "O[C@H]1C=CC2=C([C@H](O)c3ccccc32)[C@H]1O",
+      "CN1C(=O)N(C)[C@@]2(O)c3ccccc3C(=O)[C@@]12O",
+      "Cc1c(C(=N)NO)c(O)nc(=O)n1C",
+      "O=C1c2ccccc2C[C@@H]1n1ccc(O)nc1=O",
+      "Nc1nc2cc3[nH]c(N)nc3cc2c(=O)[nH]1",
+      "NNCC(=O)Nc1nc2ccccc2s1",
+      "Cc1cc(C(=O)N[C@H]2CC(=O)NC2=O)c(C)[nH]1",
+      "Cc1cnc(N2C[C@H]3CNC(=O)C[C@H]3C2)[nH]c1=N"
+    ],
+    "n_conformers": 6,
+    "conformers": [
+      {
+        "label": "top_pocket",
+        "source": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/01_pocket/structure_top_pocket.pdb",
+        "deposit_id": null
+      },
+      {
+        "label": "9P3I",
+        "source": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260607T000744Z/track_inh_ensemble/receptors/9P3I.pdb",
+        "deposit_id": "9P3I"
+      },
+      {
+        "label": "9P3Y",
+        "source": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260607T000744Z/track_inh_ensemble/receptors/9P3Y.pdb",
+        "deposit_id": "9P3Y"
+      },
+      {
+        "label": "9P3X",
+        "source": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260607T000744Z/track_inh_ensemble/receptors/9P3X.pdb",
+        "deposit_id": "9P3X"
+      },
+      {
+        "label": "9P3L",
+        "source": "/home/yzhang/biomate/research/anti-virus/structures/9P3L.cif",
+        "deposit_id": "9P3L"
+      },
+      {
+        "label": "9P3M",
+        "source": "/home/yzhang/biomate/research/anti-virus/structures/9P3M.cif",
+        "deposit_id": "9P3M"
+      }
+    ],
+    "dry_run": false
+  },
+  "conformer_runs": [
+    {
+      "label": "9P3I",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/20260507/9P3I.pdb",
+      "run_id": "f0bc436d-c75e-4f6b-938a-c83991501dc9",
+      "status": "succeeded",
+      "error": null,
+      "results_path": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260607T000744Z/track_inh_ensemble/conformers/9P3I/docking_autodock_vina_results.json",
+      "by_smiles": {
+        "CN1N[C@H](c2ccc(O)cc2)[C@@H]2C(=O)NC(=O)[C@H]21": -6.759,
+        "NC(=O)NC(=O)c1nc2ccccc2[nH]c1=O": -6.878,
+        "O=C1N[C@@]2(O)C(=O)c3ccccc3[C@]2(O)N1": -6.851,
+        "C[C@@H]1CN(C)c2nc3c(c(=O)[nH]c(=O)n3C)n2C1": -4.815,
+        "Cc1cc2c(cn1)CN(C(=O)[C@@H]1CNC(=O)N1)C2": -6.75,
+        "O=C(NCCO)c1c(O)[nH]c2ccccc2c1=O": -6.102,
+        "Cc1cc(N2CC3(CNC(=O)N3C)C2)nc(=N)[nH]1": -6.792,
+        "O=C1c2ccccc2C[C@H]1n1ccc(O)nc1=O": -5.943,
+        "Nc1nc(=O)c2c([nH]1)CN(Cc1ccccc1)C2": -6.11,
+        "CC1=NNc2nc3c(c(=O)[nH]c(=O)n3C)n2[C@@H]1C": -5.748,
+        "N=c1ccc(C(=O)N2C[C@H](O)[C@@H](F)C2)c[nH]1": -6.569,
+        "O=C1N[C@@H](c2ccccc2)C(=O)N2C[C@H](O)C[C@@H]12": -5.423,
+        "O[C@H]1C=CC2=C([C@H](O)c3ccccc32)[C@H]1O": -6.595,
+        "CN1C(=O)N(C)[C@@]2(O)c3ccccc3C(=O)[C@@]12O": -5.792,
+        "Cc1c(C(=N)NO)c(O)nc(=O)n1C": -6.489,
+        "O=C1c2ccccc2C[C@@H]1n1ccc(O)nc1=O": -6.3,
+        "Nc1nc2cc3[nH]c(N)nc3cc2c(=O)[nH]1": -6.494,
+        "NNCC(=O)Nc1nc2ccccc2s1": -6.51,
+        "Cc1cc(C(=O)N[C@H]2CC(=O)NC2=O)c(C)[nH]1": -6.475,
+        "Cc1cnc(N2C[C@H]3CNC(=O)C[C@H]3C2)[nH]c1=N": -6.028
+      },
+      "deposit_id": "9P3I"
+    },
+    {
+      "label": "9P3L",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260527T195530Z/9P3L.pdb",
+      "run_id": "37c3f9ae-9269-4c20-8176-7c51dbf5ab8b",
+      "status": "succeeded",
+      "error": null,
+      "results_path": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260607T000744Z/track_inh_ensemble/conformers/9P3L/docking_autodock_vina_results.json",
+      "by_smiles": {
+        "CN1N[C@H](c2ccc(O)cc2)[C@@H]2C(=O)NC(=O)[C@H]21": -4.655,
+        "NC(=O)NC(=O)c1nc2ccccc2[nH]c1=O": -4.569,
+        "O=C1N[C@@]2(O)C(=O)c3ccccc3[C@]2(O)N1": -4.253,
+        "C[C@@H]1CN(C)c2nc3c(c(=O)[nH]c(=O)n3C)n2C1": -4.154,
+        "Cc1cc2c(cn1)CN(C(=O)[C@@H]1CNC(=O)N1)C2": -4.551,
+        "O=C(NCCO)c1c(O)[nH]c2ccccc2c1=O": -4.376,
+        "Cc1cc(N2CC3(CNC(=O)N3C)C2)nc(=N)[nH]1": -4.476,
+        "O=C1c2ccccc2C[C@H]1n1ccc(O)nc1=O": -4.477,
+        "Nc1nc(=O)c2c([nH]1)CN(Cc1ccccc1)C2": -5.101,
+        "CC1=NNc2nc3c(c(=O)[nH]c(=O)n3C)n2[C@@H]1C": -4.203,
+        "N=c1ccc(C(=O)N2C[C@H](O)[C@@H](F)C2)c[nH]1": -4.021,
+        "O=C1N[C@@H](c2ccccc2)C(=O)N2C[C@H](O)C[C@@H]12": -4.709,
+        "O[C@H]1C=CC2=C([C@H](O)c3ccccc32)[C@H]1O": -4.414,
+        "CN1C(=O)N(C)[C@@]2(O)c3ccccc3C(=O)[C@@]12O": -4.531,
+        "Cc1c(C(=N)NO)c(O)nc(=O)n1C": -3.891,
+        "O=C1c2ccccc2C[C@@H]1n1ccc(O)nc1=O": -4.866,
+        "Nc1nc2cc3[nH]c(N)nc3cc2c(=O)[nH]1": -4.124,
+        "NNCC(=O)Nc1nc2ccccc2s1": -3.982,
+        "Cc1cc(C(=O)N[C@H]2CC(=O)NC2=O)c(C)[nH]1": -4.016,
+        "Cc1cnc(N2C[C@H]3CNC(=O)C[C@H]3C2)[nH]c1=N": -4.677
+      },
+      "deposit_id": "9P3L"
+    },
+    {
+      "label": "9P3M",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260527T195530Z/9P3M.pdb",
+      "run_id": "e348eff6-5b2e-43d2-9147-dce2f01fcd4a",
+      "status": "succeeded",
+      "error": null,
+      "results_path": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260607T000744Z/track_inh_ensemble/conformers/9P3M/docking_autodock_vina_results.json",
+      "by_smiles": {
+        "CN1N[C@H](c2ccc(O)cc2)[C@@H]2C(=O)NC(=O)[C@H]21": -3.819,
+        "NC(=O)NC(=O)c1nc2ccccc2[nH]c1=O": -3.42,
+        "O=C1N[C@@]2(O)C(=O)c3ccccc3[C@]2(O)N1": -3.648,
+        "C[C@@H]1CN(C)c2nc3c(c(=O)[nH]c(=O)n3C)n2C1": -3.547,
+        "Cc1cc2c(cn1)CN(C(=O)[C@@H]1CNC(=O)N1)C2": -3.495,
+        "O=C(NCCO)c1c(O)[nH]c2ccccc2c1=O": -3.463,
+        "Cc1cc(N2CC3(CNC(=O)N3C)C2)nc(=N)[nH]1": -3.342,
+        "O=C1c2ccccc2C[C@H]1n1ccc(O)nc1=O": -4.014,
+        "Nc1nc(=O)c2c([nH]1)CN(Cc1ccccc1)C2": -3.587,
+        "CC1=NNc2nc3c(c(=O)[nH]c(=O)n3C)n2[C@@H]1C": -3.607,
+        "N=c1ccc(C(=O)N2C[C@H](O)[C@@H](F)C2)c[nH]1": -3.554,
+        "O=C1N[C@@H](c2ccccc2)C(=O)N2C[C@H](O)C[C@@H]12": -3.745,
+        "O[C@H]1C=CC2=C([C@H](O)c3ccccc32)[C@H]1O": -3.836,
+        "CN1C(=O)N(C)[C@@]2(O)c3ccccc3C(=O)[C@@]12O": -3.818,
+        "Cc1c(C(=N)NO)c(O)nc(=O)n1C": -3.292,
+        "O=C1c2ccccc2C[C@@H]1n1ccc(O)nc1=O": -4.067,
+        "Nc1nc2cc3[nH]c(N)nc3cc2c(=O)[nH]1": -3.618,
+        "NNCC(=O)Nc1nc2ccccc2s1": -3.392,
+        "Cc1cc(C(=O)N[C@H]2CC(=O)NC2=O)c(C)[nH]1": -3.172,
+        "Cc1cnc(N2C[C@H]3CNC(=O)C[C@H]3C2)[nH]c1=N": -3.795
+      },
+      "deposit_id": "9P3M"
+    },
+    {
+      "label": "9P3X",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260527T195530Z/9P3X.pdb",
+      "run_id": "25e0cb71-084e-478a-bd1a-edbe310eb8ed",
+      "status": "succeeded",
+      "error": null,
+      "results_path": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260607T000744Z/track_inh_ensemble/conformers/9P3X/docking_autodock_vina_results.json",
+      "by_smiles": {
+        "CN1N[C@H](c2ccc(O)cc2)[C@@H]2C(=O)NC(=O)[C@H]21": -3.692,
+        "NC(=O)NC(=O)c1nc2ccccc2[nH]c1=O": -3.628,
+        "O=C1N[C@@]2(O)C(=O)c3ccccc3[C@]2(O)N1": -3.472,
+        "C[C@@H]1CN(C)c2nc3c(c(=O)[nH]c(=O)n3C)n2C1": -3.253,
+        "Cc1cc2c(cn1)CN(C(=O)[C@@H]1CNC(=O)N1)C2": -3.454,
+        "O=C(NCCO)c1c(O)[nH]c2ccccc2c1=O": -3.517,
+        "Cc1cc(N2CC3(CNC(=O)N3C)C2)nc(=N)[nH]1": -3.319,
+        "O=C1c2ccccc2C[C@H]1n1ccc(O)nc1=O": -4.0,
+        "Nc1nc(=O)c2c([nH]1)CN(Cc1ccccc1)C2": -3.665,
+        "CC1=NNc2nc3c(c(=O)[nH]c(=O)n3C)n2[C@@H]1C": -3.727,
+        "N=c1ccc(C(=O)N2C[C@H](O)[C@@H](F)C2)c[nH]1": -3.346,
+        "O=C1N[C@@H](c2ccccc2)C(=O)N2C[C@H](O)C[C@@H]12": -3.896,
+        "O[C@H]1C=CC2=C([C@H](O)c3ccccc32)[C@H]1O": -3.956,
+        "CN1C(=O)N(C)[C@@]2(O)c3ccccc3C(=O)[C@@]12O": -3.605,
+        "Cc1c(C(=N)NO)c(O)nc(=O)n1C": -2.891,
+        "O=C1c2ccccc2C[C@@H]1n1ccc(O)nc1=O": -3.996,
+        "Nc1nc2cc3[nH]c(N)nc3cc2c(=O)[nH]1": -3.39,
+        "NNCC(=O)Nc1nc2ccccc2s1": -2.815,
+        "Cc1cc(C(=O)N[C@H]2CC(=O)NC2=O)c(C)[nH]1": -3.407,
+        "Cc1cnc(N2C[C@H]3CNC(=O)C[C@H]3C2)[nH]c1=N": -3.591
+      },
+      "deposit_id": "9P3X"
+    },
+    {
+      "label": "9P3Y",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260527T195530Z/9P3Y.pdb",
+      "run_id": "085afd20-e5e6-41ab-8f10-7c378a906bfd",
+      "status": "succeeded",
+      "error": null,
+      "results_path": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260607T000744Z/track_inh_ensemble/conformers/9P3Y/docking_autodock_vina_results.json",
+      "by_smiles": {
+        "CN1N[C@H](c2ccc(O)cc2)[C@@H]2C(=O)NC(=O)[C@H]21": -5.128,
+        "NC(=O)NC(=O)c1nc2ccccc2[nH]c1=O": -7.483,
+        "O=C1N[C@@]2(O)C(=O)c3ccccc3[C@]2(O)N1": -5.81,
+        "C[C@@H]1CN(C)c2nc3c(c(=O)[nH]c(=O)n3C)n2C1": -6.109,
+        "Cc1cc2c(cn1)CN(C(=O)[C@@H]1CNC(=O)N1)C2": -6.459,
+        "O=C(NCCO)c1c(O)[nH]c2ccccc2c1=O": -6.787,
+        "Cc1cc(N2CC3(CNC(=O)N3C)C2)nc(=N)[nH]1": -5.381,
+        "O=C1c2ccccc2C[C@H]1n1ccc(O)nc1=O": -6.826,
+        "Nc1nc(=O)c2c([nH]1)CN(Cc1ccccc1)C2": -6.473,
+        "CC1=NNc2nc3c(c(=O)[nH]c(=O)n3C)n2[C@@H]1C": -6.5,
+        "N=c1ccc(C(=O)N2C[C@H](O)[C@@H](F)C2)c[nH]1": -6.794,
+        "O=C1N[C@@H](c2ccccc2)C(=O)N2C[C@H](O)C[C@@H]12": -7.562,
+        "O[C@H]1C=CC2=C([C@H](O)c3ccccc32)[C@H]1O": -7.375,
+        "CN1C(=O)N(C)[C@@]2(O)c3ccccc3C(=O)[C@@]12O": -5.25,
+        "Cc1c(C(=N)NO)c(O)nc(=O)n1C": -6.055,
+        "O=C1c2ccccc2C[C@@H]1n1ccc(O)nc1=O": -6.579,
+        "Nc1nc2cc3[nH]c(N)nc3cc2c(=O)[nH]1": -6.445,
+        "NNCC(=O)Nc1nc2ccccc2s1": -6.085,
+        "Cc1cc(C(=O)N[C@H]2CC(=O)NC2=O)c(C)[nH]1": -6.226,
+        "Cc1cnc(N2C[C@H]3CNC(=O)C[C@H]3C2)[nH]c1=N": -6.61
+      },
+      "deposit_id": "9P3Y"
+    },
+    {
+      "label": "top_pocket",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/20260514/9P3I_top_pocket_only.pdb",
+      "run_id": "a88016df-35da-4718-99e7-05b19edc47e4",
+      "status": "succeeded",
+      "error": null,
+      "results_path": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260607T000744Z/track_inh_ensemble/conformers/top_pocket/docking_autodock_vina_results.json",
+      "by_smiles": {
+        "CN1N[C@H](c2ccc(O)cc2)[C@@H]2C(=O)NC(=O)[C@H]21": -0.534,
+        "NC(=O)NC(=O)c1nc2ccccc2[nH]c1=O": -0.377,
+        "O=C1N[C@@]2(O)C(=O)c3ccccc3[C@]2(O)N1": -0.479,
+        "C[C@@H]1CN(C)c2nc3c(c(=O)[nH]c(=O)n3C)n2C1": -0.332,
+        "Cc1cc2c(cn1)CN(C(=O)[C@@H]1CNC(=O)N1)C2": -0.379,
+        "O=C(NCCO)c1c(O)[nH]c2ccccc2c1=O": -0.359,
+        "Cc1cc(N2CC3(CNC(=O)N3C)C2)nc(=N)[nH]1": -0.33,
+        "O=C1c2ccccc2C[C@H]1n1ccc(O)nc1=O": -0.503,
+        "Nc1nc(=O)c2c([nH]1)CN(Cc1ccccc1)C2": -0.451,
+        "CC1=NNc2nc3c(c(=O)[nH]c(=O)n3C)n2[C@@H]1C": -0.316,
+        "N=c1ccc(C(=O)N2C[C@H](O)[C@@H](F)C2)c[nH]1": -0.445,
+        "O=C1N[C@@H](c2ccccc2)C(=O)N2C[C@H](O)C[C@@H]12": -0.453,
+        "O[C@H]1C=CC2=C([C@H](O)c3ccccc32)[C@H]1O": -0.507,
+        "CN1C(=O)N(C)[C@@]2(O)c3ccccc3C(=O)[C@@]12O": -0.535,
+        "Cc1c(C(=N)NO)c(O)nc(=O)n1C": -0.289,
+        "O=C1c2ccccc2C[C@@H]1n1ccc(O)nc1=O": -0.501,
+        "Nc1nc2cc3[nH]c(N)nc3cc2c(=O)[nH]1": -0.341,
+        "NNCC(=O)Nc1nc2ccccc2s1": -0.323,
+        "Cc1cc(C(=O)N[C@H]2CC(=O)NC2=O)c(C)[nH]1": -0.351,
+        "Cc1cnc(N2C[C@H]3CNC(=O)C[C@H]3C2)[nH]c1=N": -0.329
+      },
+      "deposit_id": null
+    }
+  ],
+  "aggregate": {
+    "n_compounds": 20,
+    "n_improved_vs_baseline": 10,
+    "n_conformers_used": 5,
+    "deposit_only": true,
+    "best_compound": {
+      "smiles": "O=C1N[C@@H](c2ccccc2)C(=O)N2C[C@H](O)C[C@@H]12",
+      "baseline_affinity_kcal_mol": -6.615,
+      "ensemble_best_affinity_kcal_mol": -7.562,
+      "ensemble_best_conformer": "9P3Y",
+      "delta_kcal_mol": -0.9470000000000001,
+      "improved_vs_baseline": true,
+      "per_conformer_affinity_kcal_mol": {
+        "9P3I": -5.423,
+        "9P3L": -4.709,
+        "9P3M": -3.745,
+        "9P3X": -3.896,
+        "9P3Y": -7.562
+      }
+    },
+    "compounds": [
+      {
+        "smiles": "CN1N[C@H](c2ccc(O)cc2)[C@@H]2C(=O)NC(=O)[C@H]21",
+        "baseline_affinity_kcal_mol": -6.952,
+        "ensemble_best_affinity_kcal_mol": -6.759,
+        "ensemble_best_conformer": "9P3I",
+        "delta_kcal_mol": 0.19299999999999962,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -6.759,
+          "9P3L": -4.655,
+          "9P3M": -3.819,
+          "9P3X": -3.692,
+          "9P3Y": -5.128
+        }
+      },
+      {
+        "smiles": "NC(=O)NC(=O)c1nc2ccccc2[nH]c1=O",
+        "baseline_affinity_kcal_mol": -6.878,
+        "ensemble_best_affinity_kcal_mol": -7.483,
+        "ensemble_best_conformer": "9P3Y",
+        "delta_kcal_mol": -0.6049999999999995,
+        "improved_vs_baseline": true,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -6.878,
+          "9P3L": -4.569,
+          "9P3M": -3.42,
+          "9P3X": -3.628,
+          "9P3Y": -7.483
+        }
+      },
+      {
+        "smiles": "O=C1N[C@@]2(O)C(=O)c3ccccc3[C@]2(O)N1",
+        "baseline_affinity_kcal_mol": -6.855,
+        "ensemble_best_affinity_kcal_mol": -6.851,
+        "ensemble_best_conformer": "9P3I",
+        "delta_kcal_mol": 0.004000000000000448,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -6.851,
+          "9P3L": -4.253,
+          "9P3M": -3.648,
+          "9P3X": -3.472,
+          "9P3Y": -5.81
+        }
+      },
+      {
+        "smiles": "C[C@@H]1CN(C)c2nc3c(c(=O)[nH]c(=O)n3C)n2C1",
+        "baseline_affinity_kcal_mol": -6.762,
+        "ensemble_best_affinity_kcal_mol": -6.109,
+        "ensemble_best_conformer": "9P3Y",
+        "delta_kcal_mol": 0.6529999999999996,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -4.815,
+          "9P3L": -4.154,
+          "9P3M": -3.547,
+          "9P3X": -3.253,
+          "9P3Y": -6.109
+        }
+      },
+      {
+        "smiles": "Cc1cc2c(cn1)CN(C(=O)[C@@H]1CNC(=O)N1)C2",
+        "baseline_affinity_kcal_mol": -6.754,
+        "ensemble_best_affinity_kcal_mol": -6.75,
+        "ensemble_best_conformer": "9P3I",
+        "delta_kcal_mol": 0.0039999999999995595,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -6.75,
+          "9P3L": -4.551,
+          "9P3M": -3.495,
+          "9P3X": -3.454,
+          "9P3Y": -6.459
+        }
+      },
+      {
+        "smiles": "O=C(NCCO)c1c(O)[nH]c2ccccc2c1=O",
+        "baseline_affinity_kcal_mol": -6.735,
+        "ensemble_best_affinity_kcal_mol": -6.787,
+        "ensemble_best_conformer": "9P3Y",
+        "delta_kcal_mol": -0.0519999999999996,
+        "improved_vs_baseline": true,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -6.102,
+          "9P3L": -4.376,
+          "9P3M": -3.463,
+          "9P3X": -3.517,
+          "9P3Y": -6.787
+        }
+      },
+      {
+        "smiles": "Cc1cc(N2CC3(CNC(=O)N3C)C2)nc(=N)[nH]1",
+        "baseline_affinity_kcal_mol": -6.72,
+        "ensemble_best_affinity_kcal_mol": -6.792,
+        "ensemble_best_conformer": "9P3I",
+        "delta_kcal_mol": -0.07200000000000006,
+        "improved_vs_baseline": true,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -6.792,
+          "9P3L": -4.476,
+          "9P3M": -3.342,
+          "9P3X": -3.319,
+          "9P3Y": -5.381
+        }
+      },
+      {
+        "smiles": "O=C1c2ccccc2C[C@H]1n1ccc(O)nc1=O",
+        "baseline_affinity_kcal_mol": -6.691,
+        "ensemble_best_affinity_kcal_mol": -6.826,
+        "ensemble_best_conformer": "9P3Y",
+        "delta_kcal_mol": -0.1349999999999998,
+        "improved_vs_baseline": true,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -5.943,
+          "9P3L": -4.477,
+          "9P3M": -4.014,
+          "9P3X": -4.0,
+          "9P3Y": -6.826
+        }
+      },
+      {
+        "smiles": "Nc1nc(=O)c2c([nH]1)CN(Cc1ccccc1)C2",
+        "baseline_affinity_kcal_mol": -6.675,
+        "ensemble_best_affinity_kcal_mol": -6.473,
+        "ensemble_best_conformer": "9P3Y",
+        "delta_kcal_mol": 0.20199999999999996,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -6.11,
+          "9P3L": -5.101,
+          "9P3M": -3.587,
+          "9P3X": -3.665,
+          "9P3Y": -6.473
+        }
+      },
+      {
+        "smiles": "CC1=NNc2nc3c(c(=O)[nH]c(=O)n3C)n2[C@@H]1C",
+        "baseline_affinity_kcal_mol": -6.642,
+        "ensemble_best_affinity_kcal_mol": -6.5,
+        "ensemble_best_conformer": "9P3Y",
+        "delta_kcal_mol": 0.14200000000000035,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -5.748,
+          "9P3L": -4.203,
+          "9P3M": -3.607,
+          "9P3X": -3.727,
+          "9P3Y": -6.5
+        }
+      },
+      {
+        "smiles": "N=c1ccc(C(=O)N2C[C@H](O)[C@@H](F)C2)c[nH]1",
+        "baseline_affinity_kcal_mol": -6.636,
+        "ensemble_best_affinity_kcal_mol": -6.794,
+        "ensemble_best_conformer": "9P3Y",
+        "delta_kcal_mol": -0.15799999999999947,
+        "improved_vs_baseline": true,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -6.569,
+          "9P3L": -4.021,
+          "9P3M": -3.554,
+          "9P3X": -3.346,
+          "9P3Y": -6.794
+        }
+      },
+      {
+        "smiles": "O=C1N[C@@H](c2ccccc2)C(=O)N2C[C@H](O)C[C@@H]12",
+        "baseline_affinity_kcal_mol": -6.615,
+        "ensemble_best_affinity_kcal_mol": -7.562,
+        "ensemble_best_conformer": "9P3Y",
+        "delta_kcal_mol": -0.9470000000000001,
+        "improved_vs_baseline": true,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -5.423,
+          "9P3L": -4.709,
+          "9P3M": -3.745,
+          "9P3X": -3.896,
+          "9P3Y": -7.562
+        }
+      },
+      {
+        "smiles": "O[C@H]1C=CC2=C([C@H](O)c3ccccc32)[C@H]1O",
+        "baseline_affinity_kcal_mol": -6.6,
+        "ensemble_best_affinity_kcal_mol": -7.375,
+        "ensemble_best_conformer": "9P3Y",
+        "delta_kcal_mol": -0.7750000000000004,
+        "improved_vs_baseline": true,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -6.595,
+          "9P3L": -4.414,
+          "9P3M": -3.836,
+          "9P3X": -3.956,
+          "9P3Y": -7.375
+        }
+      },
+      {
+        "smiles": "CN1C(=O)N(C)[C@@]2(O)c3ccccc3C(=O)[C@@]12O",
+        "baseline_affinity_kcal_mol": -6.548,
+        "ensemble_best_affinity_kcal_mol": -5.792,
+        "ensemble_best_conformer": "9P3I",
+        "delta_kcal_mol": 0.7560000000000002,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -5.792,
+          "9P3L": -4.531,
+          "9P3M": -3.818,
+          "9P3X": -3.605,
+          "9P3Y": -5.25
+        }
+      },
+      {
+        "smiles": "Cc1c(C(=N)NO)c(O)nc(=O)n1C",
+        "baseline_affinity_kcal_mol": -6.508,
+        "ensemble_best_affinity_kcal_mol": -6.489,
+        "ensemble_best_conformer": "9P3I",
+        "delta_kcal_mol": 0.019000000000000128,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -6.489,
+          "9P3L": -3.891,
+          "9P3M": -3.292,
+          "9P3X": -2.891,
+          "9P3Y": -6.055
+        }
+      },
+      {
+        "smiles": "O=C1c2ccccc2C[C@@H]1n1ccc(O)nc1=O",
+        "baseline_affinity_kcal_mol": -6.508,
+        "ensemble_best_affinity_kcal_mol": -6.579,
+        "ensemble_best_conformer": "9P3Y",
+        "delta_kcal_mol": -0.07099999999999973,
+        "improved_vs_baseline": true,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -6.3,
+          "9P3L": -4.866,
+          "9P3M": -4.067,
+          "9P3X": -3.996,
+          "9P3Y": -6.579
+        }
+      },
+      {
+        "smiles": "Nc1nc2cc3[nH]c(N)nc3cc2c(=O)[nH]1",
+        "baseline_affinity_kcal_mol": -6.505,
+        "ensemble_best_affinity_kcal_mol": -6.494,
+        "ensemble_best_conformer": "9P3I",
+        "delta_kcal_mol": 0.01100000000000012,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -6.494,
+          "9P3L": -4.124,
+          "9P3M": -3.618,
+          "9P3X": -3.39,
+          "9P3Y": -6.445
+        }
+      },
+      {
+        "smiles": "NNCC(=O)Nc1nc2ccccc2s1",
+        "baseline_affinity_kcal_mol": -6.498,
+        "ensemble_best_affinity_kcal_mol": -6.51,
+        "ensemble_best_conformer": "9P3I",
+        "delta_kcal_mol": -0.011999999999999567,
+        "improved_vs_baseline": true,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -6.51,
+          "9P3L": -3.982,
+          "9P3M": -3.392,
+          "9P3X": -2.815,
+          "9P3Y": -6.085
+        }
+      },
+      {
+        "smiles": "Cc1cc(C(=O)N[C@H]2CC(=O)NC2=O)c(C)[nH]1",
+        "baseline_affinity_kcal_mol": -6.482,
+        "ensemble_best_affinity_kcal_mol": -6.475,
+        "ensemble_best_conformer": "9P3I",
+        "delta_kcal_mol": 0.007000000000000561,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -6.475,
+          "9P3L": -4.016,
+          "9P3M": -3.172,
+          "9P3X": -3.407,
+          "9P3Y": -6.226
+        }
+      },
+      {
+        "smiles": "Cc1cnc(N2C[C@H]3CNC(=O)C[C@H]3C2)[nH]c1=N",
+        "baseline_affinity_kcal_mol": -6.47,
+        "ensemble_best_affinity_kcal_mol": -6.61,
+        "ensemble_best_conformer": "9P3Y",
+        "delta_kcal_mol": -0.14000000000000057,
+        "improved_vs_baseline": true,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -6.028,
+          "9P3L": -4.677,
+          "9P3M": -3.795,
+          "9P3X": -3.591,
+          "9P3Y": -6.61
+        }
+      }
+    ]
+  }
+}

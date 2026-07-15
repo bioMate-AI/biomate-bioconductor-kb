@@ -1,0 +1,22 @@
+{
+  "success": true,
+  "run_id": "41eb8aec-802a-4499-acac-fbb33d4c4fee",
+  "invocation_id": "143bbb95-bb03-441e-a9bb-38913e8f931a",
+  "status": "running",
+  "outputs": {
+    "outdir": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-20260527-9P3I/56f596e6"
+  },
+  "runtime": {
+    "mode": "docker",
+    "image": "biomate/biotools:comprehensive",
+    "entry": null,
+    "required_modules": [
+      "tempfile"
+    ],
+    "missing_modules": [],
+    "host_arch": "arm64",
+    "image_arch": "arm64",
+    "cross_arch_allowed": "false"
+  },
+  "message": "Nextflow workflow started (run_id: 41eb8aec-802a-4499-acac-fbb33d4c4fee)"
+}

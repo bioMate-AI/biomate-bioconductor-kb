@@ -1,0 +1,167 @@
+{
+  "run_id": "066174fb-1915-45e3-8ccc-7fe46b84e51e",
+  "invocation_id": "066174fb-1915-45e3-8ccc-7fe46b84e51e",
+  "status": "failed",
+  "returncode": 1,
+  "outdir": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64",
+  "work_dir": "/tmp/nextflow_runs/066174fb-1915-45e3-8ccc-7fe46b84e51e/work",
+  "log_tail": [
+    "May-29 05:37:52.308 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false",
+    "May-29 05:37:52.836 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false",
+    "May-29 05:37:52.842 [main] DEBUG nextflow.Session - Session await > all processes finished",
+    "May-29 05:37:52.946 [PublishDir-8] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'S3TransferManager' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false",
+    "May-29 05:38:01.999 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: awsbatch) - terminating tasks monitor poll loop",
+    "May-29 05:38:02.000 [main] DEBUG nextflow.Session - Session await > all barriers passed",
+    "May-29 05:38:02.001 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)",
+    "May-29 05:38:02.001 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)",
+    "May-29 05:38:02.007 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=1; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=59.3s; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=4; peakMemory=8 GB; ]",
+    "May-29 05:38:02.447 [main] DEBUG n.cloud.aws.nio.S3FileSystemProvider - S3 upload file from=/tmp/nxf-6823177897587184840.dot to=s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/pipeline_info/dag.dot",
+    "May-29 05:38:02.647 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.",
+    "May-29 05:38:02.648 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report",
+    "May-29 05:38:03.561 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline",
+    "May-29 05:38:03.808 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file",
+    "May-29 05:38:03.812 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done",
+    "May-29 05:38:03.817 [main] INFO  org.pf4j.AbstractPluginManager - Stop plugin 'nf-amazon@3.4.1'",
+    "May-29 05:38:03.817 [main] DEBUG nextflow.plugin.BasePlugin - Plugin stopped nf-amazon",
+    "May-29 05:38:03.818 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)",
+    "May-29 05:38:03.818 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'S3TransferManager' shutdown completed (hard=false)",
+    "May-29 05:38:03.818 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye"
+  ],
+  "is_batch": true,
+  "s3_output_files": [
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/docking_autodock_vina_output.txt",
+      "filename": "docking_autodock_vina_output.txt",
+      "size": 1289
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/docking_autodock_vina_results.json",
+      "filename": "docking_autodock_vina_results.json",
+      "size": 3082
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/docking_poses/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/docking_poses/pose_000.pdbqt",
+      "filename": "pose_000.pdbqt",
+      "size": 15920
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/docking_poses/pose_001.pdbqt",
+      "filename": "pose_001.pdbqt",
+      "size": 16848
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/docking_poses/pose_002.pdbqt",
+      "filename": "pose_002.pdbqt",
+      "size": 18576
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/docking_poses/pose_003.pdbqt",
+      "filename": "pose_003.pdbqt",
+      "size": 18567
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/docking_poses/pose_004.pdbqt",
+      "filename": "pose_004.pdbqt",
+      "size": 14319
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/pipeline_info/",
+      "filename": "",
+      "size": 0
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/pipeline_info/dag.dot",
+      "filename": "dag.dot",
+      "size": 782
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/pipeline_info/report.html",
+      "filename": "report.html",
+      "size": 2951717
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/pipeline_info/timeline.html",
+      "filename": "timeline.html",
+      "size": 251978
+    },
+    {
+      "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/versions.yml",
+      "filename": "versions.yml",
+      "size": 165
+    }
+  ],
+  "completedSteps": 1,
+  "totalSteps": 1,
+  "progressPercent": 100,
+  "processes": [
+    {
+      "id": "docking_autodock_vina_output.txt",
+      "name": "docking_autodock_vina_output.txt",
+      "process": "docking_autodock_vina_output.txt",
+      "step_dir": "docking_autodock_vina_output.txt",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/docking_autodock_vina_output.txt"
+      ]
+    },
+    {
+      "id": "docking_autodock_vina_results.json",
+      "name": "docking_autodock_vina_results.json",
+      "process": "docking_autodock_vina_results.json",
+      "step_dir": "docking_autodock_vina_results.json",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/docking_autodock_vina_results.json"
+      ]
+    },
+    {
+      "id": "docking_poses",
+      "name": "docking_poses",
+      "process": "docking_poses",
+      "step_dir": "docking_poses",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/docking_poses/pose_000.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/docking_poses/pose_001.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/docking_poses/pose_002.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/docking_poses/pose_003.pdbqt",
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/docking_poses/pose_004.pdbqt"
+      ]
+    },
+    {
+      "id": "pipeline_info",
+      "name": "pipeline_info",
+      "process": "pipeline_info",
+      "step_dir": "pipeline_info",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/pipeline_info/dag.dot",
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/pipeline_info/report.html",
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/pipeline_info/timeline.html"
+      ]
+    },
+    {
+      "id": "versions.yml",
+      "name": "versions.yml",
+      "process": "versions.yml",
+      "step_dir": "versions.yml",
+      "status": "completed",
+      "task_files": [
+        "s3://biomate-nextflow-work/nextflow/outputs/inh-ensemble-top5-retry-20260529-9P3Y/b1bcdc64/versions.yml"
+      ]
+    }
+  ],
+  "started_at": 1780032895.9479873,
+  "completed_at": 1780033085.7881672,
+  "duration_s": 189
+}

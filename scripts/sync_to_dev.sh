@@ -8,6 +8,9 @@
 # NOTE: Marketing website (webpage_design_v2/) is NOT synced here.
 #       Use scripts/deploy_marketing.sh instead.
 #
+# NOTE: Marketing website (webpage_design_v2/) is NOT synced here.
+#       Use scripts/deploy_marketing.sh instead.
+#
 # Usage: bash scripts/sync_to_dev.sh
 #
 # As of 2026-05-15 this script is MANUAL-ONLY.
@@ -312,11 +315,27 @@ deploy_galaxy_yml() {
   # galaxy.yml.docker references interactivetools_conf.xml in tool_config_file;
   # Galaxy reads tool_config_file at startup — if the file is missing when gunicorn
   # restarts, Galaxy crashes. Copy it first so both files land before the restart.
+  # (Registers Jupyter, RStudio, CellxGene in Galaxy's tool panel; not covered by
+  # the Python file diff sync.)
   local it_src="$REPO_ROOT/backend/config/interactivetools_conf.xml"
   if [[ -f "$it_src" ]]; then
     ec2_scp "$it_src" "${EC2_USER}@${EC2_HOST}:/tmp/interactivetools_conf.xml"
     ec2_ssh 'docker cp /tmp/interactivetools_conf.xml biomate-galaxy-dev:/app/config/interactivetools_conf.xml'
     log "[galaxy.yml] interactivetools_conf.xml staged"
+  fi
+
+  # Sync llm_providers.yml BEFORE the gunicorn restart too. The LLM fallback
+  # chain (FallbackChainManager) reads /app/config/llm_providers.yml at import;
+  # it controls per-provider retry_attempts + timeout_seconds. NOT covered by
+  # the Python file diff sync (it is a .yml under backend/config/, not backend/lib/),
+  # so without this the container keeps the image-baked config and latency fixes
+  # (retry 2->1, timeout 120->30) never reach dev. Caught 2026-07-10: workflow
+  # generation hung >120s on dev while the fix sat only in llm_providers.yml.
+  local llm_src="$REPO_ROOT/backend/config/llm_providers.yml"
+  if [[ -f "$llm_src" ]]; then
+    ec2_scp "$llm_src" "${EC2_USER}@${EC2_HOST}:/tmp/llm_providers.yml"
+    ec2_ssh 'docker cp /tmp/llm_providers.yml biomate-galaxy-dev:/app/config/llm_providers.yml'
+    log "[galaxy.yml] llm_providers.yml staged"
   fi
 
   ec2_ssh '
@@ -329,16 +348,6 @@ deploy_galaxy_yml() {
     docker exec biomate-galaxy-dev galaxyctl restart gunicorn 2>&1 | tail -1
   '
   log "[galaxy.yml] Done"
-
-  # Sync interactivetools_conf.xml — registers Jupyter, RStudio, CellxGene in Galaxy's tool panel.
-  # This file is synced here (alongside galaxy.yml) because both require a gunicorn restart
-  # and neither is covered by the Python file diff sync.
-  local it_src="$REPO_ROOT/backend/config/interactivetools_conf.xml"
-  if [[ -f "$it_src" ]]; then
-    ec2_scp "$it_src" "${EC2_USER}@${EC2_HOST}:/tmp/interactivetools_conf.xml"
-    ec2_ssh 'docker cp /tmp/interactivetools_conf.xml biomate-galaxy-dev:/app/config/interactivetools_conf.xml'
-    log "[galaxy.yml] interactivetools_conf.xml synced"
-  fi
 }
 
 deploy_backend_python() {
@@ -555,7 +564,13 @@ deploy_databases() {
   # BioMateEc2DeployProfile instance role take over) would restore the
   # S3 path, but that's a separate hardening pass.
   local local_db="$REPO_ROOT/backend/database/galaxy_ai_tools.db"
-  local local_db_mtime=$(stat -f %m "$local_db" 2>/dev/null || stat -c %Y "$local_db" 2>/dev/null || echo 0)
+  # Probe GNU stat first (see comment at L960). BSD `stat -f %m` returns
+  # filesystem info on Linux *without* erroring, so the ||-fallback below
+  # would never engage and the [[ -gt ]] check would die under set -u.
+  local local_db_mtime=$(stat -c %Y "$local_db" 2>/dev/null \
+    || stat -f %m "$local_db" 2>/dev/null \
+    || echo 0)
+  [[ "$local_db_mtime" =~ ^[0-9]+$ ]] || local_db_mtime=0
 
   if [[ "$local_db_mtime" -gt "${LAST_DB_SYNC:-0}" ]]; then
     log "[db] galaxy_ai_tools.db changed ($(du -sh $local_db | cut -f1)) — scp to EC2..."
@@ -1081,7 +1096,7 @@ except Exception as e:
 
 postsync_health_ok() {
   # Probe the dev host's mapped ports; retry to ride out HUP / cold start.
-  # $1 = number of 5s retries (default 48 = 240s).
+  # $1 = number of 5s retries (default 24 = 120s).
   # Prints which port is failing so we can distinguish Galaxy vs Frontend issues.
   local tries="${1:-24}"
   ec2_ssh "
@@ -1180,8 +1195,28 @@ do_sync() {
   sync_logo 2>/dev/null || true
 
   # DB sync is also time-based (if local DB newer than last sync)
-  local local_db_mtime=$(stat -f %m "$REPO_ROOT/backend/database/galaxy_ai_tools.db" 2>/dev/null || stat -c %Y "$REPO_ROOT/backend/database/galaxy_ai_tools.db" 2>/dev/null || echo 0)
+  # stat differs across platforms. GNU/Linux `stat -f %m` returns filesystem
+  # info (multi-line, starts "  File: ..."), it does NOT error — so the
+  # ||-fallback to `stat -c %Y` never runs, and the `[[ "$str" -gt 0 ]]`
+  # below treats "File" as a variable name → set-u unbound-variable death.
+  # Probe Linux first (stat -c) and fall back to BSD/macOS (stat -f).
+  local local_db_mtime=$(stat -c %Y "$REPO_ROOT/backend/database/galaxy_ai_tools.db" 2>/dev/null \
+    || stat -f %m "$REPO_ROOT/backend/database/galaxy_ai_tools.db" 2>/dev/null \
+    || echo 0)
+  # Defensive: if probing produced non-numeric output anyway, treat as 0.
+  [[ "$local_db_mtime" =~ ^[0-9]+$ ]] || local_db_mtime=0
   [[ "$local_db_mtime" -gt "${LAST_DB_SYNC:-0}" ]] && do_db=true
+
+  # Frontend-only override: ship just the frontend layer, leaving the Galaxy
+  # backend + workflow DB exactly as they are on dev. Use when a frontend/Node
+  # change must go out but the backend/DB layers are unchanged or known-bad for
+  # this commit (e.g. a stale workflow DB missing a column the merged backend
+  # queries — which would fail the smoke gate and roll the whole deploy back).
+  # Trigger via BIOMATE_ONLY_FRONTEND=1.
+  if [[ "${BIOMATE_ONLY_FRONTEND:-}" == "1" ]]; then
+    do_backend=false; do_workflows=false; do_db=false
+    log "[layers] BIOMATE_ONLY_FRONTEND=1 → forcing backend/workflows/db OFF (frontend only)"
+  fi
 
   # Diagnostic: log which layers will run (makes silent skips visible in the log)
   log "Layers: frontend=$do_frontend backend=$do_backend workflows=$do_workflows db=$do_db"

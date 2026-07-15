@@ -333,6 +333,24 @@ export class ProjectMemoryRepository {
   }
 
   /**
+   * Delete a single project_knowledge row, scoped to a project so a
+   * caller cannot delete another project's rows by guessing ids.
+   * Returns true if a row was deleted, false otherwise.
+   */
+  async deleteProjectKnowledgeRow(
+    projectId: string,
+    rowId: number
+  ): Promise<boolean> {
+    const deleted = await db.delete(ltmSchema.projectKnowledge)
+      .where(and(
+        eq(ltmSchema.projectKnowledge.id, rowId),
+        eq(ltmSchema.projectKnowledge.projectId, projectId),
+      ))
+      .returning({ id: ltmSchema.projectKnowledge.id });
+    return deleted.length > 0;
+  }
+
+  /**
    * Load complete project context
    */
   async loadProjectContext(projectId: string): Promise<{

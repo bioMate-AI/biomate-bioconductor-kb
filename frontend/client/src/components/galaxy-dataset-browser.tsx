@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { uploadFile as uploadFileShared } from '@/lib/upload';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,19 +83,16 @@ function SessionTab({
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   const uploadFile = async (file: File): Promise<void> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('name', file.name);
-    const res = await fetch('/api/datasets/upload', { method: 'POST', body: formData });
-    if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
-    const data = await res.json();
+    // Size-branched upload: ≤100 MiB → single POST; larger → real S3 multipart.
+    const result = await uploadFileShared(file);
     const newDs: SessionDataset = {
-      id: data.dataset_id || data.id || file.name,
+      id: result.datasetId || file.name,
       name: file.name,
       fileType: file.name.split('.').pop() || '',
-      galaxyDatasetId: data.dataset_id,
-      path: data.file_path,
-      s3_uri: data.s3_uri,
+      galaxyDatasetId: result.galaxyDatasetId,
+      // multipart path returns an s3:// URI through s3Key; the simple path
+      // doesn't (the Galaxy upload route handles workflow staging itself).
+      s3_uri: result.s3Key ? `s3://${result.s3Key}` : undefined,
     };
     onUploaded?.(newDs);
     // Auto-select the just-uploaded file. Prefer the durable S3 URI: it is the only
@@ -182,7 +180,7 @@ function SessionTab({
       <div className="rounded-md border border-muted bg-muted/30 text-xs text-muted-foreground divide-y divide-muted mb-3">
         <div className="flex gap-2 px-2.5 py-2">
           <Info className="h-3 w-3 text-blue-500 mt-0.5 shrink-0" />
-          <span><span className="font-medium text-foreground">10 GB limit</span> per local file · For larger files, switch to the <span className="font-medium text-foreground">From URL</span> tab — no size limit.</span>
+          <span><span className="font-medium text-foreground">50 GB limit</span> per local file (chunked S3 multipart with resume) · For data already hosted on S3/HTTP/FTP, switch to the <span className="font-medium text-foreground">From URL</span> tab — no transfer at all.</span>
         </div>
         <div className="flex gap-2 px-2.5 py-2">
           <FolderArchive className="h-3 w-3 text-amber-500 mt-0.5 shrink-0" />

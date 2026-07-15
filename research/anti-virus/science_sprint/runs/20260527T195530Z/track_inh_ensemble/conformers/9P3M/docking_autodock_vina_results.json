@@ -1,0 +1,59 @@
+{
+  "success": true,
+  "function": "docking_autodock_vina",
+  "domain": "pharmacology",
+  "results": [
+    {
+      "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+      "best_affinity_kcal_mol": -3.389,
+      "all_affinities": [
+        -3.389,
+        -3.288,
+        -3.086,
+        -2.928,
+        -2.907,
+        -2.906,
+        -2.854,
+        -2.835,
+        -2.814
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_000.pdbqt"
+    },
+    {
+      "smiles": "Oc1ccccc1",
+      "best_affinity_kcal_mol": -2.345,
+      "all_affinities": [
+        -2.345,
+        -2.295,
+        -2.174,
+        -2.066,
+        -2.063,
+        -2.035,
+        -0.516
+      ],
+      "n_poses": 7,
+      "pose_file": "docking_poses/pose_001.pdbqt"
+    },
+    {
+      "smiles": "CC(=O)Nc1ccc(O)cc1",
+      "best_affinity_kcal_mol": -3.03,
+      "all_affinities": [
+        -3.03,
+        -2.824,
+        -2.745,
+        -2.686,
+        -2.633,
+        -2.546,
+        -2.536,
+        -2.416,
+        -1.651
+      ],
+      "n_poses": 9,
+      "pose_file": "docking_poses/pose_002.pdbqt"
+    }
+  ],
+  "n_ligands_docked": 3,
+  "best_score_kcal_mol": -3.389,
+  "log": "  Receptor PDB trimmed to search box (+ 8 A pad): 408 ATOM/HETATM records (large assemblies -> tractable PDBQT)\nStep 1: Preparing receptor receptor_staged.pdb\n  Receptor PDBQT written (42272 bytes)\nStep 2: Box center=(173.607,208.847,174.042) size=(20.27508093773169,20.27508093773169,20.27508093773169)\n        Exhaustiveness=8, CPUs=4, poses=9\n\nStep 3.1: Docking CC(=O)Oc1ccccc1C(=O)O\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -3.389 kcal/mol\n  Done.\n\nStep 3.2: Docking Oc1ccccc1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -2.345 kcal/mol\n  Done.\n\nStep 3.3: Docking CC(=O)Nc1ccc(O)cc1\n  Ligand 3D conformation generated\n  Ligand PDBQT prepared\n  Best binding affinity: -3.03 kcal/mol\n  Done."
+}

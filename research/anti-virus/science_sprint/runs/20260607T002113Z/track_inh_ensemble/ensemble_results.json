@@ -1,0 +1,255 @@
+{
+  "meta": {
+    "timestamp": "20260607T002113Z",
+    "baseline_run": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z",
+    "baseline_results": "/home/yzhang/biomate/research/anti-virus/runs/publication_20260528T223525Z/post_hts_qc/generative_top5_baseline.json",
+    "pockets_json": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/01_pocket/structure_pockets.json",
+    "box_center": [
+      173.607,
+      208.847,
+      174.042
+    ],
+    "box_size": [
+      20.27508093773169,
+      20.27508093773169,
+      20.27508093773169
+    ],
+    "smiles_list": [
+      "NC(=O)NNC(=O)c1ncc(C(F)(F)F)nc1N",
+      "NC(=O)NS(=O)(=O)Nc1ncc(C(F)(F)F)nc1N",
+      "Cc1cnc(NS(=O)(=O)NC(N)=O)c(N)n1",
+      "NC(=O)NS(=O)(=O)Nc1ncc(Cl)nc1N",
+      "NC(=O)NC(=O)Nc1ncc(Cl)nc1N"
+    ],
+    "n_conformers": 6,
+    "conformers": [
+      {
+        "label": "top_pocket",
+        "source": "/home/yzhang/biomate/research/anti-virus/runs/andv_nf_pipeline_20260513T032000Z/01_pocket/structure_top_pocket.pdb",
+        "deposit_id": null
+      },
+      {
+        "label": "9P3I",
+        "source": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260607T002113Z/track_inh_ensemble/receptors/9P3I.pdb",
+        "deposit_id": "9P3I"
+      },
+      {
+        "label": "9P3Y",
+        "source": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260607T002113Z/track_inh_ensemble/receptors/9P3Y.pdb",
+        "deposit_id": "9P3Y"
+      },
+      {
+        "label": "9P3X",
+        "source": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260607T002113Z/track_inh_ensemble/receptors/9P3X.pdb",
+        "deposit_id": "9P3X"
+      },
+      {
+        "label": "9P3L",
+        "source": "/home/yzhang/biomate/research/anti-virus/structures/9P3L.cif",
+        "deposit_id": "9P3L"
+      },
+      {
+        "label": "9P3M",
+        "source": "/home/yzhang/biomate/research/anti-virus/structures/9P3M.cif",
+        "deposit_id": "9P3M"
+      }
+    ],
+    "dry_run": false
+  },
+  "conformer_runs": [
+    {
+      "label": "9P3I",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/20260507/9P3I.pdb",
+      "run_id": "8b90f636-5844-4c00-971c-e2b2dd3dba73",
+      "status": "succeeded",
+      "error": null,
+      "results_path": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260607T002113Z/track_inh_ensemble/conformers/9P3I/docking_autodock_vina_results.json",
+      "by_smiles": {
+        "NC(=O)NNC(=O)c1ncc(C(F)(F)F)nc1N": -6.969,
+        "NC(=O)NS(=O)(=O)Nc1ncc(C(F)(F)F)nc1N": -5.891,
+        "Cc1cnc(NS(=O)(=O)NC(N)=O)c(N)n1": -6.407,
+        "NC(=O)NS(=O)(=O)Nc1ncc(Cl)nc1N": -6.197,
+        "NC(=O)NC(=O)Nc1ncc(Cl)nc1N": -6.162
+      },
+      "deposit_id": "9P3I"
+    },
+    {
+      "label": "9P3L",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260527T195530Z/9P3L.pdb",
+      "run_id": "5a2f1d5b-9ee6-496b-b741-b7ef1432521c",
+      "status": "succeeded",
+      "error": null,
+      "results_path": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260607T002113Z/track_inh_ensemble/conformers/9P3L/docking_autodock_vina_results.json",
+      "by_smiles": {
+        "NC(=O)NNC(=O)c1ncc(C(F)(F)F)nc1N": -4.18,
+        "NC(=O)NS(=O)(=O)Nc1ncc(C(F)(F)F)nc1N": -3.973,
+        "Cc1cnc(NS(=O)(=O)NC(N)=O)c(N)n1": -3.749,
+        "NC(=O)NS(=O)(=O)Nc1ncc(Cl)nc1N": -3.571,
+        "NC(=O)NC(=O)Nc1ncc(Cl)nc1N": -3.967
+      },
+      "deposit_id": "9P3L"
+    },
+    {
+      "label": "9P3M",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260527T195530Z/9P3M.pdb",
+      "run_id": "9e35486d-76ea-418a-9cb0-96931670038b",
+      "status": "succeeded",
+      "error": null,
+      "results_path": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260607T002113Z/track_inh_ensemble/conformers/9P3M/docking_autodock_vina_results.json",
+      "by_smiles": {
+        "NC(=O)NNC(=O)c1ncc(C(F)(F)F)nc1N": -3.179,
+        "NC(=O)NS(=O)(=O)Nc1ncc(C(F)(F)F)nc1N": -3.136,
+        "Cc1cnc(NS(=O)(=O)NC(N)=O)c(N)n1": -2.878,
+        "NC(=O)NS(=O)(=O)Nc1ncc(Cl)nc1N": -3.124,
+        "NC(=O)NC(=O)Nc1ncc(Cl)nc1N": -3.467
+      },
+      "deposit_id": "9P3M"
+    },
+    {
+      "label": "9P3X",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260527T195530Z/9P3X.pdb",
+      "run_id": "a5ec321a-3a7d-42e5-99f9-424146bf9a69",
+      "status": "succeeded",
+      "error": null,
+      "results_path": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260607T002113Z/track_inh_ensemble/conformers/9P3X/docking_autodock_vina_results.json",
+      "by_smiles": {
+        "NC(=O)NNC(=O)c1ncc(C(F)(F)F)nc1N": -3.476,
+        "NC(=O)NS(=O)(=O)Nc1ncc(C(F)(F)F)nc1N": -3.253,
+        "Cc1cnc(NS(=O)(=O)NC(N)=O)c(N)n1": -2.875,
+        "NC(=O)NS(=O)(=O)Nc1ncc(Cl)nc1N": -2.622,
+        "NC(=O)NC(=O)Nc1ncc(Cl)nc1N": -3.1
+      },
+      "deposit_id": "9P3X"
+    },
+    {
+      "label": "9P3Y",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/science_sprint/20260527T195530Z/9P3Y.pdb",
+      "run_id": "ca813311-a8d3-48df-b579-61ed233b22a2",
+      "status": "succeeded",
+      "error": null,
+      "results_path": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260607T002113Z/track_inh_ensemble/conformers/9P3Y/docking_autodock_vina_results.json",
+      "by_smiles": {
+        "NC(=O)NNC(=O)c1ncc(C(F)(F)F)nc1N": -6.629,
+        "NC(=O)NS(=O)(=O)Nc1ncc(C(F)(F)F)nc1N": -6.48,
+        "Cc1cnc(NS(=O)(=O)NC(N)=O)c(N)n1": -6.09,
+        "NC(=O)NS(=O)(=O)Nc1ncc(Cl)nc1N": -5.799,
+        "NC(=O)NC(=O)Nc1ncc(Cl)nc1N": -6.206
+      },
+      "deposit_id": "9P3Y"
+    },
+    {
+      "label": "top_pocket",
+      "receptor_s3": "s3://biomate-nextflow-work/inputs/andv_campaign/20260514/9P3I_top_pocket_only.pdb",
+      "run_id": "9475b492-bdfc-4e41-9907-2674f86d5d19",
+      "status": "succeeded",
+      "error": null,
+      "results_path": "/home/yzhang/biomate/research/anti-virus/science_sprint/runs/20260607T002113Z/track_inh_ensemble/conformers/top_pocket/docking_autodock_vina_results.json",
+      "by_smiles": {
+        "NC(=O)NNC(=O)c1ncc(C(F)(F)F)nc1N": -0.255,
+        "NC(=O)NS(=O)(=O)Nc1ncc(C(F)(F)F)nc1N": -0.266,
+        "Cc1cnc(NS(=O)(=O)NC(N)=O)c(N)n1": -0.259,
+        "NC(=O)NS(=O)(=O)Nc1ncc(Cl)nc1N": -0.228,
+        "NC(=O)NC(=O)Nc1ncc(Cl)nc1N": -0.28
+      },
+      "deposit_id": null
+    }
+  ],
+  "aggregate": {
+    "n_compounds": 5,
+    "n_improved_vs_baseline": 2,
+    "n_conformers_used": 5,
+    "deposit_only": true,
+    "best_compound": {
+      "smiles": "NC(=O)NNC(=O)c1ncc(C(F)(F)F)nc1N",
+      "baseline_affinity_kcal_mol": -7.004,
+      "ensemble_best_affinity_kcal_mol": -6.969,
+      "ensemble_best_conformer": "9P3I",
+      "delta_kcal_mol": 0.034999999999999254,
+      "improved_vs_baseline": false,
+      "per_conformer_affinity_kcal_mol": {
+        "9P3I": -6.969,
+        "9P3L": -4.18,
+        "9P3M": -3.179,
+        "9P3X": -3.476,
+        "9P3Y": -6.629
+      }
+    },
+    "compounds": [
+      {
+        "smiles": "NC(=O)NNC(=O)c1ncc(C(F)(F)F)nc1N",
+        "baseline_affinity_kcal_mol": -7.004,
+        "ensemble_best_affinity_kcal_mol": -6.969,
+        "ensemble_best_conformer": "9P3I",
+        "delta_kcal_mol": 0.034999999999999254,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -6.969,
+          "9P3L": -4.18,
+          "9P3M": -3.179,
+          "9P3X": -3.476,
+          "9P3Y": -6.629
+        }
+      },
+      {
+        "smiles": "NC(=O)NS(=O)(=O)Nc1ncc(C(F)(F)F)nc1N",
+        "baseline_affinity_kcal_mol": -6.772,
+        "ensemble_best_affinity_kcal_mol": -6.48,
+        "ensemble_best_conformer": "9P3Y",
+        "delta_kcal_mol": 0.2919999999999998,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -5.891,
+          "9P3L": -3.973,
+          "9P3M": -3.136,
+          "9P3X": -3.253,
+          "9P3Y": -6.48
+        }
+      },
+      {
+        "smiles": "Cc1cnc(NS(=O)(=O)NC(N)=O)c(N)n1",
+        "baseline_affinity_kcal_mol": -6.388,
+        "ensemble_best_affinity_kcal_mol": -6.407,
+        "ensemble_best_conformer": "9P3I",
+        "delta_kcal_mol": -0.019000000000000128,
+        "improved_vs_baseline": true,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -6.407,
+          "9P3L": -3.749,
+          "9P3M": -2.878,
+          "9P3X": -2.875,
+          "9P3Y": -6.09
+        }
+      },
+      {
+        "smiles": "NC(=O)NS(=O)(=O)Nc1ncc(Cl)nc1N",
+        "baseline_affinity_kcal_mol": -6.22,
+        "ensemble_best_affinity_kcal_mol": -6.197,
+        "ensemble_best_conformer": "9P3I",
+        "delta_kcal_mol": 0.022999999999999687,
+        "improved_vs_baseline": false,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -6.197,
+          "9P3L": -3.571,
+          "9P3M": -3.124,
+          "9P3X": -2.622,
+          "9P3Y": -5.799
+        }
+      },
+      {
+        "smiles": "NC(=O)NC(=O)Nc1ncc(Cl)nc1N",
+        "baseline_affinity_kcal_mol": -6.156,
+        "ensemble_best_affinity_kcal_mol": -6.206,
+        "ensemble_best_conformer": "9P3Y",
+        "delta_kcal_mol": -0.05000000000000071,
+        "improved_vs_baseline": true,
+        "per_conformer_affinity_kcal_mol": {
+          "9P3I": -6.162,
+          "9P3L": -3.967,
+          "9P3M": -3.467,
+          "9P3X": -3.1,
+          "9P3Y": -6.206
+        }
+      }
+    ]
+  }
+}
