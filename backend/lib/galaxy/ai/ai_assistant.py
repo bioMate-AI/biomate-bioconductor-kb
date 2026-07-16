@@ -3909,14 +3909,16 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 # Extract workflow steps from Galaxy .ga format
                 workflow_steps = []
                 if 'steps' in workflow_json:
-                    for step_id, step_data in workflow_json['steps'].items():
-                        if step_data.get('tool_id'):
-                            workflow_steps.append({
-                                'step': int(step_id),
-                                'tool_id': step_data.get('tool_id'),
-                                'name': step_data.get('name', ''),
-                                'description': step_data.get('annotation', '')
-                            })
+                    _raw = workflow_json['steps']
+                    if isinstance(_raw, dict):
+                        for step_id, step_data in _raw.items():
+                            if step_data.get('tool_id'):
+                                workflow_steps.append({
+                                    'step': int(step_id),
+                                    'tool_id': step_data.get('tool_id'),
+                                    'name': step_data.get('name', ''),
+                                    'description': step_data.get('annotation', '')
+                                })
 
                 # WorkflowDatasetSelector is ready but requires actual Galaxy history dataset
                 # IDs (from getHistoryDatasets), not BioMNI catalog IDs which is what
