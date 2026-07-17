@@ -478,6 +478,50 @@ export function registerProjectRoutes(app: Express): void {
     }
   });
 
+  // ─── PATCH /api/projects/:id/members/:memberId ───────────────────────────────
+  // Change a member's role. Only the project owner can do this.
+  app.patch("/api/projects/:id/members/:memberId", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const { id, memberId } = req.params;
+    const { role } = req.body ?? {};
+    if (!["viewer", "editor"].includes(role)) return res.status(400).json({ error: "role must be viewer or editor" });
+    try {
+      const existing = await memoryService.projects.getProject(id);
+      if (!existing || existing.userId !== uid) return res.status(404).json({ error: "Project not found" });
+      const upd = await pool.query(
+        `UPDATE project_members SET role = $1 WHERE project_id = $2 AND user_id = $3`,
+        [role, id, memberId]
+      );
+      if ((upd.rowCount ?? 0) === 0) return res.status(404).json({ error: "Member not found" });
+      res.json({ ok: true, role });
+    } catch (e: any) {
+      console.error("[project_members] role change failed:", e?.message ?? e);
+      res.status(500).json({ error: "Failed to update role" });
+    }
+  });
+
+  // ─── DELETE /api/projects/:id/members/me ─────────────────────────────────────
+  // Leave a project. Any member can remove themselves.
+  app.delete("/api/projects/:id/members/me", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const { id } = req.params;
+    try {
+      const proj = await memoryService.projects.getProject(id);
+      if (proj?.userId === uid) return res.status(400).json({ error: "Owner cannot leave — transfer or delete the project" });
+      const del = await pool.query(
+        `DELETE FROM project_members WHERE project_id = $1 AND user_id = $2`,
+        [id, uid]
+      );
+      if ((del.rowCount ?? 0) === 0) return res.status(404).json({ error: "Not a member of this project" });
+      res.json({ ok: true });
+    } catch (e: any) {
+      console.error("[project_members] leave failed:", e?.message ?? e);
+      res.status(500).json({ error: "Failed to leave project" });
+    }
+  });
+
   // ─── GET /api/projects/:id/share-link ────────────────────────────────────────
   // Owner only — returns the existing share token, or { token: null } if none.
   app.get("/api/projects/:id/share-link", authenticateToken, async (req: Request, res: Response) => {

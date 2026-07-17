@@ -205,7 +205,7 @@ export function AppSidebar({
   const { user, logout } = useAuth();
 
   // Projects — fetched from API (not localStorage) so they survive page reload
-  const [apiProjects, setApiProjects] = useState<Array<{ id: string; name: string; status: string }>>([]);
+  const [apiProjects, setApiProjects] = useState<Array<{ id: string; name: string; status: string; userId?: string }>>([]);
   const [expandedProjectIds, setExpandedProjectIds] = useState<Set<string>>(new Set());
   const refreshProjects = () => {
     fetch("/api/projects", { credentials: "include" })
@@ -383,6 +383,9 @@ export function AppSidebar({
                   {isExpanded ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
                   <FolderOpen className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--bm-accent, oklch(0.55 0.14 245))', opacity: 0.9 }} />
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{proj.name}</span>
+                  {proj.userId && user && proj.userId !== user.id && (
+                    <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--bm-accent, oklch(0.55 0.14 245))', opacity: 0.8, flexShrink: 0 }}>shared</span>
+                  )}
                 </button>
                 {isExpanded && (
                   <div style={{ paddingLeft: 28 }}>

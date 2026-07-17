@@ -255,15 +255,24 @@ export class ProjectMemoryRepository {
     userId: string,
     status?: 'active' | 'archived' | 'completed'
   ): Promise<Project[]> {
-    const conditions = [eq(ltmSchema.projects.userId, userId)];
-    if (status) {
-      conditions.push(eq(ltmSchema.projects.status, status));
-    }
-
-    return db.select()
-      .from(ltmSchema.projects)
-      .where(and(...conditions))
-      .orderBy(desc(ltmSchema.projects.updatedAt));
+    const { pool } = await import('./db');
+    const params: string[] = [userId];
+    const statusClause = status ? `AND p.status = $2` : '';
+    if (status) params.push(status);
+    // Include projects owned by the user OR where the user is a member
+    const result = await pool.query(
+      `SELECT DISTINCT p.*
+       FROM projects p
+       WHERE (p.user_id = $1
+         OR EXISTS (
+           SELECT 1 FROM project_members pm
+           WHERE pm.project_id = p.id AND pm.user_id = $1
+         ))
+       ${statusClause}
+       ORDER BY p.updated_at DESC`,
+      params
+    );
+    return result.rows as Project[];
   }
 
   /**

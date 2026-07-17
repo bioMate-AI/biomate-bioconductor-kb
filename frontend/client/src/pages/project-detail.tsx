@@ -261,6 +261,27 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
     } catch { /* ignore */ }
   }
 
+  const handleRoleChange = async (memberId: string, newRole: "viewer" | "editor") => {
+    try {
+      const r = await fetch(`/api/projects/${projectId}/members/${memberId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ role: newRole }),
+      })
+      if (r.ok) setMembers(prev => prev.map(m => m.user_id === memberId ? { ...m, role: newRole } : m))
+    } catch { /* ignore */ }
+  }
+
+  const handleLeaveProject = async () => {
+    try {
+      const r = await fetch(`/api/projects/${projectId}/members/me`, {
+        method: "DELETE", credentials: "include",
+      })
+      if (r.ok) onBack()
+    } catch { /* ignore */ }
+  }
+
   const loadSessions = useCallback(async () => {
     setSessionsLoading(true)
     try {
@@ -866,28 +887,67 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
               </div>
             )}
 
-            {members.length === 0 ? (
+            {members.length === 0 && isOwner ? (
               <p className="text-xs text-muted-foreground">No collaborators yet.</p>
             ) : (
               <div className="space-y-1.5">
-                {members.map(m => (
-                  <div key={m.user_id} className="flex items-center gap-2 text-xs" data-testid={`member-row-${m.user_id}`}>
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate font-medium">{m.fullName || m.email}</p>
-                      <p className="text-muted-foreground truncate">{m.role}</p>
+                {members.map(m => {
+                  const initials = (m.fullName || m.email)
+                    .split(/\s+|@/)
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((s: string) => s[0].toUpperCase())
+                    .join("")
+                  return (
+                    <div key={m.user_id} className="flex items-center gap-2 text-xs" data-testid={`member-row-${m.user_id}`}>
+                      {/* Initials avatar */}
+                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-semibold text-primary shrink-0">
+                        {initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate font-medium leading-tight">{m.fullName || m.email}</p>
+                        {m.fullName && <p className="text-muted-foreground truncate text-[10px]">{m.email}</p>}
+                      </div>
+                      {/* Role badge / change dropdown for owner */}
+                      {isOwner ? (
+                        <Select value={m.role} onValueChange={(v) => handleRoleChange(m.user_id, v as "viewer" | "editor")}>
+                          <SelectTrigger className="h-5 w-16 text-[10px] px-1.5 border-0 bg-muted/60 rounded shrink-0" data-testid={`select-role-${m.user_id}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="viewer">Viewer</SelectItem>
+                            <SelectItem value="editor">Editor</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0 ${m.role === "editor" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "bg-muted text-muted-foreground"}`}>
+                          {m.role}
+                        </span>
+                      )}
+                      {/* Remove (owner) */}
+                      {isOwner && (
+                        <button
+                          onClick={() => handleRemoveMember(m.user_id)}
+                          className="text-muted-foreground hover:text-destructive shrink-0"
+                          aria-label={`Remove ${m.email}`}
+                          data-testid={`button-remove-member-${m.user_id}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
                     </div>
-                    {isOwner && (
-                      <button
-                        onClick={() => handleRemoveMember(m.user_id)}
-                        className="text-muted-foreground hover:text-destructive shrink-0"
-                        aria-label={`Remove ${m.email}`}
-                        data-testid={`button-remove-member-${m.user_id}`}
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-                ))}
+                  )
+                })}
+                {/* Leave project — visible to non-owner members */}
+                {!isOwner && (
+                  <button
+                    onClick={handleLeaveProject}
+                    className="mt-1 text-[11px] text-muted-foreground hover:text-destructive"
+                    data-testid="button-leave-project"
+                  >
+                    Leave project
+                  </button>
+                )}
               </div>
             )}
           </div>
