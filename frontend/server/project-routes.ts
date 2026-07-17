@@ -271,8 +271,8 @@ export function registerProjectRoutes(app: Express): void {
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
     const id = req.params.id;
     try {
-      const existing = await memoryService.projects.getProject(id);
-      if (!existing || existing.userId !== uid) {
+      const allowed = await _isOwnerOrMember(id, uid);
+      if (!allowed) {
         return res.status(404).json({ error: "Project not found" });
       }
       const result = await pool.query(
@@ -294,8 +294,8 @@ export function registerProjectRoutes(app: Express): void {
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
     const id = req.params.id;
     try {
-      const existing = await memoryService.projects.getProject(id);
-      if (!existing || existing.userId !== uid) {
+      const allowed = await _isOwnerOrMember(id, uid);
+      if (!allowed) {
         return res.status(404).json({ error: "Project not found" });
       }
       const result = await pool.query(
@@ -386,13 +386,13 @@ export function registerProjectRoutes(app: Express): void {
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
     const { id, fileId } = req.params;
     try {
-      const existing = await memoryService.projects.getProject(id);
-      if (!existing || existing.userId !== uid) {
+      const allowed = await _isOwnerOrMember(id, uid);
+      if (!allowed) {
         return res.status(404).json({ error: "Project not found" });
       }
       const fileRow = await pool.query(
-        `SELECT s3_key, name FROM project_files WHERE id = $1 AND project_id = $2 AND user_id = $3`,
-        [fileId, id, uid]
+        `SELECT s3_key, name FROM project_files WHERE id = $1 AND project_id = $2`,
+        [fileId, id]
       );
       if (!fileRow.rows.length) return res.status(404).json({ error: "File not found" });
       const url = await s3Service.generatePresignedDownloadUrl(fileRow.rows[0].s3_key, 900);
