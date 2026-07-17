@@ -908,8 +908,10 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                         <p className="truncate font-medium leading-tight">{m.fullName || m.email}</p>
                         {m.fullName && <p className="text-muted-foreground truncate text-[10px]">{m.email}</p>}
                       </div>
-                      {/* Role badge / change dropdown for owner */}
-                      {isOwner ? (
+                      {/* Role badge / change dropdown */}
+                      {m.role === "owner" ? (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary shrink-0">Owner</span>
+                      ) : isOwner ? (
                         <Select value={m.role} onValueChange={(v) => handleRoleChange(m.user_id, v as "viewer" | "editor")}>
                           <SelectTrigger className="h-5 w-16 text-[10px] px-1.5 border-0 bg-muted/60 rounded shrink-0" data-testid={`select-role-${m.user_id}`}>
                             <SelectValue />
@@ -924,8 +926,8 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                           {m.role}
                         </span>
                       )}
-                      {/* Remove (owner) */}
-                      {isOwner && (
+                      {/* Remove (owner can remove members, not the owner row itself) */}
+                      {isOwner && m.role !== "owner" && (
                         <button
                           onClick={() => handleRemoveMember(m.user_id)}
                           className="text-muted-foreground hover:text-destructive shrink-0"
