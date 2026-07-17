@@ -14126,6 +14126,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
   const _GALAXY_JWT_SECRET = process.env.GALAXY_JWT_SECRET || process.env.JWT_SECRET || 'dev-only-insecure-secret-do-not-use-in-production';
 
   app.all("/api/billing/*", optionalAuth, async (req: any, res) => {
+    if (!req.user) return res.status(401).json({ error: "Not authenticated" });
     try {
       const target = `${GALAXY_URL}${req.path}${req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''}`;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
