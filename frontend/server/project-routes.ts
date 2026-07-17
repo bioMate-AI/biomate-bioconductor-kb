@@ -412,11 +412,12 @@ export function registerProjectRoutes(app: Express): void {
     try {
       const allowed = await _isOwnerOrMember(id, uid);
       if (!allowed) return res.status(404).json({ error: "Project not found" });
-      // Include owner as first row (synthetic role='owner') so the full team is visible
+      // Include owner as first row (synthetic role='owner') so the full team is visible.
+      // projects.user_id is UUID; users.id is varchar — cast to text for comparison.
       const result = await pool.query(
         `SELECT u.id AS user_id, 'owner' AS role, p.created_at,
                 u.email, u.full_name AS "fullName"
-         FROM projects p JOIN users u ON u.id = p.user_id
+         FROM projects p JOIN users u ON u.id = p.user_id::text
          WHERE p.id = $1
          UNION ALL
          SELECT pm.user_id, pm.role, pm.created_at,

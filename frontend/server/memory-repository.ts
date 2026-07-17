@@ -261,6 +261,7 @@ export class ProjectMemoryRepository {
     if (status) params.push(status);
     // Include projects owned by the user OR where the user is a member.
     // Column aliases match Drizzle's camelCase mapping so downstream code is unaffected.
+    // projects.user_id is UUID; users.id / $1 is varchar — cast $1 to uuid for comparison.
     const result = await pool.query(
       `SELECT DISTINCT
          p.id,
@@ -283,7 +284,7 @@ export class ProjectMemoryRepository {
          p.updated_at     AS "updatedAt",
          p.archived_at    AS "archivedAt"
        FROM projects p
-       WHERE (p.user_id = $1
+       WHERE (p.user_id::text = $1
          OR EXISTS (
            SELECT 1 FROM project_members pm
            WHERE pm.project_id = p.id AND pm.user_id = $1

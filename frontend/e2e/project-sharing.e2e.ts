@@ -40,7 +40,8 @@ test.describe.serial("project-sharing", () => {
       `${BASE_URL}/api/projects/${projectId}/share-link`,
       { headers: { "Content-Type": "application/json" } }
     );
-    expect(res.status()).toBe(200);
+    // 201 on first creation, 200 if token already existed
+    expect([200, 201]).toContain(res.status());
     const body = await res.json();
     expect(body.token).toBeTruthy();
     expect(typeof body.token).toBe("string");
