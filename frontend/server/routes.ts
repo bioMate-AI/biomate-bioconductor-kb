@@ -10489,7 +10489,7 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Get all execution runs for the current user
-  app.get("/api/workflows/runs", optionalAuth, async (req, res) => {
+  app.get("/api/workflows/runs", authenticateToken, async (req, res) => {
     try {
       const { mode, projectId, chatSessionId, limit } = req.query;
       const runs = await storage.getExecutionRuns(
@@ -10507,7 +10507,7 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Leverage-first runs overview endpoint (summary rows for run manager surfaces)
-  app.get("/api/workflows/runs/overview", optionalAuth, async (req, res) => {
+  app.get("/api/workflows/runs/overview", authenticateToken, async (req, res) => {
     try {
       const overview = await getExecutionRunsOverview(storage, {
         userId: req.user?.id,
@@ -10556,7 +10556,7 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Get a specific execution run by ID
-  app.get("/api/workflows/runs/:id", async (req, res) => {
+  app.get("/api/workflows/runs/:id", authenticateToken, async (req, res) => {
     try {
       let run = await storage.getExecutionRun(req.params.id);
       // Fall back to Galaxy invocation ID lookup (session restore may have stored
@@ -10565,6 +10565,11 @@ ${paramLines || '(none recorded)'}`;
         run = await storage.getExecutionRunByGalaxyId(req.params.id);
       }
       if (!run) {
+        return res.status(404).json({ error: "Execution run not found" });
+      }
+      // Ownership check: return 404 (not 403) so run IDs can't be probed for existence
+      const uid = (req as any).user?.id ? String((req as any).user.id) : null;
+      if (uid && run.userId && run.userId !== uid) {
         return res.status(404).json({ error: "Execution run not found" });
       }
 
