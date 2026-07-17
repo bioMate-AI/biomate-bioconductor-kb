@@ -259,9 +259,29 @@ export class ProjectMemoryRepository {
     const params: string[] = [userId];
     const statusClause = status ? `AND p.status = $2` : '';
     if (status) params.push(status);
-    // Include projects owned by the user OR where the user is a member
+    // Include projects owned by the user OR where the user is a member.
+    // Column aliases match Drizzle's camelCase mapping so downstream code is unaffected.
     const result = await pool.query(
-      `SELECT DISTINCT p.*
+      `SELECT DISTINCT
+         p.id,
+         p.user_id        AS "userId",
+         p.name,
+         p.description,
+         p.research_goal  AS "researchGoal",
+         p.instructions,
+         p.primary_domain AS "primaryDomain",
+         p.organisms,
+         p.tissue_types   AS "tissueTypes",
+         p.conditions,
+         p.data_modalities AS "dataModalities",
+         p.status,
+         p.progress,
+         p.storage_path   AS "storagePath",
+         p.category,
+         p.tags,
+         p.created_at     AS "createdAt",
+         p.updated_at     AS "updatedAt",
+         p.archived_at    AS "archivedAt"
        FROM projects p
        WHERE (p.user_id = $1
          OR EXISTS (
@@ -269,7 +289,7 @@ export class ProjectMemoryRepository {
            WHERE pm.project_id = p.id AND pm.user_id = $1
          ))
        ${statusClause}
-       ORDER BY p.updated_at DESC`,
+       ORDER BY "updatedAt" DESC`,
       params
     );
     return result.rows as Project[];
