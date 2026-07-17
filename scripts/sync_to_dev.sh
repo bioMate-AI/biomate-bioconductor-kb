@@ -308,7 +308,7 @@ deploy_galaxy_yml() {
     log "[galaxy.yml] source missing: $src — skipping"
     return 0
   fi
-  log "[galaxy.yml] Shipping $(stat -c %s $src 2>/dev/null || echo ?) bytes..."
+  log "[galaxy.yml] Shipping $(stat -c %s $src 2>/dev/null || stat -f %z $src 2>/dev/null || echo ?) bytes..."
   ec2_scp "$src" "${EC2_USER}@${EC2_HOST}:/tmp/galaxy.yml"
 
   # Sync interactivetools_conf.xml BEFORE the gunicorn restart below.
@@ -661,7 +661,7 @@ sys.exit(0 if ok else 1)
   # backend/lib/galaxy/model/migrations/alembic/versions_gxy/.
   local universe_db="$REPO_ROOT/backend/database/universe.sqlite"
   local LATEST_GXY_HEAD="204367c6a604"  # merge_gxy_heads_autofix_sample_sheets
-  if [[ -f "$universe_db" && $(stat -c %s "$universe_db") -gt 0 ]]; then
+  if [[ -f "$universe_db" && $(stat -c %s "$universe_db" 2>/dev/null || stat -f %z "$universe_db" 2>/dev/null || echo 0) -gt 0 ]]; then
     log "[db] universe.sqlite — scp to EC2 (bypass S3)..."
     ec2_scp "$universe_db" "${EC2_USER}@${EC2_HOST}:/tmp/universe_sync.sqlite" \
       || { log "[db] scp failed — aborting universe.sqlite sync"; return 1; }
