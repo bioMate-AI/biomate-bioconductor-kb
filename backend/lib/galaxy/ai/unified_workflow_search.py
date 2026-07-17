@@ -1658,10 +1658,17 @@ class UnifiedWorkflowSearch:
             if keyword in query_expanded and keyword in text:
                 score += weight
 
-        # 3. Phrase match bonus (~25% weight) - boost for key phrases in both query and name
+        # 3. Phrase match bonus (~25% weight) - boost for key phrases in both query and name/desc
+        # Normalize description too (remove hyphens so "rna-seq" matches query "rna seq").
+        # Use word-boundary check (' phrase ') to avoid false substring matches
+        # (e.g. 'rna seq' inside 'scrna seq').
+        desc_norm = (description or '').lower().replace('-', ' ')
+        phrase_haystack = ' ' + name_lower + ' ' + desc_norm + ' '
+        padded_query = ' ' + query_expanded + ' '
         phrase_matches = 0
         for phrase in self.KEY_PHRASES:
-            if phrase in query_expanded and phrase in name_lower:
+            padded = ' ' + phrase + ' '
+            if padded in padded_query and padded in phrase_haystack:
                 phrase_matches += 1
         if phrase_matches > 0:
             score += 5.0 + (phrase_matches * 3.0)  # Base 5 + 3 per phrase match
@@ -1744,6 +1751,8 @@ class UnifiedWorkflowSearch:
                         score += 3.0  # user has exactly the right input type
                     elif (user_types & self._RAW_TYPES) and (wf_types & self._PROCESSED_TYPES):
                         score -= 4.0  # user has raw data but workflow needs processed input
+                    elif (user_types & self._PROCESSED_TYPES) and not (user_types & self._RAW_TYPES) and (wf_types & self._RAW_TYPES):
+                        score -= 4.0  # user has processed data only but workflow needs raw input
 
         # 9. Preferred/legacy tag scoring — steer generic queries toward the AI-backed version
         tags_lower = [t.lower() for t in (tags or [])]

@@ -476,9 +476,9 @@
   difficulty: direct
   domain: epigenomics
   correct_workflow: nf-core/chipseq
-  acceptable_alts: []
+  acceptable_alts: [Perform Chipseq Peak Calling With Macs2]
   disqualified: [nf-core/atacseq, nf-core/cutandrun]
-  notes: "Source: nf-co.re/chipseq — MACS3 peak detection is documented; control sample references are in the samplesheet"
+  notes: "Source: nf-co.re/chipseq — MACS3 peak detection is documented; Perform Chipseq Peak Calling With Macs2 is also a valid biomni alternative for ChIP-seq peak calling"
 
 - id: epi_004
   query: "Identify open chromatin regions using ATAC-seq in neural progenitor cells"
@@ -617,9 +617,9 @@
   difficulty: direct
   domain: metagenomics
   correct_workflow: nf-core/ampliseq
-  acceptable_alts: []
+  acceptable_alts: [dada2]
   disqualified: [nf-core/mag, nf-core/taxprofiler]
-  notes: "Source: nf-co.re/ampliseq — DADA2 ASV inference is the core processing step"
+  notes: "Source: nf-co.re/ampliseq — DADA2 ASV inference is the core processing step; standalone dada2 workflow also acceptable as user explicitly named DADA2"
 
 - id: meta_004
   query: "Alpha and beta diversity analysis with phylogenetic placement of my microbiome ASVs"
@@ -1032,19 +1032,19 @@
   query: "Predict the 3D structure of my kinase using AlphaFold2 and then dock a small molecule inhibitor"
   difficulty: direct
   domain: drug_discovery
-  correct_workflow: Structure Prediction Docking
-  acceptable_alts: [nf-core/proteinfold]
+  correct_workflow: nf-core/proteinfold
+  acceptable_alts: [Structure Prediction Docking, bionemo_structure_design, chai1_structure_prediction, Run Diffdock With Smiles, boltz_structure_prediction]
   disqualified: [GROMACS Protein-Ligand MD + MM-GBSA, REINVENT4 Generative Lead Design]
-  notes: "BioMate structure_prediction_docking workflow covers AlphaFold2/Boltz-2 + docking"
+  notes: "Structure Prediction Docking is retired; nf-core/proteinfold is the current AlphaFold2 pipeline; bionemo/boltz/chai1 are also valid structure prediction tools"
 
 - id: dd_002
   query: "Virtual screening of 500 compounds against my GPCR homology model using docking"
   difficulty: direct
   domain: drug_discovery
   correct_workflow: Structure Prediction Docking
-  acceptable_alts: []
+  acceptable_alts: [Schrodinger Glide Docking]
   disqualified: [GROMACS Protein-Ligand MD + MM-GBSA, REINVENT4 Generative Lead Design]
-  notes: "Virtual screening = docking workflow; structure_prediction_docking includes docking step"
+  notes: "Virtual screening = docking workflow; structure_prediction_docking includes docking step; Schrodinger Glide Docking acceptable when user already has the homology model"
 
 - id: dd_003
   query: "Run GROMACS molecular dynamics simulation to assess binding stability of my lead compound"
@@ -1096,11 +1096,11 @@
   query: "Scaffold hopping from my current kinase inhibitor scaffold to explore chemical diversity"
   difficulty: adversarial
   domain: drug_discovery
-  correct_workflow: REINVENT4 Generative Lead Design
-  acceptable_alts: []
+  correct_workflow: Scaffold Hopping
+  acceptable_alts: [REINVENT4 Generative Lead Design]
   disqualified: [Structure Prediction Docking, GROMACS Protein-Ligand MD + MM-GBSA]
   confusable_with: molecular_docking
-  notes: "BioMate reinvent4_lead_design: scaffold_hopping mode is documented; distinguish from docking (score existing) vs design (generate new)"
+  notes: "BioMate has a dedicated Scaffold Hopping pipeline (RECAP fragmentation + MMP); REINVENT4 scaffold_hopping mode is also acceptable"
 
 # =========================================================
 # CRITICAL ADVERSARIAL DISAMBIGUATION PAIRS (10 additional)
@@ -1279,10 +1279,10 @@
   query: "Drug combination synergy analysis: trametinib plus palbociclib, predict Bliss and ZIP scores"
   difficulty: direct
   domain: virtual_cell
-  correct_workflow: cpa_drug_combination_synergy
-  acceptable_alts: []
+  correct_workflow: synergyfinder
+  acceptable_alts: [cpa_drug_combination_synergy]
   disqualified: [predict_admet_properties]
-  notes: "Explicit synergy model names (Bliss, ZIP) → CPA synergy workflow"
+  notes: "Bliss and ZIP are classical pharmacological synergy metrics — synergyfinder is the canonical tool for these from dose-response data; cpa_drug_combination_synergy also computes Bliss via ML/transcriptomic approach"
 
 - id: vc_009
   query: "Tumor growth inhibition prediction using Simeoni model — erlotinib Cmax 3mg/L, 12 weeks"
@@ -1326,10 +1326,10 @@
   difficulty: adversarial
   domain: virtual_cell
   correct_workflow: cipa_cardiac_safety_ode
-  acceptable_alts: [predict_admet_properties]
+  acceptable_alts: [predict_admet_properties, herg_cardiac_safety_qsar]
   disqualified: []
   confusable_with: admet
-  notes: "IND + mechanistic = CiPA ODE Tier 2; QSAR (ADMET) is acceptable alt for Tier 1"
+  notes: "IND + mechanistic = CiPA ODE Tier 2; QSAR (ADMET) is acceptable alt for Tier 1; herg_cardiac_safety_qsar is a dedicated hERG QSAR tool also acceptable"
 
 - id: vc_014
   query: "Run a dose-response curve for my drug in a virtual tumor model connected to PBPK output"
@@ -1412,9 +1412,9 @@
   difficulty: indirect
   domain: single_cell
   correct_workflow: cite_seq_preprocessing
-  acceptable_alts: []
-  disqualified: [nf-core/scrnaseq]
-  notes: "TotalSeq antibodies = CITE-seq ADT; co-profiling RNA+protein → cite_seq_preprocessing"
+  acceptable_alts: [scrapper_multimodal_rna_adt_analysis, scrna_adt_multimodal_via_scrapper]
+  disqualified: []
+  notes: "TotalSeq antibodies = CITE-seq ADT; cite_seq_preprocessing is primary; scrapper is also a valid CITE-seq RNA+ADT multimodal analysis tool"
 
 - id: sc_020
   query: "Single-cell ATAC and RNA joint profiling on the same cells — open chromatin + gene expression"
@@ -1464,9 +1464,9 @@
   confusable_with: single_cell
   notes: "Microwell + AbSeq = BD Rhapsody; CITE-seq uses droplets; scrnaseq doesn't handle AbSeq"
 
-# ── Bispecific Antibody + siRNA (dd_001–dd_008) ────────────────────────────────
+# ── Bispecific Antibody + siRNA (dd_101–dd_108) ────────────────────────────────
 
-- id: dd_001
+- id: dd_101
   query: "Design a CD3xCD19 bispecific T-cell engager (BiTE) for B-cell leukemia"
   difficulty: direct
   domain: drug_discovery
@@ -1475,7 +1475,7 @@
   disqualified: []
   notes: "BiTE + CD3 + tumor antigen keyword → bispecific_antibody_design with format=bite"
 
-- id: dd_002
+- id: dd_102
   query: "Engineer a CrossMab bispecific antibody with arm exchange for HER2×HER3 dual blockade"
   difficulty: direct
   domain: drug_discovery
@@ -1484,7 +1484,7 @@
   disqualified: [scfv_antibody_design]
   notes: "CrossMab = Roche Fab arm exchange format; HER2×HER3 dual blockade → bispecific_antibody_design"
 
-- id: dd_003
+- id: dd_103
   query: "Predict off-target silencing of my siRNA targeting PCSK9 — check seed region matches"
   difficulty: direct
   domain: drug_discovery
@@ -1493,7 +1493,7 @@
   disqualified: [lnp_formulation_optimization]
   notes: "siRNA off-target + seed region → sirna_offtarget_analysis; LNP is delivery not specificity"
 
-- id: dd_004
+- id: dd_104
   query: "Recommend 2'-OMe chemical modifications to reduce siRNA immunogenicity and off-targets"
   difficulty: direct
   domain: drug_discovery
@@ -1502,7 +1502,7 @@
   disqualified: []
   notes: "2'-OMe + siRNA modification recommendation → sirna_offtarget_analysis"
 
-- id: dd_005
+- id: dd_105
   query: "Assess passenger strand loading risk for my siRNA — thermodynamic strand asymmetry"
   difficulty: indirect
   domain: drug_discovery
@@ -1511,7 +1511,7 @@
   disqualified: []
   notes: "Strand asymmetry ΔΔG + passenger strand loading = RISC selectivity → sirna_offtarget_analysis"
 
-- id: dd_006
+- id: dd_106
   query: "Design a knob-into-hole IgG bispecific for EGFR×cMET co-targeting in NSCLC"
   difficulty: direct
   domain: drug_discovery
@@ -1520,7 +1520,7 @@
   disqualified: [scfv_antibody_design]
   notes: "Knob-into-hole CH3 engineering + two tumor antigens → bispecific_antibody_design format=knob_hole"
 
-- id: dd_007
+- id: dd_107
   query: "My siRNA guide strand has a UGUGU motif — evaluate TLR immune stimulation risk"
   difficulty: indirect
   domain: drug_discovery
@@ -1529,7 +1529,7 @@
   disqualified: []
   notes: "TLR7/8 motif evaluation is part of sirna_offtarget_analysis immune stimulation module"
 
-- id: dd_008
+- id: dd_108
   query: "Design a nanobody-nanobody bispecific fusion targeting albumin for half-life extension"
   difficulty: adversarial
   domain: drug_discovery
@@ -1569,9 +1569,9 @@
   difficulty: direct
   domain: single_cell
   correct_workflow: scrna_doublet_qc
-  acceptable_alts: [nf-core/scdownstream]
+  acceptable_alts: [nf-core/scdownstream, scds]
   disqualified: []
-  notes: "Hybrid clusters = doublet artefacts; scrna_doublet_qc uses DoubletFinder + Scrublet"
+  notes: "Hybrid clusters = doublet artefacts; scrna_doublet_qc uses DoubletFinder + Scrublet; scds (co-expression + binary classification) also a valid doublet detection tool"
 
 - id: sc2_004
   query: "Run pseudotime trajectory analysis on my clustered scRNA-seq data to order cells along a differentiation path"
@@ -1641,9 +1641,9 @@
   difficulty: indirect
   domain: single_cell
   correct_workflow: scthi_tme_classification
-  acceptable_alts: [scrnaseq_standard_endtoend]
+  acceptable_alts: [scrnaseq_standard_endtoend, Map To Ima Interpret Scrna]
   disqualified: []
-  notes: "scdownstream celltypist annotation step"
+  notes: "scthi_tme_classification classifies TME immune/stromal types via gene signatures; Map To IMA (Integrated Megascale Atlas) also valid as it maps cells to a pre-trained atlas reference"
 
 - id: sc2_012
   query: "I ran scRNA-seq on bone marrow aspirates — go from raw FASTQ to annotated hematopoietic cell types"
@@ -1668,18 +1668,18 @@
   difficulty: direct
   domain: single_cell
   correct_workflow: nf-core/scrnaseq
-  acceptable_alts: []
+  acceptable_alts: [parse_split_seq_scrna]
   disqualified: []
-  notes: "Parse Bio / SPLiT-seq is one of scrnaseq's supported protocols"
+  notes: "Parse Bio / SPLiT-seq is one of scrnaseq's supported protocols; parse_split_seq_scrna is the dedicated Parse Biosciences pipeline and equally valid"
 
 - id: sc2_015
   query: "I have MARS-seq single-cell data from a sorted cell population — process it to gene expression counts"
   difficulty: direct
   domain: single_cell
   correct_workflow: nf-core/marsseq
-  acceptable_alts: [nf-core/scrnaseq]
+  acceptable_alts: [nf-core/scrnaseq, scPipe]
   disqualified: []
-  notes: "nf-core/marsseq is the MARS-seq specific pipeline"
+  notes: "nf-core/marsseq is the MARS-seq specific pipeline; scPipe also supports MARS-seq protocol"
 
 # =========================================================
 # DOMAIN 13: SPATIAL OMICS (15 queries)
