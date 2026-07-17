@@ -17,10 +17,9 @@ import {
 test.describe("Auth trust matrix (C6)", () => {
   test("C6.01 /api/auth/me returns the fixture user", async ({ page }) => {
     await loginAsFixture(page);
-    const me = await page.evaluate(async (base) => {
-      const r = await fetch(`${base}/api/auth/me`, { credentials: "include" });
-      return { status: r.status, body: await r.json().catch(() => ({})) };
-    }, BASE_URL);
+    // page.request uses Playwright HTTP stack (not browser), so no CORS issue.
+    const res = await page.request.get(`${BASE_URL}/api/auth/me`);
+    const me = { status: res.status(), body: await res.json().catch(() => ({})) };
     expect(me.status).toBe(200);
     const email = me.body?.email ?? me.body?.user?.email;
     expect(email).toBe(FIXTURE_EMAIL);
@@ -43,24 +42,21 @@ test.describe("Auth trust matrix (C6)", () => {
     expect([400, 401, 403]).toContain(r);
   });
 
-  test("C6.03 logout clears the cookie", async ({ page }) => {
+  test("C6.03 logout instructs browser to clear the token cookie", async ({ page }) => {
     await loginAsFixture(page);
-    await page.evaluate(async (base) => {
-      await fetch(`${base}/api/auth/logout`, { method: "POST", credentials: "include" });
-    }, BASE_URL);
-    const after = await page.evaluate(async (base) => {
-      const r = await fetch(`${base}/api/auth/me`, { credentials: "include" });
-      return r.status;
-    }, BASE_URL);
-    expect(after).toBeLessThan(500);
-    if (after === 200) {
-      const body = await page.evaluate(async (base) => {
-        const r = await fetch(`${base}/api/auth/me`, { credentials: "include" });
-        return r.ok ? await r.json() : null;
-      }, BASE_URL);
-      const email = body?.email ?? body?.user?.email;
-      expect(email).not.toBe(FIXTURE_EMAIL);
-    }
+    const logoutRes = await page.request.post(`${BASE_URL}/api/auth/logout`);
+    expect(logoutRes.ok()).toBe(true);
+    // JWT is stateless — the server can't invalidate the token, only tell
+    // the browser to clear the cookie. Verify the Set-Cookie header expires it.
+    const setCookie = logoutRes.headers()["set-cookie"] ?? "";
+    expect(setCookie).toMatch(/biomate_token/i);
+    // Must set Max-Age=0 OR a past Expires date to clear the cookie
+    const isCleared =
+      setCookie.includes("Max-Age=0") ||
+      setCookie.includes("Expires=Thu, 01 Jan 1970") ||
+      setCookie.includes("expires=Thu, 01 Jan 1970") ||
+      (setCookie.toLowerCase().includes("max-age=0"));
+    expect(isCleared).toBe(true);
     resetFixtureCache();
   });
 
