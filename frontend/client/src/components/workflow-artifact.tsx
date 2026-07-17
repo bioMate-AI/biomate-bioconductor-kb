@@ -244,6 +244,7 @@ export function WorkflowArtifact({
   const [autoLoopPanel, setAutoLoopPanel] = useState<AutoLoopPanelState>({
     gateResults: null,
     remediations: [],
+    regulatoryActions: [],
     complete: null,
   })
   // Gap 3 — AI realtime status (polled every 5s while running)
@@ -444,6 +445,7 @@ export function WorkflowArtifact({
           setAutoLoopPanel(prev => ({
             ...prev,
             remediations: data.remediations ?? [],
+            regulatoryActions: data.regulatory_actions ?? [],
             complete: {
               phase: data.phase,
               domain: data.domain,
@@ -1118,7 +1120,7 @@ export function WorkflowArtifact({
               <div className="mt-3">
                 <AutoLoopPanel
                   state={autoLoopPanel}
-                  onDismiss={() => setAutoLoopPanel({ gateResults: null, remediations: [], complete: null })}
+                  onDismiss={() => setAutoLoopPanel({ gateResults: null, remediations: [], regulatoryActions: [], complete: null })}
                 />
               </div>
             )}
