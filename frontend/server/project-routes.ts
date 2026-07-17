@@ -463,24 +463,25 @@ export function registerProjectRoutes(app: Express): void {
     }
   });
 
-  // ─── DELETE /api/projects/:id/members/:memberId ───────────────────────────
-  // Remove a member. Only the project owner can remove members.
-  app.delete("/api/projects/:id/members/:memberId", authenticateToken, async (req: Request, res: Response) => {
+  // ─── DELETE /api/projects/:id/members/me ─────────────────────────────────────
+  // Leave a project. Any member can remove themselves. Must be registered BEFORE
+  // the /:memberId wildcard so "me" isn't swallowed as a memberId.
+  app.delete("/api/projects/:id/members/me", authenticateToken, async (req: Request, res: Response) => {
     const uid = userId(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
-    const { id, memberId } = req.params;
+    const { id } = req.params;
     try {
-      const existing = await memoryService.projects.getProject(id);
-      if (!existing || existing.userId !== uid) return res.status(404).json({ error: "Project not found" });
+      const proj = await memoryService.projects.getProject(id);
+      if (proj?.userId === uid) return res.status(400).json({ error: "Owner cannot leave — transfer or delete the project" });
       const del = await pool.query(
         `DELETE FROM project_members WHERE project_id = $1 AND user_id = $2`,
-        [id, memberId]
+        [id, uid]
       );
-      if ((del.rowCount ?? 0) === 0) return res.status(404).json({ error: "Member not found" });
+      if ((del.rowCount ?? 0) === 0) return res.status(404).json({ error: "Not a member of this project" });
       res.json({ ok: true });
     } catch (e: any) {
-      console.error("[project_members] remove failed:", e?.message ?? e);
-      res.status(500).json({ error: "Failed to remove member" });
+      console.error("[project_members] leave failed:", e?.message ?? e);
+      res.status(500).json({ error: "Failed to leave project" });
     }
   });
 
@@ -507,24 +508,24 @@ export function registerProjectRoutes(app: Express): void {
     }
   });
 
-  // ─── DELETE /api/projects/:id/members/me ─────────────────────────────────────
-  // Leave a project. Any member can remove themselves.
-  app.delete("/api/projects/:id/members/me", authenticateToken, async (req: Request, res: Response) => {
+  // ─── DELETE /api/projects/:id/members/:memberId ───────────────────────────
+  // Remove a member. Only the project owner can remove members.
+  app.delete("/api/projects/:id/members/:memberId", authenticateToken, async (req: Request, res: Response) => {
     const uid = userId(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
-    const { id } = req.params;
+    const { id, memberId } = req.params;
     try {
-      const proj = await memoryService.projects.getProject(id);
-      if (proj?.userId === uid) return res.status(400).json({ error: "Owner cannot leave — transfer or delete the project" });
+      const existing = await memoryService.projects.getProject(id);
+      if (!existing || existing.userId !== uid) return res.status(404).json({ error: "Project not found" });
       const del = await pool.query(
         `DELETE FROM project_members WHERE project_id = $1 AND user_id = $2`,
-        [id, uid]
+        [id, memberId]
       );
-      if ((del.rowCount ?? 0) === 0) return res.status(404).json({ error: "Not a member of this project" });
+      if ((del.rowCount ?? 0) === 0) return res.status(404).json({ error: "Member not found" });
       res.json({ ok: true });
     } catch (e: any) {
-      console.error("[project_members] leave failed:", e?.message ?? e);
-      res.status(500).json({ error: "Failed to leave project" });
+      console.error("[project_members] remove failed:", e?.message ?? e);
+      res.status(500).json({ error: "Failed to remove member" });
     }
   });
 
