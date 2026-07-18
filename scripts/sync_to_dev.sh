@@ -574,9 +574,23 @@ deploy_databases() {
   [[ "$local_db_mtime" =~ ^[0-9]+$ ]] || local_db_mtime=0
 
   if [[ "$local_db_mtime" -gt "${LAST_DB_SYNC:-0}" ]]; then
-    log "[db] galaxy_ai_tools.db changed ($(du -sh $local_db | cut -f1)) — scp to EC2..."
-    ec2_scp "$local_db" "${EC2_USER}@${EC2_HOST}:/tmp/galaxy_ai_tools_sync.db" \
-      || { log "[db] scp failed — aborting galaxy_ai_tools.db sync"; return 1; }
+    # Compress before transfer: 310MB → ~71MB (4.4×), reducing the SSM tunnel
+    # window from ~20min to ~5min and avoiding "Bad packet length" data corruption.
+    local local_db_gz="/tmp/galaxy_ai_tools_sync.db.gz"
+    log "[db] galaxy_ai_tools.db changed ($(du -sh $local_db | cut -f1)) — compressing for transfer..."
+    gzip -c "$local_db" > "$local_db_gz" \
+      || { log "[db] gzip compression failed"; return 1; }
+    local gz_size; gz_size=$(du -sh "$local_db_gz" | cut -f1)
+    log "[db] compressed to ${gz_size} — scp to EC2..."
+    ec2_scp "$local_db_gz" "${EC2_USER}@${EC2_HOST}:/tmp/galaxy_ai_tools_sync.db.gz"
+    local scp_rc=$?
+    rm -f "$local_db_gz"
+    if [[ "$scp_rc" -ne 0 ]]; then
+      log "[db] scp failed — aborting galaxy_ai_tools.db sync"
+      return 1
+    fi
+    ec2_ssh 'gunzip -f /tmp/galaxy_ai_tools_sync.db.gz' \
+      || { log "[db] decompress on EC2 failed — aborting"; return 1; }
     # Verify the transferred file is not empty/truncated before touching the container.
     # An scp that fails mid-transfer can leave a 0-byte or partial file even with exit 0.
     ec2_ssh '
