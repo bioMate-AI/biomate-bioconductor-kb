@@ -96,8 +96,9 @@ async function assertPanelOpened(page: Page, label: string): Promise<string | nu
       // "Could not generate workflow" + any server-side error signal means the Galaxy backend
       // crashed, not that BioMate routed wrong.  Skip rather than fail so a single overloaded
       // worker doesn't hide real routing bugs.
+      // "internal error" is the LLM's paraphrase of ECONNREFUSED when Galaxy is unreachable.
       (latestMsg?.includes("Could not generate workflow") &&
-        /server error|system error|unexpected.*error|socket|timeout|\b500\b|connection.*error|error.*connection/i.test(latestMsg ?? ""));
+        /internal error|server error|system error|unexpected.*error|socket|timeout|\b500\b|connection.*error|error.*connection/i.test(latestMsg ?? ""));
 
     if (isInfra) {
       console.warn(`[${label}] INFRA-SKIP: Galaxy backend unavailable or overloaded — skipping test`);
