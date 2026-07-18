@@ -1985,6 +1985,7 @@ Parameter type names to detect (and any others you recognize):
 - sample_id: patient/sample/library identifier
 - coordinates: genomic coordinates (chr:start-end format)
 - uploaded_dataset: IDs from an "[Uploaded datasets: ...]" block in the message
+- vcf_variants: a VCF-format variant table with #CHROM/POS/ID/REF/ALT columns, chromosome positions, and rs-IDs (e.g. "#CHROM\tPOS\tID\tREF\tALT\n1\t752566\trs3094315\tG\tA"). Distinguish from count_matrix by the presence of REF/ALT nucleotide columns and chromosomal POS integers.
 - count_matrix: a comma/tab-separated gene expression count matrix (header row + data rows with gene IDs and numeric counts, e.g. "gene,ctrl1,ctrl2\nGENE1,100,120")
 - any other scientific parameter you recognize as concrete input data
 
@@ -2038,14 +2039,23 @@ Rules:
   if (file) fallback.file_path = file[1];
   const upload = message.match(/\[Uploaded datasets:\s*([^\]]+)\]/);
   if (upload) fallback.uploaded_dataset = upload[1].trim();
-  // Tabular data: ≥2 lines each with ≥2 comma/tab-separated tokens where at least one is
-  // numeric. Catches gene count matrices, sample metadata tables, and similar pasted inputs.
-  const tabularLines = message.split('\n').map((l: string) => l.trim()).filter(Boolean);
-  const numericTabularRows = tabularLines.filter((line: string) => {
-    const cols = line.split(/[,\t]/);
-    return cols.length >= 2 && cols.some((c: string) => /^\d+(\.\d+)?$/.test(c.trim()));
-  });
-  if (numericTabularRows.length >= 2) fallback.count_matrix = message.trim();
+  // VCF variant table: #CHROM header OR chr/pos/rsID row pattern. Must be detected
+  // BEFORE the generic numeric-tabular fallback because VCF data has numeric columns
+  // (POS, QUAL, AF) that would otherwise match count_matrix erroneously.
+  const hasVCFHeader = /^#CHROM\s+POS\s+ID\s+REF\s+ALT/im.test(message);
+  const hasVCFRow = /^(?:chr)?[\dXY]+\t\d+\t(?:rs\d+|\.|[A-Z_*]+)\t[ACGTNacgtn.]+\t[ACGTNacgtn.,*]+/im.test(message);
+  if (hasVCFHeader || hasVCFRow) {
+    fallback.vcf_variants = message.trim();
+  } else {
+    // Tabular data: ≥2 lines each with ≥2 comma/tab-separated tokens where at least one is
+    // numeric. Catches gene count matrices, sample metadata tables, and similar pasted inputs.
+    const tabularLines = message.split('\n').map((l: string) => l.trim()).filter(Boolean);
+    const numericTabularRows = tabularLines.filter((line: string) => {
+      const cols = line.split(/[,\t]/);
+      return cols.length >= 2 && cols.some((c: string) => /^\d+(\.\d+)?$/.test(c.trim()));
+    });
+    if (numericTabularRows.length >= 2) fallback.count_matrix = message.trim();
+  }
   _inlineDataCache.set(cacheKey, fallback);
   // Log regex fallback result using same format as LLM path so E2E tests can observe both paths.
   const _fbArrayKeys = Object.keys(fallback).filter(k => fallback[k].startsWith('['));

@@ -199,10 +199,11 @@ test("UC-2: tab-separated VCF variants route to variant analysis workflow", asyn
   await newSession(page);
   await ss(page, "UC2_00_new_session");
 
-  // Tab-separated: CHROM, POS, ID, REF, ALT, QUAL (numeric), AF (numeric)
-  // The tabular regex fires on QUAL/AF columns → count_matrix in inlineDataMap
+  // Tab-separated VCF: #CHROM header + CHROM/POS/ID/REF/ALT/QUAL/AF columns.
+  // Previously misclassified as count_matrix (numeric columns triggered the generic
+  // tabular fallback); now correctly detected as vcf_variants via #CHROM header check.
   const message = [
-    "Annotate and filter these germline variants for a population study:",
+    "Annotate and filter these germline variants for a population genetics study:",
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tAF",
     "1\t752566\trs3094315\tG\tA\t60\t0.42",
     "1\t776546\trs12124819\tA\tG\t55\t0.31",
@@ -237,7 +238,7 @@ test("UC-2: tab-separated VCF variants route to variant analysis workflow", asyn
   );
 
   await ss(page, "UC2_02_panel_verified");
-  console.log("[UC-2] PASS — variant workflow routed; AI did not re-request provided data");
+  console.log("[UC-2] PASS — variant workflow routed via vcf_variants key; AI did not re-request provided data");
 });
 
 // ============================================================================
@@ -380,11 +381,18 @@ test("UC-6b: extractInlineDataWithLLM preserves multi-value data (array or strin
   await ss(page, "UC6b_00_new_session");
 
   // Record log size before sending so we only scan new lines.
-  // Match both versioned (biomate_server_v10.log) and plain (biomate_server.log)
-  // naming — the startup script may use either convention.
-  const logFiles = fs.readdirSync("/tmp").filter(f => /^biomate_server(_v\d+)?\.log$/.test(f))
-    .map(f => path.join("/tmp", f))
-    .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
+  // Find the active server log — the startup script may use several naming
+  // conventions (biomate_server.log, biomate_server_v10.log, server-test.log).
+  // Strategy: scan all *.log files in /tmp, keep only those modified within
+  // the last 6 hours and larger than 100 KB (server logs are always large),
+  // then take the most-recently-modified one.
+  const SIX_HOURS = 6 * 60 * 60 * 1000;
+  const logFiles = fs.readdirSync("/tmp")
+    .filter(f => f.endsWith(".log"))
+    .map(f => ({ f, p: path.join("/tmp", f), s: fs.statSync(path.join("/tmp", f)) }))
+    .filter(({ s }) => s.size > 100_000 && Date.now() - s.mtimeMs < SIX_HOURS)
+    .sort((a, b) => b.s.mtimeMs - a.s.mtimeMs)
+    .map(({ p }) => p);
   const serverLog = logFiles[0] ?? null;
   const logSizeBefore = serverLog ? fs.statSync(serverLog).size : 0;
   console.log("[UC-6b] Reading server log:", serverLog, "size before:", logSizeBefore);
