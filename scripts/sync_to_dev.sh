@@ -551,19 +551,16 @@ deploy_workflows() {
 deploy_databases() {
   log "[db] Syncing Galaxy databases..."
 
-  # galaxy_ai_tools.db — 304MB, sync via direct scp (NOT S3).
+  # galaxy_ai_tools.db — 310MB, sync via S3 presigned URL (NOT direct scp).
   #
-  # WHY scp instead of S3 (2026-05-22):
-  # The dev EC2 host has stale ~/.aws/credentials (Oct 2025) whose access
-  # key has been deleted upstream. The `aws s3 cp` on the host returns
-  # InvalidAccessKeyId and the previous code silently used a stale
-  # `/tmp/galaxy_ai_tools_sync.db` from a prior run — leaving dev on a
-  # stale workflow DB indefinitely. Same failure mode that hit
-  # universe.sqlite. Direct scp avoids it. ~15-30 sec at LAN speed.
-  #
-  # Fixing the EC2 creds (move ~/.aws/credentials aside, let the
-  # BioMateEc2DeployProfile instance role take over) would restore the
-  # S3 path, but that's a separate hardening pass.
+  # WHY S3 instead of scp (2026-07-17):
+  # Direct scp over the SSM WebSocket proxy corrupts data with "Bad packet
+  # length" at ~17-21 min regardless of file size or ServerAliveInterval.
+  # The SSM session has a hard rotation interval that corrupts the SSH stream.
+  # Fix: local uploads to S3; EC2 pulls via presigned HTTPS URL (bypasses SSM;
+  # in-region download is ~1 Gbps vs ~150 KB/s through SSM).
+  # EC2 stale ~/.aws/credentials (Oct 2025 key deleted upstream) is moved to
+  # .bak in-flight so the BioMateEc2DeployProfile instance role takes over.
   local local_db="$REPO_ROOT/backend/database/galaxy_ai_tools.db"
   # Probe GNU stat first (see comment at L960). BSD `stat -f %m` returns
   # filesystem info on Linux *without* erroring, so the ||-fallback below
@@ -574,23 +571,28 @@ deploy_databases() {
   [[ "$local_db_mtime" =~ ^[0-9]+$ ]] || local_db_mtime=0
 
   if [[ "$local_db_mtime" -gt "${LAST_DB_SYNC:-0}" ]]; then
-    # Compress before transfer: 310MB → ~71MB (4.4×), reducing the SSM tunnel
-    # window from ~20min to ~5min and avoiding "Bad packet length" data corruption.
-    local local_db_gz="/tmp/galaxy_ai_tools_sync.db.gz"
-    log "[db] galaxy_ai_tools.db changed ($(du -sh $local_db | cut -f1)) — compressing for transfer..."
-    gzip -c "$local_db" > "$local_db_gz" \
-      || { log "[db] gzip compression failed"; return 1; }
-    local gz_size; gz_size=$(du -sh "$local_db_gz" | cut -f1)
-    log "[db] compressed to ${gz_size} — scp to EC2..."
-    ec2_scp "$local_db_gz" "${EC2_USER}@${EC2_HOST}:/tmp/galaxy_ai_tools_sync.db.gz"
-    local scp_rc=$?
-    rm -f "$local_db_gz"
-    if [[ "$scp_rc" -ne 0 ]]; then
-      log "[db] scp failed — aborting galaxy_ai_tools.db sync"
+    # Transfer via S3 presigned URL: avoids SSM tunnel "Bad packet length"
+    # corruption that hits at ~17 min for any file >~60MB over the SSM proxy.
+    # Local uploads to S3 (user's internet); EC2 pulls from S3 via HTTPS
+    # (in-region, ~1 Gbps) — SSM tunnel carries only the curl command, not data.
+    # EC2 stale ~/.aws/credentials: rename to .bak so the instance role takes over.
+    local S3_STAGE="s3://biomate-nextflow-outputs/tmp/db-sync/galaxy_ai_tools.db"
+    log "[db] galaxy_ai_tools.db changed ($(du -sh $local_db | cut -f1)) — uploading to S3 staging..."
+    aws s3 cp "$local_db" "$S3_STAGE" \
+      || { log "[db] S3 upload failed — aborting"; return 1; }
+    log "[db] S3 upload complete — generating presigned URL for EC2 pull..."
+    local presigned
+    presigned=$(aws s3 presign "$S3_STAGE" --expires-in 3600)
+    # Disable stale per-user creds so instance role (BioMateEc2DeployProfile) is active
+    ec2_ssh '[[ -f ~/.aws/credentials ]] && mv ~/.aws/credentials ~/.aws/credentials.bak && echo "[db] stale creds moved to .bak"' || true
+    ec2_ssh "curl -fsSL -o /tmp/galaxy_ai_tools_sync.db '${presigned}'"
+    local pull_rc=$?
+    aws s3 rm "$S3_STAGE" 2>/dev/null || true
+    if [[ "$pull_rc" -ne 0 ]]; then
+      log "[db] EC2 pull from S3 failed — aborting"
       return 1
     fi
-    ec2_ssh 'gunzip -f /tmp/galaxy_ai_tools_sync.db.gz' \
-      || { log "[db] decompress on EC2 failed — aborting"; return 1; }
+    log "[db] EC2 pull complete"
     # Verify the transferred file is not empty/truncated before touching the container.
     # An scp that fails mid-transfer can leave a 0-byte or partial file even with exit 0.
     ec2_ssh '
