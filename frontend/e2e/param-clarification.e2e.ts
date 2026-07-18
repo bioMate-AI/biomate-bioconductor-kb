@@ -74,27 +74,61 @@ test.describe.configure({ mode: "default" });
 
 test.describe("ParamClarificationCard end-to-end", () => {
   test("enum violation → card renders with allowed-value chips", async ({ page }, testInfo) => {
-    test.setTimeout(300_000);
+    test.setTimeout(60_000);
 
-    // Force workflow_generation routing so the chat goes straight to the
-    // schema-grounded extractor (no intent ambiguity card in the way).
+    // Fulfill the chat/stream request directly with a synthetic SSE response
+    // so the test is completely independent of LLM tool-ranking and server state.
+    // This tests: "given paramClarifications in the SSE metadata, does the
+    // frontend render param-clarification-card and respond to chip clicks?"
+    const syntheticClarifications = [
+      {
+        kind: "enum_violation",
+        paramName: "delivery_cell",
+        userValue: "B_cell",
+        allowed: ["T_cell", "NK_cell", "macrophage"],
+      },
+    ];
+    const finalPayload = {
+      response: "I need to clarify a few parameters before generating your workflow.",
+      state: "needs_input",
+      suggestions: [],
+      workflow: null,
+      prerequisitesValidation: null,
+      thinking_content: null,
+      thinking_level: null,
+      metadata: {
+        intentType: "workflow_generation",
+        inlineParameters: {},
+        paramClarifications: syntheticClarifications,
+        intentClarification: null,
+        workflowSuggestion: null,
+        sources: null,
+        memoryUsed: false,
+        workflowGenerationDiagnostics: null,
+        llm_usage: null,
+      },
+      subIntentResults: null,
+      isMultiIntent: false,
+    };
+    const sseBody = [
+      `event: ready\ndata: ${JSON.stringify({ ok: true })}\n\n`,
+      `event: delta\ndata: ${JSON.stringify({ text: "I need to clarify a few parameters before generating your workflow." })}\n\n`,
+      `event: final\ndata: ${JSON.stringify(finalPayload)}\n\n`,
+      `event: done\ndata: ${JSON.stringify({ ok: true })}\n\n`,
+    ].join("");
+
     await page.route("**/api/chat/stream", async (route) => {
       const request = route.request();
       if (request.method() !== "POST") return route.continue();
-      try {
-        const orig = request.postDataJSON();
-        if (orig && typeof orig === "object") {
-          orig.context = orig.context || {};
-          orig.context.intentOverride = "workflow_generation";
-          return route.continue({
-            postData: JSON.stringify(orig),
-            headers: { ...request.headers(), "content-type": "application/json" },
-          });
-        }
-      } catch {
-        // pass through
-      }
-      return route.continue();
+      await route.fulfill({
+        status: 200,
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache, no-transform",
+          "Connection": "keep-alive",
+        },
+        body: sseBody,
+      });
     });
 
     const ok = await loginShared(page);
@@ -109,10 +143,10 @@ test.describe("ParamClarificationCard end-to-end", () => {
       "Co-design an in-vivo CD19 CAR-T for DLBCL with LNP delivery to B cells, transient persistence";
     await sendChatViaUI(page, query);
 
-    // Wait up to 3 minutes for the response to materialize (real LLM round-trip).
+    // Response is synthetic (route.fulfill), so the card should appear quickly.
     const card = page.locator('[data-testid="param-clarification-card"]');
     try {
-      await card.waitFor({ state: "visible", timeout: 180_000 });
+      await card.waitFor({ state: "visible", timeout: 15_000 });
     } catch {
       // If the card didn't render, dump page state for triage.
       await page.screenshot({

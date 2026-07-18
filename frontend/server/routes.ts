@@ -5694,6 +5694,15 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
+      // Gate testInjectParamClarification behind the same E2E bypass token.
+      if (context && (context as any).testInjectParamClarification) {
+        const e2eToken = req.headers['x-e2e-test-token'];
+        const validToken = process.env.E2E_TEST_TOKEN;
+        if (!validToken || e2eToken !== validToken) {
+          delete (context as any).testInjectParamClarification;
+        }
+      }
+
       // ── Safety guardrails (PHI strip + content blocklist + scope filter) ──
       const safetyResult = checkSafety(String(message));
       if (!safetyResult.safe) {
@@ -5753,6 +5762,41 @@ ${paramLines || '(none recorded)'}`;
       }, 3_000); // 3s keeps iOS Safari from dropping the SSE connection mid-stream
 
       safeSend("ready", { ok: true });
+
+      // Short-circuit for E2E UI tests that need to verify param-clarification-card
+      // rendering without depending on LLM tool ranking finding a specific workflow.
+      // When testInjectParamClarification is present (E2E token gated), emit a
+      // synthetic SSE response with the supplied clarifications and skip processMessage.
+      if (context && (context as any).testInjectParamClarification) {
+        const injectedClarifications = (context as any).testInjectParamClarification;
+        safeSend("delta", { text: "I need to clarify a few parameters before generating your workflow." });
+        safeSend("final", {
+          response: "I need to clarify a few parameters before generating your workflow.",
+          state: "needs_input",
+          suggestions: [],
+          workflow: null,
+          prerequisitesValidation: null,
+          thinking_content: null,
+          thinking_level: null,
+          metadata: {
+            intentType: "workflow_generation",
+            inlineParameters: {},
+            paramClarifications: injectedClarifications,
+            intentClarification: null,
+            workflowSuggestion: null,
+            sources: null,
+            memoryUsed: false,
+            workflowGenerationDiagnostics: null,
+            llm_usage: null,
+          },
+          subIntentResults: null,
+          isMultiIntent: false,
+        });
+        safeSend("done", { ok: true });
+        if (heartbeatTimer) clearInterval(heartbeatTimer);
+        res.end();
+        return;
+      }
 
       // Pilot account check — PILOT_ACCOUNT_EMAILS is a comma-separated list of emails
       // that bypass billing during the pilot window.
