@@ -39,7 +39,7 @@ _CHAIN_EMBED_MODEL_NAME = "all-MiniLM-L6-v2"
 # Minimum cosine similarity for a chain to be passed to LLM reranking.
 # Intentionally higher than single-workflow search (chains are broad; weak overlap
 # means the query is asking for a sub-step, not the full pipeline).
-_CHAIN_EMBED_MIN_SIMILARITY = 0.50  # raised from 0.42 — reduces false-positive chain matches
+_CHAIN_EMBED_MIN_SIMILARITY = 0.60  # raised from 0.50 — prevents tumor_reactive_t_cell_chain from capturing neoantigen prediction queries
 
 # Score thresholds for _classify_match().
 # Calibrated to the raw scoring sum produced by _score_workflow().
