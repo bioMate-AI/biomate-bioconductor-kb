@@ -13,6 +13,7 @@ const SHOT_DIR = "test-results/chat-matrix";
 
 async function bootApp(page: Page) {
   await loginAsFixture(page);
+  await page.goto(BASE_URL);
   await page
     .locator('[data-testid="button-sidebar-toggle"]')
     .waitFor({ state: "visible", timeout: 15_000 });
