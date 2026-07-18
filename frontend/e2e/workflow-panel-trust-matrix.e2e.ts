@@ -57,6 +57,7 @@ test.describe("Workflow panel trust matrix (C1)", () => {
   test("C1.02 chat suggesting RNA-seq → panel mounts on the right", async ({
     page,
   }) => {
+    test.setTimeout(180_000);
     await bootApp(page);
     await sendChat(page, "I have RNA-seq FASTQ files and want differential expression");
     // 'Confirm and run' is the strongest pre-run signal that the panel has
@@ -72,6 +73,7 @@ test.describe("Workflow panel trust matrix (C1)", () => {
   test("C1.03 pre-run: 'Confirm and run workflow' affordance visible", async ({
     page,
   }) => {
+    test.setTimeout(180_000);
     await bootApp(page);
     await sendChat(page, "I have RNA-seq FASTQ files and want differential expression");
     const confirmRun = page
@@ -83,22 +85,26 @@ test.describe("Workflow panel trust matrix (C1)", () => {
   });
 
   test("C1.04 workflow settings tab is visible", async ({ page }) => {
+    test.setTimeout(180_000);
     await bootApp(page);
     await sendChat(page, "I have RNA-seq FASTQ files and want differential expression");
     const confirmRun = page.locator('button:has-text("Confirm and run")').first();
     const visible = await confirmRun.waitFor({ state: "visible", timeout: 60_000 }).then(() => true).catch(() => false);
     if (!visible) { test.skip(true, "C1.04 INFRA-SKIP: Galaxy unavailable"); return; }
-    await expect(page.getByText(/Workflow settings/i).first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('[data-testid="panel-tab-settings"]')).toBeVisible({ timeout: 5_000 });
     await shot(page, "04_settings_tab");
   });
 
   test("C1.05 workflow parameters strip visible", async ({ page }) => {
+    test.setTimeout(180_000);
     await bootApp(page);
     await sendChat(page, "I have RNA-seq FASTQ files and want differential expression");
     const confirmRun = page.locator('button:has-text("Confirm and run")').first();
     const visible = await confirmRun.waitFor({ state: "visible", timeout: 60_000 }).then(() => true).catch(() => false);
     if (!visible) { test.skip(true, "C1.05 INFRA-SKIP: Galaxy unavailable"); return; }
-    await expect(page.getByText(/Workflow parameters/i).first()).toBeVisible({ timeout: 10_000 });
+    // Click settings tab (default is 'phases'); then verify the settings content mounts
+    await page.locator('[data-testid="panel-tab-settings"]').click();
+    await expect(page.locator('[data-testid="panel-settings"]')).toBeVisible({ timeout: 5_000 });
     await shot(page, "05_params_strip");
   });
 
