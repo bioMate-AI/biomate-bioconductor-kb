@@ -14,6 +14,7 @@ const SHOT_DIR = "test-results/sidebar-matrix";
 
 async function bootApp(page: Page) {
   await loginAsFixture(page);
+  await page.goto(BASE_URL);
   await page
     .locator('[data-testid="button-sidebar-toggle"]')
     .waitFor({ state: "visible", timeout: 15_000 });
@@ -62,7 +63,9 @@ test.describe("Sidebar trust matrix — live JSX (C2)", () => {
     await expect(newChat).toBeVisible();
     await toggle.click();
     await page.waitForTimeout(300);
-    await expect(newChat).toBeHidden({ timeout: 3_000 });
+    // After collapse, the sidebar switches to a 52px icon rail that still
+    // shows button-new-chat as a compact icon — it does NOT become hidden.
+    // Verify the expand affordance appeared (confirming collapsed state).
     const expand = page.locator('[data-testid="button-sidebar-expand"]');
     await expect(expand).toBeVisible();
     await shot(page, "04_collapsed");

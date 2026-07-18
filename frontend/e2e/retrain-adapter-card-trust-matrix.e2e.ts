@@ -17,6 +17,7 @@ const SHOT_DIR = "test-results/retrain-card-matrix";
 
 async function openSettings(page: Page) {
   await loginAsFixture(page);
+  await page.goto(BASE_URL);
   await page.locator('[data-testid="button-settings"]').click();
   await page.locator('[role="dialog"]').first().waitFor({ state: "visible", timeout: 5_000 });
 }
@@ -35,6 +36,7 @@ async function shot(page: Page, name: string) {
 test.describe("Retrain adapter card (B3 Settings affordance)", () => {
   test("R1 Settings dialog opens from sidebar", async ({ page }) => {
     await loginAsFixture(page);
+    await page.goto(BASE_URL);
     await page.locator('[data-testid="button-settings"]').click();
     const dialog = page.locator('[role="dialog"]').first();
     await expect(dialog).toBeVisible({ timeout: 5_000 });
