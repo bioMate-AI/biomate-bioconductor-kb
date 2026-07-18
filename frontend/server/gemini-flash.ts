@@ -14,8 +14,7 @@
 
 import { GoogleGenerativeAI, GenerativeModel, GenerationConfig } from '@google/generative-ai';
 
-export const GEMINI_FLASH_MODEL = 'gemini-2.5-flash';
-export const GEMINI_LITE_MODEL  = 'gemini-2.5-flash-lite';
+export const GEMINI_FLASH_MODEL = 'gemini-3.5-flash';
 
 function getClient(): GoogleGenerativeAI {
   const apiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
@@ -29,8 +28,6 @@ interface CallGeminiFlashOpts {
   maxTokens?: number;
   temperature?: number;
   jsonMode?: boolean;
-  /** Override model name (defaults to GEMINI_FLASH_MODEL) */
-  model?: string;
   /** AbortSignal for timeout */
   signal?: AbortSignal;
 }
@@ -58,7 +55,7 @@ export async function callGeminiFlash(opts: CallGeminiFlashOpts): Promise<string
   };
 
   const model: GenerativeModel = genAI.getGenerativeModel({
-    model: opts.model ?? GEMINI_FLASH_MODEL,
+    model: GEMINI_FLASH_MODEL,
     ...(opts.system ? { systemInstruction: opts.system } : {}),
     generationConfig,
   });
@@ -122,12 +119,4 @@ export async function callGeminiFlashSimple(
     maxTokens,
     jsonMode,
   });
-}
-
-/**
- * Lite variant (gemini-2.5-flash-lite) for simple classification tasks.
- * 15× cheaper than gemini-3.5-flash; use when a regex fallback exists.
- */
-export async function callGeminiFlashLite(opts: Omit<CallGeminiFlashOpts, 'model'>): Promise<string> {
-  return callGeminiFlash({ ...opts, model: GEMINI_LITE_MODEL });
 }
