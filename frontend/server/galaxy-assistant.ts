@@ -1986,6 +1986,8 @@ Parameter type names to detect (and any others you recognize):
 - coordinates: genomic coordinates (chr:start-end format)
 - uploaded_dataset: IDs from an "[Uploaded datasets: ...]" block in the message
 - vcf_variants: a VCF-format variant table with #CHROM/POS/ID/REF/ALT columns, chromosome positions, and rs-IDs (e.g. "#CHROM\tPOS\tID\tREF\tALT\n1\t752566\trs3094315\tG\tA"). Distinguish from count_matrix by the presence of REF/ALT nucleotide columns and chromosomal POS integers.
+- gwas_summary_stats: GWAS summary statistics table with SNP/CHR/POS/BETA/SE/P (or OR/Z/P) columns. Common column headers: rsid, chr, bp, beta, se, p, pval, or, maf, af1.
+- genomic_intervals: a BED-format or similar table of genomic regions with chr, start, end columns (e.g. "chr1\t1000\t2000\tpeak1").
 - count_matrix: a comma/tab-separated gene expression count matrix (header row + data rows with gene IDs and numeric counts, e.g. "gene,ctrl1,ctrl2\nGENE1,100,120")
 - any other scientific parameter you recognize as concrete input data
 
@@ -2039,13 +2041,27 @@ Rules:
   if (file) fallback.file_path = file[1];
   const upload = message.match(/\[Uploaded datasets:\s*([^\]]+)\]/);
   if (upload) fallback.uploaded_dataset = upload[1].trim();
-  // VCF variant table: #CHROM header OR chr/pos/rsID row pattern. Must be detected
-  // BEFORE the generic numeric-tabular fallback because VCF data has numeric columns
-  // (POS, QUAL, AF) that would otherwise match count_matrix erroneously.
+  // ── Genomic format detection (must precede the generic count_matrix catch-all) ──────────────
+  // VCF variant table: #CHROM header OR chr/pos/rsID row pattern.
   const hasVCFHeader = /^#CHROM\s+POS\s+ID\s+REF\s+ALT/im.test(message);
   const hasVCFRow = /^(?:chr)?[\dXY]+\t\d+\t(?:rs\d+|\.|[A-Z_*]+)\t[ACGTNacgtn.]+\t[ACGTNacgtn.,*]+/im.test(message);
+  // GWAS summary statistics: CHR/POS + effect columns (BETA/SE/P or OR/P).
+  // Pattern: any header containing "beta","se","pval" or "p_value" alongside position columns.
+  const hasGWASHeader = /\b(?:CHR(?:OM)?|chromosome)\b.*\b(?:POS(?:ITION)?|BP)\b.*\b(?:BETA|OR|EFFECT|Z_STAT)\b/i.test(message) ||
+    /\b(?:BETA|OR|EFFECT)\b.*\b(?:SE|STD_ERR)\b.*\b(?:P(?:VAL)?|P_VALUE|PVALUE)\b/i.test(message);
+  const hasGWASRow = /^(?:rs\d+|chr[\dXY]+)[\t,][\d.]+[\t,][\d.]+[\t,]-?[\d.]+[\t,][\d.e+\-]+[\t,][\d.e\-]+/i.test(message);
+  // BED format: chr\t start\t end (optionally followed by name/score columns).
+  const hasBEDRows = message.split('\n').filter(Boolean).filter(l => {
+    const c = l.split('\t');
+    return c.length >= 3 && /^(?:chr)?[\dXYMT]+$/i.test(c[0]) && /^\d+$/.test(c[1]) && /^\d+$/.test(c[2]);
+  }).length >= 2;
+
   if (hasVCFHeader || hasVCFRow) {
     fallback.vcf_variants = message.trim();
+  } else if (hasGWASHeader || hasGWASRow) {
+    fallback.gwas_summary_stats = message.trim();
+  } else if (hasBEDRows) {
+    fallback.genomic_intervals = message.trim();
   } else {
     // Tabular data: ≥2 lines each with ≥2 comma/tab-separated tokens where at least one is
     // numeric. Catches gene count matrices, sample metadata tables, and similar pasted inputs.
