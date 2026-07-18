@@ -17,7 +17,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
-import { callGeminiFlash } from './gemini-flash';
+import { callGeminiFlash, callGeminiFlashLite } from './gemini-flash';
 import { GalaxyAPIProxy } from './galaxy-api-proxy';
 import { buildCanonicalFixturePromptSection, matchesCanonicalFixture } from './canonical-fixtures';
 import { resolveCanonicalChainStepPath } from './canonical-chain-steps';
@@ -252,10 +252,10 @@ export function shouldEnableThinking(message: string, intent: string): boolean {
 }
 
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {
-  intentModel: 'gemini-3.5-flash',  // overridden by BIOMATE_INTENT_MODEL env var; gemini-3.5-flash in production
-  toolRankingModel: 'claude-haiku-4-5',  // Haiku: fast lightweight ranking
-  responseModel: 'gemini-3.5-flash',     // Primary: Gemini Flash; Claude/OpenAI/Ollama as fallback chain
-  enableThinking: false,                 // Disable thinking by default for lower latency
+  intentModel: 'claude-haiku-4-5-20251001', // Haiku: better structured-JSON instruction-following than Gemini Flash
+  toolRankingModel: 'claude-haiku-4-5',     // Haiku: fast lightweight ranking
+  responseModel: 'gemini-2.5-flash',        // gemini-2.5-flash: 5× cheaper than 3.5-flash, newer generation
+  enableThinking: false,                    // Disable thinking by default for lower latency
   thinkingBudget: 2000,
 };
 
@@ -1999,7 +1999,7 @@ Rules:
 - Return ONLY valid JSON, no markdown, no explanation`;
 
   try {
-    const raw = await callGeminiFlash({
+    const raw = await callGeminiFlashLite({
       messages: [{ role: 'user', content: message.slice(0, 1200) }],
       system: SYSTEM,
       maxTokens: 1024,
