@@ -345,6 +345,20 @@ export interface ChatContext {
    * Ignored unless openrouterKey is also set.
    */
   selectedModel?: string;
+  /**
+   * Forces the result of intent classification to this type, bypassing the LLM.
+   * Gated by routes.ts behind the E2E bypass token — only valid in test mode.
+   * When set AND the query has design-verb+modality patterns, _detectCrossIntentAmbiguity
+   * fires and emits an IntentClarificationCard. Used by intent-clarification E2E tests.
+   */
+  testForceIntent?: string;
+  /**
+   * Applied after intent classification: overrides the primaryIntent type.
+   * Set by the frontend when the user clicks a chip in IntentClarificationCard.
+   * Gated by routes.ts behind the E2E bypass token is NOT required — this is
+   * normal product flow, not test-only.
+   */
+  intentOverride?: string;
 }
 
 export interface ToolRecommendation {
@@ -3234,8 +3248,54 @@ Rules:
     const decomposition = await this.analyzeIntent(message, context, sessionMemoryBlock);
     this._maybeCollapseNamedWorkflowCardRequest(decomposition, message);
     this._applyNamedWorkflowOverridesToDecomposition(decomposition, message);
+
+    // Apply intentOverride from a prior IntentClarificationCard chip click.
+    if (context.intentOverride) {
+      const applyOverride = (i: DecomposedIntent) => {
+        i.type = context.intentOverride!;
+        i.actions = inferActionsFromType(context.intentOverride!);
+      };
+      applyOverride(decomposition.primaryIntent);
+      for (const i of decomposition.intents) applyOverride(i);
+      log(`Step 1: intentOverride applied → ${context.intentOverride}`);
+    }
+
     const intent = decomposition.primaryIntent;
     log(`Step 1 complete - Intent: ${intent.type}, isMultiIntent: ${decomposition.isMultiIntent}, intents: ${decomposition.intents.length}`);
+
+    // Cross-intent ambiguity — only when no intentOverride already set.
+    // Fires when the intent type looks wrong for a design-shaped query and
+    // returns an IntentClarificationCard rather than proceeding blindly.
+    if (!context.intentOverride) {
+      const ambiguity = this._detectCrossIntentAmbiguity(message, intent);
+      if (ambiguity.shouldClarify) {
+        log(`Step 1.5: ambiguity detected (${ambiguity.reason}) — emitting IntentClarificationCard`);
+        const friendly = 'I want to make sure I do the right thing. Did you mean to run a design workflow, or are you asking something else?';
+        if (onResponseDelta) onResponseDelta(friendly);
+        return {
+          message: friendly,
+          intentType: intent.type,
+          intentConfidence: intent.confidence,
+          intentClarification: {
+            originalIntent: intent.type,
+            candidates: ambiguity.candidates,
+            reason: ambiguity.reason,
+            originalMessage: message,
+          },
+          suggestions: [],
+          truncated: false,
+          isMultiIntent: false,
+          sources: {
+            toolSearchUsed: false,
+            datasetRAGUsed: false,
+            workflowGenerated: false,
+            thinkingUsed: false,
+            researchAgentUsed: false,
+            benchmarkAgentUsed: false,
+          },
+        };
+      }
+    }
 
     // Multi-intent path: fan out to processSubIntent for each intent
     if (decomposition.isMultiIntent) {
@@ -4862,6 +4922,27 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       };
     }
 
+    // Short-circuit: E2E test hook — bypass LLM classification entirely.
+    // Only reachable when context.testForceIntent is set, which routes.ts
+    // gates behind the E2E bypass token (never set by normal product requests).
+    if (context.testForceIntent) {
+      const forcedType = context.testForceIntent;
+      const forcedIntent: DecomposedIntent = {
+        id: 'intent_force_test',
+        type: forcedType,
+        subQuery: message,
+        keywords: [],
+        inlineParameters: {},
+        needsToolSearch: false,
+        needsDatasets: false,
+        confidence: 1.0,
+        facts: [],
+        dependsOn: [],
+        actions: inferActionsFromType(forcedType),
+      };
+      return { intents: [forcedIntent], isMultiIntent: false, primaryIntent: forcedIntent };
+    }
+
     const chainHintList = (await this._getChainHintNames()).join(', ');
     const systemPrompt = `${sessionMemoryBlock}You are a bioinformatics intent analyzer. Classify user messages by their information need and declare which system agents should handle the request.
 
@@ -6324,6 +6405,47 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       keyTerms,
       needsThinking,
       chainHint,
+    };
+  }
+
+  /**
+   * Heuristic check for cross-intent ambiguity: detects queries that look like
+   * workflow_generation requests (design verb + therapeutic modality) but were
+   * classified as something else (e.g. tool_search). Used to surface an
+   * IntentClarificationCard so the user can correct the routing.
+   */
+  private _detectCrossIntentAmbiguity(
+    message: string,
+    primaryIntent: DecomposedIntent,
+  ): {
+    shouldClarify: boolean;
+    candidates: Array<{ type: string; label: string; primary?: boolean }>;
+    reason: string;
+  } {
+    if (primaryIntent.type === 'workflow_generation') {
+      return { shouldClarify: false, candidates: [], reason: '' };
+    }
+    const designVerb =
+      /\b(design|triage|compare|co-?design|bake[-\s]?off|engineer|propose|generate|build)\b/i;
+    const modalityToken =
+      /\b(bispecific|bsab|crossmab|kih|bite|car[-\s]?t|carT|car\s+construct|base[-\s]?edit|prime[-\s]?edit|knock[-\s]?(out|down|in)|glp[-\s]?1|glp1\b|modalit(y|ies)|adc|protac|mrna(\s+therap)?|aav(\s+serotype)?|aso(\s+gapmer)?|sirna|si[-\s]?rna|gapmer|peptide\s+therapeutic)\b/i;
+    const triggers: string[] = [];
+    if (designVerb.test(message) && modalityToken.test(message)) triggers.push('design-verb+modality');
+    if (/\b(triage|compare|bake[-\s]?off)\b.*\bmodalit(y|ies)\b/i.test(message))
+      triggers.push('verb+modalities');
+    if (/\bin[-\s]?vivo\b.*\b(car[-\s]?t|base[-\s]?edit|knock[-\s]?(out|down|in))\b/i.test(message))
+      triggers.push('in-vivo therapy');
+    if (triggers.length === 0) {
+      return { shouldClarify: false, candidates: [], reason: '' };
+    }
+    return {
+      shouldClarify: true,
+      candidates: [
+        { type: 'workflow_generation', label: 'Run a design workflow', primary: true },
+        { type: 'tool_search', label: 'Just search for tools' },
+        { type: 'research_question', label: 'Answer as a research question' },
+      ],
+      reason: triggers.join(', '),
     };
   }
 
