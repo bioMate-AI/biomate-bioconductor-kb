@@ -14,7 +14,7 @@
  * test isn't blocked by intent non-determinism.
  *
  * Run:
- *   BIOMATE_URL=http://localhost:5001 \
+ *   BIOMATE_URL=http://localhost:5000 \
  *   E2E_FIXTURE_PASSWORD=… \
  *   E2E_TEST_TOKEN=biomate-e2e-bypass-token-dev-only \
  *   PW_OUTPUT_DIR=/tmp/param-clar-audit \
@@ -23,9 +23,9 @@
  */
 import { test, expect, type Page } from "@playwright/test";
 
-const BASE_URL = (process.env.BIOMATE_URL || "http://localhost:5001").replace(/\/+$/, "");
+const BASE_URL = (process.env.BIOMATE_URL || "http://localhost:5000").replace(/\/+$/, "");
 const FIXTURE_EMAIL = process.env.E2E_FIXTURE_EMAIL || "lifeifei163361@163.com";
-const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || "";
+const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || "WpmFixture!2026";
 const E2E_TOKEN = process.env.E2E_TEST_TOKEN || "biomate-e2e-bypass-token-dev-only";
 
 async function loginShared(page: Page): Promise<boolean> {

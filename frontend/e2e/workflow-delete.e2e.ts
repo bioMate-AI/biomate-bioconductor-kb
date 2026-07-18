@@ -34,8 +34,9 @@ test.describe("workflow-delete", () => {
     await loginAsFixture(page);
     await page.goto(`${BASE_URL}/`);
 
-    // Step 1: Upload a workflow via Import Workflow tab
-    await page.getByTestId("button-import-workflow").click();
+    // Step 1: Open Workflows dialog and switch to Upload tab
+    await page.getByTestId("button-workflows-nav").click();
+    await page.getByTestId("tab-upload").click();
     await expect(page.getByTestId("workflow-upload-modal")).toBeVisible({
       timeout: 5000,
     });
