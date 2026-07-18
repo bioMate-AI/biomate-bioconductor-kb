@@ -155,7 +155,8 @@ ec2_scp() {
   inject_key > /dev/null
   scp -i "$KEY_FILE" \
     -o ProxyCommand="$_SSM_PROXY" \
-    -o StrictHostKeyChecking=no -o IdentitiesOnly=yes "$@"
+    -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o IdentitiesOnly=yes \
+    -o ServerAliveInterval=30 -o ServerAliveCountMax=100 "$@"
 }
 
 # ---------------------------------------------------------------------------
