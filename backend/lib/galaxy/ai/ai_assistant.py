@@ -3775,6 +3775,31 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     match_type == "medium_confidence"              # always verify borderline
                     or _top2_gap < 8.0                            # close race even at high_confidence
                 )
+                # Trust nfcore pipeline over bioconductor subworkflow in a close race.
+                # When #1 is a full nf-core pipeline and #2 is a bioconductor subworkflow,
+                # the subworkflow has already been penalised by the scoring function for
+                # being a single-step component (not an end-to-end pipeline). Letting the
+                # LLM verify override would undo that principled penalty. Safe to skip.
+                if _needs_verify and len(search_results) >= 2:
+                    _r1 = search_results[0]
+                    _r2 = search_results[1]
+                    _r1_is_nfcore_pipeline = (
+                        getattr(_r1, 'source', '') == 'nfcore'
+                        and getattr(_r1, 'format', '') == 'nextflow'
+                        and '/subworkflows/' not in (getattr(_r1, 'filename', '') or '')
+                    )
+                    _r2_is_bioc_subwf = (
+                        getattr(_r2, 'source', '') == 'bioconductor'
+                        and '/subworkflows/' in (getattr(_r2, 'filename', '') or '')
+                    )
+                    if _r1_is_nfcore_pipeline and _r2_is_bioc_subwf:
+                        _needs_verify = False
+                        log.info(
+                            "[UnifiedWorkflowGeneration] Skipping LLM routing verify — "
+                            "#1 is nfcore pipeline (%s) leading bioconductor subworkflow (%s); "
+                            "subworkflow penalty already applied in scoring.",
+                            _r1.name, _r2.name,
+                        )
                 # User named an nf-core slug explicitly — trust the explicit name over
                 # semantic search ranking and LLM verify.
                 _explicit_slug = self.workflow_search._extract_explicit_pipeline_slug(user_intent)
