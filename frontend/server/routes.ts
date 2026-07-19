@@ -8134,7 +8134,7 @@ ${paramLines || '(none recorded)'}`;
   // Pass a specific database name to hit a single source.
   app.post("/api/databases/query", optionalAuth, async (req, res) => {
     try {
-      const { database, query, entity_type, sources } = req.body || {};
+      const { database, query, operation, entity_type, sources } = req.body || {};
       if (!query) return res.status(400).json({ error: "query is required" });
       const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
       const upstream = await fetch(`${galaxyUrl}/api/databases/query`, {
@@ -8143,6 +8143,7 @@ ${paramLines || '(none recorded)'}`;
         body: JSON.stringify({
           database: database || "federated",
           query,
+          operation: operation || "lookup",
           entity_type: entity_type || null,
           sources: sources || null,
         }),
