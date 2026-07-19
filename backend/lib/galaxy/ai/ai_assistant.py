@@ -1837,16 +1837,6 @@ class AIAssistant:
         if any('subworkflow' in t for t in tags):
             return False
 
-        # nf-core pipeline stub files (nfcore/<pipeline>/main.nf, without
-        # subworkflows in the path) are always valid entry points. These stubs
-        # contain params + process definitions but no anonymous `workflow {}` block
-        # by design — the executor knows how to launch them as entry workflows.
-        # Do NOT apply the standalone-runnable disk check to them, which would
-        # incorrectly flag them as non-executable and fall back to a lower-ranked
-        # Bioconductor subworkflow (the prot_002 / prot_004 class of routing bug).
-        if re.match(r'^nfcore/[^/]+/main\.nf$', filename) and '/subworkflows/' not in filename:
-            return True
-
         # Prefer canonical runnable entry scripts — but a filename ending in
         # /main.nf is NOT sufficient: an nf-core subworkflow whose stored path
         # slips past the substring excludes above (e.g. real nf-core/rnaseq
@@ -3894,30 +3884,35 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 # Check if this is a Nextflow workflow
                 if best_match.format == 'nextflow':
                     if not self._is_executable_nextflow_match(best_match):
-                        if executable_nextflow_match:
+                        # Only swap to executable_nextflow_match when it represents the
+                        # SAME pipeline (e.g. a subworkflow has an executable variant in
+                        # the same file tree). If the two workflows are semantically
+                        # different (different name core, different domain) the swap would
+                        # silently return the wrong workflow — better to keep the best
+                        # semantic match and let the execution layer adapt it.
+                        def _same_pipeline(a: Any, b: Any) -> bool:
+                            def _slug(m: Any) -> str:
+                                n = (getattr(m, 'name', '') or '').lower()
+                                return n.split('/')[-1].replace('-', '').replace('_', '')
+                            return bool(_slug(a) and _slug(a) == _slug(b))
+
+                        if executable_nextflow_match and _same_pipeline(best_match, executable_nextflow_match):
                             log.warning(
                                 "[UnifiedWorkflowGeneration] Top Nextflow match is non-executable "
-                                f"subworkflow ({best_match.filename}); using executable candidate "
+                                f"subworkflow ({best_match.filename}); using executable variant "
                                 f"{executable_nextflow_match.filename}"
                             )
                             best_match = executable_nextflow_match
                             score = best_match.score
                         else:
+                            # No same-pipeline executable variant — keep best_match as the
+                            # routing result (semantic correctness) and log for awareness.
                             log.warning(
-                                "[UnifiedWorkflowGeneration] No executable Nextflow workflow found in top results; "
-                                "falling back to best non-Nextflow template match if available"
+                                "[UnifiedWorkflowGeneration] Top Nextflow match (%s) failed "
+                                "executability check but no same-pipeline executable variant found; "
+                                "keeping as routing result — execution layer must adapt.",
+                                best_match.name,
                             )
-                            fallback_match = next(
-                                (m for m in search_results if getattr(m, 'format', '') != 'nextflow'),
-                                None
-                            )
-                            if fallback_match:
-                                best_match = fallback_match
-                                score = best_match.score
-                                log.warning(
-                                    "[UnifiedWorkflowGeneration] Using fallback template match: "
-                                    f"{best_match.name} ({best_match.format})"
-                                )
 
                 if match_type == "high_confidence" and best_match and best_match.format == 'nextflow':
                     log.info(f"[UnifiedWorkflowGeneration] High-confidence Nextflow match: {best_match.filename}")
