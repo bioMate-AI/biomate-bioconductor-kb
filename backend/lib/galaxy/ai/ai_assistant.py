@@ -1837,6 +1837,16 @@ class AIAssistant:
         if any('subworkflow' in t for t in tags):
             return False
 
+        # nf-core pipeline stub files (nfcore/<pipeline>/main.nf, without
+        # subworkflows in the path) are always valid entry points. These stubs
+        # contain params + process definitions but no anonymous `workflow {}` block
+        # by design — the executor knows how to launch them as entry workflows.
+        # Do NOT apply the standalone-runnable disk check to them, which would
+        # incorrectly flag them as non-executable and fall back to a lower-ranked
+        # Bioconductor subworkflow (the prot_002 / prot_004 class of routing bug).
+        if re.match(r'^nfcore/[^/]+/main\.nf$', filename) and '/subworkflows/' not in filename:
+            return True
+
         # Prefer canonical runnable entry scripts — but a filename ending in
         # /main.nf is NOT sufficient: an nf-core subworkflow whose stored path
         # slips past the substring excludes above (e.g. real nf-core/rnaseq
