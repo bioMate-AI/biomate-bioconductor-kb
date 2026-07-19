@@ -1139,11 +1139,27 @@ class UnifiedWorkflowSearch:
         'do rna-seq', 'do rna seq', 'do chip-seq', 'do atac-seq', 'do wgs', 'do wes',
         'perform whole genome', 'perform chip-seq', 'perform atac-seq',
         'execute pipeline', 'execute variant calling', 'execute rna-seq',
-        # Mass spectrometry acquisition modes — implies raw .raw/.mzML files need a full pipeline
+        # Mass spectrometry acquisition modes and proteomics raw-data workflows
+        # These imply raw .raw/.mzML files needing a full identification+quantification pipeline
         'data-independent acquisition', 'data independent acquisition',
         'data-dependent acquisition', 'data dependent acquisition',
         'acquired in dia', 'acquired in dda', 'ran dia proteomics', 'ran dda proteomics',
         'i ran dia', 'i ran dda',
+        # mzML/raw format = always raw mass spec data
+        'mzml file', 'mzml files', '.mzml', 'mzxml', 'thermo .raw', 'bruker .d',
+        # DDA/DIA abbreviations in specific proteomics pipeline contexts
+        'dda data', 'dda mzml', 'dda experiment', 'dda label-free',
+        'dia data', 'dia mzml', 'dia experiment', 'dia proteomics',
+        # Shotgun proteomics = LC-MS/MS from raw spectra
+        'shotgun proteomics', 'lc-ms/ms proteomics', 'bottom-up proteomics',
+        'dda proteomics', 'dda mass spec', 'label-free quantification proteomics',
+        'label-free quantification of proteins', 'label-free proteomics', 'lfq proteomics',
+        # MHC/HLA peptidomics = immunopeptidomics raw spectra pipeline
+        'immunopeptidomics', 'mhc peptidomics', 'hla peptidomics',
+        'mhc class i', 'mhc peptides', 'eluted mhc', 't cell epitope',
+        'hla-presented peptides', 'neoantigen discovery', 'mhc-i mass spec',
+        # DDA raw files (explicit)
+        'dda raw', 'dda .raw', 'raw files from thermo', 'raw files from bruker',
     ]
 
     def _detect_pipeline_intent(self, query: str) -> bool:
