@@ -3484,6 +3484,71 @@ Rules:
       }
     }
 
+    // ADMET-profile override (no SMILES required):
+    // "What is the ADMET profile of imatinib?" / "Run ADMET prediction for X" /
+    // "ADMET properties of [compound]" — these are workflow execution requests even
+    // without a SMILES string. The compound name alone is enough for the ADMET workflow
+    // to accept input. The original ADMET fast-path only fires when a SMILES pattern
+    // is also present; this catches the compound-name-only case.
+    if (!actions.needsWorkflowGeneration) {
+      const _isAdmetProfileQuery =
+        /\b(admet\s+(profile|prediction|properties|screening|screen|analysis|assessment)|run\s+admet|predict\s+admet|(herg|dili|ames|caco.?2|bbb|ppb|solubility|absorption|distribution|metabolism|excretion|toxicity)\s+(profile|predict|screen|assess))/i.test(message)
+        && !/\b(what\s+is\s+(a|an|the\s+general)|how\s+does|explain|overview|tell\s+me\s+about|definition)\b/i.test(message);
+      if (_isAdmetProfileQuery) {
+        log('ADMET-profile override: forcing needsWorkflowGeneration=true (compound name without SMILES)');
+        actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      }
+    }
+
+    // Target evidence & genetic association override:
+    // "Show target evidence for CHRNA1 in MG" / "genetic associations for [gene]" /
+    // "disease association strength for [target]" → target_evidence_positioning workflow.
+    // The intent classifier routes these as research_question because they look like
+    // database lookups. They ARE workflow execution: the target_evidence_positioning
+    // workflow queries OpenTargets, GWAS catalog, and eQTL databases programmatically.
+    if (!actions.needsWorkflowGeneration) {
+      const _isTargetEvidenceQuery =
+        /\b(target\s+evidence|genetic\s+association[s]?\s+for|disease\s+association\s+(strength|score)|evidence\s+positioning|opentargets?\s+(evidence|score|association)|gwas\s+(association[s]?|evidence)\s+for|eqtl.{0,20}target|target\s+(tractability|prioriti[sz]ation|validation\s+evidence)|association\s+score[s]?\s+for\s+[A-Z])/i.test(message)
+        && /\b([A-Z][A-Z0-9]{1,8})\b/.test(message); // gene/target name present
+      if (_isTargetEvidenceQuery) {
+        log('Target-evidence override: forcing needsWorkflowGeneration=true → target_evidence_positioning');
+        actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      }
+    }
+
+    // Patient recruitment feasibility & trial power override:
+    // "Estimate recruitment feasibility for MG Phase 3" / "patient recruitment feasibility" /
+    // "sample size for Phase 3 trial" → patient_recruitment_feasibility or
+    // rare_disease_power_calculator workflows. Intent classifier sees these as
+    // experiment_design or research_question; they are workflow execution tasks.
+    if (!actions.needsWorkflowGeneration) {
+      const _isTrialFeasibilityQuery =
+        /\b(recruitment\s+feasibility|patient\s+recruitment\s+(feasibility|estimate|timeline|projection)|enrollment\s+(feasibility|window|timeline|estimate)|rare\s+disease\s+power|sample\s+size\s+(for\s+a?\s*(phase|clinical|rare)|calculator|calculation)|power\s+(analysis|calculation)\s+for\s+a?\s*(phase|clinical|rare|trial)|calculate\s+(the\s+)?required\s+sample|required\s+sample\s+size|mg.?adl|clinical\s+trial\s+(power|design\s+with\s+power)|two.arm\s+parallel)/i.test(message);
+      if (_isTrialFeasibilityQuery) {
+        log('Trial-feasibility override: forcing needsWorkflowGeneration=true → patient_recruitment_feasibility or rare_disease_power_calculator');
+        actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      }
+    }
+
+    // Pathway enrichment / clusterProfiler override:
+    // "Run pathway enrichment on complement genes C3, C5, CFB" → clusterProfiler/enrichGO workflow.
+    // Intent classifier routes "analyze pathway activation" as research_question because the
+    // user hasn't provided a file. But pathway enrichment is a workflow: the named gene list
+    // IS the input. Force workflow_generation when pathway enrichment is explicitly requested.
+    if (!actions.needsWorkflowGeneration) {
+      const _isPathwayEnrichmentQuery =
+        /\b(pathway\s+enrichment|run\s+pathway|enrichment\s+analysis|clusterprofiler|enrichgo|enrichkegg|gsea|gene\s+set\s+enrichment|pathway\s+activation\s+(analysis|in|from)|enriched\s+pathways?|over.?representation\s+analysis|ora\b|fgsea)\b/i.test(message)
+        && !/\b(what\s+is|what\s+are|how\s+does|explain|tell\s+me|concept|overview)\b/i.test(message);
+      if (_isPathwayEnrichmentQuery) {
+        log('Pathway-enrichment override: forcing needsWorkflowGeneration=true → clusterProfiler/enrichGO');
+        actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      }
+    }
+
     // Canonical-fixture intent override (Plan C):
     // When the user names a built-in fixture or accession (airway, pasilla,
     // pbmc3k, SRR\d+, etc.) the input is resolved — they want a workflow,
