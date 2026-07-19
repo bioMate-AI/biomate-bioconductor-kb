@@ -1139,6 +1139,11 @@ class UnifiedWorkflowSearch:
         'do rna-seq', 'do rna seq', 'do chip-seq', 'do atac-seq', 'do wgs', 'do wes',
         'perform whole genome', 'perform chip-seq', 'perform atac-seq',
         'execute pipeline', 'execute variant calling', 'execute rna-seq',
+        # Mass spectrometry acquisition modes — implies raw .raw/.mzML files need a full pipeline
+        'data-independent acquisition', 'data independent acquisition',
+        'data-dependent acquisition', 'data dependent acquisition',
+        'acquired in dia', 'acquired in dda', 'ran dia proteomics', 'ran dda proteomics',
+        'i ran dia', 'i ran dda',
     ]
 
     def _detect_pipeline_intent(self, query: str) -> bool:
