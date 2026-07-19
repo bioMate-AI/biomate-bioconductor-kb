@@ -3962,6 +3962,51 @@ Rules:
       }
     }
 
+    // Step 6c: Text-vs-card consistency guardrail
+    // The LLM generates its text response AFTER the FTS search, so its text is the
+    // more authoritative signal. If the text explicitly names an nf-core workflow that
+    // differs from the workflow card, look it up and swap the card.
+    // This catches FTS mis-rankings where the right workflow is at rank-1 in raw search
+    // but a lower-scoring result slipped through the generate_workflow pipeline.
+    if (
+      generatedWorkflow?.success &&
+      generatedWorkflow?.workflow_ga &&
+      !generatedWorkflow?.workflow_type?.includes('chain') &&
+      response.message
+    ) {
+      try {
+        const _cardName: string = (generatedWorkflow.workflow_ga?.name || generatedWorkflow.workflow_name || '').toLowerCase();
+        // Extract the first bold nf-core workflow name from the LLM response text
+        const _boldNfcore = response.message.match(/\*\*(nf-core\/[a-z][a-z0-9\-]+)\*\*/i);
+        const _textWorkflow = _boldNfcore?.[1]?.toLowerCase();
+        if (
+          _textWorkflow &&
+          _textWorkflow !== _cardName &&
+          !_cardName.includes(_textWorkflow.replace('nf-core/', '')) &&
+          !_textWorkflow.includes(_cardName)
+        ) {
+          log(`Step 6c: text mentions "${_textWorkflow}" but card shows "${_cardName}" — correcting via lookup`);
+          const corrected = await this._lookupWorkflowByName(_textWorkflow);
+          if (corrected?.success && (corrected.workflow_ga || corrected.nextflow_path)) {
+            generatedWorkflow = {
+              ...generatedWorkflow,
+              ...corrected,
+              required_params: generatedWorkflow.required_params,
+              optional_params: generatedWorkflow.optional_params,
+              param_prefill_deferred: generatedWorkflow.param_prefill_deferred,
+              source: 'text_guardrail',
+            };
+            workflowGenerated = true;
+            log(`Step 6c: card corrected to "${_textWorkflow}"`);
+          } else {
+            log(`Step 6c: lookup for "${_textWorkflow}" failed — keeping original card`);
+          }
+        }
+      } catch (err: any) {
+        log(`Step 6c: text guardrail failed (${err.message}) — keeping FTS result`);
+      }
+    }
+
     // Step 7: Generate follow-up suggestions
     log('Step 7: Generating suggestions');
     const suggestions = this.generateSuggestions(
