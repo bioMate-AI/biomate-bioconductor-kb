@@ -473,8 +473,12 @@ export const AMBIGUITY_RESOLVERS: Record<string, RegExp> = {
   flow_cytometry_type: /\bimmunophenotyp|\bgating\b|\bcell\s+sort|\bflowSOM\b|\bunsupervised\s+cluster/i,
   proteomics_type:  /\bDDA\b|\bDIA\b|\bMaxQuant\b|\bDIA-NN\b|\bSpectronaut\b|\bdata[- ]independent\b|\bdata[- ]dependent\b/i,
   cryoem_type:      /\bSPA\b|\bsingle[- ]particle\b|\btomograph|\bcryo[- ]ET\b|\bin[- ]situ\b/i,
-  cryoem_sample:    /\bglobular\b|\bfilamentous\b|\bhelical\b/i,
-  somatic_paired:   /\bmatched\s+normal\b|\btumor[- ]normal\b|\btumor[- ]only\b|\bpanel\s+of\s+normals\b/i,
+  // homogeneous refinement, TOPAZ, ab-initio, and 2D/3D classification uniquely
+  // identify standard SPA on globular particles — suppress the globular/helical fork.
+  cryoem_sample:    /\bglobular\b|\bfilamentous\b|\bhelical\b|\bhomogeneous\s+refinement\b|\bnon-uniform\s+refinement\b|\bTOPAZ\b|\bab[- ]initio\b|\b2D\s+(and\s+)?3D\s+class|\bstandard\s+SPA\b/i,
+  // HaplotypeCaller is a germline-only caller — suppress the somatic-paired fork.
+  // Note: ACMG alone is NOT listed here because ACMG criteria also apply to somatic variants.
+  somatic_paired:   /\bmatched\s+normal\b|\btumor[- ]normal\b|\btumor[- ]only\b|\bpanel\s+of\s+normals\b|\bHaplotypeCaller\b|\bgermline\b/i,
   metagenomics_type:/\b16S\b|\bamplicon\b|\bQIIME\b|\bDADA2\b|\bshotgun\b|\bKraken\b|\bMetaPhlAn\b/i,
   docking_type:     /\bblind\s+dock|\bsite[- ]directed\b|\bDiffDock\b|\bVina\b|\bknown\s+(binding\s+)?pocket\b/i,
   // admet_scope is satisfied when: explicit SMILES string present (CC(=O), c1ccc, etc.),
@@ -532,7 +536,10 @@ export const DOMAIN_CATALOGS: Partial<Record<string, string>> = {
 - find_enriched_motifs_with_homer: TF motif enrichment in peak regions (HOMER). Input: peak BED + genome. Outputs: enriched motif table.`,
 
   proteomics: `Available BioMate proteomics workflows:
-- chemoproteomics_pulldown: Affinity enrichment (pulldown) QC and enrichment scoring from MaxQuant proteinGroups.txt. Computes per-protein enrichment ratios (pulldown vs input/control). QC gate: median enrichment ratio ≥3×. Input: MaxQuant proteinGroups CSV. Outputs: enrichment_ratios.tsv + summary JSON.`,
+- nf-core/diaproteomics: FIRST CHOICE for DIA proteomics. Data-Independent Acquisition analysis — targeted peptide extraction from mzML files using OpenSWATH, PyProphet FDR estimation, iRT alignment, DIA-NN analysis. Use for: DIA-mode mass spectra, DIA-NN analysis, DIA mzML files, Spectronaut, data-independent acquisition quantification. Input: mzML files. Outputs: peptide/protein matrices + QC report.
+- nf-core/proteomicslfq: FIRST CHOICE for DDA label-free proteomics. Data-Dependent Acquisition (DDA) — MaxQuant proteinGroups.txt → label-free quantification (LFQ). Use for: MaxQuant output, DDA, label-free DDA proteomics, raw .raw or .mzML from DDA acquisition. Outputs: differential_proteins.csv + pathway enrichment.
+- nf-core/quantms: TMT/iTRAQ multiplexed quantitative mass spectrometry pipeline. Use for: TMT labeling, iTRAQ, reporter ion quantification, isobaric labeling. Outputs: quantification tables + statistical comparisons.
+- chemoproteomics_pulldown: Affinity enrichment (pulldown) QC and enrichment scoring from MaxQuant proteinGroups.txt. Use ONLY for pulldown / affinity enrichment experiments — NOT for DDA or DIA shotgun proteomics. Input: MaxQuant proteinGroups CSV. Outputs: enrichment_ratios.tsv + summary JSON.`,
 
   cryo_em: `Available BioMate cryo-EM workflows:
 - cryosparc_standard_spa: Standard single-particle analysis (SPA) — 23-step CryoSPARC pipeline: import → motion correction → CTF estimation → particle picking (blob + template) → 2D classification → ab-initio → homogeneous refinement → local CTF → non-uniform refinement → local resolution. Input: raw micrograph movies (TIFF/MRC). License: CryoSPARC (user must provide). Use for: globular proteins, membrane proteins in nanodisc/detergent, protein complexes.
@@ -756,6 +763,11 @@ const DOMAIN_ROUTING_RULES: Record<string, string> = {
 
   molecular_biology: `- "ASO", "antisense oligonucleotide", "gapmer", "MOE gapmer", "LNA gapmer", "RNase H ASO", "knockdown ASO", "GalNAc-ASO", "design ASO", "design gapmer", "nusinersen-like", "inclisiran-like", "givosiran-like", "phosphorothioate oligonucleotide", or "PS backbone ASO": use the aso_gapmer_design workflow (ASO gapmer design for RNase H knockdown — MOE 5+10+5 / LNA 3+10+3 / MOE mixmer chemistries. Tm scoring with MOE/LNA correction, GC content (40-60%), G-quadruplex/GGGG rejection (hepatotoxicity), CpG flagging, palindrome check. Delivery recommendation: GalNAc-SC for liver, intrathecal for CNS, PMO/PPMO for muscle. Required: target_mrna + target_tissue. Optional: chemistry, n_top.)
 - "siRNA design", "siRNA generation", "design siRNA", "siRNA candidates", "Ui-Tei criteria", "Reynolds criteria", "siRNA from mRNA", or "small interfering RNA design": use the sirna_design_full workflow (siRNA candidate generation from mRNA — sliding window 19-21mer → GC filter → Ui-Tei + Reynolds + thermodynamic asymmetry scoring → ranked candidates. Chains to sirna_offtarget_analysis for off-target screening.)`,
+
+  proteomics: `- "DIA", "DIA-NN", "data-independent acquisition", "DIA quantification", "DIA proteomics", "DIA mass spec", "DIA mzML", "OpenSWATH", "PyProphet", "Spectronaut DIA", "iRT alignment", "spectral library DIA", or "label-free DIA": use the nf-core/diaproteomics workflow (FIRST CHOICE for DIA proteomics — data-independent acquisition analysis using OpenSWATH + PyProphet FDR + DIA-NN + iRT alignment. Input: mzML files. Outputs: peptide/protein quantification matrices + QC report. Never use msstatsconvert or MSstats tools as the primary pipeline for raw DIA data — those are format converters for pre-quantified data, not pipelines.)
+- "DDA", "MaxQuant", "label-free quantification", "LFQ", "data-dependent acquisition", "shotgun proteomics", "DDA proteomics", "label-free DDA", "proteinGroups.txt", "PRIDE", "TMT-free quantification", or "MaxQuant label-free": use the nf-core/proteomicslfq workflow (FIRST CHOICE for DDA label-free proteomics — MaxQuant proteinGroups.txt → statistical comparison. Input: raw mass spec files or MaxQuant output. Outputs: differential_proteins.csv + pathway enrichment.)
+- "TMT", "iTRAQ", "TMT10", "TMT16", "isobaric labeling", "multiplexed proteomics", "reporter ion quantification", "tandem mass tag", or "isobaric tag quantification": use the nf-core/quantms workflow (multiplexed quantitative proteomics — TMT/iTRAQ reporter ion quantification. Input: raw mass spec files + experimental design. Outputs: protein quantification + statistical comparisons.)
+- "phosphoproteomics", "phospho enrichment", "TiO2 enrichment", "IMAC phospho", "phosphopeptide", "phosphorylation site", "PTM site localization", or "post-translational modification profiling": describe the phosphoproteomics workflow approach (TiO2/IMAC enrichment → MaxQuant PTM site search → MSstatsPTM site localization → kinase substrate enrichment analysis KSEA). No single BioMate pipeline wraps these steps yet; recommend combining individual tools.`,
 };
 
 /**
