@@ -4896,10 +4896,32 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         return {"source": db, "query": query,
                 "ids": sr.get('idlist', []), "total": int(sr.get('count', 0))}
 
-    def _query_pdb(self, query: str) -> Dict:
-        import urllib.parse, re
-        # Direct entry lookup for 4-char PDB IDs
-        if re.match(r'^[A-Za-z0-9]{4}$', query.strip()):
+    def _query_pdb(self, query: str, operation: str = 'lookup') -> Dict:
+        """RCSB PDB. operation drives the mode (chosen from user intent by the LLM):
+        'similarity' -> full-scale sequence-similarity search across the entire PDB;
+        'text' -> keyword search; 'lookup' (default) -> entry lookup by 4-char PDB ID
+        (falls through to text search when the query is not a PDB ID)."""
+        import urllib.parse, re, json as _json
+        op = (operation or 'lookup').lower()
+
+        # Intent = similarity: sequence homolog search across the whole PDB.
+        if op in ('similarity', 'sequence', 'homolog'):
+            seq = re.sub(r'\s+', '', query).upper()
+            body = {"query": {"type": "terminal", "service": "sequence",
+                              "parameters": {"evalue_cutoff": 1, "identity_cutoff": 0.3,
+                                             "sequence_type": "protein", "value": seq}},
+                    "return_type": "polymer_entity",
+                    "request_options": {"paginate": {"start": 0, "rows": 10}}}
+            url = ("https://search.rcsb.org/rcsbsearch/v2/query?json="
+                   + urllib.parse.quote(_json.dumps(body)))
+            data = self._http_get_json(url)
+            hits = [{"entity_id": e.get('identifier'), "score": round(e.get('score', 0), 3)}
+                    for e in (data or {}).get('result_set', [])[:10]]
+            return {"source": "pdb", "search": "sequence_similarity",
+                    "total_hits": (data or {}).get('total_count', 0), "results": hits}
+
+        # Intent = lookup: direct entry lookup for a 4-char PDB ID.
+        if op == 'lookup' and re.match(r'^[A-Za-z0-9]{4}$', query.strip()) and not query.strip().isalpha():
             pdb_id = query.strip().upper()
             data = self._http_get_json(f"https://data.rcsb.org/rest/v1/core/entry/{pdb_id}")
             if data:
@@ -4908,15 +4930,13 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                         "title": struct.get('title'),
                         "resolution": data.get('refine', [{}])[0].get('ls_d_res_high'),
                         "method": data.get('exptl', [{}])[0].get('method')}
-        # Text search
-        q = urllib.parse.quote(query)
+
+        # Intent = text (or lookup fallthrough): full-text search.
         url = (f"https://search.rcsb.org/rcsbsearch/v2/query?json="
                f'{{"query":{{"type":"terminal","service":"full_text","parameters":{{"value":"{query}"}}}},"return_type":"entry","request_options":{{"paginate":{{"start":0,"rows":5}}}}}}')
         data = self._http_get_json(url)
-        results = []
-        if data:
-            for entry in data.get('result_set', [])[:5]:
-                results.append({"pdb_id": entry.get('identifier'), "score": entry.get('score')})
+        results = [{"pdb_id": e.get('identifier'), "score": e.get('score')}
+                   for e in (data or {}).get('result_set', [])[:5]]
         return {"source": "pdb", "query": query, "results": results}
 
     def _query_alphafold(self, query: str) -> Dict:
@@ -5068,8 +5088,32 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             data = self._http_get_json(url2)
         return {"source": "chebi", "query": query, "results": data or []}
 
-    def _query_chembl(self, query: str) -> Dict:
-        import urllib.parse
+    def _query_chembl(self, query: str, operation: str = 'lookup',
+                      similarity_threshold: int = 80) -> Dict:
+        """ChEMBL. operation drives the mode (chosen from user intent by the LLM):
+        'similarity' -> full-scale Tanimoto similarity search across all of ChEMBL
+        (query is a SMILES); 'lookup'/'text' (default) -> compound name/ID search."""
+        import urllib.parse, re
+        op = (operation or 'lookup').lower()
+
+        # Intent = similarity: chemical (Tanimoto) search over all of ChEMBL.
+        if op in ('similarity', 'tanimoto'):
+            smiles = re.sub(r'^\s*smiles[:=]\s*', '', query, flags=re.IGNORECASE).strip()
+            enc = urllib.parse.quote(smiles, safe='')
+            url = (f"https://www.ebi.ac.uk/chembl/api/data/similarity/{enc}/"
+                   f"{int(similarity_threshold)}?format=json&limit=10")
+            data = self._http_get_json(url)
+            results = []
+            if data:
+                for m in data.get('molecules', [])[:10]:
+                    results.append({
+                        "chembl_id": m.get('molecule_chembl_id'),
+                        "name": m.get('pref_name'),
+                        "similarity": round(float(m.get('similarity', 0)), 1),
+                    })
+            return {"source": "chembl", "query": smiles, "search": "tanimoto_similarity",
+                    "threshold": similarity_threshold, "results": results}
+        # Name/text search
         q = urllib.parse.quote(query)
         url = (f"https://www.ebi.ac.uk/chembl/api/data/molecule/search"
                f"?q={q}&format=json&limit=5")
@@ -5126,13 +5170,18 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             return 'string'
         return 'ncbi_gene'
 
-    def query_database(self, database: str, query: str) -> Dict:
+    def query_database(self, database: str, query: str, operation: str = 'lookup') -> Dict:
         """
         Route a biological database query to the appropriate public REST API.
         Supports: auto, federated, ncbi_gene, uniprot, pdb, alphafold, kegg,
                   reactome, go, hpo, chebi, chembl, interpro, string, ensembl,
                   gnomad, dbsnp, clinvar, pubmed,
                   europepmc, semantic_scholar, openalex.
+
+        `operation` is the search mode the LLM selects from user intent — NOT
+        inferred from the shape of `query`. 'similarity' runs a similarity search
+        (chembl -> Tanimoto over SMILES; pdb -> sequence homologs over the whole
+        PDB); 'text' a keyword search; 'lookup' (default) an ID/name lookup.
 
         Pass database='federated' (or 'auto') to fan-out to all relevant sources
         in parallel and receive a merged result set.
@@ -5191,7 +5240,11 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     "supported": list(handlers.keys()) +
                                  ['federated', 'europepmc', 'semantic_scholar', 'openalex']}
         try:
-            result = handler(query)
+            # Handlers that support an intent-driven search mode take `operation`.
+            if db in ('chembl', 'pdb'):
+                result = handler(query, operation)
+            else:
+                result = handler(query)
             result['success'] = True
             return result
         except Exception as e:

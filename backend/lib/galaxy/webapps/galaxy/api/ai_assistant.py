@@ -2926,6 +2926,12 @@ class DatabaseQueryRequest(BaseModel):
         description="Target database or 'federated'/'auto' to fan-out to all relevant sources"
     )
     query: str = Field(..., description="Search term or entity identifier")
+    operation: str = Field(
+        default="lookup",
+        description="Search mode chosen from user intent: 'lookup' (by ID/name), "
+                    "'similarity' (chembl=Tanimoto over SMILES; pdb=sequence homologs "
+                    "over the whole PDB), or 'text' (keyword search)"
+    )
     entity_type: Optional[str] = Field(
         default=None,
         description="Override entity type detection: gene, protein, compound, variant, pathway, structure, disease, literature"
@@ -2974,7 +2980,7 @@ def query_biological_database(
     if not ai:
         return {"success": False, "error": "AI assistant not available"}
     try:
-        return ai.query_database(db, request.query)
+        return ai.query_database(db, request.query, operation=request.operation)
     except Exception as e:
         import traceback
         log.warning(f"[databases/query] {request.database}({request.query}): {e}")
@@ -3761,7 +3767,7 @@ def generate_workflow_unified(
             'pilot_run_suggested': False,
         }
     except Exception as e:
-        log.error(f"Error in unified workflow generation: {e}")
+        log.error(f"Error in unified workflow generation: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error generating workflow: {str(e)}")
 
 
