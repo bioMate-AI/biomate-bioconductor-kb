@@ -3562,17 +3562,17 @@ def generate_workflow_unified(
                 if isinstance(raw_authors, str):
                     raw_authors = [a.strip() for a in raw_authors.split(',') if a.strip()]
                 citations.append(CitationModel(
-                    tool_id=cit_data.get('tool_id', ''),
-                    tool_name=cit_data.get('tool_name', ''),
+                    tool_id=cit_data.get('tool_id') or '',
+                    tool_name=cit_data.get('tool_name') or '',
                     doi=citation_info.get('doi'),
                     pmid=citation_info.get('pmid'),
-                    title=citation_info.get('title', ''),
+                    title=citation_info.get('title') or '',
                     authors=raw_authors,
                     year=citation_info.get('year'),
                     journal=citation_info.get('journal'),
-                    formatted_apa=citation_info.get('formatted_apa', ''),
-                    formatted_short=citation_info.get('formatted_short', ''),
-                    formatted_bibtex=citation_info.get('formatted_bibtex', '')
+                    formatted_apa=citation_info.get('formatted_apa') or '',
+                    formatted_short=citation_info.get('formatted_short') or '',
+                    formatted_bibtex=citation_info.get('formatted_bibtex') or ''
                 ))
 
             # Build methods section model if available

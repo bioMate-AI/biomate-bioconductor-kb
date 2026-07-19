@@ -214,7 +214,8 @@
   difficulty: indirect
   domain: single_cell
   correct_workflow: nf-core/scrnaseq
-  acceptable_alts: []
+  acceptable_alts:
+  - scrnaseq_standard_endtoend
   disqualified:
   - nf-core/rnaseq
   notes: 'Source: nf-co.re/scrnaseq — pipeline runs Cell Ranger/STARsolo to produce
@@ -287,7 +288,8 @@
   difficulty: direct
   domain: variant_calling
   correct_workflow: nf-core/sarek
-  acceptable_alts: []
+  acceptable_alts:
+  - Wgs Germline Gatk
   disqualified:
   - nf-core/raredisease
   notes: 'Source: nf-co.re/sarek — germline variant calling (HaplotypeCaller, freebayes,
@@ -876,6 +878,7 @@
   correct_workflow: nf-core/proteinfold
   acceptable_alts:
   - Structure Prediction Docking
+  - protein_structure_prediction_chain
   disqualified:
   - nf-core/proteomicslfq
   - nf-core/diaproteomics

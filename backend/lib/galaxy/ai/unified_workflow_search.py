@@ -330,8 +330,8 @@ class UnifiedWorkflowSearch:
 
             # Variant calling
             'variant': 3.0, 'snp': 2.5, 'indel': 2.0, 'mutation': 2.0,
-            'gatk': 2.5, 'freebayes': 2.0, 'bcftools': 2.0,
-            'vcf': 2.0, 'calling': 1.5,
+            'gatk': 2.5, 'mutect2': 3.0, 'freebayes': 2.0, 'bcftools': 2.0,
+            'vcf': 2.0, 'calling': 1.5, 'vep': 2.5,
 
             # ChIP-seq / ATAC-seq
             'chip-seq': 3.0, 'chipseq': 3.0, 'atac': 2.5, 'peak': 2.0,
@@ -1052,6 +1052,7 @@ class UnifiedWorkflowSearch:
         'edger': ['edger', 'differential', 'expression'],
         'gatk': ['gatk', 'variant', 'calling'],
         'vcf': ['vcf', 'variant'],
+        'vep': ['vep', 'variant', 'effect', 'predictor'],
         'qc': ['quality', 'control'],
         'fastqc': ['fastqc', 'quality', 'control'],
     }
@@ -1615,6 +1616,7 @@ class UnifiedWorkflowSearch:
         'rna-seq', 'rnaseq', 'rna seq', 'chip-seq', 'chipseq', 'atac-seq', 'atacseq',
         'single cell', 'single-cell', 'methylation', 'assembly', 'alignment',
         'fastq', 'fasta', 'bam', 'vcf', 'proteomics', 'metabolomics',
+        'tumor normal', 'tumor-normal', 'somatic variant', 'vep annotation', 'whole exome',
         # Drug discovery / pharmacology
         'admet', 'admet pred', 'predict admet', 'toxicity screening',
         'herg', 'dili', 'drug safety', 'drug combination',
