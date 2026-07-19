@@ -42,6 +42,68 @@ from pathlib import Path
 
 DB_DEFAULT = Path(__file__).parent.parent / "database" / "galaxy_ai_tools.db"
 
+
+def _rebuild_tools_fts(conn: sqlite3.Connection) -> None:
+    """Rebuild tools_fts covering all tools and merging scientific_context_v2 keywords into tags."""
+    import json as _json
+
+    def _v2_text(raw: str | None) -> str:
+        if not raw:
+            return ""
+        try:
+            ctx = _json.loads(raw)
+        except Exception:
+            return ""
+        parts = []
+        domain = ctx.get("scientific_domain") or ctx.get("domain")
+        if isinstance(domain, str) and domain:
+            parts.append(domain.replace("_", " "))
+        for kw in (ctx.get("keywords") or [])[:10]:
+            if isinstance(kw, str) and kw.strip():
+                parts.append(kw.strip())
+        wtu = ctx.get("when_to_use", "")
+        if isinstance(wtu, list):
+            parts.extend(str(w)[:80] for w in wtu[:2])
+        return " ".join(parts)
+
+    def _tags(raw: str | None, extra: str) -> str:
+        parts = []
+        if raw:
+            r = raw.strip()
+            if r.startswith("["):
+                try:
+                    parts.extend(str(i) for i in _json.loads(r) if i)
+                except Exception:
+                    parts.append(r)
+            else:
+                parts.append(r)
+        if extra:
+            parts.append(extra)
+        return " ".join(parts)[:600]
+
+    tools = conn.execute("""
+        SELECT tool_id, name, description, category, parameters, help_text,
+               availability_status, tags, edam_operations, edam_topics, scientific_context_v2
+        FROM tools
+    """).fetchall()
+    conn.execute("DELETE FROM tools_fts")
+    conn.executemany("""
+        INSERT INTO tools_fts(
+            tool_id, name, description, category, parameters, help_text,
+            availability_status, tags, edam_operations, edam_topics
+        ) VALUES (?,?,?,?,?,?,?,?,?,?)
+    """, [
+        (
+            r[0], r[1] or "", (r[2] or "")[:800], r[3] or "",
+            (r[4] or "")[:400], (r[5] or "")[:400], r[6] or "",
+            _tags(r[7], _v2_text(r[10])),
+            r[8] or "", r[9] or "",
+        )
+        for r in tools
+    ])
+    conn.commit()
+
+
 SYSTEM_PROMPT = """You are a bioinformatics expert. Given a tool's name and description,
 generate a concise scientific context JSON object. Be specific and accurate.
 Return ONLY valid JSON — no markdown fences, no explanation."""
@@ -165,16 +227,10 @@ def enrich(db_path: Path, limit: int, domain: str, model: str, dry_run: bool) ->
         updated += 1
         time.sleep(0.05)  # gentle rate limit
 
-    # Rebuild FTS after enrichment
+    # Rebuild FTS after enrichment (delegate to rebuild_tools_fts.py logic)
     if not dry_run and updated > 0:
-        print(f"\nRebuilding tools_fts for {updated} updated tools…")
-        conn.execute("DELETE FROM tools_fts")
-        conn.execute("""
-            INSERT INTO tools_fts(rowid, tool_id, name, description, scientific_context_v2)
-            SELECT rowid, tool_id, name, description, scientific_context_v2
-            FROM tools
-        """)
-        conn.commit()
+        print(f"\nRebuilding tools_fts (incorporating {updated} newly enriched tools)…")
+        _rebuild_tools_fts(conn)
         print("FTS rebuilt.")
 
     conn.close()
