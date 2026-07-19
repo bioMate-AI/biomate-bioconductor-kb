@@ -3514,6 +3514,7 @@ Rules:
       if (_isTargetEvidenceQuery) {
         log('Target-evidence override: forcing needsWorkflowGeneration=true → target_evidence_positioning');
         actions.needsWorkflowGeneration = true;
+        actions.needsResearchAgent = false; // prevent research agent from masking the workflow chip
         intent.type = 'workflow_generation';
       }
     }
@@ -3529,6 +3530,7 @@ Rules:
       if (_isTrialFeasibilityQuery) {
         log('Trial-feasibility override: forcing needsWorkflowGeneration=true → patient_recruitment_feasibility or rare_disease_power_calculator');
         actions.needsWorkflowGeneration = true;
+        actions.needsResearchAgent = false;
         intent.type = 'workflow_generation';
       }
     }
@@ -3555,6 +3557,21 @@ Rules:
         }
         if (!decomposition.preferredDomains) decomposition.preferredDomains = [];
         if (!decomposition.preferredDomains.includes('genomics')) decomposition.preferredDomains.push('genomics');
+      }
+    }
+
+    // When the workflow generation path is active AND the query is target-evidence
+    // or trial-feasibility in nature, suppress the research agent so it cannot
+    // generate a long text answer that masks the workflow chip. This applies
+    // even when the classifier already set needsWorkflowGeneration=true (so the
+    // per-override needsResearchAgent=false above wouldn't run).
+    if (actions.needsWorkflowGeneration) {
+      const _isTargetOrTrialWorkflowQuery =
+        /\b(target\s+evidence|evidence\s+positioning|genetic\s+association[s]?\s+for|disease\s+association\s+strength|opentargets?\s+(evidence|score|association)|gwas\s+(association[s]?|evidence)\s+for|target\s+(tractability|prioriti[sz]ation|validation\s+evidence)|recruitment\s+feasibility|patient\s+recruitment|rare\s+disease\s+power|sample\s+size\s+(for\s+a?\s*(phase|clinical|rare))|power\s+(analysis|calculation)\s+for\s+a?\s*(phase|clinical|rare|trial)|mg.?adl)\b/i.test(message)
+        && !/\b(what\s+is|what\s+are|how\s+does|explain|overview|concept)\b/i.test(message);
+      if (_isTargetOrTrialWorkflowQuery && actions.needsResearchAgent) {
+        log('Target/trial override: unsetting needsResearchAgent to prevent research text masking workflow chip');
+        actions.needsResearchAgent = false;
       }
     }
 
