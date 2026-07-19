@@ -3560,17 +3560,86 @@ Rules:
       }
     }
 
-    // When the workflow generation path is active AND the query is target-evidence
-    // or trial-feasibility in nature, suppress the research agent so it cannot
-    // generate a long text answer that masks the workflow chip. This applies
-    // even when the classifier already set needsWorkflowGeneration=true (so the
-    // per-override needsResearchAgent=false above wouldn't run).
+    // GWAS→scRNA→eQTL target-chain override:
+    // Queries about mapping a target gene's genetic evidence across multiple diseases
+    // (indication expansion, eQTL colocalization, cell-type specificity) are workflow
+    // execution requests, not research questions. The gwas_scrna_eqtl_target_chain
+    // workflow queries GWAS Catalog + OpenTargets + GTEx + CellxGene programmatically.
+    // The intent classifier routes these as research_question because the inputs are
+    // gene/disease identifiers with no user data files. Override here.
+    if (!actions.needsWorkflowGeneration) {
+      const _isGwasChainQuery =
+        /\b(gwas\s+(hits?|loci|signal[s]?|evidence|data)\s+(near|for|around|at)|map\s+.{0,40}genetic\s+evidence|indication\s+expansion\s+(for|of)|eqtl\s+colocali[sz]ation|pull\s+gwas\s+hits?|gwas.{0,30}(cd40|tnfsf|chrna|ptpn|fcgr|ighg|baff|april|tnfsf13b)|scRNA.{0,30}cell.?type.{0,30}(express|specif|enriched)|target.{0,20}(prioriti[sz]ation|chain|across\s+(diseases?|indications?))|genetic\s+evidence.{0,30}across\s+.{0,30}(mg|cidp|gbs|myasthenia|neuropath)|gwas.{0,30}eqtl|eqtl.{0,30}gwas)\b/i.test(message)
+        && !/\b(what\s+is|what\s+are|how\s+does|explain|overview|concept|define)\b/i.test(message);
+      if (_isGwasChainQuery) {
+        log('GWAS→eQTL chain override: forcing needsWorkflowGeneration=true → gwas_scrna_eqtl_target_chain');
+        actions.needsWorkflowGeneration = true;
+        actions.needsResearchAgent = false;
+        intent.type = 'workflow_generation';
+        if (!decomposition.preferredDomains) decomposition.preferredDomains = [];
+        if (!decomposition.preferredDomains.includes('drug_discovery')) decomposition.preferredDomains.push('drug_discovery');
+      }
+    }
+
+    // Multi-omics integration override:
+    // Queries combining two or more omics data types (RNA-seq + proteomics, RNA + metabolomics,
+    // scRNA + ATAC, etc.) should route to rnaseq_proteomics_multiomics_integration.
+    // The intent classifier often returns research_question when no user files are named
+    // explicitly. The presence of multiple omics terms together is the signal.
+    if (!actions.needsWorkflowGeneration) {
+      const _rnaTerms = /\b(rna.?seq|transcriptomics?|gene\s+expression|bulk\s+rna|count\s+matrix|rnaseq)\b/i;
+      const _proteinTerms = /\b(proteomics?|olink|somascan|elisa\s+panel|protein\s+biomarker|npx|protein\s+expression|mass\s+spec|lc.?ms|plasma\s+protein)\b/i;
+      const _metabolomicsTerms = /\b(metabolomics?|metabolites?|gc.?ms|lc.?ms\s+metabol|nmr\s+metabol|metabolic\s+profil|lipidomics?|untargeted\s+metabol)\b/i;
+      const _atacTerms = /\b(atac.?seq|chromatin\s+access|open\s+chromatin|atac\s+data)\b/i;
+      const _methylTerms = /\b(methylation\s+array|dna\s+methylation|bisulfite|epic\s+array|850k|beta\s+value[s]?)\b/i;
+      const _integrationVerbs = /\b(integrat|combin|joint|multi.?omics?|mofa|mofa2|merge.{0,20}omics|layer.{0,30}data|cross.?omics|multi.?modal)\b/i;
+      const _hasMultiModal =
+        (_integrationVerbs.test(message) && (_rnaTerms.test(message) || _proteinTerms.test(message))) ||
+        (_rnaTerms.test(message) && _proteinTerms.test(message)) ||
+        (_rnaTerms.test(message) && _metabolomicsTerms.test(message)) ||
+        (_atacTerms.test(message) && _rnaTerms.test(message)) ||
+        (_methylTerms.test(message) && _rnaTerms.test(message));
+      const _notExplanation = !/\b(what\s+is|what\s+are|how\s+does|explain|overview|concept|describe|difference\s+between)\b/i.test(message);
+      if (_hasMultiModal && _notExplanation) {
+        log('Multi-omics override: forcing needsWorkflowGeneration=true → rnaseq_proteomics_multiomics_integration');
+        actions.needsWorkflowGeneration = true;
+        actions.needsResearchAgent = false;
+        intent.type = 'workflow_generation';
+        if (!decomposition.preferredDomains) decomposition.preferredDomains = [];
+        if (!decomposition.preferredDomains.includes('multi_omics')) decomposition.preferredDomains.push('multi_omics');
+      }
+    }
+
+    // Macrophage metabolic scRNA-seq override:
+    // Queries about macrophage metabolic states, M1/M2 polarization, lipid-associated
+    // macrophages (TREM2/LAM), or macrophage trajectory in nerve/CIDP context are
+    // scRNA-seq workflow execution requests. Route to macrophage_metabolic_state_scrna.
+    if (!actions.needsWorkflowGeneration) {
+      const _isMacrophageMetabolicQuery =
+        /\b(macrophage\s+(metabolic|polariz|subtype|cluster|state|transit|trajec|M1|M2|LAM|lipid)|M1.{0,20}(macrophage|glycolytic)|M2.{0,20}(macrophage|oxidative)|TREM2.{0,20}macrophage|lipid.?associated\s+macrophage|macrophage.{0,20}(glycolytic|oxidative|warburg|itaconate|succinate)|endoneurial\s+macrophage|macrophage.{0,20}(cidp|nerve\s+repair|neuropath)|macrophage\s+immunometabol|macrophage\s+reprogramm)\b/i.test(message)
+        && !/\b(what\s+is|what\s+are|how\s+does|explain|overview|concept)\b/i.test(message);
+      if (_isMacrophageMetabolicQuery) {
+        log('Macrophage metabolic override: forcing needsWorkflowGeneration=true → macrophage_metabolic_state_scrna');
+        actions.needsWorkflowGeneration = true;
+        actions.needsResearchAgent = false;
+        intent.type = 'workflow_generation';
+        if (!decomposition.preferredDomains) decomposition.preferredDomains = [];
+        if (!decomposition.preferredDomains.includes('single_cell')) decomposition.preferredDomains.push('single_cell');
+      }
+    }
+
+    // When the workflow generation path is active AND the query is target-evidence,
+    // trial-feasibility, GWAS chain, multi-omics, or macrophage metabolic in nature,
+    // suppress the research agent so it cannot generate a long text answer that masks
+    // the workflow chip. This applies even when the classifier already set
+    // needsWorkflowGeneration=true (so the per-override needsResearchAgent=false above
+    // wouldn't run).
     if (actions.needsWorkflowGeneration) {
       const _isTargetOrTrialWorkflowQuery =
-        /\b(target\s+evidence|evidence\s+positioning|genetic\s+association[s]?\s+for|disease\s+association\s+strength|opentargets?\s+(evidence|score|association)|gwas\s+(association[s]?|evidence)\s+for|target\s+(tractability|prioriti[sz]ation|validation\s+evidence)|recruitment\s+feasibility|patient\s+recruitment|rare\s+disease\s+power|sample\s+size\s+(for\s+a?\s*(phase|clinical|rare))|power\s+(analysis|calculation)\s+for\s+a?\s*(phase|clinical|rare|trial)|mg.?adl)\b/i.test(message)
+        /\b(target\s+evidence|evidence\s+positioning|genetic\s+association[s]?\s+for|disease\s+association\s+strength|opentargets?\s+(evidence|score|association)|gwas\s+(association[s]?|evidence)\s+for|target\s+(tractability|prioriti[sz]ation|validation\s+evidence)|recruitment\s+feasibility|patient\s+recruitment|rare\s+disease\s+power|sample\s+size\s+(for\s+a?\s*(phase|clinical|rare))|power\s+(analysis|calculation)\s+for\s+a?\s*(phase|clinical|rare|trial)|mg.?adl|gwas.{0,30}eqtl|eqtl.{0,30}gwas|indication\s+expansion|macrophage\s+(metabolic|M1|M2|TREM2)|multi.?omics\s+integrat|integrat.{0,20}(rna|olink|proteomics?))\b/i.test(message)
         && !/\b(what\s+is|what\s+are|how\s+does|explain|overview|concept)\b/i.test(message);
       if (_isTargetOrTrialWorkflowQuery && actions.needsResearchAgent) {
-        log('Target/trial override: unsetting needsResearchAgent to prevent research text masking workflow chip');
+        log('Target/trial/chain override: unsetting needsResearchAgent to prevent research text masking workflow chip');
         actions.needsResearchAgent = false;
       }
     }
