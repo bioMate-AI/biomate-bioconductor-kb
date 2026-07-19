@@ -122,6 +122,7 @@ _WF_DENSE_BONUS_WEIGHT: float = 0.5
 SOURCE_PRIORITY = {
     "nfcore":           100,  # Full nf-core pipelines (rnaseq, sarek, chipseq, …)
     "nfcore_subwf":      95,  # nf-core composite subworkflows (multi-tool analysis steps)
+    "biomate-ai-tools":  92,  # BioMate AI-native workflows: bispecific, af3, cryo, etc.
     "biomni_nextflow":   85,  # BioMate domain analysis workflows (Python, Docker-native)
     "bioconductor":      75,  # Bioconductor R package Nextflow workflows (~1818 .nf files)
     "galaxy_biomni":     35,  # Unique BioMate Galaxy workflows pending NF conversion
