@@ -3993,8 +3993,14 @@ Rules:
     ) {
       try {
         const _cardName: string = (generatedWorkflow.workflow_ga?.name || generatedWorkflow.workflow_name || '').toLowerCase();
-        // Extract the first bold nf-core workflow name from the LLM response text
-        const _boldNfcore = response.message.match(/\*\*(nf-core\/[a-z][a-z0-9\-]+)\*\*/i);
+        // Extract the first bold nf-core workflow name from the LLM response text.
+        // The pattern does NOT require closing ** because the LLM often bolds a full
+        // phrase: "**nf-core/proteomicslfq — Label-free quantification...**" — the
+        // workflow name ends at the first non-name character (space, dash, em-dash).
+        // Fallback: plain unbolded mention (e.g. "recommend nf-core/rnaseq for this").
+        const _boldNfcore =
+          response.message.match(/\*\*(nf-core\/[a-z][a-z0-9\-]+)/i) ||
+          response.message.match(/\b(nf-core\/[a-z][a-z0-9\-]+)\b/i);
         const _textWorkflow = _boldNfcore?.[1]?.toLowerCase();
         if (
           _textWorkflow &&
