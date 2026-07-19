@@ -332,6 +332,7 @@ class UnifiedWorkflowSearch:
             'variant': 3.0, 'snp': 2.5, 'indel': 2.0, 'mutation': 2.0,
             'gatk': 2.5, 'mutect2': 3.0, 'freebayes': 2.0, 'bcftools': 2.0,
             'vcf': 2.0, 'calling': 1.5, 'vep': 2.5,
+            'sentieon': 3.0,  # Sentieon is GATK-compatible, sarek supports it
 
             # ChIP-seq / ATAC-seq
             'chip-seq': 3.0, 'chipseq': 3.0, 'atac': 2.5, 'peak': 2.0,
