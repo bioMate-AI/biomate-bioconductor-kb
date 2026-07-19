@@ -754,11 +754,13 @@ export class GalaxyAPIProxy {
 
       return response.data;
     } catch (error: any) {
-      console.error('[GalaxyAPIProxy] Workflow generation failed:', error.message);
+      const detail = error.response?.data?.detail || error.response?.data || '';
+      const detailStr = typeof detail === 'string' ? detail : JSON.stringify(detail);
+      console.error('[GalaxyAPIProxy] Workflow generation failed:', error.message, detailStr);
       // Return error response instead of throwing
       return {
         success: false,
-        error: error.message || 'Workflow generation failed',
+        error: `${error.message || 'Workflow generation failed'} | ${detailStr}`,
       };
     }
   }

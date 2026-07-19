@@ -3768,7 +3768,7 @@ def generate_workflow_unified(
         }
     except Exception as e:
         log.error(f"Error in unified workflow generation: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Error generating workflow: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating workflow [{type(e).__name__}]: {str(e)}")
 
 
 def _workflow_to_dict(workflow_template) -> Dict[str, Any]:
