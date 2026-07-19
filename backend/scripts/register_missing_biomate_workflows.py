@@ -22,6 +22,330 @@ NF_BASE   = REPO_ROOT / "nf-core-workflows" / "modules" / "biomate-ai-tools"
 DB_DEFAULT = REPO_ROOT / "database" / "galaxy_ai_tools.db"
 
 WORKFLOWS = [
+    # ── Wave 2: 12 additional workflows indexed 2026-07-18 ───────────────────
+    {
+        "name":        "alphafold",
+        "filename":    "nf-core-workflows/modules/biomate-ai-tools/alphafold/main.nf",
+        "description": (
+            "Retrieves pre-computed protein structures from the AlphaFold EBI "
+            "database (200M+ structures, v4 model) via UniProt accession, or "
+            "formats input JSON for submission to the free AlphaFold 3 Server "
+            "(20 jobs/day limit) for new predictions including complexes. "
+            "Input: UniProt accession ID (for DB lookup) or FASTA (for AF3 server). "
+            "Output: PDB structure file, optional mmCIF, and per-residue confidence JSON."
+        ),
+        "annotation":  (
+            "UniProt ID or FASTA → PDB + confidence JSON (AlphaFold DB v4 / AF3 Server)"
+        ),
+        "tags":        (
+            "alphafold,alphafold2,alphafold3,structure prediction,protein folding,"
+            "ebi database,uniprot,precomputed structure,confidence,plddt"
+        ),
+        "domain":      "structural_biology",
+        "category":    "Structure Prediction",
+        "docker_image":"biomate/biomni-tools:latest",
+        "input_types": ["fasta", "uniprot_id"],
+        "output_types":["pdb", "cif", "json"],
+        "step_count":  2,
+        "tools_used":  "AlphaFold DB v4, AlphaFold 3 Server (EBI)",
+    },
+    {
+        "name":        "boltz",
+        "filename":    "nf-core-workflows/modules/biomate-ai-tools/boltz/main.nf",
+        "description": (
+            "Boltz-2 is a GPU-based protein-ligand structure prediction model that "
+            "jointly predicts 3D conformations and binding affinities. It accepts "
+            "a FASTA file plus an optional ligand SDF, and outputs predicted PDB/CIF "
+            "structures and affinity JSON. Requires 16–40 GB VRAM. "
+            "Input: FASTA + optional ligand SDF. "
+            "Output: PDB/CIF structures + binding affinity JSON."
+        ),
+        "annotation":  (
+            "FASTA + optional ligand SDF → PDB/CIF structures + binding affinity JSON (Boltz-2)"
+        ),
+        "tags":        (
+            "boltz,boltz2,protein-ligand,structure prediction,binding affinity,"
+            "gpu,deep learning,molecular complex,cif,pdb"
+        ),
+        "domain":      "structural_biology",
+        "category":    "Structure Prediction",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/boltz:nextflow",
+        "input_types": ["fasta", "sdf"],
+        "output_types":["pdb", "cif", "json"],
+        "step_count":  1,
+        "tools_used":  "Boltz-2",
+    },
+    {
+        "name":        "chai1",
+        "filename":    "nf-core-workflows/modules/biomate-ai-tools/chai1/main.nf",
+        "description": (
+            "Chai-1 is a multi-modal biomolecular structure prediction model supporting "
+            "proteins, DNA, RNA, ligands (SDF or SMILES), and glycans in a single unified "
+            "architecture. Requires 24–80 GB VRAM GPU. "
+            "Input: FASTA (with optional ligand SDF/SMILES). "
+            "Output: PDB/CIF structures and confidence score JSON."
+        ),
+        "annotation":  (
+            "FASTA + optional ligand SDF/SMILES → PDB/CIF structures + scores JSON (Chai-1)"
+        ),
+        "tags":        (
+            "chai1,chai,multimodal,structure prediction,protein-ligand,dna,rna,"
+            "glycan,gpu,deep learning,biomolecular complex"
+        ),
+        "domain":      "structural_biology",
+        "category":    "Structure Prediction",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/chai1:nextflow",
+        "input_types": ["fasta", "sdf", "smiles"],
+        "output_types":["pdb", "cif", "json"],
+        "step_count":  1,
+        "tools_used":  "Chai-1 (Chai Discovery)",
+    },
+    {
+        "name":        "cryo_heterogeneity",
+        "filename":    "nf-core-workflows/modules/biomate-ai-tools/cryo_heterogeneity/main.nf",
+        "description": (
+            "Resolves continuous conformational heterogeneity in cryo-EM particle stacks "
+            "using cryoDRGN (VAE-based latent representation), then performs UMAP + k-means "
+            "clustering to identify representative conformational states, and scans the "
+            "ensemble of reconstructed volumes for druggable binding pockets using fpocket. "
+            "Input: particle MRCS stack (STAR format) + CTF/poses PKL files. "
+            "Output: heterogeneity report JSON with conformational entropy, population "
+            "fractions, and per-state druggability scores."
+        ),
+        "annotation":  (
+            "Particles STAR + CTF/poses PKL → conformational ensemble + pocket scan JSON "
+            "(cryoDRGN + fpocket)"
+        ),
+        "tags":        (
+            "cryodrgn,cryo-em,conformational heterogeneity,vae,latent space,"
+            "fpocket,druggable pocket,structural biology,umap,kmeans,mrcs"
+        ),
+        "domain":      "structural_biology",
+        "category":    "Cryo-EM Analysis",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cryo-heterogeneity-nf:latest",
+        "input_types": ["mrcs", "star", "pkl"],
+        "output_types":["json", "mrc"],
+        "step_count":  4,
+        "tools_used":  "cryoDRGN, fpocket, UMAP",
+    },
+    {
+        "name":        "drugclip",
+        "filename":    "nf-core-workflows/modules/biomate-ai-tools/drugclip/main.nf",
+        "description": (
+            "Ultra-fast contrastive-learning virtual drug screening that is orders of "
+            "magnitude faster than traditional docking. Can run locally against a custom "
+            "compound library (SDF or SMILES) given a protein FASTA, or query the "
+            "pre-computed DrugCLIP API database via UniProt ID. "
+            "Input: protein FASTA + compound library SDF/SMILES (local), or UniProt ID (API). "
+            "Output: scored compound CSV with top hits."
+        ),
+        "annotation":  (
+            "Protein FASTA + compounds SDF → scored hits CSV (DrugCLIP virtual screening)"
+        ),
+        "tags":        (
+            "drugclip,virtual screening,drug discovery,contrastive learning,"
+            "compound library,protein-ligand,ultra-fast,smiles,sdf,uniprot"
+        ),
+        "domain":      "drug_discovery",
+        "category":    "Virtual Screening",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/drugclip:nextflow",
+        "input_types": ["fasta", "sdf", "smiles"],
+        "output_types":["csv", "json"],
+        "step_count":  2,
+        "tools_used":  "DrugCLIP (Contrastive Learning Virtual Screening)",
+    },
+    {
+        "name":        "profam",
+        "filename":    "nf-core-workflows/modules/biomate-ai-tools/profam/main.nf",
+        "description": (
+            "ProFam is a protein family language model for variant fitness scoring and "
+            "novel sequence generation conditioned on a protein family multiple sequence "
+            "alignment (MSA) or reference FASTA. Score variants against family fitness "
+            "landscape, or sample new sequences at a given temperature. "
+            "Input: conditioning FASTA (family MSA or reference) + candidate sequences "
+            "FASTA/CSV (for scoring) or MSA alone (for generation). "
+            "Output: ranked fitness scores CSV or generated FASTA."
+        ),
+        "annotation":  (
+            "Family MSA FASTA + candidates → fitness scores CSV or generated sequences FASTA (ProFam)"
+        ),
+        "tags":        (
+            "profam,protein language model,variant fitness,sequence design,"
+            "protein engineering,msa,directed evolution,zero-shot,generative model,fitness landscape"
+        ),
+        "domain":      "proteomics",
+        "category":    "Protein Engineering",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/profam:nextflow",
+        "input_types": ["fasta", "csv"],
+        "output_types":["csv", "fasta"],
+        "step_count":  2,
+        "tools_used":  "ProFam (Protein Family Language Model)",
+    },
+    {
+        "name":        "protein_dynamics",
+        "filename":    "nf-core-workflows/modules/biomate-ai-tools/protein_dynamics/main.nf",
+        "description": (
+            "Generates a conformational ensemble for a protein using BioEmu-1 "
+            "(GPU-based generative model) or an MDAnalysis Gaussian perturbation fallback, "
+            "then detects cryptic binding pockets across the ensemble using PocketMiner and "
+            "fpocket, and finally produces a UMAP/PCA projection of the ensemble with "
+            "RMSD/Rg distributions and a summary report. "
+            "Input: PDB or FASTA. "
+            "Output: ensemble tarball, per-frame pocket JSON, UMAP PNG, and summary JSON."
+        ),
+        "annotation":  (
+            "PDB or FASTA → conformational ensemble + cryptic pocket scan + UMAP plot "
+            "(BioEmu + PocketMiner + fpocket)"
+        ),
+        "tags":        (
+            "bioemu,protein dynamics,conformational ensemble,cryptic pocket,"
+            "pocketminer,fpocket,mdanalysis,umap,rmsd,radius of gyration,structural biology"
+        ),
+        "domain":      "structural_biology",
+        "category":    "Protein Dynamics",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.8",
+        "input_types": ["pdb", "fasta"],
+        "output_types":["json", "png", "pdb"],
+        "step_count":  3,
+        "tools_used":  "BioEmu-1, PocketMiner, fpocket, MDAnalysis",
+    },
+    {
+        "name":        "protrek",
+        "filename":    "nf-core-workflows/modules/biomate-ai-tools/protrek/main.nf",
+        "description": (
+            "ProTrek is a trimodal protein search model (100× faster than Foldseek) that "
+            "searches a large protein database by amino acid sequence, 3D structure, or "
+            "free-text functional description. Also supports generating embeddings for "
+            "custom databases. "
+            "Input: query (sequence string, PDB path, or text description) + query type. "
+            "Output: ranked hits JSON and TSV with UniProt IDs, scores, and function annotations."
+        ),
+        "annotation":  (
+            "Sequence / PDB / text query → ranked UniProt hits JSON + TSV (ProTrek trimodal search)"
+        ),
+        "tags":        (
+            "protrek,trimodal search,protein search,sequence search,structure search,"
+            "text search,uniprot,embedding,protein retrieval,fast search,language model"
+        ),
+        "domain":      "proteomics",
+        "category":    "Protein Search",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/protrek:nextflow",
+        "input_types": ["fasta", "pdb", "txt"],
+        "output_types":["json", "tsv", "pt"],
+        "step_count":  2,
+        "tools_used":  "ProTrek (Trimodal Protein Search)",
+    },
+    {
+        "name":        "scfv-pmpnn",
+        "filename":    "nf-core-workflows/modules/biomate-ai-tools/scfv-pmpnn/main.nf",
+        "description": (
+            "AI-powered single-chain variable fragment (scFv) antibody sequence design "
+            "using ProteinMPNN, followed by optional AlphaFold2 structure validation. "
+            "Given a target antigen PDB, generates a pool of designed scFv sequences scored "
+            "by ProteinMPNN log-likelihood, then predicts structures and confidence for the "
+            "top designs. "
+            "Input: target antigen PDB. "
+            "Output: designed scFv FASTA, scores CSV, and optional predicted PDB structures."
+        ),
+        "annotation":  (
+            "Target antigen PDB → designed scFv FASTA + scores CSV + predicted PDB structures "
+            "(ProteinMPNN + AF2)"
+        ),
+        "tags":        (
+            "scfv,antibody design,proteinmpnn,alphafold2,protein design,immunology,"
+            "single-chain antibody,antigen,inverse folding,sequence design"
+        ),
+        "domain":      "immunology",
+        "category":    "Antibody Design",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/scfv-pmpnn:nextflow",
+        "input_types": ["pdb"],
+        "output_types":["fasta", "csv", "pdb"],
+        "step_count":  2,
+        "tools_used":  "ProteinMPNN, AlphaFold2",
+    },
+    {
+        "name":        "sirna_design",
+        "filename":    "nf-core-workflows/modules/biomate-ai-tools/sirna_design/main.nf",
+        "description": (
+            "Generates and scores siRNA candidates from an input mRNA sequence using the "
+            "industry-standard Ui-Tei 2004 (4 criteria) and Reynolds 2004 (8 criteria) "
+            "scoring rules plus thermodynamic asymmetry analysis (Schwarz/Khvorova 2003). "
+            "Scans all 19-, 20-, and 21-mer windows, filters by GC content (30–52% default), "
+            "ranks by composite score (max 13), and assigns efficacy tiers A–D. "
+            "Input: FASTA file or raw mRNA sequence. "
+            "Output: ranked candidates CSV, scoring summary JSON, and design report."
+        ),
+        "annotation":  (
+            "mRNA FASTA or sequence → ranked siRNA candidates CSV + scoring JSON + report "
+            "(Ui-Tei/Reynolds criteria)"
+        ),
+        "tags":        (
+            "sirna,sirna design,rnai,mrna,uitei,reynolds,risc,gc content,"
+            "thermodynamic asymmetry,oligonucleotide design,gene silencing"
+        ),
+        "domain":      "other",
+        "category":    "RNA Therapeutics",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["fasta", "txt"],
+        "output_types":["csv", "json", "txt"],
+        "step_count":  1,
+        "tools_used":  "Ui-Tei/Reynolds siRNA scoring rules",
+    },
+    {
+        "name":        "state",
+        "filename":    "nf-core-workflows/modules/biomate-ai-tools/state/main.nf",
+        "description": (
+            "STATE (arc-state) is a virtual cell model that predicts single-cell "
+            "transcriptomic responses to perturbations including gene knockdown, drug "
+            "treatment, and CRISPR edits. Takes an AnnData h5ad file with scRNA-seq data "
+            "and a perturbation column label, and outputs a simulated h5ad with predicted "
+            "post-perturbation expression profiles. Also supports generating latent cell "
+            "embeddings. "
+            "Input: AnnData h5ad. "
+            "Output: simulated h5ad + optional predictions CSV."
+        ),
+        "annotation":  (
+            "AnnData h5ad + perturbation labels → simulated post-perturbation h5ad "
+            "(STATE virtual cell model)"
+        ),
+        "tags":        (
+            "state,virtual cell,perturbation,single cell,scrna-seq,anndata,"
+            "crispr,gene knockdown,drug response,transcriptomics,h5ad"
+        ),
+        "domain":      "single_cell",
+        "category":    "Virtual Cell Modeling",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/state:nextflow",
+        "input_types": ["h5ad"],
+        "output_types":["h5ad", "csv"],
+        "step_count":  2,
+        "tools_used":  "STATE (arc-state virtual cell model)",
+    },
+    {
+        "name":        "syncraft",
+        "filename":    "nf-core-workflows/modules/biomate-ai-tools/syncraft/main.nf",
+        "description": (
+            "LLM-powered retrosynthesis planning tool that uses Gemini to propose "
+            "multi-step synthesis routes for drug molecules given a SMILES string. "
+            "Supports single-molecule and batch mode. Requires GEMINI_API_KEY. "
+            "Input: SMILES string (single) or SMILES list file (batch). "
+            "Output: synthesis route JSON + human-readable text plan."
+        ),
+        "annotation":  (
+            "SMILES → synthesis route JSON + text plan (SynCraft LLM retrosynthesis, Gemini)"
+        ),
+        "tags":        (
+            "syncraft,retrosynthesis,synthesis planning,smiles,drug discovery,"
+            "medicinal chemistry,llm,gemini,ai chemistry,route planning"
+        ),
+        "domain":      "drug_discovery",
+        "category":    "Chemical Synthesis",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/syncraft:nextflow",
+        "input_types": ["smiles", "txt"],
+        "output_types":["json", "txt", "csv"],
+        "step_count":  2,
+        "tools_used":  "SynCraft (Gemini-powered retrosynthesis)",
+    },
+    # ── Wave 1: 6 workflows indexed earlier ─────────────────────────────────
     {
         "name":        "af3",
         "filename":    "nf-core-workflows/modules/biomate-ai-tools/af3/main.nf",
