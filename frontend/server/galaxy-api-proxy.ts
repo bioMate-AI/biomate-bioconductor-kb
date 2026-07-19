@@ -754,13 +754,15 @@ export class GalaxyAPIProxy {
 
       return response.data;
     } catch (error: any) {
-      const detail = error.response?.data?.detail || error.response?.data || '';
-      const detailStr = typeof detail === 'string' ? detail : JSON.stringify(detail);
+      // error is GalaxyAPIError (from interceptor) — detail is at error.detail, not error.response?.data
+      const rawDetail = error.detail ?? error.response?.data;
+      const detailMsg = (typeof rawDetail === 'object' ? rawDetail?.detail : rawDetail) || rawDetail || '';
+      const detailStr = typeof detailMsg === 'string' ? detailMsg : JSON.stringify(detailMsg);
       console.error('[GalaxyAPIProxy] Workflow generation failed:', error.message, detailStr);
       // Return error response instead of throwing
       return {
         success: false,
-        error: `${error.message || 'Workflow generation failed'} | ${detailStr}`,
+        error: `${error.message || 'Workflow generation failed'}${detailStr ? ` | ${detailStr}` : ''}`,
       };
     }
   }
