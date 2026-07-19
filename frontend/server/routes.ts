@@ -813,19 +813,28 @@ const OPEN_CLAW_TOOLS = [
   {
     name: "query_database",
     description:
-      "Query a biological or chemical database by accession, gene symbol, compound name, or search query. " +
+      "Query a biological or chemical database by accession, gene symbol, compound name, sequence, SMILES, or search query. " +
       "Databases: uniprot (protein), pdb/alphafold (structure), ncbi_gene (gene), " +
       "dbsnp/clinvar/gnomad (variants), kegg/reactome (pathways), " +
-      "chebi/pubchem (compounds), hpo/omim (phenotypes/disease), string (interactions).",
+      "chembl/chebi/pubchem (compounds), hpo/omim (phenotypes/disease), string (interactions). " +
+      "Choose `operation` from the user's intent: use 'similarity' to FIND SIMILAR entities " +
+      "(chembl finds compounds by Tanimoto similarity to a SMILES; pdb finds sequence homologs " +
+      "across the whole PDB from a protein sequence), 'text' for a keyword search, or 'lookup' " +
+      "(default) to fetch a specific entity by ID/accession/name.",
     input_schema: {
       type: "object" as const,
       properties: {
         database: {
           type: "string",
-          enum: ["uniprot","pdb","alphafold","ncbi_gene","dbsnp","clinvar","gnomad","kegg","reactome","chebi","pubchem","hpo","omim","string"],
+          enum: ["uniprot","pdb","alphafold","ncbi_gene","dbsnp","clinvar","gnomad","kegg","reactome","chembl","chebi","pubchem","hpo","omim","string"],
           description: "Target database",
         },
-        query: { type: "string", description: "Accession (P04637, 1TUP), gene symbol (BRCA1), compound name (ibuprofen), or rsID (rs7412)" },
+        query: { type: "string", description: "Accession (P04637, 1TUP), gene symbol (BRCA1), compound name (ibuprofen), rsID (rs7412), a SMILES (for chembl similarity), or a protein sequence (for pdb similarity)" },
+        operation: {
+          type: "string",
+          enum: ["lookup", "similarity", "text"],
+          description: "Search mode from user intent. 'similarity' = find similar entities (chembl: Tanimoto over a SMILES; pdb: sequence homologs over the whole PDB). 'text' = keyword search. 'lookup' (default) = fetch by ID/name.",
+        },
       },
       required: ["database", "query"],
     },
@@ -1002,7 +1011,7 @@ async function executeOpenClaudeTool(
 
       // ── Databases ────────────────────────────────────────────────────────
       case "query_database":
-        return await post("/api/databases/query", { database: input.database, query: input.query });
+        return await post("/api/databases/query", { database: input.database, query: input.query, operation: input.operation ?? "lookup" });
 
       // ── Accession Resolution ─────────────────────────────────────────────
       case "resolve_accession":
