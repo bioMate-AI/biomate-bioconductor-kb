@@ -188,11 +188,20 @@ recurring (do NOT workaround — fix at source):
 | `backend/lib/galaxy/ai/ai_assistant.py` | `operation`-driven `query_database` / `_query_chembl` / `_query_pdb`; removed sniffing detectors |
 | `backend/database/galaxy_ai_tools.db` | ChEMBL REST desc + RCSB PDB Search API `live_api` entry (gitignored) |
 
-## 7. Open items
-- ~~Final live verification on dev~~ — ✅ DONE, LIVE end-to-end.
-- Implement the four `sync_to_dev.sh` hardening fixes above (separate task).
+## 7. LLM-flow smoke test — ✅ PASSED (real chat turn on dev)
+
+`POST /api/open-claw/stream` with *"Search ChEMBL for compounds structurally
+similar to this molecule. SMILES: CC(=O)Oc1ccccc1C(=O)O"*. The model chose,
+unprompted:
+```json
+{"database":"chembl","operation":"similarity","query":"CC(=O)Oc1ccccc1C(=O)O"}
+```
+→ tool returned `tanimoto_similarity` (ASPIRIN 100, CARBASPIRIN 88.9,
+DIPLOSALSALATE 85.7); the model rendered a results table and correctly named
+the molecule Aspirin. **The intent→`operation` mapping works end-to-end through
+the real LLM.**
+
+## 8. Open items
+- Implement the four `sync_to_dev.sh` hardening fixes in §5 (separate task).
   The behavioral post-sync assertion (#4) would have caught the proxy bug
   immediately.
-- LLM-flow smoke test: confirm the model picks `operation=similarity` for
-  "find compounds similar to this SMILES" (schema + wiring are live; this
-  verifies the model's intent→param choice through a real chat turn).
