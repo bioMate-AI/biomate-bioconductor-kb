@@ -3546,6 +3546,15 @@ Rules:
         log('Pathway-enrichment override: forcing needsWorkflowGeneration=true → clusterProfiler/enrichGO');
         actions.needsWorkflowGeneration = true;
         intent.type = 'workflow_generation';
+        // Inject key terms so the DB similarity search ranks clusterprofiler first.
+        // Without these, the "complement pathway activation" phrasing matches nothing
+        // and the backend generates an empty stub instead of using the DB workflow.
+        if (!decomposition.keyTerms) decomposition.keyTerms = [];
+        for (const t of ['clusterprofiler', 'ORA', 'pathway enrichment', 'gene set', 'enrichGO', 'enrichKEGG', 'GO terms']) {
+          if (!decomposition.keyTerms.includes(t)) decomposition.keyTerms.push(t);
+        }
+        if (!decomposition.preferredDomains) decomposition.preferredDomains = [];
+        if (!decomposition.preferredDomains.includes('genomics')) decomposition.preferredDomains.push('genomics');
       }
     }
 
