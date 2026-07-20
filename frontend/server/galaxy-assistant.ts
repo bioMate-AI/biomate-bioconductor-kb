@@ -3460,6 +3460,14 @@ Rules:
         );
         if (!decomposition.preferredDomains) decomposition.preferredDomains = [];
         if (!decomposition.preferredDomains.includes('genomics')) decomposition.preferredDomains.push('genomics');
+        // Penalize transcriptomics so nf-core/differentialabundance (which also has enrichment
+        // steps) doesn't out-score clusterprofiler in the FTS search when prior-turn context
+        // includes a DESeq2/differentialabundance run.
+        if (!decomposition.penalizedDomains) decomposition.penalizedDomains = [];
+        if (!decomposition.penalizedDomains.includes('transcriptomics')) {
+          decomposition.penalizedDomains.push('transcriptomics');
+          log('Pathway-enrichment override: penalizing transcriptomics → bias away from differentialabundance');
+        }
 
         // Complement-specific signal: push complement cascade keyTerms so the FTS search
         // scores clusterprofiler (which now has complement annotation) above reactomepa.
