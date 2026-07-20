@@ -921,8 +921,22 @@ function normalizeAdmetSmiles(
   const smilesList: string[] = [];
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(raw)) {
-    if (k === 'smiles_list' || k === 'ADMET_model_type') {
-      // smiles_list may be a JSON array from the Galaxy backend — serialize it if needed
+    if (k === 'smiles_list') {
+      if (Array.isArray(v)) {
+        out[k] = JSON.stringify(v);
+      } else {
+        const sv = String(v).trim();
+        if (sv.startsWith('[')) {
+          // Already a JSON array string (e.g. from Galaxy backend) — keep as-is
+          out[k] = sv;
+        } else {
+          // Raw SMILES string from LLM extraction — wrap in JSON array for Groovy JsonSlurper
+          const firstToken = getSmilesToken(sv) ?? sv.split(/\s/)[0];
+          out[k] = JSON.stringify([firstToken]);
+          console.log('[normalizeAdmetSmiles] Wrapped raw smiles_list → JSON array:', out[k]);
+        }
+      }
+    } else if (k === 'ADMET_model_type') {
       out[k] = Array.isArray(v) ? JSON.stringify(v) : String(v);
     } else if (Array.isArray(v)) {
       // Array of SMILES strings from the Galaxy backend — treat each element as a SMILES candidate

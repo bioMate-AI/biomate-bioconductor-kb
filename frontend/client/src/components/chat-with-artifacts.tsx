@@ -936,6 +936,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
           ...(workflow.parameters || {}),
           ...(workflow.inline_parameters || {}),
         };
+        console.log('[ChatWithArtifacts] mergedParams smiles_list:', (mergedParams as any).smiles_list);
         workflowDefinition = {
           ...workflow,
           name: workflow.name || workflow.workflow_name || 'bioMate Workflow',
