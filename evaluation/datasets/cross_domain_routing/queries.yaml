@@ -113,8 +113,11 @@
   disqualified:
   - nf-core/rnaseq
   confusable_with: differential_expression
+  clarification_answer: I have a count matrix from RNA-seq. Control group n=5, treatment
+    group n=5. Gene IDs are Ensembl. Please run the full DE + GSEA + volcano pipeline.
   notes: 'Source: nf-co.re/differentialabundance — GSEA and statistical comparisons
-    are its documented purpose, NOT rnaseq'
+    are its documented purpose, NOT rnaseq. Clarification: input is a count matrix,
+    not raw FASTQ.'
 - id: rna_012
   query: Strandedness is unknown for my RNA-seq libraries — auto-detect it and align
   difficulty: indirect
@@ -1241,8 +1244,11 @@
   disqualified:
   - nf-core/raredisease
   confusable_with: rare_disease
+  clarification_answer: Yes, I have matched normal blood samples for each patient.
+    WGS paired-end FASTQ data, GRCh38. Three tumor timepoints plus one matched normal
+    per patient. Please run somatic variant calling with nf-core/sarek.
   notes: 'Source: nf-co.re/sarek — multiple relapses support is explicitly documented
-    for somatic analysis'
+    for somatic analysis. Clarification: matched normals available for somatic calling.'
 - id: adv_003
   query: I want to cluster single cells and find marker genes — I have FASTQ files
     from 10x
@@ -2015,10 +2021,14 @@
   difficulty: adversarial
   domain: spatial_omics
   correct_workflow: visium_voyager_spatial_esda
-  acceptable_alts: []
+  acceptable_alts:
+  - visium_voyager_to_isee
   disqualified: []
   confusable_with: transcriptomics
-  notes: Bivariate spatial statistics (Lee's L) for spatial co-expression
+  notes: 'Bivariate spatial statistics (Lee''s L) for spatial co-expression. Acceptable:
+    visium_voyager_to_isee is a real curated chain (ID 68) that runs visium_voyager_spatial_esda
+    (ESDA including co-expression) then converts to interactive iSEE app — a valid
+    and more complete answer.'
 - id: sp_015
   query: Generate a Voyager vignette-style spatial ESDA report with ranked spatially
     autocorrelated genes

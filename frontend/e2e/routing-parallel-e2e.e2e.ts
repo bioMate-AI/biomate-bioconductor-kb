@@ -262,6 +262,27 @@ const CASES: Array<{
     expected: "nf-core/sarek",
     alts: ["sarek"],
   },
+  {
+    id: "rna_008",
+    query:
+      "Run UMI deduplication before alignment for my RNA-seq library with unique molecular identifiers",
+    clarifications: [
+      "s3://mybucket/rnaseq/sample_R1.fastq.gz — paired-end Illumina, human GRCh38, 10x UMI protocol. Please run nf-core/rnaseq with UMI deduplication enabled.",
+    ],
+    expected: "nf-core/rnaseq",
+    alts: ["rnaseq"],
+  },
+  {
+    id: "sp_014",
+    query:
+      "I want to find co-expressed gene pairs that are also spatially correlated in Visium data",
+    clarifications: [
+      "SpaceRanger output at s3://mybucket/visium/sample1/ — 10x Visium FFPE, mouse brain section, want bivariate spatial statistics for co-expression.",
+      "Please run the visium_voyager_spatial_esda workflow for spatial co-expression analysis.",
+    ],
+    expected: "visium_voyager_spatial_esda",
+    alts: ["visium_voyager_to_isee", "spatialvi", "voyager"],
+  },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -270,7 +291,7 @@ const CASES: Array<{
 
 for (const tc of CASES) {
   test(`routing-${tc.id}: "${tc.expected}"`, async ({ page }) => {
-    test.setTimeout(300_000); // 5 min per query
+    test.setTimeout(600_000); // 10 min — multi-turn clarification flows need extra time
 
     await loginAndNavigate(page);
 
