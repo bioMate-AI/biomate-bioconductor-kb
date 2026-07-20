@@ -5239,6 +5239,9 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     const chainHintList = (await this._getChainHintNames()).join(', ');
     const systemPrompt = `${sessionMemoryBlock}You are a bioinformatics intent analyzer. Classify user messages by their information need and declare which system agents should handle the request.
 
+When a "[Prior conversation context]" block appears before the message, use it to understand the user's full intent. The current message may be a short confirmation, file path, or follow-up — synthesize the **complete** bioinformatics intent (goal + data + parameters) into the subQuery field rather than copying the literal current message. Example: if prior context says "run RNA-seq on mouse samples" and current message is "s3://bucket/R1.fastq.gz", produce subQuery: "RNA-seq alignment and quantification on mouse GRCm38 samples using paired-end FASTQ from s3://bucket/".
+
+
 ## Information Need Types
 
 Describe the user's information need with a descriptive label. You may use these common labels or create a new one that better fits:
@@ -6359,6 +6362,19 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
   ]
 }`;
 
+    // Build conversation-enriched input for UQU so the LLM synthesizes intent
+    // from the full context rather than classifying the bare current message.
+    // Prior user turns are injected as a context block; the LLM uses them to
+    // produce a semantically rich subQuery ("RNA-seq on GRCm38 paired-end samples")
+    // instead of a literal copy of the current message ("s3://mybucket/...").
+    const priorUserTurns = (context.previousMessages || [])
+      .filter((m) => m.role === 'user' && (m.content || '').trim().length > 10)
+      .slice(-3)
+      .map((m, i) => `Turn ${i + 1}: ${(m.content || '').trim().slice(0, 400)}`);
+    const messageForUQU = priorUserTurns.length > 0
+      ? `[Prior conversation context — use to understand full intent:\n${priorUserTurns.join('\n')}\n]\n\nCurrent user message (classify this):\n${message}`
+      : message;
+
     try {
       const intentStartTime = Date.now();
       // Two-tier Gemini routing: Pro for complex queries, Flash for simple ones.
@@ -6395,7 +6411,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
           const geminiTimeout = new Promise<never>((_, reject) =>
             setTimeout(() => reject(new Error('Gemini intent timeout after 30s')), 30_000)
           );
-          geminiResult = await Promise.race([geminiModel.generateContent(message), geminiTimeout]);
+          geminiResult = await Promise.race([geminiModel.generateContent(messageForUQU), geminiTimeout]);
         } catch (err: any) {
           const is429 = err?.message?.includes('429') || err?.status === 429;
           const isTimeout = err?.message?.includes('timeout');
@@ -6417,7 +6433,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
           let chainResult: string | null = null;
           try {
             const r = await llmGenerate({
-              prompt: message,
+              prompt: messageForUQU,
               system: systemPrompt,
               maxTokens: 4096,
               jsonMode: false,
@@ -6440,7 +6456,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
                 model: haiku,
                 max_tokens: 4096,
                 system: systemPrompt,
-                messages: [{ role: 'user', content: message }],
+                messages: [{ role: 'user', content: messageForUQU }],
               }),
               'intent-classification-haiku-fallback',
             );
@@ -6475,7 +6491,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
                 cache_control: { type: 'ephemeral' },
               },
             ],
-            messages: [{ role: 'user', content: message }],
+            messages: [{ role: 'user', content: messageForUQU }],
           }),
           'intent-classification',
         );
@@ -7223,21 +7239,9 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
       .filter(Boolean)
       .join(' | ');
 
-    // Always fold prior user turns into the FTS query. The current message alone
-    // is often a bare data provision ("s3://..."), short confirmation ("yes"), or
-    // parameter refinement — none of which carry bioinformatics signal for FTS.
-    // Concatenating all prior user messages gives the search the original intent
-    // with no special-casing per turn type.
-    if (context?.previousMessages?.length) {
-      const priorUserMsgs = context.previousMessages
-        .filter((m) => m.role === 'user' && (m.content || '').trim().length > 10)
-        .map((m) => (m.content || '').trim().slice(0, 400))
-        .slice(-3);
-      if (priorUserMsgs.length > 0) {
-        userIntent = `${priorUserMsgs.join('\n')}\n\n[Current]: ${userIntent}`;
-        console.log('[GalaxyAssistant] Enriched FTS intent with', priorUserMsgs.length, 'prior user turns');
-      }
-    }
+    // No manual FTS enrichment needed here: UQU now receives conversation context
+    // and synthesizes a semantically rich subQuery from the full intent history.
+    // That subQuery is what reaches this function as userIntent.
 
     // Skip Haiku domain round-trip when ANDV E2E names an explicit registry workflow.
     const _explicitRegistryFastPath =
