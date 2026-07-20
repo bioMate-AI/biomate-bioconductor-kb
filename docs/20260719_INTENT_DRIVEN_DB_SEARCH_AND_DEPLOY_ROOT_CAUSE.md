@@ -202,6 +202,16 @@ the molecule Aspirin. **The intent→`operation` mapping works end-to-end throug
 the real LLM.**
 
 ## 8. Open items
-- Implement the four `sync_to_dev.sh` hardening fixes in §5 (separate task).
-  The behavioral post-sync assertion (#4) would have caught the proxy bug
-  immediately.
+- **§5 #4 behavioral assertion — PARTIALLY DONE.** Added **S6** to
+  `scripts/post_sync_check.sh` (commit `85aa46258`): a deterministic
+  operation-routing canary (asserts `search=tanimoto_similarity` /
+  `sequence_similarity` and that `text` ≠ `similarity` on the same input;
+  passes on dev). It does not flake on ChEMBL/RCSB outages because the
+  similarity path sets its `search` tag regardless of upstream hits.
+  **Remaining:** wire an equivalent assertion into `sync_to_dev.sh`'s inline
+  health gate so a stale/broken deploy **rolls back** instead of reporting
+  healthy (S6 today only gates the standalone `post_sync_check.sh` run).
+- **§5 #1–#3 remain** (decouple `restart_galaxy` from `do_backend`; verify
+  in-container content vs. the git marker; serialize concurrent syncs). These
+  edit the **deploy mechanism itself** — do them as a carefully-reviewed change,
+  not a speculative edit, since a bug there breaks deploys for every session.
