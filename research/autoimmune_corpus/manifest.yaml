@@ -1,0 +1,51 @@
+# Autoimmune single-cell corpus — collection config
+# Feeds the SLE-first training plan (20260719_AUTOIMMUNE_MODEL_TRAINING_STRATEGY_AND_DGX_EXECUTION.md)
+
+organism: "Homo sapiens"
+target_cell_scale: [1_000_000, 5_000_000]   # DGX Spark feasible range
+assays_scrna: ["single cell", "scRNA", "single-cell RNA", "10x", "Smart-seq"]
+
+diseases:
+  SLE:
+    census_disease_label: "systemic lupus erythematosus"
+    eutils_terms: ["lupus", "systemic lupus erythematosus", "SLE"]
+    cores:
+      - {accession: "GSE135779", role: "eval", ref: "Nehar-Belaid 2020 Nat Immunol"}
+      - {accession: "GSE65391",  role: "train/eval", ref: "Banchereau 2016 Nat Med"}
+    controlled_access:
+      - {accession: "GSE174188", note: "Perez 2022 Science — dbGaP locked; manual DAC"}
+  RA:
+    census_disease_label: "rheumatoid arthritis"
+    eutils_terms: ["rheumatoid arthritis", "RA synovium", "RA PBMC"]
+    cores:
+      - {accession: "AMP-RA-SLE", role: "train", ref: "Zhang 2023 Nature (synovium CITE-seq)"}
+  Healthy:                   # healthy PBMC reference for low/high/healthy stratification
+    census_disease_label: "normal"
+    eutils_terms: []
+    cores: []
+  IBD:
+    census_disease_label: ["Crohn disease", "ulcerative colitis", "inflammatory bowel disease"]
+    eutils_terms: ["inflammatory bowel disease", "Crohn", "ulcerative colitis", "IBD"]
+    cores:
+      - {accession: "IBDverse", role: "train", ref: "Nat Genet 2026, 1.1M Crohn cells, ibdverse.info"}
+      - {accession: "GSE134809", role: "train", ref: "Cho/Merad IBD lamina propria"}
+  MS:                        # optional breadth
+    census_disease_label: "multiple sclerosis"
+    eutils_terms: ["multiple sclerosis", "MS CSF immune"]
+    cores: []
+
+clinical_labels:            # per-donor targets to extract (Layer 3, extract-then-verify)
+  - SLEDAI
+  - anti_dsDNA
+  - C3
+  - C4
+  - treatment
+  - flare
+  - disease_activity        # derived: low / high / healthy
+
+eutils:
+  db: "gds"
+  entry_type: "gse"
+  retmax_per_disease: 60
+  email: "SET_ME"           # NCBI courtesy; set before heavy use
+  api_key: null             # optional NCBI API key raises rate limit to 10 req/s
