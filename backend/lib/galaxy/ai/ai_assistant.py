@@ -3417,36 +3417,31 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         if not top:
             return None
 
-        # Inject SMILES into user_intent in key=value format so _extract_explicit_params_from_query
-        # can map it to smiles_list without needing an LLM call.
-        # Handles patterns: "SMILES: <value>" or "smiles <value>"
+        # Extract SMILES from query. We do NOT inject it into the intent string —
+        # doing so lets _apply_llm_suggestions overwrite the value with a raw SMILES
+        # string after LLM inference, which then fails Groovy's JsonSlurper().parseText().
+        # Instead we post-process the result dict to force the correct JSON-array format.
+        import json as _json_admet
         _smiles_match = _re_admet.search(
             r'\bSMILES\s*[=:]\s*([A-Za-z0-9@\[\]\(\)\+\-=#\/\\\.%:]+)',
             user_intent,
             _re_admet.IGNORECASE,
         )
-        _augmented_intent = user_intent
+        _smiles_json: Optional[str] = None  # None → use workflow default (valid JSON array)
         if _smiles_match:
             _smiles_val = _smiles_match.group(1)
-            if 'smiles_list' not in user_intent.lower():
-                import json as _json_admet
-                # Inject as JSON array string — the workflow's Groovy sharding step calls
-                # JsonSlurper().parseText(params.smiles_list), which requires valid JSON.
-                # A raw SMILES string (e.g. "CC(=O)Oc1ccccc1C(=O)O") is not valid JSON
-                # and causes an immediate JsonException → workflow fails at startup.
-                _smiles_json = _json_admet.dumps([_smiles_val])
-                _augmented_intent = f"{user_intent} smiles_list={_smiles_json}"
-                log.info("[AdmetFastPath] Injected smiles_list=%s", _smiles_json)
+            _smiles_json = _json_admet.dumps([_smiles_val])  # '["CC(=O)Oc1ccccc1C(=O)O"]'
+            log.info("[AdmetFastPath] Extracted SMILES → smiles_list=%s", _smiles_json)
 
         log.info(
             "[UnifiedWorkflowGeneration] ADMET fast path → %s (score=%.1f)",
             top.name,
             top.score,
         )
-        return self._return_nextflow_match(
+        result = self._return_nextflow_match(
             match=top,
             score=top.score,
-            user_intent=_augmented_intent,
+            user_intent=user_intent,
             source='template_reuse',
             needs_user_feedback=False,
             search_results=results[:3],
@@ -3454,6 +3449,30 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             trials=[],
             uploaded_datasets=uploaded_datasets,
         )
+
+        # Post-process: force smiles_list to the JSON-array form the Groovy sharding
+        # step requires. LLM inference inside _return_nextflow_match may have set it
+        # to a raw SMILES string, which JsonSlurper().parseText() cannot parse and
+        # causes an immediate JsonException → the Nextflow workflow fails at startup.
+        if result and _smiles_json is not None:
+            def _fix_param_list(param_list: list) -> None:
+                for _p in param_list:
+                    if _p.get('name') == 'smiles_list':
+                        _p['value'] = _smiles_json
+                        _p['default'] = _smiles_json
+                        _p['autoFilled'] = True
+
+            for _key in ('required_params', 'optional_params'):
+                _fix_param_list(result.get(_key, []))
+                _wf_ga = result.get('workflow_ga')
+                if isinstance(_wf_ga, dict):
+                    _fix_param_list(_wf_ga.get(_key, []))
+                    # Also update the flat parameters dict used by the executor
+                    if isinstance(_wf_ga.get('parameters'), dict):
+                        _wf_ga['parameters']['smiles_list'] = _smiles_json
+            log.info("[AdmetFastPath] Forced smiles_list=%s in result params", _smiles_json)
+
+        return result
 
     def generate_workflow_unified(
         self,
@@ -3996,14 +4015,29 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                             best_match = executable_nextflow_match
                             score = best_match.score
                         else:
-                            # No same-pipeline executable variant — keep best_match as the
-                            # routing result (semantic correctness) and log for awareness.
-                            log.warning(
-                                "[UnifiedWorkflowGeneration] Top Nextflow match (%s) failed "
-                                "executability check but no same-pipeline executable variant found; "
-                                "keeping as routing result — execution layer must adapt.",
-                                best_match.name,
-                            )
+                            # No same-pipeline executable variant.
+                            # If the non-executable match is an nfcore/subworkflows/ COMPONENT
+                            # (not a stub pipeline), routing to it will always fail at generation
+                            # time — fall back to the best available executable match instead.
+                            _fn = getattr(best_match, 'filename', '') or ''
+                            if '/subworkflows/' in _fn and executable_nextflow_match:
+                                log.warning(
+                                    "[UnifiedWorkflowGeneration] Top Nextflow match (%s) is an "
+                                    "nfcore subworkflow component — falling back to best "
+                                    "executable match (%s).",
+                                    best_match.name, executable_nextflow_match.name,
+                                )
+                                best_match = executable_nextflow_match
+                                score = best_match.score
+                            else:
+                                # Non-subworkflow non-executable (e.g. stub pipeline without
+                                # workflow{} block) — keep as routing result, execution layer adapts.
+                                log.warning(
+                                    "[UnifiedWorkflowGeneration] Top Nextflow match (%s) failed "
+                                    "executability check but no same-pipeline executable variant "
+                                    "found; keeping as routing result — execution layer must adapt.",
+                                    best_match.name,
+                                )
 
                 if match_type == "high_confidence" and best_match and best_match.format == 'nextflow':
                     log.info(f"[UnifiedWorkflowGeneration] High-confidence Nextflow match: {best_match.filename}")
