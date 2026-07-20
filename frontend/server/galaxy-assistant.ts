@@ -3395,126 +3395,6 @@ Rules:
     let benchmarkEvidence: any = undefined;
     const actions = intent.actions;
 
-    // Programmatic ADMET+SMILES fast path: if the message contains a SMILES string AND ADMET
-    // keywords, force needsWorkflowGeneration=true regardless of the intent classifier output.
-    // This prevents the LLM from asking clarifications in multi-turn conversations where the
-    // user has already provided a SMILES string.
-    const _hasSmilesPattern = /(?:CC\(=O\)|c1ccc|[A-Z][a-z]?(?:c|C)\d|[A-Z]=O|SMILES\s*[:=]\s*\S{5,})/i.test(message)
-      || /\b[A-Z][CNOPSFIBrcl0-9@=#\-+\[\]()\/.\\]{6,}\b/.test(message);
-    const _hasAdmetKeywords = /(ADMET|hERG|DILI|Ames\s+mutagenicity|cardiotox|hepatotox|ClinTox|toxicity\s+screen|drug\s+toxicity)/i.test(message);
-    // Chemistry property calculations (MW, LogP, pKa, etc.) also require RDKit which is only
-    // available in AWS Batch workflows, not in the run_code sandbox. Route to ADMET workflow.
-    const _hasChemPropertyKeywords = /(molecular\s+weight|MW\b|LogP|log\s*P\b|pKa\b|solubility|lipophilicity|physicochemical|drug.like|Lipinski|Veber|QED|rule\s+of\s+five|RO5|calculate\s+(the\s+)?(properties|descriptors)|compound\s+properties)/i.test(message);
-    if (_hasSmilesPattern && (_hasAdmetKeywords || _hasChemPropertyKeywords) && !actions.needsWorkflowGeneration) {
-      log('ADMET+SMILES fast path: forcing needsWorkflowGeneration=true (ADMET or chemistry property keywords)');
-      actions.needsWorkflowGeneration = true;
-    }
-
-    // Bioinformatics method-description override:
-    // The intent classifier may return research_question or general_question for queries that
-    // describe a computational method without action verbs (e.g. "Spectral counting from DDA mass
-    // spec", "Retention time alignment using iRT standards", "Clonal lineage reconstruction from
-    // BCR sequencing"). These ARE workflow generation requests — the user wants to execute the
-    // method, not read about it. Override when: (1) NOT already classified as workflow_generation,
-    // (2) message lacks clear research/conceptual markers, (3) message contains method/analysis terms,
-    // AND (4) message is NOT a direct lookup/computation with a deterministic answer.
-    if (!actions.needsWorkflowGeneration) {
-      const _isConceptualQuestion = /\b(what\s+is|what\s+are|how\s+does|how\s+do|why\s+is|why\s+do|explain|describe|tell\s+me\s+about|definition|concept|overview|introduction|paper|review|literature|published|citation|reference)\b/i.test(message);
-      const _hasBioMethodTerms = /\b(quantification|alignment|calling|reconstruction|detection|profiling|identification|classification|assembly|annotation|prediction|docking|design|sequencing|analysis|workflow|pipeline|processing|search|prioritize|prioritizes|prioritization|ranking|ranked)\b/i.test(message)
-        && /\b(mass\s+spec|RNA.?seq|DNA.?seq|WGS|WES|ChIP|ATAC|BCR|TCR|VDJ|FASTQ|BAM|VCF|variants?|SNPs?|indels?|pathogenicity|mzML|mzXML|proteomics|genomics|transcriptomics|metagenomics|epigenomics|immunomics|metabolomics|scaffold|SMILES|GPCR|kinase|inhibitor|DDA|DIA|iRT|ASV|OTU|amplicon|nanopore|Illumina|single.?cell|bulk.?RNA|paired.?end|protein.?search|sequence.?search|structure.?search|embedding|trimodal|UniProt|AlphaFold|PDB)\b/i.test(message);
-      // Only override when the intent is genuinely ambiguous — never override a correctly
-      // classified knowledge/research intent just because it uses biological terminology.
-      const _knowledgeIntentTypes = new Set([
-        'research_question', 'database_lookup', 'genomics_knowledge', 'clinical_genomics',
-        'data_interpretation', 'experiment_design', 'protocol_guidance', 'methods_writing',
-        'comparative_methodology', 'troubleshooting', 'regulatory_compliance', 'parameter_optimization',
-      ]);
-      const _intentAlreadyKnowledge = _knowledgeIntentTypes.has(intent.type);
-      // Direct lookup/computation guard: do NOT force workflow when the message is asking
-      // for a specific value, ID, sequence, or result that can be answered via API or run_code —
-      // i.e. no user-owned data files, no pipeline execution needed, answer is deterministic.
-      // Signals: convert/retrieve/lookup/fetch/compute/calculate + identifier/value terms,
-      //          Ensembl/GTEx/ENCODE/ClinVar/1000G API patterns, "what is the X of Y" with coordinates.
-      const _isDirectLookupOrComputation = /\b(convert|retrieve|fetch|look\s*up|get\s+the|find\s+the|return\s+the|what\s+is\s+the|give\s+me\s+the|compute|calculate|infer|determine|identify\s+the)\b/i.test(message)
-        && !/\b(my\s+(files?|samples?|data|fastq|bam|vcf|reads)|uploaded|your\s+data|the\s+uploaded|input\s+file)\b/i.test(message)
-        && /\b(ensembl|ensg|gene\s+id|gene\s+symbol|gtex|encode|clinvar|dbsnp|ucsc|1000\s*genomes?|gnomad|uniprot|pdb\s+id|sequence|coordinate|genomic|locus|interval|chromosome|chr\d|tpm|expression|variant\s+consequence|vep|regulatory|ccre|enhancer)\b/i.test(message);
-      if (!_isConceptualQuestion && !_intentAlreadyKnowledge && _hasBioMethodTerms && !_isDirectLookupOrComputation) {
-        log('Bioinformatics method-description override: forcing needsWorkflowGeneration=true');
-        actions.needsWorkflowGeneration = true;
-        intent.type = 'workflow_generation';
-      }
-    }
-
-    // AI container workflow name override:
-    // If the query explicitly names a known AI/ML workflow by name, the user wants to RUN it.
-    // The intent classifier often misclassifies these as tool_search.
-    if (!actions.needsWorkflowGeneration) {
-      const _mentionsAIWorkflow = /\b(ProTrek|Boltz[- ]?2?|Chai[- ]?1?|DrugCLIP|SynCraft|STATE\s+(?:model|perturbation|workflow)|scFv.?PMPNN|ProFam|trimodal protein search|protein language model search|ESM|AlphaFold\s+search|structure.?based protein|function.?based protein)\b/i.test(message);
-      if (_mentionsAIWorkflow) {
-        log('AI workflow name override: forcing needsWorkflowGeneration=true');
-        actions.needsWorkflowGeneration = true;
-        intent.type = 'workflow_generation';
-      }
-    }
-
-    // PBPK intent override:
-    // If the query mentions PBPK/pharmacokinetics concepts but was classified as research_question
-    // or direct_computation, force workflow_generation so the PBPK prereq gate can fire and
-    // ask for any missing SMILES or PK params before routing to the pbpk_simulation workflow.
-    if (!actions.needsWorkflowGeneration) {
-      // Named PK/pharmacology tool queries always generate a workflow card — override intent.
-      // These tool names are unambiguous: user explicitly requested a specific workflow.
-      const _isNamedPkToolQuery = /\b(pk.?sim|pksim|open systems pharmacology|osp suite|simcyp|nonmem|nmfe7|foce.?i|fcrn|fc.?rn|ich.?s7a|safety pharmacology|kaplan.meier|km curve|survival analysis|pediatric pbpk|paediatric pbpk|pediatric dose|nlmixr2|population pk|poppk)\b/i.test(message);
-      if (_isNamedPkToolQuery) {
-        log('Named PK tool override: forcing needsWorkflowGeneration=true');
-        actions.needsWorkflowGeneration = true;
-        intent.type = 'workflow_generation';
-      } else {
-        // Generic PBPK intent without a named tool → send to prereq gate
-        const _isPbpkIntentEarly = (
-          /\b(pbpk|physiologically[- ]based|full[- ]?pk|human[- ]pk|predict.{0,20}pharmacokinetics?|organ[- ]level[- ]pk|mechanistic[- ]pk|pk[- ]simulation|pk[- ]profile|pharmacokinetic[- ]simulation|whole[- ]body[- ]pk|pk[- ]model|human[- ]pharmacokinetics?|pharmacokinetics?\s+of)\b/i.test(message)
-          || (/\bphysiol/i.test(message) && /\bpk\b/i.test(message))
-        );
-        if (_isPbpkIntentEarly) {
-          log('PBPK intent override: forcing needsWorkflowGeneration=true for prereq gate');
-          actions.needsWorkflowGeneration = true;
-          intent.type = 'workflow_generation';
-        }
-      }
-    }
-
-    // BOIN intent override:
-    // Queries mentioning BOIN / Phase I dose escalation are clinical trial simulation tasks.
-    // The Gemini intent classifier often misroutes these as "experiment_design", which skips
-    // generateWorkflow() entirely and leaves generatedWorkflow=null → empty LLM response.
-    // Force workflow_generation so the BOIN prereq gate fires (asks for dose levels if missing)
-    // and so generateWorkflow() finds clinical_trial_simulation.
-    if (!actions.needsWorkflowGeneration) {
-      const _isBoInIntentEarly = /\b(boin|phase\s*i\s*(dose\s*escalation|trial)|dose[\s-]escalation[\s-](trial|study)|dose[\s-]finding[\s-](trial|study)|bayesian[\s-]optimal[\s-]interval|clinical[\s-]dose[\s-]escalation|phase[\s-]i[\s-]oncology|dlt[\s-]based[\s-]escalation|mtd[\s-]estimation|3\+3[\s-]design)\b/i.test(message);
-      if (_isBoInIntentEarly) {
-        log('BOIN intent override: forcing needsWorkflowGeneration=true for prereq gate');
-        actions.needsWorkflowGeneration = true;
-        intent.type = 'workflow_generation';
-      }
-    }
-
-    // ADMET-profile override (no SMILES required):
-    // "What is the ADMET profile of imatinib?" / "Run ADMET prediction for X" /
-    // "ADMET properties of [compound]" — these are workflow execution requests even
-    // without a SMILES string. The compound name alone is enough for the ADMET workflow
-    // to accept input. The original ADMET fast-path only fires when a SMILES pattern
-    // is also present; this catches the compound-name-only case.
-    if (!actions.needsWorkflowGeneration) {
-      const _isAdmetProfileQuery =
-        /\b(admet\s+(profile|prediction|properties|screening|screen|analysis|assessment)|run\s+admet|predict\s+admet|(herg|dili|ames|caco.?2|bbb|ppb|solubility|absorption|distribution|metabolism|excretion|toxicity)\s+(profile|predict|screen|assess))/i.test(message)
-        && !/\b(what\s+is\s+(a|an|the\s+general)|how\s+does|explain|overview|tell\s+me\s+about|definition)\b/i.test(message);
-      if (_isAdmetProfileQuery) {
-        log('ADMET-profile override: forcing needsWorkflowGeneration=true (compound name without SMILES)');
-        actions.needsWorkflowGeneration = true;
-        intent.type = 'workflow_generation';
-      }
-    }
-
     // Target evidence & genetic association override:
     // "Show target evidence for CHRNA1 in MG" / "genetic associations for [gene]" /
     // "disease association strength for [target]" → target_evidence_positioning workflow.
@@ -3685,21 +3565,6 @@ Rules:
       }
     }
 
-    // CryoSPARC / Cryo-EM SPA intent override:
-    // "run CryoSPARC", "single-particle analysis", "process micrograph movies", "SPA on EMPIAR"
-    // are unambiguously workflow execution requests. The intent classifier often returns
-    // tool_search because the cryo-EM domain terms (mrc, mrcs, micrograph) aren't in the
-    // generic _hasBioMethodTerms guard. Force workflow_generation here.
-    if (!actions.needsWorkflowGeneration) {
-      const _isCryoEmWorkflowQuery = /\b(cryosparc|cryo.?em\s+(spa|standard|pipeline)|single.?particle\s+analysis|process.*micrograph|micrograph\s+movies?|import.?movies?|patch.?motion|ctf.?estimation|cryo.?spa|empiar|particle\s+picking|blob\s+picking|2d\s+classif|ab.?initio\s+recon|homogeneous\s+refin|run\s+cryo)\b/i.test(message)
-        && !/\b(what\s+is|what\s+are|how\s+does|explain|tell\s+me|overview|concept)\b/i.test(message);
-      if (_isCryoEmWorkflowQuery) {
-        log('CryoEM SPA override: forcing needsWorkflowGeneration=true');
-        actions.needsWorkflowGeneration = true;
-        intent.type = 'workflow_generation';
-      }
-    }
-
     // AutoDock Vina / site-directed docking override (ANDV inhibitor step 4 and similar).
     if (!actions.needsWorkflowGeneration) {
       const _isNamedDockingToolQuery =
@@ -3766,27 +3631,6 @@ Rules:
       }
     }
 
-    // Multi-turn data-provision override:
-    // In multi-turn conversations the user may first state a research goal (classified as
-    // research_question) and then provide input data (SRR/GEO/EMBL accession, file path, SMILES)
-    // in a follow-up message.  If session memory records an active_task that implies workflow
-    // execution AND the current message provides a recognisable data identifier, override to
-    // workflow_generation so BioMate generates the workflow card without re-asking for intent.
-    if (!actions.needsWorkflowGeneration && context.sessionId) {
-      const _sessionMem = this.sessionMemory.get(context.sessionId);
-      const _activeTask = _sessionMem?.active_task || '';
-      const _hasActiveWorkflowTask = _activeTask.length > 0
-        && /\b(run|analyz|sequenc|express|align|call|detect|map|quantif|process|generat|predict|dock|simulat|cluster|classif|annotate|assembl)/i.test(_activeTask);
-      const _isDataProvision = /\b(SRR|ERR|DRR|GSE|GSM|PRJNA|PRJEB|EMBL|ENA|ENCSR|ENCS)\d{4,}/i.test(message)
-        || /\b[0-9]{1,3}\s+(?:samples?|patients?|controls?|replicates?|subjects?)\b/i.test(message)
-        || /(?:^|\s)(s3:\/\/|gs:\/\/|\/[\w\/]+\.(?:fastq|fq|bam|vcf|bed|gtf|gz|csv|tsv|txt|sdf|mol2|pdb|cif))/i.test(message);
-      if (_hasActiveWorkflowTask && _isDataProvision) {
-        log(`Multi-turn data-provision override: active_task="${_activeTask.slice(0,60)}" + data in message → needsWorkflowGeneration=true`);
-        actions.needsWorkflowGeneration = true;
-        intent.type = 'workflow_generation';
-      }
-    }
-
     // PBPK prereq gate: before workflow generation, verify SMILES + CLint + fu_plasma are present.
     // This must run BEFORE _clarificationGate so it overrides the workflow generation path.
     if (actions.needsWorkflowGeneration) {
@@ -3814,12 +3658,8 @@ Rules:
         const _hasClintInMessage = /\b(clint|cl_int|intrinsic.clearance)\s*[=:]\s*[\d\.]+/i.test(message)
           || /\bclint\s+[\d\.]+/i.test(message)
           || /\b[\d\.]+\s*ul\/min\/mg/i.test(message);
-        // Check for fu_plasma: numeric value after fu keyword — OR inferred from ADMET in chain
-        // When ADMET is explicitly requested in the same query, fu_plasma will be computed from
-        // ADMET's PPBR output (fu_plasma = 1 - PPBR/100), so we don't require it up front.
-        const _fuPlasmaFromAdmet = /\b(admet|plasma.protein.binding|ppbr|predict.admet)\b/i.test(message);
-        const _hasFuPlasmaInMessage = /\b(fu_plasma|fu.plasma|unbound.fraction|fu)\s*[=:]\s*[\d\.]+/i.test(message)
-          || _fuPlasmaFromAdmet;
+        // Check for fu_plasma: numeric value after fu keyword
+        const _hasFuPlasmaInMessage = /\b(fu_plasma|fu.plasma|unbound.fraction|fu)\s*[=:]\s*[\d\.]+/i.test(message);
 
         if (!_hasSmilesInMessage) {
           log('PBPK prereq gate: SMILES missing — returning clarification');
