@@ -4122,6 +4122,49 @@ Rules:
       }
     }
 
+    // Step 6d: User-explicit workflow override
+    // When the user's message explicitly names an nf-core pipeline (e.g. "run nf-core/spatialvi"),
+    // that stated intent overrides the FTS+LLM routing. Checked last so it beats all heuristics.
+    if (
+      generatedWorkflow?.success &&
+      generatedWorkflow?.workflow_ga &&
+      !generatedWorkflow?.workflow_type?.includes('chain') &&
+      message
+    ) {
+      try {
+        const _userNfcore =
+          message.match(/\b(nf-core\/[a-z][a-z0-9\-]+)\b/i) ||
+          message.match(/run\s+(nf-core\/[a-z][a-z0-9\-]+)/i);
+        const _userWorkflow = _userNfcore?.[1]?.toLowerCase();
+        const _currentCard6d = (generatedWorkflow.workflow_ga?.name || generatedWorkflow.workflow_name || '').toLowerCase();
+        if (
+          _userWorkflow &&
+          _userWorkflow !== _currentCard6d &&
+          !_currentCard6d.includes(_userWorkflow.replace('nf-core/', '')) &&
+          !_userWorkflow.includes(_currentCard6d)
+        ) {
+          log(`Step 6d: user explicitly requested "${_userWorkflow}" but card shows "${_currentCard6d}" — correcting`);
+          const corrected = await this._lookupWorkflowByName(_userWorkflow);
+          if (corrected?.success && (corrected.workflow_ga || corrected.nextflow_path)) {
+            generatedWorkflow = {
+              ...generatedWorkflow,
+              ...corrected,
+              required_params: generatedWorkflow.required_params,
+              optional_params: generatedWorkflow.optional_params,
+              param_prefill_deferred: generatedWorkflow.param_prefill_deferred,
+              source: 'user_explicit_override',
+            };
+            workflowGenerated = true;
+            log(`Step 6d: card corrected to "${_userWorkflow}" per user's explicit request`);
+          } else {
+            log(`Step 6d: lookup for "${_userWorkflow}" failed — keeping "${_currentCard6d}"`);
+          }
+        }
+      } catch (err: any) {
+        log(`Step 6d: user-explicit override failed (${err.message}) — keeping FTS result`);
+      }
+    }
+
     // Step 7: Generate follow-up suggestions
     log('Step 7: Generating suggestions');
     const suggestions = this.generateSuggestions(
