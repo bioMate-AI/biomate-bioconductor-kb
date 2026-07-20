@@ -3429,8 +3429,14 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         if _smiles_match:
             _smiles_val = _smiles_match.group(1)
             if 'smiles_list' not in user_intent.lower():
-                _augmented_intent = f"{user_intent} smiles_list={_smiles_val}"
-                log.info("[AdmetFastPath] Injected smiles_list=%s", _smiles_val)
+                import json as _json_admet
+                # Inject as JSON array string — the workflow's Groovy sharding step calls
+                # JsonSlurper().parseText(params.smiles_list), which requires valid JSON.
+                # A raw SMILES string (e.g. "CC(=O)Oc1ccccc1C(=O)O") is not valid JSON
+                # and causes an immediate JsonException → workflow fails at startup.
+                _smiles_json = _json_admet.dumps([_smiles_val])
+                _augmented_intent = f"{user_intent} smiles_list={_smiles_json}"
+                log.info("[AdmetFastPath] Injected smiles_list=%s", _smiles_json)
 
         log.info(
             "[UnifiedWorkflowGeneration] ADMET fast path → %s (score=%.1f)",
