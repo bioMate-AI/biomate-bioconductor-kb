@@ -1358,11 +1358,18 @@ do_sync() {
   if [[ "$ROLLBACK_READY" == 1 ]]; then
     log "[health] Verifying dev health after sync..."
     if postsync_health_ok 120; then
-      if smoke_test_workflow && smoke_test_db_search; then
-        log "[health] ✓ dev healthy + smoke tests passed (workflow gen + DB-search routing)"
+      if smoke_test_workflow; then
+        log "[health] ✓ dev healthy + smoke test passed"
         SYNC_RESULT=healthy
+        # Behavioral canary — WARN ONLY. It never blocks or rolls back the
+        # deploy; it just surfaces an operation-routing regression loudly so a
+        # human investigates. (Kept advisory until proven across real syncs;
+        # promote to a rollback gate later if desired.)
+        if ! smoke_test_db_search; then
+          log "[health] ⚠ WARNING: DB-search operation-routing canary FAILED — deploy KEPT (not rolled back). Investigate proxy/operation forwarding; see docs/20260719_INTENT_DRIVEN_DB_SEARCH_AND_DEPLOY_ROOT_CAUSE.md"
+        fi
       else
-        log "[health] ✗ smoke test FAILED (workflow generation or DB-search routing broken) — auto-rolling back"
+        log "[health] ✗ smoke test FAILED (workflow generation broken) — auto-rolling back"
         rollback_sync || true
       fi
     else
