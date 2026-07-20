@@ -6362,27 +6362,15 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
   ]
 }`;
 
-    // Conversation-enriched UQU input: inject prior user turns only when the
-    // current message is too weak to classify well on its own (short confirmation,
-    // bare file paths, parameter-only follow-up). When the current message already
-    // has strong domain signal (bioinformatics terms, nf-core names, explicit method
-    // description) we leave it alone — adding history would only add noise if the
-    // user has switched topics.
-    const _uquNeedsContext = (() => {
-      const t = message.trim();
-      if (t.length > 200) return false; // long messages are self-contained
-      // Check for strong domain signal in the current message
-      const _hasStrong = /\b(nf-core\/|nextflow|RNA.?seq|WGS|WES|FASTQ|scRNA|spatial|proteomics|metabolomics|metagenomics|variant.?call|ATAC|ChIP|SMILES|PBPK|ADMET|AlphaFold|CryoEM|single.?cell|visium|amplicon|GWAS|eQTL|differential.?express|alignment|assembly|annotation|docking|pharmacokinetic)\b/i.test(t);
-      return !_hasStrong; // inject context only when no strong domain term present
-    })();
-    const priorUserTurns = _uquNeedsContext
-      ? (context.previousMessages || [])
-          .filter((m) => m.role === 'user' && (m.content || '').trim().length > 10)
-          .slice(-3)
-          .map((m, i) => `Turn ${i + 1}: ${(m.content || '').trim().slice(0, 400)}`)
-      : [];
+    // Always give UQU the conversation history. The LLM decides what is relevant:
+    // it will use prior turns when the current message is a follow-up and ignore
+    // them when the user has switched topics. No programmatic gate needed.
+    const priorUserTurns = (context.previousMessages || [])
+      .filter((m) => m.role === 'user' && (m.content || '').trim().length > 10)
+      .slice(-3)
+      .map((m, i) => `Turn ${i + 1}: ${(m.content || '').trim().slice(0, 400)}`);
     const messageForUQU = priorUserTurns.length > 0
-      ? `[Prior conversation context — use to understand full intent:\n${priorUserTurns.join('\n')}\n]\n\nCurrent user message (classify this):\n${message}`
+      ? `[Prior conversation context:\n${priorUserTurns.join('\n')}\n]\n\nCurrent user message (classify this):\n${message}`
       : message;
 
     try {
