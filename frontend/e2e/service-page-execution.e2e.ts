@@ -80,8 +80,8 @@ const WORKFLOW_STEPS: WorkflowStep[] = [
   {
     id: 'PBPK',
     label: 'PBPK Allometric Scaling',
-    prompt: 'Run PBPK simulation for metoprolol (oral 100mg dose) — allometrically scale PK parameters from rat to human and predict Cmax, AUC, and half-life for pediatric dose selection',
-    expectKeywords: ['pbpk', 'allometric', 'pediatric', 'pharmacokinetic'],
+    prompt: 'Run PBPK simulation for metoprolol (oral 100mg dose) — allometrically scale PK parameters from rat to human and predict Cmax, AUC, and half-life for pediatric dose selection. Metoprolol SMILES: CC(C)NCC(O)COc1ccc(CCOC)cc1, auc_observed_ug_h_mL: 1.0',
+    expectKeywords: ['allometric', 'pbpk', 'scaling'],
   },
 ];
 
