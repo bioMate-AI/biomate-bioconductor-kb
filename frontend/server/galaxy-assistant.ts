@@ -3435,10 +3435,11 @@ Rules:
     // may have already set it (e.g., from prior-turn DESeq2 context) but directed the search
     // toward differentialabundance instead of clusterProfiler. We must inject clusterProfiler
     // keyTerms in both cases so the FTS search returns the right workflow.
+    // Lifted to outer scope so Step 6c text-guardrail can skip nf-core overrides when this fires.
+    const _isPathwayEnrichmentQuery =
+      /\b(pathway\s+enrichment|run\s+pathway|enrichment\s+analysis|clusterprofiler|enrichgo|enrichkegg|gsea|gene\s+set\s+enrichment|pathway\s+activation\s+(analysis|in|from)|enriched\s+pathways?|over.?representation\s+analysis|ora\b|fgsea|GO\s+(enrichment|terms?|biological\s+process)|gene\s+ontology\s+enrich)\b/i.test(message)
+      && !/\b(what\s+is|what\s+are|how\s+does|explain|tell\s+me|concept|overview)\b/i.test(message);
     {
-      const _isPathwayEnrichmentQuery =
-        /\b(pathway\s+enrichment|run\s+pathway|enrichment\s+analysis|clusterprofiler|enrichgo|enrichkegg|gsea|gene\s+set\s+enrichment|pathway\s+activation\s+(analysis|in|from)|enriched\s+pathways?|over.?representation\s+analysis|ora\b|fgsea|GO\s+(enrichment|terms?|biological\s+process)|gene\s+ontology\s+enrich)\b/i.test(message)
-        && !/\b(what\s+is|what\s+are|how\s+does|explain|tell\s+me|concept|overview)\b/i.test(message);
       if (_isPathwayEnrichmentQuery) {
         if (!actions.needsWorkflowGeneration) {
           log('Pathway-enrichment override: forcing needsWorkflowGeneration=true → clusterProfiler/enrichGO');
@@ -3949,11 +3950,17 @@ Rules:
     // differs from the workflow card, look it up and swap the card.
     // This catches FTS mis-rankings where the right workflow is at rank-1 in raw search
     // but a lower-scoring result slipped through the generate_workflow pipeline.
+    // EXCEPTION: Skip when the pathway enrichment override fired — the LLM text may mention
+    // nf-core/differentialabundance from prior-turn context, but the override has already
+    // explicitly chosen clusterprofiler via key_terms/penalizedDomains. Applying the guardrail
+    // here would undo the override and route back to differentialabundance (the Step 6c bug
+    // diagnosed 2026-07-20 after the MG demo E2E reproducibly showed this pattern).
     if (
       generatedWorkflow?.success &&
       generatedWorkflow?.workflow_ga &&
       !generatedWorkflow?.workflow_type?.includes('chain') &&
-      response.message
+      response.message &&
+      !_isPathwayEnrichmentQuery
     ) {
       try {
         const _cardName: string = (generatedWorkflow.workflow_ga?.name || generatedWorkflow.workflow_name || '').toLowerCase();
@@ -7724,20 +7731,6 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         { role: 'user', content: userPrompt },
       ];
 
-      // TEMP DIAGNOSTIC: surface raw backend response before LLM streams (remove after diagnosing dev failure)
-      try {
-        const _wgf = workflowGenerationFailed;
-        const _gw = generatedWorkflow;
-        const _errVal = _gw?.error;
-        const _errStr = _errVal === undefined ? 'undefined' : _errVal === null ? 'null' : String(_errVal).slice(0, 80);
-        const _diagStr = `[DIAG wgf=${_wgf} ok=${_gw?.success} err=${_errStr} nfPath=${!!_gw?.nextflow_path} wfGa=${!!_gw?.workflow_ga}] `;
-        console.log('[GalaxyAssistant] PRE-LLM DIAG:', _diagStr);
-        if (_wgf && onResponseDelta) {
-          onResponseDelta(_diagStr);
-        }
-      } catch (_diagErr) {
-        console.error('[GalaxyAssistant] DIAG threw:', _diagErr);
-      }
 
       let rawResponse = '';
       let lastStopReason: string | null = null;
