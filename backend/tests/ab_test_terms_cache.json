@@ -1,0 +1,328 @@
+{
+  "de_from_count_matrix": [
+    "DESeq2",
+    "edgeR",
+    "count matrix",
+    "RNA-seq",
+    "condition comparison"
+  ],
+  "scrna_from_fastq": [
+    "10X Genomics",
+    "single-cell RNA-seq",
+    "FASTQ",
+    "cell-by-gene count matrix"
+  ],
+  "methylation_array": [
+    "Illumina EPIC methylation array",
+    "IDAT files",
+    "differentially methylated regions",
+    "methylation analysis",
+    "minfi",
+    "DMP",
+    "DML"
+  ],
+  "bcl_demux": [
+    "BCL",
+    "FASTQ",
+    "Illumina sequencer",
+    "bcl2fastq",
+    "demultiplexing"
+  ],
+  "cutandrun_antibody": [
+    "H3K4me3",
+    "peak calling",
+    "MACS2",
+    "reads",
+    "antibody"
+  ],
+  "somatic_variant_tumor_normal": [
+    "somatic mutations",
+    "matched tumor",
+    "normal",
+    "variant calling",
+    "GATK",
+    "MuTect2",
+    "VCF"
+  ],
+  "paraphrase_de_genes": [
+    "RNA-seq",
+    "DESeq2",
+    "edgeR",
+    "count matrix",
+    "treatment group",
+    "control group"
+  ],
+  "paraphrase_wgbs": [
+    "whole genome bisulfite sequencing",
+    "CpG methylation",
+    "methylation calling",
+    "Bismark",
+    "methylation array",
+    "genome-wide analysis"
+  ],
+  "multihop_de_genes_from_fastq": [
+    "RNA-seq",
+    "DESeq2",
+    "edgeR",
+    "count matrix",
+    "raw sequencing files"
+  ],
+  "log_diann_to_rnaseq": [
+    "DIA-NN",
+    "raw files",
+    "Thermo",
+    "proteomics",
+    "mass spectrometry",
+    "quantification",
+    "peptide identification"
+  ],
+  "rnaseq_from_fastq": [
+    "bulk RNA-seq",
+    "paired-end",
+    "FASTQ",
+    "alignment",
+    "gene counts",
+    "STAR",
+    "featureCounts"
+  ],
+  "methylation_wgbs": [
+    "bisulfite sequencing",
+    "whole genome sequencing",
+    "CpG methylation",
+    "methylation calling",
+    "Bismark",
+    "methylation analysis"
+  ],
+  "bam_to_fastq": [
+    "BAM",
+    "FASTQ",
+    "re-alignment",
+    "samtools",
+    "sequence alignment",
+    "reference genome"
+  ],
+  "atacseq_no_antibody": [
+    "ATAC-seq",
+    "open chromatin",
+    "Tn5 transposase",
+    "peak calling",
+    "chromatin accessibility"
+  ],
+  "chipseq_antibody": [
+    "ChIP-seq",
+    "H3K27ac",
+    "peak calling",
+    "MACS2",
+    "FASTQ",
+    "histone modification"
+  ],
+  "hic_conformation": [
+    "Hi-C",
+    "TAD",
+    "contact map",
+    "topologically associating domains",
+    "boundary detection"
+  ],
+  "tcr_bcr_repertoire": [
+    "VDJ sequencing",
+    "T-cell receptor",
+    "B-cell receptor",
+    "repertoire analysis",
+    "IgBLAST",
+    "immune profiling"
+  ],
+  "amplicon_16s": [
+    "16S rRNA sequencing",
+    "amplicon sequencing",
+    "gut microbiome",
+    "diversity analysis",
+    "OTU clustering",
+    "QIIME2"
+  ],
+  "shotgun_metagenomics_taxa": [
+    "shotgun metagenomics",
+    "taxonomic profiling",
+    "species identification",
+    "Kraken",
+    "metagenomic reads"
+  ],
+  "metagenome_assembly": [
+    "metagenomics",
+    "contig assembly",
+    "MAGs",
+    "binning",
+    "completeness assessment",
+    "SPAdes",
+    "Quast"
+  ],
+  "crispr_screen": [
+    "CRISPR",
+    "knockout screen",
+    "editing efficiency",
+    "on-target indels",
+    "NGS",
+    "variant calling"
+  ],
+  "ancient_dna": [
+    "ancient DNA",
+    "degraded reads",
+    "mapping",
+    "DNA damage patterns",
+    "short read alignment",
+    "BWA",
+    "GATK"
+  ],
+  "bacterial_assembly": [
+    "genome assembly",
+    "Illumina",
+    "short reads",
+    "gene annotation",
+    "SPAdes",
+    "Prokka"
+  ],
+  "paraphrase_scrna_10x": [
+    "single-cell RNA-seq",
+    "10X Genomics",
+    "FASTQ",
+    "cellular transcriptomics",
+    "Cell Ranger",
+    "gene expression analysis"
+  ],
+  "paraphrase_ncrna": [
+    "RNA-seq",
+    "FASTQ",
+    "transcript quantification",
+    "non-coding RNAs",
+    "featureCounts",
+    "Salmon",
+    "count matrix"
+  ],
+  "paraphrase_immune_repertoire": [
+    "B-cell receptor sequencing",
+    "clonotype analysis",
+    "IgG",
+    "immune repertoire",
+    "high-throughput sequencing",
+    "abundance profiling"
+  ],
+  "paraphrase_gut_microbiome": [
+    "16S rRNA sequencing",
+    "microbial community",
+    "stool samples",
+    "amplicon sequencing",
+    "diversity analysis",
+    "OTU clustering"
+  ],
+  "multihop_open_chromatin": [
+    "ATAC-seq",
+    "open chromatin",
+    "regulatory elements",
+    "peak calling",
+    "MACS2"
+  ],
+  "multihop_cell_type_annotation": [
+    "single-cell RNA-seq",
+    "cell type identification",
+    "scRNA-seq",
+    "clustering",
+    "gene expression",
+    "cellular heterogeneity"
+  ],
+  "multihop_protein_binding_site": [
+    "ChIP-seq",
+    "transcription factor binding",
+    "peak calling",
+    "MACS2",
+    "genomic regions",
+    "binding sites"
+  ],
+  "multihop_microbiome_diversity": [
+    "alpha diversity",
+    "beta diversity",
+    "gut microbiome",
+    "16S rRNA sequencing",
+    "phyloseq",
+    "diversity metrics"
+  ],
+  "multihop_chromatin_looping": [
+    "Hi-C",
+    "chromatin loops",
+    "topologically associated domains",
+    "TAD",
+    "contact matrix",
+    "loop calling"
+  ],
+  "log_diann_paraphrase": [
+    "data-independent acquisition",
+    "mass spectrometry",
+    "protein quantification",
+    "SWATH-MS",
+    "spectral library"
+  ],
+  "log_bulk_rnaseq_de_vs_rnaseq": [
+    "RNA-seq",
+    "paired-end",
+    "FASTQ",
+    "count matrix",
+    "alignment",
+    "featureCounts",
+    "differential expression"
+  ],
+  "log_pksim_vs_pbpk_native": [
+    "PBPK modeling",
+    "PK-Sim",
+    "small molecule",
+    "pharmacokinetics",
+    "simulation",
+    "ADME"
+  ],
+  "log_epitopeprediction_vs_mhcquant": [
+    "MHC class I",
+    "epitope prediction",
+    "NetMHCpan",
+    "protein sequence",
+    "binding affinity",
+    "immunogenicity"
+  ],
+  "log_mhcquant_lc_ms": [
+    "immunopeptidomics",
+    "LC-MS/MS",
+    "HLA-presented peptides",
+    "peptide identification",
+    "mass spectrometry",
+    "proteomics"
+  ],
+  "semantic_scrna_de": [
+    "single-cell RNA-seq",
+    "differential expression",
+    "h5ad",
+    "cell type labels",
+    "scanpy",
+    "condition comparison"
+  ],
+  "semantic_wgbs_vs_array": [
+    "DMR analysis",
+    "Bismark",
+    "methylation",
+    "differential methylation",
+    "case-control",
+    "methylation calling"
+  ],
+  "semantic_somatic_cnv": [
+    "whole-genome sequencing",
+    "copy number alterations",
+    "structural variants",
+    "CNV",
+    "SV",
+    "GATK",
+    "MuTect2"
+  ],
+  "semantic_mag_binning": [
+    "metagenomics",
+    "genome assembly",
+    "binning",
+    "SPAdes",
+    "contig",
+    "microbial diversity"
+  ]
+}
