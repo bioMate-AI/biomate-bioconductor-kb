@@ -691,6 +691,8 @@ class UnifiedWorkflowSearch:
                 FROM workflows w
                 JOIN workflows_fts ON w.id = workflows_fts.rowid
                 WHERE workflows_fts MATCH ?
+                  AND w.filename NOT LIKE 'nfcore/subworkflows/%'
+                  AND w.filename NOT LIKE 'nf-core-modules/subworkflows/nf-core/%'
                 ORDER BY bm25(workflows_fts)
                 LIMIT ?
                 """,
@@ -848,6 +850,8 @@ class UnifiedWorkflowSearch:
                 FROM workflows w
                 JOIN workflows_fts ON w.id = workflows_fts.rowid
                 WHERE workflows_fts MATCH ?
+                  AND w.filename NOT LIKE 'nfcore/subworkflows/%'
+                  AND w.filename NOT LIKE 'nf-core-modules/subworkflows/nf-core/%'
             """
             params = [fts_query]
 
