@@ -1,3 +1,4 @@
+// chat-with-artifacts: main chat UI component
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { useWorkflowTour } from "./workflow-tour"
