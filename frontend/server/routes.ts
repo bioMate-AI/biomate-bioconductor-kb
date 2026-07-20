@@ -70,7 +70,7 @@ import {
   evaluateHardwareGate,
 } from "./execution-env-policy";
 import * as mfaService from "./mfa-service";
-import toolsManifest from "../../backend/lib/mcp/tools_manifest.json";
+import toolsManifest from "./tools_manifest.json";
 import { registerConnectorAdapters } from "./connector-adapters";
 
 // Initialize OpenAI (optional for development)
