@@ -253,6 +253,10 @@
       <a href="#tools">Available tools</a>
     </div>
     <div class="sidenav-group">
+      <div class="sidenav-group-label">Use cases</div>
+      <a href="#use-cases">End-to-end flows</a>
+    </div>
+    <div class="sidenav-group">
       <div class="sidenav-group-label">Install</div>
       <a href="#claude-code">Claude Code</a>
       <a href="#claude-desktop">Claude Desktop</a>
@@ -289,8 +293,8 @@
       <p>BioMate connectors let AI assistants call BioMate's scientific-workflow platform on your behalf. When you ask Claude Code to "run RNA-seq on these FASTQs," it calls the <code>run_workflow</code> tool rather than generating code — the run executes on BioMate cloud, and live phase and step updates stream back into the chat.</p>
       <p>The connector stack has two transport families:</p>
       <ul>
-        <li><strong>MCP stdio</strong> — Claude Code, Claude Desktop, Cursor, and Codex CLI use a local proxy process. The AI client speaks JSON-RPC over stdio to a BioMate-issued binary that relays calls to <code>api.biomate.ai</code>.</li>
-        <li><strong>REST/webhook</strong> — ChatGPT, Slack, and Feishu reach <code>https://dev-public.biomate.ai/mcp</code> directly over HTTPS. No local process needed.</li>
+        <li><strong>MCP stdio</strong> — Claude Code, Claude Desktop, Cursor, and Codex CLI use a local proxy process. The AI client speaks JSON-RPC over stdio to a BioMate-issued binary that relays calls to <code>dev-public.biomate.ai</code>.</li>
+        <li><strong>REST/webhook</strong> — ChatGPT, Slack, and Feishu call BioMate's REST API at <code>dev-public.biomate.ai</code> directly over HTTPS. No local installation needed.</li>
       </ul>
       <p>All surfaces authenticate with the same OAuth 2.1 + PKCE flow against <code>dev-public.biomate.ai/oauth</code>. Your BioMate account, runs history, and workflow catalog are shared across every surface.</p>
     </section>
@@ -398,6 +402,101 @@
 
     <hr class="divider">
 
+    <!-- Use cases -->
+    <section class="doc-section" id="use-cases">
+      <h2>End-to-end use cases</h2>
+      <p>Each example below shows the full information flow — from a natural-language prompt to a delivered result — across a specific connector surface. Every call is a real API call against <code>dev-public.biomate.ai</code>.</p>
+
+      <!-- Use case 1 -->
+      <h3>RNA-seq differential expression — Claude Code</h3>
+      <p>A researcher asks Claude Code to run a differential expression analysis on uploaded FASTQ files stored in S3.</p>
+      <pre><code><span class="token-cmt"># User types in Claude Code terminal:</span>
+<span class="token-str">Run RNA-seq differential expression on
+s3://biomate-demo/treated_R1.fq.gz vs s3://biomate-demo/control_R1.fq.gz.
+Use GRCh38, DESeq2. Return a volcano plot and the top 50 DEGs.</span></code></pre>
+      <p><strong>Information flow:</strong></p>
+      <ol style="padding-left:1.4rem;margin-bottom:1rem;">
+        <li style="margin-bottom:.5rem"><strong>Search</strong> — Claude Code calls <code>search_workflow("RNA-seq differential expression DESeq2")</code> → BioMate returns ranked matches; top hit is <code>nf-core/rnaseq</code> with DESeq2 post-processing.</li>
+        <li style="margin-bottom:.5rem"><strong>Spec</strong> — Claude calls <code>get_workflow_spec("nf-core/rnaseq")</code> → receives required params (<code>input</code>, <code>genome</code>, <code>contrasts</code>), optional params, default QC thresholds, and cost estimate (~$0.40 on AWS Batch).</li>
+        <li style="margin-bottom:.5rem"><strong>Run</strong> — Claude calls <code>run_workflow({ workflow: "nf-core/rnaseq", params: { input: "s3://biomate-demo/…", genome: "GRCh38", contrasts: "treated_vs_control" }, stream: true })</code> → BioMate queues the job on AWS Batch and returns a <code>run_id</code>.</li>
+        <li style="margin-bottom:.5rem"><strong>Stream</strong> — <code>watch_run(run_id)</code> emits <code>notifications/progress</code> events: FASTQC → STAR alignment → featureCounts → DESeq2 → MultiQC. Claude renders each phase inline as it completes.</li>
+        <li style="margin-bottom:.5rem"><strong>Results</strong> — <code>get_run(run_id)</code> returns output file list (volcano.png, degs.csv, multiqc_report.html). Claude calls <code>preview_file("s3://…/volcano.png")</code> and displays the plot inline.</li>
+        <li style="margin-bottom:.5rem"><strong>Report</strong> — <code>export_report(run_id, format="pdf")</code> → signed S3 URL to a methods PDF with QC metrics and DEG table, ready for the lab notebook.</li>
+      </ol>
+      <div class="callout">
+        <strong>Total wall time:</strong> ~12 min for a 2×2 comparison on a 6 GB FASTQ pair. Claude shows live phase cards throughout — no waiting at a dashboard.
+      </div>
+
+      <!-- Use case 2 -->
+      <h3>ADMET screening with auto-loop QC — Claude Code</h3>
+      <p>A medicinal chemist screens a compound library and lets BioMate's auto-loop correct hERG-failing structures.</p>
+      <pre><code><span class="token-cmt"># User types:</span>
+<span class="token-str">Screen these SMILES for hERG, CYP3A4, and oral bioavailability.
+Retry any hERG-failing compounds with reduced lipophilicity.
+
+CC1=CC=C(C=C1)S(=O)(=O)N   aspirin-like
+CN1C=NC2=C1C(=O)N(C(=O)N2C)C   caffeine</span></code></pre>
+      <p><strong>Information flow:</strong></p>
+      <ol style="padding-left:1.4rem;margin-bottom:1rem;">
+        <li style="margin-bottom:.5rem"><strong>Search</strong> — <code>search_workflow("ADMET hERG CYP3A4 oral bioavailability")</code> → returns <code>admet_prediction_suite</code>.</li>
+        <li style="margin-bottom:.5rem"><strong>Run</strong> — <code>run_workflow({ workflow: "admet_prediction_suite", params: { smiles_list: ["CC1=CC=C…", "CN1C=NC2…"], endpoints: ["hERG","CYP3A4","Foral"] } })</code>.</li>
+        <li style="margin-bottom:.5rem"><strong>QC gate fires</strong> — Compound 2 exceeds hERG IC₅₀ threshold (0.41 µM vs 1.0 µM limit). BioMate auto-loop triggers: <code>explain_error(run_id, gate="hERG")</code> returns root-cause + suggested param change (reduce cLogP by 1.2).</li>
+        <li style="margin-bottom:.5rem"><strong>Auto-retry</strong> — BioMate resubmits with modified SMILES (desethyl analog). Claude shows a diff card: <span style="color:#c0392b;text-decoration:line-through">original</span> → <span style="color:#0B8A67">revised</span>.</li>
+        <li style="margin-bottom:.5rem"><strong>Results</strong> — <code>get_run(run_id)</code> → all endpoints pass. <code>export_report(run_id, format="pdf")</code> → CRO-ready ADMET dossier.</li>
+      </ol>
+
+      <!-- Use case 3 -->
+      <h3>GEO accession → scRNA-seq — Slack</h3>
+      <p>A bioinformatics team member pastes a GEO accession in Slack and BioMate runs the full pipeline automatically.</p>
+      <pre><code><span class="token-cmt">@BioMate</span> <span class="token-str">Analyze GSE142256 — MG patient PBMCs, 10x Chromium.
+Cluster by cell type and find differentially expressed genes in T cells.</span></code></pre>
+      <p><strong>Information flow:</strong></p>
+      <ol style="padding-left:1.4rem;margin-bottom:1rem;">
+        <li style="margin-bottom:.5rem"><strong>Slack event</strong> — Slack posts the <code>app_mention</code> event to the BioMate bot endpoint at <code>dev-public.biomate.ai/integrations/slack/command</code>. The bot verifies the Slack signing secret and responds <code>200 OK</code> immediately (async processing).</li>
+        <li style="margin-bottom:.5rem"><strong>Accession resolve</strong> — Bot calls <code>resolve_accession("GSE142256")</code> → BioMate identifies this as a 10x scRNA-seq dataset, returns pre-filled workflow params: <code>nf-core/scrnaseq</code> + <code>input: "s3://biomate-staging/geo/GSE142256/"</code>, <code>genome: GRCh38</code>.</li>
+        <li style="margin-bottom:.5rem"><strong>Data stage</strong> — <code>fetch_public_data("GSE142256")</code> pulls raw FASTQ files from GEO/SRA into the BioMate S3 workspace. Bot posts "Staging data…" card update in the Slack thread.</li>
+        <li style="margin-bottom:.5rem"><strong>Run</strong> — <code>run_workflow({ workflow: "nf-core/scrnaseq", … })</code> → queued on AWS Batch. Bot posts "Run started" card with run ID and estimated completion time.</li>
+        <li style="margin-bottom:.5rem"><strong>Completion</strong> — On completion, bot calls <code>get_run(run_id)</code> and <code>analyze_results(run_id, question="Top markers per cluster, DEGs in T cells")</code>. Bot posts a summary card with cluster UMAP, top markers table, and an <strong>Open in BioMate</strong> button deep-linking into the run panel.</li>
+      </ol>
+
+      <!-- Use case 4 -->
+      <h3>Literature + database query — ChatGPT</h3>
+      <p>A scientist uses the BioMate Custom GPT to look up a gene target, search the literature, then run a pathway analysis — all in one conversation.</p>
+      <pre><code><span class="token-str">Tell me everything about CD40LG as an autoimmune drug target.
+Then run a pathway enrichment on the top 50 CD40L-correlated genes from GTEx.</span></code></pre>
+      <p><strong>Information flow:</strong></p>
+      <ol style="padding-left:1.4rem;margin-bottom:1rem;">
+        <li style="margin-bottom:.5rem"><strong>Database lookup</strong> — ChatGPT calls <code>query_database({ db: "UniProt", query: "CD40LG human" })</code> → returns UniProt entry P29965: gene aliases, function, 12 disease associations, 3 known inhibitors.</li>
+        <li style="margin-bottom:.5rem"><strong>Literature search</strong> — <code>search_literature({ query: "CD40LG autoimmune disease target 2020-2025", sources: ["PubMed","Semantic Scholar"] })</code> → returns 8 high-relevance papers with abstracts; ChatGPT summarizes mechanism and clinical evidence.</li>
+        <li style="margin-bottom:.5rem"><strong>Data fetch</strong> — <code>fetch_public_data("GTEx v10 CD40LG expression")</code> → stages the GTEx expression matrix into BioMate workspace.</li>
+        <li style="margin-bottom:.5rem"><strong>Workflow search</strong> — <code>search_workflow("pathway enrichment clusterProfiler")</code> → returns <code>clusterProfiler_enrichGO</code> workflow.</li>
+        <li style="margin-bottom:.5rem"><strong>Run</strong> — <code>run_workflow({ workflow: "clusterProfiler_enrichGO", params: { gene_list: top50, organism: "human", ont: "BP" } })</code> → AWS Batch job.</li>
+        <li style="margin-bottom:.5rem"><strong>Report</strong> — <code>export_report(run_id, format="markdown")</code> → ChatGPT embeds the top GO terms directly into its reply with a download link to the full PDF.</li>
+      </ol>
+
+      <!-- Use case 5 -->
+      <h3>PBPK modeling for IND submission — Claude Desktop</h3>
+      <p>A pharmacokineticist builds a full IND evidence package: ADMET → PBPK → regulatory narrative, all from Claude Desktop.</p>
+      <pre><code><span class="token-cmt"># User in Claude Desktop:</span>
+<span class="token-str">Run ADMET on our lead compound (SMILES: CC(C)Cc1ccc(cc1)C(C)C(=O)O),
+then PBPK in a 70 kg adult at 100 mg oral dose,
+then generate a CTD §2.6.1 PK narrative for IND filing.</span></code></pre>
+      <p><strong>Information flow:</strong></p>
+      <ol style="padding-left:1.4rem;margin-bottom:1rem;">
+        <li style="margin-bottom:.5rem"><strong>ADMET run</strong> — <code>run_workflow("admet_prediction_suite", { smiles: "CC(C)Cc1ccc…" })</code> → returns Foral 68%, hERG IC₅₀ 8.4 µM (pass), CYP3A4 substrate (yes). Results stored as <code>admet_run_id</code>.</li>
+        <li style="margin-bottom:.5rem"><strong>PBPK run</strong> — <code>run_workflow("pbpk_11compartment", { smiles: "…", dose_mg: 100, route: "oral", bw_kg: 70, fu: 0.23 })</code> → 11-compartment ODE model; Cmax 3.2 µg/mL at 1.4 h, AUC₀–₂₄ 18.4 µg·h/mL. Results as <code>pbpk_run_id</code>.</li>
+        <li style="margin-bottom:.5rem"><strong>Memory</strong> — <code>recall_memory({ context: "PBPK similar compounds" })</code> → retrieves prior runs for structurally similar compounds to cite precedent in the narrative.</li>
+        <li style="margin-bottom:.5rem"><strong>Narrative generation</strong> — <code>run_workflow("ctd_261_narrative_generator", { admet_run: admet_run_id, pbpk_run: pbpk_run_id })</code> → LLM drafts the §2.6.1 PK summary using actual computed values, formats citations, writes Methods and Results subsections.</li>
+        <li style="margin-bottom:.5rem"><strong>Export</strong> — <code>export_report(narrative_run_id, format="pdf")</code> → IND-ready DOCX/PDF with SHA-256 audit manifest (<code>claims_index.json</code>) for traceability. Signed S3 URL returned; Claude Desktop renders a download link inline.</li>
+      </ol>
+      <div class="callout">
+        <strong>Full chain wall time:</strong> ~8 min. All three sub-workflows run on AWS Batch; the narrative generation is the final LLM step. The SHA-256 manifest links every numerical claim back to the source run ID and output file.
+      </div>
+
+    </section>
+
+    <hr class="divider">
+
     <!-- Claude Code -->
     <section class="doc-section" id="claude-code">
       <h2>Claude Code</h2>
@@ -456,7 +555,7 @@ Apply C2 symmetry.</span></code></pre>
     <!-- ChatGPT -->
     <section class="doc-section" id="chatgpt">
       <h2>ChatGPT</h2>
-      <p>BioMate integrates with ChatGPT as a custom GPT action. The action calls <code>https://dev-public.biomate.ai/mcp</code> over HTTPS — no local installation needed.</p>
+      <p>BioMate integrates with ChatGPT as a custom GPT action. The action calls BioMate's REST API at <code>dev-public.biomate.ai</code> over HTTPS — no local installation needed.</p>
 
       <div class="steps">
         <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Open the GPT editor</strong><p>Go to <strong>ChatGPT → Explore GPTs → Create</strong>.</p></div></div>
