@@ -15289,6 +15289,262 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
     }
   });
 
+  // ── ChatGPT Actions adapter — /tools/* routes ─────────────────────────────
+  // Implements the ChatGPT Actions OpenAPI schema defined at
+  // /connectors/chatgpt/openapi.json.
+  //
+  // Auth: BioMate personal API key (bm_live_*) or JWT as Authorization: Bearer.
+  // The handler forwards the Authorization header to all internal self-calls so
+  // the standard authenticateToken middleware handles credential validation.
+  //
+  // The /tools/* prefix mirrors the paths in the OpenAPI schema so ChatGPT can
+  // call this server directly without needing the separate chatgpt_adapter.py
+  // Flask service.
+
+  // Serve the ChatGPT Actions OpenAPI schema (auto-patches server URL to the
+  // current request host so the file works on any deployment without editing).
+  app.get("/connectors/chatgpt/openapi.json", (req: any, res: any) => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const schemaRaw: string = require("fs").readFileSync(
+        path.join(__dirname, "chatgpt-openapi.json"),
+        "utf8"
+      );
+      const schema = JSON.parse(schemaRaw);
+      const proto = (req.headers["x-forwarded-proto"] as string) ?? "https";
+      const host = (req.headers.host as string) ?? "dev-public.biomate.ai";
+      schema.servers = [{ url: `${proto}://${host}`, description: "BioMate API" }];
+      res.setHeader("Content-Type", "application/json");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.json(schema);
+    } catch (e: any) {
+      res.status(503).json({ error: "Schema unavailable", detail: e.message });
+    }
+  });
+
+  // ChatGPT tool adapter — all operationIds from the schema map here.
+  app.post("/tools/:operationId", async (req: any, res: any) => {
+    const operationId = (req.params as { operationId: string }).operationId;
+    const authHeader = (req.headers.authorization as string | undefined) ?? "";
+    const selfBase = `http://127.0.0.1:${process.env.PORT ?? 5000}`;
+    // X-Forwarded-Proto skips the HTTPS redirect guard in security-config.ts
+    // (same pattern as executeOpenClaudeTool above).
+    const fwdHdr: Record<string, string> = {
+      "X-Forwarded-Proto": "https",
+      "Content-Type": "application/json",
+      ...(authHeader ? { Authorization: authHeader } : {}),
+    };
+
+    const selfPost = async (p: string, body: unknown) => {
+      const r = await fetch(`${selfBase}${p}`, {
+        method: "POST",
+        headers: fwdHdr,
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) {
+        const txt = await r.text().catch(() => r.statusText);
+        throw new Error(`${p} → HTTP ${r.status}: ${txt.slice(0, 300)}`);
+      }
+      return r.json();
+    };
+
+    const selfGet = async (p: string) => {
+      const r = await fetch(`${selfBase}${p}`, { headers: fwdHdr });
+      if (!r.ok) {
+        const txt = await r.text().catch(() => r.statusText);
+        throw new Error(`${p} → HTTP ${r.status}: ${txt.slice(0, 300)}`);
+      }
+      return r.json();
+    };
+
+    const body = (req.body as Record<string, any>) || {};
+
+    try {
+      let result: unknown;
+      switch (operationId) {
+        case "biomate_session": {
+          // Consume /api/chat/stream SSE → return a sync JSON summary.
+          // This lets ChatGPT call one endpoint and get a complete response
+          // without needing to handle Server-Sent Events itself.
+          const goal = String(body.goal ?? body.message ?? "").trim();
+          if (!goal) { res.status(400).json({ error: "goal is required" }); return; }
+
+          const streamRes = await fetch(`${selfBase}/api/chat/stream`, {
+            method: "POST",
+            headers: fwdHdr,
+            body: JSON.stringify({ message: goal, context: {} }),
+          });
+
+          let responseText = "";
+          let workflowCard: unknown = null;
+          let sessionRunId: string | null = null;
+
+          if (streamRes.body) {
+            const dec = new TextDecoder();
+            let buf = "";
+            for await (const chunk of streamRes.body as any) {
+              buf += dec.decode(chunk as Uint8Array, { stream: true });
+              const lines = buf.split("\n");
+              buf = lines.pop() ?? "";
+              for (const line of lines) {
+                if (!line.startsWith("data: ")) continue;
+                try {
+                  const d = JSON.parse(line.slice(6));
+                  if (typeof d.text === "string") responseText += d.text;
+                  if (d.workflow_ga) workflowCard = d.workflow_ga;
+                  if (d.run_id) sessionRunId = d.run_id;
+                } catch { /* skip malformed SSE data lines */ }
+              }
+            }
+          }
+
+          result = {
+            response: responseText || "Session complete.",
+            workflow_suggested: workflowCard ?? null,
+            ...(sessionRunId ? { run_id: sessionRunId } : {}),
+          };
+          break;
+        }
+
+        case "search_workflow":
+          result = await selfPost("/api/workflows/search", {
+            query: body.query,
+            limit: body.limit ?? 5,
+            defer_param_prefill: true,
+          });
+          break;
+
+        case "get_workflow_spec":
+          result = await selfPost("/api/workflows/search", {
+            query: body.workflow_id ?? body.query,
+            limit: 1,
+          });
+          break;
+
+        case "run_workflow": {
+          const wfSearch = await selfPost("/api/workflows/search", {
+            query: body.workflow_id ?? body.workflow_name,
+            limit: 1,
+            defer_param_prefill: true,
+          });
+          const wfDef = (wfSearch as any)?.workflow_ga;
+          if (!wfDef) {
+            result = {
+              error: "WORKFLOW_NOT_FOUND",
+              message: `No workflow found matching '${body.workflow_id}'. Use search_workflow first.`,
+            };
+          } else {
+            if (body.params && typeof body.params === "object") {
+              wfDef.parameters = { ...(wfDef.parameters ?? {}), ...body.params };
+            }
+            result = await selfPost("/api/workflows/execute", { workflowDefinition: wfDef });
+          }
+          break;
+        }
+
+        case "watch_run":
+        case "get_run":
+          result = await selfGet(`/api/runs/${body.run_id}/meta`);
+          break;
+
+        case "cancel_run":
+          result = await selfPost(`/api/workflows/runs/${body.run_id}/cancel`, {});
+          break;
+
+        case "list_runs": {
+          const qs = new URLSearchParams();
+          if (body.limit) qs.set("limit", String(body.limit));
+          if (body.status && body.status !== "all") qs.set("status", String(body.status));
+          result = await selfGet(`/api/workflows/runs?${qs}`);
+          break;
+        }
+
+        case "preview_file":
+          result = await selfPost("/api/files/preview", {
+            s3_key: body.s3_key,
+            run_id: body.run_id,
+          });
+          break;
+
+        case "export_report":
+          result = await selfGet(
+            `/api/workflows/runs/${body.run_id}/export?format=${encodeURIComponent(body.format ?? "pdf")}`
+          );
+          break;
+
+        case "analyze_results":
+          result = await selfPost(`/api/workflows/runs/${body.run_id}/ai/analyze`, {
+            question: body.question ?? "Summarize the key findings and scientific interpretation.",
+          });
+          break;
+
+        case "explain_error":
+          result = await selfPost("/api/workflows/explain_error", {
+            run_id: body.run_id,
+            error_log: body.error_log ?? "",
+          });
+          break;
+
+        case "query_database":
+          result = await selfPost("/api/databases/query", {
+            database: body.database,
+            query: body.query,
+            operation: body.operation ?? "lookup",
+          });
+          break;
+
+        case "recall_memory":
+          result = await selfPost("/api/memory/relevant", { query: body.query });
+          break;
+
+        case "upload_file":
+          result = await selfPost("/api/uploads/signed_url", {
+            filename: body.filename,
+            content_type: body.content_type ?? "application/octet-stream",
+          });
+          break;
+
+        case "resolve_accession":
+          result = await selfPost("/api/accession/resolve", { accession: body.accession });
+          break;
+
+        case "browse_data":
+          if (!body.source_id || body.source_id === "biomate_workspace" || body.source_id === "user_s3") {
+            result = await selfGet(`/api/s3/browse?prefix=${encodeURIComponent(body.path ?? "")}`);
+          } else {
+            result = await selfGet(
+              `/api/data/browse?source=${encodeURIComponent(body.source_id)}&path=${encodeURIComponent(body.path ?? "/")}`
+            );
+          }
+          break;
+
+        case "fetch_public_data":
+          result = await selfPost("/api/data/fetch", {
+            source_id: body.source_id,
+            remote_path: body.remote_path,
+            url: body.url,
+          });
+          break;
+
+        default:
+          res.status(404).json({
+            error: `Unknown operationId: ${operationId}`,
+            available: [
+              "biomate_session", "search_workflow", "get_workflow_spec", "run_workflow",
+              "watch_run", "get_run", "cancel_run", "list_runs", "preview_file",
+              "export_report", "analyze_results", "explain_error", "query_database",
+              "recall_memory", "upload_file", "resolve_accession", "browse_data",
+              "fetch_public_data",
+            ],
+          });
+          return;
+      }
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message ?? "Internal error" });
+    }
+  });
+
   // ── MCP proxy → remote_mcp service on port 8848 ──────────────────────────
   // The remote_mcp Starlette app handles /mcp (Streamable-HTTP transport) and
   // /.well-known/oauth-* discovery documents. We forward all methods and pipe
