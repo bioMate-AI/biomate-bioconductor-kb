@@ -740,6 +740,13 @@ def build_manifest_json(output_path: Optional[Path] = None) -> Path:
     }
     output_path.write_text(json.dumps(payload, indent=2) + "\n")
 
+    # Mirror into frontend/server/ so Docker builds (context = frontend/) can
+    # resolve the `import toolsManifest from "./tools_manifest.json"` in routes.ts.
+    # The backend copy is canonical; the frontend copy is derived.
+    repo_root = Path(__file__).parent.parent.parent.parent
+    frontend_copy = repo_root / "frontend" / "server" / "tools_manifest.json"
+    frontend_copy.write_text(json.dumps(payload, indent=2) + "\n")
+
     # Also write the standalone OpenAPI spec consumed by ChatGPT GPT Actions.
     openapi_path = output_path.parent.parent.parent.parent / "connectors" / "chatgpt" / "openapi.json"
     openapi_path.parent.mkdir(parents=True, exist_ok=True)
