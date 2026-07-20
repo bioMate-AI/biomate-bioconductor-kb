@@ -178,15 +178,6 @@
             <div class="bm-contact-channel-value">contact@biomate.ai</div>
           </div>
         </a>
-        <a href="https://dev-public.biomate.ai/register" class="bm-contact-channel">
-          <div class="bm-contact-channel-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          </div>
-          <div class="bm-contact-channel-body">
-            <div class="bm-contact-channel-label">Try the platform</div>
-            <div class="bm-contact-channel-value">Start free — no credit card needed</div>
-          </div>
-        </a>
       </div>
 
       <div style="margin-top:2.5rem;padding-top:2rem;border-top:1px solid var(--border);">
@@ -234,18 +225,12 @@
           <input type="text" id="cf-org" name="organization" placeholder="Company, university, or CRO" />
         </div>
         <div class="bm-field">
+          <label for="cf-phone">Phone <span style="font-weight:400;color:var(--text-2);">(optional)</span></label>
+          <input type="tel" id="cf-phone" name="phone" placeholder="+1 (555) 000-0000" />
+        </div>
+        <div class="bm-field">
           <label for="cf-topic">Topic</label>
-          <select id="cf-topic" name="topic">
-            <option value="">Select a topic&hellip;</option>
-            <option>Drug discovery — ADMET / DMPK</option>
-            <option>Drug discovery — IND nonclinical package</option>
-            <option>Genomics &amp; multi-omics</option>
-            <option>Structural biology / Cryo-EM</option>
-            <option>Enterprise / team pricing</option>
-            <option>CRO or partner inquiry</option>
-            <option>Scientific collaboration</option>
-            <option>Other</option>
-          </select>
+          <input type="text" id="cf-topic" name="topic" placeholder="Your topic or question" />
         </div>
         <div class="bm-field">
           <label for="cf-message">Message</label>
@@ -268,6 +253,14 @@
   <script>renderShell({ active: 'contact', cta: false });</script>
   <script>
     (function () {
+      // Pre-fill topic from URL ?topic= parameter
+      var params = new URLSearchParams(window.location.search);
+      var topicParam = params.get('topic');
+      if (topicParam) {
+        var topicEl = document.getElementById('cf-topic');
+        if (topicEl) topicEl.value = topicParam;
+      }
+
       var FORMSPREE_ENDPOINT = 'https://formspree.io/f/xlgvqqvz';
       var form   = document.getElementById('cf-form');
       var btn    = document.getElementById('cf-submit');
@@ -286,6 +279,7 @@
           name:         form.querySelector('[name=name]').value,
           email:        form.querySelector('[name=email]').value,
           organization: form.querySelector('[name=organization]').value,
+          phone:        form.querySelector('[name=phone]').value,
           topic:        form.querySelector('[name=topic]').value,
           message:      form.querySelector('[name=message]').value
         };

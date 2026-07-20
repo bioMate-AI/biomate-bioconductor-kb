@@ -13,7 +13,7 @@
     var slugMap = {
       home: '', services: 'platform', platform: 'platform',
       newsroom: 'newsroom',
-      pricing: 'company', about: 'company', contact: 'company', company: 'company',
+      pricing: 'pricing', about: 'company', contact: 'company', company: 'company',
       tutorials: 'research', benchmarks: 'research', research: 'research',
     };
     active = Object.prototype.hasOwnProperty.call(slugMap, active) ? slugMap[active] : active;
@@ -43,7 +43,6 @@
               { label: 'Home',          href: 'index.html' },
               { divider: true },
               { label: 'About BioMate', href: 'about.html' },
-              { label: 'Pricing',       href: 'pricing.html' },
               { divider: true },
               { label: 'BioMate vs. The Alternatives', href: 'compare.html' },
               { divider: true },
@@ -51,6 +50,7 @@
             ])}
             ${dropdown('platform', 'Services', 'services.html', [
               { label: 'Platform Features',                   href: 'features.html' },
+              { label: 'MCP Connectors',                      href: 'connectors.html' },
               { divider: true },
               { label: 'Drug Discovery',                      href: 'services.html#drug-discovery' },
               { label: 'Genomics &amp; Multi-Omics',          href: 'services.html#genomics' },
@@ -64,6 +64,7 @@
               { label: 'Tutorials',    href: 'tutorials.html' },
               { label: 'Publications', href: 'publications.html' }
             ])}
+            <li><a href="pricing.html"${active === 'pricing' ? ' class="active"' : ''}>Pricing</a></li>
             ${dropdown('developers', 'Developers', 'connectors.html', [
               { label: 'MCP Connectors — Docs',      href: 'connectors.html' },
               { divider: true },
@@ -98,7 +99,7 @@
             <a href="https://dev-public.biomate.ai/register" class="bm-btn bm-btn-on-ink-primary bm-btn-lg">
               Start free <span class="bm-btn-arrow">&rarr;</span>
             </a>
-            <a href="contact.html" class="bm-btn bm-btn-ink bm-btn-lg">Contact us</a>
+            <a href="contact.html?topic=General%20inquiry" class="bm-btn bm-btn-ink bm-btn-lg">Contact us</a>
           </div>
         </div>
       </section>`;

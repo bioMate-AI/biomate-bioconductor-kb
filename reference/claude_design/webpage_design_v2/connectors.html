@@ -457,7 +457,7 @@ Apply C2 symmetry.</span></code></pre>
       <div class="steps">
         <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Open the GPT editor</strong><p>Go to <strong>ChatGPT → Explore GPTs → Create</strong>.</p></div></div>
         <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Add an action</strong><p>Click <strong>Add actions</strong> and paste the OpenAPI schema URL: <code>https://dev-public.biomate.ai/mcp/openapi.json</code></p></div></div>
-        <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Configure OAuth</strong><p>Set auth type to <strong>OAuth</strong>. Client ID and secret are available at <a href="https://biomate.ai/account/connectors">biomate.ai/account/connectors</a>. The authorization URL is <code>https://biomate.ai/oauth/authorize</code> and the token URL is <code>https://biomate.ai/oauth/token</code>.</p></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Configure OAuth</strong><p>Set auth type to <strong>OAuth</strong>. Client ID and secret are available at <a href="https://dev-public.biomate.ai/account/connectors">biomate.ai/account/connectors</a>. The authorization URL is <code>https://biomate.ai/oauth/authorize</code> and the token URL is <code>https://biomate.ai/oauth/token</code>.</p></div></div>
         <div class="step"><div class="step-num">4</div><div class="step-body"><strong>Save and test</strong><p>Save the GPT and ask it to list your workflows: <em>"What RNA-seq workflows are available in BioMate?"</em></p></div></div>
       </div>
     </section>
@@ -468,7 +468,7 @@ Apply C2 symmetry.</span></code></pre>
       <p>The BioMate Slack integration adds a bot to your workspace. Mention <code>@BioMate</code> in any channel to start a workflow, check run status, or query the database.</p>
 
       <div class="steps">
-        <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Add to Slack</strong><p>Visit <a href="https://biomate.ai/integrations/slack">biomate.ai/integrations/slack</a> and click <strong>Add to Slack</strong>. You'll be redirected through Slack's OAuth to authorize the bot.</p></div></div>
+        <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Add to Slack</strong><p>Visit <a href="https://dev-public.biomate.ai/integrations/slack">biomate.ai/integrations/slack</a> and click <strong>Add to Slack</strong>. You'll be redirected through Slack's OAuth to authorize the bot.</p></div></div>
         <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Connect your BioMate account</strong><p>After adding the bot, run <code>/biomate connect</code> in any channel. The bot sends a one-time link to authenticate with your BioMate account.</p></div></div>
         <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Start using it</strong><p>Mention the bot with a natural-language task. Run status updates appear in the same thread as interactive cards.</p></div></div>
       </div>
@@ -491,7 +491,7 @@ Apply C2 symmetry.</span></code></pre>
       <p>The BioMate Feishu integration connects as a Feishu open-platform bot. It supports interactive message cards that display run status and findings inline.</p>
 
       <div class="steps">
-        <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Add the bot</strong><p>Search for <strong>BioMate</strong> in the Feishu app directory, or visit <a href="https://biomate.ai/integrations/feishu">biomate.ai/integrations/feishu</a>.</p></div></div>
+        <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Add the bot</strong><p>Search for <strong>BioMate</strong> in the Feishu app directory, or visit <a href="https://dev-public.biomate.ai/integrations/feishu">biomate.ai/integrations/feishu</a>.</p></div></div>
         <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Authorize</strong><p>Click <strong>Add to organization</strong> and complete the Feishu OAuth flow. The bot is added to your organization's workspace.</p></div></div>
         <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Connect BioMate account</strong><p>Send a direct message to the bot: <code>/connect</code>. It will send a one-time authentication link.</p></div></div>
         <div class="step"><div class="step-num">4</div><div class="step-body"><strong>Start using it</strong><p>Mention <code>@BioMate</code> in a group or send it a DM. Progress cards update in-thread as phases complete.</p></div></div>
@@ -517,10 +517,10 @@ Apply C2 symmetry.</span></code></pre>
         </tbody>
       </table>
 
-      <p>Revoke any surface's access at any time at <a href="https://biomate.ai/account/connectors">biomate.ai/account/connectors</a>. Revoking one surface does not affect others.</p>
+      <p>Revoke any surface's access at any time at <a href="https://dev-public.biomate.ai/account/connectors">biomate.ai/account/connectors</a>. Revoking one surface does not affect others.</p>
 
       <h4>API keys</h4>
-      <p>For server-to-server use (no browser), generate a long-lived API key at <a href="https://biomate.ai/account/api-keys">biomate.ai/account/api-keys</a>. Pass it as <code>Authorization: Bearer &lt;key&gt;</code> or set it in the <code>BIOMATE_API_KEY</code> environment variable.</p>
+      <p>For server-to-server use (no browser), generate a long-lived API key at <a href="https://dev-public.biomate.ai/account/api-keys">biomate.ai/account/api-keys</a>. Pass it as <code>Authorization: Bearer &lt;key&gt;</code> or set it in the <code>BIOMATE_API_KEY</code> environment variable.</p>
     </section>
 
     <!-- Manual config -->
@@ -539,7 +539,7 @@ Apply C2 symmetry.</span></code></pre>
     }
   }
 }</code></pre>
-      <p>The <code>BIOMATE_API_KEY</code> value can be found at <a href="https://biomate.ai/account/api-keys">biomate.ai/account/api-keys</a>.</p>
+      <p>The <code>BIOMATE_API_KEY</code> value can be found at <a href="https://dev-public.biomate.ai/account/api-keys">biomate.ai/account/api-keys</a>.</p>
     </section>
 
     <!-- FAQ -->
@@ -556,7 +556,7 @@ Apply C2 symmetry.</span></code></pre>
       <p>Yes. The server code and all surface adapters are at <a href="https://github.com/bioMate-AI/biomate-connector">github.com/bioMate-AI/biomate-connector</a> under the MIT license.</p>
 
       <h4>What happens if a run exceeds my quota?</h4>
-      <p>The <code>run_workflow</code> tool returns an error with the quota details. The AI client surfaces this as a readable message. Upgrade your plan at <a href="https://biomate.ai/billing">biomate.ai/billing</a>.</p>
+      <p>The <code>run_workflow</code> tool returns an error with the quota details. The AI client surfaces this as a readable message. Upgrade your plan at <a href="https://dev-public.biomate.ai/billing">biomate.ai/billing</a>.</p>
 
       <h4>Can multiple team members share the same BioMate connector?</h4>
       <p>Each team member authenticates with their own BioMate account. Runs, files, and project membership are governed by BioMate's project-level access controls — not the connector.</p>
