@@ -3914,6 +3914,23 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                             "subworkflow penalty already applied in scoring.",
                             _r1.name, _r2.name,
                         )
+                    # Extended guard: bioconductor subworkflow anywhere in top-N.
+                    # The FTS subworkflow penalty (-8) already demoted it; allowing the
+                    # LLM verifier to pick it from position 3+ undoes that principled penalty.
+                    if _needs_verify and _r1_is_nfcore_pipeline:
+                        _any_bioc_subwf = any(
+                            getattr(r, 'source', '') == 'bioconductor'
+                            and '/subworkflows/' in (getattr(r, 'filename', '') or '')
+                            for r in search_results[1:]
+                        )
+                        if _any_bioc_subwf:
+                            _needs_verify = False
+                            log.info(
+                                "[UnifiedWorkflowGeneration] Skipping LLM routing verify — "
+                                "#1 is nfcore pipeline (%s) and bioconductor subworkflow(s) "
+                                "present in top-N; subworkflow penalty already applied.",
+                                _r1.name,
+                            )
                 # User named an nf-core slug explicitly — trust the explicit name over
                 # semantic search ranking and LLM verify.
                 _explicit_slug = self.workflow_search._extract_explicit_pipeline_slug(user_intent)
