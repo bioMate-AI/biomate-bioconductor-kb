@@ -205,18 +205,30 @@ the real LLM.**
 - **§5 #4 behavioral assertion — ✅ DONE (both layers).**
   - `scripts/post_sync_check.sh` **S6** (commit `85aa46258`, hardened in
     `7883bcfac`): standalone deterministic operation-routing canary.
-  - `scripts/sync_to_dev.sh` `smoke_test_db_search()` (commit `7883bcfac`):
-    wired into the **post-sync health gate** — after the workflow smoke test it
-    hits `/api/databases/query` through the **frontend proxy** (`localhost:3000`
-    → Galaxy) and asserts `operation=similarity` routes correctly and `text`
-    does not. A well-formed-but-wrong response now **auto-rolls-back** the
-    deploy; a transient error/empty/cold-start reply is inconclusive (no false
-    rollback). **This is the exact gate that would have caught the proxy-drop
-    bug at deploy time.**
-  - Verified in isolation (no speculative deploy): passes on the good deploy,
-    inconclusive on an unreachable host, fails only on a well-formed
-    operation-dropped response. Note: `scripts/` is not a synced code layer, so
-    the new gate takes effect on the *next* `sync_to_dev.sh` run automatically.
+  - `scripts/sync_to_dev.sh` `smoke_test_db_search()` (commits `7883bcfac`,
+    `80fa61874`, `4f437c2e7`): a **WARN-ONLY** canary in the post-sync health
+    gate. After the workflow smoke test (and after `SYNC_RESULT=healthy` is
+    set), it hits `/api/databases/query` through the **frontend proxy**
+    (`localhost:3000` → Galaxy) and asserts `operation=similarity` routes
+    correctly and `text` does not. On a regression it **logs a loud warning but
+    keeps the deploy** — it can never roll back. Only the pre-existing
+    workflow-generation smoke test triggers rollback.
+  - **Safety design (learned the hard way — first cut could have false-rolled-
+    back a healthy deploy):**
+    1. Decide on **output, not exit code** — roll-back/warn only on a definitive
+       `[smoke] FAIL` line; an SSH/network blip (rc 255, empty) is a no-op.
+    2. Retry until a **well-formed** response (carries the `source` tag);
+       `{"error":...}`/empty/cold-start replies are inconclusive.
+    3. The similarity path sets its `search` tag even on zero upstream hits, so
+       it never flakes on a ChEMBL/RCSB outage.
+    4. **WARN-ONLY** — the canary is advisory; it cannot change `SYNC_RESULT`
+       or call `rollback_sync`.
+  - Verified for real (not just isolation): the edited remote block run **on the
+    dev host** via `localhost:3000` returns exit 0; the outer decision passes
+    good→0 / regression→1 / SSH-transient→0 / inconclusive→0; and a mocked
+    gate-flow proves a canary failure keeps `SYNC_RESULT=healthy` with no
+    rollback. `scripts/` is not a synced layer, so the gate is active on the
+    next `sync_to_dev.sh` run.
 - **§5 #1–#3 remain** (decouple `restart_galaxy` from `do_backend`; verify
   in-container content vs. the git marker; serialize concurrent syncs). These
   edit the **deploy mechanism's control flow** — do them as a carefully-reviewed
