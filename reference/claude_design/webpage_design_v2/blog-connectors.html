@@ -1,832 +1,614 @@
-<title>Wiring Every AI Client to BioMate: The MCP Connector Architecture</title>
-<style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Wiring Every AI Client to BioMate: The MCP Connector Architecture — BioMate AI Blog</title>
+  <meta name="description" content="How BioMate's single MCP tool manifest connects Claude Code, Claude Desktop, Claude Science, Cursor, Codex CLI, ChatGPT, Slack, and Feishu to 2,455 biomedical research pipelines on AWS Batch — using stdio, Streamable HTTP, REST Actions, and webhooks from one shared dispatch_tool() function."/>
+  <meta name="keywords" content="BioMate MCP connector, Model Context Protocol biomedical research, Claude Code MCP server, MCP server RNA-seq, Claude Science BioMate, Cursor MCP biomedical research, Codex CLI biomedical, ChatGPT biomedical connector, AI biomedical research tools, AWS Batch Nextflow MCP"/>
+  <meta name="author" content="BioMate AI"/>
+  <link rel="canonical" href="https://biomate.ai/blog-connectors.html"/>
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="article"/>
+  <meta property="og:title"       content="Wiring Every AI Client to BioMate: The MCP Connector Architecture"/>
+  <meta property="og:description" content="One manifest, eight AI surfaces, zero duplicated logic. How BioMate's MCP connector lets Claude Code, Cursor, Codex CLI, ChatGPT, Slack, and Feishu all drive the same biomedical research execution engine."/>
+  <meta property="og:url"         content="https://biomate.ai/blog-connectors.html"/>
+  <meta property="og:image"       content="https://biomate.ai/images/blog-connectors-hero.png"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
+  <meta property="og:site_name"   content="BioMate AI"/>
+  <meta property="article:published_time" content="2026-07-11"/>
+  <meta property="article:author" content="BioMate AI"/>
+  <meta property="article:tag"    content="MCP, Connectors, Claude Code, AI Research, Biomedical"/>
+
+  <!-- Twitter card -->
+  <meta name="twitter:card"        content="summary_large_image"/>
+  <meta name="twitter:site"        content="@biomateai"/>
+  <meta name="twitter:title"       content="Wiring Every AI Client to BioMate: The MCP Connector Architecture"/>
+  <meta name="twitter:description" content="One manifest, eight AI surfaces. How BioMate's MCP connector connects Claude Code, Cursor, Codex CLI, ChatGPT, Slack, and Feishu to 2,455 biomedical research pipelines on AWS Batch."/>
+  <meta name="twitter:image"       content="https://biomate.ai/images/blog-connectors-hero.png"/>
+
+  <!-- Structured data: TechArticle + FAQPage (GEO) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "TechArticle",
+        "headline": "Wiring Every AI Client to BioMate: The MCP Connector Architecture",
+        "description": "How BioMate's single MCP tool manifest connects eight AI surfaces — including Claude Code, Claude Science, Cursor, and Codex CLI — to 2,455 biomedical research pipelines running on AWS Batch via Nextflow.",
+        "url": "https://biomate.ai/blog-connectors.html",
+        "datePublished": "2026-07-11",
+        "dateModified": "2026-07-11",
+        "author": { "@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai" },
+        "publisher": { "@type": "Organization", "name": "BioMate AI", "logo": { "@type": "ImageObject", "url": "https://biomate.ai/images/biomate-logo-512.png" } },
+        "image": "https://biomate.ai/images/blog-connectors-hero.png",
+        "keywords": "MCP connector, Model Context Protocol, biomedical research, Claude Code, Claude Science, Cursor, Codex CLI, AWS Batch, Nextflow, RNA-seq, ADMET",
+        "proficiencyLevel": "Expert",
+        "articleSection": "Engineering"
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home",  "item": "https://biomate.ai/" },
+          { "@type": "ListItem", "position": 2, "name": "Blog",  "item": "https://biomate.ai/blog.html" },
+          { "@type": "ListItem", "position": 3, "name": "MCP Connector Architecture", "item": "https://biomate.ai/blog-connectors.html" }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What AI clients can connect to BioMate via MCP?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "BioMate supports eight AI client surfaces via its MCP connector: Claude Code (Anthropic CLI), Claude Desktop (macOS and Windows), Claude Science (Anthropic's scientific research workbench), Cursor IDE, Codex CLI (OpenAI), ChatGPT Custom GPT, Slack bots, and Feishu/Lark enterprise messaging. All eight surfaces share a single tool manifest and route through the same dispatch_tool() function."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How does BioMate's MCP connector work?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "BioMate exposes a single canonical tool manifest defined in tools_manifest.py containing 14 MCP tools. Each AI client surface uses a transport-specific adapter — stdio JSON-RPC 2.0 for Claude Code, Claude Desktop, Cursor, and Codex CLI; Streamable HTTP with OAuth 2.1 + PKCE for Claude Science; and REST Actions or webhooks for ChatGPT, Slack, and Feishu. All adapters call dispatch_tool() which routes execution to BioMate's REST API and ultimately to AWS Batch running Nextflow pipelines."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What biomedical research workflows can BioMate run through its MCP connector?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "BioMate has 2,455 indexed biomedical research workflows accessible via MCP, including RNA-seq differential expression (DESeq2, edgeR), whole-genome sequencing and variant calling (nf-core/sarek, GATK4), ADMET AI drug property prediction, single-cell RNA-seq (Seurat, Scanpy), protein structure prediction (AlphaFold), cryo-EM reconstruction (CryoSPARC), PBPK pharmacokinetic modeling, and clinical genomics pipelines. Workflows run on AWS Batch using Nextflow orchestration."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I connect Claude Code to BioMate?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "To connect Claude Code to BioMate, run: npx @biomate/connect claude-code. This writes the BioMate MCP server configuration to ~/.mcp.json with your BIOMATE_API_KEY and BIOMATE_API_URL environment variables set to https://dev-public.biomate.ai. The biomate_mcp_server.py binary is spawned as a stdio child process by Claude Code when needed."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I connect Cursor to BioMate for biomedical research?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "To connect Cursor IDE to BioMate, run: npx @biomate/connect cursor. This uses the same stdio JSON-RPC 2.0 transport as Claude Code. Cursor has full MCP support available since late 2025 and the BioMate server will appear alongside your other MCP tools in Cursor Settings → MCP."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does BioMate support Claude Science?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. BioMate supports Claude Science, Anthropic's scientific research workbench launched in June 2026. Claude Science requires Streamable HTTP transport with OAuth 2.1 + PKCE for remote MCP endpoints. BioMate's remote_mcp/ package handles Dynamic Client Registration, per-user API key issuance, and bearer token validation. The BioMate MCP endpoint for Claude Science is https://dev-public.biomate.ai/mcp."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+
+  <link rel="stylesheet" href="fonts/fonts.css"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  .bm-blog {
+    --bg: #F5F8FB;
+    --bg-card: #EBF1F7;
+    --bg-card2: #E2EAF2;
+    --accent: #0B8A67;
+    --accent-light: #096E53;
+    --text: #0E1C2F;
+    --text-muted: #5A6E84;
+    --border: #C8D6E3;
+    --radius: 10px;
+    --font-body: 'Open Sans', sans-serif;
+    --font-head: 'Crimson Text', serif;
+    --nav-h: 68px;
+  }
+  html { scroll-behavior: smooth; }
+  .bm-blog { background: var(--bg); color: var(--text); font-family: var(--font-body); font-weight: 400; line-height: 1.6; font-size: 16px; }
+  .bm-blog a { color: var(--accent-light); text-decoration: none; transition: color .2s; }
+  .bm-blog a:hover { color: var(--accent); }
+  .bm-blog img { max-width: 100%; display: block; }
 
-  :root {
-    --bg:       #F5F8FB;
-    --ink:      #0E1C2F;
-    --accent:   #0B8A67;
-    --accent-lt:#E4F4EE;
-    --mid:      #5A6E84;
-    --rule:     #C8D6E3;
-    --surface:  #EBF1F7;
-    --code-bg:  #19283A;
-    --code-ink: #8BB8CC;
-    --code-str: #6FD4A8;
-    --code-cmt: #4A6478;
-    --red:      #C0392B;
-    --yellow:   #B45309;
-  }
+  /* ── Hero ──────────────────────────────────────────────────── */
+  .article-hero { width: 100%; max-height: 420px; overflow: hidden; position: relative; }
+  .article-hero img { width: 100%; height: 420px; object-fit: cover; display: block; }
+  .article-hero-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(15,22,28,.35), rgba(15,22,28,.65)); }
 
-  html { font-size: 17px; background: var(--bg); color: var(--ink); }
+  /* ── Breadcrumb ─────────────────────────────────────────────── */
+  .breadcrumb { max-width: 1100px; margin: 0 auto; padding: 1.25rem clamp(1rem,4vw,2rem) 0; font-size: .8rem; color: var(--text-muted); }
+  .breadcrumb a { color: var(--accent-light); }
+  .breadcrumb span { margin: 0 .4rem; }
 
-  body {
-    font-family: Georgia, 'Times New Roman', serif;
-    line-height: 1.7;
-    -webkit-font-smoothing: antialiased;
-  }
+  /* ── Article layout ─────────────────────────────────────────── */
+  .article-outer { max-width: 1100px; margin: 0 auto; padding: 2.5rem clamp(1rem,4vw,2rem) 4rem; display: grid; grid-template-columns: 1fr 280px; gap: 3.5rem; align-items: start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns: 1fr; } }
 
-  /* ── Site header ─────────────────────────────────────────────────── */
-  .site-header {
-    border-bottom: 1px solid var(--rule);
-    padding: 0 clamp(1.5rem, 5vw, 4rem);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 52px;
-  }
-  .site-logo {
-    font-family: ui-monospace, 'Cascadia Code', monospace;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--ink);
-    text-decoration: none;
-    letter-spacing: 0.04em;
-  }
-  .site-logo span { color: var(--accent); }
-  .site-nav {
-    display: flex;
-    gap: 1.75rem;
-    list-style: none;
-  }
-  .site-nav a {
-    font-family: ui-sans-serif, system-ui, sans-serif;
-    font-size: 0.78rem;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    text-decoration: none;
-    color: var(--mid);
-  }
-  .site-nav a:hover { color: var(--ink); }
-
-  /* ── Article layout ──────────────────────────────────────────────── */
-  .article-wrap {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 0 clamp(1.5rem, 5vw, 4rem);
-  }
-
-  .article-col {
-    max-width: 660px;
-  }
-
-  /* ── Hero ─────────────────────────────────────────────────────────── */
-  .hero {
-    padding: 4rem 0 3rem;
-    border-bottom: 1px solid var(--rule);
-    margin-bottom: 3rem;
-  }
-  .hero-eyebrow {
-    font-family: ui-sans-serif, system-ui, sans-serif;
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 1rem;
-  }
-  .hero h1 {
-    font-size: clamp(2rem, 4vw, 2.9rem);
-    font-style: italic;
-    font-weight: 700;
-    line-height: 1.18;
-    text-wrap: balance;
-    color: var(--ink);
-    margin-bottom: 1.4rem;
-    max-width: 820px;
-  }
-  .hero-lead {
-    font-size: 1.12rem;
-    color: var(--mid);
-    max-width: 600px;
-    line-height: 1.65;
-    margin-bottom: 2rem;
-  }
-  .hero-meta {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    font-family: ui-sans-serif, system-ui, sans-serif;
-    font-size: 0.78rem;
-    color: var(--mid);
-  }
-  .hero-meta-sep { color: var(--rule); }
-  .repo-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    font-family: ui-sans-serif, system-ui, sans-serif;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--ink);
-    text-decoration: none;
-    border: 1.5px solid var(--ink);
-    padding: 0.4rem 0.85rem;
-    letter-spacing: 0.03em;
-    transition: background 0.15s, color 0.15s;
-  }
-  .repo-link:hover { background: var(--ink); color: var(--bg); }
+  .article-header { margin-bottom: 2.5rem; }
+  .article-cat { font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: .5rem; display: block; }
+  .article-header h1 { font-family: var(--font-head); font-size: clamp(1.8rem,4vw,2.6rem); font-weight: 700; color: var(--text); line-height: 1.2; margin-bottom: .75rem; }
+  .article-meta { font-size: .8rem; color: var(--text-muted); display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+  .article-meta strong { color: var(--text); font-weight: 600; }
+  .repo-link { display: inline-flex; align-items: center; gap: .45rem; font-size: .78rem; font-weight: 600; color: var(--text); border: 1.5px solid var(--border); padding: .35rem .75rem; border-radius: 4px; transition: background .15s, color .15s; }
+  .repo-link:hover { background: var(--text); color: var(--bg); border-color: var(--text); }
   .repo-link svg { flex-shrink: 0; }
 
-  /* ── Body sections ───────────────────────────────────────────────── */
-  .section {
-    margin-bottom: 3.5rem;
-  }
-  .section-label {
-    font-family: ui-sans-serif, system-ui, sans-serif;
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--mid);
-    margin-bottom: 0.6rem;
-  }
-  h2 {
-    font-size: 1.55rem;
-    font-style: italic;
-    font-weight: 700;
-    line-height: 1.25;
-    text-wrap: balance;
-    margin-bottom: 1rem;
-    color: var(--ink);
-  }
-  h3 {
-    font-family: ui-sans-serif, system-ui, sans-serif;
-    font-size: 0.85rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--ink);
-    margin: 1.8rem 0 0.5rem;
-  }
-  p { margin-bottom: 1rem; }
-  p:last-child { margin-bottom: 0; }
+  /* ── Article body ───────────────────────────────────────────── */
+  .article-body { font-size: .95rem; color: var(--text); line-height: 1.75; }
+  .article-body p { margin-bottom: 1.25rem; color: var(--text-muted); }
+  .article-body p.lead { font-size: 1.08rem; color: var(--text); font-weight: 400; margin-bottom: 1.75rem; border-left: 3px solid var(--accent); padding-left: 1.1rem; }
+  .article-body h2 { font-family: var(--font-head); font-size: 1.45rem; color: var(--text); margin: 2.25rem 0 .75rem; }
+  .article-body h3 { font-family: var(--font-head); font-size: 1.15rem; color: var(--text); margin: 1.75rem 0 .5rem; }
+  .article-body ul { margin: 0 0 1.25rem 1.25rem; color: var(--text-muted); }
+  .article-body ul li { margin-bottom: .4rem; font-size: .92rem; }
+  .article-body strong { font-weight: 700; }
+  .section-label { font-size: .68rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: .35rem; display: block; }
+  .article-divider { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
 
-  strong { font-weight: 700; }
-  em { font-style: italic; }
+  /* ── Callout ────────────────────────────────────────────────── */
+  .callout { background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 0 var(--radius) var(--radius) 0; padding: 1.1rem 1.4rem; margin: 1.75rem 0; }
+  .callout strong { color: var(--text); display: block; margin-bottom: .4rem; font-size: .88rem; }
+  .callout p { margin: 0; font-size: .88rem; color: var(--text-muted); }
 
-  code {
-    font-family: ui-monospace, 'Cascadia Code', 'SF Mono', monospace;
-    font-size: 0.82em;
-    background: var(--surface);
-    color: var(--accent);
-    padding: 0.1em 0.35em;
-    border-radius: 2px;
-  }
-
+  /* ── Code blocks ────────────────────────────────────────────── */
+  .article-body code { font-family: ui-monospace, 'Cascadia Code', 'SF Mono', monospace; font-size: .82em; background: var(--bg-card); color: var(--accent); padding: .1em .35em; border-radius: 2px; }
   pre {
-    background: var(--code-bg);
-    color: var(--code-ink);
+    background: #19283A;
+    color: #8BB8CC;
     font-family: ui-monospace, 'Cascadia Code', 'SF Mono', monospace;
-    font-size: 0.8rem;
+    font-size: .82rem;
     line-height: 1.6;
     padding: 1.25rem 1.5rem;
     overflow-x: auto;
     margin: 1.25rem 0;
     border-left: 3px solid var(--accent);
+    border-radius: 0 4px 4px 0;
   }
-  pre .s { color: var(--code-str); }
-  pre .c { color: var(--code-cmt); font-style: italic; }
+  pre code { background: none; color: inherit; padding: 0; font-size: 1em; }
+  pre .s { color: #6FD4A8; }
+  pre .c { color: #4A6478; font-style: italic; }
   pre .k { color: #7CB9E8; }
   pre .n { color: #E8C87C; }
 
-  hr {
-    border: none;
-    border-top: 1px solid var(--rule);
-    margin: 2.5rem 0;
-  }
-
-  /* ── Architecture diagram ────────────────────────────────────────── */
-  .arch-section {
-    margin: 3rem 0;
-  }
+  /* ── Architecture diagram ───────────────────────────────────── */
   .arch-wrap {
     overflow-x: auto;
-    border: 1px solid var(--rule);
+    border: 1px solid var(--border);
     background: white;
-    padding: 2rem 1.5rem;
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    margin: 1.25rem 0;
   }
-  .arch-wrap svg {
-    display: block;
-    min-width: 820px;
-  }
+  .arch-wrap svg { display: block; min-width: 980px; }
+  .arch-caption { font-size: .75rem; color: var(--text-muted); text-align: center; margin-top: .6rem; }
 
-  /* ── Surface grid ────────────────────────────────────────────────── */
-  .surface-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1px;
-    background: var(--rule);
-    border: 1px solid var(--rule);
-    margin: 1.5rem 0;
-  }
-  .surface-card {
-    background: var(--bg);
-    padding: 1.4rem 1.5rem;
-  }
-  .surface-card-head {
-    display: flex;
-    align-items: center;
-    gap: 0.7rem;
-    margin-bottom: 0.7rem;
-  }
-  .surface-icon {
-    width: 32px;
-    height: 32px;
-    background: var(--surface);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    font-family: ui-monospace, monospace;
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    color: var(--mid);
-  }
-  .surface-card h3 {
-    font-family: ui-sans-serif, system-ui, sans-serif;
-    font-size: 0.88rem;
-    font-weight: 700;
-    text-transform: none;
-    letter-spacing: 0;
-    color: var(--ink);
-    margin: 0;
-  }
-  .surface-transport {
-    font-family: ui-monospace, monospace;
-    font-size: 0.68rem;
-    font-weight: 600;
-    color: var(--accent);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    margin-bottom: 0.5rem;
-  }
-  .surface-card p {
-    font-family: ui-sans-serif, system-ui, sans-serif;
-    font-size: 0.82rem;
-    color: var(--mid);
-    line-height: 1.5;
-    margin: 0;
-  }
-
-  /* ── Tool list ───────────────────────────────────────────────────── */
+  /* ── Tool table ─────────────────────────────────────────────── */
   .tool-table-wrap { overflow-x: auto; margin: 1.25rem 0; }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-family: ui-sans-serif, system-ui, sans-serif;
-    font-size: 0.8rem;
-  }
-  th {
-    text-align: left;
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--mid);
-    border-bottom: 2px solid var(--rule);
-    padding: 0.5rem 0.75rem;
-  }
-  td {
-    padding: 0.55rem 0.75rem;
-    border-bottom: 1px solid var(--rule);
-    vertical-align: top;
-    color: var(--ink);
-    line-height: 1.45;
-  }
-  td:first-child {
-    font-family: ui-monospace, monospace;
-    font-size: 0.75rem;
-    color: var(--accent);
-    white-space: nowrap;
-  }
-  td .dim { color: var(--mid); }
-  tr:last-child td { border-bottom: none; }
+  .tool-table-wrap table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  .tool-table-wrap th { text-align: left; font-size: .65rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); border-bottom: 2px solid var(--border); padding: .5rem .75rem; }
+  .tool-table-wrap td { padding: .55rem .75rem; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text); line-height: 1.45; }
+  .tool-table-wrap td:first-child { font-family: ui-monospace, monospace; font-size: .75rem; color: var(--accent); white-space: nowrap; }
+  .tool-table-wrap td .dim { color: var(--text-muted); }
+  .tool-table-wrap tr:last-child td { border-bottom: none; }
 
-  /* ── Callout ─────────────────────────────────────────────────────── */
-  .callout {
-    border-left: 3px solid var(--accent);
-    padding: 1rem 1.25rem;
-    background: var(--accent-lt);
-    margin: 1.5rem 0;
-    font-family: ui-sans-serif, system-ui, sans-serif;
-    font-size: 0.88rem;
-    line-height: 1.55;
-    color: #0A3D2B;
-  }
-  .callout strong { color: #063D2A; }
+  /* ── Surface grid ───────────────────────────────────────────── */
+  .surface-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); margin: 1.5rem 0; }
+  .surface-card { background: var(--bg); padding: 1.4rem 1.5rem; }
+  .surface-card-head { display: flex; align-items: center; gap: .7rem; margin-bottom: .7rem; }
+  .surface-icon { width: 32px; height: 32px; background: var(--bg-card); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: ui-monospace, monospace; font-size: .65rem; font-weight: 700; letter-spacing: .04em; color: var(--text-muted); border-radius: 4px; }
+  .surface-card h3 { font-family: var(--font-body); font-size: .88rem; font-weight: 700; text-transform: none; letter-spacing: 0; color: var(--text); margin: 0; }
+  .surface-transport { font-family: ui-monospace, monospace; font-size: .68rem; font-weight: 600; color: var(--accent); letter-spacing: .06em; text-transform: uppercase; margin-bottom: .5rem; }
+  .surface-card p { font-family: var(--font-body); font-size: .82rem; color: var(--text-muted); line-height: 1.5; margin: 0; }
 
-  /* ── Footer ──────────────────────────────────────────────────────── */
-  .article-footer {
-    border-top: 1px solid var(--rule);
-    padding: 2.5rem 0;
-    margin-top: 4rem;
-  }
-  .article-footer-inner {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 2rem;
-    flex-wrap: wrap;
-  }
-  .footer-copy {
-    font-family: ui-sans-serif, system-ui, sans-serif;
-    font-size: 0.8rem;
-    color: var(--mid);
-    line-height: 1.6;
-    max-width: 420px;
-  }
-  .footer-links {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  .footer-links a {
-    font-family: ui-monospace, monospace;
-    font-size: 0.75rem;
-    color: var(--accent);
-    text-decoration: none;
-  }
-  .footer-links a:hover { text-decoration: underline; }
+  /* ── Sidebar ────────────────────────────────────────────────── */
+  aside { position: sticky; top: 80px; }
+  .sidebar-widget { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.4rem; margin-bottom: 1.4rem; }
+  .sidebar-widget h3 { font-family: var(--font-head); font-size: 1.05rem; color: var(--text); margin-bottom: .9rem; padding-bottom: .45rem; border-bottom: 1px solid var(--border); }
+  .sidebar-list { list-style: none; display: flex; flex-direction: column; gap: .65rem; }
+  .sidebar-list li a { font-size: .84rem; color: var(--text); }
+  .sidebar-list li a:hover { color: var(--accent); }
+  .sidebar-list .meta { font-size: .73rem; color: var(--text-muted); margin-top: .15rem; }
+  .topic-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .topic-chip { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; font-size: .73rem; color: var(--text-muted); padding: 3px 8px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 24px; border-radius: 8px; font-family: var(--font-body); font-size: .9rem; font-weight: 700; cursor: pointer; text-decoration: none; transition: all .2s; border: none; }
+  .bm-blog .btn-primary { background: var(--accent); color: #fff; width: 100%; justify-content: center; }
+  .bm-blog .btn-primary:hover { background: var(--accent-light); color: #fff; }
+  </style>
+</head>
+<body>
+<div id="bm-nav"></div>
+<div class="bm-blog">
 
-  @media (max-width: 640px) {
-    .site-nav { display: none; }
-    .hero h1 { font-size: 1.75rem; }
-  }
-  .article-hero-svg { width:100%; background:#060c1a; line-height:0; }
-  .article-hero-svg svg { width:100%; height:auto; display:block; max-height:420px; }
-</style>
+<div class="article-hero">
+  <img src="images/blog-connectors-hero.png" alt="AI clients connecting to BioMate's MCP server for biomedical research" />
+  <div class="article-hero-overlay"></div>
+</div>
 
-<header class="site-header">
-  <a class="site-logo" href="#">biomate<span>.</span>ai</a>
-  <nav aria-label="Site">
-    <ul class="site-nav">
-      <li><a href="#">Blog</a></li>
-      <li><a href="#">Docs</a></li>
-      <li><a href="https://github.com/bioMate-AI/biomate-connector">GitHub</a></li>
-    </ul>
-  </nav>
-</header>
+<!-- ── Breadcrumb ───────────────────────────────────────────────────────── -->
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Engineering
+</div>
 
-<div class="article-wrap">
+<!-- ── Article + Sidebar ────────────────────────────────────────────────── -->
+<div class="article-outer">
 
-  <!-- ── Hero ──────────────────────────────────────────────────────── -->
-  <header class="hero">
-    <p class="hero-eyebrow">Engineering · Connectors</p>
-    <h1>Wiring Every AI Client to BioMate: The MCP Connector Architecture</h1>
-    <p class="hero-lead">
-      One tool manifest, six AI surfaces, zero duplicated logic. How we built a
-      connector layer that lets Claude Code, Claude Desktop, Claude Science, ChatGPT,
-      Slack, and Feishu all drive the same bioinformatics execution engine.
-    </p>
-    <div class="hero-meta">
-      <span>BioMate Engineering</span>
-      <span class="hero-meta-sep">·</span>
-      <span>July 2026</span>
-      <span class="hero-meta-sep">·</span>
-      <a class="repo-link" href="https://github.com/bioMate-AI/biomate-connector" target="_blank" rel="noopener">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
-        </svg>
-        bioMate-AI/biomate-connector
-      </a>
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Engineering · Connectors</span>
+      <h1>Wiring Every AI Client to BioMate: The MCP Connector Architecture</h1>
+      <div class="article-meta">
+        <span>July 2026</span>
+        <span>·</span>
+        <span>8 min read</span>
+        <span>·</span>
+        <strong>BioMate Engineering</strong>
+        <a class="repo-link" href="https://github.com/bioMate-AI/biomate-connector" target="_blank" rel="noopener">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          bioMate-AI/biomate-connector
+        </a>
+      </div>
     </div>
-  </header>
 
-  <div class="article-hero-svg">
-    <svg viewBox="0 0 1200 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AI clients connecting to BioMate MCP Server">
-      <defs>
-        <linearGradient id="bg-grad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#060c1a"/>
-          <stop offset="100%" stop-color="#0b1428"/>
-        </linearGradient>
-        <linearGradient id="line-grad" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stop-color="#1e3a6e" stop-opacity="0.6"/>
-          <stop offset="50%" stop-color="#3b82f6" stop-opacity="0.9"/>
-          <stop offset="100%" stop-color="#1e3a6e" stop-opacity="0.6"/>
-        </linearGradient>
-        <filter id="hub-glow">
-          <feGaussianBlur stdDeviation="6" result="blur"/>
-          <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-        </filter>
-        <filter id="soft-glow">
-          <feGaussianBlur stdDeviation="3" result="blur"/>
-          <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-        </filter>
-      </defs>
+    <div class="article-body">
 
-      <!-- Background -->
-      <rect width="1200" height="380" fill="url(#bg-grad)"/>
+      <p class="lead">
+        One tool manifest, eight AI surfaces, zero duplicated logic. How we built a
+        connector layer that lets Claude Code, Claude Desktop, Claude Science, Cursor,
+        Codex CLI, ChatGPT, Slack, and Feishu all drive the same biomedical research execution engine.
+      </p>
 
-      <!-- Subtle grid -->
-      <g stroke="#1a2a45" stroke-width="0.5" opacity="0.4">
-        <line x1="0" y1="95" x2="1200" y2="95"/>
-        <line x1="0" y1="190" x2="1200" y2="190"/>
-        <line x1="0" y1="285" x2="1200" y2="285"/>
-        <line x1="300" y1="0" x2="300" y2="380"/>
-        <line x1="600" y1="0" x2="600" y2="380"/>
-        <line x1="900" y1="0" x2="900" y2="380"/>
-      </g>
+      <!-- ── Why ─────────────────────────────────────────────────────────── -->
+      <span class="section-label">The problem</span>
+      <h2>Biomedical research needs real compute. AI clients need a standard protocol.</h2>
+      <p>
+        Running a DESeq2 analysis or an nf-core/sarek variant-calling pipeline isn't
+        something an AI assistant can do inline. It requires containerised environments,
+        high-memory EC2 instances, reference genome indices, and a Nextflow executor that
+        can orchestrate dozens of steps across AWS Batch workers. BioMate provides that
+        infrastructure — but it needs to be reachable from wherever the researcher already works.
+      </p>
+      <p>
+        The Model Context Protocol (MCP) gives us a standard way to expose capabilities as
+        typed tools that any compliant AI client can discover and call. The challenge was
+        supporting eight very different surfaces — each with its own transport, auth model,
+        and UX contract — without duplicating the tool logic eight times.
+      </p>
+      <p>
+        The solution is a single canonical tool manifest and a thin adapter per surface.
+        Every connector reads its schema from <code>tools_manifest.py</code> and routes
+        execution through the same <code>dispatch_tool()</code> function that calls
+        BioMate's REST API. The surfaces diverge only in how they transport the call —
+        stdio JSON-RPC, Streamable HTTP, REST Actions, or webhook — not in what they do.
+      </p>
 
-      <!-- Column labels -->
-      <text x="152" y="32" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="9" font-weight="600" letter-spacing="2.5" fill="#3b6bb5" opacity="0.9">AI CLIENTS</text>
-      <text x="600" y="32" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="9" font-weight="600" letter-spacing="2.5" fill="#3b82f6">BIOMATE MCP SERVER</text>
-      <text x="1048" y="32" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="9" font-weight="600" letter-spacing="2.5" fill="#3b6bb5" opacity="0.9">CAPABILITIES</text>
+      <hr class="article-divider"/>
 
-      <!-- Connector lines (client side) -->
-      <line x1="254" y1="88"  x2="440" y2="157" stroke="url(#line-grad)" stroke-width="1.2" opacity="0.7"/>
-      <line x1="254" y1="152" x2="440" y2="173" stroke="url(#line-grad)" stroke-width="1.2" opacity="0.7"/>
-      <line x1="254" y1="216" x2="440" y2="190" stroke="url(#line-grad)" stroke-width="1.2" opacity="0.7"/>
-      <line x1="254" y1="280" x2="440" y2="207" stroke="url(#line-grad)" stroke-width="1.2" opacity="0.7"/>
-      <line x1="254" y1="332" x2="440" y2="220" stroke="url(#line-grad)" stroke-width="1.2" opacity="0.7"/>
-
-      <!-- Connector lines (tool side) -->
-      <line x1="760" y1="157" x2="946" y2="100" stroke="url(#line-grad)" stroke-width="1.2" opacity="0.7"/>
-      <line x1="760" y1="173" x2="946" y2="172" stroke="url(#line-grad)" stroke-width="1.2" opacity="0.7"/>
-      <line x1="760" y1="190" x2="946" y2="244" stroke="url(#line-grad)" stroke-width="1.2" opacity="0.7"/>
-      <line x1="760" y1="207" x2="946" y2="316" stroke="url(#line-grad)" stroke-width="1.2" opacity="0.7"/>
-
-      <!-- ── CLIENT PILLS ─────────────────────────────── -->
-      <!-- Claude Code -->
-      <rect x="52" y="68" width="202" height="40" rx="6" fill="#0d1f3c" stroke="#2a4a7f" stroke-width="1"/>
-      <text x="153" y="84" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="11" font-weight="600" fill="#93c5fd">Claude Code</text>
-      <text x="153" y="99" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#7aaee8">CLI · IDE extension · stdio</text>
-
-      <!-- Claude Desktop -->
-      <rect x="52" y="132" width="202" height="40" rx="6" fill="#0d1f3c" stroke="#2a4a7f" stroke-width="1"/>
-      <text x="153" y="148" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="11" font-weight="600" fill="#93c5fd">Claude Desktop</text>
-      <text x="153" y="163" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#7aaee8">macOS · Windows · stdio</text>
-
-      <!-- ChatGPT -->
-      <rect x="52" y="196" width="202" height="40" rx="6" fill="#0d1f3c" stroke="#2a4a7f" stroke-width="1"/>
-      <text x="153" y="212" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="11" font-weight="600" fill="#93c5fd">ChatGPT</text>
-      <text x="153" y="227" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#7aaee8">Custom GPT · REST Actions</text>
-
-      <!-- Slack -->
-      <rect x="52" y="260" width="202" height="40" rx="6" fill="#0d1f3c" stroke="#2a4a7f" stroke-width="1"/>
-      <text x="153" y="276" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="11" font-weight="600" fill="#93c5fd">Slack</text>
-      <text x="153" y="291" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#7aaee8">Bot · slash commands · webhook</text>
-
-      <!-- Feishu -->
-      <rect x="52" y="312" width="202" height="40" rx="6" fill="#0d1f3c" stroke="#2a4a7f" stroke-width="1"/>
-      <text x="153" y="328" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="11" font-weight="600" fill="#93c5fd">Feishu / Lark</text>
-      <text x="153" y="343" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#7aaee8">Enterprise messaging · webhook</text>
-
-      <!-- ── HUB BOX ──────────────────────────────────── -->
-      <rect x="440" y="110" width="320" height="160" rx="10" fill="#0a1628" stroke="#2563eb" stroke-width="1.5" filter="url(#hub-glow)"/>
-      <!-- hub inner line -->
-      <line x1="455" y1="148" x2="745" y2="148" stroke="#1a3060" stroke-width="1"/>
-
-      <text x="600" y="138" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="17" font-weight="700" letter-spacing="0.5" fill="#60a5fa">BioMate</text>
-      <text x="600" y="158" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" fill="#3b6bb5" letter-spacing="1">MCP Server · 19 tools</text>
-
-      <!-- Tool list in hub -->
-      <text x="600" y="178" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="10" fill="#6a9fd4">search_workflow · run_workflow · watch_run</text>
-      <text x="600" y="192" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="10" fill="#6a9fd4">query_database · search_literature · upload_file</text>
-      <text x="600" y="206" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="10" fill="#6a9fd4">analyze_results · export_report · recall_memory</text>
-      <text x="600" y="222" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="10" fill="#6a9fd4">…and 10 more</text>
-
-      <!-- hub bottom label -->
-      <line x1="455" y1="233" x2="745" y2="233" stroke="#1a3060" stroke-width="1"/>
-      <text x="600" y="252" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#5a80b8">Single tool manifest · all transports</text>
-
-      <!-- ── CAPABILITY PILLS ────────────────────────── -->
-      <!-- Workflow Execution -->
-      <rect x="946" y="72" width="202" height="56" rx="6" fill="#0d1f3c" stroke="#2a4a7f" stroke-width="1"/>
-      <text x="1047" y="92" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="11" font-weight="600" fill="#93c5fd">Workflow Execution</text>
-      <text x="1047" y="107" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#7aaee8">2,455 pipelines · AWS Batch</text>
-      <text x="1047" y="120" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#7aaee8">RNA-seq · ADMET · WGS · Cryo-EM</text>
-
-      <!-- Database Search -->
-      <rect x="946" y="152" width="202" height="40" rx="6" fill="#0d1f3c" stroke="#2a4a7f" stroke-width="1"/>
-      <text x="1047" y="168" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="11" font-weight="600" fill="#93c5fd">Database Search</text>
-      <text x="1047" y="183" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#7aaee8">60+ live sources · UniProt · PDB · GEO</text>
-
-      <!-- File Management -->
-      <rect x="946" y="216" width="202" height="40" rx="6" fill="#0d1f3c" stroke="#2a4a7f" stroke-width="1"/>
-      <text x="1047" y="232" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="11" font-weight="600" fill="#93c5fd">File Management</text>
-      <text x="1047" y="247" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#7aaee8">S3 · project files · reports</text>
-
-      <!-- Run History -->
-      <rect x="946" y="288" width="202" height="40" rx="6" fill="#0d1f3c" stroke="#2a4a7f" stroke-width="1"/>
-      <text x="1047" y="304" text-anchor="middle" font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="11" font-weight="600" fill="#93c5fd">Run History</text>
-      <text x="1047" y="319" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#7aaee8">audit trail · replay · SSE streaming</text>
-    </svg>
-  </div>
-
-  <!-- ── Why ───────────────────────────────────────────────────────── -->
-  <div class="section article-col">
-    <p class="section-label">The problem</p>
-    <h2>Bioinformatics needs real compute. AI clients need a standard protocol.</h2>
-    <p>
-      Running a DESeq2 analysis or an nf-core/sarek variant-calling pipeline isn't
-      something an AI assistant can do inline. It requires containerised environments,
-      high-memory EC2 instances, reference genome indices, and a Nextflow executor that
-      can orchestrate dozens of steps across AWS Batch workers. BioMate provides that
-      infrastructure — but it needs to be reachable from wherever the researcher already works.
-    </p>
-    <p>
-      The Model Context Protocol (MCP) gives us a standard way to expose capabilities as
-      typed tools that any compliant AI client can discover and call. The challenge was
-      supporting six very different surfaces — each with its own transport, auth model,
-      and UX contract — without duplicating the tool logic six times.
-    </p>
-    <p>
-      The solution is a single canonical tool manifest and a thin adapter per surface.
-      Every connector reads its schema from <code>tools_manifest.py</code> and routes
-      execution through the same <code>dispatch_tool()</code> function that calls
-      BioMate's REST API. The surfaces diverge only in how they transport the call —
-      stdio JSON-RPC, Streamable HTTP, REST Actions, or webhook — not in what they do.
-    </p>
-  </div>
-
-  <!-- ── Architecture ───────────────────────────────────────────────── -->
-  <div class="arch-section">
-    <div class="article-col" style="margin-bottom: 1rem;">
-      <p class="section-label">Architecture</p>
+      <!-- ── Architecture ──────────────────────────────────────────────────── -->
+      <span class="section-label">Architecture</span>
       <h2>One manifest, many transports</h2>
-    </div>
-    <div class="arch-wrap">
-      <svg viewBox="0 0 900 330" width="900" height="330" xmlns="http://www.w3.org/2000/svg" aria-label="Connector architecture diagram">
-        <defs>
-          <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#C8D6E3"/>
-          </marker>
-          <marker id="arr-acc" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#0B8A67"/>
-          </marker>
-        </defs>
+      <div class="arch-wrap">
+        <svg viewBox="0 0 980 445" xmlns="http://www.w3.org/2000/svg" aria-label="BioMate connector architecture diagram">
+          <defs>
+            <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="#94A3B8"/>
+            </marker>
+            <marker id="arr-grn" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="#0B8A67"/>
+            </marker>
+            <marker id="arr-pur" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="#7C3AED"/>
+            </marker>
+            <marker id="arr-org" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="#D97706"/>
+            </marker>
+          </defs>
+          <rect width="980" height="445" fill="#F8FAFC"/>
+          <line x1="10" y1="32" x2="970" y2="32" stroke="#DDE6EF" stroke-width="1"/>
+          <text x="87"  y="22" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#64748B">AI CLIENTS</text>
+          <text x="272" y="22" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#64748B">TRANSPORT</text>
+          <text x="496" y="22" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#0B8A67">TOOL MANIFEST</text>
+          <text x="796" y="22" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#64748B">BACKEND</text>
+          <!-- stdio clients -->
+          <rect x="10" y="45"  width="154" height="40" rx="3" fill="#ECFDF5" stroke="#6EE7B7" stroke-width="1"/>
+          <text x="87" y="61"  text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="12" font-weight="600" fill="#065F46">Claude Code</text>
+          <text x="87" y="76"  text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#047857">CLI · IDE extension</text>
+          <rect x="10" y="95"  width="154" height="40" rx="3" fill="#ECFDF5" stroke="#6EE7B7" stroke-width="1"/>
+          <text x="87" y="111" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="12" font-weight="600" fill="#065F46">Claude Desktop</text>
+          <text x="87" y="126" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#047857">macOS · Windows</text>
+          <rect x="10" y="145" width="154" height="40" rx="3" fill="#ECFDF5" stroke="#6EE7B7" stroke-width="1"/>
+          <text x="87" y="161" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="12" font-weight="600" fill="#065F46">Cursor</text>
+          <text x="87" y="176" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#047857">IDE · marketplace</text>
+          <rect x="10" y="195" width="154" height="40" rx="3" fill="#ECFDF5" stroke="#6EE7B7" stroke-width="1"/>
+          <text x="87" y="211" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="12" font-weight="600" fill="#065F46">Codex CLI</text>
+          <text x="87" y="226" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#047857">OpenAI · GPT-5.5</text>
+          <!-- HTTP+OAuth -->
+          <rect x="10" y="245" width="154" height="40" rx="3" fill="#F5F3FF" stroke="#C4B5FD" stroke-width="1"/>
+          <text x="87" y="261" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="12" font-weight="600" fill="#4C1D95">Claude Science</text>
+          <text x="87" y="276" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#5B21B6">Research workbench</text>
+          <!-- REST/webhook -->
+          <rect x="10" y="295" width="154" height="40" rx="3" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
+          <text x="87" y="311" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="12" font-weight="600" fill="#1E293B">ChatGPT</text>
+          <text x="87" y="326" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#475569">Custom GPT</text>
+          <rect x="10" y="345" width="154" height="40" rx="3" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
+          <text x="87" y="361" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="12" font-weight="600" fill="#1E293B">Slack</text>
+          <text x="87" y="376" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#475569">Bot · slash commands</text>
+          <rect x="10" y="395" width="154" height="40" rx="3" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
+          <text x="87" y="411" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="12" font-weight="600" fill="#1E293B">Feishu / Lark</text>
+          <text x="87" y="426" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#475569">Enterprise messaging</text>
+          <!-- TRANSPORT BOXES -->
+          <rect x="178" y="42" width="176" height="196" rx="4" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <text x="266" y="61"  text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="11" font-weight="700" fill="#15803D">stdio · JSON-RPC 2.0</text>
+          <text x="266" y="78"  text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#166534">biomate_mcp_server.py</text>
+          <text x="266" y="94"  text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#166534">Spawned per session</text>
+          <text x="266" y="110" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#166534">BIOMATE_API_KEY env</text>
+          <text x="266" y="126" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#166534">Config: ~/.mcp.json</text>
+          <text x="266" y="154" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" fill="#16A34A">Claude Code · Desktop</text>
+          <text x="266" y="169" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" fill="#16A34A">Cursor · Codex CLI</text>
+          <rect x="178" y="242" width="176" height="50" rx="4" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <text x="266" y="260" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="11" font-weight="700" fill="#6D28D9">Streamable HTTP</text>
+          <text x="266" y="275" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#5B21B6">OAuth 2.1 + PKCE · Claude Science</text>
+          <rect x="178" y="292" width="176" height="148" rx="4" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <text x="266" y="311" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="11" font-weight="700" fill="#475569">REST Actions · Webhook</text>
+          <text x="266" y="328" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#475569">chatgpt_adapter.py</text>
+          <text x="266" y="344" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#475569">openapi.json schema</text>
+          <text x="266" y="360" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#475569">Slack Events API</text>
+          <text x="266" y="376" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#475569">Feishu card messages</text>
+          <text x="266" y="400" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" fill="#64748B">ChatGPT · Slack · Feishu</text>
+          <!-- ARROWS: clients → transports -->
+          <line x1="164" y1="65"  x2="176" y2="100" stroke="#16A34A" stroke-width="1.2" marker-end="url(#arr-grn)"/>
+          <line x1="164" y1="115" x2="176" y2="120" stroke="#16A34A" stroke-width="1.2" marker-end="url(#arr-grn)"/>
+          <line x1="164" y1="165" x2="176" y2="140" stroke="#16A34A" stroke-width="1.2" marker-end="url(#arr-grn)"/>
+          <line x1="164" y1="215" x2="176" y2="160" stroke="#16A34A" stroke-width="1.2" marker-end="url(#arr-grn)"/>
+          <line x1="164" y1="265" x2="176" y2="267" stroke="#7C3AED" stroke-width="1.2" marker-end="url(#arr-pur)"/>
+          <line x1="164" y1="315" x2="176" y2="340" stroke="#94A3B8" stroke-width="1.2" marker-end="url(#arr)"/>
+          <line x1="164" y1="365" x2="176" y2="365" stroke="#94A3B8" stroke-width="1.2" marker-end="url(#arr)"/>
+          <line x1="164" y1="415" x2="176" y2="390" stroke="#94A3B8" stroke-width="1.2" marker-end="url(#arr)"/>
+          <!-- BIOMATE MCP CORE -->
+          <rect x="366" y="42" width="262" height="398" rx="6" fill="#0E1C2F" stroke="#0B8A67" stroke-width="2"/>
+          <text x="497" y="65"  text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" font-weight="700" letter-spacing="1.2" fill="#0B8A67">SINGLE TOOL MANIFEST</text>
+          <text x="497" y="82"  text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="12" fill="#5EC4A8">tools_manifest.py</text>
+          <line x1="378" y1="92" x2="618" y2="92" stroke="#1E3A5F" stroke-width="1"/>
+          <text x="380" y="110" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#34D399">biomate_session</text>
+          <text x="380" y="126" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">search_workflow</text>
+          <text x="380" y="142" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">run_workflow</text>
+          <text x="380" y="158" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">get_run · list_runs · cancel_run</text>
+          <text x="380" y="174" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">get_workflow_spec</text>
+          <text x="380" y="190" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">query_database</text>
+          <text x="380" y="206" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">upload_file · preview_file</text>
+          <text x="380" y="222" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">export_report · analyze_results</text>
+          <text x="380" y="238" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">explain_error · recall_memory</text>
+          <line x1="378" y1="254" x2="618" y2="254" stroke="#1E3A5F" stroke-width="1"/>
+          <text x="497" y="320" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="13" font-weight="600" fill="#60A5FA">dispatch_tool()</text>
+          <text x="497" y="340" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12" fill="#4A7A94">→ BioMateClient</text>
+          <text x="497" y="358" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12" fill="#4A7A94">→ BioMate REST API</text>
+          <text x="497" y="385" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#2D5570">14 tools · single source of truth</text>
+          <text x="497" y="428" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#2A4560">dev-public.biomate.ai</text>
+          <!-- ARROWS: transports → MCP core -->
+          <line x1="354" y1="140" x2="364" y2="196" stroke="#16A34A" stroke-width="1.5" marker-end="url(#arr-grn)"/>
+          <line x1="354" y1="267" x2="364" y2="267" stroke="#7C3AED" stroke-width="1.5" marker-end="url(#arr-pur)"/>
+          <line x1="354" y1="355" x2="364" y2="290" stroke="#94A3B8" stroke-width="1.2" marker-end="url(#arr)"/>
+          <!-- BACKEND COLUMN -->
+          <rect x="640" y="42" width="160" height="136" rx="4" fill="white" stroke="#E2E8F0" stroke-width="1.5"/>
+          <text x="720" y="62"  text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" font-weight="700" letter-spacing="1" fill="#475569">BIOMATE REST API</text>
+          <line x1="650" y1="70" x2="790" y2="70" stroke="#EBF1F7" stroke-width="1"/>
+          <text x="720" y="86"  text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#1E293B">/api/workflows/search</text>
+          <text x="720" y="101" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#1E293B">/api/workflows/execute</text>
+          <text x="720" y="116" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#1E293B">/api/literature/search</text>
+          <text x="720" y="131" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#1E293B">/api/databases/query</text>
+          <text x="720" y="166" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" fill="#94A3B8">dev-public.biomate.ai</text>
+          <rect x="640" y="192" width="160" height="248" rx="4" fill="white" stroke="#E2E8F0" stroke-width="1.5"/>
+          <text x="720" y="212" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" font-weight="700" letter-spacing="1" fill="#475569">COMPUTE</text>
+          <line x1="650" y1="220" x2="790" y2="220" stroke="#EBF1F7" stroke-width="1"/>
+          <text x="720" y="236" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="12" font-weight="600" fill="#1E293B">AWS Batch</text>
+          <text x="720" y="252" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#475569">Nextflow · nf-core</text>
+          <text x="720" y="267" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#475569">2,455 indexed workflows</text>
+          <line x1="650" y1="276" x2="790" y2="276" stroke="#EBF1F7" stroke-width="1"/>
+          <text x="720" y="292" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" fill="#64748B">DESeq2 · nf-core/rnaseq</text>
+          <text x="720" y="308" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" fill="#64748B">nf-core/sarek · CryoSPARC</text>
+          <text x="720" y="324" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" fill="#64748B">ADMET · AlphaFold · PBPK</text>
+          <text x="720" y="340" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" fill="#64748B">nf-core/differentialabundance</text>
+          <rect x="814" y="42" width="152" height="54" rx="4" fill="#FFFBEB" stroke="#D97706" stroke-width="1"/>
+          <text x="890" y="62"  text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" font-weight="700" fill="#B45309">Redis SSE</text>
+          <text x="890" y="78"  text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#92400E">AWS ElastiCache</text>
+          <!-- ARROWS: MCP → REST API, REST API → Compute, REST API → Redis -->
+          <line x1="628" y1="349" x2="638" y2="110" stroke="#0B8A67" stroke-width="1.5" marker-end="url(#arr-grn)"/>
+          <line x1="720" y1="178" x2="720" y2="190" stroke="#CBD5E1" stroke-width="1.2" marker-end="url(#arr)"/>
+          <line x1="800" y1="69"  x2="812" y2="69" stroke="#D97706" stroke-width="1" stroke-dasharray="4,2" marker-end="url(#arr-org)"/>
+        </svg>
+      </div>
+      <p class="arch-caption">Green = MCP protocol paths · Grey = REST/webhook paths · Dashed = async / SSE streaming</p>
 
-        <!-- Column labels -->
-        <text x="74"  y="22" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#5A6E84">AI CLIENTS</text>
-        <text x="282" y="22" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#5A6E84">TRANSPORT</text>
-        <text x="490" y="22" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#0B8A67">BIOMATE MCP</text>
-        <text x="698" y="22" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#5A6E84">BIOMATE API</text>
-        <text x="860" y="22" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#5A6E84">COMPUTE</text>
-        <line x1="10" y1="30" x2="890" y2="30" stroke="#EBF1F7" stroke-width="1"/>
+      <hr class="article-divider"/>
 
-        <!-- AI Client boxes (5 clients, no Codex) -->
-        <rect x="10" y="40"  width="128" height="34" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
-        <text x="74" y="53"  text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" font-weight="600" fill="#0E1C2F">Claude Code</text>
-        <text x="74" y="66"  text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" fill="#3d5a72">CLI · IDE extension</text>
+      <!-- ── The manifest ──────────────────────────────────────────────────── -->
+      <span class="section-label">Design principle</span>
+      <h2>The manifest is the contract</h2>
+      <p>
+        Everything starts with <code>mcp/tools_manifest.py</code>. Each tool is a
+        <code>ToolSchema</code> dataclass: name, description, JSON Schema input, backend
+        path, and MCP annotation hints (<code>read_only_hint</code>,
+        <code>open_world_hint</code>, etc.). The manifest has one job — describe the tools
+        precisely enough that any surface can render them correctly.
+      </p>
+      <p>From that manifest, three things are generated automatically:</p>
+      <ul>
+        <li><strong>MCP stdio tool list</strong> — returned verbatim in the <code>tools/list</code> response</li>
+        <li><strong>OpenAPI paths</strong> — one path per tool, consumed by ChatGPT Actions and the Coze plugin</li>
+        <li><strong>Remote MCP tool defs</strong> — the Streamable HTTP endpoint builds its <code>Server</code> from the same manifest at startup</li>
+      </ul>
+      <p>
+        Adding a new tool means adding one <code>ToolSchema</code> entry. Every surface
+        picks it up on next restart, with no changes to adapter code.
+      </p>
+      <div class="callout">
+        <strong>Single source of truth</strong>
+        <p>The 19-tool surface is defined once. The only per-surface variation is the transport layer
+        and the scope mapping in <code>remote_mcp/server.py</code> — which OAuth scope is required
+        to call each tool.</p>
+      </div>
 
-        <rect x="10" y="82"  width="128" height="34" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
-        <text x="74" y="95"  text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" font-weight="600" fill="#0E1C2F">Claude Desktop</text>
-        <text x="74" y="108" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" fill="#3d5a72">macOS · Windows</text>
+      <hr class="article-divider"/>
 
-        <rect x="10" y="124" width="128" height="34" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
-        <text x="74" y="137" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" font-weight="600" fill="#0E1C2F">ChatGPT</text>
-        <text x="74" y="150" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" fill="#3d5a72">Custom GPT + Actions</text>
+      <!-- ── The 14 tools ──────────────────────────────────────────────────── -->
+      <span class="section-label">Tools</span>
+      <h2>14 tools across five categories</h2>
+      <div class="tool-table-wrap">
+        <table>
+          <thead>
+            <tr><th>Tool</th><th>Category</th><th>What it does</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>biomate_session</td><td><span class="dim">Session</span></td><td>End-to-end: natural language → workflow selection → execution → findings. The only tool most users need.</td></tr>
+            <tr><td>search_workflow</td><td><span class="dim">Catalog</span></td><td>Semantic search across 2,455 indexed workflows.</td></tr>
+            <tr><td>get_workflow_spec</td><td><span class="dim">Catalog</span></td><td>Returns parameter schema for a specific workflow.</td></tr>
+            <tr><td>run_workflow</td><td><span class="dim">Execution</span></td><td>Execute a workflow by ID with explicit parameters. Pass <code>stream: true</code> for inline phase/step progress.</td></tr>
+            <tr><td>get_run</td><td><span class="dim">Execution</span></td><td>Poll status + phases + steps + findings + output files for any run ID.</td></tr>
+            <tr><td>cancel_run</td><td><span class="dim">Execution</span></td><td>Cancel a queued or running AWS Batch job.</td></tr>
+            <tr><td>list_runs</td><td><span class="dim">Execution</span></td><td>List recent runs with status, workflow name, timestamps.</td></tr>
+            <tr><td>query_database</td><td><span class="dim">Knowledge</span></td><td>Federated fan-out to UniProt, PDB, NCBI Gene, ClinVar, gnomAD, KEGG, ChEMBL, and more.</td></tr>
+            <tr><td>upload_file</td><td><span class="dim">Data</span></td><td>Get a presigned S3 PUT URL for files &gt;5 MB.</td></tr>
+            <tr><td>preview_file</td><td><span class="dim">Output</span></td><td>Return the first N lines / thumbnail of an output file.</td></tr>
+            <tr><td>analyze_results</td><td><span class="dim">Output</span></td><td>AI interpretation of run outputs and QC metrics.</td></tr>
+            <tr><td>export_report</td><td><span class="dim">Output</span></td><td>Generate and download a PDF/DOCX findings report.</td></tr>
+            <tr><td>explain_error</td><td><span class="dim">Output</span></td><td>Diagnose a failed run from its error log.</td></tr>
+            <tr><td>recall_memory</td><td><span class="dim">Memory</span></td><td>Retrieve prior runs, validated procedures, and learned preferences for the current user.</td></tr>
+          </tbody>
+        </table>
+      </div>
 
-        <rect x="10" y="166" width="128" height="34" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
-        <text x="74" y="179" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" font-weight="600" fill="#0E1C2F">Slack</text>
-        <text x="74" y="192" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" fill="#3d5a72">Bot · slash commands</text>
+      <hr class="article-divider"/>
 
-        <rect x="10" y="208" width="128" height="34" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
-        <text x="74" y="221" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="10" font-weight="600" fill="#0E1C2F">Feishu / Lark</text>
-        <text x="74" y="234" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" fill="#3d5a72">Enterprise messaging</text>
-
-        <!-- Transport: stdio (Claude Code + Claude Desktop) -->
-        <rect x="172" y="40" width="160" height="88" fill="#F0F7F4" stroke="#0B8A67" stroke-width="1" stroke-dasharray="4,3"/>
-        <text x="252" y="57"  text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="9" font-weight="700" fill="#0B8A67">stdio · JSON-RPC 2.0</text>
-        <text x="252" y="71"  text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" fill="#3d5a72">biomate_mcp_server.py</text>
-        <text x="252" y="84"  text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" fill="#3d5a72">BIOMATE_API_URL + API key</text>
-        <text x="252" y="97"  text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" fill="#3d5a72">~/.mcp.json · spawned per session</text>
-        <text x="252" y="118" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#0B8A67">↕ Claude Code · Claude Desktop</text>
-
-        <!-- Transport: REST Actions (ChatGPT / Slack / Feishu) -->
-        <rect x="172" y="140" width="160" height="102" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
-        <text x="252" y="157" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="9" font-weight="700" fill="#0E1C2F">REST Actions · OAuth 2.0</text>
-        <text x="252" y="171" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" fill="#3d5a72">chatgpt_adapter.py · /tools/* routes</text>
-        <text x="252" y="184" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" fill="#3d5a72">openapi.json · Slack event webhooks</text>
-        <text x="252" y="197" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" fill="#3d5a72">Feishu card messages + callbacks</text>
-        <text x="252" y="231" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#5A6E84">↕ ChatGPT · Slack · Feishu</text>
-
-        <!-- Arrows: clients → transports -->
-        <line x1="138" y1="57"  x2="170" y2="72"  stroke="#C8D6E3" stroke-width="1" marker-end="url(#arr)"/>
-        <line x1="138" y1="99"  x2="170" y2="88"  stroke="#C8D6E3" stroke-width="1" marker-end="url(#arr)"/>
-        <line x1="138" y1="141" x2="170" y2="170" stroke="#C8D6E3" stroke-width="1" marker-end="url(#arr)"/>
-        <line x1="138" y1="183" x2="170" y2="195" stroke="#C8D6E3" stroke-width="1" marker-end="url(#arr)"/>
-        <line x1="138" y1="225" x2="170" y2="215" stroke="#C8D6E3" stroke-width="1" marker-end="url(#arr)"/>
-
-        <!-- BioMate MCP core box -->
-        <rect x="380" y="40" width="220" height="242" fill="#0E1C2F" stroke="#0B8A67" stroke-width="1.5"/>
-        <text x="490" y="60"  text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="1" fill="#0B8A67">TOOL MANIFEST</text>
-        <text x="490" y="75"  text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8.5" fill="#8BB8CC">tools_manifest.py</text>
-        <line x1="390" y1="83" x2="590" y2="83" stroke="#19283A" stroke-width="1"/>
-        <text x="395" y="97"  font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#6FD4A8">biomate_session</text>
-        <text x="395" y="110" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">search_workflow · run_workflow</text>
-        <text x="395" y="123" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">watch_run · get_run · list_runs</text>
-        <text x="395" y="136" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">cancel_run · search_literature</text>
-        <text x="395" y="149" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">query_database · resolve_accession</text>
-        <text x="395" y="162" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">browse_data · fetch_public_data</text>
-        <text x="395" y="175" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">upload_file · preview_file</text>
-        <text x="395" y="188" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">export_report · analyze_results</text>
-        <text x="395" y="201" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#8BB8CC">explain_error · recall_memory</text>
-        <line x1="390" y1="212" x2="590" y2="212" stroke="#19283A" stroke-width="1"/>
-        <text x="490" y="226" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#4A6478">dispatch_tool() → BioMateClient</text>
-        <text x="490" y="238" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#4A6478">19 tools · single source of truth</text>
-        <text x="490" y="273" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#4A6478">app.biomate.ai</text>
-
-        <!-- Arrows: transports → MCP core -->
-        <line x1="332" y1="84"  x2="378" y2="130" stroke="#0B8A67" stroke-width="1.5" marker-end="url(#arr-acc)"/>
-        <line x1="332" y1="191" x2="378" y2="180" stroke="#C8D6E3" stroke-width="1"   marker-end="url(#arr)"/>
-
-        <!-- BioMate API box -->
-        <rect x="628" y="40" width="148" height="104" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
-        <text x="702" y="57"  text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="1" fill="#5A6E84">BIOMATE API</text>
-        <text x="702" y="72"  text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#0E1C2F">app.biomate.ai</text>
-        <line x1="638" y1="80" x2="766" y2="80" stroke="#EBF1F7" stroke-width="1"/>
-        <text x="702" y="93"  text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#5A6E84">/api/workflows/search</text>
-        <text x="702" y="105" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#5A6E84">/api/workflows/execute</text>
-        <text x="702" y="117" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#5A6E84">/api/literature/search</text>
-        <text x="702" y="129" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#5A6E84">/api/databases/query</text>
-
-        <!-- Compute box -->
-        <rect x="628" y="158" width="148" height="124" fill="#F5F8FB" stroke="#C8D6E3" stroke-width="1"/>
-        <text x="702" y="175" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="1" fill="#5A6E84">COMPUTE</text>
-        <line x1="638" y1="183" x2="766" y2="183" stroke="#EBF1F7" stroke-width="1"/>
-        <text x="702" y="197" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#0E1C2F">AWS Batch</text>
-        <text x="702" y="210" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#5A6E84">Nextflow · nf-core workflows</text>
-        <text x="702" y="223" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" fill="#5A6E84">2,455 indexed workflows</text>
-        <text x="702" y="239" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#5A6E84">DESeq2 · nf-core/rnaseq</text>
-        <text x="702" y="252" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#5A6E84">nf-core/sarek · CryoSPARC</text>
-        <text x="702" y="265" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="8" fill="#5A6E84">ADMET · AlphaFold · PBPK</text>
-
-        <!-- Arrows: MCP core → API, API → Compute -->
-        <line x1="600" y1="140" x2="626" y2="92"  stroke="#0B8A67" stroke-width="1.5" marker-end="url(#arr-acc)"/>
-        <line x1="702" y1="144" x2="702" y2="156" stroke="#C8D6E3" stroke-width="1"   marker-end="url(#arr)"/>
-
-        <!-- Redis SSE annotation -->
-        <rect x="820" y="40" width="72" height="40" fill="#FFF8F0" stroke="#B45309" stroke-width="1"/>
-        <text x="856" y="55" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" font-weight="700" fill="#B45309">Redis SSE</text>
-        <text x="856" y="68" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="7.5" fill="#B45309">ElastiCache</text>
-        <line x1="776" y1="60" x2="818" y2="60" stroke="#B45309" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr)"/>
-      </svg>
-    </div>
-    <p style="font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; color: var(--mid); margin-top: 0.6rem; text-align: center;">
-      Green borders = MCP protocol paths. Grey borders = REST/webhook paths. Dashed = async / SSE streaming.
-    </p>
-  </div>
-
-  <!-- ── The manifest ───────────────────────────────────────────────── -->
-  <div class="section article-col">
-    <p class="section-label">Design principle</p>
-    <h2>The manifest is the contract</h2>
-    <p>
-      Everything starts with <code>mcp/tools_manifest.py</code>. Each tool is a
-      <code>ToolSchema</code> dataclass: name, description, JSON Schema input, backend
-      path, and MCP annotation hints (<code>read_only_hint</code>,
-      <code>open_world_hint</code>, etc.). The manifest has one job — describe the tools
-      precisely enough that any surface can render them correctly.
-    </p>
-    <p>
-      From that manifest, three things are generated automatically:
-    </p>
-    <ul style="margin: 0.75rem 0 1rem 1.5rem; line-height: 1.8;">
-      <li><strong>MCP stdio tool list</strong> — returned verbatim in the <code>tools/list</code> response</li>
-      <li><strong>OpenAPI paths</strong> — one path per tool, consumed by ChatGPT Actions and the Coze plugin</li>
-      <li><strong>Remote MCP tool defs</strong> — the Streamable HTTP endpoint builds its <code>Server</code> from the same manifest at startup</li>
-    </ul>
-    <p>
-      Adding a new tool means adding one <code>ToolSchema</code> entry. Every surface
-      picks it up on next restart, with no changes to adapter code.
-    </p>
-
-    <div class="callout">
-      <strong>Single source of truth:</strong> the 19-tool surface is defined once.
-      The only per-surface variation is the transport layer and the scope mapping in
-      <code>remote_mcp/server.py</code> — which OAuth scope is required to call each tool.
-    </div>
-  </div>
-
-  <!-- ── The 19 tools ───────────────────────────────────────────────── -->
-  <div class="section">
-    <div class="article-col" style="margin-bottom: 1rem;">
-      <p class="section-label">Tools</p>
-      <h2>19 tools across five categories</h2>
-    </div>
-    <div class="tool-table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Tool</th>
-            <th>Category</th>
-            <th>What it does</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>biomate_session</td><td><span class="dim">Session</span></td><td>End-to-end: natural language → workflow selection → execution → findings. The only tool most users need.</td></tr>
-          <tr><td>search_workflow</td><td><span class="dim">Catalog</span></td><td>Semantic search across 2,455 indexed workflows.</td></tr>
-          <tr><td>get_workflow_spec</td><td><span class="dim">Catalog</span></td><td>Returns parameter schema for a specific workflow.</td></tr>
-          <tr><td>run_workflow</td><td><span class="dim">Execution</span></td><td>Execute a workflow by ID with explicit parameters.</td></tr>
-          <tr><td>watch_run</td><td><span class="dim">Execution</span></td><td>Stream phase/step progress from a running job until completion.</td></tr>
-          <tr><td>get_run</td><td><span class="dim">Execution</span></td><td>Poll status + latest findings for any run ID.</td></tr>
-          <tr><td>cancel_run</td><td><span class="dim">Execution</span></td><td>Cancel a queued or running AWS Batch job.</td></tr>
-          <tr><td>list_runs</td><td><span class="dim">Execution</span></td><td>List recent runs with status, workflow name, timestamps.</td></tr>
-          <tr><td>search_literature</td><td><span class="dim">Knowledge</span></td><td>Iterative depth-loop across PubMed, EuropePMC, Semantic Scholar, OpenAlex.</td></tr>
-          <tr><td>query_database</td><td><span class="dim">Knowledge</span></td><td>Federated fan-out to UniProt, PDB, NCBI Gene, ClinVar, gnomAD, KEGG, ChEMBL, and more.</td></tr>
-          <tr><td>resolve_accession</td><td><span class="dim">Knowledge</span></td><td>Identify GEO/SRA/ENA accessions and return the matching BioMate workflow.</td></tr>
-          <tr><td>browse_data</td><td><span class="dim">Data</span></td><td>Browse EBI FTP, NCBI FTP, Ensembl, UCSC, or S3 workspace by prefix.</td></tr>
-          <tr><td>fetch_public_data</td><td><span class="dim">Data</span></td><td>Stage a public file into the BioMate workspace.</td></tr>
-          <tr><td>upload_file</td><td><span class="dim">Data</span></td><td>Get a presigned S3 PUT URL for files &gt;5 MB.</td></tr>
-          <tr><td>preview_file</td><td><span class="dim">Output</span></td><td>Return the first N lines / thumbnail of an output file.</td></tr>
-          <tr><td>analyze_results</td><td><span class="dim">Output</span></td><td>AI interpretation of run outputs and QC metrics.</td></tr>
-          <tr><td>export_report</td><td><span class="dim">Output</span></td><td>Generate and download a PDF/DOCX findings report.</td></tr>
-          <tr><td>explain_error</td><td><span class="dim">Output</span></td><td>Diagnose a failed run from its error log.</td></tr>
-          <tr><td>recall_memory</td><td><span class="dim">Memory</span></td><td>Retrieve prior runs, validated procedures, and learned preferences for the current user.</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ── Surface breakdown ───────────────────────────────────────────── -->
-  <div class="section">
-    <div class="article-col" style="margin-bottom: 1.25rem;">
-      <p class="section-label">Surfaces</p>
-      <h2>Six surfaces, two transport families</h2>
+      <!-- ── Surface breakdown ─────────────────────────────────────────────── -->
+      <span class="section-label">Surfaces</span>
+      <h2>Eight surfaces, two transport families</h2>
       <p>
         Every surface routes through the same tool manifest. What differs is how the
         call arrives — and how the response is presented back to the user.
       </p>
-    </div>
-    <div class="surface-grid">
+      <div class="surface-grid">
 
-      <div class="surface-card">
-        <div class="surface-card-head">
-          <div class="surface-icon">CC</div>
-          <h3>Claude Code</h3>
+        <div class="surface-card">
+          <div class="surface-card-head">
+            <div class="surface-icon">CC</div>
+            <h3>Claude Code</h3>
+          </div>
+          <p class="surface-transport">stdio · JSON-RPC 2.0</p>
+          <p>The reference implementation. <code>biomate_mcp_server.py</code> is spawned as a child process by Claude Code. No server required — the binary reads stdin, writes stdout. Configuration is two lines in <code>.mcp.json</code>: <code>BIOMATE_API_URL</code> and <code>BIOMATE_API_KEY</code>.</p>
         </div>
-        <p class="surface-transport">stdio · JSON-RPC 2.0</p>
-        <p>The reference implementation. <code>biomate_mcp_server.py</code> is spawned as a child process by Claude Code. No server required — the binary reads stdin, writes stdout. Configuration is two lines in <code>.mcp.json</code>: <code>BIOMATE_API_URL</code> and <code>BIOMATE_API_KEY</code>.</p>
+
+        <div class="surface-card">
+          <div class="surface-card-head">
+            <div class="surface-icon">CD</div>
+            <h3>Claude Desktop</h3>
+          </div>
+          <p class="surface-transport">stdio · JSON-RPC 2.0</p>
+          <p>Same stdio transport as Claude Code. The installer writes the server entry into <code>~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS) or <code>%APPDATA%\Claude\claude_desktop_config.json</code> (Windows). Restart the app to pick up the new server.</p>
+        </div>
+
+        <div class="surface-card">
+          <div class="surface-card-head">
+            <div class="surface-icon">CS</div>
+            <h3>Claude Science</h3>
+          </div>
+          <p class="surface-transport">Streamable HTTP · OAuth 2.1 + PKCE</p>
+          <p>Anthropic's scientific research workbench (launched June 2026) requires HTTPS and a full OAuth 2.1 + PKCE flow for remote MCP endpoints. The <code>remote_mcp/</code> package handles Dynamic Client Registration, per-user API key issuance, and bearer token validation. Endpoint: <code>dev-public.biomate.ai/mcp</code>.</p>
+        </div>
+
+        <div class="surface-card">
+          <div class="surface-card-head">
+            <div class="surface-icon">CU</div>
+            <h3>Cursor</h3>
+          </div>
+          <p class="surface-transport">stdio · JSON-RPC 2.0</p>
+          <p>Cursor's full MCP support (available since late 2025) lets BioMate appear alongside code tools in the IDE. Install via <code>npx @biomate/connect cursor</code> or add it manually in Cursor Settings → MCP. Runs as a stdio child process — same <code>biomate_mcp_server.py</code> binary as Claude Code, zero additional infrastructure.</p>
+        </div>
+
+        <div class="surface-card">
+          <div class="surface-card-head">
+            <div class="surface-icon">CX</div>
+            <h3>Codex CLI</h3>
+          </div>
+          <p class="surface-transport">stdio · JSON-RPC 2.0</p>
+          <p>OpenAI's Codex CLI (2026, backed by GPT-5.5) supports MCP over stdio with 90+ community plugins. Run <code>npx @biomate/connect codex</code> to write the server entry into <code>~/.codex/config.yaml</code>. Once active, Codex can search BioMate workflows, submit Batch jobs, and stream run updates entirely from the terminal.</p>
+        </div>
+
+        <div class="surface-card">
+          <div class="surface-card-head">
+            <div class="surface-icon">GP</div>
+            <h3>ChatGPT</h3>
+          </div>
+          <p class="surface-transport">REST Actions · OpenAPI 3.1</p>
+          <p>A Custom GPT calls <code>chatgpt_adapter.py</code> via the OpenAPI Actions schema. The adapter is a thin Flask server that translates ChatGPT's synchronous REST calls into BioMate API calls — including polling <code>biomate_session</code> to completion before returning, since ChatGPT has no streaming transport.</p>
+        </div>
+
+        <div class="surface-card">
+          <div class="surface-card-head">
+            <div class="surface-icon">SL</div>
+            <h3>Slack</h3>
+          </div>
+          <p class="surface-transport">Webhook · Events API</p>
+          <p>A Slack bot subscribes to app mentions and slash commands. Messages are forwarded to BioMate's <code>/api/chat/stream</code> SSE endpoint; responses are posted back as threaded replies. Workflow execution updates stream into the thread as the Batch job progresses.</p>
+        </div>
+
+        <div class="surface-card">
+          <div class="surface-card-head">
+            <div class="surface-icon">FS</div>
+            <h3>Feishu / Lark</h3>
+          </div>
+          <p class="surface-transport">Webhook · Card message API</p>
+          <p>Same pattern as Slack with Feishu's card message format for structured output. Used by several biotech teams in China where Feishu is the primary enterprise collaboration tool. Supports interactive cards for workflow parameter confirmation before execution.</p>
+        </div>
+
       </div>
 
-      <div class="surface-card">
-        <div class="surface-card-head">
-          <div class="surface-icon">CD</div>
-          <h3>Claude Desktop</h3>
-        </div>
-        <p class="surface-transport">stdio · JSON-RPC 2.0</p>
-        <p>Same stdio transport as Claude Code. The installer writes the server entry into <code>~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS) or <code>%APPDATA%\Claude\claude_desktop_config.json</code> (Windows). Restart the app to pick up the new server.</p>
-      </div>
+      <hr class="article-divider"/>
 
-      <div class="surface-card">
-        <div class="surface-card-head">
-          <div class="surface-icon">CS</div>
-          <h3>Claude Science</h3>
-        </div>
-        <p class="surface-transport">Streamable HTTP · OAuth 2.1 + PKCE</p>
-        <p>Anthropic's scientific research workbench (launched June 2026) requires HTTPS and a full OAuth 2.1 + PKCE flow for remote MCP endpoints. The <code>remote_mcp/</code> package handles Dynamic Client Registration, per-user API key issuance, and bearer token validation. Endpoint: <code>dev-public.biomate.ai/mcp</code>.</p>
-      </div>
+      <!-- ── Quick start ────────────────────────────────────────────────────── -->
+      <span class="section-label">Get started</span>
+      <h2>Up in two minutes with Claude Code</h2>
+      <p>The fastest path — no OAuth, no server, no ngrok:</p>
 
-      <div class="surface-card">
-        <div class="surface-card-head">
-          <div class="surface-icon">GP</div>
-          <h3>ChatGPT</h3>
-        </div>
-        <p class="surface-transport">REST Actions · OpenAPI 3.1</p>
-        <p>A Custom GPT calls <code>chatgpt_adapter.py</code> via the OpenAPI Actions schema. The adapter is a thin Flask server that translates ChatGPT's synchronous REST calls into BioMate API calls — including polling <code>biomate_session</code> to completion before returning, since ChatGPT has no streaming transport.</p>
-      </div>
+      <h3>1. Get an API key</h3>
+      <p>Log in at <code>biomate.ai</code> → Settings → API Keys → Create key. The key looks like <code>bm_live_…</code>.</p>
 
-      <div class="surface-card">
-        <div class="surface-card-head">
-          <div class="surface-icon">SL</div>
-          <h3>Slack</h3>
-        </div>
-        <p class="surface-transport">Webhook · Events API</p>
-        <p>A Slack bot subscribes to app mentions and slash commands. Messages are forwarded to BioMate's <code>/api/chat/stream</code> SSE endpoint; responses are posted back as threaded replies. Workflow execution updates stream into the thread as the Batch job progresses.</p>
-      </div>
-
-      <div class="surface-card">
-        <div class="surface-card-head">
-          <div class="surface-icon">FS</div>
-          <h3>Feishu / Lark</h3>
-        </div>
-        <p class="surface-transport">Webhook · Card message API</p>
-        <p>Same pattern as Slack with Feishu's card message format for structured output. Used by several biotech teams in China where Feishu is the primary enterprise collaboration tool. Supports interactive cards for workflow parameter confirmation before execution.</p>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ── Quick start ─────────────────────────────────────────────────── -->
-  <div class="section article-col">
-    <p class="section-label">Get started</p>
-    <h2>Up in two minutes with Claude Code</h2>
-    <p>
-      The fastest path — no OAuth, no server, no ngrok:
-    </p>
-
-    <h3>1. Get an API key</h3>
-    <p>
-      Log in at <code>biomate.ai</code> → Settings → API Keys → Create key.
-      The key looks like <code>bm_live_…</code>.
-    </p>
-
-    <h3>2. Add to your MCP config</h3>
-    <pre><span class="c">// ~/.mcp.json</span>
+      <h3>2. Add to your MCP config</h3>
+      <pre><span class="c">// ~/.mcp.json</span>
 {
   <span class="s">"mcpServers"</span>: {
     <span class="s">"biomate"</span>: {
@@ -840,8 +622,8 @@
   }
 }</pre>
 
-    <h3>3. Try it</h3>
-    <pre><span class="c"># In Claude Code</span>
+      <h3>3. Try it</h3>
+      <pre><span class="c"># In Claude Code</span>
 <span class="n">You:</span> Run DESeq2 differential expression on the FASTQs in
       s3://biomate-demo/rnaseq/, treated vs control, GRCh38.
       Show the top 20 genes when done.
@@ -850,8 +632,8 @@
 <span class="c"># submits to AWS Batch, streams phase updates back via watch_run,</span>
 <span class="c"># and returns ranked DE genes with log2FC + adjusted p-values.</span></pre>
 
-    <h3>Dev mode (against a local or staging backend)</h3>
-    <pre><span class="c">// Point at any BioMate instance — no npm package needed</span>
+      <h3>Dev mode (against a local or staging backend)</h3>
+      <pre><span class="c">// Point at any BioMate instance — no npm package needed</span>
 {
   <span class="s">"mcpServers"</span>: {
     <span class="s">"biomate-dev"</span>: {
@@ -864,22 +646,69 @@
     }
   }
 }</pre>
-  </div>
 
-  <!-- ── Footer ─────────────────────────────────────────────────────── -->
-  <footer class="article-footer">
-    <div class="article-footer-inner">
-      <div class="footer-copy">
-        BioMate is a cloud execution engine for bioinformatics, drug discovery, and clinical workflows.
-        The connector layer is MIT-licensed and open to contribution.
-        Found a bug or want to add a surface? Open an issue or PR.
+      <div class="callout">
+        <strong>Full documentation</strong>
+        <p>Install guides for all eight surfaces, authentication reference, and the complete tool
+        reference are at <a href="connectors.html">biomate.ai/connectors</a>.</p>
       </div>
-      <div class="footer-links">
-        <a href="https://github.com/bioMate-AI/biomate-connector" target="_blank" rel="noopener">github.com/bioMate-AI/biomate-connector</a>
-        <a href="https://biomate.ai/connectors">biomate.ai/connectors</a>
-        <a href="https://biomate.ai">biomate.ai</a>
+
+    </div><!-- /.article-body -->
+  </article>
+
+  <!-- ── Sidebar ──────────────────────────────────────────────────────────── -->
+  <aside>
+
+    <div class="sidebar-widget">
+      <h3>Related Posts</h3>
+      <ul class="sidebar-list">
+        <li>
+          <a href="blog-databases.html">BioMate's 60+ Live Database Connections</a>
+          <div class="meta">Jul 2026 · Platform Architecture</div>
+        </li>
+        <li>
+          <a href="benchmarks.html">BioMate Benchmark Results</a>
+          <div class="meta">Research · Performance</div>
+        </li>
+        <li>
+          <a href="tutorials.html">Tutorials</a>
+          <div class="meta">Guides · Getting started</div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">MCP</span>
+        <span class="topic-chip">Claude Code</span>
+        <span class="topic-chip">Connectors</span>
+        <span class="topic-chip">RNA-seq</span>
+        <span class="topic-chip">AWS Batch</span>
+        <span class="topic-chip">Nextflow</span>
+        <span class="topic-chip">Biomedical Research</span>
+        <span class="topic-chip">Drug Discovery</span>
       </div>
     </div>
-  </footer>
 
-</div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem; color:var(--text-muted); margin-bottom:1rem;">Run this workflow from Claude Code in under 2 minutes.</p>
+      <a href="https://dev-public.biomate.ai/register" class="btn btn-primary">Start free &rarr;</a>
+    </div>
+
+    <div class="sidebar-widget">
+      <h3>GitHub</h3>
+      <p style="font-size:.84rem; color:var(--text-muted); margin-bottom:.75rem;">The connector is open source and MIT-licensed.</p>
+      <a href="https://github.com/bioMate-AI/biomate-connector" target="_blank" rel="noopener" style="font-size:.84rem; font-weight:600;">bioMate-AI/biomate-connector &rarr;</a>
+    </div>
+
+  </aside>
+
+</div><!-- /.article-outer -->
+</div><!-- /.bm-blog -->
+<div id="bm-foot"></div>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'blog' });</script>
+</body>
+</html>

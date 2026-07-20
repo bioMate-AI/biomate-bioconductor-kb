@@ -1,5 +1,127 @@
-<title>BioMate Connectors — Connect Any AI Client to BioMate</title>
-<style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>BioMate Connectors — MCP Server for Claude Code, Cursor, Codex CLI &amp; More</title>
+  <meta name="description" content="Official BioMate MCP connector documentation. Connect Claude Code, Claude Desktop, Claude Science, Cursor, Codex CLI, ChatGPT, Slack, and Feishu to BioMate's 2,455 biomedical research pipelines. Includes install guides, API reference, and auth setup."/>
+  <meta name="keywords" content="BioMate MCP server, Model Context Protocol biomedical research, Claude Code RNA-seq, Cursor biomedical research MCP, Codex CLI biomedical, ChatGPT biomedical workflows, MCP tools biomedical, AWS Batch Nextflow MCP, BioMate API"/>
+  <meta name="author" content="BioMate AI"/>
+  <link rel="canonical" href="https://biomate.ai/connectors.html"/>
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website"/>
+  <meta property="og:title"       content="BioMate Connectors — MCP Server for Claude Code, Cursor, Codex CLI &amp; More"/>
+  <meta property="og:description" content="Connect any AI client to BioMate's biomedical research execution engine. One MCP server, 14 tools, 2,455 pipelines. Supports Claude Code, Claude Science, Cursor, Codex CLI, ChatGPT, Slack, and Feishu."/>
+  <meta property="og:url"         content="https://biomate.ai/connectors.html"/>
+  <meta property="og:image"       content="https://biomate.ai/images/biomate-logo-512.png"/>
+  <meta property="og:site_name"   content="BioMate AI"/>
+
+  <!-- Twitter card -->
+  <meta name="twitter:card"        content="summary_large_image"/>
+  <meta name="twitter:site"        content="@biomateai"/>
+  <meta name="twitter:title"       content="BioMate MCP Connector Docs"/>
+  <meta name="twitter:description" content="Connect Claude Code, Cursor, Codex CLI, ChatGPT, Slack, and Feishu to 2,455 biomedical research pipelines via BioMate's MCP server."/>
+  <meta name="twitter:image"       content="https://biomate.ai/images/biomate-logo-512.png"/>
+
+  <!-- Structured data: SoftwareApplication + HowTo + FAQPage (GEO) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "name": "BioMate MCP Server",
+        "description": "An MCP (Model Context Protocol) server that connects AI clients — including Claude Code, Claude Science, Cursor, and Codex CLI — to BioMate's biomedical research execution engine. Provides 14 tools for searching, executing, and monitoring 2,455 biomedical pipelines running on AWS Batch via Nextflow.",
+        "url": "https://biomate.ai/connectors.html",
+        "applicationCategory": "Scientific Software",
+        "applicationSubCategory": "Biomedical Research Tools",
+        "operatingSystem": "macOS, Windows, Linux",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "publisher": { "@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai" },
+        "downloadUrl": "https://www.npmjs.com/package/@biomate/mcp-server",
+        "softwareVersion": "1.0",
+        "featureList": [
+          "stdio JSON-RPC 2.0 transport for Claude Code, Claude Desktop, Cursor, Codex CLI",
+          "Streamable HTTP + OAuth 2.1 + PKCE for Claude Science",
+          "REST Actions and webhooks for ChatGPT, Slack, Feishu",
+          "14 MCP tools: biomate_session, search_workflow, run_workflow, get_run, cancel_run, list_runs, get_workflow_spec, preview_file, export_report, analyze_results, explain_error, query_database, recall_memory, upload_file",
+          "2,455 indexed biomedical research workflows on AWS Batch",
+          "Real-time SSE streaming of run progress"
+        ]
+      },
+      {
+        "@type": "HowTo",
+        "name": "How to connect Claude Code to BioMate via MCP",
+        "description": "Install the BioMate MCP server for Claude Code to run biomedical research workflows from the command line.",
+        "estimatedCost": { "@type": "MonetaryAmount", "currency": "USD", "value": "0" },
+        "totalTime": "PT2M",
+        "step": [
+          { "@type": "HowToStep", "name": "Get a BioMate API key", "text": "Log in at biomate.ai → Settings → API Keys → Create key. The key looks like bm_live_…" },
+          { "@type": "HowToStep", "name": "Install the connector", "text": "Run: npx @biomate/connect claude-code" },
+          { "@type": "HowToStep", "name": "Set environment variable", "text": "Set BIOMATE_API_KEY=your_key_here in your shell profile or in the .mcp.json env block." },
+          { "@type": "HowToStep", "name": "Verify the connection", "text": "Open Claude Code and ask: 'Search BioMate for RNA-seq differential expression workflows.' Claude Code will call search_workflow and return matching pipelines." }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What is BioMate's MCP connector?",
+            "acceptedAnswer": { "@type": "Answer", "text": "BioMate's MCP connector is a Model Context Protocol server that exposes 14 tools for biomedical research. It lets AI clients — Claude Code, Claude Desktop, Claude Science, Cursor, Codex CLI, ChatGPT, Slack, and Feishu — search, configure, and execute biomedical research pipelines on BioMate's AWS Batch infrastructure. The connector uses a single canonical tool manifest (tools_manifest.py) shared across all surfaces." }
+          },
+          {
+            "@type": "Question",
+            "name": "What MCP tools does BioMate expose?",
+            "acceptedAnswer": { "@type": "Answer", "text": "BioMate exposes 14 MCP tools: biomate_session (end-to-end streaming orchestration), search_workflow, get_workflow_spec, run_workflow, get_run, cancel_run, list_runs, preview_file, export_report, analyze_results, explain_error, query_database, recall_memory, and upload_file." }
+          },
+          {
+            "@type": "Question",
+            "name": "What transports does the BioMate MCP server support?",
+            "acceptedAnswer": { "@type": "Answer", "text": "BioMate supports three MCP transports: (1) stdio JSON-RPC 2.0 for Claude Code, Claude Desktop, Cursor IDE, and Codex CLI — the server binary is spawned as a child process with BIOMATE_API_KEY set as an environment variable; (2) Streamable HTTP with OAuth 2.1 + PKCE for Claude Science, requiring the remote_mcp/ package; (3) REST Actions and webhooks for ChatGPT Custom GPTs, Slack bots, and Feishu/Lark, using chatgpt_adapter.py and the openapi.json schema." }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I install BioMate for Cursor IDE?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Run: npx @biomate/connect cursor. This writes the BioMate MCP server entry into Cursor's MCP configuration. Cursor has full MCP stdio support since late 2025. The server uses the same biomate_mcp_server.py binary as Claude Code — no additional infrastructure is needed." }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I install BioMate for Codex CLI?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Run: npx @biomate/connect codex. This writes the BioMate MCP server entry into ~/.codex/config.yaml. Codex CLI (OpenAI, 2026, backed by GPT-5.5) supports MCP over stdio. Once configured, Codex can search workflows, submit AWS Batch jobs, and stream run updates from the terminal." }
+          },
+          {
+            "@type": "Question",
+            "name": "What biomedical research pipelines can I run via BioMate's MCP connector?",
+            "acceptedAnswer": { "@type": "Answer", "text": "BioMate has 2,455 indexed pipelines accessible via MCP across 34 domains: RNA-seq differential expression (DESeq2, nf-core/rnaseq), whole-genome sequencing variant calling (nf-core/sarek, GATK4, DeepVariant), ADMET drug property prediction, single-cell RNA-seq (Seurat, Scanpy), protein structure prediction (AlphaFold), molecular docking (AutoDock Vina), cryo-EM single-particle analysis (CryoSPARC), PBPK pharmacokinetic modeling, epigenomics (minfi, DMRcate), and metagenomics (QIIME 2)." }
+          }
+        ]
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home",       "item": "https://biomate.ai/" },
+          { "@type": "ListItem", "position": 2, "name": "Developers", "item": "https://biomate.ai/connectors.html" },
+          { "@type": "ListItem", "position": 3, "name": "Connectors", "item": "https://biomate.ai/connectors.html" }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+
+  <link rel="stylesheet" href="fonts/fonts.css"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
@@ -17,46 +139,18 @@
     --code-cmt: #4A6478;
   }
 
-  html { font-size: 16px; background: var(--bg); color: var(--ink); }
+  html { font-size: 16px; background: var(--bg); color: var(--ink); scroll-behavior: smooth; }
   body { font-family: ui-sans-serif, system-ui, sans-serif; line-height: 1.65; -webkit-font-smoothing: antialiased; }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
   p { margin-bottom: 1rem; }
 
-  /* ── Site header ─────────────────────────────────────────────────── */
-  .site-header {
-    border-bottom: 1px solid var(--rule);
-    padding: 0 clamp(1.5rem, 5vw, 4rem);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 52px;
-    background: var(--bg);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-  .site-logo {
-    font-family: ui-monospace, 'Cascadia Code', monospace;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--ink);
-    text-decoration: none;
-    letter-spacing: 0.04em;
-  }
-  .site-logo span { color: var(--accent); }
-  .site-nav { display: flex; gap: 1.75rem; list-style: none; }
-  .site-nav a {
-    font-size: 0.78rem;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    text-decoration: none;
-    color: var(--mid);
-  }
-  .site-nav a:hover { color: var(--ink); }
+  /* ── Breadcrumb ─────────────────────────────────────────────── */
+  .breadcrumb { max-width: 1140px; margin: 0 auto; padding: 1rem clamp(1.5rem,5vw,4rem) 0; font-size: .8rem; color: var(--mid); }
+  .breadcrumb a { color: var(--accent); }
+  .breadcrumb span { margin: 0 .4rem; }
 
-  /* ── Page layout ─────────────────────────────────────────────────── */
+  /* ── Page layout ─────────────────────────────────────────────── */
   .page-wrap {
     max-width: 1140px;
     margin: 0 auto;
@@ -65,275 +159,92 @@
     grid-template-columns: 220px 1fr;
     gap: 4rem;
     align-items: start;
-    padding-top: 3rem;
+    padding-top: 2.5rem;
     padding-bottom: 6rem;
   }
 
-  /* ── Sidebar nav ─────────────────────────────────────────────────── */
-  .sidenav {
-    position: sticky;
-    top: 72px;
-  }
+  /* ── Sidebar nav ─────────────────────────────────────────────── */
+  .sidenav { position: sticky; top: 88px; }
   .sidenav-group { margin-bottom: 2rem; }
-  .sidenav-group-label {
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--mid);
-    margin-bottom: 0.5rem;
-  }
-  .sidenav-group a {
-    display: block;
-    font-size: 0.85rem;
-    color: var(--mid);
-    text-decoration: none;
-    padding: 0.25rem 0;
-    border-left: 2px solid transparent;
-    padding-left: 0.75rem;
-    margin-left: -0.75rem;
-  }
-  .sidenav-group a:hover { color: var(--ink); border-left-color: var(--rule); }
+  .sidenav-group-label { font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--mid); margin-bottom: .5rem; }
+  .sidenav-group a { display: block; font-size: .85rem; color: var(--mid); text-decoration: none; padding: .25rem 0; border-left: 2px solid transparent; padding-left: .75rem; margin-left: -.75rem; }
+  .sidenav-group a:hover { color: var(--ink); border-left-color: var(--rule); text-decoration: none; }
   .sidenav-group a.active { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
 
-  /* ── Doc content ─────────────────────────────────────────────────── */
-  .doc-content {}
+  /* ── Doc content ─────────────────────────────────────────────── */
+  .page-hero { padding-bottom: 2.5rem; margin-bottom: 2.5rem; border-bottom: 1px solid var(--rule); }
+  .page-eyebrow { font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: .75rem; }
+  .page-hero h1 { font-size: clamp(1.6rem, 3vw, 2.25rem); font-weight: 700; line-height: 1.2; text-wrap: balance; margin-bottom: .9rem; }
+  .page-hero p { font-size: 1.05rem; color: var(--mid); max-width: 600px; line-height: 1.65; }
 
-  .page-hero {
-    padding-bottom: 2.5rem;
-    margin-bottom: 2.5rem;
-    border-bottom: 1px solid var(--rule);
-  }
-  .page-eyebrow {
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 0.75rem;
-  }
-  .page-hero h1 {
-    font-size: clamp(1.6rem, 3vw, 2.25rem);
-    font-weight: 700;
-    line-height: 1.2;
-    text-wrap: balance;
-    margin-bottom: 0.9rem;
-  }
-  .page-hero p {
-    font-size: 1.05rem;
-    color: var(--mid);
-    max-width: 600px;
-    line-height: 1.65;
-  }
+  .doc-section { margin-bottom: 3.5rem; scroll-margin-top: 88px; }
 
-  .doc-section {
-    margin-bottom: 3.5rem;
-    scroll-margin-top: 80px;
-  }
-
-  h2 {
-    font-size: 1.35rem;
-    font-weight: 700;
-    line-height: 1.25;
-    margin-bottom: 1rem;
-    color: var(--ink);
-  }
-  h3 {
-    font-size: 0.85rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--ink);
-    margin: 2rem 0 0.75rem;
-  }
-  h4 {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: var(--ink);
-    margin: 1.5rem 0 0.5rem;
-  }
+  h2 { font-size: 1.35rem; font-weight: 700; line-height: 1.25; margin-bottom: 1rem; color: var(--ink); }
+  h3 { font-size: .85rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ink); margin: 2rem 0 .75rem; }
+  h4 { font-size: .95rem; font-weight: 700; color: var(--ink); margin: 1.5rem 0 .5rem; }
 
   strong { font-weight: 700; }
 
-  code {
-    font-family: ui-monospace, 'Cascadia Code', 'SF Mono', monospace;
-    font-size: 0.82em;
-    background: var(--surface);
-    color: var(--accent);
-    padding: 0.1em 0.35em;
-    border-radius: 2px;
-  }
+  code { font-family: ui-monospace, 'Cascadia Code', 'SF Mono', monospace; font-size: .82em; background: var(--surface); color: var(--accent); padding: .1em .35em; border-radius: 2px; }
 
-  pre {
-    background: var(--code-bg);
-    border-radius: 4px;
-    padding: 1.25rem 1.5rem;
-    overflow-x: auto;
-    margin: 0.75rem 0 1.5rem;
-    font-size: 0.85rem;
-    line-height: 1.6;
-  }
-  pre code {
-    background: none;
-    color: var(--code-ink);
-    padding: 0;
-    font-size: 1em;
-  }
+  pre { background: var(--code-bg); border-radius: 4px; padding: 1.25rem 1.5rem; overflow-x: auto; margin: .75rem 0 1.5rem; font-size: .85rem; line-height: 1.6; }
+  pre code { background: none; color: var(--code-ink); padding: 0; font-size: 1em; }
   .token-str  { color: var(--code-str); }
   .token-key  { color: var(--code-key); }
   .token-cmt  { color: var(--code-cmt); }
 
   ul { padding-left: 1.4rem; margin-bottom: 1rem; }
-  ul li { margin-bottom: 0.35rem; color: var(--ink); }
+  ul li { margin-bottom: .35rem; color: var(--ink); }
 
-  /* ── Surfaces grid ───────────────────────────────────────────────── */
-  .surface-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 1rem;
-    margin: 1rem 0 1.5rem;
-  }
-  .surface-card {
-    border: 1.5px solid var(--rule);
-    background: white;
-    padding: 1.1rem 1.25rem;
-    border-radius: 4px;
-  }
-  .surface-card .surf-name {
-    font-size: 0.88rem;
-    font-weight: 700;
-    color: var(--ink);
-    margin-bottom: 0.2rem;
-  }
-  .surface-card .surf-transport {
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--mid);
-    margin-bottom: 0.6rem;
-  }
-  .surface-card p {
-    font-size: 0.85rem;
-    color: var(--mid);
-    margin: 0;
-    line-height: 1.55;
-  }
-  .badge {
-    display: inline-block;
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    padding: 0.2em 0.55em;
-    border-radius: 2px;
-    margin-left: 0.4rem;
-    vertical-align: middle;
-  }
+  /* ── Surfaces grid ───────────────────────────────────────────── */
+  .surface-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin: 1rem 0 1.5rem; }
+  .surface-card { border: 1.5px solid var(--rule); background: white; padding: 1.1rem 1.25rem; border-radius: 4px; }
+  .surface-card .surf-name { font-size: .88rem; font-weight: 700; color: var(--ink); margin-bottom: .2rem; }
+  .surface-card .surf-transport { font-size: .72rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--mid); margin-bottom: .6rem; }
+  .surface-card p { font-size: .85rem; color: var(--mid); margin: 0; line-height: 1.55; }
+  .badge { display: inline-block; font-size: .68rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: .2em .55em; border-radius: 2px; margin-left: .4rem; vertical-align: middle; }
   .badge-green { background: var(--accent-lt); color: var(--accent); }
   .badge-mid   { background: var(--surface); color: var(--mid); }
 
-  /* ── Tool table ──────────────────────────────────────────────────── */
-  .tool-table { width: 100%; border-collapse: collapse; margin: 0.75rem 0 1.5rem; font-size: 0.875rem; }
-  .tool-table th {
-    text-align: left;
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--mid);
-    padding: 0.4rem 0.75rem;
-    border-bottom: 2px solid var(--rule);
-  }
-  .tool-table td {
-    padding: 0.6rem 0.75rem;
-    border-bottom: 1px solid var(--rule);
-    vertical-align: top;
-    color: var(--ink);
-  }
+  /* ── Tool table ──────────────────────────────────────────────── */
+  .tool-table { width: 100%; border-collapse: collapse; margin: .75rem 0 1.5rem; font-size: .875rem; }
+  .tool-table th { text-align: left; font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--mid); padding: .4rem .75rem; border-bottom: 2px solid var(--rule); }
+  .tool-table td { padding: .6rem .75rem; border-bottom: 1px solid var(--rule); vertical-align: top; color: var(--ink); }
   .tool-table tr:last-child td { border-bottom: none; }
   .tool-table td:first-child code { background: var(--accent-lt); color: var(--accent); }
-  .tool-table .desc { color: var(--mid); font-size: 0.82rem; }
+  .tool-table .desc { color: var(--mid); font-size: .82rem; }
 
-  /* ── Step blocks ─────────────────────────────────────────────────── */
+  /* ── Step blocks ─────────────────────────────────────────────── */
   .steps { counter-reset: step; }
-  .step {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1.25rem;
-    align-items: flex-start;
-  }
-  .step-num {
-    flex-shrink: 0;
-    width: 1.6rem;
-    height: 1.6rem;
-    border-radius: 50%;
-    background: var(--accent);
-    color: white;
-    font-size: 0.78rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 0.1rem;
-  }
+  .step { display: flex; gap: 1rem; margin-bottom: 1.25rem; align-items: flex-start; }
+  .step-num { flex-shrink: 0; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--accent); color: white; font-size: .78rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: .1rem; }
   .step-body { flex: 1; }
-  .step-body strong { display: block; margin-bottom: 0.2rem; }
-  .step-body p { font-size: 0.9rem; color: var(--mid); margin: 0; }
+  .step-body strong { display: block; margin-bottom: .2rem; }
+  .step-body p { font-size: .9rem; color: var(--mid); margin: 0; }
 
-  /* ── Callout ─────────────────────────────────────────────────────── */
-  .callout {
-    border-left: 3px solid var(--accent);
-    background: var(--accent-lt);
-    padding: 0.9rem 1.1rem;
-    margin: 1rem 0 1.5rem;
-    border-radius: 0 4px 4px 0;
-    font-size: 0.9rem;
-    color: #0d5a44;
-  }
-  .callout strong { display: block; margin-bottom: 0.25rem; }
-  .callout-note {
-    border-left-color: var(--rule);
-    background: var(--surface);
-    color: var(--mid);
-  }
+  /* ── Callout ─────────────────────────────────────────────────── */
+  .callout { border-left: 3px solid var(--accent); background: var(--accent-lt); padding: .9rem 1.1rem; margin: 1rem 0 1.5rem; border-radius: 0 4px 4px 0; font-size: .9rem; color: #0d5a44; }
+  .callout strong { display: block; margin-bottom: .25rem; }
+  .callout-note { border-left-color: var(--rule); background: var(--surface); color: var(--mid); }
 
-  /* ── Section divider ─────────────────────────────────────────────── */
   .divider { border: none; border-top: 1px solid var(--rule); margin: 2.5rem 0; }
 
-  /* ── Footer ──────────────────────────────────────────────────────── */
-  .site-footer {
-    border-top: 1px solid var(--rule);
-    padding: 2rem clamp(1.5rem, 5vw, 4rem);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.78rem;
-    color: var(--mid);
-  }
-  .site-footer a { color: var(--mid); }
-  .site-footer a:hover { color: var(--ink); text-decoration: underline; }
-
   @media (max-width: 720px) {
-    .page-wrap { grid-template-columns: 1fr; }
+    .page-wrap { grid-template-columns: 1fr; padding-top: 1.5rem; }
     .sidenav { display: none; }
   }
-</style>
+  </style>
+</head>
+<body>
+<div id="bm-nav"></div>
 
-<header class="site-header">
-  <a class="site-logo" href="/"><span>bio</span>mate</a>
-  <nav><ul class="site-nav">
-    <li><a href="/features">Features</a></li>
-    <li><a href="/benchmarks">Benchmarks</a></li>
-    <li><a href="/blog">Blog</a></li>
-    <li><a href="/connectors" style="color:var(--ink);font-weight:600">Connectors</a></li>
-    <li><a href="https://app.biomate.ai">Launch app</a></li>
-  </ul></nav>
-</header>
+<div class="breadcrumb">
+  <a href="index.html">Home</a><span>›</span><a href="connectors.html">Developers</a><span>›</span>Connectors
+</div>
 
 <div class="page-wrap">
 
-  <!-- Sidebar -->
+  <!-- Sidebar nav -->
   <aside class="sidenav">
     <div class="sidenav-group">
       <div class="sidenav-group-label">Overview</div>
@@ -357,9 +268,9 @@
     </div>
     <div class="sidenav-group">
       <div class="sidenav-group-label">Resources</div>
-      <a href="https://github.com/bioMate-AI/biomate-connector">GitHub repo ↗</a>
-      <a href="/blog-connectors">Architecture blog post ↗</a>
-      <a href="/legal/privacy">Privacy policy ↗</a>
+      <a href="https://github.com/bioMate-AI/biomate-connector" target="_blank" rel="noopener">GitHub repo ↗</a>
+      <a href="blog-connectors.html">Architecture blog post ↗</a>
+      <a href="legal/privacy.html">Privacy policy ↗</a>
     </div>
   </aside>
 
@@ -367,9 +278,9 @@
   <main class="doc-content">
 
     <div class="page-hero">
-      <p class="page-eyebrow">Connectors</p>
+      <p class="page-eyebrow">Connectors · Developer Docs</p>
       <h1>Connect any AI client to BioMate</h1>
-      <p>BioMate exposes a single MCP server with 19 tools. Install once, run from Claude Code, Claude Desktop, ChatGPT, Slack, or Feishu — every surface shares the same tool interface, the same workflow catalog, and the same runs history.</p>
+      <p>BioMate exposes a single MCP server with 14 tools. Install once, run from Claude Code, Claude Desktop, ChatGPT, Slack, or Feishu — every surface shares the same tool interface, the same workflow catalog, and the same runs history.</p>
     </div>
 
     <!-- Overview -->
@@ -378,8 +289,8 @@
       <p>BioMate connectors let AI assistants call BioMate's scientific-workflow platform on your behalf. When you ask Claude Code to "run RNA-seq on these FASTQs," it calls the <code>run_workflow</code> tool rather than generating code — the run executes on BioMate cloud, and live phase and step updates stream back into the chat.</p>
       <p>The connector stack has two transport families:</p>
       <ul>
-        <li><strong>MCP stdio</strong> — Claude Code and Claude Desktop use a local proxy process. The AI client speaks JSON-RPC over stdio to a BioMate-issued binary that relays calls to <code>api.biomate.ai</code>.</li>
-        <li><strong>REST/webhook</strong> — ChatGPT, Slack, and Feishu reach <code>https://app.biomate.ai/mcp</code> directly over HTTPS. No local process needed.</li>
+        <li><strong>MCP stdio</strong> — Claude Code, Claude Desktop, Cursor, and Codex CLI use a local proxy process. The AI client speaks JSON-RPC over stdio to a BioMate-issued binary that relays calls to <code>api.biomate.ai</code>.</li>
+        <li><strong>REST/webhook</strong> — ChatGPT, Slack, and Feishu reach <code>https://dev-public.biomate.ai/mcp</code> directly over HTTPS. No local process needed.</li>
       </ul>
       <p>All surfaces authenticate with the same OAuth 2.1 + PKCE flow against <code>biomate.ai/oauth</code>. Your BioMate account, runs history, and workflow catalog are shared across every surface.</p>
     </section>
@@ -397,6 +308,21 @@
           <div class="surf-name">Claude Desktop <span class="badge badge-green">MCP stdio</span></div>
           <div class="surf-transport">macOS · Windows</div>
           <p>Integrate BioMate into the Claude Desktop app. Same tool set, same runs history.</p>
+        </div>
+        <div class="surface-card">
+          <div class="surf-name">Claude Science <span class="badge badge-green">HTTP+OAuth</span></div>
+          <div class="surf-transport">Research workbench</div>
+          <p>Anthropic's scientific AI workbench. Uses Streamable HTTP + OAuth 2.1 + PKCE.</p>
+        </div>
+        <div class="surface-card">
+          <div class="surf-name">Cursor <span class="badge badge-green">MCP stdio</span></div>
+          <div class="surf-transport">IDE · Marketplace</div>
+          <p>BioMate appears as an MCP server in Cursor IDE alongside your other development tools.</p>
+        </div>
+        <div class="surface-card">
+          <div class="surf-name">Codex CLI <span class="badge badge-green">MCP stdio</span></div>
+          <div class="surf-transport">Terminal · OpenAI</div>
+          <p>OpenAI's Codex CLI backed by GPT-5.5. Install via <code>npx @biomate/connect codex</code>.</p>
         </div>
         <div class="surface-card">
           <div class="surf-name">ChatGPT <span class="badge badge-mid">REST</span></div>
@@ -418,8 +344,8 @@
 
     <!-- Tools -->
     <section class="doc-section" id="tools">
-      <h2>Available tools (19)</h2>
-      <p>All surfaces expose the same tool set. Tools are annotated with read-only and destructive hints so the AI client can present appropriate confirmation prompts.</p>
+      <h2>Available tools (14)</h2>
+      <p>All surfaces expose the same tool set, sourced from a single canonical manifest (<code>tools_manifest.py</code>). Tools are annotated with read-only and destructive hints so the AI client can present appropriate confirmation prompts.</p>
 
       <h3>Streaming agentic tool</h3>
       <table class="tool-table">
@@ -456,17 +382,6 @@
         </tbody>
       </table>
 
-      <h3>Account and quota</h3>
-      <table class="tool-table">
-        <thead><tr><th>Tool</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>get_account</code></td><td class="desc">Account info, plan tier, and remaining quota.</td></tr>
-          <tr><td><code>list_projects</code></td><td class="desc">Projects in your workspace.</td></tr>
-          <tr><td><code>create_project</code></td><td class="desc">Create a new project to group related runs.</td></tr>
-          <tr><td><code>manage_files</code></td><td class="desc">List, move, and delete workspace files.</td></tr>
-          <tr><td><code>manage_run_history</code></td><td class="desc">Tag, annotate, or archive past runs.</td></tr>
-        </tbody>
-      </table>
     </section>
 
     <hr class="divider">
@@ -474,7 +389,7 @@
     <!-- Claude Code -->
     <section class="doc-section" id="claude-code">
       <h2>Claude Code</h2>
-      <p>The Claude Code connector runs as a local MCP server (stdio transport). It installs in 30 seconds and writes its config into <code>~/.claude.json</code>.</p>
+      <p>The Claude Code connector runs as a local MCP server (stdio transport). It installs in 30 seconds and writes its config into <code>~/.mcp.json</code>.</p>
 
       <h4>Automatic install</h4>
       <pre><code><span class="token-str">npx @biomate/connect claude-code</span></code></pre>
@@ -525,11 +440,11 @@ Apply C2 symmetry.</span></code></pre>
     <!-- ChatGPT -->
     <section class="doc-section" id="chatgpt">
       <h2>ChatGPT</h2>
-      <p>BioMate integrates with ChatGPT as a custom GPT action. The action calls <code>https://app.biomate.ai/mcp</code> over HTTPS — no local installation needed.</p>
+      <p>BioMate integrates with ChatGPT as a custom GPT action. The action calls <code>https://dev-public.biomate.ai/mcp</code> over HTTPS — no local installation needed.</p>
 
       <div class="steps">
         <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Open the GPT editor</strong><p>Go to <strong>ChatGPT → Explore GPTs → Create</strong>.</p></div></div>
-        <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Add an action</strong><p>Click <strong>Add actions</strong> and paste the OpenAPI schema URL: <code>https://app.biomate.ai/mcp/openapi.json</code></p></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Add an action</strong><p>Click <strong>Add actions</strong> and paste the OpenAPI schema URL: <code>https://dev-public.biomate.ai/mcp/openapi.json</code></p></div></div>
         <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Configure OAuth</strong><p>Set auth type to <strong>OAuth</strong>. Client ID and secret are available at <a href="https://biomate.ai/account/connectors">biomate.ai/account/connectors</a>. The authorization URL is <code>https://biomate.ai/oauth/authorize</code> and the token URL is <code>https://biomate.ai/oauth/token</code>.</p></div></div>
         <div class="step"><div class="step-num">4</div><div class="step-body"><strong>Save and test</strong><p>Save the GPT and ask it to list your workflows: <em>"What RNA-seq workflows are available in BioMate?"</em></p></div></div>
       </div>
@@ -599,7 +514,7 @@ Apply C2 symmetry.</span></code></pre>
     <!-- Manual config -->
     <section class="doc-section" id="manual-config">
       <h2>Manual configuration</h2>
-      <p>If <code>npx @biomate/connect</code> is unavailable, set the server entry by hand. For Claude Code, add this to <code>~/.claude.json</code>:</p>
+      <p>If <code>npx @biomate/connect</code> is unavailable, set the server entry by hand. For Claude Code, add this to <code>~/.mcp.json</code>:</p>
       <pre><code>{
   <span class="token-key">"mcpServers"</span>: {
     <span class="token-key">"biomate"</span>: {
@@ -620,7 +535,7 @@ Apply C2 symmetry.</span></code></pre>
       <h2>FAQ</h2>
 
       <h4>Does the connector send my data to Anthropic?</h4>
-      <p>No. The connector calls BioMate's API directly. Anthropic (Claude Code / Claude Desktop) only sees the tool names, their inputs, and their outputs — the same data visible in your chat session. See the <a href="/legal/privacy">privacy policy</a> for full details.</p>
+      <p>No. The connector calls BioMate's API directly. Anthropic (Claude Code / Claude Desktop) only sees the tool names, their inputs, and their outputs — the same data visible in your chat session. See the <a href="legal/privacy.html">privacy policy</a> for full details.</p>
 
       <h4>Can I use the connector with a self-hosted BioMate instance?</h4>
       <p>Yes. Set <code>BIOMATE_API_URL=https://your-instance.example.com</code> in the environment before running <code>npx @biomate/connect</code>.</p>
@@ -636,13 +551,10 @@ Apply C2 symmetry.</span></code></pre>
     </section>
 
   </main>
-</div>
+</div><!-- /.page-wrap -->
 
-<footer class="site-footer">
-  <span>© 2026 BioMate AI</span>
-  <span>
-    <a href="/legal/privacy">Privacy</a> &nbsp;·&nbsp;
-    <a href="mailto:support@biomate.ai">support@biomate.ai</a> &nbsp;·&nbsp;
-    <a href="https://github.com/bioMate-AI/biomate-connector">GitHub</a>
-  </span>
-</footer>
+<div id="bm-foot"></div>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'developers' });</script>
+</body>
+</html>
