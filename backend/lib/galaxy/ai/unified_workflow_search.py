@@ -693,8 +693,6 @@ class UnifiedWorkflowSearch:
                 WHERE workflows_fts MATCH ?
                   AND w.filename NOT LIKE 'nfcore/subworkflows/%'
                   AND w.filename NOT LIKE 'nf-core-modules/subworkflows/nf-core/%'
-                  AND (w.filename NOT LIKE 'nextflow_nfcore/subworkflows/bioconductor/%/%'
-                       OR w.filename LIKE '%/main.nf')
                 ORDER BY bm25(workflows_fts)
                 LIMIT ?
                 """,
@@ -854,8 +852,6 @@ class UnifiedWorkflowSearch:
                 WHERE workflows_fts MATCH ?
                   AND w.filename NOT LIKE 'nfcore/subworkflows/%'
                   AND w.filename NOT LIKE 'nf-core-modules/subworkflows/nf-core/%'
-                  AND (w.filename NOT LIKE 'nextflow_nfcore/subworkflows/bioconductor/%/%'
-                       OR w.filename LIKE '%/main.nf')
             """
             params = [fts_query]
 
