@@ -1136,6 +1136,10 @@ class UnifiedWorkflowSearch:
         'chip-seq reads', 'chip seq reads', 'atac-seq reads',
         'drop-seq', 'dropseq', 'smart-seq', 'smartseq', 'indrop',  # scRNA-seq protocols
         '10x chromium', 'seq-well', 'dip-c',
+        # Spatial transcriptomics platforms — always need full pipeline (nf-core/spatialvi etc.)
+        # These are technology identifiers, not single-tool tasks; consistent with 10x chromium above
+        'visium', 'slide-seq', 'slideseq', 'merfish', 'seqfish', 'stereo-seq', 'stereoseq',
+        'spaceranger', 'space ranger', 'curio seeker',
         # CRISPR screens require NGS of sgRNA libraries — raw sequencing intent
         'crispr screen', 'crispr knockout screen', 'knockout screen', 'crispr pooled',
         # Explicitly wants full pipeline from raw
@@ -1729,19 +1733,17 @@ class UnifiedWorkflowSearch:
         source_bonus = SOURCE_PRIORITY.get(source, 0) / 15.0  # ~6.7 max (nfcore=6.67, bioconductor=5.0)
         score += source_bonus
 
-        # 5b. Subworkflow baseline penalty — unconditional for nfcore and bioconductor.
+        # 5b. Subworkflow baseline penalty — unconditional.
         # Subworkflows are building blocks INSIDE pipelines; they are never the right
         # top-level answer when a full pipeline exists for the task.
-        # Three tiers by source:
+        # Two tiers:
         #   nfcore/nfcore_subwf: internal nf-core components (not user-runnable standalone)
-        #   bioconductor: executable R wrappers but still partial — lower penalty
-        #   custom_composer/biomni_nextflow: standalone pipelines organised in subworkflows/
-        #     directory by convention, NOT building blocks — no penalty
+        #   bioconductor/biomni: executable wrappers but still partial — lower penalty
         if is_subworkflow and "bam_stringtie_merge" not in name.lower():
             if source in ("nfcore", "nfcore_subwf"):
                 score -= 12.0  # nf-core internal components are never standalone pipelines
-            elif source == "bioconductor":
-                score -= 8.0   # bioconductor subworkflow wrappers are partial steps, not pipelines
+            else:
+                score -= 8.0   # bioconductor/biomni subworkflows are executable but partial
 
         # 5c. Pipeline intent boost: when user signals raw data to process,
         # boost full pipelines and penalise package-level Bioconductor tools further.

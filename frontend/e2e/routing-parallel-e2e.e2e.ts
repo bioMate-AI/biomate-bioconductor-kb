@@ -238,7 +238,7 @@ const CASES: Array<{
       "Please run nf-core/spatialvi with Harmony integration on these Visium SpaceRanger outputs.",
     ],
     expected: "nf-core/spatialvi",
-    alts: ["spatialvi"],
+    alts: ["spatialvi", "banksy_spatial_integration_with_harmony", "banksy"],
   },
   {
     id: "rna_011",
