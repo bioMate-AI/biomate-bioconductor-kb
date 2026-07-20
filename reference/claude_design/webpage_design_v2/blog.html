@@ -126,6 +126,12 @@
             <span style="font-size:.85rem;color:var(--text-muted);" id="bm-post-count"></span>
           </div>
           <div class="bm-blog-grid" id="bm-posts"><noscript>
+            <article><h3><a href="blog-mg-immune-profiling-chain.html">MG Immune Profiling in Three Steps: From Raw PBMCs to Complement Pathway in One Session</a></h3><p>Jul 20, 2026 · 9 min · scRNA-seq clustering (GSE142256) → DESeq2 responder DE → clusterProfiler complement enrichment (GO:0006958, p &lt; 0.01) in one BioMate session.</p></article>
+            <article><h3><a href="blog-cd40l-indication-expansion.html">From MG to CIDP to GBS: Mapping CD40L Genetic Evidence Across Three Indications in One Run</a></h3><p>Jul 20, 2026 · 10 min · gwas_scrna_eqtl_target_chain: MG 3 GWAS loci PP4=0.72; CIDP 1 locus PP4=0.44; GBS no genome-wide signal. Evidence-ranked indication map in one run.</p></article>
+            <article><h3><a href="blog-ind-evidence-package-chain.html">IND-Ready in One Session: ADMET → PBPK → §2.6 Narrative → Signed Audit Trail</a></h3><p>Jul 20, 2026 · 9 min · 11-compartment PBPK (Cmax ~30 µg/mL, MAPE &lt; 10%) + CTD §2.6.1 narrative + SHA256 audit manifest with claims_index.json in one session.</p></article>
+            <article><h3><a href="blog-peripheral-nerve-pbpk.html">Beyond the Liver: 10-Compartment PBPK for GalNAc-siRNA Distribution to Peripheral Nerve in CIDP</a></h3><p>Jul 20, 2026 · 9 min · 10-compartment ODE adds peripheral nerve, spinal cord, DRG, NMJ, CSF. CIDP BNB 3× permeability modifier. Nerve:plasma AUC ratio ~0.03–0.05.</p></article>
+            <article><h3><a href="blog-cidp-macrophage-metabolic-profiling.html">Stuck in Inflammation: Mapping Macrophage Metabolic States in CIDP Nerve Repair</a></h3><p>Jul 20, 2026 · 8 min · macrophage_metabolic_state_scrna identifies 4 subtypes. M1-glycolytic expanded 42% in CIDP; repair depleted 3.1-fold. Pseudotime shows M1→repair transition blocked.</p></article>
+            <article><h3><a href="blog-multiomics-mofa2-responder.html">Cross-Modal Responder Stratification: RNA-seq + Olink Proteomics through MOFA2 in CIDP</a></h3><p>Jul 20, 2026 · 10 min · MOFA2 joint decomposition: Factor 1 complement AUROC=0.79, Factor 2 FcRn AUROC=0.71 vs responder. CLL benchmark IGHV AUROC=0.98 reproduced (Argelaguet 2018).</p></article>
             <article><h3><a href="blog-ra-gwas-target.html">From 932,549 Patients to Five Drug Targets: Multi-Omic GWAS Prioritization for RA</a></h3><p>Jul 12, 2026 · 10 min · BioMate ran a 5-stage GWAS pipeline (MAGMA → DICE eQTL → scGWAS → MR → OpenTargets) and prioritized TYK2, CD20, JAK1, IL6R, and PTPN22. Runtime: 15–30 min vs 1–2 weeks manual.</p></article>
             <article><h3><a href="blog-ra-responder-signature.html">16,261 DEGs Later: Building an RA Anti-TNF Responder Signature</a></h3><p>Jul 12, 2026 · 9 min · DESeq2 on GSE89408 (101 RA synovial biopsies). 9/10 canonical RA markers confirmed. CXCL13 +4.2 log₂FC identifies anti-TNF non-responders.</p></article>
             <article><h3><a href="blog-tyk2-admet-validation.html">Rediscovering Deucravacitinib: TYK2 ADMET Retrospective Validation</a></h3><p>Jul 12, 2026 · 8 min · 9/10 ADMET properties correct vs FDA NDA 214958. Sub-percent PPBR error. DILI false positive corrected with allosteric class rule. 1m 41s runtime.</p></article>
@@ -412,6 +418,26 @@
 
     // Real posts from the BioMate blog — newest first
     const POSTS = [
+      // Chained Workflow Series — Boston Summit (Jul 20, 2026)
+      { cat: 'Genomics', title: 'MG Immune Profiling in Three Steps: From Raw PBMCs to Complement Pathway in One Session',
+        date: 'Jul 20, 2026', read: '9 min', href: 'blog-mg-immune-profiling-chain.html',
+        desc: "A three-step BioMate workflow chain — nf-core/scrnaseq Leiden clustering, DESeq2 responder DE, and clusterProfiler complement enrichment — profiles myasthenia gravis PBMC data (GSE142256) in a single session. Complement activation (GO:0006958) enriched p < 0.01 in non-responders." },
+      { cat: 'Drug Development', title: 'From MG to CIDP to GBS: Mapping CD40L Genetic Evidence Across Three Indications in One Run',
+        date: 'Jul 20, 2026', read: '10 min', href: 'blog-cd40l-indication-expansion.html',
+        desc: "The gwas_scrna_eqtl_target_chain workflow queries GWAS Catalog, GTEx v10 eQTLs (eQTLGen n=31,684), and CellxGene Census for CD40LG across MG/CIDP/GBS — producing a ranked 3-layer evidence matrix. MG: 3 loci, PP4=0.72. CIDP: 1 locus, PP4=0.44. GBS: no genome-wide signal." },
+      { cat: 'Drug Development', title: 'IND-Ready in One Session: ADMET → PBPK → §2.6 Narrative → Signed Audit Trail',
+        date: 'Jul 20, 2026', read: '9 min', href: 'blog-ind-evidence-package-chain.html',
+        desc: "A four-step BioMate chain generates a complete IND pharmacokinetic package: ADMET screening, 11-compartment PBPK simulation (aspirin Cmax ~30 µg/mL @ 1h, MAPE < 10% vs published PK), §2.6.1 CTD narrative, and SHA256-signed audit manifest with claims_index.json." },
+      { cat: 'Drug Development', title: 'Beyond the Liver: 10-Compartment PBPK for GalNAc-siRNA Distribution to Peripheral Nerve in CIDP',
+        date: 'Jul 20, 2026', read: '9 min', href: 'blog-peripheral-nerve-pbpk.html',
+        desc: "BioMate's pbpk_peripheral_nerve workflow adds peripheral nerve, spinal cord, DRG, NMJ, and CSF compartments to published GalNAc-siRNA PBPK — using a 3× BNB permeability modifier in CIDP. Nerve:plasma AUC ratio ~0.03–0.05 even in diseased tissue." },
+      { cat: 'Genomics', title: 'Stuck in Inflammation: Mapping Macrophage Metabolic States in CIDP Nerve Repair',
+        date: 'Jul 20, 2026', read: '8 min', href: 'blog-cidp-macrophage-metabolic-profiling.html',
+        desc: "The macrophage_metabolic_state_scrna workflow identifies four macrophage subtypes in CIDP scRNA-seq: M1-glycolytic (expanded 42% vs healthy), M2-oxidative, TREM2+ LAM (myelin clearance), and repair/proliferative (depleted 3.1-fold). Pseudotime reveals the M1→repair transition is blocked in CIDP." },
+      { cat: 'Genomics', title: 'Cross-Modal Responder Stratification: RNA-seq + Olink Proteomics through MOFA2 in CIDP',
+        date: 'Jul 20, 2026', read: '10 min', href: 'blog-multiomics-mofa2-responder.html',
+        desc: "BioMate's rnaseq_proteomics_multiomics_integration workflow applies MOFA2 joint factor decomposition to matched RNA-seq and Olink proteomics from CIDP patients. Factor 1 (complement activation, AUROC=0.79 vs responder) and Factor 2 (FcRn/catabolism, AUROC=0.71) stratify responders cross-modally. CLL benchmark: Factor 1 IGHV AUROC=0.98 reproduced (Argelaguet et al. 2018)." },
+
       // Autoimmune Validation Series (Jul 2026)
       { cat: 'Genomics', title: 'From 932,549 Patients to Five Drug Targets: Multi-Omic GWAS Prioritization for Rheumatoid Arthritis',
         date: 'Jul 12, 2026', read: '10 min', href: 'blog-ra-gwas-target.html',

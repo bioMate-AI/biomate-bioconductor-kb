@@ -2,7 +2,7 @@
 
 > AI assistant for biomedical research and application — serving pharma, biotech, academic labs, and core facilities. Provides 4,000+ validated workflows with AI-guided QC and audit-ready results.
 
-## Last updated: 2026-07-19
+## Last updated: 2026-07-20
 
 BioMate AI is an AI assistant for biomedical research and application, founded in 2025 and headquartered in Houston, Texas (Texas Medical Center). Wikidata entity: Q140074014 (https://www.wikidata.org/wiki/Q140074014). It enables researchers to run complex bioinformatics and drug discovery workflows through plain-English requests — no command-line expertise required. Results arrive structured, quality-graded, and reproducible.
 
@@ -54,6 +54,12 @@ BioMate AI is an AI assistant for biomedical research and application, founded i
 
 ## Blog — selected articles
 
+- [MG Immune Profiling in Three Steps: From Raw PBMCs to Complement Pathway in One Session](https://biomate.ai/blog-mg-immune-profiling-chain.html): scRNA-seq Leiden clustering (GSE142256 MG PBMC) → DESeq2 responder DE → clusterProfiler complement enrichment (GO:0006958 p < 0.01) in a chained BioMate session. FcRn highest in monocytes/DCs; complement activation in non-responders.
+- [From MG to CIDP to GBS: Mapping CD40L Genetic Evidence Across Three Indications](https://biomate.ai/blog-cd40l-indication-expansion.html): gwas_scrna_eqtl_target_chain queries GWAS Catalog + GTEx v10 eQTLs (eQTLGen n=31,684) + CellxGene Census for CD40LG. MG: 3 loci PP4=0.72; CIDP: 1 locus PP4=0.44; GBS: no genome-wide signal. Ranked indication expansion map.
+- [IND-Ready in One Session: ADMET → PBPK → §2.6 Narrative → Signed Audit Trail](https://biomate.ai/blog-ind-evidence-package-chain.html): Four-step BioMate chain — ADMET screening, 11-compartment PBPK (Cmax ~30 µg/mL aspirin, MAPE < 10%), §2.6.1 CTD narrative, SHA256 audit manifest with claims_index.json mapping narrative claims to source data rows.
+- [Beyond the Liver: 10-Compartment PBPK for GalNAc-siRNA in CIDP Peripheral Nerve](https://biomate.ai/blog-peripheral-nerve-pbpk.html): pbpk_peripheral_nerve adds nerve, spinal cord, DRG, NMJ, CSF compartments. CIDP disease modifier: 3× BNB permeability (Papp 1e-7 → 3e-7 cm/s). Nerve:plasma AUC ratio ~0.03–0.05 even in inflamed CIDP nerve.
+- [Stuck in Inflammation: Macrophage Metabolic States in CIDP Nerve Repair](https://biomate.ai/blog-cidp-macrophage-metabolic-profiling.html): macrophage_metabolic_state_scrna identifies M1-glycolytic (HK2/LDHA/PKM), M2-oxidative (SDHA/IDH2), TREM2+ LAM, and repair (VEGFA/ARG1) subtypes. M1 expanded 42% in CIDP; repair depleted 3.1×. Pseudotime: M1→repair transition blocked.
+- [Cross-Modal Responder Stratification: RNA-seq + Olink through MOFA2 in CIDP](https://biomate.ai/blog-multiomics-mofa2-responder.html): rnaseq_proteomics_multiomics_integration: MOFA2 joint decomposition on RNA+protein. Factor 1 complement (AUROC=0.79), Factor 2 FcRn (AUROC=0.71) vs responder. Benchmark: CLL IGHV AUROC=0.98 (Argelaguet et al. Mol Syst Biol 2018). Accepts rna,protein / rna,metabolomics / scrna,atac / rna,protein,metabolomics.
 - [From PBMC Samples to Immune Cell Maps: scRNA-seq → DESeq2 → Pathway Enrichment](https://biomate.ai/blog-scrna-immune-profiling.html): Chained three-step analysis — Seurat clustering, pseudo-bulk DESeq2, and clusterProfiler enrichment — applied to MG PBMC data (GSE142256)
 - [ADMET to IND: Automating the Nonclinical Evidence Package](https://biomate.ai/blog-admet-pbpk-ind-package.html): Four-step drug discovery chain — ADMET screening, PBPK modeling, REINVENT4 lead optimization, and auto-drafted IND §2.4/§2.6 narrative with audit trail
 - [GWAS → scRNA-seq → eQTL Target Prioritization Across Indications](https://biomate.ai/blog-gwas-target-indication.html): Genetic-to-transcriptomic pipeline prioritizing drug targets from GWAS loci across multiple autoimmune indications using GTEx eQTLs and OpenTargets

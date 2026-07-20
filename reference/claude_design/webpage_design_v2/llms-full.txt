@@ -2,7 +2,7 @@
 
 > AI assistant for biomedical research and application — serving pharma, biotech, academic labs, and core facilities. Provides 4,000+ validated workflows with AI-guided QC and audit-ready results.
 
-## Last updated: 2026-07-03
+## Last updated: 2026-07-20
 
 BioMate AI is an AI assistant for biomedical research and application, founded in 2025 and headquartered in Houston, Texas (Texas Medical Center). Wikidata entity: Q140074014 (https://www.wikidata.org/wiki/Q140074014). It enables researchers to run complex bioinformatics and drug discovery workflows through plain-English requests — no command-line expertise required. Results arrive structured, quality-graded, and reproducible.
 
@@ -16,7 +16,7 @@ BioMate AI is an AI assistant for biomedical research and application, founded i
 - Workflows: 4,000+ validated workflows across 36 biomedical domains. Leading: transcriptomics (870+), genomics (370+), drug discovery (160+), epigenomics (130+), proteomics (110+), variant calling (100+). Full R/Bioconductor method library included.
 - Key domains: transcriptomics (870+), genomics (370+), epigenomics (130+), proteomics (110+), drug discovery (160+), cryo-EM (10+)
 - Integrated tools: GATK, DeepVariant, STAR, salmon, Seurat, Scanpy, AlphaFold 2/3, ESMFold, RoseTTAFold, CryoSPARC, RELION, AutoDock Vina, GROMACS, OpenMM, MaxQuant, QIIME 2, DESeq2, edgeR, limma, Bioconductor
-- Pricing: Free tier; Pro $49/month; Team $199/month; Enterprise — contact sales (contact@biomate.ai)
+- Pricing: Free tier (1,000 free credits on signup); Premium $100/month (or $80/month billed annually); Team — per-seat, contact sales; Enterprise — contact sales (contact@biomate.ai)
 - Compute: AWS Batch (scalable HPC); GPU for cryo-EM and structure prediction
 - Compliance: HIPAA-compliant; BAA available; Private VPC deployment option
 - Data policy: tenant data is fully isolated and never used to train shared AI models
@@ -27,7 +27,7 @@ BioMate AI is an AI assistant for biomedical research and application, founded i
 ## Connectors and integrations
 
 ### AI and protocol connectors
-- **MCP (Model Context Protocol)** — stdio transport, JSON-RPC 2.0, protocol version 2024-11-05. Exposes 10 tools: search_workflow, run_workflow, get_run_status, get_run_results, query_database, analyze_file, cancel_run, list_runs, analyze_results, explain_error. Compatible with Claude Desktop, Cursor, Cline, and any MCP-compliant client. Wikidata: Q133436854.
+- **MCP (Model Context Protocol)** — stdio transport, JSON-RPC 2.0, protocol version 2024-11-05. Exposes 19 tools: search_workflow, run_workflow, get_run_status, get_run_results, list_runs, watch_run, query_database, analyze_file, analyze_results, cancel_run, recall_memory, save_memory, delete_memory, explain_error, resolve_accession, browse_data, fetch_public_data, search_literature, generate_workflow. Compatible with Claude Desktop, Cursor, Cline, and any MCP-compliant client. Wikidata: Q133436854.
 - **Open Claw** — BioMate's Anthropic tool-schema API. Endpoints: GET /api/open-claw/tools (returns BioMate tools as Anthropic tool schemas), POST /api/open-claw/stream (agentic loop execution over SSE). Enables any Claude-compatible client to invoke BioMate capabilities as native tools.
 - **REST API** — 50+ JSON endpoints over HTTPS. Key: POST /api/chat/stream (SSE chat), POST /api/workflows/search, POST /api/workflows/execute, GET /api/workflows/runs, GET /api/workflows/:id, GET /api/billing/usage.
 - **Server-Sent Events (SSE)** — Real-time workflow phase and step status streaming. Endpoint: GET /api/workflows/:invocationId/events. Wikidata: Q7455583.
@@ -183,6 +183,48 @@ BioMate AI publishes evaluation results across workflow routing, pharmacokinetic
 ---
 
 ## Blog articles — full summaries
+
+### MG Immune Profiling in Three Steps: From Raw PBMCs to Complement Pathway in One Session
+URL: https://biomate.ai/blog-mg-immune-profiling-chain.html
+Published: 2026-07-20
+Category: Genomics
+
+A three-step BioMate workflow chain applied to myasthenia gravis (MG) PBMC data (GEO GSE142256, 8 MG patients vs healthy controls). Step 1: nf-core/scrnaseq — STARsolo alignment, Seurat normalization, PCA, UMAP, Leiden clustering producing 12 immune clusters (B naive, B memory, plasma cell, CD4 T, CD8 T, NK, monocyte, DC) with FcRn (FCGRT) expression overlay. FcRn highest in monocytes and DCs. Step 2: DESeq2 responder vs non-responder differential expression using cluster labels from Step 1. apeglm log2FC shrinkage. Volcano plot. FCGRT and FCGR2B enriched in responders. Step 3: clusterProfiler enrichGO — GO:0006958 complement activation (p < 0.01), GO:0001906 complement-mediated cytotoxicity, KEGG hsa04610. Complement genes C3, C5, CFB, CR1, SERPING1 as top contributors in non-responders. SERPING1 (C1-inhibitor) downregulated in non-responders — loss of complement regulation. Consistent with Stathopoulos et al. 2022 (PMID 35487972). Total session runtime: ~1 hour on AWS Batch.
+
+### From MG to CIDP to GBS: Mapping CD40L Genetic Evidence Across Three Indications in One Run
+URL: https://biomate.ai/blog-cd40l-indication-expansion.html
+Published: 2026-07-20
+Category: Drug Development
+
+The gwas_scrna_eqtl_target_chain workflow integrates three evidence layers for CD40LG (chromosome 1p36.3) across myasthenia gravis (MG), CIDP, and GBS. Layer 1 — GWAS: MG has 3 genome-wide significant loci (p < 5×10⁻⁸, GWAS Catalog GCST90093061, n=38,243); CIDP has 1 locus (p=4.2×10⁻⁹); GBS has no genome-wide signal. Layer 2 — eQTL colocalization using GTEx v10 whole blood and eQTLGen (n=31,684 meta-analysis): MG strongest locus chr1p36 PP4=0.72 in PBMC; CIDP PP4=0.44 (below 0.5 threshold, suggestive only); GBS N/A. Layer 3 — CellxGene Census (750,000 human immune cells): CD40LG high in activated CD4 T cells across all three diseases; moderate in B cells and NK cells; low in monocytes and DCs. Output: ranked evidence matrix — MG STRONG, CIDP MODERATE, GBS WEAK. Analysis that would take a computational biology team 2-3 weeks completes in 20-45 minutes. CD40L inhibitor program (active in MG, Phase 2); decision relevant for CIDP/GBS expansion consideration.
+
+### IND-Ready in One Session: ADMET → PBPK → §2.6 Narrative → Signed Audit Trail
+URL: https://biomate.ai/blog-ind-evidence-package-chain.html
+Published: 2026-07-20
+Category: Drug Development
+
+A four-step BioMate session generates a complete IND pharmacokinetic package. Step 1: ADMET screening on SMILES input — hERG IC50, BBB penetration, Cmax prediction, DILI liability, Ames mutagenicity, Lipinski Ro5. Traffic-light output per compound. Step 2: 11-compartment PBPK simulation (blood, liver, kidney, gut, lung, heart, brain, muscle, fat, skin, rest) for passing compound(s). Oral absorption via gut lumen → portal blood. Hepatic first-pass extraction. NCA output: AUC₀₋₂₄, Cmax, Tmax, t₁/₂, CL/F. Aspirin validation: predicted Cmax ~30 µg/mL @ 1h (published: 25-35 µg/mL, Needs & Brooks 1985 Clin Pharmacokinet). Step 3: §2.6.1 pharmacokinetic narrative generated by BioMate AI for CTD module 2.6.4, following ICH M4 guidance. Step 4: run_audit_export — SHA256 hashes of all output files, claims_index.json (maps each narrative claim to source data row and file), signed manifest.json with timestamp and run ID. Enables computational PBPK data to be IND-citable.
+
+### Beyond the Liver: 10-Compartment PBPK for GalNAc-siRNA Distribution to Peripheral Nerve in CIDP
+URL: https://biomate.ai/blog-peripheral-nerve-pbpk.html
+Published: 2026-07-20
+Category: Drug Development
+
+The pbpk_peripheral_nerve workflow extends standard GalNAc-siRNA PBPK (blood/liver/kidney/muscle/fat) with 5 new compartments: peripheral nerve (blood-nerve barrier, BNB), spinal cord (blood-spinal cord barrier, BSCB), dorsal root ganglia (DRG, fenestrated capillaries), neuromuscular junction (NMJ), and CSF (blood-CSF barrier, choroid plexus). CIDP disease modifier: BNB permeability 3× healthy (Papp: 1×10⁻⁷ → 3×10⁻⁷ cm/s), based on BNB disruption pathology in inflammatory demyelination (Csurhes et al. 2005 Brain). For 3 mg/kg SC GalNAc-siRNA (MW 13,500 Da): nerve:plasma AUC ratio ~0.03–0.05 even in CIDP (liver:plasma ~2.5 via ASGR1-GalNAc). Simulation: 672 hours (28 days), SciPy solve_ivp LSODA. NCA per compartment: AUC, Cmax, penetration class. Clinical interpretation: achieving hepatic-equivalent nerve levels would require ~60-90 mg/kg systemically — motivates intrathecal or perineural local delivery strategies.
+
+### Stuck in Inflammation: Mapping Macrophage Metabolic States in CIDP Nerve Repair
+URL: https://biomate.ai/blog-cidp-macrophage-metabolic-profiling.html
+Published: 2026-07-20
+Category: Genomics
+
+The macrophage_metabolic_state_scrna workflow identifies four macrophage subtypes from scRNA-seq of CIDP nerve biopsy or PBMC via metabolic gene scoring: M1-glycolytic (HK2, LDHA, PKM, PFKFB3) — expanded 42% in CIDP vs healthy (chi² p < 0.01); M2-oxidative (SDHA, MDH2, PPARGC1A, IDH2); LAM/lipid-associated (TREM2, LPL, APOE, FABP5) — present in CIDP (myelin clearance ongoing); Repair/proliferative (VEGFA, TGFB1, ARG1, MKI67) — depleted 3.1-fold in CIDP (p < 0.05). Pseudotime analysis (diffusion map): CIDP macrophages cluster at early pseudotime, arrested in M1-glycolytic state before completing the M1→M2-oxidative→repair transition. Healthy macrophages distributed across full trajectory. Therapeutic implication: metabolic reprogramming (succinate dehydrogenase activation, itaconate supplementation) to push M1 macrophages toward repair state. LAM (TREM2+) present = myelin clearance is occurring but repair transition is blocked. Consistent with TREM2+ disease-associated macrophage biology (Nugent et al. 2020 Neuron).
+
+### Cross-Modal Responder Stratification: RNA-seq + Olink Proteomics through MOFA2 in CIDP
+URL: https://biomate.ai/blog-multiomics-mofa2-responder.html
+Published: 2026-07-20
+Category: Genomics
+
+The rnaseq_proteomics_multiomics_integration workflow performs MOFA2 joint factor decomposition on matched RNA-seq and Olink proteomics. Per-modality normalization: RNA → DESeq2 VST; Protein → log2 + quantile. Feature selection: top 500 variance features per modality. MOFA2 decomposition: 10 latent factors. Factor-phenotype AUROC vs outcome label. CIDP application: Factor 1 complement activation (C3, CFH, CFB, C5AR1 RNA; C3, MASP2, CR2 protein) AUROC=0.79 vs responder; Factor 2 FcRn/catabolism (FCGRT, FCGR2B RNA; IgG, albumin protein) AUROC=0.71. GO enrichment (RNA weights): GO:0006958 p=0.001, GO:0050853 B-cell receptor p=0.008, KEGG hsa04610 p=0.004. Benchmark: CLL dataset (Argelaguet et al. 2018 Mol Syst Biol, n=200 CLL, 4 modalities) — Factor 1 IGHV-status AUROC=0.98, Factor 2 trisomy-12 reproduced. External validation: SLE Banchereau et al. 2016 Cell 165:551 (n=158 pediatric SLE, GSE65391) — IFN module AUROC > 0.85 vs SLEDAI. Modalities parameter: rna,protein (default) | rna,metabolomics | scrna,atac | rna,methylation | rna,protein,metabolomics.
 
 ### Purpose-Built AI for Science: Coordinating Frontier Models for Reliable Results
 URL: https://biomate.ai/blog-llm-core.html
