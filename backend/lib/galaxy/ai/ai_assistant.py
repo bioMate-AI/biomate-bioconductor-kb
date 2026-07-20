@@ -3370,7 +3370,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             uploaded_datasets=uploaded_datasets,
         )
 
-    def _try_fast_path_admet_workflow(
+    def _try_fast_path_admet_workflow(  # noqa: deploy-trigger
         self,
         user_intent: str,
         uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
