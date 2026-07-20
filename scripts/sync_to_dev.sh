@@ -628,9 +628,11 @@ deploy_databases() {
       echo \"[db] galaxy_ai_tools.db written to host volume (size=\${dev_size}B md5=\${dev_md5})\"
       # Also update the live container's in-process copy so Galaxy picks it up
       # without a restart (the volume mount will serve it on next restart anyway).
-      docker exec -u root biomate-galaxy-dev cp $GALAXY_DB_HOST_PATH/galaxy_ai_tools.db \
+      GC=\$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
+      GC="\${GC:-biomate-galaxy-dev}"
+      docker exec -u root \"\$GC\" cp $GALAXY_DB_HOST_PATH/galaxy_ai_tools.db \
         /app/database/galaxy_ai_tools.db 2>/dev/null \
-        && docker exec -u root biomate-galaxy-dev chown galaxy:galaxy \
+        && docker exec -u root \"\$GC\" chown galaxy:galaxy \
              /app/database/galaxy_ai_tools.db 2>/dev/null || true
     "
     # Rebuild the workflow embedding NPZ inside the container so the next
@@ -645,7 +647,9 @@ deploy_databases() {
     # a 30+ min hang when the container stalled; 660s = 11 min is 50% over the observed
     # worst-case 424s so it won't false-positive on slow-but-working runs).
     ec2_ssh '
-      timeout 660 docker exec -u galaxy biomate-galaxy-dev python3.9 -c "
+      GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
+      GC="${GC:-biomate-galaxy-dev}"
+      timeout 660 docker exec -u galaxy "$GC" python3.9 -c "
 import sys, time
 sys.path.insert(0, \"/app/lib\")
 t0 = time.time()
@@ -696,12 +700,14 @@ sys.exit(0 if ok else 1)
     # The restart at the end forces Galaxy workers to re-open the new DB
     # file (the open file handle from the pre-cp workers is now stale).
     ec2_ssh "
-      docker cp /tmp/universe_sync.sqlite biomate-galaxy-dev:/app/database/universe.sqlite \
-        && docker exec -u root biomate-galaxy-dev chown galaxy:galaxy /app/database/universe.sqlite \
+      GC=\$(docker ps --filter 'name=biomate-galaxy' --format '{{.Names}}' | grep -Ev 'rollback|chatgpt' | head -1)
+      GC=\"\${GC:-biomate-galaxy-dev}\"
+      docker cp /tmp/universe_sync.sqlite \"\$GC:/app/database/universe.sqlite\" \
+        && docker exec -u root \"\$GC\" chown galaxy:galaxy /app/database/universe.sqlite \
         && echo '[db] file replaced — running alembic upgrade ${LATEST_GXY_HEAD}...' \
-        && (docker exec biomate-galaxy-dev bash -c 'cd /app && ./manage_db.sh upgrade ${LATEST_GXY_HEAD} 2>&1' | tail -5 \
+        && (docker exec \"\$GC\" bash -c 'cd /app && ./manage_db.sh upgrade ${LATEST_GXY_HEAD} 2>&1' | tail -5 \
             || echo '[db] alembic upgrade returned non-zero — Galaxy may be unhealthy after restart') \
-        && docker restart biomate-galaxy-dev >/dev/null \
+        && docker restart \"\$GC\" >/dev/null \
         && echo '[db] universe.sqlite replaced + upgraded to ${LATEST_GXY_HEAD}'
     " || log "[db] universe.sqlite sync failed"
   fi
@@ -733,7 +739,8 @@ resync_galaxy_env() {
   log "[galaxy-env] Recreating Galaxy container with /opt/biomate/.env merged in..."
   ec2_ssh '
     set -euo pipefail
-    CONTAINER=biomate-galaxy-dev
+    CONTAINER=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
+    CONTAINER="${CONTAINER:-biomate-galaxy-dev}"
     ENV_FILE=/opt/biomate/.env
 
     if [[ ! -f "$ENV_FILE" ]]; then
@@ -1048,11 +1055,13 @@ snapshot_for_rollback() {
   # container can be faithfully recreated from the snapshot on rollback.
   if ec2_ssh "
     set -e
-    docker commit biomate-galaxy-dev $RB_GALAXY_IMAGE >/dev/null
+    GC=\$(docker ps --filter 'name=biomate-galaxy' --format '{{.Names}}' | grep -Ev 'rollback|chatgpt' | head -1)
+    GC=\"\${GC:-biomate-galaxy-dev}\"
+    docker commit \"\$GC\" $RB_GALAXY_IMAGE >/dev/null
     mkdir -p /opt/biomate/rollback
-    docker inspect biomate-galaxy-dev --format '{{range .Config.Env}}{{println .}}{{end}}' > /opt/biomate/rollback/galaxy.env
-    docker inspect biomate-galaxy-dev --format '{{.HostConfig.NetworkMode}}' > /opt/biomate/rollback/galaxy.net
-    docker inspect biomate-galaxy-dev --format '{{range \$p,\$b := .HostConfig.PortBindings}}{{range \$b}}-p {{.HostPort}}:{{\$p}} {{end}}{{end}}' | sed 's#/tcp##g' > /opt/biomate/rollback/galaxy.ports
+    docker inspect \"\$GC\" --format '{{range .Config.Env}}{{println .}}{{end}}' > /opt/biomate/rollback/galaxy.env
+    docker inspect \"\$GC\" --format '{{.HostConfig.NetworkMode}}' > /opt/biomate/rollback/galaxy.net
+    docker inspect \"\$GC\" --format '{{range \$p,\$b := .HostConfig.PortBindings}}{{range \$b}}-p {{.HostPort}}:{{\$p}} {{end}}{{end}}' | sed 's#/tcp##g' > /opt/biomate/rollback/galaxy.ports
     echo '[rollback]   galaxy committed -> $RB_GALAXY_IMAGE'
     if [ '$snap_frontend' = true ] && docker image inspect biomate-dev-frontend:latest >/dev/null 2>&1; then
       docker tag biomate-dev-frontend:latest biomate-dev-frontend:rollback
