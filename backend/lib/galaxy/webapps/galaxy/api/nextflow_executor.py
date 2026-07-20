@@ -1893,6 +1893,11 @@ def _is_path_param(key: str, value: Any) -> bool:
         return False
     if val.startswith("s3://") or val.startswith("http"):
         return False
+    # Nextflow template expressions (e.g. "${projectDir}/assets/...") cannot be
+    # resolved on the API server — Nextflow resolves them at runtime on the worker.
+    # Treat them as non-paths so we don't raise spurious "path not found" 422s.
+    if "${" in val:
+        return False
     # Inline data (CSV, TSV, multi-line text) always contains newlines — never a path.
     if "\n" in val or "\r" in val:
         return False

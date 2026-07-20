@@ -3431,22 +3431,33 @@ Rules:
 
     // Pathway enrichment / clusterProfiler override:
     // "Run pathway enrichment on complement genes C3, C5, CFB" → clusterProfiler/enrichGO workflow.
-    // Intent classifier routes "analyze pathway activation" as research_question because the
-    // user hasn't provided a file. But pathway enrichment is a workflow: the named gene list
-    // IS the input. Force workflow_generation when pathway enrichment is explicitly requested.
-    if (!actions.needsWorkflowGeneration) {
+    // This check runs regardless of whether needsWorkflowGeneration is already true — the LLM
+    // may have already set it (e.g., from prior-turn DESeq2 context) but directed the search
+    // toward differentialabundance instead of clusterProfiler. We must inject clusterProfiler
+    // keyTerms in both cases so the FTS search returns the right workflow.
+    {
       const _isPathwayEnrichmentQuery =
-        /\b(pathway\s+enrichment|run\s+pathway|enrichment\s+analysis|clusterprofiler|enrichgo|enrichkegg|gsea|gene\s+set\s+enrichment|pathway\s+activation\s+(analysis|in|from)|enriched\s+pathways?|over.?representation\s+analysis|ora\b|fgsea)\b/i.test(message)
+        /\b(pathway\s+enrichment|run\s+pathway|enrichment\s+analysis|clusterprofiler|enrichgo|enrichkegg|gsea|gene\s+set\s+enrichment|pathway\s+activation\s+(analysis|in|from)|enriched\s+pathways?|over.?representation\s+analysis|ora\b|fgsea|GO\s+(enrichment|terms?|biological\s+process)|gene\s+ontology\s+enrich)\b/i.test(message)
         && !/\b(what\s+is|what\s+are|how\s+does|explain|tell\s+me|concept|overview)\b/i.test(message);
       if (_isPathwayEnrichmentQuery) {
-        log('Pathway-enrichment override: forcing needsWorkflowGeneration=true → clusterProfiler/enrichGO');
-        actions.needsWorkflowGeneration = true;
-        actions.needsResearchAgent = false;
-        intent.type = 'workflow_generation';
+        if (!actions.needsWorkflowGeneration) {
+          log('Pathway-enrichment override: forcing needsWorkflowGeneration=true → clusterProfiler/enrichGO');
+          actions.needsWorkflowGeneration = true;
+          actions.needsResearchAgent = false;
+          intent.type = 'workflow_generation';
+        }
+        // Always inject clusterProfiler keyTerms when enrichment is explicitly requested,
+        // even if needsWorkflowGeneration was already true from prior-turn context.
+        // This prevents DESeq2/differentialabundance context from hijacking the FTS search.
         if (!decomposition.keyTerms) decomposition.keyTerms = [];
         for (const t of ['clusterprofiler', 'ORA', 'pathway enrichment', 'gene set', 'enrichGO', 'enrichKEGG', 'GO terms']) {
           if (!decomposition.keyTerms.includes(t)) decomposition.keyTerms.push(t);
         }
+        // Remove any differentialabundance keyTerms that crept in from prior-turn context
+        // so they don't outrank clusterprofiler in the FTS search.
+        decomposition.keyTerms = decomposition.keyTerms.filter(
+          t => !/(differentialabundance|differential.abundance|nf.?core.*diff)/i.test(t)
+        );
         if (!decomposition.preferredDomains) decomposition.preferredDomains = [];
         if (!decomposition.preferredDomains.includes('genomics')) decomposition.preferredDomains.push('genomics');
 
