@@ -7105,7 +7105,14 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
       /\bregistry\s+id\s+(10813|12824|12700)\b/i.test(userIntent) ||
       /\boptimize_codons_for_heterologous_expression\b/i.test(userIntent) ||
       /\b(autodock\s*vina|docking_autodock_vina)\b/i.test(userIntent);
-    const domainHint = _explicitRegistryFastPath
+    // When transcriptomics is penalized (pathway enrichment override), skip domain
+    // inference to prevent _inferDomainWithLLM from returning rna_seq due to the
+    // active differentialabundance workflow context — which would contradict the penalty
+    // and route Turn 2 back to differentialabundance instead of clusterprofiler/enrichGO.
+    const _transcriptomicsPenalized = penalizedDomains?.some(
+      d => /^(transcriptomics|rna_seq)$/i.test(d)
+    );
+    const domainHint = (_explicitRegistryFastPath || _transcriptomicsPenalized)
       ? undefined
       : await this._inferDomainWithLLM(userIntent, currentWorkflowText || recentContext || undefined);
     const mergedInlineParameters = {
