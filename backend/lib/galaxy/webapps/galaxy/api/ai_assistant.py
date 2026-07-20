@@ -2955,8 +2955,8 @@ def query_biological_database(
     Pass database='federated' (default) to fan-out to all relevant sources in parallel.
     Pass a specific database name for single-source queries.
     Supported single sources: ncbi_gene, uniprot, pdb, alphafold, kegg, reactome,
-    go, hpo, chebi, chembl, interpro, string, ensembl, gnomad, dbsnp, clinvar,
-    pubmed, europepmc, semantic_scholar, openalex.
+    go, hpo, chebi, chembl, pubchem, bindingdb, pharos, pdbe, interpro, string,
+    ensembl, gnomad, dbsnp, clinvar, pubmed, europepmc, semantic_scholar, openalex.
     """
     db = request.database.lower().strip()
 

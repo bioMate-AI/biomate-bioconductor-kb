@@ -12,10 +12,21 @@
  * target database — e.g. the AlphaFold DB / Swiss-Prot / PDB Foldseek index,
  * staged read-only from S3 on the Batch worker (see tools/prepare_foldseek_db.sh).
  *
- * Fan-out: one parallel Batch job per query structure (searches are independent),
- * so screening N structures scales horizontally. The target index is a MOUNTED
- * path (params.foldseek_db), never Nextflow-staged — the AFDB index is hundreds
- * of GB and must not be copied per task.
+ * Search-from-SEQUENCE (params.query_type == 'sequence'): instead of a 3D
+ * structure, the query may be a protein FASTA. Foldseek then uses ProstT5
+ * (Heinzinger et al., "Bilingual language model for protein sequence and
+ * structure", NAR Genomics and Bioinformatics 2024, lqae150;
+ * https://huggingface.co/Rostlab/ProstT5) to predict the 3Di structural
+ * alphabet DIRECTLY from sequence — no folding required — which is ~1000x
+ * cheaper than predicting a structure (e.g. AlphaFold/ESMFold) first and then
+ * searching. The ProstT5 weights are staged read-only from S3 (mounted, like
+ * the foldseek_db; never Nextflow-staged) and passed via --prostt5-model.
+ * See tools/prepare_prostt5_model.sh.
+ *
+ * Fan-out: one parallel Batch job per query (searches are independent), so
+ * screening N structures/sequences scales horizontally. The target index is a
+ * MOUNTED path (params.foldseek_db), never Nextflow-staged — the AFDB index is
+ * hundreds of GB and must not be copied per task.
  *
  * QC (optional, downstream): reciprocal TM-align re-rank on the top-N hits.
  */
@@ -24,7 +35,11 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir              = './results'
-params.query_structures    = null      // comma-separated PDB/mmCIF query file paths (required)
+params.query_structures    = null      // comma-separated query file paths (required):
+                                        //   query_type='structure' -> PDB/mmCIF structures
+                                        //   query_type='sequence'  -> protein FASTA files
+params.query_type          = 'structure' // 'structure' (default, unchanged) | 'sequence' (ProstT5 3Di-from-seq)
+params.prostt5_model       = null      // path to ProstT5 weights (mounted read-only; required iff query_type=='sequence')
 params.foldseek_db         = null      // path to prebuilt Foldseek target DB (mounted; required)
 params.foldseek_format     = 'query,target,evalue,bits,alntmscore,prob'
 params.foldseek_sensitivity = 9.5      // -s (higher = more sensitive, slower)
@@ -48,19 +63,34 @@ process FOLDSEEK_STRUCTURE_SEARCH {
     path "versions.yml",                                       emit: versions
 
     script:
+    // Search-from-sequence: ProstT5 predicts the 3Di alphabet from the query
+    // FASTA (--prostt5-model). Structure mode leaves the command unchanged.
+    def is_seq = (params.query_type == 'sequence')
+    def prostt5_arg = is_seq ? "--prostt5-model '${params.prostt5_model}'" : ''
+    // A sequence query has NO 3D coordinates (ProstT5 emits only the 3Di
+    // alphabet, not a structure), so TM-score-based output columns (alntmscore,
+    // prob) can't be computed — foldseek's convertalis aborts with "Cannot find
+    // query C-alpha". Drop them from the format in sequence mode. Structure mode
+    // keeps the user's format verbatim.
+    def eff_format = is_seq
+        ? params.foldseek_format.toString().split(',').collect { it.trim() }.findAll { !(it in ['alntmscore', 'prob']) }.join(',')
+        : params.foldseek_format
     """
     mkdir -p fs_tmp
     # Target index is referenced in place (mounted read-only), never staged/copied.
+    # query_type='${params.query_type}': structure -> 3Di from geometry;
+    #                                    sequence  -> 3Di from ProstT5 (predicted from AA).
     foldseek easy-search "${query_structure}" "${params.foldseek_db}" \\
         "${meta.id}_foldseek_hits.m8" fs_tmp \\
         -s ${params.foldseek_sensitivity} \\
         --max-seqs ${params.max_hits} \\
-        --format-output '${params.foldseek_format}' || true
+        ${prostt5_arg} \\
+        --format-output '${eff_format}' || true
 
     python3 << 'PYEOF'
 import json, os
 
-fmt = "${params.foldseek_format}".split(",")
+fmt = "${eff_format}".split(",")
 def _num(v):
     try:
         return float(v)
@@ -87,6 +117,7 @@ summary = {
     "best_hit": hits[0] if hits else None,
     "top_hits": hits[:${params.max_hits}],
     "method": "foldseek_easy_search",
+    "query_type": "${params.query_type}",
     "sensitivity": ${params.foldseek_sensitivity},
 }
 with open("${meta.id}_foldseek_summary.json", "w") as f:
@@ -116,14 +147,21 @@ workflow FOLDSEEK_STRUCTURE_SEARCH_WORKFLOW {
 
 // Entry workflow for standalone execution
 workflow {
+    if (!(params.query_type in ['structure', 'sequence'])) {
+        error "Invalid --query_type '${params.query_type}' (allowed: 'structure' | 'sequence')"
+    }
     if (!params.query_structures) {
-        error "Please provide --query_structures (comma-separated PDB/mmCIF file paths)"
+        def kind = (params.query_type == 'sequence') ? 'protein FASTA' : 'PDB/mmCIF'
+        error "Please provide --query_structures (comma-separated ${kind} file paths)"
     }
     if (!params.foldseek_db) {
         error "Please provide --foldseek_db (path to a prebuilt Foldseek target DB)"
     }
+    if (params.query_type == 'sequence' && !params.prostt5_model) {
+        error "--query_type=sequence requires --prostt5_model (path to the ProstT5 weights, mounted read-only; see tools/prepare_prostt5_model.sh)"
+    }
 
-    // Fan-out: one parallel search per query structure.
+    // Fan-out: one parallel search per query (structure or sequence).
     def q_paths = (params.query_structures instanceof List) ? params.query_structures
         : params.query_structures.toString().split(',').collect { it.trim() }.findAll { it }
     ch_queries = Channel.fromList(q_paths).map { p -> [ [id: file(p).baseName], file(p) ] }

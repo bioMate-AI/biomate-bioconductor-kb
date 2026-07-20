@@ -5245,6 +5245,174 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 })
         return {"source": "chembl", "query": query, "results": results}
 
+    def _query_pubchem(self, query: str, operation: str = 'lookup') -> Dict:
+        """PubChem PUG-REST. operation drives the mode (chosen from user intent):
+        'similarity' -> 2D similarity search across PubChem by SMILES; 'lookup'
+        (default) -> compound lookup by name or CID (CID, IUPAC name, formula, MW,
+        canonical SMILES)."""
+        import urllib.parse, re
+        op = (operation or 'lookup').lower()
+        base = "https://pubchem.ncbi.nlm.nih.gov/rest/pug"
+
+        # Intent = similarity: 2D (Tanimoto) similarity search by SMILES.
+        if op in ('similarity', 'tanimoto'):
+            smiles = re.sub(r'^\s*smiles[:=]\s*', '', query, flags=re.IGNORECASE).strip()
+            enc = urllib.parse.quote(smiles, safe='')
+            url = (f"{base}/compound/fastsimilarity_2d/smiles/{enc}/cids/JSON"
+                   f"?Threshold=90&MaxRecords=10")
+            data = self._http_get_json(url)
+            cids = ((data or {}).get('IdentifierList') or {}).get('CID', [])[:10]
+            return {"source": "pubchem", "query": smiles, "search": "similarity_2d",
+                    "threshold": 90, "results": [{"cid": c} for c in cids]}
+
+        # Intent = lookup: compound by name or CID.
+        term = query.strip()
+        selector = 'cid' if re.match(r'^\d+$', term) else 'name'
+        enc = urllib.parse.quote(term, safe='')
+        url = (f"{base}/compound/{selector}/{enc}/property/"
+               f"IUPACName,MolecularFormula,MolecularWeight,ConnectivitySMILES/JSON")
+        data = self._http_get_json(url)
+        props = (((data or {}).get('PropertyTable') or {}).get('Properties') or [])
+        results = []
+        for p in props[:5]:
+            results.append({
+                "cid": p.get('CID'),
+                "iupac_name": p.get('IUPACName'),
+                "formula": p.get('MolecularFormula'),
+                "mw": p.get('MolecularWeight'),
+                "smiles": p.get('ConnectivitySMILES') or p.get('CanonicalSMILES'),
+            })
+        return {"source": "pubchem", "query": query, "results": results}
+
+    def _query_bindingdb(self, query: str, operation: str = 'lookup') -> Dict:
+        """BindingDB REST. Measured binding affinities (Ki/Kd/IC50). Query is a
+        UniProt accession (returns ligands for that target) — the documented
+        getLigandsByUniprots endpoint returns affinity + SMILES + PMID rows."""
+        import urllib.parse, re
+        term = query.strip()
+        # UniProt accession -> ligands (affinities) for that target.
+        if re.match(r'^([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2})$', term.upper()):
+            acc = term.upper()
+            url = (f"https://bindingdb.org/rest/getLigandsByUniprots"
+                   f"?uniprot={urllib.parse.quote(acc)}"
+                   f"&cutoff=10000&code=2&response=application/json")
+            # BindingDB responses can be large/slow (100s of KB) — the shared
+            # _http_get_json 10s timeout is too tight, so fetch with 30s here
+            # (cached via _cached_fetch, mirroring _query_gnomad/_query_kegg).
+            def _fetch():
+                import urllib.request, json as _json
+                req = urllib.request.Request(
+                    url, headers={'User-Agent': 'BioMate/1.0 (biomate.ai; ai-assistant)'})
+                try:
+                    with urllib.request.urlopen(req, timeout=30) as resp:
+                        return _json.loads(resp.read().decode())
+                except Exception:
+                    return None
+            data = self._cached_fetch("bindingdb_get:" + url, _fetch)
+            # BindingDB's documented response key (their spelling).
+            resp = (data or {}).get('getLindsByUniprotsResponse') \
+                or (data or {}).get('getLigandsByUniprotsResponse') or {}
+            affinities = resp.get('affinities', [])
+            if isinstance(affinities, dict):
+                affinities = [affinities]
+            results = []
+            for a in affinities[:10]:
+                results.append({
+                    "target": a.get('query'),
+                    "monomer_id": a.get('monomerid'),
+                    "smiles": a.get('smile'),
+                    "affinity_type": a.get('affinity_type'),
+                    "affinity_nM": a.get('affinity'),
+                    "pmid": a.get('pmid'),
+                    "doi": a.get('doi'),
+                })
+            return {"source": "bindingdb", "query": acc, "target_uniprot": acc,
+                    "results": results, "total": len(affinities)}
+        return {"source": "bindingdb", "query": query, "results": [],
+                "note": "Provide a UniProt accession (target) for affinity lookup"}
+
+    def _query_pharos(self, query: str, operation: str = 'lookup') -> Dict:
+        """Pharos / TCRD GraphQL. Target development level (Tclin/Tchem/Tbio/Tdark),
+        family, and drug/ligand counts for a gene symbol."""
+        import json as _json, urllib.request
+        gene = query.strip().upper()
+        gql = """
+        query ($sym: String!) {
+          target(q: { sym: $sym }) {
+            name sym tdl fam novelty
+            ligandCounts { name value }
+          }
+        }
+        """
+        def _fetch():
+            payload = _json.dumps({"query": gql, "variables": {"sym": gene}}).encode()
+            req = urllib.request.Request(
+                "https://pharos-api.ncats.io/graphql",
+                data=payload,
+                headers={"Content-Type": "application/json",
+                         "User-Agent": "BioMate/1.0"}
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    data = _json.loads(resp.read().decode())
+                    return (data.get('data') or {}).get('target')
+            except Exception:
+                return None
+        target = self._cached_fetch("pharos_post:" + gene, _fetch)
+        if not target:
+            return {"source": "pharos", "query": query, "error": "no_response"}
+        counts = {c.get('name'): c.get('value') for c in (target.get('ligandCounts') or [])}
+        return {"source": "pharos", "query": query,
+                "name": target.get('name'), "symbol": target.get('sym'),
+                "tdl": target.get('tdl'), "family": target.get('fam'),
+                "novelty": target.get('novelty'),
+                "ligand_count": counts.get('ligand'),
+                "drug_count": counts.get('drug')}
+
+    def _query_pdbe(self, query: str, operation: str = 'lookup') -> Dict:
+        """PDBe REST. Summary + ligand (binding) annotations for a 4-char PDB ID,
+        or best-covering experimental structures (SIFTS) for a UniProt accession."""
+        import re
+        base = "https://www.ebi.ac.uk/pdbe/api"
+        term = query.strip()
+
+        # UniProt accession -> best experimental structures covering it.
+        if re.match(r'^([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2})$', term.upper()):
+            acc = term.upper()
+            data = self._http_get_json(f"{base}/mappings/best_structures/{acc}")
+            hits = (data or {}).get(acc, [])
+            results = [{"pdb_id": h.get('pdb_id'), "chain": h.get('chain_id'),
+                        "method": h.get('experimental_method'),
+                        "resolution": h.get('resolution'),
+                        "coverage": h.get('coverage')} for h in hits[:10]]
+            return {"source": "pdbe", "query": acc, "uniprot": acc,
+                    "best_structures": results}
+
+        # 4-char PDB ID -> summary + ligand (binding) annotations.
+        if re.match(r'^[A-Za-z0-9]{4}$', term) and not term.isalpha():
+            pdb_id = term.lower()
+            summary = self._http_get_json(f"{base}/pdb/entry/summary/{pdb_id}")
+            entry = (summary or {}).get(pdb_id, [{}])
+            entry = entry[0] if entry else {}
+            ligand_data = self._http_get_json(f"{base}/pdb/entry/ligand_monomers/{pdb_id}")
+            ligs = (ligand_data or {}).get(pdb_id, [])
+            ligands = []
+            seen = set()
+            for lg in ligs:
+                cid = lg.get('chem_comp_id')
+                if cid and cid not in seen:
+                    seen.add(cid)
+                    ligands.append({"chem_comp_id": cid,
+                                    "name": lg.get('chem_comp_name'),
+                                    "chain": lg.get('chain_id')})
+            return {"source": "pdbe", "pdb_id": pdb_id.upper(),
+                    "title": entry.get('title'),
+                    "method": (entry.get('experimental_method') or [None])[0],
+                    "release_date": entry.get('release_date'),
+                    "ligands": ligands[:15]}
+        return {"source": "pdbe", "query": query, "results": [],
+                "note": "Provide a 4-char PDB ID or a UniProt accession"}
+
     def _query_interpro(self, query: str) -> Dict:
         import urllib.parse
         q = urllib.parse.quote(query)
@@ -5289,7 +5457,8 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         """
         Route a biological database query to the appropriate public REST API.
         Supports: auto, federated, ncbi_gene, uniprot, pdb, alphafold, kegg,
-                  reactome, go, hpo, chebi, chembl, interpro, string, ensembl,
+                  reactome, go, hpo, chebi, chembl, pubchem, bindingdb, pharos,
+                  pdbe, interpro, string, ensembl,
                   gnomad, dbsnp, clinvar, pubmed,
                   europepmc, semantic_scholar, openalex.
 
@@ -5328,6 +5497,10 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             'hpo': self._query_hpo,
             'chebi': self._query_chebi,
             'chembl': self._query_chembl,
+            'pubchem': self._query_pubchem,
+            'bindingdb': self._query_bindingdb,
+            'pharos': self._query_pharos,
+            'pdbe': self._query_pdbe,
             'interpro': self._query_interpro,
             'string': self._query_string,
             'ensembl': self._query_ensembl,
@@ -5356,7 +5529,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                                  ['federated', 'europepmc', 'semantic_scholar', 'openalex']}
         try:
             # Handlers that support an intent-driven search mode take `operation`.
-            if db in ('chembl', 'pdb'):
+            if db in ('chembl', 'pdb', 'pubchem', 'bindingdb', 'pharos', 'pdbe'):
                 result = handler(query, operation)
             else:
                 result = handler(query)
