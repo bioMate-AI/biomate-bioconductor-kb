@@ -39,7 +39,7 @@
         "operatingSystem": "macOS, Windows, Linux",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
         "publisher": { "@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai" },
-        "downloadUrl": "https://www.npmjs.com/package/@biomate/mcp-server",
+        "downloadUrl": "https://github.com/bioMate-AI/biomate-connector",
         "softwareVersion": "1.0",
         "featureList": [
           "stdio JSON-RPC 2.0 transport for Claude Code, Claude Desktop, Cursor, Codex CLI",
@@ -403,9 +403,13 @@
       <h2>Claude Code</h2>
       <p>The Claude Code connector runs as a local MCP server (stdio transport). It installs in 30 seconds and writes its config into <code>~/.mcp.json</code>.</p>
 
-      <h4>Automatic install</h4>
+      <h4>Install via CLI (early access)</h4>
       <pre><code><span class="token-str">npx @biomate/connect claude-code</span></code></pre>
       <p>The installer opens your browser, completes the OAuth 2.1 + PKCE flow against <code>biomate.ai</code>, and writes the server entry into your Claude Code config. Restart Claude Code to activate.</p>
+      <div class="callout callout-note">
+        <strong>npm package in early access</strong>
+        The <code>@biomate/connect</code> CLI is not yet on the public npm registry. Until it ships, use the manual config below — or clone the installer from <a href="https://github.com/bioMate-AI/biomate-connector/tree/main/connectors/installer">github.com/bioMate-AI/biomate-connector</a> and run it locally.
+      </div>
 
       <h4>Try it</h4>
       <pre><code><span class="token-cmt"># ADMET screening</span>
@@ -430,9 +434,9 @@ Apply C2 symmetry.</span></code></pre>
       <h2>Claude Desktop</h2>
       <p>Claude Desktop supports MCP stdio servers via the <code>claude_desktop_config.json</code> file.</p>
 
-      <h4>Automatic install</h4>
+      <h4>Install via CLI (early access)</h4>
       <pre><code><span class="token-str">npx @biomate/connect claude-desktop</span></code></pre>
-      <p>The installer handles OAuth and writes the server entry into <code>~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS) or <code>%APPDATA%\Claude\claude_desktop_config.json</code> (Windows). Restart Claude Desktop to activate.</p>
+      <p>The installer handles OAuth and writes the server entry into <code>~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS) or <code>%APPDATA%\Claude\claude_desktop_config.json</code> (Windows). Restart Claude Desktop to activate. See the <a href="https://github.com/bioMate-AI/biomate-connector/tree/main/connectors/claude-desktop">GitHub repo</a> to run the installer locally during early access.</p>
 
       <h4>Manual config</h4>
       <p>If you prefer to configure manually, add this entry under <code>mcpServers</code> in <code>claude_desktop_config.json</code>:</p>
@@ -456,8 +460,8 @@ Apply C2 symmetry.</span></code></pre>
 
       <div class="steps">
         <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Open the GPT editor</strong><p>Go to <strong>ChatGPT → Explore GPTs → Create</strong>.</p></div></div>
-        <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Add an action</strong><p>Click <strong>Add actions</strong> and paste the OpenAPI schema URL: <code>https://dev-public.biomate.ai/mcp/openapi.json</code></p></div></div>
-        <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Configure OAuth</strong><p>Set auth type to <strong>OAuth</strong>. Client ID and secret are available at <a href="https://dev-public.biomate.ai/account/connectors">biomate.ai/account/connectors</a>. The authorization URL is <code>https://biomate.ai/oauth/authorize</code> and the token URL is <code>https://biomate.ai/oauth/token</code>.</p></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Add an action</strong><p>Click <strong>Add actions</strong> and paste the OpenAPI schema URL: <code>https://api.biomate.ai/connectors/chatgpt/openapi.json</code>. Alternatively, download the schema from <a href="https://github.com/bioMate-AI/biomate-connector/blob/main/connectors/chatgpt/openapi.json">GitHub</a> and paste the contents directly.</p></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Configure OAuth</strong><p>Set auth type to <strong>OAuth</strong>. Client ID and secret are available at <a href="https://dev-public.biomate.ai/account/connectors">biomate.ai/account/connectors</a>. The authorization URL is <code>https://api.biomate.ai/oauth/authorize</code> and the token URL is <code>https://api.biomate.ai/oauth/token</code>.</p></div></div>
         <div class="step"><div class="step-num">4</div><div class="step-body"><strong>Save and test</strong><p>Save the GPT and ask it to list your workflows: <em>"What RNA-seq workflows are available in BioMate?"</em></p></div></div>
       </div>
     </section>
