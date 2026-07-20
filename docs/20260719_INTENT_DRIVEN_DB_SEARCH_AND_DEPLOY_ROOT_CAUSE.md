@@ -201,17 +201,23 @@ DIPLOSALSALATE 85.7); the model rendered a results table and correctly named
 the molecule Aspirin. **The intent→`operation` mapping works end-to-end through
 the real LLM.**
 
-## 8. Open items
-- **§5 #4 behavioral assertion — PARTIALLY DONE.** Added **S6** to
-  `scripts/post_sync_check.sh` (commit `85aa46258`): a deterministic
-  operation-routing canary (asserts `search=tanimoto_similarity` /
-  `sequence_similarity` and that `text` ≠ `similarity` on the same input;
-  passes on dev). It does not flake on ChEMBL/RCSB outages because the
-  similarity path sets its `search` tag regardless of upstream hits.
-  **Remaining:** wire an equivalent assertion into `sync_to_dev.sh`'s inline
-  health gate so a stale/broken deploy **rolls back** instead of reporting
-  healthy (S6 today only gates the standalone `post_sync_check.sh` run).
+## 8. Status of the §5 hardening fixes
+- **§5 #4 behavioral assertion — ✅ DONE (both layers).**
+  - `scripts/post_sync_check.sh` **S6** (commit `85aa46258`, hardened in
+    `7883bcfac`): standalone deterministic operation-routing canary.
+  - `scripts/sync_to_dev.sh` `smoke_test_db_search()` (commit `7883bcfac`):
+    wired into the **post-sync health gate** — after the workflow smoke test it
+    hits `/api/databases/query` through the **frontend proxy** (`localhost:3000`
+    → Galaxy) and asserts `operation=similarity` routes correctly and `text`
+    does not. A well-formed-but-wrong response now **auto-rolls-back** the
+    deploy; a transient error/empty/cold-start reply is inconclusive (no false
+    rollback). **This is the exact gate that would have caught the proxy-drop
+    bug at deploy time.**
+  - Verified in isolation (no speculative deploy): passes on the good deploy,
+    inconclusive on an unreachable host, fails only on a well-formed
+    operation-dropped response. Note: `scripts/` is not a synced code layer, so
+    the new gate takes effect on the *next* `sync_to_dev.sh` run automatically.
 - **§5 #1–#3 remain** (decouple `restart_galaxy` from `do_backend`; verify
   in-container content vs. the git marker; serialize concurrent syncs). These
-  edit the **deploy mechanism itself** — do them as a carefully-reviewed change,
-  not a speculative edit, since a bug there breaks deploys for every session.
+  edit the **deploy mechanism's control flow** — do them as a carefully-reviewed
+  change, since a bug there breaks deploys for every session.
