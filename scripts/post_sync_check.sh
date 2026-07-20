@@ -8,6 +8,8 @@
 #   S4 embedding align  — DB row count matches .npz, signature stamped
 #   S5 P1 spot-check    — UC-2 (chat with active workspace) + UC-7
 #                         (skip injection on abstract question)
+#   S6 db-search canary — intent-driven `operation` routing honored end-to-end
+#                         (Node proxy -> Galaxy); deterministic, no external dep
 #
 # Exits non-zero on the first failure. Per-run logs land in
 # docs/post_sync_logs/<TS>_{s1,s2,s3,s4,s5}.log.
@@ -21,6 +23,7 @@
 #   FIXTURE_PASSWORD     (default: WpmFixture!2026)
 #   SKIP_S2=1            (skip the project framework audit driver)
 #   SKIP_S5=1            (skip the P1 spot-check)
+#   SKIP_S6=1            (skip the DB-search operation-routing canary)
 #
 # Exit codes:
 #   0 — all pass
@@ -30,6 +33,7 @@
 #   4 — S3 log scan
 #   5 — S4 embedding alignment
 #   6 — S5 P1 spot-check
+#   7 — S6 DB-search operation-routing canary
 
 set -u
 
@@ -247,6 +251,47 @@ else
   NOTE "${C_DIM}Reminder: UI-level UC-2 and UC-7 (the actual user flow at"
   NOTE "${C_DIM}https://dev-public.biomate.ai) still need a 30-second human"
   NOTE "${C_DIM}smoke. The script only proved the API surface.${C_RESET}"
+fi
+
+# ── S6: intent-driven DB-search behavioral canary ───────────────────
+# Asserts the `operation` param is honored END-TO-END (Node REST proxy ->
+# Galaxy -> code path). The similarity code path sets the `search` key even
+# when the upstream API (ChEMBL/RCSB) returns zero hits, so this is
+# DETERMINISTIC and not flaky on external outages. This canary would have
+# caught the 2026-07-19 proxy-drop bug where routes.ts:8135 silently dropped
+# `operation` (see docs/20260719_INTENT_DRIVEN_DB_SEARCH_AND_DEPLOY_ROOT_CAUSE.md).
+if [[ "${SKIP_S6:-0}" = "1" ]]; then
+  NOTE "${C_DIM}S6 — skipped via SKIP_S6 env var${C_RESET}"
+else
+  HEAD "S6 — Intent-driven DB search (operation routing)"
+  S6_LOG="$LOG_DIR/${TS}_s6_dbsearch.log"
+  UBIQ="MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG"
+  s6q() {
+    curl -sS -m 45 -X POST "$BIOMATE_URL/api/databases/query" \
+      -H "Content-Type: application/json" -H "x-e2e-test-token: $E2E_TEST_TOKEN" -d "$1"
+  }
+  {
+    CHEMBL_SIM="$(s6q '{"database":"chembl","query":"CC(=O)Oc1ccccc1C(=O)O","operation":"similarity"}')"
+    PDB_SIM="$(s6q "{\"database\":\"pdb\",\"query\":\"$UBIQ\",\"operation\":\"similarity\"}")"
+    PDB_TEXT="$(s6q "{\"database\":\"pdb\",\"query\":\"$UBIQ\",\"operation\":\"text\"}")"
+    printf 'chembl.sim : %.180s\n' "$CHEMBL_SIM"
+    printf 'pdb.sim    : %.180s\n' "$PDB_SIM"
+    printf 'pdb.text   : %.180s\n' "$PDB_TEXT"
+    # Strong, deterministic: similarity path must set its `search` tag.
+    echo "$CHEMBL_SIM" | grep -q '"search":[[:space:]]*"tanimoto_similarity"' \
+      || echo "FAIL: chembl operation=similarity not routed (proxy drop or stale Galaxy code)"
+    echo "$PDB_SIM" | grep -q '"search":[[:space:]]*"sequence_similarity"' \
+      || echo "FAIL: pdb operation=similarity not routed"
+    # Discrimination: same input under operation=text must NOT run similarity.
+    echo "$PDB_TEXT" | grep -q '"search":[[:space:]]*"sequence_similarity"' \
+      && echo "FAIL: pdb operation=text wrongly ran similarity (operation ignored/hardcoded)"
+    echo "OK: operation routing verified (same input, intent decides: similarity != text)"
+  } 2>&1 | tee "$S6_LOG"
+  if grep -q "^FAIL:" "$S6_LOG"; then
+    FAIL "S6 — operation routing broken. See $S6_LOG"
+    exit 7
+  fi
+  PASS "S6 — intent-driven DB search routes by operation (deterministic canary)"
 fi
 
 # ── All done ────────────────────────────────────────────────────────
