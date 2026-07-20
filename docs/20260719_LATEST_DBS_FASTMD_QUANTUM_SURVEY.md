@@ -23,6 +23,23 @@
 
 Key insight: on **fast MD we already own the engines** the survey recommends (OpenMM 8, OpenFE, BioEmu) — the real gap is the **ML-potential layer**. On **DB APIs** we have the backbone but miss the affinity + druggability + billion-scale-library sources.
 
+**Verified directly (catalog + code grep, not just the agent):** BindingDB, Pharos/TCRD, PDBe, ZINC, SmallWorld, DrugCentral, SureChEMBL = **0 hits**. PubChem + GtoPdb exist only in Biomni/federated, **not** as first-class `_query_*` handlers (the 15 wired handlers are: ncbi_gene, uniprot, pdb, alphafold, kegg, reactome, go, hpo, chebi, chembl, interpro, string, ensembl, gnomad, ncbi_entrez). ML potentials (AIMNet2/MACE-OFF/ANI/NequIP) = 0; DMRG/block2/PySCF = 0; real quantum frameworks (PennyLane/CUDA-Q/OpenFermion) = 0. **So the gaps are genuine, not oversight.**
+
+## 1a. Benefit / speedup (why each is worth it)
+
+| Item | Benefit | Speedup (honest, sourced) |
+|---|---|---|
+| **New DB APIs** (BindingDB/Pharos/PDBe/PubChem/ZINC-SmallWorld) | *coverage*, not compute — answers queries impossible today; billion-molecule search in ~s, zero index hosting | capability add (full-scale search in seconds) |
+| **AIMNet2 / MACE-OFF** ML potentials | QM-accurate forces without DFT | **~10³–10⁶× faster than DFT**; note ~50–70× *slower* than a classical force field — the win is accuracy at tractable cost |
+| BioEmu *(have)* | equilibrium ensembles without trajectories | ~10⁴–10⁵× vs long MD (vendor-claimed; method peer-reviewed, Science 2025) |
+| OpenFE RBFE *(have)* | FEP-grade binding ΔG | FEP+-comparable ranking (~1.7 kcal/mol RMSE) |
+| Boltz-2 | affinity from seq+SMILES | **~1000× cheaper than FEP**, ~20 s/prediction |
+| ProstT5→Foldseek | structure-homology from sequence alone | **~1000×** vs fold-then-search |
+| Foldseek *(have)* | structure search | ~10³–10⁵× vs TM-align/Dali |
+| MMseqs2-GPU | MSA / homology | 176× vs JackHMMER; ColabFold 31.8× vs AF2 |
+| GPU-DMRG *("quantum" alternative)* | metalloenzyme multireference chemistry | active space ~18 → **50+ orbitals** — enables previously-intractable QM |
+| **Quantum QPU** | — | **none** — slower/worse than classical for every real drug molecule |
+
 ---
 
 ## 2. New target + small-molecule DB APIs — ranked shortlist
@@ -99,3 +116,19 @@ Why (2025–26 reality, stated plainly):
 6. Housekeeping: update `_query_alphafold` before the **2026-06-25** field sunset; add RCSB ESM3 3D-similarity to `_query_pdb`.
 
 Also queued from prior speedup work: **ProstT5→Foldseek** (structure-homology search from sequence alone, ~1000× vs folding first — `foldseek --prostt5-model`, local binary supports it).
+
+---
+
+## 6. Proposal — in-progress builds (this session)
+
+Launched **3 parallel builds** (per "do next tasks in parallel; some run on AWS, not locally"). All extend already-shipped work; workflows target AWS Batch (built + logic-tested locally, not run on AWS here):
+
+1. **Wire 4 new DB APIs** into `query_database` (LOCAL code) — `_query_pubchem`, `_query_bindingdb`, `_query_pharos`, `_query_pdbe`, matching the ChEMBL/RCSB `operation` pattern across all layers (handlers + tool schema enum + REST proxy + `live_api` catalog rows), each live-tested. *(ZINC/SmallWorld deferred — light-use terms + no clean JSON REST; second wave.)*
+2. **ML-potential fast-MD subworkflow** (`molecular_dynamics/mlip_md_simulation/main.nf`, AWS Batch GPU) — OpenMM 8 + AIMNet2 (default) / MACE-OFF; verified container tag, every param used by Groovy, local mock dry-run to prove wiring without a GPU.
+3. **ProstT5→Foldseek** — backward-compatible `query_type=sequence` mode on the existing Foldseek workflow (`--prostt5-model`), + a `prepare_prostt5_model.sh` S3 stager, local test.
+
+**Deferred (documented, not yet built):** OPES/PLUMED enhanced sampling; GPU-DMRG multireference-chemistry capability; CUDA-Q sandbox (hedge only); ZINC-22/SmallWorld billion-scale search; RCSB ESM3 3D-similarity upgrade; `_query_alphafold` field-sunset fix (before 2026-06-25).
+
+**Not building (explicit):** real quantum-hardware pipelines (sandbox-only verdict); DrugBank / DisGeNET / AlphaFold3-Server (licensing).
+
+Review + catalog registration + dev sync happen after the agents report and I review each diff (per the review-before-ship discipline).
