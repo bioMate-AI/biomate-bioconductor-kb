@@ -132,12 +132,15 @@ def test_al5_ames_positive_halt(evaluator):
 # ── AL-6: Clean pass — all gates within limits ────────────────────────────────
 
 def test_al6_all_gates_pass(evaluator):
+    # Both Ames models required for GOLD/SILVER — ICH M7 dual-model assessment
     metrics = {
         "herg_ic50_uM": 45.0,
         "dili_probability": 0.12,
         "dili_risk": "low",
         "ames_positive": False,
         "ames_probability": 0.08,
+        "ames_statistical_positive": False,
+        "ames_statistical_probability": 0.12,
         "logP": 2.4,
         "mw": 320.0,
     }
@@ -153,8 +156,9 @@ def test_al7_tuner_herg_reduces_logp(tuner, evaluator, default_params):
     qc = evaluator.evaluate_phase_3(metrics)
     new_params, remediations = tuner.remediate(qc, default_params)
     assert new_params.logp_max < default_params.logp_max, "logp_max should decrease"
-    assert any(r.gate == "herg_ic50" for r in remediations)
-    assert "Aronov" in remediations[0].rationale
+    herg_rem = next(r for r in remediations if r.gate == "herg_ic50")
+    assert "Waring" in herg_rem.rationale or "heuristic" in herg_rem.rationale
+    assert herg_rem.confidence in ("confident", "heuristic")
 
 
 # ── AL-8: Tuner — DILI probability HALT caps logP/MW at Lammert boundary ─────
@@ -214,7 +218,8 @@ def test_al10_tuner_unknown_gate_advisory(tuner, evaluator):
     new_params, remediations = tuner.remediate(fake_qc, params)
     assert len(remediations) == 1
     assert remediations[0].param_changes == {}
-    assert "manual inspection" in remediations[0].rationale
+    assert "manual" in remediations[0].rationale.lower()
+    assert remediations[0].confidence == "manual"
 
 
 # ── AL-11: Orchestrator — single-phase pass on first attempt ──────────────────

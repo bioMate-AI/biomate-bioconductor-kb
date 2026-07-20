@@ -95,105 +95,182 @@ admet:
   admet_herg_ic50:
     - paper_ref: "Redfern P et al. Cardiovasc Res 2003; 58(1):32-45"
       paper_doi: "10.1016/S0008-6363(02)00846-5"
-      # 2026-06-16 split-grade per Track 1 step 3: Redfern 2003 establishes
-      # the HERG margin → arrhythmia-risk correlation across drug classes;
-      # the specific 30× / 10 µM tier values are pharma-community convention
-      # (Bowes 2012 cross-pharma consensus). Metric is GOLD-anchored to the
-      # paper; tier numbers are SILVER-operational.
       provenance: GOLD-metric / SILVER-tier
+      regulatory_basis: RISK_STRATIFICATION
+      regulatory_note: >
+        ICH S7B (2005) requires hERG channel assessment as part of a
+        cardiac safety package, but does NOT state a numerical pass/fail
+        IC50 threshold. The 10 µM floor is cross-pharma industry convention
+        (Bowes 2012), not a mandated ICH value. Failing this gate is a
+        RISK SIGNAL — it does not by itself block an IND. A dedicated
+        in vitro hERG assay (patch-clamp or HTRF) is the regulatory
+        evidence required for the safety package.
+      auto_loop_eligible: true
+      auto_loop_basis: >
+        Parameter tuning is appropriate: lowering logP_max shifts the
+        screened compound population toward higher IC50 (lower hERG
+        affinity). Direction is supported by Waring & Johnstone 2007;
+        analytical inversion is possible using BioMate's own QSAR model
+        when compound descriptors are available.
       paper_supports: >
         Redfern 2003 documents the correlation between hERG IC50 / free
         Cmax safety margin and clinical arrhythmia risk across drug
         classes. The paper describes the metric; the specific 30× safety-
-        margin tier (and the typical-free-Cmax-derived 10 µM IC50 floor)
-        is pharma-community operational convention summarised by Bowes
-        2012 Nat Rev Drug Discov 11:909-922 (DOI 10.1038/nrd3845), not
-        stated verbatim in Redfern 2003.
+        margin tier (and the 10 µM IC50 floor) is pharma-community
+        operational convention summarised by Bowes 2012 Nat Rev Drug
+        Discov 11:909-922 (DOI 10.1038/nrd3845).
       rule_text: >
         BioMate halts if hERG IC50 ≤ 10 µM (admet_standard profile).
-        The 10 µM operational threshold is confirmed in Bowes 2012
-        (Nat Rev Drug Discov 11:909-922, DOI 10.1038/nrd3845) as the
+        The 10 µM operational threshold is confirmed in Bowes 2012 as the
         cross-pharma industry consensus.
       finding: >
         Remediation: tighten upstream logP filter per Waring & Johnstone
-        2007 (Bioorg Med Chem Lett 17:1759-1764, DOI 10.1016/
-        j.bmcl.2006.12.061) logP/IC50 regression; or reduce MW per
-        Aronov 2008 (Curr Opin Drug Discov Devel 11:128-140, PMID
-        18175275) "Tuning out of hERG."
+        2007 logP/IC50 regression; or reduce MW. Auto-loop parameter
+        tuning is enabled for this gate.
 
   admet_dili_probability:
     - paper_ref: "Lammert C et al. Hepatology 2010; 51:615-620"
       paper_doi: "10.1002/hep.23317"
       provenance: SILVER
+      regulatory_basis: RISK_STRATIFICATION
+      regulatory_note: >
+        No FDA/ICH/EMA guideline mandates a DILI computational screen
+        before IND filing. This gate is a literature-based risk filter
+        only. Failing it is a RISK SIGNAL — document the finding and
+        assess whether in vitro hepatotoxicity assays are warranted.
+        It does not block the IND on its own.
+      auto_loop_eligible: true
+      auto_loop_basis: >
+        Categorical fix: the Lammert 2010 boundary (logP > 4 AND MW > 400)
+        is the known risk zone. Setting both to the boundary values is a
+        confident, evidence-backed parameter change.
       paper_supports: >
         Lammert 2010 establishes lipophilicity + daily-dose as the
-        primary DILI-risk drivers; the model provides a probability
-        score rather than a threshold.
+        primary DILI-risk drivers in a retrospective analysis of FDA-
+        approved drugs with known hepatotoxicity outcomes.
       rule_text: >
-        BioMate halts if DILI probability > 0.5 (operational midpoint).
+        BioMate halts if DILI probability > 0.5 (operational midpoint)
+        OR DILI risk level > medium (Lammert boundary).
       finding: >
-        Remediation: reduce daily dose target; tighten logP filter.
+        Remediation: set logP ≤ 4.0 and MW ≤ 400 Da (Lammert 2010
+        boundary). Auto-loop parameter tuning is enabled for this gate.
 
   admet_ames:
     - paper_ref: "Kazius J et al. J Med Chem 2005; 48:312-320"
       paper_doi: "10.1021/jm040835a"
+      regulatory_ref: "ICH S2(R1) Genotoxicity Testing Guidance (2012)"
+      regulatory_doi: "https://www.ema.europa.eu/en/ich-s2-r1-genotoxicity-testing-pharmaceuticals"
       provenance: SILVER
+      regulatory_basis: REGULATORY
+      regulatory_note: >
+        ICH S2(R1) requires a bacterial reverse mutation (Ames) test as
+        part of the standard genotoxicity battery before IND filing. This
+        computational gate PREDICTS the outcome of that required test —
+        it does NOT substitute for it. A HALT here means the in vitro
+        Ames test will likely be positive and a genotoxicity package
+        (ICH S2(R1) standard battery) will be required. The pre-screening
+        action (ames_strict=True) removes flagged scaffolds to improve
+        the probability of a negative wet-lab result, but the test itself
+        is still required by regulation.
+      auto_loop_eligible: true
+      auto_loop_basis: >
+        Pre-screening parameter change (ames_strict=True) is appropriate
+        BEFORE running the required wet-lab test — it filters structurally
+        alerted compounds. The auto-loop action is scaffold pre-selection,
+        not a substitute for the regulatory genotoxicity package. After
+        the pre-filter run, the regulatory Ames test is still required.
       paper_supports: >
-        Kazius 2005 defines the structural alerts (toxicophores) used
-        for mutagenicity prediction; a positive Ames prediction = presence
-        of one or more toxicophores. The paper does NOT prescribe a
-        probability cutoff — the 0.5 BioMate cutoff is the generic
-        binary-classifier midpoint, not Kazius-derived.
+        Kazius 2005 defines the 29 structural alerts (toxicophores) for
+        mutagenicity prediction; alert presence is the basis of most
+        in silico Ames prediction tools.
       rule_text: >
-        BioMate halts if Ames probability > 0.5 (any toxicophore alert).
-        The Kazius alert SET is GOLD-anchored; the 0.5 probability
-        threshold itself is operational (demoted to SILVER 2026-06-07).
+        BioMate halts if Ames probability > 0.5 or any toxicophore alert
+        is present. Kazius alert set is GOLD; 0.5 threshold is operational.
       finding: >
-        Remediation: substitute reactive groups (aniline, nitro,
-        epoxide, etc.) per ICH M7.
+        Regulatory action: ICH S2(R1) genotoxicity package required.
+        Pre-screening: enable ames_strict=True to filter structural alerts
+        before in vitro testing.
 
   admet_ro5:
     - paper_ref: "Lipinski CA et al. Adv Drug Deliv Rev 1997; 23:3-25"
       paper_doi: "10.1016/S0169-409X(96)00423-1"
       provenance: GOLD
+      regulatory_basis: RISK_STRATIFICATION
+      regulatory_note: >
+        Lipinski's Rule of Five is an oral bioavailability DESIGN
+        HEURISTIC, not a regulatory requirement. No FDA/ICH guideline
+        mandates Ro5 compliance. Biologics, natural products, and many
+        approved drugs violate Ro5. Failing this gate is informational
+        — assess based on the route of administration and compound class.
+      auto_loop_eligible: false
+      auto_loop_basis: >
+        Not eligible: Ro5 is advisory only (never halts the run). No
+        automated param change is defined.
       paper_supports: >
-        Lipinski's Rule of Five: MW ≤ 500, logP ≤ 5, HBD ≤ 5,
-        HBA ≤ 10. Establishes the empirical bounds for oral
-        bioavailability.
+        Lipinski 1997: MW ≤ 500, logP ≤ 5, HBD ≤ 5, HBA ≤ 10.
+        Empirical bounds for oral bioavailability derived from marketed
+        drug analysis. ~10% of approved drugs are intentional exceptions.
       rule_text: >
-        BioMate halts on >1 Ro5 violation (admet_standard profile).
+        BioMate flags (advisory, not HALT) on >1 Ro5 violation.
       finding: >
-        Remediation: simplify the molecule (reduce MW or logP)
-        before progressing to in vivo.
+        Advisory: consider simplifying the scaffold if oral absorption
+        is required. Not a blocking issue for parenterals or biologics.
 
 cyp_ddi:
   cyp_ddi_r1_basic:
     - paper_ref: "FDA In Vitro Drug Interaction Studies Guidance (2020)"
       paper_doi: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/vitro-drug-interaction-studies-cytochrome-p450-enzyme-and-transporter-mediated-drug-interactions"
       provenance: GOLD
+      regulatory_basis: REGULATORY
+      regulatory_note: >
+        FDA 2020 DDI guidance explicitly states the R1 ≥ 1.1 criterion
+        as the threshold requiring a clinical DDI study. This is a named,
+        verbatim FDA requirement. Failing this gate means you MUST either
+        conduct a clinical DDI study or apply a mechanistic model to
+        predict clinical DDI magnitude and justify in the IND/NDA.
+        Parameter tuning (changing a filter) cannot resolve this —
+        the compound's CYP inhibition profile is what it is.
+      auto_loop_eligible: false
+      auto_loop_basis: >
+        Not eligible: CYP-DDI is a compound property, not a filter
+        setting. There is no workflow parameter that changes R1 after
+        the fact. The required action is a regulatory response, not a
+        re-run with different params.
       paper_supports: >
-        FDA 2020 DDI guidance specifies R1 (basic model) cutoffs for
-        perpetrator-mediated CYP inhibition: R1 ≥ 1.02 → investigate;
-        R1 ≥ 1.1 → conduct clinical DDI study.
+        FDA 2020 guidance verbatim: R1 ≥ 1.02 → conduct in vitro
+        investigation; R1 ≥ 1.1 → conduct a clinical DDI study (or
+        apply PBPK/mechanistic modelling with FDA concurrence).
       rule_text: >
-        BioMate halts when R1 ≥ 1.1 (cyp_ddi_standard profile);
-        advisory when 1.02 ≤ R1 < 1.1.
+        BioMate halts when R1 ≥ 1.1; advisory when 1.02 ≤ R1 < 1.1.
+        Thresholds are GOLD — stated verbatim in FDA 2020 guidance.
       finding: >
-        Remediation: model-based prediction of clinical DDI magnitude;
-        consider lowering dose or substrate avoidance.
+        Regulatory action required: conduct clinical DDI study or
+        PBPK mechanistic assessment. No parameter tuning available.
 
   cyp_ddi_r2_mbi:
     - paper_ref: "FDA In Vitro Drug Interaction Studies Guidance (2020)"
       paper_doi: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/vitro-drug-interaction-studies-cytochrome-p450-enzyme-and-transporter-mediated-drug-interactions"
       provenance: GOLD
+      regulatory_basis: REGULATORY
+      regulatory_note: >
+        FDA 2020 DDI guidance R2 criterion (mechanism-based inhibition)
+        is a verbatim regulatory threshold. Failing R2 ≤ 0.71 requires
+        characterisation of KI and kinact via a time-dependent inhibition
+        (TDI) assay and typically triggers a clinical DDI study or NDA
+        label restriction. This is a regulatory requirement, not a
+        risk filter.
+      auto_loop_eligible: false
+      auto_loop_basis: >
+        Not eligible: same reasoning as R1. R2 is a compound property.
+        No filter parameter changes the result.
       paper_supports: >
-        FDA 2020 DDI guidance R2 (mechanism-based inhibition) cutoffs:
-        R2 ≤ 0.79 → investigate; R2 ≤ 0.71 → conduct clinical study.
+        FDA 2020 guidance: R2 ≤ 0.79 → investigate; R2 ≤ 0.71 → conduct
+        clinical DDI study (or mechanistic PBPK assessment).
       rule_text: >
         BioMate halts when R2 ≤ 0.71; advisory when 0.71 < R2 ≤ 0.79.
       finding: >
-        Remediation: characterize KI and kinact via TDI assay;
-        time-dependent inhibition often requires substrate avoidance.
+        Regulatory action required: TDI assay (KI, kinact); clinical
+        DDI study or PBPK model per FDA 2020 guidance.
 
 nca_pk:
   nca_auc_extrap:

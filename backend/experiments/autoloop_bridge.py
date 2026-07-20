@@ -29,6 +29,8 @@ _DOMAIN_KEYWORDS: dict[str, set[str]] = {
     "admet": {
         "ADMET_TOXICITY", "HERG_SCREEN", "DILI_SCREEN", "TOXICITY_SCREEN",
         "ADMET_PRED", "PREDICT_ADMET", "ADMET_SAFETY",
+        # CiPA Tier 2 cardiac safety (virtual_cell/cipa_cardiac_safety_ode)
+        "CIPA_CARDIAC_SAFETY_ODE", "CIPA_CARDIAC_SAFETY", "CIPA_CARDIAC", "CIPA_ODE",
     },
     "docking": {
         "MOLECULAR_DOCKING", "DOCKING", "AUTODOCK", "VINA", "GLIDE",
@@ -194,36 +196,45 @@ _ADAPTERS: dict[str, Callable[[dict], dict]] = {
 
 _ADMET_PHASE3_KEYWORDS = {"HERG_SCREEN"}
 _ADMET_PHASE4_KEYWORDS = {"DILI_SCREEN", "DILI_AMES", "AMES_SCREEN"}
+_ADMET_PHASE5_KEYWORDS = {"CIPA_CARDIAC_SAFETY_ODE", "CIPA_CARDIAC_SAFETY", "CIPA_CARDIAC", "CIPA_ODE", "CARDIAC_SAFETY_ODE", "OHARA_RUDY"}
+_POPPK_KEYWORDS        = {"NLMIXR2", "NLMIXR2_POPULATION_PK", "POPULATION_PK",
+                           "POP_PK", "POPPK", "POPK", "NONMEM_POPPK", "NONMEM"}
 
 _DOMAIN_DEFAULT_PHASE: dict[str, str] = {
-    "admet":   "phase_2_admet_prediction",
-    "docking": "phase_1_docking",
-    "cyp_ddi": "phase_2_ddi_risk",
-    "nca_pk":  "phase_1_nca_analysis",
-    "pbpk":    "phase_1_pbpk_simulation",
+    "admet":        "phase_2_admet_prediction",
+    "docking":      "phase_1_docking",
+    "cyp_ddi":      "phase_2_ddi_risk",
+    "nca_pk":       "phase_1_nca_analysis",
+    "pbpk":         "phase_1_pbpk_simulation",
+    "pharmacology": "phase_6_poppk",
 }
 
 
 def _resolve_phase(domain: str, process_name: str) -> str:
     """Return the evaluator phase string for a (domain, process_name) pair."""
+    upper = process_name.upper()
     if domain == "admet":
-        upper = process_name.upper()
+        if any(k in upper for k in _ADMET_PHASE5_KEYWORDS):
+            return "phase_5_cipa_cardiac"
         if any(k in upper for k in _ADMET_PHASE3_KEYWORDS):
             return "phase_3_herg_screen"
         if any(k in upper for k in _ADMET_PHASE4_KEYWORDS):
             return "phase_4_dili_ames"
         return "phase_2_admet_prediction"
+    # Population PK processes can arrive under domain "pharmacology" or "drug_discovery"
+    if any(k in upper for k in _POPPK_KEYWORDS):
+        return "phase_6_poppk"
     if domain not in _DOMAIN_DEFAULT_PHASE:
         raise ValueError(f"Unknown domain: {domain!r}")
     return _DOMAIN_DEFAULT_PHASE[domain]
 
 _DOMAIN_DEFAULT_PROFILE: dict[str, str] = {
-    "admet":   "admet_standard",
-    "docking": "docking_hit_finding",
-    "cyp_ddi": "cyp_ddi_standard",
-    "nca_pk":  "nca_standard",
-    "pbpk":    "pbpk_screening",   # advisory-only default; users opt-in to
-                                    # pbpk_ind_submission for halt-grade gates
+    "admet":        "admet_standard",
+    "docking":      "docking_hit_finding",
+    "cyp_ddi":      "cyp_ddi_standard",
+    "nca_pk":       "nca_standard",
+    "pbpk":         "pbpk_screening",   # advisory-only default; opt-in to pbpk_ind_submission
+    "pharmacology": "poppk_standard",
 }
 
 # ── In-memory suggestion store ─────────────────────────────────────────────────
@@ -255,6 +266,7 @@ def evaluate_and_emit(
     invocation_id: str,
     sse_callback: Callable[[str, dict], None],
     qc_profile: Optional[str] = None,
+    current_params: Optional[dict] = None,
 ) -> bool:
     """
     Evaluate *raw_metrics* using the appropriate auto-loop evaluator and emit
@@ -262,11 +274,14 @@ def evaluate_and_emit(
 
     Parameters
     ----------
-    process_name  : Nextflow process name (e.g., "ADMET_TOXICITY")
-    raw_metrics   : Dict returned by the qc_trace_monitor parser
-    invocation_id : Workflow invocation UUID (for suggestion store keying)
-    sse_callback  : Callable(event_type, data) — posts to /internal/sse-inject
-    qc_profile    : Optional named QC profile override
+    process_name   : Nextflow process name (e.g., "ADMET_TOXICITY")
+    raw_metrics    : Dict returned by the qc_trace_monitor parser
+    invocation_id  : Workflow invocation UUID (for suggestion store keying)
+    sse_callback   : Callable(event_type, data) — posts to /internal/sse-inject
+    qc_profile     : Optional named QC profile override
+    current_params : Actual workflow params from the failed run.  Used instead of
+                     defaults so that gap-proportional steps are computed relative to
+                     the values that *caused* the gate failure, not placeholder values.
 
     Returns
     -------
@@ -277,7 +292,10 @@ def evaluate_and_emit(
         return True  # not an auto-loop domain — pass through
 
     try:
-        return _do_evaluate(domain, process_name, raw_metrics, invocation_id, sse_callback, qc_profile)
+        return _do_evaluate(
+            domain, process_name, raw_metrics, invocation_id,
+            sse_callback, qc_profile, current_params,
+        )
     except Exception as exc:
         log.warning(f"[AutoLoop] Evaluation error for {process_name}: {exc}", exc_info=True)
         return True  # fail-open: never block existing QC pipeline on auto-loop error
@@ -292,6 +310,7 @@ def _do_evaluate(
     invocation_id: str,
     sse_callback: Callable[[str, dict], None],
     qc_profile: Optional[str],
+    current_params: Optional[dict] = None,
 ) -> bool:
     phase   = _resolve_phase(domain, process_name)
     profile = qc_profile or _DOMAIN_DEFAULT_PROFILE[domain]
@@ -308,12 +327,14 @@ def _do_evaluate(
         "passed":        qc_result.passed,
         "gates": [
             {
-                "gate":      g.gate,
-                "action":    g.action.value,
-                "level":     g.level.value,
-                "value":     g.value,
-                "threshold": g.threshold,
-                "message":   g.message,
+                "gate":             g.gate,
+                "action":           g.action.value,
+                "level":            g.level.value,
+                "value":            g.value,
+                "threshold":        g.threshold,
+                "message":          g.message,
+                "suggestion":       getattr(g, "suggestion", ""),
+                "regulatory_basis": getattr(g, "regulatory_basis", "OPERATIONAL"),
             }
             for g in qc_result.gate_results
         ],
@@ -328,29 +349,97 @@ def _do_evaluate(
         })
         return True
 
-    # ── Phase failed — compute enriched remediations ────────────────────────
+    # ── Separate halts by regulatory basis ─────────────────────────────────
+    # REGULATORY gates need a regulatory action message — not parameter tuning.
+    # RISK_STRATIFICATION halts are the only ones where adjusting the run's
+    # input parameters can resolve the failure.
+    regulatory_halts = [
+        g for g in qc_result.halts
+        if getattr(g, "regulatory_basis", "OPERATIONAL") == "REGULATORY"
+    ]
+    tunable_halts = [
+        g for g in qc_result.halts
+        if getattr(g, "regulatory_basis", "OPERATIONAL") == "RISK_STRATIFICATION"
+    ]
+
+    # ── Phase failed — build params from actual run values (not defaults) ──
+    # Using defaults would make gap-proportional steps compute from the wrong
+    # baseline — e.g. logP_max=5.0 default when the run actually used 4.2.
+    import dataclasses as _dc
     params = params_cls()
-    _, enriched_remeds = tuner_cls().remediate(qc_result, params)
+    if current_params:
+        known_fields = {f.name for f in _dc.fields(params)}
+        for k, v in current_params.items():
+            if k in known_fields:
+                try:
+                    setattr(params, k, type(getattr(params, k))(v))
+                except Exception:
+                    pass  # type coercion failed — keep default
+
+    # ── Compute enriched remediations (RISK_STRATIFICATION gates only) ──────
+    # For REGULATORY gates: emit guidance text — never substitute param tuning
+    # for a required regulatory action.
+    new_params, enriched_remeds = tuner_cls().remediate(qc_result, params)
+
+    # Annotate each remediation with whether it's from a regulatory or
+    # risk-stratification gate, so the UI can render them differently.
     remeds_json = [r.to_dict() for r in enriched_remeds]
+    for rem in remeds_json:
+        gate_obj = next((g for g in qc_result.gate_results if g.gate == rem["gate"]), None)
+        rem["regulatory_basis"] = getattr(gate_obj, "regulatory_basis", "OPERATIONAL") if gate_obj else "OPERATIONAL"
+
+    # Regulatory gates emit their own action items (no param change).
+    regulatory_actions = [
+        {
+            "gate":             g.gate,
+            "regulatory_basis": "REGULATORY",
+            "action_required":  g.suggestion or g.message,
+            "param_changes":    {},
+        }
+        for g in regulatory_halts
+    ]
+
+    # Collect the full suggested parameter set (original + changes) so the
+    # UI can pre-fill all inputs, not just the changed ones.
+    suggested_params = _dc.asdict(new_params) if _dc.is_dataclass(new_params) else {}
 
     failed_gates = [g.gate for g in qc_result.halts]
+
+    # Track attempt history across repeated calls for the same invocation_id.
+    with _suggestions_lock:
+        prior = _suggestions.get(invocation_id, {})
+        attempt = prior.get("attempt", 0) + 1
+
     sse_callback("autoloop_update", {
-        "phase":        phase,
-        "domain":       domain,
-        "attempt":      1,
-        "next_attempt": 2,
-        "failed_gates": failed_gates,
-        "remediations": remeds_json,
+        "phase":                phase,
+        "domain":               domain,
+        "attempt":              attempt,
+        "next_attempt":         attempt + 1,
+        "failed_gates":         failed_gates,
+        "remediations":         remeds_json,
+        "regulatory_actions":   regulatory_actions,
+        "tunable_gate_count":   len(tunable_halts),
+        "regulatory_gate_count": len(regulatory_halts),
+        "suggested_params":     suggested_params,
+        "params_used":          _dc.asdict(params) if _dc.is_dataclass(params) else {},
     })
 
     # ── Persist suggestions for REST API ───────────────────────────────────
     with _suggestions_lock:
         _suggestions[invocation_id] = {
-            "domain":        domain,
-            "phase":         phase,
-            "profile":       profile,
-            "remediations":  remeds_json,
-            "failed_gates":  failed_gates,
+            "domain":           domain,
+            "phase":            phase,
+            "profile":          profile,
+            "remediations":     remeds_json,
+            "failed_gates":     failed_gates,
+            "suggested_params": suggested_params,
+            "attempt":          attempt,
+            # Running history: list of {attempt, params_used, failed_gates} for convergence tracking
+            "history": prior.get("history", []) + [{
+                "attempt":     attempt,
+                "params_used": _dc.asdict(params) if _dc.is_dataclass(params) else {},
+                "failed_gates": failed_gates,
+            }],
         }
 
     return False
