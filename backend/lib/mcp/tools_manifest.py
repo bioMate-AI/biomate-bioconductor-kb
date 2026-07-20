@@ -237,6 +237,27 @@ TOOL_SCHEMAS: List[ToolSchema] = [
         backend_path="/api/workflows/runs",
         backend_method="GET",
     ),
+    ToolSchema(
+        name="watch_run",
+        tier="workflow",
+        description=(
+            "Stream real-time progress for a running BioMate workflow and return full results when done. "
+            "Emits MCP notifications/progress for every phase start/complete, step update, and QC gate. "
+            "When the run finishes, automatically fetches output files (with download URLs) and AI findings. "
+            "Use after run_workflow (non-streaming) to watch a submitted run. "
+            "Does not require re-submitting — takes an existing run_id."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "run_id": {"type": "string", "description": "Run ID returned by run_workflow."},
+            },
+            "required": ["run_id"],
+        },
+        backend_path="/api/workflows/runs/{run_id}",
+        backend_method="GET",
+        streaming=True,
+    ),
 
     # ── Tier 3: outputs, analysis, reporting ──────────────────────────────────
     ToolSchema(
@@ -346,6 +367,131 @@ TOOL_SCHEMAS: List[ToolSchema] = [
             "required": ["database", "query"],
         },
         backend_path="/api/databases/query",
+    ),
+    ToolSchema(
+        name="resolve_accession",
+        tier="analysis",
+        description=(
+            "Identify a public archive accession (GEO, SRA, ENA, DDBJ) and return the "
+            "best BioMate workflow to fetch it plus pre-filled params ready for run_workflow. "
+            "Examples: GSE183947 → Geo Data Connector; SRR12345 → nf-core/fetchngs. "
+            "Call this before run_workflow whenever the user provides an accession instead of a file."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "accession": {
+                    "type": "string",
+                    "description": (
+                        "Public archive accession: GSE*, GSM*, GDS*, SRR*, SRX*, SRP*, "
+                        "ERR*, ERX*, ERP*, DRR*, PRJNA*, PRJEB*, E-MTAB-*, E-GEOD-*"
+                    ),
+                },
+            },
+            "required": ["accession"],
+        },
+        backend_path="/api/accession/resolve",
+        backend_method="GET",
+    ),
+    ToolSchema(
+        name="browse_data",
+        tier="analysis",
+        description=(
+            "Browse a biological data repository or S3 workspace by listing files and directories "
+            "at a given path. Public sources (EBI, NCBI, Ensembl, UCSC) require a path. "
+            "S3 sources (biomate_workspace, user_s3) accept an optional prefix. "
+            "Use before fetch_public_data to navigate to the exact file you need."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "source_id": {
+                    "type": "string",
+                    "enum": [
+                        "ebi_ftp", "ncbi_ftp", "ensembl_ftp", "ucsc_downloads",
+                        "http_public", "biomate_workspace", "user_s3",
+                    ],
+                    "description": (
+                        "Data source to browse. "
+                        "biomate_workspace = BioMate's S3 work bucket; "
+                        "user_s3 = user's own S3 bucket (if configured)."
+                    ),
+                },
+                "path": {
+                    "type": "string",
+                    "description": "Directory path or S3 prefix to list.",
+                },
+            },
+            "required": ["source_id"],
+        },
+        backend_path="/api/data/browse",
+        backend_method="GET",
+    ),
+    ToolSchema(
+        name="fetch_public_data",
+        tier="analysis",
+        description=(
+            "Download a file from a public biological repository (EBI, NCBI, Ensembl, UCSC) "
+            "into BioMate's S3 workspace and return a presigned URL and S3 URI. "
+            "Use the S3 URI as a workflow input parameter. Call browse_data first to find the exact path."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "source_id": {
+                    "type": "string",
+                    "enum": ["ebi_ftp", "ncbi_ftp", "ensembl_ftp", "ucsc_downloads", "http_public"],
+                    "description": "Data source the file comes from.",
+                },
+                "remote_path": {
+                    "type": "string",
+                    "description": "Path on the FTP server.",
+                },
+                "url": {
+                    "type": "string",
+                    "description": "For http_public source: full HTTPS URL of the file to download.",
+                },
+            },
+            "required": ["source_id"],
+        },
+        backend_path="/api/data/fetch",
+    ),
+    ToolSchema(
+        name="search_literature",
+        tier="analysis",
+        description=(
+            "Search published scientific literature across PubMed, EuropePMC, Semantic Scholar, "
+            "and OpenAlex. Uses an iterative depth-loop: starts broad, then drills into related "
+            "topics until min_results are found or max_depth is reached. Returns ranked papers "
+            "with title, authors, year, DOI, abstract snippet, and citation count. "
+            "Best for: finding prior art, understanding a disease mechanism, locating validation "
+            "datasets, or reviewing methods before running a workflow."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": (
+                        "Natural-language search query. Be specific: include organism, "
+                        "assay type, or drug name. E.g. 'DESeq2 bulk RNA-seq breast cancer ER+ 2020-2024'."
+                    ),
+                },
+                "max_depth": {
+                    "type": "integer",
+                    "default": 2,
+                    "description": "How many iterative refinement rounds to run (1–4). Higher = more thorough, slower.",
+                },
+                "min_results": {
+                    "type": "integer",
+                    "default": 10,
+                    "description": "Stop when at least this many papers are found.",
+                },
+            },
+            "required": ["query"],
+        },
+        backend_path="/api/literature/search",
+        backend_method="GET",
     ),
     ToolSchema(
         name="recall_memory",
