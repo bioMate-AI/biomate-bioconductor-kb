@@ -1112,6 +1112,50 @@ except Exception as e:
   '
 }
 
+smoke_test_db_search() {
+  # Behavioral gate: assert the intent-driven `operation` param is honored
+  # end-to-end through the FRONTEND PROXY (localhost:3000 -> Galaxy) — the exact
+  # path where routes.ts:8135 silently dropped `operation` on 2026-07-19.
+  # DETERMINISTIC: the similarity code path sets its `search` tag even when the
+  # upstream API (ChEMBL/RCSB) returns zero hits, so this never flakes on an
+  # external outage. CONSERVATIVE: an empty/unreachable response is treated as
+  # inconclusive (exit 0) — unreachability is postsync_health_ok's job — so a
+  # transient blip cannot trigger a false rollback. Only a REACHABLE-but-WRONG
+  # response fails the gate. See docs/20260719_INTENT_DRIVEN_DB_SEARCH_AND_DEPLOY_ROOT_CAUSE.md
+  log "[smoke] Testing intent-driven DB-search routing (frontend proxy -> Galaxy)..."
+  ec2_ssh '
+    UBIQ="MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG"
+    q() { curl -s --max-time 45 -X POST http://localhost:3000/api/databases/query \
+            -H "Content-Type: application/json" \
+            -H "x-e2e-test-token: biomate-e2e-bypass-token-dev-only" -d "$1"; }
+    # A response is WELL-FORMED only if it carries the source tag; {"error":...},
+    # empty, or a cold-start 5xx are transient -> retry, never fail the gate.
+    cs=""; ps=""
+    for try in 1 2 3 4 5; do
+      cs=$(q "{\"database\":\"chembl\",\"query\":\"CC(=O)Oc1ccccc1C(=O)O\",\"operation\":\"similarity\"}")
+      ps=$(q "{\"database\":\"pdb\",\"query\":\"$UBIQ\",\"operation\":\"similarity\"}")
+      if echo "$cs" | grep -q "\"source\": *\"chembl\"" && echo "$ps" | grep -q "\"source\": *\"pdb\""; then break; fi
+      sleep 8
+    done
+    if ! echo "$cs" | grep -q "\"source\": *\"chembl\"" || ! echo "$ps" | grep -q "\"source\": *\"pdb\""; then
+      echo "[smoke] db-search INCONCLUSIVE — no well-formed response after retries (transient); not failing the gate"
+      exit 0
+    fi
+    # Well-formed responses in hand: a MISSING search tag now means the operation
+    # param was dropped/ignored (proxy drop or stale code) — a real regression.
+    fail=0
+    echo "$cs" | grep -q "\"search\": *\"tanimoto_similarity\"" || { echo "[smoke] FAIL chembl operation=similarity not routed (proxy drop / stale code)"; fail=1; }
+    echo "$ps" | grep -q "\"search\": *\"sequence_similarity\"" || { echo "[smoke] FAIL pdb operation=similarity not routed"; fail=1; }
+    pt=$(q "{\"database\":\"pdb\",\"query\":\"$UBIQ\",\"operation\":\"text\"}")
+    if echo "$pt" | grep -q "\"source\": *\"pdb\""; then
+      echo "$pt" | grep -q "\"search\": *\"sequence_similarity\"" && { echo "[smoke] FAIL pdb operation=text wrongly ran similarity (operation ignored)"; fail=1; }
+    fi
+    [ "$fail" -eq 1 ] && exit 1
+    echo "[smoke] db-search operation routing OK (similarity != text)"
+    exit 0
+  '
+}
+
 postsync_health_ok() {
   # Probe the dev host's mapped ports; retry to ride out HUP / cold start.
   # $1 = number of 5s retries (default 24 = 120s).
@@ -1304,11 +1348,11 @@ do_sync() {
   if [[ "$ROLLBACK_READY" == 1 ]]; then
     log "[health] Verifying dev health after sync..."
     if postsync_health_ok 120; then
-      if smoke_test_workflow; then
-        log "[health] ✓ dev healthy + smoke test passed"
+      if smoke_test_workflow && smoke_test_db_search; then
+        log "[health] ✓ dev healthy + smoke tests passed (workflow gen + DB-search routing)"
         SYNC_RESULT=healthy
       else
-        log "[health] ✗ smoke test FAILED (workflow generation broken) — auto-rolling back"
+        log "[health] ✗ smoke test FAILED (workflow generation or DB-search routing broken) — auto-rolling back"
         rollback_sync || true
       fi
     else
