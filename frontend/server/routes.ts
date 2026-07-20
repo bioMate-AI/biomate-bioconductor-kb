@@ -15516,6 +15516,34 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
     }
   });
 
+  // ── MCP proxy → remote_mcp service on port 8848 ──────────────────────────
+  // The remote_mcp Starlette app handles /mcp (Streamable-HTTP transport) and
+  // /.well-known/oauth-* discovery documents. We forward all methods and pipe
+  // the response so SSE streams pass through without buffering.
+  const MCP_UPSTREAM = "http://127.0.0.1:8848";
+  function mcpProxy(req: express.Request, res: express.Response) {
+    const url = new URL(req.url, MCP_UPSTREAM);
+    const opts = {
+      hostname: "127.0.0.1",
+      port: 8848,
+      path: url.pathname + url.search,
+      method: req.method,
+      headers: { ...req.headers, host: "127.0.0.1:8848" },
+    };
+    const upstream = require("http").request(opts, (upRes: any) => {
+      res.writeHead(upRes.statusCode, upRes.headers);
+      upRes.pipe(res);
+    });
+    upstream.on("error", () => res.status(502).json({ error: "MCP upstream unavailable" }));
+    req.pipe(upstream);
+  }
+  app.all("/mcp", mcpProxy);
+  app.all("/mcp/*", mcpProxy);
+  app.all("/.well-known/oauth-protected-resource", mcpProxy);
+  app.all("/.well-known/oauth-protected-resource/mcp", mcpProxy);
+  app.all("/.well-known/oauth-authorization-server", mcpProxy);
+  app.get("/healthz", (_req, res) => res.json({ ok: true }));
+
   const httpServer = createServer(app);
 
   return httpServer;
