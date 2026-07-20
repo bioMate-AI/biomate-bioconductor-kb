@@ -1849,7 +1849,7 @@ class AIAssistant:
             if resolved is not None and not self._nf_file_is_standalone_runnable(resolved):
                 return False
             return True
-        if filename.endswith('.nf') and ('/workflows/' in filename or 'biomni_nf/' in filename):
+        if filename.endswith('.nf') and ('/workflows/' in filename or 'biomni_nf/' in filename or '/bioconductor/' in filename):
             return True
         return False
 
