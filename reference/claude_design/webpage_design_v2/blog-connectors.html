@@ -72,7 +72,7 @@
             "name": "How does BioMate's MCP connector work?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "BioMate exposes a single canonical tool manifest defined in tools_manifest.py containing 14 MCP tools. Each AI client surface uses a transport-specific adapter — stdio JSON-RPC 2.0 for Claude Code, Claude Desktop, Cursor, and Codex CLI; Streamable HTTP with OAuth 2.1 + PKCE for Claude Science; and REST Actions or webhooks for ChatGPT, Slack, and Feishu. All adapters call dispatch_tool() which routes execution to BioMate's REST API and ultimately to AWS Batch running Nextflow pipelines."
+              "text": "BioMate exposes a single canonical tool manifest defined in tools_manifest.py containing 19 MCP tools. Each AI client surface uses a transport-specific adapter — stdio JSON-RPC 2.0 for Claude Code, Claude Desktop, Cursor, and Codex CLI; Streamable HTTP with OAuth 2.1 + PKCE for Claude Science; and REST Actions or webhooks for ChatGPT, Slack, and Feishu. All adapters call dispatch_tool() which routes execution to BioMate's REST API and ultimately to AWS Batch running Nextflow pipelines."
             }
           },
           {
@@ -407,17 +407,18 @@
           <text x="380" y="110" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#34D399">biomate_session</text>
           <text x="380" y="126" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">search_workflow</text>
           <text x="380" y="142" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">run_workflow</text>
-          <text x="380" y="158" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">get_run · list_runs · cancel_run</text>
+          <text x="380" y="158" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">watch_run · get_run · cancel_run · list_runs</text>
           <text x="380" y="174" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">get_workflow_spec</text>
-          <text x="380" y="190" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">query_database</text>
-          <text x="380" y="206" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">upload_file · preview_file</text>
-          <text x="380" y="222" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">export_report · analyze_results</text>
-          <text x="380" y="238" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">explain_error · recall_memory</text>
-          <line x1="378" y1="254" x2="618" y2="254" stroke="#1E3A5F" stroke-width="1"/>
-          <text x="497" y="320" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="13" font-weight="600" fill="#60A5FA">dispatch_tool()</text>
-          <text x="497" y="340" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12" fill="#4A7A94">→ BioMateClient</text>
-          <text x="497" y="358" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12" fill="#4A7A94">→ BioMate REST API</text>
-          <text x="497" y="385" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#2D5570">14 tools · single source of truth</text>
+          <text x="380" y="190" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">search_literature · query_database</text>
+          <text x="380" y="206" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">resolve_accession · browse_data · fetch_public_data</text>
+          <text x="380" y="222" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">upload_file · preview_file</text>
+          <text x="380" y="238" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">export_report · analyze_results · explain_error</text>
+          <text x="380" y="254" font-family="ui-monospace,'SF Mono',monospace" font-size="11" fill="#7DB9CC">recall_memory</text>
+          <line x1="378" y1="270" x2="618" y2="270" stroke="#1E3A5F" stroke-width="1"/>
+          <text x="497" y="298" text-anchor="middle" font-family="ui-monospace,'SF Mono',monospace" font-size="13" font-weight="600" fill="#60A5FA">dispatch_tool()</text>
+          <text x="497" y="318" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12" fill="#4A7A94">→ BioMateClient</text>
+          <text x="497" y="336" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12" fill="#4A7A94">→ BioMate REST API</text>
+          <text x="497" y="360" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#2D5570">19 tools · single source of truth</text>
           <text x="497" y="428" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="#2A4560">dev-public.biomate.ai</text>
           <!-- ARROWS: transports → MCP core -->
           <line x1="354" y1="140" x2="364" y2="196" stroke="#16A34A" stroke-width="1.5" marker-end="url(#arr-grn)"/>
@@ -485,9 +486,9 @@
 
       <hr class="article-divider"/>
 
-      <!-- ── The 14 tools ──────────────────────────────────────────────────── -->
+      <!-- ── The 19 tools ──────────────────────────────────────────────────── -->
       <span class="section-label">Tools</span>
-      <h2>14 tools across five categories</h2>
+      <h2>19 tools across five categories</h2>
       <div class="tool-table-wrap">
         <table>
           <thead>
@@ -498,10 +499,15 @@
             <tr><td>search_workflow</td><td><span class="dim">Catalog</span></td><td>Semantic search across 2,455 indexed workflows.</td></tr>
             <tr><td>get_workflow_spec</td><td><span class="dim">Catalog</span></td><td>Returns parameter schema for a specific workflow.</td></tr>
             <tr><td>run_workflow</td><td><span class="dim">Execution</span></td><td>Execute a workflow by ID with explicit parameters. Pass <code>stream: true</code> for inline phase/step progress.</td></tr>
+            <tr><td>watch_run</td><td><span class="dim">Execution</span></td><td>Stream phase/step progress from a running job until completion.</td></tr>
             <tr><td>get_run</td><td><span class="dim">Execution</span></td><td>Poll status + phases + steps + findings + output files for any run ID.</td></tr>
             <tr><td>cancel_run</td><td><span class="dim">Execution</span></td><td>Cancel a queued or running AWS Batch job.</td></tr>
             <tr><td>list_runs</td><td><span class="dim">Execution</span></td><td>List recent runs with status, workflow name, timestamps.</td></tr>
+            <tr><td>search_literature</td><td><span class="dim">Knowledge</span></td><td>Iterative depth-loop across PubMed, EuropePMC, Semantic Scholar, OpenAlex.</td></tr>
             <tr><td>query_database</td><td><span class="dim">Knowledge</span></td><td>Federated fan-out to UniProt, PDB, NCBI Gene, ClinVar, gnomAD, KEGG, ChEMBL, and more.</td></tr>
+            <tr><td>resolve_accession</td><td><span class="dim">Knowledge</span></td><td>Identify GEO/SRA/ENA accessions and return the matching BioMate workflow.</td></tr>
+            <tr><td>browse_data</td><td><span class="dim">Data</span></td><td>Browse EBI FTP, NCBI FTP, Ensembl, UCSC, or S3 workspace by prefix.</td></tr>
+            <tr><td>fetch_public_data</td><td><span class="dim">Data</span></td><td>Stage a public file into the BioMate workspace.</td></tr>
             <tr><td>upload_file</td><td><span class="dim">Data</span></td><td>Get a presigned S3 PUT URL for files &gt;5 MB.</td></tr>
             <tr><td>preview_file</td><td><span class="dim">Output</span></td><td>Return the first N lines / thumbnail of an output file.</td></tr>
             <tr><td>analyze_results</td><td><span class="dim">Output</span></td><td>AI interpretation of run outputs and QC metrics.</td></tr>

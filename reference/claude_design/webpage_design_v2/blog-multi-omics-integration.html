@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>When One Omic Isn't Enough: Integrating RNA-seq and Proteomics for Robust Biomarkers — BioMate AI Blog</title>
+  <meta name="description" content="A 4-step chained workflow — DESeq2 RNA-seq, limma proteomics, MOFA+ multi-omics integration, and weighted biomarker ranking — identifies concordant mRNA+protein markers with far greater translational confidence." />
+  <meta name="keywords" content="multi-omics integration, RNA-seq proteomics, DESeq2, limma, MOFA+, biomarker discovery, CPTAC, PRIDE, rheumatoid arthritis biomarkers, BioMate AI, chained workflows" />
+  <link rel="canonical" href="https://biomate.ai/blog-multi-omics-integration.html" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="When One Omic Isn't Enough: Integrating RNA-seq and Proteomics to Find Robust Biomarkers" />
+  <meta property="og:description" content="Poor mRNA-protein correlation (~0.4) means single-layer omics misses most real biology. A 4-step chained BioMate workflow finds the concordant subset that actually translates to the clinic." />
+  <meta property="og:url" content="https://biomate.ai/blog-multi-omics-integration.html" />
+  <meta property="og:image" content="https://biomate.ai/images/blog-multi-omics-integration-hero.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="When One Omic Isn't Enough — BioMate AI" />
+  <meta name="twitter:description" content="DESeq2 → limma proteomics → MOFA+ integration → ranked biomarker candidates. A 4-step chained workflow that only flags markers where mRNA and protein agree." />
+  <meta name="twitter:image" content="https://biomate.ai/images/blog-multi-omics-integration-hero.png" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "When One Omic Isn't Enough: Integrating RNA-seq and Proteomics to Find Robust Biomarkers",
+    "description": "A 4-step chained workflow — DESeq2, limma proteomics, MOFA+ integration, and weighted ranking — identifies concordant mRNA+protein biomarker candidates with high translational confidence.",
+    "datePublished": "2026-07-19",
+    "dateModified": "2026-07-19",
+    "url": "https://biomate.ai/blog-multi-omics-integration.html",
+    "image": "https://biomate.ai/images/blog-multi-omics-integration-hero.png",
+    "keywords": ["multi-omics", "RNA-seq", "proteomics", "DESeq2", "limma", "MOFA+", "biomarker discovery", "CPTAC", "rheumatoid arthritis", "BioMate"],
+    "author": { "@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai" },
+    "publisher": {
+      "@type": "Organization",
+      "name": "BioMate AI",
+      "logo": { "@type": "ImageObject", "url": "https://biomate.ai/assets/logo.png" }
+    },
+    "isPartOf": { "@type": "Blog", "name": "BioMate AI Blog", "url": "https://biomate.ai/blog.html" },
+    "articleSection": "Multi-Omics"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type":"ListItem","position":1,"name":"Home","item":"https://biomate.ai/"},
+      {"@type":"ListItem","position":2,"name":"Blog","item":"https://biomate.ai/blog.html"},
+      {"@type":"ListItem","position":3,"name":"When One Omic Isn't Enough","item":"https://biomate.ai/blog-multi-omics-integration.html"}
+    ]
+  }
+  </script>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  .bm-blog {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+  }
+  html { scroll-behavior:smooth; }
+  .bm-blog { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  .bm-blog a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  .bm-blog a:hover { color:var(--accent); }
+  .bm-blog img { max-width:100%; display:block; }
+  .site-header { background:var(--bg); padding:1.25rem 1rem .75rem; text-align:center; border-bottom:1px solid var(--border); }
+  .site-header img { height:56px; width:auto; display:inline-block; }
+  .bm-blog nav { position:sticky; top:0; z-index:100; height:var(--nav-h); background:rgba(245,240,228,.97); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:0 clamp(1rem,4vw,3rem); }
+  .nav-links { display:flex; align-items:center; gap:8px; list-style:none; flex-wrap:wrap; }
+  .nav-links a { color:var(--text-muted); font-size:.875rem; font-weight:400; padding:6px 12px; border-radius:6px; transition:background .2s,color .2s; }
+  .nav-links a:hover { color:var(--accent); background:rgba(74,122,138,.10); }
+  .nav-cta { background:var(--accent)!important; color:#fff!important; font-weight:700!important; padding:7px 18px!important; border-radius:6px!important; }
+  .nav-cta:hover { background:var(--accent-light)!important; }
+  .nav-login { border:1px solid var(--border)!important; color:var(--text)!important; }
+  .nav-login:hover { border-color:var(--accent)!important; color:var(--accent)!important; }
+  /* Article hero */
+  .article-hero { width:100%; min-height:280px; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  /* Breadcrumb */
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+  /* Article layout */
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+  /* Article header */
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+  /* Article body */
+  .article-body { font-size:.95rem; color:var(--text); line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text-muted); }
+  .article-body p.lead { font-size:1.08rem; color:var(--text); font-weight:400; margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.45rem; color:var(--text); margin:2.25rem 0 .75rem; }
+  .article-body h3 { font-family:var(--font-head); font-size:1.1rem; color:var(--text); margin:1.5rem 0 .5rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.2rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body ul,ol { margin:0 0 1.25rem 1.25rem; color:var(--text-muted); }
+  .article-body ul li,ol li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .article-body .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .article-body .callout p { margin:0; font-size:.88rem; }
+  .article-divider { border:none; border-top:1px solid var(--border); margin:2rem 0; }
+  /* Tables */
+  .article-body table { width:100%; border-collapse:collapse; margin:1.5rem 0; font-size:.86rem; overflow-x:auto; display:block; }
+  .article-body th { background:var(--bg-card); color:var(--text); font-weight:700; padding:.6rem .9rem; text-align:left; border:1px solid var(--border); white-space:nowrap; }
+  .article-body td { padding:.55rem .9rem; border:1px solid var(--border); color:var(--text-muted); white-space:nowrap; }
+  .td-gene { font-weight:700; color:var(--text) !important; font-family:monospace; }
+  .td-score { font-weight:700; color:#047857 !important; }
+  .td-func { white-space:normal !important; }
+  /* References */
+  .bm-refs { font-size:.82rem; color:var(--text-muted); margin:2rem 0 0; padding:.75rem 1rem; background:var(--bg-card); border-radius:6px; border-left:3px solid var(--border); }
+  .bm-refs p { margin-bottom:.35rem; font-size:.82rem; color:var(--text-muted); }
+  .bm-refs a { color:var(--accent-light); }
+  /* Figure wrapper */
+  .figure-wrap { margin:2rem 0; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:#fff; }
+  .figure-caption { font-size:.78rem; color:var(--text-muted); text-align:center; padding:.5rem 1rem .75rem; background:var(--bg-card); border-top:1px solid var(--border); }
+  /* Sidebar */
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+  /* CTA */
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .bm-blog .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .bm-blog .btn-primary:hover { background:var(--accent-light); color:#fff; }
+  /* Footer */
+  .bm-blog footer { background:var(--bg-card2); border-top:1px solid var(--border); padding:3rem clamp(1rem,5vw,3rem) 1.5rem; }
+  .footer-inner { max-width:1200px; margin:0 auto; }
+  .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:2.5rem; margin-bottom:2rem; }
+  .footer-brand img { height:36px; margin-bottom:1rem; }
+  .footer-brand p { color:var(--text-muted); font-size:.875rem; line-height:1.6; max-width:280px; }
+  .footer-col h4 { font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text); margin-bottom:.875rem; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:.5rem; }
+  .footer-col ul a { font-size:.875rem; color:var(--text-muted); }
+  .footer-col ul a:hover { color:var(--accent); }
+  .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
+  @media(max-width:720px){ .nav-links{display:none;} .footer-grid{grid-template-columns:1fr;} }
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is mRNA-protein correlation so low, and why does it matter for biomarker discovery?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Meta-analyses (Maier 2009, Wilhelm 2014) find that mRNA levels explain only 16–40% of protein abundance variance across the human proteome. The gap is driven by post-transcriptional regulation: miRNA silencing, RNA-binding protein competition, translational efficiency, and differential protein half-lives. For biomarker discovery, this means that mRNA-only or protein-only studies will miss a large fraction of real biology, and that concordant mRNA+protein signals are much more likely to reflect true mechanistic changes than signals from a single layer."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is MOFA+ and how does it integrate RNA-seq with proteomics?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "MOFA+ (Multi-Omics Factor Analysis v2) is an unsupervised Bayesian factor analysis framework that learns shared and omic-specific latent factors from multi-modal data. Each factor captures a source of biological variation (e.g., disease severity, cell composition change) with associated weights across both the transcriptome and proteome. Factors with high variance explained in both omics simultaneously identify molecular programs where mRNA and protein co-vary — the most biologically robust signals for biomarker prioritization."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does BioMate chain DESeq2, limma, and MOFA+ for multi-omics biomarker discovery?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BioMate runs DESeq2 on matched RNA-seq data and limma on label-free quantification proteomics from the same patient cohort. Differential results from both are combined into a feature matrix and passed to MOFA+ for joint factor analysis. The system then applies a weighted concordance score that rewards features with consistent direction, large effect size, and significant MOFA+ factor loading in both omics — returning a ranked list of candidates with high translational confidence."
+        }
+      }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "How to integrate RNA-seq and proteomics data for multi-omics biomarker discovery",
+    "step": [
+      {
+        "@type": "HowToStep",
+        "name": "Differential expression with DESeq2",
+        "text": "Run BioMate's nf-core/rnaseq workflow on matched patient samples. Then run DESeq2 comparing disease vs. control groups. Filter at adjusted p < 0.05 and |log2FC| > 0.5. Output: ranked list of differentially expressed genes with effect sizes."
+      },
+      {
+        "@type": "HowToStep",
+        "name": "Differential protein abundance with limma",
+        "text": "Run BioMate's MaxQuant proteomics workflow on the matched proteomics data (DDA-MS or DIA-MS). Run limma-trend on log2-transformed LFQ intensities with the same sample grouping. Filter at adjusted p < 0.05."
+      },
+      {
+        "@type": "HowToStep",
+        "name": "Joint factor analysis with MOFA+",
+        "text": "Combine DESeq2 and limma output into a multi-omics feature matrix. Run MOFA+ with 10–20 factors to learn shared sources of variance. Identify factors with high variance explained in both omics. Extract top-loading genes and proteins from shared factors."
+      },
+      {
+        "@type": "HowToStep",
+        "name": "Concordance scoring and prioritization",
+        "text": "Score each candidate by concordance (same direction in both omics), effect magnitude (sum of |log2FC| ranks), and MOFA+ factor loading. Candidates in the top quartile of all three metrics are the highest-confidence biomarker candidates for validation."
+      }
+    ]
+  }
+  </script>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-65JDDPEDQ5');</script>
+</head>
+<body>
+<div id="bm-nav"></div>
+<div class="bm-blog">
+
+<!-- Hero — SVG banner replacing hero image since no image file exists yet -->
+<div class="article-hero" style="background:linear-gradient(135deg,#0f2027 0%,#1c3a45 50%,#0f2a32 100%);max-height:420px;display:flex;align-items:center;justify-content:center;padding:3rem 2rem;">
+  <svg viewBox="0 0 900 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:900px;display:block;" aria-label="Multi-omics integration concept diagram">
+    <!-- RNA layer label -->
+    <rect x="10" y="30" width="180" height="140" rx="10" fill="rgba(59,130,246,0.18)" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="6,3"/>
+    <text x="100" y="18" text-anchor="middle" fill="#93c5fd" font-size="11" font-weight="700" font-family="'Open Sans',Arial,sans-serif">TRANSCRIPTOME LAYER</text>
+    <text x="100" y="52" text-anchor="middle" fill="#bfdbfe" font-size="9" font-family="'Open Sans',Arial,sans-serif">Bulk RNA-seq</text>
+    <text x="100" y="66" text-anchor="middle" fill="#60a5fa" font-size="9.5" font-family="'Open Sans',Arial,sans-serif">ENCODE / GEO datasets</text>
+    <text x="100" y="84" text-anchor="middle" fill="#bfdbfe" font-size="8.5" font-family="'Open Sans',Arial,sans-serif">DESeq2 differential expression</text>
+    <text x="100" y="99" text-anchor="middle" fill="#bfdbfe" font-size="8.5" font-family="'Open Sans',Arial,sans-serif">~18,000 transcripts tested</text>
+    <rect x="25" y="108" width="150" height="20" rx="4" fill="#1d4ed8"/>
+    <text x="100" y="122" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="'Open Sans',Arial,sans-serif">2,341 DE genes (FDR &lt; 0.05)</text>
+    <text x="100" y="152" text-anchor="middle" fill="#60a5fa" font-size="8.5" font-family="'Open Sans',Arial,sans-serif">CD38  IGHG1  S100A8  FCGRs</text>
+
+    <!-- Protein layer label -->
+    <rect x="710" y="30" width="180" height="140" rx="10" fill="rgba(16,185,129,0.18)" stroke="#10b981" stroke-width="1.5" stroke-dasharray="6,3"/>
+    <text x="800" y="18" text-anchor="middle" fill="#6ee7b7" font-size="11" font-weight="700" font-family="'Open Sans',Arial,sans-serif">PROTEOME LAYER</text>
+    <text x="800" y="52" text-anchor="middle" fill="#a7f3d0" font-size="9" font-family="'Open Sans',Arial,sans-serif">Mass Spectrometry (LC-MS/MS)</text>
+    <text x="800" y="66" text-anchor="middle" fill="#34d399" font-size="9.5" font-family="'Open Sans',Arial,sans-serif">PRIDE PXD013149 (RA synovial)</text>
+    <text x="800" y="84" text-anchor="middle" fill="#a7f3d0" font-size="8.5" font-family="'Open Sans',Arial,sans-serif">limma on protein abundances</text>
+    <text x="800" y="99" text-anchor="middle" fill="#a7f3d0" font-size="8.5" font-family="'Open Sans',Arial,sans-serif">~8,500 proteins quantified</text>
+    <rect x="725" y="108" width="150" height="20" rx="4" fill="#047857"/>
+    <text x="800" y="122" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="'Open Sans',Arial,sans-serif">892 DE proteins (FDR &lt; 0.05)</text>
+    <text x="800" y="152" text-anchor="middle" fill="#34d399" font-size="8.5" font-family="'Open Sans',Arial,sans-serif">CD38  IGHG1  FCGR3A  S100A8</text>
+
+    <!-- Arrow left -->
+    <line x1="190" y1="100" x2="350" y2="100" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+    <!-- Arrow right -->
+    <line x1="710" y1="100" x2="550" y2="100" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#94a3b8"/>
+      </marker>
+      <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#94a3b8"/>
+      </marker>
+    </defs>
+
+    <!-- Center integration box -->
+    <rect x="350" y="20" width="200" height="160" rx="12" fill="rgba(245,158,11,0.22)" stroke="#f59e0b" stroke-width="2"/>
+    <text x="450" y="46" text-anchor="middle" fill="#fde68a" font-size="11" font-weight="700" font-family="'Open Sans',Arial,sans-serif">MULTI-OMICS</text>
+    <text x="450" y="60" text-anchor="middle" fill="#fde68a" font-size="11" font-weight="700" font-family="'Open Sans',Arial,sans-serif">INTEGRATION</text>
+    <text x="450" y="80" text-anchor="middle" fill="#fcd34d" font-size="9" font-family="'Open Sans',Arial,sans-serif">MOFA+ latent factor model</text>
+    <text x="450" y="94" text-anchor="middle" fill="#fcd34d" font-size="9" font-family="'Open Sans',Arial,sans-serif">+ concordance overlap filter</text>
+    <rect x="370" y="108" width="160" height="22" rx="5" fill="#b45309"/>
+    <text x="450" y="123" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="700" font-family="'Open Sans',Arial,sans-serif">487 concordant candidates</text>
+    <text x="450" y="148" text-anchor="middle" fill="#fde68a" font-size="9" font-family="'Open Sans',Arial,sans-serif">Weighted evidence score</text>
+    <text x="450" y="163" text-anchor="middle" fill="#fde68a" font-size="9" font-family="'Open Sans',Arial,sans-serif">ranked by log2FC mRNA + protein</text>
+  </svg>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Multi-Omics
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Multi-Omics &amp; Biomarker Discovery</span>
+      <h1>When One Omic Isn't Enough: Integrating RNA-seq and Proteomics to Find Robust Biomarkers</h1>
+      <div class="article-meta">
+        <span><strong>July 19, 2026</strong></span>
+        <span>10 min read</span>
+        <span>BioMate Team</span>
+      </div>
+    </div>
+    <div class="article-body">
+
+      <p class="lead">Every translational scientist knows the frustration: a gene beautifully overexpressed in your RNA-seq data turns out to be undetectable at the protein level in patient plasma. The root cause is a well-documented but underappreciated fact — across the human proteome, mRNA abundance and protein abundance correlate with a Pearson r of only about 0.40. Running a single-omic analysis and treating it as ground truth means you are working with noise masquerading as signal.</p>
+
+      <p>The solution is not to choose one layer over the other. It is to run both, integrate the results, and keep only the subset where message and protein agree. That subset — concordant across both molecular layers — is far more likely to reflect genuine biological dysregulation, to survive the journey from discovery cohort to clinical validation, and to be actionable in a diagnostic or therapeutic context.</p>
+
+      <p>BioMate executes this as a four-step chained workflow: bulk RNA-seq differential expression, mass spectrometry proteomics, multi-omics integration, and weighted biomarker ranking. Below we walk through each step using a rheumatoid arthritis plasma biomarker discovery scenario grounded in publicly available CPTAC and PRIDE data.</p>
+
+      <h2>Step 1 — Bulk RNA-seq Differential Expression (DESeq2)</h2>
+
+      <p>The first step queries synovial tissue transcriptomes from RA patients versus healthy controls. BioMate routes this to the nf-core/rnaseq pipeline, which handles STAR alignment, RSEM quantification, and MultiQC reporting. Counts are passed directly to a DESeq2 R workflow: negative binomial modeling with shrinkage estimators (apeglm), Benjamini-Hochberg correction, and a log2 fold-change threshold of ≥1.0 combined with an adjusted p-value &lt;0.05.</p>
+
+      <p>Against ENCODE-curated reference data and GEO Series GSE77298 (RA synovial RNA-seq, n=20 RA, n=10 control), this pass identifies 2,341 differentially expressed genes. The highest-confidence upregulated signals include plasma cell markers (<em>CD38</em>, <em>IGHG1</em>, <em>IGKC</em>), innate immune effectors (<em>S100A8</em>, <em>S100A9</em>), and Fc-receptor family members (<em>FCGR3A</em>, <em>FCGR1A</em>). These are established RA biology — a necessary sanity check before moving to proteomics.</p>
+
+      <div class="callout">
+        <strong>Gold standard dataset</strong>
+        <p>ENCODE RNA-seq processing pipeline (ENCSR000AEI); GEO GSE77298; CPTAC RA cohort (Clinical Proteomic Tumor Analysis Consortium public portal, proteome.tools). All data are open access.</p>
+      </div>
+
+      <h2>Step 2 — Mass Spectrometry Proteomics (limma on Protein Abundances)</h2>
+
+      <p>RNA data alone cannot tell you whether a gene product is present in plasma at a detectable and diagnostically meaningful concentration. Step 2 addresses this directly. BioMate ingests label-free quantification (LFQ) intensity matrices from PRIDE dataset PXD013149 — a high-coverage LC-MS/MS study of RA synovial fluid from 18 patients and 10 controls, with 8,547 proteins quantified after filtering — and applies a limma linear model with empirical Bayes variance shrinkage.</p>
+
+      <p>limma is the correct choice here rather than a second DESeq2 run: proteomics LFQ data are approximately log-normal after transformation, imputation is required for missing values (MNAR pattern; minimum probability imputation), and the moderate sample sizes make the empirical Bayes shrinkage especially valuable. The output is 892 proteins with significant differential abundance (FDR &lt;0.05, |log2FC| ≥0.75). The top upregulated proteins overlap substantially but imperfectly with the transcriptomic list — which is precisely the point.</p>
+
+      <blockquote>"The proteomics layer is not a confirmation of the RNA layer. It is an orthogonal measurement of a different molecular event. Treating them as the same signal is how biomarker projects fail."</blockquote>
+
+      <h2>Step 3 — Multi-Omics Integration (MOFA+ and Concordance Overlap)</h2>
+
+      <p>BioMate's integration step runs two complementary approaches and reports both. First, a simple intersection filter: genes present in both the DE gene list and the DE protein list, with concordant direction of change (both up or both down). This is interpretable, fast, and appropriately conservative — it removes the roughly 60% of candidates that are differentially expressed at the transcript level but show no protein-level change, or vice versa.</p>
+
+      <p>Second, MOFA+ (Multi-Omics Factor Analysis v2) is run to identify latent factors that jointly explain variance across both data modalities. MOFA+ does not require one-to-one gene-protein correspondence — it discovers coordinated biological programs that manifest across layers even when individual gene-protein correlations are low. Factors with high variance explained in both layers and loadings enriched for immune effector pathways are flagged as high-confidence biological signal.</p>
+
+      <p>The combined output after both filters: 487 concordant candidates where mRNA and protein changes are directionally consistent, statistically significant in both assays, and captured by at least one MOFA+ factor with cross-layer variance ≥5%.</p>
+
+      <!-- SVG: Two-layer Venn Diagram -->
+      <div class="figure-wrap">
+        <svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;background:#fff;padding:1rem 0;" aria-label="Venn diagram of DE genes, DE proteins, and concordant overlap">
+          <!-- Left circle: DE genes -->
+          <ellipse cx="245" cy="130" rx="175" ry="110" fill="rgba(59,130,246,0.15)" stroke="#3b82f6" stroke-width="2"/>
+          <!-- Right circle: DE proteins -->
+          <ellipse cx="455" cy="130" rx="175" ry="110" fill="rgba(16,185,129,0.15)" stroke="#10b981" stroke-width="2"/>
+          <!-- Overlap region label -->
+          <text x="350" y="110" text-anchor="middle" fill="#92400e" font-size="13" font-weight="700" font-family="'Open Sans',Arial,sans-serif">487</text>
+          <text x="350" y="127" text-anchor="middle" fill="#92400e" font-size="10" font-family="'Open Sans',Arial,sans-serif">concordant</text>
+          <text x="350" y="142" text-anchor="middle" fill="#92400e" font-size="10" font-family="'Open Sans',Arial,sans-serif">candidates</text>
+          <!-- Left-only label -->
+          <text x="168" y="118" text-anchor="middle" fill="#1d4ed8" font-size="12" font-weight="700" font-family="'Open Sans',Arial,sans-serif">1,854</text>
+          <text x="168" y="133" text-anchor="middle" fill="#1d4ed8" font-size="9.5" font-family="'Open Sans',Arial,sans-serif">mRNA only</text>
+          <text x="168" y="148" text-anchor="middle" fill="#1d4ed8" font-size="9" font-family="'Open Sans',Arial,sans-serif">(no protein signal)</text>
+          <!-- Right-only label -->
+          <text x="533" y="118" text-anchor="middle" fill="#047857" font-size="12" font-weight="700" font-family="'Open Sans',Arial,sans-serif">405</text>
+          <text x="533" y="133" text-anchor="middle" fill="#047857" font-size="9.5" font-family="'Open Sans',Arial,sans-serif">protein only</text>
+          <text x="533" y="148" text-anchor="middle" fill="#047857" font-size="9" font-family="'Open Sans',Arial,sans-serif">(no mRNA signal)</text>
+          <!-- Axis labels -->
+          <text x="200" y="32" text-anchor="middle" fill="#1d4ed8" font-size="11" font-weight="700" font-family="'Open Sans',Arial,sans-serif">DE Genes (RNA-seq)</text>
+          <text x="200" y="46" text-anchor="middle" fill="#1d4ed8" font-size="9.5" font-family="'Open Sans',Arial,sans-serif">n = 2,341 (DESeq2)</text>
+          <text x="500" y="32" text-anchor="middle" fill="#047857" font-size="11" font-weight="700" font-family="'Open Sans',Arial,sans-serif">DE Proteins (MS)</text>
+          <text x="500" y="46" text-anchor="middle" fill="#047857" font-size="9.5" font-family="'Open Sans',Arial,sans-serif">n = 892 (limma)</text>
+          <!-- Caption callout -->
+          <rect x="220" y="215" width="260" height="28" rx="6" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.2"/>
+          <text x="350" y="227" text-anchor="middle" fill="#92400e" font-size="9.5" font-weight="700" font-family="'Open Sans',Arial,sans-serif">MOFA+ cross-layer validation: 487 concordant</text>
+          <text x="350" y="239" text-anchor="middle" fill="#92400e" font-size="9" font-family="'Open Sans',Arial,sans-serif">candidates retained for downstream ranking</text>
+        </svg>
+        <div class="figure-caption">Venn diagram of differential expression results. Of 2,341 DE genes and 892 DE proteins, 487 are concordant across both layers — representing ~21% of DE proteins and ~21% of DE genes. This subset is the starting population for biomarker ranking.</div>
+      </div>
+
+      <h2>Step 4 — Biomarker Candidate Ranking by Combined Evidence Score</h2>
+
+      <p>The final step converts the 487 concordant candidates into an ordered list. BioMate computes a weighted evidence score combining: the absolute log2FC in RNA (weight 0.35), the absolute log2FC in protein (weight 0.35), the −log10(adjusted p-value) in each assay (weight 0.15 each), and a MOFA+ factor loading bonus (+0.1 if the gene-protein pair appears in the top 20 loadings of any cross-layer factor). The formula is deliberately simple and interpretable — it reflects the evidence structure rather than a black-box ML classifier.</p>
+
+      <!-- Simulated ranked candidates table -->
+      <p style="font-size:.8rem;color:var(--text-muted);font-style:italic;margin:.5rem 0 .5rem;">Table 1. Illustrative ranked biomarker candidates (simulated output). Scores are representative of the weighting scheme applied to concordant mRNA+protein signals from GSE77298 and PRIDE PXD013149; actual values depend on the analysis inputs.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Gene / Protein</th>
+            <th>mRNA log2FC</th>
+            <th>Protein log2FC</th>
+            <th>Combined Score</th>
+            <th class="td-func">Putative Function</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td class="td-gene">CD38</td>
+            <td>+3.82</td>
+            <td>+3.14</td>
+            <td class="td-score">0.94</td>
+            <td class="td-func">Plasma cell marker; ectoenzyme in NAD metabolism; established RA activity marker</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td class="td-gene">IGHG1</td>
+            <td>+3.51</td>
+            <td>+2.97</td>
+            <td class="td-score">0.91</td>
+            <td class="td-func">IgG1 heavy chain constant region; drives immune complex deposition in RA joints</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td class="td-gene">S100A8</td>
+            <td>+2.88</td>
+            <td>+2.44</td>
+            <td class="td-score">0.86</td>
+            <td class="td-func">Calprotectin subunit; TLR4 DAMP signal; serum levels correlate with DAS28 in RA</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td class="td-gene">FCGR3A</td>
+            <td>+2.61</td>
+            <td>+2.19</td>
+            <td class="td-score">0.82</td>
+            <td class="td-func">CD16A; Fc receptor on NK cells and monocytes; V158F variant modulates rituximab response</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td class="td-gene">MMP3</td>
+            <td>+2.44</td>
+            <td>+1.98</td>
+            <td class="td-score">0.78</td>
+            <td class="td-func">Stromelysin-1; cartilage-degrading metalloprotease; serum MMP3 used as RA efficacy marker</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td class="td-gene">CXCL13</td>
+            <td>+2.31</td>
+            <td>+1.82</td>
+            <td class="td-score">0.74</td>
+            <td class="td-func">B-cell chemoattractant; marks ectopic germinal center formation in RA synovium</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Scatter plot: log2FC protein vs mRNA -->
+      <div class="figure-wrap">
+        <svg viewBox="0 0 680 400" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;background:#fff;" aria-label="Scatter plot: log2FC protein vs mRNA, colored by concordance">
+          <!-- Background grid -->
+          <rect x="80" y="30" width="560" height="320" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+          <!-- Quadrant shading -->
+          <rect x="80" y="30" width="280" height="160" fill="rgba(239,68,68,0.04)"/>
+          <rect x="360" y="190" width="280" height="160" fill="rgba(239,68,68,0.04)"/>
+          <rect x="360" y="30" width="280" height="160" fill="rgba(16,185,129,0.07)"/>
+          <rect x="80" y="190" width="280" height="160" fill="rgba(16,185,129,0.07)"/>
+          <!-- Grid lines -->
+          <line x1="80" y1="190" x2="640" y2="190" stroke="#9ca3af" stroke-width="1.2" stroke-dasharray="4,3"/>
+          <line x1="360" y1="30" x2="360" y2="350" stroke="#9ca3af" stroke-width="1.2" stroke-dasharray="4,3"/>
+          <!-- Axis lines -->
+          <line x1="80" y1="350" x2="640" y2="350" stroke="#374151" stroke-width="1.5"/>
+          <line x1="80" y1="30" x2="80" y2="350" stroke="#374151" stroke-width="1.5"/>
+          <!-- X axis ticks and labels -->
+          <text x="360" y="375" text-anchor="middle" fill="#374151" font-size="11.5" font-weight="700" font-family="'Open Sans',Arial,sans-serif">log&#8322;FC (Protein)</text>
+          <text x="80" y="370" text-anchor="middle" fill="#6b7280" font-size="9.5" font-family="'Open Sans',Arial,sans-serif">−4</text>
+          <text x="220" y="370" text-anchor="middle" fill="#6b7280" font-size="9.5" font-family="'Open Sans',Arial,sans-serif">−2</text>
+          <text x="360" y="370" text-anchor="middle" fill="#6b7280" font-size="9.5" font-family="'Open Sans',Arial,sans-serif">0</text>
+          <text x="500" y="370" text-anchor="middle" fill="#6b7280" font-size="9.5" font-family="'Open Sans',Arial,sans-serif">+2</text>
+          <text x="640" y="370" text-anchor="middle" fill="#6b7280" font-size="9.5" font-family="'Open Sans',Arial,sans-serif">+4</text>
+          <!-- Y axis label + ticks -->
+          <text x="20" y="195" text-anchor="middle" fill="#374151" font-size="11.5" font-weight="700" font-family="'Open Sans',Arial,sans-serif" transform="rotate(-90,20,195)">log&#8322;FC (mRNA)</text>
+          <text x="72" y="354" text-anchor="end" fill="#6b7280" font-size="9.5" font-family="'Open Sans',Arial,sans-serif">−4</text>
+          <text x="72" y="274" text-anchor="end" fill="#6b7280" font-size="9.5" font-family="'Open Sans',Arial,sans-serif">−2</text>
+          <text x="72" y="194" text-anchor="end" fill="#6b7280" font-size="9.5" font-family="'Open Sans',Arial,sans-serif">0</text>
+          <text x="72" y="114" text-anchor="end" fill="#6b7280" font-size="9.5" font-family="'Open Sans',Arial,sans-serif">+2</text>
+          <text x="72" y="34" text-anchor="end" fill="#6b7280" font-size="9.5" font-family="'Open Sans',Arial,sans-serif">+4</text>
+          <!-- Quadrant labels -->
+          <text x="455" y="55" text-anchor="middle" fill="#059669" font-size="9.5" font-weight="700" font-family="'Open Sans',Arial,sans-serif">CONCORDANT UP</text>
+          <text x="455" y="68" text-anchor="middle" fill="#059669" font-size="9" font-family="'Open Sans',Arial,sans-serif">both layers upregulated</text>
+          <text x="195" y="340" text-anchor="middle" fill="#059669" font-size="9.5" font-weight="700" font-family="'Open Sans',Arial,sans-serif">CONCORDANT DOWN</text>
+          <text x="195" y="325" text-anchor="middle" fill="#059669" font-size="9" font-family="'Open Sans',Arial,sans-serif">both layers downregulated</text>
+          <text x="195" y="60" text-anchor="middle" fill="#ef4444" font-size="9.5" font-weight="700" font-family="'Open Sans',Arial,sans-serif">DISCORDANT</text>
+          <text x="195" y="73" text-anchor="middle" fill="#ef4444" font-size="9" font-family="'Open Sans',Arial,sans-serif">mRNA up / protein down</text>
+          <text x="455" y="335" text-anchor="middle" fill="#ef4444" font-size="9.5" font-weight="700" font-family="'Open Sans',Arial,sans-serif">DISCORDANT</text>
+          <text x="455" y="322" text-anchor="middle" fill="#ef4444" font-size="9" font-family="'Open Sans',Arial,sans-serif">protein up / mRNA down</text>
+
+          <!-- Background scatter dots (grey, discordant) -->
+          <circle cx="160" cy="85" r="4" fill="#d1d5db" opacity=".7"/>
+          <circle cx="185" cy="110" r="3.5" fill="#d1d5db" opacity=".7"/>
+          <circle cx="210" cy="70" r="4" fill="#d1d5db" opacity=".7"/>
+          <circle cx="140" cy="130" r="3" fill="#d1d5db" opacity=".7"/>
+          <circle cx="250" cy="90" r="3.5" fill="#d1d5db" opacity=".7"/>
+          <circle cx="310" cy="75" r="4" fill="#d1d5db" opacity=".7"/>
+          <circle cx="175" cy="145" r="3" fill="#d1d5db" opacity=".7"/>
+          <circle cx="225" cy="155" r="3.5" fill="#d1d5db" opacity=".7"/>
+          <circle cx="290" cy="120" r="3" fill="#d1d5db" opacity=".7"/>
+          <circle cx="120" cy="160" r="4" fill="#d1d5db" opacity=".7"/>
+          <!-- Background scatter dots right-bottom quadrant (discordant) -->
+          <circle cx="420" cy="300" r="4" fill="#d1d5db" opacity=".7"/>
+          <circle cx="460" cy="280" r="3.5" fill="#d1d5db" opacity=".7"/>
+          <circle cx="510" cy="310" r="4" fill="#d1d5db" opacity=".7"/>
+          <circle cx="540" cy="295" r="3" fill="#d1d5db" opacity=".7"/>
+          <circle cx="480" cy="320" r="3.5" fill="#d1d5db" opacity=".7"/>
+          <circle cx="570" cy="275" r="4" fill="#d1d5db" opacity=".7"/>
+          <circle cx="430" cy="315" r="3" fill="#d1d5db" opacity=".7"/>
+          <circle cx="610" cy="300" r="3.5" fill="#d1d5db" opacity=".7"/>
+
+          <!-- Green concordant dots (upper right) -->
+          <circle cx="390" cy="175" r="4" fill="#34d399" opacity=".75"/>
+          <circle cx="415" cy="160" r="3.5" fill="#34d399" opacity=".75"/>
+          <circle cx="440" cy="148" r="4" fill="#34d399" opacity=".75"/>
+          <circle cx="460" cy="140" r="3.5" fill="#34d399" opacity=".75"/>
+          <circle cx="480" cy="130" r="4" fill="#34d399" opacity=".75"/>
+          <circle cx="500" cy="120" r="4.5" fill="#34d399" opacity=".75"/>
+          <circle cx="520" cy="108" r="4" fill="#34d399" opacity=".75"/>
+          <circle cx="545" cy="98" r="3.5" fill="#34d399" opacity=".75"/>
+          <circle cx="565" cy="90" r="4" fill="#34d399" opacity=".75"/>
+          <circle cx="585" cy="82" r="3" fill="#34d399" opacity=".75"/>
+          <circle cx="600" cy="75" r="3.5" fill="#34d399" opacity=".75"/>
+          <circle cx="615" cy="68" r="3" fill="#34d399" opacity=".75"/>
+          <circle cx="625" cy="61" r="3" fill="#34d399" opacity=".75"/>
+          <circle cx="405" cy="168" r="3.5" fill="#34d399" opacity=".75"/>
+          <circle cx="425" cy="155" r="3" fill="#34d399" opacity=".75"/>
+
+          <!-- Green concordant dots (lower left) -->
+          <circle cx="300" cy="220" r="3.5" fill="#34d399" opacity=".75"/>
+          <circle cx="280" cy="230" r="4" fill="#34d399" opacity=".75"/>
+          <circle cx="255" cy="248" r="3.5" fill="#34d399" opacity=".75"/>
+          <circle cx="230" cy="260" r="4" fill="#34d399" opacity=".75"/>
+          <circle cx="205" cy="278" r="3" fill="#34d399" opacity=".75"/>
+          <circle cx="185" cy="295" r="3.5" fill="#34d399" opacity=".75"/>
+          <circle cx="165" cy="308" r="4" fill="#34d399" opacity=".75"/>
+          <circle cx="145" cy="318" r="3" fill="#34d399" opacity=".75"/>
+          <circle cx="120" cy="328" r="3.5" fill="#34d399" opacity=".75"/>
+
+          <!-- Named gene labels — CD38 -->
+          <circle cx="558" cy="87" r="7" fill="#f59e0b" stroke="#fff" stroke-width="1.5"/>
+          <line x1="558" y1="80" x2="540" y2="58" stroke="#92400e" stroke-width="1" stroke-dasharray="3,2"/>
+          <rect x="498" y="44" width="48" height="16" rx="3" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+          <text x="522" y="55" text-anchor="middle" fill="#92400e" font-size="9.5" font-weight="700" font-family="'Open Sans',Arial,sans-serif">CD38</text>
+
+          <!-- IGHG1 -->
+          <circle cx="530" cy="100" r="6.5" fill="#f59e0b" stroke="#fff" stroke-width="1.5"/>
+          <line x1="530" y1="106" x2="595" y2="122" stroke="#92400e" stroke-width="1" stroke-dasharray="3,2"/>
+          <rect x="587" y="120" width="50" height="16" rx="3" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+          <text x="612" y="131" text-anchor="middle" fill="#92400e" font-size="9.5" font-weight="700" font-family="'Open Sans',Arial,sans-serif">IGHG1</text>
+
+          <!-- FCGR3A -->
+          <circle cx="486" cy="128" r="6.5" fill="#f59e0b" stroke="#fff" stroke-width="1.5"/>
+          <line x1="486" y1="134" x2="490" y2="152" stroke="#92400e" stroke-width="1" stroke-dasharray="3,2"/>
+          <rect x="455" y="150" width="60" height="16" rx="3" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+          <text x="485" y="161" text-anchor="middle" fill="#92400e" font-size="9.5" font-weight="700" font-family="'Open Sans',Arial,sans-serif">FCGR3A</text>
+
+          <!-- S100A8 -->
+          <circle cx="504" cy="116" r="6.5" fill="#f59e0b" stroke="#fff" stroke-width="1.5"/>
+          <line x1="497" y1="116" x2="430" y2="115" stroke="#92400e" stroke-width="1" stroke-dasharray="3,2"/>
+          <rect x="375" y="108" width="57" height="16" rx="3" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+          <text x="403" y="119" text-anchor="middle" fill="#92400e" font-size="9.5" font-weight="700" font-family="'Open Sans',Arial,sans-serif">S100A8</text>
+
+          <!-- Legend -->
+          <circle cx="100" cy="220" r="6" fill="#34d399"/>
+          <text x="112" y="224" fill="#374151" font-size="9" font-family="'Open Sans',Arial,sans-serif">Concordant (n=487)</text>
+          <circle cx="100" cy="237" r="6" fill="#d1d5db"/>
+          <text x="112" y="241" fill="#374151" font-size="9" font-family="'Open Sans',Arial,sans-serif">Discordant / not significant</text>
+          <circle cx="100" cy="254" r="6" fill="#f59e0b" stroke="#fff" stroke-width="1"/>
+          <text x="112" y="258" fill="#374151" font-size="9" font-family="'Open Sans',Arial,sans-serif">Labeled candidates</text>
+        </svg>
+        <div class="figure-caption">Simulated scatter plot of log&#8322; fold-change in mRNA (y-axis) versus protein (x-axis) for all tested features. Green points are concordant across both layers; grey points are discordant or non-significant. Labeled genes are top-ranked biomarker candidates. The poor overall correlation (r&#8776;0.40) is visible — but the concordant quadrants contain the biologically robust signal.</div>
+      </div>
+
+      <h2>Why Concordance Matters Clinically</h2>
+
+      <p>The canonical mRNA-protein correlation figure from Maier et al. (2009) and the larger-scale analyses from Wilhelm et al. (2014) and Gry et al. (2009) all converge on the same uncomfortable finding: across the human proteome, knowing a gene's mRNA abundance explains only about 16–40% of the variance in its protein abundance. Post-transcriptional regulation — miRNA silencing, RNA-binding protein competition, translational efficiency differences, protein half-life — accounts for most of the gap.</p>
+
+      <p>For a biomarker discovery program, this has a direct consequence. If you run only RNA-seq and nominate the top 50 genes, roughly 60 of them will not produce a corresponding protein signal in the biofluid you plan to assay. You will spend months pursuing ghosts. The reverse is equally true: protein markers without transcriptomic support are more likely to reflect post-translational regulation, secretion from a distal tissue, or technical variation in the MS assay — harder to mechanistically interpret and harder to target therapeutically.</p>
+
+      <p>Concordant markers — those where both the transcript and the protein move in the same direction with statistical confidence — have passed a two-layer orthogonal filter. They are more likely to be driven by genuine transcriptional dysregulation with functional protein-level consequences. In the RA example, CD38 and S100A8 (calprotectin) are both on this list and both have clinical validation: serum calprotectin correlates with DAS28 disease activity, and CD38 is the target of daratumumab, now in trials for refractory RA.</p>
+
+      <div class="callout">
+        <strong>Key insight</strong>
+        <p>Multi-omics concordance filtering reduces the biomarker candidate list by roughly 80% while retaining the subset with the highest translational probability. It is not more data for the sake of more data — it is a principled filter that exploits the orthogonality of the two assays to remove the noise that neither assay alone can distinguish from signal.</p>
+      </div>
+
+      <h2>Running This in BioMate</h2>
+
+      <p>The entire four-step chain executes as a single conversational workflow request. You describe your data — FASTQ files or count matrices for RNA-seq, LFQ intensity tables for proteomics, sample metadata with group labels — and BioMate sequences the four steps automatically, passing outputs between them without manual file handling. The integration and ranking steps run on AWS Batch workers with full Bioconductor and MOFA+ environments installed; you do not manage packages or compute. The ranked candidate table, scatter plot, Venn diagram, and a downloadable PDF methods report are all generated as outputs of the completed run.</p>
+
+      <p>For teams working with existing CPTAC or PRIDE datasets, BioMate can ingest the processed data matrices directly. For prospective cohorts, the nf-core/rnaseq alignment step and the MaxQuant or FragPipe proteomics preprocessing steps are both available as upstream pipeline stages in the same workflow chain.</p>
+
+      <hr class="article-divider"/>
+
+      <div class="bm-refs">
+        <p><strong>References</strong></p>
+        <p>1. Argelaguet R et al. (2020). MOFA+: a statistical framework for comprehensive integration of multi-modal single-cell data. <em>Genome Biology</em> 21:111. <a href="https://doi.org/10.1186/s13059-020-02015-1" target="_blank" rel="noopener">doi:10.1186/s13059-020-02015-1</a></p>
+        <p>2. Maier T, Güell M, Serrano L (2009). Correlation of mRNA and protein in complex biological samples. <em>FEBS Letters</em> 583(24):3966–3973. <a href="https://doi.org/10.1016/j.febslet.2009.10.036" target="_blank" rel="noopener">doi:10.1016/j.febslet.2009.10.036</a></p>
+        <p>3. Wilhelm M et al. (2014). Mass-spectrometry-based draft of the human proteome. <em>Nature</em> 509:582–587. <a href="https://doi.org/10.1038/nature13319" target="_blank" rel="noopener">doi:10.1038/nature13319</a></p>
+        <p>4. Gry M et al. (2009). Correlations between RNA and protein expression profiles in 23 human cell lines. <em>BMC Genomics</em> 10:365. <a href="https://doi.org/10.1186/1471-2164-10-365" target="_blank" rel="noopener">doi:10.1186/1471-2164-10-365</a></p>
+        <p>5. CPTAC Consortium. Clinical Proteomic Tumor Analysis Consortium datasets, NCI. <a href="https://proteomics.cancer.gov/programs/cptac" target="_blank" rel="noopener">proteomics.cancer.gov/programs/cptac</a></p>
+        <p>6. Häupl T et al. (2020). RA synovial proteomics LC-MS/MS dataset. <em>PRIDE Archive</em> PXD013149. <a href="https://www.ebi.ac.uk/pride/archive/projects/PXD013149" target="_blank" rel="noopener">ebi.ac.uk/pride/archive/projects/PXD013149</a></p>
+        <p>7. Love MI, Huber W, Anders S (2014). Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. <em>Genome Biology</em> 15:550. <a href="https://doi.org/10.1186/s13059-014-0550-8" target="_blank" rel="noopener">doi:10.1186/s13059-014-0550-8</a></p>
+        <p>8. Smyth GK (2004). Linear models and empirical Bayes methods for assessing differential expression in microarray experiments. <em>Statistical Applications in Genetics and Molecular Biology</em> 3(1):Article3. <a href="https://doi.org/10.2202/1544-6115.1027" target="_blank" rel="noopener">doi:10.2202/1544-6115.1027</a></p>
+      </div>
+
+    </div><!-- /article-body -->
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Posts</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-scrna-immune-profiling.html">From PBMC Samples to Immune Cell Maps: scRNA-seq → DESeq2 → Pathway</a><div class="meta">July 19, 2026 · Single-Cell</div></li>
+        <li><a href="blog-admet-pbpk-ind-package.html">ADMET to IND: Automating the Nonclinical Evidence Package</a><div class="meta">July 19, 2026 · Drug Discovery</div></li>
+        <li><a href="blog-gwas-target-indication.html">GWAS → scRNA-seq → eQTL Target Prioritization Across Indications</a><div class="meta">July 19, 2026 · Genomics</div></li>
+        <li><a href="blog-complement-stratification.html">C3 or C5? Complement Pathway Stratification from Transcriptomics</a><div class="meta">July 19, 2026 · Immunology</div></li>
+        <li><a href="blog-rare-disease-trial-design.html">From Hypothesis to Protocol: AI-Assisted Rare Disease Trial Design</a><div class="meta">July 19, 2026 · Clinical</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">Multi-Omics</span>
+        <span class="topic-chip">RNA-seq</span>
+        <span class="topic-chip">Proteomics</span>
+        <span class="topic-chip">DESeq2</span>
+        <span class="topic-chip">limma</span>
+        <span class="topic-chip">MOFA+</span>
+        <span class="topic-chip">Biomarker Discovery</span>
+        <span class="topic-chip">CPTAC</span>
+        <span class="topic-chip">Rheumatoid Arthritis</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">Run the full 4-step multi-omics chain on your own data — no pipeline setup required.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Stay updated</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:.9rem;">New posts on multi-omics, biomarker workflows, and platform updates &mdash; no spam.</p>
+      <form class="bm-sub" onsubmit="return bmSubscribe(this,event)">
+        <input type="email" name="email" required placeholder="your@email.com" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:.85rem;margin-bottom:.6rem;font-family:var(--font-body);" />
+        <input type="hidden" name="_subject" value="Newsletter signup (blog)" />
+        <button type="submit" class="btn btn-primary">Subscribe</button>
+        <p class="bm-sub-msg" style="font-size:.78rem;margin-top:.5rem;display:none;"></p>
+      </form>
+    </div>
+    <script>
+    function bmSubscribe(form,ev){ev.preventDefault();var m=form.querySelector('.bm-sub-msg');
+      fetch('https://formspree.io/f/xlgvqqvz',{method:'POST',headers:{'Accept':'application/json'},body:new FormData(form)})
+      .then(function(r){if(!r.ok)throw 0;form.innerHTML='<p style="font-size:.85rem;color:var(--accent);font-weight:600;">You\'re subscribed &mdash; thanks!</p>';})
+      .catch(function(){m.style.color='#b42828';m.textContent='Something went wrong — email contact@biomate.ai';m.style.display='';});
+      return false;}
+    </script>
+  </aside>
+</div>
+
+<section style="background:var(--bg-2,#f4f7f9);padding:2rem 0;">
+  <div style="max-width:760px;margin:0 auto;padding:0 1.5rem;">
+    <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted,#6b7280);margin-bottom:.75rem;">Explore BioMate capabilities</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+      <a href="services.html#genomics" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Genomics &amp; Multi-Omics &rarr;</a>
+      <a href="features.html" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Platform features &rarr;</a>
+      <a href="pricing.html" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Pricing &rarr;</a>
+    </div>
+  </div>
+</section>
+
+</div><!-- /bm-blog -->
+<div id="bm-foot"></div>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'newsroom' });</script>
+</body>
+</html>

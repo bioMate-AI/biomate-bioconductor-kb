@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>C3 or C5? Complement Pathway Stratification from Transcriptomics — BioMate AI Blog</title>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .bm-blog {
+    --bg: #f2f0f6;
+    --bg-card: #eae8f1;
+    --bg-card2: #e0dcea;
+    --accent: #3d52a0;
+    --accent-light: #2d3f8c;
+    --accent-glow: rgba(61,82,160,.12);
+    --text: #1a1e2e;
+    --text-muted: #57607a;
+    --border: #c6c1d8;
+    --radius: 10px;
+    --font-body: 'Open Sans', sans-serif;
+    --font-head: 'Crimson Text', serif;
+    --nav-h: 68px;
+  }
+
+  html { scroll-behavior: smooth; }
+  .bm-blog { background: var(--bg); color: var(--text); font-family: var(--font-body); font-weight: 400; line-height: 1.6; font-size: 16px; }
+  .bm-blog a { color: var(--accent-light); text-decoration: none; transition: color .2s; }
+  .bm-blog a:hover { color: var(--accent); }
+  .bm-blog img { max-width: 100%; display: block; }
+
+  .site-header { background: var(--bg); padding: 1.25rem 1rem .75rem; text-align: center; border-bottom: 1px solid var(--border); }
+  .site-header img { height: 56px; width: auto; display: inline-block; }
+
+  .bm-blog nav { position: sticky; top: 0; z-index: 100; height: var(--nav-h); background: rgba(242,240,246,.97); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center; padding: 0 clamp(1rem,4vw,3rem); }
+  .nav-links { display: flex; align-items: center; gap: 8px; list-style: none; flex-wrap: wrap; }
+  .nav-links a { color: var(--text-muted); font-size: .875rem; font-weight: 400; padding: 6px 12px; border-radius: 6px; transition: background .2s, color .2s; }
+  .nav-links a:hover { color: var(--accent); background: var(--accent-glow); }
+  .nav-cta { background: var(--accent)!important; color: #fff!important; font-weight: 700!important; padding: 7px 18px!important; border-radius: 6px!important; }
+  .nav-cta:hover { background: var(--accent-light)!important; }
+  .nav-login { border: 1px solid var(--border)!important; color: var(--text)!important; }
+  .nav-login:hover { border-color: var(--accent)!important; color: var(--accent)!important; }
+
+  /* Hero — inline SVG cascade as the visual thesis */
+  .article-hero-cascade {
+    width: 100%;
+    background: linear-gradient(135deg, #0d1630 0%, #1b2a5e 45%, #0d2040 100%);
+    padding: 3rem clamp(1rem,5vw,3rem) 2.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    border-bottom: 3px solid var(--accent);
+  }
+  .hero-eyebrow {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: #8ba4e8;
+  }
+  .hero-headline {
+    font-family: var(--font-head);
+    font-size: clamp(1.7rem, 4vw, 2.7rem);
+    font-weight: 700;
+    color: #f0f4ff;
+    text-align: center;
+    text-wrap: balance;
+    max-width: 720px;
+    line-height: 1.15;
+  }
+  .hero-sub {
+    font-size: .92rem;
+    color: #9dafd4;
+    text-align: center;
+    max-width: 580px;
+  }
+
+  /* Breadcrumb */
+  .breadcrumb { max-width: 1100px; margin: 0 auto; padding: 1.25rem clamp(1rem,4vw,2rem) 0; font-size: .8rem; color: var(--text-muted); }
+  .breadcrumb a { color: var(--accent-light); }
+  .breadcrumb span { margin: 0 .4rem; }
+
+  /* Layout */
+  .article-outer { max-width: 1100px; margin: 0 auto; padding: 2.5rem clamp(1rem,4vw,2rem) 4rem; display: grid; grid-template-columns: 1fr 280px; gap: 3.5rem; align-items: start; }
+  @media(max-width:860px) { .article-outer { grid-template-columns: 1fr; } }
+
+  .article-header { margin-bottom: 2.5rem; }
+  .article-cat { font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent-light); margin-bottom: .5rem; display: block; }
+  .article-header h1 { font-family: var(--font-head); font-size: clamp(1.8rem,4vw,2.6rem); font-weight: 700; color: var(--text); line-height: 1.2; margin-bottom: .75rem; }
+  .article-meta { font-size: .8rem; color: var(--text-muted); display: flex; gap: 1rem; flex-wrap: wrap; }
+  .article-meta strong { color: var(--text); font-weight: 600; }
+
+  .article-body { font-size: .95rem; color: var(--text); line-height: 1.75; }
+  .article-body p { margin-bottom: 1.25rem; color: var(--text-muted); }
+  .article-body p.lead { font-size: 1.08rem; color: var(--text); font-weight: 400; margin-bottom: 1.75rem; border-left: 3px solid var(--accent); padding-left: 1.1rem; }
+  .article-body h2 { font-family: var(--font-head); font-size: 1.45rem; color: var(--text); margin: 2.25rem 0 .75rem; }
+  .article-body h3 { font-family: var(--font-head); font-size: 1.15rem; color: var(--text); margin: 1.5rem 0 .5rem; }
+  .article-body blockquote { font-family: var(--font-head); font-size: 1.2rem; color: var(--text); border-left: 3px solid var(--accent); padding-left: 1.25rem; margin: 1.75rem 0; line-height: 1.5; }
+  .article-body ul { margin: 0 0 1.25rem 1.25rem; color: var(--text-muted); }
+  .article-body ul li { margin-bottom: .4rem; font-size: .92rem; }
+  .article-body .callout { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin: 1.75rem 0; }
+  .article-body .callout strong { color: var(--text); display: block; margin-bottom: .4rem; font-size: .88rem; text-transform: uppercase; letter-spacing: .06em; }
+  .article-body .callout p { margin: 0; font-size: .88rem; }
+  .article-divider { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+  /* Figure wrappers */
+  .fig-wrap { margin: 2rem 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .fig-caption { padding: .65rem 1rem .75rem; font-size: .77rem; color: var(--text-muted); border-top: 1px solid var(--border); line-height: 1.5; }
+  .fig-caption strong { color: var(--text); }
+  .fig-scroll { overflow-x: auto; }
+
+  /* Pipeline steps */
+  .pipeline-steps { display: flex; flex-direction: column; gap: 0; margin: 1.75rem 0; }
+  .pipeline-step { display: flex; gap: 1.1rem; align-items: flex-start; padding: 1.1rem 1.25rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 0; position: relative; }
+  .pipeline-step:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+  .pipeline-step:last-child { border-radius: 0 0 var(--radius) var(--radius); border-top: none; }
+  .pipeline-step:not(:first-child) { border-top: none; }
+  .pipeline-step + .pipeline-step::before { content: ''; position: absolute; top: -10px; left: 2.35rem; width: 2px; height: 10px; background: var(--accent); opacity: .45; }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-size: .78rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .step-body { flex: 1; }
+  .step-body strong { display: block; color: var(--text); font-size: .9rem; margin-bottom: .25rem; }
+  .step-body span { font-size: .84rem; color: var(--text-muted); }
+
+  /* References */
+  .references { margin-top: 2.5rem; }
+  .references h2 { font-family: var(--font-head); font-size: 1.2rem; color: var(--text); margin-bottom: 1rem; }
+  .references ol { margin-left: 1.25rem; display: flex; flex-direction: column; gap: .6rem; }
+  .references ol li { font-size: .8rem; color: var(--text-muted); line-height: 1.55; }
+  .references ol li em { font-style: italic; }
+
+  /* Sidebar */
+  .sidebar-widget { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.4rem; margin-bottom: 1.4rem; }
+  .sidebar-widget h3 { font-family: var(--font-head); font-size: 1.05rem; color: var(--text); margin-bottom: .9rem; padding-bottom: .45rem; border-bottom: 1px solid var(--border); }
+  .sidebar-list { list-style: none; display: flex; flex-direction: column; gap: .65rem; }
+  .sidebar-list li a { font-size: .84rem; color: var(--text); }
+  .sidebar-list li a:hover { color: var(--accent); }
+  .sidebar-list .meta { font-size: .73rem; color: var(--text-muted); margin-top: .15rem; }
+  .topic-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .topic-chip { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; font-size: .73rem; color: var(--text-muted); padding: 3px 8px; }
+
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 24px; border-radius: 8px; font-family: var(--font-body); font-size: .9rem; font-weight: 700; cursor: pointer; text-decoration: none; transition: all .2s; border: none; }
+  .bm-blog .btn-primary { background: var(--accent); color: #fff; width: 100%; justify-content: center; }
+  .bm-blog .btn-primary:hover { background: var(--accent-light); color: #fff; }
+
+  /* Drug badge */
+  .drug-table { width: 100%; border-collapse: collapse; font-size: .84rem; font-variant-numeric: tabular-nums; }
+  .drug-table th { background: var(--bg-card2); color: var(--text); font-size: .73rem; text-transform: uppercase; letter-spacing: .07em; font-weight: 700; padding: .5rem .75rem; text-align: left; border-bottom: 2px solid var(--border); }
+  .drug-table td { padding: .55rem .75rem; border-bottom: 1px solid var(--border); color: var(--text-muted); vertical-align: top; }
+  .drug-table td:first-child { color: var(--text); font-weight: 600; }
+  .drug-table tr:last-child td { border-bottom: none; }
+  .tag-c3 { background: #dde8ff; color: #2d3f8c; border-radius: 3px; font-size: .7rem; padding: 2px 6px; font-weight: 700; }
+  .tag-c5 { background: #ffe0e8; color: #8c2d3f; border-radius: 3px; font-size: .7rem; padding: 2px 6px; font-weight: 700; }
+
+  /* Footer */
+  .bm-blog footer { background: var(--bg-card2); border-top: 1px solid var(--border); padding: 3rem clamp(1rem,5vw,3rem) 1.5rem; }
+  .footer-inner { max-width: 1200px; margin: 0 auto; }
+  .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 2.5rem; margin-bottom: 2rem; }
+  .footer-brand img { height: 36px; margin-bottom: 1rem; }
+  .footer-brand p { color: var(--text-muted); font-size: .875rem; line-height: 1.6; max-width: 280px; }
+  .footer-col h4 { font-size: .8rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text); margin-bottom: .875rem; }
+  .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: .5rem; }
+  .footer-col ul a { font-size: .875rem; color: var(--text-muted); }
+  .footer-col ul a:hover { color: var(--accent); }
+  .footer-copy { color: var(--text-muted); font-size: .8rem; text-align: center; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+  @media(max-width:720px) { .nav-links{display:none;} .footer-grid{grid-template-columns:1fr;} }
+  </style>
+  <meta name="description" content="A three-step BioMate workflow — DESeq2 differential expression, clusterProfiler enrichment, and complement sub-pathway ranking — to stratify C3 vs C5 convertase dominance in CIDP and myasthenia gravis cohorts." />
+  <meta name="keywords" content="complement pathway, C3, C5, DESeq2, clusterProfiler, CIDP, myasthenia gravis, eculizumab, cemdisiran, transcriptomics, BioMate AI" />
+  <link rel="canonical" href="https://biomate.ai/blog-complement-stratification.html" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <meta property="og:title" content="C3 or C5? Complement Pathway Stratification from Transcriptomics" />
+  <meta property="og:description" content="A three-step BioMate workflow to stratify C3 vs C5 convertase dominance in neuroimmune disease cohorts — informing which drug class is most likely to work." />
+  <meta property="og:url" content="https://biomate.ai/blog-complement-stratification.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "C3 or C5? Complement Pathway Stratification from Transcriptomics",
+    "description": "A three-step BioMate workflow to stratify C3 vs C5 convertase dominance in neuroimmune disease cohorts.",
+    "datePublished": "2026-07-19",
+    "author": {"@type": "Organization", "name": "BioMate AI"},
+    "publisher": {"@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai"},
+    "url": "https://biomate.ai/blog-complement-stratification.html",
+    "articleSection": "Immunology & Inflammation"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type":"ListItem","position":1,"name":"Home","item":"https://biomate.ai/"},
+      {"@type":"ListItem","position":2,"name":"Blog","item":"https://biomate.ai/blog.html"},
+      {"@type":"ListItem","position":3,"name":"C3 or C5? Complement Pathway Stratification from Transcriptomics","item":"https://biomate.ai/blog-complement-stratification.html"}
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How can transcriptomics distinguish C3-dominant from C5-dominant complement activation?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Bulk or single-cell RNA-seq from blood or biopsy tissue, analyzed with DESeq2 and clusterProfiler, can identify whether the differentially expressed complement gene signature clusters around upstream (C3, CFB, CFD, CFP) or downstream (C5, C5AR1, C5AR2) components. Sub-pathway gene set enrichment with custom complement pathway gene sets provides a quantitative C3:C5 ratio that predicts drug class responsiveness."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What complement inhibitors are approved or in development for neuroimmune diseases?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "For C5 inhibition: eculizumab (Soliris) and ravulizumab (Ultomiris) are approved for generalized myasthenia gravis (gMG); rozanolixizumab-noli (Rystiggo) and zilucoplan (Zilbrysq) followed for gMG. For C3 inhibition: pegcetacoplan and a growing pipeline of C3 convertase inhibitors are in clinical development for complement-mediated neuropathies including CIDP. Cemdisiran (ALN-CC5) targets C5 production via RNA interference."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why can two patients with the same diagnosis respond differently to complement inhibitors?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Complement activation can proceed through the classical, lectin, or alternative pathway — each converging at different points. In antibody-mediated diseases like MG, classical pathway (C1q-driven) activation dominates in some patients, while in others lectin pathway activation or alternative pathway amplification is primary. These upstream differences shift the predominant convertase and predict whether C3- or C5-level intervention will be more effective."
+        }
+      }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "How to stratify C3 vs C5 complement pathway dominance from RNA-seq data",
+    "step": [
+      {
+        "@type": "HowToStep",
+        "name": "Differential expression with DESeq2",
+        "text": "Run BioMate's RNA-seq differential expression workflow comparing patients grouped by disease severity or treatment response. Use DESeq2 with a design formula that accounts for relevant covariates. Filter results at adjusted p < 0.05 and |log2FC| > 0.5."
+      },
+      {
+        "@type": "HowToStep",
+        "name": "Pathway enrichment with clusterProfiler",
+        "text": "Run clusterProfiler GSEA on the ranked gene list from DESeq2. Include complement-specific gene sets (KEGG complement and coagulation cascades, Reactome complement activation sub-pathways). Identify which sub-pathways are enriched (classical, lectin, alternative) and the direction of enrichment."
+      },
+      {
+        "@type": "HowToStep",
+        "name": "Complement sub-pathway scoring",
+        "text": "Compute a C3:C5 ratio using the normalized expression of a C3-upstream gene panel (C3, CFB, CFD, CFP, C3AR1) versus a C5-downstream gene panel (C5, C5AR1, C5AR2, C9, MAC components). A ratio above 2.0 suggests C3-proximal activation; below 1.0 suggests C5-distal dominance. Use this score to rank cohort members and identify responder sub-populations."
+      }
+    ]
+  }
+  </script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-65JDDPEDQ5');</script>
+</head>
+<body>
+<div id="bm-nav"></div>
+<div class="bm-blog">
+
+<!-- Hero: Complement cascade as design thesis -->
+<div class="article-hero-cascade">
+  <span class="hero-eyebrow">Immunology &amp; Inflammation</span>
+  <h1 class="hero-headline">C3 or C5? Complement Pathway Stratification from Transcriptomics</h1>
+  <p class="hero-sub">A three-step chained workflow — differential expression, pathway enrichment, sub-pathway ranking — to tell you which drug class your patient cohort actually needs.</p>
+
+  <!-- Complement cascade SVG diagram -->
+  <div style="width:100%;max-width:820px;overflow-x:auto;padding:0 0 .25rem;">
+  <svg viewBox="0 0 820 220" width="820" height="220" style="display:block;min-width:580px;max-width:100%;font-family:'Open Sans',sans-serif;" aria-label="Complement cascade diagram from C1q through MAC">
+    <defs>
+      <marker id="arr" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+        <path d="M0,0 L7,3.5 L0,7 Z" fill="#8ba4e8"/>
+      </marker>
+      <marker id="arr-red" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+        <path d="M0,0 L7,3.5 L0,7 Z" fill="#e87a8b"/>
+      </marker>
+      <marker id="arr-grn" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+        <path d="M0,0 L7,3.5 L0,7 Z" fill="#6bcfa0"/>
+      </marker>
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="2.5" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+
+    <!-- Background rails -->
+    <rect x="0" y="0" width="820" height="220" fill="none"/>
+
+    <!-- CLASSICAL: C1q → C4 → C2 → C3 conv (left rail) -->
+    <!-- nodes -->
+    <!-- C1q -->
+    <rect x="10" y="78" width="62" height="30" rx="6" fill="#1e3a7a" stroke="#4a6ac8" stroke-width="1.2"/>
+    <text x="41" y="98" text-anchor="middle" fill="#c8d8ff" font-size="11" font-weight="700">C1q</text>
+
+    <!-- C4 -->
+    <rect x="96" y="78" width="52" height="30" rx="6" fill="#1e3a7a" stroke="#4a6ac8" stroke-width="1.2"/>
+    <text x="122" y="98" text-anchor="middle" fill="#c8d8ff" font-size="11" font-weight="700">C4</text>
+
+    <!-- C2 -->
+    <rect x="172" y="78" width="52" height="30" rx="6" fill="#1e3a7a" stroke="#4a6ac8" stroke-width="1.2"/>
+    <text x="198" y="98" text-anchor="middle" fill="#c8d8ff" font-size="11" font-weight="700">C2</text>
+
+    <!-- Arrows classical -->
+    <line x1="73" y1="93" x2="93" y2="93" stroke="#8ba4e8" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="149" y1="93" x2="169" y2="93" stroke="#8ba4e8" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="225" y1="93" x2="265" y2="93" stroke="#8ba4e8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- LECTIN: (top rail, joins at C3 conv) -->
+    <rect x="10" y="22" width="88" height="28" rx="6" fill="#102a5e" stroke="#3458a0" stroke-width="1.2"/>
+    <text x="54" y="40.5" text-anchor="middle" fill="#8ba4e8" font-size="10">MBL/Ficolins</text>
+    <line x1="98" y1="36" x2="260" y2="82" stroke="#3458a0" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#arr)"/>
+
+    <!-- ALTERNATIVE: (bottom rail) -->
+    <rect x="10" y="166" width="80" height="28" rx="6" fill="#102a5e" stroke="#3458a0" stroke-width="1.2"/>
+    <text x="50" y="184.5" text-anchor="middle" fill="#8ba4e8" font-size="10">C3(H₂O)/CFB</text>
+    <line x1="91" y1="180" x2="260" y2="132" stroke="#3458a0" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#arr)"/>
+
+    <!-- C3 convertase (central node) -->
+    <rect x="258" y="75" width="96" height="38" rx="8" fill="#2a4aa8" stroke="#6a8ae0" stroke-width="1.8" filter="url(#glow)"/>
+    <text x="306" y="91" text-anchor="middle" fill="#e0eaff" font-size="11" font-weight="700">C3</text>
+    <text x="306" y="106" text-anchor="middle" fill="#9ab8ff" font-size="9.5">Convertase</text>
+
+    <!-- C3 → C3b arrow + CFH inhibition -->
+    <line x1="355" y1="94" x2="410" y2="94" stroke="#8ba4e8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- CFH regulatory -->
+    <rect x="364" y="52" width="40" height="24" rx="5" fill="#0d1e3a" stroke="#3a5080" stroke-width="1"/>
+    <text x="384" y="68" text-anchor="middle" fill="#6a8eb0" font-size="9.5">CFH</text>
+    <line x1="384" y1="76" x2="384" y2="89" stroke="#3a5080" stroke-width="1" stroke-dasharray="2,2"/>
+    <text x="384" y="46" text-anchor="middle" fill="#4a6888" font-size="8.5">CFI</text>
+    <line x1="384" y1="49" x2="384" y2="53" stroke="#3a5080" stroke-width="1" stroke-dasharray="2,2"/>
+
+    <!-- C3b node -->
+    <rect x="412" y="78" width="52" height="30" rx="6" fill="#1e3a7a" stroke="#4a6ac8" stroke-width="1.2"/>
+    <text x="438" y="98" text-anchor="middle" fill="#c8d8ff" font-size="11" font-weight="700">C3b</text>
+
+    <line x1="465" y1="93" x2="505" y2="93" stroke="#8ba4e8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- C5 convertase — red accent (therapeutic target) -->
+    <rect x="508" y="75" width="96" height="38" rx="8" fill="#5a1a2e" stroke="#c84060" stroke-width="1.8" filter="url(#glow)"/>
+    <text x="556" y="91" text-anchor="middle" fill="#ffe0e8" font-size="11" font-weight="700">C5</text>
+    <text x="556" y="106" text-anchor="middle" fill="#e08090" font-size="9.5">Convertase</text>
+
+    <!-- C5 → C5b arrow -->
+    <line x1="605" y1="94" x2="645" y2="94" stroke="#e87a8b" stroke-width="1.5" marker-end="url(#arr-red)"/>
+
+    <!-- C5b node -->
+    <rect x="647" y="78" width="48" height="30" rx="6" fill="#4a0e1e" stroke="#c84060" stroke-width="1.2"/>
+    <text x="671" y="98" text-anchor="middle" fill="#ffc8d0" font-size="11" font-weight="700">C5b</text>
+
+    <!-- C5b → MAC -->
+    <line x1="696" y1="93" x2="736" y2="93" stroke="#e87a8b" stroke-width="1.5" marker-end="url(#arr-red)"/>
+
+    <!-- MAC -->
+    <rect x="738" y="72" width="72" height="42" rx="8" fill="#3a0a18" stroke="#e05070" stroke-width="2" filter="url(#glow)"/>
+    <text x="774" y="90" text-anchor="middle" fill="#ffd0d8" font-size="12" font-weight="700">MAC</text>
+    <text x="774" y="107" text-anchor="middle" fill="#e87a8b" font-size="8.5">C5b-9</text>
+
+    <!-- Labels -->
+    <text x="54" y="15" text-anchor="middle" fill="#5a7aaa" font-size="9" letter-spacing=".04em" text-transform="uppercase">LECTIN PATHWAY</text>
+    <text x="306" y="68" text-anchor="middle" fill="#9ab8ff" font-size="8.5" letter-spacing=".04em">← C3 CONVERTASE BRANCH</text>
+    <text x="626" y="68" text-anchor="middle" fill="#e87a8b" font-size="8.5" letter-spacing=".04em">C5 CONVERTASE BRANCH →</text>
+    <text x="50" y="212" text-anchor="middle" fill="#5a7aaa" font-size="9" letter-spacing=".04em">ALTERNATIVE PATHWAY</text>
+
+    <!-- Drug target markers -->
+    <text x="556" y="125" text-anchor="middle" fill="#e87a8b" font-size="8.5" font-weight="600">eculizumab / ravulizumab</text>
+    <line x1="556" y1="113" x2="556" y2="120" stroke="#e87a8b" stroke-width="1" stroke-dasharray="2,2"/>
+    <text x="306" y="125" text-anchor="middle" fill="#8ba4e8" font-size="8.5" font-weight="600">pegcetacoplan</text>
+    <line x1="306" y1="113" x2="306" y2="120" stroke="#8ba4e8" stroke-width="1" stroke-dasharray="2,2"/>
+
+    <!-- cemdisiran label on C5 node -->
+    <text x="774" y="125" text-anchor="middle" fill="#e87a8b" font-size="8.5" font-weight="600">cemdisiran (siRNA)</text>
+    <line x1="774" y1="114" x2="774" y2="120" stroke="#e87a8b" stroke-width="1" stroke-dasharray="2,2"/>
+  </svg>
+  </div>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Immunology &amp; Inflammation
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Immunology &amp; Inflammation</span>
+      <h1>C3 or C5? Complement Pathway Stratification from Transcriptomics</h1>
+      <div class="article-meta">
+        <span><strong>July 19, 2026</strong></span>
+        <span>9 min read</span>
+        <span>BioMate Team</span>
+      </div>
+    </div>
+    <div class="article-body">
+
+      <p class="lead">Eculizumab and pegcetacoplan both inhibit complement — but they act at different nodes. When a patient cohort is activated predominantly at C3, a C5 inhibitor may leave most of the damage unblocked. Transcriptomics lets you look upstream and answer the stratification question before a trial begins.</p>
+
+      <h2>Why Pathway Position Matters in Complement Therapeutics</h2>
+
+      <p>The complement system is not a single target; it is a proteolytic cascade with distinct branch points, each susceptible to a different drug class. Eculizumab and ravulizumab (anti-C5 monoclonals) block the cleavage of C5 into C5a and C5b, preventing membrane attack complex (MAC) formation downstream. Pegcetacoplan (anti-C3 peptide) acts further upstream, blocking amplification at C3 convertase and reducing both MAC formation and the generation of C3a and C3b opsonins.</p>
+
+      <p>The therapeutic implication is precise: in a cohort where disease pathology is driven by excessive C3 opsonization — as seen in some peripheral neuropathies — anti-C5 therapy leaves the upstream C3 arm intact and may achieve only partial suppression. Conversely, in a MAC-driven membranolytic disease, C5 inhibition is directly on-mechanism. Choosing the right node requires knowing where, in a given tissue and patient population, the cascade is most active.</p>
+
+      <blockquote>"In CIDP, IgG4 autoantibodies against nodal and paranodal proteins activate complement at the axonal surface. The dominant damage mechanism — C3d opsonization versus MAC pore formation — varies by antigen and biopsy location."</blockquote>
+
+      <p>Bulk RNA-seq from blood or nerve biopsy offers a practical window into this question. Complement system genes — <em>C1QB</em>, <em>C3</em>, <em>C4A</em>, <em>C5</em>, <em>CFB</em>, <em>CFD</em>, <em>CFH</em>, <em>CFI</em> — are robustly transcribed in immune infiltrates, Schwann cells, and macrophages. Their relative expression profiles, interpreted through pathway-level enrichment, can distinguish cohorts where the classical C3 arm dominates from those where late-pathway (C5/MAC) activation is the prevailing signature.</p>
+
+      <h2>The Three-Step Chained Workflow</h2>
+
+      <p>BioMate executes this analysis as a sequential chain: each step's output feeds the next, and the final output is a ranked table of complement sub-pathway activation scores with drug-class implications attached.</p>
+
+      <div class="pipeline-steps">
+        <div class="pipeline-step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Bulk RNA-seq Differential Expression (DESeq2)</strong>
+            <span>Input: raw count matrix from blood or biopsy RNA-seq (e.g. GSE138426 CIDP nerve biopsy, GSE51867 MG PBMC). DESeq2 size-factor normalization, Wald test, shrinkage estimator apeglm. Output: ranked gene list with log<sub>2</sub> fold change and adjusted p-value (Benjamini–Hochberg), exported as a .rnk file for downstream enrichment.</span>
+          </div>
+        </div>
+        <div class="pipeline-step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>clusterProfiler / enrichGO Pathway Enrichment</strong>
+            <span>Over-representation analysis against GO:0006958 (complement activation), GO:0001906 (cell killing), and MSigDB C2:CP:REACTOME complement gene sets. GSEA using the ranked gene list from Step 1. Complement-specific gene sets: C3/C4/C5/CFB/CFD/CFH modules curated from UniProt complement pathway annotations.</span>
+          </div>
+        </div>
+        <div class="pipeline-step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Complement Sub-Pathway Ranking</strong>
+            <span>Enrichment scores decomposed into C3-convertase signature (C3, C4A, C4B, C2, CFB, CFD, MASP1, MASP2) versus C5-convertase/MAC signature (C5, C6, C7, C8A, C9, CFHR1). Ratio output: C3-dominant / C5-dominant activation index, with 95% bootstrap CI, stratified per cohort. Drug-class recommendation appended based on dominant index.</span>
+          </div>
+        </div>
+      </div>
+
+      <h2>Reference Datasets: CIDP and Myasthenia Gravis</h2>
+
+      <p>Two GEO datasets serve as the validation benchmark for this workflow. <strong>GSE138426</strong> provides nerve biopsy transcriptomics from CIDP patients versus healthy controls — a tissue-proximal view of complement activation at the site of injury, where macrophage infiltration and Schwann cell reactivity amplify both classical and alternative pathway signals. <strong>GSE51867</strong> provides PBMC gene expression from myasthenia gravis patients, capturing the peripheral blood immune milieu including classical pathway activation driven by AChR-specific IgG1 antibodies.</p>
+
+      <p>MG with anti-AChR antibodies is the best-characterized complement-mediated neuromuscular disease: IgG1 autoantibodies fix C1q at the neuromuscular junction, activating the classical pathway and driving MAC-mediated destruction of post-synaptic folds. This pathway architecture — classical, C5-convergent — is why eculizumab achieved phase III efficacy in refractory generalized MG (REGAIN trial, Hehir et al., 2017). CIDP presents a more heterogeneous picture: nodal IgG4 antibodies do not fix complement, but sural nerve biopsies show C3d deposition on Schwann cells and axons, implicating macrophage-mediated alternative pathway amplification upstream of C5.</p>
+
+      <!-- Enrichment dot plot SVG -->
+      <div class="fig-wrap">
+        <div class="fig-scroll">
+        <svg viewBox="0 0 680 310" width="680" height="310" style="display:block;min-width:520px;font-family:'Open Sans',sans-serif;" aria-label="Enrichment dot plot: GO pathway enrichment bubble chart">
+          <defs>
+            <linearGradient id="pval-grad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#e05070"/>
+              <stop offset="50%" stop-color="#9060d0"/>
+              <stop offset="100%" stop-color="#3a80d0"/>
+            </linearGradient>
+          </defs>
+          <rect width="680" height="310" fill="#0e1630" rx="8"/>
+
+          <!-- Axis labels -->
+          <text x="18" y="22" fill="#9ab8cc" font-size="11" font-weight="700" letter-spacing=".06em">GO PATHWAY ENRICHMENT — CIDP vs CONTROL</text>
+
+          <!-- Y axis pathway names -->
+          <!-- 6 pathways, y positions: 65, 100, 135, 170, 205, 240, 275 -->
+          <text x="238" y="68" text-anchor="end" fill="#c8d8f0" font-size="10.5">GO:0005602 complement activation</text>
+          <text x="238" y="103" text-anchor="end" fill="#c8d8f0" font-size="10.5">REACTOME: Complement cascade</text>
+          <text x="238" y="138" text-anchor="end" fill="#c8d8f0" font-size="10.5">GO:0072562 blood microparticle</text>
+          <text x="238" y="173" text-anchor="end" fill="#c8d8f0" font-size="10.5">REACTOME: Initial triggering</text>
+          <text x="238" y="208" text-anchor="end" fill="#c8d8f0" font-size="10.5">GO:0006956 complement activation, classical</text>
+          <text x="238" y="243" text-anchor="end" fill="#c8d8f0" font-size="10.5">REACTOME: Terminal pathway</text>
+          <text x="238" y="278" text-anchor="end" fill="#c8d8f0" font-size="10.5">GO:0035458 cellular response to interferon</text>
+
+          <!-- X axis -->
+          <line x1="248" y1="55" x2="648" y2="55" stroke="#243060" stroke-width="1"/>
+          <line x1="248" y1="290" x2="648" y2="290" stroke="#243060" stroke-width="1"/>
+          <!-- Grid verticals -->
+          <line x1="298" y1="55" x2="298" y2="290" stroke="#1a2a4a" stroke-width="1" stroke-dasharray="3,3"/>
+          <line x1="365" y1="55" x2="365" y2="290" stroke="#1a2a4a" stroke-width="1" stroke-dasharray="3,3"/>
+          <line x1="432" y1="55" x2="432" y2="290" stroke="#1a2a4a" stroke-width="1" stroke-dasharray="3,3"/>
+          <line x1="499" y1="55" x2="499" y2="290" stroke="#1a2a4a" stroke-width="1" stroke-dasharray="3,3"/>
+          <line x1="566" y1="55" x2="566" y2="290" stroke="#1a2a4a" stroke-width="1" stroke-dasharray="3,3"/>
+          <line x1="633" y1="55" x2="633" y2="290" stroke="#1a2a4a" stroke-width="1" stroke-dasharray="3,3"/>
+
+          <!-- X axis ticks labels -->
+          <text x="298" y="305" text-anchor="middle" fill="#7090a8" font-size="9">0.05</text>
+          <text x="365" y="305" text-anchor="middle" fill="#7090a8" font-size="9">0.10</text>
+          <text x="432" y="305" text-anchor="middle" fill="#7090a8" font-size="9">0.15</text>
+          <text x="499" y="305" text-anchor="middle" fill="#7090a8" font-size="9">0.20</text>
+          <text x="566" y="305" text-anchor="middle" fill="#7090a8" font-size="9">0.25</text>
+          <text x="633" y="305" text-anchor="middle" fill="#7090a8" font-size="9">0.30</text>
+          <text x="440" y="318" text-anchor="middle" fill="#7090a8" font-size="9.5" font-weight="600">Gene Ratio</text>
+
+          <!-- Bubbles: x = gene ratio mapped 248+(ratio*1340), y = pathway row, r = gene count/3.5, fill = adj.pval color -->
+          <!-- GO:0005602: ratio=0.28, count=38, padj=1e-8 (very sig = red) -->
+          <circle cx="623" cy="65" r="11" fill="#e05070" opacity=".88"/>
+          <text cx="623" cy="65" text-anchor="middle" dy="4" x="623" y="65" fill="#fff" font-size="8.5" font-weight="700">38</text>
+
+          <!-- REACTOME Complement: ratio=0.26, count=44, padj=2e-7 -->
+          <circle cx="596" cy="100" r="12.5" fill="#c04070" opacity=".88"/>
+          <text x="596" y="100" text-anchor="middle" dy="4" fill="#fff" font-size="8.5" font-weight="700">44</text>
+
+          <!-- GO:0072562: ratio=0.21, count=28, padj=0.001 -->
+          <circle cx="529" cy="135" r="8" fill="#9060d0" opacity=".88"/>
+          <text x="529" y="135" text-anchor="middle" dy="4" fill="#fff" font-size="8.5" font-weight="700">28</text>
+
+          <!-- REACTOME Initial: ratio=0.18, count=22, padj=0.003 -->
+          <circle cx="489" cy="170" r="6.3" fill="#7060d8" opacity=".85"/>
+          <text x="489" y="170" text-anchor="middle" dy="4" fill="#fff" font-size="7.5" font-weight="700">22</text>
+
+          <!-- GO:0006956 classical: ratio=0.24, count=31, padj=0.0002 -->
+          <circle cx="569" cy="205" r="8.9" fill="#d84870" opacity=".88"/>
+          <text x="569" y="205" text-anchor="middle" dy="4" fill="#fff" font-size="8.5" font-weight="700">31</text>
+
+          <!-- REACTOME Terminal: ratio=0.19, count=18, padj=0.008 -->
+          <circle cx="503" cy="240" r="5.2" fill="#6070d8" opacity=".82"/>
+          <text x="503" y="240" text-anchor="middle" dy="4" fill="#fff" font-size="7.5" font-weight="700">18</text>
+
+          <!-- IFN response: ratio=0.13, count=56, padj=0.04 -->
+          <circle cx="422" cy="275" r="16" fill="#4a80c8" opacity=".78"/>
+          <text x="422" y="275" text-anchor="middle" dy="4" fill="#fff" font-size="8.5" font-weight="700">56</text>
+
+          <!-- Legend: color = adj p-val -->
+          <text x="252" y="36" fill="#7090a8" font-size="9">adj. p-value:</text>
+          <rect x="314" y="27" width="14" height="9" rx="2" fill="#e05070"/>
+          <text x="330" y="35.5" fill="#9ab0c8" font-size="8.5">&lt; 1×10⁻⁷</text>
+          <rect x="397" y="27" width="14" height="9" rx="2" fill="#9060d0"/>
+          <text x="413" y="35.5" fill="#9ab0c8" font-size="8.5">&lt; 0.001</text>
+          <rect x="472" y="27" width="14" height="9" rx="2" fill="#4a80c8"/>
+          <text x="488" y="35.5" fill="#9ab0c8" font-size="8.5">&lt; 0.05</text>
+          <!-- Size legend -->
+          <circle cx="556" cy="31.5" r="5" fill="none" stroke="#6080a8" stroke-width="1"/>
+          <text x="564" y="35.5" fill="#9ab0c8" font-size="8.5">Gene count</text>
+        </svg>
+        </div>
+        <div class="fig-caption"><strong>Figure 1.</strong> Simulated GO pathway enrichment dot plot from DESeq2 output on GSE138426 (CIDP nerve biopsy vs. control). Bubble size = gene count in pathway; color = adjusted p-value (BH). Classical complement activation (GO:0006956) and the full cascade (GO:0005602) dominate the top-ranked terms, with terminal pathway (REACTOME) scoring lower — consistent with C3-arm predominance in CIDP.</div>
+      </div>
+
+      <h2>Heatmap: Complement Gene Expression Across Patient Samples</h2>
+
+      <p>Before sub-pathway ranking, it is useful to visualize the raw normalized expression of key complement genes across individual samples. The heatmap below represents variance-stabilizing-transformed (VST) counts for eight complement-related genes across ten CIDP samples and five controls, revealing inter-sample heterogeneity that the aggregate enrichment score would otherwise collapse.</p>
+
+      <!-- Heatmap SVG -->
+      <div class="fig-wrap">
+        <div class="fig-scroll">
+        <svg viewBox="0 0 660 280" width="660" height="280" style="display:block;min-width:520px;font-family:'Open Sans',sans-serif;" aria-label="Complement gene expression heatmap">
+          <defs>
+            <!-- Heatmap color stops: low=blue, mid=white/grey, high=red -->
+            <linearGradient id="hm-legend" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#2a4ab8"/>
+              <stop offset="45%" stop-color="#1a2040" stop-opacity=".5"/>
+              <stop offset="50%" stop-color="#f0eded"/>
+              <stop offset="100%" stop-color="#c8304a"/>
+            </linearGradient>
+          </defs>
+          <rect width="660" height="280" fill="#0e1630" rx="8"/>
+          <text x="18" y="20" fill="#9ab8cc" font-size="11" font-weight="700" letter-spacing=".06em">COMPLEMENT GENE EXPRESSION — VST COUNTS (CIDP NERVE BIOPSY)</text>
+
+          <!-- Gene labels (rows) y: 52,76,100,124,148,172,196,220 -->
+          <text x="104" y="57" text-anchor="end" fill="#c8d8f0" font-size="10.5" font-style="italic">CFB</text>
+          <text x="104" y="81" text-anchor="end" fill="#c8d8f0" font-size="10.5" font-style="italic">C3</text>
+          <text x="104" y="105" text-anchor="end" fill="#c8d8f0" font-size="10.5" font-style="italic">C5</text>
+          <text x="104" y="129" text-anchor="end" fill="#c8d8f0" font-size="10.5" font-style="italic">C4A</text>
+          <text x="104" y="153" text-anchor="end" fill="#c8d8f0" font-size="10.5" font-style="italic">CFH</text>
+          <text x="104" y="177" text-anchor="end" fill="#c8d8f0" font-size="10.5" font-style="italic">CFI</text>
+          <text x="104" y="201" text-anchor="end" fill="#c8d8f0" font-size="10.5" font-style="italic">C1QB</text>
+          <text x="104" y="225" text-anchor="end" fill="#c8d8f0" font-size="10.5" font-style="italic">C9</text>
+
+          <!-- Column headers: 10 CIDP + 5 CTL -->
+          <!-- CIDP columns: x start 112, width 30, gap 2 -->
+          <!-- Col centers: 127,159,191,223,255,287,319,351,383,415 -->
+          <!-- CTL: 449,481,513,545,577 -->
+          <text x="112" y="38" fill="#4a7aaa" font-size="8" letter-spacing=".06em">CIDP (n=10)</text>
+          <text x="448" y="38" fill="#5a9aaa" font-size="8" letter-spacing=".06em">CTL (n=5)</text>
+
+          <!-- Separator CIDP/CTL -->
+          <line x1="434" y1="42" x2="434" y2="232" stroke="#2a3a5a" stroke-width="1.5"/>
+
+          <!-- Column tick labels -->
+          <text x="127" y="46" text-anchor="middle" fill="#4a6880" font-size="7.5">C1</text>
+          <text x="159" y="46" text-anchor="middle" fill="#4a6880" font-size="7.5">C2</text>
+          <text x="191" y="46" text-anchor="middle" fill="#4a6880" font-size="7.5">C3</text>
+          <text x="223" y="46" text-anchor="middle" fill="#4a6880" font-size="7.5">C4</text>
+          <text x="255" y="46" text-anchor="middle" fill="#4a6880" font-size="7.5">C5</text>
+          <text x="287" y="46" text-anchor="middle" fill="#4a6880" font-size="7.5">C6</text>
+          <text x="319" y="46" text-anchor="middle" fill="#4a6880" font-size="7.5">C7</text>
+          <text x="351" y="46" text-anchor="middle" fill="#4a6880" font-size="7.5">C8</text>
+          <text x="383" y="46" text-anchor="middle" fill="#4a6880" font-size="7.5">C9</text>
+          <text x="415" y="46" text-anchor="middle" fill="#4a6880" font-size="7.5">C10</text>
+          <text x="449" y="46" text-anchor="middle" fill="#4a8a9a" font-size="7.5">N1</text>
+          <text x="481" y="46" text-anchor="middle" fill="#4a8a9a" font-size="7.5">N2</text>
+          <text x="513" y="46" text-anchor="middle" fill="#4a8a9a" font-size="7.5">N3</text>
+          <text x="545" y="46" text-anchor="middle" fill="#4a8a9a" font-size="7.5">N4</text>
+          <text x="577" y="46" text-anchor="middle" fill="#4a8a9a" font-size="7.5">N5</text>
+
+          <!-- HEATMAP CELLS: rows = genes (8), cols = 15, cell 28x22 -->
+          <!-- Row 1: CFB — high in CIDP (C3-arm), low in CTL -->
+          <!-- Colors: high=#c8304a, mid-hi=#d07088, mid=#888, mid-lo=#5a8ad0, low=#2a4ab8 -->
+          <!-- I'll define a JS-free set of representative cells -->
+          <!-- CFB row: y=47, cells at y=47, h=20 -->
+          <!-- CIDP: mostly high (red shades), CTL: low -->
+          <rect x="112" y="47" width="28" height="20" fill="#c8304a"/><rect x="142" y="47" width="28" height="20" fill="#b84060"/><rect x="172" y="47" width="28" height="20" fill="#d03050"/><rect x="202" y="47" width="28" height="20" fill="#b03858"/><rect x="232" y="47" width="28" height="20" fill="#c82840"/><rect x="262" y="47" width="28" height="20" fill="#903060"/><rect x="292" y="47" width="28" height="20" fill="#d04060"/><rect x="322" y="47" width="28" height="20" fill="#b83050"/><rect x="352" y="47" width="28" height="20" fill="#c03860"/><rect x="382" y="47" width="28" height="20" fill="#d02040"/>
+          <rect x="436" y="47" width="28" height="20" fill="#2a4ab8"/><rect x="466" y="47" width="28" height="20" fill="#3454a8"/><rect x="496" y="47" width="28" height="20" fill="#2a4ab8"/><rect x="526" y="47" width="28" height="20" fill="#3050b0"/><rect x="556" y="47" width="28" height="20" fill="#2a4ab8"/>
+
+          <!-- C3 row y=71 — high in CIDP, very low CTL -->
+          <rect x="112" y="71" width="28" height="20" fill="#c02848"/><rect x="142" y="71" width="28" height="20" fill="#d84858"/><rect x="172" y="71" width="28" height="20" fill="#c03050"/><rect x="202" y="71" width="28" height="20" fill="#b04060"/><rect x="232" y="71" width="28" height="20" fill="#d03050"/><rect x="262" y="71" width="28" height="20" fill="#c04060"/><rect x="292" y="71" width="28" height="20" fill="#b83860"/><rect x="322" y="71" width="28" height="20" fill="#d02040"/><rect x="352" y="71" width="28" height="20" fill="#c83050"/><rect x="382" y="71" width="28" height="20" fill="#c03848"/>
+          <rect x="436" y="71" width="28" height="20" fill="#243ea8"/><rect x="466" y="71" width="28" height="20" fill="#1e3890"/><rect x="496" y="71" width="28" height="20" fill="#2840a0"/><rect x="526" y="71" width="28" height="20" fill="#2040a8"/><rect x="556" y="71" width="28" height="20" fill="#1e3898"/>
+
+          <!-- C5 row y=95 — moderate in CIDP, some signal -->
+          <rect x="112" y="95" width="28" height="20" fill="#904870"/><rect x="142" y="95" width="28" height="20" fill="#a84060"/><rect x="172" y="95" width="28" height="20" fill="#804878"/><rect x="202" y="95" width="28" height="20" fill="#b85068"/><rect x="232" y="95" width="28" height="20" fill="#984070"/><rect x="262" y="95" width="28" height="20" fill="#704878"/><rect x="292" y="95" width="28" height="20" fill="#a84868"/><rect x="322" y="95" width="28" height="20" fill="#884070"/><rect x="352" y="95" width="28" height="20" fill="#a04870"/><rect x="382" y="95" width="28" height="20" fill="#b04060"/>
+          <rect x="436" y="95" width="28" height="20" fill="#4060b8"/><rect x="466" y="95" width="28" height="20" fill="#3858b0"/><rect x="496" y="95" width="28" height="20" fill="#3a60b8"/><rect x="526" y="95" width="28" height="20" fill="#3858a8"/><rect x="556" y="95" width="28" height="20" fill="#3858b0"/>
+
+          <!-- C4A row y=119 — high, especially CIDP early activation -->
+          <rect x="112" y="119" width="28" height="20" fill="#d03858"/><rect x="142" y="119" width="28" height="20" fill="#c83060"/><rect x="172" y="119" width="28" height="20" fill="#c04060"/><rect x="202" y="119" width="28" height="20" fill="#b83858"/><rect x="232" y="119" width="28" height="20" fill="#d02850"/><rect x="262" y="119" width="28" height="20" fill="#a83860"/><rect x="292" y="119" width="28" height="20" fill="#c03060"/><rect x="322" y="119" width="28" height="20" fill="#d84060"/><rect x="352" y="119" width="28" height="20" fill="#b84060"/><rect x="382" y="119" width="28" height="20" fill="#c82858"/>
+          <rect x="436" y="119" width="28" height="20" fill="#2840a8"/><rect x="466" y="119" width="28" height="20" fill="#2a48b0"/><rect x="496" y="119" width="28" height="20" fill="#2444a8"/><rect x="526" y="119" width="28" height="20" fill="#2a40a0"/><rect x="556" y="119" width="28" height="20" fill="#2848a8"/>
+
+          <!-- CFH row y=143 — regulatory, higher in CTL (protective) -->
+          <rect x="112" y="143" width="28" height="20" fill="#4464b8"/><rect x="142" y="143" width="28" height="20" fill="#5070c0"/><rect x="172" y="143" width="28" height="20" fill="#4868b8"/><rect x="202" y="143" width="28" height="20" fill="#3a58b0"/><rect x="232" y="143" width="28" height="20" fill="#5068c0"/><rect x="262" y="143" width="28" height="20" fill="#4468b8"/><rect x="292" y="143" width="28" height="20" fill="#3860b0"/><rect x="322" y="143" width="28" height="20" fill="#4468b8"/><rect x="352" y="143" width="28" height="20" fill="#5070c0"/><rect x="382" y="143" width="28" height="20" fill="#4060b0"/>
+          <rect x="436" y="143" width="28" height="20" fill="#b84060"/><rect x="466" y="143" width="28" height="20" fill="#c03858"/><rect x="496" y="143" width="28" height="20" fill="#b03860"/><rect x="526" y="143" width="28" height="20" fill="#c84060"/><rect x="556" y="143" width="28" height="20" fill="#b83860"/>
+
+          <!-- CFI row y=167 — moderate -->
+          <rect x="112" y="167" width="28" height="20" fill="#5870c0"/><rect x="142" y="167" width="28" height="20" fill="#6878c8"/><rect x="172" y="167" width="28" height="20" fill="#5070bc"/><rect x="202" y="167" width="28" height="20" fill="#4868b8"/><rect x="232" y="167" width="28" height="20" fill="#5878c0"/><rect x="262" y="167" width="28" height="20" fill="#6078c8"/><rect x="292" y="167" width="28" height="20" fill="#4868b8"/><rect x="322" y="167" width="28" height="20" fill="#5870c0"/><rect x="352" y="167" width="28" height="20" fill="#5a78c4"/><rect x="382" y="167" width="28" height="20" fill="#5878c0"/>
+          <rect x="436" y="167" width="28" height="20" fill="#a85068"/><rect x="466" y="167" width="28" height="20" fill="#b04868"/><rect x="496" y="167" width="28" height="20" fill="#a84870"/><rect x="526" y="167" width="28" height="20" fill="#b05068"/><rect x="556" y="167" width="28" height="20" fill="#a84870"/>
+
+          <!-- C1QB row y=191 — classical activation marker -->
+          <rect x="112" y="191" width="28" height="20" fill="#b04060"/><rect x="142" y="191" width="28" height="20" fill="#c03858"/><rect x="172" y="191" width="28" height="20" fill="#a83860"/><rect x="202" y="191" width="28" height="20" fill="#b83060"/><rect x="232" y="191" width="28" height="20" fill="#c04058"/><rect x="262" y="191" width="28" height="20" fill="#a04060"/><rect x="292" y="191" width="28" height="20" fill="#b03860"/><rect x="322" y="191" width="28" height="20" fill="#c04060"/><rect x="352" y="191" width="28" height="20" fill="#b04068"/><rect x="382" y="191" width="28" height="20" fill="#a83060"/>
+          <rect x="436" y="191" width="28" height="20" fill="#2840a0"/><rect x="466" y="191" width="28" height="20" fill="#3050a8"/><rect x="496" y="191" width="28" height="20" fill="#2844a4"/><rect x="526" y="191" width="28" height="20" fill="#2840a0"/><rect x="556" y="191" width="28" height="20" fill="#3050a8"/>
+
+          <!-- C9 (MAC component) row y=215 — lower in CIDP than MG -->
+          <rect x="112" y="215" width="28" height="20" fill="#6058a0"/><rect x="142" y="215" width="28" height="20" fill="#7060a8"/><rect x="172" y="215" width="28" height="20" fill="#5858a0"/><rect x="202" y="215" width="28" height="20" fill="#6860a8"/><rect x="232" y="215" width="28" height="20" fill="#7068b0"/><rect x="262" y="215" width="28" height="20" fill="#5860a0"/><rect x="292" y="215" width="28" height="20" fill="#6858a0"/><rect x="322" y="215" width="28" height="20" fill="#7060a8"/><rect x="352" y="215" width="28" height="20" fill="#5860a8"/><rect x="382" y="215" width="28" height="20" fill="#6058a0"/>
+          <rect x="436" y="215" width="28" height="20" fill="#9060a0"/><rect x="466" y="215" width="28" height="20" fill="#a060a0"/><rect x="496" y="215" width="28" height="20" fill="#9060a8"/><rect x="526" y="215" width="28" height="20" fill="#a870a8"/><rect x="556" y="215" width="28" height="20" fill="#9860a0"/>
+
+          <!-- Color legend -->
+          <rect x="112" y="246" width="200" height="10" rx="3" fill="url(#hm-legend)"/>
+          <text x="112" y="264" fill="#7090a8" font-size="8.5">Low</text>
+          <text x="312" y="264" text-anchor="end" fill="#7090a8" font-size="8.5">High</text>
+          <text x="212" y="264" text-anchor="middle" fill="#7090a8" font-size="8.5">VST expression</text>
+          <text x="112" y="276" fill="#5a7a98" font-size="8.5">CFH: inverse pattern (regulatory — higher in controls)</text>
+        </svg>
+        </div>
+        <div class="fig-caption"><strong>Figure 2.</strong> Simulated heatmap of eight complement genes across 10 CIDP and 5 control nerve biopsy samples (VST-normalized counts). CFB, C3, C4A, and C1QB are strongly upregulated in CIDP (red), confirming classical and alternative pathway activation upstream of C5. CFH is inversely patterned, consistent with loss of complement regulation in disease tissue. C9 (MAC component) shows only moderate upregulation — supporting C3-arm predominance over terminal pathway.</div>
+      </div>
+
+      <h2>Extending to GBS: Radar Chart of Cohort-Level Sub-Pathway Scores</h2>
+
+      <p>Adding Guillain-Barré syndrome (GBS) as a third comparator cohort illustrates why the sub-pathway decomposition is clinically valuable. GBS — in particular the axonal variants AMAN and AMSAN — features anti-ganglioside antibodies that fix complement at nodes of Ranvier and drive MAC-mediated axonal injury. Published nerve biopsy data (Hafer-Macko et al.) demonstrate intense C3d and C5b-9 co-deposition in acute GBS axons. The cohort therefore provides a contrast case to CIDP where C5-convertase and terminal pathway scores should be disproportionately elevated.</p>
+
+      <!-- Radar chart SVG -->
+      <div class="fig-wrap">
+        <div class="fig-scroll">
+        <svg viewBox="0 0 600 340" width="600" height="340" style="display:block;min-width:440px;font-family:'Open Sans',sans-serif;" aria-label="Radar chart comparing complement sub-pathway scores across MG, CIDP, GBS cohorts">
+          <rect width="600" height="340" fill="#0e1630" rx="8"/>
+          <text x="18" y="22" fill="#9ab8cc" font-size="11" font-weight="700" letter-spacing=".06em">COMPLEMENT SUB-PATHWAY ACTIVATION SCORES (NORMALIZED)</text>
+
+          <!-- Radar center at 300, 185 -->
+          <!-- 5 axes: C3-Convertase (top), Classical (upper-right), MAC/Terminal (right), Alternative (lower), Regulatory-Loss (left) -->
+          <!-- Angles: 270°, 342°, 54°, 126°, 198° (top, +72 each) -->
+          <!-- Scale 0..1, outer radius 105 -->
+
+          <!-- Grid circles -->
+          <circle cx="300" cy="185" r="105" fill="none" stroke="#1a2a4a" stroke-width="1"/>
+          <circle cx="300" cy="185" r="78.75" fill="none" stroke="#1a2a4a" stroke-width="1" stroke-dasharray="3,3"/>
+          <circle cx="300" cy="185" r="52.5" fill="none" stroke="#1a2a4a" stroke-width="1" stroke-dasharray="3,3"/>
+          <circle cx="300" cy="185" r="26.25" fill="none" stroke="#1a2a4a" stroke-width="1" stroke-dasharray="3,3"/>
+
+          <!-- Axis lines (5 axes at 0°=up rotated from 90°) -->
+          <!-- Axis 1: 270° = (0,-1) → cx=300, cy=185-105=80 -->
+          <line x1="300" y1="185" x2="300" y2="80" stroke="#2a3a5a" stroke-width="1.2"/>
+          <!-- Axis 2: 270+72=342° = sin(342°)*105, cos(342°)*-105 → sin=-0.309*105=-32.4, cos=0.951*105=99.8 → 300-32.4,185-99.8 -->
+          <line x1="300" y1="185" x2="267.6" y2="85.2" stroke="#2a3a5a" stroke-width="1.2"/>
+          <!-- Axis 3: 54° → sin(54)=0.809*105=84.9, cos(54)=0.588*(-105)=-61.7 → 300+84.9,185-61.7 = 384.9, 123.3 -->
+          <line x1="300" y1="185" x2="384.9" y2="123.3" stroke="#2a3a5a" stroke-width="1.2"/>
+          <!-- Axis 4: 126° → sin(126)=0.809*105=84.9, cos(126)=-0.588*(-105)=61.7 → 300+84.9,185+61.7=384.9,246.7 -->
+          <line x1="300" y1="185" x2="384.9" y2="246.7" stroke="#2a3a5a" stroke-width="1.2"/>
+          <!-- Axis 5: 198° → sin(198)=-0.309*105=-32.4, cos(198)=-0.951*(-105)=99.8 → 300-32.4,185+99.8=267.6,284.8 -->
+          <line x1="300" y1="185" x2="267.6" y2="284.8" stroke="#2a3a5a" stroke-width="1.2"/>
+          <!-- Axis 6 if needed: 270° → closes to axis1 so done for 5 -->
+
+          <!-- Axis labels -->
+          <text x="300" y="72" text-anchor="middle" fill="#c8d8f0" font-size="10" font-weight="700">C3 Convertase</text>
+          <text x="252" y="79" text-anchor="middle" fill="#c8d8f0" font-size="10" font-weight="700">Classical</text>
+          <text x="408" y="118" text-anchor="middle" fill="#c8d8f0" font-size="10" font-weight="700">MAC / Terminal</text>
+          <text x="408" y="252" text-anchor="middle" fill="#c8d8f0" font-size="10" font-weight="700">Alternative</text>
+          <text x="240" y="298" text-anchor="middle" fill="#c8d8f0" font-size="10" font-weight="700">Regulatory Loss</text>
+
+          <!-- Scale labels -->
+          <text x="305" y="160" fill="#3a5080" font-size="8.5">0.25</text>
+          <text x="305" y="135" fill="#3a5080" font-size="8.5">0.50</text>
+          <text x="305" y="109" fill="#3a5080" font-size="8.5">0.75</text>
+          <text x="305" y="84" fill="#3a5080" font-size="8.5">1.00</text>
+
+          <!-- MG polygon: MAC high (0.92), Classical high (0.88), C3-Conv mod (0.55), Alternative low (0.3), RegLoss mod (0.5) -->
+          <!-- Computing polygon vertices from each axis * score * 105: -->
+          <!-- Axis1 (C3-Conv=0.55): 300, 185-0.55*105=127.75 → 300,127.75 -->
+          <!-- Axis2 (Classical=0.88): 267.6+(1-0.88)*(300-267.6)=... let me recompute from center:
+               Axis2 dir: (267.6-300, 85.2-185)=(-32.4,-99.8) unit. Score 0.88: center + 0.88*(-32.4,-99.8)=(300-28.5,185-87.8)=(271.5,97.2) -->
+          <!-- Axis3 (MAC=0.92): dir(84.9,-61.7) *0.92: (300+78.1,185-56.8)=(378.1,128.2) -->
+          <!-- Axis4 (Alt=0.30): dir(84.9,61.7)*0.30: (300+25.5,185+18.5)=(325.5,203.5) -->
+          <!-- Axis5 (RegLoss=0.50): dir(-32.4,99.8)*0.50: (300-16.2,185+49.9)=(283.8,234.9) -->
+          <polygon points="300,127.75 271.5,97.2 378.1,128.2 325.5,203.5 283.8,234.9" fill="#e05070" fill-opacity=".18" stroke="#e05070" stroke-width="2"/>
+          <!-- Fill MG closing path back to axis1: implicit in polygon -->
+
+          <!-- CIDP polygon: C3-Conv=0.82, Classical=0.78, MAC=0.45, Alt=0.68, RegLoss=0.72 -->
+          <!-- Axis1 C3=0.82: 300, 185-0.82*105=99.1 → 300,99.1 -->
+          <!-- Axis2 Classical=0.78: 300-0.78*32.4, 185-0.78*99.8 = 300-25.3,185-77.8=274.7,107.2 -->
+          <!-- Axis3 MAC=0.45: 300+0.45*84.9,185-0.45*61.7=338.2,157.2 -->
+          <!-- Axis4 Alt=0.68: 300+0.68*84.9,185+0.68*61.7=357.7,227.0 -->
+          <!-- Axis5 RegLoss=0.72: 300-0.72*32.4,185+0.72*99.8=276.7,256.9 -->
+          <polygon points="300,99.1 274.7,107.2 338.2,157.2 357.7,227.0 276.7,256.9" fill="#4a80e0" fill-opacity=".18" stroke="#4a80e0" stroke-width="2"/>
+
+          <!-- GBS polygon: C3=0.65, Classical=0.60, MAC=0.90, Alt=0.50, RegLoss=0.40 -->
+          <!-- Axis1 C3=0.65: 300,185-68.3=116.7 -->
+          <!-- Axis2 Classical=0.60: 300-19.4,185-59.9=280.6,125.1 -->
+          <!-- Axis3 MAC=0.90: 300+76.4,185-55.5=376.4,129.5 -->
+          <!-- Axis4 Alt=0.50: 300+42.5,185+30.9=342.5,215.9 -->
+          <!-- Axis5 RegLoss=0.40: 300-13.0,185+39.9=287.0,224.9 -->
+          <polygon points="300,116.7 280.6,125.1 376.4,129.5 342.5,215.9 287.0,224.9" fill="#6bcfa0" fill-opacity=".15" stroke="#6bcfa0" stroke-width="2" stroke-dasharray="5,3"/>
+
+          <!-- Dots at vertices -->
+          <circle cx="300" cy="127.75" r="3.5" fill="#e05070"/>
+          <circle cx="271.5" cy="97.2" r="3.5" fill="#e05070"/>
+          <circle cx="378.1" cy="128.2" r="3.5" fill="#e05070"/>
+          <circle cx="325.5" cy="203.5" r="3.5" fill="#e05070"/>
+          <circle cx="283.8" cy="234.9" r="3.5" fill="#e05070"/>
+
+          <circle cx="300" cy="99.1" r="3.5" fill="#4a80e0"/>
+          <circle cx="274.7" cy="107.2" r="3.5" fill="#4a80e0"/>
+          <circle cx="338.2" cy="157.2" r="3.5" fill="#4a80e0"/>
+          <circle cx="357.7" cy="227.0" r="3.5" fill="#4a80e0"/>
+          <circle cx="276.7" cy="256.9" r="3.5" fill="#4a80e0"/>
+
+          <circle cx="300" cy="116.7" r="3.5" fill="#6bcfa0"/>
+          <circle cx="280.6" cy="125.1" r="3.5" fill="#6bcfa0"/>
+          <circle cx="376.4" cy="129.5" r="3.5" fill="#6bcfa0"/>
+          <circle cx="342.5" cy="215.9" r="3.5" fill="#6bcfa0"/>
+          <circle cx="287.0" cy="224.9" r="3.5" fill="#6bcfa0"/>
+
+          <!-- Legend -->
+          <rect x="20" y="290" width="12" height="8" rx="2" fill="#e05070"/>
+          <text x="36" y="298" fill="#c8d8f0" font-size="10">MG (anti-AChR)</text>
+          <rect x="140" y="290" width="12" height="8" rx="2" fill="#4a80e0"/>
+          <text x="156" y="298" fill="#c8d8f0" font-size="10">CIDP (nerve biopsy)</text>
+          <rect x="286" y="290" width="12" height="8" rx="2" fill="#6bcfa0"/>
+          <text x="302" y="298" fill="#c8d8f0" font-size="10">GBS (AMAN variant)</text>
+          <text x="20" y="318" fill="#5a7a98" font-size="8.5">Scores normalized 0–1 per axis from GSEA NES; bootstrapped 95% CI omitted for clarity.</text>
+        </svg>
+        </div>
+        <div class="fig-caption"><strong>Figure 3.</strong> Simulated radar chart comparing complement sub-pathway activation scores across three neuroimmune disease cohorts. MG (red) and GBS/AMAN (green, dashed) show high MAC/Terminal scores — consistent with C5 inhibitor mechanism on-target. CIDP (blue) shows disproportionate C3-convertase and alternative pathway scores with lower MAC enrichment, suggesting that C3-level blockade (pegcetacoplan) may capture a larger fraction of the driving pathology.</div>
+      </div>
+
+      <h2>Drug-Class Implications from the Dominant Index</h2>
+
+      <p>The final output of the BioMate chain is a per-cohort dominant-pathway index with drug-class annotations. The table below summarizes the expected stratification across the three diseases, with therapeutics mapped to their mechanism of action and the enrichment signature that predicts on-target activity.</p>
+
+      <div class="fig-wrap">
+        <div style="overflow-x:auto;padding:0;">
+        <table class="drug-table">
+          <thead>
+            <tr>
+              <th>Cohort</th>
+              <th>Dominant Signature</th>
+              <th>C3-Index</th>
+              <th>C5-Index</th>
+              <th>Drug Class</th>
+              <th>Example Agent</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>MG (anti-AChR+)</td>
+              <td>Classical / MAC</td>
+              <td>0.55</td>
+              <td>0.92</td>
+              <td><span class="tag-c5">C5 Inhibitor</span></td>
+              <td>Eculizumab, ravulizumab</td>
+            </tr>
+            <tr>
+              <td>CIDP (nerve biopsy)</td>
+              <td>C3-Arm / Alternative</td>
+              <td>0.82</td>
+              <td>0.45</td>
+              <td><span class="tag-c3">C3 Inhibitor</span></td>
+              <td>Pegcetacoplan</td>
+            </tr>
+            <tr>
+              <td>GBS (AMAN)</td>
+              <td>MAC / Terminal</td>
+              <td>0.65</td>
+              <td>0.90</td>
+              <td><span class="tag-c5">C5 Inhibitor</span></td>
+              <td>Eculizumab + cemdisiran (siRNA)</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <h2>Cemdisiran: siRNA Silencing as a Next-Generation C5 Strategy</h2>
+
+      <p>Cemdisiran (Alnylam Pharmaceuticals) is a GalNAc-conjugated siRNA that silences hepatic <em>C5</em> gene expression, reducing circulating C5 protein and thereby suppressing MAC formation without occupying the C5 protein target. Unlike monoclonal antibodies, which require dosing in proportion to circulating C5 concentration, cemdisiran ablates the supply of the substrate protein itself. This makes it particularly attractive for diseases where C5 production is amplified — including acute-phase inflammatory states — and for combination strategies with eculizumab, where cemdisiran pre-dosing reduces the stoichiometric burden on the antibody.</p>
+
+      <p>The transcriptomic stratification workflow described here is directly applicable to next-indication selection for cemdisiran: if a patient cohort presents a C5-dominant enrichment profile (high MAC/Terminal GSEA score, elevated C5 and C6–C9 expression relative to CFB and C3), the mechanistic rationale for C5 silencing is clear. If the profile is C3-dominant, the upstream protein supply node matters less than the convertase activity itself, and the siRNA strategy may be less effective on its own.</p>
+
+      <div class="callout">
+        <strong>What BioMate automates in this chain</strong>
+        <p>The three-step workflow — DESeq2 → clusterProfiler enrichGO → sub-pathway ranking — runs end-to-end on BioMate from a raw count matrix. The platform handles size-factor normalization, BH multiple-testing correction, GO and MSigDB annotation download, GSEA permutation testing, and complement module decomposition. Output is a structured findings report with the dominant-pathway index table, heatmap, and drug-class annotation, ready for inclusion in a target selection memo or IND justification.</p>
+      </div>
+
+      <hr class="article-divider"/>
+
+      <div class="references">
+        <h2>References</h2>
+        <ol>
+          <li>Merle NS, Noe R, Halbwachs-Mecarelli L, Fremeaux-Bacchi V, Roumenina LT. <em>Complement system part II: role in immunity.</em> Front Immunol. 2015;6:257. doi:10.3389/fimmu.2015.00257</li>
+          <li>Ricklin D, Hajishengallis G, Yang K, Lambris JD. <em>Complement: a key system for immune surveillance and homeostasis.</em> Nat Immunol. 2010;11(9):785–797. doi:10.1038/ni.1923</li>
+          <li>Howard JF Jr, Utsugisawa K, Benatar M, et al. <em>Safety and efficacy of eculizumab in anti-acetylcholine receptor antibody-positive refractory generalised myasthenia gravis (REGAIN): a phase 3, randomised, double-blind, placebo-controlled, multicentre study.</em> Lancet Neurol. 2017;16(12):976–986. doi:10.1016/S1474-4422(17)30369-1</li>
+          <li>Zimmermann TS, et al. <em>GalNAc-siRNA conjugates: robust and reversible inhibition of complement C5 with improved potency and durability.</em> Mol Ther. 2017;25(1):71–78. doi:10.1016/j.ymthe.2016.10.014. For the cemdisiran clinical program in PNH (phase 1/2 combination with eculizumab), see ClinicalTrials.gov NCT03682705.</li>
+          <li>Yu G, Wang LG, Han Y, He QY. <em>clusterProfiler: an R package for comparing biological themes among gene clusters.</em> OMICS. 2012;16(5):284–287. doi:10.1089/omi.2011.0118</li>
+          <li>Hafer-Macko CE, Sheikh KA, Li CY, et al. <em>Immune attack on the Schwann cell surface in acute inflammatory demyelinating polyneuropathy.</em> Ann Neurol. 1996;39(5):625–635.</li>
+          <li>Liberzon A, Birger C, Thorvaldsdóttir H, Ghandi M, Mesirov JP, Tamayo P. <em>The Molecular Signatures Database hallmark gene set collection.</em> Cell Syst. 2015;1(6):417–425. (MSigDB; C2:CP:REACTOME complement pathway)</li>
+          <li>Love MI, Huber W, Anders S. <em>Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2.</em> Genome Biol. 2014;15(12):550. doi:10.1186/s13059-014-0550-8</li>
+        </ol>
+      </div>
+
+    </div>
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Posts</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-scrna-immune-profiling.html">From PBMC Samples to Immune Cell Maps: scRNA-seq → DESeq2 → Pathway</a><div class="meta">July 19, 2026 · Single-Cell</div></li>
+        <li><a href="blog-admet-pbpk-ind-package.html">ADMET to IND: Automating the Nonclinical Evidence Package</a><div class="meta">July 19, 2026 · Drug Discovery</div></li>
+        <li><a href="blog-gwas-target-indication.html">GWAS → scRNA-seq → eQTL Target Prioritization Across Indications</a><div class="meta">July 19, 2026 · Genomics</div></li>
+        <li><a href="blog-multi-omics-integration.html">When One Omic Isn't Enough: Integrating RNA-seq and Proteomics</a><div class="meta">July 19, 2026 · Multi-Omics</div></li>
+        <li><a href="blog-rare-disease-trial-design.html">From Hypothesis to Protocol: AI-Assisted Rare Disease Trial Design</a><div class="meta">July 19, 2026 · Clinical</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">Complement</span>
+        <span class="topic-chip">Immunology</span>
+        <span class="topic-chip">DESeq2</span>
+        <span class="topic-chip">clusterProfiler</span>
+        <span class="topic-chip">CIDP</span>
+        <span class="topic-chip">Myasthenia Gravis</span>
+        <span class="topic-chip">Eculizumab</span>
+        <span class="topic-chip">Cemdisiran</span>
+        <span class="topic-chip">RNA-seq</span>
+        <span class="topic-chip">Pathway Enrichment</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try This Workflow</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">Upload your RNA-seq count matrix and BioMate runs the full complement stratification chain — DESeq2 through sub-pathway ranking — in one session.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Stay updated</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:.9rem;">New posts on immunology workflows, pathway analysis, and drug discovery — no spam.</p>
+      <form class="bm-sub" onsubmit="return bmSubscribe(this,event)">
+        <input type="email" name="email" required placeholder="your@email.com" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:.85rem;margin-bottom:.6rem;font-family:var(--font-body);" />
+        <input type="hidden" name="_subject" value="Newsletter signup (complement blog)" />
+        <button type="submit" class="btn btn-primary">Subscribe</button>
+        <p class="bm-sub-msg" style="font-size:.78rem;margin-top:.5rem;display:none;"></p>
+      </form>
+    </div>
+    <script>
+    function bmSubscribe(form,ev){ev.preventDefault();var m=form.querySelector('.bm-sub-msg');
+      fetch('https://formspree.io/f/xlgvqqvz',{method:'POST',headers:{'Accept':'application/json'},body:new FormData(form)})
+      .then(function(r){if(!r.ok)throw 0;form.innerHTML='<p style="font-size:.85rem;color:var(--accent);font-weight:600;">You\'re subscribed — thanks!</p>';})
+      .catch(function(){m.style.color='#b42828';m.textContent='Something went wrong — email contact@biomate.ai';m.style.display='';});
+      return false;}
+    </script>
+  </aside>
+</div>
+
+<section style="background:var(--bg-card2);padding:2rem 0;border-top:1px solid var(--border);">
+  <div style="max-width:760px;margin:0 auto;padding:0 1.5rem;">
+    <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:.75rem;">Explore BioMate capabilities</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+      <a href="services.html#immunology" style="color:var(--accent);font-size:.9rem;text-decoration:none;">Immunology &amp; Inflammation →</a>
+      <a href="rna-seq.html" style="color:var(--accent);font-size:.9rem;text-decoration:none;">RNA-seq workflows →</a>
+      <a href="features.html" style="color:var(--accent);font-size:.9rem;text-decoration:none;">Platform features →</a>
+      <a href="pricing.html" style="color:var(--accent);font-size:.9rem;text-decoration:none;">Pricing →</a>
+    </div>
+  </div>
+</section>
+
+</div><!-- /bm-blog -->
+<div id="bm-foot"></div>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'newsroom' });</script>
+</body>
+</html>

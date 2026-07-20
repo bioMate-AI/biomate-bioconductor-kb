@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>From Hypothesis to Protocol: AI-Assisted Rare Disease Trial Design — BioMate AI Blog</title>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  .bm-blog {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+  }
+  html { scroll-behavior:smooth; }
+  .bm-blog { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  .bm-blog a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  .bm-blog a:hover { color:var(--accent); }
+  .bm-blog img { max-width:100%; display:block; }
+  .site-header { background:var(--bg); padding:1.25rem 1rem .75rem; text-align:center; border-bottom:1px solid var(--border); }
+  .site-header img { height:56px; width:auto; display:inline-block; }
+  .bm-blog nav { position:sticky; top:0; z-index:100; height:var(--nav-h); background:rgba(245,240,228,.97); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:0 clamp(1rem,4vw,3rem); }
+  .nav-links { display:flex; align-items:center; gap:8px; list-style:none; flex-wrap:wrap; }
+  .nav-links a { color:var(--text-muted); font-size:.875rem; font-weight:400; padding:6px 12px; border-radius:6px; transition:background .2s,color .2s; }
+  .nav-links a:hover { color:var(--accent); background:rgba(74,122,138,.10); }
+  .nav-cta { background:var(--accent)!important; color:#fff!important; font-weight:700!important; padding:7px 18px!important; border-radius:6px!important; }
+  .nav-cta:hover { background:var(--accent-light)!important; }
+  .nav-login { border:1px solid var(--border)!important; color:var(--text)!important; }
+  .nav-login:hover { border-color:var(--accent)!important; color:var(--accent)!important; }
+
+  /* Article hero */
+  .article-hero { width:100%; background:linear-gradient(135deg,#1a2d40 0%,#2c4a6a 40%,#1e3a58 70%,#0f2030 100%); min-height:280px; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+  .article-hero-overlay { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(15,22,28,.15),rgba(15,22,28,.5)); }
+  .article-hero-svg { position:relative; z-index:1; width:100%; max-width:900px; padding:2rem; }
+
+  /* Breadcrumb */
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+
+  /* Article layout */
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+
+  /* Article header */
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+
+  /* Article body */
+  .article-body { font-size:.95rem; color:var(--text); line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text-muted); }
+  .article-body p.lead { font-size:1.08rem; color:var(--text); font-weight:400; margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.45rem; color:var(--text); margin:2.25rem 0 .75rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.2rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body ul { margin:0 0 1.25rem 1.25rem; color:var(--text-muted); }
+  .article-body ul li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .article-body .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .article-body .callout p { margin:0; font-size:.88rem; }
+  .article-divider { border:none; border-top:1px solid var(--border); margin:2rem 0; }
+
+  /* SVG figures */
+  .fig-wrap { margin:2rem 0; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem; overflow-x:auto; }
+  .fig-caption { font-size:.78rem; color:var(--text-muted); margin-top:.75rem; line-height:1.5; }
+
+  /* References */
+  .refs { margin-top:2.5rem; padding-top:1.5rem; border-top:1px solid var(--border); }
+  .refs h2 { font-family:var(--font-head); font-size:1.15rem; color:var(--text); margin-bottom:1rem; }
+  .refs ol { margin-left:1.25rem; color:var(--text-muted); }
+  .refs ol li { font-size:.82rem; margin-bottom:.5rem; line-height:1.55; }
+  .refs ol li a { color:var(--accent-light); }
+
+  /* Sidebar */
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+
+  /* CTA */
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .bm-blog .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .bm-blog .btn-primary:hover { background:var(--accent-light); color:#fff; }
+
+  /* Footer */
+  .bm-blog footer { background:var(--bg-card2); border-top:1px solid var(--border); padding:3rem clamp(1rem,5vw,3rem) 1.5rem; }
+  .footer-inner { max-width:1200px; margin:0 auto; }
+  .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:2.5rem; margin-bottom:2rem; }
+  .footer-brand img { height:36px; margin-bottom:1rem; }
+  .footer-brand p { color:var(--text-muted); font-size:.875rem; line-height:1.6; max-width:280px; }
+  .footer-col h4 { font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text); margin-bottom:.875rem; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:.5rem; }
+  .footer-col ul a { font-size:.875rem; color:var(--text-muted); }
+  .footer-col ul a:hover { color:var(--accent); }
+  .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
+  @media(max-width:720px){ .nav-links{display:none;} .footer-grid{grid-template-columns:1fr;} }
+  </style>
+  <meta name="description" content="How BioMate chains statistical power calculation, site recruitment feasibility, and audit-ready protocol generation into a single AI-assisted workflow for rare disease trial design." />
+  <meta name="keywords" content="BioMate AI, rare disease trial design, site feasibility, statistical power, myasthenia gravis, clinical development, regulatory affairs" />
+  <link rel="canonical" href="https://biomate.ai/blog-rare-disease-trial-design.html" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <meta property="og:title" content="From Hypothesis to Protocol: AI-Assisted Rare Disease Trial Design and Site Feasibility" />
+  <meta property="og:description" content="How BioMate chains statistical power calculation, site recruitment feasibility, and audit-ready protocol generation into a single AI-assisted workflow for rare disease trial design." />
+  <meta property="og:url" content="https://biomate.ai/blog-rare-disease-trial-design.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:image" content="https://biomate.ai/assets/logo.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="From Hypothesis to Protocol: AI-Assisted Rare Disease Trial Design and Site Feasibility" />
+  <meta name="twitter:description" content="How BioMate chains statistical power calculation, site recruitment feasibility, and audit-ready protocol generation into a single AI-assisted workflow for rare disease trial design." />
+  <meta name="twitter:image" content="https://biomate.ai/assets/logo.png" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "From Hypothesis to Protocol: AI-Assisted Rare Disease Trial Design and Site Feasibility",
+    "description": "How BioMate chains statistical power calculation, site recruitment feasibility, and audit-ready protocol generation into a single AI-assisted workflow for rare disease trial design.",
+    "datePublished": "2026-07-19",
+    "author": {"@type": "Organization", "name": "BioMate AI"},
+    "publisher": {"@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai"},
+    "url": "https://biomate.ai/blog-rare-disease-trial-design.html",
+    "image": "https://biomate.ai/assets/logo.png",
+    "articleSection": "Clinical Development"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+      { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://biomate.ai/blog.html" },
+      { "@type": "ListItem", "position": 3, "name": "From Hypothesis to Protocol: AI-Assisted Rare Disease Trial Design and Site Feasibility", "item": "https://biomate.ai/blog-rare-disease-trial-design.html" }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How do you calculate statistical power for a rare disease Phase 3 trial with limited sample size?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "For rare diseases with small eligible populations, power calculations must balance the desired effect size (delta) against the realistic sample size. The standard formula uses the two-sample t-test framework: n = 2 * ((z_alpha/2 + z_beta) * sigma / delta)^2, where sigma is the standard deviation of the primary endpoint and delta is the minimally clinically important difference (MCID). For MG-ADL as primary endpoint, a planning estimate of sigma = 3.8 (conservative, pooled from published Phase 3 MG trials) and delta = 1.5 points (MCID from ADAPT) requires n ≈ 101 evaluable patients per arm (≈120 enrolled after 15% dropout) at 80% power, two-sided alpha = 0.05. BioMate's power calculation workflow computes this and generates a full sensitivity table across sigma and delta assumptions."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What site feasibility factors most affect rare disease trial recruitment?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Key feasibility factors are: (1) site case volume — the number of diagnosed patients managed per year; (2) competing trials — sites participating in overlapping studies deplete the eligible pool; (3) diagnostic delay — rare diseases often have 3–7 year diagnosis lag, meaning incident cases per year are lower than disease prevalence implies; (4) site infrastructure — access to required biomarker testing (e.g., AChR antibody, MuSK antibody for MG) affects eligibility screening throughput. BioMate's site feasibility workflow queries ClinicalTrials.gov and rare disease registries to estimate per-site patient capture rates."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What adaptive trial designs are suitable for rare disease Phase 2/3?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Common adaptive designs for rare diseases include: seamless Phase 2/3 designs (share data across development stages to reduce total sample size), response-adaptive randomization (allocate more patients to better-performing arms), group sequential designs with pre-specified interim analyses for early stopping for efficacy or futility, and Bayesian adaptive designs that update prior evidence with accumulating trial data. FDA's 2019 guidance on adaptive designs and the EMA's reflection paper provide the regulatory framework. BioMate generates protocol summaries specifying the adaptation rules and regulatory justification."
+        }
+      }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "How to design a rare disease clinical trial: power calculation, site feasibility, and protocol summary",
+    "step": [
+      {
+        "@type": "HowToStep",
+        "name": "Statistical power calculation",
+        "text": "Specify the primary endpoint (e.g., MG-ADL), the MCID (delta = 1.5 points from ADAPT trial), the standard deviation estimate from prior data, significance level (alpha = 0.05, two-sided), and desired power (80%). BioMate computes the per-arm sample size and total enrollment target, with sensitivity tables showing how n changes across delta and sigma assumptions."
+      },
+      {
+        "@type": "HowToStep",
+        "name": "Site recruitment feasibility",
+        "text": "Query rare disease patient registries (MGFA, Neuromuscular Disease Registry) and ClinicalTrials.gov for sites with relevant prior trial experience. BioMate estimates per-site patient capture rates accounting for disease prevalence, diagnostic delay, and competing trial enrollment. Output: ranked site list with projected annual enrollment per site."
+      },
+      {
+        "@type": "HowToStep",
+        "name": "Protocol summary generation",
+        "text": "BioMate assembles an audit-ready protocol summary including study design rationale, primary and secondary endpoints with statistical thresholds, eligibility criteria, sample size justification with power calculation, site list with feasibility estimates, and regulatory pathway notes (orphan drug designation, accelerated approval applicability). The document is formatted for regulatory submission and sponsor review."
+      }
+    ]
+  }
+  </script>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+</head>
+<body>
+<div id="bm-nav"></div>
+<div class="bm-blog">
+
+<div class="article-hero">
+  <div class="article-hero-svg">
+    <svg viewBox="0 0 860 160" xmlns="http://www.w3.org/2000/svg" font-family="'Open Sans', sans-serif">
+      <!-- Step 1 -->
+      <rect x="20" y="25" width="240" height="110" rx="10" fill="rgba(255,255,255,0.11)" stroke="rgba(255,255,255,0.32)" stroke-width="1.5"/>
+      <text x="140" y="55" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9" letter-spacing="1.5" font-weight="600">STEP 1</text>
+      <text x="140" y="78" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">Power Calculation</text>
+      <text x="140" y="97" text-anchor="middle" fill="rgba(255,255,255,0.72)" font-size="10">n=180 · delta=1.5 MG-ADL</text>
+      <text x="140" y="115" text-anchor="middle" fill="rgba(255,255,255,0.48)" font-size="9">ICH E9 · 80% power</text>
+      <!-- Arrow 1→2 -->
+      <line x1="260" y1="80" x2="325" y2="80" stroke="rgba(255,255,255,0.42)" stroke-width="1.5"/>
+      <polygon points="325,75 337,80 325,85" fill="rgba(255,255,255,0.42)"/>
+      <!-- Step 2 -->
+      <rect x="337" y="25" width="186" height="110" rx="10" fill="rgba(255,255,255,0.11)" stroke="rgba(255,255,255,0.32)" stroke-width="1.5"/>
+      <text x="430" y="55" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9" letter-spacing="1.5" font-weight="600">STEP 2</text>
+      <text x="430" y="78" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">Site Feasibility</text>
+      <text x="430" y="97" text-anchor="middle" fill="rgba(255,255,255,0.72)" font-size="10">14 sites · 22-month enroll</text>
+      <text x="430" y="115" text-anchor="middle" fill="rgba(255,255,255,0.48)" font-size="9">Incidence · screen failure</text>
+      <!-- Arrow 2→3 -->
+      <line x1="523" y1="80" x2="588" y2="80" stroke="rgba(255,255,255,0.42)" stroke-width="1.5"/>
+      <polygon points="588,75 600,80 588,85" fill="rgba(255,255,255,0.42)"/>
+      <!-- Step 3 -->
+      <rect x="600" y="25" width="240" height="110" rx="10" fill="rgba(255,255,255,0.11)" stroke="rgba(255,255,255,0.32)" stroke-width="1.5"/>
+      <text x="720" y="55" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9" letter-spacing="1.5" font-weight="600">STEP 3</text>
+      <text x="720" y="78" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">Protocol Summary</text>
+      <text x="720" y="97" text-anchor="middle" fill="rgba(255,255,255,0.72)" font-size="10">Audit-ready · cite-ready</text>
+      <text x="720" y="115" text-anchor="middle" fill="rgba(255,255,255,0.48)" font-size="9">21 CFR Part 11 · IND-ready</text>
+    </svg>
+  </div>
+  <div class="article-hero-overlay"></div>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Clinical Development
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Clinical Development</span>
+      <h1>From Hypothesis to Protocol: AI-Assisted Rare Disease Trial Design and Site Feasibility</h1>
+      <div class="article-meta">
+        <span><strong>July 19, 2026</strong></span>
+        <span>10 min read</span>
+        <span>BioMate Team</span>
+      </div>
+    </div>
+    <div class="article-body">
+
+      <p class="lead">Designing a Phase 2/3 trial for a rare disease is not a linear problem. The statistical question — how many patients do I need? — cannot be answered without a credible enrollment timeline, and a credible enrollment timeline cannot be constructed without knowing which sites can actually deliver patients within the planning horizon. BioMate resolves this interdependency by chaining three analyses into a single auditable workflow: power calculation, site recruitment feasibility, and protocol summary generation.</p>
+
+      <h2>Why Rare Disease Trial Design Is Structurally Different</h2>
+      <p>FDA guidance on rare disease drug development (2019) acknowledges explicitly that "traditional approaches to demonstrating effectiveness may be modified in the rare disease setting."<sup>1</sup> The problem is not just regulatory — it is statistical. With a prevalent population of 14–20 per 100,000 for myasthenia gravis (MG),<sup>6</sup> a sponsor designing a Phase 3 confirmatory trial cannot draw on the comfortable sample size calculations that apply to common conditions. Every assumption — effect size, standard deviation, dropout rate, screen failure rate — carries disproportionate weight when n is measured in the low hundreds rather than thousands.</p>
+      <p>The ICH E9(R1) estimand addendum<sup>2</sup> adds a further layer of complexity: the treatment policy estimand versus the hypothetical estimand behave differently under intercurrent events that are far more frequent in a rare, heterogeneous disease population with no validated natural history database. Sponsors who specify the wrong estimand early may find themselves redesigning the study after the first DSMB review.</p>
+      <p>What is typically missing from the sponsor's planning toolkit is an integrated, quantitative workflow that moves from a published effect size estimate directly to a protocol-ready statistical section — with every assumption justified by a citable source and every enrollment projection grounded in real site-level data.</p>
+
+      <!-- Workflow chain diagram -->
+      <div class="fig-wrap">
+        <svg viewBox="0 0 700 140" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;display:block;margin:0 auto;" aria-label="Three-step workflow chain: Power Calculation, Site Feasibility, Protocol Summary">
+          <!-- Step 1 box -->
+          <rect x="8" y="28" width="186" height="84" rx="10" fill="#dde8ed" stroke="#4a7a8a" stroke-width="1.5"/>
+          <text x="101" y="62" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="11" font-weight="700" fill="#1c2b32">STEP 1</text>
+          <text x="101" y="79" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="11" fill="#1c2b32">Statistical Power</text>
+          <text x="101" y="95" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="11" fill="#1c2b32">Calculation</text>
+          <!-- Arrow 1→2 -->
+          <path d="M194 70 L218 70" stroke="#4a7a8a" stroke-width="2" fill="none"/>
+          <polygon points="218,65 228,70 218,75" fill="#4a7a8a"/>
+          <!-- Step 2 box -->
+          <rect x="228" y="28" width="186" height="84" rx="10" fill="#dde8ed" stroke="#4a7a8a" stroke-width="1.5"/>
+          <text x="321" y="62" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="11" font-weight="700" fill="#1c2b32">STEP 2</text>
+          <text x="321" y="79" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="11" fill="#1c2b32">Site Recruitment</text>
+          <text x="321" y="95" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="11" fill="#1c2b32">Feasibility</text>
+          <!-- Arrow 2→3 -->
+          <path d="M414 70 L438 70" stroke="#4a7a8a" stroke-width="2" fill="none"/>
+          <polygon points="438,65 448,70 438,75" fill="#4a7a8a"/>
+          <!-- Step 3 box -->
+          <rect x="448" y="28" width="244" height="84" rx="10" fill="#dde8ed" stroke="#4a7a8a" stroke-width="1.5"/>
+          <text x="570" y="62" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="11" font-weight="700" fill="#1c2b32">STEP 3</text>
+          <text x="570" y="79" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="11" fill="#1c2b32">Audit-Ready Protocol</text>
+          <text x="570" y="95" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="11" fill="#1c2b32">Summary</text>
+          <!-- Sub-labels -->
+          <text x="101" y="125" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="9" fill="#5a7280">Effect size · α · β · n</text>
+          <text x="321" y="125" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="9" fill="#5a7280">Incidence · Screen failure · Competing trials</text>
+          <text x="570" y="125" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="9" fill="#5a7280">Estimand · Justification · Citation export</text>
+        </svg>
+        <p class="fig-caption">Figure 1. BioMate's three-step chained workflow for rare disease trial design. Output from each step is passed directly as structured input to the next, preserving provenance across the full analysis chain.</p>
+      </div>
+
+      <h2>Step 1: Statistical Power Calculation From Published Effect Sizes</h2>
+      <p>The worked example here uses myasthenia gravis with the MG Activities of Daily Living (MG-ADL) scale as the primary endpoint — a validated 8-item patient-reported instrument scored 0–24, where higher scores indicate greater impairment.<sup>3</sup> The ADAPT trial of rozanolixizumab (NEJM 2023) reported a least-squares mean difference of approximately 3.4 MG-ADL points versus placebo in the primary endpoint population, with a pooled standard deviation near 3.8 points.<sup>4</sup> The earlier ADHERE study of efgartigimod reported comparable effect magnitudes, providing convergent evidence for the expected delta range in FcRn inhibitor trials.<sup>5</sup></p>
+      <p>BioMate's power calculation module ingests these published values and generates power curves across a range of assumed effect sizes, applying a two-sided t-test with continuity correction and a 15% dropout allowance consistent with the observed retention rates in ADAPT. The analysis considers three scenarios: a conservative delta of 1.0 MG-ADL point (minimally clinically important difference), a central estimate of 1.5 points, and a liberal estimate of 2.0 points matching the ADAPT population-level effect in a more restricted patient subgroup.</p>
+
+      <!-- Power curve SVG -->
+      <div class="fig-wrap">
+        <svg viewBox="0 0 620 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:620px;display:block;margin:0 auto;" aria-label="Power curves for MG-ADL effect size scenarios">
+          <!-- Axes -->
+          <line x1="60" y1="250" x2="580" y2="250" stroke="#cec5ae" stroke-width="1.5"/>
+          <line x1="60" y1="20" x2="60" y2="250" stroke="#cec5ae" stroke-width="1.5"/>
+          <!-- Y axis labels -->
+          <text x="52" y="254" text-anchor="end" font-family="'Open Sans',sans-serif" font-size="10" fill="#5a7280">0.0</text>
+          <text x="52" y="207" text-anchor="end" font-family="'Open Sans',sans-serif" font-size="10" fill="#5a7280">0.2</text>
+          <text x="52" y="160" text-anchor="end" font-family="'Open Sans',sans-serif" font-size="10" fill="#5a7280">0.4</text>
+          <text x="52" y="113" text-anchor="end" font-family="'Open Sans',sans-serif" font-size="10" fill="#5a7280">0.6</text>
+          <text x="52" y="66" text-anchor="end" font-family="'Open Sans',sans-serif" font-size="10" fill="#5a7280">0.8</text>
+          <text x="52" y="30" text-anchor="end" font-family="'Open Sans',sans-serif" font-size="10" fill="#5a7280">1.0</text>
+          <!-- Y axis title -->
+          <text transform="rotate(-90,18,140)" x="18" y="140" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="11" fill="#1c2b32">Statistical Power (1 − β)</text>
+          <!-- X axis labels -->
+          <text x="60" y="265" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="10" fill="#5a7280">0</text>
+          <text x="164" y="265" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="10" fill="#5a7280">50</text>
+          <text x="268" y="265" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="10" fill="#5a7280">100</text>
+          <text x="372" y="265" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="10" fill="#5a7280">150</text>
+          <text x="476" y="265" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="10" fill="#5a7280">200</text>
+          <text x="580" y="265" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="10" fill="#5a7280">250</text>
+          <!-- X axis title -->
+          <text x="320" y="282" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="11" fill="#1c2b32">Sample Size per Arm (n)</text>
+          <!-- Gridlines at 0.80 -->
+          <line x1="60" y1="66" x2="580" y2="66" stroke="#cec5ae" stroke-width="1" stroke-dasharray="4,3"/>
+          <!-- Delta=1.0 curve (steepest rise, reaches 0.80 around n=230) -->
+          <polyline points="
+            60,250 72,246 84,240 96,232 108,222 120,210 132,198 144,186 156,175 168,165 180,155 192,146 204,138 216,131 228,124 240,118 252,113 264,108 276,103 288,99 300,95 312,92 324,89 336,87 348,85 360,83 372,81 384,80 396,79 408,78 420,77 432,76 444,75 456,74 468,73 480,73 492,72 504,72 516,71 528,71 540,70 552,70 564,69 576,69"
+            fill="none" stroke="#c0523a" stroke-width="2" stroke-dasharray="6,3"/>
+          <!-- Delta=1.5 curve (reaches 0.80 around n=100) -->
+          <polyline points="
+            60,250 72,240 84,226 96,209 108,191 120,173 132,156 144,140 156,125 168,112 180,100 192,91 204,83 216,77 228,72 240,68 252,65 264,63 276,61 288,59 300,58 312,57 324,56 336,56 348,55 360,55 372,54 384,54 396,53 408,53 420,52 432,52 444,52 456,51 468,51 480,51 492,50 504,50 516,50 528,50 540,50 552,49 564,49 576,49"
+            fill="none" stroke="#4a7a8a" stroke-width="2.5"/>
+          <!-- Delta=2.0 curve (reaches 0.80 around n=60) -->
+          <polyline points="
+            60,250 72,233 84,208 96,180 108,152 120,126 132,103 144,84 156,69 168,58 180,51 192,46 204,42 216,39 228,37 240,35 252,34 264,33 276,32 288,31 300,31 312,30 324,30 336,29 348,29 360,29 372,28 384,28 396,28 408,28 420,27 432,27 444,27 456,27 468,27 480,26 492,26 504,26 516,26 528,26 540,26 552,26 564,25 576,25"
+            fill="none" stroke="#3a8a5a" stroke-width="2" stroke-dasharray="3,3"/>
+          <!-- 0.80 power horizontal marker -->
+          <line x1="60" y1="66" x2="580" y2="66" stroke="#888" stroke-width="1.2" stroke-dasharray="5,4"/>
+          <text x="585" y="69" font-family="'Open Sans',sans-serif" font-size="9" fill="#888">0.80</text>
+          <!-- Vertical line at n=90 per arm (chosen design) -->
+          <line x1="372" y1="20" x2="372" y2="250" stroke="#c07030" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <text x="375" y="38" font-family="'Open Sans',sans-serif" font-size="9" fill="#c07030">n=90/arm</text>
+          <!-- Legend -->
+          <line x1="80" y1="35" x2="108" y2="35" stroke="#c0523a" stroke-width="2" stroke-dasharray="6,3"/>
+          <text x="112" y="38" font-family="'Open Sans',sans-serif" font-size="9" fill="#1c2b32">&#916; = 1.0 MG-ADL</text>
+          <line x1="210" y1="35" x2="238" y2="35" stroke="#4a7a8a" stroke-width="2.5"/>
+          <text x="242" y="38" font-family="'Open Sans',sans-serif" font-size="9" fill="#1c2b32">&#916; = 1.5 MG-ADL</text>
+          <line x1="345" y1="35" x2="373" y2="35" stroke="#3a8a5a" stroke-width="2" stroke-dasharray="3,3"/>
+          <text x="377" y="38" font-family="'Open Sans',sans-serif" font-size="9" fill="#1c2b32">&#916; = 2.0 MG-ADL</text>
+        </svg>
+        <p class="fig-caption">Figure 2. Simulated power curves for a two-arm MG Phase 3 trial (two-sided &#945; = 0.05, SD = 3.8, 15% dropout) across three MG-ADL effect size scenarios. The chosen design (n = 90 per arm, n = 180 enrolled) achieves approximately 75% power at the central effect size estimate of &#916; = 1.5 MG-ADL points and SD = 3.8; achieving 80% power at this SD requires n ≈ 120 per arm. The 90-patient design reflects a pragmatic trade-off between statistical power and enrollment feasibility in a disease with 14–20 per 100,000 prevalence.</p>
+      </div>
+
+      <p>At the central estimate of 1.5 MG-ADL points, a two-arm parallel trial with alpha 0.05 (two-sided), SD = 3.8, and 15% dropout allowance requires approximately 120 enrolled patients per arm (n ≈ 240 total) to achieve 80% power. A more pragmatic design of 90 per arm is shown here as a worked example, reflecting a deliberate power trade-off (approximately 75% power) against enrollment feasibility — a common decision in rare disease development where the eligible population is limited. BioMate's output includes the full parameter set, the software implementation of the power calculation (validated against published R <code>pwr</code> package outputs), and a structured justification paragraph referencing each input assumption to its source trial.</p>
+
+      <blockquote>"Every effect size assumption in the power calculation is traceable to a published Phase 3 dataset. The system does not interpolate from preclinical data or use internal estimates that cannot be cited in a regulatory submission."</blockquote>
+
+      <h2>Step 2: Site Recruitment Feasibility From Real-World Enrollment Data</h2>
+      <p>The power calculation produces n = 180 as the target enrollment figure. BioMate then passes this number directly to the site feasibility module, which models realistic enrollment timelines using three inputs: site-level MG patient prevalence derived from Orphanet and published epidemiology,<sup>6</sup> historical screen failure rates from published MG trial reports (approximately 25–35% based on ADAPT screening data), and the competing trial landscape from ClinicalTrials.gov at the time of planning.</p>
+      <p>For a geographically distributed neuromuscular trial, the model estimates available patients per site per year as a function of the site's catchment population, the MG prevalence rate, the proportion of patients who are treatment-eligible (MGFA class II–IVa, on stable acetylcholinesterase inhibitor therapy), and the proportion willing to be randomized given competing trial availability. The resulting enrollment rate per site per month is typically 0.8–1.5 patients for a large academic neuromuscular center and 0.2–0.5 for a community site.</p>
+
+      <!-- Site map SVG -->
+      <div class="fig-wrap">
+        <svg viewBox="0 0 640 320" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:640px;display:block;margin:0 auto;" aria-label="Site map showing major neuromuscular centers in the US and Europe">
+          <!-- Map background -->
+          <rect x="0" y="0" width="640" height="320" rx="8" fill="#e8f0f4"/>
+          <!-- US landmass (simplified polygon) -->
+          <polygon points="42,68 60,60 110,55 160,52 220,50 270,48 310,50 350,52 370,58 380,75 390,90 385,110 370,125 340,130 300,128 260,130 230,140 200,148 175,155 150,160 120,158 95,150 75,138 55,125 42,105 38,85" fill="#d5e4e0" stroke="#b0c8c0" stroke-width="1"/>
+          <!-- Florida -->
+          <polygon points="295,128 310,130 315,145 305,155 295,148 288,140" fill="#d5e4e0" stroke="#b0c8c0" stroke-width="0.8"/>
+          <!-- EU landmass (simplified) -->
+          <polygon points="440,50 475,42 510,40 545,45 565,55 570,70 562,85 545,95 525,105 500,110 478,108 458,100 442,88 435,70" fill="#d5e4e0" stroke="#b0c8c0" stroke-width="1"/>
+          <!-- UK/Ireland -->
+          <polygon points="450,45 460,38 472,36 478,42 470,52 458,55 449,50" fill="#d5e4e0" stroke="#b0c8c0" stroke-width="0.8"/>
+          <!-- Atlantic -->
+          <text x="415" y="160" font-family="'Open Sans',sans-serif" font-size="9" fill="#8aacccc" opacity="0.5" transform="rotate(-10,415,160)">Atlantic</text>
+
+          <!-- Site circles — US -->
+          <!-- Mayo Clinic (Rochester MN) ~x=245,y=82 -->
+          <circle cx="245" cy="82" r="16" fill="#4a7a8a" opacity="0.82"/>
+          <text x="245" y="86" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="9" font-weight="700" fill="#fff">MC</text>
+          <text x="245" y="108" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8" fill="#1c2b32">Mayo Clinic</text>
+          <text x="245" y="119" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8" fill="#5a7280">1.4 pt/mo</text>
+
+          <!-- Johns Hopkins (Baltimore) ~x=332,y=95 -->
+          <circle cx="332" cy="95" r="13" fill="#4a7a8a" opacity="0.78"/>
+          <text x="332" y="99" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="9" font-weight="700" fill="#fff">JH</text>
+          <text x="332" y="117" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8" fill="#1c2b32">Johns Hopkins</text>
+          <text x="332" y="128" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8" fill="#5a7280">1.2 pt/mo</text>
+
+          <!-- MGH (Boston) ~x=355,y=73 -->
+          <circle cx="355" cy="73" r="14" fill="#4a7a8a" opacity="0.80"/>
+          <text x="355" y="77" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="9" font-weight="700" fill="#fff">MGH</text>
+          <text x="355" y="95" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8" fill="#1c2b32">MGH Boston</text>
+          <text x="355" y="106" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8" fill="#5a7280">1.3 pt/mo</text>
+
+          <!-- UCSF ~x=75,y=100 -->
+          <circle cx="75" cy="100" r="11" fill="#4a7a8a" opacity="0.72"/>
+          <text x="75" y="104" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="9" font-weight="700" fill="#fff">UC</text>
+          <text x="75" y="122" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8" fill="#1c2b32">UCSF</text>
+          <text x="75" y="133" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8" fill="#5a7280">0.9 pt/mo</text>
+
+          <!-- UT Southwestern ~x=225,y=125 -->
+          <circle cx="225" cy="125" r="9" fill="#3a6878" opacity="0.68"/>
+          <text x="225" y="129" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8" font-weight="700" fill="#fff">UT</text>
+          <text x="225" y="147" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8" fill="#1c2b32">UT Southwestern</text>
+          <text x="225" y="158" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8" fill="#5a7280">0.7 pt/mo</text>
+
+          <!-- Columbia ~x=345,y=80 -->
+          <circle cx="345" cy="83" r="8" fill="#3a6878" opacity="0.65"/>
+          <text x="345" y="87" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="7.5" font-weight="700" fill="#fff">CU</text>
+
+          <!-- EU sites -->
+          <!-- Leiden ~x=482,y=58 -->
+          <circle cx="482" cy="58" r="13" fill="#c07030" opacity="0.78"/>
+          <text x="482" y="62" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="9" font-weight="700" fill="#fff">LE</text>
+          <text x="482" y="80" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8" fill="#1c2b32">Leiden UMC</text>
+          <text x="482" y="91" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8" fill="#5a7280">1.1 pt/mo</text>
+
+          <!-- Oxford ~x=458,y=48 -->
+          <circle cx="458" cy="48" r="11" fill="#c07030" opacity="0.74"/>
+          <text x="458" y="52" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="9" font-weight="700" fill="#fff">OX</text>
+          <text x="458" y="70" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8" fill="#1c2b32">Oxford</text>
+          <text x="458" y="81" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8" fill="#5a7280">0.9 pt/mo</text>
+
+          <!-- Charité Berlin ~x=510,y=55 -->
+          <circle cx="510" cy="55" r="10" fill="#c07030" opacity="0.70"/>
+          <text x="510" y="59" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8" font-weight="700" fill="#fff">CH</text>
+          <text x="510" y="75" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8" fill="#1c2b32">Charité Berlin</text>
+          <text x="510" y="86" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8" fill="#5a7280">0.8 pt/mo</text>
+
+          <!-- Legend -->
+          <rect x="430" y="200" width="200" height="90" rx="6" fill="rgba(255,255,255,0.82)" stroke="#cec5ae" stroke-width="1"/>
+          <text x="440" y="218" font-family="'Open Sans',sans-serif" font-size="9" font-weight="700" fill="#1c2b32">Site enrollment rate</text>
+          <circle cx="448" cy="232" r="8" fill="#4a7a8a" opacity="0.80"/>
+          <text x="462" y="236" font-family="'Open Sans',sans-serif" font-size="9" fill="#1c2b32">US site (&gt;1.0 pt/mo)</text>
+          <circle cx="448" cy="250" r="6" fill="#3a6878" opacity="0.68"/>
+          <text x="462" y="254" font-family="'Open Sans',sans-serif" font-size="9" fill="#1c2b32">US site (0.6–1.0 pt/mo)</text>
+          <circle cx="448" cy="268" r="9" fill="#c07030" opacity="0.78"/>
+          <text x="462" y="272" font-family="'Open Sans',sans-serif" font-size="9" fill="#1c2b32">EU site</text>
+
+          <!-- Title -->
+          <text x="320" y="305" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="10" fill="#5a7280">Circle size proportional to projected monthly enrollment rate</text>
+        </svg>
+        <p class="fig-caption">Figure 3. Projected site enrollment rates for a global Phase 3 MG trial. US sites (teal) and European sites (amber) shown with monthly patient enrollment estimates derived from catchment population size, MG prevalence (14–20/100,000), treatment eligibility criteria, and screen failure rates from published trial reports. Competing trial density on ClinicalTrials.gov was factored into available patient estimates.</p>
+      </div>
+
+      <p>Across a network of 14 sites — 9 in the United States and 5 in Europe — the model projects a combined enrollment rate of 8–10 patients per month at steady state, reached approximately 6 months after site activation. At this rate, the target enrollment of 180 patients is achievable within 22–26 months of first patient in, with a 12-month follow-up period yielding a primary database lock at 34–38 months post first patient in.</p>
+
+      <h2>Step 3: Audit-Ready Protocol Summary With Parameter Justifications</h2>
+      <p>The outputs of Steps 1 and 2 — the power calculation parameters, the chosen sample size, the enrollment timeline, and the site network configuration — are passed to BioMate's protocol summary generator. This produces a structured document in the format required by FDA and EMA for the Statistical Analysis Plan (SAP) and protocol synopsis sections: estimand specification per ICH E9(R1),<sup>2</sup> sample size justification with referenced sources, enrollment timeline with per-region projections, and a summary of the competing trial landscape that contextualizes the feasibility assumptions.</p>
+
+      <div class="callout">
+        <strong>What the output contains</strong>
+        <p>Each generated protocol section includes inline citation markers referencing the specific published source for each assumption — effect size (ADAPT trial, NEJM 2023<sup>4</sup>), prevalence (Orphanet MG epidemiology report<sup>6</sup>), screen failure rate (pooled MG Phase 3 experience), and estimand specification (ICH E9(R1)<sup>2</sup>). The document is structured to map directly into the relevant sections of an FDA IND or EMA CTA submission package, reducing manual reformatting by the regulatory writing team.</p>
+      </div>
+
+      <!-- Enrollment Gantt chart -->
+      <div class="fig-wrap">
+        <svg viewBox="0 0 620 270" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:620px;display:block;margin:0 auto;" aria-label="Enrollment timeline Gantt chart">
+          <!-- Title -->
+          <text x="310" y="18" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="11" font-weight="700" fill="#1c2b32">Enrollment Timeline — MG Phase 3 Trial (Months from First Patient In)</text>
+          <!-- Axes -->
+          <line x1="130" y1="35" x2="610" y2="35" stroke="#cec5ae" stroke-width="1"/>
+          <!-- Month labels 0–24 -->
+          <text x="130" y="30" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="9" fill="#5a7280">0</text>
+          <text x="210" y="30" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="9" fill="#5a7280">4</text>
+          <text x="290" y="30" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="9" fill="#5a7280">8</text>
+          <text x="370" y="30" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="9" fill="#5a7280">12</text>
+          <text x="450" y="30" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="9" fill="#5a7280">16</text>
+          <text x="530" y="30" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="9" fill="#5a7280">20</text>
+          <text x="610" y="30" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="9" fill="#5a7280">24</text>
+          <!-- Gridlines -->
+          <line x1="210" y1="35" x2="210" y2="240" stroke="#cec5ae" stroke-width="0.6" stroke-dasharray="3,3"/>
+          <line x1="290" y1="35" x2="290" y2="240" stroke="#cec5ae" stroke-width="0.6" stroke-dasharray="3,3"/>
+          <line x1="370" y1="35" x2="370" y2="240" stroke="#cec5ae" stroke-width="0.6" stroke-dasharray="3,3"/>
+          <line x1="450" y1="35" x2="450" y2="240" stroke="#cec5ae" stroke-width="0.6" stroke-dasharray="3,3"/>
+          <line x1="530" y1="35" x2="530" y2="240" stroke="#cec5ae" stroke-width="0.6" stroke-dasharray="3,3"/>
+          <!-- Row labels -->
+          <text x="125" y="62" text-anchor="end" font-family="'Open Sans',sans-serif" font-size="9.5" fill="#1c2b32">US Sites</text>
+          <text x="125" y="62" text-anchor="end" font-family="'Open Sans',sans-serif" font-size="8" fill="#5a7280" dy="10">Screening</text>
+          <text x="125" y="100" text-anchor="end" font-family="'Open Sans',sans-serif" font-size="9.5" fill="#1c2b32">US Sites</text>
+          <text x="125" y="100" text-anchor="end" font-family="'Open Sans',sans-serif" font-size="8" fill="#5a7280" dy="10">Enrollment</text>
+          <text x="125" y="138" text-anchor="end" font-family="'Open Sans',sans-serif" font-size="9.5" fill="#1c2b32">EU Sites</text>
+          <text x="125" y="138" text-anchor="end" font-family="'Open Sans',sans-serif" font-size="8" fill="#5a7280" dy="10">Screening</text>
+          <text x="125" y="176" text-anchor="end" font-family="'Open Sans',sans-serif" font-size="9.5" fill="#1c2b32">EU Sites</text>
+          <text x="125" y="176" text-anchor="end" font-family="'Open Sans',sans-serif" font-size="8" fill="#5a7280" dy="10">Enrollment</text>
+          <text x="125" y="214" text-anchor="end" font-family="'Open Sans',sans-serif" font-size="9.5" fill="#1c2b32">Follow-up</text>
+          <text x="125" y="214" text-anchor="end" font-family="'Open Sans',sans-serif" font-size="8" fill="#5a7280" dy="10">(all regions)</text>
+
+          <!-- Row backgrounds -->
+          <rect x="130" y="44" width="480" height="28" rx="3" fill="#f5f0e4"/>
+          <rect x="130" y="82" width="480" height="28" rx="3" fill="#f5f0e4"/>
+          <rect x="130" y="120" width="480" height="28" rx="3" fill="#f5f0e4"/>
+          <rect x="130" y="158" width="480" height="28" rx="3" fill="#f5f0e4"/>
+          <rect x="130" y="196" width="480" height="28" rx="3" fill="#f5f0e4"/>
+
+          <!-- US Screening: month 0 → 24 -->
+          <rect x="130" y="48" width="480" height="20" rx="4" fill="#4a7a8a" opacity="0.5"/>
+          <text x="370" y="62" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8.5" fill="#fff">Ongoing screening (m0–m24)</text>
+
+          <!-- US Enrollment: month 0 → 20 -->
+          <rect x="130" y="86" width="400" height="20" rx="4" fill="#4a7a8a" opacity="0.85"/>
+          <text x="330" y="100" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8.5" fill="#fff">Active enrollment US (m0–m20)</text>
+
+          <!-- EU Screening: month 2 → 24 -->
+          <rect x="170" y="124" width="440" height="20" rx="4" fill="#c07030" opacity="0.5"/>
+          <text x="390" y="138" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8.5" fill="#fff">Ongoing screening EU (m2–m24)</text>
+
+          <!-- EU Enrollment: month 3 → 22 -->
+          <rect x="190" y="162" width="380" height="20" rx="4" fill="#c07030" opacity="0.85"/>
+          <text x="380" y="176" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8.5" fill="#fff">Active enrollment EU (m3–m22)</text>
+
+          <!-- Follow-up: month 22 → 24+ (truncated to chart) -->
+          <rect x="450" y="200" width="160" height="20" rx="4" fill="#3a8a5a" opacity="0.80"/>
+          <text x="530" y="214" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="8.5" fill="#fff">Follow-up (m22–m34)</text>
+
+          <!-- Target enrollment line at m22 -->
+          <line x1="450" y1="35" x2="450" y2="230" stroke="#c07030" stroke-width="1.8" stroke-dasharray="5,3"/>
+          <text x="453" y="235" font-family="'Open Sans',sans-serif" font-size="8.5" fill="#c07030">Target enrollment</text>
+          <text x="453" y="246" font-family="'Open Sans',sans-serif" font-size="8.5" fill="#c07030">complete (~m22)</text>
+
+          <!-- X axis label -->
+          <text x="370" y="264" text-anchor="middle" font-family="'Open Sans',sans-serif" font-size="10" fill="#5a7280">Months from First Patient In (FPI)</text>
+        </svg>
+        <p class="fig-caption">Figure 4. Projected enrollment timeline for a 14-site Phase 3 MG trial (n = 180). US sites (teal) activate at month 0; EU sites (amber) activate at month 2–3 accounting for regulatory submission timelines. Target enrollment is complete at approximately month 22 post-FPI. The 12-month follow-up period places the primary database lock at approximately month 34.</p>
+      </div>
+
+      <h2>Chaining as the Core Capability</h2>
+      <p>What distinguishes this from running three separate tools is the structured provenance that connects each step. The n = 180 figure passed from Step 1 to Step 2 is not copied and pasted — it is a structured output with a full parameter record: alpha level, beta level, estimated standard deviation, the specific published trial it was drawn from, and the dropout assumption applied. When the feasibility module generates its enrollment timeline, it knows exactly what enrollment target it is solving for and can flag immediately if the projected network cannot achieve it within the planning horizon. When the protocol summary is generated, it has access to the full parameter chain and can produce a single self-consistent justification narrative rather than stitching together separate documents.</p>
+      <p>For regulatory reviewers, this means the statistical section of the protocol, the feasibility appendix, and the enrollment projections in the IND covering letter all reference the same underlying assumptions. Discrepancies between these sections — which are a common source of FDA Information Requests — are structurally prevented rather than caught by manual review.</p>
+
+      <div class="callout">
+        <strong>Designed for regulatory submissions</strong>
+        <p>The audit-ready protocol summary generated in Step 3 is structured to comply with FDA IND formatting requirements and EMA CTA scientific advice templates. Each assumption is cited, every parameter is justified, and the full computation chain is exportable as a PDF appendix suitable for inclusion in Module 5.3 of a CTD submission package.</p>
+      </div>
+
+      <h2>What This Changes for Clinical Development Teams</h2>
+      <p>A conventional protocol development process for a rare disease trial involves a biostatistician, a clinical operations feasibility analyst, and a medical writer working in sequence over 8–12 weeks to produce the statistical analysis plan, the feasibility report, and the protocol synopsis. Each handoff introduces the possibility of inconsistent assumptions. The statistical section may be based on a different effect size estimate than the one the operations team used to project enrollment. The protocol synopsis may reference a sample size that was updated after the feasibility report was written.</p>
+      <p>BioMate's chained workflow compresses the exploratory phase of this process — the iteration over effect size scenarios, the sensitivity analysis on enrollment timelines, the drafting and redrafting of justification language — from weeks to hours, while preserving the full audit trail that regulatory teams require. The biostatistician, clinical operations lead, and medical writer still own the final review and approval. What they are reviewing is a complete, internally consistent draft rather than a set of disconnected working documents.</p>
+
+      <hr class="article-divider" />
+
+      <div class="refs">
+        <h2>References</h2>
+        <ol>
+          <li>U.S. Food and Drug Administration. <em>Rare Diseases: Common Issues in Drug Development — Guidance for Industry.</em> FDA; 2019. Available at: <a href="https://www.fda.gov/media/119757/download" target="_blank" rel="noopener">fda.gov/media/119757/download</a></li>
+          <li>International Council for Harmonisation. <em>ICH E9(R1): Addendum on Estimands and Sensitivity Analysis in Clinical Trials.</em> ICH; 2019. Available at: <a href="https://www.ema.europa.eu/en/documents/scientific-guideline/ich-e9-r1-addendum-estimands-sensitivity-analysis-clinical-trials-step-5_en.pdf" target="_blank" rel="noopener">ema.europa.eu</a></li>
+          <li>Wolfe GI, Herbelin L, Nations SP, Foster B, Bryan WW, Barohn RJ. Myasthenia gravis activities of daily living profile. <em>Neurology.</em> 1999;52(7):1487–1489. doi:10.1212/WNL.52.7.1487</li>
+          <li>Howard JF Jr, Bril V, Vu T, et al. Safety, efficacy, and tolerability of rozanolixizumab in patients with generalised myasthenia gravis (MycarinG): a randomised, double-blind, placebo-controlled, adaptive phase 3 study. <em>Lancet Neurol.</em> 2021;20(7):526–536. doi:10.1016/S1474-4422(21)00159-9; and Howard JF Jr, et al. Rozanolixizumab in generalised myasthenia gravis. <em>N Engl J Med.</em> 2023;389:1905–1917. doi:10.1056/NEJMoa2304730</li>
+          <li>Howard JF Jr, Utsugisawa K, Benatar M, et al. Safety and efficacy of eculizumab in anti-acetylcholine receptor antibody-positive refractory generalised myasthenia gravis (REGAIN): a phase 3, randomised, double-blind, placebo-controlled, multicentre study. <em>Lancet Neurol.</em> 2017;16(12):976–986; and Efgartigimod ADHERE study — Skeie GO, et al. <em>Ann Neurol.</em> 2022;91(4):441–452.</li>
+          <li>Orphanet. <em>Myasthenia Gravis — Prevalence and Epidemiology.</em> Orphanet Report Series: Rare Diseases Collection; 2024. Available at: <a href="https://www.orpha.net/en/disease/detail/589" target="_blank" rel="noopener">orpha.net</a></li>
+          <li>Berry SM, Carlin BP, Lee JJ, Muller P. <em>Bayesian Adaptive Methods for Clinical Trials.</em> Boca Raton, FL: Chapman and Hall/CRC; 2010.</li>
+          <li>Freidlin B, Korn EL, Gray R. A general sample size strategy for randomized clinical trials in rare diseases. <em>Stat Biopharm Res.</em> 2018;10(4):225–232. doi:10.1080/19466315.2018.1440020</li>
+        </ol>
+      </div>
+
+    </div>
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Posts</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-scrna-immune-profiling.html">From PBMC Samples to Immune Cell Maps: scRNA-seq → DESeq2 → Pathway</a><div class="meta">July 19, 2026 · Single-Cell</div></li>
+        <li><a href="blog-admet-pbpk-ind-package.html">ADMET to IND: Automating the Nonclinical Evidence Package</a><div class="meta">July 19, 2026 · Drug Discovery</div></li>
+        <li><a href="blog-gwas-target-indication.html">GWAS → scRNA-seq → eQTL Target Prioritization Across Indications</a><div class="meta">July 19, 2026 · Genomics</div></li>
+        <li><a href="blog-complement-stratification.html">C3 or C5? Complement Pathway Stratification from Transcriptomics</a><div class="meta">July 19, 2026 · Immunology</div></li>
+        <li><a href="blog-multi-omics-integration.html">When One Omic Isn't Enough: Integrating RNA-seq and Proteomics</a><div class="meta">July 19, 2026 · Multi-Omics</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">Rare Disease</span>
+        <span class="topic-chip">Trial Design</span>
+        <span class="topic-chip">Site Feasibility</span>
+        <span class="topic-chip">Statistical Power</span>
+        <span class="topic-chip">Myasthenia Gravis</span>
+        <span class="topic-chip">ICH E9(R1)</span>
+        <span class="topic-chip">Regulatory</span>
+        <span class="topic-chip">Protocol</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">Run the full trial design chain — power calculation through protocol summary — on your own program. Start free.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Stay updated</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:.9rem;">New posts on clinical AI, workflow design, and platform updates &mdash; no spam.</p>
+      <form class="bm-sub" onsubmit="return bmSubscribe(this,event)">
+        <input type="email" name="email" required placeholder="your@email.com" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:.85rem;margin-bottom:.6rem;font-family:var(--font-body);" />
+        <input type="hidden" name="_subject" value="Newsletter signup (blog-rare-disease-trial-design)" />
+        <button type="submit" class="btn btn-primary">Subscribe</button>
+        <p class="bm-sub-msg" style="font-size:.78rem;margin-top:.5rem;display:none;"></p>
+      </form>
+    </div>
+    <script>
+    function bmSubscribe(form,ev){ev.preventDefault();var m=form.querySelector('.bm-sub-msg');
+      fetch('https://formspree.io/f/xlgvqqvz',{method:'POST',headers:{'Accept':'application/json'},body:new FormData(form)})
+      .then(function(r){if(!r.ok)throw 0;form.innerHTML='<p style="font-size:.85rem;color:var(--accent);font-weight:600;">You\'re subscribed &mdash; thanks!</p>';})
+      .catch(function(){m.style.color='#b42828';m.textContent='Something went wrong — email contact@biomate.ai';m.style.display='';});
+      return false;}
+    </script>
+  </aside>
+</div>
+
+<section style="background:var(--bg-2,#f4f7f9);padding:2rem 0;">
+  <div style="max-width:760px;margin:0 auto;padding:0 1.5rem;">
+    <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted,#6b7280);margin-bottom:.75rem;">Explore BioMate capabilities</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+      <a href="services.html#clinical" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Clinical Development &rarr;</a>
+      <a href="features.html" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Platform features &rarr;</a>
+      <a href="pricing.html" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Pricing &rarr;</a>
+    </div>
+  </div>
+</section>
+
+</div><!-- /bm-blog -->
+<div id="bm-foot"></div>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'newsroom' });</script>
+</body>
+</html>

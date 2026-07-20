@@ -64,9 +64,16 @@
               { label: 'Tutorials',    href: 'tutorials.html' },
               { label: 'Publications', href: 'publications.html' }
             ])}
+            ${dropdown('developers', 'Developers', 'connectors.html', [
+              { label: 'MCP Connectors — Docs',      href: 'connectors.html' },
+              { divider: true },
+              { label: 'GitHub →',                   href: 'https://github.com/bioMate-AI/biomate-connector', bold: true }
+            ])}
             ${dropdown('newsroom', 'Newsroom', 'blog.html', [
               { label: 'Scientific Articles',        href: 'blog.html?cat=science' },
               { label: 'Company News',               href: 'blog.html?cat=news' },
+              { divider: true },
+              { label: 'MCP Connector Architecture', href: 'blog-connectors.html' },
               { divider: true },
               { label: 'All Posts &rarr;',           href: 'blog.html', bold: true }
             ])}

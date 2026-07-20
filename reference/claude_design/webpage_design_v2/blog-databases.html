@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BioMate's Live Database Connections — BioMate AI Blog</title>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  .bm-blog {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+  }
+  html { scroll-behavior:smooth; }
+  .bm-blog { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  .bm-blog a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  .bm-blog a:hover { color:var(--accent); }
+  .bm-blog img { max-width:100%; display:block; }
+  .site-header { background:var(--bg); padding:1.25rem 1rem .75rem; text-align:center; border-bottom:1px solid var(--border); }
+  .site-header img { height:56px; width:auto; display:inline-block; }
+  .bm-blog nav { position:sticky; top:0; z-index:100; height:var(--nav-h); background:rgba(245,240,228,.97); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:0 clamp(1rem,4vw,3rem); }
+  .nav-links { display:flex; align-items:center; gap:8px; list-style:none; flex-wrap:wrap; }
+  .nav-links a { color:var(--text-muted); font-size:.875rem; font-weight:400; padding:6px 12px; border-radius:6px; transition:background .2s,color .2s; }
+  .nav-links a:hover { color:var(--accent); background:rgba(74,122,138,.10); }
+  .nav-cta { background:var(--accent)!important; color:#fff!important; font-weight:700!important; padding:7px 18px!important; border-radius:6px!important; }
+  .nav-cta:hover { background:var(--accent-light)!important; }
+  .nav-login { border:1px solid var(--border)!important; color:var(--text)!important; }
+  .nav-login:hover { border-color:var(--accent)!important; color:var(--accent)!important; }
+
+  .article-hero { width:100%; max-height:420px; overflow:hidden; position:relative; }
+  .article-hero img { width:100%; height:420px; object-fit:cover; display:block; }
+  .article-hero-overlay { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(15,22,28,.35),rgba(15,22,28,.65)); }
+
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+
+  .article-body { font-size:.95rem; color:var(--text); line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text-muted); }
+  .article-body p.lead { font-size:1.08rem; color:var(--text); font-weight:400; margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.45rem; color:var(--text); margin:2.25rem 0 .75rem; }
+  .article-body h3 { font-family:var(--font-head); font-size:1.15rem; color:var(--text); margin:1.75rem 0 .5rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.2rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body ul { margin:0 0 1.25rem 1.25rem; color:var(--text-muted); }
+  .article-body ul li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .article-body .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .article-body .callout p { margin:0; font-size:.88rem; }
+  .article-divider { border:none; border-top:1px solid var(--border); margin:2rem 0; }
+
+  .example-block { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); margin:1.75rem 0; overflow:hidden; }
+  .example-query { background:var(--accent); color:#fff; padding:.75rem 1.25rem; font-size:.85rem; font-family:var(--font-body); font-style:italic; }
+  .example-query strong { display:block; font-size:.68rem; font-style:normal; text-transform:uppercase; letter-spacing:.08em; opacity:.75; margin-bottom:.25rem; }
+  .example-steps { padding:1rem 1.25rem; display:flex; flex-direction:column; gap:.6rem; }
+  .example-step { display:flex; gap:.75rem; align-items:flex-start; }
+  .step-db { flex-shrink:0; background:rgba(74,122,138,.1); border:1px solid rgba(74,122,138,.25); color:var(--accent-light); font-size:.72rem; font-weight:700; border-radius:4px; padding:.2rem .55rem; white-space:nowrap; margin-top:.1rem; }
+  .step-text { font-size:.84rem; color:var(--text-muted); line-height:1.5; }
+  .step-text strong { color:var(--text); }
+
+  .db-table { width:100%; border-collapse:collapse; margin:1.5rem 0; font-size:.84rem; overflow-x:auto; display:block; }
+  .db-table th { text-align:left; padding:.5rem .75rem; font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); border-bottom:2px solid var(--border); }
+  .db-table td { padding:.55rem .75rem; border-bottom:1px solid var(--border); color:var(--text-muted); vertical-align:top; }
+  .db-table td:first-child { color:var(--accent-light); font-weight:700; white-space:nowrap; }
+  .db-table tr:last-child td { border-bottom:none; }
+
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .bm-blog .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .bm-blog .btn-primary:hover { background:var(--accent-light); color:#fff; }
+
+  .bm-blog footer { background:var(--bg-card2); border-top:1px solid var(--border); padding:3rem clamp(1rem,5vw,3rem) 1.5rem; }
+  .footer-inner { max-width:1200px; margin:0 auto; }
+  .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:2.5rem; margin-bottom:2rem; }
+  .footer-brand img { height:36px; margin-bottom:1rem; }
+  .footer-brand p { color:var(--text-muted); font-size:.875rem; line-height:1.6; max-width:280px; }
+  .footer-col h4 { font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text); margin-bottom:.875rem; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:.5rem; }
+  .footer-col ul a { font-size:.875rem; color:var(--text-muted); }
+  .footer-col ul a:hover { color:var(--accent); }
+  .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
+  @media(max-width:720px){ .nav-links{display:none;} .footer-grid{grid-template-columns:1fr;} }
+  </style>
+  <meta name="description" content="How BioMate connects live to UniProt, PDB, AlphaFold, ChEMBL, Ensembl, gnomAD, ClinVar, GEO, KEGG, Reactome, and 50+ more databases — with worked examples across protein biology, genomics, drug discovery, and omics data." />
+  <meta name="keywords" content="BioMate databases, UniProt, PDB, AlphaFold, ChEMBL, Ensembl, KEGG, Reactome, gnomAD, GEO, SRA, bioinformatics databases, biomedical knowledge base" />
+  <link rel="canonical" href="https://biomate.ai/blog-databases.html" />
+  <meta property="og:title" content="The Data Behind the Answer: BioMate's 60+ Live Database Connections" />
+  <meta property="og:description" content="How BioMate queries UniProt, PDB, AlphaFold, ChEMBL, Ensembl, gnomAD, GEO, KEGG, Reactome, and more in real time — with worked examples across protein biology, genomics, drug discovery, and omics data." />
+  <meta property="og:url" content="https://biomate.ai/blog-databases.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:image" content="https://biomate.ai/images/blog-databases-hero.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="The Data Behind the Answer: BioMate's 60+ Live Database Connections" />
+  <meta name="twitter:description" content="How BioMate's 60+ live database connections work — UniProt, PDB, AlphaFold, ChEMBL, gnomAD, ClinVar, GEO, KEGG, Reactome, Open Targets, EGA, and more." />
+  <meta name="twitter:image" content="https://biomate.ai/images/blog-databases-hero.png" />
+  <meta name="abstract" content="BioMate AI queries 60+ live biological databases at analysis time — UniProt, PDB, AlphaFold, ChEMBL, Ensembl, gnomAD, GEO, KEGG, Reactome, and more. This article covers how each integration works, with worked examples across protein structure, variant interpretation, drug discovery, and transcriptomics." />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="article:published_time" content="2026-07-03" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What biological databases does BioMate AI connect to?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BioMate AI queries 60+ live biological databases at analysis time. These include: Protein & Structure (UniProt, PDB, AlphaFold DB, InterPro, Pfam, CATH, ModBase), Genomics & Variant (Ensembl, gnomAD, ClinVar, NCBI Gene, dbSNP, COSMIC, OMIM, GWAS Catalog), Transcriptomics (GEO, SRA, ArrayExpress, PRIDE, TCGA, cBioPortal), Chemistry (ChEMBL, PubChem, DrugBank, BindingDB, ZINC, OpenFDA, DailyMed), Pathways & Interactions (KEGG, Reactome, Gene Ontology, STRING-db, BioGRID, DisGeNET), and Literature (PubMed/MEDLINE, Europe PMC, bioRxiv, ClinicalTrials.gov, FDA labels, EMA EPAR)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does BioMate use cached database snapshots or live connections?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BioMate queries databases live at analysis time — not from cached or periodically-updated snapshots. This means variant interpretations reflect the current ClinVar submission state, protein structure lookups retrieve the latest AlphaFold predictions, and drug-target interaction data reflects the current ChEMBL release."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does BioMate integrate literature databases like PubMed?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BioMate queries PubMed/MEDLINE, Europe PMC, and bioRxiv at analysis time to retrieve relevant publications for a given gene, pathway, variant, or compound. Retrieved literature is summarized and cited in the analysis report. ClinicalTrials.gov, FDA drug labels, and EMA EPAR are also queried for clinical context in drug discovery workflows."
+        }
+      }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "The Data Behind the Answer: BioMate's 60+ Live Database Connections",
+    "description": "How BioMate connects live to UniProt, PDB, AlphaFold, ChEMBL, Ensembl, gnomAD, GEO, KEGG, Reactome, and more, with worked examples across protein biology, genomics, and drug discovery.",
+    "datePublished": "2026-07-03",
+    "author": {"@type": "Organization", "name": "BioMate AI"},
+    "publisher": {"@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai"},
+    "url": "https://biomate.ai/blog-databases.html",
+    "image": "https://biomate.ai/images/blog-databases-hero.png",
+    "articleSection": "Platform Architecture"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+      { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://biomate.ai/blog.html" },
+      { "@type": "ListItem", "position": 3, "name": "The Data Behind the Answer: BioMate's 60+ Live Database Connections", "item": "https://biomate.ai/blog-databases.html" }
+    ]
+  }
+  </script>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+</head>
+<body>
+<div id="bm-nav"></div>
+<div class="bm-blog">
+
+<div class="article-hero">
+  <img src="images/blog-databases-hero.png" alt="BioMate connected to global biomedical databases" />
+  <div class="article-hero-overlay"></div>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Platform Architecture
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Platform Architecture</span>
+      <h1>The Data Behind the Answer: BioMate's 60+ Live Database Connections</h1>
+      <div class="article-meta">
+        <span><strong>July 3, 2026</strong></span>
+        <span>9 min read</span>
+        <span>BioMate Team</span>
+      </div>
+    </div>
+    <div class="article-body">
+
+      <p class="lead">Every answer BioMate gives draws from authoritative sources that researchers, clinicians, and drug developers trust. BioMate maintains live connections to <strong>more than 60 named biomedical databases</strong> — UniProt, PDB, AlphaFold, ChEMBL, Ensembl, gnomAD, ClinVar, GEO, KEGG, Reactome, Open Targets, and more. These are not static snapshots baked into a language model; they are live connections queried in real time, every time you ask.</p>
+
+      <p>When a researcher asks BioMate about a variant, it does not rely on what a model memorized during training. It queries ClinVar, gnomAD, and Ensembl for current classifications and population frequencies. When a medicinal chemist asks about a compound's target activity, BioMate fetches the actual ChEMBL bioactivity records. When a bioinformatician pastes a GEO accession, BioMate detects it and routes it directly to the right analysis pipeline without being asked.</p>
+
+      <p>This post walks through the major categories of built-in database connections with worked examples — then covers the connector framework that lets teams extend BioMate with any data source of their own.</p>
+
+      <h2>Protein Biology: UniProt, PDB, AlphaFold, InterPro, and STRING</h2>
+
+      <p>Protein information is the foundation of both structural biology and drug discovery. BioMate connects to five complementary sources that together cover sequence, function, three-dimensional structure, domain architecture, and interaction networks.</p>
+
+      <div class="example-block">
+        <div class="example-query">
+          <strong>Example query</strong>
+          "What is known about EGFR and why is the T790M mutation clinically significant?"
+        </div>
+        <div class="example-steps">
+          <div class="example-step">
+            <span class="step-db">UniProt</span>
+            <span class="step-text">Fetches the canonical Swiss-Prot entry for EGFR (P00533): protein function, subcellular localization, known post-translational modifications, disease associations, and the complete variant table including T790M's documented clinical effect.</span>
+          </div>
+          <div class="example-step">
+            <span class="step-db">PDB</span>
+            <span class="step-text">Retrieves available crystal structures — including the T790M mutant apo form and complexes with osimertinib — providing the structural rationale for why the mutation abolishes first-generation EGFR inhibitor binding.</span>
+          </div>
+          <div class="example-step">
+            <span class="step-db">AlphaFold DB</span>
+            <span class="step-text">Pulls the predicted structure with per-residue confidence (pLDDT) for the full-length receptor, covering regions absent from crystallographic models — including the flexible ectodomain and intracellular C-terminal tail.</span>
+          </div>
+          <div class="example-step">
+            <span class="step-db">InterPro</span>
+            <span class="step-text">Maps domain architecture: the receptor L-domain pair, furin-like cysteine-rich regions, and kinase domain — providing context for where T790M sits relative to the ATP-binding pocket.</span>
+          </div>
+          <div class="example-step">
+            <span class="step-db">STRING-db</span>
+            <span class="step-text">Returns the high-confidence interaction network: co-occurring partners (ERBB2, ERBB3, MET, KRAS) that explain bypass resistance mechanisms observed clinically.</span>
+          </div>
+        </div>
+      </div>
+
+      <p>None of this required separate database searches, accession number lookups, or format conversions. The answer arrives as a coherent synthesis, with every claim traceable to its source.</p>
+
+      <h2>Genomics and Variants: Ensembl, NCBI Gene, gnomAD, ClinVar, dbSNP, and iGenomes</h2>
+
+      <p>Genomic questions span a wide range of needs — from understanding what a gene does, to interpreting a specific variant in a patient sample, to running an analysis pipeline that needs the right reference genome. BioMate connects to the authoritative sources for each layer.</p>
+
+      <div class="example-block">
+        <div class="example-query">
+          <strong>Example query</strong>
+          "My patient has a BRCA2 c.5946delT variant. What is its clinical significance and how common is it in the general population?"
+        </div>
+        <div class="example-steps">
+          <div class="example-step">
+            <span class="step-db">ClinVar</span>
+            <span class="step-text">Retrieves the current pathogenicity classification for BRCA2 c.5946delT: <strong>Pathogenic</strong>, established by multiple submitters, associated with Hereditary Breast and Ovarian Cancer Syndrome.</span>
+          </div>
+          <div class="example-step">
+            <span class="step-db">gnomAD</span>
+            <span class="step-text">Returns population allele frequency across gnomAD v4 cohorts — confirms the variant is extremely rare, consistent with pathogenic classification.</span>
+          </div>
+          <div class="example-step">
+            <span class="step-db">Ensembl</span>
+            <span class="step-text">Provides transcript-level consequence annotation: the deletion causes a frameshift in the canonical transcript, predicted to introduce a premature stop codon and trigger nonsense-mediated decay.</span>
+          </div>
+          <div class="example-step">
+            <span class="step-db">NCBI Gene</span>
+            <span class="step-text">Returns the authoritative gene summary: BRCA2's role in homologous recombination repair, its interaction with RAD51, and a curated list of associated conditions with OMIM cross-references.</span>
+          </div>
+        </div>
+      </div>
+
+      <p>For analysis workflows, BioMate also auto-selects the correct reference genome from iGenomes — the cloud-hosted reference collection on AWS S3. When a researcher specifies human samples, BioMate uses GRCh38 with the matching GATK bundle by default, without requiring the user to specify a path or version.</p>
+
+      <h2>Omics Data Accessions: GEO, SRA, ENA, and PRIDE</h2>
+
+      <p>One of BioMate's most practically useful capabilities is accession detection. Researchers frequently work with published datasets deposited in GEO, SRA, ENA, or PRIDE — and the conventional workflow involves manually downloading files and constructing a pipeline. BioMate eliminates that friction entirely.</p>
+
+      <div class="example-block">
+        <div class="example-query">
+          <strong>Example query</strong>
+          "Run differential expression analysis on GSE89225 comparing tumor vs. normal samples."
+        </div>
+        <div class="example-steps">
+          <div class="example-step">
+            <span class="step-db">GEO</span>
+            <span class="step-text">BioMate detects the GSE89225 accession pattern automatically. It fetches the series metadata — platform, organism, sample count and groupings — and identifies which sample accessions correspond to tumor vs. normal.</span>
+          </div>
+          <div class="example-step">
+            <span class="step-db">SRA</span>
+            <span class="step-text">Resolves the linked SRR accessions and passes them directly to nf-core/rnaseq as input. Raw FASTQ retrieval is handled by the pipeline itself — no manual download required.</span>
+          </div>
+          <div class="example-step">
+            <span class="step-db">iGenomes</span>
+            <span class="step-text">Selects GRCh38 as the reference genome from iGenomes S3, including the STAR index, transcript FASTA, and GTF annotation appropriate for the pipeline version.</span>
+          </div>
+        </div>
+      </div>
+
+      <p>The same pattern applies to proteomics experiments (PRIDE accessions starting with PXD), raw sequencing archives (SRR, ERR, DRR prefixes from SRA and its international mirror ENA), and European genomic data (EGA accessions for controlled-access datasets).</p>
+
+      <h2>Chemical Biology and Drug Discovery: ChEMBL and ChEBI</h2>
+
+      <p>For drug discovery workflows, BioMate connects to the two principal chemical databases maintained by the European Bioinformatics Institute.</p>
+
+      <div class="example-block">
+        <div class="example-query">
+          <strong>Example query</strong>
+          "What are the most potent known inhibitors of CDK4 and what is their selectivity profile across the kinome?"
+        </div>
+        <div class="example-steps">
+          <div class="example-step">
+            <span class="step-db">ChEMBL</span>
+            <span class="step-text">Queries ChEMBL for all bioactivity records where the target is CDK4 and the assay type is binding or functional. Returns a ranked table of compounds by IC50/Ki, including palbociclib, ribociclib, and abemaciclib — with their confirmed selectivity data across CDK family members.</span>
+          </div>
+          <div class="example-step">
+            <span class="step-db">ChEBI</span>
+            <span class="step-text">Provides the authoritative chemical ontology for each compound: SMILES, InChI, molecular formula, and classification within the chemical entity hierarchy — used to ensure downstream ADMET workflows receive correctly structured inputs.</span>
+          </div>
+        </div>
+      </div>
+
+      <p>ChEMBL contains bioactivity data from more than 1.9 million assays across 15,000+ targets. BioMate queries it live — not from a local copy — so any recent additions from published literature are immediately available.</p>
+
+      <h2>Pathways and Biological Context: KEGG, Reactome, Gene Ontology, and HPO</h2>
+
+      <p>Understanding what a gene list, protein set, or variant panel means biologically requires mapping to pathways, processes, and disease phenotypes. BioMate connects to all four major resources in this space.</p>
+
+      <div class="example-block">
+        <div class="example-query">
+          <strong>Example query</strong>
+          "I ran differential expression and got 340 upregulated genes. What pathways are enriched, and are any linked to autoimmune disease phenotypes?"
+        </div>
+        <div class="example-steps">
+          <div class="example-step">
+            <span class="step-db">Gene Ontology</span>
+            <span class="step-text">Runs GO enrichment testing biological process, molecular function, and cellular component annotations. Returns ranked GO terms with adjusted p-values, gene counts, and the subset of input genes driving each enrichment.</span>
+          </div>
+          <div class="example-step">
+            <span class="step-db">KEGG</span>
+            <span class="step-text">Maps the gene list to KEGG pathways — metabolic, signaling, and disease pathways — identifying overrepresented modules such as the JAK-STAT signaling pathway or cytokine-cytokine receptor interaction network.</span>
+          </div>
+          <div class="example-step">
+            <span class="step-db">Reactome</span>
+            <span class="step-text">Provides hierarchical pathway enrichment with curated mechanistic detail — identifying enrichment in T cell receptor signaling and interleukin signaling as sub-pathways within the broader immune system hierarchy.</span>
+          </div>
+          <div class="example-step">
+            <span class="step-db">HPO</span>
+            <span class="step-text">Cross-references the enriched gene set against the Human Phenotype Ontology, surfacing associations with autoimmune hepatitis, inflammatory bowel disease, and systemic lupus erythematosus — linking the transcriptomic signature to clinical phenotype vocabulary.</span>
+          </div>
+        </div>
+      </div>
+
+      <h2>Disease Targets and Clinical Data: Open Targets, cBioPortal, GWAS Catalog, and ClinicalTrials.gov</h2>
+
+      <p>For translational and drug discovery questions, BioMate connects to the databases that bridge molecular biology with clinical evidence.</p>
+
+      <ul>
+        <li><strong>Open Targets</strong> — integrates genetic, somatic, and functional evidence to score target-disease associations across 60,000+ targets and 23,000+ diseases.</li>
+        <li><strong>cBioPortal</strong> — provides somatic mutation, copy number, and expression data from hundreds of cancer studies, including TCGA and MSK-IMPACT cohorts.</li>
+        <li><strong>GWAS Catalog</strong> — the curated collection of genome-wide association studies, with trait-variant associations, effect sizes, and ancestry information.</li>
+        <li><strong>ClinicalTrials.gov</strong> — allows BioMate to surface active and completed trials for a target or indication, contextualized alongside the molecular evidence.</li>
+      </ul>
+
+      <h2>Literature: PubMed, arXiv, Semantic Scholar, and Europe PMC</h2>
+
+      <p>BioMate integrates live literature queries to ground answers in primary sources. When a question touches on a specific gene, disease association, or experimental method, BioMate surfaces the key supporting publications — not as a static list from training data, but as a live query returning current results.</p>
+
+      <p>This is particularly valuable for rapidly evolving fields: variant classification, emerging drug targets, and newly published clinical associations are available as soon as they are indexed, without waiting for a model retraining cycle.</p>
+
+      <blockquote>"The difference between a good answer and a trustworthy answer is knowing exactly where the data came from."</blockquote>
+
+      <h2>The Unified Interface</h2>
+
+      <p>Across all of these databases, BioMate's interface is the same: plain language. You do not need to know that gnomAD has a GraphQL API, or that UniProt uses a REST query syntax, or that GEO metadata lives in a SOFT file format. You describe what you want to know, and BioMate resolves which databases to query, retrieves the relevant records, and incorporates the results into a coherent, cited response.</p>
+
+      <p>The accession detection layer is particularly powerful in practice. Paste a line from a paper — "samples were deposited in GEO under accession GSE147495" — into BioMate's chat, and it will automatically recognize the accession, fetch the series metadata, and offer to run the appropriate analysis pipeline on that dataset.</p>
+
+      <h2>Beyond the Built-Ins: The Connector Framework</h2>
+
+      <p>The databases described above represent BioMate's built-in integrations — pre-configured and available to every user from day one. But research organizations almost always have data that lives outside public repositories: proprietary compound libraries, internal patient cohorts, institutional genomics databases, legacy LIMS systems, or custom annotation sources developed in-house over years of work.</p>
+
+      <p>BioMate's connector framework makes these private sources first-class citizens alongside the public databases. A connector is a lightweight configuration that tells BioMate how to reach a data source, what it contains, and how to interpret the response. Once registered, it behaves exactly like a built-in integration — BioMate routes queries to it automatically when the content is relevant, cites it alongside public sources in responses, and makes it available as an input to workflows.</p>
+
+      <div class="callout">
+        <strong>What a connector can point to</strong>
+        <p>Any REST API with a JSON response, any SQL or PostgreSQL database exposed over a read-only endpoint, any S3 bucket containing structured annotation files (BED, VCF, TSV, FASTA), any internal LIMS or ELN with an API, or any commercial database your institution has licensed. BioMate handles authentication, query construction, response parsing, and caching — teams provide the endpoint and schema description, nothing else.</p>
+      </div>
+
+      <p>Practical examples from teams using the connector framework:</p>
+      <ul>
+        <li>A pharma team registered their internal compound library (120,000 proprietary structures with in-house ADMET measurements) so BioMate can cross-reference ChEMBL hits against internal data without ever exporting to a spreadsheet.</li>
+        <li>A genomics core facility connected their institutional variant database — curated from years of clinical sequencing — so BioMate considers internal population frequencies alongside gnomAD when interpreting variants in their specific patient ancestry mix.</li>
+        <li>A structural biology group linked their private AlphaFold prediction archive, which contains models for proteins they study that aren't yet in the public AlphaFold DB, making them queryable in exactly the same way as public structures.</li>
+        <li>A CRO connected their internal assay result database so project teams can ask BioMate questions that span public bioactivity data and their own experimental records in one query.</li>
+      </ul>
+
+      <p>Connectors are scoped per workspace and do not cross team boundaries. They can be marked read-only, restricted to specific users or projects, or set to require explicit invocation rather than automatic routing.</p>
+
+      <div class="callout">
+        <strong>The full list of live connections</strong>
+        <p>UniProt, PDB, AlphaFold DB, InterPro, STRING-db, Ensembl, NCBI Gene, NCBI Entrez, gnomAD, ClinVar, dbSNP, iGenomes, GEO, SRA, ENA, PRIDE, EGA, Metabolights, ChEMBL, ChEBI, KEGG, Reactome, Gene Ontology, HPO, PubMed, arXiv, Semantic Scholar, Europe PMC, GTEx, UCSC Genome Browser, Open Targets, MyGene.info, OMIM, Monarch Initiative, cBioPortal, TCGA, GWAS Catalog, JASPAR, IEDB, REGULOMEDB, REMAP, MaveDB, OmicsDI, SYNAPSE, EMDB, GTOPDB, NetMHCPan, NetMHCiiPan, ClinicalTrials.gov, AREsite2, DoRiNA, iReceptor, WORMS, PALEOBIOLOGY, Worldclim, IUCN, OpenFDA, BARIC Archive, IDR/OMERO — with QC thresholds grounded in ENCODE metrics and GATK Best Practices. Contact us if a source you rely on is not yet covered.</p>
+      </div>
+
+      <h2>Complete Database Reference</h2>
+
+      <table class="db-table">
+        <thead>
+          <tr>
+            <th>Database</th>
+            <th>Category</th>
+            <th>What BioMate retrieves</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>UniProt / Swiss-Prot</td><td>Protein</td><td>Sequence, function, variants, disease associations, PTMs</td></tr>
+          <tr><td>PDB / RCSB</td><td>Structure</td><td>Experimental 3D structures, ligand complexes, resolution</td></tr>
+          <tr><td>AlphaFold DB (EBI)</td><td>Structure</td><td>Predicted structures, per-residue pLDDT confidence scores</td></tr>
+          <tr><td>EMDB</td><td>Structure</td><td>Cryo-EM density maps, fitting models, resolution statistics</td></tr>
+          <tr><td>InterPro</td><td>Protein</td><td>Domain architecture, family classification, Pfam entries</td></tr>
+          <tr><td>STRING-db</td><td>Protein</td><td>Protein-protein interaction networks, confidence scores</td></tr>
+          <tr><td>Ensembl</td><td>Genomics</td><td>Gene annotation, transcript models, variant consequences</td></tr>
+          <tr><td>NCBI Gene</td><td>Genomics</td><td>Gene summaries, chromosomal location, OMIM cross-references</td></tr>
+          <tr><td>gnomAD</td><td>Variants</td><td>Population allele frequencies across diverse cohorts</td></tr>
+          <tr><td>ClinVar</td><td>Variants</td><td>Clinical variant classifications, submitter evidence</td></tr>
+          <tr><td>dbSNP</td><td>Variants</td><td>Variant identifiers (rs numbers), validation status</td></tr>
+          <tr><td>GWAS Catalog</td><td>Variants</td><td>Trait-variant associations, effect sizes, ancestry</td></tr>
+          <tr><td>iGenomes (AWS S3)</td><td>Reference data</td><td>Reference genomes, STAR/BWA indices, GTF annotations, GATK bundles</td></tr>
+          <tr><td>GEO</td><td>Omics data</td><td>Series metadata, sample tables, platform annotations</td></tr>
+          <tr><td>SRA / ENA</td><td>Omics data</td><td>Raw sequencing runs (FASTQ), experiment metadata</td></tr>
+          <tr><td>PRIDE</td><td>Omics data</td><td>Proteomics raw data, search results</td></tr>
+          <tr><td>EGA</td><td>Omics data</td><td>Controlled-access genomic and phenotypic data</td></tr>
+          <tr><td>Metabolights</td><td>Omics data</td><td>Metabolomics studies, raw spectra, sample metadata</td></tr>
+          <tr><td>OmicsDI</td><td>Omics data</td><td>Cross-repository omics dataset discovery</td></tr>
+          <tr><td>SYNAPSE</td><td>Omics data</td><td>Open biomedical datasets and analysis results (Sage Bionetworks)</td></tr>
+          <tr><td>ChEMBL</td><td>Chemical / Drug</td><td>Bioactivity records, target associations, drug-likeness metrics</td></tr>
+          <tr><td>ChEBI</td><td>Chemical / Drug</td><td>Chemical identity, SMILES, InChI, ontology classification</td></tr>
+          <tr><td>GTOPDB</td><td>Chemical / Drug</td><td>Pharmacology targets, ligand-receptor data (Guide to Pharmacology)</td></tr>
+          <tr><td>MaveDB</td><td>Chemical / Drug</td><td>Multiplexed assay of variant effect scores</td></tr>
+          <tr><td>KEGG</td><td>Pathways</td><td>Metabolic and signaling pathway maps, gene-pathway membership</td></tr>
+          <tr><td>Reactome</td><td>Pathways</td><td>Curated mechanistic pathway hierarchy, reaction-level detail</td></tr>
+          <tr><td>Gene Ontology</td><td>Ontologies</td><td>Biological process, molecular function, cellular component terms</td></tr>
+          <tr><td>HPO</td><td>Ontologies</td><td>Human phenotype terms, gene-disease-phenotype associations</td></tr>
+          <tr><td>Monarch Initiative</td><td>Ontologies</td><td>Cross-species phenotype-gene associations</td></tr>
+          <tr><td>Open Targets</td><td>Disease / Target</td><td>Target-disease association scores, genetic and functional evidence</td></tr>
+          <tr><td>cBioPortal / TCGA</td><td>Disease / Target</td><td>Somatic mutation, copy number, expression data across cancer studies</td></tr>
+          <tr><td>ClinicalTrials.gov</td><td>Clinical</td><td>Active and completed trials by target, indication, or drug</td></tr>
+          <tr><td>OpenFDA</td><td>Clinical</td><td>Drug adverse events, labels, and recall data</td></tr>
+          <tr><td>IEDB</td><td>Immunology</td><td>Immune epitope binding data, T/B cell assays</td></tr>
+          <tr><td>NetMHCPan / NetMHCiiPan</td><td>Immunology</td><td>MHC-I and MHC-II peptide binding predictions</td></tr>
+          <tr><td>iReceptor</td><td>Immunology</td><td>Immune receptor repertoire sequences</td></tr>
+          <tr><td>JASPAR</td><td>Epigenomics</td><td>Transcription factor binding profiles</td></tr>
+          <tr><td>REGULOMEDB</td><td>Epigenomics</td><td>Regulatory variant annotation, chromatin state evidence</td></tr>
+          <tr><td>REMAP</td><td>Epigenomics</td><td>Regulatory regions from ChIP-seq and ATAC-seq experiments</td></tr>
+          <tr><td>GTEx</td><td>Expression</td><td>Tissue-specific gene expression and eQTLs</td></tr>
+          <tr><td>UCSC Genome Browser</td><td>Expression</td><td>Genome tracks, conservation, regulatory annotations</td></tr>
+          <tr><td>PubMed</td><td>Literature</td><td>Publication records, abstracts, MeSH terms</td></tr>
+          <tr><td>arXiv / Europe PMC</td><td>Literature</td><td>Preprints and open-access primary literature</td></tr>
+          <tr><td>Semantic Scholar</td><td>Literature</td><td>Citation graph, semantic search across scientific papers</td></tr>
+          <tr><td>WORMS / IUCN</td><td>Ecology</td><td>Species taxonomy, conservation status</td></tr>
+          <tr><td>PALEOBIOLOGY</td><td>Ecology</td><td>Fossil occurrence and taxonomic data</td></tr>
+          <tr><td>Worldclim</td><td>Ecology</td><td>Global climate and environmental raster data</td></tr>
+          <tr><td>IDR / OMERO</td><td>Imaging</td><td>High-content imaging datasets, phenotypic screen results</td></tr>
+          <tr><td>ENCODE QC Metrics</td><td>Standards</td><td>QC thresholds for RNA-seq, ChIP-seq, ATAC-seq</td></tr>
+          <tr><td>GATK Best Practices</td><td>Standards</td><td>Variant calling pipeline standards, VQSR truth resources</td></tr>
+        </tbody>
+      </table>
+
+    </div>
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Posts</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-bioconductor.html">The R Ecosystem, Accessible to Everyone: Bioconductor Methods in BioMate</a><div class="meta">April 20, 2026</div></li>
+        <li><a href="blog-llm-core.html">Purpose-Built AI for Science: Coordinating Frontier Models</a><div class="meta">April 22, 2026</div></li>
+        <li><a href="blog-workflow-routing.html">Scientific Intent, Precisely Matched: BioMate's Hybrid Workflow Search</a><div class="meta">April 15, 2026</div></li>
+        <li><a href="blog-auto-discovery.html">Keeping Current: How BioMate Discovers and Validates New Analytical Tools</a><div class="meta">April 18, 2026</div></li>
+        <li><a href="blog-drug-1-target.html">Before the First Compound: Computational Target Discovery and Validation</a><div class="meta">April 22, 2026</div></li>
+        <li><a href="blog-gatk-deepvariant.html">Choosing Your Variant Caller: GATK4 vs. Deep Learning</a><div class="meta">May 3, 2026</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">Databases</span>
+        <span class="topic-chip">UniProt</span>
+        <span class="topic-chip">PDB</span>
+        <span class="topic-chip">AlphaFold</span>
+        <span class="topic-chip">ChEMBL</span>
+        <span class="topic-chip">Ensembl</span>
+        <span class="topic-chip">gnomAD</span>
+        <span class="topic-chip">GEO</span>
+        <span class="topic-chip">KEGG</span>
+        <span class="topic-chip">Reactome</span>
+        <span class="topic-chip">Knowledge Base</span>
+        <span class="topic-chip">Platform Architecture</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">Ask about any gene, variant, compound, or accession number. BioMate fetches the live data and responds.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Stay updated</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:.9rem;">New posts on workflow validation, QC, and platform updates &mdash; no spam.</p>
+      <form style="display:flex;gap:6px;flex-wrap:wrap;" onsubmit="return false;">
+        <input type="email" placeholder="you@lab.edu" style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:.84rem;" />
+        <button type="submit" style="padding:8px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:.84rem;font-weight:700;cursor:pointer;">Subscribe</button>
+      </form>
+    </div>
+  </aside>
+</div>
+
+</div><!-- /.bm-blog -->
+
+<div id="bm-foot"></div>
+<script src="illustrations.js"></script>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'blog' });</script>
+</body>
+</html>

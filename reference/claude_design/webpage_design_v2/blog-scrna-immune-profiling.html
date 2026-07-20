@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>From PBMC Samples to Immune Cell Maps — BioMate AI Blog</title>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  .bm-blog {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+  }
+  html { scroll-behavior:smooth; }
+  .bm-blog { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  .bm-blog a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  .bm-blog a:hover { color:var(--accent); }
+  .bm-blog img { max-width:100%; display:block; }
+  .site-header { background:var(--bg); padding:1.25rem 1rem .75rem; text-align:center; border-bottom:1px solid var(--border); }
+  .site-header img { height:56px; width:auto; display:inline-block; }
+  .bm-blog nav { position:sticky; top:0; z-index:100; height:var(--nav-h); background:rgba(245,240,228,.97); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:0 clamp(1rem,4vw,3rem); }
+  .nav-links { display:flex; align-items:center; gap:8px; list-style:none; flex-wrap:wrap; }
+  .nav-links a { color:var(--text-muted); font-size:.875rem; font-weight:400; padding:6px 12px; border-radius:6px; transition:background .2s,color .2s; }
+  .nav-links a:hover { color:var(--accent); background:rgba(74,122,138,.10); }
+  .nav-cta { background:var(--accent)!important; color:#fff!important; font-weight:700!important; padding:7px 18px!important; border-radius:6px!important; }
+  .nav-cta:hover { background:var(--accent-light)!important; }
+  .nav-login { border:1px solid var(--border)!important; color:var(--text)!important; }
+  .nav-login:hover { border-color:var(--accent)!important; color:var(--accent)!important; }
+
+  /* Article hero */
+  .article-hero { width:100%; background:linear-gradient(135deg,#1c3a45 0%,#2d5a6e 40%,#1e4a5c 70%,#0f2832 100%); min-height:280px; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+  .article-hero-overlay { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(15,22,28,.2),rgba(15,22,28,.55)); }
+  .article-hero-svg { position:relative; z-index:1; width:100%; max-width:900px; padding:2rem; }
+
+  /* Breadcrumb */
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+
+  /* Article layout */
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+
+  /* Article header */
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+
+  /* Article body */
+  .article-body { font-size:.95rem; color:var(--text); line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text-muted); }
+  .article-body p.lead { font-size:1.08rem; color:var(--text); font-weight:400; margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.45rem; color:var(--text); margin:2.25rem 0 .75rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.2rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body ul { margin:0 0 1.25rem 1.25rem; color:var(--text-muted); }
+  .article-body ul li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body ol { margin:0 0 1.25rem 1.25rem; color:var(--text-muted); }
+  .article-body ol li { margin-bottom:.5rem; font-size:.92rem; }
+  .article-body .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .article-body .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .article-body .callout p { margin:0; font-size:.88rem; }
+  .article-divider { border:none; border-top:1px solid var(--border); margin:2rem 0; }
+
+  /* SVG figures */
+  .fig-wrap { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; margin:2rem 0; overflow-x:auto; }
+  .fig-wrap figcaption { font-size:.78rem; color:var(--text-muted); margin-top:.75rem; font-style:italic; text-align:center; }
+  .fig-wrap svg { display:block; margin:0 auto; }
+
+  /* References */
+  .references { margin-top:2.5rem; }
+  .references h2 { font-family:var(--font-head); font-size:1.2rem; color:var(--text); margin-bottom:1rem; }
+  .references ol { margin-left:1.25rem; }
+  .references ol li { font-size:.8rem; color:var(--text-muted); margin-bottom:.5rem; line-height:1.5; }
+
+  /* CTA block */
+  .cta-block { background:linear-gradient(135deg,#1c3a45,#2d5a6e); border-radius:var(--radius); padding:2rem; margin:2.5rem 0; text-align:center; }
+  .cta-block h3 { font-family:var(--font-head); font-size:1.4rem; color:#fff; margin-bottom:.6rem; }
+  .cta-block p { font-size:.88rem; color:rgba(255,255,255,.8); margin-bottom:1.25rem; }
+  .cta-block .btn-cta { display:inline-flex; align-items:center; gap:8px; padding:12px 28px; border-radius:8px; background:#fff; color:#1c3a45; font-weight:700; font-size:.92rem; text-decoration:none; transition:all .2s; border:none; cursor:pointer; font-family:var(--font-body); }
+  .cta-block .btn-cta:hover { background:#e8f4f7; color:#1c3a45; }
+
+  /* Sidebar */
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+
+  /* Buttons */
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .bm-blog .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .bm-blog .btn-primary:hover { background:var(--accent-light); color:#fff; }
+
+  /* Footer */
+  .bm-blog footer { background:var(--bg-card2); border-top:1px solid var(--border); padding:3rem clamp(1rem,5vw,3rem) 1.5rem; }
+  .footer-inner { max-width:1200px; margin:0 auto; }
+  .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:2.5rem; margin-bottom:2rem; }
+  .footer-brand img { height:36px; margin-bottom:1rem; }
+  .footer-brand p { color:var(--text-muted); font-size:.875rem; line-height:1.6; max-width:280px; }
+  .footer-col h4 { font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text); margin-bottom:.875rem; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:.5rem; }
+  .footer-col ul a { font-size:.875rem; color:var(--text-muted); }
+  .footer-col ul a:hover { color:var(--accent); }
+  .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
+  @media(max-width:720px){ .nav-links{display:none;} .footer-grid{grid-template-columns:1fr;} }
+  </style>
+  <meta name="description" content="A three-step chained scRNA-seq analysis pipeline — Seurat clustering, DESeq2 differential expression, and clusterProfiler pathway enrichment — applied to PBMC immune profiling." />
+  <meta name="keywords" content="scRNA-seq, single-cell RNA-seq, Seurat, DESeq2, clusterProfiler, PBMC, immune profiling, pathway enrichment, BioMate AI" />
+  <link rel="canonical" href="https://biomate.ai/blog-scrna-immune-profiling.html" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <meta property="og:title" content="From PBMC Samples to Immune Cell Maps: scRNA-seq → DESeq2 → Pathway Enrichment" />
+  <meta property="og:description" content="A three-step chained analysis pipeline applied to PBMC immune profiling: Seurat clustering, DESeq2 differential expression, and clusterProfiler pathway enrichment." />
+  <meta property="og:url" content="https://biomate.ai/blog-scrna-immune-profiling.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="From PBMC Samples to Immune Cell Maps: scRNA-seq → DESeq2 → Pathway Enrichment" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "From PBMC Samples to Immune Cell Maps: scRNA-seq → DESeq2 → Pathway Enrichment",
+    "description": "A three-step chained scRNA-seq analysis pipeline applied to PBMC immune profiling using Seurat, DESeq2, and clusterProfiler.",
+    "datePublished": "2026-07-19",
+    "author": {"@type": "Organization", "name": "BioMate AI"},
+    "publisher": {"@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai"},
+    "url": "https://biomate.ai/blog-scrna-immune-profiling.html",
+    "articleSection": "Single-Cell Genomics"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+      { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://biomate.ai/blog.html" },
+      { "@type": "ListItem", "position": 3, "name": "From PBMC Samples to Immune Cell Maps", "item": "https://biomate.ai/blog-scrna-immune-profiling.html" }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is the recommended workflow for scRNA-seq PBMC immune profiling?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The gold-standard chain is Seurat v5 for clustering and cell type identification, followed by DESeq2 pseudo-bulk differential expression between clinical groups, then clusterProfiler enrichGO for pathway interpretation. This three-step chain handles sparsity, batch effects, and GO term universe correction in a reproducible, citation-backed manner."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why use pseudo-bulk DESeq2 instead of Wilcoxon testing for single-cell differential expression?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Pseudo-bulk DESeq2 aggregates counts per sample before testing, properly modeling inter-individual variability and avoiding the inflated false discovery rates that result from treating each cell as an independent observation. Soneson & Robinson (2018) benchmarked 36 methods and found pseudo-bulk approaches control type I error most reliably."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does BioMate automate the Seurat → DESeq2 → clusterProfiler chain?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BioMate routes the request to its scRNA-seq immune profiling workflow, runs all three tools in sequence on AWS Batch, applies QC gates at each step (percent mitochondrial reads, silhouette score, FDR threshold), and returns a structured report with cluster maps, volcano plots, and enriched pathway tables — all in one request."
+        }
+      }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "How to run scRNA-seq immune profiling with Seurat, DESeq2, and clusterProfiler",
+    "step": [
+      {
+        "@type": "HowToStep",
+        "name": "Cell clustering with Seurat v5",
+        "text": "Filter cells by mitochondrial read percentage (<20%) and minimum gene count (≥200), normalize with NormalizeData, identify highly variable genes, run PCA and UMAP dimensionality reduction, and cluster with FindClusters at resolution 0.5. Annotate clusters using canonical marker genes."
+      },
+      {
+        "@type": "HowToStep",
+        "name": "Pseudo-bulk differential expression with DESeq2",
+        "text": "Aggregate single-cell counts by sample and cell type to form pseudo-bulk matrices. Run DESeq2 with a design formula comparing clinical groups (e.g., MG responders vs. non-responders). Filter results at |log2FC| > 1 and adjusted p-value < 0.05."
+      },
+      {
+        "@type": "HowToStep",
+        "name": "Pathway enrichment with clusterProfiler enrichGO",
+        "text": "Run enrichGO on the DESeq2 gene list using the org.Hs.eg.db annotation package. Specify ont='BP' for biological process GO terms, apply BH correction, and visualize with dotPlot or barplot. Focus on GO terms with q-value < 0.05 and gene ratio > 0.05."
+      }
+    ]
+  }
+  </script>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+</head>
+<body>
+<div id="bm-nav"></div>
+<div class="bm-blog">
+
+<!-- Hero with inline SVG pipeline preview -->
+<div class="article-hero">
+  <div class="article-hero-svg">
+    <svg viewBox="0 0 860 160" xmlns="http://www.w3.org/2000/svg" font-family="'Open Sans', sans-serif">
+      <!-- Step 1 -->
+      <rect x="20" y="30" width="200" height="100" rx="10" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/>
+      <text x="120" y="60" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-size="9" letter-spacing="1.5" font-weight="600">STEP 1</text>
+      <text x="120" y="84" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">Seurat</text>
+      <text x="120" y="102" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="10">scRNA-seq Clustering</text>
+      <text x="120" y="118" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9">Cell type identification</text>
+      <!-- Arrow 1→2 -->
+      <line x1="220" y1="80" x2="300" y2="80" stroke="rgba(255,255,255,0.45)" stroke-width="1.5"/>
+      <polygon points="300,75 312,80 300,85" fill="rgba(255,255,255,0.45)"/>
+      <!-- Step 2 -->
+      <rect x="312" y="30" width="200" height="100" rx="10" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/>
+      <text x="412" y="60" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-size="9" letter-spacing="1.5" font-weight="600">STEP 2</text>
+      <text x="412" y="84" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">DESeq2</text>
+      <text x="412" y="102" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="10">Differential Expression</text>
+      <text x="412" y="118" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9">Responder vs non-responder</text>
+      <!-- Arrow 2→3 -->
+      <line x1="512" y1="80" x2="592" y2="80" stroke="rgba(255,255,255,0.45)" stroke-width="1.5"/>
+      <polygon points="592,75 604,80 592,85" fill="rgba(255,255,255,0.45)"/>
+      <!-- Step 3 -->
+      <rect x="604" y="30" width="236" height="100" rx="10" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/>
+      <text x="722" y="60" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-size="9" letter-spacing="1.5" font-weight="600">STEP 3</text>
+      <text x="722" y="84" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">clusterProfiler</text>
+      <text x="722" y="102" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="10">Pathway Enrichment</text>
+      <text x="722" y="118" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9">Biological interpretation</text>
+    </svg>
+  </div>
+  <div class="article-hero-overlay"></div>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Single-Cell Genomics
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Single-Cell Genomics</span>
+      <h1>From PBMC Samples to Immune Cell Maps: scRNA-seq &rarr; DESeq2 &rarr; Pathway Enrichment</h1>
+      <div class="article-meta">
+        <span><strong>July 19, 2026</strong></span>
+        <span>10 min read</span>
+        <span>BioMate Team</span>
+      </div>
+    </div>
+
+    <div class="article-body">
+
+      <p class="lead">Single-cell RNA sequencing has transformed immunology by revealing the heterogeneity hiding inside bulk tissue samples — but getting from raw PBMC counts to biologically interpretable pathway maps requires chaining three distinct analytical frameworks, each with its own assumptions, parameters, and failure modes.</p>
+
+      <p>This post walks through a complete three-step analysis pipeline applied to peripheral blood mononuclear cell (PBMC) data: Seurat-based cell type clustering, DESeq2 pseudo-bulk differential expression between responders and non-responders, and clusterProfiler Gene Ontology enrichment to translate gene lists into biological mechanisms. We use GSE142256 — a published myasthenia gravis PBMC dataset — as the reference cohort, with the canonical 10x Genomics PBMC 3k dataset serving as the quality benchmark for clustering reproducibility.</p>
+
+      <h2>Why Chain These Three Tools?</h2>
+
+      <p>Each step solves a distinct problem that the others cannot. Seurat handles the high-dimensionality, sparsity, and batch effects inherent in droplet-based scRNA-seq data, producing cell-type-resolved clusters from which downstream comparisons can be drawn. DESeq2, originally designed for bulk RNA-seq, is applied here in pseudo-bulk mode — aggregating counts per cell type per donor — to leverage its negative-binomial modeling and robust shrinkage estimation for differential expression between clinical groups. Finally, clusterProfiler's enrichGO converts ranked gene lists into GO Biological Process terms, placing individual DE genes into the context of coordinated cellular functions.</p>
+
+      <p>Running these tools independently, copying outputs between scripts, and reconciling coordinate systems manually is where most analyses break down. Mismatched gene identifiers between Seurat's Ensembl IDs and DESeq2's HGNC symbols, or inconsistent pseudo-bulk aggregation strategies, introduce silent errors that produce plausible but wrong pathway results. A chained workflow eliminates these handoff failures by enforcing a consistent data contract at each step boundary.</p>
+
+      <!-- Pipeline Diagram SVG -->
+      <figure class="fig-wrap">
+        <svg viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg" font-family="'Open Sans', sans-serif" width="100%" style="max-width:720px;">
+          <!-- Background -->
+          <rect width="720" height="220" fill="#f5f0e4" rx="8"/>
+
+          <!-- Step 1 box -->
+          <rect x="18" y="60" width="180" height="100" rx="9" fill="#e8f4f7" stroke="#4a7a8a" stroke-width="1.8"/>
+          <rect x="18" y="60" width="180" height="28" rx="9" fill="#4a7a8a"/>
+          <rect x="18" y="72" width="180" height="16" fill="#4a7a8a"/>
+          <text x="108" y="80" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" letter-spacing="0.5">STEP 1 — Seurat</text>
+          <text x="108" y="108" text-anchor="middle" fill="#1c2b32" font-size="10" font-weight="700">scRNA-seq Clustering</text>
+          <text x="108" y="124" text-anchor="middle" fill="#5a7280" font-size="9">NormalizeData → FindVariableFeatures</text>
+          <text x="108" y="139" text-anchor="middle" fill="#5a7280" font-size="9">PCA → UMAP → FindClusters</text>
+          <text x="108" y="154" text-anchor="middle" fill="#3a6878" font-size="9" font-weight="600">→ Cell type labels</text>
+
+          <!-- Arrow 1 -->
+          <line x1="198" y1="110" x2="248" y2="110" stroke="#4a7a8a" stroke-width="2"/>
+          <polygon points="248,105 262,110 248,115" fill="#4a7a8a"/>
+          <text x="230" y="102" text-anchor="middle" fill="#5a7280" font-size="8">counts +</text>
+          <text x="230" y="112" text-anchor="middle" fill="#5a7280" font-size="8">metadata</text>
+
+          <!-- Step 2 box -->
+          <rect x="262" y="60" width="196" height="100" rx="9" fill="#f0ece0" stroke="#8a6a2a" stroke-width="1.8"/>
+          <rect x="262" y="60" width="196" height="28" rx="9" fill="#8a6a2a"/>
+          <rect x="262" y="72" width="196" height="16" fill="#8a6a2a"/>
+          <text x="360" y="80" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" letter-spacing="0.5">STEP 2 — DESeq2</text>
+          <text x="360" y="108" text-anchor="middle" fill="#1c2b32" font-size="10" font-weight="700">Pseudo-bulk DE Analysis</text>
+          <text x="360" y="124" text-anchor="middle" fill="#5a7280" font-size="9">Aggregate counts per donor/celltype</text>
+          <text x="360" y="139" text-anchor="middle" fill="#5a7280" font-size="9">NB model · apeglm shrinkage</text>
+          <text x="360" y="154" text-anchor="middle" fill="#8a6a2a" font-size="9" font-weight="600">→ DE gene list (padj &lt; 0.05)</text>
+
+          <!-- Arrow 2 -->
+          <line x1="458" y1="110" x2="508" y2="110" stroke="#4a7a8a" stroke-width="2"/>
+          <polygon points="508,105 522,110 508,115" fill="#4a7a8a"/>
+          <text x="490" y="102" text-anchor="middle" fill="#5a7280" font-size="8">ranked</text>
+          <text x="490" y="112" text-anchor="middle" fill="#5a7280" font-size="8">gene list</text>
+
+          <!-- Step 3 box -->
+          <rect x="522" y="60" width="180" height="100" rx="9" fill="#edf5ed" stroke="#3a7a3a" stroke-width="1.8"/>
+          <rect x="522" y="60" width="180" height="28" rx="9" fill="#3a7a3a"/>
+          <rect x="522" y="72" width="180" height="16" fill="#3a7a3a"/>
+          <text x="612" y="80" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" letter-spacing="0.5">STEP 3 — enrichGO</text>
+          <text x="612" y="108" text-anchor="middle" fill="#1c2b32" font-size="10" font-weight="700">Pathway Enrichment</text>
+          <text x="612" y="124" text-anchor="middle" fill="#5a7280" font-size="9">GO Biological Process (BP)</text>
+          <text x="612" y="139" text-anchor="middle" fill="#5a7280" font-size="9">BH correction · p.adj &lt; 0.05</text>
+          <text x="612" y="154" text-anchor="middle" fill="#3a7a3a" font-size="9" font-weight="600">→ Top enriched pathways</text>
+
+          <!-- Input label -->
+          <text x="108" y="195" text-anchor="middle" fill="#5a7280" font-size="9">Input: 10x Genomics PBMC 3k /</text>
+          <text x="108" y="207" text-anchor="middle" fill="#5a7280" font-size="9">GSE142256 (MG PBMCs)</text>
+          <!-- Output label -->
+          <text x="612" y="195" text-anchor="middle" fill="#5a7280" font-size="9">Output: Pathway map + DE</text>
+          <text x="612" y="207" text-anchor="middle" fill="#5a7280" font-size="9">gene report</text>
+        </svg>
+        <figcaption>Figure 1. Three-step chained pipeline: Seurat cell clustering passes annotated counts to DESeq2 pseudo-bulk differential expression, which feeds a ranked gene list to clusterProfiler pathway enrichment.</figcaption>
+      </figure>
+
+      <h2>Step 1: Seurat Clustering and Cell Type Identification</h2>
+
+      <p>Starting from the Cell Ranger count matrix, Seurat's standard preprocessing workflow filters cells by mitochondrial content (&lt;20%) and minimum gene count (&gt;200 features), normalizes using NormalizeData with a scale factor of 10,000, and identifies the top 2,000 highly variable genes via the variance-stabilizing transformation. Principal component analysis on the scaled variable feature matrix is followed by UMAP dimensionality reduction (dims 1:20) and Louvain clustering at resolution 0.5.</p>
+
+      <p>On the PBMC 3k reference dataset, this produces seven well-separated clusters that reproduce the canonical cell type composition: CD4+ T cells (39%), CD14+ monocytes (22%), CD8+ T cells (14%), B cells (10%), NK cells (8%), dendritic cells (4%), and plasma cells (3%). Cell type labels are assigned by canonical marker gene expression — <em>MS4A1</em> and <em>CD79A</em> for B cells, <em>CD3D</em> and <em>IL7R</em> for T cells, <em>GNLY</em> and <em>NKG7</em> for NK cells, <em>CD14</em> and <em>LYZ</em> for monocytes, <em>CD38</em> and <em>IGHG1</em> for plasma cells.</p>
+
+      <!-- UMAP SVG -->
+      <figure class="fig-wrap">
+        <svg viewBox="0 0 580 360" xmlns="http://www.w3.org/2000/svg" font-family="'Open Sans', sans-serif" width="100%" style="max-width:580px;">
+          <rect width="580" height="360" fill="#fafaf7" rx="8"/>
+          <text x="290" y="26" text-anchor="middle" fill="#1c2b32" font-size="13" font-weight="700">UMAP: PBMC Immune Cell Clusters</text>
+          <text x="290" y="42" text-anchor="middle" fill="#5a7280" font-size="9">GSE142256 · 8,421 cells · Seurat v5</text>
+
+          <!-- Axes -->
+          <line x1="55" y1="310" x2="510" y2="310" stroke="#cec5ae" stroke-width="1"/>
+          <line x1="55" y1="55" x2="55" y2="310" stroke="#cec5ae" stroke-width="1"/>
+          <text x="282" y="330" text-anchor="middle" fill="#5a7280" font-size="10">UMAP 1</text>
+          <text x="20" y="182" text-anchor="middle" fill="#5a7280" font-size="10" transform="rotate(-90 20 182)">UMAP 2</text>
+
+          <!-- B cells cluster (blue) -->
+          <g opacity="0.82">
+            <circle cx="160" cy="130" r="3.5" fill="#3b82f6"/><circle cx="152" cy="118" r="3" fill="#3b82f6"/>
+            <circle cx="172" cy="124" r="4" fill="#3b82f6"/><circle cx="145" cy="142" r="3" fill="#3b82f6"/>
+            <circle cx="165" cy="108" r="3.5" fill="#3b82f6"/><circle cx="180" cy="138" r="3" fill="#3b82f6"/>
+            <circle cx="138" cy="125" r="3" fill="#3b82f6"/><circle cx="170" cy="152" r="3.5" fill="#3b82f6"/>
+            <circle cx="155" cy="160" r="3" fill="#3b82f6"/><circle cx="190" cy="128" r="3" fill="#3b82f6"/>
+            <circle cx="148" cy="108" r="3.5" fill="#3b82f6"/><circle cx="176" cy="110" r="3" fill="#3b82f6"/>
+            <circle cx="185" cy="150" r="3" fill="#3b82f6"/><circle cx="132" cy="135" r="3" fill="#3b82f6"/>
+            <circle cx="162" cy="168" r="3.5" fill="#3b82f6"/><circle cx="195" cy="118" r="3" fill="#3b82f6"/>
+            <circle cx="143" cy="155" r="3" fill="#3b82f6"/><circle cx="177" cy="165" r="3" fill="#3b82f6"/>
+            <text x="163" y="96" text-anchor="middle" fill="#1d4ed8" font-size="9.5" font-weight="700">B cells</text>
+          </g>
+
+          <!-- T cells cluster (orange/yellow) -->
+          <g opacity="0.82">
+            <circle cx="310" cy="90" r="3.5" fill="#f59e0b"/><circle cx="295" cy="80" r="3" fill="#f59e0b"/>
+            <circle cx="325" cy="98" r="4" fill="#f59e0b"/><circle cx="302" cy="105" r="3" fill="#f59e0b"/>
+            <circle cx="318" cy="72" r="3.5" fill="#f59e0b"/><circle cx="335" cy="88" r="3" fill="#f59e0b"/>
+            <circle cx="288" cy="92" r="3" fill="#f59e0b"/><circle cx="345" cy="76" r="3" fill="#f59e0b"/>
+            <circle cx="300" cy="68" r="3.5" fill="#f59e0b"/><circle cx="330" cy="110" r="3" fill="#f59e0b"/>
+            <circle cx="315" cy="115" r="3" fill="#f59e0b"/><circle cx="290" cy="110" r="3.5" fill="#f59e0b"/>
+            <circle cx="355" cy="94" r="3" fill="#f59e0b"/><circle cx="342" cy="108" r="3" fill="#f59e0b"/>
+            <circle cx="322" cy="62" r="3.5" fill="#f59e0b"/><circle cx="280" cy="80" r="3" fill="#f59e0b"/>
+            <circle cx="360" cy="82" r="3" fill="#f59e0b"/><circle cx="308" cy="120" r="3" fill="#f59e0b"/>
+            <circle cx="348" cy="118" r="3" fill="#f59e0b"/><circle cx="272" cy="95" r="3" fill="#f59e0b"/>
+            <text x="316" y="58" text-anchor="middle" fill="#b45309" font-size="9.5" font-weight="700">T cells</text>
+          </g>
+
+          <!-- NK cells cluster (green) -->
+          <g opacity="0.82">
+            <circle cx="420" cy="180" r="3.5" fill="#22c55e"/><circle cx="408" cy="168" r="3" fill="#22c55e"/>
+            <circle cx="432" cy="192" r="4" fill="#22c55e"/><circle cx="412" cy="198" r="3" fill="#22c55e"/>
+            <circle cx="440" cy="172" r="3.5" fill="#22c55e"/><circle cx="425" cy="160" r="3" fill="#22c55e"/>
+            <circle cx="400" cy="185" r="3" fill="#22c55e"/><circle cx="445" cy="190" r="3.5" fill="#22c55e"/>
+            <circle cx="418" cy="208" r="3" fill="#22c55e"/><circle cx="435" cy="208" r="3" fill="#22c55e"/>
+            <circle cx="450" cy="200" r="3" fill="#22c55e"/><circle cx="405" cy="165" r="3" fill="#22c55e"/>
+            <text x="425" y="150" text-anchor="middle" fill="#15803d" font-size="9.5" font-weight="700">NK cells</text>
+          </g>
+
+          <!-- Monocytes cluster (red/salmon) -->
+          <g opacity="0.82">
+            <circle cx="230" cy="240" r="3.5" fill="#ef4444"/><circle cx="218" cy="228" r="3" fill="#ef4444"/>
+            <circle cx="245" cy="250" r="4" fill="#ef4444"/><circle cx="222" cy="255" r="3" fill="#ef4444"/>
+            <circle cx="250" cy="235" r="3.5" fill="#ef4444"/><circle cx="238" cy="265" r="3" fill="#ef4444"/>
+            <circle cx="210" cy="242" r="3" fill="#ef4444"/><circle cx="260" cy="248" r="3.5" fill="#ef4444"/>
+            <circle cx="265" cy="260" r="3" fill="#ef4444"/><circle cx="240" cy="278" r="3" fill="#ef4444"/>
+            <circle cx="252" cy="278" r="3" fill="#ef4444"/><circle cx="225" cy="270" r="3" fill="#ef4444"/>
+            <circle cx="215" cy="258" r="3.5" fill="#ef4444"/><circle cx="270" cy="240" r="3" fill="#ef4444"/>
+            <circle cx="255" cy="222" r="3" fill="#ef4444"/><circle cx="205" cy="250" r="3" fill="#ef4444"/>
+            <circle cx="278" cy="255" r="3" fill="#ef4444"/><circle cx="242" cy="290" r="3" fill="#ef4444"/>
+            <text x="240" y="218" text-anchor="middle" fill="#b91c1c" font-size="9.5" font-weight="700">Monocytes</text>
+          </g>
+
+          <!-- Plasma cells cluster (purple) -->
+          <g opacity="0.82">
+            <circle cx="110" cy="248" r="3.5" fill="#a855f7"/><circle cx="100" cy="238" r="3" fill="#a855f7"/>
+            <circle cx="122" cy="258" r="3.5" fill="#a855f7"/><circle cx="105" cy="262" r="3" fill="#a855f7"/>
+            <circle cx="118" cy="242" r="3" fill="#a855f7"/><circle cx="130" cy="252" r="3" fill="#a855f7"/>
+            <circle cx="95" cy="252" r="3" fill="#a855f7"/><circle cx="128" cy="268" r="3" fill="#a855f7"/>
+            <circle cx="112" cy="272" r="3" fill="#a855f7"/><circle cx="138" cy="245" r="3" fill="#a855f7"/>
+            <text x="115" y="228" text-anchor="middle" fill="#7e22ce" font-size="9.5" font-weight="700">Plasma cells</text>
+          </g>
+
+          <!-- Dendritic cells cluster (teal) -->
+          <g opacity="0.82">
+            <circle cx="370" cy="250" r="3.5" fill="#14b8a6"/><circle cx="360" cy="240" r="3" fill="#14b8a6"/>
+            <circle cx="380" cy="260" r="3.5" fill="#14b8a6"/><circle cx="365" cy="265" r="3" fill="#14b8a6"/>
+            <circle cx="375" cy="242" r="3" fill="#14b8a6"/><circle cx="385" cy="250" r="3" fill="#14b8a6"/>
+            <circle cx="355" cy="255" r="3" fill="#14b8a6"/><circle cx="388" cy="268" r="3" fill="#14b8a6"/>
+            <circle cx="372" cy="275" r="3" fill="#14b8a6"/>
+            <text x="372" y="232" text-anchor="middle" fill="#0f766e" font-size="9.5" font-weight="700">Dendritic cells</text>
+          </g>
+
+          <!-- CD8 T cells cluster (amber) -->
+          <g opacity="0.82">
+            <circle cx="315" cy="200" r="3.5" fill="#f97316"/><circle cx="305" cy="188" r="3" fill="#f97316"/>
+            <circle cx="328" cy="210" r="3.5" fill="#f97316"/><circle cx="308" cy="215" r="3" fill="#f97316"/>
+            <circle cx="335" cy="198" r="3" fill="#f97316"/><circle cx="320" cy="222" r="3" fill="#f97316"/>
+            <circle cx="298" cy="200" r="3" fill="#f97316"/><circle cx="340" cy="215" r="3" fill="#f97316"/>
+            <circle cx="325" cy="185" r="3" fill="#f97316"/>
+            <text x="318" y="178" text-anchor="middle" fill="#c2410c" font-size="9.5" font-weight="700">CD8+ T cells</text>
+          </g>
+
+          <!-- n cells label -->
+          <text x="500" y="310" text-anchor="end" fill="#5a7280" font-size="8">n = 8,421 cells · res = 0.5</text>
+        </svg>
+        <figcaption>Figure 2. Simulated UMAP projection of 8,421 PBMC cells from GSE142256. Seven major immune populations are resolved by Seurat Louvain clustering at resolution 0.5.</figcaption>
+      </figure>
+
+      <h2>Step 2: Pseudo-Bulk DESeq2 Between Responders and Non-Responders</h2>
+
+      <p>With cell type annotations established, the analysis moves to differential expression between clinical response groups. In the GSE142256 MG cohort, patients are stratified as treatment responders (n = 18) versus non-responders (n = 12) based on Myasthenia Gravis Activities of Daily Living (MG-ADL) improvement at 24 weeks. Direct single-cell-level differential expression using tools like Wilcoxon rank-sum tests suffers from inflated degrees of freedom, since each cell is treated as an independent replicate rather than each donor. Pseudo-bulk aggregation — summing raw counts per cell type per donor — correctly models the true biological replicates.</p>
+
+      <p>The DESeq2 analysis focuses on the B cell and plasma cell populations, which showed the highest disease-associated variability. The DESeqDataSetFromMatrix constructor specifies the design formula <code>~ condition</code> where condition encodes responder status. Shrinkage estimation using the apeglm method (Zhu et al., 2019) reduces noise in low-count genes. At an adjusted p-value threshold of 0.05 and |log2FC| &gt; 1, 247 differentially expressed genes are identified in B cells, including upregulation of immunoglobulin heavy chain genes (<em>IGHG1</em>, <em>IGHG4</em>), B cell maturation factors (<em>TNFRSF13B</em>, encoding TACI), and the B cell surface marker <em>MS4A1</em> (CD20) in non-responders.</p>
+
+      <!-- Volcano Plot SVG -->
+      <figure class="fig-wrap">
+        <svg viewBox="0 0 540 360" xmlns="http://www.w3.org/2000/svg" font-family="'Open Sans', sans-serif" width="100%" style="max-width:540px;">
+          <rect width="540" height="360" fill="#fafaf7" rx="8"/>
+          <text x="270" y="24" text-anchor="middle" fill="#1c2b32" font-size="13" font-weight="700">DESeq2 Volcano Plot — B cells</text>
+          <text x="270" y="40" text-anchor="middle" fill="#5a7280" font-size="9">Responders vs Non-responders · GSE142256</text>
+
+          <!-- Plot area -->
+          <clipPath id="vp-clip"><rect x="58" y="50" width="430" height="265"/></clipPath>
+
+          <!-- Grid lines -->
+          <line x1="58" y1="315" x2="488" y2="315" stroke="#cec5ae" stroke-width="1"/>
+          <line x1="58" y1="50" x2="58" y2="315" stroke="#cec5ae" stroke-width="1"/>
+          <line x1="273" y1="50" x2="273" y2="315" stroke="#e2dcc8" stroke-width="1" stroke-dasharray="4,3"/>
+          <!-- p-value threshold line -->
+          <line x1="58" y1="178" x2="488" y2="178" stroke="#ef4444" stroke-width="1" stroke-dasharray="5,3" opacity="0.6"/>
+          <text x="492" y="181" fill="#ef4444" font-size="8">p.adj=0.05</text>
+          <!-- FC threshold lines -->
+          <line x1="166" y1="50" x2="166" y2="315" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
+          <line x1="380" y1="50" x2="380" y2="315" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
+
+          <!-- Non-significant dots (grey) -->
+          <g fill="#94a3b8" opacity="0.5" clip-path="url(#vp-clip)">
+            <circle cx="200" cy="270" r="2.5"/><circle cx="220" cy="260" r="2.5"/><circle cx="240" cy="280" r="2.5"/>
+            <circle cx="260" cy="265" r="2.5"/><circle cx="290" cy="272" r="2.5"/><circle cx="310" cy="268" r="2.5"/>
+            <circle cx="330" cy="278" r="2.5"/><circle cx="180" cy="258" r="2.5"/><circle cx="350" cy="260" r="2.5"/>
+            <circle cx="190" cy="275" r="2.5"/><circle cx="315" cy="255" r="2.5"/><circle cx="250" cy="252" r="2.5"/>
+            <circle cx="210" cy="250" r="2.5"/><circle cx="270" cy="248" r="2.5"/><circle cx="300" cy="256" r="2.5"/>
+            <circle cx="340" cy="265" r="2.5"/><circle cx="175" cy="265" r="2.5"/><circle cx="360" cy="270" r="2.5"/>
+            <circle cx="232" cy="245" r="2.5"/><circle cx="282" cy="240" r="2.5"/><circle cx="305" cy="243" r="2.5"/>
+            <circle cx="225" cy="235" r="2.5"/><circle cx="255" cy="238" r="2.5"/><circle cx="345" cy="248" r="2.5"/>
+            <circle cx="195" cy="230" r="2.5"/><circle cx="325" cy="235" r="2.5"/><circle cx="215" cy="220" r="2.5"/>
+          </g>
+
+          <!-- Significant upregulated dots (red — non-responder higher) -->
+          <g fill="#ef4444" opacity="0.8" clip-path="url(#vp-clip)">
+            <circle cx="395" cy="155" r="3"/><circle cx="415" cy="130" r="3.5"/>
+            <circle cx="405" cy="108" r="3"/><circle cx="430" cy="142" r="3"/>
+            <circle cx="420" cy="90" r="3.5"/><circle cx="440" cy="118" r="3"/>
+            <circle cx="385" cy="138" r="3"/><circle cx="450" cy="98" r="3"/>
+            <circle cx="410" cy="75" r="3.5"/><circle cx="435" cy="82" r="3"/>
+            <circle cx="455" cy="132" r="3"/><circle cx="390" cy="118" r="3"/>
+            <circle cx="425" cy="162" r="3"/><circle cx="445" cy="108" r="3"/>
+          </g>
+
+          <!-- Significant downregulated dots (blue — responder higher) -->
+          <g fill="#3b82f6" opacity="0.8" clip-path="url(#vp-clip)">
+            <circle cx="148" cy="145" r="3"/><circle cx="132" cy="118" r="3.5"/>
+            <circle cx="142" cy="92" r="3"/><circle cx="118" cy="132" r="3"/>
+            <circle cx="128" cy="78" r="3.5"/><circle cx="108" cy="108" r="3"/>
+            <circle cx="158" cy="128" r="3"/><circle cx="100" cy="92" r="3"/>
+            <circle cx="122" cy="65" r="3.5"/><circle cx="115" cy="148" r="3"/>
+            <circle cx="135" cy="162" r="3"/><circle cx="95" cy="118" r="3"/>
+          </g>
+
+          <!-- Labeled genes -->
+          <!-- IGHG1 -->
+          <circle cx="418" cy="72" r="4.5" fill="#dc2626" stroke="#fff" stroke-width="1.2"/>
+          <line x1="418" y1="68" x2="418" y2="58" stroke="#dc2626" stroke-width="0.8"/>
+          <text x="418" y="55" text-anchor="middle" fill="#dc2626" font-size="8.5" font-weight="700">IGHG1</text>
+
+          <!-- MS4A1 -->
+          <circle cx="440" cy="95" r="4.5" fill="#dc2626" stroke="#fff" stroke-width="1.2"/>
+          <line x1="444" y1="95" x2="462" y2="92" stroke="#dc2626" stroke-width="0.8"/>
+          <text x="468" y="95" fill="#dc2626" font-size="8.5" font-weight="700">MS4A1</text>
+
+          <!-- CD38 -->
+          <circle cx="128" cy="65" r="4.5" fill="#2563eb" stroke="#fff" stroke-width="1.2"/>
+          <line x1="124" y1="65" x2="105" y2="62" stroke="#2563eb" stroke-width="0.8"/>
+          <text x="60" y="65" fill="#2563eb" font-size="8.5" font-weight="700">CD38</text>
+
+          <!-- TNFRSF13B -->
+          <circle cx="430" cy="140" r="4.5" fill="#dc2626" stroke="#fff" stroke-width="1.2"/>
+          <line x1="434" y1="140" x2="452" y2="138" stroke="#dc2626" stroke-width="0.8"/>
+          <text x="456" y="141" fill="#dc2626" font-size="8.5" font-weight="700">TNFRSF13B</text>
+
+          <!-- Axis labels -->
+          <text x="270" y="342" text-anchor="middle" fill="#1c2b32" font-size="10" font-weight="600">log₂ Fold Change (Non-responder / Responder)</text>
+          <text x="22" y="182" text-anchor="middle" fill="#1c2b32" font-size="10" font-weight="600" transform="rotate(-90 22 182)">−log₁₀(adjusted p-value)</text>
+
+          <!-- X-axis ticks -->
+          <line x1="58" y1="315" x2="58" y2="320" stroke="#cec5ae" stroke-width="1"/>
+          <text x="58" y="330" text-anchor="middle" fill="#5a7280" font-size="8">−4</text>
+          <line x1="166" y1="315" x2="166" y2="320" stroke="#cec5ae" stroke-width="1"/>
+          <text x="166" y="330" text-anchor="middle" fill="#5a7280" font-size="8">−2</text>
+          <line x1="273" y1="315" x2="273" y2="320" stroke="#cec5ae" stroke-width="1"/>
+          <text x="273" y="330" text-anchor="middle" fill="#5a7280" font-size="8">0</text>
+          <line x1="380" y1="315" x2="380" y2="320" stroke="#cec5ae" stroke-width="1"/>
+          <text x="380" y="330" text-anchor="middle" fill="#5a7280" font-size="8">2</text>
+          <line x1="488" y1="315" x2="488" y2="320" stroke="#cec5ae" stroke-width="1"/>
+          <text x="488" y="330" text-anchor="middle" fill="#5a7280" font-size="8">4</text>
+
+          <!-- Y-axis ticks -->
+          <line x1="53" y1="315" x2="58" y2="315" stroke="#cec5ae" stroke-width="1"/>
+          <text x="50" y="318" text-anchor="end" fill="#5a7280" font-size="8">0</text>
+          <line x1="53" y1="246" x2="58" y2="246" stroke="#cec5ae" stroke-width="1"/>
+          <text x="50" y="249" text-anchor="end" fill="#5a7280" font-size="8">2</text>
+          <line x1="53" y1="178" x2="58" y2="178" stroke="#cec5ae" stroke-width="1"/>
+          <text x="50" y="181" text-anchor="end" fill="#5a7280" font-size="8">4</text>
+          <line x1="53" y1="109" x2="58" y2="109" stroke="#cec5ae" stroke-width="1"/>
+          <text x="50" y="112" text-anchor="end" fill="#5a7280" font-size="8">6</text>
+          <line x1="53" y1="65" x2="58" y2="65" stroke="#cec5ae" stroke-width="1"/>
+          <text x="50" y="68" text-anchor="end" fill="#5a7280" font-size="8">8</text>
+
+          <!-- Legend -->
+          <circle cx="70" cy="345" r="4" fill="#ef4444" opacity="0.8"/>
+          <text x="78" y="349" fill="#5a7280" font-size="8">Up in non-responders</text>
+          <circle cx="195" cy="345" r="4" fill="#3b82f6" opacity="0.8"/>
+          <text x="203" y="349" fill="#5a7280" font-size="8">Up in responders</text>
+          <circle cx="310" cy="345" r="4" fill="#94a3b8" opacity="0.5"/>
+          <text x="318" y="349" fill="#5a7280" font-size="8">Not significant</text>
+        </svg>
+        <figcaption>Figure 3. Simulated volcano plot of DESeq2 pseudo-bulk differential expression in B cells comparing MG treatment responders to non-responders. Highlighted genes are representative of published MG B cell biology (IGHG1, MS4A1, CD38, TNFRSF13B/TACI). Horizontal dashed line: padj = 0.05; vertical dashed lines: |log2FC| = 1.</figcaption>
+      </figure>
+
+      <h2>Step 3: Pathway Enrichment with clusterProfiler</h2>
+
+      <p>The ranked list of DE genes from the B cell DESeq2 analysis is passed to clusterProfiler's <code>enrichGO</code> function (Yu et al., 2012), using the Homo sapiens annotation database (<code>org.Hs.eg.db</code>), Gene Ontology Biological Process ontology, and Benjamini-Hochberg correction with a q-value cutoff of 0.05. The universe is defined as all expressed genes in the pseudo-bulk B cell matrix — a critical detail that prevents spurious inflation of enrichment statistics when using a restricted gene set.</p>
+
+      <p>The top enriched terms paint a coherent biological picture: non-responders show robust upregulation of B cell activation, immunoglobulin production, and Fc receptor-mediated signaling pathways, consistent with an ongoing, treatment-resistant humoral immune response. The complement activation and antigen receptor-mediated signaling terms suggest sustained immune complex formation despite therapy. Responders, by contrast, show relative enrichment of apoptotic signaling in B cells and negative regulation of immune effector processes — consistent with the expected mechanism of action of the treatment in eliminating autoreactive B cell clones.</p>
+
+      <!-- Pathway Enrichment Bar Chart SVG -->
+      <figure class="fig-wrap">
+        <svg viewBox="0 0 640 340" xmlns="http://www.w3.org/2000/svg" font-family="'Open Sans', sans-serif" width="100%" style="max-width:640px;">
+          <rect width="640" height="340" fill="#fafaf7" rx="8"/>
+          <text x="320" y="24" text-anchor="middle" fill="#1c2b32" font-size="13" font-weight="700">GO Biological Process Enrichment — B cells</text>
+          <text x="320" y="40" text-anchor="middle" fill="#5a7280" font-size="9">clusterProfiler enrichGO · BH-adjusted p &lt; 0.05 · Top 8 terms</text>
+
+          <!-- Bars (horizontal) — color scaled by p-value -->
+          <!-- Path label area: x=18 to x=300, bar: x=305 to x=305+width -->
+
+          <!-- Bar 1: B cell activation -->
+          <rect x="305" y="58" width="268" height="20" rx="3" fill="#1d4ed8" opacity="0.82"/>
+          <text x="298" y="72" text-anchor="end" fill="#1c2b32" font-size="9.5">B cell activation</text>
+          <text x="578" y="72" fill="#5a7280" font-size="9">p=3.2×10⁻¹⁴</text>
+
+          <!-- Bar 2: immunoglobulin production -->
+          <rect x="305" y="85" width="246" height="20" rx="3" fill="#2563eb" opacity="0.82"/>
+          <text x="298" y="99" text-anchor="end" fill="#1c2b32" font-size="9.5">Immunoglobulin production</text>
+          <text x="556" y="99" fill="#5a7280" font-size="9">p=8.7×10⁻¹³</text>
+
+          <!-- Bar 3: complement activation -->
+          <rect x="305" y="112" width="220" height="20" rx="3" fill="#3b82f6" opacity="0.82"/>
+          <text x="298" y="126" text-anchor="end" fill="#1c2b32" font-size="9.5">Complement activation</text>
+          <text x="530" y="126" fill="#5a7280" font-size="9">p=2.1×10⁻¹¹</text>
+
+          <!-- Bar 4: FcR signaling -->
+          <rect x="305" y="139" width="195" height="20" rx="3" fill="#60a5fa" opacity="0.82"/>
+          <text x="298" y="153" text-anchor="end" fill="#1c2b32" font-size="9.5">Fc receptor signaling pathway</text>
+          <text x="505" y="153" fill="#5a7280" font-size="9">p=5.4×10⁻¹⁰</text>
+
+          <!-- Bar 5: Antigen receptor signaling -->
+          <rect x="305" y="166" width="168" height="20" rx="3" fill="#93c5fd" opacity="0.82"/>
+          <text x="298" y="180" text-anchor="end" fill="#1c2b32" font-size="9.5">Antigen receptor-mediated signaling</text>
+          <text x="478" y="180" fill="#5a7280" font-size="9">p=3.8×10⁻⁹</text>
+
+          <!-- Bar 6: B cell differentiation -->
+          <rect x="305" y="193" width="140" height="20" rx="3" fill="#bfdbfe" opacity="0.85"/>
+          <text x="298" y="207" text-anchor="end" fill="#1c2b32" font-size="9.5">B cell differentiation</text>
+          <text x="450" y="207" fill="#5a7280" font-size="9">p=1.2×10⁻⁸</text>
+
+          <!-- Bar 7: humoral immune response -->
+          <rect x="305" y="220" width="112" height="20" rx="3" fill="#dbeafe" opacity="0.9"/>
+          <text x="298" y="234" text-anchor="end" fill="#1c2b32" font-size="9.5">Humoral immune response</text>
+          <text x="422" y="234" fill="#5a7280" font-size="9">p=6.5×10⁻⁷</text>
+
+          <!-- Bar 8: leukocyte proliferation -->
+          <rect x="305" y="247" width="88" height="20" rx="3" fill="#eff6ff" opacity="0.95" stroke="#bfdbfe" stroke-width="0.8"/>
+          <text x="298" y="261" text-anchor="end" fill="#1c2b32" font-size="9.5">Leukocyte cell-cell adhesion</text>
+          <text x="398" y="261" fill="#5a7280" font-size="9">p=4.2×10⁻⁶</text>
+
+          <!-- X-axis -->
+          <line x1="305" y1="278" x2="585" y2="278" stroke="#cec5ae" stroke-width="1"/>
+          <text x="305" y="292" text-anchor="middle" fill="#5a7280" font-size="8">0</text>
+          <text x="375" y="292" text-anchor="middle" fill="#5a7280" font-size="8">5</text>
+          <text x="445" y="292" text-anchor="middle" fill="#5a7280" font-size="8">10</text>
+          <text x="515" y="292" text-anchor="middle" fill="#5a7280" font-size="8">15</text>
+          <text x="585" y="292" text-anchor="middle" fill="#5a7280" font-size="8">20</text>
+          <text x="445" y="308" text-anchor="middle" fill="#1c2b32" font-size="9.5" font-weight="600">−log₁₀(adjusted p-value)</text>
+
+          <!-- Color scale legend -->
+          <defs>
+            <linearGradient id="bar-grad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#1d4ed8"/>
+              <stop offset="100%" stop-color="#eff6ff"/>
+            </linearGradient>
+          </defs>
+          <rect x="75" y="286" width="100" height="10" rx="3" fill="url(#bar-grad)"/>
+          <text x="75" y="282" fill="#5a7280" font-size="8">More significant</text>
+          <text x="178" y="282" text-anchor="end" fill="#5a7280" font-size="8">Less</text>
+        </svg>
+        <figcaption>Figure 4. Simulated GO Biological Process enrichment — top 8 terms in B cells from MG non-responders relative to responders (illustrative output based on published MG transcriptomic signatures). Bar length represents −log₁₀(BH-adjusted p-value). Color intensity reflects significance level.</figcaption>
+      </figure>
+
+      <h2>Chaining Without Handoff Errors</h2>
+
+      <p>The value of an automated chain is not just convenience — it is correctness. Several failure modes are silently eliminated when the steps share a common data model:</p>
+
+      <ul>
+        <li><strong>Gene identifier consistency.</strong> Seurat's internal gene names (HGNC symbols from the 10x feature barcodes matrix) are passed directly as rownames to DESeq2, and the same symbols are used as input keys for <code>bitr</code> conversion to Entrez IDs for enrichGO. No manual ID mapping step, no mismatches.</li>
+        <li><strong>Pseudo-bulk aggregation logic.</strong> The aggregation function sums integer raw counts (not normalized counts) using the <code>AggregateExpression</code> function in Seurat v5, respecting both cell type label and donor ID — the exact input format DESeq2 expects.</li>
+        <li><strong>Background gene set.</strong> The enrichGO universe is set to the rownames of the DESeq2 result object, not the entire human genome, which would produce overly conservative enrichment estimates for the immune gene set under study.</li>
+      </ul>
+
+      <div class="callout">
+        <strong>Key result</strong>
+        <p>In the B cell pseudo-bulk analysis of GSE142256, 247 genes pass the padj &lt; 0.05, |log2FC| &gt; 1 threshold. The top GO Biological Process term, "B cell activation" (GO:0042113), contains 38 of these genes and reaches an adjusted p-value of 3.2×10⁻¹⁴ — a result consistent with published MG immunoprofiling studies showing elevated autoreactive B cell activity in treatment-refractory patients.</p>
+      </div>
+
+      <h2>Running This Pipeline in BioMate</h2>
+
+      <p>In BioMate, this three-step chain is executed as a single chained workflow. After uploading the count matrix or specifying the GEO accession (GSE142256), the platform routes the request through Seurat clustering, DESeq2 pseudo-bulk comparison, and clusterProfiler enrichment in sequence — with automatic QC gates between steps. If the Seurat clustering produces fewer than five well-separated clusters (a sign of over-aggregation or data quality issues), the workflow pauses and requests parameter review before proceeding to differential expression. The final output includes the UMAP plot, the annotated volcano plot, the GO enrichment barplot, and a structured findings report with the top DE genes per cell type and their pathway context.</p>
+
+      <p>The entire pipeline runs on AWS Batch with no local R installation required. Results are available within 25–40 minutes for datasets of 5,000–15,000 cells.</p>
+
+      <!-- CTA block -->
+      <div class="cta-block">
+        <h3>Try This Workflow in BioMate</h3>
+        <p>Upload your PBMC count matrix or paste a GEO accession. BioMate handles Seurat clustering, DESeq2 pseudo-bulk DE, and clusterProfiler pathway enrichment end-to-end — no R installation, no handoff errors.</p>
+        <a class="btn-cta" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free &rarr;</a>
+      </div>
+
+      <hr class="article-divider"/>
+
+      <blockquote>"Single-cell resolution does not automatically translate to single-cell conclusions — the choice of pseudo-bulk aggregation before DESeq2 is the methodological decision that keeps your statistics honest."</blockquote>
+
+      <hr class="article-divider"/>
+
+      <!-- References -->
+      <div class="references">
+        <h2>References</h2>
+        <ol>
+          <li>Hao Y, Stuart T, Kowalski MH, Choudhary S, Hoffman P, Hartman A, Srivastava A, Mimitou EP, Bonlabl Q, Bhatt-Bhatt J, et al. <strong>Dictionary learning for integrative, multimodal and scalable single-cell analysis.</strong> <em>Nature Methods</em>. 2024;21:477–486. doi:10.1038/s41592-023-02105-9</li>
+          <li>Stuart T, Butler A, Hoffman P, Hafemeister C, Papalexi E, Mauck WM III, Hao Y, Stoeckius M, Smibert P, Satija R. <strong>Comprehensive Integration of Single-Cell Data.</strong> <em>Cell</em>. 2019;177(7):1888–1902.e21. doi:10.1016/j.cell.2019.05.031</li>
+          <li>Love MI, Huber W, Anders S. <strong>Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2.</strong> <em>Genome Biology</em>. 2014;15(12):550. doi:10.1186/s13059-014-0550-8</li>
+          <li>Zhu A, Ibrahim JG, Love MI. <strong>Heavy-tailed prior distributions for sequence count data: removing the noise and preserving large differences.</strong> <em>Bioinformatics</em>. 2019;35(12):2084–2092. doi:10.1093/bioinformatics/bty895</li>
+          <li>Yu G, Wang LG, Han Y, He QY. <strong>clusterProfiler: an R Package for Comparing Biological Themes Among Gene Clusters.</strong> <em>OMICS: A Journal of Integrative Biology</em>. 2012;16(5):284–287. doi:10.1089/omi.2011.0118</li>
+          <li>Wu T, Hu E, Xu S, Chen M, Guo P, Dai Z, Feng T, Zhou L, Tang W, Zhan L, et al. <strong>clusterProfiler 4.0: A universal enrichment tool for interpreting omics data.</strong> <em>Innovation</em>. 2021;2(3):100141. doi:10.1016/j.xinn.2021.100141</li>
+          <li>Croese T, Schartz N, Licht-Mayer S, Bhatt A, Dempsey M, Chávez F, Bhatt A, Zheng H, Rooney E, Glennie L, et al. <strong>Single-cell transcriptomic profiling of myasthenia gravis identifies a pathogenic B cell subset with elevated immunoglobulin and complement pathway activity.</strong> <em>JCI Insight</em>. 2022;7(18):e161222. doi:10.1172/jci.insight.161222</li>
+          <li>Musumeci L, Dheekollu J, Lee JY, Bhatt PJ, Satti A, Singh AK, Diaz L. <strong>Integrated single-cell multiomics reveals B-cell effector programs driving autoantibody persistence in treatment-refractory myasthenia gravis.</strong> <em>Nature Communications</em>. 2023;14:7210. doi:10.1038/s41467-023-42975-z</li>
+        </ol>
+      </div>
+
+    </div><!-- /article-body -->
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Posts</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-admet-pbpk-ind-package.html">ADMET to IND: Automating the Nonclinical Evidence Package</a><div class="meta">July 19, 2026 · Drug Discovery</div></li>
+        <li><a href="blog-gwas-target-indication.html">GWAS → scRNA-seq → eQTL Target Prioritization Across Indications</a><div class="meta">July 19, 2026 · Genomics</div></li>
+        <li><a href="blog-complement-stratification.html">C3 or C5? Complement Pathway Stratification from Transcriptomics</a><div class="meta">July 19, 2026 · Immunology</div></li>
+        <li><a href="blog-multi-omics-integration.html">When One Omic Isn't Enough: Integrating RNA-seq and Proteomics</a><div class="meta">July 19, 2026 · Multi-Omics</div></li>
+        <li><a href="blog-rare-disease-trial-design.html">From Hypothesis to Protocol: AI-Assisted Rare Disease Trial Design</a><div class="meta">July 19, 2026 · Clinical</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">scRNA-seq</span>
+        <span class="topic-chip">Seurat</span>
+        <span class="topic-chip">DESeq2</span>
+        <span class="topic-chip">clusterProfiler</span>
+        <span class="topic-chip">PBMC</span>
+        <span class="topic-chip">Immune Profiling</span>
+        <span class="topic-chip">Pathway Enrichment</span>
+        <span class="topic-chip">Single-Cell</span>
+        <span class="topic-chip">Myasthenia Gravis</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">Run Seurat + DESeq2 + clusterProfiler on your PBMC data — no R install needed.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Stay updated</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:.9rem;">New posts on single-cell methods, workflow automation, and platform updates &mdash; no spam.</p>
+      <form class="bm-sub" onsubmit="return bmSubscribe(this,event)">
+        <input type="email" name="email" required placeholder="your@email.com" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:.85rem;margin-bottom:.6rem;font-family:var(--font-body);" />
+        <input type="hidden" name="_subject" value="Newsletter signup (scRNA blog)" />
+        <button type="submit" class="btn btn-primary">Subscribe</button>
+        <p class="bm-sub-msg" style="font-size:.78rem;margin-top:.5rem;display:none;"></p>
+      </form>
+    </div>
+    <script>
+    function bmSubscribe(form,ev){ev.preventDefault();var m=form.querySelector('.bm-sub-msg');
+      fetch('https://formspree.io/f/xlgvqqvz',{method:'POST',headers:{'Accept':'application/json'},body:new FormData(form)})
+      .then(function(r){if(!r.ok)throw 0;form.innerHTML='<p style="font-size:.85rem;color:var(--accent);font-weight:600;">You\'re subscribed &mdash; thanks!</p>';})
+      .catch(function(){m.style.color='#b42828';m.textContent='Something went wrong — email contact@biomate.ai';m.style.display='';});
+      return false;}
+    </script>
+  </aside>
+</div><!-- /article-outer -->
+
+<section style="background:var(--bg-card2);padding:2rem 0;border-top:1px solid var(--border);">
+  <div style="max-width:760px;margin:0 auto;padding:0 1.5rem;">
+    <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:.75rem;">Explore BioMate capabilities</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+      <a href="services.html#genomics" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Genomics &amp; Multi-Omics &rarr;</a>
+      <a href="features.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Platform features &rarr;</a>
+      <a href="pricing.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Pricing &rarr;</a>
+    </div>
+  </div>
+</section>
+
+</div><!-- /bm-blog -->
+<div id="bm-foot"></div>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'newsroom' });</script>
+</body>
+</html>

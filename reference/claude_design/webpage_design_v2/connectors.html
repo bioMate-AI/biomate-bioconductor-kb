@@ -12,7 +12,7 @@
   <!-- Open Graph -->
   <meta property="og:type"        content="website"/>
   <meta property="og:title"       content="BioMate Connectors — MCP Server for Claude Code, Cursor, Codex CLI &amp; More"/>
-  <meta property="og:description" content="Connect any AI client to BioMate's biomedical research execution engine. One MCP server, 14 tools, 2,455 pipelines. Supports Claude Code, Claude Science, Cursor, Codex CLI, ChatGPT, Slack, and Feishu."/>
+  <meta property="og:description" content="Connect any AI client to BioMate's biomedical research execution engine. One MCP server, 19 tools, 2,455 pipelines. Supports Claude Code, Claude Science, Cursor, Codex CLI, ChatGPT, Slack, and Feishu."/>
   <meta property="og:url"         content="https://biomate.ai/connectors.html"/>
   <meta property="og:image"       content="https://biomate.ai/images/biomate-logo-512.png"/>
   <meta property="og:site_name"   content="BioMate AI"/>
@@ -32,7 +32,7 @@
       {
         "@type": "SoftwareApplication",
         "name": "BioMate MCP Server",
-        "description": "An MCP (Model Context Protocol) server that connects AI clients — including Claude Code, Claude Science, Cursor, and Codex CLI — to BioMate's biomedical research execution engine. Provides 14 tools for searching, executing, and monitoring 2,455 biomedical pipelines running on AWS Batch via Nextflow.",
+        "description": "An MCP (Model Context Protocol) server that connects AI clients — including Claude Code, Claude Science, Cursor, and Codex CLI — to BioMate's biomedical research execution engine. Provides 19 tools for searching, executing, and monitoring 2,455 biomedical pipelines running on AWS Batch via Nextflow.",
         "url": "https://biomate.ai/connectors.html",
         "applicationCategory": "Scientific Software",
         "applicationSubCategory": "Biomedical Research Tools",
@@ -45,7 +45,7 @@
           "stdio JSON-RPC 2.0 transport for Claude Code, Claude Desktop, Cursor, Codex CLI",
           "Streamable HTTP + OAuth 2.1 + PKCE for Claude Science",
           "REST Actions and webhooks for ChatGPT, Slack, Feishu",
-          "14 MCP tools: biomate_session, search_workflow, run_workflow, get_run, cancel_run, list_runs, get_workflow_spec, preview_file, export_report, analyze_results, explain_error, query_database, recall_memory, upload_file",
+          "19 MCP tools: biomate_session, search_workflow, get_workflow_spec, run_workflow, watch_run, get_run, cancel_run, list_runs, resolve_accession, browse_data, fetch_public_data, upload_file, query_database, search_literature, preview_file, export_report, analyze_results, explain_error, recall_memory",
           "2,455 indexed biomedical research workflows on AWS Batch",
           "Real-time SSE streaming of run progress"
         ]
@@ -69,12 +69,12 @@
           {
             "@type": "Question",
             "name": "What is BioMate's MCP connector?",
-            "acceptedAnswer": { "@type": "Answer", "text": "BioMate's MCP connector is a Model Context Protocol server that exposes 14 tools for biomedical research. It lets AI clients — Claude Code, Claude Desktop, Claude Science, Cursor, Codex CLI, ChatGPT, Slack, and Feishu — search, configure, and execute biomedical research pipelines on BioMate's AWS Batch infrastructure. The connector uses a single canonical tool manifest (tools_manifest.py) shared across all surfaces." }
+            "acceptedAnswer": { "@type": "Answer", "text": "BioMate's MCP connector is a Model Context Protocol server that exposes 19 tools for biomedical research. It lets AI clients — Claude Code, Claude Desktop, Claude Science, Cursor, Codex CLI, ChatGPT, Slack, and Feishu — search, configure, and execute biomedical research pipelines on BioMate's AWS Batch infrastructure. The connector uses a single canonical tool manifest (tools_manifest.py) shared across all surfaces." }
           },
           {
             "@type": "Question",
             "name": "What MCP tools does BioMate expose?",
-            "acceptedAnswer": { "@type": "Answer", "text": "BioMate exposes 14 MCP tools: biomate_session (end-to-end streaming orchestration), search_workflow, get_workflow_spec, run_workflow, get_run, cancel_run, list_runs, preview_file, export_report, analyze_results, explain_error, query_database, recall_memory, and upload_file." }
+            "acceptedAnswer": { "@type": "Answer", "text": "BioMate exposes 19 MCP tools: biomate_session (end-to-end streaming orchestration), search_workflow, get_workflow_spec, run_workflow, watch_run, get_run, cancel_run, list_runs, resolve_accession, browse_data, fetch_public_data, upload_file, query_database, search_literature, preview_file, export_report, analyze_results, explain_error, and recall_memory." }
           },
           {
             "@type": "Question",
@@ -280,7 +280,7 @@
     <div class="page-hero">
       <p class="page-eyebrow">Connectors · Developer Docs</p>
       <h1>Connect any AI client to BioMate</h1>
-      <p>BioMate exposes a single MCP server with 14 tools. Install once, run from Claude Code, Claude Desktop, ChatGPT, Slack, or Feishu — every surface shares the same tool interface, the same workflow catalog, and the same runs history.</p>
+      <p>BioMate exposes a single MCP server with 19 tools. Install once, run from Claude Code, Claude Desktop, ChatGPT, Slack, or Feishu — every surface shares the same tool interface, the same workflow catalog, and the same runs history.</p>
     </div>
 
     <!-- Overview -->
@@ -344,7 +344,7 @@
 
     <!-- Tools -->
     <section class="doc-section" id="tools">
-      <h2>Available tools (14)</h2>
+      <h2>Available tools (19)</h2>
       <p>All surfaces expose the same tool set, sourced from a single canonical manifest (<code>tools_manifest.py</code>). Tools are annotated with read-only and destructive hints so the AI client can present appropriate confirmation prompts.</p>
 
       <h3>Streaming agentic tool</h3>
@@ -362,9 +362,23 @@
           <tr><td><code>search_workflow</code></td><td class="desc">Ranked catalog search across 2,455 workflows and 34 biological domains.</td></tr>
           <tr><td><code>get_workflow_spec</code></td><td class="desc">Required + optional params, allowed values, default QC profile, cost estimate.</td></tr>
           <tr><td><code>run_workflow</code></td><td class="desc">Start a run. Use <code>stream: true</code> for inline phase/step events.</td></tr>
+          <tr><td><code>watch_run</code></td><td class="desc">Stream phase/step progress from a running job until completion.</td></tr>
+          <tr><td><code>get_run</code></td><td class="desc">Single call: status + phases + steps + findings + output files.</td></tr>
           <tr><td><code>cancel_run</code></td><td class="desc">Cancel an in-flight run.</td></tr>
           <tr><td><code>list_runs</code></td><td class="desc">History with experiment, workflow, and status filters.</td></tr>
-          <tr><td><code>get_run</code></td><td class="desc">Single call: status + phases + steps + findings + output files.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Data and knowledge</h3>
+      <table class="tool-table">
+        <thead><tr><th>Tool</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>resolve_accession</code></td><td class="desc">Identify GEO, SRA, ENA, DDBJ accessions and return the matching BioMate workflow with pre-filled params.</td></tr>
+          <tr><td><code>browse_data</code></td><td class="desc">List files in a public repository (EBI, NCBI, Ensembl, UCSC) or your S3 workspace by path prefix.</td></tr>
+          <tr><td><code>fetch_public_data</code></td><td class="desc">Stage a public file from EBI / NCBI / Ensembl / UCSC into the BioMate workspace and return an S3 URI.</td></tr>
+          <tr><td><code>upload_file</code></td><td class="desc">Get a signed S3 PUT URL for local file uploads (&gt;5 MB).</td></tr>
+          <tr><td><code>query_database</code></td><td class="desc">UniProt / PDB / AlphaFold / NCBI / ChEMBL / KEGG lookup by accession or query.</td></tr>
+          <tr><td><code>search_literature</code></td><td class="desc">Iterative depth-first search across PubMed, EuropePMC, Semantic Scholar, and OpenAlex.</td></tr>
         </tbody>
       </table>
 
@@ -377,8 +391,6 @@
           <tr><td><code>analyze_results</code></td><td class="desc">AI interpretation — free-form questions about a run's outputs.</td></tr>
           <tr><td><code>explain_error</code></td><td class="desc">Root-cause diagnosis when a run fails.</td></tr>
           <tr><td><code>recall_memory</code></td><td class="desc">Retrieve relevant prior runs, findings, and procedures.</td></tr>
-          <tr><td><code>upload_file</code></td><td class="desc">Get a signed S3 PUT URL for local file uploads.</td></tr>
-          <tr><td><code>query_database</code></td><td class="desc">UniProt / PDB / AlphaFold / NCBI / ChEMBL lookup by accession or query.</td></tr>
         </tbody>
       </table>
 

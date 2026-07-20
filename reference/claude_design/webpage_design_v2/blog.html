@@ -126,7 +126,12 @@
             <span style="font-size:.85rem;color:var(--text-muted);" id="bm-post-count"></span>
           </div>
           <div class="bm-blog-grid" id="bm-posts"><noscript>
-            <article><h3><a href="blog-connectors.html">Wiring Every AI Client to BioMate: The MCP Connector Architecture</a></h3><p>Jul 10, 2026 · 8 min · BioMate exposes a single MCP server that any AI client can connect to — Claude Desktop, Cursor, Windsurf, and others. One tool interface, every analysis, from any environment.</p></article>
+            <article><h3><a href="blog-ra-gwas-target.html">From 932,549 Patients to Five Drug Targets: Multi-Omic GWAS Prioritization for RA</a></h3><p>Jul 12, 2026 · 10 min · BioMate ran a 5-stage GWAS pipeline (MAGMA → DICE eQTL → scGWAS → MR → OpenTargets) and prioritized TYK2, CD20, JAK1, IL6R, and PTPN22. Runtime: 15–30 min vs 1–2 weeks manual.</p></article>
+            <article><h3><a href="blog-ra-responder-signature.html">16,261 DEGs Later: Building an RA Anti-TNF Responder Signature</a></h3><p>Jul 12, 2026 · 9 min · DESeq2 on GSE89408 (101 RA synovial biopsies). 9/10 canonical RA markers confirmed. CXCL13 +4.2 log₂FC identifies anti-TNF non-responders.</p></article>
+            <article><h3><a href="blog-tyk2-admet-validation.html">Rediscovering Deucravacitinib: TYK2 ADMET Retrospective Validation</a></h3><p>Jul 12, 2026 · 8 min · 9/10 ADMET properties correct vs FDA NDA 214958. Sub-percent PPBR error. DILI false positive corrected with allosteric class rule. 1m 41s runtime.</p></article>
+            <article><h3><a href="blog-tocilizumab-ind-package.html">IND-Ready in One Session: Tocilizumab PBPK + §2.6 Narrative Package</a></h3><p>Jul 12, 2026 · 9 min · Two-compartment PBPK (7% MAPE vs BLA 125276) + §2.6.1/§2.6.4 regulatory narratives generated in one BioMate session.</p></article>
+            <article><h3><a href="blog-endpoint-recommender.html">Clinical Endpoint Recommender: 85% Accuracy, Zero Hallucinated Endpoints</a></h3><p>Jul 12, 2026 · 8 min · 17/20 correct primary endpoints across 20 FDA-approved autoimmune drugs. Zero hallucinated composite measures. 100% in RA, psoriasis, PsA, and AD.</p></article>
+            <article><h3><a href="blog-connectors.html">Wiring Every AI Client to BioMate: The MCP Connector Architecture</a></h3><p>Jul 11, 2026 · 8 min · One tool manifest, eight AI surfaces, zero duplicated logic. How BioMate connects Claude Code, Claude Science, Cursor, Codex CLI, ChatGPT, Slack, and Feishu to the same biomedical research execution engine via stdio, Streamable HTTP, REST Actions, and webhooks.</p></article>
             <article><h3><a href="blog-agent-skills-vs-biomate.html">Bioinformatics Agent Skills vs. BioMate: An Honest Comparison</a></h3><p>Jun 29, 2026 · 8 min · Public bioinformatics agent skills improved in 2026 — real R DESeq2, citations, even CI. But the CI validates the document, not the run. A skill tells an agent how; BioMate runs it.</p></article>
             <article><h3><a href="blog-why-ai-bioconductor-doesnt-run.html">Why AI Writes Bioconductor Code That Doesn't Run — and What Actually Fixes It</a></h3><p>Jun 9, 2026 · 7 min · Across a 20-task benchmark, an ungrounded LLM cited real Bioconductor functions only 71.4% of the time. Structure grounding lifts it to 88.2% — and real execution is the ground truth.</p></article>
             <article><h3><a href="blog-llm-core.html">Purpose-Built AI for Science: Coordinating Frontier Models for Reliable Results</a></h3><p>Apr 22, 2026 · 7 min · BioMate coordinates specialized AI systems for routing, analysis, quality evaluation, and findings narration — matching each scientific task to the reasoning capability best suited to it.</p></article>
@@ -193,6 +198,17 @@
               });
             }
           </script>
+
+          <div class="bm-side-widget">
+            <h3>Series: Autoimmune Validation</h3>
+            <ul>
+              <li><a href="blog-ra-gwas-target.html">GWAS → 5 RA Drug Targets</a></li>
+              <li><a href="blog-ra-responder-signature.html">Anti-TNF Responder Signature (DESeq2)</a></li>
+              <li><a href="blog-tyk2-admet-validation.html">TYK2 ADMET Retrospective</a></li>
+              <li><a href="blog-tocilizumab-ind-package.html">Tocilizumab PBPK + §2.6 IND</a></li>
+              <li><a href="blog-endpoint-recommender.html">Endpoint Recommender: 85% Accuracy</a></li>
+            </ul>
+          </div>
 
           <div class="bm-side-widget">
             <h3>Drug Program Case Studies</h3>
@@ -396,6 +412,23 @@
 
     // Real posts from the BioMate blog — newest first
     const POSTS = [
+      // Autoimmune Validation Series (Jul 2026)
+      { cat: 'Genomics', title: 'From 932,549 Patients to Five Drug Targets: Multi-Omic GWAS Prioritization for Rheumatoid Arthritis',
+        date: 'Jul 12, 2026', read: '10 min', href: 'blog-ra-gwas-target.html',
+        desc: "BioMate ran a 5-stage GWAS pipeline (MAGMA → DICE eQTL → scGWAS → Mendelian Randomization → OpenTargets) and prioritized TYK2, CD20, JAK1, IL6R, and PTPN22 as the top RA drug targets. PTPN22 p=3.75×10⁻¹⁶⁸. Runtime: 15–30 min vs 1–2 weeks manual." },
+      { cat: 'Genomics', title: '16,261 DEGs Later: Building an RA Anti-TNF Responder Signature with BioMate',
+        date: 'Jul 12, 2026', read: '9 min', href: 'blog-ra-responder-signature.html',
+        desc: "BioMate ran DESeq2 on GSE89408 (101 RA synovial biopsies) and confirmed 9/10 canonical RA biomarkers. CXCL13 log₂FC +4.2 identifies ELS-high anti-TNF non-responders — a path to a companion diagnostic." },
+      { cat: 'Drug Development', title: 'Rediscovering Deucravacitinib: TYK2 ADMET Retrospective Validation',
+        date: 'Jul 12, 2026', read: '8 min', href: 'blog-tyk2-admet-validation.html',
+        desc: "BioMate validated 9 of 10 ADMET properties for FDA-approved deucravacitinib against NDA 214958 data. Sub-percent PPBR error. DILI false positive explained and corrected with an allosteric class calibration rule. Runtime: 1m 41s." },
+      { cat: 'Drug Development', title: 'IND-Ready in One Session: Tocilizumab PBPK + §2.6 Narrative Package',
+        date: 'Jul 12, 2026', read: '9 min', href: 'blog-tocilizumab-ind-package.html',
+        desc: "BioMate generated a complete tocilizumab IND package — two-compartment PBPK simulation (7% MAPE vs BLA 125276), allometric scaling, pediatric dose adjustment, and §2.6.1/§2.6.4 regulatory narratives — in one session." },
+      { cat: 'Drug Development', title: 'Clinical Endpoint Recommender: 85% Accuracy Across 20 Autoimmune Drugs, Zero Hallucinated Endpoints',
+        date: 'Jul 12, 2026', read: '8 min', href: 'blog-endpoint-recommender.html',
+        desc: "BioMate's endpoint recommender was tested on 20 FDA-approved autoimmune drugs: 17/20 correct primary endpoints, zero hallucinated composite measures. 100% accuracy in RA, psoriasis, PsA, and atopic dermatitis." },
+
       { cat: 'Research', title: 'Bioinformatics Agent Skills vs. BioMate: An Honest Comparison',
         date: 'Jun 29, 2026', read: '8 min', href: 'blog-agent-skills-vs-biomate.html',
         desc: "Public bioinformatics 'agent skills' improved in 2026 — real R DESeq2, citations, even CI. But the CI validates the document, not the run. A skill tells an agent how; BioMate runs it." },

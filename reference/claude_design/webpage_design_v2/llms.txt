@@ -2,7 +2,7 @@
 
 > AI assistant for biomedical research and application — serving pharma, biotech, academic labs, and core facilities. Provides 4,000+ validated workflows with AI-guided QC and audit-ready results.
 
-## Last updated: 2026-07-03
+## Last updated: 2026-07-19
 
 BioMate AI is an AI assistant for biomedical research and application, founded in 2025 and headquartered in Houston, Texas (Texas Medical Center). Wikidata entity: Q140074014 (https://www.wikidata.org/wiki/Q140074014). It enables researchers to run complex bioinformatics and drug discovery workflows through plain-English requests — no command-line expertise required. Results arrive structured, quality-graded, and reproducible.
 
@@ -12,7 +12,7 @@ BioMate AI is an AI assistant for biomedical research and application, founded i
 - Integrates gold-standard tools: GATK, DeepVariant, STAR, salmon, Seurat, Scanpy, AlphaFold 2/3, ESMFold, RoseTTAFold, CryoSPARC, RELION, AutoDock Vina, GROMACS, OpenMM, MaxQuant, QIIME 2
 - AI-graded QC framework: Gold / Silver / Bronze evidence grades with per-metric pass/fail thresholds
 - Auto-remediation loop: when a QC gate fails, BioMate proposes and reruns with corrected parameters
-- Free tier available; Pro plan $49/month; Team plan $199/month; Enterprise plan — contact sales
+- Free tier available; Premium plan $100/month (or $80/month billed annually); Team plan — contact for per-seat pricing; Enterprise plan — contact sales
 - HIPAA-compliant with Business Associate Agreement (BAA) available for enterprise customers
 - Private VPC deployment available — data never leaves your network
 - Tenant data is fully isolated and never used to train shared AI models
@@ -34,7 +34,7 @@ BioMate AI is an AI assistant for biomedical research and application, founded i
 - [Home](https://biomate.ai/): Platform overview, key capabilities, and quick start
 - [Services](https://biomate.ai/services.html): Full service catalog — drug discovery, genomics, structural biology
 - [Features](https://biomate.ai/features.html): Platform features — workflow routing, QC, parameter management, reports
-- [Pricing](https://biomate.ai/pricing.html): Free, Pro ($49/mo), Team ($199/mo), and Enterprise (contact sales) plan comparison
+- [Pricing](https://biomate.ai/pricing.html): Free and Premium ($100/mo, or $80/mo annual) plans for individuals; Team and Enterprise plans for organizations (contact sales)
 - [About](https://biomate.ai/about.html): Company mission, story, guiding principles; includes Quick Facts table (founded 2025, Houston TX, 2,455+ workflows, tools, pricing, compliance)
 - [Compare](https://biomate.ai/compare.html): BioMate AI vs Galaxy, Nextflow/nf-core, and in-house bioinformatics teams — feature matrix and honest assessment of when to use each
 - [Blog](https://biomate.ai/blog.html): Scientific articles and platform news
@@ -54,6 +54,12 @@ BioMate AI is an AI assistant for biomedical research and application, founded i
 
 ## Blog — selected articles
 
+- [From PBMC Samples to Immune Cell Maps: scRNA-seq → DESeq2 → Pathway Enrichment](https://biomate.ai/blog-scrna-immune-profiling.html): Chained three-step analysis — Seurat clustering, pseudo-bulk DESeq2, and clusterProfiler enrichment — applied to MG PBMC data (GSE142256)
+- [ADMET to IND: Automating the Nonclinical Evidence Package](https://biomate.ai/blog-admet-pbpk-ind-package.html): Four-step drug discovery chain — ADMET screening, PBPK modeling, REINVENT4 lead optimization, and auto-drafted IND §2.4/§2.6 narrative with audit trail
+- [GWAS → scRNA-seq → eQTL Target Prioritization Across Indications](https://biomate.ai/blog-gwas-target-indication.html): Genetic-to-transcriptomic pipeline prioritizing drug targets from GWAS loci across multiple autoimmune indications using GTEx eQTLs and OpenTargets
+- [C3 or C5? Complement Pathway Stratification from Transcriptomics](https://biomate.ai/blog-complement-stratification.html): DESeq2 + clusterProfiler pipeline distinguishing C3 vs C5 complement cascade dominance from blood or biopsy RNA-seq for complement inhibitor indication selection
+- [When One Omic Isn't Enough: RNA-seq and Proteomics Multi-Omics Integration](https://biomate.ai/blog-multi-omics-integration.html): Integrating DESeq2 transcriptomics with limma proteomics via MOFA+ to identify convergent mRNA+protein biomarker candidates
+- [From Hypothesis to Protocol: AI-Assisted Rare Disease Trial Design](https://biomate.ai/blog-rare-disease-trial-design.html): Statistical power calculation, site recruitment feasibility, and audit-ready protocol summary chained for rare disease Phase 2/3 trials (MG worked example with ADAPT trial parameters)
 - [Purpose-Built AI for Science: Coordinating Frontier Models for Reliable Results](https://biomate.ai/blog-llm-core.html): How BioMate coordinates specialized AI systems for routing, analysis, QC, and narrative generation
 - [The R Ecosystem, Accessible to Everyone: Bioconductor Methods in BioMate](https://biomate.ai/blog-bioconductor.html): Full Bioconductor R methods available through plain-English requests
 - [Why AI Writes Bioconductor Code That Doesn't Run — and What Actually Fixes It](https://biomate.ai/blog-why-ai-bioconductor-doesnt-run.html): Ungrounded LLMs cite real Bioconductor functions only 71.4% of the time; structure grounding raises it to 88.2%, and real execution is the ground truth

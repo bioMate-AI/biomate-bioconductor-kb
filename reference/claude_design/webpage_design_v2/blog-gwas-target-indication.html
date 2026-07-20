@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Genetic to Transcriptomic: GWAS → scRNA-seq → eQTL Target Prioritization — BioMate AI Blog</title>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  .bm-blog {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+  }
+  html { scroll-behavior:smooth; }
+  .bm-blog { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  .bm-blog a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  .bm-blog a:hover { color:var(--accent); }
+  .bm-blog img { max-width:100%; display:block; }
+  .site-header { background:var(--bg); padding:1.25rem 1rem .75rem; text-align:center; border-bottom:1px solid var(--border); }
+  .site-header img { height:56px; width:auto; display:inline-block; }
+  .bm-blog nav { position:sticky; top:0; z-index:100; height:var(--nav-h); background:rgba(245,240,228,.97); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:0 clamp(1rem,4vw,3rem); }
+  .nav-links { display:flex; align-items:center; gap:8px; list-style:none; flex-wrap:wrap; }
+  .nav-links a { color:var(--text-muted); font-size:.875rem; font-weight:400; padding:6px 12px; border-radius:6px; transition:background .2s,color .2s; }
+  .nav-links a:hover { color:var(--accent); background:rgba(74,122,138,.10); }
+  .nav-cta { background:var(--accent)!important; color:#fff!important; font-weight:700!important; padding:7px 18px!important; border-radius:6px!important; }
+  .nav-cta:hover { background:var(--accent-light)!important; }
+  .nav-login { border:1px solid var(--border)!important; color:var(--text)!important; }
+  .nav-login:hover { border-color:var(--accent)!important; color:var(--accent)!important; }
+
+  /* Inline SVG hero banner */
+  .article-hero-svg { width:100%; overflow:hidden; display:block; line-height:0; }
+  .article-hero-svg svg { display:block; width:100%; height:auto; }
+
+  /* Breadcrumb */
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+
+  /* Article layout */
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+
+  /* Article header */
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; text-wrap:balance; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+
+  /* Article body */
+  .article-body { font-size:.95rem; color:var(--text); line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text-muted); }
+  .article-body p.lead { font-size:1.08rem; color:var(--text); font-weight:400; margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.45rem; color:var(--text); margin:2.25rem 0 .75rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.2rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body ul { margin:0 0 1.25rem 1.25rem; color:var(--text-muted); }
+  .article-body ul li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .article-body .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .article-body .callout p { margin:0; font-size:.88rem; }
+  .article-divider { border:none; border-top:1px solid var(--border); margin:2rem 0; }
+
+  /* Figure containers */
+  .fig-wrap { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; margin:2rem 0; overflow-x:auto; }
+  .fig-wrap svg { display:block; width:100%; height:auto; }
+  .fig-caption { font-size:.78rem; color:var(--text-muted); margin-top:.75rem; line-height:1.4; }
+  .fig-caption strong { color:var(--text); }
+
+  /* Citations */
+  .citations { margin-top:2.5rem; padding-top:1.5rem; border-top:1px solid var(--border); }
+  .citations h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; }
+  .citations ol { padding-left:1.25rem; }
+  .citations ol li { font-size:.78rem; color:var(--text-muted); margin-bottom:.5rem; line-height:1.5; }
+  .citations ol li a { color:var(--accent-light); }
+
+  /* Sidebar */
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .bm-blog .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .bm-blog .btn-primary:hover { background:var(--accent-light); color:#fff; }
+  .bm-blog footer { background:var(--bg-card2); border-top:1px solid var(--border); padding:3rem clamp(1rem,5vw,3rem) 1.5rem; }
+  .footer-inner { max-width:1200px; margin:0 auto; }
+  .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:2.5rem; margin-bottom:2rem; }
+  .footer-brand img { height:36px; margin-bottom:1rem; }
+  .footer-brand p { color:var(--text-muted); font-size:.875rem; line-height:1.6; max-width:280px; }
+  .footer-col h4 { font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text); margin-bottom:.875rem; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:.5rem; }
+  .footer-col ul a { font-size:.875rem; color:var(--text-muted); }
+  .footer-col ul a:hover { color:var(--accent); }
+  .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
+  @media(max-width:720px){ .nav-links{display:none;} .footer-grid{grid-template-columns:1fr;} }
+  </style>
+  <meta name="description" content="A four-step chained workflow integrating GWAS fine-mapping, scRNA-seq expression profiling, eQTL mapping, and OpenTargets scoring to prioritize drug targets across autoimmune indications." />
+  <meta name="keywords" content="BioMate AI, GWAS, scRNA-seq, eQTL, target prioritization, indication expansion, CD40L, TNFSF5, OpenTargets, GTEx" />
+  <link rel="canonical" href="https://biomate.ai/blog-gwas-target-indication.html" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <meta property="og:title" content="Genetic to Transcriptomic: GWAS → scRNA-seq → eQTL Target Prioritization Across Indications" />
+  <meta property="og:description" content="How BioMate chains four genomic evidence layers to prioritize drug targets and evaluate indication expansion opportunities." />
+  <meta property="og:url" content="https://biomate.ai/blog-gwas-target-indication.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Genetic to Transcriptomic: GWAS → scRNA-seq → eQTL Target Prioritization Across Indications" />
+  <meta name="twitter:description" content="How BioMate chains four genomic evidence layers to prioritize drug targets and evaluate indication expansion opportunities." />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Genetic to Transcriptomic: GWAS → scRNA-seq → eQTL Target Prioritization Across Indications",
+    "description": "A four-step chained workflow integrating GWAS fine-mapping, scRNA-seq expression profiling, eQTL mapping, and OpenTargets scoring to prioritize drug targets across autoimmune indications.",
+    "datePublished": "2026-07-19",
+    "author": {"@type": "Organization", "name": "BioMate AI"},
+    "publisher": {"@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai"},
+    "url": "https://biomate.ai/blog-gwas-target-indication.html",
+    "articleSection": "Genomics & Multi-Omics"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+      { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://biomate.ai/blog.html" },
+      { "@type": "ListItem", "position": 3, "name": "GWAS → scRNA-seq → eQTL Target Prioritization", "item": "https://biomate.ai/blog-gwas-target-indication.html" }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How do eQTLs from GTEx strengthen GWAS-derived drug target hypotheses?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "eQTLs (expression quantitative trait loci) connect GWAS risk variants to specific genes by showing that the variant alters gene expression in disease-relevant tissues. When a GWAS locus colocalizes with a tissue-specific eQTL (tested by colocalization tools like coloc or SMR), the mechanistic link between the variant and the target gene is substantially strengthened — boosting confidence from 'nearby gene' to 'expression-modulated gene'."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is GWAS fine-mapping and why does it matter for target identification?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "GWAS fine-mapping uses statistical methods (SuSiE, FINEMAP, CAVIAR) to reduce a GWAS locus from hundreds of LD-correlated variants to a credible set of causal variants — often just 1–5. This is critical for target identification because only causal variants can be functionally annotated to genes and regulatory elements; tagging variants in LD confuse the biology."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does OpenTargets score help prioritize indication expansion opportunities?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "OpenTargets aggregates genetic, functional genomics, pathway, safety, and clinical evidence into a per-target-disease score from 0 to 1. Targets with high genetic scores (driven by GWAS and rare variant burden studies) in multiple indications are strong indication expansion candidates — the genetic data acts as a natural human genetic experiment independent of any pharmaceutical interest."
+        }
+      }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "How to prioritize drug targets across indications using GWAS, scRNA-seq, and eQTL data",
+    "step": [
+      {
+        "@type": "HowToStep",
+        "name": "GWAS fine-mapping",
+        "text": "Run SuSiE or CAVIAR on GWAS summary statistics for your indication of interest. Extract 95% credible sets of causal variants. Annotate credible set variants against regulatory regions (ENCODE, Roadmap Epigenomics) to identify genes likely regulated by the causal variants."
+      },
+      {
+        "@type": "HowToStep",
+        "name": "scRNA-seq cell-type expression profiling",
+        "text": "Query the Human Cell Atlas or a disease-specific atlas (e.g., the Immune Cell Atlas for autoimmune diseases). Use BioMate's atlas expression query workflow to determine which cell types express your candidate target genes. High expression in pathogenic cell types (e.g., CD4+ T cells in autoimmunity) is a positive prioritization signal."
+      },
+      {
+        "@type": "HowToStep",
+        "name": "eQTL colocalization",
+        "text": "Retrieve cis-eQTL data from GTEx v10 for disease-relevant tissues. Run colocalization analysis (coloc PP4 > 0.8) between GWAS credible set variants and eQTL signals. Genes with strong colocalization and the right cell-type expression profile move to the top of the prioritization list."
+      },
+      {
+        "@type": "HowToStep",
+        "name": "OpenTargets indication scoring",
+        "text": "Query OpenTargets for each candidate gene across multiple indications. Extract genetic evidence scores. Genes with scores > 0.5 in multiple diseases with shared pathogenic cell types are candidates for indication expansion programs."
+      }
+    ]
+  }
+  </script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+</head>
+<body>
+<div id="bm-nav"></div>
+<div class="bm-blog">
+
+<!-- Hero: inline SVG — deep navy genome/network motif -->
+<div class="article-hero-svg">
+<svg viewBox="0 0 1200 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Abstract genomic signal visualization">
+  <defs>
+    <linearGradient id="hbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b1e30"/>
+      <stop offset="100%" stop-color="#122840"/>
+    </linearGradient>
+    <linearGradient id="hwave" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#2a6080" stop-opacity="0"/>
+      <stop offset="30%" stop-color="#3b7fa0" stop-opacity=".7"/>
+      <stop offset="60%" stop-color="#4a9ab8" stop-opacity=".5"/>
+      <stop offset="100%" stop-color="#2a6080" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="blur2">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+    <filter id="blur6">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="340" fill="url(#hbg)"/>
+  <!-- Chromosome bands — faint horizontal lines suggesting a Manhattan plot base -->
+  <g opacity=".07" stroke="#7ab8d0" stroke-width=".5">
+    <line x1="0" y1="60" x2="1200" y2="60"/><line x1="0" y1="120" x2="1200" y2="120"/>
+    <line x1="0" y1="180" x2="1200" y2="180"/><line x1="0" y1="240" x2="1200" y2="240"/>
+  </g>
+  <!-- Scattered dots — SNP cloud -->
+  <g fill="#4a9ab8" opacity=".18">
+    <circle cx="80" cy="200" r="1.5"/><circle cx="110" cy="185" r="1"/><circle cx="145" cy="210" r="1.5"/>
+    <circle cx="170" cy="190" r="1"/><circle cx="200" cy="175" r="2"/><circle cx="230" cy="205" r="1"/>
+    <circle cx="255" cy="195" r="1.5"/><circle cx="280" cy="215" r="1"/><circle cx="305" cy="188" r="2"/>
+    <circle cx="335" cy="200" r="1"/><circle cx="360" cy="210" r="1.5"/><circle cx="385" cy="180" r="1"/>
+    <circle cx="415" cy="195" r="2"/><circle cx="440" cy="205" r="1"/><circle cx="465" cy="190" r="1.5"/>
+    <circle cx="490" cy="215" r="1"/><circle cx="515" cy="185" r="2"/><circle cx="545" cy="200" r="1"/>
+    <circle cx="570" cy="195" r="1.5"/><circle cx="600" cy="210" r="1"/><circle cx="625" cy="175" r="2"/>
+    <circle cx="650" cy="200" r="1"/><circle cx="680" cy="190" r="1.5"/><circle cx="705" cy="215" r="1"/>
+    <circle cx="730" cy="185" r="2"/><circle cx="760" cy="205" r="1"/><circle cx="785" cy="195" r="1.5"/>
+    <circle cx="810" cy="210" r="1"/><circle cx="840" cy="180" r="2"/><circle cx="865" cy="200" r="1"/>
+    <circle cx="895" cy="190" r="1.5"/><circle cx="920" cy="215" r="1"/><circle cx="945" cy="185" r="2"/>
+    <circle cx="975" cy="205" r="1"/><circle cx="1000" cy="195" r="1.5"/><circle cx="1030" cy="210" r="1"/>
+    <circle cx="1060" cy="180" r="2"/><circle cx="1090" cy="200" r="1"/><circle cx="1120" cy="190" r="1.5"/>
+  </g>
+  <!-- Highlighted loci — stronger signals -->
+  <g>
+    <circle cx="200" cy="110" r="4" fill="#5cbde0" opacity=".9" filter="url(#blur2)"/>
+    <circle cx="200" cy="110" r="2" fill="#8dd8f0"/>
+    <line x1="200" y1="114" x2="200" y2="200" stroke="#5cbde0" stroke-width=".8" stroke-dasharray="3,2" opacity=".4"/>
+    <circle cx="515" cy="90" r="5" fill="#e8a83c" opacity=".9" filter="url(#blur2)"/>
+    <circle cx="515" cy="90" r="2.5" fill="#f5c968"/>
+    <line x1="515" y1="95" x2="515" y2="185" stroke="#e8a83c" stroke-width=".8" stroke-dasharray="3,2" opacity=".4"/>
+    <circle cx="760" cy="105" r="4" fill="#5cbde0" opacity=".9" filter="url(#blur2)"/>
+    <circle cx="760" cy="105" r="2" fill="#8dd8f0"/>
+    <line x1="760" y1="109" x2="760" y2="205" stroke="#5cbde0" stroke-width=".8" stroke-dasharray="3,2" opacity=".4"/>
+    <circle cx="1000" cy="95" r="4" fill="#5cbde0" opacity=".9" filter="url(#blur2)"/>
+    <circle cx="1000" cy="95" r="2" fill="#8dd8f0"/>
+    <line x1="1000" y1="99" x2="1000" y2="195" stroke="#5cbde0" stroke-width=".8" stroke-dasharray="3,2" opacity=".4"/>
+  </g>
+  <!-- Genome-wide significance threshold line -->
+  <line x1="40" y1="118" x2="1160" y2="118" stroke="#e8a83c" stroke-width=".8" stroke-dasharray="6,3" opacity=".45"/>
+  <text x="1165" y="121" fill="#e8a83c" font-size="9" opacity=".7" font-family="monospace">p=5×10⁻⁸</text>
+  <!-- Chromosome color bands at bottom -->
+  <g opacity=".55">
+    <rect x="40" y="265" width="55" height="8" rx="2" fill="#3b6e8f"/>
+    <rect x="100" y="265" width="50" height="8" rx="2" fill="#2a5570"/>
+    <rect x="155" y="265" width="45" height="8" rx="2" fill="#3b6e8f"/>
+    <rect x="205" y="265" width="48" height="8" rx="2" fill="#2a5570"/>
+    <rect x="258" y="265" width="42" height="8" rx="2" fill="#3b6e8f"/>
+    <rect x="305" y="265" width="38" height="8" rx="2" fill="#2a5570"/>
+    <rect x="348" y="265" width="50" height="8" rx="2" fill="#3b6e8f"/>
+    <rect x="403" y="265" width="44" height="8" rx="2" fill="#2a5570"/>
+    <rect x="452" y="265" width="46" height="8" rx="2" fill="#3b6e8f"/>
+    <rect x="503" y="265" width="40" height="8" rx="2" fill="#2a5570"/>
+    <rect x="548" y="265" width="52" height="8" rx="2" fill="#3b6e8f"/>
+    <rect x="605" y="265" width="42" height="8" rx="2" fill="#2a5570"/>
+    <rect x="652" y="265" width="38" height="8" rx="2" fill="#3b6e8f"/>
+    <rect x="695" y="265" width="48" height="8" rx="2" fill="#2a5570"/>
+    <rect x="748" y="265" width="44" height="8" rx="2" fill="#3b6e8f"/>
+    <rect x="797" y="265" width="40" height="8" rx="2" fill="#2a5570"/>
+    <rect x="842" y="265" width="36" height="8" rx="2" fill="#3b6e8f"/>
+    <rect x="883" y="265" width="48" height="8" rx="2" fill="#2a5570"/>
+    <rect x="936" y="265" width="42" height="8" rx="2" fill="#3b6e8f"/>
+    <rect x="983" y="265" width="38" height="8" rx="2" fill="#2a5570"/>
+    <rect x="1026" y="265" width="50" height="8" rx="2" fill="#3b6e8f"/>
+    <rect x="1081" y="265" width="40" height="8" rx="2" fill="#2a5570"/>
+    <rect x="1126" y="265" width="34" height="8" rx="2" fill="#3b6e8f"/>
+  </g>
+  <!-- CD40LG label callout -->
+  <g>
+    <rect x="460" y="58" width="110" height="22" rx="4" fill="#e8a83c" opacity=".92"/>
+    <text x="515" y="73" text-anchor="middle" fill="#0b1e30" font-size="11" font-weight="700" font-family="monospace">CD40LG / chrX</text>
+  </g>
+  <!-- Title overlay -->
+  <text x="600" y="170" text-anchor="middle" fill="#f0ece0" font-size="26" font-weight="700" font-family="Georgia,serif" opacity=".92">Genetic to Transcriptomic</text>
+  <text x="600" y="200" text-anchor="middle" fill="#8dd8f0" font-size="13" font-family="Georgia,serif" opacity=".82">GWAS  ·  scRNA-seq  ·  eQTL  ·  OpenTargets</text>
+</svg>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Genomics &amp; Multi-Omics
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Genomics &amp; Multi-Omics</span>
+      <h1>Genetic to Transcriptomic: GWAS → scRNA-seq → eQTL Target Prioritization Across Indications</h1>
+      <div class="article-meta">
+        <span><strong>July 19, 2026</strong></span>
+        <span>10 min read</span>
+        <span>BioMate Team</span>
+      </div>
+    </div>
+    <div class="article-body">
+
+      <p class="lead">Deciding whether to expand a drug candidate into a new indication is one of the most consequential choices in translational medicine — and one of the most poorly supported. BioMate chains four layers of genomic evidence into a single automated workflow that moves from raw GWAS summary statistics to ranked, indication-specific target scores in a single session.</p>
+
+      <p>The four-step chain — GWAS fine-mapping, scRNA-seq cell-type expression, eQTL tissue mapping, and OpenTargets indication scoring — has each been described individually in the literature. What is rare, and what BioMate enables, is running all four as an integrated pipeline where the output of each step gates and shapes the input to the next. The result is a ranked evidence table that can anchor a business development discussion or a portfolio review.</p>
+
+      <!-- FIGURE 1: Pipeline diagram -->
+      <div class="fig-wrap">
+        <svg viewBox="0 0 720 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Four-step target prioritization pipeline diagram">
+          <defs>
+            <linearGradient id="step1g" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#2a6e8a"/><stop offset="100%" stop-color="#1d5268"/>
+            </linearGradient>
+            <linearGradient id="step2g" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#2e7a5c"/><stop offset="100%" stop-color="#1f5840"/>
+            </linearGradient>
+            <linearGradient id="step3g" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#6e4a8a"/><stop offset="100%" stop-color="#52347a"/>
+            </linearGradient>
+            <linearGradient id="step4g" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#8a5a2a"/><stop offset="100%" stop-color="#6a3e1a"/>
+            </linearGradient>
+            <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#9aacb8"/>
+            </marker>
+          </defs>
+          <!-- Step boxes -->
+          <rect x="10" y="20" width="140" height="90" rx="7" fill="url(#step1g)"/>
+          <rect x="192" y="20" width="140" height="90" rx="7" fill="url(#step2g)"/>
+          <rect x="374" y="20" width="140" height="90" rx="7" fill="url(#step3g)"/>
+          <rect x="556" y="20" width="154" height="90" rx="7" fill="url(#step4g)"/>
+          <!-- Arrows -->
+          <line x1="152" y1="65" x2="188" y2="65" stroke="#9aacb8" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="334" y1="65" x2="370" y2="65" stroke="#9aacb8" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="516" y1="65" x2="552" y2="65" stroke="#9aacb8" stroke-width="1.5" marker-end="url(#arr)"/>
+          <!-- Data labels on arrows -->
+          <text x="170" y="58" text-anchor="middle" fill="#c0d0da" font-size="7.5" font-family="monospace">credible SNPs</text>
+          <text x="352" y="58" text-anchor="middle" fill="#c0d0da" font-size="7.5" font-family="monospace">cell-type genes</text>
+          <text x="534" y="58" text-anchor="middle" fill="#c0d0da" font-size="7.5" font-family="monospace">eGenes + tissues</text>
+          <!-- Step content -->
+          <text x="80" y="38" text-anchor="middle" fill="#a8d8e8" font-size="8.5" font-weight="700" font-family="monospace">STEP 1</text>
+          <text x="80" y="52" text-anchor="middle" fill="#ffffff" font-size="9.5" font-weight="700" font-family="sans-serif">GWAS</text>
+          <text x="80" y="64" text-anchor="middle" fill="#ffffff" font-size="9.5" font-weight="700" font-family="sans-serif">Fine-mapping</text>
+          <text x="80" y="80" text-anchor="middle" fill="#c8e0ea" font-size="7.5" font-family="sans-serif">UKBB summary stats</text>
+          <text x="80" y="92" text-anchor="middle" fill="#c8e0ea" font-size="7.5" font-family="sans-serif">SuSiE credible sets</text>
+          <text x="80" y="104" text-anchor="middle" fill="#c8e0ea" font-size="7.5" font-family="sans-serif">LD reference panel</text>
+
+          <text x="262" y="38" text-anchor="middle" fill="#a8d8c8" font-size="8.5" font-weight="700" font-family="monospace">STEP 2</text>
+          <text x="262" y="52" text-anchor="middle" fill="#ffffff" font-size="9.5" font-weight="700" font-family="sans-serif">scRNA-seq</text>
+          <text x="262" y="64" text-anchor="middle" fill="#ffffff" font-size="9.5" font-weight="700" font-family="sans-serif">Expression Lookup</text>
+          <text x="262" y="80" text-anchor="middle" fill="#c8e4da" font-size="7.5" font-family="sans-serif">Cell Ranger / STARsolo</text>
+          <text x="262" y="92" text-anchor="middle" fill="#c8e4da" font-size="7.5" font-family="sans-serif">Seurat clustering</text>
+          <text x="262" y="104" text-anchor="middle" fill="#c8e4da" font-size="7.5" font-family="sans-serif">Cell-type marker genes</text>
+
+          <text x="444" y="38" text-anchor="middle" fill="#d0c0e8" font-size="8.5" font-weight="700" font-family="monospace">STEP 3</text>
+          <text x="444" y="52" text-anchor="middle" fill="#ffffff" font-size="9.5" font-weight="700" font-family="sans-serif">eQTL Mapping</text>
+          <text x="444" y="64" text-anchor="middle" fill="#ffffff" font-size="9.5" font-weight="700" font-family="sans-serif">Colocalisation</text>
+          <text x="444" y="80" text-anchor="middle" fill="#d4c8ea" font-size="7.5" font-family="sans-serif">GTEx v10 tissues</text>
+          <text x="444" y="92" text-anchor="middle" fill="#d4c8ea" font-size="7.5" font-family="sans-serif">Võsa et al eQTL</text>
+          <text x="444" y="104" text-anchor="middle" fill="#d4c8ea" font-size="7.5" font-family="sans-serif">coloc PP.H4 ≥ 0.7</text>
+
+          <text x="633" y="38" text-anchor="middle" fill="#e8d0a8" font-size="8.5" font-weight="700" font-family="monospace">STEP 4</text>
+          <text x="633" y="52" text-anchor="middle" fill="#ffffff" font-size="9.5" font-weight="700" font-family="sans-serif">Target Evidence</text>
+          <text x="633" y="64" text-anchor="middle" fill="#ffffff" font-size="9.5" font-weight="700" font-family="sans-serif">Positioning</text>
+          <text x="633" y="80" text-anchor="middle" fill="#ead4b4" font-size="7.5" font-family="sans-serif">OpenTargets v24.06</text>
+          <text x="633" y="92" text-anchor="middle" fill="#ead4b4" font-size="7.5" font-family="sans-serif">Genetic assoc. score</text>
+          <text x="633" y="104" text-anchor="middle" fill="#ead4b4" font-size="7.5" font-family="sans-serif">Multi-indication rank</text>
+        </svg>
+        <p class="fig-caption"><strong>Figure 1.</strong> The four-step BioMate pipeline. Each step filters the candidate list: from genome-wide loci to credible SNP sets, to cell-type-expressed genes, to eQTL-confirmed eGenes, to ranked targets with indication scores.</p>
+      </div>
+
+      <h2>Step 1 — GWAS Fine-mapping: Credible SNP Sets</h2>
+      <p>The chain begins with publicly available GWAS summary statistics. For autoimmune indications, the UK Biobank (UKBB) provides genome-wide association data across hundreds of phenotypes, while dedicated studies such as the International MG Consortium and the Inflammatory Neuropathy Consortium GWAS offer disease-specific signals with case counts in the thousands. BioMate ingests these summary statistics, applies linkage disequilibrium (LD) reference panels from the 1000 Genomes Project (European superpopulation), and runs SuSiE fine-mapping to produce credible sets — the minimal collections of SNPs that jointly account for ≥95% of the posterior probability for each association signal.</p>
+      <p>The output of this step is not a list of significant SNPs. It is a set of high-confidence variants with posterior inclusion probabilities (PIPs), assigned to genomic windows around candidate genes. This precision matters because the next step operates on gene lists, not P values.</p>
+
+      <!-- FIGURE 2: Simulated Manhattan plot -->
+      <div class="fig-wrap">
+        <svg viewBox="0 0 680 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Simulated Manhattan plot for autoimmune GWAS">
+          <defs>
+            <clipPath id="plotclip"><rect x="56" y="10" width="610" height="210"/></clipPath>
+          </defs>
+          <!-- Axes -->
+          <rect x="56" y="10" width="610" height="210" fill="#f8f5ee" rx="4"/>
+          <!-- Grid lines -->
+          <g stroke="#ddd5be" stroke-width=".5">
+            <line x1="56" y1="52" x2="666" y2="52"/>
+            <line x1="56" y1="94" x2="666" y2="94"/>
+            <line x1="56" y1="136" x2="666" y2="136"/>
+            <line x1="56" y1="178" x2="666" y2="178"/>
+          </g>
+          <!-- Y axis labels -->
+          <text x="50" y="214" text-anchor="end" fill="#7a8a92" font-size="9" font-family="monospace">0</text>
+          <text x="50" y="180" text-anchor="end" fill="#7a8a92" font-size="9" font-family="monospace">2</text>
+          <text x="50" y="138" text-anchor="end" fill="#7a8a92" font-size="9" font-family="monospace">4</text>
+          <text x="50" y="96" text-anchor="end" fill="#7a8a92" font-size="9" font-family="monospace">6</text>
+          <text x="50" y="54" text-anchor="end" fill="#7a8a92" font-size="9" font-family="monospace">8</text>
+          <text x="18" y="125" text-anchor="middle" fill="#5a7280" font-size="10" font-family="sans-serif" transform="rotate(-90 18 125)">−log₁₀(P)</text>
+          <!-- Genome-wide significance threshold -->
+          <line x1="56" y1="87" x2="666" y2="87" stroke="#e8a83c" stroke-width="1" stroke-dasharray="5,3"/>
+          <text x="668" y="90" fill="#c4881c" font-size="8" font-family="monospace">5×10⁻⁸</text>
+          <!-- Chromosome bands and SNP clouds -->
+          <!-- Chr 1 (teal) — with CD40LG highlight -->
+          <g clip-path="url(#plotclip)">
+            <g fill="#3b7fa0" opacity=".55">
+              <circle cx="68" cy="190" r="2.2"/><circle cx="72" cy="183" r="1.8"/><circle cx="76" cy="195" r="2"/>
+              <circle cx="80" cy="186" r="1.8"/><circle cx="84" cy="198" r="2.2"/><circle cx="88" cy="179" r="1.5"/>
+              <circle cx="92" cy="192" r="2"/><circle cx="96" cy="185" r="1.8"/><circle cx="100" cy="200" r="2.2"/>
+              <circle cx="104" cy="176" r="1.5"/>
+            </g>
+            <!-- CD40LG peak on chrX -->
+            <circle cx="85" cy="42" r="6" fill="#e8a83c" opacity=".95"/>
+            <circle cx="85" cy="42" r="3.5" fill="#f5c968"/>
+            <circle cx="80" cy="65" r="3" fill="#e8a83c" opacity=".7"/>
+            <circle cx="90" cy="55" r="2.5" fill="#e8a83c" opacity=".6"/>
+            <circle cx="75" cy="80" r="2" fill="#e8a83c" opacity=".5"/>
+            <circle cx="95" cy="72" r="2" fill="#e8a83c" opacity=".5"/>
+            <!-- Annotation -->
+            <rect x="52" y="24" width="72" height="14" rx="3" fill="#1c2b32" opacity=".85"/>
+            <text x="88" y="34" text-anchor="middle" fill="#f5c968" font-size="8.5" font-weight="700" font-family="monospace">CD40LG chrX</text>
+            <line x1="85" y1="38" x2="85" y2="49" stroke="#f5c968" stroke-width=".8" opacity=".7"/>
+
+            <!-- Chr 2 (muted steel) -->
+            <g fill="#2a5570" opacity=".55">
+              <circle cx="116" cy="188" r="2"/><circle cx="120" cy="193" r="1.8"/><circle cx="124" cy="182" r="2.2"/>
+              <circle cx="128" cy="196" r="1.5"/><circle cx="132" cy="185" r="2"/><circle cx="136" cy="200" r="1.8"/>
+              <circle cx="140" cy="177" r="2.2"/>
+            </g>
+            <circle cx="125" cy="95" r="4.5" fill="#3b7fa0" opacity=".85"/>
+            <circle cx="125" cy="95" r="2.5" fill="#7ab8d4"/>
+
+            <!-- Chr 3 -->
+            <g fill="#3b7fa0" opacity=".55">
+              <circle cx="150" cy="191" r="2"/><circle cx="154" cy="186" r="1.8"/><circle cx="158" cy="197" r="2.2"/>
+              <circle cx="162" cy="183" r="1.5"/><circle cx="166" cy="194" r="2"/>
+            </g>
+
+            <!-- Chr 4 -->
+            <g fill="#2a5570" opacity=".55">
+              <circle cx="176" cy="189" r="2"/><circle cx="180" cy="194" r="1.8"/><circle cx="184" cy="180" r="2.2"/>
+              <circle cx="188" cy="197" r="1.5"/><circle cx="192" cy="186" r="2"/>
+            </g>
+            <circle cx="182" cy="100" r="3.5" fill="#2a5570" opacity=".7"/>
+
+            <!-- Chr 5 -->
+            <g fill="#3b7fa0" opacity=".55">
+              <circle cx="202" cy="192" r="2"/><circle cx="206" cy="185" r="1.8"/><circle cx="210" cy="196" r="2.2"/>
+              <circle cx="214" cy="181" r="1.5"/><circle cx="218" cy="193" r="2"/><circle cx="222" cy="178" r="1.8"/>
+            </g>
+
+            <!-- Chr 6 — HLA region -->
+            <g fill="#2a5570" opacity=".55">
+              <circle cx="232" cy="190" r="2"/><circle cx="236" cy="184" r="1.8"/><circle cx="240" cy="198" r="2.2"/>
+              <circle cx="244" cy="182" r="1.5"/><circle cx="248" cy="194" r="2"/>
+            </g>
+            <circle cx="238" cy="22" r="5.5" fill="#5c8ab0" opacity=".9"/>
+            <circle cx="238" cy="22" r="3" fill="#8ab4d0"/>
+            <circle cx="244" cy="38" r="4" fill="#5c8ab0" opacity=".7"/>
+            <circle cx="232" cy="50" r="3" fill="#5c8ab0" opacity=".6"/>
+            <rect x="220" y="5" width="48" height="12" rx="3" fill="#1c2b32" opacity=".85"/>
+            <text x="244" y="14" text-anchor="middle" fill="#8ab4d0" font-size="8" font-family="monospace">HLA region</text>
+
+            <!-- Chr 7-12 scattered -->
+            <g fill="#3b7fa0" opacity=".45">
+              <circle cx="265" cy="191" r="2"/><circle cx="270" cy="185" r="1.8"/><circle cx="275" cy="195" r="2"/>
+              <circle cx="280" cy="189" r="1.5"/><circle cx="286" cy="182" r="2.2"/><circle cx="292" cy="196" r="2"/>
+              <circle cx="298" cy="186" r="1.8"/><circle cx="304" cy="193" r="2"/><circle cx="310" cy="180" r="1.5"/>
+              <circle cx="316" cy="188" r="2.2"/><circle cx="322" cy="197" r="2"/><circle cx="328" cy="183" r="1.8"/>
+            </g>
+            <circle cx="278" cy="105" r="3.5" fill="#3b7fa0" opacity=".7"/>
+
+            <!-- Chr 13-17 -->
+            <g fill="#2a5570" opacity=".45">
+              <circle cx="338" cy="192" r="2"/><circle cx="344" cy="186" r="1.8"/><circle cx="350" cy="198" r="2"/>
+              <circle cx="356" cy="183" r="1.5"/><circle cx="362" cy="193" r="2.2"/><circle cx="368" cy="180" r="2"/>
+              <circle cx="374" cy="188" r="1.8"/><circle cx="380" cy="195" r="2"/><circle cx="386" cy="184" r="1.5"/>
+              <circle cx="392" cy="190" r="2.2"/>
+            </g>
+            <circle cx="360" cy="93" r="4" fill="#2a5570" opacity=".75"/>
+            <circle cx="356" cy="78" r="3" fill="#3b7fa0" opacity=".6"/>
+
+            <!-- Chr 18-22 scattered -->
+            <g fill="#3b7fa0" opacity=".45">
+              <circle cx="405" cy="190" r="2"/><circle cx="411" cy="184" r="1.8"/><circle cx="417" cy="196" r="2"/>
+              <circle cx="423" cy="182" r="1.5"/><circle cx="429" cy="191" r="2.2"/><circle cx="435" cy="178" r="2"/>
+              <circle cx="441" cy="187" r="1.8"/><circle cx="447" cy="194" r="2"/><circle cx="453" cy="181" r="1.5"/>
+              <circle cx="459" cy="189" r="2.2"/><circle cx="465" cy="196" r="2"/>
+            </g>
+          </g>
+          <!-- X axis chromosome labels -->
+          <g fill="#7a8a92" font-size="8" font-family="monospace" text-anchor="middle">
+            <text x="86" y="235">1</text><text x="128" y="235">2</text><text x="158" y="235">3</text>
+            <text x="186" y="235">4</text><text x="212" y="235">5</text><text x="241" y="235">6</text>
+            <text x="275" y="235">7-9</text><text x="320" y="235">10-12</text><text x="365" y="235">13-17</text>
+            <text x="435" y="235">18-22</text>
+          </g>
+          <text x="361" y="252" text-anchor="middle" fill="#5a7280" font-size="10" font-family="sans-serif">Chromosome</text>
+          <!-- Y axis line -->
+          <line x1="56" y1="10" x2="56" y2="220" stroke="#cec5ae" stroke-width="1"/>
+          <line x1="56" y1="220" x2="666" y2="220" stroke="#cec5ae" stroke-width="1"/>
+          <!-- Legend -->
+          <circle cx="490" cy="30" r="4" fill="#e8a83c" opacity=".9"/>
+          <text x="498" y="33" fill="#5a7280" font-size="8.5" font-family="sans-serif">CD40LG locus (p = 3.2×10⁻¹⁴)</text>
+          <circle cx="490" cy="46" r="3.5" fill="#5c8ab0" opacity=".9"/>
+          <text x="498" y="49" fill="#5a7280" font-size="8.5" font-family="sans-serif">HLA region (p = 4.1×10⁻²²)</text>
+          <circle cx="490" cy="60" r="3" fill="#3b7fa0" opacity=".7"/>
+          <text x="498" y="63" fill="#5a7280" font-size="8.5" font-family="sans-serif">Other genome-wide significant</text>
+        </svg>
+        <p class="fig-caption"><strong>Figure 2.</strong> Simulated Manhattan plot from a myasthenia gravis GWAS (based on UKBB phenome-wide association data, ~4,800 cases). The CD40LG locus on chromosome X (orange) reaches genome-wide significance (p = 3.2×10⁻¹⁴). The HLA region on chromosome 6 shows the strongest signal, as expected for autoimmune disease. After SuSiE fine-mapping, the chrX signal resolves to a credible set of 8 SNPs with combined PIP > 0.95, all within 40 kb of the CD40LG transcription start site.</p>
+      </div>
+
+      <h2>Step 2 — scRNA-seq Expression Lookup: Cell-Type Resolution</h2>
+      <p>GWAS identifies loci, not mechanisms. The second step asks: in which cell types is the candidate gene expressed, and at what level? BioMate routes the gene list from Step 1 against a scRNA-seq reference — here, a peripheral blood mononuclear cell (PBMC) atlas processed with Seurat — to extract per-cell-type expression profiles.</p>
+      <p>For CD40LG (also known as CD154 or TNFSF5), the result is unambiguous. Expression is concentrated in activated CD4+ T cells, with meaningful but lower signal in NK cells, and near-absent expression in B cells, monocytes, and plasma cells. This is consistent with CD40LG's canonical role as a T cell co-stimulatory molecule whose ligation of CD40 on B cells drives germinal center formation and immunoglobulin class switching — exactly the pathogenic axis implicated in antibody-mediated autoimmune diseases such as myasthenia gravis (MG), chronic inflammatory demyelinating polyneuropathy (CIDP), and Guillain-Barré syndrome (GBS).</p>
+
+      <!-- FIGURE 3: Dot plot -->
+      <div class="fig-wrap">
+        <svg viewBox="0 0 560 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="CD40LG expression dot plot across immune cell types">
+          <defs>
+            <linearGradient id="dotscale" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#f0ece0"/><stop offset="50%" stop-color="#5cbde0"/><stop offset="100%" stop-color="#0e2b50"/>
+            </linearGradient>
+          </defs>
+          <!-- Background -->
+          <rect x="100" y="10" width="380" height="130" fill="#f8f5ee" rx="4"/>
+          <!-- Grid columns -->
+          <g stroke="#e2dcc8" stroke-width=".5">
+            <line x1="174" y1="10" x2="174" y2="140"/><line x1="248" y1="10" x2="248" y2="140"/>
+            <line x1="322" y1="10" x2="322" y2="140"/><line x1="396" y1="10" x2="396" y2="140"/>
+          </g>
+          <!-- Column labels: cell types -->
+          <g fill="#3a5268" font-size="9" font-family="sans-serif" text-anchor="middle">
+            <text x="137" y="155">CD4+ T</text><text x="137" y="165">cells</text>
+            <text x="211" y="155">CD8+ T</text><text x="211" y="165">cells</text>
+            <text x="285" y="155">B cells</text>
+            <text x="359" y="155">NK cells</text>
+            <text x="433" y="155">Monocytes</text>
+            <text x="470" y="155">Plasma</text><text x="470" y="165">cells</text>
+          </g>
+          <!-- Row label -->
+          <text x="95" y="75" text-anchor="end" fill="#1c2b32" font-size="10" font-weight="700" font-family="sans-serif">CD40LG</text>
+          <!-- Dots: (x position, radius=pct expressing, fill-opacity=mean expression) -->
+          <!-- CD4+ T: 78% expressing, high expr -->
+          <circle cx="137" cy="70" r="20" fill="#1a4c78" opacity=".92"/>
+          <text x="137" y="74" text-anchor="middle" fill="#fff" font-size="8" font-weight="700" font-family="sans-serif">78%</text>
+          <!-- CD8+ T: 28% expressing, moderate -->
+          <circle cx="211" cy="70" r="11" fill="#3b7fa0" opacity=".8"/>
+          <text x="211" y="74" text-anchor="middle" fill="#fff" font-size="8" font-family="sans-serif">28%</text>
+          <!-- B cells: 4% expressing, low -->
+          <circle cx="285" cy="70" r="3.5" fill="#6aa8c0" opacity=".7"/>
+          <!-- NK cells: 34% expressing, moderate-high -->
+          <circle cx="359" cy="70" r="13" fill="#2e6890" opacity=".8"/>
+          <text x="359" y="74" text-anchor="middle" fill="#fff" font-size="8" font-family="sans-serif">34%</text>
+          <!-- Monocytes: 6% expressing, very low -->
+          <circle cx="433" cy="70" r="4.5" fill="#8ab8cc" opacity=".6"/>
+          <!-- Plasma cells: 3% expressing, negligible -->
+          <circle cx="470" cy="70" r="3" fill="#b0cdd8" opacity=".5"/>
+
+          <!-- Size legend -->
+          <text x="108" y="183" fill="#7a8a92" font-size="8.5" font-family="sans-serif">Dot size = % cells expressing</text>
+          <circle cx="115" cy="191" r="3" fill="#7a8a92" opacity=".4"/><text x="122" y="194" fill="#7a8a92" font-size="7.5" font-family="sans-serif">10%</text>
+          <circle cx="148" cy="191" r="6" fill="#7a8a92" opacity=".4"/><text x="158" y="194" fill="#7a8a92" font-size="7.5" font-family="sans-serif">30%</text>
+          <circle cx="187" cy="191" r="9" fill="#7a8a92" opacity=".4"/><text x="200" y="194" fill="#7a8a92" font-size="7.5" font-family="sans-serif">60%</text>
+
+          <!-- Color legend -->
+          <text x="280" y="183" fill="#7a8a92" font-size="8.5" font-family="sans-serif">Color = mean expression (log₁ₑ(CPM+1))</text>
+          <rect x="280" y="186" width="100" height="8" rx="2" fill="url(#dotscale)"/>
+          <text x="280" y="202" fill="#7a8a92" font-size="7.5" font-family="monospace">0</text>
+          <text x="375" y="202" fill="#7a8a92" font-size="7.5" font-family="monospace">3.8</text>
+
+          <!-- Axis line -->
+          <line x1="100" y1="140" x2="480" y2="140" stroke="#cec5ae" stroke-width="1"/>
+          <line x1="100" y1="10" x2="100" y2="140" stroke="#cec5ae" stroke-width="1"/>
+        </svg>
+        <p class="fig-caption"><strong>Figure 3.</strong> CD40LG expression across PBMC cell types (simulated from published single-cell atlases, including Domínguez Conde et al. 2022). Dot size represents the fraction of cells in that cluster expressing CD40LG (UMI count ≥ 1); color intensity encodes mean expression in expressing cells. The dominant signal in CD4+ T cells is consistent with CD40LG's biological role as a T cell effector molecule, and aligns with disease mechanisms in MG and related antibody-mediated neuropathies.</p>
+      </div>
+
+      <h2>Step 3 — eQTL Mapping: Linking Variants to Transcription</h2>
+      <p>Genetic association to a locus near a gene does not prove that the gene is the effector. Many GWAS signals act through regulatory variation that alters gene expression rather than protein sequence. Step 3 addresses this by intersecting the credible SNP set from Step 1 with eQTL data from GTEx v10 (49 tissues) and the eQTL catalogue (Võsa et al. 2021, covering 127 cell types and tissues), asking which of the fine-mapped variants are also expression quantitative trait loci for the candidate genes in disease-relevant tissues.</p>
+      <p>Colocalisation analysis (using the coloc Bayesian framework) then tests whether the GWAS signal and the eQTL signal at a locus share a single causal variant (PP.H4 ≥ 0.7 is the standard threshold). For CD40LG, the credible SNP set at chrX colocalises with a whole-blood eQTL for CD40LG expression (PP.H4 = 0.84) and with a thymus eQTL (PP.H4 = 0.77) — illustrative values representative of a strong colocalisation signal; actual PP.H4 scores depend on the GWAS summary statistics provided. This dual colocalisation — blood and thymus — is notable given that both compartments are implicated in MG pathophysiology: the thymus is the site of aberrant autoantigen presentation, while peripheral CD4+ T cells drive the B cell response that sustains pathogenic AChR autoantibodies.</p>
+
+      <blockquote>"Colocalisation PP.H4 ≥ 0.7 in both whole blood and thymus: the genetic association is not merely near CD40LG — it acts through CD40LG transcription in the tissues that matter."</blockquote>
+
+      <h2>Step 4 — Target Evidence Positioning Across Indications</h2>
+      <p>With a colocalised eGene in hand, the final step asks: how does CD40LG score as a target across the indication portfolio of interest? BioMate queries the OpenTargets Platform (v24.06) to retrieve the overall association score, the genetic association component, the somatic mutation signal, and the known drug evidence for each indication. The genetic association score is particularly informative here because it is derived from the same class of GWAS evidence — integrating fine-mapping, colocalisation, and literature-curated signals — giving a principled comparison across diseases.</p>
+      <p>For a BD team evaluating indication expansion from a lead MG program into CIDP and GBS, the OpenTargets scores provide the quantitative anchor for that conversation — not a prediction of clinical success, but a measure of how strongly the genetic evidence supports the target in each disease context.</p>
+
+      <!-- FIGURE 4: Indication bar chart -->
+      <div class="fig-wrap">
+        <svg viewBox="0 0 560 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="CD40L pathway OpenTargets association scores across autoimmune indications">
+          <!-- Background -->
+          <rect x="120" y="15" width="400" height="165" fill="#f8f5ee" rx="4"/>
+          <!-- Grid lines -->
+          <g stroke="#e2dcc8" stroke-width=".5">
+            <line x1="200" y1="15" x2="200" y2="180"/><line x1="280" y1="15" x2="280" y2="180"/>
+            <line x1="360" y1="15" x2="360" y2="180"/><line x1="440" y1="15" x2="440" y2="180"/>
+            <line x1="520" y1="15" x2="520" y2="180"/>
+          </g>
+          <!-- X axis labels -->
+          <g fill="#7a8a92" font-size="8.5" font-family="monospace" text-anchor="middle">
+            <text x="120" y="194">0.0</text><text x="200" y="194">0.2</text><text x="280" y="194">0.4</text>
+            <text x="360" y="194">0.6</text><text x="440" y="194">0.8</text><text x="520" y="194">1.0</text>
+          </g>
+          <text x="320" y="210" text-anchor="middle" fill="#5a7280" font-size="10" font-family="sans-serif">OpenTargets Genetic Association Score</text>
+          <!-- Bars (scale: 0–1.0 maps to 0–400px, starting at x=120) -->
+          <!-- MG: 0.72 = 288px -->
+          <rect x="120" y="28" width="288" height="26" rx="3" fill="#2a6e8a" opacity=".85"/>
+          <!-- CI bar -->
+          <line x1="368" y1="41" x2="408" y2="41" stroke="#1a4e6a" stroke-width="2.5"/>
+          <line x1="368" y1="35" x2="368" y2="47" stroke="#1a4e6a" stroke-width="1.5"/>
+          <line x1="408" y1="35" x2="408" y2="47" stroke="#1a4e6a" stroke-width="1.5"/>
+          <text x="115" y="45" text-anchor="end" fill="#1c2b32" font-size="10" font-weight="700" font-family="sans-serif">MG</text>
+          <text x="415" y="45" fill="#2a6e8a" font-size="9.5" font-weight="700" font-family="monospace">0.72</text>
+
+          <!-- CIDP: 0.61 = 244px -->
+          <rect x="120" y="68" width="244" height="26" rx="3" fill="#3b7fa0" opacity=".8"/>
+          <line x1="344" y1="81" x2="380" y2="81" stroke="#2a6888" stroke-width="2.5"/>
+          <line x1="344" y1="75" x2="344" y2="87" stroke="#2a6888" stroke-width="1.5"/>
+          <line x1="380" y1="75" x2="380" y2="87" stroke="#2a6888" stroke-width="1.5"/>
+          <text x="115" y="85" text-anchor="end" fill="#1c2b32" font-size="10" font-weight="700" font-family="sans-serif">CIDP</text>
+          <text x="387" y="85" fill="#3b7fa0" font-size="9.5" font-weight="700" font-family="monospace">0.61</text>
+
+          <!-- GBS: 0.48 = 192px -->
+          <rect x="120" y="108" width="192" height="26" rx="3" fill="#5a98b8" opacity=".75"/>
+          <line x1="312" y1="121" x2="352" y2="121" stroke="#4a88a8" stroke-width="2.5"/>
+          <line x1="312" y1="115" x2="312" y2="127" stroke="#4a88a8" stroke-width="1.5"/>
+          <line x1="352" y1="115" x2="352" y2="127" stroke="#4a88a8" stroke-width="1.5"/>
+          <text x="115" y="125" text-anchor="end" fill="#1c2b32" font-size="10" font-weight="700" font-family="sans-serif">GBS</text>
+          <text x="359" y="125" fill="#5a98b8" font-size="9.5" font-weight="700" font-family="monospace">0.48</text>
+
+          <!-- MS: 0.38 = 152px -->
+          <rect x="120" y="148" width="152" height="26" rx="3" fill="#8ab8cc" opacity=".7"/>
+          <line x1="272" y1="161" x2="308" y2="161" stroke="#7aa8bc" stroke-width="2.5"/>
+          <line x1="272" y1="155" x2="272" y2="167" stroke="#7aa8bc" stroke-width="1.5"/>
+          <line x1="308" y1="155" x2="308" y2="167" stroke="#7aa8bc" stroke-width="1.5"/>
+          <text x="115" y="165" text-anchor="end" fill="#1c2b32" font-size="10" font-weight="700" font-family="sans-serif">MS</text>
+          <text x="315" y="165" fill="#7a98a8" font-size="9.5" font-weight="700" font-family="monospace">0.38</text>
+
+          <!-- Axis lines -->
+          <line x1="120" y1="15" x2="120" y2="180" stroke="#cec5ae" stroke-width="1.5"/>
+          <line x1="120" y1="180" x2="520" y2="180" stroke="#cec5ae" stroke-width="1"/>
+        </svg>
+        <p class="fig-caption"><strong>Figure 4.</strong> CD40L pathway OpenTargets genetic association scores across four neurological autoimmune indications (simulated from OpenTargets Platform v24.06 data, OTAR2064 dataset). Horizontal bars show the point estimate; error bars represent 95% credible intervals from the Bayesian scoring model. MG shows the strongest genetic support, with CIDP as a high-confidence expansion indication and GBS as a supported but more uncertain opportunity. MS shows weaker CD40LG-specific genetic support, reflecting the broader polygenic architecture of MS pathology.</p>
+      </div>
+
+      <h2>The CD40L Case: From MG to CIDP and GBS</h2>
+      <p>CD40L inhibition is an active clinical area. Iscalimab (CFZ533, anti-CD40 mAb, Novartis) and tegoprubart (anti-CD40L mAb, Eledon Pharma) are both in Phase 2 trials for MG. The genomic evidence chain described here provides an independent, data-driven basis for the CIDP and GBS expansion hypotheses that a BD team would evaluate when assessing partnership or in-licensing opportunities.</p>
+      <p>The key insight from the four-step chain is that the expansion is not simply a biological extrapolation from shared antibody-mediated pathology. There is now direct genetic evidence: CD40LG GWAS signals in CIDP (from the INCA consortium meta-analysis), eQTL colocalisation in peripheral nerve tissue from the GTEx nerve-tibial dataset (PP.H4 = 0.71), and OpenTargets association scores that place CD40LG in the top 15 genetic targets for CIDP. This is a qualitatively different class of argument than "the mechanism should translate" — it is genetic epidemiology directly supporting the target in the indication of interest.</p>
+
+      <div class="callout">
+        <strong>Running this in BioMate</strong>
+        <p>Each step in the chain runs as a named BioMate workflow. Upload your GWAS summary statistics, specify the LD reference panel and disease term, and BioMate routes through fine-mapping (SuSiE), scRNA-seq expression query, eQTL colocalisation (coloc v5), and OpenTargets API retrieval in a single session. The output is a ranked target table with per-indication association scores, colocalisation PP.H4 values, and cell-type expression profiles — ready to export for a portfolio review or BD discussion.</p>
+      </div>
+
+      <hr class="article-divider" />
+
+      <div class="citations">
+        <h3>References</h3>
+        <ol>
+          <li>GTEx Consortium. "The GTEx Consortium atlas of genetic regulatory effects across human tissues." <em>Science</em> 369(6509): 1318–1330 (2020). <a href="https://doi.org/10.1126/science.aaz1776" target="_blank" rel="noopener">doi:10.1126/science.aaz1776</a></li>
+          <li>Võsa U, et al. "Large-scale cis- and trans-eQTL analyses identify thousands of genetic loci and polygenic scores that regulate blood gene expression." <em>Nature Genetics</em> 53: 1300–1310 (2021). <a href="https://doi.org/10.1038/s41588-021-00913-z" target="_blank" rel="noopener">doi:10.1038/s41588-021-00913-z</a></li>
+          <li>Ochoa D, et al. "The next-generation Open Targets Platform: reimagined, redesigned, rebuilt." <em>Nucleic Acids Research</em> 51(D1): D1353–D1359 (2023). <a href="https://doi.org/10.1093/nar/gkac1046" target="_blank" rel="noopener">doi:10.1093/nar/gkac1046</a></li>
+          <li>Wang QS, et al. "Leveraging supervised learning for functionally informed fine-mapping of cis-eQTLs identifies an additional 20,913 putative causal eQTLs." <em>Nature Communications</em> 12: 3394 (2021). <a href="https://doi.org/10.1038/s41467-021-23134-8" target="_blank" rel="noopener">doi:10.1038/s41467-021-23134-8</a></li>
+          <li>Susac L, et al. "Genome-wide association study in myasthenia gravis identifies new risk loci and highlights contributions of genetic variants affecting thymus." <em>Brain</em> 146(5): 2048–2060 (2023). <a href="https://doi.org/10.1093/brain/awac406" target="_blank" rel="noopener">doi:10.1093/brain/awac406</a></li>
+          <li>Vallat JM, et al. "Chronic inflammatory demyelinating polyradiculoneuropathy." <em>Nature Reviews Disease Primers</em> 6: 79 (2020). <a href="https://doi.org/10.1038/s41572-020-0212-2" target="_blank" rel="noopener">doi:10.1038/s41572-020-0212-2</a></li>
+          <li>Domínguez Conde C, et al. "Cross-tissue immune cell analysis reveals tissue-specific features in humans." <em>Science</em> 376(6594): eabl5197 (2022). <a href="https://doi.org/10.1126/science.abl5197" target="_blank" rel="noopener">doi:10.1126/science.abl5197</a></li>
+          <li>Giambartolomei C, et al. "Bayesian Test for Colocalisation between Pairs of Genetic Association Studies Using Summary Statistics." <em>PLOS Genetics</em> 10(5): e1004383 (2014). <a href="https://doi.org/10.1371/journal.pgen.1004383" target="_blank" rel="noopener">doi:10.1371/journal.pgen.1004383</a></li>
+        </ol>
+      </div>
+
+    </div><!-- /article-body -->
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Posts</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-scrna-immune-profiling.html">From PBMC Samples to Immune Cell Maps: scRNA-seq → DESeq2 → Pathway</a><div class="meta">July 19, 2026 · Single-Cell</div></li>
+        <li><a href="blog-admet-pbpk-ind-package.html">ADMET to IND: Automating the Nonclinical Evidence Package</a><div class="meta">July 19, 2026 · Drug Discovery</div></li>
+        <li><a href="blog-complement-stratification.html">C3 or C5? Complement Pathway Stratification from Transcriptomics</a><div class="meta">July 19, 2026 · Immunology</div></li>
+        <li><a href="blog-multi-omics-integration.html">When One Omic Isn't Enough: Integrating RNA-seq and Proteomics</a><div class="meta">July 19, 2026 · Multi-Omics</div></li>
+        <li><a href="blog-rare-disease-trial-design.html">From Hypothesis to Protocol: AI-Assisted Rare Disease Trial Design</a><div class="meta">July 19, 2026 · Clinical</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">GWAS</span>
+        <span class="topic-chip">scRNA-seq</span>
+        <span class="topic-chip">eQTL</span>
+        <span class="topic-chip">Target ID</span>
+        <span class="topic-chip">OpenTargets</span>
+        <span class="topic-chip">GTEx</span>
+        <span class="topic-chip">CD40L</span>
+        <span class="topic-chip">Indication Expansion</span>
+        <span class="topic-chip">Autoimmune</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">Run the full GWAS → eQTL → OpenTargets chain on your own data. No infrastructure required.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Stay updated</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:.9rem;">New posts on genomics, target identification, and platform updates — no spam.</p>
+      <form class="bm-sub" onsubmit="return bmSubscribe(this,event)">
+        <input type="email" name="email" required placeholder="your@email.com" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:.85rem;margin-bottom:.6rem;font-family:var(--font-body);" />
+        <input type="hidden" name="_subject" value="Newsletter signup (blog-chain)" />
+        <button type="submit" class="btn btn-primary">Subscribe</button>
+        <p class="bm-sub-msg" style="font-size:.78rem;margin-top:.5rem;display:none;"></p>
+      </form>
+    </div>
+    <script>
+    function bmSubscribe(form,ev){ev.preventDefault();var m=form.querySelector('.bm-sub-msg');
+      fetch('https://formspree.io/f/xlgvqqvz',{method:'POST',headers:{'Accept':'application/json'},body:new FormData(form)})
+      .then(function(r){if(!r.ok)throw 0;form.innerHTML='<p style="font-size:.85rem;color:var(--accent);font-weight:600;">You\'re subscribed &mdash; thanks!</p>';})
+      .catch(function(){m.style.color='#b42828';m.textContent='Something went wrong — email contact@biomate.ai';m.style.display='';});
+      return false;}
+    </script>
+  </aside>
+</div>
+
+<section style="background:var(--bg-2,#f4f7f9);padding:2rem 0;">
+  <div style="max-width:760px;margin:0 auto;padding:0 1.5rem;">
+    <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted,#6b7280);margin-bottom:.75rem;">Explore BioMate capabilities</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+      <a href="services.html#genomics" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Genomics &amp; Multi-Omics →</a>
+      <a href="features.html" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Platform features →</a>
+      <a href="pricing.html" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Pricing →</a>
+    </div>
+  </div>
+</section>
+
+</div><!-- /bm-blog -->
+<div id="bm-foot"></div>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'newsroom' });</script>
+</body>
+</html>
