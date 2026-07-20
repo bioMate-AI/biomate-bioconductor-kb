@@ -112,7 +112,37 @@ These datasets support immune network analysis, off-target prediction, and mecha
 | **argenx** (Bianca Balbino / Delphine Masschaele) | MG market leader with active biomarker validation need; efgartigimod non-responders are the unsolved problem BioMate's subtype analysis addresses |
 | **Cartesian Therapeutics** (Dina Schneider) | Small, well-funded CAR-T autoimmune company; Head of Discovery in the room; doesn't have large internal biomedical data team |
 | **Vor Biopharma** (Jeremy Sokolove) | Early-stage, CMO present — outsized openness to platform partnerships vs. established big pharma |
-| **Hesperos** (James Hickman) | Conference CRO host — partnership to offer BioMate analysis on top of their Human-on-a-Chip wet lab data creates a combined wet+dry lab offering |
+| **Hesperos** (James Hickman) | Conference CRO host — gap is real but structural: they're a 60-person wet-lab CRO (NIH SBIR-funded, not VC), no omics pipeline, no audit trail system; their large pharma clients handle regulatory packaging internally. Best angle: joint offering to *Hesperos's smaller biotech clients* who can't assemble a complete wet+dry package on their own |
+
+---
+
+---
+
+## Hesperos Deep-Dive (Research 2026-07-17)
+
+### What They Actually Have
+- **Hardware/biology**: iPSC-derived motoneurons + primary skeletal muscle on microfluidic chip; NMJ, cardiac, liver, BBB, skin modules
+- **PKPD modeling**: Fit functional readouts (contraction amplitude, impedance) to PK/PD model. Narrow but real.
+- **Digital twin**: Proof-of-concept published July 2025 for malaria (single compound × single organ). Not yet productized.
+- **Regulatory track record**: NMJ chip data included in Dianthus Therapeutics IND (gMG, Phase II, 2024). 4 Phase II programs supported, 2 progressed to Phase III.
+- **Employees**: 60 (as of March 2026). Private. Primarily NIH SBIR-funded — latest $4M Phase IIb grant (May 2025).
+
+### What They Don't Have
+- No RNA-seq or transcriptomics pipeline from chip-harvested cells
+- No multi-omics integration (proteomics + transcriptomics)
+- No pathway analysis, biomarker ranking, or AI interpretation
+- No structured audit trail or CTD regulatory data package system
+  - The Dianthus IND packaging was done by Dianthus's team, not Hesperos
+
+### Why the Gap Still Exists After 10 Years
+1. **Biology-first**: All engineering effort goes to keeping human cells alive on chip ≥28 days. Bioinformatics was never the product.
+2. **Big pharma clients handle it themselves**: Dianthus, AZ, Pfizer all have internal bioinformatics. Hesperos never needed to provide it.
+3. **Regulatory urgency is NEW**: FDA Alternative Methods guidance (2025, FDCA §3601-3612) is making chip data IND-eligible now — not 3 years ago. The computational packaging gap is becoming acute only now.
+
+### Correct Partnership Pitch
+Don't pitch Hickman on "Hesperos needs BioMate." Pitch him on a **joint CRO offering** to their smaller biotech clients:
+
+> *"Your clients get functional chip data from you and then struggle to turn it into a cite-able CTD package. BioMate closes that loop — their chip data goes into BioMate, they get an annotated findings report with an audit manifest ready for §2.4 and §2.6. Together we offer a complete wet+dry service smaller biotechs can't assemble alone."*
 
 ---
 
