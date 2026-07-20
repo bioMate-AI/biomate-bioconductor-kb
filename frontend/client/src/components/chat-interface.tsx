@@ -114,6 +114,27 @@ import { DOMAIN_TAXONOMY, DOMAIN_LABELS } from "@/components/domain-profile-sele
 
 const ONBOARDING_DONE_KEY = 'biomate_onboarding_done'
 
+// Example queries shown as clickable chips on the empty-state chat screen.
+// First entry is the conference demo default (MG patient stratification chain).
+const EXAMPLE_QUERIES = [
+  {
+    label: 'MG patient stratification → ADMET → PBPK',
+    query: 'Run differential expression on AChR+ myasthenia gravis PBMC data (GSE192396, 15 MG patients vs 15 healthy controls), identify complement pathway drivers, then screen iptacopan (ChEMBL CHEMBL4523157) for ADMET properties and simulate plasma pharmacokinetics at 200 mg oral BID dose.',
+  },
+  {
+    label: 'ADMET screen from SMILES',
+    query: 'Screen these compounds for hERG cardiotoxicity, CYP3A4 inhibition, and oral bioavailability: aspirin (CC(=O)Oc1ccccc1C(=O)O), ibuprofen (CC(C)Cc1ccc(cc1)C(C)C(=O)O)',
+  },
+  {
+    label: 'RNA-seq differential expression',
+    query: 'Run nf-core RNA-seq differential expression on s3://my-bucket/fastqs/ — human GRCh38, paired-end, treated (n=3) vs control (n=3), FDR 0.05',
+  },
+  {
+    label: 'Variant calling on WGS sample',
+    query: 'Whole-genome variant calling on the uploaded FASTQ pair, human GRCh38, GATK HaplotypeCaller, germline mode',
+  },
+] as const
+
 function OnboardingWelcome({
   onComplete,
   visible,
@@ -466,6 +487,8 @@ export function ChatInterface({
   const abortControllerRef = useRef<AbortController | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  // Captured setter from ChatInput — lets empty-state chips pre-fill the textarea
+  const localSetDraftRef = useRef<((draft: string) => void) | null>(null)
   const [focusedAnchorMessageId, setFocusedAnchorMessageId] = useState<string | null>(null)
   const [highlightedAnchorMessageId, setHighlightedAnchorMessageId] = useState<string | null>(null)
 
@@ -2124,21 +2147,61 @@ export function ChatInterface({
         background: 'var(--bm-bg, hsl(var(--background)))',
       }}>
         {displayMessages.length === 0 && (
-          <p style={{
-            fontSize: 13,
-            color: 'var(--bm-text-dim, oklch(0.60 0.008 240))',
-            marginBottom: 8,
-            textAlign: 'center',
-          }}>
-            Input your use case here
-          </p>
+          <>
+            <p style={{
+              fontSize: 13,
+              color: 'var(--bm-text-dim, oklch(0.60 0.008 240))',
+              marginBottom: 10,
+              textAlign: 'center',
+            }}>
+              Input your use case here
+            </p>
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 6,
+              justifyContent: 'center',
+              marginBottom: 10,
+            }}>
+              {EXAMPLE_QUERIES.map((q) => (
+                <button
+                  key={q.label}
+                  onClick={() => localSetDraftRef.current?.(q.query)}
+                  style={{
+                    fontSize: 12,
+                    padding: '4px 10px',
+                    borderRadius: 16,
+                    border: '1px solid var(--bm-border, oklch(0.88 0.004 240))',
+                    background: 'var(--bm-surface, oklch(0.97 0.002 240))',
+                    color: 'var(--bm-text-dim, oklch(0.45 0.012 240))',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'background 0.15s, color 0.15s',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background = 'var(--bm-accent-light, oklch(0.93 0.012 245))'
+                    ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--bm-accent, oklch(0.48 0.18 245))'
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background = 'var(--bm-surface, oklch(0.97 0.002 240))'
+                    ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--bm-text-dim, oklch(0.45 0.012 240))'
+                  }}
+                >
+                  {q.label}
+                </button>
+              ))}
+            </div>
+          </>
         )}
         <ChatInput
           onSend={handleSendOrQueue}
           pendingCount={pendingMessages.length}
           isStreaming={displayTyping}
           onStop={stopStreaming}
-          onRegisterSetDraft={onRegisterSetDraft}
+          onRegisterSetDraft={(setter) => {
+            localSetDraftRef.current = setter
+            onRegisterSetDraft?.(setter)
+          }}
           /* Surface session-wide attached-dataset count so the
              X / MAX_DATASET_REFS indicator in the input strip reflects
              the server-side cap (frontend/server/dataset-cap.ts). */
