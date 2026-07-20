@@ -3446,6 +3446,12 @@ Rules:
           actions.needsResearchAgent = false;
           intent.type = 'workflow_generation';
         }
+        // When the LLM misclassifies Turn 2 as data_provision, intent.subQuery becomes a
+        // context summary ("I have your counts matrix...") rather than the enrichment request.
+        // generateWorkflow uses intent.subQuery || message as userIntent — the wrong subQuery
+        // sends "counts matrix contrasts" to FTS which returns differentialabundance, not clusterprofiler.
+        // Reset to the original message so FTS receives the actual pathway enrichment intent.
+        intent.subQuery = message;
         // Always inject clusterProfiler keyTerms when enrichment is explicitly requested,
         // even if needsWorkflowGeneration was already true from prior-turn context.
         // This prevents DESeq2/differentialabundance context from hijacking the FTS search.
@@ -7713,6 +7719,12 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         ...previousMessages,
         { role: 'user', content: userPrompt },
       ];
+
+      // TEMP DIAGNOSTIC: surface raw backend response before LLM streams (remove after diagnosing dev failure)
+      if (workflowGenerationFailed && onResponseDelta) {
+        const _diagStr = `[DIAG ok=${generatedWorkflow?.success} err=${JSON.stringify(generatedWorkflow?.error ?? null).slice(0, 120)} nfPath=${!!generatedWorkflow?.nextflow_path} wfGa=${!!generatedWorkflow?.workflow_ga}] `;
+        onResponseDelta(_diagStr);
+      }
 
       let rawResponse = '';
       let lastStopReason: string | null = null;
