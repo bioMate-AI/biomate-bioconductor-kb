@@ -32,7 +32,7 @@ import { datasetValidator } from "./dataset-validator";
 import { getContextCompressor } from "./context-compressor";
 import { WorkflowPrerequisitesValidator } from "./workflow-prerequisites-validator";
 import multer from "multer";
-import { promises as fs, createReadStream, existsSync, readdirSync } from "fs";
+import { promises as fs, createReadStream, existsSync, readdirSync, readFileSync } from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import archiver from "archiver";
@@ -15305,11 +15305,7 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
   // current request host so the file works on any deployment without editing).
   app.get("/connectors/chatgpt/openapi.json", (req: any, res: any) => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const schemaRaw: string = require("fs").readFileSync(
-        path.join(__dirname, "chatgpt-openapi.json"),
-        "utf8"
-      );
+      const schemaRaw = readFileSync(path.join(__dirname, "chatgpt-openapi.json"), "utf8");
       const schema = JSON.parse(schemaRaw);
       const proto = (req.headers["x-forwarded-proto"] as string) ?? "https";
       const host = (req.headers.host as string) ?? "dev-public.biomate.ai";
