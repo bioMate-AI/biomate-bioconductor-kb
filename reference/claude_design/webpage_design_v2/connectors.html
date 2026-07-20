@@ -556,10 +556,14 @@ Apply C2 symmetry.</span></code></pre>
     <section class="doc-section" id="chatgpt">
       <h2>ChatGPT</h2>
       <p>BioMate integrates with ChatGPT as a custom GPT action. The action calls BioMate's REST API at <code>dev-public.biomate.ai</code> over HTTPS — no local installation needed.</p>
+      <div class="callout callout-note">
+        <strong>Developer preview</strong>
+        The ChatGPT action adapter (<code>/tools/*</code> routes) is not yet deployed on <code>dev-public.biomate.ai</code>. To test the integration now, follow the self-host setup in <a href="https://github.com/bioMate-AI/biomate-connector/tree/main/connectors/chatgpt">connectors/chatgpt/INSTALL.md</a> and run the adapter locally with an ngrok tunnel. Use <code>openapi-dev.json</code> (in the same directory) as the schema URL, replacing <code>NGROK_URL_HERE</code> with your tunnel address.
+      </div>
 
       <div class="steps">
         <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Open the GPT editor</strong><p>Go to <strong>ChatGPT → Explore GPTs → Create</strong>.</p></div></div>
-        <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Add an action</strong><p>Click <strong>Add actions</strong> and paste the OpenAPI schema URL: <code>https://dev-public.biomate.ai/connectors/chatgpt/openapi.json</code>. Alternatively, download the schema from <a href="https://github.com/bioMate-AI/biomate-connector/blob/main/connectors/chatgpt/openapi.json">GitHub</a> and paste the contents directly.</p></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Add an action</strong><p>Click <strong>Add actions → Import from URL</strong> and paste: <code>https://raw.githubusercontent.com/bioMate-AI/biomate-connector/main/connectors/chatgpt/openapi.json</code>. Or open that URL, copy the JSON, and paste it directly into the schema editor.</p></div></div>
         <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Configure OAuth</strong><p>Set auth type to <strong>OAuth</strong>. Client ID and secret are available at <a href="https://dev-public.biomate.ai/account/connectors">biomate.ai/account/connectors</a>. The authorization URL is <code>https://dev-public.biomate.ai/oauth/authorize</code> and the token URL is <code>https://dev-public.biomate.ai/oauth/token</code>.</p></div></div>
         <div class="step"><div class="step-num">4</div><div class="step-body"><strong>Save and test</strong><p>Save the GPT and ask it to list your workflows: <em>"What RNA-seq workflows are available in BioMate?"</em></p></div></div>
       </div>
