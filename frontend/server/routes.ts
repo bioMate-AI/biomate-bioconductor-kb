@@ -15305,7 +15305,9 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
   // current request host so the file works on any deployment without editing).
   app.get("/connectors/chatgpt/openapi.json", (req: any, res: any) => {
     try {
-      const schemaRaw = readFileSync(path.join(__dirname, "chatgpt-openapi.json"), "utf8");
+      // Use process.cwd() because esbuild ESM bundles don't inject __dirname.
+      // The build script copies chatgpt-openapi.json into dist/ alongside index.js.
+      const schemaRaw = readFileSync(path.join(process.cwd(), "dist", "chatgpt-openapi.json"), "utf8");
       const schema = JSON.parse(schemaRaw);
       const proto = (req.headers["x-forwarded-proto"] as string) ?? "https";
       const host = (req.headers.host as string) ?? "dev-public.biomate.ai";
