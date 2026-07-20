@@ -3814,8 +3814,12 @@ Rules:
         const _hasClintInMessage = /\b(clint|cl_int|intrinsic.clearance)\s*[=:]\s*[\d\.]+/i.test(message)
           || /\bclint\s+[\d\.]+/i.test(message)
           || /\b[\d\.]+\s*ul\/min\/mg/i.test(message);
-        // Check for fu_plasma: numeric value after fu keyword
-        const _hasFuPlasmaInMessage = /\b(fu_plasma|fu.plasma|unbound.fraction|fu)\s*[=:]\s*[\d\.]+/i.test(message);
+        // Check for fu_plasma: numeric value after fu keyword — OR inferred from ADMET in chain
+        // When ADMET is explicitly requested in the same query, fu_plasma will be computed from
+        // ADMET's PPBR output (fu_plasma = 1 - PPBR/100), so we don't require it up front.
+        const _fuPlasmaFromAdmet = /\b(admet|plasma.protein.binding|ppbr|predict.admet)\b/i.test(message);
+        const _hasFuPlasmaInMessage = /\b(fu_plasma|fu.plasma|unbound.fraction|fu)\s*[=:]\s*[\d\.]+/i.test(message)
+          || _fuPlasmaFromAdmet;
 
         if (!_hasSmilesInMessage) {
           log('PBPK prereq gate: SMILES missing — returning clarification');
@@ -7214,6 +7218,27 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
         const priorContent = (priorUserMsg.content || '').slice(0, 600); // cap to keep Galaxy prompt small
         userIntent = `${priorContent}\n\n[User confirmation on turn 2]: ${userIntent}`;
         console.log('[GalaxyAssistant] Turn-2 confirmation detected — prepended prior user intent for workflow generation');
+      }
+    }
+
+    // Data-provision rescue: when the user replies with pure data (S3 URIs, SRA
+    // accessions, file paths, local paths) but no action verb, the FTS search gets
+    // only the data string — no domain signal — so scores land below medium_confidence
+    // and NextflowComposer generates from scratch and fails. Prepend the most recent
+    // prior user query so generate_workflow gets the original intent AND the data.
+    // This is the same fix as the short-confirmation rescue, just for longer messages.
+    if (!_isShortConfirmation && context?.previousMessages?.length) {
+      const _hasFileRef = /s3:\/\/|gs:\/\/|SRR\d{6,}|ERR\d{6,}|DRR\d{6,}|GSE\d{4,}|\.fastq|\.fasta|\.bam|\.vcf|\.csv|\.mzML|\.raw\b|\.fcs\b|\.tiff?\b|SpaceRanger|space.?ranger/i.test(userIntent);
+      const _hasActionVerb = /\b(run|execute|anal[iy]s[ei]|generate|compute|predict|call|align|quantif|perform|process|identif|compar|build|creat|design|model|simulat|map|assembl|annotat|visuali|plot|find|detect|screen|score|rank|filter|normali|reconstructi?|integrat|cluster|classif|segment|apply|proceed)\b/i.test(userIntent);
+      if (_hasFileRef && !_hasActionVerb) {
+        const priorUserMsg = [...context.previousMessages]
+          .reverse()
+          .find((m) => m.role === 'user' && (m.content || '').trim().length > 20);
+        if (priorUserMsg) {
+          const priorContent = (priorUserMsg.content || '').slice(0, 500);
+          userIntent = `${priorContent}\n\n[User data on turn ${context.previousMessages.length + 1}]: ${userIntent}`;
+          console.log('[GalaxyAssistant] Data-provision turn detected — prepended prior user intent for workflow FTS');
+        }
       }
     }
 
