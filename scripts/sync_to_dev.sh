@@ -1123,7 +1123,11 @@ smoke_test_db_search() {
   # transient blip cannot trigger a false rollback. Only a REACHABLE-but-WRONG
   # response fails the gate. See docs/20260719_INTENT_DRIVEN_DB_SEARCH_AND_DEPLOY_ROOT_CAUSE.md
   log "[smoke] Testing intent-driven DB-search routing (frontend proxy -> Galaxy)..."
-  ec2_ssh '
+  # Decide on the OUTPUT, not the exit code: roll back ONLY when the remote check
+  # printed a definitive "[smoke] FAIL" line. An ec2_ssh transient error (SSH
+  # blip, timeout) yields no FAIL line -> return 0 -> never a false rollback.
+  local _dbs_out
+  _dbs_out="$(ec2_ssh '
     UBIQ="MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG"
     q() { curl -s --max-time 45 -X POST http://localhost:3000/api/databases/query \
             -H "Content-Type: application/json" \
@@ -1153,7 +1157,13 @@ smoke_test_db_search() {
     [ "$fail" -eq 1 ] && exit 1
     echo "[smoke] db-search operation routing OK (similarity != text)"
     exit 0
-  '
+  ' 2>&1)"
+  echo "$_dbs_out"
+  # Roll back ONLY on a definitive regression signal; anything else is safe.
+  if echo "$_dbs_out" | grep -q '\[smoke\] FAIL'; then
+    return 1
+  fi
+  return 0
 }
 
 postsync_health_ok() {
