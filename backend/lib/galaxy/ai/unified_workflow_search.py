@@ -1725,17 +1725,24 @@ class UnifiedWorkflowSearch:
         source_bonus = SOURCE_PRIORITY.get(source, 0) / 15.0  # ~6.7 max (nfcore=6.67, bioconductor=5.0)
         score += source_bonus
 
-        # 5b. Pipeline intent boost: when user says "I have data to process",
-        # full pipeline sources get a large bonus over package-level Bioconductor tools.
-        # Subworkflows (helper steps inside a larger pipeline) get NO boost — users
-        # want complete pipelines, not individual processing components.
-        # Subworkflow detection: filename path contains '/subworkflows/' (structural signal).
+        # 5b. Subworkflow baseline penalty — unconditional.
+        # Subworkflows are building blocks INSIDE pipelines; they are never the right
+        # top-level answer when a full pipeline exists for the task.
+        # Two tiers:
+        #   nfcore/nfcore_subwf: internal nf-core components (not user-runnable standalone)
+        #   bioconductor/biomni: executable wrappers but still partial — lower penalty
+        if is_subworkflow and "bam_stringtie_merge" not in name.lower():
+            if source in ("nfcore", "nfcore_subwf"):
+                score -= 12.0  # nf-core internal components are never standalone pipelines
+            else:
+                score -= 8.0   # bioconductor/biomni subworkflows are executable but partial
+
+        # 5c. Pipeline intent boost: when user signals raw data to process,
+        # boost full pipelines and penalise package-level Bioconductor tools further.
         if self._detect_pipeline_intent(query):
-            if is_subworkflow and "bam_stringtie_merge" not in name.lower():
-                score -= 4.0  # Subworkflows compete unfairly with full pipelines; penalise
-            elif source in ("nfcore", "biomni_nextflow"):
+            if not is_subworkflow and source in ("nfcore", "biomni_nextflow"):
                 score += 8.0
-            elif source == "bioconductor":
+            elif source == "bioconductor" and not is_subworkflow:
                 score -= 5.0  # Bioconductor R packages are unlikely to be what they need
 
         # 6. Domain preference bias (critical for avoiding cross-domain QC mismatches)
