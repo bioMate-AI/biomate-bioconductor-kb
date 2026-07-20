@@ -5296,6 +5296,38 @@ The distinction is the nature of the task, not the presence of file names in the
 
 ---
 
+## Hard classification examples (highest priority — override any rule above)
+
+These are real cases that LLMs tend to mis-classify. When the user message closely matches one of these patterns, use the classification shown:
+
+| User message pattern | Correct classification | needsWorkflowGeneration |
+|---|---|---|
+| "Spectral counting from DDA mass spec" (method noun phrase, no verb) | workflow_generation | true |
+| "Retention time alignment using iRT standards" | workflow_generation | true |
+| "Clonal lineage reconstruction from BCR sequencing" | workflow_generation | true |
+| "CC(=O)Nc1ccc(O)cc1 — predict hERG/ADMET" (raw SMILES + toxicity keyword) | workflow_generation | true |
+| "Run ProTrek / Boltz-2 / Chai-1 / DrugCLIP on my sequence" (AI model name) | workflow_generation | true |
+| "PBPK simulation for oral dosing of compound X" | workflow_generation | true |
+| "PK-Sim / Simcyp / NONMEM model for this compound" (named PK tool) | workflow_generation | true |
+| "BOIN dose-escalation design for 3+3 trial" | workflow_generation | true |
+| "Pathway enrichment / GO analysis on this gene list" | workflow_generation | true |
+| "GWAS → eQTL → scRNA colocalisation for this locus" | workflow_generation | true |
+| "Multi-omics integration: RNA-seq + proteomics + metabolomics" | workflow_generation | true |
+| "Run macrophage metabolic state analysis from scRNA" | workflow_generation | true |
+| "CryoEM single-particle analysis of my dataset" | workflow_generation | true |
+| "s3://bucket/sample.fastq.gz" (bare S3/GS path, follow-up turn) | workflow_generation | true |
+| "SRR1234567, SRR1234568" (bare SRA accession list, follow-up turn) | workflow_generation | true |
+| "yes" / "go ahead" / "use defaults" (confirmation in a workflow conversation) | workflow_generation | true |
+| "What is hERG?" / "How does PBPK work?" (conceptual question, no execution intent) | research_question | false |
+| "HP:0001250 HP:0001252 — ENSG00000123456 ENSG00000234567 — which is causal?" | clinical_genomics | false |
+
+**General principle for ambiguous method-description queries (no explicit action verb):**
+If the message names a bioinformatics method/tool and mentions user-owned data types (FASTQ, BAM, VCF, raw mass spec, scRNA, spatial, accession IDs, SMILES, PDB) — even without a verb like "run" or "analyse" — classify as **workflow_generation**. The user is describing what they want to do, not asking for an explanation.
+
+**AI/ML model names not in the catalog above** (Boltz-2, Chai-1, ProTrek, DrugCLIP, SynCraft, STATE, scFv-ProteinMPNN, ProFam, ESM, AlphaFold search): always **workflow_generation** when the user is asking to run them on a sequence or structure input.
+
+---
+
 ## BioMate Workflow Catalog — 2,463 workflows across 34 domains
 
 BioMate can run computational pipelines in all the domains below. When a user wants to execute a pipeline or process data in any of these areas, classify as workflow_generation. Asking about, discussing, or planning one of these is not workflow_generation unless the user is asking BioMate to actually run it. Representative workflows per domain:
@@ -7191,54 +7223,19 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
       .filter(Boolean)
       .join(' | ');
 
-    // Turn-2 confirmation rescue: if the current userIntent is a short
-    // confirmation-style reply ("yes run with defaults", "go ahead", "proceed"),
-    // the user is replying to the assistant's prior question (typically a
-    // missing-data ask). Galaxy can't match a workflow on "yes" alone — it has
-    // no domain signal. Prepend the prior user turn so /api/ai_assistant/
-    // generate_workflow gets the original intent ("Run HTS plate QC...")
-    // AND the confirmation, producing a runnable workflow_ga instead of
-    // dropping the request as unmatched. Matches the same exception list as
-    // the system-prompt SECOND-TURN OVERRIDE rule.
-    const _isShortConfirmation = (() => {
-      const t = userIntent.trim().toLowerCase();
-      if (t.length > 80) return false; // long messages aren't pure confirmations
-      return (
-        /^(yes|yep|yeah|yup|ok|okay|sure|fine|go ahead|proceed|run it|run|do it|please do|go for it|continue)\b/i.test(t) ||
-        /\b(with defaults|use defaults|default parameters|synthetic data|demo data|sample data|built-in demo|use the demo)\b/i.test(t)
-      );
-    })();
-    if (_isShortConfirmation && context?.previousMessages?.length) {
-      // Find the most recent user message before this one — that's the
-      // intent the user actually wants to execute.
-      const priorUserMsg = [...context.previousMessages]
-        .reverse()
-        .find((m) => m.role === 'user' && (m.content || '').trim().length > 20);
-      if (priorUserMsg) {
-        const priorContent = (priorUserMsg.content || '').slice(0, 600); // cap to keep Galaxy prompt small
-        userIntent = `${priorContent}\n\n[User confirmation on turn 2]: ${userIntent}`;
-        console.log('[GalaxyAssistant] Turn-2 confirmation detected — prepended prior user intent for workflow generation');
-      }
-    }
-
-    // Data-provision rescue: when the user replies with pure data (S3 URIs, SRA
-    // accessions, file paths, local paths) but no action verb, the FTS search gets
-    // only the data string — no domain signal — so scores land below medium_confidence
-    // and NextflowComposer generates from scratch and fails. Prepend the most recent
-    // prior user query so generate_workflow gets the original intent AND the data.
-    // This is the same fix as the short-confirmation rescue, just for longer messages.
-    if (!_isShortConfirmation && context?.previousMessages?.length) {
-      const _hasFileRef = /s3:\/\/|gs:\/\/|SRR\d{6,}|ERR\d{6,}|DRR\d{6,}|GSE\d{4,}|\.fastq|\.fasta|\.bam|\.vcf|\.csv|\.mzML|\.raw\b|\.fcs\b|\.tiff?\b|SpaceRanger|space.?ranger/i.test(userIntent);
-      const _hasActionVerb = /\b(run|execute|anal[iy]s[ei]|generate|compute|predict|call|align|quantif|perform|process|identif|compar|build|creat|design|model|simulat|map|assembl|annotat|visuali|plot|find|detect|screen|score|rank|filter|normali|reconstructi?|integrat|cluster|classif|segment|apply|proceed)\b/i.test(userIntent);
-      if (_hasFileRef && !_hasActionVerb) {
-        const priorUserMsg = [...context.previousMessages]
-          .reverse()
-          .find((m) => m.role === 'user' && (m.content || '').trim().length > 20);
-        if (priorUserMsg) {
-          const priorContent = (priorUserMsg.content || '').slice(0, 500);
-          userIntent = `${priorContent}\n\n[User data on turn ${context.previousMessages.length + 1}]: ${userIntent}`;
-          console.log('[GalaxyAssistant] Data-provision turn detected — prepended prior user intent for workflow FTS');
-        }
+    // Always fold prior user turns into the FTS query. The current message alone
+    // is often a bare data provision ("s3://..."), short confirmation ("yes"), or
+    // parameter refinement — none of which carry bioinformatics signal for FTS.
+    // Concatenating all prior user messages gives the search the original intent
+    // with no special-casing per turn type.
+    if (context?.previousMessages?.length) {
+      const priorUserMsgs = context.previousMessages
+        .filter((m) => m.role === 'user' && (m.content || '').trim().length > 10)
+        .map((m) => (m.content || '').trim().slice(0, 400))
+        .slice(-3);
+      if (priorUserMsgs.length > 0) {
+        userIntent = `${priorUserMsgs.join('\n')}\n\n[Current]: ${userIntent}`;
+        console.log('[GalaxyAssistant] Enriched FTS intent with', priorUserMsgs.length, 'prior user turns');
       }
     }
 
