@@ -321,7 +321,7 @@ deploy_galaxy_yml() {
   local it_src="$REPO_ROOT/backend/config/interactivetools_conf.xml"
   if [[ -f "$it_src" ]]; then
     ec2_scp "$it_src" "${EC2_USER}@${EC2_HOST}:/tmp/interactivetools_conf.xml"
-    ec2_ssh 'docker cp /tmp/interactivetools_conf.xml biomate-galaxy-dev:/app/config/interactivetools_conf.xml'
+    ec2_ssh 'GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1); GC="${GC:-biomate-galaxy-dev}"; docker cp /tmp/interactivetools_conf.xml "$GC:/app/config/interactivetools_conf.xml"'
     log "[galaxy.yml] interactivetools_conf.xml staged"
   fi
 
@@ -335,18 +335,20 @@ deploy_galaxy_yml() {
   local llm_src="$REPO_ROOT/backend/config/llm_providers.yml"
   if [[ -f "$llm_src" ]]; then
     ec2_scp "$llm_src" "${EC2_USER}@${EC2_HOST}:/tmp/llm_providers.yml"
-    ec2_ssh 'docker cp /tmp/llm_providers.yml biomate-galaxy-dev:/app/config/llm_providers.yml'
+    ec2_ssh 'GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1); GC="${GC:-biomate-galaxy-dev}"; docker cp /tmp/llm_providers.yml "$GC:/app/config/llm_providers.yml"'
     log "[galaxy.yml] llm_providers.yml staged"
   fi
 
   ec2_ssh '
     set -e
-    docker cp /tmp/galaxy.yml biomate-galaxy-dev:/app/config/galaxy.yml
+    GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
+    GC="${GC:-biomate-galaxy-dev}"
+    docker cp /tmp/galaxy.yml "$GC:/app/config/galaxy.yml"
     # Verify the bind is correct (catch any future regression)
-    BIND=$(docker exec biomate-galaxy-dev grep -E "^[[:space:]]+bind:" /app/config/galaxy.yml | head -1 | tr -d " ")
+    BIND=$(docker exec "$GC" grep -E "^[[:space:]]+bind:" /app/config/galaxy.yml | head -1 | tr -d " ")
     echo "[galaxy.yml] applied; bind = ${BIND}"
     # Reload gunicorn so it picks up the new config (both galaxy.yml + interactivetools_conf.xml are now in place)
-    docker exec biomate-galaxy-dev galaxyctl restart gunicorn 2>&1 | tail -1
+    docker exec "$GC" galaxyctl restart gunicorn 2>&1 | tail -1
   '
   log "[galaxy.yml] Done"
 }
@@ -413,6 +415,11 @@ deploy_backend_python() {
 
   ec2_ssh '
     set -e
+    # Auto-detect Galaxy container name (handles biomate-galaxy-dev OR biomate-galaxy-deploy)
+    GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
+    GC="${GC:-biomate-galaxy-dev}"
+    echo "[backend] Using Galaxy container: $GC"
+
     # Nuke any leftover extract dir BEFORE tar so a missing/broken upload
     # cannot silently fall back to the previous sync content.
     rm -rf /tmp/backend_py_extract && mkdir -p /tmp/backend_py_extract
@@ -439,8 +446,8 @@ deploy_backend_python() {
       dest="/app/lib/galaxy/${rel#lib/galaxy/}"
       dir=$(dirname "$dest")
       # Create directory in container if needed
-      docker exec biomate-galaxy-dev mkdir -p "$dir" 2>/dev/null || true
-      docker cp "$src" "biomate-galaxy-dev:$dest" 2>/dev/null && echo "  cp: $dest" || echo "  SKIP: $dest"
+      docker exec "$GC" mkdir -p "$dir" 2>/dev/null || true
+      docker cp "$src" "$GC:$dest" 2>/dev/null && echo "  cp: $dest" || echo "  SKIP: $dest"
     done
 
     # Also sync the biomni_workflows .nf files
@@ -449,8 +456,8 @@ deploy_backend_python() {
     # Bootstrap runtime deps that the image was built without.
     # IMPORTANT: gunicorn runs with /usr/local/bin/python3.9 (system Python),
     # not /app/.venv. Installing to the venv silently fails to expose them.
-    docker exec biomate-galaxy-dev /usr/local/bin/python3.9 -c "import boto3, redis, psycopg2" 2>/dev/null \
-      || docker exec biomate-galaxy-dev /usr/local/bin/pip install -q boto3 redis psycopg2-binary 2>&1 | tail -3
+    docker exec "$GC" /usr/local/bin/python3.9 -c "import boto3, redis, psycopg2" 2>/dev/null \
+      || docker exec "$GC" /usr/local/bin/pip install -q boto3 redis psycopg2-binary 2>&1 | tail -3
 
     # Nextflow binary — required by /api/cryosparc/execute path. Image lacks it.
     # Nextflow VERSION PIN (2026-05-21): 25.10.5 is the latest pre-26 LTS.
@@ -461,10 +468,10 @@ deploy_backend_python() {
     # than chase every future breaking change, pin to 25.10 LTS which
     # accepts the older syntax cleanly. Bump deliberately, not by curl.
     EXPECTED_NF_VER="25.10.5"
-    INSTALLED_NF_VER=$(docker exec biomate-galaxy-dev /usr/local/bin/nextflow -v 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)
+    INSTALLED_NF_VER=$(docker exec "$GC" /usr/local/bin/nextflow -v 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)
     if [[ "$INSTALLED_NF_VER" != "$EXPECTED_NF_VER" ]]; then
       echo "[galaxy] Nextflow version mismatch (installed=$INSTALLED_NF_VER, want=$EXPECTED_NF_VER) — reinstalling pinned version"
-      docker exec biomate-galaxy-dev bash -c "NXF_VER=$EXPECTED_NF_VER curl -fsSL https://get.nextflow.io | bash && mv nextflow /usr/local/bin/nextflow && chmod +x /usr/local/bin/nextflow" 2>&1 | tail -3
+      docker exec "$GC" bash -c "NXF_VER=$EXPECTED_NF_VER curl -fsSL https://get.nextflow.io | bash && mv nextflow /usr/local/bin/nextflow && chmod +x /usr/local/bin/nextflow" 2>&1 | tail -3
     fi
   '
   log "[backend] Python files synced"
@@ -489,6 +496,8 @@ deploy_workflows() {
 
   ec2_ssh '
     set -e
+    GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
+    GC="${GC:-biomate-galaxy-dev}"
     mkdir -p /tmp/workflows_extract
     tar -xzf /tmp/workflows_sync.tar.gz -C /tmp/workflows_extract 2>/dev/null
     # Copy workflows into Galaxy container via in-container untar so symlinks
@@ -497,8 +506,8 @@ deploy_workflows() {
     # stale content — caused the 2026-05-21 ADMET_pred regression where the
     # symlink drug_discovery/ADMET_pred → pharmacology/ADMET_pred could not
     # supersede an old standalone directory on dev).
-    docker cp /tmp/workflows_sync.tar.gz biomate-galaxy-dev:/tmp/workflows_sync.tar.gz
-    docker exec biomate-galaxy-dev bash -c "
+    docker cp /tmp/workflows_sync.tar.gz "$GC:/tmp/workflows_sync.tar.gz"
+    docker exec "$GC" bash -c "
       set -e
       cd /tmp && mkdir -p workflows_extract_in
       tar -xzf workflows_sync.tar.gz -C workflows_extract_in
@@ -531,7 +540,7 @@ deploy_workflows() {
     # state. We DO NOT delete entire ~/.nextflow (plugins are 100MB+ and
     # re-downloading on every sync would be slow); we clear only the
     # script-compile cache + tmp.
-    docker exec biomate-galaxy-dev bash -c "
+    docker exec "$GC" bash -c "
       rm -rf /home/galaxy/.nextflow/cache /home/galaxy/.nextflow/tmp 2>/dev/null
       rm -rf /root/.nextflow/cache /root/.nextflow/tmp 2>/dev/null
       # Also wipe completed/orphaned per-run dirs older than 1 hour so the
@@ -912,6 +921,11 @@ trigger_pi_suite() {
 restart_galaxy() {
   log "[galaxy] Clearing stale caches + reloading Galaxy gunicorn (full master restart)..."
   ec2_ssh '
+    # Auto-detect Galaxy container name (handles biomate-galaxy-dev OR biomate-galaxy-deploy)
+    GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
+    GC="${GC:-biomate-galaxy-dev}"
+    echo "[galaxy] Using Galaxy container: $GC"
+
     # Stale cache cleanup — addresses the class of "undetected issues" where
     # a code/workflow change ships but the runtime keeps serving the old
     # behaviour because:
@@ -924,14 +938,14 @@ restart_galaxy() {
     # Cleaning these BEFORE the HUP guarantees the new code/workflow is what
     # serves the next request.
     echo "[galaxy] Clearing Python bytecode cache (__pycache__ under /app/lib/galaxy/ai)..."
-    docker exec biomate-galaxy-dev bash -c "
+    docker exec "$GC" bash -c "
       find /app/lib/galaxy/ai /app/lib/galaxy/webapps/galaxy/api -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null
       find /app/lib/galaxy/ai /app/lib/galaxy/webapps/galaxy/api -name \"*.pyc\" -delete 2>/dev/null
       echo \"  ✓ pycache cleared\"
     " 2>&1 | tail -3
 
     echo "[galaxy] Clearing Nextflow workflow-script cache (preserves plugins)..."
-    docker exec biomate-galaxy-dev bash -c "
+    docker exec "$GC" bash -c "
       # Clear the cache directories Nextflow uses to memoise compiled workflow
       # bytecode + workflow trace state. /tmp/nextflow_runs/* is per-run and
       # safe to keep; the global ~/.nextflow/cache is what stores cross-run
@@ -956,31 +970,31 @@ restart_galaxy() {
     #
     # galaxyctl restart gunicorn is a graceful master restart (~5-15s) that
     # re-imports all Python modules from the freshly synced .py files.
-    docker exec biomate-galaxy-dev galaxyctl restart gunicorn 2>&1 | tail -2 && \
+    docker exec "$GC" galaxyctl restart gunicorn 2>&1 | tail -2 && \
       echo "[galaxy] gunicorn master restarted (fresh module load)" || \
       echo "[galaxy] galaxyctl restart failed — Galaxy may serve stale code"
 
     # Ensure Nextflow is installed (lost if container was recreated from image)
-    if ! docker exec biomate-galaxy-dev which nextflow > /dev/null 2>&1; then
+    if ! docker exec "$GC" which nextflow > /dev/null 2>&1; then
       echo "[galaxy] Nextflow missing — installing Java + Nextflow..."
-      docker exec -u root biomate-galaxy-dev bash -c "
+      docker exec -u root "$GC" bash -c "
         apt-get update -q && apt-get install -y -q default-jre-headless 2>/dev/null
         curl -fsSL https://get.nextflow.io | bash
         mv nextflow /usr/local/bin/nextflow && chmod +x /usr/local/bin/nextflow
       " 2>&1 | tail -5
-      echo "[galaxy] Nextflow installed: $(docker exec biomate-galaxy-dev nextflow -version 2>/dev/null | grep version)"
+      echo "[galaxy] Nextflow installed: $(docker exec "$GC" nextflow -version 2>/dev/null | grep version)"
     else
-      echo "[galaxy] Nextflow OK: $(docker exec biomate-galaxy-dev nextflow -version 2>/dev/null | grep version)"
+      echo "[galaxy] Nextflow OK: $(docker exec "$GC" nextflow -version 2>/dev/null | grep version)"
     fi
 
     # Remove stale conda lock that blocks gunicorn worker startup after restart
-    docker exec -u root biomate-galaxy-dev rm -f /app/database/dependencies/conda.lock 2>/dev/null || true
+    docker exec -u root "$GC" rm -f /app/database/dependencies/conda.lock 2>/dev/null || true
 
     # Ensure Galaxy is on the shared Docker network (lost if container was recreated)
-    docker network connect biomate-dev-net biomate-galaxy-dev 2>/dev/null || true
+    docker network connect biomate-dev-net "$GC" 2>/dev/null || true
 
     # Ensure Galaxy database files are owned by galaxy user (docker cp sets host uid)
-    docker exec -u root biomate-galaxy-dev chown galaxy:galaxy \
+    docker exec -u root "$GC" chown galaxy:galaxy \
       /app/database/universe.sqlite /app/database/galaxy_ai_tools.db 2>/dev/null || true
 
     # Wait for Galaxy to be healthy after restart (up to 120s).
@@ -1447,9 +1461,9 @@ _LOCAL_DB_MD5="$(md5 -q "$_LOCAL_DB" 2>/dev/null || md5sum "$_LOCAL_DB" 2>/dev/n
 if [[ -n "$_LOCAL_DB_MD5" ]]; then
   # Fetch the actual dev DB md5 via SSH. One cheap round-trip saves 300MB transfer.
   _DEV_DB_MD5="$(ec2_ssh \
-      'docker exec biomate-galaxy-dev md5sum /app/database/galaxy_ai_tools.db 2>/dev/null | cut -d" " -f1' 2>/dev/null || echo '')"
+      'GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1); GC="${GC:-biomate-galaxy-dev}"; docker exec "$GC" md5sum /app/database/galaxy_ai_tools.db 2>/dev/null | cut -d" " -f1' 2>/dev/null || echo '')"
   _DEV_DB_SIZE="$(ec2_ssh \
-      'docker exec biomate-galaxy-dev stat -c %s /app/database/galaxy_ai_tools.db 2>/dev/null || echo 0' 2>/dev/null || echo '0')"
+      'GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1); GC="${GC:-biomate-galaxy-dev}"; docker exec "$GC" stat -c %s /app/database/galaxy_ai_tools.db 2>/dev/null || echo 0' 2>/dev/null || echo '0')"
   if [[ "$_LOCAL_DB_MD5" != "$_DEV_DB_MD5" ]]; then
     CHANGED="$CHANGED"$'\n'"backend/database/"
     log "DB out of sync (local=$_LOCAL_DB_MD5 dev=$_DEV_DB_MD5 dev_size=${_DEV_DB_SIZE}B) — will sync"
