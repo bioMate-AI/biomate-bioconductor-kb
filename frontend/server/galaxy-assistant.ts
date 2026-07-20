@@ -3799,6 +3799,9 @@ Rules:
       } catch (error: any) {
         log('Step 4 failed: ' + error.message);
         console.error('[GalaxyAssistant] Workflow generation failed:', error);
+        // TEMP DIAGNOSTIC: preserve error so workflowGenerationFailed=true in generateResponse
+        // and the DIAG + RDIAG format instructions can surface the actual error.
+        generatedWorkflow = { success: false, error: `STEP4_THROW: ${error.message}`, _caughtAt: 'step4' };
       }
     }
 
