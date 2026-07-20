@@ -119,9 +119,13 @@ Also queued from prior speedup work: **ProstT5→Foldseek** (structure-homology 
 
 ---
 
-## 6. Proposal — in-progress builds (this session)
+## 6. Proposal — builds (this session) — ✅ ALL 3 DONE, committed `9910e53ce` (+ connector `30244bc`)
 
-Launched **3 parallel builds** (per "do next tasks in parallel; some run on AWS, not locally"). All extend already-shipped work; workflows target AWS Batch (built + logic-tested locally, not run on AWS here):
+Ran **3 parallel builds** (per "do next tasks in parallel; some run on AWS, not locally"). All extend already-shipped work; workflows target AWS Batch (built + logic-tested locally, not run on AWS here). **Status per build:**
+- **DB APIs — DONE:** `_query_pubchem/_bindingdb/_pharos/_pdbe` wired across all layers; **6/6 live tests pass**; 4 `live_api` catalog rows; MCP manifest + openapi regenerated. Root-cause fixes: BindingDB 30s timeout, full UniProt regex.
+- **ML-potential MD — DONE (build+mock):** `molecular_dynamics/mlip_md_simulation/main.nf`; local mock test passes; **needs `mlip-md` container → ECR** before a real Batch GPU run.
+- **ProstT5→Foldseek — DONE (real test):** `query_type=sequence` mode; ubiquitin FASTA → 1UBQ (E=4.6e-15) with the real 2.3 GB model; **needs `prepare_prostt5_model.sh` → S3** before a Batch sequence-search run.
+
 
 1. **Wire 4 new DB APIs** into `query_database` (LOCAL code) — `_query_pubchem`, `_query_bindingdb`, `_query_pharos`, `_query_pdbe`, matching the ChEMBL/RCSB `operation` pattern across all layers (handlers + tool schema enum + REST proxy + `live_api` catalog rows), each live-tested. *(ZINC/SmallWorld deferred — light-use terms + no clean JSON REST; second wave.)*
 2. **ML-potential fast-MD subworkflow** (`molecular_dynamics/mlip_md_simulation/main.nf`, AWS Batch GPU) — OpenMM 8 + AIMNet2 (default) / MACE-OFF; verified container tag, every param used by Groovy, local mock dry-run to prove wiring without a GPU.
