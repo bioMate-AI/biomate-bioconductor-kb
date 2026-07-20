@@ -91,7 +91,7 @@ PYEOF
 process PREDICT_ADMET_PROPERTIES {
     tag "admet-merge"
     label 'process_medium'
-    publishDir "${params.outdir}/run", mode: 'copy'
+    publishDir path: "${params.outdir}/run", mode: 'copy'
 
     // biomni-admet: dedicated ADMET container (admet-ai/Chemprop, mordred, PyTDC)
     // Starts from biomate-nextflow-base directly — lean, not biomni-tools

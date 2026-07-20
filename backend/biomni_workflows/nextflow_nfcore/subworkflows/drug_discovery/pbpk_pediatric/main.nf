@@ -32,7 +32,7 @@ params.indication               = 'infectious'
 process VALIDATE_COMPOUND_PARAMS {
     tag 'validate'
     label 'process_low'
-    publishDir "${params.outdir}", mode: 'copy'
+    publishDir path: "${params.outdir}", mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
@@ -114,7 +114,7 @@ PYEOF
 process PBPK_PEDIATRIC_SIMULATE {
     tag 'peds_sim'
     label 'process_medium'
-    publishDir "${params.outdir}", mode: 'copy'
+    publishDir path: "${params.outdir}", mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
@@ -341,7 +341,7 @@ PYEOF
 process EVALUATE_MATURATION {
     tag 'maturation'
     label 'process_low'
-    publishDir "${params.outdir}", mode: 'copy'
+    publishDir path: "${params.outdir}", mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
@@ -453,7 +453,7 @@ PYEOF
 process GENERATE_FINAL_REPORT {
     tag 'report'
     label 'process_low'
-    publishDir "${params.outdir}", mode: 'copy'
+    publishDir path: "${params.outdir}", mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
