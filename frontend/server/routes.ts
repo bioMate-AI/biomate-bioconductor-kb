@@ -70,6 +70,8 @@ import {
   evaluateHardwareGate,
 } from "./execution-env-policy";
 import * as mfaService from "./mfa-service";
+import toolsManifest from "../../backend/lib/mcp/tools_manifest.json";
+import { registerConnectorAdapters } from "./connector-adapters";
 
 // Initialize OpenAI (optional for development)
 const openai = (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim()) ? new OpenAI({
@@ -672,58 +674,17 @@ const galaxyAssistant = _hasAnyLLMKey ? new GalaxyAssistant({
 // "Open Claw" = power-user mode where BioMate tools are visible as function calls.
 // Named after the OpenClaw conversation-state pattern (see conversation-state.ts:8).
 // Tool calls are executed server-side and results streamed back as SSE events.
-// Open Claw tool definitions — keep in sync with:
-//   backend/lib/mcp/biomate_mcp_server.py  (TOOLS list)
-//   backend/lib/integrations/slack_bot.py  (_open_claw_query)
-//   backend/lib/integrations/wechat_bot.py (_open_claw_query)
-// Doc: docs/20260412_BIOMATE_TOOLS_CAPABILITY_MAP.md
-const OPEN_CLAW_TOOLS = [
-  // ── Discovery ──────────────────────────────────────────────────────────────
-  {
-    name: "search_workflow",
-    description:
-      "Search the BioMate scientific workflow catalog by natural language. " +
-      "Returns ranked workflow cards with descriptions, required parameters, " +
-      "and estimated AWS Batch compute time. Always call this first to find the workflow_id.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        query: { type: "string", description: "Natural language description of the analysis, e.g. 'ADMET screening for small molecules', 'RNA-seq differential expression'" },
-        limit: { type: "integer", description: "Max results (default 5, max 20)" },
-      },
-      required: ["query"],
-    },
-  },
-  // ── Execution ──────────────────────────────────────────────────────────────
-  {
-    name: "run_workflow",
-    description:
-      "Execute a BioMate scientific workflow on AWS Batch. " +
-      "Returns a run_id to monitor with get_run_status. " +
-      "Use search_workflow first to find the workflow_id and required parameters.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        workflow_id: { type: "string", description: "Workflow ID from search_workflow (e.g. 'assay_ingestion_and_ranking')" },
-        params: { type: "object", description: "Workflow parameters as key-value pairs. Required params vary by workflow.", additionalProperties: true },
-        message: { type: "string", description: "Optional natural language context — BioMate AI auto-fills missing params from this" },
-      },
-      required: ["workflow_id"],
-    },
-  },
-  {
-    name: "get_run_status",
-    description:
-      "Poll the status of a BioMate workflow run. " +
-      "Returns status (pending|running|completed|failed), step progress, elapsed time, and error message if any.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        run_id: { type: "string", description: "Run ID returned by run_workflow" },
-      },
-      required: ["run_id"],
-    },
-  },
+//
+// The tool schema lives in backend/lib/mcp/tools_manifest.py (Python is the
+// canonical source) and is exported to backend/lib/mcp/tools_manifest.json by
+// `python -m backend.lib.mcp.tools_manifest`. Slack/WeChat proxy through
+// /api/open-claw/stream and inherit this list automatically. Drift is enforced
+// by backend/tests/test_tools_manifest.py::test_committed_manifest_json_in_sync.
+const OPEN_CLAW_TOOLS = (toolsManifest as any).anthropic as Array<{
+  name: string;
+  description: string;
+  input_schema: any;
+}>;
   {
     name: "get_run_results",
     description:
@@ -899,14 +860,6 @@ const OPEN_CLAW_TOOLS = [
       required: ["source_id"],
     },
   },
-  // ── Bioconductor knowledge ────────────────────────────────────────────────
-  // Commented out: BioMate's search_workflow already covers this via the live
-  // workflow DB (2,455 workflows). Static per-package skill files are redundant.
-  // {
-  //   name: "bioconductor_skill",
-  //   ...
-  // },
-];
 
 /**
  * Execute a tool call from the Open Claw agentic loop.
@@ -1416,27 +1369,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await parameterRepository.initialize();
   await workflowRepository.initialize();
 
+  // v2 connector adapters (backend/lib/mcp/tools_manifest.py — Tier 2/3 tools).
+  // Mounts /api/workflows/spec, /api/files/preview, /api/uploads/signed_url.
+  registerConnectorAdapters(app, optionalAuth);
+
   // Project CRUD — list/create/fetch/update/archive/delete user projects.
-  // Provides the path by which client-sent projectId in chat-stream
-  // context comes to exist. See docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
   const { registerProjectRoutes } = await import("./project-routes");
   registerProjectRoutes(app);
 
-  // Project Notes (synthesis) — Stream-A platform. On-demand LLM
-  // synthesis of completed runs + recent chat into a markdown brief.
-  // See docs/20260619_AI_GLASSES_AND_AUDIO_BIOMATE_PROTOTYPES.md.
+  // Project Notes (synthesis) — Stream-A platform.
   const { registerNotesRoutes } = await import("./notes-routes");
   registerNotesRoutes(app);
 
-  // Evidence Search — cross-cutting feature. Parses a claim/hypothesis,
-  // queries registered evidence datasets in parallel (PubMed,
-  // OpenTargets, STRING for v1), LLM-reranks with citations.
+  // Evidence Search — cross-cutting feature.
   const { registerEvidenceRoutes } = await import("./evidence-routes");
   registerEvidenceRoutes(app);
 
-  // Lane B3 — per-org adapter retrain queue. Mounted via dynamic import so
-  // a missing module doesn't crash the rest of the app at boot. The route
-  // file ships from a parallel work stream alongside this registration.
+  // Lane B3 — per-org adapter retrain queue.
   try {
     // @ts-ignore — module may not exist yet
     const { registerRegulatoryTrainingRoutes } = await import(

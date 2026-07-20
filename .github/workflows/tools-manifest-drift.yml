@@ -1,0 +1,62 @@
+name: Tools Manifest Drift
+
+# Ensures backend/lib/mcp/tools_manifest.json and connectors/chatgpt/openapi.json
+# are in sync with the canonical Python module backend/lib/mcp/tools_manifest.py.
+# Any PR that edits the manifest must commit the regenerated JSON.
+#
+# Background: docs/20260513_CONNECTOR_ARCHITECTURE_V2.md.
+
+on:
+  pull_request:
+    paths:
+      - "backend/lib/mcp/tools_manifest.py"
+      - "backend/lib/mcp/tools_manifest.json"
+      - "backend/lib/mcp/biomate_mcp_server.py"
+      - "connectors/chatgpt/openapi.json"
+      - "backend/tests/test_tools_manifest.py"
+      - ".github/workflows/tools-manifest-drift.yml"
+  push:
+    branches: [main, master]
+    paths:
+      - "backend/lib/mcp/tools_manifest.py"
+      - "backend/lib/mcp/tools_manifest.json"
+      - "connectors/chatgpt/openapi.json"
+  workflow_dispatch:
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install runtime deps
+        run: pip install --quiet requests pytest jsonschema openapi-spec-validator anthropic openai
+
+      - name: Regenerate manifest from source
+        run: |
+          python -m backend.lib.mcp.tools_manifest
+
+      - name: Diff committed vs regenerated
+        run: |
+          if ! git diff --exit-code -- backend/lib/mcp/tools_manifest.json connectors/chatgpt/openapi.json; then
+            echo
+            echo "✗ Generated manifests differ from committed copies."
+            echo "  Run locally: python -m backend.lib.mcp.tools_manifest"
+            echo "  Then commit backend/lib/mcp/tools_manifest.json and connectors/chatgpt/openapi.json."
+            exit 1
+          fi
+
+      - name: Run manifest unit tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: pytest backend/tests/test_tools_manifest.py -q
+
+      - name: Run connector sandbox tests (OpenAPI 3.1, MCP e2e, SDK shapes)
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: pytest backend/tests/test_connector_sandbox.py -q

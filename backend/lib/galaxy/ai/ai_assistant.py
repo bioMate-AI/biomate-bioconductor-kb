@@ -3370,6 +3370,76 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             uploaded_datasets=uploaded_datasets,
         )
 
+    def _try_fast_path_admet_workflow(
+        self,
+        user_intent: str,
+        uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Return predict_admet_properties workflow directly when ADMET intent is clear.
+
+        Bypasses the disambiguation gate which fires when multiple pharmacology
+        workflows score within 3 points of each other, causing success=False for
+        ADMET queries even though predict_admet_properties is the correct match.
+        """
+        import re as _re_admet
+
+        q_low = user_intent.lower()
+        if not _re_admet.search(r'\badmet\b', q_low):
+            return None
+
+        # Search for predict_admet_properties specifically
+        results = self.workflow_search.search("predict admet properties pharmacology", limit=5)
+        top = None
+        for r in results:
+            fn = (r.filename or '').lower()
+            if 'predict_admet_properties' in fn:
+                top = r
+                break
+
+        if not top:
+            # Fallback: try the name directly
+            results = self.workflow_search.search(user_intent, limit=5)
+            for r in results:
+                fn = (r.filename or '').lower()
+                if 'predict_admet_properties' in fn:
+                    top = r
+                    break
+
+        if not top:
+            return None
+
+        # Inject SMILES into user_intent in key=value format so _extract_explicit_params_from_query
+        # can map it to smiles_list without needing an LLM call.
+        # Handles patterns: "SMILES: <value>" or "smiles <value>"
+        _smiles_match = _re_admet.search(
+            r'\bSMILES\s*[=:]\s*([A-Za-z0-9@\[\]\(\)\+\-=#\/\\\.%:]+)',
+            user_intent,
+            _re_admet.IGNORECASE,
+        )
+        _augmented_intent = user_intent
+        if _smiles_match:
+            _smiles_val = _smiles_match.group(1)
+            if 'smiles_list' not in user_intent.lower():
+                _augmented_intent = f"{user_intent} smiles_list={_smiles_val}"
+                log.info("[AdmetFastPath] Injected smiles_list=%s", _smiles_val)
+
+        log.info(
+            "[UnifiedWorkflowGeneration] ADMET fast path → %s (score=%.1f)",
+            top.name,
+            top.score,
+        )
+        return self._return_nextflow_match(
+            match=top,
+            score=top.score,
+            user_intent=_augmented_intent,
+            source='template_reuse',
+            needs_user_feedback=False,
+            search_results=results[:3],
+            selected_trial='',
+            trials=[],
+            uploaded_datasets=uploaded_datasets,
+        )
+
     def generate_workflow_unified(
         self,
         user_intent: str,
@@ -3444,6 +3514,12 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             )
             if _fast_dock:
                 return _fast_dock
+
+            _fast_admet = self._try_fast_path_admet_workflow(
+                user_intent, uploaded_datasets=uploaded_datasets
+            )
+            if _fast_admet:
+                return _fast_admet
 
             # Ensure the fast LLM client is initialized before chain search.
             # _llm_select_chain (chain verifier) needs workflow_search._llm_client set BEFORE
