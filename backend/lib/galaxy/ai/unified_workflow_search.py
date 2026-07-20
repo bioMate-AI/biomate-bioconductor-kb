@@ -1132,6 +1132,10 @@ class UnifiedWorkflowSearch:
         'chip-seq reads', 'chip seq reads', 'atac-seq reads',
         'drop-seq', 'dropseq', 'smart-seq', 'smartseq', 'indrop',  # scRNA-seq protocols
         '10x chromium', 'seq-well', 'dip-c',
+        # Spatial transcriptomics platforms — always need full pipeline (nf-core/spatialvi etc.)
+        # These are technology identifiers, not single-tool tasks; consistent with 10x chromium above
+        'visium', 'slide-seq', 'slideseq', 'merfish', 'seqfish', 'stereo-seq', 'stereoseq',
+        'spaceranger', 'space ranger', 'curio seeker',
         # CRISPR screens require NGS of sgRNA libraries — raw sequencing intent
         'crispr screen', 'crispr knockout screen', 'knockout screen', 'crispr pooled',
         # Explicitly wants full pipeline from raw

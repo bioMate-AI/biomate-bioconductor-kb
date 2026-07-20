@@ -1323,13 +1323,15 @@
   query: Predict protein structure from FASTA sequence using ESMFold — no MSA required
   difficulty: adversarial
   domain: drug_discovery
-  correct_workflow: Structure Prediction Docking
+  correct_workflow: nf-core/proteinfold
   acceptable_alts:
-  - nf-core/proteinfold
+  - esmfold
+  - Structure Prediction Docking
   disqualified: []
   confusable_with: proteomics
-  notes: 'Source: nf-co.re/proteinfold — ESMFold is a documented prediction method
-    (no MSA); maps to BioMate structure_prediction_docking'
+  notes: 'Benchmark design fix (2026-07-02): Structure Prediction Docking uses AlphaFold3+DiffDock
+    (not ESMFold) and is marked Retired in DB. nf-core/proteinfold explicitly lists
+    ESMFold as a supported method. esmfold standalone is also acceptable.'
 - id: adv_010
   query: I ran RNA-seq and have a counts table. Find which pathways are enriched between
     conditions
