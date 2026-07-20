@@ -3387,8 +3387,8 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         if not _re_admet.search(r'\badmet\b', q_low):
             return None
 
-        # Search for predict_admet_properties specifically
-        results = self.workflow_search.search("predict admet properties pharmacology", limit=5)
+        # Search with wide limit — 67 pharmacology workflows compete for top-5
+        results = self.workflow_search.search("predict admet properties pharmacology", limit=20)
         top = None
         for r in results:
             fn = (r.filename or '').lower()
@@ -3397,11 +3397,20 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 break
 
         if not top:
-            # Fallback: try the name directly
-            results = self.workflow_search.search(user_intent, limit=5)
+            results = self.workflow_search.search(user_intent, limit=20)
             for r in results:
                 fn = (r.filename or '').lower()
                 if 'predict_admet_properties' in fn:
+                    top = r
+                    break
+
+        if not top:
+            # Final fallback: search by exact workflow name
+            results = self.workflow_search.search("Predict ADMET Properties AI", limit=20)
+            for r in results:
+                fn = (r.filename or '').lower()
+                nm = (r.name or '').lower()
+                if 'predict_admet_properties' in fn or ('admet' in nm and 'predict' in nm):
                     top = r
                     break
 
