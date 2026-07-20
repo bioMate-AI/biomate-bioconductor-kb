@@ -494,6 +494,66 @@
         ]
       }
     },
+    "/tools/watch_run": {
+      "post": {
+        "operationId": "watch_run",
+        "summary": "Stream real-time progress for a running BioMate workflow and return full results when done.",
+        "description": "Stream real-time progress for a running BioMate workflow and return full results when done. Emits MCP notifications/progress for every phase start/complete, step update, and QC gate. When the run finishes, automatically fetches output files (with download URLs) and AI findings. Use after run_workflow (non-streaming) to watch a submitted run. Does not require re-submitting \u2014 takes an existing run_id.",
+        "x-streaming": true,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "run_id": {
+                    "type": "string",
+                    "description": "Run ID returned by run_workflow."
+                  }
+                },
+                "required": [
+                  "run_id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToolResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized \u2014 reauthorize via /oauth/authorize"
+          },
+          "402": {
+            "description": "Quota or billing gate triggered \u2014 see billing.biomate.ai"
+          },
+          "429": {
+            "description": "Rate limited \u2014 retry after the Retry-After header"
+          },
+          "500": {
+            "description": "Internal error"
+          }
+        },
+        "security": [
+          {
+            "BiomateOAuth": [
+              "runs:read",
+              "runs:write",
+              "workflows:search"
+            ]
+          }
+        ]
+      }
+    },
     "/tools/preview_file": {
       "post": {
         "operationId": "preview_file",
@@ -813,6 +873,284 @@
                 },
                 "required": [
                   "database",
+                  "query"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToolResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized \u2014 reauthorize via /oauth/authorize"
+          },
+          "402": {
+            "description": "Quota or billing gate triggered \u2014 see billing.biomate.ai"
+          },
+          "429": {
+            "description": "Rate limited \u2014 retry after the Retry-After header"
+          },
+          "500": {
+            "description": "Internal error"
+          }
+        },
+        "security": [
+          {
+            "BiomateOAuth": [
+              "runs:read",
+              "runs:write",
+              "workflows:search"
+            ]
+          }
+        ]
+      }
+    },
+    "/tools/resolve_accession": {
+      "post": {
+        "operationId": "resolve_accession",
+        "summary": "Identify a public archive accession (GEO, SRA, ENA, DDBJ) and return the best BioMate workflow to fetch it plus pre-filled params ready for run_workflow.",
+        "description": "Identify a public archive accession (GEO, SRA, ENA, DDBJ) and return the best BioMate workflow to fetch it plus pre-filled params ready for run_workflow. Examples: GSE183947 \u2192 Geo Data Connector; SRR12345 \u2192 nf-core/fetchngs. Call this before run_workflow whenever the user provides an accession instead of a file.",
+        "x-streaming": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accession": {
+                    "type": "string",
+                    "description": "Public archive accession: GSE*, GSM*, GDS*, SRR*, SRX*, SRP*, ERR*, ERX*, ERP*, DRR*, PRJNA*, PRJEB*, E-MTAB-*, E-GEOD-*"
+                  }
+                },
+                "required": [
+                  "accession"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToolResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized \u2014 reauthorize via /oauth/authorize"
+          },
+          "402": {
+            "description": "Quota or billing gate triggered \u2014 see billing.biomate.ai"
+          },
+          "429": {
+            "description": "Rate limited \u2014 retry after the Retry-After header"
+          },
+          "500": {
+            "description": "Internal error"
+          }
+        },
+        "security": [
+          {
+            "BiomateOAuth": [
+              "runs:read",
+              "runs:write",
+              "workflows:search"
+            ]
+          }
+        ]
+      }
+    },
+    "/tools/browse_data": {
+      "post": {
+        "operationId": "browse_data",
+        "summary": "Browse a biological data repository or S3 workspace by listing files and directories at a given path.",
+        "description": "Browse a biological data repository or S3 workspace by listing files and directories at a given path. Public sources (EBI, NCBI, Ensembl, UCSC) require a path. S3 sources (biomate_workspace, user_s3) accept an optional prefix. Use before fetch_public_data to navigate to the exact file you need.",
+        "x-streaming": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "source_id": {
+                    "type": "string",
+                    "enum": [
+                      "ebi_ftp",
+                      "ncbi_ftp",
+                      "ensembl_ftp",
+                      "ucsc_downloads",
+                      "http_public",
+                      "biomate_workspace",
+                      "user_s3"
+                    ],
+                    "description": "Data source to browse. biomate_workspace = BioMate's S3 work bucket; user_s3 = user's own S3 bucket (if configured)."
+                  },
+                  "path": {
+                    "type": "string",
+                    "description": "Directory path or S3 prefix to list."
+                  }
+                },
+                "required": [
+                  "source_id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToolResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized \u2014 reauthorize via /oauth/authorize"
+          },
+          "402": {
+            "description": "Quota or billing gate triggered \u2014 see billing.biomate.ai"
+          },
+          "429": {
+            "description": "Rate limited \u2014 retry after the Retry-After header"
+          },
+          "500": {
+            "description": "Internal error"
+          }
+        },
+        "security": [
+          {
+            "BiomateOAuth": [
+              "runs:read",
+              "runs:write",
+              "workflows:search"
+            ]
+          }
+        ]
+      }
+    },
+    "/tools/fetch_public_data": {
+      "post": {
+        "operationId": "fetch_public_data",
+        "summary": "Download a file from a public biological repository (EBI, NCBI, Ensembl, UCSC) into BioMate's S3 workspace and return a presigned URL and S3 URI.",
+        "description": "Download a file from a public biological repository (EBI, NCBI, Ensembl, UCSC) into BioMate's S3 workspace and return a presigned URL and S3 URI. Use the S3 URI as a workflow input parameter. Call browse_data first to find the exact path.",
+        "x-streaming": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "source_id": {
+                    "type": "string",
+                    "enum": [
+                      "ebi_ftp",
+                      "ncbi_ftp",
+                      "ensembl_ftp",
+                      "ucsc_downloads",
+                      "http_public"
+                    ],
+                    "description": "Data source the file comes from."
+                  },
+                  "remote_path": {
+                    "type": "string",
+                    "description": "Path on the FTP server."
+                  },
+                  "url": {
+                    "type": "string",
+                    "description": "For http_public source: full HTTPS URL of the file to download."
+                  }
+                },
+                "required": [
+                  "source_id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToolResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized \u2014 reauthorize via /oauth/authorize"
+          },
+          "402": {
+            "description": "Quota or billing gate triggered \u2014 see billing.biomate.ai"
+          },
+          "429": {
+            "description": "Rate limited \u2014 retry after the Retry-After header"
+          },
+          "500": {
+            "description": "Internal error"
+          }
+        },
+        "security": [
+          {
+            "BiomateOAuth": [
+              "runs:read",
+              "runs:write",
+              "workflows:search"
+            ]
+          }
+        ]
+      }
+    },
+    "/tools/search_literature": {
+      "post": {
+        "operationId": "search_literature",
+        "summary": "Search published scientific literature across PubMed, EuropePMC, Semantic Scholar, and OpenAlex.",
+        "description": "Search published scientific literature across PubMed, EuropePMC, Semantic Scholar, and OpenAlex. Uses an iterative depth-loop: starts broad, then drills into related topics until min_results are found or max_depth is reached. Returns ranked papers with title, authors, year, DOI, abstract snippet, and citation count. Best for: finding prior art, understanding a disease mechanism, locating validation datasets, or reviewing methods before running a workflow.",
+        "x-streaming": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "Natural-language search query. Be specific: include organism, assay type, or drug name. E.g. 'DESeq2 bulk RNA-seq breast cancer ER+ 2020-2024'."
+                  },
+                  "max_depth": {
+                    "type": "integer",
+                    "default": 2,
+                    "description": "How many iterative refinement rounds to run (1\u20134). Higher = more thorough, slower."
+                  },
+                  "min_results": {
+                    "type": "integer",
+                    "default": 10,
+                    "description": "Stop when at least this many papers are found."
+                  }
+                },
+                "required": [
                   "query"
                 ]
               }
