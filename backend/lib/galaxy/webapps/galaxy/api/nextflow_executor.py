@@ -2271,13 +2271,12 @@ def _generate_executor_config(
             #     because it ran 26.04.4). The bioc .nf carry NO publishDir directives and
             #     collect outputs from the Batch task work dir, so the null is pointless
             #     here too; the nf-amazon@3.3.0 pin already covers CRT.
-            *(
-                ["process {", "    publishDir = null", "}"]
-                if "/nf-core-workflows/" not in nf_path
-                   and "structural_biology/" not in nf_path
-                   and "/bioconductor/" not in nf_path
-                else []
-            ),
+            # publishDir = null was belt-and-suspenders vs. CRT SIGSEGV;
+            # nf-amazon@3.3.0 (used for all biomni workflows) already prevents
+            # CRT loading, so the directive is not needed and breaks Nextflow
+            # 25.10.5 for any subworkflow that defines publishDir (the
+            # ProcessBuilder method dispatch fails with MethodSelectionException).
+            # Removed: never inject publishDir = null.
             "process {",
             "    executor = 'awsbatch'",
         ]
