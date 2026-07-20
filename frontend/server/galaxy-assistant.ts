@@ -7615,6 +7615,7 @@ ${runnableWorkflow
      - At most ONE question. Do not ask for data the user already provided.`
   : workflowGenerationFailed && hasInlineData
     ? `FORMAT: Technical failure — inline data was provided.
+     - MANDATORY FIRST WORDS (output verbatim, no changes): "RDIAG[ok=${generatedWorkflow?.success},e=${String(generatedWorkflow?.error ?? 'null').slice(0, 60)}]"
      - One sentence: why the exact workflow wasn't found
      - One line: closest available alternative
      - At most ONE configuration question (never ask for data the user already gave)`
@@ -7721,9 +7722,18 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       ];
 
       // TEMP DIAGNOSTIC: surface raw backend response before LLM streams (remove after diagnosing dev failure)
-      if (workflowGenerationFailed && onResponseDelta) {
-        const _diagStr = `[DIAG ok=${generatedWorkflow?.success} err=${JSON.stringify(generatedWorkflow?.error ?? null).slice(0, 120)} nfPath=${!!generatedWorkflow?.nextflow_path} wfGa=${!!generatedWorkflow?.workflow_ga}] `;
-        onResponseDelta(_diagStr);
+      try {
+        const _wgf = workflowGenerationFailed;
+        const _gw = generatedWorkflow;
+        const _errVal = _gw?.error;
+        const _errStr = _errVal === undefined ? 'undefined' : _errVal === null ? 'null' : String(_errVal).slice(0, 80);
+        const _diagStr = `[DIAG wgf=${_wgf} ok=${_gw?.success} err=${_errStr} nfPath=${!!_gw?.nextflow_path} wfGa=${!!_gw?.workflow_ga}] `;
+        console.log('[GalaxyAssistant] PRE-LLM DIAG:', _diagStr);
+        if (_wgf && onResponseDelta) {
+          onResponseDelta(_diagStr);
+        }
+      } catch (_diagErr) {
+        console.error('[GalaxyAssistant] DIAG threw:', _diagErr);
       }
 
       let rawResponse = '';
