@@ -3429,8 +3429,22 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         )
         _smiles_json: Optional[str] = None  # None → use workflow default (valid JSON array)
         if _smiles_match:
-            _smiles_val = _smiles_match.group(1)
-            _smiles_json = _json_admet.dumps([_smiles_val])  # '["CC(=O)Oc1ccccc1C(=O)O"]'
+            _smiles_raw = _smiles_match.group(1)
+            # Strip trailing closing parens that are unbalanced — the query pattern
+            # "(SMILES: <smiles>)" wraps the SMILES in sentence punctuation so the
+            # regex captures the sentence's closing ) as part of the SMILES string.
+            # Walk char-by-char; when a ) would push depth negative, stop there.
+            _depth = 0
+            _smiles_val = _smiles_raw
+            for _i, _ch in enumerate(_smiles_raw):
+                if _ch == '(':
+                    _depth += 1
+                elif _ch == ')':
+                    if _depth == 0:
+                        _smiles_val = _smiles_raw[:_i]
+                        break
+                    _depth -= 1
+            _smiles_json = _json_admet.dumps([_smiles_val])
             log.info("[AdmetFastPath] Extracted SMILES → smiles_list=%s", _smiles_json)
 
         log.info(
