@@ -3759,7 +3759,7 @@ Rules:
       try {
         log('Step 4: Generating workflow');
         generatedWorkflow = await this.generateWorkflow(
-          message,
+          intent.subQuery || message,
           recommendedDatasets.map(d => d.dataset),
           intent.inlineParameters,
           context,
