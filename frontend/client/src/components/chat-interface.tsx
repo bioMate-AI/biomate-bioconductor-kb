@@ -118,8 +118,8 @@ const ONBOARDING_DONE_KEY = 'biomate_onboarding_done'
 // First entry is the conference demo default (MG patient stratification chain).
 const EXAMPLE_QUERIES = [
   {
-    label: 'MG patient stratification → ADMET → PBPK',
-    query: 'Run differential expression on AChR+ myasthenia gravis PBMC data (GSE192396, 15 MG patients vs 15 healthy controls), identify complement pathway drivers, then screen iptacopan (ChEMBL CHEMBL4523157) for ADMET properties and simulate plasma pharmacokinetics at 200 mg oral BID dose.',
+    label: 'MG patient stratification → ADMET',
+    query: 'Run differential expression on AChR+ myasthenia gravis PBMC data (GSE227835, 10 MG patients vs 10 healthy controls) to find the key complement pathway drivers.',
   },
   {
     label: 'ADMET screen from SMILES',
