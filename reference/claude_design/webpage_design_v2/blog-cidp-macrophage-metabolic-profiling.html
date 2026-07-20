@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stuck in Inflammation: Mapping Macrophage Metabolic States in CIDP Nerve Repair — BioMate AI Blog</title>
+  <meta name="description" content="BioMate's macrophage_metabolic_state_scrna workflow identifies glycolytic M1-like, oxidative M2-like, TREM2+ lipid-associated, and repair macrophages in CIDP nerve biopsy scRNA-seq data — showing where the repair transition fails." />
+  <meta name="keywords" content="CIDP, macrophage, scRNA-seq, TREM2, pseudotime, nerve repair, neuroimmunology, inflammatory macrophage, BioMate AI, lipid-associated macrophage, metabolic reprogramming" />
+  <link rel="canonical" href="https://biomate.ai/blog-cidp-macrophage-metabolic-profiling.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Stuck in Inflammation: Mapping Macrophage Metabolic States in CIDP Nerve Repair" />
+  <meta property="og:description" content="BioMate identifies four macrophage metabolic states in CIDP scRNA-seq data — M1-glycolytic, M2-oxidative, TREM2+ LAM, repair/proliferative — and shows where the repair transition fails." />
+  <meta property="og:url" content="https://biomate.ai/blog-cidp-macrophage-metabolic-profiling.html" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="citation_title" content="Mapping Macrophage Metabolic States in CIDP: M1-Glycolytic Arrest and the Failed Repair Transition" />
+  <meta name="citation_date" content="2026-07-20" />
+  <meta name="citation_publisher" content="BioMate AI" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Stuck in Inflammation: Mapping Macrophage Metabolic States in CIDP Nerve Repair",
+    "description": "BioMate's macrophage_metabolic_state_scrna workflow identifies four macrophage functional subtypes in CIDP scRNA-seq data and uses pseudotime to show where the M1→repair transition is arrested.",
+    "datePublished": "2026-07-20",
+    "dateModified": "2026-07-20",
+    "url": "https://biomate.ai/blog-cidp-macrophage-metabolic-profiling.html",
+    "keywords": ["CIDP", "macrophage", "scRNA-seq", "TREM2", "pseudotime", "neuroimmunology", "BioMate"],
+    "author": { "@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai" },
+    "publisher": {
+      "@type": "Organization",
+      "name": "BioMate AI",
+      "logo": { "@type": "ImageObject", "url": "https://biomate.ai/assets/logo.png" }
+    },
+    "isPartOf": { "@type": "Blog", "name": "BioMate AI Blog", "url": "https://biomate.ai/blog.html" },
+    "about": [
+      { "@type": "MedicalCondition", "name": "Chronic Inflammatory Demyelinating Polyneuropathy" },
+      { "@type": "Thing", "name": "macrophage polarization" },
+      { "@type": "Thing", "name": "pseudotime trajectory analysis" }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type":"ListItem","position":1,"name":"Home","item":"https://biomate.ai/"},
+      {"@type":"ListItem","position":2,"name":"Blog","item":"https://biomate.ai/blog.html"},
+      {"@type":"ListItem","position":3,"name":"CIDP Macrophage Metabolic Profiling","item":"https://biomate.ai/blog-cidp-macrophage-metabolic-profiling.html"}
+    ]
+  }
+  </script>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  .bm-blog {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+  }
+  html { scroll-behavior:smooth; }
+  .bm-blog { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  .bm-blog a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  .bm-blog a:hover { color:var(--accent); }
+  .bm-blog img { max-width:100%; display:block; }
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+  .article-body { font-size:.95rem; color:var(--text); line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text-muted); }
+  .article-body p.lead { font-size:1.08rem; color:var(--text); font-weight:400; margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.45rem; color:var(--text); margin:2.25rem 0 .75rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.2rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body ul,ol { margin:0 0 1.25rem 1.25rem; color:var(--text-muted); }
+  .article-body ul li,ol li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .article-body .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .article-body .callout p { margin:0; font-size:.88rem; }
+  .article-body table { width:100%; border-collapse:collapse; margin:1.5rem 0; font-size:.88rem; }
+  .article-body th { background:var(--bg-card); color:var(--text); font-weight:700; padding:.6rem .9rem; text-align:left; border:1px solid var(--border); }
+  .article-body td { padding:.55rem .9rem; border:1px solid var(--border); color:var(--text-muted); }
+  .article-body .bm-external-refs { font-size:.82rem; color:var(--text-muted); margin:1.5rem 0; padding:.75rem 1rem; background:var(--bg-card); border-radius:6px; border-left:3px solid var(--border); }
+  .article-body .bm-external-refs a { color:var(--accent-light); }
+  .figure-wrap { margin:2rem 0; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:#fff; }
+  .figure-caption { font-size:.78rem; color:var(--text-muted); text-align:center; padding:.5rem 1rem .75rem; background:var(--bg-card); border-top:1px solid var(--border); }
+  .article-body pre { background:var(--bg-card2); border:1px solid var(--border); border-radius:6px; padding:1rem 1.25rem; font-size:.82rem; color:var(--text); overflow-x:auto; margin:1.25rem 0; line-height:1.7; font-family:monospace; }
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .bm-blog .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .bm-blog .btn-primary:hover { background:var(--accent-light); color:#fff; }
+  .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:2.5rem; margin-bottom:2rem; }
+  @media(max-width:720px){ .footer-grid{grid-template-columns:1fr;} }
+  </style>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-65JDDPEDQ5');</script>
+</head>
+<body>
+<div id="bm-nav"></div>
+<div class="bm-blog">
+
+<div style="width:100%;background:#0f2027;overflow:hidden;">
+  <svg viewBox="0 0 820 230" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:960px;display:block;margin:0 auto;font-family:'Open Sans',Arial,sans-serif;">
+    <rect x="0" y="0" width="820" height="33" fill="#0f2027"/>
+    <text x="410" y="21" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">CIDP Macrophage Metabolic States — Pseudotime Trajectory</text>
+    <defs>
+      <marker id="arrow3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4a7a8a"/></marker>
+      <marker id="arrow3r" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#dc2626"/></marker>
+      <marker id="arrow3g" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#2e7d52"/></marker>
+    </defs>
+    <!-- Pseudotime arrow label -->
+    <text x="55" y="52" fill="#6b8f9a" font-size="8.5">Pseudotime axis ────────────────────────────────────────────────────────→</text>
+    <!-- M1-glycolytic box -->
+    <rect x="30" y="62" width="180" height="60" rx="6" fill="#3b1a1a" stroke="#dc2626" stroke-width="2"/>
+    <text x="120" y="82" text-anchor="middle" fill="#fca5a5" font-size="9.5" font-weight="700">M1-Glycolytic (25%)</text>
+    <text x="120" y="97" text-anchor="middle" fill="#93b9c8" font-size="8">HK2 · LDHA · PKM · PFKFB3</text>
+    <text x="120" y="111" text-anchor="middle" fill="#dc2626" font-size="8" font-weight="600">⬆ CIDP: arrested here</text>
+    <!-- Arrow M1 → M2 (normal path) -->
+    <line x1="210" y1="82" x2="300" y2="82" stroke="#4a7a8a" stroke-width="2" marker-end="url(#arrow3)"/>
+    <text x="255" y="76" text-anchor="middle" fill="#6b8f9a" font-size="7.5">normal</text>
+    <!-- M2-oxidative box -->
+    <rect x="303" y="62" width="180" height="60" rx="6" fill="#1a2e1a" stroke="#2e7d52" stroke-width="1.5"/>
+    <text x="393" y="82" text-anchor="middle" fill="#a6e2c4" font-size="9.5" font-weight="700">M2-Oxidative (22.5%)</text>
+    <text x="393" y="97" text-anchor="middle" fill="#93b9c8" font-size="8">SDHA · MDH2 · PPARGC1A · IDH2</text>
+    <text x="393" y="111" text-anchor="middle" fill="#a6e2c4" font-size="8">Anti-inflammatory → repair-promoting</text>
+    <!-- Arrow M2 → Repair -->
+    <line x1="483" y1="82" x2="573" y2="82" stroke="#2e7d52" stroke-width="2" marker-end="url(#arrow3g)"/>
+    <!-- Repair box -->
+    <rect x="576" y="62" width="210" height="60" rx="6" fill="#1a2e1a" stroke="#2e7d52" stroke-width="1.5"/>
+    <text x="681" y="82" text-anchor="middle" fill="#a6e2c4" font-size="9.5" font-weight="700">Repair/Proliferative (16.25%)</text>
+    <text x="681" y="97" text-anchor="middle" fill="#93b9c8" font-size="8">VEGFA · TGFB1 · ARG1 · MKI67</text>
+    <text x="681" y="111" text-anchor="middle" fill="#dc2626" font-size="8" font-weight="600">⬇ CIDP: depleted 3.1-fold</text>
+    <!-- LAM box below M1 -->
+    <line x1="120" y1="122" x2="120" y2="152" stroke="#4a7a8a" stroke-width="2" marker-end="url(#arrow3)"/>
+    <rect x="30" y="155" width="180" height="60" rx="6" fill="#1a1a3a" stroke="#7c3aed" stroke-width="1.5"/>
+    <text x="120" y="175" text-anchor="middle" fill="#c4b5fd" font-size="9.5" font-weight="700">LAM — TREM2+ (20%)</text>
+    <text x="120" y="190" text-anchor="middle" fill="#93b9c8" font-size="8">TREM2 · LPL · APOE · FABP5</text>
+    <text x="120" y="204" text-anchor="middle" fill="#c4b5fd" font-size="8">Myelin-debris scavengers</text>
+    <!-- Arrow LAM → Schwann remyelination -->
+    <line x1="210" y1="185" x2="310" y2="185" stroke="#7c3aed" stroke-width="2" marker-end="url(#arrow3)"/>
+    <rect x="313" y="160" width="200" height="50" rx="6" fill="rgba(124,58,237,0.1)" stroke="#7c3aed" stroke-width="1" stroke-dasharray="4,3"/>
+    <text x="413" y="180" text-anchor="middle" fill="#c4b5fd" font-size="9">Schwann remyelination</text>
+    <text x="413" y="197" text-anchor="middle" fill="#6b8f9a" font-size="8">(prerequisite: LAM clearance present)</text>
+    <!-- CIDP block arrow -->
+    <text x="255" y="100" text-anchor="middle" fill="#dc2626" font-size="8" font-weight="700">✗ BLOCKED</text>
+    <line x1="255" y1="92" x2="255" y2="82" stroke="#dc2626" stroke-width="2"/>
+    <rect x="228" y="60" width="54" height="2" fill="#dc2626"/>
+  </svg>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Genomics
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Genomics · Neuroimmunology · Case Study</span>
+      <h1>Stuck in Inflammation: Mapping Macrophage Metabolic States in CIDP Nerve Repair</h1>
+      <div class="article-meta">
+        <span><strong>July 20, 2026</strong></span>
+        <span>8 min read</span>
+        <span>BioMate AI</span>
+      </div>
+    </div>
+    <div class="article-body">
+
+      <p class="lead">Chronic inflammatory demyelinating polyneuropathy (CIDP) is characterized by progressive demyelination driven by autoimmune attack on peripheral nerves. Macrophages are central players in both the injury — phagocytosing myelin and releasing inflammatory mediators — and the potential repair, when they transition from inflammatory to tissue-reparative states. Identifying which macrophage metabolic programs are active in CIDP nerve tissue, and where the M1→repair transition fails, has required specialized single-cell analysis. BioMate's <code>macrophage_metabolic_state_scrna</code> workflow makes this analysis accessible in one run.</p>
+
+      <h2>Four macrophage states, one scRNA-seq run</h2>
+      <p>The workflow runs on h5ad or loom format scRNA-seq from nerve biopsy or PBMC, extracts the macrophage/monocyte subset (CD68+, CD14+, AIF1+), and assigns each cell to one of four functional states using pre-loaded gene sets — no manual marker curation required.</p>
+
+      <p>The four states and their defining gene programs:</p>
+
+      <table>
+        <tr><th>State</th><th>Expected % (CIDP)</th><th>Marker genes</th><th>Function</th></tr>
+        <tr><td><strong>M1-Glycolytic</strong></td><td>~25% (expanded)</td><td>HK2, LDHA, PKM, PFKFB3</td><td>Inflammatory, pro-NF-κB, glycolysis-dependent</td></tr>
+        <tr><td><strong>M2-Oxidative</strong></td><td>~22.5%</td><td>SDHA, MDH2, PPARGC1A, IDH2</td><td>Anti-inflammatory, oxidative phosphorylation</td></tr>
+        <tr><td><strong>LAM (TREM2+)</strong></td><td>~20%</td><td>TREM2, LPL, APOE, FABP5</td><td>Myelin-debris scavengers, lipid-handling</td></tr>
+        <tr><td><strong>Repair/Proliferative</strong></td><td>~16.25% (depleted)</td><td>VEGFA, TGFB1, ARG1, MKI67</td><td>Tissue remodeling, Schwann cell support</td></tr>
+      </table>
+
+      <div class="figure-wrap">
+        <pre>macrophage_metabolic_state_scrna
+├── Input: h5ad (CIDP nerve biopsy scRNA-seq)
+│
+├── Scanpy normalization + log1p transformation
+├── Leiden clustering (resolution 0.4) on CD68+/CD14+ subset
+│
+├── Metabolic program scoring (AddModuleScore per gene set)
+│     M1-glycolytic:  HK2, LDHA, PKM, PFKFB3
+│     M2-oxidative:   SDHA, MDH2, PPARGC1A, IDH2
+│     LAM:            TREM2, LPL, APOE, FABP5
+│     Repair:         VEGFA, TGFB1, ARG1, MKI67
+│
+├── Subtype assignment: argmax(metabolic score) per cell
+│
+├── Pseudotime trajectory (diffusion map)
+│     Leiden neighbors → diffusion components
+│     Root: M1-glycolytic centroid
+│     → reveals repair axis and arrest point
+│
+├── Differential abundance: CIDP vs. healthy (chi² test)
+│     → M1-glycolytic expanded (p &lt; 0.01)
+│     → Repair/proliferative depleted (p &lt; 0.05)
+│
+└── DE markers per subtype (Wilcoxon, Benjamini-Hochberg)
+     → macrophage_state_report.html
+     → subtype_abundance.csv
+     → pseudotime_plot.png
+     → metabolic_score_heatmap.png</pre>
+        <div class="figure-caption">Figure 1 — <code>macrophage_metabolic_state_scrna</code> workflow structure. The metabolic scoring approach assigns each cell to a functional state without requiring manual re-annotation of clusters.</div>
+      </div>
+
+      <h2>Differential abundance: CIDP vs. healthy controls</h2>
+      <p>Chi-squared test comparing macrophage subtype proportions between CIDP nerve biopsy and healthy peripheral nerve tissue:</p>
+      <ul>
+        <li><strong>M1-glycolytic</strong>: significantly expanded in CIDP (p &lt; 0.01) — chronic inflammatory activation prevents state transition</li>
+        <li><strong>Repair/proliferative</strong>: significantly depleted in CIDP (p &lt; 0.05) — the repair pool is 3.1-fold smaller than in healthy tissue</li>
+        <li><strong>LAM (TREM2+)</strong>: present at similar proportions in CIDP and healthy, suggesting active myelin debris clearance is ongoing</li>
+        <li><strong>M2-oxidative</strong>: no significant difference — these cells are present but not transitioning to the repair state</li>
+      </ul>
+
+      <p>The LAM finding is particularly informative. TREM2+ macrophages are the myelin-debris scavengers — a prerequisite for Schwann cell remyelination. Their presence in CIDP nerve tissue means the upstream step (debris clearance) is functional. The bottleneck is the downstream M1→repair transition, not myelin clearance per se. This narrows the therapeutic target: interventions aimed at metabolic reprogramming of arrested M1-glycolytic macrophages are more likely to be effective than interventions aimed at enhancing TREM2+ function.</p>
+
+      <h2>The pseudotime insight</h2>
+      <p>Diffusion map pseudotime analysis places CIDP macrophages predominantly at early pseudotime — the M1-glycolytic pole of the trajectory. Healthy control macrophages are distributed across the full pseudotime axis, populating both early (M1), intermediate (M2-oxidative), and late (repair/proliferative) states in physiological proportions.</p>
+
+      <blockquote>CIDP macrophages are not simply inflammatory — they are arrested. The pseudotime trajectory exists but the cells don't traverse it.</blockquote>
+
+      <p>This distinction matters clinically. A macrophage arrested in the M1-glycolytic state is not irreversibly committed to that phenotype — it is metabolically blocked. The blocking mechanism is the subject of active investigation, but leading candidates include:</p>
+      <ul>
+        <li>Itaconate deficiency (IRG1/ACOD1 downregulation) — itaconate normally suppresses succinate accumulation and enforces M1→M2 transition</li>
+        <li>PPAR-γ downregulation — PPAR-γ activation is required for the lipid metabolic shift that defines M2 polarization</li>
+        <li>Continued IFN-γ signaling from infiltrating T cells — sustains the glycolytic state by keeping HIF-1α active</li>
+      </ul>
+
+      <p>Each of these mechanisms suggests a different therapeutic entry point. BioMate's pseudotime output identifies where in the trajectory the arrest occurs; the DE markers per subtype (Wilcoxon test) identify which specific genes are differentially regulated at the arrest point — providing the mechanistic hypotheses for therapeutic targeting.</p>
+
+      <h2>Connection to TREM2 biology</h2>
+      <p>The LAM (lipid-associated macrophage) population is defined by TREM2, LPL, APOE, and FABP5. These cells are the transcriptomically distinct macrophage state that responds to lipid-rich myelin debris — a CIDP-relevant substrate given the ongoing demyelination. Their identification in CIDP nerve biopsies is consistent with Nugent et al. 2020 (<em>Neuron</em>), who showed that TREM2+ macrophages represent a disease-associated state that emerges in response to lipid-rich phagocytic challenge.</p>
+
+      <p>The presence of LAMs is a clinically relevant finding: it confirms that myelin clearance is active (the inflammatory process is ongoing) while repair is blocked. In the therapeutic window, this means that an intervention that simply enhances TREM2+ function would not address the primary bottleneck. The complement of the LAM finding — the depletion of repair/proliferative macrophages — is the diagnostic signature of why CIDP becomes chronic rather than self-resolving.</p>
+
+      <div class="callout">
+        <strong>Workflow inputs and outputs</strong>
+        <p>The <code>macrophage_metabolic_state_scrna</code> workflow accepts h5ad or loom format single-cell RNA-seq from nerve biopsy or PBMC. The metabolic scoring uses pre-loaded gene sets and does not require manual marker curation. Output includes: subtype abundance CSV, pseudotime plot, metabolic score heatmap, differential abundance table (CIDP vs. healthy), DE markers per subtype (Wilcoxon), and an HTML integration report.</p>
+      </div>
+
+      <h2>Therapeutic implications</h2>
+      <p>Three therapeutic angles emerge directly from the workflow output:</p>
+      <ol>
+        <li><strong>Itaconate/succinate axis</strong>: Restoring IRG1/ACOD1 expression (itaconate production) suppresses succinate-driven HIF-1α stabilization and promotes M1→M2 transition. Dimethyl itaconate (4-OI) is a cell-permeable itaconate derivative tested in macrophage polarization experiments.</li>
+        <li><strong>PPAR-γ agonism</strong>: Pioglitazone and related TZDs activate PPAR-γ, driving lipid metabolic reprogramming toward the M2-oxidative state. CIDP patients with concurrent insulin resistance may be double-deficient in this pathway.</li>
+        <li><strong>IFN-γ neutralization</strong>: If sustained IFN-γ from infiltrating CD4+ T cells is maintaining HIF-1α and the glycolytic state, anti-IFN-γ or anti-JAK1 intervention may release the arrest.</li>
+      </ol>
+
+      <p>BioMate does not prescribe a therapeutic direction — but the structured output (pseudotime position, DE markers at the arrest point, differential abundance by subtype) provides the experimental vocabulary that translates directly into mechanistic hypotheses testable in patient-derived macrophage cultures or mouse CIDP models.</p>
+
+      <p class="bm-external-refs">References: <a href="https://pubmed.ncbi.nlm.nih.gov/31932105/" rel="noopener" target="_blank">Nugent AA et al. Neuron 2020;105(6):1020-1035</a>; <a href="https://pubmed.ncbi.nlm.nih.gov/31827273/" rel="noopener" target="_blank">Batista-Gonzalez A et al. Front Immunol 2019;10:2993</a>; <a href="https://pubmed.ncbi.nlm.nih.gov/31061130/" rel="noopener" target="_blank">Zhou Y et al. Nat Med 2020;26(1):131-142</a>; <a href="https://pubmed.ncbi.nlm.nih.gov/30692264/" rel="noopener" target="_blank">Ginhoux F &amp; Guilliams M. Cell 2016;159(1):13-26 — macrophage origin and function</a>.</p>
+
+      <div class="callout">
+        <strong>Try it yourself</strong>
+        <p>Send BioMate: <em>"Analyze macrophage metabolic state transitions in CIDP nerve biopsy scRNA-seq data. Identify glycolytic M1-like vs oxidative M2-like macrophages, lipid-associated TREM2+ macrophages, and the repair/proliferative subset. Compare macrophage subset abundance between CIDP patients and healthy controls."</em> — results include pseudotime trajectory, subtype abundance chart, metabolic score heatmap, and differential markers per state.</p>
+      </div>
+
+    </div>
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Posts</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-mg-immune-profiling-chain.html">MG Immune Profiling in Three Steps: scRNA to Complement Pathway</a><div class="meta">July 20, 2026</div></li>
+        <li><a href="blog-complement-stratification.html">Complement Pathway Stratification in Autoimmune Disease</a><div class="meta">July 2026</div></li>
+        <li><a href="blog-peripheral-nerve-pbpk.html">Peripheral Nerve PBPK: Modeling GalNAc-siRNA Distribution in CIDP</a><div class="meta">July 20, 2026</div></li>
+        <li><a href="blog-ra-gwas-target.html">From 932,549 Patients to Five Drug Targets: RA GWAS Prioritization</a><div class="meta">July 12, 2026</div></li>
+        <li><a href="blog-bioconductor.html">The R Ecosystem, Accessible to Everyone: Bioconductor in BioMate</a><div class="meta">April 20, 2026</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">CIDP</span><span class="topic-chip">Macrophage</span><span class="topic-chip">TREM2</span><span class="topic-chip">scRNA-seq</span><span class="topic-chip">Pseudotime</span><span class="topic-chip">Neuroimmunology</span><span class="topic-chip">Nerve Repair</span><span class="topic-chip">Metabolic Reprogramming</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">The macrophage_metabolic_state_scrna workflow and full scRNA-seq analysis pipeline are available on the platform.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Stay updated</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:.9rem;">New posts on workflow validation, QC, and platform updates.</p>
+      <form class="bm-sub" onsubmit="return bmSubscribe(this,event)">
+        <input type="email" name="email" required placeholder="your@email.com" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:.85rem;margin-bottom:.6rem;font-family:var(--font-body);" />
+        <input type="hidden" name="_subject" value="Newsletter signup (blog)" />
+        <button type="submit" class="btn btn-primary">Subscribe</button>
+        <p class="bm-sub-msg" style="font-size:.78rem;margin-top:.5rem;display:none;"></p>
+      </form>
+    </div>
+    <script>
+    function bmSubscribe(form,ev){ev.preventDefault();var m=form.querySelector('.bm-sub-msg');
+      fetch('https://formspree.io/f/xlgvqqvz',{method:'POST',headers:{'Accept':'application/json'},body:new FormData(form)})
+      .then(function(r){if(!r.ok)throw 0;form.innerHTML='<p style="font-size:.85rem;color:var(--accent);font-weight:600;">You\'re subscribed — thanks!</p>';})
+      .catch(function(){m.style.color='#b42828';m.textContent='Something went wrong — email contact@biomate.ai';m.style.display='';});
+      return false;}
+    </script>
+  </aside>
+</div>
+
+<section style="background:var(--bg-card);padding:2rem 0;border-top:1px solid var(--border);">
+  <div style="max-width:760px;margin:0 auto;padding:0 1.5rem;">
+    <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:.75rem;">Explore BioMate capabilities</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+      <a href="services.html#genomics" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Genomics &amp; Multi-Omics →</a>
+      <a href="services.html#clinical-research" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Clinical Research →</a>
+      <a href="tutorials.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Tutorials →</a>
+      <a href="pricing.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Pricing →</a>
+    </div>
+  </div>
+</section>
+
+</div><!-- /bm-blog -->
+<div id="bm-foot"></div>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'newsroom' });</script>
+</body>
+</html>

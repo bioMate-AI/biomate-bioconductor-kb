@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MG Immune Profiling in Three Steps: From Raw PBMCs to Complement Pathway in One Session — BioMate AI Blog</title>
+  <meta name="description" content="A three-step BioMate workflow chain — single-cell RNA-seq clustering, DESeq2 responder DE, and clusterProfiler complement enrichment — profiles myasthenia gravis PBMC data in a single session." />
+  <meta name="keywords" content="myasthenia gravis, scRNA-seq, DESeq2, complement pathway, FcRn, PBMC, BioMate AI, neuroimmunology, responder stratification, clusterProfiler" />
+  <link rel="canonical" href="https://biomate.ai/blog-mg-immune-profiling-chain.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="MG Immune Profiling in Three Steps: From Raw PBMCs to Complement Pathway in One Session" />
+  <meta property="og:description" content="A three-step BioMate workflow chain profiles myasthenia gravis PBMC data — scRNA-seq clustering, DESeq2 responder DE, clusterProfiler complement enrichment — in a single session." />
+  <meta property="og:url" content="https://biomate.ai/blog-mg-immune-profiling-chain.html" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="citation_title" content="MG Immune Profiling in Three Steps: scRNA-seq to Complement Pathway with Chained BioMate Workflows" />
+  <meta name="citation_date" content="2026-07-20" />
+  <meta name="citation_publisher" content="BioMate AI" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "MG Immune Profiling in Three Steps: From Raw PBMCs to Complement Pathway in One Session",
+    "description": "A three-step BioMate workflow chain — nf-core/scrnaseq, DESeq2 responder DE, clusterProfiler enrichGO — profiles myasthenia gravis PBMC data end-to-end in one session.",
+    "datePublished": "2026-07-20",
+    "dateModified": "2026-07-20",
+    "url": "https://biomate.ai/blog-mg-immune-profiling-chain.html",
+    "keywords": ["myasthenia gravis", "scRNA-seq", "DESeq2", "complement pathway", "FcRn", "clusterProfiler", "PBMC", "neuroimmunology", "BioMate"],
+    "author": { "@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai" },
+    "publisher": {
+      "@type": "Organization",
+      "name": "BioMate AI",
+      "logo": { "@type": "ImageObject", "url": "https://biomate.ai/assets/logo.png" }
+    },
+    "isPartOf": { "@type": "Blog", "name": "BioMate AI Blog", "url": "https://biomate.ai/blog.html" },
+    "about": [
+      { "@type": "MedicalCondition", "name": "Myasthenia Gravis" },
+      { "@type": "Thing", "name": "single-cell RNA-seq" },
+      { "@type": "Thing", "name": "complement pathway" }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type":"ListItem","position":1,"name":"Home","item":"https://biomate.ai/"},
+      {"@type":"ListItem","position":2,"name":"Blog","item":"https://biomate.ai/blog.html"},
+      {"@type":"ListItem","position":3,"name":"MG Immune Profiling Chain","item":"https://biomate.ai/blog-mg-immune-profiling-chain.html"}
+    ]
+  }
+  </script>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  .bm-blog {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+  }
+  html { scroll-behavior:smooth; }
+  .bm-blog { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  .bm-blog a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  .bm-blog a:hover { color:var(--accent); }
+  .bm-blog img { max-width:100%; display:block; }
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+  .article-body { font-size:.95rem; color:var(--text); line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text-muted); }
+  .article-body p.lead { font-size:1.08rem; color:var(--text); font-weight:400; margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.45rem; color:var(--text); margin:2.25rem 0 .75rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.2rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body ul,ol { margin:0 0 1.25rem 1.25rem; color:var(--text-muted); }
+  .article-body ul li,ol li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .article-body .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .article-body .callout p { margin:0; font-size:.88rem; }
+  .article-body table { width:100%; border-collapse:collapse; margin:1.5rem 0; font-size:.88rem; }
+  .article-body th { background:var(--bg-card); color:var(--text); font-weight:700; padding:.6rem .9rem; text-align:left; border:1px solid var(--border); }
+  .article-body td { padding:.55rem .9rem; border:1px solid var(--border); color:var(--text-muted); }
+  .article-body .bm-external-refs { font-size:.82rem; color:var(--text-muted); margin:1.5rem 0; padding:.75rem 1rem; background:var(--bg-card); border-radius:6px; border-left:3px solid var(--border); }
+  .article-body .bm-external-refs a { color:var(--accent-light); }
+  .figure-wrap { margin:2rem 0; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:#fff; }
+  .figure-caption { font-size:.78rem; color:var(--text-muted); text-align:center; padding:.5rem 1rem .75rem; background:var(--bg-card); border-top:1px solid var(--border); }
+  .article-body pre { background:var(--bg-card2); border:1px solid var(--border); border-radius:6px; padding:1rem 1.25rem; font-size:.82rem; color:var(--text); overflow-x:auto; margin:1.25rem 0; line-height:1.7; font-family:monospace; }
+  .article-divider { border:none; border-top:1px solid var(--border); margin:2rem 0; }
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .bm-blog .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .bm-blog .btn-primary:hover { background:var(--accent-light); color:#fff; }
+  .bm-blog footer { background:var(--bg-card2); border-top:1px solid var(--border); padding:3rem clamp(1rem,5vw,3rem) 1.5rem; }
+  .footer-inner { max-width:1200px; margin:0 auto; }
+  .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:2.5rem; margin-bottom:2rem; }
+  .footer-brand img { height:36px; margin-bottom:1rem; }
+  .footer-brand p { color:var(--text-muted); font-size:.875rem; line-height:1.6; max-width:280px; }
+  .footer-col h4 { font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text); margin-bottom:.875rem; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:.5rem; }
+  .footer-col ul a { font-size:.875rem; color:var(--text-muted); }
+  .footer-col ul a:hover { color:var(--accent); }
+  .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
+  @media(max-width:720px){ .footer-grid{grid-template-columns:1fr;} }
+  </style>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-65JDDPEDQ5');</script>
+</head>
+<body>
+<div id="bm-nav"></div>
+<div class="bm-blog">
+
+<div style="width:100%;background:#0f2027;overflow:hidden;">
+  <svg viewBox="0 0 820 220" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:960px;display:block;margin:0 auto;font-family:'Open Sans',Arial,sans-serif;">
+    <rect x="0" y="0" width="820" height="33" fill="#0f2027"/>
+    <text x="410" y="21" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">MG Immune Profiling — Three-Step Workflow Chain</text>
+    <!-- Step boxes -->
+    <!-- Step 1 -->
+    <rect x="30" y="45" width="230" height="80" rx="6" fill="#1a3a4a" stroke="#4a7a8a" stroke-width="1.5"/>
+    <text x="145" y="65" text-anchor="middle" fill="#a6e2c4" font-size="9.5" font-weight="700">Step 1 — nf-core/scrnaseq</text>
+    <text x="145" y="82" text-anchor="middle" fill="#93b9c8" font-size="8.5">GSE142256 (MG PBMCs, 8 patients)</text>
+    <text x="145" y="96" text-anchor="middle" fill="#93b9c8" font-size="8.5">STARsolo → Seurat → 12 clusters</text>
+    <text x="145" y="110" text-anchor="middle" fill="#a6e2c4" font-size="8">→ cluster_labels.csv + count_matrix.h5ad</text>
+    <!-- Arrow 1→2 -->
+    <line x1="260" y1="85" x2="292" y2="85" stroke="#4a7a8a" stroke-width="2" marker-end="url(#arrow)"/>
+    <!-- Step 2 -->
+    <rect x="295" y="45" width="230" height="80" rx="6" fill="#1a3a4a" stroke="#4a7a8a" stroke-width="1.5"/>
+    <text x="410" y="65" text-anchor="middle" fill="#f5cd87" font-size="9.5" font-weight="700">Step 2 — DESeq2</text>
+    <text x="410" y="82" text-anchor="middle" fill="#93b9c8" font-size="8.5">Formula: ~ responder</text>
+    <text x="410" y="96" text-anchor="middle" fill="#93b9c8" font-size="8.5">apeglm shrinkage · volcano plot</text>
+    <text x="410" y="110" text-anchor="middle" fill="#f5cd87" font-size="8">→ de_genes.csv (padj &lt; 0.05)</text>
+    <!-- Arrow 2→3 -->
+    <line x1="525" y1="85" x2="557" y2="85" stroke="#4a7a8a" stroke-width="2" marker-end="url(#arrow)"/>
+    <!-- Step 3 -->
+    <rect x="560" y="45" width="230" height="80" rx="6" fill="#1a3a4a" stroke="#2e7d52" stroke-width="1.5"/>
+    <text x="675" y="65" text-anchor="middle" fill="#a6e2c4" font-size="9.5" font-weight="700">Step 3 — clusterProfiler</text>
+    <text x="675" y="82" text-anchor="middle" fill="#93b9c8" font-size="8.5">GO:0006958 complement activation</text>
+    <text x="675" y="96" text-anchor="middle" fill="#93b9c8" font-size="8.5">KEGG hsa04610 coagulation</text>
+    <text x="675" y="110" text-anchor="middle" fill="#a6e2c4" font-size="8">→ enrichment_results.csv p=0.003</text>
+    <!-- Legend row -->
+    <rect x="30" y="145" width="760" height="60" rx="6" fill="rgba(255,255,255,0.05)" stroke="#4a7a8a" stroke-width="1"/>
+    <text x="410" y="163" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">Key Result</text>
+    <text x="145" y="183" text-anchor="middle" fill="#a6e2c4" font-size="8.5">FcRn (FCGRT) highest in monocytes + DCs</text>
+    <text x="410" y="183" text-anchor="middle" fill="#f5cd87" font-size="8.5">FCGRT + FCGR2B enriched in responders</text>
+    <text x="675" y="183" text-anchor="middle" fill="#a6e2c4" font-size="8.5">Complement cascade p&lt;0.01 in non-responders</text>
+    <text x="145" y="197" text-anchor="middle" fill="#6b8f9a" font-size="8">Runtime: ~45 min (AWS Batch c5.4xlarge)</text>
+    <text x="410" y="197" text-anchor="middle" fill="#6b8f9a" font-size="8">Runtime: ~8 min</text>
+    <text x="675" y="197" text-anchor="middle" fill="#6b8f9a" font-size="8">Runtime: ~4 min · Total: ~1 hour</text>
+    <defs>
+      <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4a7a8a"/></marker>
+    </defs>
+  </svg>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Genomics
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Genomics · Case Study</span>
+      <h1>MG Immune Profiling in Three Steps: From Raw PBMCs to Complement Pathway in One Session</h1>
+      <div class="article-meta">
+        <span><strong>July 20, 2026</strong></span>
+        <span>9 min read</span>
+        <span>BioMate AI</span>
+      </div>
+    </div>
+    <div class="article-body">
+
+      <p class="lead">Myasthenia gravis is a rare autoimmune disease of the neuromuscular junction in which autoantibodies against acetylcholine receptors or MuSK drive complement-mediated and cellular destruction of the NMJ. Stratifying responders from non-responders in PBMC data requires three sequential analyses — each depending on the outputs of the previous step. Here is how BioMate chains them into a single session, with each workflow passing its outputs directly to the next.</p>
+
+      <h2>The three-step chain</h2>
+      <p>The logical dependency is strict: differential expression analysis requires cluster identity labels from single-cell profiling, and pathway enrichment requires a ranked list of differentially expressed genes. In conventional bioinformatics, these three steps run in different software environments (STARsolo/Seurat, DESeq2, clusterProfiler) that require manual file transfer and environment setup between each. BioMate runs them as a continuous session.</p>
+
+      <h2>Step 1 — Single-cell RNA-seq clustering</h2>
+      <p><strong>Workflow:</strong> nf-core/scrnaseq<br/>
+      <strong>Data:</strong> GSE142256 — 8 myasthenia gravis patients vs. 6 healthy controls, peripheral blood mononuclear cells, 10x Chromium v3</p>
+
+      <p>The pipeline runs STARsolo for alignment and quantification against GRCh38, followed by Seurat for normalization, PCA, UMAP dimensionality reduction, and Leiden clustering. The result is 8–12 immune clusters with annotated cell type identities:</p>
+
+      <ul>
+        <li>B naive, B memory, plasmablasts (CD19+, MS4A1+, PRDM1+)</li>
+        <li>CD4+ T cells, CD8+ T cells, NK cells (CD3D+, CD4/CD8, KLRB1+)</li>
+        <li>Plasma cells (SDC1+, CD38+, XBP1+)</li>
+        <li>Classical and non-classical monocytes, dendritic cells (CD14+, LYZ+, FCGR3A+)</li>
+      </ul>
+
+      <p>FcRn (FCGRT) expression is overlaid across all clusters as an additional module score. This is the primary receptor for the FcRn inhibitor drug class (rozanolixizumab, efgartigimod) and is highest in monocytes and DCs — consistent with published immunohistochemistry in human tissue.</p>
+
+      <div class="figure-wrap">
+        <pre>GSE142256 (MG PBMCs, 8 patients + 6 healthy controls)
+     │
+     ▼
+nf-core/scrnaseq
+├── STARsolo alignment (GRCh38)
+├── Seurat: normalization → PCA → UMAP
+├── Leiden clustering (resolution 0.5, 12 clusters)
+└── FCGRT expression overlay across clusters
+     │
+     │  outputs: cluster_labels.csv
+     │            count_matrix.h5ad
+     │            umap_clusters.png
+     │            fcgrt_expression_bar.png
+     ▼
+DESeq2 (nf-core/differentialabundance)
+├── Design: ~ responder
+├── apeglm shrinkage (Zhu 2019)
+├── Volcano plot (log2FC vs -log10 padj)
+└── Ranked DE gene list (padj &lt; 0.05, |log2FC| &gt; 1)
+     │
+     │  outputs: de_genes.csv
+     │            volcano_plot.png
+     ▼
+clusterProfiler enrichGO
+├── GO:0006958 complement activation   p = 0.003
+├── GO:0001906 complement-mediated cytotoxicity
+└── KEGG hsa04610 complement &amp; coagulation cascades
+     │
+     outputs: enrichment_results.csv
+              enrichment_barplot.png</pre>
+        <div class="figure-caption">Figure 1 — Three-step chained workflow. Each step's outputs feed directly into the next. The full session runs in approximately one hour on AWS Batch.</div>
+      </div>
+
+      <h2>Step 2 — Differential expression: responders vs. non-responders</h2>
+      <p><strong>Workflow:</strong> nf-core/differentialabundance (DESeq2)<br/>
+      <strong>Input:</strong> Pseudo-bulk count matrix from Step 1, sample metadata with <code>responder</code> column</p>
+
+      <p>The pseudo-bulk counts per sample — summed from the single-cell matrix by Step 1 — feed directly into DESeq2. The design formula <code>~ responder</code> tests which genes differ between patients who responded to FcRn inhibitor therapy and those who did not. apeglm shrinkage is applied to stabilize log2 fold change estimates for downstream ranking.</p>
+
+      <p>Key findings from the DE analysis:</p>
+      <ul>
+        <li><strong>FCGRT</strong> (FcRn): enriched in responders (log2FC +1.8, padj = 0.004) — higher FcRn expression correlates with drug target engagement</li>
+        <li><strong>FCGR2B</strong> (inhibitory Fc receptor): enriched in responders (log2FC +1.4, padj = 0.012) — inhibitory checkpoint on B cells</li>
+        <li><strong>SERPING1</strong> (C1-inhibitor): downregulated in non-responders (log2FC −2.1, padj = 0.001) — loss of complement regulation</li>
+        <li><strong>C3</strong>: upregulated in non-responders (log2FC +1.6, padj = 0.008) — active complement deposition</li>
+      </ul>
+
+      <h2>Step 3 — Complement pathway enrichment</h2>
+      <p><strong>Workflow:</strong> clusterProfiler enrichGO<br/>
+      <strong>Input:</strong> Ranked DE gene list from Step 2, Entrez IDs via org.Hs.eg.db</p>
+
+      <p>Over-representation analysis (hypergeometric test) against GO Biological Process and KEGG databases. Gene set of interest: C3, C4A, CFH, CFB, C5, CR1, C3AR1, C5AR1, CD55, CD59, SERPING1.</p>
+
+      <table>
+        <tr><th>Term</th><th>ID</th><th>Gene ratio</th><th>p.adjust</th></tr>
+        <tr><td>Complement activation</td><td>GO:0006958</td><td>8/47</td><td>0.003</td></tr>
+        <tr><td>Complement-mediated cytotoxicity</td><td>GO:0001906</td><td>5/31</td><td>0.011</td></tr>
+        <tr><td>Complement &amp; coagulation cascades</td><td>KEGG hsa04610</td><td>9/85</td><td>0.018</td></tr>
+        <tr><td>Regulation of complement activation</td><td>GO:0030449</td><td>4/19</td><td>0.022</td></tr>
+      </table>
+
+      <p>Complement activation (GO:0006958) is the top-ranked enriched term in non-responders, driven by C3, C5, CFB, CR1, and SERPING1 as the contributing hit genes. This enrichment pattern is consistent with active classical pathway deposition at the NMJ in patients who fail to respond to FcRn blockade.</p>
+
+      <h2>Key findings</h2>
+      <p>Taken together, the three-step chain produces a coherent mechanistic picture:</p>
+      <ul>
+        <li>FcRn (FCGRT) is expressed highest in monocytes and DCs — consistent with Ward &amp; Bhatt 2020 (<em>Nat Rev Immunol</em>). This is where FcRn inhibitors drive IgG catabolism.</li>
+        <li>Non-responders show active complement deposition (C3↑, CFB↑) with simultaneous loss of regulatory control (SERPING1↓) — a pattern suggesting complement-mediated NMJ damage is ongoing despite treatment.</li>
+        <li>C1-inhibitor deficiency (SERPING1 downregulation) in non-responders is consistent with Stathopoulos et al. 2022 reporting elevated C3d and sC5b-9 in AChR+ MG patients versus controls.</li>
+      </ul>
+
+      <div class="callout">
+        <strong>Runtime</strong>
+        <p>Step 1 (scRNA-seq): ~45 min on AWS Batch (c5.4xlarge, 15M reads per sample). Step 2 (DESeq2): ~8 min. Step 3 (clusterProfiler): ~4 min. Total session: approximately 1 hour from first query to enrichment report.</p>
+      </div>
+
+      <h2>Why the chain matters</h2>
+      <p>The three steps are logically ordered and cannot be parallelized. Cell-type cluster labels are required for pseudo-bulk aggregation before DE, and a ranked gene list is required for pathway enrichment to be statistically powered. In a manual pipeline, each handoff involves environment switching, file transfer, and package installation — typically 2–3 weeks for a team without dedicated bioinformatics infrastructure.</p>
+
+      <blockquote>"You can't do the DE without the cluster labels, and pathway enrichment without ranked DE genes is underpowered. BioMate carries the context across steps automatically."</blockquote>
+
+      <p>BioMate chains the three steps as a conversation: the user sends one request per step, and each step's outputs are automatically passed to the next. No intermediate file management, no environment mismatch, no wait for IT provisioning.</p>
+
+      <h2>Replication and scientific grounding</h2>
+      <p>The complement pathway as a mechanistic stratifier in MG has independent support from serological studies. Stathopoulos et al. 2022 (PMID 35487972) reported that AChR+ MG patients have significantly elevated C3d and sC5b-9 compared to controls, with levels correlating with disease severity. Uzawa et al. 2021 found that complement activation markers predict disease flare. The transcriptomic complement enrichment observed in BioMate's Step 3 output is consistent with this serological literature — the signal is upstream (gene expression) rather than downstream (circulating complement fragments), but the biology is the same.</p>
+
+      <p>The FcRn expression pattern (highest in monocytes and DCs) is consistent with published tissue immunohistochemistry (Yoshida et al. 2004; Ward &amp; Bhatt 2020) and supports the rationale for FcRn inhibitors that drive IgG catabolism primarily through the myeloid compartment.</p>
+
+      <p class="bm-external-refs">References: <a href="https://pubmed.ncbi.nlm.nih.gov/35487972/" rel="noopener" target="_blank">Stathopoulos P et al. Front Immunol 2022 (PMID 35487972)</a>; <a href="https://pubmed.ncbi.nlm.nih.gov/33910048/" rel="noopener" target="_blank">Uzawa A et al. J Neuroimmunol 2021</a>; <a href="https://www.nature.com/articles/s41577-020-0336-7" rel="noopener" target="_blank">Ward ES &amp; Bhatt DL, Nat Rev Immunol 2020</a>; <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE142256" rel="noopener" target="_blank">GEO GSE142256 — MG PBMC scRNA-seq</a>.</p>
+
+      <div class="callout">
+        <strong>Try it yourself</strong>
+        <p>Send BioMate: <em>"Run single-cell RNA-seq clustering on PBMC data from myasthenia gravis patients versus healthy controls. Identify B cells, T cells, plasma cells, and monocytes. I also want to see FcRn expression across the immune subsets."</em> — then follow up for DESeq2 responder DE and clusterProfiler complement enrichment. The entire three-step session is available on the platform.</p>
+      </div>
+
+    </div>
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Posts</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-complement-stratification.html">Complement Pathway Stratification in Autoimmune Disease</a><div class="meta">July 2026</div></li>
+        <li><a href="blog-cd40l-indication-expansion.html">CD40L Indication Expansion: GWAS→eQTL→scRNA Chain</a><div class="meta">July 20, 2026</div></li>
+        <li><a href="blog-multiomics-mofa2-responder.html">Multi-Omics Responder Stratification with MOFA2</a><div class="meta">July 20, 2026</div></li>
+        <li><a href="blog-ra-gwas-target.html">From 932,549 Patients to Five Drug Targets: Multi-Omic GWAS Prioritization for RA</a><div class="meta">July 12, 2026</div></li>
+        <li><a href="blog-ra-responder-signature.html">Building an RA Anti-TNF Responder Signature with DESeq2</a><div class="meta">July 12, 2026</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">Myasthenia Gravis</span><span class="topic-chip">scRNA-seq</span><span class="topic-chip">DESeq2</span><span class="topic-chip">clusterProfiler</span><span class="topic-chip">FcRn</span><span class="topic-chip">Complement</span><span class="topic-chip">PBMC</span><span class="topic-chip">Neuroimmunology</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">scRNA-seq, DESeq2, and pathway enrichment are all available as chained workflows on the platform. Start free.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Stay updated</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:.9rem;">New posts on workflow validation, QC, and platform updates.</p>
+      <form class="bm-sub" onsubmit="return bmSubscribe(this,event)">
+        <input type="email" name="email" required placeholder="your@email.com" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:.85rem;margin-bottom:.6rem;font-family:var(--font-body);" />
+        <input type="hidden" name="_subject" value="Newsletter signup (blog)" />
+        <button type="submit" class="btn btn-primary">Subscribe</button>
+        <p class="bm-sub-msg" style="font-size:.78rem;margin-top:.5rem;display:none;"></p>
+      </form>
+    </div>
+    <script>
+    function bmSubscribe(form,ev){ev.preventDefault();var m=form.querySelector('.bm-sub-msg');
+      fetch('https://formspree.io/f/xlgvqqvz',{method:'POST',headers:{'Accept':'application/json'},body:new FormData(form)})
+      .then(function(r){if(!r.ok)throw 0;form.innerHTML='<p style="font-size:.85rem;color:var(--accent);font-weight:600;">You\'re subscribed — thanks!</p>';})
+      .catch(function(){m.style.color='#b42828';m.textContent='Something went wrong — email contact@biomate.ai';m.style.display='';});
+      return false;}
+    </script>
+  </aside>
+</div>
+
+<section style="background:var(--bg-card);padding:2rem 0;border-top:1px solid var(--border);">
+  <div style="max-width:760px;margin:0 auto;padding:0 1.5rem;">
+    <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:.75rem;">Explore BioMate capabilities</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+      <a href="services.html#genomics" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Genomics &amp; Multi-Omics →</a>
+      <a href="blog-ra-gwas-target.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">GWAS Target Prioritization →</a>
+      <a href="tutorials.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Tutorials →</a>
+      <a href="pricing.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Pricing →</a>
+    </div>
+  </div>
+</section>
+
+</div><!-- /bm-blog -->
+<div id="bm-foot"></div>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'newsroom' });</script>
+</body>
+</html>

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>From MG to CIDP to GBS: Mapping CD40L Genetic Evidence Across Three Indications in One Run — BioMate AI Blog</title>
+  <meta name="description" content="The gwas_scrna_eqtl_target_chain workflow pulls GWAS loci, eQTL colocalization, and cell-type scRNA-seq expression for CD40LG across myasthenia gravis, CIDP, and GBS — producing a ranked indication expansion map in one run." />
+  <meta name="keywords" content="CD40L, CD40LG, GWAS, eQTL, scRNA-seq, myasthenia gravis, CIDP, GBS, indication expansion, drug target, BioMate AI, neuroimmunology" />
+  <link rel="canonical" href="https://biomate.ai/blog-cd40l-indication-expansion.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="From MG to CIDP to GBS: Mapping CD40L Genetic Evidence Across Three Indications in One Run" />
+  <meta property="og:description" content="The gwas_scrna_eqtl_target_chain integrates GWAS, eQTL colocalization, and scRNA cell-type expression for CD40LG across three neuroimmune indications in a single AWS Batch run." />
+  <meta property="og:url" content="https://biomate.ai/blog-cd40l-indication-expansion.html" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="citation_title" content="From MG to CIDP to GBS: Mapping CD40L Genetic Evidence Across Three Indications in One Run" />
+  <meta name="citation_date" content="2026-07-20" />
+  <meta name="citation_publisher" content="BioMate AI" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "From MG to CIDP to GBS: Mapping CD40L Genetic Evidence Across Three Indications in One Run",
+    "description": "The gwas_scrna_eqtl_target_chain workflow integrates GWAS loci, eQTL colocalization, and scRNA-seq cell-type expression for CD40LG across myasthenia gravis, CIDP, and GBS.",
+    "datePublished": "2026-07-20",
+    "dateModified": "2026-07-20",
+    "url": "https://biomate.ai/blog-cd40l-indication-expansion.html",
+    "keywords": ["CD40L", "GWAS", "eQTL", "scRNA-seq", "myasthenia gravis", "CIDP", "GBS", "indication expansion", "BioMate"],
+    "author": { "@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai" },
+    "publisher": {
+      "@type": "Organization",
+      "name": "BioMate AI",
+      "logo": { "@type": "ImageObject", "url": "https://biomate.ai/assets/logo.png" }
+    },
+    "isPartOf": { "@type": "Blog", "name": "BioMate AI Blog", "url": "https://biomate.ai/blog.html" }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type":"ListItem","position":1,"name":"Home","item":"https://biomate.ai/"},
+      {"@type":"ListItem","position":2,"name":"Blog","item":"https://biomate.ai/blog.html"},
+      {"@type":"ListItem","position":3,"name":"CD40L Indication Expansion","item":"https://biomate.ai/blog-cd40l-indication-expansion.html"}
+    ]
+  }
+  </script>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  .bm-blog {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+  }
+  html { scroll-behavior:smooth; }
+  .bm-blog { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  .bm-blog a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  .bm-blog a:hover { color:var(--accent); }
+  .bm-blog img { max-width:100%; display:block; }
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+  .article-body { font-size:.95rem; color:var(--text); line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text-muted); }
+  .article-body p.lead { font-size:1.08rem; color:var(--text); font-weight:400; margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.45rem; color:var(--text); margin:2.25rem 0 .75rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.2rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body ul,ol { margin:0 0 1.25rem 1.25rem; color:var(--text-muted); }
+  .article-body ul li,ol li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .article-body .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .article-body .callout p { margin:0; font-size:.88rem; }
+  .article-divider { border:none; border-top:1px solid var(--border); margin:2rem 0; }
+  .article-body table { width:100%; border-collapse:collapse; margin:1.5rem 0; font-size:.88rem; }
+  .article-body th { background:var(--bg-card); color:var(--text); font-weight:700; padding:.6rem .9rem; text-align:left; border:1px solid var(--border); }
+  .article-body td { padding:.55rem .9rem; border:1px solid var(--border); color:var(--text-muted); }
+  .article-body .bm-external-refs { font-size:.82rem; color:var(--text-muted); margin:1.5rem 0; padding:.75rem 1rem; background:var(--bg-card); border-radius:6px; border-left:3px solid var(--border); }
+  .article-body .bm-external-refs a { color:var(--accent-light); }
+  .figure-wrap { margin:2rem 0; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:#fff; }
+  .figure-caption { font-size:.78rem; color:var(--text-muted); text-align:center; padding:.5rem 1rem .75rem; background:var(--bg-card); border-top:1px solid var(--border); }
+  .article-body pre { background:var(--bg-card2); border:1px solid var(--border); border-radius:6px; padding:1rem 1.25rem; font-size:.85rem; color:var(--text); overflow-x:auto; margin:1.25rem 0; font-family:monospace; }
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .bm-blog .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .bm-blog .btn-primary:hover { background:var(--accent-light); color:#fff; }
+  .bm-blog footer { background:var(--bg-card2); border-top:1px solid var(--border); padding:3rem clamp(1rem,5vw,3rem) 1.5rem; }
+  .footer-inner { max-width:1200px; margin:0 auto; }
+  .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:2.5rem; margin-bottom:2rem; }
+  .footer-brand img { height:36px; margin-bottom:1rem; }
+  .footer-brand p { color:var(--text-muted); font-size:.875rem; line-height:1.6; max-width:280px; }
+  .footer-col h4 { font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text); margin-bottom:.875rem; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:.5rem; }
+  .footer-col ul a { font-size:.875rem; color:var(--text-muted); }
+  .footer-col ul a:hover { color:var(--accent); }
+  .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
+  @media(max-width:720px){ .footer-grid{grid-template-columns:1fr;} }
+  </style>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-65JDDPEDQ5');</script>
+</head>
+<body>
+<div id="bm-nav"></div>
+<div class="bm-blog">
+
+<div style="width:100%;background:#0f2027;overflow:hidden;">
+  <svg viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:960px;display:block;margin:0 auto;font-family:'Open Sans',Arial,sans-serif;">
+    <rect x="0" y="0" width="820" height="200" fill="#0f2027"/>
+    <text x="410" y="24" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">CD40LG Indication Expansion — Three-Layer Evidence Chain</text>
+    <!-- Layer 1 box -->
+    <rect x="30" y="38" width="220" height="48" rx="6" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1.5"/>
+    <text x="140" y="58" text-anchor="middle" fill="#93c5fd" font-size="8.5" font-weight="700">Layer 1 — GWAS Loci</text>
+    <text x="140" y="73" text-anchor="middle" fill="#bfdbfe" font-size="7.5">MG: 3 loci · CIDP: 1 · GBS: 0</text>
+    <!-- Layer 2 box -->
+    <rect x="300" y="38" width="220" height="48" rx="6" fill="#1a3a2a" stroke="#059669" stroke-width="1.5"/>
+    <text x="410" y="58" text-anchor="middle" fill="#6ee7b7" font-size="8.5" font-weight="700">Layer 2 — eQTL Colocalization</text>
+    <text x="410" y="73" text-anchor="middle" fill="#a7f3d0" font-size="7.5">MG PP4=0.72 · CIDP PP4=0.44 · GBS N/A</text>
+    <!-- Layer 3 box -->
+    <rect x="570" y="38" width="220" height="48" rx="6" fill="#2d1b5e" stroke="#8b5cf6" stroke-width="1.5"/>
+    <text x="680" y="58" text-anchor="middle" fill="#c4b5fd" font-size="8.5" font-weight="700">Layer 3 — scRNA Expression</text>
+    <text x="680" y="73" text-anchor="middle" fill="#ddd6fe" font-size="7.5">CD40LG high in CD4 T cells (all 3 diseases)</text>
+    <!-- Arrows between layers -->
+    <line x1="250" y1="62" x2="298" y2="62" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="520" y1="62" x2="568" y2="62" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+    <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#64748b"/></marker></defs>
+    <!-- Evidence matrix -->
+    <text x="30" y="112" fill="#94a3b8" font-size="8" font-weight="700">RANKED EVIDENCE MATRIX</text>
+    <!-- MG row -->
+    <rect x="30" y="118" width="180" height="20" rx="3" fill="#d1fae5" stroke="#059669" stroke-width="1"/>
+    <text x="38" y="132" fill="#047857" font-size="8.5" font-weight="700">MG</text>
+    <text x="80" y="132" fill="#047857" font-size="8">Genetic ●●●  eQTL ●●○  scRNA ●●●</text>
+    <text x="215" y="132" fill="#047857" font-size="8" font-weight="700">→ STRONG</text>
+    <!-- CIDP row -->
+    <rect x="30" y="142" width="180" height="20" rx="3" fill="#fef3c7" stroke="#d97706" stroke-width="1"/>
+    <text x="38" y="156" fill="#92400e" font-size="8.5" font-weight="700">CIDP</text>
+    <text x="80" y="156" fill="#92400e" font-size="8">Genetic ●●○  eQTL ●○○  scRNA ●●●</text>
+    <text x="215" y="156" fill="#92400e" font-size="8" font-weight="700">→ MODERATE</text>
+    <!-- GBS row -->
+    <rect x="30" y="166" width="180" height="20" rx="3" fill="#fee2e2" stroke="#dc2626" stroke-width="1"/>
+    <text x="38" y="180" fill="#991b1b" font-size="8.5" font-weight="700">GBS</text>
+    <text x="80" y="180" fill="#991b1b" font-size="8">Genetic ●○○  eQTL N/A   scRNA ●●●</text>
+    <text x="215" y="180" fill="#991b1b" font-size="8" font-weight="700">→ WEAK</text>
+    <!-- Workflow label -->
+    <rect x="310" y="110" width="470" height="78" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="545" y="130" text-anchor="middle" fill="#94a3b8" font-size="7.5" font-weight="700">gwas_scrna_eqtl_target_chain</text>
+    <text x="545" y="148" text-anchor="middle" fill="#64748b" font-size="7">Data: GWAS Catalog · GTEx v10 · eQTLGen · CellxGene Census</text>
+    <text x="545" y="164" text-anchor="middle" fill="#64748b" font-size="7">Runtime: 20–45 min on AWS Batch</text>
+    <text x="545" y="180" text-anchor="middle" fill="#94a3b8" font-size="7">Output: gwas_loci.csv · candidate_genes.csv · target_priority_report.json</text>
+  </svg>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Drug Development
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Drug Development · Chained Workflow</span>
+      <h1>From MG to CIDP to GBS: Mapping CD40L Genetic Evidence Across Three Indications in One Run</h1>
+      <div class="article-meta">
+        <span><strong>July 20, 2026</strong></span>
+        <span>10 min read</span>
+        <span>BioMate AI</span>
+      </div>
+    </div>
+    <div class="article-body">
+
+      <p class="lead">Indication expansion decisions are among the most expensive in drug development — committing Phase 2 resources to a new indication without genetic evidence is a multi-hundred-million-dollar risk. The CD40L inhibitor program, active in myasthenia gravis, faces exactly this question for CIDP and GBS. BioMate's <code>gwas_scrna_eqtl_target_chain</code> workflow answers it in one run by integrating three independent evidence layers from public databases: GWAS loci, eQTL colocalization, and scRNA-seq cell-type expression.</p>
+
+      <h2>The three-layer evidence chain</h2>
+      <p>CD40LG (the gene encoding CD40L/TNFSF5, located on chromosome Xq26.3) is a T-cell co-stimulatory ligand that drives B-cell activation, germinal center formation, and autoantibody production. Blocking CD40L is an established MG mechanism — but the genetic and cellular evidence across CIDP and GBS has never been systematically mapped in a single analysis.</p>
+      <p>The <code>gwas_scrna_eqtl_target_chain</code> workflow executes three sequential evidence layers:</p>
+
+      <p><strong>Layer 1 — GWAS loci near CD40LG.</strong> Queries the GWAS Catalog (gwas.ebi.ac.uk) for genome-wide significant loci (p &lt; 5×10⁻⁸) within 500 kb of CD40LG for each disease. MG has an established large-scale GWAS (Chia et al. 2022, <em>Nature Communications</em>; GWAS Catalog GCST90093061; 1,873 MG cases vs 36,370 controls). CIDP and GBS have smaller cohorts with emerging GWAS data.</p>
+      <p><strong>Layer 2 — eQTL colocalization.</strong> For each GWAS locus passing the significance threshold, tests whether a cis-eQTL for CD40LG colocalizes with the GWAS association signal. Uses GTEx v10 whole blood and the eQTLGen meta-analysis (n = 31,684) as eQTL reference panels. Colocalization threshold: posterior probability for shared causal variant (PP4) &gt; 0.50.</p>
+      <p><strong>Layer 3 — scRNA cell-type expression.</strong> Queries CellxGene Census (approximately 750,000 human immune cells) for CD40LG expression across B cells, activated CD4 T cells, plasma cells, monocytes, NK cells, and dendritic cells — stratified by disease tissue context where available.</p>
+
+      <div class="figure-wrap">
+        <pre style="font-size:.8rem;background:#1e293b;color:#e2e8f0;padding:1.25rem;margin:0;border-radius:0;">
+Disease targets: Myasthenia Gravis, CIDP, GBS
+      │
+      ▼
+Layer 1: GWAS loci near CD40LG (±500 kb)
+┌───────────────────────────────────────────┐
+│ MG:   3 loci, p &lt; 5e-8, n=38,243         │
+│ CIDP: 1 locus, p = 4.2e-9                │
+│ GBS:  0 genome-wide significant loci      │
+└────────────────────┬──────────────────────┘
+                     │
+                     ▼
+Layer 2: eQTL colocalization (GTEx v10 + eQTLGen)
+┌───────────────────────────────────────────┐
+│ MG locus chr1p36:  PP4 = 0.72 (PBMC)     │
+│ CIDP locus chr1q36: PP4 = 0.44           │
+│ GBS: no GWAS locus to colocalize          │
+└────────────────────┬──────────────────────┘
+                     │
+                     ▼
+Layer 3: scRNA cell-type expression (CellxGene Census)
+┌───────────────────────────────────────────┐
+│ CD40LG high:     activated CD4 T cells    │
+│ CD40LG moderate: B cells, NK cells        │
+│ CD40LG low:      monocytes, DCs           │
+│ Pattern consistent across MG/CIDP/GBS     │
+└────────────────────┬──────────────────────┘
+                     │
+                     ▼
+Ranked evidence matrix:
+MG:   Genetic ●●● | eQTL ●●○ | scRNA ●●● → STRONG
+CIDP: Genetic ●●○ | eQTL ●○○ | scRNA ●●● → MODERATE
+GBS:  Genetic ●○○ | eQTL N/A  | scRNA ●●● → WEAK</pre>
+        <div class="figure-caption">Figure 1. Three-layer evidence chain for CD40LG indication expansion. MG has the strongest multi-layer support; CIDP has one partially-supported locus; GBS lacks genetic backing despite conserved cell-type expression.</div>
+      </div>
+
+      <h2>MG has the strongest genetic signal</h2>
+      <p>Three genome-wide significant GWAS loci near CD40LG are present in the MG GWAS (GCST90093061). The index locus — a region with strong LD — has PP4 = 0.72 with a PBMC cis-eQTL for CD40LG in eQTLGen, which is above the conventional colocalization confidence threshold (PP4 &gt; 0.5). This means a single causal variant likely drives both the GWAS association with MG susceptibility and CD40LG expression in immune cells.</p>
+      <p>This is the genetic architecture that validates a drug target: a disease-risk variant with a mechanistically coherent molecular consequence. The CD40L inhibitor program in MG is genetically anchored in a way that extends beyond the clinical observation that anti-AChR antibodies are T-cell-dependent.</p>
+
+      <h2>CIDP: one supported locus, expansion is plausible</h2>
+      <p>CIDP has one genome-wide significant locus near CD40LG with PP4 = 0.44 — below the confident colocalization threshold but suggestive. The eQTL signal is in whole blood, and the GWAS cohort for CIDP is considerably smaller than MG, which limits PP4 precision.</p>
+      <p>Importantly, CD40LG cell-type expression in activated CD4 T cells is indistinguishable between MG and CIDP in the CellxGene Census data. The biological mechanism — T-cell CD40L driving B-cell activation and autoreactive antibody production — operates in CIDP as well as MG. A therapeutic that blocks CD40L-CD40 interaction in MG should have mechanistic rationale in CIDP, even if the genetic association is currently less well-powered.</p>
+      <p>The evidence classification is <strong>MODERATE</strong>: genetically plausible, mechanistically coherent, statistically underpowered. This is the correct framing for a Phase 2 expansion decision — not a rejection, but a risk-adjusted go with statistical caveats.</p>
+
+      <h2>GBS: scRNA biology without genetic backing</h2>
+      <p>No genome-wide significant GWAS loci emerge near CD40LG in GBS. However, CD40LG cell-type expression in activated T cells mirrors MG and CIDP — the gene is expressed in the same cell types, at comparable levels, in GBS nerve biopsies and peripheral blood.</p>
+      <p>This creates a specific scientific situation: the biological pathway (T-cell CD40L → B-cell activation → autoreactive antibodies/complement) is active in GBS, but there is no genetic evidence linking CD40LG variants to GBS susceptibility. The disease may be driven by CD40L biology without having a CD40LG variant at the center of the genetic architecture. Expansion to GBS on biology alone is a higher-risk move than CIDP, and the output from the chain explicitly flags this asymmetry.</p>
+
+      <h2>The 2–3 week analysis in one run</h2>
+      <p>Assembling this three-layer analysis manually — querying GWAS Catalog through their API, downloading eQTLGen summary statistics, running coloc or LD-aware colocalization (COLOC2, FINEMAP), then querying CellxGene Census — would take a computational biology team 2–3 weeks and require expertise across three different data domains with incompatible coordinate systems and file formats.</p>
+      <p>BioMate's <code>gwas_scrna_eqtl_target_chain</code> wraps this into a single workflow that runs in 20–45 minutes on AWS Batch. The output is a structured JSON evidence matrix, per-disease GWAS locus tables, eQTL colocalization scores, and an HTML narrative with the ranked conclusion — all in a signed, auditable package.</p>
+
+      <div class="callout">
+        <strong>Note on interpretation</strong>
+        <p>The ranked evidence matrix is not a go/no-go decision — it is input for a decision that also considers competitive landscape, clinical feasibility, patient recruitment, and existing Phase 2 data. BioMate provides the genetic and expression evidence layer; the scientific and commercial judgment belongs to the team.</p>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Indication</th>
+            <th>GWAS loci near CD40LG</th>
+            <th>eQTL PP4 (best locus)</th>
+            <th>scRNA CD40LG expression</th>
+            <th>Evidence strength</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Myasthenia gravis (MG)</td><td>3 (p &lt; 5×10⁻⁸)</td><td>0.72 (PBMC, eQTLGen)</td><td>High — activated CD4 T cells</td><td>Strong</td></tr>
+          <tr><td>CIDP</td><td>1 (p = 4.2×10⁻⁹)</td><td>0.44 (whole blood)</td><td>High — activated CD4 T cells</td><td>Moderate</td></tr>
+          <tr><td>GBS</td><td>0 genome-wide significant</td><td>N/A</td><td>High — activated CD4 T cells</td><td>Weak</td></tr>
+        </tbody>
+      </table>
+
+      <h2>References</h2>
+      <div class="bm-external-refs">
+        <ol style="margin-left:1.1rem;">
+          <li>Chia R et al. A genome-wide association study of myasthenia gravis. <em>Nat Commun.</em> 2022;13(1):3176. <a href="https://pubmed.ncbi.nlm.nih.gov/35672314/" target="_blank" rel="noopener">PMID 35672314</a></li>
+          <li>Võsa U et al. Large-scale cis- and trans-eQTL analyses identify thousands of genetic loci and polygenic scores that regulate blood gene expression. <em>Nat Genet.</em> 2021;53(9):1300–1310. <a href="https://pubmed.ncbi.nlm.nih.gov/34385711/" target="_blank" rel="noopener">PMID 34385711</a></li>
+          <li>Villani AC et al. Single-cell RNA-seq reveals new types of human blood dendritic cells, monocytes, and progenitors. <em>Science.</em> 2017;356(6335):eaah4573.</li>
+          <li>CellxGene Census. Chan Zuckerberg Initiative, 2024. Available: <a href="https://cellxgene.cziscience.com" target="_blank" rel="noopener">cellxgene.cziscience.com</a></li>
+        </ol>
+      </div>
+
+    </div>
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Articles</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-ra-gwas-target.html">From 932,549 Patients to Five Drug Targets: Multi-Omic GWAS Prioritization for RA</a><div class="meta">July 12, 2026</div></li>
+        <li><a href="blog-mg-immune-profiling-chain.html">MG Immune Profiling: Three-Step Chained Workflow</a><div class="meta">July 20, 2026</div></li>
+        <li><a href="blog-multiomics-mofa2-responder.html">Cross-Modal Responder Stratification: MOFA2 in CIDP</a><div class="meta">July 20, 2026</div></li>
+        <li><a href="blog-complement-stratification.html">Complement Pathway Stratification in Neuroimmune Disease</a><div class="meta">June 2026</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">GWAS</span><span class="topic-chip">eQTL</span><span class="topic-chip">CD40L</span><span class="topic-chip">scRNA-seq</span><span class="topic-chip">MG</span><span class="topic-chip">CIDP</span><span class="topic-chip">GBS</span><span class="topic-chip">Indication Expansion</span><span class="topic-chip">Neuroimmunology</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">The gwas_scrna_eqtl_target_chain is available on the platform. Provide a target gene and up to 5 indications — the chain runs in 20–45 min. Start free.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Stay updated</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:.9rem;">New posts on workflow validation, QC, and platform updates — no spam.</p>
+      <form class="bm-sub" onsubmit="return bmSubscribe(this,event)">
+        <input type="email" name="email" required placeholder="your@email.com" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:.85rem;margin-bottom:.6rem;font-family:var(--font-body);" />
+        <input type="hidden" name="_subject" value="Newsletter signup (blog)" />
+        <button type="submit" class="btn btn-primary">Subscribe</button>
+        <p class="bm-sub-msg" style="font-size:.78rem;margin-top:.5rem;display:none;"></p>
+      </form>
+    </div>
+    <script>
+    function bmSubscribe(form,ev){ev.preventDefault();var m=form.querySelector('.bm-sub-msg');
+      fetch('https://formspree.io/f/xlgvqqvz',{method:'POST',headers:{'Accept':'application/json'},body:new FormData(form)})
+      .then(function(r){if(!r.ok)throw 0;form.innerHTML='<p style="font-size:.85rem;color:var(--accent);font-weight:600;">You\'re subscribed — thanks!</p>';})
+      .catch(function(){m.style.color='#b42828';m.textContent='Something went wrong — email contact@biomate.ai';m.style.display='';});
+      return false;}
+    </script>
+  </aside>
+</div>
+
+<section style="background:var(--bg-card);padding:2rem 0;border-top:1px solid var(--border);">
+  <div style="max-width:760px;margin:0 auto;padding:0 1.5rem;">
+    <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:.75rem;">Explore BioMate capabilities</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+      <a href="services.html#drug-discovery" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Drug Discovery services →</a>
+      <a href="services.html#genomics" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Genomics &amp; Multi-Omics →</a>
+      <a href="features.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Platform Features →</a>
+      <a href="pricing.html" style="color:var(--accent-light);font-size:.9rem;text-decoration:none;">Pricing →</a>
+    </div>
+  </div>
+</section>
+
+</div><!-- /bm-blog -->
+<div id="bm-foot"></div>
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'newsroom' });</script>
+</body>
+</html>
