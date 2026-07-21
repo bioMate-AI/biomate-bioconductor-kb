@@ -27,6 +27,9 @@
 
 set -euo pipefail
 
+# Ensure session-manager-plugin is in PATH (installed to ~/bin on this machine)
+export PATH="/Users/kky/bin:$PATH"
+
 INSTANCE_ID="i-06696b0d91f4346e0"
 AZ="us-west-2a"
 EC2_USER="ubuntu"

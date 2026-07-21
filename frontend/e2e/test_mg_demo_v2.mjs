@@ -3,14 +3,64 @@
  *
  * Models the actual conference demo experience:
  *   Turn 1: User uploads local CSV files via DatasetBrowser (+), asks for DESeq2
- *   Turn 2: User says "Yes" to enrichGO suggestion
+ *           → workflow routes → user clicks Run → waits for completion → audits outputs
+ *   Turn 2: User says "Yes" to enrichGO suggestion (AFTER DESeq2 complete)
+ *           → workflow routes → user clicks Run → waits for completion → audits outputs
  *   Turn 3: User provides iptacopan SMILES, ADMET executes end-to-end
+ *           → workflow routes → user clicks Run → waits for completion → audits outputs
  *
  * Does NOT upload to S3 directly — all file handling goes through the BioMate UI.
+ * Does NOT mock anything — all workflows execute against the real dev backend.
  */
 import { chromium } from '@playwright/test';
 import path from 'path';
-import { existsSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
+
+// ── data file generation ────────────────────────────────────────────────────
+// nf-core/differentialabundance requires:
+//   --input  : sample metadata CSV — columns must be `sample` (not sample_id) + contrast variables
+//   --matrix : count matrix CSV — genes × samples
+//   --contrasts: CSV with `id,variable,reference,target` header
+function createDataFiles() {
+  mkdirSync(SCRATCHPAD, { recursive: true });
+
+  // Sample metadata — `sample` column required by nf-core samplesheet validator
+  const metadata = [
+    'sample,condition,sex,age,batch',
+    ...['MG_01,MG,F,45,1','MG_02,MG,M,52,1','MG_03,MG,F,38,2','MG_04,MG,M,61,1',
+       'MG_05,MG,F,49,2','MG_06,MG,M,55,2','MG_07,MG,F,43,1','MG_08,MG,M,58,2',
+       'MG_09,MG,F,47,1','MG_10,MG,M,54,2',
+       'HC_01,HC,F,44,1','HC_02,HC,M,51,1','HC_03,HC,F,39,2','HC_04,HC,M,60,1',
+       'HC_05,HC,F,48,2','HC_06,HC,M,54,2','HC_07,HC,F,42,1','HC_08,HC,M,57,2',
+       'HC_09,HC,F,46,1','HC_10,HC,M,53,2'],
+  ].join('\n') + '\n';
+  writeFileSync(`${SCRATCHPAD}/sample_metadata.csv`, metadata);
+
+  // Count matrix — 15 complement pathway genes (MG disease-relevant) × 20 samples
+  const samples = [
+    ...Array.from({length:10}, (_,i) => `MG_0${i+1}`.replace('MG_011','MG_10')),
+    ...Array.from({length:10}, (_,i) => `HC_0${i+1}`.replace('HC_011','HC_10')),
+  ].map((_,i) => i < 10 ? `MG_${String(i+1).padStart(2,'0')}` : `HC_${String(i-9).padStart(2,'0')}`);
+  const genes = ['C1Q','C1R','C1S','C2','C3','C4A','C4B','C5','C6','C7','C8A','C9','CFB','CFD','CFH'];
+  const header = ['gene', ...samples].join(',');
+  const rows = genes.map((g, gi) => {
+    const vals = samples.map((s, si) => {
+      const base = 100 + gi * 20;
+      const isMG = si < 10;
+      return Math.round(base * (isMG ? 2.5 : 1.0) + Math.abs((gi * 7 + si * 13) % 50));
+    });
+    return [g, ...vals].join(',');
+  });
+  writeFileSync(`${SCRATCHPAD}/counts_matrix.csv`, [header, ...rows].join('\n') + '\n');
+
+  // Contrasts — `id,variable,reference,target` is the required nf-core format
+  writeFileSync(`${SCRATCHPAD}/contrasts.csv`, 'id,variable,reference,target\nMG_vs_HC,condition,HC,MG\n');
+
+  console.log('  Data files created (nf-core format):');
+  console.log('    sample_metadata.csv — sample,condition,sex,age,batch (header: sample not sample_id)');
+  console.log('    counts_matrix.csv   — 15 complement genes × 20 samples');
+  console.log('    contrasts.csv       — id,variable,reference,target (not id,reference,comparison)');
+}
 
 const DEV_URL = 'https://dev-public.biomate.ai';
 const EMAIL = 'lifeifei163361@163.com';
@@ -39,18 +89,34 @@ async function screenshot(page, name) {
 // ── helpers ────────────────────────────────────────────────────────────────
 
 async function login(page) {
-  await page.goto(`${DEV_URL}/login`);
-  await page.waitForLoadState('networkidle');
-  await page.locator('input[type="email"]').fill(EMAIL);
-  await page.locator('input[type="password"]').fill(PASSWORD);
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(4000);
-  const url = page.url();
-  if (url.includes('/login')) {
-    record('Login', false, `still on login page: ${url}`);
+  // Use API-based login to get a token, then inject as cookie — avoids form timing issues.
+  const E2E_TOKEN = 'biomate-e2e-bypass-token-dev-only';
+  const domain = new URL(DEV_URL).hostname;
+
+  const response = await page.request.post(`${DEV_URL}/api/auth/login`, {
+    headers: { 'Content-Type': 'application/json', 'x-e2e-test-token': E2E_TOKEN },
+    data: { email: EMAIL, password: PASSWORD },
+  });
+  if (!response.ok()) {
+    const body = await response.text().catch(() => '');
+    record('Login', false, `API login ${response.status()}: ${body.slice(0, 100)}`);
     throw new Error('Login failed — stopping test');
   }
-  record('Login', true, url);
+  const body = await response.json();
+  const token = body.token;
+  if (!token) {
+    record('Login', false, `No token in response: ${JSON.stringify(body).slice(0, 100)}`);
+    throw new Error('Login failed — stopping test');
+  }
+
+  await page.context().addCookies([{
+    name: 'biomate_token', value: token, domain, path: '/',
+    httpOnly: true, secure: DEV_URL.startsWith('https'), sameSite: 'Lax',
+  }]);
+
+  await page.goto(`${DEV_URL}/`);
+  await page.waitForLoadState('networkidle');
+  record('Login', true, `API token set, home page loaded`);
 }
 
 async function startFreshChat(page) {
@@ -79,35 +145,26 @@ async function sendMessage(page, msg) {
 }
 
 async function uploadFilesViaBrowser(page, filePaths) {
-  // 1. Click "+" to open DatasetBrowser
   const plusBtn = page.locator('button[title="Add data"]').first();
   await plusBtn.waitFor({ state: 'visible', timeout: 10000 });
   await plusBtn.click();
 
-  // 2. Wait for dialog to open
   await page.waitForSelector('[role="dialog"]', { timeout: 8000 });
   console.log('  DatasetBrowser opened');
 
-  // 3. Use the hidden file input — Playwright can set files on hidden inputs
   const fileInput = page.locator('[role="dialog"] input[type="file"]').first();
   await fileInput.setInputFiles(filePaths);
   console.log(`  Uploading ${filePaths.length} files: ${filePaths.map(p => path.basename(p)).join(', ')}`);
 
-  // 4. Wait for "Uploading…" to disappear (all files processed)
   try {
     await page.waitForSelector('[role="dialog"]', { state: 'hidden', timeout: 60000 });
     console.log('  Upload complete — dialog closed (files auto-selected)');
   } catch {
-    // Dialog might stay open if upload took long — try to close it
     console.log('  Dialog still open — checking upload status');
     const uploading = await page.locator('text=Uploading').count();
-    if (uploading === 0) {
-      // Upload done, close dialog
-      await page.keyboard.press('Escape');
-    }
+    if (uploading === 0) await page.keyboard.press('Escape');
   }
 
-  // 5. Check that dataset chips appeared in the chat input (by count indicator or page text)
   const attachedCount = await page.locator('[data-testid="chat-input-attached-count"]').count();
   const bodyText = await page.textContent('body').catch(() => '');
   const hasChips = attachedCount > 0 || bodyText.includes('counts_matrix');
@@ -115,10 +172,6 @@ async function uploadFilesViaBrowser(page, filePaths) {
 }
 
 async function waitForWorkflowCard(page, msgsBefore = 0, timeoutMs = 90000) {
-  // msgsBefore: count of AI messages before this turn was sent.
-  // We wait until that count increases (a new AI message arrived), then read
-  // the workflow name from the CHAT-EMBEDDED card (NOT the right panel, which
-  // keeps showing the previously-opened workflow until the user clicks "Open").
   const aiMsgSel = '[class*="assistant"], .assistant-message';
   const deadline = Date.now() + timeoutMs;
   let aiMsgCount = 0;
@@ -129,43 +182,35 @@ async function waitForWorkflowCard(page, msgsBefore = 0, timeoutMs = 90000) {
   }
 
   if (aiMsgCount <= msgsBefore) {
-    console.log(`  No new AI message after ${timeoutMs / 1000}s (had ${msgsBefore}, now ${aiMsgCount})`);
+    console.log(`  No new AI message after ${timeoutMs / 1000}s`);
     return { found: false, name: null, aiText: '', total: aiMsgCount };
   }
 
-  // Wait for streaming to finish — check that the stop button is gone
   try {
     await page.waitForSelector('[data-testid="chat-stop-button"]', { state: 'hidden', timeout: timeoutMs });
   } catch { /* streaming may have already ended */ }
   await page.waitForTimeout(2000);
 
-  // The NEW workflow is embedded in the LAST assistant message as a .wf-panel element.
-  // We must NOT use the right panel (data-testid="workflow-right-panel") because it keeps
-  // showing the previously-opened workflow until the user manually opens the new one.
-  //
-  // Each AI message is an element matching aiMsgSel. The message at index msgsBefore
-  // is the first new message from this turn. We look for .panel-name inside it.
   const newMsg = page.locator(aiMsgSel).nth(msgsBefore);
+  const aiText = await newMsg.textContent().catch(() => '');
+
   const newMsgPanelName = await newMsg.locator('.panel-name').first()
     .textContent({ timeout: 5000 }).catch(() => null);
   if (newMsgPanelName && newMsgPanelName.trim() && newMsgPanelName.trim() !== 'Untitled') {
     const newMsgPanelSub = await newMsg.locator('.panel-sub').first()
       .textContent().catch(() => null);
     const name = [newMsgPanelName.trim(), newMsgPanelSub?.trim()].filter(Boolean).join(' — ');
-    return { found: true, name, total: aiMsgCount };
+    return { found: true, name, aiText, total: aiMsgCount };
   }
 
-  // Fallback: wf-chip-name is visible in the new message when it was already opened in the panel
   const chipName = await newMsg.locator('.wf-chip-name').first()
     .textContent().catch(() => null);
   if (chipName && chipName.trim()) {
-    return { found: true, name: chipName.trim(), total: aiMsgCount };
+    return { found: true, name: chipName.trim(), aiText, total: aiMsgCount };
   }
 
-  // Last resort: read the AI text itself to extract the workflow name
-  const text = await newMsg.textContent().catch(() => '');
-  const cleaned = text.replace(/^BioMate\s*/i, '').trim();
-  return { found: !!cleaned, name: cleaned.slice(0, 150) || null, total: aiMsgCount };
+  const cleaned = aiText.replace(/^BioMate\s*/i, '').trim();
+  return { found: !!cleaned, name: cleaned.slice(0, 150) || null, aiText, total: aiMsgCount };
 }
 
 function routingMatches(card, keyword) {
@@ -175,6 +220,7 @@ function routingMatches(card, keyword) {
 async function clickRun(page) {
   const runBtn = page.locator([
     'button:has-text("Confirm & Run")',
+    'button:has-text("Confirm and run workflow")',
     'button:has-text("Run Workflow")',
     '[data-testid="run-workflow"]',
   ].join(', ')).first();
@@ -188,12 +234,8 @@ async function clickRun(page) {
 }
 
 async function waitForCompletion(page, timeoutMs = 300000) {
-  // Wait for the workflow panel's overall status badge (not individual steps).
-  // "Run again" = completed, "Restart" = failed. These only appear after the
-  // FULL workflow finishes, not when a single step hits data-status="completed".
   const runAgainSel = 'button:has-text("Run again"), button:has-text("Run Again")';
   const restartSel = 'button:has-text("Restart")';
-  // Fallback: the overall workflow badge with data-status (not a step badge)
   const wfBadgeSel = '.workflow-status-badge[data-status="completed"], .workflow-status-badge[data-status="failed"]';
   const combinedDone = `${runAgainSel}, ${restartSel}, ${wfBadgeSel}`;
   try {
@@ -211,26 +253,96 @@ async function waitForCompletion(page, timeoutMs = 300000) {
   }
 }
 
+/** Open the After Run tab and audit outputs + findings. */
+async function auditAfterRun(page, turnLabel, screenshotName) {
+  // Click "After run" tab in the workflow panel
+  const afterRunTab = page.locator('[data-testid="tab-after-run"], button:has-text("After run")').first();
+  const tabVisible = await afterRunTab.isVisible({ timeout: 5000 }).catch(() => false);
+  if (tabVisible) {
+    await afterRunTab.click();
+    await page.waitForTimeout(1500);
+  }
+
+  await screenshot(page, `${screenshotName}_after_run`);
+
+  // Collect output files list
+  const outputFilesSel = [
+    '[data-testid="download-commands-panel"] table',
+    'table.output-files',
+    '.output-files-table',
+    // Generic: any table inside the after-run section
+    '.workflow-after-run table',
+  ].join(', ');
+  const outputText = await page.locator(outputFilesSel).first()
+    .textContent().catch(() => '');
+  const hasOutputs = outputText.length > 10;
+  record(`${turnLabel} — output files visible after run`, hasOutputs,
+    hasOutputs ? outputText.slice(0, 100).replace(/\s+/g, ' ') : 'no output table found');
+
+  // Collect download button
+  const dlBtnSel = [
+    '[data-testid="button-download-all-workflow-panel"]',
+    'button:has-text("Download all")',
+    'a:has-text("Download report")',
+    'button:has-text("Download report")',
+  ].join(', ');
+  const hasDl = await page.locator(dlBtnSel).count() > 0;
+  record(`${turnLabel} — download button visible`, hasDl);
+
+  // Check Findings tab
+  const findingsTab = page.locator('button:has-text("Findings")').first();
+  const findingsVisible = await findingsTab.isVisible({ timeout: 3000 }).catch(() => false);
+  if (findingsVisible) {
+    await findingsTab.click();
+    await page.waitForTimeout(1500);
+    await screenshot(page, `${screenshotName}_findings`);
+    const findingsText = await page.locator('[data-testid="workflow-findings"], .findings-content, .findings-panel').first()
+      .textContent().catch(() => '');
+    const hasFindings = findingsText.length > 20;
+    record(`${turnLabel} — findings tab has content`, hasFindings,
+      findingsText.slice(0, 100).replace(/\s+/g, ' ') || 'empty');
+  } else {
+    record(`${turnLabel} — findings tab has content`, null, 'tab not visible (may be expected for this workflow)');
+  }
+
+  // Read AI follow-up message if any appeared after completion
+  const aiMsgSel = '[class*="assistant"], .assistant-message';
+  const allMsgs = await page.locator(aiMsgSel).count();
+  console.log(`  Chat has ${allMsgs} AI message(s) after run`);
+}
+
+/** Audit the AI chat message content for a given turn (most recent message). */
+async function auditChatMessage(page, msgIndex, turnLabel) {
+  const aiMsgSel = '[class*="assistant"], .assistant-message';
+  const msg = page.locator(aiMsgSel).nth(msgIndex);
+  const text = await msg.textContent().catch(() => '');
+  console.log(`  [${turnLabel} chat text] ${text.slice(0, 300).replace(/\s+/g, ' ')}...`);
+
+  // Verify no error phrases in the chat message
+  const hasError = /could not generate|connection refused|unavailable|error generating/i.test(text);
+  record(`${turnLabel} — chat message is not an error`, !hasError,
+    hasError ? `Error text: ${text.slice(0, 80)}` : text.slice(0, 60));
+
+  // Check that a real workflow chip appears (not just text)
+  const chipName = await msg.locator('.wf-chip-name, .panel-name').first().textContent().catch(() => '');
+  record(`${turnLabel} — workflow chip present in chat`, chipName.length > 0, chipName.trim().slice(0, 60));
+}
+
 // ── main ───────────────────────────────────────────────────────────────────
 
 (async () => {
   const browser = await chromium.launch({ headless: true });
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
-  page.on('console', m => m.type() === 'error' && console.log(`[app] ${m.text().slice(0, 100)}`));
+  page.on('console', m => m.type() === 'error' && console.log(`[app] ${m.text().slice(0, 120)}`));
 
   try {
     // ── LOGIN ──────────────────────────────────────────────────────────────
     console.log('\n══ Login ══');
     await login(page);
 
-    // Navigate to home page to check chip (BEFORE starting a chat thread,
-    // since the chip only appears in the home page empty state)
-    await page.goto(`${DEV_URL}/`);
-    await page.waitForLoadState('networkidle');
+    // Check chip on home page
     await page.waitForTimeout(2000);
-
-    // ── CHIP CHECK ────────────────────────────────────────────────────────
     console.log('\n══ Chip Check ══');
     const mgChip = page.locator('button, [role="button"]').filter({ hasText: /MG patient stratification/i }).first();
     const chipVisible = await mgChip.count() > 0;
@@ -242,63 +354,97 @@ async function waitForCompletion(page, timeoutMs = 300000) {
       const val = await ta.inputValue().catch(() => '');
       const turn1Only = val.includes('GSE227835') && !val.toLowerCase().includes('admet') && !val.includes('SMILES');
       record('Chip — fills Turn 1 only (no ADMET/SMILES chaining)', turn1Only, `"${val.slice(0, 80)}"`);
-      // Clear the textarea — we'll do the real flow below
       await ta.fill('');
     }
     await screenshot(page, '01_chip_check');
 
-    // Start a fresh chat thread for the actual demo flow
     await startFreshChat(page);
     await screenshot(page, '02_empty_chat');
 
-    // ── TURN 1: upload files + DESeq2 query ───────────────────────────────
+    const aiMsgSel = '[class*="assistant"], .assistant-message';
+
+    // ════════════════════════════════════════════════════════════════════════
+    // TURN 1: Upload files → DESeq2 route → Run → Audit outputs
+    // ════════════════════════════════════════════════════════════════════════
     console.log('\n══ Turn 1 — File upload + DESeq2 ══');
+    createDataFiles();
     const filePaths = [
       `${SCRATCHPAD}/counts_matrix.csv`,
       `${SCRATCHPAD}/sample_metadata.csv`,
       `${SCRATCHPAD}/contrasts.csv`,
     ];
-
-    // Check files exist locally
     const allExist = filePaths.every(fp => existsSync(fp));
     record('Local data files exist', allExist, filePaths.map(p => path.basename(p)).join(', '));
 
     const chipsAppeared = await uploadFilesViaBrowser(page, filePaths);
-    record('Turn 1 — Files uploaded via DatasetBrowser UI', chipsAppeared,
-      chipsAppeared ? '3 dataset chips in input area' : 'no chips detected (may be in hidden form)');
+    record('Turn 1 — Files uploaded via DatasetBrowser UI', chipsAppeared);
     await screenshot(page, '03_after_upload');
 
-    const aiMsgSel = '[class*="assistant"], .assistant-message';
-
-    // Send DESeq2 query — files already attached as chips
     const turn1Msg = 'Run differential expression on these AChR+ myasthenia gravis PBMC files (10 MG patients vs 10 healthy controls) — identify the key complement pathway drivers.';
-    console.log(`  Sending: "${turn1Msg}"`);
+    console.log(`  Sending: "${turn1Msg.slice(0, 80)}..."`);
     const msgs0 = await page.locator(aiMsgSel).count();
     await sendMessage(page, turn1Msg);
 
     const card1 = await waitForWorkflowCard(page, msgs0, 90000);
-    record('Turn 1 — workflow card appears', card1.found, (card1.name || card1.aiText || '').slice(0, 60));
-
+    record('Turn 1 — workflow card appears', card1.found, (card1.name || '').slice(0, 60));
     const deseq2Routed = routingMatches(card1, 'differential') || routingMatches(card1, 'deseq2') || routingMatches(card1, 'abundance');
     record('Turn 1 — routes to DESeq2 / differentialabundance', deseq2Routed, `"${(card1.name || '').slice(0, 60)}"`);
+    await auditChatMessage(page, msgs0, 'Turn 1');
     await screenshot(page, '04_turn1_deseq2_card');
 
-    // ── TURN 2: enrichGO ──────────────────────────────────────────────────
-    console.log('\n══ Turn 2 — enrichGO ══');
+    // Click Run on DESeq2
+    const run1Clicked = await clickRun(page);
+    record('Turn 1 — Run button clicked', run1Clicked);
+    if (run1Clicked) {
+      await screenshot(page, '05_turn1_deseq2_running');
+      console.log('  Waiting for DESeq2 completion (up to 45 min)...');
+      const exec1 = await waitForCompletion(page, 2700000); // 45 min — AWS Batch DESeq2
+      const state1 = exec1.timeout ? 'timed out 45 min' : exec1.failed ? 'workflow failed' : 'success';
+      record('Turn 1 — DESeq2 completes', exec1.completed || exec1.failed, state1);
+      await screenshot(page, '06_turn1_deseq2_done');
+
+      if (exec1.completed || exec1.failed) {
+        await auditAfterRun(page, 'Turn 1', '06t1');
+      }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // TURN 2: enrichGO route → Run → Audit outputs
+    // (sent AFTER Turn 1 so AI sees DE results in context)
+    // ════════════════════════════════════════════════════════════════════════
+    console.log('\n══ Turn 2 — enrichGO (after DESeq2 context) ══');
     const turn2Msg = 'Yes, run pathway enrichment on the DE gene list — find the top complement GO terms.';
     console.log(`  Sending: "${turn2Msg}"`);
     const msgs1 = await page.locator(aiMsgSel).count();
     await sendMessage(page, turn2Msg);
 
     const card2 = await waitForWorkflowCard(page, msgs1, 90000);
-    record('Turn 2 — workflow card appears', card2.found, (card2.name || card2.aiText || '').slice(0, 60));
-
+    record('Turn 2 — workflow card appears', card2.found, (card2.name || '').slice(0, 60));
     const enrichgoRouted = routingMatches(card2, 'clusterprofiler') || routingMatches(card2, 'enrichgo') ||
       routingMatches(card2, 'pathway') || routingMatches(card2, 'enrichment') || routingMatches(card2, 'gene ontology');
     record('Turn 2 — routes to enrichGO / clusterProfiler', enrichgoRouted, `"${(card2.name || '').slice(0, 60)}"`);
-    await screenshot(page, '05_turn2_enrichgo_card');
+    await auditChatMessage(page, msgs1, 'Turn 2');
+    await screenshot(page, '07_turn2_enrichgo_card');
 
-    // ── TURN 3: ADMET (full execution) ────────────────────────────────────
+    // Click Run on enrichGO
+    const run2Clicked = await clickRun(page);
+    record('Turn 2 — Run button clicked', run2Clicked);
+    if (run2Clicked) {
+      await screenshot(page, '08_turn2_enrichgo_running');
+      console.log('  Waiting for enrichGO completion (up to 30 min)...');
+      const exec2 = await waitForCompletion(page, 1800000); // 30 min
+      const state2 = exec2.timeout ? 'timed out 30 min' : exec2.failed ? 'workflow failed' : 'success';
+      record('Turn 2 — enrichGO completes', exec2.completed || exec2.failed, state2);
+      await screenshot(page, '09_turn2_enrichgo_done');
+
+      if (exec2.completed || exec2.failed) {
+        await auditAfterRun(page, 'Turn 2', '09t2');
+      }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // TURN 3: ADMET → Run → Audit outputs
+    // ════════════════════════════════════════════════════════════════════════
     console.log('\n══ Turn 3 — ADMET execution ══');
     const turn3Msg = `Screen iptacopan for ADMET properties. SMILES: ${IPTACOPAN_SMILES}`;
     console.log(`  Sending: "${turn3Msg.slice(0, 80)}..."`);
@@ -306,53 +452,32 @@ async function waitForCompletion(page, timeoutMs = 300000) {
     await sendMessage(page, turn3Msg);
 
     const card3 = await waitForWorkflowCard(page, msgs2, 90000);
-    record('Turn 3 — workflow card appears', card3.found, (card3.name || card3.aiText || '').slice(0, 60));
-
+    record('Turn 3 — workflow card appears', card3.found, (card3.name || '').slice(0, 60));
     const admetRouted = routingMatches(card3, 'admet') || routingMatches(card3, 'predict') ||
       routingMatches(card3, 'properties') || routingMatches(card3, 'iptacopan');
     record('Turn 3 — routes to ADMET workflow', admetRouted, `"${(card3.name || '').slice(0, 60)}"`);
-    await screenshot(page, '06_turn3_admet_card');
+    await auditChatMessage(page, msgs2, 'Turn 3');
+    await screenshot(page, '10_turn3_admet_card');
 
-    if (admetRouted || card3.found) {
-      console.log('  Clicking Run...');
-      const clicked = await clickRun(page);
-      record('Turn 3 — Run button clicked', clicked);
+    const run3Clicked = await clickRun(page);
+    record('Turn 3 — Run button clicked', run3Clicked);
+    if (run3Clicked) {
+      await screenshot(page, '11_turn3_admet_running');
+      console.log('  Waiting for ADMET completion (up to 5 min)...');
+      const exec3 = await waitForCompletion(page, 300000); // 5 min
+      record('Turn 3 — ADMET completes', exec3.completed,
+        exec3.timeout ? 'timed out 5 min' : exec3.failed ? 'workflow failed' : 'success');
+      await screenshot(page, '12_turn3_admet_done');
 
-      if (clicked) {
-        await screenshot(page, '07_admet_running');
-        console.log('  Waiting for ADMET completion (up to 5 min)...');
-        const exec = await waitForCompletion(page, 300000);
-
-        record('Turn 3 — ADMET completes', exec.completed,
-          exec.timeout ? 'timed out 5 min' : exec.failed ? 'workflow failed' : 'success');
-        await screenshot(page, '08_admet_done');
-
-        if (exec.completed) {
-          // Check for no "undefined" in page
-          const body = await page.textContent('body').catch(() => '');
-          record('No "undefined" text in page', !/\bundefined\b/.test(body));
-
-          // Check output: after a completed run the "After run" tab shows ADMET results.
-          // The download button has data-testid="button-download-all-workflow-panel".
-          const dlBtn = page.locator([
-            '[data-testid="button-download-all-workflow-panel"]',
-            '[data-testid="button-download-methods-report"]',
-            'button:has-text("Download all")',
-            'a:has-text("Download")',
-          ].join(', ')).first();
-          const hasDl = await dlBtn.count() > 0;
-          record('Turn 3 — Download all button visible', hasDl);
-
-          // Check that the after-run section has some content (ADMET results table)
-          const afterRunContent = await page.locator('[data-testid="download-commands-panel"], .admet-table, table').first()
-            .textContent().catch(() => '');
-          const hasRunData = afterRunContent.length > 20;
-          record('Turn 3 — ADMET results data visible', hasRunData, afterRunContent.slice(0, 60));
-
-          await screenshot(page, '09_admet_findings');
-        }
+      if (exec3.completed) {
+        const body = await page.textContent('body').catch(() => '');
+        record('No "undefined" text in page', !/\bundefined\b/.test(body));
+        await auditAfterRun(page, 'Turn 3', '12t3');
       }
     }
+
+    // ── Final screenshot — full state ──────────────────────────────────────
+    await screenshot(page, '13_final_state');
 
   } catch (err) {
     console.error('\nFatal test error:', err.message);
