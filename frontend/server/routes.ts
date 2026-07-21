@@ -12650,6 +12650,239 @@ Rules:
     }
   });
 
+  // ─── Workflow output pre-processors ───────────────────────────────────────────
+  // Each parser converts raw output files into clean structured context for the
+  // findings LLM — reducing token count and noise. ADMET returns `findings`
+  // directly (deterministic parse, no LLM needed). Other parsers return `context`
+  // + `numbers` (pre-extracted numeric tokens for the guardrail).
+
+  function _parseAdmetOutput(outputSamples: Array<{name: string; content: string}>): {
+    context: string; numbers: Set<string>; findings?: Record<string, any>
+  } | null {
+    const f = outputSamples.find(s =>
+      /admet|predict_admet|predict.*prop/i.test(s.name) ||
+      (s.name.endsWith('.json') && (s.content.includes('hERG') || s.content.includes('DILI')))
+    );
+    if (!f) return null;
+
+    let resultText = f.content;
+    try {
+      const parsed = JSON.parse(f.content);
+      if (typeof parsed.result === 'string') resultText = parsed.result;
+      else if (typeof parsed.results === 'string') resultText = parsed.results;
+    } catch {}
+
+    const compounds: Array<{id: string; metrics: Record<string, string>}> = [];
+    let current: {id: string; metrics: Record<string, string>} | null = null;
+    for (const line of resultText.split('\n')) {
+      const trimmed = line.trim();
+      if (/^(Drug|Compound):\s*\S/i.test(trimmed)) {
+        if (current) compounds.push(current);
+        current = { id: trimmed.replace(/^(Drug|Compound):\s*/i, '').trim(), metrics: {} };
+      } else if (current) {
+        const colonIdx = trimmed.indexOf(':');
+        if (colonIdx > 0) {
+          const key = trimmed.slice(0, colonIdx).trim();
+          const val = trimmed.slice(colonIdx + 1).trim();
+          if (val && /^[-\d.]/.test(val)) current.metrics[key] = val;
+        }
+      }
+    }
+    if (current) compounds.push(current);
+    if (compounds.length === 0) return null;
+
+    const rows = compounds.map((c, i) => {
+      const tag = compounds.length === 1 ? `Compound (${c.id.slice(0, 50)})` : `Compound ${i + 1}: ${c.id.slice(0, 40)}`;
+      return `${tag}\n${Object.entries(c.metrics).map(([k, v]) => `  ${k}: ${v}`).join('\n')}`;
+    });
+    const context = `### ADMET Prediction Results — ${compounds.length} compound(s)\n\n${rows.join('\n\n')}\n\nSource file: ${f.name}`;
+
+    const numbers = new Set<string>();
+    for (const m of resultText.matchAll(/\b(\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\b/g)) numbers.add(m[1]);
+
+    // Deterministic findings — no LLM needed
+    const THRESHOLDS: Record<string, {high?: number; low?: number; label: string}> = {
+      'hERG inhibition':       { high: 0.5, label: 'hERG (cardiac) liability risk' },
+      'DILI probability':      { high: 0.5, label: 'drug-induced liver injury risk' },
+      'Oral bioavailability':  { low: 0.5,  label: 'oral bioavailability' },
+      'BBB penetration':       {             label: 'blood-brain barrier penetration' },
+      'ClinTox':               { high: 0.5, label: 'clinical toxicity probability' },
+      'Plasma protein bind %': {             label: 'plasma protein binding (%)' },
+      'Caco-2 logPapp':        {             label: 'intestinal permeability (logPapp)' },
+      'CYP2D6 inhibitor':      { high: 0.5, label: 'CYP2D6 inhibitor risk' },
+      'CYP3A4 substrate':      {             label: 'CYP3A4 substrate probability' },
+      'Ames mutagenicity':     { high: 0.5, label: 'Ames mutagenicity risk' },
+    };
+    const key_results: Array<{metric: string; value: string; interpretation: string; source_file: string}> = [];
+    for (const [ci, compound] of compounds.entries()) {
+      const tag = compounds.length === 1 ? '' : `(Compound ${ci + 1}) `;
+      for (const [metric, info] of Object.entries(THRESHOLDS)) {
+        const val = compound.metrics[metric];
+        if (!val) continue;
+        const num = parseFloat(val);
+        let interpretation = `${tag}${info.label}: ${val}`;
+        if (!isNaN(num)) {
+          if (info.high !== undefined && num >= info.high) interpretation = `${tag}Elevated ${info.label} (${val}) — potential liability`;
+          else if (info.low !== undefined && num < info.low) interpretation = `${tag}Low ${info.label} (${val}) — potential liability`;
+          else if (info.high !== undefined || info.low !== undefined) interpretation = `${tag}Acceptable ${info.label} (${val})`;
+        }
+        key_results.push({ metric, value: val, interpretation, source_file: f.name });
+      }
+    }
+    const liabilities = key_results.filter(kr => /liability|Elevated|Low/.test(kr.interpretation)).map(kr => kr.metric);
+    const n = compounds.length;
+    const summary = n === 1
+      ? `ADMET prediction completed for 1 compound. ${liabilities.length === 0 ? 'No major liabilities flagged across standard ADMET endpoints.' : `Potential liabilities flagged: ${liabilities.join(', ')}.`}`
+      : `ADMET prediction completed for ${n} compounds. Key ADMET properties assessed against standard thresholds.`;
+    const hasHerg = liabilities.includes('hERG inhibition');
+    const hasDili = liabilities.includes('DILI probability');
+    const hasAmes = liabilities.includes('Ames mutagenicity');
+    const next_steps: string[] = [];
+    if (hasHerg) next_steps.push('REINVENT4 scaffold decoration with a hERG penalty function can generate 10–25 optimized analogs with reduced cardiac liability.');
+    if (hasDili) next_steps.push('REINVENT4 scaffold decoration with a DILI penalty function can generate optimized analogs with improved liver safety.');
+    if (hasAmes) next_steps.push('REINVENT4 scaffold decoration with an Ames penalty function can generate optimized analogs with reduced mutagenicity.');
+    if (next_steps.length === 0) next_steps.push('ADMET profile looks acceptable. Proceed to PKPD modeling or synthesis planning.');
+    return {
+      context, numbers,
+      findings: {
+        summary, key_results: key_results.slice(0, 20), next_steps,
+        caveats: ['ADMET predictions are computational estimates — confirm with wet-lab assays before advancing.'],
+      },
+    };
+  }
+
+  function _parseDeseq2Output(outputSamples: Array<{name: string; content: string}>): {
+    context: string; numbers: Set<string>
+  } | null {
+    const f = outputSamples.find(s =>
+      /deseq2|de_results|differential/i.test(s.name) ||
+      (s.name.endsWith('.csv') && s.content.includes('log2FoldChange'))
+    );
+    if (!f) return null;
+    const lines = f.content.split('\n').filter(l => l.trim());
+    if (lines.length < 2) return null;
+    const header = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+    const geneIdx = header.findIndex(h => /^(gene|gene_id|geneid|gene\.name|name|symbol)$/i.test(h));
+    const lfcIdx = header.findIndex(h => /log2fold/i.test(h) && !/se$/i.test(h));
+    const padjIdx = header.findIndex(h => /^(padj|p\.adj|fdr|bh|q\.value)$/i.test(h));
+    if (lfcIdx === -1 || padjIdx === -1) return null;
+    type Gene = {gene: string; lfc: number; padj: number};
+    const genes: Gene[] = [];
+    for (const line of lines.slice(1)) {
+      const cols = line.split(',').map(c => c.replace(/"/g, '').trim());
+      const lfc = parseFloat(cols[lfcIdx]);
+      const padj = parseFloat(cols[padjIdx]);
+      if (isNaN(lfc) || isNaN(padj)) continue;
+      genes.push({ gene: geneIdx >= 0 ? cols[geneIdx] : `gene_${genes.length + 1}`, lfc, padj });
+    }
+    const sig = genes.filter(g => g.padj < 0.05);
+    const topUp = [...sig].sort((a, b) => b.lfc - a.lfc).slice(0, 8);
+    const topDown = [...sig].sort((a, b) => a.lfc - b.lfc).slice(0, 8);
+    const fmt = (n: number) => n.toFixed(2);
+    const fmtP = (n: number) => n < 0.001 ? n.toExponential(1) : n.toFixed(3);
+    const contextLines = [
+      `### DESeq2 Differential Expression Results`,
+      `Total genes tested: ${genes.length}`,
+      `Significant at padj < 0.05: ${sig.length} (${sig.filter(g => g.lfc > 0).length} up, ${sig.filter(g => g.lfc < 0).length} down)`,
+      ``, `Top upregulated genes:`,
+      ...topUp.map(g => `  ${g.gene}: LFC=${fmt(g.lfc)}, padj=${fmtP(g.padj)}`),
+      ``, `Top downregulated genes:`,
+      ...topDown.map(g => `  ${g.gene}: LFC=${fmt(g.lfc)}, padj=${fmtP(g.padj)}`),
+      ``, `Source file: ${f.name}`,
+    ];
+    const numbers = new Set<string>([String(sig.length), String(genes.length)]);
+    for (const g of [...topUp, ...topDown]) { numbers.add(fmt(g.lfc)); numbers.add(fmtP(g.padj)); }
+    return { context: contextLines.join('\n'), numbers };
+  }
+
+  function _parseEnrichGoOutput(outputSamples: Array<{name: string; content: string}>): {
+    context: string; numbers: Set<string>
+  } | null {
+    const f = outputSamples.find(s =>
+      /enrichgo|enrich_go|go_enrich|clusterprofiler|gsea|pathway/i.test(s.name) ||
+      (s.name.endsWith('.csv') && (s.content.includes('p.adjust') || s.content.includes('GeneRatio')))
+    );
+    if (!f) return null;
+    const lines = f.content.split('\n').filter(l => l.trim());
+    if (lines.length < 2) return null;
+    const header = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+    const descIdx = header.findIndex(h => /^(description|term|pathway|name)$/i.test(h));
+    const padjIdx = header.findIndex(h => /^(p\.adjust|padj|fdr|qvalue)$/i.test(h));
+    const ratioIdx = header.findIndex(h => /^(generatio|gene_ratio|ratio)$/i.test(h));
+    const countIdx = header.findIndex(h => /^(count|gene_count)$/i.test(h));
+    if (descIdx === -1 || padjIdx === -1) return null;
+    type Term = {desc: string; padj: number; ratio: string; count: string};
+    const terms: Term[] = [];
+    for (const line of lines.slice(1)) {
+      const cols = line.split(',').map(c => c.replace(/"/g, '').trim());
+      const padj = parseFloat(cols[padjIdx]);
+      if (isNaN(padj)) continue;
+      terms.push({ desc: cols[descIdx] || '', padj, ratio: ratioIdx >= 0 ? cols[ratioIdx] : '', count: countIdx >= 0 ? cols[countIdx] : '' });
+    }
+    terms.sort((a, b) => a.padj - b.padj);
+    const sig = terms.filter(t => t.padj < 0.05);
+    const top12 = terms.slice(0, 12);
+    const fmtP = (n: number) => n < 0.001 ? n.toExponential(2) : n.toFixed(4);
+    const contextLines = [
+      `### Gene Ontology / Pathway Enrichment Results`,
+      `Significantly enriched terms (p.adjust < 0.05): ${sig.length}`,
+      ``, `Top enriched terms:`,
+      ...top12.map(t => {
+        const extras = [t.ratio && `GeneRatio=${t.ratio}`, t.count && `Count=${t.count}`].filter(Boolean);
+        return `  ${t.desc}: p.adj=${fmtP(t.padj)}${extras.length ? `, ${extras.join(', ')}` : ''}`;
+      }),
+      ``, `Source file: ${f.name}`,
+    ];
+    const numbers = new Set<string>([String(sig.length)]);
+    for (const t of top12) numbers.add(fmtP(t.padj));
+    return { context: contextLines.join('\n'), numbers };
+  }
+
+  function _parseRarediseaseOutput(outputSamples: Array<{name: string; content: string}>): {
+    context: string; numbers: Set<string>
+  } | null {
+    const f = outputSamples.find(s =>
+      /variant|annotated|vep|snpeff|filtered/i.test(s.name) && /\.(tsv|txt|csv|vcf)$/i.test(s.name)
+    );
+    if (!f) return null;
+    const lines = f.content.split('\n').filter(l => l.trim() && !l.startsWith('##'));
+    if (lines.length < 2) return null;
+    const sep = f.name.endsWith('.csv') ? ',' : '\t';
+    const header = lines[0].split(sep).map(h => h.replace(/^#/, '').trim());
+    const geneIdx = header.findIndex(h => /gene|gene\.refgene|symbol/i.test(h));
+    const impactIdx = header.findIndex(h => /^(impact|severity)$/i.test(h));
+    const funcIdx = header.findIndex(h => /func|consequence|exonicfunc/i.test(h));
+    if (geneIdx === -1 && impactIdx === -1) return null;
+    type Variant = {gene: string; impact: string; func: string};
+    const variants: Variant[] = lines.slice(1, 201).map(line => {
+      const cols = line.split(sep);
+      return { gene: geneIdx >= 0 ? cols[geneIdx] : '', impact: impactIdx >= 0 ? cols[impactIdx] : '', func: funcIdx >= 0 ? cols[funcIdx] : '' };
+    });
+    const high = variants.filter(v => /high/i.test(v.impact));
+    const mod = variants.filter(v => /moderate|mod/i.test(v.impact));
+    const contextLines = [
+      `### Rare Disease Variant Analysis`,
+      `HIGH impact variants: ${high.length}`,
+      `MODERATE impact variants: ${mod.length}`,
+      ...(high.length > 0 ? [``, `HIGH impact:`, ...high.slice(0, 5).map(v => `  ${v.gene}: ${v.func || 'unknown'}`)] : []),
+      ...(mod.length > 0 ? [``, `MODERATE impact (top 5):`, ...mod.slice(0, 5).map(v => `  ${v.gene}: ${v.func || 'unknown'}`)] : []),
+      ``, `Source file: ${f.name}`,
+    ];
+    const numbers = new Set<string>([String(high.length), String(mod.length)]);
+    return { context: contextLines.join('\n'), numbers };
+  }
+
+  function preProcessForFindings(
+    workflowName: string,
+    outputSamples: Array<{name: string; content: string}>,
+  ): { context: string; numbers: Set<string>; findings?: Record<string, any> } | null {
+    if (/admet|predict.*admet|admet.*properties/i.test(workflowName)) return _parseAdmetOutput(outputSamples);
+    if (/differentialabundance|deseq2/i.test(workflowName)) return _parseDeseq2Output(outputSamples);
+    if (/clusterprofiler|enrichgo|enrichment/i.test(workflowName)) return _parseEnrichGoOutput(outputSamples);
+    if (/raredisease|rare.*disease/i.test(workflowName)) return _parseRarediseaseOutput(outputSamples);
+    return null;
+  }
+
   // ── In-memory findings cache (AWS Batch runs — Python backend can't reach S3) ──
   // Keys: runId → { status: 'generating' } | FindingsData
   const _findingsCache = new Map<string, Record<string, any>>();
@@ -12875,15 +13108,35 @@ Rules:
             return;
           }
 
-          const fileContext = outputSamples.map(f => `### File: ${f.name}\n\`\`\`\n${f.content}\n\`\`\``).join('\n\n');
-
-          // Collect all numeric tokens from output files for post-generation validation
-          const outputNumbers = new Set<string>();
-          for (const f of outputSamples) {
-            for (const m of f.content.matchAll(/\b(\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\b/g)) {
-              outputNumbers.add(m[1]);
-            }
+          // Pre-process known workflow output formats into clean structured context.
+          // This gives the LLM focused, low-noise input and makes guardrail matching reliable.
+          // ADMET returns deterministic findings directly — no LLM call needed.
+          const preprocessed = preProcessForFindings(workflowName, outputSamples);
+          if (preprocessed?.findings) {
+            console.log(`[Findings] deterministic parse succeeded for "${workflowName}" — skipping LLM`);
+            _findingsCache.set(runId, preprocessed.findings);
+            return;
           }
+
+          const fileContext = preprocessed
+            ? preprocessed.context
+            : outputSamples.map(f => `### File: ${f.name}\n\`\`\`\n${f.content}\n\`\`\``).join('\n\n');
+
+          // Numeric tokens for guardrail: prefer pre-extracted (authoritative) over raw file scan
+          const outputNumbers: Set<string> = preprocessed?.numbers ?? (() => {
+            const s = new Set<string>();
+            for (const f of outputSamples) {
+              for (const m of f.content.matchAll(/\b(\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\b/g)) s.add(m[1]);
+            }
+            return s;
+          })();
+
+          console.log(
+            `[Findings] preprocessing: workflow="${workflowName}" ` +
+            `preprocessed=${!!preprocessed} ` +
+            `context_length=${fileContext.length} ` +
+            `outputNumbers.size=${outputNumbers.size}`
+          );
 
           const SYSTEM = `You are a senior bioinformatics scientist interpreting results from a completed computational biology workflow.
 
@@ -12902,17 +13155,6 @@ Respond ONLY with valid JSON (no markdown wrapper):
   "caveats": ["<caveat 1>"]
 }`;
 
-          // Diagnostics first, conclusions later: log what we're feeding
-          // the model and what comes back, so the next truncation tells us
-          // WHERE the problem is (input garbage? model truncation? double
-          // encoding?) instead of forcing another round of guessing.
-          console.log(
-            `[Findings] input prep: workflow="${workflowName}" ` +
-              `fileContext.length=${fileContext.length} ` +
-              `outputSamples.length=${outputSamples.length} ` +
-              `sample_names=${JSON.stringify(outputSamples.map((s) => s.name))} ` +
-              `sample_lengths=${JSON.stringify(outputSamples.map((s) => s.content.length))}`,
-          );
           const rawText = await callGeminiFlash({
             messages: [{ role: 'user', content: `Workflow: ${workflowName}\n\nOutput files:\n${fileContext}` }],
             system: SYSTEM,
