@@ -16,7 +16,7 @@ export default defineConfig({
   testMatch: '**/*.e2e.ts', // Match .e2e.ts files
   fullyParallel: false, // Run tests sequentially for audit clarity
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  retries: 1,
   workers: 1, // Single worker for audit clarity
   reporter: [
     ['html', { outputFolder: 'e2e/reports' }],
