@@ -5796,6 +5796,9 @@ ${paramLines || '(none recorded)'}`;
                 type: d.file_type || 'unknown',
                 file_path: d.file_path || null,
                 param_name: d.param_name || null,
+                // s3_uri: durable S3 reference for Nextflow/Batch params
+                // (use id for run_code/read_file; use s3_uri for workflow params)
+                s3_uri: d.s3_uri || null,
               }))
             : (_historyDatasets ?? []);
           // Dedupe: a recovered entry whose id is already in direct is dropped.

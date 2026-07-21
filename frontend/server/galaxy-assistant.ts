@@ -7318,7 +7318,7 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
     const sessionDatasetsBlock = (() => {
       const sd = (context as any)?.sessionDatasets as Array<{
         id?: string; name?: string; type?: string; file_path?: string | null;
-        recovered?: boolean; sourceSessionId?: string;
+        s3_uri?: string | null; recovered?: boolean; sourceSessionId?: string;
       }> | undefined;
       if (!sd?.length) return '';
 
@@ -7349,7 +7349,8 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
       const direct = valid.filter(d => !d.recovered).slice(0, 32);
       const recovered = valid.filter(d => d.recovered).slice(0, 20);
 
-      const fmt = (d: any) => `  - ${d.name || '(unnamed)'} | id=${d.id} | type=${d.type || 'unknown'}`;
+      const fmt = (d: any) =>
+        `  - ${d.name || '(unnamed)'} | id=${d.id} | type=${d.type || 'unknown'}${d.s3_uri ? ` | s3_uri=${d.s3_uri}` : ''}`;
       const directRows = direct.map(fmt).join('\n');
       const recoveredRows = recovered.map(fmt).join('\n');
 
@@ -7362,7 +7363,7 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
       if (recoveredRows) {
         body += `Datasets from earlier sessions in this project (recovered after refresh — the user did NOT attach them this turn; ask once if you're unsure which they meant):\n${recoveredRows}\n\n`;
       }
-      body += `When the user refers to "the dataset", "the file I uploaded", "the counts matrix", etc. — these are the candidates. Use the id with read_file (preview), run_code's input_datasets (analysis), or as a workflow parameter. Do NOT ask the user to re-upload datasets that already appear here. For *recovered* datasets in particular, you may confirm intent ("I see ${recovered[0]?.name ?? 'X'} from your earlier session — should I use that?") but never claim the user attached them this turn.\n</session_datasets>\n`;
+      body += `When the user refers to "the dataset", "the file I uploaded", "the counts matrix", etc. — these are the candidates. Use the id for read_file (preview) and run_code's input_datasets (analysis). For Nextflow workflow parameters (input, matrix, reads, samplesheet, etc.): use s3_uri when present — AWS Batch workers read directly from S3. Do NOT ask the user to re-upload datasets that already appear here. For *recovered* datasets in particular, you may confirm intent ("I see ${recovered[0]?.name ?? 'X'} from your earlier session — should I use that?") but never claim the user attached them this turn.\n</session_datasets>\n`;
       return body;
     })();
 

@@ -90,13 +90,15 @@ function SessionTab({
       name: file.name,
       fileType: file.name.split('.').pop() || '',
       galaxyDatasetId: result.galaxyDatasetId,
-      // simple path returns s3_uri directly; multipart path returns s3Key.
+      // multipart path returns an s3:// URI through s3Key; the simple path
+      // returns s3_uri directly. Both stored in newDs.s3_uri for session context.
       s3_uri: result.s3Uri || (result.s3Key ? `s3://${result.s3Key}` : undefined),
     };
     onUploaded?.(newDs);
-    // Auto-select the just-uploaded file. Prefer the durable S3 URI: it is the only
-    // reference that survives a server restart and is directly usable by AWS Batch.
-    const value = newDs.s3_uri || newDs.galaxyDatasetId || newDs.path || newDs.id;
+    // Chip value: use the Galaxy dataset UUID — Claude uses this for run_code/read_file
+    // ($DATA_DIR/<uuid>/filename). The s3_uri is forwarded via session_datasets context
+    // so Claude can use it for Nextflow params without breaking run_code.
+    const value = newDs.galaxyDatasetId || newDs.path || newDs.id;
     onSelect(value, file.name);
   };
 
