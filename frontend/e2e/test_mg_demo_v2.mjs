@@ -130,11 +130,13 @@ async function startFreshChat(page) {
   }
 }
 
-async function sendMessage(page, msg) {
+async function sendMessage(page, msg, { chipWaitMs = 0 } = {}) {
   const ta = page.locator('[data-testid="chat-input"], textarea').first();
   await ta.waitFor({ state: 'visible', timeout: 10000 });
   await ta.click();
   await ta.fill(msg);
+  // If caller signals chips were just attached, give the UI time to register S3 URIs
+  if (chipWaitMs > 0) await page.waitForTimeout(chipWaitMs);
   await page.waitForTimeout(300);
   const sendBtn = page.locator('[data-testid="chat-send-button"]').first();
   if (await sendBtn.isVisible({ timeout: 2000 })) {
@@ -165,9 +167,30 @@ async function uploadFilesViaBrowser(page, filePaths) {
     if (uploading === 0) await page.keyboard.press('Escape');
   }
 
-  const attachedCount = await page.locator('[data-testid="chat-input-attached-count"]').count();
-  const bodyText = await page.textContent('body').catch(() => '');
-  const hasChips = attachedCount > 0 || bodyText.includes('counts_matrix');
+  // Wait up to 15s for dataset chips to appear in the input area.
+  // Chips carry the S3 URIs — the message must not be sent until they're attached.
+  const chipSelectors = [
+    '[data-testid="chat-input-attached-count"]',
+    '[data-attached-file]',
+    '.dataset-chip',
+    '[data-testid*="chip"]',
+  ];
+  const fileNames = filePaths.map(p => path.basename(p).replace(/\.[^.]+$/, ''));
+  const deadline = Date.now() + 15000;
+  let hasChips = false;
+  while (Date.now() < deadline) {
+    for (const sel of chipSelectors) {
+      if (await page.locator(sel).count() > 0) { hasChips = true; break; }
+    }
+    if (!hasChips) {
+      const bodyText = await page.textContent('body').catch(() => '');
+      hasChips = fileNames.some(n => bodyText.includes(n));
+    }
+    if (hasChips) break;
+    await page.waitForTimeout(500);
+  }
+  if (!hasChips) console.log('  ⚠️ Chip wait timed out after 15s — S3 URIs may be missing from next message');
+  else console.log('  Dataset chips confirmed in input');
   return hasChips;
 }
 
@@ -383,7 +406,7 @@ async function auditChatMessage(page, msgIndex, turnLabel) {
     const turn1Msg = 'Run differential expression on these AChR+ myasthenia gravis PBMC files (10 MG patients vs 10 healthy controls) — identify the key complement pathway drivers.';
     console.log(`  Sending: "${turn1Msg.slice(0, 80)}..."`);
     const msgs0 = await page.locator(aiMsgSel).count();
-    await sendMessage(page, turn1Msg);
+    await sendMessage(page, turn1Msg, { chipWaitMs: 1000 });
 
     const card1 = await waitForWorkflowCard(page, msgs0, 90000);
     record('Turn 1 — workflow card appears', card1.found, (card1.name || '').slice(0, 60));
