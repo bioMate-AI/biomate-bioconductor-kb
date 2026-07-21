@@ -42,7 +42,7 @@ export function ChatInput({
   onSend,
   disabled = false,
   pendingCount = 0,
-  placeholder = "Ask BioMate anything — upload a paper, run a workflow, search literature, or analyze your data...",
+  placeholder = "What would you like to analyze?",
   onFilesSelected,
   isStreaming = false,
   onStop,

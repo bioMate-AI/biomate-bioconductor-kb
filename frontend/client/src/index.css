@@ -93,6 +93,7 @@
   --font-sans: Inter, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: JetBrains Mono, monospace;
+  --font-display: 'DM Serif Display', Georgia, serif;
   --radius: .5rem; /* 8px */
   --shadow-2xs: 0px 2px 0px 0px hsl(220 10% 45% / 0.02);
   --shadow-xs: 0px 2px 0px 0px hsl(220 10% 45% / 0.03);
@@ -267,6 +268,10 @@
  * need to be distinguished from eachother visually.
  */
 @layer utilities {
+
+  .font-display {
+    font-family: var(--font-display);
+  }
 
   /* Hide ugly search cancel button in Chrome until we can style it properly */
   input[type="search"]::-webkit-search-cancel-button {

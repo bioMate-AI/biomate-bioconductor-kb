@@ -700,7 +700,7 @@ export function WorkflowArtifact({
 
   return (
     <>
-      <Card className={cn("border-2 border-primary/20 bg-gradient-to-br from-card to-muted/30", className)}>
+      <Card className={cn("border-2 border-primary/20", className)}>
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
           {/* Header - Always visible */}
           <CardHeader className="p-4 pb-2">
@@ -714,8 +714,8 @@ export function WorkflowArtifact({
                       <ChevronRight className="h-4 w-4" />
                     )}
                     <Workflow className="h-5 w-5 text-primary" />
-                    <span className="font-semibold">
-                      {workflow.name || 'Generated Workflow'}
+                    <span className="font-display text-base font-normal tracking-tight">
+                      {workflow.name || 'Workflow'}
                     </span>
                   </div>
                 </Button>
@@ -779,7 +779,7 @@ export function WorkflowArtifact({
                   <Button
                     size="sm"
                     onClick={() => onRun?.(workflow, normalizedSteps)}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-primary hover:bg-primary/90"
                     disabled={prerequisitesValidation?.fulfilled === false}
                     title={prerequisitesValidation?.fulfilled === false ? 'Missing required inputs - see details below' : undefined}
                   >
@@ -790,12 +790,19 @@ export function WorkflowArtifact({
               </div>
             </div>
 
+            {/* Annotation subtitle — thesis sentence for what this workflow does */}
+            {workflow.annotation && (
+              <p className="text-xs text-muted-foreground mt-1 pl-6 leading-snug">
+                {workflow.annotation}
+              </p>
+            )}
+
             {/* Progress bar when running */}
             {isRunning && (
               <div className="mt-3 space-y-1">
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Running workflow...</span>
-                  <span>{completedSteps}/{totalSteps} complete</span>
+                  <span>{milestones.length > 0 ? milestones[milestones.length - 1].label : 'Running…'}</span>
+                  <span>{completedSteps}/{totalSteps} steps</span>
                 </div>
                 <Progress value={(completedSteps / totalSteps) * 100} className="h-2" />
               </div>
@@ -1058,12 +1065,6 @@ export function WorkflowArtifact({
                   )}
                 </AlertDescription>
               </Alert>
-            )}
-
-            {workflow.annotation && (
-              <p className="text-sm text-muted-foreground mt-2">
-                {workflow.annotation}
-              </p>
             )}
 
             {/* Long-running job advisory — "you can close this tab" */}
