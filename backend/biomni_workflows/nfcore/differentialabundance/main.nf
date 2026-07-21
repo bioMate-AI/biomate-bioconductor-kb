@@ -30,7 +30,9 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
     tag "DESeq2"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20-slim"
+    // Full container (not -slim): has aws cli for s3 cp downloads in R.
+    // Follows the same pattern as validation_deseq2_raw_counts/main.nf.
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
 
     // Input files are downloaded inside the R script via aws s3 cp.
     // Using val (not path) avoids Channel.fromPath S3-FS-type probing on Nextflow 25.x.
@@ -38,12 +40,12 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
     val meta
 
     output:
-    tuple val(meta), path("*.csv"),           emit: tables,   optional: true
-    tuple val(meta), path("*.pdf"),           emit: plots,    optional: true
-    tuple val(meta), path("*.rds"),           emit: objects,  optional: true
-    tuple val(meta), path("*.html"),          emit: report,   optional: true
-    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics
-    path "versions.yml",                      emit: versions
+    tuple val(meta), path("*.csv"),           emit: tables,    optional: true
+    tuple val(meta), path("*.pdf"),           emit: plots,     optional: true
+    tuple val(meta), path("*.rds"),           emit: objects,   optional: true
+    tuple val(meta), path("*.html"),          emit: report,    optional: true
+    tuple val(meta), path("qc_metrics.json"), emit: qc_metrics, optional: true
+    path "versions.yml",                      emit: versions,  optional: true
 
     when:
     task.ext.when == null || task.ext.when
@@ -56,10 +58,11 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
     def contrasts_uri = params.contrasts ?: ''
     """
     #!/usr/bin/env Rscript
-    # [biomate-deps] resolve declared dependencies
-    .bm_deps <- c("DESeq2", "ggplot2", "ggrepel", "pheatmap")
+    # [biomate-deps] install only what is missing (container has DESeq2/ggplot2/jsonlite pre-installed)
+    .bm_deps <- c("DESeq2", "ggplot2", "ggrepel")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
+      message("[biomate-deps] installing: ", paste(.bm_miss, collapse=", "))
       if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
       options(repos = c(CRAN = "https://packagemanager.posit.co/cran/__linux__/jammy/latest"))
       .bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
