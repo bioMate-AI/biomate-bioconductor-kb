@@ -15465,9 +15465,7 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
           break;
 
         case "export_report":
-          result = await selfGet(
-            `/api/workflows/runs/${body.run_id}/export?format=${encodeURIComponent(body.format ?? "pdf")}`
-          );
+          result = await selfGet(`/api/workflows/runs/${body.run_id}/findings/report`);
           break;
 
         case "analyze_results":
@@ -15491,9 +15489,11 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
           });
           break;
 
-        case "recall_memory":
-          result = await selfPost("/api/memory/relevant", { query: body.query });
+        case "recall_memory": {
+          const memQs = new URLSearchParams({ query: body.query ?? "", limit: String(body.limit ?? 5) });
+          result = await selfGet(`/api/memory/relevant?${memQs}`);
           break;
+        }
 
         case "upload_file":
           result = await selfPost("/api/uploads/signed_url", {
