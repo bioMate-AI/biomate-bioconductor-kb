@@ -1095,15 +1095,19 @@ async function stageLocalFilesForBatch(
     if (!localPath || !filename) continue;
 
     const s3Key      = `inputs/${userId}/${uuidv4().slice(0, 8)}-${filename}`;
-    const fileBuffer = await fs.readFile(localPath);
-    await s3.send(new PutObjectCommand({
-      Bucket: s3Bucket,
-      Key:    s3Key,
-      Body:   fileBuffer,
-    }));
-    const s3Uri = `s3://${s3Bucket}/${s3Key}`;
-    console.log(`[S3Stage] Staged ${val.startsWith('/') ? 'local' : 'uuid'} file ${key}=${val} → ${s3Uri}`);
-    staged[key] = s3Uri;
+    try {
+      const fileBuffer = await fs.readFile(localPath);
+      await s3.send(new PutObjectCommand({
+        Bucket: s3Bucket,
+        Key:    s3Key,
+        Body:   fileBuffer,
+      }));
+      const s3Uri = `s3://${s3Bucket}/${s3Key}`;
+      console.log(`[S3Stage] Staged ${val.startsWith('/') ? 'local' : 'uuid'} file ${key}=${val} → ${s3Uri}`);
+      staged[key] = s3Uri;
+    } catch (s3Err: any) {
+      console.warn(`[S3Stage] Failed to stage ${key}=${val} (${s3Err.message}) — param left as-is`);
+    }
   }
   return staged;
 }
