@@ -12,7 +12,7 @@
   --surface-3:   oklch(0.945 0.005 240);
   --bg-elev:     oklch(1.0   0     0);
   --border:      oklch(0.915 0.006 240);
-  --border-strong: oklch(0.80 0.008 240);
+  --border-strong: oklch(0.86 0.008 240);
   --text:        oklch(0.22  0.01  260);
   --text-muted:  oklch(0.48  0.012 260);
   --text-dim:    oklch(0.62  0.010 260);
@@ -20,11 +20,11 @@
   --accent-soft: oklch(0.96  0.03  245);
   --accent-ink:  oklch(0.35  0.10  245);
   --ok:          oklch(0.62  0.13  150);
-  --ok-soft:     oklch(0.95  0.04  150);
+  --ok-soft:     oklch(0.96  0.04  150);
   --err:         oklch(0.58  0.18  25);
-  --err-soft:    oklch(0.96  0.04  25);
-  --warn:        oklch(0.62  0.12  75);
-  --warn-soft:   oklch(0.97  0.04  75);
+  --err-soft:    oklch(0.96  0.05  25);
+  --warn:        oklch(0.72  0.14  75);
+  --warn-soft:   oklch(0.96  0.05  75);
   --run:         oklch(0.55  0.14  245);
   --run-soft:    oklch(0.96  0.03  245);
   --r-xs:  4px;
