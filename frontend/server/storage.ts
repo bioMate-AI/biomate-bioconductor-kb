@@ -527,6 +527,7 @@ export class MemStorage implements IStorage {
       const dbIds = new Set(result.map(r => r.id));
       let memRuns = Array.from(this.executionRuns.values()).filter(r => !dbIds.has(r.id));
       if (userId) memRuns = memRuns.filter(r => r.userId === userId);
+      if (projectId) memRuns = memRuns.filter(r => r.projectId === projectId);
       if (mode) memRuns = memRuns.filter(r => r.mode === mode);
       if (chatSessionId) memRuns = memRuns.filter(r => r.chatSessionId === chatSessionId);
       return [...result, ...memRuns].slice(0, limit);

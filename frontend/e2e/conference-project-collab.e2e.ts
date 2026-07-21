@@ -253,6 +253,20 @@ test.describe.serial("conference-project-collab", () => {
   test.beforeAll(async ({ browser }) => {
     const page = await browser.newPage();
     await loginAsFixture(page);
+
+    // Clean up leftover "BD Summit MG Demo" projects from previous failed/abandoned runs
+    const listRes = await page.request.get(`${BASE_URL}/api/projects`).catch(() => null);
+    if (listRes?.ok()) {
+      const listBody = await listRes.json().catch(() => ({}));
+      const stale: any[] = (listBody?.projects ?? []).filter(
+        (p: any) => typeof p.name === "string" && p.name.startsWith("BD Summit MG Demo")
+      );
+      for (const p of stale) {
+        await page.request.delete(`${BASE_URL}/api/projects/${p.id}`).catch(() => {});
+        console.log(`[setup] cleaned up stale project: ${p.id} "${p.name}"`);
+      }
+    }
+
     projectName = `BD Summit MG Demo ${Date.now()}`;
     const res = await page.request.post(`${BASE_URL}/api/projects`, {
       headers: { "Content-Type": "application/json" },

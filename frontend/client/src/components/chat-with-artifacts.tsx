@@ -787,6 +787,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   ])
 
   // Session-end pulse: show once per chat session after post-run survey is dismissed.
+  // Guards: (1) 8s delay so users see their results before the prompt appears,
+  // (2) 24h frequency cap via localStorage so it doesn't fire on every run.
   useEffect(() => {
     const status = normalizeSurveyStatus(currentRun?.execution?.status)
     const runId = currentRun?.id
@@ -794,8 +796,18 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     if (!sessionId || !status || !runId) return
     const surveyPreparedForRun = postRunSurveyContext?.runId === runId
     if (surveyPreparedForRun && !showPostRunSurvey && !pulseShownForSession.current.has(sessionId)) {
+      // 24h frequency cap: suppress if already shown today
+      try {
+        const lastShown = localStorage.getItem('biomate-pulse-last-shown')
+        if (lastShown && Date.now() - parseInt(lastShown, 10) < 24 * 60 * 60 * 1000) return
+      } catch { /* localStorage unavailable */ }
       pulseShownForSession.current.add(sessionId)
-      setShowSessionEndPulse(true)
+      // 8s delay: give users time to see their results before the survey appears
+      const t = setTimeout(() => {
+        setShowSessionEndPulse(true)
+        try { localStorage.setItem('biomate-pulse-last-shown', Date.now().toString()) } catch { /* ignore */ }
+      }, 8_000)
+      return () => clearTimeout(t)
     }
   }, [currentRun?.id, currentRun?.execution?.status, currentChatSession?.id, postRunSurveyContext?.runId, showPostRunSurvey])
 
