@@ -866,6 +866,20 @@ const WORKFLOW_PARAM_ALIASES: Record<string, Record<string, string>> = {
     target: 'mrna_sequence', gene: 'mrna_sequence', sequence: 'mrna_sequence',
     region: 'target_region',
   },
+  pbpk_pediatric: {
+    // Workflow uses `route` (string: 'oral'|'iv'); LLM sometimes emits dose_route (int 0=oral)
+    dose_route: 'route', administration_route: 'route', admin_route: 'route',
+    compound: 'drug_name', drug: 'drug_name',
+    smiles: 'smiles_input', compound_smiles: 'smiles_input',
+  },
+  pbpk_simulation: {
+    dose_route: 'route', administration_route: 'route', admin_route: 'route',
+    compound: 'compound_name', drug: 'compound_name',
+  },
+  allometric_scaling: {
+    compound: 'drug_name', drug: 'drug_name',
+    weight: '__drop__', mw: '__drop__',
+  },
 };
 
 /**
@@ -980,6 +994,12 @@ export function remapInlineParametersForWorkflow(
     const finalKey = target ?? k;
     if (finalKey !== k) changed = true;
     out[finalKey] = v;
+  }
+  // Normalize route parameter: numeric codes → string labels (0=oral, 1=iv)
+  const ROUTE_CODES: Record<string, string> = { '0': 'oral', '1': 'iv', '2': 'sc', '3': 'im' };
+  if (out.route !== undefined && ROUTE_CODES[String(out.route)] !== undefined) {
+    out.route = ROUTE_CODES[String(out.route)];
+    changed = true;
   }
   if (changed) {
     console.log(
@@ -6277,13 +6297,13 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       if (isGemini && this.gemini) {
         const geminiModel = this.gemini.getGenerativeModel({
           model: effectiveIntentModel,
-          // Bumped 2500→4096→6144: complex queries (e.g. T03 "Base editing strategy…")
-          // truncated JSON at 2500, and heavy project context + prior messages caused
-          // Gemini to generate poor subQuery values when thinking was disabled.
-          // thinkingBudget: 1024 lets Flash use light CoT for complex contexts
-          // (preserves domain keywords in subQuery); simple queries use 0 think tokens.
-          // maxOutputTokens bumped to 6144 since thinking tokens count against this budget.
-          generationConfig: { temperature: 0, maxOutputTokens: 6144, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 1024 } } as any,
+          // Bumped 2500→4096: complex tier 0 queries (e.g. T03 "Base editing strategy for
+          // PCSK9 LOF in hypercholesterolemia (VERVE-102 style)") truncated JSON output at
+          // 2500, producing "Unexpected end of JSON input" and zero workflow_ready event.
+          // Gemini thinking tokens count against this budget; 4096 leaves room for the
+          // full intent + inlineParameters payload.
+          // thinkingBudget: 0 — intentional: Flash thinking disabled for latency.
+          generationConfig: { temperature: 0, maxOutputTokens: 4096, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } } as any,
           systemInstruction: systemPrompt,
         });
         // Attempt Gemini; on 429 immediately fall back to Haiku — no slow retry loop.
