@@ -113,6 +113,32 @@ function getFileType(extension: string): string {
   return 'binary';
 }
 
+const WORKFLOW_DISPLAY_NAMES: Record<string, string> = {
+  allometric_scaling:         "Allometric Scaling / FIH Dose Prediction",
+  clinical_trial_simulation:  "Clinical Trial Simulation",
+  pbpk_pediatric:             "Pediatric PBPK Simulation",
+  cyclic_peptide_design:      "Cyclic Peptide Design",
+  magma_gene_analysis:        "MAGMA Gene-Set Analysis",
+  clusterprofiler:            "ClusterProfiler Enrichment Analysis",
+  deseq2:                     "DESeq2 Differential Expression",
+  fcrn_antibody_pk:           "FcRn Antibody PK Simulation",
+  lnp_formulation_optimization: "LNP Formulation Optimization",
+  ich_s5_reproductive_tox:    "ICH S5 Reproductive Toxicology",
+  ich_s7a_safety_pharmacology:"ICH S7A Safety Pharmacology",
+  adaptive_trial_design:      "Adaptive Trial Design",
+};
+
+function humanizeWorkflowName(name: string): string {
+  if (!name) return name;
+  const mapped = WORKFLOW_DISPLAY_NAMES[name.toLowerCase()];
+  if (mapped) return mapped;
+  // If the name is all-lowercase with underscores (slug), title-case it
+  if (/^[a-z0-9_/-]+$/.test(name) && name.includes('_')) {
+    return name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+  return name;
+}
+
 /**
  * Determine workflow execution engine based on workflow definition.
  * Centralizes the logic for detecting Galaxy reuse vs Nextflow execution.
@@ -6010,6 +6036,14 @@ ${paramLines || '(none recorded)'}`;
         benchmarkEvidence: assistantResponse.benchmarkEvidence,
       };
 
+      // Normalize slug-style workflow names to human-readable display names in the payload
+      if (responsePayload.workflow && typeof (responsePayload.workflow as any).name === 'string') {
+        (responsePayload.workflow as any).name = humanizeWorkflowName((responsePayload.workflow as any).name);
+      }
+      if (responsePayload.workflow && typeof (responsePayload.workflow as any).workflow_name === 'string') {
+        (responsePayload.workflow as any).workflow_name = humanizeWorkflowName((responsePayload.workflow as any).workflow_name);
+      }
+
       // ── Deep-link: persist a stable, URL-addressable draft at GENERATION time ──
       // A generated workflow otherwise lives only in the client's in-memory chat
       // state, so a chat connector ("Open in BioMate" button) has nothing to point
@@ -6022,9 +6056,9 @@ ${paramLines || '(none recorded)'}`;
       if (responseState === "workflow_ready" && workflowPayload && req.user?.id) {
         try {
           const ga = (workflowPayload as any).workflow_ga || {};
-          const draftWorkflowName =
+          const draftWorkflowName = humanizeWorkflowName(
             ga.name || (workflowPayload as any).workflow_name ||
-            (workflowPayload as any).chain_display_name || "";
+            (workflowPayload as any).chain_display_name || "");
           // Build the panel-shaped workflow object the same way the client does
           // (chat-interface.tsx onSuccess): workflow_ga ?? workflow, with the
           // LLM-extracted inline params merged into inline_parameters.
@@ -6115,7 +6149,7 @@ ${paramLines || '(none recorded)'}`;
           //   2. workflow_name     — Nextflow catalog match (top-level field from ai_assistant)
           //   3. chain_display_name — chain result
           //   4. ""               — generated/composed workflow (display name unknown at this point)
-          workflow_name: ga.name || workflowPayload.workflow_name || workflowPayload.chain_display_name || "",
+          workflow_name: humanizeWorkflowName(ga.name || workflowPayload.workflow_name || workflowPayload.chain_display_name || ""),
           // Prefer the stable, URL-addressable draft id over the catalog ga.id
           // (which is often empty for generated/composed workflows). This is the
           // id embedded in view_url and resolvable via /api/workflow-draft/:id.
