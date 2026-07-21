@@ -1950,6 +1950,33 @@ class UnifiedWorkflowSearch:
         finally:
             conn.close()
 
+    def get_workflow_by_name_like(self, pattern: str) -> Optional["WorkflowMatch"]:
+        """Return best-matching workflow whose name matches the SQL LIKE pattern (case-insensitive).
+
+        Priority: prefer rows where name also contains 'predict', then lowest id.
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                SELECT id, name, description, domain, source, format,
+                       step_count, tools_used, tags, filename, workflow_json,
+                       0.0 as fts_score, input_types, output_types,
+                       real_exec_status, workflow_correctness_verdict, real_exec_provisional
+                FROM workflows
+                WHERE LOWER(name) LIKE LOWER(?)
+                ORDER BY
+                    CASE WHEN LOWER(name) LIKE '%predict%' THEN 0 ELSE 1 END,
+                    id
+                LIMIT 1
+            """, (pattern,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return self._create_match(row, "", True)
+        finally:
+            conn.close()
+
     # ── Workflow chain API ────────────────────────────────────────────────────
 
     def _row_to_chain(self, row) -> "WorkflowChain":

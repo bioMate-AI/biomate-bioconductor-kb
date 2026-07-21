@@ -3444,42 +3444,52 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             log.info("[AdmetFastPath] Found predict_admet_properties via direct DB filename pattern")
 
         if not top:
-            # Fallback 1: broad embedding search
+            # Fallback 1: broad embedding search — check both filename AND name
             results = self.workflow_search.search("predict admet properties pharmacology", limit=20)
             for r in results:
                 fn = (r.filename or '').lower()
-                if 'predict_admet_properties' in fn:
+                nm = (r.name or '').lower()
+                if ('predict_admet_properties' in fn
+                        or ('admet' in nm and ('predict' in nm or 'screen' in nm))):
                     top = r
                     break
 
         if not top:
+            # Fallback 2: embedding search on user intent
             results = self.workflow_search.search(user_intent, limit=20)
             for r in results:
                 fn = (r.filename or '').lower()
-                if 'predict_admet_properties' in fn:
+                nm = (r.name or '').lower()
+                if ('predict_admet_properties' in fn
+                        or ('admet' in nm and ('predict' in nm or 'screen' in nm))):
                     top = r
                     break
 
         if not top:
-            # Fallback 3: search by workflow display name
+            # Fallback 3: display-name search
             results = self.workflow_search.search("Predict ADMET Properties AI", limit=20)
             for r in results:
                 fn = (r.filename or '').lower()
                 nm = (r.name or '').lower()
-                if 'predict_admet_properties' in fn or ('admet' in nm and 'predict' in nm):
+                if ('predict_admet_properties' in fn
+                        or ('admet' in nm and ('predict' in nm or 'screen' in nm))):
                     top = r
                     break
 
         if not top:
-            # Fallback 4: name-based lookup — covers cases where the filename column
-            # doesn't contain "predict_admet_properties".  The name may be stored as
-            # 'predict_admet_properties' (underscores) OR 'Predict Admet Properties'
-            # (spaces, Title Case) depending on the indexer version.
+            # Fallback 4: exact name lookup — underscore and spaced Title Case variants
             top = self.workflow_search.get_workflow_by_name('predict_admet_properties')
             if not top:
                 top = self.workflow_search.get_workflow_by_name('Predict Admet Properties')
             if top:
-                log.info("[AdmetFastPath] Found predict_admet_properties via name lookup")
+                log.info("[AdmetFastPath] Found predict_admet_properties via exact name lookup")
+
+        if not top:
+            # Fallback 5: broad SQL name LIKE '%admet%' — catches any naming variation
+            # (e.g. 'ADMET Prediction', 'Drug ADMET Screening') in the dev DB.
+            top = self.workflow_search.get_workflow_by_name_like('%admet%')
+            if top:
+                log.info("[AdmetFastPath] Found via name LIKE %%admet%%: %s", top.name)
 
         if not top:
             log.warning("[AdmetFastPath] predict_admet_properties not found in DB — fast path skipped")
