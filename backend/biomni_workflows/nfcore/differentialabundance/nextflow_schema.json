@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "$id": "biomate-deseq2-stub",
+  "title": "BioMate nf-core/differentialabundance (embedded DESeq2 stub)",
+  "description": "Parameters for BioMate's standalone DESeq2 differential expression workflow. Accepts the same interface as nf-core/differentialabundance but executes embedded R code in a single Batch task.",
+  "type": "object",
+  "definitions": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "fa_icon": "fas fa-terminal",
+      "description": "Define where the pipeline should find input data and save output data.",
+      "required": ["input", "matrix"],
+      "properties": {
+        "input": {
+          "type": "string",
+          "format": "file-path",
+          "description": "Sample metadata CSV with a 'sample' column and condition columns. Required.",
+          "fa_icon": "fas fa-table",
+          "mimetype": "text/csv"
+        },
+        "matrix": {
+          "type": "string",
+          "format": "file-path",
+          "description": "Count matrix CSV (genes × samples). Row names = gene IDs; column names = sample IDs matching 'input'. Required.",
+          "fa_icon": "fas fa-table",
+          "mimetype": "text/csv"
+        },
+        "contrasts": {
+          "type": "string",
+          "format": "file-path",
+          "description": "Contrasts CSV with columns id, variable, reference, target. Optional; auto-derived from metadata if absent.",
+          "fa_icon": "fas fa-list-ol",
+          "mimetype": "text/csv"
+        },
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "Output directory path (local or s3://).",
+          "default": "./results",
+          "fa_icon": "fas fa-folder-open"
+        }
+      }
+    },
+    "differential_options": {
+      "title": "Differential expression options",
+      "type": "object",
+      "properties": {
+        "differential_min_fold_change": {
+          "type": "number",
+          "default": 2.0,
+          "description": "Minimum absolute fold-change for a gene to be called significant (used in volcano plot and gene list output)."
+        },
+        "differential_max_qval": {
+          "type": "number",
+          "default": 0.05,
+          "description": "Maximum adjusted p-value (BH-FDR) cutoff for significant genes."
+        },
+        "normalisation_method": {
+          "type": "string",
+          "default": "deseq2",
+          "enum": ["deseq2", "edger", "limma"],
+          "description": "Normalisation / DE method to apply."
+        },
+        "study_type": {
+          "type": "string",
+          "default": "rnaseq",
+          "enum": ["rnaseq", "maxquant", "affy", "metab"],
+          "description": "Assay type — controls how counts are pre-processed before DE analysis."
+        }
+      }
+    }
+  },
+  "allOf": [
+    { "$ref": "#/definitions/input_output_options" },
+    { "$ref": "#/definitions/differential_options" }
+  ]
+}

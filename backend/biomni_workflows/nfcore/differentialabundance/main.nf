@@ -242,10 +242,14 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
 workflow DIFFERENTIALABUNDANCE {
     main:
     if (!params.input)  error "Please provide --input (sample metadata CSV with a 'sample' column)"
-    if (!params.matrix) error "Please provide --matrix (count matrix CSV: genes × samples)"
+
+    // Build path list from non-null params; R will detect each file by name
+    def _paths = [params.input]
+    if (params.matrix)    _paths << params.matrix
+    if (params.contrasts) _paths << params.contrasts
 
     ch_input = Channel.of([[id: 'run']])
-        .combine(Channel.fromPath([params.input, params.matrix] + (params.contrasts ? [params.contrasts] : [])).collect().map { files -> [files] })
+        .combine(Channel.fromPath(_paths).collect().map { files -> [files] })
 
     DESEQ2_DIFFERENTIAL_ANALYSIS(ch_input)
 
