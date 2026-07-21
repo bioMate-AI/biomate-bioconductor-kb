@@ -15524,6 +15524,14 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
           });
           break;
 
+        case "search_literature":
+          result = await selfPost("/api/literature/search", {
+            query: body.query,
+            max_depth: body.max_depth,
+            min_results: body.min_results,
+          });
+          break;
+
         default:
           res.status(404).json({
             error: `Unknown operationId: ${operationId}`,
@@ -15532,7 +15540,7 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
               "watch_run", "get_run", "cancel_run", "list_runs", "preview_file",
               "export_report", "analyze_results", "explain_error", "query_database",
               "recall_memory", "upload_file", "resolve_accession", "browse_data",
-              "fetch_public_data",
+              "fetch_public_data", "search_literature",
             ],
           });
           return;
