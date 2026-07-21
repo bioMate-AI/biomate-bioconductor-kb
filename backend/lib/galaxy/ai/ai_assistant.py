@@ -3421,7 +3421,23 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         import re as _re_admet
 
         q_low = user_intent.lower()
-        if not _re_admet.search(r'\badmet\b', q_low):
+        # Primary trigger: explicit "admet" keyword
+        _has_admet = bool(_re_admet.search(r'\badmet\b', q_low))
+        # Extended trigger: SMILES string present + drug-property screening context.
+        # UQU sometimes rewrites "Screen X for ADMET properties" → "Predict pharmacokinetic
+        # properties for X" (dropping the literal word "admet"), causing the fast path to
+        # return None → general pharmacology routing → disambiguation gate → success=False.
+        # Trigger the fast path whenever a SMILES string appears alongside drug-screening terms.
+        _has_smiles = bool(_re_admet.search(
+            r'\bSMILES\s*[=:]\s*[A-Za-z0-9@\[\]\(\)\+\-=#\/\\\.%:]{8,}',
+            user_intent, _re_admet.IGNORECASE,
+        ))
+        _has_drug_screen = bool(_re_admet.search(
+            r'\b(screen|predict|assess|evaluat|calculat|estimat)\b.{0,60}'
+            r'\b(toxicolog|pharmacokin|herg|dili|bbb|bioavail|permeab|mutagenicit|drug.prop|admet)\b',
+            q_low, _re_admet.DOTALL,
+        ))
+        if not (_has_admet or (_has_smiles and _has_drug_screen)):
             return None
 
         # Search with wide limit — 67 pharmacology workflows compete for top-5
@@ -3483,6 +3499,32 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     _depth -= 1
             _smiles_json = _json_admet.dumps([_smiles_val])
             log.info("[AdmetFastPath] Extracted SMILES → smiles_list=%s", _smiles_json)
+
+        # Fallback: no explicit SMILES in query → try to resolve drug/compound name via PubChem.
+        # Handles "Screen iptacopan for ADMET" (no SMILES: notation). resolve_chemical_name
+        # uses PubChem PUG REST with 7-day Redis cache; fails gracefully (returns None).
+        if not _smiles_json:
+            try:
+                from galaxy.ai.federated_query import resolve_chemical_name as _rcn
+                # Extract a likely compound name: favour known patterns (drug INN suffix,
+                # CAS-like, or any capitalized word near ADMET / screen keyword).
+                _compound_m = _re_admet.search(
+                    r'\b(?:screen|predict|evaluat|assess)\b\s+([A-Za-z][A-Za-z0-9\-]{2,30})'
+                    r'|([A-Za-z][A-Za-z0-9\-]{2,30})\s+(?:for|in)\s+(?:admet|drug|pharmacok)',
+                    user_intent, _re_admet.IGNORECASE,
+                )
+                if _compound_m:
+                    _cname = (_compound_m.group(1) or _compound_m.group(2) or '').strip()
+                    if _cname and len(_cname) > 3:
+                        _resolved = _rcn(_cname)
+                        if _resolved:
+                            _smiles_json = _json_admet.dumps([_resolved])
+                            log.info(
+                                "[AdmetFastPath] Drug name %r → SMILES resolved via PubChem: %s",
+                                _cname, _resolved[:60],
+                            )
+            except Exception as _rcn_err:
+                log.debug("[AdmetFastPath] Drug name resolution skipped: %s", _rcn_err)
 
         log.info(
             "[UnifiedWorkflowGeneration] ADMET fast path → %s (score=%.1f)",

@@ -645,6 +645,7 @@ _SMILES_PARAM_NAMES = {
     "smiles", "ligand_smiles", "molecule_smiles", "compound_smiles",
     "query_smiles", "input_smiles", "smiles_string", "smile",
     "ligand", "molecule", "compound",  # common aliases
+    "smiles_list",  # ADMET/docking workflows pass compound lists as smiles_list
 }
 
 # A value is a chemical name (not SMILES) when it:
