@@ -3471,6 +3471,13 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     break
 
         if not top:
+            # Fallback 4: exact name match — covers cases where filename column
+            # doesn't contain "predict_admet_properties" but the name field does.
+            top = self.workflow_search.get_workflow_by_name('predict_admet_properties')
+            if top:
+                log.info("[AdmetFastPath] Found predict_admet_properties via exact name lookup")
+
+        if not top:
             log.warning("[AdmetFastPath] predict_admet_properties not found in DB — fast path skipped")
             return None
 
@@ -3984,31 +3991,50 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 plausible = [r for r in search_results if r.score >= _DISAMBIG_MIN_SCORE]
                 if (len(plausible) >= 2
                         and (plausible[0].score - plausible[1].score) < _DISAMBIG_GAP_THRESHOLD):
-                    disambig_candidates = []
-                    for m in plausible[:4]:
-                        disambig_candidates.append({
-                            'name': m.name,
-                            'display_name': getattr(m, 'display_name', None) or m.name,
-                            'description': (getattr(m, 'description', None) or '')[:220],
-                            'source': getattr(m, 'source', ''),
-                            'format': getattr(m, 'format', ''),
-                            'score': round(m.score, 2),
-                        })
-                    log.info(
-                        "[UnifiedWorkflowGeneration] Disambiguation — %d plausible candidates "
-                        "(gap=%.1f < %.1f): %s",
-                        len(plausible), plausible[0].score - plausible[1].score,
-                        _DISAMBIG_GAP_THRESHOLD, [c['name'] for c in disambig_candidates],
+                    # ADMET bypass: "admet" in the query unambiguously identifies
+                    # predict_admet_properties even when the scoring gap is narrow
+                    # (other pharmacology workflows compete). The fast path should have
+                    # handled this, but if the workflow was found via embedding (not DB
+                    # name lookup) it arrives here. Bypass the gate and fall through so
+                    # _return_nextflow_match is called with the correct top candidate.
+                    _top_nm_d = (plausible[0].name or '').lower()
+                    _admet_gate_bypass = (
+                        re.search(r'\badmet\b', user_intent, re.IGNORECASE)
+                        and ('predict_admet' in _top_nm_d or _top_nm_d == 'admet')
                     )
-                    return {
-                        'success': False,
-                        'workflow_type': 'disambiguation',
-                        'message': (
-                            "I found several workflows that could match your request. "
-                            "Which best fits what you need?"
-                        ),
-                        'candidates': disambig_candidates,
-                    }
+                    if _admet_gate_bypass:
+                        log.info(
+                            "[UnifiedWorkflowGeneration] Disambiguation bypass — ADMET query, "
+                            "top=%s (gap=%.1f) — falling through to routing",
+                            plausible[0].name,
+                            plausible[0].score - plausible[1].score,
+                        )
+                    else:
+                        disambig_candidates = []
+                        for m in plausible[:4]:
+                            disambig_candidates.append({
+                                'name': m.name,
+                                'display_name': getattr(m, 'display_name', None) or m.name,
+                                'description': (getattr(m, 'description', None) or '')[:220],
+                                'source': getattr(m, 'source', ''),
+                                'format': getattr(m, 'format', ''),
+                                'score': round(m.score, 2),
+                            })
+                        log.info(
+                            "[UnifiedWorkflowGeneration] Disambiguation — %d plausible candidates "
+                            "(gap=%.1f < %.1f): %s",
+                            len(plausible), plausible[0].score - plausible[1].score,
+                            _DISAMBIG_GAP_THRESHOLD, [c['name'] for c in disambig_candidates],
+                        )
+                        return {
+                            'success': False,
+                            'workflow_type': 'disambiguation',
+                            'message': (
+                                "I found several workflows that could match your request. "
+                                "Which best fits what you need?"
+                            ),
+                            'candidates': disambig_candidates,
+                        }
 
             # Step 2: Decide strategy based on template match confidence
             # match_type is set by UnifiedWorkflowSearch._classify_match():

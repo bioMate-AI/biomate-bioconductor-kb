@@ -1929,6 +1929,27 @@ class UnifiedWorkflowSearch:
         finally:
             conn.close()
 
+    def get_workflow_by_name(self, name: str) -> Optional["WorkflowMatch"]:
+        """Return the first workflow whose name matches exactly (case-insensitive)."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                SELECT id, name, description, domain, source, format,
+                       step_count, tools_used, tags, filename, workflow_json,
+                       0.0 as fts_score, input_types, output_types,
+                       real_exec_status, workflow_correctness_verdict, real_exec_provisional
+                FROM workflows
+                WHERE LOWER(name) = LOWER(?)
+                LIMIT 1
+            """, (name,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return self._create_match(row, "", True)
+        finally:
+            conn.close()
+
     # ── Workflow chain API ────────────────────────────────────────────────────
 
     def _row_to_chain(self, row) -> "WorkflowChain":
