@@ -4251,6 +4251,31 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                             search_results
                         )
 
+            # Dev DB fix: ADMET workflow may have format='galaxy_ga' (NULL in DB) regardless
+            # of which search path found it. The disambiguation bypass (above) covers gap<3.0
+            # cases; this guard covers all remaining paths — high_confidence, medium_confidence,
+            # and fallthrough after fast-path exception. Must run before any format check.
+            if best_match:
+                _bm_nm = (getattr(best_match, 'name', '') or '').lower()
+                _bm_fn = (getattr(best_match, 'filename', '') or '')
+                _bm_fn_lower = _bm_fn.lower()
+                if (('admet' in _bm_nm or 'predict_admet' in _bm_fn_lower)
+                        and getattr(best_match, 'format', '') != 'nextflow'):
+                    if not _bm_fn:
+                        best_match.filename = (
+                            'nextflow_nfcore/subworkflows/pharmacology/'
+                            'predict_admet_properties/main.nf'
+                        )
+                    best_match.format = 'nextflow'
+                    log.warning(
+                        "[UnifiedWorkflowGeneration] Pre-step2 ADMET format fix: "
+                        "forced format='nextflow' for %s (match_type=%s)",
+                        best_match.name, match_type,
+                    )
+                    executable_nextflow_match = self._pick_best_executable_nextflow_match(
+                        search_results
+                    )
+
             if match_type == "high_confidence":
                 # High confidence - reuse existing workflow
                 log.info("[UnifiedWorkflowGeneration] High confidence match - reusing workflow")
