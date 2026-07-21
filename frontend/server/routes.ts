@@ -15908,8 +15908,8 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
 
         case "fetch_public_data":
           result = await selfPost("/api/data/fetch", {
-            source_id: body.source_id,
-            remote_path: body.remote_path,
+            source: body.source_id,
+            path: body.remote_path,
             url: body.url,
           });
           break;
