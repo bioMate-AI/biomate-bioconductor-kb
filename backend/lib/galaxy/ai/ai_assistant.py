@@ -3208,7 +3208,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             'Medium confidence match — please verify tool selection is appropriate'
         ]
         # CryoSPARC SPA has its own dedicated GPU executor — route it there
-        _is_cryosparc = "cryosparc" in match.filename.lower() or "cryosparc" in match.name.lower()
+        _is_cryosparc = "cryosparc" in (match.filename or '').lower() or "cryosparc" in (match.name or '').lower()
         _wf_type = 'cryosparc' if _is_cryosparc else 'nextflow'
         _exec_engine = 'cryosparc' if _is_cryosparc else 'nextflow'
         # Build flat parameters dict for CryoSPARC execute endpoint.
@@ -3992,23 +3992,38 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 if (len(plausible) >= 2
                         and (plausible[0].score - plausible[1].score) < _DISAMBIG_GAP_THRESHOLD):
                     # ADMET bypass: "admet" in the query unambiguously identifies
-                    # predict_admet_properties even when the scoring gap is narrow
-                    # (other pharmacology workflows compete). The fast path should have
-                    # handled this, but if the workflow was found via embedding (not DB
-                    # name lookup) it arrives here. Bypass the gate and fall through so
-                    # _return_nextflow_match is called with the correct top candidate.
-                    _top_nm_d = (plausible[0].name or '').lower()
-                    _admet_gate_bypass = (
-                        re.search(r'\badmet\b', user_intent, re.IGNORECASE)
-                        and ('predict_admet' in _top_nm_d or _top_nm_d == 'admet')
-                    )
-                    if _admet_gate_bypass:
+                    # predict_admet_properties regardless of where it sits in the ranking.
+                    # The gap is narrow because other pharmacology workflows (docking, PK)
+                    # also score well for drug-screening queries — NOT because the intent is
+                    # ambiguous. Scan the full plausible list and promote predict_admet_properties
+                    # to position 0 so routing falls through to _return_nextflow_match.
+                    _admet_match = None
+                    if re.search(r'\badmet\b', user_intent, re.IGNORECASE):
+                        for _pm in plausible:
+                            _pm_nm = (_pm.name or '').lower()
+                            if 'predict_admet' in _pm_nm or _pm_nm == 'admet':
+                                _admet_match = _pm
+                                break
+
+                    if _admet_match is not None:
                         log.info(
                             "[UnifiedWorkflowGeneration] Disambiguation bypass — ADMET query, "
-                            "top=%s (gap=%.1f) — falling through to routing",
-                            plausible[0].name,
+                            "found %s at score=%.1f (gap=%.1f) — promoting to #1",
+                            _admet_match.name, _admet_match.score,
                             plausible[0].score - plausible[1].score,
                         )
+                        # Promote the ADMET workflow to position 0
+                        search_results = (
+                            [_admet_match]
+                            + [r for r in search_results if r is not _admet_match]
+                        )
+                        best_match = _admet_match
+                        score = _admet_match.score
+                        match_type = _admet_match.match_type
+                        executable_nextflow_match = self._pick_best_executable_nextflow_match(
+                            search_results
+                        )
+                        # Fall through to Step 2 routing below
                     else:
                         disambig_candidates = []
                         for m in plausible[:4]:
