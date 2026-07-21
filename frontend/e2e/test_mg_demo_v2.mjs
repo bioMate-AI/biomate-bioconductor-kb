@@ -2,14 +2,14 @@
  * MG Tutorial Demo — Full End-to-End Test (real user flow)
  *
  * Models the actual conference demo experience:
- *   Turn 1: User uploads local CSV files via DatasetBrowser (+), asks for DESeq2
+ *   Turn 1: User clicks MG chip (pre-staged S3 URIs embedded) → sends message
  *           → workflow routes → user clicks Run → waits for completion → audits outputs
  *   Turn 2: User says "Yes" to enrichGO suggestion (AFTER DESeq2 complete)
  *           → workflow routes → user clicks Run → waits for completion → audits outputs
  *   Turn 3: User provides iptacopan SMILES, ADMET executes end-to-end
  *           → workflow routes → user clicks Run → waits for completion → audits outputs
  *
- * Does NOT upload to S3 directly — all file handling goes through the BioMate UI.
+ * No file upload required — chip embeds pre-staged S3 URIs for Batch workers.
  * Does NOT mock anything — all workflows execute against the real dev backend.
  */
 import { chromium } from '@playwright/test';
@@ -387,26 +387,32 @@ async function auditChatMessage(page, msgIndex, turnLabel) {
     const aiMsgSel = '[class*="assistant"], .assistant-message';
 
     // ════════════════════════════════════════════════════════════════════════
-    // TURN 1: Upload files → DESeq2 route → Run → Audit outputs
+    // TURN 1: Click chip (pre-staged S3 URIs) → DESeq2 route → Run → Audit
     // ════════════════════════════════════════════════════════════════════════
-    console.log('\n══ Turn 1 — File upload + DESeq2 ══');
-    createDataFiles();
-    const filePaths = [
-      `${SCRATCHPAD}/counts_matrix.csv`,
-      `${SCRATCHPAD}/sample_metadata.csv`,
-      `${SCRATCHPAD}/contrasts.csv`,
-    ];
-    const allExist = filePaths.every(fp => existsSync(fp));
-    record('Local data files exist', allExist, filePaths.map(p => path.basename(p)).join(', '));
+    console.log('\n══ Turn 1 — Chip click → DESeq2 (pre-staged S3 data, no file upload) ══');
 
-    const chipsAppeared = await uploadFilesViaBrowser(page, filePaths);
-    record('Turn 1 — Files uploaded via DatasetBrowser UI', chipsAppeared);
-    await screenshot(page, '03_after_upload');
+    // Re-click chip to get the full query with S3 URIs in the textarea
+    const mgChip2 = page.locator('button, [role="button"]').filter({ hasText: /MG patient stratification/i }).first();
+    const chipVisible2 = await mgChip2.isVisible({ timeout: 5000 }).catch(() => false);
+    if (chipVisible2) {
+      await mgChip2.click();
+      await page.waitForTimeout(800);
+    }
+    const ta = page.locator('textarea').first();
+    const chipText = await ta.inputValue().catch(() => '');
+    const hasS3 = chipText.includes('s3://biomate-nextflow-work/demo/mg_demo/');
+    record('Turn 1 — chip text contains pre-staged S3 URIs', hasS3, hasS3 ? 'S3 URIs found' : `"${chipText.slice(0,80)}"`);
+    await screenshot(page, '03_chip_with_s3');
 
-    const turn1Msg = 'Run differential expression on these AChR+ myasthenia gravis PBMC files (10 MG patients vs 10 healthy controls) — identify the key complement pathway drivers.';
-    console.log(`  Sending: "${turn1Msg.slice(0, 80)}..."`);
     const msgs0 = await page.locator(aiMsgSel).count();
-    await sendMessage(page, turn1Msg, { chipWaitMs: 1000 });
+    // Send the chip message as-is (S3 URIs already embedded)
+    const sendBtn = page.locator('[data-testid="chat-send-button"]').first();
+    if (await sendBtn.isVisible({ timeout: 2000 })) {
+      await sendBtn.click();
+    } else {
+      await page.keyboard.press('Enter');
+    }
+    console.log(`  Sent chip message (${chipText.length} chars, S3 URIs embedded)`);
 
     const card1 = await waitForWorkflowCard(page, msgs0, 90000);
     record('Turn 1 — workflow card appears', card1.found, (card1.name || '').slice(0, 60));

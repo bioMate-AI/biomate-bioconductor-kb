@@ -3641,6 +3641,44 @@ Rules:
       }
     }
 
+    // ADMET / pharmacology drug-screening override:
+    // Queries that combine an ADMET keyword (admet, herg, dili, ames, solubility, bbb, caco-2,
+    // drug-like, safety endpoints) with a molecular structure input (SMILES string or .sdf file)
+    // are always predict_admet_properties workflow executions — not research questions or
+    // tool searches. The intent classifier sometimes returns research_question when project
+    // context already mentions ADMET goals (it sees the goal as "already answered"). Force
+    // workflow_generation and reset subQuery to the original message so the Python ADMET
+    // fast-path receives the exact SMILES-bearing text it regex-matches against (bypassing
+    // any Gemini rephrasing that strips "ADMET" or "SMILES" from the subQuery).
+    {
+      const _isAdmetScreeningQuery =
+        /\b(admet|herg|dili|ames\s+(mutagenicity|test)|caco.?2|bbb\s+(penetration|permeab)|blood.brain.barrier|drug.like(ness)?|solubility\s+(aqueous|prediction)|toxicity\s+(prediction|screening)|safety\s+(endpoint|screen)|admet\s+propert|screen.*admet|admet.*screen)\b/i.test(message) &&
+        // Requires a molecular structure input signal
+        (/\bSMILES\s*[=:]/i.test(message) || /\.sdf\b/i.test(message) ||
+         /\b([A-Z][a-z]?\([A-Za-z=]\)|c1[a-z]|CC\(|n1|O=C|Cl[^a-z]|Br[^a-z]|[a-z]{1,2}\d{1,2})[A-Za-z0-9@\[\]()=#\/\\\.+\-]{6,}/.test(message)) &&
+        !/\b(what\s+is|what\s+are|how\s+does|explain|tell\s+me|overview|concept|describe|difference)\b/i.test(message);
+      if (_isAdmetScreeningQuery) {
+        if (!actions.needsWorkflowGeneration) {
+          log('ADMET screening override: forcing needsWorkflowGeneration=true → predict_admet_properties');
+          actions.needsWorkflowGeneration = true;
+          actions.needsResearchAgent = false;
+          intent.type = 'workflow_generation';
+        }
+        // Always reset subQuery to the original message so the Python ADMET fast-path
+        // regex-matches against the literal "ADMET" keyword and "SMILES:" token.
+        // Gemini may drop these when project context already describes the ADMET goal,
+        // causing the fast-path to miss and fall through to the disambiguation gate.
+        intent.subQuery = message;
+        if (!decomposition.preferredDomains) decomposition.preferredDomains = [];
+        if (!decomposition.preferredDomains.includes('drug_discovery')) {
+          decomposition.preferredDomains.push('drug_discovery');
+        }
+        // Suppress research agent — the workflow panel is the output; a research text
+        // response would mask the panel card.
+        actions.needsResearchAgent = false;
+      }
+    }
+
     // HPO + ENSG candidate gene override:
     // Messages containing HPO phenotype codes (HP:XXXXXXX) AND ENSG gene IDs are patient gene
     // detection tasks — they query ClinVar/OMIM/Monarch to find the causal gene from a candidate

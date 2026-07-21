@@ -119,7 +119,7 @@ const ONBOARDING_DONE_KEY = 'biomate_onboarding_done'
 const EXAMPLE_QUERIES = [
   {
     label: 'MG patient stratification → ADMET',
-    query: 'Run differential expression on AChR+ myasthenia gravis PBMC data (GSE227835, 10 MG patients vs 10 healthy controls) to find the key complement pathway drivers.',
+    query: 'Run differential expression on AChR+ myasthenia gravis PBMC data (GSE227835, 10 MG patients vs 10 healthy controls) to find the key complement pathway drivers. Use these pre-staged files — samplesheet: s3://biomate-nextflow-work/demo/mg_demo/sample_metadata.csv, matrix: s3://biomate-nextflow-work/demo/mg_demo/counts_matrix.csv, contrasts: s3://biomate-nextflow-work/demo/mg_demo/contrasts.csv',
   },
   {
     label: 'ADMET screen from SMILES',
