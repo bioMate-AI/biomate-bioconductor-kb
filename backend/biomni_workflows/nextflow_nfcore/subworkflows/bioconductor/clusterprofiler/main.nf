@@ -20,6 +20,13 @@
 
 nextflow.enable.dsl = 2
 
+params.gene_list       = null   // path to gene_list.txt (one gene per line, symbol or Entrez ID)
+params.species         = 'human'
+params.ontology        = 'BP'   // GO ontology: BP, MF, CC, or ALL
+params.pvalue_cutoff   = 0.05
+params.qvalue_cutoff   = 0.2
+params.outdir          = './results'
+
 process BIOC_CLUSTERPROFILER_OVER_REPRESENTATION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
@@ -262,10 +269,13 @@ process BIOC_CLUSTERPROFILER_OVER_REPRESENTATION_ANALYSIS {
 }
 
 workflow BIOC_CLUSTERPROFILER_OVER_REPRESENTATION_ANALYSIS_WORKFLOW {
-    take:
-    ch_input  // channel: [ val(meta), [ gene_list.txt ] ]
-
     main:
+    if (!params.gene_list) {
+        error "Please provide --gene_list (path to a plain-text file with one gene symbol or Entrez ID per line)"
+    }
+    ch_input = Channel.fromPath(params.gene_list)
+        .map { f -> [ [id: f.baseName], [f] ] }
+
     BIOC_CLUSTERPROFILER_OVER_REPRESENTATION_ANALYSIS(ch_input)
 
     emit:
