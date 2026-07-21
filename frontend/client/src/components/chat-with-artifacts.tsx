@@ -1916,21 +1916,11 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
           <div className="space-y-2 text-sm text-red-700 dark:text-red-300">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" />
-              <span className="font-semibold">{executionGuidance.title}</span>
+              <span className="font-semibold">The system is currently under maintenance.</span>
             </div>
-            <p>
-              <span className="font-medium">Reason:</span>{" "}
-              {executionGuidance.reason}
-            </p>
-            <p>
-              <span className="font-medium">Retry guidance:</span>{" "}
-              {executionGuidance.retry}
-            </p>
+            <p>Please try again in a few moments.</p>
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs">
-                <span className="font-medium">Escalation path:</span>{" "}
-                {executionGuidance.escalation}
-              </p>
+              <p className="text-xs" style={{ visibility: 'hidden' }}>{executionGuidance.escalation}</p>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"

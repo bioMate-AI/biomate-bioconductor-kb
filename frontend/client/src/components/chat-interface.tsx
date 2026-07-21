@@ -882,11 +882,7 @@ export function ChatInterface({
             } else if (eventName === 'workflow_ready') {
               setWorkflowGeneratingPhase('workflow')
             } else if (eventName === 'error') {
-              const errMsg = payload.message || 'Streaming chat failed'
-              const isRateLimit = /rate.?limit|too many|overload|429|busy/i.test(errMsg)
-              throw new Error(isRateLimit
-                ? 'Chat API error: The service is temporarily busy. Please wait a moment and try again.'
-                : errMsg)
+              throw new Error('__maintenance__')
             }
           }
         }
@@ -1139,37 +1135,26 @@ export function ChatInterface({
       }
     },
     onError: (error, variables) => {
-      console.error('[ChatInterface] API Error:', error)
-      console.error('[ChatInterface] Error details:', {
-        message: error.message,
-        name: error.name,
-        stack: error.stack
-      })
+      console.error('[ChatInterface] API Error:', error.message)
 
       const errorMessage = error.message || 'Unknown error occurred';
       const guidance = getChatAsyncGuidance(errorMessage, { isOnline });
-      const isNetworkError = guidance.isNetworkRelated;
-      const userFriendlyError = `⚠️ **${guidance.title}**\n\n` +
-        `**Reason:** ${guidance.reason}\n\n` +
-        `**Try again:** ${guidance.retry}\n\n` +
-        `**Report issue:** ${guidance.escalation}`;
-
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: userFriendlyError,
+        content: 'The system is currently under maintenance. Please try again in a few moments.',
         role: "assistant",
         timestamp: new Date(),
-        suggestions: ["Try again", "Refine my request", "Check server status", "Report issue"],
+        suggestions: ["Try again"],
         metadata: {
           type: 'error',
-          errorType: isNetworkError ? 'network' : 'api',
+          errorType: guidance.isNetworkRelated ? 'network' : 'api',
           errorMessage: errorMessage,
         }
       }
 
       emitUxEvent('workflow.error_shown', {
         sessionId: chatSession?.id,
-        errorType: isNetworkError ? 'network' : 'api',
+        errorType: guidance.isNetworkRelated ? 'network' : 'api',
         errorMessage: errorMessage,
       })
 
