@@ -230,6 +230,50 @@ function AuthenticatedPageLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** One-time dismissible banner nudging mobile users to switch to desktop. */
+function MobileBanner() {
+  const [dismissed, setDismissed] = useState(() => {
+    try { return localStorage.getItem('biomate_mobile_banner_dismissed') === '1' } catch { return false }
+  })
+
+  if (dismissed) return null
+
+  const dismiss = () => {
+    setDismissed(true)
+    try { localStorage.setItem('biomate_mobile_banner_dismissed', '1') } catch {}
+  }
+
+  return (
+    <div
+      style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '7px 14px',
+        background: 'hsl(214 100% 97%)',
+        borderBottom: '1px solid hsl(214 60% 88%)',
+        fontSize: 13, flexShrink: 0,
+        color: 'hsl(214 60% 30%)',
+      }}
+      data-testid="mobile-banner"
+    >
+      <span style={{ flex: 1, lineHeight: 1.4 }}>
+        BioMate works best on a computer — some features may be limited on mobile.
+      </span>
+      <button
+        onClick={dismiss}
+        aria-label="Dismiss"
+        style={{
+          border: 'none', background: 'none', cursor: 'pointer',
+          padding: '2px 4px', borderRadius: 4, flexShrink: 0,
+          color: 'hsl(214 60% 40%)', display: 'flex', alignItems: 'center',
+          opacity: 0.8,
+        }}
+      >
+        <X style={{ width: 15, height: 15 }} />
+      </button>
+    </div>
+  )
+}
+
 /** Thin bar shown at the top of the main content area when a project is active. */
 function ActiveProjectBanner() {
   const { activeProject, setActiveProjectId } = useActiveProject()
@@ -328,6 +372,7 @@ function PlatformLayout({
 
   return (
     <div className="h-dvh w-full flex flex-col" style={{ background: 'var(--bm-bg, hsl(var(--background)))' }}>
+      {isMobile && <MobileBanner />}
       {/* Mobile header bar — only on small screens */}
       {isMobile && (
         <div
