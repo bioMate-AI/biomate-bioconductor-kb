@@ -355,7 +355,8 @@
 .step-meta {
   font-size: 11.5px; color: var(--text-dim);
   margin-top: 3px; font-family: var(--font-mono);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  white-space: normal; word-break: break-all;
+  display: flex; flex-direction: column; gap: 2px;
 }
 .step-outputs {
   margin-top: 6px;

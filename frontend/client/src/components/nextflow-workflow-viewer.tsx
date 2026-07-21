@@ -709,7 +709,9 @@ function PhaseGroupSection({
                   if (visible.length === 0) return null;
                   return (
                     <div className="step-meta">
-                      {visible.slice(0,3).map(([k,v]) => `${k}: ${v}`).join(' · ')}
+                      {visible.slice(0,3).map(([k,v]) => (
+                        <span key={k}><span style={{opacity:0.6}}>{k}:</span> {String(v)}</span>
+                      ))}
                     </div>
                   );
                 })()}
