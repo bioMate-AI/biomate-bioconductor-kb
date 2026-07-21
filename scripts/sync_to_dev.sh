@@ -583,6 +583,17 @@ deploy_databases() {
   [[ "$local_db_mtime" =~ ^[0-9]+$ ]] || local_db_mtime=0
 
   if [[ "$local_db_mtime" -gt "${LAST_DB_SYNC:-0}" ]]; then
+    # MD5 short-circuit: mtime fires on every run (LAST_DB_SYNC is not persisted
+    # across shell invocations). Skip the 300MB S3 upload if local and dev are
+    # already byte-for-byte identical. _DEV_DB_MD5 was fetched during pre-flight.
+    local _cur_local_md5
+    _cur_local_md5=$(md5 -q "$local_db" 2>/dev/null \
+      || md5sum "$local_db" 2>/dev/null | cut -d' ' -f1 \
+      || echo '')
+    if [[ -n "$_cur_local_md5" && "$_cur_local_md5" == "${_DEV_DB_MD5:-}" ]]; then
+      log "[db] galaxy_ai_tools.db MD5 matches dev (${_cur_local_md5}) — skipping upload"
+      LAST_DB_SYNC="$local_db_mtime"
+    else
     # Transfer via S3 presigned URL: avoids SSM tunnel "Bad packet length"
     # corruption that hits at ~17 min for any file >~60MB over the SSM proxy.
     # Local uploads to S3 (user's internet); EC2 pulls from S3 via HTTPS
@@ -674,6 +685,7 @@ sys.exit(0 if ok else 1)
 " && echo "[embed] Embedding rebuild OK" || echo "[embed] WARNING: embedding rebuild failed — server will use FTS-only on first request"
     ' || log "[embed] WARNING: embedding rebuild ssh step failed"
     LAST_DB_SYNC="$local_db_mtime"
+    fi  # end MD5 short-circuit else
   else
     log "[db] galaxy_ai_tools.db unchanged — skipping"
   fi
