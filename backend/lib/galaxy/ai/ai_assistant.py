@@ -2233,6 +2233,8 @@ Respond with a single JSON object — no other text:
            Preferred when the stub lacks a schema (gives authoritative param metadata).
         3. Bare backend-relative path.
         """
+        if not filename:
+            return None
         from pathlib import Path as _Path
         this_file = _Path(__file__).resolve()
         backend_root = this_file.parent
@@ -3494,6 +3496,12 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         if not top:
             log.warning("[AdmetFastPath] predict_admet_properties not found in DB — fast path skipped")
             return None
+
+        # Guard: if the DB row has filename=NULL (common in dev DB), inject the known path.
+        # Without this, _find_nf_file(None) throws AttributeError → fast path silently fails.
+        if not top.filename:
+            top.filename = 'nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf'
+            log.warning("[AdmetFastPath] ADMET workflow found (name=%s) but filename=NULL — injected known path", top.name)
 
         # Extract SMILES from query. We do NOT inject it into the intent string —
         # doing so lets _apply_llm_suggestions overwrite the value with a raw SMILES
