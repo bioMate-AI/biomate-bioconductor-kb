@@ -10108,15 +10108,34 @@ ${paramLines || '(none recorded)'}`;
 
           // Build UUID → { filePath, name } map from session datasets + in-memory registry
           const _uuidFilePaths: Record<string, { filePath: string; name: string }> = {};
+          const _uuidS3Uris: Record<string, string> = {};
           const _sessionDs: any[] = req.session?.uploadedDatasets || [];
           for (const d of _sessionDs) {
             const _fp = d.file_path;
-            if (!_fp) continue;
-            if (d.galaxy_dataset_id) _uuidFilePaths[d.galaxy_dataset_id] = { filePath: _fp, name: d.name || '' };
-            if (d.dataset_id) _uuidFilePaths[d.dataset_id] = { filePath: _fp, name: d.name || '' };
+            if (_fp) {
+              if (d.galaxy_dataset_id) _uuidFilePaths[d.galaxy_dataset_id] = { filePath: _fp, name: d.name || '' };
+              if (d.dataset_id) _uuidFilePaths[d.dataset_id] = { filePath: _fp, name: d.name || '' };
+            }
+            // Also collect already-uploaded s3_uris (from upload-time staging)
+            if (d.s3_uri) {
+              if (d.galaxy_dataset_id) _uuidS3Uris[d.galaxy_dataset_id] = d.s3_uri;
+              if (d.dataset_id) _uuidS3Uris[d.dataset_id] = d.s3_uri;
+            }
           }
           for (const [id, entry] of uploadedFileRegistry.entries()) {
             if (entry.filePath) _uuidFilePaths[id] = { filePath: entry.filePath, name: entry.name };
+            if (entry.s3Uri) _uuidS3Uris[id] = entry.s3Uri;
+          }
+
+          // Pre-substitute UUIDs that already have s3 URIs from upload-time staging.
+          // This avoids a redundant re-upload and ensures the param is an s3:// URI
+          // before stageLocalFilesForBatch runs (which handles the remaining UUIDs).
+          const _UUID_PRE_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          for (const [k, v] of Object.entries(rawParams)) {
+            if (typeof v === 'string' && _UUID_PRE_RE.test(v) && _uuidS3Uris[v]) {
+              console.log(`[S3Subst] Pre-substituted ${k}=${v} → ${_uuidS3Uris[v]}`);
+              rawParams[k] = _uuidS3Uris[v];
+            }
           }
 
           const stagedParams = await stageLocalFilesForBatch(
