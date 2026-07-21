@@ -2353,7 +2353,7 @@ Respond with a single JSON object — no other text:
         seen_names: set = set()
         section_re = _re.compile(r'//\s*\[([A-Za-z][A-Za-z0-9 _-]*)\]')
         param_re = _re.compile(r'^\s*params\.(\w+)\s*=\s*(.+)$')
-        current_group: str | None = None
+        current_group: Optional[str] = None
         for line in text.splitlines():
             # Detect section header: // [Phase A] ... or // [Global] ...
             sec_m = section_re.search(line)

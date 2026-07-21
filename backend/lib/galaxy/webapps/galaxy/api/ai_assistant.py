@@ -1104,7 +1104,7 @@ def _parse_nextflow_params_impl(nf_filename: str) -> Dict[str, Any]:
         param_re = re.compile(
             r"^params\.([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*('[^']*'|\"[^\"]*\"|[^\n/]+?)\s*(?://\s*(.+))?$",
         )
-        current_group: str | None = None
+        current_group: Optional[str] = None
         for line in content.splitlines():
             # Check for section header comment
             sec_m = section_re.search(line)
