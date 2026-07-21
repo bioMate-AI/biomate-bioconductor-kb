@@ -4,7 +4,8 @@
 
 nextflow.enable.dsl = 2
 
-params.input            = null          // Sample metadata CSV (S3 URI or local path)
+params.samplesheet      = null          // Sample metadata / samplesheet CSV (S3 URI or local path)
+params.input            = null          // Alias for samplesheet (nf-core convention)
 params.matrix           = null          // Count matrix CSV (genes × samples)
 params.contrasts        = null          // Contrasts CSV (id, variable, reference, target)
 params.genome           = null          // Reference genome (for annotation, optional)
@@ -53,7 +54,7 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
     script:
     def min_fc    = params.differential_min_fold_change ?: 2.0
     def max_qval  = params.differential_max_qval ?: 0.05
-    def input_uri = params.input ?: ''
+    def input_uri = params.samplesheet ?: params.input ?: ''
     def matrix_uri    = params.matrix ?: ''
     def contrasts_uri = params.contrasts ?: ''
     """
@@ -251,7 +252,7 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
 
 workflow DIFFERENTIALABUNDANCE {
     main:
-    if (!params.input) error "Please provide --input (sample metadata CSV or S3 URI)"
+    if (!params.samplesheet && !params.input) error "Please provide --samplesheet (sample metadata CSV or S3 URI)"
 
     DESEQ2_DIFFERENTIAL_ANALYSIS(Channel.value([id: 'run']))
 
