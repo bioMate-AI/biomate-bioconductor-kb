@@ -2195,6 +2195,25 @@ export function NextflowWorkflowViewer({
         console.warn("[SSE] chain_suggestion parse error:", err);
       }
     });
+    // ── Post-completion proactive suggestion ─────────────────────────────
+    es.addEventListener("proactive_suggestion", (event: MessageEvent) => {
+      if (!onWorkflowProgress) return;
+      try {
+        const data = JSON.parse(event.data as string);
+        if (!data.message) return;
+        onWorkflowProgress({
+          kind: "proactive_suggestion",
+          friendly_message: data.message,
+          ts: Date.now() / 1000,
+          technical: {
+            proactive_suggestion: true,
+            quick_replies: data.quick_replies || [],
+          },
+        });
+      } catch (err) {
+        console.warn("[SSE] proactive_suggestion parse error:", err);
+      }
+    });
     // ─────────────────────────────────────────────────────────────────────
 
     es.onerror = () => {

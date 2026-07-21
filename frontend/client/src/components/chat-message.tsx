@@ -228,6 +228,45 @@ export function ChatMessage({
     const kind = (message.metadata as any)?.kind as string | undefined
     const tech = (message.metadata as any)?.technical as Record<string, any> | undefined
 
+    // Proactive suggestion — render as a full AI conversational bubble with quick-reply buttons
+    if (kind === "proactive_suggestion" && tech?.proactive_suggestion) {
+      const quickReplies = (tech.quick_replies || []) as string[]
+      return (
+        <div
+          data-testid="proactive-suggestion-card"
+          data-progress-kind="proactive_suggestion"
+          className="flex gap-3 px-4 py-2"
+          id={`chat-message-anchor-${message.id}`}
+        >
+          <Avatar className="h-8 w-8 shrink-0 mt-0.5">
+            <AvatarImage src="/ai-avatar.png" alt="BioMate" />
+            <AvatarFallback className="text-xs bg-primary text-primary-foreground">B</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col gap-2 max-w-[80%]">
+            <div className="rounded-2xl rounded-tl-sm bg-muted/60 dark:bg-muted/30 px-4 py-2.5 text-sm leading-relaxed">
+              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                {message.content}
+              </ReactMarkdown>
+            </div>
+            {quickReplies.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {quickReplies.map((reply) => (
+                  <button
+                    key={reply}
+                    data-testid={`proactive-quick-reply-${reply.toLowerCase().replace(/\s+/g, '-')}`}
+                    onClick={() => onSuggestionClick(reply, message)}
+                    className="rounded-full border border-primary/50 bg-primary/5 hover:bg-primary/15 px-3 py-1 text-xs text-primary font-medium transition-colors"
+                  >
+                    {reply}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )
+    }
+
     // Chain suggestion — render as a rich card, not a dim progress dot
     if (kind === "chain_suggestion" && Array.isArray(tech?.suggestions) && tech.suggestions.length > 0) {
       const triggerWf = String(tech.trigger_workflow || "").split("/").pop() || "your workflow"

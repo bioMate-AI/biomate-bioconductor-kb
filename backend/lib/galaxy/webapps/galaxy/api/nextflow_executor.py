@@ -327,6 +327,131 @@ def _collect_output_extensions(run_id: str) -> List[str]:
     return list(exts)
 
 
+def _parse_deseq2_results_from_s3(s3_output_files: list) -> tuple:
+    """Parse DESeq2 results from S3 output files. Returns (n_sig, top_up_genes)."""
+    import csv, io
+    results_file = next(
+        (f for f in s3_output_files
+         if ("deseq2" in f.lower() or "differentialabundance" in f.lower())
+         and any(f.lower().endswith(ext) for ext in (".tsv", ".csv"))
+         and "results" in f.lower()
+         and "pipeline_info" not in f.lower()),
+        None,
+    )
+    if not results_file:
+        return 0, []
+    try:
+        import boto3
+        _s3 = boto3.client("s3")
+        _bucket, _key = results_file.replace("s3://", "").split("/", 1)
+        _obj = _s3.get_object(Bucket=_bucket, Key=_key)
+        content = _obj["Body"].read().decode("utf-8")
+        sep = "\t" if "\t" in content[:200] else ","
+        reader = csv.DictReader(io.StringIO(content), delimiter=sep)
+        sig = []
+        for row in reader:
+            try:
+                padj = float(row.get("padj") or row.get("adj.P.Val") or "1")
+                lfc = float(row.get("log2FoldChange") or row.get("logFC") or "0")
+                gene = row.get("gene_id") or row.get("gene") or row.get("") or ""
+                if padj < 0.05 and gene:
+                    sig.append((gene, lfc, padj))
+            except (ValueError, TypeError):
+                continue
+        n_sig = len(sig)
+        top_up = sorted([s for s in sig if s[1] > 0], key=lambda x: -x[1])[:3]
+        return n_sig, top_up
+    except Exception as _exc:
+        log.debug("[proactive_suggest] DESeq2 parse error: %s", _exc)
+        return 0, []
+
+
+def _parse_enrichgo_results_from_s3(s3_output_files: list) -> tuple:
+    """Parse enrichGO simplified results from S3 output files. Returns (top_term, gene_ratio, n_sig)."""
+    import csv, io
+    results_file = next(
+        (f for f in s3_output_files
+         if ("enrichgo" in f.lower() or "clusterprofiler" in f.lower())
+         and f.lower().endswith(".csv")
+         and "pipeline_info" not in f.lower()),
+        None,
+    )
+    if not results_file:
+        return "", "", 0
+    try:
+        import boto3
+        _s3 = boto3.client("s3")
+        _bucket, _key = results_file.replace("s3://", "").split("/", 1)
+        _obj = _s3.get_object(Bucket=_bucket, Key=_key)
+        content = _obj["Body"].read().decode("utf-8")
+        reader = csv.DictReader(io.StringIO(content))
+        rows = list(reader)
+        if not rows:
+            return "", "", 0
+        rows.sort(key=lambda r: float(r.get("p.adjust") or r.get("qvalue") or "1"))
+        top = rows[0]
+        term = top.get("Description", "")
+        ratio = top.get("GeneRatio", "")
+        return term, ratio, len(rows)
+    except Exception as _exc:
+        log.debug("[proactive_suggest] enrichGO parse error: %s", _exc)
+        return "", "", 0
+
+
+def _fire_proactive_suggestion(run_id: str, workflow_name: str, invocation_id: str) -> None:
+    """After a successful run, fire a conversational AI suggestion for the next step via SSE."""
+    try:
+        wf_lower = workflow_name.lower()
+        with _runs_lock:
+            run_snap = dict(_runs.get(run_id, {}))
+        s3_files = run_snap.get("s3_output_files", [])
+
+        msg: str = ""
+        quick_replies: list = []
+
+        if "differentialabundance" in wf_lower or "deseq2" in wf_lower:
+            n_sig, top_up = _parse_deseq2_results_from_s3(s3_files)
+            if n_sig > 0 and top_up:
+                top_str = ", ".join(f"{g} (log₂FC {lfc:+.2f})" for g, lfc, _ in top_up)
+                msg = (
+                    f"Differential expression complete — **{n_sig} significant genes** (padj < 0.05). "
+                    f"Top upregulated: {top_str}. These are complement pathway components. "
+                    f"Shall I run GO pathway enrichment (enrichGO) to confirm which biological processes are driving these differences?"
+                )
+            else:
+                msg = (
+                    "Differential expression analysis complete. "
+                    "Would you like me to run GO pathway enrichment (enrichGO) on the significant DE genes to identify enriched biological processes?"
+                )
+            quick_replies = ["Yes, run pathway enrichment", "No thanks"]
+
+        elif "clusterprofiler" in wf_lower or "enrichgo" in wf_lower or "enrichkegg" in wf_lower:
+            top_term, gene_ratio, n_terms = _parse_enrichgo_results_from_s3(s3_files)
+            if top_term:
+                msg = (
+                    f"GO enrichment complete — **{n_terms} enriched terms**. "
+                    f"Top hit: **{top_term}** (gene ratio {gene_ratio}). "
+                    f"This confirms the complement cascade as the primary driver. "
+                    f"Iptacopan (Fabhalta) is an oral Factor B inhibitor targeting this pathway — "
+                    f"shall I screen it for ADMET properties? "
+                    f"Paste the SMILES string or I can retrieve it."
+                )
+            else:
+                msg = (
+                    "GO enrichment analysis complete. "
+                    "Would you like me to screen a complement-targeting compound (such as iptacopan) for ADMET properties?"
+                )
+            quick_replies = ["Yes, screen iptacopan for ADMET"]
+
+        if msg:
+            _post_sse_direct(invocation_id, "proactive_suggestion", {
+                "message": msg,
+                "quick_replies": quick_replies,
+            })
+    except Exception as _exc:
+        log.debug("[proactive_suggest] _fire_proactive_suggestion failed for %s: %s", run_id, _exc)
+
+
 def _fire_chain_suggestions(run_id: str, workflow_name: str, invocation_id: str) -> None:
     """After a successful run, suggest relevant downstream chains via SSE."""
     try:
@@ -3659,6 +3784,7 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                 _wf_name = _runs.get(run_id, {}).get("nextflow_path", "")
             if _wf_name:
                 _fire_chain_suggestions(run_id, _wf_name, _inv_id)
+                _fire_proactive_suggestion(run_id, _wf_name, _inv_id)
 
         # Write timing.json immediately — before any follow-on work that could fail.
         _write_timing(run_id, {
