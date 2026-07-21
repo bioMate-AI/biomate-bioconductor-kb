@@ -3471,11 +3471,15 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     break
 
         if not top:
-            # Fallback 4: exact name match — covers cases where filename column
-            # doesn't contain "predict_admet_properties" but the name field does.
+            # Fallback 4: name-based lookup — covers cases where the filename column
+            # doesn't contain "predict_admet_properties".  The name may be stored as
+            # 'predict_admet_properties' (underscores) OR 'Predict Admet Properties'
+            # (spaces, Title Case) depending on the indexer version.
             top = self.workflow_search.get_workflow_by_name('predict_admet_properties')
+            if not top:
+                top = self.workflow_search.get_workflow_by_name('Predict Admet Properties')
             if top:
-                log.info("[AdmetFastPath] Found predict_admet_properties via exact name lookup")
+                log.info("[AdmetFastPath] Found predict_admet_properties via name lookup")
 
         if not top:
             log.warning("[AdmetFastPath] predict_admet_properties not found in DB — fast path skipped")
@@ -4001,7 +4005,14 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     if re.search(r'\badmet\b', user_intent, re.IGNORECASE):
                         for _pm in plausible:
                             _pm_nm = (_pm.name or '').lower()
-                            if 'predict_admet' in _pm_nm or _pm_nm == 'admet':
+                            _pm_fn = (_pm.filename or '').lower()
+                            # Name may be stored as 'predict_admet_properties' (underscores)
+                            # or 'Predict Admet Properties' (spaces, Title Case) — match both.
+                            _nm_has_admet = 'admet' in _pm_nm and (
+                                'predict' in _pm_nm or 'screen' in _pm_nm
+                            )
+                            _fn_has_admet = 'predict_admet_properties' in _pm_fn
+                            if _nm_has_admet or _fn_has_admet:
                                 _admet_match = _pm
                                 break
 
