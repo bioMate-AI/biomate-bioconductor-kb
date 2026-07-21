@@ -2243,9 +2243,23 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             <div className="flex-1 overflow-hidden flex flex-col">
               {panelWorkflow ? (
                 (() => {
+                  // If the panel was updated to a *different* workflow than the one
+                  // currentRun belongs to (e.g. Turn 2 loads clusterprofiler while
+                  // currentRun is still the failed DESeq2 run), don't inherit the old
+                  // run's status — the new workflow hasn't been executed yet.
+                  const runPath = currentRun?.workflowDefinition?.nextflow_path
+                    || currentRun?.workflowDefinition?.nextflowPath
+                  const panelPath = panelWorkflow?.nextflow_path || panelWorkflow?.nextflowPath
+                  const panelName = panelWorkflow?.name || panelWorkflow?.workflow_name
+                  const runName = currentRun?.workflowDefinition?.name
+                    || currentRun?.workflowDefinition?.workflow_name
+                  const runMatchesPanel = !currentRun || !panelWorkflow
+                    || (runPath && panelPath ? runPath === panelPath : runName === panelName)
+
                   const execStatusStr = (
-                    currentRun?.execution?.status ||
-                    (isWorkflowRunning ? 'running' : 'idle')
+                    runMatchesPanel
+                      ? (currentRun?.execution?.status || (isWorkflowRunning ? 'running' : 'idle'))
+                      : 'idle'
                   ) as string
                   const viewerStatus: 'pending_review' | 'idle' | 'running' | 'paused' | 'completed' | 'failed' =
                     execStatusStr === 'completed' || execStatusStr === 'ok' || execStatusStr === 'succeeded' ? 'completed'
@@ -2261,14 +2275,14 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   return (
                     <NextflowWorkflowViewer
                       workflowDefinition={panelWorkflow}
-                      invocationId={currentRun?.execution?.galaxyInvocationId || currentRun?.id}
+                      invocationId={runMatchesPanel ? (currentRun?.execution?.galaxyInvocationId || currentRun?.id) : undefined}
                       workflowId={panelWorkflow?.id}
-                      lastSubmittedParams={extractSubmittedParams(currentRun)}
+                      lastSubmittedParams={runMatchesPanel ? extractSubmittedParams(currentRun) : undefined}
                       prereqChecklist={prereqChecklist}
-                      autofix={currentRun?.execution?.nextflowStatus?.autofix}
-                      nextflowStatus={currentRun?.execution?.nextflowStatus}
-                      status={currentRun ? viewerStatus : (panelWorkflow?.workflowViewerStatus || viewerStatus)}
-                      errorMessage={currentRun?.execution?.errorMessage}
+                      autofix={runMatchesPanel ? currentRun?.execution?.nextflowStatus?.autofix : undefined}
+                      nextflowStatus={runMatchesPanel ? currentRun?.execution?.nextflowStatus : undefined}
+                      status={runMatchesPanel && currentRun ? viewerStatus : (panelWorkflow?.workflowViewerStatus || viewerStatus)}
+                      errorMessage={runMatchesPanel ? currentRun?.execution?.errorMessage : undefined}
                       progress={workflowProgress}
                       onExecute={(params) => {
                         const userParams = Object.fromEntries(
@@ -2295,9 +2309,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                         if (msg) setChatDraftRef.current?.(msg)
                       }}
                       sessionId={currentChatSession?.id}
-                      runId={currentRun?.id}
-                      executionEngine={currentRun?.execution?.executionEngine}
-                      executionMetrics={currentRun?.metrics}
+                      runId={runMatchesPanel ? currentRun?.id : undefined}
+                      executionEngine={runMatchesPanel ? currentRun?.execution?.executionEngine : undefined}
+                      executionMetrics={runMatchesPanel ? currentRun?.metrics : undefined}
                       onWorkflowProgress={(ev) => handlePanelWorkflowProgress({
                         ...ev,
                         invocationId: currentRun?.execution?.galaxyInvocationId || currentRun?.id,

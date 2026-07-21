@@ -317,13 +317,39 @@ export function ChatMessage({
       data-is-latest-assistant={isLatestAssistantMessage ? "true" : "false"}
       style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: isUser ? 'flex-end' : 'flex-start', maxWidth: '100%' }}
     >
-      {/* Who label — "YOU · 3:40 PM" or "BIOMATE" */}
+      {/* Who label — "YOU · 3:40 PM" or "BIOMATE + speaker pill" */}
       <div className="who" style={{
         fontSize: 11, color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
         textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600,
         fontFamily: 'var(--bm-font-ui)',
+        display: 'flex', alignItems: 'center', gap: 6,
       }}>
-        {isUser ? `You${timeLabel ? ` · ${timeLabel}` : ''}` : 'BioMate'}
+        {isUser ? `You${timeLabel ? ` · ${timeLabel}` : ''}` : (
+          <>
+            BioMate
+            {!isUser && (() => {
+              const msgKind = message.metadata?.kind as string | undefined
+              const sp = isWorkflowMessage ? 'wf'
+                : msgKind?.startsWith('workflow.qc_') ? 'qc'
+                : msgKind?.startsWith('workflow.autoloop') ? 'loop'
+                : msgKind?.startsWith('findings.') ? 'find'
+                : msgKind?.startsWith('deepagent.') ? 'agent'
+                : msgKind?.startsWith('plan.') ? 'plan'
+                : null
+              if (!sp) return null
+              return (
+                <span
+                  className="speaker-pill"
+                  data-speaker={sp}
+                  aria-label={SPEAKER_LABELS[sp] ?? sp.toUpperCase()}
+                  style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                >
+                  {SPEAKER_LABELS[sp] ?? sp.toUpperCase()}
+                </span>
+              )
+            })()}
+          </>
+        )}
       </div>
 
       <div className={cn("max-w-full space-y-3", isUser && "flex flex-col items-end")}>
