@@ -1538,7 +1538,7 @@ export function ChatInterface({
     // Handle attached files: upload to backend and include dataset IDs in prompt context.
     if (files && files.length > 0) {
       console.log('[ChatInterface] Files attached:', files.map((f) => f.name))
-      const uploaded: Array<{ name: string; datasetId?: string; galaxyDatasetId?: string }> = []
+      const uploaded: Array<{ name: string; datasetId?: string; galaxyDatasetId?: string; s3Uri?: string }> = []
       const failedUploads: string[] = []
 
       for (const file of files) {
@@ -1553,6 +1553,7 @@ export function ChatInterface({
             name: file.name,
             datasetId: result.datasetId,
             galaxyDatasetId: result.galaxyDatasetId,
+            s3Uri: result.s3Uri,
           })
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err)
@@ -1568,7 +1569,7 @@ export function ChatInterface({
                 (f) =>
                   `${f.name}: dataset_id=${f.datasetId || 'n/a'}${
                     f.galaxyDatasetId ? `, galaxy_dataset_id=${f.galaxyDatasetId}` : ''
-                  }`
+                  }${f.s3Uri ? `, s3_uri=${f.s3Uri}` : ''}`
               )
               .join('; ')
           : ''

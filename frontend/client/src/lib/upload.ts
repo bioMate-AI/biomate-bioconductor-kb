@@ -31,6 +31,9 @@ export interface UploadResult {
   galaxyDatasetId?: string;
   // S3 key written by the multipart path; undefined for the simple path.
   s3Key?: string;
+  // S3 URI (s3://bucket/key) returned by the server — populated by the simple path
+  // when the file was also staged to S3 for Nextflow/Batch workers.
+  s3Uri?: string;
   // Which client path actually handled this upload (telemetry / tests).
   via: 'simple' | 'multipart';
 }
@@ -94,6 +97,7 @@ async function uploadSimple(file: File, opts: UploadOptions): Promise<UploadResu
     return {
       datasetId: result.dataset_id,
       galaxyDatasetId: result.galaxy_dataset_id,
+      s3Uri: result.s3_uri,
       via: 'simple',
     };
   } finally {

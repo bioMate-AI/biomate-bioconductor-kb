@@ -90,9 +90,8 @@ function SessionTab({
       name: file.name,
       fileType: file.name.split('.').pop() || '',
       galaxyDatasetId: result.galaxyDatasetId,
-      // multipart path returns an s3:// URI through s3Key; the simple path
-      // doesn't (the Galaxy upload route handles workflow staging itself).
-      s3_uri: result.s3Key ? `s3://${result.s3Key}` : undefined,
+      // simple path returns s3_uri directly; multipart path returns s3Key.
+      s3_uri: result.s3Uri || (result.s3Key ? `s3://${result.s3Key}` : undefined),
     };
     onUploaded?.(newDs);
     // Auto-select the just-uploaded file. Prefer the durable S3 URI: it is the only
