@@ -37,6 +37,8 @@ BIOC_URL_PATH     = "1256-handoff/Research Agent UI.html"
 TIER0_URL_PATH    = "design_handoff_tier0_design_pipelines/Research Agent UI.html"
 # Seven-Domain Tutorial Package
 SEVENDOM_URL_PATH = "Seven-Domain Tutorial Package/prototype/Research Agent UI.html"
+# Research Agent UI latest — MG stratification + drug discovery demos
+LATEST_URL_PATH   = "research-agent-ui-latest-2/Research Agent UI.html"
 
 
 # ── Local HTTP server ─────────────────────────────────────────────────────────
@@ -225,6 +227,20 @@ TUTORIALS = {
     "lead_in_ms": 1200,
     "trail_ms": 2500,
   },
+
+  # ── Drug-discovery demos — research-agent-ui-latest ──────────────────────────
+  "tut_mg_stratification": {
+    "url_path": LATEST_URL_PATH,
+    "tour_label": "DD01 — MG stratification → complement enrichment → ADMET",
+    "lead_in_ms": 3200,
+    "trail_ms": 2000,
+  },
+  "tut_mg_oneshot": {
+    "url_path": LATEST_URL_PATH,
+    "tour_label": "DD02 — MG full pipeline (one long query)",
+    "lead_in_ms": 1200,
+    "trail_ms": 2000,
+  },
 }
 
 
@@ -342,6 +358,17 @@ const TRAIL   = {trail_ms};
         if (t.steps) t.steps.forEach(s => {{ delete s.autoAdvance; }});
       }});
     }}
+  }});
+
+  // Keep compositor generating frames at ~30fps by animating an invisible element.
+  // Without this, static pages between ArrowRight presses deliver <1 fps from CDP.
+  await page.evaluate(() => {{
+    const ticker = document.createElement('div');
+    ticker.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0.001;pointer-events:none;z-index:-1;top:0;left:0';
+    document.body.appendChild(ticker);
+    let v = 0;
+    const tick = () => {{ ticker.style.transform = `translateX(${{(v++%2)*0.01}}px)`; requestAnimationFrame(tick); }};
+    requestAnimationFrame(tick);
   }});
 
   // Hide dev UI chrome (tweaks panel, etc.) if present
@@ -486,7 +513,7 @@ def merge_audio(key, raw_video, audio):
 
 # ── Per-tutorial runner ───────────────────────────────────────────────────────
 
-def record_tutorial(key, cfg):
+def record_tutorial(key, cfg, no_audio=False):
     clips_dir  = os.path.join(CLIPS, key)
     timings_fp = os.path.join(clips_dir, "timings.json")
     audio      = os.path.join(clips_dir, "combined.mp3")
@@ -494,8 +521,8 @@ def record_tutorial(key, cfg):
     if not os.path.exists(timings_fp):
         print(f"  ERROR: {timings_fp} not found. Run generate_vo.py first.")
         return
-    if not os.path.exists(audio):
-        print(f"  ERROR: {audio} not found. Run generate_vo.py first.")
+    if not no_audio and not os.path.exists(audio):
+        print(f"  ERROR: {audio} not found. Run generate_vo.py first (or use --no-audio).")
         return
 
     with open(timings_fp) as f:
@@ -508,7 +535,7 @@ def record_tutorial(key, cfg):
 
     label = cfg["url_path"].split("/")[0]
     print(f"\n── {label} › {key} ──")
-    print(f"   {len(timings['steps'])} steps, {timings['total_ms']/1000:.1f}s audio")
+    print(f"   {len(timings['steps'])} steps, {timings['total_ms']/1000:.1f}s total")
 
     _fix_pkg()
 
@@ -531,14 +558,22 @@ def record_tutorial(key, cfg):
     print("  Building video…")
     raw = build_video(key, cfg, timings, frames_dir)
 
-    print("  Merging audio…")
-    merge_audio(key, raw, audio)
+    if no_audio:
+        # Copy raw video to output without merging audio (silent)
+        output = os.path.join(BASE, f"{key}_tutorial_silent.mp4")
+        shutil.copy(raw, output)
+        size_mb = os.path.getsize(output) / (1024 * 1024)
+        print(f"  → {output}  ({size_mb:.1f} MB)  [silent — no audio merged]")
+    else:
+        print("  Merging audio…")
+        merge_audio(key, raw, audio)
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
     only = None
+    no_audio = "--no-audio" in sys.argv
     if "--only" in sys.argv:
         idx = sys.argv.index("--only")
         only = sys.argv[idx + 1] if idx + 1 < len(sys.argv) else None
@@ -549,7 +584,7 @@ def main():
         if key not in TUTORIALS:
             print(f"Unknown: {key}. Options: {list(TUTORIALS.keys())}")
             sys.exit(1)
-        record_tutorial(key, TUTORIALS[key])
+        record_tutorial(key, TUTORIALS[key], no_audio=no_audio)
 
     print("\nAll tutorials done!")
 

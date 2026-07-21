@@ -23,7 +23,8 @@ TUTORIALS = ["cryosparc", "outputs_report", "drug_screen", "ind_report",
              "tut_rnaseq", "tut_scrna", "tut_variant", "tut_chipseq",
              "tut_proteomics", "tut_metagenome", "tut_metabolomics",
              "int_torchgwas", "int_fda_screen", "int_tumor_tcell",
-             "int_scgwas", "int_rare_disease"]
+             "int_scgwas", "int_rare_disease",
+             "tut_mg_stratification", "tut_mg_oneshot"]
 
 
 def draw_pill(draw, x, y, w, h, fill, radius=18):

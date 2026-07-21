@@ -64,8 +64,13 @@ def main():
 
     # PRIMARY: CycPeptMPDB's own numeric descriptor columns
     num = df.select_dtypes(include=[np.number])
-    drop_kw = ["permeab", "papp", "unnamed", "index", "_id", "year", "cycpep_id"]
-    feat_cols = [c for c in num.columns if c != perm and not any(k in str(c).lower() for k in drop_kw)]
+    # exclude target AND LEAKAGE cols: other permeability assays (PAMPA/Caco2/MDCK/RRCK/PAB)
+    # that define the target, and identifiers (ID/Index/No/Year/Name).
+    drop_kw = ["permeab", "papp", "pampa", "caco", "mdck", "rrck", "unnamed", "cycpep"]
+    drop_exact = {"id", "index", "no", "year", "name", "pab"}
+    feat_cols = [c for c in num.columns if c != perm
+                 and str(c).lower() not in drop_exact
+                 and not any(k in str(c).lower() for k in drop_kw)]
     used = "cycpeptmpdb_numeric"
 
     data = num[feat_cols].copy()
@@ -102,6 +107,9 @@ def main():
     X[~np.isfinite(X)] = np.nan
     col_med = np.nanmedian(X, axis=0); col_med = np.where(np.isfinite(col_med), col_med, 0.0)
     ii = np.where(np.isnan(X)); X[ii] = np.take(col_med, ii[1])
+    # clip to float32-safe range (some descriptors overflow float32) then finalize
+    X = np.clip(X, -1e30, 1e30).astype(np.float32)
+    X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
     Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.2, random_state=0)
     res = {"n_peptides": int(len(data)), "target": perm, "feature_source": used,
            "n_features": len(feat_cols), "perm_range": [float(y.min()), float(y.max())]}

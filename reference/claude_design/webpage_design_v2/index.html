@@ -161,13 +161,14 @@
     /* Example prompt chips */
     .bm-hero-prompts {
       margin-top: .75rem;
-      display: flex; flex-wrap: wrap; gap: .45rem; align-items: center;
+      display: flex; flex-wrap: wrap; gap: .4rem; align-items: center;
+      /* Cap to 2 lines: allow wrapping but keep labels short */
     }
     .bm-hero-prompt-label {
-      font-size: .78rem; color: var(--text-muted); flex-shrink: 0; margin-right: .15rem;
+      font-size: .78rem; color: var(--text-muted); flex-shrink: 0; margin-right: .1rem;
     }
     .bm-prompt-chip {
-      font-size: .76rem; padding: .28rem .7rem;
+      font-size: .74rem; padding: .22rem .6rem;
       border: 1px solid var(--border); border-radius: 20px;
       background: transparent; color: var(--text-muted);
       cursor: pointer; font-family: inherit;
@@ -177,6 +178,23 @@
     .bm-prompt-chip:hover {
       border-color: var(--accent); color: var(--text);
       background: rgba(42,85,130,.06);
+    }
+    /* Contact us button below prompts */
+    .bm-hero-contact {
+      margin-top: .85rem; text-align: center;
+    }
+    .bm-hero-contact-btn {
+      display: inline-flex; align-items: center; gap: .4rem;
+      font-size: .82rem; font-family: inherit;
+      padding: .4rem 1.1rem; border-radius: 24px;
+      border: 1.5px solid var(--border);
+      background: transparent; color: var(--text-muted);
+      cursor: pointer; text-decoration: none;
+      transition: border-color .15s, color .15s, background .15s;
+    }
+    .bm-hero-contact-btn:hover {
+      border-color: var(--accent); color: var(--accent);
+      background: rgba(42,85,130,.05);
     }
   </style>
   <!-- Google tag (gtag.js) -->
@@ -342,10 +360,16 @@
         </script>
         <div class="bm-hero-prompts">
           <span class="bm-hero-prompt-label">Try:</span>
-          <button class="bm-prompt-chip" type="button" onclick="bmSetPrompt('Analyze GEO dataset GSE39582 (colon cancer microarray). Which pathways differ between MSI-high and MSS tumors?')">Microarray &middot; GSE39582 colon cancer</button>
-          <button class="bm-prompt-chip" type="button" onclick="bmSetPrompt('What is the ADMET profile of imatinib?')">ADMET &middot; imatinib (Gleevec)</button>
-          <button class="bm-prompt-chip" type="button" onclick="bmSetPrompt('What pathogenic variants does GIAB reference sample NA12878 carry?')">WGS &middot; NA12878 (GIAB)</button>
-          <button class="bm-prompt-chip" type="button" onclick="bmSetPrompt('Analyze the 10x Genomics PBMC 3k dataset. What cell types are present and how do they cluster?')">scRNA-seq &middot; PBMC 3k (10x)</button>
+          <button class="bm-prompt-chip" type="button" onclick="bmSetPrompt('Analyze GEO dataset GSE39582 (colon cancer microarray). Which pathways differ between MSI-high and MSS tumors?')">Microarray &middot; colon cancer</button>
+          <button class="bm-prompt-chip" type="button" onclick="bmSetPrompt('What is the ADMET profile of imatinib?')">ADMET &middot; imatinib</button>
+          <button class="bm-prompt-chip" type="button" onclick="bmSetPrompt('What pathogenic variants does GIAB reference sample NA12878 carry?')">WGS &middot; NA12878</button>
+          <button class="bm-prompt-chip" type="button" onclick="bmSetPrompt('Analyze the 10x Genomics PBMC 3k dataset. What cell types are present and how do they cluster?')">scRNA-seq &middot; PBMC 3k</button>
+        </div>
+        <div class="bm-hero-contact">
+          <a href="mailto:contact@biomate.ai" class="bm-hero-contact-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            Contact us
+          </a>
         </div>
       </div>
 

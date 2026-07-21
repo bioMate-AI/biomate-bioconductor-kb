@@ -19,7 +19,7 @@ VOICE_ID = "21m00Tcm4TlvDq8ikWAM"   # Rachel
 BASE     = os.path.dirname(os.path.abspath(__file__))
 CLIPS    = os.path.join(BASE, "clips")
 
-DEFAULT_SPEED   = 0.80
+DEFAULT_SPEED   = 1.10
 CLOSING_SPEED   = 0.75     # slower for intro/wrap-up centered steps
 
 # Gap between steps in the combined audio (ms).
@@ -2216,6 +2216,179 @@ TUTORIALS = {
       # 12 — Wrap-up, centered
       ("A curated multi-modal upstream, in one prompt, runnable on day one — same tools, "
        "with downstream variant ranking available next phase.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  # ── DD01: MG stratification 3-turn conversational (tut_mg_stratification) — 21 steps ─
+  # Updated content: QC gate checks run quality (not biology), ADMET auto-resolves from ChEMBL
+  # Target ~185 s: shorter scripts to cut 37s from previous 222s run
+  "tut_mg_stratification": {
+    "label": "DD01 — MG stratification → complement enrichment → ADMET",
+    "steps": [
+
+      # 1 — Hook, centered (~17w)
+      ("One question. BioMate reads the result and suggests the next step. "
+       "Each message follows the science.",
+       True, CLOSING_SPEED),
+
+      # 2 — DESeq2: biology question → CFD (~14w)
+      ("She asks what's dysregulated in M-G patients. "
+       "Complement genes surface together — C-F-D strongest.",
+       False, None),
+
+      # 3 — Phase A params & outputs (~14w)
+      ("The workflow panel shows parameters prefilled — design tilde condition, apeglm shrinkage. "
+       "Output files appear inline.",
+       False, None),
+
+      # 4 — Phase A QC gate — run quality, not biology (~15w)
+      ("QC gate: enough samples per group, dispersion converged. "
+       "C-F-D is a biological finding, not the gate.",
+       False, None),
+
+      # 5 — BioMate suggests enrichGO (~14w)
+      ("Complement genes appeared together, not as isolated hits. "
+       "BioMate proposes enrichment testing. She agrees.",
+       False, None),
+
+      # 6 — enrichGO result: complement activation rank 1 (~14w)
+      ("enrichGO runs on the DE gene list. The top-ranked term: complement activation — "
+       "emerging from the data, not asserted.",
+       False, None),
+
+      # 7 — Phase B enrichment outputs (~13w)
+      ("The enrichment table tops with complement activation — "
+       "reproducing the published M-G signature from Tuzun and Christadoss.",
+       False, None),
+
+      # 8 — Phase B QC gate (~12w)
+      ("Pathway QC gate: was anything enriched at all? "
+       "Twenty-seven terms significant. Pass.",
+       False, None),
+
+      # 9 — BioMate suggests iptacopan via CFB (~15w)
+      ("Factor B surfaces from the run itself — up-regulated, inside the enriched pathway. "
+       "BioMate names iptacopan.",
+       False, None),
+
+      # 10 — ADMET auto-resolved from ChEMBL (~13w)
+      ("BioMate resolves iptacopan from ChEMBL — no structure to paste. "
+       "ADMET-AI screens fifteen endpoints.",
+       False, None),
+
+      # 11 — Phase C three ADMET safety gates (~15w)
+      ("Three ADMET safety gates evaluated — hERG, Caco-two permeability, CYP3A4 inhibition. "
+       "All pass their thresholds. All green.",
+       False, None),
+
+      # 12 — Findings card lands (~15w)
+      ("A findings card appears in chat and the After run report panel opens automatically — both in sync.",
+       False, None),
+
+      # 13 — Seven-tab report (~13w)
+      ("Seven tabs — Findings, Outputs, Methods, Parameters, Software, Citations, QC audit. "
+       "Every number from the run.",
+       False, None),
+
+      # 14 — Findings headline (~15w)
+      ("The Findings tab shows a headline verdict, grounded bullets, and key figures straight from the run.",
+       False, None),
+
+      # 15 — Outputs tab (~13w)
+      ("Every output file, grouped by phase. "
+       "View previews inline; download pulls the artifact.",
+       False, None),
+
+      # 16 — Interactive panel (~12w)
+      ("Open any output live — DE results in R-Studio, AnnData in CellxGene.",
+       False, None),
+
+      # 17 — Methods tab (~12w)
+      ("Paste-ready methods prose — DESeq2, apeglm, enrichGO, ADMET-AI — "
+       "with inline citations.",
+       False, None),
+
+      # 18 — Parameters tab (~12w)
+      ("Every parameter used per phase — design formula, FDR cutoff, shrinkage. "
+       "Fully reproducible.",
+       False, None),
+
+      # 19 — Software tab (~11w)
+      ("Each package pinned to a version — DESeq2, clusterProfiler, R, ggplot2.",
+       False, None),
+
+      # 20 — Citations tab (~15w)
+      ("References auto-generated for every tool and publication cited in the run. Ready to drop into a manuscript.",
+       False, None),
+
+      # 21 — QC audit, closing (~17w)
+      ("All gates in one table — threshold, observed, result. "
+       "From one question to a drug candidate, three turns. This is BioMate.",
+       True, CLOSING_SPEED),
+    ],
+  },
+
+  # ── DD02: MG full pipeline one long query (tut_mg_oneshot) — 8 steps ─────────
+  # Target ~180 s: 8 steps × ~33 words @ 1.10 speed ≈ 21 s/clip × 8 = 168 s + ~10 s gaps
+  "tut_mg_oneshot": {
+    "label": "DD02 — MG full pipeline (one long query)",
+    "steps": [
+
+      # 1 — Hook, centered (~30w)
+      ("Same science — asked all at once. "
+       "Rather than following each result turn by turn, the scientist puts the full task in one message. "
+       "BioMate plans the entire pipeline and runs it end to end.",
+       True, CLOSING_SPEED),
+
+      # 2 — Plan committed up front (~35w)
+      ("One request covers the full chain — DESeq2 on the GEO dataset, "
+       "pathway enrichment on the DE list, ChEMBL lookup for the drug candidate, and ADMET screening. "
+       "BioMate commits the whole plan at once, before any results are seen. "
+       "Contrast the conversational run, where each phase only emerged after reviewing the last.",
+       False, None),
+
+      # 3 — All phase cards visible immediately (~35w)
+      ("All three phase cards appear from the start, with parameters already filled — "
+       "Differential Expression with the design formula and apeglm shrinkage, "
+       "Pathway Enrichment targeting GO Biological Process, "
+       "and ADMET Screening ready for the resolved drug. "
+       "Nothing is revealed turn by turn; the user committed everything up front.",
+       False, None),
+
+      # 4 — Phase A DE result (~34w)
+      ("Phase A: DESeq2 runs first. Three hundred and twelve genes reach significance at FDR 0.05. "
+       "Complement genes dominate the top of the up-regulated list — "
+       "C-F-D at log-two fold change 2.84, with C3, CFB, and C5AR1 close behind. "
+       "The QC gate scores six of six complement targets.",
+       False, None),
+
+      # 5 — Auto-continues, enrichGO result (~33w)
+      ("No user turn between phases. BioMate narrates 'continuing as planned' "
+       "and moves directly into enrichGO. "
+       "Complement activation ranks first — the same pathway targeted by the three approved M-G drugs. "
+       "Twenty-seven terms reach significance in the biological process ontology.",
+       False, None),
+
+      # 6 — Phase C: target from run, drug from ChEMBL (~34w)
+      ("Factor B surfaces from the run's own results — it is up-regulated in the DE table "
+       "and sits inside the enriched complement activation pathway. "
+       "BioMate resolves iptacopan from ChEMBL, no structure to paste. "
+       "ADMET-AI screens fifteen endpoints; three safety gates — hERG, Caco-two, CYP3A4 — all pass.",
+       False, None),
+
+      # 7 — Single findings card, complete (~33w)
+      ("Because it ran as a batch, the findings card lands once and is complete from the start — "
+       "C-F-D as the top driver, complement activation as the pathway, "
+       "Factor B as the target, iptacopan as the candidate. "
+       "ADMET pass on all three safety gates, on GSE227835 with ten M-G and ten healthy controls.",
+       False, None),
+
+      # 8 — Full report, closing — LaTeX removed per product spec (~26w)
+      ("Seven tabs, all present at once — Findings, Outputs, Methods, Parameters, "
+       "Software, Citations, and QC audit. "
+       "Download the full report as DOCX or Markdown. "
+       "One query. One complete pipeline. This is BioMate.",
        True, CLOSING_SPEED),
     ],
   },
