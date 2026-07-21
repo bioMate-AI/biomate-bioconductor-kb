@@ -1037,7 +1037,8 @@ const upload = multer({
  */
 async function stageLocalFilesForBatch(
   params: Record<string, any>,
-  userId: string
+  userId: string,
+  uuidFilePaths?: Record<string, { filePath: string; name: string }>
 ): Promise<Record<string, any>> {
   const useAws = (process.env.NEXTFLOW_USE_AWS || '').toLowerCase() in { true: 1, '1': 1, yes: 1 };
   if (!useAws) return params;
@@ -1049,25 +1050,44 @@ async function stageLocalFilesForBatch(
   // specified endpoint", which silently failed input staging for every file-param run.
   const s3 = await _s3ClientForBucket(s3Bucket);
 
+  const _UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
   const staged = { ...params };
   for (const [key, val] of Object.entries(params)) {
     if (typeof val !== 'string') continue;
-    if (!val.startsWith('/')) continue;        // skip non-absolute paths
-    if (val.startsWith('/proc') || val.startsWith('/sys') || val.startsWith('/dev')) continue;
-    let stat: any;
-    try { stat = await fs.stat(val); } catch { continue; }
-    if (!stat.isFile()) continue;
 
-    const filename   = path.basename(val);
+    let localPath: string | null = null;
+    let filename: string | null = null;
+
+    if (val.startsWith('/')) {
+      // Absolute local path — existing logic
+      if (val.startsWith('/proc') || val.startsWith('/sys') || val.startsWith('/dev')) continue;
+      let stat: any;
+      try { stat = await fs.stat(val); } catch { continue; }
+      if (!stat.isFile()) continue;
+      localPath = val;
+      filename = path.basename(val);
+    } else if (_UUID_RE.test(val) && uuidFilePaths?.[val]) {
+      // Galaxy dataset UUID — look up the local file path from session registry
+      const entry = uuidFilePaths[val];
+      let stat: any;
+      try { stat = await fs.stat(entry.filePath); } catch { continue; }
+      if (!stat.isFile()) continue;
+      localPath = entry.filePath;
+      filename = entry.name || path.basename(entry.filePath);
+    }
+
+    if (!localPath || !filename) continue;
+
     const s3Key      = `inputs/${userId}/${uuidv4().slice(0, 8)}-${filename}`;
-    const fileBuffer = await fs.readFile(val);
+    const fileBuffer = await fs.readFile(localPath);
     await s3.send(new PutObjectCommand({
       Bucket: s3Bucket,
       Key:    s3Key,
       Body:   fileBuffer,
     }));
     const s3Uri = `s3://${s3Bucket}/${s3Key}`;
-    console.log(`[S3Stage] Staged local file ${key}=${val} → ${s3Uri}`);
+    console.log(`[S3Stage] Staged ${val.startsWith('/') ? 'local' : 'uuid'} file ${key}=${val} → ${s3Uri}`);
     staged[key] = s3Uri;
   }
   return staged;
@@ -10039,6 +10059,7 @@ ${paramLines || '(none recorded)'}`;
           // Stage any local file params to S3 before submitting to AWS Batch.
           // Local paths (e.g. /frontend/data/uploads/...) are inaccessible from
           // Batch containers — this uploads them and replaces params with s3:// URIs.
+          // Galaxy UUIDs are also staged: the session registry maps uuid → local path.
           const rawParams = { ...(request.workflowDefinition.parameters || {}) };
           const paramProfile =
             rawParams.profile ??
@@ -10047,9 +10068,23 @@ ${paramLines || '(none recorded)'}`;
           if ('profile' in rawParams) delete rawParams.profile;
           if ('executor' in rawParams) delete rawParams.executor;
 
+          // Build UUID → { filePath, name } map from session datasets + in-memory registry
+          const _uuidFilePaths: Record<string, { filePath: string; name: string }> = {};
+          const _sessionDs: any[] = req.session?.uploadedDatasets || [];
+          for (const d of _sessionDs) {
+            const _fp = d.file_path;
+            if (!_fp) continue;
+            if (d.galaxy_dataset_id) _uuidFilePaths[d.galaxy_dataset_id] = { filePath: _fp, name: d.name || '' };
+            if (d.dataset_id) _uuidFilePaths[d.dataset_id] = { filePath: _fp, name: d.name || '' };
+          }
+          for (const [id, entry] of uploadedFileRegistry.entries()) {
+            if (entry.filePath) _uuidFilePaths[id] = { filePath: entry.filePath, name: entry.name };
+          }
+
           const stagedParams = await stageLocalFilesForBatch(
             rawParams,
-            req.user ? String(req.user.id) : 'anonymous'
+            req.user ? String(req.user.id) : 'anonymous',
+            _uuidFilePaths
           );
 
           // Phase C — extract __outputLocation from params (set by viewer's
