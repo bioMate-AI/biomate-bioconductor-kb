@@ -3765,8 +3765,16 @@ Rules:
     if (needsGeneration) {
       try {
         log('Step 4: Generating workflow');
+        // Preserve original message keywords alongside the LLM-distilled subQuery.
+        // subQuery can lose domain tokens (e.g. "ADMET", SMILES) when project context
+        // or prior messages distort intent synthesis. Python fast paths and semantic
+        // search need the original user text. Mirrors the multi-intent path (line ~4962)
+        // and the docking/named-tool checks (lines ~4926, ~4939).
+        const workflowUserIntent = intent.subQuery && intent.subQuery !== message
+          ? `${intent.subQuery} ${message}`
+          : (intent.subQuery || message);
         generatedWorkflow = await this.generateWorkflow(
-          intent.subQuery || message,
+          workflowUserIntent,
           recommendedDatasets.map(d => d.dataset),
           intent.inlineParameters,
           context,
@@ -6269,12 +6277,13 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       if (isGemini && this.gemini) {
         const geminiModel = this.gemini.getGenerativeModel({
           model: effectiveIntentModel,
-          // Bumped 2500→4096: complex tier 0 queries (e.g. T03 "Base editing strategy for
-          // PCSK9 LOF in hypercholesterolemia (VERVE-102 style)") truncated JSON output at
-          // 2500, producing "Unexpected end of JSON input" and zero workflow_ready event.
-          // Gemini thinking tokens count against this budget; 4096 leaves room for the
-          // full intent + inlineParameters payload.
-          generationConfig: { temperature: 0, maxOutputTokens: 4096, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } } as any,
+          // Bumped 2500→4096→6144: complex queries (e.g. T03 "Base editing strategy…")
+          // truncated JSON at 2500, and heavy project context + prior messages caused
+          // Gemini to generate poor subQuery values when thinking was disabled.
+          // thinkingBudget: 1024 lets Flash use light CoT for complex contexts
+          // (preserves domain keywords in subQuery); simple queries use 0 think tokens.
+          // maxOutputTokens bumped to 6144 since thinking tokens count against this budget.
+          generationConfig: { temperature: 0, maxOutputTokens: 6144, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 1024 } } as any,
           systemInstruction: systemPrompt,
         });
         // Attempt Gemini; on 429 immediately fall back to Haiku — no slow retry loop.
