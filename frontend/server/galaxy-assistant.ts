@@ -5021,6 +5021,25 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       }
     }
 
+    // ADMET / drug-screening override (multi-intent fan-out path).
+    // Mirrors the single-intent override in processChat (lines 3652-3688).
+    // When project context causes Gemini to decompose a SMILES+ADMET request into
+    // multiple sub-intents (e.g. research_question + workflow_generation), the ADMET
+    // sub-intent may be mis-classified as research_question with needsWorkflowGeneration=false.
+    // Same condition as the single-intent gate so both paths behave identically.
+    if (!actions.needsWorkflowGeneration) {
+      const _admetMsg = `${intent.subQuery} ${originalMessage}`;
+      const _isAdmetScreeningSubIntent =
+        /\b(admet|herg|dili|ames\s+(mutagenicity|test)|caco.?2|bbb\s+(penetration|permeab)|blood.brain.barrier|drug.like(ness)?|solubility\s+(aqueous|prediction)|toxicity\s+(prediction|screening)|safety\s+(endpoint|screen)|admet\s+propert|screen.*admet|admet.*screen)\b/i.test(_admetMsg) &&
+        (/\bSMILES\s*[=:]/i.test(_admetMsg) || /\.sdf\b/i.test(_admetMsg) ||
+         /\b([A-Z][a-z]?\([A-Za-z=]\)|c1[a-z]|CC\(|n1|O=C|Cl[^a-z]|Br[^a-z]|[a-z]{1,2}\d{1,2})[A-Za-z0-9@\[\]\(\)=#\/\\\.+\-]{6,}/.test(_admetMsg)) &&
+        !/\b(what\s+is|what\s+are|how\s+does|explain|tell\s+me|overview|concept|describe|difference)\b/i.test(originalMessage);
+      if (_isAdmetScreeningSubIntent) {
+        actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      }
+    }
+
     try {
       // Action-flag-based routing: multiple agents can be invoked per intent
 
