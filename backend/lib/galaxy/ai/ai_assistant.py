@@ -2727,6 +2727,11 @@ Query (differentialabundance): "Run DE analysis. [Uploaded datasets: featureCoun
 → [{"name":"matrix","value":"s3://storage/uploads/abc/featureCounts.txt","rationale":"featureCounts.txt is a count matrix file → matrix param"},
    {"name":"input","value":"s3://storage/uploads/abc/coldata.xlsx","rationale":"coldata.xlsx is sample metadata → input samplesheet"}]
 
+Query (differentialabundance): "Run DESeq2 on these MG files. [Uploaded datasets: counts_matrix.csv: s3_uri=s3://storage/uploads/xyz/counts_matrix.csv; sample_metadata.csv: s3_uri=s3://storage/uploads/xyz/sample_metadata.csv; contrasts.csv: s3_uri=s3://storage/uploads/xyz/contrasts.csv]"
+→ [{"name":"matrix","value":"s3://storage/uploads/xyz/counts_matrix.csv","rationale":"counts_matrix.csv contains gene×sample counts → matrix param"},
+   {"name":"input","value":"s3://storage/uploads/xyz/sample_metadata.csv","rationale":"sample_metadata.csv is the sample samplesheet (sample,condition,…) → input param"},
+   {"name":"contrasts","value":"s3://storage/uploads/xyz/contrasts.csv","rationale":"contrasts.csv defines comparisons (id,variable,reference,target) → contrasts param"}]
+
 FILE ACCESS RULE: Only use S3 URIs that appear inside an [Uploaded datasets:] block — these were provided by BioMate's upload system and are already accessible. If a user mentions an S3 path NOT in [Uploaded datasets:], do NOT assume it is accessible; instead respond: "To use files from an external location, please first upload them via the file upload button, or provide access credentials."
 
 Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 voltage=300 symmetry=D2"

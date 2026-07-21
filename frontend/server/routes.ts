@@ -139,6 +139,21 @@ function humanizeWorkflowName(name: string): string {
   return name;
 }
 
+// Correct domain labels that are wrong in the Galaxy DB record.
+// Keyed by lowercase workflow name substring; value is the canonical domain.
+const WORKFLOW_DOMAIN_CORRECTIONS: Array<[RegExp, string]> = [
+  [/clusterprofiler|enrichgo|enrichkegg|gsea|pathway.?enrich|gene.?ontology/i, 'transcriptomics'],
+  [/deseq2|differential.?abundance|edger|limma/i, 'transcriptomics'],
+];
+
+function normalizeDomain(workflowName: string, currentDomain: string): string {
+  if (!workflowName) return currentDomain;
+  for (const [pattern, corrected] of WORKFLOW_DOMAIN_CORRECTIONS) {
+    if (pattern.test(workflowName)) return corrected;
+  }
+  return currentDomain;
+}
+
 /**
  * Determine workflow execution engine based on workflow definition.
  * Centralizes the logic for detecting Galaxy reuse vs Nextflow execution.
@@ -6062,6 +6077,25 @@ ${paramLines || '(none recorded)'}`;
       }
       if (responsePayload.workflow && typeof (responsePayload.workflow as any).workflow_name === 'string') {
         (responsePayload.workflow as any).workflow_name = humanizeWorkflowName((responsePayload.workflow as any).workflow_name);
+      }
+      // Fix domain labels that are wrong in the Galaxy DB record (e.g. clusterProfiler shows 'genomics').
+      if (responsePayload.workflow) {
+        const _wfLabel = String((responsePayload.workflow as any).name || (responsePayload.workflow as any).workflow_name || '');
+        const _curDomain = String((responsePayload.workflow as any).domain || '');
+        if (_wfLabel) {
+          const _fixedDomain = normalizeDomain(_wfLabel, _curDomain);
+          if (_fixedDomain !== _curDomain) (responsePayload.workflow as any).domain = _fixedDomain;
+        }
+        // Also fix inside workflow_ga if present
+        const _ga = (responsePayload.workflow as any).workflow_ga;
+        if (_ga) {
+          const _gaLabel = String(_ga.name || _ga.workflow_name || '');
+          const _gaDomain = String(_ga.domain || '');
+          if (_gaLabel) {
+            const _fixedGaDomain = normalizeDomain(_gaLabel, _gaDomain);
+            if (_fixedGaDomain !== _gaDomain) _ga.domain = _fixedGaDomain;
+          }
+        }
       }
 
       // ── Deep-link: persist a stable, URL-addressable draft at GENERATION time ──
