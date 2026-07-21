@@ -848,7 +848,7 @@ const DEMO_TOURS = {
         title: 'After run · header + Download',
         body: (
           <>
-            Every completed run leaves an <b>After run</b> section. The <b>Download report</b> link on the right bundles every tab below into one structured DOCX / Markdown / LaTeX document.
+            Every completed run leaves an <b>After run</b> section. The <b>Download report</b> link on the right bundles every tab below into one structured DOCX or Markdown document.
             <div className="hint">One-click manuscript-ready export — no need to open each tab.</div>
           </>
         ),
@@ -1001,7 +1001,7 @@ const DEMO_TOURS = {
         body: (
           <>
             Auto-generated reference list for the tools and methods cited in the Methods prose. Click any PMID to open PubMed in a new tab.
-            <div className="hint">Citations + Methods come pre-bundled in the Download report DOCX/MD/LaTeX export.</div>
+            <div className="hint">Citations + Methods come pre-bundled in the Download report DOCX/MD export.</div>
           </>
         ),
         setup: () => {
@@ -1032,7 +1032,7 @@ const DEMO_TOURS = {
         title: "That's the After run report",
         body: (
           <>
-            Every tab is generated from the same run manifest. The <b>Download report</b> link at the top wraps all 7 tabs into one structured document — DOCX for Word, Markdown for Notion / GitHub, LaTeX for journal templates.
+            Every tab is generated from the same run manifest. The <b>Download report</b> link at the top wraps all 7 tabs into one structured document — DOCX for Word, or Markdown for Notion / GitHub.
             <div className="hint">Tip: share the run URL with a collaborator — they get the same panel, read-only.</div>
           </>
         ),

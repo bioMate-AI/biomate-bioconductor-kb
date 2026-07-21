@@ -683,7 +683,7 @@ function ReportModal({ scenario, onClose }) {
           </span>
           <button className="btn sm"><Icon name="download" size={12}/> DOCX</button>
           <button className="btn sm"><Icon name="download" size={12}/> Markdown</button>
-          <button className="btn sm"><Icon name="download" size={12}/> LaTeX</button>
+          {/* LaTeX export not yet supported — leaving for future work */}
         </div>
       </div>
     </div>
