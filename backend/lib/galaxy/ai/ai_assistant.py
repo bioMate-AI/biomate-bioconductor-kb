@@ -3423,21 +3423,13 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         q_low = user_intent.lower()
         # Primary trigger: explicit "admet" keyword
         _has_admet = bool(_re_admet.search(r'\badmet\b', q_low))
-        # Extended trigger: SMILES string present + drug-property screening context.
-        # UQU sometimes rewrites "Screen X for ADMET properties" → "Predict pharmacokinetic
-        # properties for X" (dropping the literal word "admet"), causing the fast path to
-        # return None → general pharmacology routing → disambiguation gate → success=False.
-        # Trigger the fast path whenever a SMILES string appears alongside drug-screening terms.
-        _has_smiles = bool(_re_admet.search(
+        # Secondary trigger: explicit "SMILES: <value>" notation — unambiguous signal that
+        # the user is supplying a compound structure for drug-property prediction.
+        _has_smiles_notation = bool(_re_admet.search(
             r'\bSMILES\s*[=:]\s*[A-Za-z0-9@\[\]\(\)\+\-=#\/\\\.%:]{8,}',
             user_intent, _re_admet.IGNORECASE,
         ))
-        _has_drug_screen = bool(_re_admet.search(
-            r'\b(screen|predict|assess|evaluat|calculat|estimat)\b.{0,60}'
-            r'\b(toxicolog|pharmacokin|herg|dili|bbb|bioavail|permeab|mutagenicit|drug.prop|admet)\b',
-            q_low, _re_admet.DOTALL,
-        ))
-        if not (_has_admet or (_has_smiles and _has_drug_screen)):
+        if not (_has_admet or _has_smiles_notation):
             return None
 
         # Search with wide limit — 67 pharmacology workflows compete for top-5
