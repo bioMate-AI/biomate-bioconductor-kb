@@ -3420,6 +3420,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         """
         import re as _re_admet
 
+        log.info("[AdmetFastPath] called — intent[:120]=%s", user_intent[:120])
         q_low = user_intent.lower()
         # Primary trigger: explicit "admet" keyword
         _has_admet = bool(_re_admet.search(r'\badmet\b', q_low))
@@ -3429,17 +3430,27 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             r'\bSMILES\s*[=:]\s*[A-Za-z0-9@\[\]\(\)\+\-=#\/\\\.%:]{8,}',
             user_intent, _re_admet.IGNORECASE,
         ))
+        log.info("[AdmetFastPath] has_admet=%s has_smiles=%s", _has_admet, _has_smiles_notation)
         if not (_has_admet or _has_smiles_notation):
             return None
 
-        # Search with wide limit — 67 pharmacology workflows compete for top-5
-        results = self.workflow_search.search("predict admet properties pharmacology", limit=20)
-        top = None
-        for r in results:
-            fn = (r.filename or '').lower()
-            if 'predict_admet_properties' in fn:
-                top = r
-                break
+        # Primary lookup: direct DB filename pattern — bypasses embedding search variance.
+        # When many pharmacology workflows compete, the embedding search may push
+        # predict_admet_properties below the top-20 cutoff.  A LIKE query on filename
+        # always finds the workflow as long as it is in the DB.
+        top = self.workflow_search.get_workflow_by_filename_pattern('%predict_admet_properties%')
+        results = [top] if top else []
+        if top:
+            log.info("[AdmetFastPath] Found predict_admet_properties via direct DB filename pattern")
+
+        if not top:
+            # Fallback 1: broad embedding search
+            results = self.workflow_search.search("predict admet properties pharmacology", limit=20)
+            for r in results:
+                fn = (r.filename or '').lower()
+                if 'predict_admet_properties' in fn:
+                    top = r
+                    break
 
         if not top:
             results = self.workflow_search.search(user_intent, limit=20)
@@ -3450,7 +3461,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     break
 
         if not top:
-            # Final fallback: search by exact workflow name
+            # Fallback 3: search by workflow display name
             results = self.workflow_search.search("Predict ADMET Properties AI", limit=20)
             for r in results:
                 fn = (r.filename or '').lower()
@@ -3460,6 +3471,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     break
 
         if not top:
+            log.warning("[AdmetFastPath] predict_admet_properties not found in DB — fast path skipped")
             return None
 
         # Extract SMILES from query. We do NOT inject it into the intent string —
@@ -3681,9 +3693,13 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             if _fast_dock:
                 return _fast_dock
 
-            _fast_admet = self._try_fast_path_admet_workflow(
-                user_intent, uploaded_datasets=uploaded_datasets
-            )
+            try:
+                _fast_admet = self._try_fast_path_admet_workflow(
+                    user_intent, uploaded_datasets=uploaded_datasets
+                )
+            except Exception as _fa_exc:
+                log.error("[AdmetFastPath] Unexpected exception: %s", _fa_exc, exc_info=True)
+                _fast_admet = None
             if _fast_admet:
                 return _fast_admet
 
