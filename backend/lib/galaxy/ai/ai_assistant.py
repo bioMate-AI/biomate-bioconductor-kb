@@ -3497,11 +3497,17 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             log.warning("[AdmetFastPath] predict_admet_properties not found in DB — fast path skipped")
             return None
 
-        # Guard: if the DB row has filename=NULL (common in dev DB), inject the known path.
-        # Without this, _find_nf_file(None) throws AttributeError → fast path silently fails.
+        # Guard: if the DB row has filename=NULL or format != 'nextflow' (common in dev DB),
+        # inject the known path and force format='nextflow'.
+        # Without filename: _find_nf_file(None) throws AttributeError → fast path silently fails.
+        # Without format fix: step-2 medium-confidence routing checks format before calling
+        # _return_nextflow_match and falls to NextflowComposer (which fails) when format='galaxy_ga'.
         if not top.filename:
             top.filename = 'nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf'
             log.warning("[AdmetFastPath] ADMET workflow found (name=%s) but filename=NULL — injected known path", top.name)
+        if getattr(top, 'format', '') != 'nextflow':
+            top.format = 'nextflow'
+            log.warning("[AdmetFastPath] ADMET workflow found (name=%s) but format=%r — forcing 'nextflow'", top.name, getattr(top, 'format', None))
 
         # Extract SMILES from query. We do NOT inject it into the intent string —
         # doing so lets _apply_llm_suggestions overwrite the value with a raw SMILES
@@ -4041,6 +4047,25 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                             _admet_match.name, _admet_match.score,
                             plausible[0].score - plausible[1].score,
                         )
+                        # Dev DB fix: ADMET workflow may have filename=NULL and format='galaxy_ga'.
+                        # Inject the known filename so _is_executable_nextflow_match passes its
+                        # filename checks, and force format='nextflow' so step-2 medium-confidence
+                        # routing calls _return_nextflow_match instead of NextflowComposer.
+                        if not _admet_match.filename:
+                            _admet_match.filename = (
+                                'nextflow_nfcore/subworkflows/pharmacology/'
+                                'predict_admet_properties/main.nf'
+                            )
+                            log.warning(
+                                "[UnifiedWorkflowGeneration] ADMET bypass: injected filename for %s",
+                                _admet_match.name,
+                            )
+                        if getattr(_admet_match, 'format', '') != 'nextflow':
+                            _admet_match.format = 'nextflow'
+                            log.warning(
+                                "[UnifiedWorkflowGeneration] ADMET bypass: forced format='nextflow' for %s",
+                                _admet_match.name,
+                            )
                         # Promote the ADMET workflow to position 0
                         search_results = (
                             [_admet_match]
