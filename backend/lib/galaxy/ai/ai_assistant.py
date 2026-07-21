@@ -3716,48 +3716,6 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             # so the final return dict can always reference them safely.
             dataset_match_result: Dict[str, Any] = {}
 
-            # DIAGNOSTIC BYPASS: temporary hardcoded return to identify failure layer.
-            # Remove after root cause is confirmed.
-            import re as _re_diag_bypass
-            if _re_diag_bypass.search(r'\badmet\b', user_intent, _re_diag_bypass.IGNORECASE):
-                log.warning("[DIAG_BYPASS] ADMET detected in user_intent — returning hardcoded success for layer test")
-                return {
-                    'success': True,
-                    'nextflow_path': 'nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf',
-                    'workflow_name': 'Predict ADMET Properties',
-                    'workflow_type': 'nextflow',
-                    'source': 'template_reuse',
-                    'confidence': 85,
-                    'template_match_score': 85,
-                    'needs_user_feedback': False,
-                    'message': '[DIAG] hardcoded bypass active — confirming Python→TS layer',
-                    'format': 'nextflow',
-                    'workflow_ga': {
-                        'name': 'Predict ADMET Properties',
-                        'description': 'ADMET property prediction workflow',
-                        'annotation': 'ADMET property prediction',
-                        'tags': ['admet', 'pharmacology'],
-                        'domain': 'drug_discovery',
-                        'format': 'nextflow',
-                        'nextflow_path': 'nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf',
-                        'workflow_type': 'nextflow',
-                        'steps': {},
-                        'scientific_rationale': None,
-                        'hardware_requirements': None,
-                        'required_params': [{'name': 'smiles_list', 'label': 'SMILES List', 'type': 'string', 'default': '["CCO"]', 'required': True, 'description': 'List of SMILES strings to screen'}],
-                        'optional_params': [],
-                    },
-                    'datasets_assigned': False,
-                    'required_params': [{'name': 'smiles_list', 'label': 'SMILES List', 'type': 'string', 'default': '["CCO"]', 'required': True, 'description': 'List of SMILES strings to screen'}],
-                    'optional_params': [],
-                    'generated_parameters': [],
-                    'validation': {'is_valid': True, 'issues': [], 'warnings': [], 'suggestions': []},
-                    'tool_installation': {'success': True, 'message': 'Nextflow workflow', 'failed_tools': []},
-                    'selected_trial': '',
-                    'trial_count': 0,
-                    'candidate_workflows': [],
-                }
-
             _fast_codon = self._try_fast_path_explicit_codon_workflow(
                 user_intent, uploaded_datasets=uploaded_datasets
             )
