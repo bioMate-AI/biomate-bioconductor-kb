@@ -2960,6 +2960,38 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 suggestions.append({"name": _target, "value": _path, "rationale": f"File path found in query (mapped by extension)."})
                 _already_set.add(_target)  # don't reuse same param for another file
 
+        # Rule: map "SMILES: <value>" or "SMILES= <value>" to smiles_list param.
+        # Generalizable: applies to any workflow with smiles_list (ADMET, docking, PKsim, etc.).
+        # Using JSON-array format required by Groovy's JsonSlurper at workflow startup.
+        # When smiles_list is the only required param, this causes _explicit_covers_required=True
+        # which skips _infer_params_from_intent_llm — eliminating an LLM call that adds latency.
+        import json as _json_smiles
+        if 'smiles_list' in all_param_names and 'smiles_list' not in _already_set:
+            _smiles_m = _re.search(
+                r'\bSMILES\s*[=:]\s*([A-Za-z0-9@\[\]\(\)\+\-=#\/\\\.%:]{8,})',
+                user_intent,
+                _re.IGNORECASE,
+            )
+            if _smiles_m:
+                _smiles_raw = _smiles_m.group(1)
+                # Strip unbalanced trailing ')' that sentence punctuation wrapping adds.
+                _depth = 0
+                _smiles_val = _smiles_raw
+                for _i, _ch in enumerate(_smiles_raw):
+                    if _ch == '(':
+                        _depth += 1
+                    elif _ch == ')':
+                        if _depth == 0:
+                            _smiles_val = _smiles_raw[:_i]
+                            break
+                        _depth -= 1
+                suggestions.append({
+                    "name": "smiles_list",
+                    "value": _json_smiles.dumps([_smiles_val]),
+                    "rationale": "SMILES string extracted from 'SMILES:' notation in query.",
+                })
+                _already_set.add('smiles_list')
+
         return suggestions
 
     def _apply_llm_suggestions(

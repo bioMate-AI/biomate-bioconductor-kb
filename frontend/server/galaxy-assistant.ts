@@ -2104,6 +2104,11 @@ Rules:
   if (file) fallback.file_path = file[1];
   const upload = message.match(/\[Uploaded datasets:\s*([^\]]+)\]/);
   if (upload) fallback.uploaded_dataset = upload[1].trim();
+  // SMILES detection — generalizable to all ADMET / docking / drug-discovery queries.
+  // Ensures hasInlineData=true for messages containing SMILES strings so the LLM receives
+  // correct format instructions (Technical failure, not Clarification needed).
+  const smilesM = message.match(/\bSMILES\s*[=:]\s*([A-Za-z0-9@\[\]\(\)\+\-=#\/\\\.%:]{8,})/i);
+  if (smilesM) fallback.smiles = smilesM[1].replace(/[.,;)\]]+$/, '');
   // ── Genomic format detection (must precede the generic count_matrix catch-all) ──────────────
   // VCF variant table: #CHROM header OR chr/pos/rsID row pattern.
   const hasVCFHeader = /^#CHROM\s+POS\s+ID\s+REF\s+ALT/im.test(message);
