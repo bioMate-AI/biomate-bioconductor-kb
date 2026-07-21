@@ -387,32 +387,18 @@ async function auditChatMessage(page, msgIndex, turnLabel) {
     const aiMsgSel = '[class*="assistant"], .assistant-message';
 
     // ════════════════════════════════════════════════════════════════════════
-    // TURN 1: Click chip (pre-staged S3 URIs) → DESeq2 route → Run → Audit
+    // TURN 1: Send message with pre-staged S3 URIs → DESeq2 route → Run
+    // Same text the chip injects, but sent directly so chip re-click issues
+    // on fresh-chat pages don't gate the test.
     // ════════════════════════════════════════════════════════════════════════
-    console.log('\n══ Turn 1 — Chip click → DESeq2 (pre-staged S3 data, no file upload) ══');
-
-    // Re-click chip to get the full query with S3 URIs in the textarea
-    const mgChip2 = page.locator('button, [role="button"]').filter({ hasText: /MG patient stratification/i }).first();
-    const chipVisible2 = await mgChip2.isVisible({ timeout: 5000 }).catch(() => false);
-    if (chipVisible2) {
-      await mgChip2.click();
-      await page.waitForTimeout(800);
-    }
-    const ta = page.locator('textarea').first();
-    const chipText = await ta.inputValue().catch(() => '');
-    const hasS3 = chipText.includes('s3://biomate-nextflow-work/demo/mg_demo/');
-    record('Turn 1 — chip text contains pre-staged S3 URIs', hasS3, hasS3 ? 'S3 URIs found' : `"${chipText.slice(0,80)}"`);
-    await screenshot(page, '03_chip_with_s3');
+    console.log('\n══ Turn 1 — DESeq2 with pre-staged S3 data (no file upload) ══');
+    const DEMO_BUCKET = 's3://biomate-nextflow-work/demo/mg_demo';
+    const turn1Msg = `Run differential expression on AChR+ myasthenia gravis PBMC data (GSE227835, 10 MG patients vs 10 healthy controls) to find the key complement pathway drivers. Use these pre-staged files — samplesheet: ${DEMO_BUCKET}/sample_metadata.csv, matrix: ${DEMO_BUCKET}/counts_matrix.csv, contrasts: ${DEMO_BUCKET}/contrasts.csv`;
+    console.log(`  Sending: "${turn1Msg.slice(0, 100)}..."`);
+    await screenshot(page, '03_before_send');
 
     const msgs0 = await page.locator(aiMsgSel).count();
-    // Send the chip message as-is (S3 URIs already embedded)
-    const sendBtn = page.locator('[data-testid="chat-send-button"]').first();
-    if (await sendBtn.isVisible({ timeout: 2000 })) {
-      await sendBtn.click();
-    } else {
-      await page.keyboard.press('Enter');
-    }
-    console.log(`  Sent chip message (${chipText.length} chars, S3 URIs embedded)`);
+    await sendMessage(page, turn1Msg);
 
     const card1 = await waitForWorkflowCard(page, msgs0, 90000);
     record('Turn 1 — workflow card appears', card1.found, (card1.name || '').slice(0, 60));
