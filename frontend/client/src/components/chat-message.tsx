@@ -308,14 +308,14 @@ export function ChatMessage({
 
   return (
     <div
-      className={cn("msg px-4 py-2", isUser ? "user" : "assistant")}
+      className={cn("msg", isUser ? "user" : "assistant")}
       id={`chat-message-anchor-${message.id}`}
       data-testid={`chat-message-${message.id}`}
       data-role={message.role}
       data-run-anchor-focused={isRunAnchorFocused ? "true" : "false"}
       data-run-anchor-highlighted={isRunAnchorHighlighted ? "true" : "false"}
       data-is-latest-assistant={isLatestAssistantMessage ? "true" : "false"}
-      style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: isUser ? 'flex-end' : 'flex-start', maxWidth: '100%' }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: isUser ? 'flex-end' : 'flex-start', maxWidth: '100%' }}
     >
       {/* Who label — "YOU · 3:40 PM" or "BIOMATE + speaker pill" */}
       <div className="who" style={{
@@ -366,7 +366,7 @@ export function ChatMessage({
           fontSize: 14,
           lineHeight: 1.5,
           alignSelf: 'flex-end',
-        } : undefined}>
+        } : { lineHeight: 1.55 }}>
             {isUser ? (() => {
               const raw = message.content || ''
               // Extract attached file names from metadata blocks before stripping them

@@ -1915,12 +1915,12 @@ export function ChatInterface({
       )}
 
       <ScrollArea className="flex-1" ref={scrollRef} data-testid="chat-messages" style={{
-        padding: '28px clamp(20px, 8%, 80px) 20px',
+        padding: '28px clamp(20px, 8%, 120px) 20px',
       }}>
         {displayMessages.length === 0 && !isTyping && !isTypingLocal && (
           <ReturningUserWelcome onSend={(q) => handleSendOrQueue(q)} />
         )}
-        <div className="space-y-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
           {(() => {
             const visible = displayMessages.filter(
               // Hide empty assistant placeholder during typing UNLESS it already has a
@@ -2143,7 +2143,7 @@ export function ChatInterface({
       )}
       {/* Reference design chat input wrap — padding clamp like layout.css */}
       <div style={{
-        padding: '10px clamp(20px, 8%, 80px) 16px',
+        padding: '10px clamp(20px, 8%, 120px) 22px',
         background: 'var(--bm-bg, hsl(var(--background)))',
       }}>
         {displayMessages.length === 0 && (
