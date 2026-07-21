@@ -7240,6 +7240,28 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
       console.log('[GalaxyAssistant] Optional params (autofilled):', JSON.stringify((_respWfGa.optional_params || (response as any).optional_params || []).filter((p: any) => p.autoFilled).map((p: any) => ({name: p.name, value: p.value}))));
       console.log('[GalaxyAssistant] Required params:', JSON.stringify((_respWfGa.required_params || (response as any).required_params || []).map((p: any) => ({name: p.name, value: p.value, required: p.required, autoFilled: p.autoFilled}))));
       console.log('[GalaxyAssistant] Message:', response.message);
+
+      // Force-merge inline params into workflow required_params to override any
+      // concatenation error from the LLM parsing multi-param message text.
+      // Only override if the inline value is an s3:// URI or non-empty string.
+      const _overridableKeys = new Set(['samplesheet', 'input', 'matrix', 'contrasts', 'reads', 'gene_list', 'geo_accession', 'file_path']);
+      if (mergedInlineParameters && Object.keys(mergedInlineParameters).length) {
+        const _wfGaRef = (response as any).workflow_ga || (response as any);
+        for (const _pList of ['required_params', 'optional_params']) {
+          const _arr: any[] = _wfGaRef[_pList] || [];
+          for (const _p of _arr) {
+            const _inlineVal = (mergedInlineParameters as Record<string, unknown>)[_p.name];
+            if (_inlineVal && typeof _inlineVal === 'string' && (_overridableKeys.has(_p.name) || _inlineVal.startsWith('s3://'))) {
+              if (_p.value !== _inlineVal) {
+                console.log(`[GalaxyAssistant] InlineOverride ${_pList} ${_p.name}: "${String(_p.value || '').slice(0,80)}" → "${_inlineVal.slice(0,80)}"`);
+                _p.value = _inlineVal;
+                _p.autoFilled = true;
+              }
+            }
+          }
+        }
+      }
+
       console.log('[GalaxyAssistant] ========================================');
     } else {
       console.error('[GalaxyAssistant] ❌ Workflow generation failed');
@@ -7614,8 +7636,12 @@ ONE-QUESTION RULE:
 - Differential-expression file mapping rule: When multiple CSV files are uploaded for a DE workflow (differentialabundance, DESeq2, edgeR, limma), map them as follows based on filename keywords: files containing "sample", "metadata", "samplesheet", "coldata", "design" → use as the 'samplesheet' param (or 'input' if the workflow only declares 'input'). Files containing "count", "matrix", "expression", "counts" → use as the 'matrix' param. Files containing "contrast", "comparison" → use as the 'contrasts' param. NEVER create a generic 'dataset' param. Every uploaded file must map to a named workflow param.
 - When the message contains an "[Attached files: ...]" block without a corresponding "[Uploaded datasets: ...]" block, the upload failed. Tell the user which files failed and ask them to try again.
 - Pre-staged GEO demo datasets: The following GEO accessions have pre-staged count data on S3 that can be used directly as workflow params — no file upload required. When a user's message contains one of these accessions AND requests differential expression (with or without uploading files), use these S3 URIs for the corresponding workflow params:
-  * GSE227835 (AChR+ myasthenia gravis scRNA-seq, 10 MG vs 10 HC PBMCs): samplesheet=s3://biomate-nextflow-work/demo/mg_demo/sample_metadata.csv, matrix=s3://biomate-nextflow-work/demo/mg_demo/counts_matrix.csv, contrasts=s3://biomate-nextflow-work/demo/mg_demo/contrasts.csv
-  Do NOT ask the user to upload files for these accessions. Route to nf-core/differentialabundance and populate the params above. Mention in your response that you are using the pre-staged processed counts for this accession (pseudobulk-aggregated from the raw scRNA-seq).
+  * GSE227835 (AChR+ myasthenia gravis scRNA-seq, 10 MG vs 10 HC PBMCs):
+    samplesheet: s3://biomate-nextflow-work/demo/mg_demo/sample_metadata.csv
+    matrix: s3://biomate-nextflow-work/demo/mg_demo/counts_matrix.csv
+    contrasts: s3://biomate-nextflow-work/demo/mg_demo/contrasts.csv
+  IMPORTANT: each param above is SEPARATE — samplesheet, matrix, and contrasts are three distinct workflow parameters, each with its own S3 URI. Never concatenate them into a single samplesheet value.
+  Do NOT ask the user to upload files for these accessions. Route to nf-core/differentialabundance and populate the three params above individually. Mention in your response that you are using the pre-staged processed counts for this accession (pseudobulk-aggregated from the raw scRNA-seq).
 - Differential-expression method selection (data-type rule): When the input is **microarray** data — signals include (a) the word "microarray", (b) a log-transformed continuous expression matrix (non-integer values, often 4–14 range), (c) a GEO accession known to be microarray (e.g. GSE22055, GSE10072 — Affymetrix/Illumina BeadChip series) — **prefer limma** (linear-model + empirical Bayes) and NOT DESeq2/edgeR. DESeq2 and edgeR assume raw integer counts (RNA-seq) and produce invalid results on continuous microarray intensities. For RNA-seq raw counts use DESeq2 (most common) or edgeR. For RNA-seq with low-count genes or covariate-heavy designs, limma-voom is also valid. If the data type is ambiguous, ask once which platform produced the data, then route accordingly — do not default to DESeq2 silently.
 ${isDrugDevelopmentQuery ? `- For drug-development requests, provide decision-grade guidance: list concrete workflow phases, critical safety/quality gates, required inputs, and explicit next actions` : ''}
 ${isDrugDevelopmentQuery ? `- For drug-development WORKFLOW GENERATION FAILURES ONLY (when the system returns an error or cannot find a matching workflow): include at least TWO distinct blocker categories (e.g., tool gap, input gap, domain mismatch) and ask at least TWO targeted follow-up questions. IMPORTANT: This rule does NOT apply when the user has already provided input data (SMILES, sequence, files) — in that case generate the workflow immediately.` : ''}

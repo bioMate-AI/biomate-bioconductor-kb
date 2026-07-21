@@ -3471,18 +3471,19 @@ def generate_workflow_unified(
             except Exception as _cred_err:
                 log.debug("[generate_workflow] credential_map build failed (non-fatal): %s", _cred_err)
 
-        # Augment effective_intent with inline_parameters values so the backend's
-        # rule-based and LLM-based param extraction can see the file paths.
-        # These come from extractInlineDataWithLLM (Node.js layer) and contain S3 URIs
-        # from [Uploaded datasets:] blocks. We append them as plain text so the
-        # extraction regexes and LLM can map them to workflow params.
+        # Augment effective_intent with inline_parameters so the backend LLM can see
+        # the exact param→value mapping extracted by the Node.js layer.
+        # Format as key: value lines (not space-joined values) so the LLM correctly
+        # maps samplesheet→URI1, matrix→URI2, contrasts→URI3 as separate params.
         if request.inline_parameters:
-            _inline_vals = " ".join(
-                str(v) for v in request.inline_parameters.values()
+            _inline_lines = "\n".join(
+                f"{k}: {v}"
+                for k, v in request.inline_parameters.items()
                 if v and isinstance(v, str) and v.strip()
+                and k not in ("domain_hint",)
             )
-            if _inline_vals and _inline_vals not in effective_intent:
-                effective_intent = f"{effective_intent}\n[File paths: {_inline_vals}]"
+            if _inline_lines and _inline_lines not in effective_intent:
+                effective_intent = f"{effective_intent}\n[Inline parameters:\n{_inline_lines}]"
 
         use_langgraph = _os.getenv("BIOMATE_USE_LANGGRAPH", "false").lower() in ("1", "true", "yes")
         if use_langgraph:

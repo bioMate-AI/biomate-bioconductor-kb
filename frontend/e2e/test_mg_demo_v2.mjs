@@ -393,7 +393,8 @@ async function auditChatMessage(page, msgIndex, turnLabel) {
     // ════════════════════════════════════════════════════════════════════════
     console.log('\n══ Turn 1 — DESeq2 with pre-staged S3 data (no file upload) ══');
     const DEMO_BUCKET = 's3://biomate-nextflow-work/demo/mg_demo';
-    const turn1Msg = `Run differential expression on AChR+ myasthenia gravis PBMC data (GSE227835, 10 MG patients vs 10 healthy controls) to find the key complement pathway drivers. Use these pre-staged files — samplesheet: ${DEMO_BUCKET}/sample_metadata.csv, matrix: ${DEMO_BUCKET}/counts_matrix.csv, contrasts: ${DEMO_BUCKET}/contrasts.csv`;
+    // Use newline-delimited params so Claude doesn't concatenate them into one samplesheet value.
+    const turn1Msg = `Run differential expression on AChR+ myasthenia gravis PBMC data (GSE227835, 10 MG patients vs 10 healthy controls) — find the key complement pathway drivers.\nsamplesheet: ${DEMO_BUCKET}/sample_metadata.csv\nmatrix: ${DEMO_BUCKET}/counts_matrix.csv\ncontrasts: ${DEMO_BUCKET}/contrasts.csv`;
     console.log(`  Sending: "${turn1Msg.slice(0, 100)}..."`);
     await screenshot(page, '03_before_send');
 
