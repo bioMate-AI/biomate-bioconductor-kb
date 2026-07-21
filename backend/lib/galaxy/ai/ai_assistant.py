@@ -3488,6 +3488,53 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
 
         return result
 
+    def _try_fast_path_nfcore_pipeline(  # noqa: deploy-trigger
+        self,
+        user_intent: str,
+        uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Route explicit nf-core/X pipeline mentions directly to _return_nextflow_match.
+
+        When the user writes "nf-core/rnaseq", "nf-core/scrnaseq", etc. the normal
+        embedding-search path may fail on dev (different DB state, scoring variance,
+        NextflowComposer fallback errors). This fast path bypasses embedding search
+        entirely and looks up the pipeline by filename in the DB.
+        """
+        import re as _re_nfcore
+
+        m = _re_nfcore.search(r'\bnf-core/([a-zA-Z][a-zA-Z0-9_-]+)', user_intent, _re_nfcore.IGNORECASE)
+        if not m:
+            return None
+
+        slug = m.group(1).lower()  # e.g. "rnaseq", "scrnaseq", "sarek"
+        filename_pattern = f'nfcore/{slug}/main.nf'
+
+        top = self.workflow_search.get_workflow_by_filename_pattern(filename_pattern)
+        if not top:
+            # Broader search: allow subdirectory variants like nfcore/rnaseq/workflows/main.nf
+            top = self.workflow_search.get_workflow_by_filename_pattern(f'nfcore/{slug}/%')
+        if not top:
+            log.warning("[NfcoreFastPath] No DB entry found for %s", filename_pattern)
+            return None
+
+        log.info(
+            "[UnifiedWorkflowGeneration] nf-core fast path → %s (slug=%s, id=%d)",
+            top.name,
+            slug,
+            top.id,
+        )
+        return self._return_nextflow_match(
+            match=top,
+            score=top.score,
+            user_intent=user_intent,
+            source='template_reuse',
+            needs_user_feedback=False,
+            search_results=[top],
+            selected_trial='',
+            trials=[],
+            uploaded_datasets=uploaded_datasets,
+        )
+
     def generate_workflow_unified(
         self,
         user_intent: str,
@@ -3568,6 +3615,12 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             )
             if _fast_admet:
                 return _fast_admet
+
+            _fast_nfcore = self._try_fast_path_nfcore_pipeline(
+                user_intent, uploaded_datasets=uploaded_datasets
+            )
+            if _fast_nfcore:
+                return _fast_nfcore
 
             # Ensure the fast LLM client is initialized before chain search.
             # _llm_select_chain (chain verifier) needs workflow_search._llm_client set BEFORE
