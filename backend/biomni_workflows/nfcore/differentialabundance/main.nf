@@ -1,19 +1,18 @@
 // nf-core/differentialabundance — BioMate stub with embedded R (DESeq2)
-// Differential abundance: count matrix → normalisation → DE analysis → visualisation
-// Replaces the placeholder-script stub; all R code is embedded so it runs in BioMate containers.
+// Input files are downloaded via aws s3 cp in the R script (no path staging).
+// Pattern follows validation_deseq2_raw_counts/main.nf.
 
 nextflow.enable.dsl = 2
 
-params.input            = null          // Sample metadata CSV (sample, condition, replicate, ...)
+params.input            = null          // Sample metadata CSV (S3 URI or local path)
 params.matrix           = null          // Count matrix CSV (genes × samples)
-params.transcript_length_matrix = null  // Transcript length matrix for TPM (optional)
 params.contrasts        = null          // Contrasts CSV (id, variable, reference, target)
 params.genome           = null          // Reference genome (for annotation, optional)
-params.gtf              = null          // GTF annotation file (for gene info)
+params.gtf              = null          // GTF annotation file (optional)
 params.study_type       = 'rnaseq'      // Assay type: rnaseq | maxquant | affy | metab
-params.differential_min_fold_change = 2.0   // Min fold change threshold for volcano plot
-params.differential_max_qval        = 0.05  // Max adjusted p-value threshold
-params.normalisation_method         = 'deseq2' // deseq2 | edger | limma
+params.differential_min_fold_change = 2.0
+params.differential_max_qval        = 0.05
+params.normalisation_method         = 'deseq2'
 params.save_intermediates           = false
 params.outdir           = './results'
 params.email            = null
@@ -22,7 +21,7 @@ params.max_cpus         = 8
 params.max_time         = '72.h'
 
 // Steps:
-//  * 1. [Input Validation] Validate samplesheet and count matrix
+//  * 1. [Input Download] Download samplesheet and count matrix from S3
 //  * 2. [Normalisation] Normalise counts with DESeq2 VST/rlog
 //  * 3. [Differential Abundance] Run DESeq2 per contrast
 //  * 4. [Visualisation & Report] PCA, volcano, MA plots + HTML report
@@ -33,8 +32,10 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
 
     container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20-slim"
 
+    // Input files are downloaded inside the R script via aws s3 cp.
+    // Using val (not path) avoids Channel.fromPath S3-FS-type probing on Nextflow 25.x.
     input:
-    tuple val(meta), path(input_files, stageAs: '?/*')
+    val meta
 
     output:
     tuple val(meta), path("*.csv"),           emit: tables,   optional: true
@@ -48,9 +49,11 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
     task.ext.when == null || task.ext.when
 
     script:
-    def prefix = task.ext.prefix ?: "${meta.id}"
-    def min_fc  = params.differential_min_fold_change ?: 2.0
-    def max_qval = params.differential_max_qval ?: 0.05
+    def min_fc    = params.differential_min_fold_change ?: 2.0
+    def max_qval  = params.differential_max_qval ?: 0.05
+    def input_uri = params.input ?: ''
+    def matrix_uri    = params.matrix ?: ''
+    def contrasts_uri = params.contrasts ?: ''
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies
@@ -62,21 +65,30 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
       .bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
       suppressWarnings(suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=.bin), error=function(e) try(install.packages(.bm_miss), silent=TRUE))))
     }
-    # Flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-    for (.bm_d in list.files(".", full.names=TRUE)) {
-      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
-        for (.bm_e in list.files(.bm_d, full.names=TRUE)) {
-          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive=TRUE), silent=TRUE)
-        }
+
+    # ── 1. Download inputs from S3 (or copy from local) ──────────────────────
+    dl <- function(uri, dest) {
+      if (is.null(uri) || nchar(trimws(uri)) == 0 || uri == "null") return(FALSE)
+      if (startsWith(uri, "s3://")) {
+        ret <- system(paste("aws s3 cp", shQuote(uri), shQuote(dest)), wait=TRUE)
+        return(ret == 0 && file.exists(dest))
+      } else if (file.exists(uri)) {
+        return(file.copy(uri, dest))
       }
+      FALSE
     }
+
+    ok_meta <- dl("${input_uri}", "sample_metadata.csv")
+    ok_mat  <- dl("${matrix_uri}", "counts_matrix.csv")
+    ok_con  <- dl("${contrasts_uri}", "contrasts.csv")
+    cat(sprintf("[DESeq2] downloads: metadata=%s  matrix=%s  contrasts=%s\\n",
+                ok_meta, ok_mat, ok_con))
 
     library(DESeq2)
     library(ggplot2)
 
-    # ── 1. Load inputs ─────────────────────────────────────────────────────────
-    # Find metadata / matrix / contrasts among staged files
-    all_files <- list.files(".", pattern = "\\\\.csv\$", recursive = FALSE)
+    # ── 2. Load inputs by name ────────────────────────────────────────────────
+    all_files <- list.files(".", pattern = "\\.csv\$", recursive = FALSE)
     meta_file <- all_files[grepl("sample|metadata|samplesheet", tolower(all_files))][1]
     mat_file  <- all_files[grepl("matrix|count|expression", tolower(all_files))][1]
     con_file  <- all_files[grepl("contrast", tolower(all_files))][1]
@@ -91,18 +103,17 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
     count_mat <- round(count_mat)
     storage.mode(count_mat) <- "integer"
 
-    # ── 2. Build contrasts ─────────────────────────────────────────────────────
+    # ── 3. Build contrasts ─────────────────────────────────────────────────────
     if (!is.na(con_file)) {
       contrasts_df <- read.csv(con_file, stringsAsFactors=FALSE)
     } else {
-      # Auto-derive: first non-sample column vs first two levels
       cond_col <- names(metadata)[names(metadata) != "sample"][1]
       lvls <- unique(metadata[[cond_col]])
       contrasts_df <- data.frame(id=paste0(lvls[1],"_vs_",lvls[2]),
                                  variable=cond_col, reference=lvls[2], target=lvls[1])
     }
 
-    # ── 3. Align samples ───────────────────────────────────────────────────────
+    # ── 4. Align samples ───────────────────────────────────────────────────────
     sample_col <- if ("sample" %in% names(metadata)) "sample" else names(metadata)[1]
     common <- intersect(metadata[[sample_col]], colnames(count_mat))
     if (length(common) == 0) {
@@ -131,13 +142,12 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
         next
       }
 
-      # ── 4. DESeq2 ─────────────────────────────────────────────────────────
+      # ── 5. DESeq2 ─────────────────────────────────────────────────────────
       col_data <- metadata
       col_data[[cvar]] <- relevel(factor(col_data[[cvar]]), ref=cref)
-      formula_str <- paste0("~", cvar)
       dds <- tryCatch(
         DESeqDataSetFromMatrix(countData=count_mat, colData=col_data,
-                               design=as.formula(formula_str)),
+                               design=as.formula(paste0("~", cvar))),
         error=function(e) stop("DESeq2 setup failed for contrast '", cid, "': ", e\$message)
       )
       dds <- estimateSizeFactors(dds)
@@ -152,20 +162,18 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
       write.csv(res_df, out_csv, row.names=TRUE)
       all_results[[cid]] <- res_df
 
-      # ── 5. Significant gene list ─────────────────────────────────────────
+      # ── 6. Significant gene list ─────────────────────────────────────────
       sig_genes <- rownames(res_df)[!is.na(res_df\$padj) & res_df\$padj < ${max_qval} &
                                      abs(res_df\$log2FoldChange) >= log2(${min_fc})]
       if (length(sig_genes) > 0) {
         writeLines(sig_genes, paste0(cid, "_significant_genes.txt"))
       }
 
-      # ── 6. Volcano plot ───────────────────────────────────────────────────
+      # ── 7. Volcano plot ───────────────────────────────────────────────────
       tryCatch({
         res_df\$significant <- !is.na(res_df\$padj) & res_df\$padj < ${max_qval} &
                                 abs(res_df\$log2FoldChange) >= log2(${min_fc})
         res_df\$neglog10p <- -log10(pmax(res_df\$pvalue, 1e-300))
-        top_genes <- head(rownames(res_df[res_df\$significant & !is.na(res_df\$significant), ]), 15)
-
         if (requireNamespace("ggrepel", quietly=TRUE)) library(ggrepel)
         p <- ggplot(res_df[!is.na(res_df\$padj),], aes(x=log2FoldChange, y=neglog10p, colour=significant)) +
           geom_point(alpha=0.4, size=1.2) +
@@ -175,7 +183,7 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
           labs(title=paste0("Volcano: ", cid), x="log2 Fold Change", y="-log10(p-value)",
                caption=paste0(sum(res_df\$significant, na.rm=TRUE), " genes significant")) +
           theme_bw(base_size=11) + theme(legend.position="none")
-
+        top_genes <- head(rownames(res_df[res_df\$significant & !is.na(res_df\$significant), ]), 15)
         if (exists("geom_text_repel") && length(top_genes) > 0) {
           p <- p + geom_text_repel(data=res_df[top_genes,], aes(label=rownames(res_df[top_genes,])),
                                     size=2.5, max.overlaps=20)
@@ -183,7 +191,7 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
         ggsave(paste0(cid, "_volcano.pdf"), p, width=7, height=6)
       }, error=function(e) warning("Volcano plot failed: ", e\$message))
 
-      # ── 7. PCA plot ───────────────────────────────────────────────────────
+      # ── 8. PCA plot ───────────────────────────────────────────────────────
       tryCatch({
         vsd <- tryCatch(vst(dds, blind=TRUE), error=function(e) {
           warning("VST failed, using rlog: ", e\$message)
@@ -204,7 +212,7 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
       saveRDS(dds, paste0(cid, "_dds.rds"))
     }
 
-    # ── 8. QC metrics ─────────────────────────────────────────────────────────
+    # ── 9. QC metrics ─────────────────────────────────────────────────────────
     .n_sig_total <- sum(sapply(all_results, function(r) sum(!is.na(r\$padj) & r\$padj < ${max_qval} & abs(r\$log2FoldChange) >= log2(${min_fc}))))
     .n_tested    <- sum(sapply(all_results, nrow))
     .qc <- list(
@@ -225,7 +233,7 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
           status      = paste0(.n_sig_total, " genes significant at padj<${max_qval}, |FC|>=${min_fc}")
         )
       ),
-      harness_version  = "0.2.0-deseq2"
+      harness_version  = "0.3.0-deseq2-val"
     )
     cat(jsonlite::toJSON(.qc, auto_unbox=TRUE, pretty=TRUE, null="null"), file="qc_metrics.json")
 
@@ -233,25 +241,16 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
     """
 
     stub:
-    def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_DESeq2_results.csv qc_metrics.json versions.yml
+    touch DESeq2_results.csv qc_metrics.json versions.yml
     """
 }
 
 workflow DIFFERENTIALABUNDANCE {
     main:
-    if (!params.input)  error "Please provide --input (sample metadata CSV with a 'sample' column)"
+    if (!params.input) error "Please provide --input (sample metadata CSV or S3 URI)"
 
-    // Build path list from non-null params; R will detect each file by name
-    def _paths = [params.input]
-    if (params.matrix)    _paths << params.matrix
-    if (params.contrasts) _paths << params.contrasts
-
-    ch_input = Channel.of([[id: 'run']])
-        .combine(Channel.fromPath(_paths).collect().map { files -> [files] })
-
-    DESEQ2_DIFFERENTIAL_ANALYSIS(ch_input)
+    DESEQ2_DIFFERENTIAL_ANALYSIS(Channel.value([id: 'run']))
 
     emit:
     tables   = DESEQ2_DIFFERENTIAL_ANALYSIS.out.tables
