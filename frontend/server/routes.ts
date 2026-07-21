@@ -12924,16 +12924,35 @@ Respond ONLY with valid JSON (no markdown wrapper):
 
             _findingsCache.set(runId, parsed);
           } catch (parseErr: any) {
-            // Don't dump the broken raw JSON-shaped string into `summary` —
-            // that's what made the bug invisible for so long. Surface the
-            // failure cleanly so users know to look at outputs directly.
-            console.warn('[Findings] AI synthesis JSON parse failed:', parseErr?.message, '— rawText preview:', rawText.slice(0, 200));
-            _findingsCache.set(runId, {
-              summary: `${workflowName} completed. AI synthesis was unavailable for this run — see the Outputs tab for raw results.`,
-              key_results: [],
-              next_steps: ['Open the Outputs tab to view the result files directly.'],
-              caveats: ['AI summary generation did not produce a valid structured response. The underlying run succeeded.'],
-            });
+            console.warn('[Findings] Gemini JSON parse failed:', parseErr?.message, '— retrying with Claude');
+            // Gemini truncated or returned malformed JSON — retry with Claude using a
+            // shorter context (3 files, 3000 chars each) to stay well within limits.
+            try {
+              const shortContext = outputSamples.slice(0, 3)
+                .map(f => `### File: ${f.name}\n\`\`\`\n${f.content.slice(0, 3000)}\n\`\`\``)
+                .join('\n\n');
+              const Anthropic = (await import('@anthropic-ai/sdk')).default;
+              const _anthropic = new Anthropic({ apiKey });
+              const _msg = await _anthropic.messages.create({
+                model: 'claude-haiku-4-5-20251001',
+                max_tokens: 2048,
+                system: SYSTEM,
+                messages: [{ role: 'user', content: `Workflow: ${workflowName}\n\nOutput files:\n${shortContext}` }],
+              });
+              const _rawClaude = (_msg.content[0] as any)?.text ?? '';
+              const _clean = _rawClaude.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+              const _parsed = JSON.parse(_clean);
+              console.log('[Findings] Claude fallback succeeded');
+              _findingsCache.set(runId, _parsed);
+            } catch (claudeErr: any) {
+              console.warn('[Findings] Claude fallback also failed:', claudeErr?.message);
+              _findingsCache.set(runId, {
+                summary: `${workflowName} completed. AI synthesis was unavailable for this run — see the Outputs tab for raw results.`,
+                key_results: [],
+                next_steps: ['Open the Outputs tab to view the result files directly.'],
+                caveats: ['AI summary generation did not produce a valid structured response. The underlying run succeeded.'],
+              });
+            }
           }
         } catch (err: any) {
           console.warn('[Findings] Background Claude analysis failed:', err.message);
