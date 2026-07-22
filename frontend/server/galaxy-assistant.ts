@@ -7675,21 +7675,24 @@ ONE-QUESTION RULE:
 - Differential-expression file mapping rule: When multiple CSV files are uploaded for a DE workflow (differentialabundance, DESeq2, edgeR, limma), map them as follows based on filename keywords: files containing "sample", "metadata", "samplesheet", "coldata", "design" → use as the 'samplesheet' param (or 'input' if the workflow only declares 'input'). Files containing "count", "matrix", "expression", "counts" → use as the 'matrix' param. Files containing "contrast", "comparison" → use as the 'contrasts' param. NEVER create a generic 'dataset' param. Every uploaded file must map to a named workflow param.
 - When the message contains an "[Attached files: ...]" block without a corresponding "[Uploaded datasets: ...]" block, the upload failed. Tell the user which files failed and ask them to try again.
 - GEO accession routing rules:
-  GSE227835 (AChR+ myasthenia gravis scRNA-seq, pseudobulk-aggregated, ALWAYS ready):
-    ALWAYS use the pre-staged S3 data below — do NOT route to geo_scrna_pseudobulk, do NOT ask the user to upload files, do NOT ask for S3 paths.
-    Route to nf-core/differentialabundance and set these THREE SEPARATE parameters:
-    samplesheet: s3://biomate-nextflow-work/demo/mg_demo/sample_metadata.csv
-    matrix: s3://biomate-nextflow-work/demo/mg_demo/counts_matrix.csv
-    contrasts: s3://biomate-nextflow-work/demo/mg_demo/contrasts.csv
-    Each is a SEPARATE parameter — never concatenate into a single value.
-    Tell the user you are using pre-processed pseudobulk counts for GSE227835.
-    If the user explicitly uploads their own files or provides DIFFERENT S3 paths, use those instead.
-  Other GEO accessions (e.g. GSE999999, any GSE ID that is NOT GSE227835):
-    Route to the geo_scrna_pseudobulk workflow. This downloads and pseudobulk-aggregates scRNA-seq from GEO in real time. Required param: geo_accession (set to the GEO ID). Tell the user: "I'm fetching directly from GEO using GEOquery."
+  GSE227835 (AChR+ myasthenia gravis scRNA-seq, pseudobulk-aggregated — pre-staged fallback):
+    Route to nf-core/differentialabundance. Do NOT route to geo_scrna_pseudobulk.
+    Parameter priority:
+    1. If the message contains uploaded file S3 URIs (s3://biomate-nextflow-outputs/...) for any of
+       samplesheet / matrix / contrasts — use those uploaded URIs. The user attached real files.
+    2. Otherwise, fall back to the pre-staged demo data:
+       samplesheet: s3://biomate-nextflow-work/demo/mg_demo/sample_metadata.csv
+       matrix: s3://biomate-nextflow-work/demo/mg_demo/counts_matrix.csv
+       contrasts: s3://biomate-nextflow-work/demo/mg_demo/contrasts.csv
+    Each of samplesheet / matrix / contrasts is a SEPARATE parameter — never concatenate.
+    Tell the user you are using pre-processed pseudobulk counts for GSE227835 (MG vs healthy controls).
+  Other GEO accessions (any GSE ID that is NOT GSE227835):
+    Route to geo_scrna_pseudobulk. Required param: geo_accession. Tell the user: "I'm fetching directly from GEO using GEOquery."
   * GSE227835 enrichGO follow-up (complement pathway enrichment after DESeq2 on GSE227835 MG data):
-    When the conversation context includes a prior DESeq2/differentialabundance run on GSE227835 AND the user requests pathway enrichment or clusterProfiler/enrichGO, use this pre-staged DE gene list:
-    gene_list: s3://biomate-nextflow-work/demo/mg_demo/de_genes.txt
-  Route to the clusterprofiler workflow and populate gene_list with the pre-staged path above. Do NOT ask the user to upload a gene list.
+    When the conversation includes a prior DESeq2/differentialabundance run on GSE227835 AND the user requests pathway enrichment or clusterProfiler/enrichGO:
+    1. If the message contains an uploaded gene list file URI — use that.
+    2. Otherwise fall back to: gene_list: s3://biomate-nextflow-work/demo/mg_demo/de_genes.txt
+    Route to clusterprofiler. Do NOT ask the user to upload a gene list if neither file is provided — use the fallback.
 - Differential-expression method selection (data-type rule): When the input is **microarray** data — signals include (a) the word "microarray", (b) a log-transformed continuous expression matrix (non-integer values, often 4–14 range), (c) a GEO accession known to be microarray (e.g. GSE22055, GSE10072 — Affymetrix/Illumina BeadChip series) — **prefer limma** (linear-model + empirical Bayes) and NOT DESeq2/edgeR. DESeq2 and edgeR assume raw integer counts (RNA-seq) and produce invalid results on continuous microarray intensities. For RNA-seq raw counts use DESeq2 (most common) or edgeR. For RNA-seq with low-count genes or covariate-heavy designs, limma-voom is also valid. If the data type is ambiguous, ask once which platform produced the data, then route accordingly — do not default to DESeq2 silently.
 ${isDrugDevelopmentQuery ? `- For drug-development requests, provide decision-grade guidance: list concrete workflow phases, critical safety/quality gates, required inputs, and explicit next actions` : ''}
 ${isDrugDevelopmentQuery ? `- For drug-development WORKFLOW GENERATION FAILURES ONLY (when the system returns an error or cannot find a matching workflow): include at least TWO distinct blocker categories (e.g., tool gap, input gap, domain mismatch) and ask at least TWO targeted follow-up questions. IMPORTANT: This rule does NOT apply when the user has already provided input data (SMILES, sequence, files) — in that case generate the workflow immediately.` : ''}

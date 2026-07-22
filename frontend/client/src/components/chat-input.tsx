@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { Send, Plus, X, FileText, Eye, Clock, Square, Database } from "lucide-react"
+import { Send, Paperclip, X, FileText, Eye, Square, Database } from "lucide-react"
 import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser"
 
 interface AttachedFile {
@@ -25,6 +25,8 @@ interface ChatInputProps {
   onStop?: () => void
   /** Register a setter function that can externally pre-fill the draft */
   onRegisterSetDraft?: (setter: (draft: string) => void) => void
+  /** Register an adder function that can programmatically attach File objects */
+  onRegisterAddFiles?: (adder: (files: File[]) => void) => void
   /**
    * Count of dataset references already attached to THIS chat session
    * (everything in chat_sessions.datasets, accumulated across all turns).
@@ -47,6 +49,7 @@ export function ChatInput({
   isStreaming = false,
   onStop,
   onRegisterSetDraft,
+  onRegisterAddFiles,
   sessionDatasetCount = 0,
 }: ChatInputProps) {
   const [message, setMessage] = useState("")
@@ -55,17 +58,45 @@ export function ChatInput({
   const [selectedDatasets, setSelectedDatasets] = useState<Array<{ id: string; name: string; value: string }>>([])
   const [showDatasetBrowser, setShowDatasetBrowser] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const addFiles = (files: File[]) => {
+    const newAttached: AttachedFile[] = files.map(f => ({
+      id: `${Date.now()}-${f.name}`,
+      name: f.name,
+      size: f.size,
+      file: f,
+    }))
+    setAttachedFiles(prev => {
+      const existingNames = new Set(prev.map(a => a.name))
+      return [...prev, ...newAttached.filter(a => !existingNames.has(a.name))]
+    })
+    onFilesSelected?.(files)
+  }
 
   // Register an external draft setter so parent can pre-fill the textarea
   useEffect(() => {
     if (onRegisterSetDraft) {
       onRegisterSetDraft((draft: string) => {
         setMessage(draft)
-        // Focus the textarea so the user can see the pre-fill
         setTimeout(() => textareaRef.current?.focus(), 0)
       })
     }
   }, [onRegisterSetDraft])
+
+  // Register a file adder so parent can programmatically inject files
+  useEffect(() => {
+    onRegisterAddFiles?.(addFiles)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onRegisterAddFiles])
+
+  const handleLocalFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(e.target.files ?? [])
+    if (picked.length > 0) addFiles(picked)
+    // Reset so the same file can be picked again
+    e.target.value = ''
+  }
+
 
   const handleSend = () => {
     if (message.trim() || attachedFiles.length > 0 || selectedDatasets.length > 0) {
@@ -127,15 +158,7 @@ export function ChatInput({
     e.preventDefault()
     setIsDraggingOver(false)
     const dropped = Array.from(e.dataTransfer.files)
-    if (dropped.length === 0) return
-    const newAttached: AttachedFile[] = dropped.map(f => ({
-      id: `${Date.now()}-${f.name}`,
-      name: f.name,
-      size: f.size,
-      file: f,
-    }))
-    setAttachedFiles(prev => [...prev, ...newAttached])
-    onFilesSelected?.(dropped)
+    if (dropped.length > 0) addFiles(dropped)
   }
 
   // --- Local file preview ---
@@ -219,6 +242,16 @@ export function ChatInput({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      {/* Hidden file input for local file picking */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleLocalFilePick}
+        accept="*/*"
+      />
+
       {/* Attached files + selected dataset chips */}
       {(attachedFiles.length > 0 || selectedDatasets.length > 0) && (
         <div className="flex flex-wrap gap-2 mb-3">
@@ -340,11 +373,11 @@ export function ChatInput({
         transition: 'border-color .15s',
       }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
-          {/* Attachment button */}
+          {/* Upload local file button */}
           <button
             disabled={disabled}
-            title="Add data"
-            onClick={() => setShowDatasetBrowser(true)}
+            title="Attach file"
+            onClick={() => fileInputRef.current?.click()}
             style={{
               width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',
               border: 'none', background: 'transparent',
@@ -353,7 +386,22 @@ export function ChatInput({
               flexShrink: 0,
             }}
           >
-            <Plus className="w-4 h-4" />
+            <Paperclip className="w-4 h-4" />
+          </button>
+          {/* Browse BioMate datasets */}
+          <button
+            disabled={disabled}
+            title="Browse BioMate datasets"
+            onClick={() => setShowDatasetBrowser(true)}
+            style={{
+              width: 22, height: 22, borderRadius: 'var(--bm-r-sm, 6px)',
+              border: 'none', background: 'transparent',
+              color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <Database className="w-3 h-3" />
           </button>
 
           {/* Attached-count indicator. Hidden at 0 (no noise pre-attach);

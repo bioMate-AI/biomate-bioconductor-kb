@@ -116,10 +116,18 @@ const ONBOARDING_DONE_KEY = 'biomate_onboarding_done'
 
 // Example queries shown as clickable chips on the empty-state chat screen.
 // First entry is the conference demo default (MG patient stratification chain).
+/** Files to auto-attach when a demo chip is clicked. Fetched from /public at click time. */
+const DEMO_FILE_BASE = '/demo/mg_demo'
+
 const EXAMPLE_QUERIES = [
   {
     label: 'MG patient stratification → ADMET',
     query: 'Run differential expression on AChR+ myasthenia gravis PBMC data (GSE227835, 10 MG patients vs 10 healthy controls) — find the key complement pathway drivers.',
+    demoFiles: [
+      `${DEMO_FILE_BASE}/sample_metadata.csv`,
+      `${DEMO_FILE_BASE}/counts_matrix.csv`,
+      `${DEMO_FILE_BASE}/contrasts.csv`,
+    ],
   },
   {
     label: 'ADMET screen from SMILES',
@@ -489,6 +497,7 @@ export function ChatInterface({
   const messagesEndRef = useRef<HTMLDivElement>(null)
   // Captured setter from ChatInput — lets empty-state chips pre-fill the textarea
   const localSetDraftRef = useRef<((draft: string) => void) | null>(null)
+  const localAddFilesRef = useRef<((files: File[]) => void) | null>(null)
   const [focusedAnchorMessageId, setFocusedAnchorMessageId] = useState<string | null>(null)
   const [highlightedAnchorMessageId, setHighlightedAnchorMessageId] = useState<string | null>(null)
 
@@ -2152,7 +2161,22 @@ export function ChatInterface({
               {EXAMPLE_QUERIES.map((q) => (
                 <button
                   key={q.label}
-                  onClick={() => localSetDraftRef.current?.(q.query)}
+                  onClick={async () => {
+                    localSetDraftRef.current?.(q.query)
+                    const demoFiles = (q as any).demoFiles as string[] | undefined
+                    if (demoFiles && localAddFilesRef.current) {
+                      const addFiles = localAddFilesRef.current
+                      const files = await Promise.all(
+                        demoFiles.map(async (url) => {
+                          const res = await fetch(url)
+                          const blob = await res.blob()
+                          const name = url.split('/').pop() ?? 'file'
+                          return new File([blob], name, { type: blob.type || 'text/plain' })
+                        })
+                      ).catch(() => [] as File[])
+                      if (files.length > 0) addFiles(files)
+                    }
+                  }}
                   style={{
                     fontSize: 12,
                     padding: '4px 10px',
@@ -2188,6 +2212,7 @@ export function ChatInterface({
             localSetDraftRef.current = setter
             onRegisterSetDraft?.(setter)
           }}
+          onRegisterAddFiles={(adder) => { localAddFilesRef.current = adder }}
           /* Surface session-wide attached-dataset count so the
              X / MAX_DATASET_REFS indicator in the input strip reflects
              the server-side cap (frontend/server/dataset-cap.ts). */
