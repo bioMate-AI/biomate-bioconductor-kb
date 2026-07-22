@@ -97,6 +97,7 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
 
     # Ensure integer counts (read.csv returns data.frame; as.matrix() required before storage.mode)
     count_mat <- as.matrix(round(count_mat))
+    count_mat[is.na(count_mat)] <- 0L
     storage.mode(count_mat) <- "integer"
 
     # ── 3. Build contrasts ─────────────────────────────────────────────────────
