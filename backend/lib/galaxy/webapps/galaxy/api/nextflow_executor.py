@@ -1591,11 +1591,22 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
     #       non-null value for a mandatory `path()` input, so `-entry` with an unbound take channel
     #       fails with "Path value cannot be null". We bind a non-null placeholder file instead.
     staged: list[Path] = []
+    _keys_to_pop: list[str] = []
     if names:
         # Style A: every declared input must be supplied; otherwise fall back to the normal path
         # so the missing-input error surfaces clearly rather than a half-bound channel.
         for name in names:
             src = params.get(name)
+            _pop_key = name
+            if not src and '.' in name:
+                # Declaration may carry an extension (e.g. `// Input: gene_list.txt`) while the
+                # caller supplies the param without it (e.g. `gene_list`). Try the base name so
+                # `gene_list.txt` finds `params["gene_list"]` and stages under the correct
+                # filename that the R body actually reads (`gene_list.txt`).
+                _no_ext = name.rsplit('.', 1)[0]
+                src = params.get(_no_ext)
+                if src:
+                    _pop_key = _no_ext
             if not src:
                 return None
             # The `// Input:` declaration carries a *logical* base token (e.g. `sce2`, `fit2`),
@@ -1615,8 +1626,9 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
             # of being swallowed into a silent fallback run.
             _assert_staged_input_format(dest, name)
             staged.append(dest.resolve())
-        for name in names:                   # consumed as staged files, not --flags
-            params.pop(name, None)
+            _keys_to_pop.append(_pop_key)
+        for key in _keys_to_pop:             # consumed as staged files, not --flags
+            params.pop(key, None)
     elif n_path >= 1:
         # Style B: bind one non-null file per mandatory path() slot. If the caller did supply a
         # real input (common keys), stage it for the first slot; otherwise (and for any extra
