@@ -431,17 +431,20 @@ test.describe.serial('project-workspace', () => {
         console.log('[PW2] ✅ run linked to project in API');
       }
 
-      // Verify in UI: Workflow Runs tab must show the run list
-      const runsList = page.locator('[data-testid="project-runs-list"], [data-testid^="project-run-item-"]');
+      // Verify in UI: Workflow Runs tab must show the run list. Run rows render
+      // as data-testid="run-row-<id>" (project-detail.tsx:677).
+      const runsList = page.locator('[data-testid^="run-row-"]');
       await expect(runsList.first()).toBeVisible({ timeout: 15_000 });
       await shot(page, 'project-workspace', 'PW2_08_runs_list');
 
-      // ── 8. Click the run → verify NextflowWorkflowViewer renders ────────────
+      // ── 8. Click the run → verify the embedded workflow viewer renders ──────
       await runsList.first().click();
       await pause(page, 2_000);
 
-      // The embedded viewer must show up
-      const viewer = page.locator('[data-testid="nextflow-workflow-viewer"]');
+      // The embedded viewer panel must show up. Its DOM testid is
+      // "workflow-artifact-panel" (nextflow-workflow-viewer.tsx:2316) — the
+      // React component name "nextflow-workflow-viewer" is NOT a testid.
+      const viewer = page.locator('[data-testid="workflow-artifact-panel"]');
       await expect(viewer).toBeVisible({ timeout: 10_000 });
       await shot(page, 'project-workspace', 'PW2_09_viewer');
 
