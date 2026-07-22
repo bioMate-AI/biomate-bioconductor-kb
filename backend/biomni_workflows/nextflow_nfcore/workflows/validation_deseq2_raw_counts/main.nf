@@ -27,6 +27,9 @@ process DESEQ2_FROM_COUNTS {
     memory "8 GB"
     cpus 4
 
+    input:
+    path(count_matrix, stageAs: 'count_matrix.txt.gz')
+
     output:
     path "deseq2_results.csv"
     path "deseq2_pca.png"
@@ -46,13 +49,8 @@ process DESEQ2_FROM_COUNTS {
         library(jsonlite)
     })
 
-    # Download count matrix from S3
-    count_s3 <- "${params.count_matrix_s3}"
-    cat(paste("Downloading:", count_s3, "\\n"))
-    system(paste("aws s3 cp", count_s3, "/tmp/count_matrix.txt.gz"))
-
     counts_raw <- read.table(
-        gzfile("/tmp/count_matrix.txt.gz"),
+        gzfile("count_matrix.txt.gz"),
         header = TRUE, row.names = 1, sep = "\\t",
         check.names = FALSE
     )
@@ -221,5 +219,5 @@ workflow {
     if (!params.count_matrix_s3) {
         error "Provide --count_matrix_s3 <s3://...>"
     }
-    DESEQ2_FROM_COUNTS()
+    DESEQ2_FROM_COUNTS(Channel.fromPath(params.count_matrix_s3))
 }

@@ -23,7 +23,7 @@ process RUN_AUTOSITE {
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
-    val(meta)
+    tuple val(meta), path(pdb_file, stageAs: 'staged_receptor.pdb')
 
     output:
     tuple val(meta), path("run_autosite_results.json"), emit: results
@@ -33,14 +33,13 @@ process RUN_AUTOSITE {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    export PARAM_PDB_FILE="${params.pdb_file?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_OUTPUT_DIR="${params.output_dir?.toString()?.replace('"', '\\"') ?: './autosite_results'}"
     export PARAM_SPACING="${params.spacing?.toString()?.replace('"', '\\"') ?: '1.0'}"
-
-    # AWS Batch / S3 inputs: embedded Python only checks os.path.exists — stage s3:// to a local path first.
-    if [[ -n "\$PARAM_PDB_FILE" && "\$PARAM_PDB_FILE" != "null" && "\$PARAM_PDB_FILE" == s3://* ]]; then
-      aws s3 cp "\$PARAM_PDB_FILE" ./staged_receptor.pdb
+    # Use staged file if Nextflow delivered it, otherwise demo mode
+    if [[ -f staged_receptor.pdb ]]; then
       export PARAM_PDB_FILE="\$(pwd)/staged_receptor.pdb"
+    else
+      export PARAM_PDB_FILE="null"
     fi
 
     python3 << 'PYEOF'
@@ -212,7 +211,10 @@ workflow RUN_AUTOSITE_WORKFLOW {
 }
 
 workflow {
-    ch_input = Channel.of([id: 'run'])
+    def pdb_ch = params.pdb_file
+        ? Channel.fromPath(params.pdb_file, checkIfExists: false)
+        : Channel.value(file('NO_FILE'))
+    ch_input = Channel.of([id: 'run']).combine(pdb_ch)
     RUN_AUTOSITE_WORKFLOW(ch_input)
     RUN_AUTOSITE_WORKFLOW.out.output.view { "Output: $it" }
 }

@@ -76,7 +76,7 @@ process MAGMA_ANNOTATE {
     container CONTAINER_MAGMA
     publishDir "${params.outdir}/phaseA_annotate", mode: 'copy'
 
-    input:  val(meta)
+    input:  tuple val(meta), path(gwas_sumstats_file, stageAs: 'sumstats.tmp')
     output: tuple val(meta), path("${params.outfile}.genes.annot"), path("annotate.json"), emit: out
 
     script:
@@ -132,14 +132,8 @@ process MAGMA_ANNOTATE {
         if gwas_sumstats in ("null", ""):
             print("ERROR: gwas_sumstats required when use_baked_toy=false", file=sys.stderr)
             sys.exit(1)
-        if gwas_sumstats.startswith("s3://"):
-            import boto3
-            parts = gwas_sumstats[5:].split("/", 1)
-            boto3.client("s3").download_file(parts[0], parts[1], "sumstats.tmp")
-            psum = "sumstats.tmp"
-        else:
-            shutil.copy(gwas_sumstats, "sumstats.tmp")
-            psum = "sumstats.tmp"
+        # Nextflow stages the file as sumstats.tmp via Channel.fromPath
+        psum = "sumstats.tmp"
 
         with _open_s(psum) as fh, open("snp.loc", "w") as out:
             reader = csv.DictReader(fh, delimiter="\\t")
@@ -645,7 +639,10 @@ process MAGMA_FORMAT {
 }
 
 workflow {
-    meta_ch = Channel.of([id: 'magma_gene_analysis'])
+    def ss = params.gwas_sumstats && params.gwas_sumstats != 'null'
+        ? Channel.fromPath(params.gwas_sumstats, checkIfExists: false)
+        : Channel.value(file('NO_FILE'))
+    meta_ch = Channel.of([id: 'magma_gene_analysis']).combine(ss)
     a = MAGMA_ANNOTATE(meta_ch)
     b = MAGMA_GENE_ANALYSIS(a.out)
     MAGMA_FORMAT(b.out)
