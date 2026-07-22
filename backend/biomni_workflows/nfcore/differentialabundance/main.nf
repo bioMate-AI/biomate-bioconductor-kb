@@ -71,10 +71,18 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
     }
 
     # ── 1. Download inputs from S3 (or copy from local) ──────────────────────
+    # Ensure /usr/local/bin is in PATH so aws CLI is found by system() subprocess
+    Sys.setenv(PATH = paste(c("/usr/local/bin", "/usr/bin", "/bin", Sys.getenv("PATH")), collapse=":"))
+    .aws_bin <- Sys.which("aws")
+    cat(sprintf("[DESeq2] aws binary: %s\\n", if (nchar(.aws_bin)>0) .aws_bin else "NOT FOUND"))
     dl <- function(uri, dest) {
       if (is.null(uri) || nchar(trimws(uri)) == 0 || uri == "null") return(FALSE)
       if (startsWith(uri, "s3://")) {
-        ret <- system(paste("aws s3 cp", shQuote(uri), shQuote(dest)), wait=TRUE)
+        aws_cmd <- if (nchar(.aws_bin)>0) .aws_bin else "aws"
+        cmd <- paste(aws_cmd, "s3 cp", shQuote(uri), shQuote(dest))
+        cat(sprintf("[DESeq2] downloading: %s\\n", cmd))
+        ret <- system(cmd, wait=TRUE)
+        cat(sprintf("[DESeq2] exit code: %d  file exists: %s\\n", ret, file.exists(dest)))
         return(ret == 0 && file.exists(dest))
       } else if (file.exists(uri)) {
         return(file.copy(uri, dest))
