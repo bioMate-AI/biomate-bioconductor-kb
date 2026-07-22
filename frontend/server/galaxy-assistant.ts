@@ -2171,6 +2171,24 @@ Rules:
  */
 export function extractUploadedFileParams(message: string): Record<string, string> {
   const params: Record<string, string> = {};
+
+  // Parse explicit "paramName: s3://..." key-value lines (chip-injected text format)
+  // This handles the case where the chip fills the textarea with:
+  //   samplesheet: s3://bucket/sample_metadata.csv
+  //   matrix: s3://bucket/counts_matrix.csv
+  // without a formal [Uploaded datasets:] block.
+  const _KNOWN_PARAM_KEYS = new Set([
+    'samplesheet', 'input', 'matrix', 'contrasts', 'gene_list', 'reads',
+    'bam', 'vcf', 'file_path', 'fastq', 'design',
+  ]);
+  for (const m of message.matchAll(/^(\w+):\s*(s3:\/\/\S+)/gm)) {
+    const key = m[1].toLowerCase();
+    const uri = m[2];
+    if (_KNOWN_PARAM_KEYS.has(key) && !params[key]) {
+      params[key] = uri;
+    }
+  }
+
   const block = message.match(/\[Uploaded datasets:\s*([^\]]+)\]/i)?.[1];
   if (!block) return params;
 
