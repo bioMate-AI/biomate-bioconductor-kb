@@ -95,12 +95,12 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
         "    sys.exit(1)"
       ), py_file)
       on.exit(unlink(py_file), add=TRUE)
-      ret <- system2("python3", c(shQuote(py_file), shQuote(uri), shQuote(dest)),
+      ret <- system2("python3", c(py_file, uri, dest),
                      wait=TRUE, stdout=TRUE, stderr=TRUE)
       if (isTRUE(grepl("No module named boto3", paste(ret, collapse="")))) {
         cat("[DESeq2] boto3 not found, installing via pip3...\\n")
         system("pip3 install boto3 --quiet", wait=TRUE, ignore.stdout=TRUE, ignore.stderr=TRUE)
-        ret <- system2("python3", c(shQuote(py_file), shQuote(uri), shQuote(dest)),
+        ret <- system2("python3", c(py_file, uri, dest),
                        wait=TRUE, stdout=TRUE, stderr=TRUE)
       }
       isTRUE(grepl("OK", paste(ret, collapse=""))) && file.exists(dest)

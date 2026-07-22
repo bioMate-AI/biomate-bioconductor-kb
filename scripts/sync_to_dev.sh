@@ -1325,7 +1325,19 @@ do_sync() {
     || echo 0)
   # Defensive: if probing produced non-numeric output anyway, treat as 0.
   [[ "$local_db_mtime" =~ ^[0-9]+$ ]] || local_db_mtime=0
-  [[ "$local_db_mtime" -gt "${LAST_DB_SYNC:-0}" ]] && do_db=true
+  if [[ "$local_db_mtime" -gt "${LAST_DB_SYNC:-0}" ]]; then
+    # Only set do_db when local file is not smaller than dev — prevents the
+    # 5.2MB local stub from overwriting the 327MB dev DB on every run.
+    local _ldb_size
+    _ldb_size=$(stat -c %s "$REPO_ROOT/backend/database/galaxy_ai_tools.db" 2>/dev/null \
+      || stat -f %z "$REPO_ROOT/backend/database/galaxy_ai_tools.db" 2>/dev/null \
+      || echo 0)
+    if [[ "${_ldb_size:-0}" -ge "${_DEV_DB_SIZE:-0}" ]]; then
+      do_db=true
+    else
+      log "[db] local (${_ldb_size}B) < dev (${_DEV_DB_SIZE:-?}B) — skipping time-based DB sync"
+    fi
+  fi
 
   # Frontend-only override: ship just the frontend layer, leaving the Galaxy
   # backend + workflow DB exactly as they are on dev. Use when a frontend/Node
