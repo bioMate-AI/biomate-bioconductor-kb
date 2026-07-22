@@ -12960,6 +12960,12 @@ Rules:
   // ── In-memory findings cache (AWS Batch runs — Python backend can't reach S3) ──
   // Keys: runId → { status: 'generating' } | FindingsData
   const _findingsCache = new Map<string, Record<string, any>>();
+  // Bounded retry counter for findings whose outputs aren't readable yet.
+  // publishDir / run-metadata persistence can lag a few seconds behind run
+  // completion, so a "no readable outputs" result is often transient. Rather
+  // than caching the generic fallback permanently (it would never regenerate),
+  // we retry a bounded number of times before giving up. See generic branch below.
+  const _findingsAttempts = new Map<string, number>();
 
   // ── Output Intelligence — Findings endpoint ────────────────────────────────
   //
@@ -13173,6 +13179,24 @@ Rules:
           // Guardrail: if no output files were found, skip LLM entirely.
           // Generating key_results without real file content = hallucination.
           if (outputSamples.length === 0) {
+            // "No readable outputs" is usually TRANSIENT: findings fire at run
+            // completion, but publishDir writes to the outdir (and the run's
+            // nextflowOutputDir/WorkDir get persisted) a few seconds later. If we
+            // cache the generic fallback now it is returned forever (the cache is
+            // never invalidated), so the summary stays generic even once the CSVs
+            // land. Instead, retry a bounded number of times: clear the generating
+            // marker so the next poll regenerates, and only cache the generic
+            // result after MAX_ATTEMPTS so a genuinely output-less run still resolves.
+            const MAX_FINDINGS_ATTEMPTS = 6;
+            const _attempts = (_findingsAttempts.get(runId) || 0) + 1;
+            _findingsAttempts.set(runId, _attempts);
+            if (_attempts < MAX_FINDINGS_ATTEMPTS) {
+              console.log(`[Findings] no readable outputs yet for ${runId} (attempt ${_attempts}/${MAX_FINDINGS_ATTEMPTS}) — clearing marker to retry on next poll`);
+              _findingsCache.delete(runId); // next poll re-fires generation
+              return;
+            }
+            console.warn(`[Findings] giving up after ${_attempts} attempts for ${runId} — caching generic summary`);
+            _findingsAttempts.delete(runId);
             _findingsCache.set(runId, {
               summary: `${workflowName} completed. Output files are not yet readable — check the Outputs tab for results.`,
               key_results: [],
@@ -13181,6 +13205,8 @@ Rules:
             });
             return;
           }
+          // Readable outputs found — clear any retry counter for this run.
+          _findingsAttempts.delete(runId);
 
           // Pre-process known workflow output formats into clean structured context.
           // This gives the LLM focused, low-noise input and makes guardrail matching reliable.
