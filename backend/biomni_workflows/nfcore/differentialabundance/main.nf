@@ -78,16 +78,29 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
     .aws_bin <- Sys.which("aws")
     cat(sprintf("[DESeq2] aws binary: %s\\n", if (nchar(.aws_bin)>0) .aws_bin else "NOT FOUND"))
 
-    # Python boto3 fallback — used when aws CLI is absent in container
+    # Python boto3 fallback — used when aws CLI is absent in container.
+    # Writes Python to a temp file to avoid shell newline/quoting issues with
+    # system2("-c", shQuote(multiline_string)) which breaks on embedded newlines.
     .dl_via_boto3 <- function(uri, dest) {
-      py_code <- sprintf(
-        'import boto3, re, sys\\nm=re.match(r"s3://([^/]+)/(.*)", sys.argv[1])\\nif not m: sys.exit(1)\\nboto3.client("s3").download_file(m.group(1),m.group(2),sys.argv[2])\\nprint("OK")')
-      ret <- system2("python3", c("-c", shQuote(py_code), shQuote(uri), shQuote(dest)),
+      py_file <- tempfile(fileext=".py")
+      writeLines(c(
+        "import boto3, re, sys",
+        "m = re.match(r's3://([^/]+)/(.*)', sys.argv[1])",
+        "if not m: sys.exit(1)",
+        "try:",
+        "    boto3.client('s3').download_file(m.group(1), m.group(2), sys.argv[2])",
+        "    print('OK')",
+        "except Exception as exc:",
+        "    print('ERR:', exc, file=sys.stderr)",
+        "    sys.exit(1)"
+      ), py_file)
+      on.exit(unlink(py_file), add=TRUE)
+      ret <- system2("python3", c(shQuote(py_file), shQuote(uri), shQuote(dest)),
                      wait=TRUE, stdout=TRUE, stderr=TRUE)
       if (isTRUE(grepl("No module named boto3", paste(ret, collapse="")))) {
         cat("[DESeq2] boto3 not found, installing via pip3...\\n")
         system("pip3 install boto3 --quiet", wait=TRUE, ignore.stdout=TRUE, ignore.stderr=TRUE)
-        ret <- system2("python3", c("-c", shQuote(py_code), shQuote(uri), shQuote(dest)),
+        ret <- system2("python3", c(shQuote(py_file), shQuote(uri), shQuote(dest)),
                        wait=TRUE, stdout=TRUE, stderr=TRUE)
       }
       isTRUE(grepl("OK", paste(ret, collapse=""))) && file.exists(dest)
