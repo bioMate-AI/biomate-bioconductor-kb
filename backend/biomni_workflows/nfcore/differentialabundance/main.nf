@@ -38,7 +38,7 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
     // Input files are downloaded inside the R script via aws s3 cp.
     // Using val (not path) avoids Channel.fromPath S3-FS-type probing on Nextflow 25.x.
     input:
-    val meta
+    tuple val(meta), path(input_files, stageAs: '?/*')
 
     output:
     tuple val(meta), path("*.csv"),           emit: tables,    optional: true
@@ -52,11 +52,8 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
     task.ext.when == null || task.ext.when
 
     script:
-    def min_fc    = params.differential_min_fold_change ?: 2.0
-    def max_qval  = params.differential_max_qval ?: 0.05
-    def input_uri = params.samplesheet ?: params.input ?: ''
-    def matrix_uri    = params.matrix ?: ''
-    def contrasts_uri = params.contrasts ?: ''
+    def min_fc   = params.differential_min_fold_change ?: 2.0
+    def max_qval = params.differential_max_qval ?: 0.05
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] install only what is missing (container has DESeq2/ggplot2/jsonlite pre-installed)
@@ -70,72 +67,19 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
       suppressWarnings(suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=.bin), error=function(e) try(install.packages(.bm_miss), silent=TRUE))))
     }
 
-    # ── 1. Download inputs from S3 (or copy from local) ──────────────────────
-    # Extended PATH so aws CLI is found if installed in non-standard location
-    Sys.setenv(PATH = paste(c("/usr/local/bin", "/usr/bin", "/bin",
-                               "/usr/local/aws-cli/v2/current/bin",
-                               Sys.getenv("PATH")), collapse=":"))
-    .aws_bin <- Sys.which("aws")
-    cat(sprintf("[DESeq2] aws binary: %s\\n", if (nchar(.aws_bin)>0) .aws_bin else "NOT FOUND"))
-
-    # Python boto3 fallback — used when aws CLI is absent in container.
-    # Writes Python to a temp file to avoid shell newline/quoting issues with
-    # system2("-c", shQuote(multiline_string)) which breaks on embedded newlines.
-    .dl_via_boto3 <- function(uri, dest) {
-      py_file <- tempfile(fileext=".py")
-      writeLines(c(
-        "import boto3, re, sys",
-        "m = re.match(r's3://([^/]+)/(.*)', sys.argv[1])",
-        "if not m: sys.exit(1)",
-        "try:",
-        "    boto3.client('s3').download_file(m.group(1), m.group(2), sys.argv[2])",
-        "    print('OK')",
-        "except Exception as exc:",
-        "    print('ERR:', exc, file=sys.stderr)",
-        "    sys.exit(1)"
-      ), py_file)
-      on.exit(unlink(py_file), add=TRUE)
-      ret <- system2("python3", c(py_file, uri, dest),
-                     wait=TRUE, stdout=TRUE, stderr=TRUE)
-      if (isTRUE(grepl("No module named boto3", paste(ret, collapse="")))) {
-        cat("[DESeq2] boto3 not found, installing via pip3...\\n")
-        system("pip3 install boto3 --quiet", wait=TRUE, ignore.stdout=TRUE, ignore.stderr=TRUE)
-        ret <- system2("python3", c(py_file, uri, dest),
-                       wait=TRUE, stdout=TRUE, stderr=TRUE)
-      }
-      isTRUE(grepl("OK", paste(ret, collapse=""))) && file.exists(dest)
-    }
-
-    dl <- function(uri, dest) {
-      if (is.null(uri) || nchar(trimws(uri)) == 0 || uri == "null") return(FALSE)
-      if (startsWith(uri, "s3://")) {
-        if (nchar(.aws_bin) > 0) {
-          cmd <- paste(.aws_bin, "s3 cp", shQuote(uri), shQuote(dest))
-          cat(sprintf("[DESeq2] downloading via aws cli: %s\\n", cmd))
-          ret <- system(cmd, wait=TRUE)
-          cat(sprintf("[DESeq2] exit code: %d  file exists: %s\\n", ret, file.exists(dest)))
-          if (ret == 0 && file.exists(dest)) return(TRUE)
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
         }
-        cat(sprintf("[DESeq2] aws cli failed/absent, trying boto3 for %s\\n", uri))
-        ok <- .dl_via_boto3(uri, dest)
-        cat(sprintf("[DESeq2] boto3 result: %s  file exists: %s\\n", ok, file.exists(dest)))
-        return(ok)
-      } else if (file.exists(uri)) {
-        return(file.copy(uri, dest))
       }
-      FALSE
     }
-
-    ok_meta <- dl("${input_uri}", "sample_metadata.csv")
-    ok_mat  <- dl("${matrix_uri}", "counts_matrix.csv")
-    ok_con  <- dl("${contrasts_uri}", "contrasts.csv")
-    cat(sprintf("[DESeq2] downloads: metadata=%s  matrix=%s  contrasts=%s\\n",
-                ok_meta, ok_mat, ok_con))
 
     library(DESeq2)
     library(ggplot2)
 
-    # ── 2. Load inputs by name ────────────────────────────────────────────────
+    # ── 1. Load inputs by name (files staged by Nextflow from S3) ─────────────
     all_files <- list.files(".", pattern = "\\\\.csv\$", recursive = FALSE)
     meta_file <- all_files[grepl("sample|metadata|samplesheet", tolower(all_files))][1]
     mat_file  <- all_files[grepl("matrix|count|expression", tolower(all_files))][1]
@@ -298,7 +242,17 @@ workflow DIFFERENTIALABUNDANCE {
     main:
     if (!params.samplesheet && !params.input) error "Please provide --samplesheet (sample metadata CSV or S3 URI)"
 
-    DESEQ2_DIFFERENTIAL_ANALYSIS(Channel.value([id: 'run']))
+    def ss  = params.samplesheet ?: params.input
+    def mat = params.matrix ?: ''
+    def con = params.contrasts ?: ''
+    def uris = [ss, mat, con].findAll { it?.trim() }
+
+    ch_input = Channel.fromList(uris)
+                   .map { u -> file(u) }
+                   .collect()
+                   .map { files -> [[id: 'run'], files] }
+
+    DESEQ2_DIFFERENTIAL_ANALYSIS(ch_input)
 
     emit:
     tables   = DESEQ2_DIFFERENTIAL_ANALYSIS.out.tables
