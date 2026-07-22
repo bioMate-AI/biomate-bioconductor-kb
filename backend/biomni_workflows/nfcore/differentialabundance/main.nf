@@ -100,7 +100,7 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
     library(ggplot2)
 
     # ── 2. Load inputs by name ────────────────────────────────────────────────
-    all_files <- list.files(".", pattern = "\\.csv\$", recursive = FALSE)
+    all_files <- list.files(".", pattern = "\\\\.csv\$", recursive = FALSE)
     meta_file <- all_files[grepl("sample|metadata|samplesheet", tolower(all_files))][1]
     mat_file  <- all_files[grepl("matrix|count|expression", tolower(all_files))][1]
     con_file  <- all_files[grepl("contrast", tolower(all_files))][1]

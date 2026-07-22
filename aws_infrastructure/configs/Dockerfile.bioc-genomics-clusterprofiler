@@ -1,0 +1,32 @@
+# Extends bioc-domain-genomics:3.20-slim with clusterProfiler pre-installed.
+#
+# The base 3.20-slim image does not include clusterProfiler, enrichplot, or
+# org.Hs.eg.db, so every enrichGO run must download ~15-20 min of packages at
+# runtime. This layer bakes them in, cutting enrichGO cold start to ~2-3 min
+# (image pull only, once per EC2 instance).
+#
+# Build & push (run from repo root):
+#   aws ecr get-login-password --region us-west-2 | \
+#     docker login --username AWS --password-stdin 399683337364.dkr.ecr.us-west-2.amazonaws.com
+#   docker buildx build --platform linux/amd64 \
+#     -f aws_infrastructure/configs/Dockerfile.bioc-genomics-clusterprofiler \
+#     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20-clusterprofiler \
+#     --push .
+#
+# After push, the clusterprofiler main.nf already uses this tag.
+
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-genomics:3.20-slim
+
+# Use Bioconductor container-binaries mirror for binary pre-built packages
+# (same URL as the runtime installer uses — avoids compilation overhead)
+RUN Rscript -e " \
+  options(repos = c(CRAN = 'https://packagemanager.posit.co/cran/__linux__/jammy/latest')); \
+  .bin_url <- sprintf( \
+    'https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker', \
+    BiocManager::version()); \
+  BiocManager::install( \
+    c('clusterProfiler', 'enrichplot', 'org.Hs.eg.db', 'jsonlite'), \
+    ask = FALSE, update = FALSE, \
+    site_repository = .bin_url \
+  ) \
+"
