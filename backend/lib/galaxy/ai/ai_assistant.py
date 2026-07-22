@@ -3374,7 +3374,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         user_intent: str,
         uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
     ) -> Optional[Dict[str, Any]]:
-        """Return AutoDock Vina (12824) without BGE search when named in ANDV inhibitor E2E."""
+        """Return AutoDock Vina without BGE search when named without DiffDock."""
         import re as _re_dock
 
         q_low = user_intent.lower()
@@ -3385,18 +3385,156 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         )
         if not explicit_vina:
             return None
+        # When both AutoDock Vina AND DiffDock are requested, defer to virtual-screening path.
+        if 'diffdock' in q_low:
+            return None
 
-        top = self.workflow_search.get_workflow(12824)
+        top = self.workflow_search.get_workflow_by_filename_pattern('%docking_autodock_vina%')
+        if not top:
+            top = self.workflow_search.get_workflow_by_name('Docking Autodock Vina')
         if not top:
             return None
-        top_fn = (top.filename or '').lower()
-        if top.id != 12824 and 'docking_autodock_vina' not in top_fn and 'autodock' not in top_fn:
+
+        log.info("[UnifiedWorkflowGeneration] Fast path docking_autodock_vina → %s", top.name)
+        return self._return_nextflow_match(
+            match=top,
+            score=top.score,
+            user_intent=user_intent,
+            source='template_reuse',
+            needs_user_feedback=False,
+            search_results=[top],
+            selected_trial='',
+            trials=[],
+            uploaded_datasets=uploaded_datasets,
+        )
+
+    def _try_fast_path_virtual_screening(
+        self,
+        user_intent: str,
+        uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Route compound-library virtual-screening queries (Vina + DiffDock) to drugclip_virtual_screening."""
+        import re as _re_vs
+
+        q_low = user_intent.lower()
+        has_vina = bool(_re_vs.search(r'\bautodock\b|\bvina\b', q_low))
+        has_diffdock = 'diffdock' in q_low
+        has_screening = bool(_re_vs.search(r'\bscreen\b|\bcompound.librar\b|\bvirtual.screen\b', q_low))
+
+        if not ((has_vina and has_diffdock) or (has_screening and (has_vina or has_diffdock))):
             return None
 
-        log.info(
-            "[UnifiedWorkflowGeneration] Fast path registry 12824 → %s",
-            top.name,
+        top = self.workflow_search.get_workflow_by_filename_pattern('%drugclip_virtual_screening%')
+        if not top:
+            top = self.workflow_search.get_workflow_by_name_like('%virtual_screening%')
+        if not top:
+            top = self.workflow_search.get_workflow_by_filename_pattern('%run_diffdock_with_smiles%')
+        if not top:
+            return None
+
+        log.info("[UnifiedWorkflowGeneration] Fast path virtual screening → %s", top.name)
+        return self._return_nextflow_match(
+            match=top,
+            score=top.score,
+            user_intent=user_intent,
+            source='template_reuse',
+            needs_user_feedback=False,
+            search_results=[top],
+            selected_trial='',
+            trials=[],
+            uploaded_datasets=uploaded_datasets,
         )
+
+    def _try_fast_path_boin_trial(
+        self,
+        user_intent: str,
+        uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Route BOIN dose-escalation queries to clinical_trial_simulation."""
+        import re as _re_boin
+
+        q_low = user_intent.lower()
+        has_boin = 'boin' in q_low
+        has_dose_esc = bool(_re_boin.search(r'\bdose.escalat\b|\bmtd\b|\bdlt\b', q_low))
+
+        if not (has_boin or has_dose_esc):
+            return None
+
+        top = self.workflow_search.get_workflow_by_filename_pattern('%clinical_trial_simulation%')
+        if not top:
+            top = self.workflow_search.get_workflow_by_filename_pattern('%adaptive_trial_design%')
+        if not top:
+            return None
+
+        log.info("[UnifiedWorkflowGeneration] Fast path BOIN/dose-escalation → %s", top.name)
+        return self._return_nextflow_match(
+            match=top,
+            score=top.score,
+            user_intent=user_intent,
+            source='template_reuse',
+            needs_user_feedback=False,
+            search_results=[top],
+            selected_trial='',
+            trials=[],
+            uploaded_datasets=uploaded_datasets,
+        )
+
+    def _try_fast_path_somatic_variant_calling(
+        self,
+        user_intent: str,
+        uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Route somatic/tumor variant calling queries to detect_and_annotate_somatic_mutations."""
+        import re as _re_som
+
+        q_low = user_intent.lower()
+        has_somatic = bool(_re_som.search(r'\bsomatic\b|\btumor\b|\btumour\b|\bclinvar\b|\bacmg\b', q_low))
+        has_variant = bool(_re_som.search(r'\bvariant.call\b|\bvariant\b|\bgatk\b|\bmutect\b', q_low))
+        # Do not capture germline-only queries (no tumor mention)
+        has_germline_only = bool(_re_som.search(r'\bgermline\b', q_low)) and not has_somatic
+
+        if not (has_somatic and has_variant) or has_germline_only:
+            return None
+
+        top = self.workflow_search.get_workflow_by_filename_pattern('%detect_and_annotate_somatic_mutations%')
+        if not top:
+            top = self.workflow_search.get_workflow_by_name_like('%somatic%')
+        if not top:
+            return None
+
+        log.info("[UnifiedWorkflowGeneration] Fast path somatic variant calling → %s", top.name)
+        return self._return_nextflow_match(
+            match=top,
+            score=top.score,
+            user_intent=user_intent,
+            source='template_reuse',
+            needs_user_feedback=False,
+            search_results=[top],
+            selected_trial='',
+            trials=[],
+            uploaded_datasets=uploaded_datasets,
+        )
+
+    def _try_fast_path_cryosparc_spa(
+        self,
+        user_intent: str,
+        uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Route CryoSPARC single-particle analysis queries directly, bypassing chain clarification."""
+        q_low = user_intent.lower()
+        has_cryosparc = 'cryosparc' in q_low
+        has_cryo_em = bool(__import__('re').search(r'\bcryo.?em\b|\bcryo.electron\b|\bsingle.particle\b|\bspa\b', q_low))
+
+        if not (has_cryosparc or has_cryo_em):
+            return None
+
+        top = self.workflow_search.get_workflow_by_filename_pattern('%cryosparc_standard_spa%')
+        if not top:
+            top = self.workflow_search.get_workflow_by_name_like('%cryosparc%')
+        if not top:
+            return None
+
+        log.info("[UnifiedWorkflowGeneration] Fast path CryoSPARC SPA → %s", top.name)
         return self._return_nextflow_match(
             match=top,
             score=top.score,
@@ -3806,6 +3944,30 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             )
             if _fast_dock:
                 return _fast_dock
+
+            _fast_vs = self._try_fast_path_virtual_screening(
+                user_intent, uploaded_datasets=uploaded_datasets
+            )
+            if _fast_vs:
+                return _fast_vs
+
+            _fast_boin = self._try_fast_path_boin_trial(
+                user_intent, uploaded_datasets=uploaded_datasets
+            )
+            if _fast_boin:
+                return _fast_boin
+
+            _fast_somatic = self._try_fast_path_somatic_variant_calling(
+                user_intent, uploaded_datasets=uploaded_datasets
+            )
+            if _fast_somatic:
+                return _fast_somatic
+
+            _fast_cryo = self._try_fast_path_cryosparc_spa(
+                user_intent, uploaded_datasets=uploaded_datasets
+            )
+            if _fast_cryo:
+                return _fast_cryo
 
             try:
                 _fast_admet = self._try_fast_path_admet_workflow(

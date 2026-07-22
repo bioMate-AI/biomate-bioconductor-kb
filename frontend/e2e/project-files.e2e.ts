@@ -13,9 +13,12 @@
 import { test, expect, type APIRequestContext } from "@playwright/test";
 import { loginAsFixture, BASE_URL } from "./_fixture-login";
 
-// S3 file operations only work when AWS credentials are configured in the environment.
-// Tests that require S3 are skipped locally and run on the dev EC2 where credentials are set.
-const S3_AVAILABLE = !!(process.env.AWS_ACCESS_KEY_ID && process.env.S3_BUCKET_NAME);
+// S3 is available when running against the dev server (which has S3 configured server-side)
+// even without local AWS credentials, or when local credentials are explicitly set.
+const BIOMATE_URL = process.env.BIOMATE_URL || '';
+const S3_AVAILABLE = !!(process.env.AWS_ACCESS_KEY_ID && process.env.S3_BUCKET_NAME)
+  || BIOMATE_URL.includes('dev-public.biomate.ai')
+  || BIOMATE_URL.includes('biomate.ai');
 
 const NF_STUB = [
   "nextflow.enable.dsl=2",
@@ -172,9 +175,13 @@ test.describe("project-files", () => {
     await expect(page.getByTestId("folder-inputs")).toBeVisible({ timeout: 8000 });
     await page.getByTestId("folder-inputs").click();
 
-    // Hover to reveal delete button and click it
+    // Delete button is opacity-0 until the row is hovered — hover first to reveal it.
+    const fileRow = page.locator("text=to_delete.txt").first();
+    await expect(fileRow).toBeVisible({ timeout: 5000 });
+    await fileRow.hover();
+
     const deleteBtn = page.getByTestId(`file-delete-${fileId}`);
-    await expect(deleteBtn).toBeVisible({ timeout: 5000 });
+    await expect(deleteBtn).toBeVisible({ timeout: 3000 });
 
     // Accept the confirm dialog
     page.once("dialog", (dialog) => dialog.accept());

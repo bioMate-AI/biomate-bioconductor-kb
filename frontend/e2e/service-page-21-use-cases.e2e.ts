@@ -182,7 +182,7 @@ const SERVICE_CASES: ServiceCase[] = [
     section: '3.6',
     label: 'Metagenomics Kraken2',
     prompt: 'Run shotgun metagenomics taxonomic profiling with Kraken2 and MetaPhlAn4',
-    expectWorkflow: ['kraken', 'metaphlan', 'metagenom', 'taxonomic', 'profiling', 'shotgun'],
+    expectWorkflow: ['kraken', 'metaphlan', 'metagenom', 'taxonomic', 'profiling', 'shotgun', 'taxprofiler'],
     acceptChain: true,
   },
   {
