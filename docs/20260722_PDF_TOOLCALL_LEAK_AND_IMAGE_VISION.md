@@ -92,7 +92,30 @@ overly-aggressive truncation.
   unsupported-type skip, non-image ignore, webp media type, dedup, legacy chip
   format, 8-image cap with overflow reported.
 
+## Live dev E2E (the fix that mattered)
+
+`frontend/e2e/multiround-pdf-image-vision.e2e.ts` — login (fixture) → upload PDF
+(methods + IC50 table) + a generated PNG → 3 rounds (read PDF protocol →
+biomedical read of the image → cross-file follow-up), asserting no tool-call
+leak on every round.
+
+- **First dev run FAILED** and was invaluable: the leak still reached the client.
+  Root cause — the response streams through non-Claude model paths (Gemini/
+  OpenAI/Ollama) that `return` before `generateResponse`'s sanitizer. My first
+  fix only covered the Claude tool loop.
+- **Real fix (commit af609192):** sanitize at `safeSend` in the `/api/chat/stream`
+  handler (`routes.ts`) — the single funnel EVERY model path emits through.
+  Delta text is filtered live; the `final` response is stripped. Covers all
+  paths, including those that never reach the LLM-side stripper.
+- **Second dev run PASSED** — R1/R2/R3 all leak-free; PDF methods/IC50 content
+  preserved; image not hard-refused (vision active).
+
 ## Known limitations / next steps
+- **Multi-round attachment memory:** in R3 (no chip re-attached), the model said
+  it needs the table/gel re-attached — prior-turn file content is not re-sent
+  (chat history is string-only). Honest behavior, but for a smoother multi-round
+  UX, prior-turn extracted PDF text / image blocks should be re-injected when the
+  follow-up clearly refers to them. Deferred.
 - On a follow-up turn, an image analyzed in turn 1 is **not** re-sent (history is
   string-only) — the model relies on its turn-1 analysis text. Acceptable for v1.
 - Non-Claude providers (Gemini) get no vision path yet (different image format).
