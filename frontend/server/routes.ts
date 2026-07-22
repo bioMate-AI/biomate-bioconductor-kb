@@ -6,7 +6,7 @@ import { registerJobsRouter } from "./jobs/router";
 import "./jobs/handlers/download-all-zip";
 import "./jobs/handlers/methods-report";
 import "./jobs/handlers/findings-analysis";
-import { createServer, type Server } from "http";
+import { createServer, request as httpRequest, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
 import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs, instrumentEvents, instruments, INSTRUMENT_TYPES, apiKeys } from "../shared/schema";
@@ -1021,6 +1021,8 @@ const upload = multer({
       '.json', '.xml',
       // Research papers / literature
       '.pdf',
+      // Images for multimodal biomedical read (histology, gels/blots, plots, scans)
+      '.png', '.jpg', '.jpeg', '.gif', '.webp',
       // Cryo-EM / electron microscopy formats
       '.mrc', '.mrcs', '.tif', '.tiff', '.eer', '.spi', '.dm4', '.map',
       // Archive formats (capsule data, bulk uploads)
@@ -16063,7 +16065,7 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
       method: req.method,
       headers: { ...req.headers, host: "127.0.0.1:8848" },
     };
-    const upstream = require("http").request(opts, (upRes: any) => {
+    const upstream = httpRequest(opts, (upRes: any) => {
       res.writeHead(upRes.statusCode, upRes.headers);
       upRes.pipe(res);
     });
@@ -16075,6 +16077,13 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
   app.all("/.well-known/oauth-protected-resource", mcpProxy);
   app.all("/.well-known/oauth-protected-resource/mcp", mcpProxy);
   app.all("/.well-known/oauth-authorization-server", mcpProxy);
+  // OAuth 2.1 endpoints are also served by the remote_mcp app (register/authorize/
+  // token). Without these proxies they fall through to the SPA catch-all — GET
+  // /oauth/authorize returns index.html and POST /oauth/token 404s — so the whole
+  // authorization-code flow advertised in the discovery docs is unreachable.
+  app.all("/oauth/register", mcpProxy);
+  app.all("/oauth/authorize", mcpProxy);
+  app.all("/oauth/token", mcpProxy);
   app.get("/healthz", (_req, res) => res.json({ ok: true }));
 
   const httpServer = createServer(app);
