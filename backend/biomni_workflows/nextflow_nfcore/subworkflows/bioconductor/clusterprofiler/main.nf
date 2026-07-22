@@ -74,16 +74,47 @@ process BIOC_CLUSTERPROFILER_OVER_REPRESENTATION_ANALYSIS {
     library(enrichplot)
     
     # 1. Import the gene list
-    if (!file.exists("gene_list.txt")) {
-      stop("Error: 'gene_list.txt' not found in the working directory.")
+    # Nextflow stages the file using its S3/local basename (e.g. de_genes.txt, not gene_list.txt).
+    # Find it dynamically; fall back to a boto3 S3 download if staging didn't deliver the file.
+    gene_list_uri <- "${params.gene_list}"
+    gene_list_file <- {
+      candidates <- list.files(".", pattern="\\.txt$", full.names=FALSE, recursive=FALSE)
+      if (length(candidates) > 0) candidates[1] else NULL
     }
-    
-    gene_list <- readLines("gene_list.txt")
+    if (is.null(gene_list_file) && nchar(trimws(gene_list_uri)) > 0 && startsWith(gene_list_uri, "s3://")) {
+      cat(sprintf("[enrichGO] gene list not staged; attempting boto3 download from %s\\n", gene_list_uri))
+      py_file <- tempfile(fileext=".py")
+      writeLines(c(
+        "import boto3, re, sys",
+        "m = re.match(r's3://([^/]+)/(.*)', sys.argv[1])",
+        "if not m: sys.exit(1)",
+        "try:",
+        "    boto3.client('s3').download_file(m.group(1), m.group(2), sys.argv[2])",
+        "    print('OK')",
+        "except Exception as exc:",
+        "    print('ERR:', exc, file=sys.stderr)",
+        "    sys.exit(1)"
+      ), py_file)
+      on.exit(unlink(py_file), add=TRUE)
+      ret <- system2("python3", c(shQuote(py_file), shQuote(gene_list_uri), "gene_list.txt"),
+                     wait=TRUE, stdout=TRUE, stderr=TRUE)
+      if (isTRUE(grepl("No module named boto3", paste(ret, collapse="")))) {
+        system("pip3 install boto3 --quiet", wait=TRUE, ignore.stdout=TRUE, ignore.stderr=TRUE)
+        system2("python3", c(shQuote(py_file), shQuote(gene_list_uri), "gene_list.txt"),
+                wait=TRUE, stdout=TRUE, stderr=TRUE)
+      }
+      if (file.exists("gene_list.txt")) gene_list_file <- "gene_list.txt"
+    }
+    if (is.null(gene_list_file) || !file.exists(gene_list_file)) {
+      stop(paste0("Error: gene list file not found. Tried staging via Nextflow and boto3 download from: ", gene_list_uri))
+    }
+
+    gene_list <- readLines(gene_list_file)
     gene_list <- trimws(gene_list)
     gene_list <- gene_list[gene_list != ""]
-    
+
     if (length(gene_list) == 0) {
-      stop("Error: 'gene_list.txt' is empty.")
+      stop(paste0("Error: gene list file '", gene_list_file, "' is empty."))
     }
     
     # Determine keyType based on input format (Entrez ID vs Symbol)
