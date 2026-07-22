@@ -429,7 +429,7 @@ async function auditChatMessage(page, msgIndex, turnLabel) {
     // (sent AFTER Turn 1 so AI sees DE results in context)
     // ════════════════════════════════════════════════════════════════════════
     console.log('\n══ Turn 2 — enrichGO (after DESeq2 context) ══');
-    const turn2Msg = 'Yes, run pathway enrichment on the DE gene list — find the top complement GO terms.';
+    const turn2Msg = 'Yes, run pathway enrichment on the DE gene list — find the top complement GO terms.\ngene_list: s3://biomate-nextflow-work/demo/mg_demo/de_genes.txt';
     console.log(`  Sending: "${turn2Msg}"`);
     const msgs1 = await page.locator(aiMsgSel).count();
     await sendMessage(page, turn2Msg);
