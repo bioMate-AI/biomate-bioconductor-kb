@@ -102,7 +102,23 @@ process BIOC_DEFORMATS_DEFORMATS_INTEROPERABILITY_PIPELINE {
     # --- Parallel Differential Expression Analysis ---
     message("Running DESeq2 analysis on converted object...")
     # Run DESeq2 on the DESeqDataSet converted from DGEList
-    dds_analyzed <- DESeq(dds_converted, quiet = TRUE)
+    dds_analyzed <- tryCatch(
+        DESeq(dds_converted, quiet = TRUE),
+        error=function(e) {
+          message("Parametric DESeq failed (", conditionMessage(e),
+                  "); retrying with fitType='local'")
+          tryCatch(
+            DESeq(dds_converted, fitType="local", quiet = TRUE),
+            error=function(e2) {
+              message("Local fit also failed (", conditionMessage(e2),
+                      "); using gene-wise dispersion estimates as final")
+              .dds_ge <- estimateDispersionsGeneEst(dds_converted, quiet=TRUE)
+              dispersions(.dds_ge) <- mcols(.dds_ge)\$dispGeneEst
+              nbinomWaldTest(.dds_ge)
+            }
+          )
+        }
+    )
     res_deseq <- results(dds_analyzed)
     res_deseq_df <- as.data.frame(res_deseq)
     res_deseq_df\$gene_id <- rownames(res_deseq_df)

@@ -72,7 +72,23 @@ process BIOC_DESEQ2_LIKELIHOOD_RATIO_TEST {
     }
     
     # Execute documented workflow
-    dds <- DESeq(dds, test="LRT", reduced=~1)
+    dds <- tryCatch(
+        DESeq(dds, test="LRT", reduced=~1, quiet=TRUE),
+        error=function(e) {
+          message("Parametric DESeq (LRT) failed (", conditionMessage(e),
+                  "); retrying with fitType='local'")
+          tryCatch(
+            DESeq(dds, test="LRT", reduced=~1, fitType="local", quiet=TRUE),
+            error=function(e2) {
+              message("Local fit also failed (", conditionMessage(e2),
+                      "); using gene-wise dispersion estimates as final")
+              .dds_ge <- estimateDispersionsGeneEst(dds, quiet=TRUE)
+              dispersions(.dds_ge) <- mcols(.dds_ge)\$dispGeneEst
+              nbinomLRT(.dds_ge, reduced=~1)
+            }
+          )
+        }
+    )
     res <- results(dds)
     
     # Write outputs

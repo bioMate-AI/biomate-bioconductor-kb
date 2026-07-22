@@ -119,7 +119,23 @@ process BIOC_AGGREGATEBIOVAR_PSEUDOBULK_AGGREGATION_AND_DGE {
                 design = ~ Genotype
             )
         
-        subj_dds <- DESeq(subj_dds_dataset)
+        subj_dds <- tryCatch(
+            DESeq(subj_dds_dataset, quiet=TRUE),
+            error=function(e) {
+              message("Parametric DESeq failed for subject-level DGE (", conditionMessage(e),
+                      "); retrying with fitType='local'")
+              tryCatch(
+                DESeq(subj_dds_dataset, fitType="local", quiet=TRUE),
+                error=function(e2) {
+                  message("Local fit also failed (", conditionMessage(e2),
+                          "); using gene-wise dispersion estimates as final")
+                  .dds_ge <- estimateDispersionsGeneEst(subj_dds_dataset, quiet=TRUE)
+                  dispersions(.dds_ge) <- mcols(.dds_ge)\$dispGeneEst
+                  nbinomWaldTest(.dds_ge)
+                }
+              )
+            }
+        )
         
         subj_dds_results <-
             results(subj_dds, contrast = c("Genotype", "WT", "CFTRKO"))
@@ -139,7 +155,23 @@ process BIOC_AGGREGATEBIOVAR_PSEUDOBULK_AGGREGATION_AND_DGE {
                 design = ~ Genotype
             )
         
-        cell_dds <- DESeq(cell_dds_dataset)
+        cell_dds <- tryCatch(
+            DESeq(cell_dds_dataset, quiet=TRUE),
+            error=function(e) {
+              message("Parametric DESeq failed for cell-level DGE (", conditionMessage(e),
+                      "); retrying with fitType='local'")
+              tryCatch(
+                DESeq(cell_dds_dataset, fitType="local", quiet=TRUE),
+                error=function(e2) {
+                  message("Local fit also failed (", conditionMessage(e2),
+                          "); using gene-wise dispersion estimates as final")
+                  .dds_ge <- estimateDispersionsGeneEst(cell_dds_dataset, quiet=TRUE)
+                  dispersions(.dds_ge) <- mcols(.dds_ge)\$dispGeneEst
+                  nbinomWaldTest(.dds_ge)
+                }
+              )
+            }
+        )
         
         cell_dds_results <-
             results(cell_dds, contrast = c("Genotype", "WT", "CFTRKO"))

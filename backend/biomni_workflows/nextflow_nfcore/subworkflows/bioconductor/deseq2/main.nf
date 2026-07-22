@@ -123,7 +123,23 @@ process BIOC_DESEQ2_STANDARD_DE_FROM_MATRIX {
         dds\$condition <- relevel(dds\$condition, ref = levels(dds\$condition)[1])
         
         # 5. Run DESeq() pipeline
-        dds <- DESeq(dds)
+        dds <- tryCatch(
+            DESeq(dds, quiet=TRUE),
+            error=function(e) {
+              message("Parametric DESeq failed (", conditionMessage(e),
+                      "); retrying with fitType='local'")
+              tryCatch(
+                DESeq(dds, fitType="local", quiet=TRUE),
+                error=function(e2) {
+                  message("Local fit also failed (", conditionMessage(e2),
+                          "); using gene-wise dispersion estimates as final")
+                  .dds_ge <- estimateDispersionsGeneEst(dds, quiet=TRUE)
+                  dispersions(.dds_ge) <- mcols(.dds_ge)\$dispGeneEst
+                  nbinomWaldTest(.dds_ge)
+                }
+              )
+            }
+        )
         
         # 6. Extract results and apply LFC shrinkage
         res <- results(dds)

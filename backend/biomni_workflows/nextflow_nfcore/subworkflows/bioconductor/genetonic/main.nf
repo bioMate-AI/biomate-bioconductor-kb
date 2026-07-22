@@ -140,7 +140,23 @@ process BIOC_GENETONIC_GENETONIC_INTEGRATION_AND_REPORTING {
         }
         
         # Run differential expression analysis to obtain res_macrophage_IFNg_vs_naive
-        dds_macrophage <- DESeq(dds_macrophage)
+        dds_macrophage <- tryCatch(
+            DESeq(dds_macrophage, quiet=TRUE),
+            error=function(e) {
+              message("Parametric DESeq failed (", conditionMessage(e),
+                      "); retrying with fitType='local'")
+              tryCatch(
+                DESeq(dds_macrophage, fitType="local", quiet=TRUE),
+                error=function(e2) {
+                  message("Local fit also failed (", conditionMessage(e2),
+                          "); using gene-wise dispersion estimates as final")
+                  .dds_ge <- estimateDispersionsGeneEst(dds_macrophage, quiet=TRUE)
+                  dispersions(.dds_ge) <- mcols(.dds_ge)\$dispGeneEst
+                  nbinomWaldTest(.dds_ge)
+                }
+              )
+            }
+        )
         res_macrophage_IFNg_vs_naive <- results(
           dds_macrophage,
           contrast = c("condition", "IFNg", "naive"),

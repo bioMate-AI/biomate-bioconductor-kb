@@ -87,7 +87,23 @@ process BIOC_DESEQ2_MULTI_FACTOR_ANALYSIS {
     primary_condition <- design_vars[length(design_vars)]
     
     # 2. Run DESeq() pipeline
-    ddsMF <- DESeq(ddsMF)
+    ddsMF <- tryCatch(
+        DESeq(ddsMF, quiet=TRUE),
+        error=function(e) {
+          message("Parametric DESeq failed (", conditionMessage(e),
+                  "); retrying with fitType='local'")
+          tryCatch(
+            DESeq(ddsMF, fitType="local", quiet=TRUE),
+            error=function(e2) {
+              message("Local fit also failed (", conditionMessage(e2),
+                      "); using gene-wise dispersion estimates as final")
+              .dds_ge <- estimateDispersionsGeneEst(ddsMF, quiet=TRUE)
+              dispersions(.dds_ge) <- mcols(.dds_ge)\$dispGeneEst
+              nbinomWaldTest(.dds_ge)
+            }
+          )
+        }
+    )
     
     # 3. Extract results for the primary condition
     resMF <- results(ddsMF)

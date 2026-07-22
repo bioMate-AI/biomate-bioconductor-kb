@@ -136,7 +136,23 @@ process BIOC_ZINBWAVE_DIFFERENTIAL_EXPRESSION_WITH_WEIGHTS {
         # --- Differential expression with DESeq2 ---
         counts(fluidigm_zinb) <- as.matrix(counts(fluidigm_zinb))
         dds <- DESeqDataSet(fluidigm_zinb, design = design_formula)
-        dds <- DESeq(dds, sfType="poscounts", useT=TRUE, minmu=1e-6)
+        dds <- tryCatch(
+            DESeq(dds, sfType="poscounts", useT=TRUE, minmu=1e-6),
+            error=function(e) {
+              message("Parametric DESeq failed (", conditionMessage(e),
+                      "); retrying with fitType='local'")
+              tryCatch(
+                DESeq(dds, sfType="poscounts", useT=TRUE, minmu=1e-6, fitType="local"),
+                error=function(e2) {
+                  message("Local fit also failed (", conditionMessage(e2),
+                          "); using gene-wise dispersion estimates as final")
+                  .dds_ge <- estimateDispersionsGeneEst(dds, quiet=TRUE)
+                  dispersions(.dds_ge) <- mcols(.dds_ge)\$dispGeneEst
+                  nbinomWaldTest(.dds_ge, useT=TRUE, minmu=1e-6)
+                }
+              )
+            }
+        )
         
         # Determine contrast levels dynamically based on the selected condition column to avoid out-of-bounds errors,
         # but fallback to the documented contrast if those levels exist.

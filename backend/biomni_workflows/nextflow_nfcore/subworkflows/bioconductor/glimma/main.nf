@@ -115,7 +115,23 @@ process BIOC_GLIMMA_DESEQ2_GLIMMA {
     # ==========================================
     
     # Run DESeq2 pipeline
-    dds <- DESeq(dds, quiet = TRUE)
+    dds <- tryCatch(
+        DESeq(dds, quiet = TRUE),
+        error=function(e) {
+          message("Parametric DESeq failed (", conditionMessage(e),
+                  "); retrying with fitType='local'")
+          tryCatch(
+            DESeq(dds, fitType="local", quiet = TRUE),
+            error=function(e2) {
+              message("Local fit also failed (", conditionMessage(e2),
+                      "); using gene-wise dispersion estimates as final")
+              .dds_ge <- estimateDispersionsGeneEst(dds, quiet=TRUE)
+              dispersions(.dds_ge) <- mcols(.dds_ge)\$dispGeneEst
+              nbinomWaldTest(.dds_ge)
+            }
+          )
+        }
+    )
     
     # Generate and save interactive MA plot
     ma_plot <- glimmaMA(dds)

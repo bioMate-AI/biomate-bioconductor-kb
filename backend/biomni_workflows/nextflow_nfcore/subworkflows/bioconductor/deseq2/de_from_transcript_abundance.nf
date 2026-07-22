@@ -103,7 +103,23 @@ process BIOC_DESEQ2_DE_FROM_TRANSCRIPT_ABUNDANCE {
                                            design = ~ condition)
         
         # Run standard differential expression analysis pipeline
-        dds <- DESeq(ddsTxi)
+        dds <- tryCatch(
+            DESeq(ddsTxi, quiet=TRUE),
+            error=function(e) {
+              message("Parametric DESeq failed (", conditionMessage(e),
+                      "); retrying with fitType='local'")
+              tryCatch(
+                DESeq(ddsTxi, fitType="local", quiet=TRUE),
+                error=function(e2) {
+                  message("Local fit also failed (", conditionMessage(e2),
+                          "); using gene-wise dispersion estimates as final")
+                  .dds_ge <- estimateDispersionsGeneEst(ddsTxi, quiet=TRUE)
+                  dispersions(.dds_ge) <- mcols(.dds_ge)\$dispGeneEst
+                  nbinomWaldTest(.dds_ge)
+                }
+              )
+            }
+        )
         
         # Extract and order results
         res <- results(dds)

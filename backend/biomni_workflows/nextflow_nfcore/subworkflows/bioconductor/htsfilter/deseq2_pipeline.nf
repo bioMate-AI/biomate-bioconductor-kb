@@ -97,7 +97,23 @@ process BIOC_HTSFILTER_DESEQ2_PIPELINE {
     dds <- DESeqDataSetFromMatrix(countData = as.matrix(counts),
                                   colData = data.frame(cell.line = factor(conds)),
                                   design = ~ cell.line)
-    dds <- DESeq(dds)
+    dds <- tryCatch(
+        DESeq(dds, quiet=TRUE),
+        error=function(e) {
+          message("Parametric DESeq failed (", conditionMessage(e),
+                  "); retrying with fitType='local'")
+          tryCatch(
+            DESeq(dds, fitType="local", quiet=TRUE),
+            error=function(e2) {
+              message("Local fit also failed (", conditionMessage(e2),
+                      "); using gene-wise dispersion estimates as final")
+              .dds_ge <- estimateDispersionsGeneEst(dds, quiet=TRUE)
+              dispersions(.dds_ge) <- mcols(.dds_ge)\$dispGeneEst
+              nbinomWaldTest(.dds_ge)
+            }
+          )
+        }
+    )
     filter <- HTSFilter(dds, s.len=25, plot=FALSE)\$filteredData
     class(filter)
     dim(filter)

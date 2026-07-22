@@ -183,9 +183,25 @@ process BIOC_EDASEQ_GENE_LEVEL_EDA_AND_NORMALIZATION {
     normFactors <- exp(-1 * offst(dataOffset))
     normFactors <- normFactors / exp(rowMeans(log(normFactors)))
     normalizationFactors(dds) <- normFactors
-    dds <- DESeq(dds)
+    dds <- tryCatch(
+        DESeq(dds, quiet=TRUE),
+        error=function(e) {
+          message("Parametric DESeq failed (", conditionMessage(e),
+                  "); retrying with fitType='local'")
+          tryCatch(
+            DESeq(dds, fitType="local", quiet=TRUE),
+            error=function(e2) {
+              message("Local fit also failed (", conditionMessage(e2),
+                      "); using gene-wise dispersion estimates as final")
+              .dds_ge <- estimateDispersionsGeneEst(dds, quiet=TRUE)
+              dispersions(.dds_ge) <- mcols(.dds_ge)\$dispGeneEst
+              nbinomWaldTest(.dds_ge)
+            }
+          )
+        }
+    )
     res <- results(dds)
-    
+
     write.csv(as.data.frame(res), "deseq2_differential_expression.csv")
     
     # -----------------------------------------------------------------
