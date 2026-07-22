@@ -432,7 +432,6 @@ function PhaseGroupSection({
   qcThresholds,
   qcOverrides,
   onQcChange,
-  paramGroupToPhaseKey,
   qcAdvisoryByStep,
   isFirstPhase,
 }: {
@@ -459,8 +458,6 @@ function PhaseGroupSection({
   qcThresholds: Array<{ key: string; label: string; unit: string; direction: string; value: number; modified: boolean; rationale?: string }>;
   qcOverrides: Record<string, number>;
   onQcChange: (key: string, val: number | null) => void;
-  /** Pre-built map from normalized group name → phase key, computed once at panel mount. */
-  paramGroupToPhaseKey: Map<string, string>;
   /** Gap 1 (inverse) — near-threshold advisories keyed by process_name. */
   qcAdvisoryByStep?: Record<string, { metric?: string; value?: any; threshold?: any }[]>;
   /** True for the first phase in groupedPhases; auto-expanded on panel open
@@ -1651,35 +1648,6 @@ export function NextflowWorkflowViewer({
     return renderedParameters.filter((p: any) => !phaseNames.has(p.id || p.name || '')).length;
   }, [groupedPhases, renderedParameters]);
 
-  // At panel-generation time: build a one-time map from param semantic group → phase key.
-  // Each param carries a group name like "Motion Correction" or "CTF Estimation" from the
-  // .nf section headers. Match against phase labels so PhaseGroupSection can do a direct lookup.
-  const paramGroupToPhaseKey = React.useMemo<Map<string, string>>(() => {
-    const map = new Map<string, string>();
-    const GLOBAL_GROUPS = new Set(['global', 'advanced', 'infrastructure', 'performance']);
-    const tokenize = (s: string) =>
-      s.toLowerCase().replace(/[^a-z0-9]/g, ' ').trim().split(/\s+/).filter(w => w.length >= 3);
-
-    for (const p of renderedParameters) {
-      const rawGroup = String((p as any).group || '').trim();
-      if (!rawGroup) continue;
-      const pgNorm = rawGroup.toLowerCase();
-      if (GLOBAL_GROUPS.has(pgNorm)) continue;
-      if (map.has(pgNorm)) continue; // already mapped
-
-      const groupTokens = tokenize(rawGroup);
-      for (const phase of groupedPhases) {
-        const phaseTokens = tokenize(phase.label);
-        // All group tokens must appear in the phase label tokens (or vice versa for short names)
-        const matched = groupTokens.every(gt => phaseTokens.some(pt => pt.includes(gt) || gt.includes(pt)));
-        if (matched) {
-          map.set(pgNorm, phase.key);
-          break;
-        }
-      }
-    }
-    return map;
-  }, [renderedParameters, groupedPhases]);
 
   /**
    * Count global params that are required AND still empty.
@@ -2915,7 +2883,6 @@ export function NextflowWorkflowViewer({
                       setAutoLoopPanel({ gateResults: null, remediations: [], regulatoryActions: [], complete: null });
                       handleExecute();
                     }}
-                    paramGroupToPhaseKey={paramGroupToPhaseKey}
                     qcAdvisoryByStep={qcAdvisoryByStep}
                   />
                 ))}

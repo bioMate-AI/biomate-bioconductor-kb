@@ -605,6 +605,50 @@ def _collect_workflow_hardware_requirements(workflow_tools: List[str]) -> Option
     }
 
 
+def _attach_docstep_param_refs(steps: dict, content: str) -> None:
+    """Populate per-step parameters for single-process documented-step workflows.
+
+    Multi-process workflows get per-step params from `_enrich_steps_with_phase_info`
+    (each process → its `params.X` refs). Documented-step stubs have ONE process whose
+    refs can't be split by process, so attribute each referenced param to the step whose
+    name / phase label best matches it (analysis params fall to the phase that names the
+    computation). Stores name-keyed placeholder metadata; the frontend fills the actual
+    values from the workflow's parameter list (`renderedParameters` filtered by these
+    names). Mirrors the placeholder shape written by `_enrich_steps_with_phase_info`.
+    """
+    if not content or not steps:
+        return
+    # Match param USAGES, not the top-level `params.X = <default>` declarations
+    # (the negative lookahead drops the declaration block, so only params the
+    # workflow actually reads are attributed — same effect as the multi-process
+    # path scanning process bodies rather than the header).
+    refs = [r for r in dict.fromkeys(re.findall(r'params\.([a-zA-Z_]\w*)\b(?!\s*=[^=])', content))
+            if r not in _NF_SKIP_PARAMS]
+    if not refs:
+        return
+    ordered = list(steps.values())
+
+    def _toks(s: str) -> set:
+        return {t for t in re.split(r'[^a-z0-9]+', (s or '').lower()) if len(t) > 2}
+
+    analysis = [st for st in ordered if re.search(
+        r'(?i)differential|deseq|predict|enrich|call|cluster|dmp|dmr|variant|analysis|test',
+        f"{st.get('name', '')} {st.get('phase_label', '')}")]
+    primary = analysis[-1] if analysis else ordered[-1]
+
+    for ref in refs:
+        rtoks = _toks(ref)
+        best, best_score = None, 0
+        for st in ordered:
+            score = len((_toks(st.get('name', '')) | _toks(st.get('phase_label', ''))) & rtoks)
+            if score > best_score:
+                best, best_score = st, score
+        target = best if best_score > 0 else primary
+        target.setdefault('parameters', {})[ref] = {
+            'type': 'string', 'label': ref.replace('_', ' ').title(), 'default': None,
+        }
+
+
 def _parse_nextflow_steps(nf_filename: str) -> Dict[str, Any]:
     """Parse step names from a Nextflow .nf file for display in the workflow viewer.
 
@@ -695,6 +739,7 @@ def _parse_nextflow_steps(nf_filename: str) -> Dict[str, Any]:
                         "phase_label": (f"Phase {letter} — {p}" if p else ""),
                     }
                 if steps:
+                    _attach_docstep_param_refs(steps, content)
                     return steps
 
         # Strategy 1: `process NAME {` definitions — the authoritative source.
