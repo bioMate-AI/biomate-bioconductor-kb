@@ -3760,6 +3760,13 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             return None
         _geo_id = _geo_m.group(0).upper()
 
+        # GSE227835 is pre-staged with demo S3 data; the LLM system prompt rule
+        # always routes it to differentialabundance with those paths — never
+        # geo_scrna_pseudobulk, even when the user message contains no S3 URIs.
+        if _geo_id == 'GSE227835':
+            log.info("[GeoFastPath] GSE227835 is pre-staged — deferring to LLM differentialabundance rule")
+            return None
+
         # CASE A detection: if message already contains S3 URIs for samplesheet/matrix,
         # skip this fast path and let the LLM handle it via differentialabundance.
         _has_s3_paths = bool(_re_geo.search(r's3://[^\s]+\.(csv|tsv|txt|gz)', user_intent, _re_geo.IGNORECASE))
