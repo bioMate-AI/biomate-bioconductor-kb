@@ -7284,6 +7284,21 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
             }
           }
         }
+        // Fallback: if exactly one inline S3 value is unmatched AND exactly one required
+        // param is empty, inject by position (handles gene_list → gene_file name mismatch).
+        const _wfGaRef2 = (response as any).workflow_ga || (response as any);
+        const _emptyRequired: any[] = (_wfGaRef2.required_params || []).filter(
+          (p: any) => !p.value && p.required !== false
+        );
+        const _unmatchedS3 = Object.entries(mergedInlineParameters)
+          .filter(([k, v]) => typeof v === 'string' && (v as string).startsWith('s3://')
+            && _emptyRequired.every((p: any) => p.name !== k));
+        if (_emptyRequired.length === 1 && _unmatchedS3.length === 1) {
+          const [_uk, _uv] = _unmatchedS3[0];
+          console.log(`[GalaxyAssistant] InlineOverride positional fallback: ${_uk} → ${_emptyRequired[0].name} = ${_uv}`);
+          _emptyRequired[0].value = _uv;
+          _emptyRequired[0].autoFilled = true;
+        }
       }
 
       console.log('[GalaxyAssistant] ========================================');
