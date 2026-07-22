@@ -23,8 +23,41 @@ class ChatHistoryService {
   /** Scope chat history to the authenticated user. Call after login/auth confirmation. */
   setUserId(userId: string) {
     if (this.activeUserId === userId) return;
+    const oldKey = this.storageKey;
     this.activeUserId = userId;
     this.storageKey = `biomate-chat-history-${userId}`;
+
+    // Migrate sessions created under the pre-auth/default key into the
+    // user-scoped key. On the marketing "Start free" handoff (/?q=…), the chat
+    // mounts and auto-submits the moment `isAuthenticated` flips true — which
+    // can happen BEFORE `user.id` is populated. That early send creates its
+    // session under the default `biomate-chat-history` key; once setUserId runs
+    // the key switches and the in-flight session would be orphaned — getSession
+    // returns null, so previousMessages goes out empty AND the streamed reply
+    // can't attach to its placeholder (empty "BioMate" bubble, no workflow card).
+    // Absorbing the default-key sessions here keeps that session findable.
+    try {
+      if (oldKey && oldKey !== this.storageKey && typeof localStorage !== 'undefined') {
+        const oldRaw = localStorage.getItem(oldKey);
+        if (oldRaw) {
+          const oldSessions: ChatSession[] = JSON.parse(oldRaw);
+          const orphaned = Array.isArray(oldSessions)
+            ? oldSessions.filter((s) => (s?.messages?.length ?? 0) > 0)
+            : [];
+          if (orphaned.length > 0) {
+            let current: ChatSession[] = [];
+            try { current = JSON.parse(localStorage.getItem(this.storageKey) || '[]'); } catch { current = []; }
+            const currentIds = new Set(current.map((s) => s.id));
+            const merged = [...orphaned.filter((s) => !currentIds.has(s.id)), ...current];
+            localStorage.setItem(this.storageKey, JSON.stringify(merged));
+          }
+          // Clear the default bucket so a later user switch can't re-absorb stale rows.
+          localStorage.removeItem(oldKey);
+        }
+      }
+    } catch (e) {
+      console.warn('[chat-history] pre-auth session migration failed:', e);
+    }
   }
 
   // Get all chat sessions (from localStorage cache)
