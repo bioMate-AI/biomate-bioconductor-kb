@@ -4457,6 +4457,19 @@ def execute_nextflow(
     run_id = str(uuid.uuid4())
     invocation_id = str(uuid.uuid4())
 
+    # Pre-generate the S3 outdir so the frontend can store it immediately in the
+    # DB — without this, the frontend has no outdir until it polls Galaxy status
+    # (which it loses on gunicorn restart). Generated here so the background
+    # thread uses the SAME path that the HTTP response advertises.
+    _uid_for_path_fast = (request.user_id or "unknown").replace("/", "_").replace("..", "_")
+    _s3_bucket_fast = os.environ.get("AWS_S3_BUCKET", "biomate-nextflow-work")
+    _use_aws_fast = os.environ.get("NEXTFLOW_USE_AWS", "").lower() in ("1", "true", "yes")
+    _executor_fast = (getattr(request, "compute", None) or {}).get("executor", "")
+    _pre_outdir: Optional[str] = None
+    if (_use_aws_fast or _executor_fast == "awsbatch") and not (request.parameters or {}).get("outdir"):
+        _run_uuid_short = str(uuid.uuid4())[:8]
+        _pre_outdir = f"s3://{_s3_bucket_fast}/nextflow/outputs/{_uid_for_path_fast}/{_run_uuid_short}"
+
     # Register a minimal record up front so a status poll fired right after this
     # returns "configuring" (not 404) while the background launch runs.
     _pre_record = {
@@ -4468,6 +4481,7 @@ def execute_nextflow(
         "user_id": request.user_id or "anonymous",
         "is_pilot": bool(request.is_pilot),
         "started_at": time.time(),
+        **({"outdir": _pre_outdir} if _pre_outdir else {}),
     }
     with _runs_lock:
         _runs[run_id] = dict(_pre_record)
@@ -4478,7 +4492,8 @@ def execute_nextflow(
 
     def _launch_bg() -> None:
         try:
-            _execute_nextflow_impl(request, _run_id=run_id, _invocation_id=invocation_id)
+            _execute_nextflow_impl(request, _run_id=run_id, _invocation_id=invocation_id,
+                                   _pre_outdir=_pre_outdir)
         except HTTPException as he:
             _msg = f"launch failed ({he.status_code}): {he.detail}"
             _fail_run(run_id, _msg)
@@ -4497,6 +4512,7 @@ def execute_nextflow(
         "run_id": run_id,
         "invocation_id": invocation_id,
         "status": "configuring",
+        **({"outputs": {"outdir": _pre_outdir}} if _pre_outdir else {}),
     }
 
 
@@ -4504,6 +4520,7 @@ def _execute_nextflow_impl(
     request: NextflowExecuteRequest,
     _run_id: Optional[str] = None,
     _invocation_id: Optional[str] = None,
+    _pre_outdir: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     The actual (sometimes slow) prep + launch. Spawned in a background thread by
@@ -4538,8 +4555,13 @@ def _execute_nextflow_impl(
     _executor_requested = compute.get("executor", "")
     if _use_aws_env or _executor_requested == "awsbatch":
         s3_bucket_default = os.environ.get("AWS_S3_BUCKET", "biomate-nextflow-work")
-        run_uuid_short = str(uuid.uuid4())[:8]
-        _auto_outdir = f"s3://{s3_bucket_default}/nextflow/outputs/{_uid_for_path}/{run_uuid_short}"
+        # Use _pre_outdir from the fast-path if available — ensures the S3 path the
+        # frontend stored at run-creation time matches where Nextflow actually writes.
+        if _pre_outdir:
+            _auto_outdir = _pre_outdir
+        else:
+            run_uuid_short = str(uuid.uuid4())[:8]
+            _auto_outdir = f"s3://{s3_bucket_default}/nextflow/outputs/{_uid_for_path}/{run_uuid_short}"
         if not params.get("outdir"):
             params["outdir"] = _auto_outdir
             log.info(
