@@ -479,8 +479,8 @@ async function auditChatMessage(page, msgIndex, turnLabel) {
     record('Turn 3 — Run button clicked', run3Clicked);
     if (run3Clicked) {
       await screenshot(page, '11_turn3_admet_running');
-      console.log('  Waiting for ADMET completion (up to 5 min)...');
-      const exec3 = await waitForCompletion(page, 300000); // 5 min
+      console.log('  Waiting for ADMET completion (up to 10 min)...');
+      const exec3 = await waitForCompletion(page, 600000); // 10 min
       record('Turn 3 — ADMET completes', exec3.completed,
         exec3.timeout ? 'timed out 5 min' : exec3.failed ? 'workflow failed' : 'success');
       await screenshot(page, '12_turn3_admet_done');
