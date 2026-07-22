@@ -71,19 +71,42 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
     }
 
     # ── 1. Download inputs from S3 (or copy from local) ──────────────────────
-    # Ensure /usr/local/bin is in PATH so aws CLI is found by system() subprocess
-    Sys.setenv(PATH = paste(c("/usr/local/bin", "/usr/bin", "/bin", Sys.getenv("PATH")), collapse=":"))
+    # Extended PATH so aws CLI is found if installed in non-standard location
+    Sys.setenv(PATH = paste(c("/usr/local/bin", "/usr/bin", "/bin",
+                               "/usr/local/aws-cli/v2/current/bin",
+                               Sys.getenv("PATH")), collapse=":"))
     .aws_bin <- Sys.which("aws")
     cat(sprintf("[DESeq2] aws binary: %s\\n", if (nchar(.aws_bin)>0) .aws_bin else "NOT FOUND"))
+
+    # Python boto3 fallback — used when aws CLI is absent in container
+    .dl_via_boto3 <- function(uri, dest) {
+      py_code <- sprintf(
+        'import boto3, re, sys\\nm=re.match(r"s3://([^/]+)/(.*)", sys.argv[1])\\nif not m: sys.exit(1)\\nboto3.client("s3").download_file(m.group(1),m.group(2),sys.argv[2])\\nprint("OK")')
+      ret <- system2("python3", c("-c", shQuote(py_code), shQuote(uri), shQuote(dest)),
+                     wait=TRUE, stdout=TRUE, stderr=TRUE)
+      if (isTRUE(grepl("No module named boto3", paste(ret, collapse="")))) {
+        cat("[DESeq2] boto3 not found, installing via pip3...\\n")
+        system("pip3 install boto3 --quiet", wait=TRUE, ignore.stdout=TRUE, ignore.stderr=TRUE)
+        ret <- system2("python3", c("-c", shQuote(py_code), shQuote(uri), shQuote(dest)),
+                       wait=TRUE, stdout=TRUE, stderr=TRUE)
+      }
+      isTRUE(grepl("OK", paste(ret, collapse=""))) && file.exists(dest)
+    }
+
     dl <- function(uri, dest) {
       if (is.null(uri) || nchar(trimws(uri)) == 0 || uri == "null") return(FALSE)
       if (startsWith(uri, "s3://")) {
-        aws_cmd <- if (nchar(.aws_bin)>0) .aws_bin else "aws"
-        cmd <- paste(aws_cmd, "s3 cp", shQuote(uri), shQuote(dest))
-        cat(sprintf("[DESeq2] downloading: %s\\n", cmd))
-        ret <- system(cmd, wait=TRUE)
-        cat(sprintf("[DESeq2] exit code: %d  file exists: %s\\n", ret, file.exists(dest)))
-        return(ret == 0 && file.exists(dest))
+        if (nchar(.aws_bin) > 0) {
+          cmd <- paste(.aws_bin, "s3 cp", shQuote(uri), shQuote(dest))
+          cat(sprintf("[DESeq2] downloading via aws cli: %s\\n", cmd))
+          ret <- system(cmd, wait=TRUE)
+          cat(sprintf("[DESeq2] exit code: %d  file exists: %s\\n", ret, file.exists(dest)))
+          if (ret == 0 && file.exists(dest)) return(TRUE)
+        }
+        cat(sprintf("[DESeq2] aws cli failed/absent, trying boto3 for %s\\n", uri))
+        ok <- .dl_via_boto3(uri, dest)
+        cat(sprintf("[DESeq2] boto3 result: %s  file exists: %s\\n", ok, file.exists(dest)))
+        return(ok)
       } else if (file.exists(uri)) {
         return(file.copy(uri, dest))
       }
