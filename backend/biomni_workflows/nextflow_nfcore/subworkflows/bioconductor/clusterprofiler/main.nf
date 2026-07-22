@@ -78,7 +78,7 @@ process BIOC_CLUSTERPROFILER_OVER_REPRESENTATION_ANALYSIS {
     # Find it dynamically; fall back to a boto3 S3 download if staging didn't deliver the file.
     gene_list_uri <- "${params.gene_list}"
     gene_list_file <- {
-      candidates <- list.files(".", pattern="\\.txt$", full.names=FALSE, recursive=FALSE)
+      candidates <- list.files(".", pattern="\\.txt\$", full.names=FALSE, recursive=FALSE)
       if (length(candidates) > 0) candidates[1] else NULL
     }
     if (is.null(gene_list_file) && nchar(trimws(gene_list_uri)) > 0 && startsWith(gene_list_uri, "s3://")) {

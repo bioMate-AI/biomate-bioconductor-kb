@@ -1489,8 +1489,13 @@ if [[ -n "$_LOCAL_DB_MD5" ]]; then
   _DEV_DB_SIZE="$(ec2_ssh \
       'GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1); GC="${GC:-biomate-galaxy-dev}"; docker exec "$GC" stat -c %s /app/database/galaxy_ai_tools.db 2>/dev/null || echo 0' 2>/dev/null || echo '0')"
   if [[ "$_LOCAL_DB_MD5" != "$_DEV_DB_MD5" ]]; then
-    CHANGED="$CHANGED"$'\n'"backend/database/"
-    log "DB out of sync (local=$_LOCAL_DB_MD5 dev=$_DEV_DB_MD5 dev_size=${_DEV_DB_SIZE}B) — will sync"
+    _LOCAL_DB_SIZE="$(stat -c %s "$_LOCAL_DB" 2>/dev/null || stat -f %z "$_LOCAL_DB" 2>/dev/null || echo 0)"
+    if [[ "${_LOCAL_DB_SIZE:-0}" -lt "${_DEV_DB_SIZE:-0}" ]]; then
+      log "DB: local (${_LOCAL_DB_SIZE}B) < dev (${_DEV_DB_SIZE}B) — skipping upload to preserve larger dev DB"
+    else
+      CHANGED="$CHANGED"$'\n'"backend/database/"
+      log "DB out of sync (local=$_LOCAL_DB_MD5 dev=$_DEV_DB_MD5 dev_size=${_DEV_DB_SIZE}B) — will sync"
+    fi
   elif [[ "${_DEV_DB_SIZE:-0}" -lt 1048576 ]]; then
     # Dev DB is < 1MB — corrupt/empty stub. Force sync even if md5 somehow matches.
     CHANGED="$CHANGED"$'\n'"backend/database/"
