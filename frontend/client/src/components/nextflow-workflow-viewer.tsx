@@ -793,6 +793,7 @@ function PhaseGroupSection({
                   )}
                 </div>
               ))}
+              {/* Self-correct toggle — commented out until QC loop is stable
               <div className="qc-autoloop" style={autoloopLocked ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}>
                 <span
                   className={`switch${autoloopEnabled ? ' on' : ''}`}
@@ -813,10 +814,11 @@ function PhaseGroupSection({
                   {autoloopLocked && <span style={{marginLeft: 6, fontSize: '0.75em', color: 'var(--text-dim)', fontStyle: 'italic'}}>(coming soon)</span>}
                 </span>
               </div>
+              */}
             </div>
           )}
 
-          {/* AutoLoopPanel when gate results match this phase */}
+          {/* AutoLoopPanel — commented out until QC loop is stable (see project_future_work_pivot.md)
           {autoloopEnabled && autoLoopPanelState?.gateResults &&
             autoloopPhaseMatches(group.key, autoLoopPanelState.gateResults.phase) && (
             <div style={{padding:'8px 14px 0 40px'}}>
@@ -828,6 +830,7 @@ function PhaseGroupSection({
               />
             </div>
           )}
+          */}
 
           {/* Phase actions */}
           <div className="phase-actions">
