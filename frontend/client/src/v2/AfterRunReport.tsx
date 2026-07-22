@@ -18,6 +18,28 @@
  */
 import React, { useEffect, useMemo, useState } from "react";
 import { FindingsCard } from "@/components/findings-card";
+
+// Strip raw Nextflow debug log lines down to a readable one-liner.
+// Input:  "Jul-22 07:56:33.018 [Task monitor] DEBUG ... name: STEP (DESeq2); ... exit: 1; error: Essential container...; workDir: s3://..."
+// Output: "DESeq2 exited with code 1 — Essential container in task exited"
+function humanizeNfError(msg: string): string {
+  if (!msg) return msg;
+  // Extract structured fields from TaskPollingMonitor log lines
+  const nameM  = msg.match(/name:\s*[^;]+\(([^)]+)\)/);
+  const exitM  = msg.match(/exit:\s*(\d+)/);
+  const errorM = msg.match(/error:\s*(?:nextflow\.exception\.\w+:\s*)?([^;]+?)(?:;\s*workDir|$)/);
+  if (nameM || exitM || errorM) {
+    const step  = nameM  ? nameM[1].trim()  : '';
+    const code  = exitM  ? exitM[1]         : '';
+    const cause = errorM ? errorM[1].trim() : '';
+    const parts: string[] = [];
+    if (step)  parts.push(step + (code ? ` exited with code ${code}` : ' failed'));
+    if (cause && cause !== step) parts.push(cause);
+    return parts.join(' — ') || msg.slice(0, 300);
+  }
+  // Fallback: strip timestamp + log-level prefix, cap at 300 chars
+  return msg.replace(/^\S+\s+\[.*?\]\s+\w+\s+[\w.]+\s+-\s+/, '').slice(0, 300);
+}
 import { JobButton } from "@/components/job-button";
 import { InteractiveLauncher } from "@/components/interactive-launcher";
 
@@ -422,7 +444,7 @@ function FailedRunSection({
 
       {errorMessage && (
         <pre style={styles.errorBlock} data-testid="afterrun-error-message">
-          {errorMessage}
+          {humanizeNfError(errorMessage)}
         </pre>
       )}
 
@@ -1011,7 +1033,7 @@ function OutputsTab({
       <InteractiveToolsRow outputs={effectiveOutputs} />
 
       {/* Per-file table matching design reference */}
-      <div style={{ overflowX: 'auto' }}>
+      <div style={{ overflowX: 'auto' }} data-testid="output-files-table">
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'ui-monospace, monospace' }}>
           <thead>
             <tr style={{ background: 'oklch(0.96 0.004 260)', textAlign: 'left' }}>

@@ -11625,6 +11625,15 @@ Rules:
         }
       }
 
+      // Final outdir fallback: use the path pre-generated at run-creation time and stored
+      // in execution.nextflowOutputDir. This covers completed AWS Batch runs where Galaxy's
+      // completion callback didn't write outdir back to nextflowStatus (e.g. after gunicorn
+      // restart between job completion and the callback firing).
+      if (!outdir) {
+        const storedOutdir = (run as any)?.execution?.nextflowOutputDir as string | undefined;
+        if (storedOutdir && String(storedOutdir).startsWith('s3://')) outdir = storedOutdir;
+      }
+
       if (outputFiles.length === 0 && outdir && !String(outdir).startsWith('s3://')) {
         // Local dev run: scan the outdir on disk
         const { readdirSync, statSync } = await import('fs');
