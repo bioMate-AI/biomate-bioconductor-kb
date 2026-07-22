@@ -99,6 +99,7 @@ interface ChatInterfaceProps {
   onRegisterSendMessage?: (
     sender: (
       message: string,
+      files?: File[],
       contextOverride?: Record<string, unknown>,
     ) => void,
   ) => void
@@ -498,6 +499,8 @@ export function ChatInterface({
   // Captured setter from ChatInput — lets empty-state chips pre-fill the textarea
   const localSetDraftRef = useRef<((draft: string) => void) | null>(null)
   const localAddFilesRef = useRef<((files: File[]) => void) | null>(null)
+  // Track whether we've pre-loaded the GSE227835 de_genes.txt for Turn 2
+  const deGenesPreloadedRef = useRef(false)
   const [focusedAnchorMessageId, setFocusedAnchorMessageId] = useState<string | null>(null)
   const [highlightedAnchorMessageId, setHighlightedAnchorMessageId] = useState<string | null>(null)
 
@@ -559,6 +562,32 @@ export function ChatInterface({
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [displayMessages, displayTyping])
+
+  // After the first AI response in a GSE227835 DESeq2 conversation, pre-attach
+  // de_genes.txt so the user has the sample gene list ready for Turn 2 (enrichGO).
+  useEffect(() => {
+    if (deGenesPreloadedRef.current) return
+    if (!localAddFilesRef.current) return
+    const hasGSE = displayMessages.some(
+      m => typeof m.content === 'string' && m.content.includes('GSE227835')
+    )
+    if (!hasGSE) return
+    // Wait until there is at least one AI response after the user's first message
+    const aiResponded = displayMessages.some(m => m.role === 'assistant')
+    if (!aiResponded) return
+    // Only attach if user hasn't already sent a second message (Turn 2 pending)
+    const userMessages = displayMessages.filter(m => m.role === 'user')
+    if (userMessages.length > 1) return
+    deGenesPreloadedRef.current = true
+    const addFiles = localAddFilesRef.current
+    fetch('/demo/mg_demo/de_genes.txt')
+      .then(r => r.blob())
+      .then(blob => {
+        const file = new File([blob], 'de_genes.txt', { type: 'text/plain' })
+        addFiles([file])
+      })
+      .catch(() => { /* silently skip if not available */ })
+  }, [displayMessages])
 
   // Anchor chat view to the workflow artifact associated with the focused run.
   useEffect(() => {
@@ -1647,8 +1676,8 @@ export function ChatInterface({
   handleSendMessageRef.current = handleSendMessage
   useEffect(() => {
     if (!onRegisterSendMessage) return
-    onRegisterSendMessage((message, contextOverride) => {
-      void handleSendMessageRef.current(message, undefined, contextOverride)
+    onRegisterSendMessage((message, files, contextOverride) => {
+      void handleSendMessageRef.current(message, files, contextOverride)
     })
   }, [onRegisterSendMessage])
 

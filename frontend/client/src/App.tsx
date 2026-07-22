@@ -144,15 +144,25 @@ function RootRoute({
     return undefined
   })
 
+  // Demo files tag — e.g. 'mg_demo' — passed alongside ?q= from the landing page chip.
+  const [initialDemoFiles] = useState<string | undefined>(() => {
+    const urlD = new URLSearchParams(window.location.search).get('demoFiles')
+    if (urlD) return urlD
+    const stored = sessionStorage.getItem('pendingDemoFiles')
+    if (stored) { sessionStorage.removeItem('pendingDemoFiles'); return stored }
+    return undefined
+  })
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      // Preserve the pending hero query so it survives the login/register flow
-      const dest = initialMessage
-        ? '/login?q=' + encodeURIComponent(initialMessage)
-        : '/login'
-      setLocation(dest)
+      // Preserve both the query and demo-files tag through the login flow
+      const params = new URLSearchParams()
+      if (initialMessage) params.set('q', initialMessage)
+      if (initialDemoFiles) params.set('demoFiles', initialDemoFiles)
+      const qs = params.toString()
+      setLocation('/login' + (qs ? '?' + qs : ''))
     }
-  }, [isAuthenticated, isLoading, setLocation, initialMessage])
+  }, [isAuthenticated, isLoading, setLocation, initialMessage, initialDemoFiles])
 
   // Handle ?session=<chatSessionId> — emitted by the "Open" button in the
   // Workflow Runs dialog. Once auth is ready, load the session and strip the param.
@@ -196,6 +206,7 @@ function RootRoute({
         onChatUpdated={onChatUpdated}
         onWorkflowPanelOpenChange={(open) => setSidebarCollapsed(open)}
         initialMessage={initialMessage}
+        initialDemoFiles={initialDemoFiles}
       />
     </PlatformLayout>
   )

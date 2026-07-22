@@ -55,6 +55,8 @@ interface ChatWithArtifactsProps {
   onWorkflowPanelOpenChange?: (open: boolean) => void
   /** Pre-filled query from the marketing hero input — auto-submitted once the chat is ready. */
   initialMessage?: string
+  /** Tag for demo files to auto-attach with the initial message (e.g. 'mg_demo'). */
+  initialDemoFiles?: string
 }
 type RunManagerScope = 'current_chat' | 'all_chats'
 type RunManagerSort = 'updated_desc' | 'running_first' | 'failed_first'
@@ -89,7 +91,7 @@ function shortenId(raw?: string, prefix = "", maxLen = 8): string {
  * Chat-first layout: Full-width chat with workflows displayed inline as artifacts.
  * No split panel - workflows appear as collapsible cards within chat messages.
  */
-export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflowPanelOpenChange, initialMessage }: ChatWithArtifactsProps) {
+export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflowPanelOpenChange, initialMessage, initialDemoFiles }: ChatWithArtifactsProps) {
   // Lift useAfterRunFlavor() out of the JSX (was inlined at line ~1883). The
   // inline call was conditional on JSX ancestors that mounted/unmounted per
   // render, so React detected a different hook-call count between renders and
@@ -458,7 +460,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         console.warn('[intent-clarification-resolved] no send handler registered')
         return
       }
-      sendChatMessageRef.current(originalMessage, { intentOverride: intentType })
+      sendChatMessageRef.current(originalMessage, undefined, { intentOverride: intentType })
     }
     const onSkipped = (_e: Event) => {
       // No-op for now; user is expected to rephrase + resend in the input.
@@ -481,7 +483,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   // Refs registered by ChatInterface so we can trigger sends from the parent
   // (e.g. IntentClarificationCard re-submit, run-again-with-edits).
   const sendChatMessageRef = useRef<
-    ((message: string, contextOverride?: Record<string, unknown>) => void) | undefined
+    ((message: string, files?: File[], contextOverride?: Record<string, unknown>) => void) | undefined
   >(undefined)
   // State flag flipped when the sender is registered — triggers the effect below.
   const [senderReady, setSenderReady] = useState(false)
@@ -490,8 +492,19 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   useEffect(() => {
     if (!initialMessage || sentInitialRef.current || !sendChatMessageRef.current) return
     sentInitialRef.current = true
-    sendChatMessageRef.current(initialMessage)
-  }, [senderReady, initialMessage]) // eslint-disable-line react-hooks/exhaustive-deps
+    const sender = sendChatMessageRef.current
+    if (initialDemoFiles === 'mg_demo') {
+      const base = '/demo/mg_demo'
+      const names = ['sample_metadata.csv', 'counts_matrix.csv', 'contrasts.csv']
+      Promise.all(names.map(async n => {
+        const res = await fetch(`${base}/${n}`)
+        const blob = await res.blob()
+        return new File([blob], n, { type: blob.type || 'text/csv' })
+      })).then(files => sender(initialMessage, files)).catch(() => sender(initialMessage))
+    } else {
+      sender(initialMessage)
+    }
+  }, [senderReady, initialMessage, initialDemoFiles]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [postRunSurveyContext, setPostRunSurveyContext] = useState<{
     runId: string
@@ -2096,7 +2109,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             panelWorkflowMessageId={panelWorkflowMessageId}
             isPanelOpen={panelOpen}
             onRegisterSetDraft={(setter) => { setChatDraftRef.current = setter }}
-            onRegisterSendMessage={(sender) => { sendChatMessageRef.current = sender; setSenderReady(true) }}
+            onRegisterSendMessage={(sender) => { sendChatMessageRef.current = sender as typeof sendChatMessageRef.current; setSenderReady(true) }}
           />
           {/* Mobile: floating button to re-open the workflow panel when it's been dismissed */}
           {isMobile && !panelOpen && panelWorkflow && (

@@ -36,6 +36,7 @@ export default function LoginPage() {
   })()
   // Hero query forwarded through the auth flow (?q= on register or App.tsx redirect)
   const qParam = new URLSearchParams(search).get('q')
+  const demoFilesParam = new URLSearchParams(search).get('demoFiles')
   const { login, loginWithGoogle, loginWithGithub } = useAuth()
   const { toast } = useToast()
   const [email, setEmail] = useState("")
@@ -53,11 +54,13 @@ export default function LoginPage() {
     // setLocation('/?q=...') can run, so the useState initializer in App.tsx
     // would see no ?q= in the URL. sessionStorage survives that navigation.
     if (qParam) sessionStorage.setItem('pendingHeroQuery', qParam)
+    if (demoFilesParam) sessionStorage.setItem('pendingDemoFiles', demoFilesParam)
     try {
       await login(email, password, rememberMe)
       if (nextParam) setLocation(nextParam)
     } catch (err) {
       if (qParam) sessionStorage.removeItem('pendingHeroQuery')
+      if (demoFilesParam) sessionStorage.removeItem('pendingDemoFiles')
       setError(err instanceof Error ? err.message : "Invalid credentials. Please try again.")
     } finally {
       setIsLoading(false)
