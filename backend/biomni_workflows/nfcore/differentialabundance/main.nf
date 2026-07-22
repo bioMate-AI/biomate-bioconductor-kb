@@ -33,12 +33,11 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
 
     publishDir "${params.outdir}", mode: 'copy'
 
-    // Full container (not -slim): has aws cli for s3 cp downloads in R.
-    // Follows the same pattern as validation_deseq2_raw_counts/main.nf.
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"
+    // Slim container — full :3.20 includes reactome.db which exhausts Batch EBS disk space.
+    // Channel.fromPath handles S3 staging; aws cli is no longer needed in R.
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim"
 
-    // Input files are downloaded inside the R script via aws s3 cp.
-    // Using val (not path) avoids Channel.fromPath S3-FS-type probing on Nextflow 25.x.
+    // Input files staged by Nextflow Channel.fromPath (not aws s3 cp in R script).
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
 
