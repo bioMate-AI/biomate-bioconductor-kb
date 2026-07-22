@@ -6694,6 +6694,11 @@ _WORKFLOW_DOMAIN_ALIASES: Dict[str, str] = {
     "amber": "structure_prediction", "gromacs": "structure_prediction",
     "alphafold": "structure_prediction", "boltz": "structure_prediction",
     "chai": "structure_prediction", "esmfold": "structure_prediction",
+    # transcriptomics / genomics
+    "deseq2": "transcriptomics", "differentialabundance": "transcriptomics",
+    "clusterprofiler": "transcriptomics", "enrichgo": "transcriptomics",
+    "rnaseq": "transcriptomics", "pseudobulk": "transcriptomics",
+    "edger": "transcriptomics", "limma": "transcriptomics",
     # clinical / pharmacology
     "boin": "clinical_trial", "trial_sim": "clinical_trial",
     "ich_s5": "ich_s5", "ich_s7": "ich_s7",
