@@ -65,8 +65,12 @@ const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || 'WpmFixture!2026';
 const E2E_TOKEN        = process.env.E2E_TEST_TOKEN ?? 'biomate-e2e-bypass-token-dev-only';
 const EXEC_TIMEOUT_MS  = 30 * 60_000; // 30 min — AWS Batch cold start
 
-// File upload tests require S3 credentials (run on dev EC2, not locally)
-const S3_AVAILABLE = !!(process.env.AWS_ACCESS_KEY_ID && process.env.S3_BUCKET_NAME);
+// S3 is available when running against the dev server (which has S3 configured server-side)
+// even without local AWS credentials, or when local credentials are explicitly set.
+const _BIOMATE_URL = process.env.BIOMATE_URL || '';
+const S3_AVAILABLE = !!(process.env.AWS_ACCESS_KEY_ID && process.env.S3_BUCKET_NAME)
+  || _BIOMATE_URL.includes('dev-public.biomate.ai')
+  || _BIOMATE_URL.includes('biomate.ai');
 
 // Research goal keyword baked in so the LLM context injection test can verify it
 const RESEARCH_GOAL = 'Study rheumatoid arthritis GWAS data to identify causal genetic variants';
