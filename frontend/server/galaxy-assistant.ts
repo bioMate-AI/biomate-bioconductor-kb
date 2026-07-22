@@ -2147,6 +2147,82 @@ Rules:
   return fallback;
 }
 
+/**
+ * Parse the `[Uploaded datasets: ...]` block from a chat message and map filenames
+ * to workflow parameter names deterministically.
+ *
+ * This implements the file-to-param mapping that was previously only described as a
+ * natural language rule in the response-generation prompt (line 7675). By doing it in
+ * code before generateWorkflow() is called, uploaded file S3 URIs reach the workflow
+ * generation step with the correct parameter names — without relying on the LLM to
+ * infer the mapping from natural language.
+ *
+ * Returns a flat object of {paramName → s3_uri} suitable for merging into inlineParameters.
+ *
+ * General rules (not demo-specific):
+ *   filename contains "sample" | "metadata" | "samplesheet" | "coldata" | "design" → samplesheet
+ *   filename contains "count" | "matrix" | "expression" | "counts"                → matrix
+ *   filename contains "contrast" | "comparison"                                    → contrasts
+ *   filename contains "gene_list" | "genes" | "de_gene" | "genelist"              → gene_list
+ *   filename contains "gene_expr" | "expression_matrix"                            → matrix (already covered)
+ *   filename ends with .fastq | .fq | _R1 | _R2                                   → reads
+ *   filename ends with .bam                                                        → bam
+ *   filename ends with .vcf | .vcf.gz                                              → vcf
+ */
+export function extractUploadedFileParams(message: string): Record<string, string> {
+  const params: Record<string, string> = {};
+  const block = message.match(/\[Uploaded datasets:\s*([^\]]+)\]/i)?.[1];
+  if (!block) return params;
+
+  // Each entry is separated by ";" and has format: "filename: dataset_id=<id>[, s3_uri=<uri>]"
+  const entries = block.split(/;\s*/);
+  for (const entry of entries) {
+    const nameMatch = entry.match(/^([^:]+):/);
+    if (!nameMatch) continue;
+    const fname = nameMatch[1].trim().toLowerCase();
+
+    // S3 URI takes priority; dataset_id as fallback (staged at execute time)
+    const s3Match = entry.match(/s3_uri=(s3:\/\/[^\s,;]+)/i);
+    const idMatch = entry.match(/dataset_id=([a-f0-9-]+)/i);
+    const value = s3Match?.[1] || idMatch?.[1];
+    if (!value) continue;
+
+    // DE samplesheet / metadata
+    if (/sample|metadata|samplesheet|coldata|design/.test(fname)) {
+      params.samplesheet = params.samplesheet ?? value;
+    }
+    // Count matrix
+    else if (/count|matrix|expression|expr/.test(fname)) {
+      params.matrix = params.matrix ?? value;
+    }
+    // Contrasts
+    else if (/contrast|comparison/.test(fname)) {
+      params.contrasts = params.contrasts ?? value;
+    }
+    // Gene list (pathway enrichment, enrichGO)
+    else if (/gene_list|genelist|de_gene|\.genes\.|genes\.txt|sig_gene/.test(fname)) {
+      params.gene_list = params.gene_list ?? value;
+    }
+    // FASTQ reads
+    else if (/\.(fastq|fq)(\.gz)?$|_r[12]_|_read[12]_|_R[12]\./.test(fname)) {
+      params.reads = params.reads ?? value;
+    }
+    // BAM
+    else if (/\.bam$/.test(fname)) {
+      params.bam = params.bam ?? value;
+    }
+    // VCF
+    else if (/\.vcf(\.gz)?$/.test(fname)) {
+      params.vcf = params.vcf ?? value;
+    }
+    // Generic fallback: use the first unrecognized file as file_path
+    else {
+      params.file_path = params.file_path ?? value;
+    }
+  }
+  return params;
+}
+
 /** Synchronous re-export kept for any future callers — wraps the same regex fallback. */
 export function extractInlineData(message: string): InlineDataMap {
   const fallback: InlineDataMap = {};
@@ -3839,10 +3915,24 @@ Rules:
         const workflowUserIntent = intent.subQuery && intent.subQuery !== message
           ? `${intent.subQuery} ${message}`
           : (intent.subQuery || message);
+
+        // Parse uploaded file S3 URIs and map filenames → workflow param names in code.
+        // This ensures the Python generate_workflow call receives samplesheet/matrix/contrasts/
+        // gene_list etc. from the uploaded datasets block without relying on the LLM to infer
+        // the filename→paramname mapping from the response-generation prompt.
+        const _uploadedFileParams = extractUploadedFileParams(message);
+        const _mergedInline: Record<string, string> = {
+          ...(intent.inlineParameters || {}),
+          ..._uploadedFileParams,
+        };
+        if (Object.keys(_uploadedFileParams).length > 0) {
+          log(`Step 4: Injecting uploaded file params: ${JSON.stringify(_uploadedFileParams)}`);
+        }
+
         generatedWorkflow = await this.generateWorkflow(
           workflowUserIntent,
           recommendedDatasets.map(d => d.dataset),
-          intent.inlineParameters,
+          _mergedInline,
           context,
           decomposition.preferredDomains,
           decomposition.keyTerms,
@@ -4383,10 +4473,15 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
         ...context,
         previousMessages: [],
       };
+      const _t1UploadedParams = extractUploadedFileParams(message);
+      const _t1MergedInline: Record<string, string> = {
+        ...(decomposition.intents[0]?.inlineParameters || {}),
+        ..._t1UploadedParams,
+      };
       const tier1Workflow = await this.generateWorkflow(
         message,
         [],
-        decomposition.intents[0]?.inlineParameters,
+        _t1MergedInline,
         tier1Context,
         decomposition.preferredDomains,
         decomposition.keyTerms,
@@ -5055,10 +5150,15 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
         const effectiveIntent = (originalMessage && originalMessage !== intent.subQuery)
           ? originalMessage
           : intent.subQuery;
+        const _subUploadedParams = extractUploadedFileParams(originalMessage || intent.subQuery);
+        const _subMergedInline: Record<string, string> = {
+          ...(intent.inlineParameters || {}),
+          ..._subUploadedParams,
+        };
         const workflow = await this.generateWorkflow(
           effectiveIntent,
           recommendedDatasets.map(d => d.dataset),
-          intent.inlineParameters,
+          _subMergedInline,
           context,
           preferredDomains,
           keyTerms,
