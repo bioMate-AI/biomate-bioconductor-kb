@@ -3594,6 +3594,97 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
 
         return result
 
+    def _try_fast_path_geo_scrna_pseudobulk(  # noqa: deploy-trigger
+        self,
+        user_intent: str,
+        uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """CASE B GEO routing: accession present but no S3 paths → geo_scrna_pseudobulk.
+
+        When the user provides only a GEO accession (e.g. GSE227835) with no
+        pre-staged S3 file paths for samplesheet/matrix/contrasts, route to
+        geo_scrna_pseudobulk which downloads raw data directly from NCBI GEO,
+        pseudobulk-aggregates scRNA-seq cells, and outputs DESeq2-ready CSVs.
+
+        CASE A (S3 paths already in the message or [Inline parameters:] block) is
+        handled by the LLM via the system prompt CASE A rule → differentialabundance.
+        This fast path only triggers for CASE B (no S3 paths).
+
+        Note: by the time this is called, inline_parameters have already been merged
+        into user_intent as '[Inline parameters:\nkey: value\n...]' so checking
+        user_intent for 's3://' covers both the raw message and inline params.
+        """
+        import re as _re_geo
+
+        # Extract GEO accession (only GSE for now; SRR/ERR are handled by nfcore fast path)
+        _geo_m = _re_geo.search(r'\bGSE\d{4,9}\b', user_intent, _re_geo.IGNORECASE)
+        if not _geo_m:
+            return None
+        _geo_id = _geo_m.group(0).upper()
+
+        # CASE A detection: if message already contains S3 URIs for samplesheet/matrix,
+        # skip this fast path and let the LLM handle it via differentialabundance.
+        _has_s3_paths = bool(_re_geo.search(r's3://[^\s]+\.(csv|tsv|txt|gz)', user_intent, _re_geo.IGNORECASE))
+        if _has_s3_paths:
+            log.info("[GeoFastPath] CASE A detected (S3 paths present) — skipping geo_scrna_pseudobulk fast path")
+            return None
+
+        # Only trigger for DE / RNA-seq / scRNA-seq intent
+        _q = user_intent.lower()
+        _is_de_intent = any(kw in _q for kw in [
+            'differential', 'deseq2', 'edger', 'rna-seq', 'rnaseq', 'scrna',
+            'expression', 'de genes', 'deg', 'pseudobulk', 'download', 'fetch',
+        ])
+        if not _is_de_intent:
+            return None
+
+        # Look up geo_scrna_pseudobulk in the DB
+        top = self.workflow_search.get_workflow_by_filename_pattern('%geo_scrna_pseudobulk%')
+        if not top:
+            top = self.workflow_search.get_workflow_by_name('geo_scrna_pseudobulk')
+        if not top:
+            log.warning("[GeoFastPath] geo_scrna_pseudobulk not found in DB — fast path skipped")
+            return None
+
+        log.info("[GeoFastPath] CASE B: routing GSE=%s → geo_scrna_pseudobulk (id=%s)", _geo_id, top.id)
+
+        _wf_ga = {
+            'id': top.id,
+            'name': top.name,
+            'filename': top.filename,
+            'format': 'nextflow',
+            'domain': getattr(top, 'domain', 'transcriptomics'),
+            'description': (top.description or
+                            'Auto-fetch and pseudobulk-aggregate scRNA-seq data from GEO, '
+                            'then output count matrix + sample metadata ready for DESeq2.'),
+            'required_params': [
+                {
+                    'name': 'geo_accession',
+                    'value': _geo_id,
+                    'default': _geo_id,
+                    'type': 'text',
+                    'required': True,
+                    'autoFilled': True,
+                    'description': 'GEO accession (e.g. GSE227835)',
+                }
+            ],
+            'optional_params': [],
+            'steps': {},
+            'nextflow_path': top.filename,
+        }
+        return {
+            'success': True,
+            'message': (
+                f"I'm fetching the raw data directly from GEO using GEOquery — "
+                f"this downloads and pseudobulk-aggregates the scRNA-seq data for {_geo_id} "
+                f"before running DESeq2. The geo_scrna_pseudobulk workflow will output "
+                f"counts_matrix.csv + sample_metadata.csv + contrasts.csv ready for differential expression."
+            ),
+            'workflow_type': 'workflow_generation',
+            'workflow_ga': _wf_ga,
+            'needsWorkflowGeneration': False,
+        }
+
     def _try_fast_path_nfcore_pipeline(  # noqa: deploy-trigger
         self,
         user_intent: str,
@@ -3725,6 +3816,16 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 _fast_admet = None
             if _fast_admet:
                 return _fast_admet
+
+            try:
+                _fast_geo = self._try_fast_path_geo_scrna_pseudobulk(
+                    user_intent, uploaded_datasets=uploaded_datasets
+                )
+            except Exception as _fg_exc:
+                log.error("[GeoFastPath] Unexpected exception: %s", _fg_exc, exc_info=True)
+                _fast_geo = None
+            if _fast_geo:
+                return _fast_geo
 
             _fast_nfcore = self._try_fast_path_nfcore_pipeline(
                 user_intent, uploaded_datasets=uploaded_datasets
