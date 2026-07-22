@@ -17,7 +17,7 @@ process BIOC_GOTHIC_STANDARD_GOTHIC_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-gothic:1.46.0--r45hdfd78af_0"
 

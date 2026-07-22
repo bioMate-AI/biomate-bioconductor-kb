@@ -17,7 +17,7 @@ process BIOC_SEQCAT_SNV_PROFILE_COMPARISON_AND_SIMILARITY_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-seqcat:1.32.0--r45hdfd78af_0"
 

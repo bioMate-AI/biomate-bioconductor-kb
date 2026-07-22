@@ -17,7 +17,7 @@ process BIOC_CARDINAL_MSI_PREPROCESSING_AND_PEAK_EXTRACTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-cardinal:3.12.1--r45hdfd78af_0"
 

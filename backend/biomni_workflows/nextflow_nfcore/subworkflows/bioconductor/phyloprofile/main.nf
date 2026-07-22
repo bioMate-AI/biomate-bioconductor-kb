@@ -17,7 +17,7 @@ process BIOC_PHYLOPROFILE_PROFILE_PROCESSING_AND_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-phyloprofile:2.2.2--r45hdfd78af_0"
 

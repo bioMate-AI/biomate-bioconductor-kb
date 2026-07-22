@@ -17,7 +17,7 @@ process BIOC_CHIMERAVIZ_SUPPORTING_READS_ALIGNMENT_AND_PLOTTING {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-chimeraviz:1.36.0--r45hdfd78af_0"
 

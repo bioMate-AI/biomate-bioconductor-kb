@@ -15,7 +15,7 @@ process BIOC_MUSCLE_MULTIPLE_SEQUENCE_ALIGNMENT {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-muscle:3.52.0--r45ha27e39d_0"
 

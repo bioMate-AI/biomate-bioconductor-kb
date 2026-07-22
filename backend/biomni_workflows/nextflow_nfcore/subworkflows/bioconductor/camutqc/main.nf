@@ -15,7 +15,7 @@ process BIOC_CAMUTQC_SINGLE_VCF_FILTERING_AND_TMB {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-camutqc:1.6.0--r45hdfd78af_0"
 

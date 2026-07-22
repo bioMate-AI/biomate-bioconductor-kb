@@ -17,7 +17,7 @@ process BIOC_METHYLSEEKR_BIS_SEQ_METHYLATION_SEGMENTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-methylseekr:1.50.0--r45hdfd78af_0"
 

@@ -17,7 +17,7 @@ process BIOC_SPLICINGGRAPHS_SPLICING_GRAPH_AND_READ_QUANTIFICATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-splicinggraphs:1.50.1--r45hdfd78af_0"
 

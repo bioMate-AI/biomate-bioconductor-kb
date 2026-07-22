@@ -15,7 +15,7 @@ process BIOC_PREBS_CUSTOM_CDF_EXPRESSION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-prebs:1.50.0--r45hdfd78af_0"
 

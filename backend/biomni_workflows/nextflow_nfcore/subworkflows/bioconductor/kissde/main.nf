@@ -17,7 +17,7 @@ process BIOC_KISSDE_ALTERNATIVE_SPLICING_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-kissde:1.30.0--r45hdfd78af_0"
 

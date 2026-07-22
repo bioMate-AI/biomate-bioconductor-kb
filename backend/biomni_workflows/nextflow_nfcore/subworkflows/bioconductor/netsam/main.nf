@@ -15,7 +15,7 @@ process BIOC_NETSAM_NETWORK_SERIATION_AND_MODULARIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-netsam:1.50.0--r45hdfd78af_0"
 

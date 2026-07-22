@@ -18,7 +18,7 @@ process BIOC_METHIMPUTE_SEPARATE_CONTEXT_CALLING {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-methimpute:1.32.0--r45ha27e39d_0"
 

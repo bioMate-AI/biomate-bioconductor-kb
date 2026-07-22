@@ -18,7 +18,7 @@ process BIOC_DOSER_DOSAGE_COMPENSATION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-doser:1.26.0--r45hdfd78af_0"
 

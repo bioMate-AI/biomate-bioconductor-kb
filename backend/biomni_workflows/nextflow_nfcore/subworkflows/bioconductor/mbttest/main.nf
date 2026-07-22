@@ -17,7 +17,7 @@ process BIOC_MBTTEST_DIFFERENTIAL_EXPRESSION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-mbttest:1.38.0--r45hdfd78af_0"
 

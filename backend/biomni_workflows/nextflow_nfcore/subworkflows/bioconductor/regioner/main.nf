@@ -17,7 +17,7 @@ process BIOC_REGIONER_OVERLAP_PERMUTATION_TEST {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-regioner:1.42.0--r45hdfd78af_0"
 

@@ -15,7 +15,7 @@ process BIOC_BBCANALYZER_COMPLETE_BASE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-bbcanalyzer:1.40.0--r45hdfd78af_0"
 

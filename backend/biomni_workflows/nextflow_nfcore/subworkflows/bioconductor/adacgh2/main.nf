@@ -15,7 +15,7 @@ process BIOC_ADACGH2_RAM_OBJECTS_FORKING {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-adacgh2:2.50.0--r45h01b2380_1"
 

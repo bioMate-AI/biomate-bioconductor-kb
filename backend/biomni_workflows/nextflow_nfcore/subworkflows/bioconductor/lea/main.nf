@@ -18,7 +18,7 @@ process BIOC_LEA_POPULATION_STRUCTURE_AND_IMPUTATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-lea:3.22.0--r45h01b2380_0"
 

@@ -18,7 +18,7 @@ process BIOC_DIFFBIND_STANDARD_DIFFERENTIAL_BINDING {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-diffbind:3.20.0--r45ha27e39d_0"
 

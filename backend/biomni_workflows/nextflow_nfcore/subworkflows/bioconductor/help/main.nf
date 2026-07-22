@@ -17,7 +17,7 @@ process BIOC_HELP_HELP_METHYLATION_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-help:1.68.0--r45hdfd78af_0"
 

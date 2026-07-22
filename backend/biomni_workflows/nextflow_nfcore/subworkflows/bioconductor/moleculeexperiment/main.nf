@@ -17,7 +17,7 @@ process BIOC_MOLECULEEXPERIMENT_IMPORT_FROM_VENDOR_DIRECTORIES {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-moleculeexperiment:1.10.0--r45hdfd78af_0"
 

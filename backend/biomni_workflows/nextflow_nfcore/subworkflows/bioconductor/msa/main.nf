@@ -15,7 +15,7 @@ process BIOC_MSA_SEQUENCE_ALIGNMENT_AND_PRETTY_PRINTING {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-msa:1.42.0--r45he8cd136_0"
 

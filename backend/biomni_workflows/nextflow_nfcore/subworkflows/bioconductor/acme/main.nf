@@ -17,7 +17,7 @@ process BIOC_ACME_TILING_MICROARRAY_ENRICHMENT_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-acme:2.62.0--r44h3df3fcb_0"
 

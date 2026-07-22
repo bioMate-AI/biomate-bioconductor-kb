@@ -17,7 +17,7 @@ process BIOC_RIBOSOMEPROFILINGQC_QC_AND_PSITE_ESTIMATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-ribosomeprofilingqc:1.22.0--r45hdfd78af_0"
 

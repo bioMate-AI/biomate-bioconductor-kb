@@ -17,7 +17,7 @@ process BIOC_PSMATCH_PSM_FILTERING_AND_PROTEIN_GROUPS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-psmatch:1.14.0--r45hdfd78af_0"
 

@@ -17,7 +17,7 @@ process BIOC_BCRANK_DE_NOVO_MOTIF_PREDICTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-bcrank:1.72.0--r45h01b2380_0"
 

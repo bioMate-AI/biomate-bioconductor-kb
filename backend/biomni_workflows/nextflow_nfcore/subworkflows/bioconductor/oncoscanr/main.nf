@@ -15,7 +15,7 @@ process BIOC_ONCOSCANR_CHAS_CUSTOM_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-oncoscanr:1.12.0--r45hdfd78af_0"
 

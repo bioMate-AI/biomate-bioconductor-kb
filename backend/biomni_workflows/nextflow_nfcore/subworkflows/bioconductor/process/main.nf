@@ -17,7 +17,7 @@ process BIOC_PROCESS_INDIVIDUAL_SPECTRUM_ALIGNMENT {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-process:1.86.0--r45hdfd78af_0"
 

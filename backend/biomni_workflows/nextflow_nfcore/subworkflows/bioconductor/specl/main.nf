@@ -17,7 +17,7 @@ process BIOC_SPECL_GENERATE_SWATH_SPECTRAL_LIBRARY {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-specl:1.44.0--r45hdfd78af_0"
 

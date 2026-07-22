@@ -17,7 +17,7 @@ process BIOC_RIBOR_RIBO_QC_AND_QUANTIFICATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-ribor:1.22.0--r45hdfd78af_0"
 

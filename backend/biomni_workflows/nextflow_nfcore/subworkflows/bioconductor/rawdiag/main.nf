@@ -17,7 +17,7 @@ process BIOC_RAWDIAG_ORBITRAP_METHOD_DIAGNOSTIC_PLOTS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-rawdiag:1.6.0--r45hdfd78af_0"
 

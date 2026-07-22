@@ -17,7 +17,7 @@ process BIOC_SPLICEWIZ_STANDARD_ALTERNATIVE_SPLICING_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-splicewiz:1.12.0--r45ha27e39d_0"
 

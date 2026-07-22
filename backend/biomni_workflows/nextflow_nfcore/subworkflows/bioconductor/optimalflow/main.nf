@@ -17,7 +17,7 @@ process BIOC_OPTIMALFLOW_TEMPLATE_GENERATION_AND_CLUSTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-optimalflow:1.22.0--r45h575d39b_0"
 

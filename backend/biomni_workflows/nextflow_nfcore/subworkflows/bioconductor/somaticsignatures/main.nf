@@ -17,7 +17,7 @@ process BIOC_SOMATICSIGNATURES_SOMATIC_SIGNATURE_EXTRACTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-somaticsignatures:2.46.0--r45hdfd78af_0"
 

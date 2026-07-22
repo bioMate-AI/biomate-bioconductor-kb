@@ -17,7 +17,7 @@ process BIOC_PHYLOSEQ_DATA_IMPORT_AND_ASSEMBLY {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-phyloseq:1.54.0--r45hdfd78af_0"
 

@@ -17,7 +17,7 @@ process BIOC_MADSEQ_MOSAIC_ANEUPLOIDY_DETECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-madseq:1.32.0--r44hdfd78af_0"
 

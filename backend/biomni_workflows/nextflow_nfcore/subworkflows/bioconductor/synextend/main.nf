@@ -17,7 +17,7 @@ process BIOC_SYNEXTEND_ORTHOLOG_PREDICTION_AND_CLUSTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-synextend:1.22.0--r45h63f16b7_0"
 

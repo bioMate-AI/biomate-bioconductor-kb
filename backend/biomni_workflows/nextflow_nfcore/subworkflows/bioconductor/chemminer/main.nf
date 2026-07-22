@@ -17,7 +17,7 @@ process BIOC_CHEMMINER_CHEMICAL_STRUCTURE_ANALYSIS_AND_CLUSTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-chemminer:3.62.0--r45ha27e39d_0"
 

@@ -17,7 +17,7 @@ process BIOC_RPRIMER_STANDARD_OLIGO_ASSAY_DESIGN {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-rprimer:1.14.0--r45hdfd78af_0"
 

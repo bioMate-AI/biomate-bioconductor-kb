@@ -17,7 +17,7 @@ process BIOC_SPATIALHEATMAP_STANDARD_SPATIAL_HEATMAP {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-spatialheatmap:2.16.3--r45hdfd78af_0"
 

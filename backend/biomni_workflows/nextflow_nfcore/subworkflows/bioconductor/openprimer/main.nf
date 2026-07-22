@@ -15,7 +15,7 @@ process BIOC_OPENPRIMER_DESIGN_PRIMERS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-openprimer:1.32.0--r45hdfd78af_0"
 

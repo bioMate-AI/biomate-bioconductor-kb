@@ -15,7 +15,7 @@ process BIOC_METASEQR2_RNA_SEQ_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-metaseqr2:1.22.0--r45h01b2380_0"
 

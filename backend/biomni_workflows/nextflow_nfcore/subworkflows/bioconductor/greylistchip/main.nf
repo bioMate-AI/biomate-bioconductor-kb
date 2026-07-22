@@ -15,7 +15,7 @@ process BIOC_GREYLISTCHIP_STEP_BY_STEP_KARYOTYPE {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-greylistchip:1.42.0--r45hdfd78af_0"
 

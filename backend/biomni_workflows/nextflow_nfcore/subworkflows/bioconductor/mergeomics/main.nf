@@ -15,7 +15,7 @@ process BIOC_MERGEOMICS_ONE_STEP_MERGEOMICS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-mergeomics:1.38.0--r45hdfd78af_0"
 

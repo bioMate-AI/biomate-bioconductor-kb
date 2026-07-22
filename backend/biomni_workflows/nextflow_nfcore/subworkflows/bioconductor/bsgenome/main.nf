@@ -17,7 +17,7 @@ process BIOC_BSGENOME_VARIABLE_LENGTH_PATTERN_SEARCH {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-bsgenome:1.78.0--r45hdfd78af_0"
 

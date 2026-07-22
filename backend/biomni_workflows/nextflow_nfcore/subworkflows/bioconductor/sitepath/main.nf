@@ -17,7 +17,7 @@ process BIOC_SITEPATH_FIXED_AND_PARALLEL_MUTATIONS_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-sitepath:1.26.0--r45ha27e39d_0"
 

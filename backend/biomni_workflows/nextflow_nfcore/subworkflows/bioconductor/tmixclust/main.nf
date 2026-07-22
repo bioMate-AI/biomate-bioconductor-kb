@@ -17,7 +17,7 @@ process BIOC_TMIXCLUST_TEXT_FILE_CLUSTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-tmixclust:1.32.0--r45hdfd78af_0"
 

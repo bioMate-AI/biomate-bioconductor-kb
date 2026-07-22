@@ -15,7 +15,7 @@ process BIOC_GUIDESEQ_STEP_BY_STEP_GUIDESEQ {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-guideseq:1.40.0--r45hdfd78af_0"
 

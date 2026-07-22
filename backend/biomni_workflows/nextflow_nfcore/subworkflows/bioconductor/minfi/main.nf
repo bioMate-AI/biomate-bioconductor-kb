@@ -15,7 +15,7 @@ process BIOC_MINFI_METHYLATION_PREPROCESSING_AND_MAPPING {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-minfi:1.56.0--r45hdfd78af_0"
 

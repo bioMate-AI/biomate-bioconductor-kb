@@ -17,7 +17,7 @@ process BIOC_RFASTP_SINGLE_END_QC_TRIMMING {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-rfastp:1.20.1--r45ha27e39d_0"
 

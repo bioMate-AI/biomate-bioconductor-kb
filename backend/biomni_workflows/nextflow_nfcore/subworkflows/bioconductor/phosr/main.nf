@@ -18,7 +18,7 @@ process BIOC_PHOSR_BATCH_CORRECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-phosr:1.20.0--r45hdfd78af_0"
 

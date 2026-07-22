@@ -15,7 +15,7 @@ process BIOC_TEQC_AUTOMATED_HTML_REPORTS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-teqc:4.32.0--r45hdfd78af_0"
 

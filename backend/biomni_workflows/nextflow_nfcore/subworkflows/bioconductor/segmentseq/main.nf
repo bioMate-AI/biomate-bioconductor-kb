@@ -17,7 +17,7 @@ process BIOC_SEGMENTSEQ_SMALL_RNA_LOCI_AND_DE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-segmentseq:2.44.0--r45hdfd78af_0"
 

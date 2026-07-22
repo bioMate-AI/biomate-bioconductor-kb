@@ -17,7 +17,7 @@ process BIOC_PUMA_STANDARD_3_PRIME_ARRAY_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-puma:3.52.0--r45h01b2380_0"
 

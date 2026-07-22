@@ -17,7 +17,7 @@ process BIOC_SANGERSEQR_SANGER_SEQUENCING_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-sangerseqr:1.46.0--r45hdfd78af_0"
 

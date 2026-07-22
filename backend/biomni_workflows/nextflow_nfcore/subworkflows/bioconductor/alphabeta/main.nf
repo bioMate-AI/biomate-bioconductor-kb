@@ -17,7 +17,7 @@ process BIOC_ALPHABETA_SELFING_EPIMUTATION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-alphabeta:1.24.0--r45hdfd78af_0"
 

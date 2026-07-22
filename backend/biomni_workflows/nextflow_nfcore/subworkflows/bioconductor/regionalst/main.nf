@@ -17,7 +17,7 @@ process BIOC_REGIONALST_ANALYSIS_WITH_CELL_TYPE_PROPORTIONS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-regionalst:1.8.0--r45hdfd78af_0"
 

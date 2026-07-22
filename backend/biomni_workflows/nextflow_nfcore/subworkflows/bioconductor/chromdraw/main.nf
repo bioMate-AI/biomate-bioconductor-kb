@@ -15,7 +15,7 @@ process BIOC_CHROMDRAW_TEXT_FILE_KARYOTYPE {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-chromdraw:2.40.0--r45ha27e39d_0"
 

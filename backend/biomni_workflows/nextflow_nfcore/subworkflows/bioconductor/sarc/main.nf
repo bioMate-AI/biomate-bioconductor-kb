@@ -17,7 +17,7 @@ process BIOC_SARC_CNV_VALIDATION_AND_FILTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-sarc:1.4.0--r44hdfd78af_0"
 

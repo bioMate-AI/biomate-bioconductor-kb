@@ -15,7 +15,7 @@ process BIOC_RAREVARIANTVIS_SINGLE_SAMPLE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-rarevariantvis:2.38.0--r45hdfd78af_0"
 

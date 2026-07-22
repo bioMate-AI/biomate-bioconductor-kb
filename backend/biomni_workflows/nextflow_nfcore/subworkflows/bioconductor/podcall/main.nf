@@ -17,7 +17,7 @@ process BIOC_PODCALL_DDPCR_METHYLATION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-podcall:1.18.0--r45hdfd78af_0"
 

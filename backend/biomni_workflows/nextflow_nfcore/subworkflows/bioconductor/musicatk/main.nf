@@ -17,7 +17,7 @@ process BIOC_MUSICATK_DE_NOVO_SIGNATURE_DISCOVERY {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-musicatk:2.4.0--r45h1f0d9b5_0"
 

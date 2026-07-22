@@ -17,7 +17,7 @@ process BIOC_GBSCLEANR_GBS_GENOTYPE_ERROR_CORRECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-gbscleanr:2.4.4--r45ha27e39d_0"
 

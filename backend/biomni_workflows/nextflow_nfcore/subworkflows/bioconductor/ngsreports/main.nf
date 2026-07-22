@@ -17,7 +17,7 @@ process BIOC_NGSREPORTS_FASTQC_QUALITY_CONTROL_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-ngsreports:2.12.1--r45hdfd78af_0"
 

@@ -17,7 +17,7 @@ process BIOC_YAPSA_SUPERVISED_SIGNATURE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-yapsa:1.36.1--r45hdfd78af_0"
 

@@ -17,7 +17,7 @@ process BIOC_DESTINY_QPCR_DIFFUSION_MAP_AND_DPT {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-destiny:3.24.0--r45ha27e39d_0"
 

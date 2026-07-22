@@ -17,7 +17,7 @@ process BIOC_CFDNAPRO_SINGLE_COHORT_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-cfdnapro:1.16.1--r45hdfd78af_0"
 

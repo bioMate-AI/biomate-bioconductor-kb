@@ -15,7 +15,7 @@ process BIOC_SEQGSEA_INTEGRATED_DE_DS_GSEA {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-seqgsea:1.50.0--r45hdfd78af_0"
 

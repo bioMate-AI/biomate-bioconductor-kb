@@ -17,7 +17,7 @@ process BIOC_PQSFINDER_G4_DETECTION_AND_EXPORT {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-pqsfinder:2.26.0--r45ha27e39d_1"
 

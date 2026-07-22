@@ -17,7 +17,7 @@ process BIOC_COVERAGEVIEW_SINGLE_SAMPLE_COVERAGE_PROFILE {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-coverageview:1.48.0--r45hdfd78af_0"
 

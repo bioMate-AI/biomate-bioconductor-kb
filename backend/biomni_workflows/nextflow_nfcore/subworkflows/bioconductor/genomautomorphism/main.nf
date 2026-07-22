@@ -17,7 +17,7 @@ process BIOC_GENOMAUTOMORPHISM_AUTOMORPHISM_ANALYSIS_1D_GROUP {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-genomautomorphism:1.12.0--r45hdfd78af_0"
 

@@ -17,7 +17,7 @@ process BIOC_APALYZER_APA_ANALYSIS_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-apalyzer:1.20.0--r44hdfd78af_0"
 

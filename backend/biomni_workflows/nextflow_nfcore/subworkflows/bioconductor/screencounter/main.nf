@@ -15,7 +15,7 @@ process BIOC_SCREENCOUNTER_SINGLE_BARCODES {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-screencounter:1.10.0--r45ha27e39d_0"
 

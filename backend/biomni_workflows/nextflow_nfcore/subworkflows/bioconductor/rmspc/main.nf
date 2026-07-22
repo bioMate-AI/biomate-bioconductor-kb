@@ -15,7 +15,7 @@ process BIOC_RMSPC_PEAK_CALLING_FROM_BED_FILES {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-rmspc:1.16.0--r45hdfd78af_0"
 

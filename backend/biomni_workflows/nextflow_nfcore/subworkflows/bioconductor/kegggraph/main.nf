@@ -17,7 +17,7 @@ process BIOC_KEGGGRAPH_PATHWAY_PARSING_AND_TOPOLOGY_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-kegggraph:1.70.0--r45hdfd78af_0"
 

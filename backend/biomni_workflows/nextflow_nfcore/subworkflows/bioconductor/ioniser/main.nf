@@ -17,7 +17,7 @@ process BIOC_IONISER_MINION_QUALITY_CONTROL {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-ioniser:2.34.0--r45hdfd78af_0"
 

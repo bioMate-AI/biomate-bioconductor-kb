@@ -17,7 +17,7 @@ process BIOC_BAALCHIP_ASB_WITH_PRECOMPUTED_RAF {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-baalchip:1.36.0--r45hdfd78af_0"
 

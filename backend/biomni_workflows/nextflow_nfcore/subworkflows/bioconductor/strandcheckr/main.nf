@@ -17,7 +17,7 @@ process BIOC_STRANDCHECKR_DNA_CONTAMINATION_ANALYSIS_AND_FILTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-strandcheckr:1.28.0--r45hdfd78af_0"
 

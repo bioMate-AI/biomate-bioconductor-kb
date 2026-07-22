@@ -17,7 +17,7 @@ process BIOC_MAGAR_METH_QTL_FROM_PLINK {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-magar:1.18.0--r45hdfd78af_0"
 

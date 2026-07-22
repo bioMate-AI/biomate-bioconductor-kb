@@ -15,7 +15,7 @@ process BIOC_EXCLUSTER_DIFFERENTIAL_SPLICING_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-excluster:1.28.0--r45hdfd78af_0"
 

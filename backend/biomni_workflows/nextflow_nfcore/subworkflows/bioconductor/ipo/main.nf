@@ -17,7 +17,7 @@ process BIOC_IPO_XCMS_PARAMETER_OPTIMIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-ipo:1.36.0--r45hdfd78af_0"
 

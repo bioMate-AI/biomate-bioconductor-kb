@@ -15,7 +15,7 @@ process BIOC_ICETEA_END_TO_END_TSS_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-icetea:1.28.0--r45hdfd78af_0"
 

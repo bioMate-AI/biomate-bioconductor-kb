@@ -17,7 +17,7 @@ process BIOC_RIVER_RIVER_EVALUATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-river:1.34.0--r45hdfd78af_0"
 

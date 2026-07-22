@@ -17,7 +17,7 @@ process BIOC_CHIPSEEKER_PEAK_PROFILING_AND_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-chipseeker:1.46.1--r45hdfd78af_0"
 

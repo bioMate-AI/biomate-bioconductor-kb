@@ -17,7 +17,7 @@ process BIOC_DEGSEQ_DEG_ANALYSIS_FROM_MATRICES {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-degseq:1.64.0--r45ha27e39d_0"
 

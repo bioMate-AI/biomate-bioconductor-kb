@@ -18,7 +18,7 @@ process BIOC_CYTOFQC_ALL_IN_ONE_QC_LABELING {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-cytofqc:1.6.0--r44hdfd78af_0"
 

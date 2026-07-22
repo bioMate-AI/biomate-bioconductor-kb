@@ -15,7 +15,7 @@ process BIOC_MARINER_LOOP_MERGING_AND_REPLICATE_COMPARISON {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-mariner:1.10.2--r45hdfd78af_0"
 

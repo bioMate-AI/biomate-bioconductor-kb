@@ -15,7 +15,7 @@ process BIOC_RBWA_BWA_BACKTRACK_ALIGNMENT {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-rbwa:1.14.0--r45h01b2380_0"
 

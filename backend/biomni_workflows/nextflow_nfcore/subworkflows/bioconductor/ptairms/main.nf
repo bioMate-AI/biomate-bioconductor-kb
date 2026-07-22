@@ -17,7 +17,7 @@ process BIOC_PTAIRMS_SINGLE_FILE_RAW_INSPECTION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-ptairms:1.18.0--r45ha27e39d_0"
 

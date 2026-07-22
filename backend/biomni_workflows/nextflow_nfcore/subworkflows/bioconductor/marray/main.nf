@@ -17,7 +17,7 @@ process BIOC_MARRAY_TWO_COLOR_MICROARRAY_PREPROCESSING {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-marray:1.88.0--r45hdfd78af_0"
 

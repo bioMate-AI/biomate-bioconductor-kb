@@ -17,7 +17,7 @@ process BIOC_OPENCYTO_AUTOMATED_TEMPLATE_GATING {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-opencyto:2.22.0--r45ha27e39d_0"
 

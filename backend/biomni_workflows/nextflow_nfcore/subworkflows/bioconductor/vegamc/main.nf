@@ -15,7 +15,7 @@ process BIOC_VEGAMC_CHROMOSOMAL_IMBALANCE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-vegamc:3.48.0--r45h01b2380_0"
 

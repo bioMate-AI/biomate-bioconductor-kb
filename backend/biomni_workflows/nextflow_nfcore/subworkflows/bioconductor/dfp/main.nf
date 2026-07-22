@@ -17,7 +17,7 @@ process BIOC_DFP_QUICK_DISCRIMINANT_FUZZY_PATTERN {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-dfp:1.68.0--r45hdfd78af_0"
 

@@ -17,7 +17,7 @@ process BIOC_TARGETSEARCH_TARGET_SEARCH_GCMS_PREPROCESSING {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20-deps"
 

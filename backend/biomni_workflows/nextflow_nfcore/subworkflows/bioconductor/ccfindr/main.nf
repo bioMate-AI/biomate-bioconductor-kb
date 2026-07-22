@@ -17,7 +17,7 @@ process BIOC_CCFINDR_MAXIMUM_LIKELIHOOD_NMF {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-ccfindr:1.30.0--r45ha27e39d_0"
 

@@ -15,7 +15,7 @@ process BIOC_RBLAST_QUERY_EXISTING_BLAST_DB {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-rblast:1.6.0--r45hdfd78af_0"
 

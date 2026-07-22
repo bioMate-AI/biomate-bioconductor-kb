@@ -15,7 +15,7 @@ process BIOC_BASECALLQC_SAMPLE_SHEET_PREP_AND_COMMAND_GENERATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-basecallqc:1.34.0--r45hdfd78af_0"
 

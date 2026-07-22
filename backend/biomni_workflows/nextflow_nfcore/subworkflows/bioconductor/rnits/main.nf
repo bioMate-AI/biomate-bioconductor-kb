@@ -18,7 +18,7 @@ process BIOC_RNITS_EXPRESSIONSET_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/r-base:4.3.1"
 

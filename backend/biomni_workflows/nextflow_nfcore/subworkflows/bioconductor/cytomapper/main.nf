@@ -17,7 +17,7 @@ process BIOC_CYTOMAPPER_PIXEL_AND_CELL_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-cytomapper:1.22.0--r45hdfd78af_0"
 

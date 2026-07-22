@@ -17,7 +17,7 @@ process BIOC_EDASEQ_READ_LEVEL_QC {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-edaseq:2.44.0--r45hdfd78af_0"
 

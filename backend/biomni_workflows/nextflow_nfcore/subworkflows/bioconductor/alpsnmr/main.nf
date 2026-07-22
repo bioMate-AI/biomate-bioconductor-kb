@@ -17,7 +17,7 @@ process BIOC_ALPSNMR_MODERN_PEAK_CLUSTERING {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-alpsnmr:4.12.0--r45h575d39b_0"
 

@@ -17,7 +17,7 @@ process BIOC_DECIPHER_TAXONOMIC_CLASSIFICATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-decipher:3.6.0--r45h01b2380_0"
 

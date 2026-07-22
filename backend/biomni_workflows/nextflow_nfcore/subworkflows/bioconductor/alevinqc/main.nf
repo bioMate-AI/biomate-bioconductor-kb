@@ -17,7 +17,7 @@ process BIOC_ALEVINQC_STATIC_QC_REPORT {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-alevinqc:1.26.0--r45ha27e39d_0"
 

@@ -15,7 +15,7 @@ process BIOC_RMMQUANT_FILE_BASED_QUANTIFICATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-rmmquant:1.28.0--r45ha27e39d_0"
 

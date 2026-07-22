@@ -17,7 +17,7 @@ process BIOC_TRASER_GWAS_SNP_ENRICHMENT_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-traser:1.40.0--r45hdfd78af_0"
 

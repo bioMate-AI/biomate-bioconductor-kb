@@ -15,7 +15,7 @@ process BIOC_SDAMS_CSV_TO_SDA {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-sdams:1.30.0--r45hdfd78af_0"
 

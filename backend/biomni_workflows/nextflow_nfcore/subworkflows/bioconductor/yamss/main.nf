@@ -17,7 +17,7 @@ process BIOC_YAMSS_LCMS_PREPROCESSING_AND_DIFFERENTIAL_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
-    publishDir \"${params.outdir}\", mode: 'copy'
+    publishDir "${params.outdir}", mode: 'copy'
 
     container "quay.io/biocontainers/bioconductor-yamss:1.36.0--r45hdfd78af_0"
 
