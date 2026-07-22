@@ -110,10 +110,13 @@ Default timeout: 30s. For complex analysis (parsing large ZIPs, running DESeq2),
   },
   {
     name: 'read_file',
-    description: `Preview an uploaded dataset to understand its contents before processing.
-Use this before running code or dispatching a workflow — it lets you see column names,
-data types, record count, and the first rows without guessing.
-Returns a structured summary regardless of file format (CSV, TSV, FASTA, VCF, BAM, etc.)`,
+    description: `Preview or open an uploaded dataset by its id — works on ANY turn for any
+dataset listed in <session_datasets>, so you never need the user to re-attach a file.
+Use it before running code or a workflow to see column names, types, record count, and
+the first rows. For a PDF it returns the extracted text (including tables). For an IMAGE
+(png/jpg/jpeg/gif/webp) it returns the actual image for you to VIEW — call this to look at
+a gel/blot/histology/plot/scan the user uploaded earlier, then describe/interpret it.
+Returns a structured summary regardless of format (CSV, TSV, FASTA, VCF, BAM, PDF, image…).`,
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -8636,6 +8639,19 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
 
   // ─── Agent tool execution ─────────────────────────────────────────────────
 
+  // Shared by _executeTools and tested directly. A tool (read_file on an image)
+  // may return { __imageBlocks: [...] } to hand the model actual pixels; Anthropic
+  // tool_result content accepts an array of text+image blocks. Everything else is
+  // stringified as before.
+  static toolResultContent(output: unknown): string | any[] {
+    const img = (output as any)?.__imageBlocks;
+    if (Array.isArray(img) && img.length) {
+      const { __imageBlocks, ...rest } = output as any;
+      return [{ type: 'text', text: JSON.stringify(rest) }, ...img];
+    }
+    return JSON.stringify(output);
+  }
+
   /** Executes all tool_use blocks in parallel, returns tool_result message content. */
   private async _executeTools(
     toolUseBlocks: any[],
@@ -8672,11 +8688,15 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         output = { error };
       }
       const duration_ms = Date.now() - start;
-      onToolEvent?.({ type: 'tool_result', tool_use_id: block.id, name: block.name, output, error, duration_ms });
+      // Redact base64 image payloads from the SSE tool event (keep it lightweight).
+      const eventOutput = (output as any)?.__imageBlocks
+        ? { ...(output as any), __imageBlocks: `[${(output as any).__imageBlocks.length} image block(s)]` }
+        : output;
+      onToolEvent?.({ type: 'tool_result', tool_use_id: block.id, name: block.name, output: eventOutput, error, duration_ms });
       return {
         type: 'tool_result' as const,
         tool_use_id: block.id,
-        content: JSON.stringify(output),
+        content: GalaxyAssistant.toolResultContent(output) as any,
       };
     }));
   }
@@ -8779,6 +8799,27 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             return { lines, total_lines_preview: lines.length, format_hint: 'PDF', has_more: text.length >= budget };
           }
           return { error: 'PDF text extraction failed — file may be scanned or encrypted' };
+        }
+        // Image: return the actual pixels as a vision content block so the model
+        // can SEE any stored image on demand by id — on any later turn, without a
+        // re-upload and without re-sending it every turn. Files are durably tracked
+        // by id (Galaxy dataset DB / S3 / upload registry), and sessionDatasetsBlock
+        // surfaces the ids each turn, so read_file(id) is the on-demand view path.
+        const _imgExt = localFile.filePath.toLowerCase().match(/\.[a-z0-9]+$/)?.[0] ?? '';
+        if (_imgExt in _VISION_MEDIA_TYPES) {
+          const nodeFs = await import('fs/promises');
+          const buf = await nodeFs.readFile(localFile.filePath);
+          if (buf.length > _VISION_MAX_RAW_BYTES) {
+            return { error: `Image is ${(buf.length / 1e6).toFixed(1)}MB — over the 3.75MB vision limit; ask the user for a smaller copy.` };
+          }
+          return {
+            __imageBlocks: [{
+              type: 'image',
+              source: { type: 'base64', media_type: _VISION_MEDIA_TYPES[_imgExt], data: buf.toString('base64') },
+            }],
+            format_hint: 'image',
+            message: `Image "${localFile.name || fileId}" is shown below — analyze it directly.`,
+          };
         }
         const nodeFs = await import('fs/promises');
         const content = await nodeFs.readFile(localFile.filePath, 'utf8');

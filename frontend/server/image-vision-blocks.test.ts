@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { _buildImageContentBlocks } from './galaxy-assistant';
+import { _buildImageContentBlocks, GalaxyAssistant } from './galaxy-assistant';
 import { mkdirSync, writeFileSync, rmSync, existsSync } from 'fs';
 import { join } from 'path';
 
@@ -126,5 +126,29 @@ describe('_buildImageContentBlocks — multi-file', () => {
     expect(blocks).toHaveLength(8);
     // The 2 beyond the cap are reported, not silently dropped.
     expect(skipped.filter((s) => /images are analyzed/i.test(s.reason))).toHaveLength(2);
+  });
+});
+
+describe('GalaxyAssistant.toolResultContent — on-demand image view by id', () => {
+  it('passes an image tool output through as text + image blocks', () => {
+    const out = {
+      __imageBlocks: [{ type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'QUJD' } }],
+      format_hint: 'image',
+      message: 'Image "gel.png" is shown below.',
+    };
+    const content = GalaxyAssistant.toolResultContent(out) as any[];
+    expect(Array.isArray(content)).toBe(true);
+    expect(content[0].type).toBe('text');
+    // The base64 goes in the image block, not duplicated into the text block.
+    expect(content[0].text).not.toContain('QUJD');
+    expect(content[0].text).toContain('gel.png');
+    expect(content[1]).toEqual(out.__imageBlocks[0]);
+  });
+
+  it('stringifies a normal (non-image) tool output', () => {
+    const out = { lines: ['a', 'b'], format_hint: 'CSV', has_more: false };
+    const content = GalaxyAssistant.toolResultContent(out);
+    expect(typeof content).toBe('string');
+    expect(JSON.parse(content as string)).toEqual(out);
   });
 });
