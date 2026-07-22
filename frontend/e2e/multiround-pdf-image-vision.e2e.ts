@@ -170,17 +170,26 @@ test.describe('multi-round PDF + image, no leak, vision read', () => {
     assertNoLeak('R3 follow-up', r3);
     expect(r3.trim().length, 'R3 must be substantive').toBeGreaterThan(50);
 
-    // ── Round 4: view the image BY ID via read_file (not re-attached) ────────
-    // Proves on-demand view-by-id: the stored PNG has three horizontal bands
-    // (red / green / blue). If read_file returns the pixels, the model describes
-    // them; if it returned utf8 garbage (the old bug), it can't.
+    // ── Round 4: view the image BY ID (no chip, not re-attached) ─────────────
+    // The id is given in prose only (no [Dataset:] chip), so _buildImageContentBlocks
+    // does NOT attach it — the model must call read_file(id) to see it. The stored
+    // PNG has three horizontal bands (red / green / blue). If read_file returns the
+    // pixels, the model describes them; if it returned utf8 garbage (the old bug),
+    // it can't. Phrased like R2 (a plain inspection question) to avoid the
+    // workflow-generation intent route.
     const r4 = await chat(request, token, sessionId,
-      `Use the read_file tool to open dataset id ${png.id} and tell me exactly what colors and patterns you see in the image.`);
+      `Please look at the image with dataset id ${png.id} and describe the colours and visual pattern in it in detail.`);
     console.log(`R4 (${r4.length} chars): ${r4.slice(0, 300)}`);
     assertNoLeak('R4 read_file image', r4);
     expect(r4.trim().length, 'R4 must be substantive').toBeGreaterThan(50);
+    // Must NOT deflect into a workflow card — that means it never viewed the image.
     expect(
-      /red|green|blue|band|stripe|colou?r|horizontal/i.test(r4),
+      /is ready in the panel|Confirm & Run/i.test(r4),
+      `R4 must not deflect to a workflow. Got: ${r4.slice(0, 200)}`,
+    ).toBe(false);
+    // Must actually describe the image's bands/colours (proves read_file gave pixels).
+    expect(
+      /\b(red|green|blue|band|stripe|colou?r|horizontal)\b/i.test(r4),
       `R4 must describe the image (read_file returned viewable pixels). Got: ${r4.slice(0, 200)}`,
     ).toBe(true);
 
