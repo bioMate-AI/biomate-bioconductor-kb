@@ -123,7 +123,8 @@ async function startFreshChat(page) {
   await page.goto(`${DEV_URL}/`);
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(1500);
-  const btn = page.locator('[data-testid="new-chat"], button:has-text("New Chat")').first();
+  // data-testid is "button-new-chat" (not "new-chat")
+  const btn = page.locator('[data-testid="button-new-chat"], button:has-text("New Chat")').first();
   if (await btn.isVisible({ timeout: 3000 })) {
     await btn.click();
     await page.waitForTimeout(1000);
@@ -257,20 +258,34 @@ async function clickRun(page) {
 }
 
 async function waitForCompletion(page, timeoutMs = 300000) {
-  const runAgainSel = 'button:has-text("Run again"), button:has-text("Run Again")';
-  const restartSel = 'button:has-text("Restart")';
-  const wfBadgeSel = '.workflow-status-badge[data-status="completed"], .workflow-status-badge[data-status="failed"]';
-  const combinedDone = `${runAgainSel}, ${restartSel}, ${wfBadgeSel}`;
+  // Use data-testid (the actual DOM attribute); .workflow-status-badge class does not exist.
+  const badgeSel = '[data-testid="workflow-overall-status-badge"]';
+  const failedBadge = `${badgeSel}[data-status="failed"]`;
+  const completedBadge = `${badgeSel}[data-status="completed"]`;
+
   try {
-    await page.waitForSelector(combinedDone, { timeout: timeoutMs });
-    const hasRunAgain = await page.locator(runAgainSel).count() > 0;
-    const hasRestart = await page.locator(restartSel).count() > 0;
-    const hasBadge = await page.locator(wfBadgeSel).count() > 0;
-    const failBadge = await page.locator('.workflow-status-badge[data-status="failed"]').count() > 0;
-    return {
-      completed: hasRunAgain || (hasBadge && !failBadge),
-      failed: hasRestart || failBadge,
-    };
+    // Snapshot stale terminal badges already on-page from previous runs in this conversation.
+    // Taken right after clickRun(), before the backend can deliver the new run's result.
+    const staleFailCount = await page.locator(failedBadge).count();
+    const staleOkCount = await page.locator(completedBadge).count();
+
+    // Poll until a NEW terminal badge appears (count exceeds the stale baseline).
+    const deadline = Date.now() + timeoutMs;
+    let firstCheck = true;
+    while (Date.now() < deadline) {
+      if (!firstCheck) await page.waitForTimeout(5000);
+      firstCheck = false;
+
+      const failCount = await page.locator(failedBadge).count();
+      const okCount = await page.locator(completedBadge).count();
+      if (failCount > staleFailCount || okCount > staleOkCount) {
+        return {
+          completed: okCount > staleOkCount,
+          failed: failCount > staleFailCount,
+        };
+      }
+    }
+    return { completed: false, failed: false, timeout: true };
   } catch {
     return { completed: false, failed: false, timeout: true };
   }
