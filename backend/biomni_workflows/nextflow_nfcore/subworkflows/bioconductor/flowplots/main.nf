@@ -25,6 +25,8 @@ process BIOC_FLOWPLOTS_COMPUTE_SUMMARY_DATA {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20-deps"
 
     input:

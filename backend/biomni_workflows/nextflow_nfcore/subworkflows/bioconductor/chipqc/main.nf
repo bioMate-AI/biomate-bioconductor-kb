@@ -17,6 +17,8 @@ process BIOC_CHIPQC_MULTI_SAMPLE_CHIPSEQ_QC {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-chipqc:1.42.0--r44hdfd78af_0"
 
     input:

@@ -17,6 +17,8 @@ process BIOC_AGIMICRORNA_AGILENT_TGS_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-agimicrorna:2.60.0--r45hdfd78af_0"
 
     input:

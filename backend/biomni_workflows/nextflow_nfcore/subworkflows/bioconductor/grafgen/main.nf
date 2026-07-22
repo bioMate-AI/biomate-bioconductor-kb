@@ -17,6 +17,8 @@ process BIOC_GRAFGEN_H_PYLORI_GENOME_CLASSIFICATION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-grafgen:1.6.0--r45ha27e39d_0"
 
     input:

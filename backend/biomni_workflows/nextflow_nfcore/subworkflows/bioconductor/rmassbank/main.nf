@@ -17,6 +17,8 @@ process BIOC_RMASSBANK_MSMS_SPECTRAL_PROCESSING {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-rmassbank:3.20.0--r45ha27e39d_0"
 
     input:

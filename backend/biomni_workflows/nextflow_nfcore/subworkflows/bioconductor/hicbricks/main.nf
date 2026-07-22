@@ -15,6 +15,8 @@ process BIOC_HICBRICKS_IMPORT_FROM_2D_TEXT {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-hicbricks:1.28.0--r45hdfd78af_0"
 
     input:

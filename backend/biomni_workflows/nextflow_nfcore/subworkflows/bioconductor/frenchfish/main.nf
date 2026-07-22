@@ -15,6 +15,8 @@ process BIOC_FRENCHFISH_CORRECT_AUTOMATED_COUNTS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-frenchfish:1.22.0--r45hdfd78af_0"
 
     input:

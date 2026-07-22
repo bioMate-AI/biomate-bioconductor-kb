@@ -17,6 +17,8 @@ process BIOC_RHINOTYPER_RHINOVIRUS_GENOTYPING_EXTERNAL_ALIGNMENT {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-rhinotyper:1.4.0--r45hdfd78af_0"
 
     input:

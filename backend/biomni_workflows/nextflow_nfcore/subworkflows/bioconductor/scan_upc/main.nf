@@ -17,6 +17,8 @@ process BIOC_SCAN_UPC_MICROARRAY_SCAN_UPC {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/r-base:4.3.1"
 
     input:

@@ -17,6 +17,8 @@ process BIOC_LIPIDR_LIPIDOMICS_ANALYSIS_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-lipidr:2.24.0--r45hdfd78af_0"
 
     input:

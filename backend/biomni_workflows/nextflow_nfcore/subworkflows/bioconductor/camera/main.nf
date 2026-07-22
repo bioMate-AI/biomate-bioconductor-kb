@@ -17,6 +17,8 @@ process BIOC_CAMERA_SINGLE_SAMPLE_LCMS_ANNOTATION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-camera:1.66.0--r45h01b2380_0"
 
     input:

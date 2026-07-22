@@ -17,6 +17,8 @@ process BIOC_WPM_CSV_TO_PLATE_MAP {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-wpm:1.20.0--r45hdfd78af_0"
 
     input:

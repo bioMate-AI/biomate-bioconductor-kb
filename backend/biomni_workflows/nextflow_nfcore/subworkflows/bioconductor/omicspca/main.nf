@@ -17,6 +17,8 @@ process BIOC_OMICSPCA_SINGLE_ASSAY_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-omicspca:1.28.0--r45h575d39b_0"
 
     input:

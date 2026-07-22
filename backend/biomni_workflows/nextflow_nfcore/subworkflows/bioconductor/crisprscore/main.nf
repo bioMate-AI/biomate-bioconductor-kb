@@ -15,6 +15,8 @@ process BIOC_CRISPRSCORE_ON_TARGET_EFFICIENCY_PREDICTION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-crisprscore:1.14.0--r45hdfd78af_0"
 
     input:

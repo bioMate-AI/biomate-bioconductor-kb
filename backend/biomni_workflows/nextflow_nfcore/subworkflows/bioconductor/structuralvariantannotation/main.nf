@@ -23,6 +23,8 @@ process BIOC_STRUCTURALVARIANTANNOTATION_SV_OVERLAP_AND_CALLER_COMPARISON {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20-slim"
 
     input:

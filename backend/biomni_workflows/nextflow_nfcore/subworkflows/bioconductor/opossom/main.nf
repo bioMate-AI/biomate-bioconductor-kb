@@ -15,6 +15,8 @@ process BIOC_OPOSSOM_MATRIX_INPUT_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-opossom:2.28.0--r45ha27e39d_0"
 
     input:

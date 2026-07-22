@@ -17,6 +17,8 @@ process BIOC_ISOBAYES_ISOBAYES_ISOFORM_INFERENCE {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-isobayes:1.8.0--r45ha27e39d_0"
 
     input:

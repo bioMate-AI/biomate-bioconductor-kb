@@ -15,6 +15,8 @@ process BIOC_SEMDIST_CALCULATE_INFORMATION_ACCRETION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-semdist:1.44.0--r45hdfd78af_0"
 
     input:

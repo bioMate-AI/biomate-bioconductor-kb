@@ -17,6 +17,8 @@ process BIOC_PGXRPI_PROCESS_LOCAL_PGXSEG {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-pgxrpi:1.6.0--r45hdfd78af_0"
 
     input:

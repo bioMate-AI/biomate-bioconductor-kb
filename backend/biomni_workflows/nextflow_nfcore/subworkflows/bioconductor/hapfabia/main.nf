@@ -15,6 +15,8 @@ process BIOC_HAPFABIA_VCF_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-hapfabia:1.52.0--r45h01b2380_0"
 
     input:

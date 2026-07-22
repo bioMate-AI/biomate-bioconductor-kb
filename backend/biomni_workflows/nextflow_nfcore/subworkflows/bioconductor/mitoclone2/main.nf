@@ -17,6 +17,8 @@ process BIOC_MITOCLONE2_VARIANT_CALLING_FROM_BAM {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-mitoclone2:1.16.0--r45ha27e39d_0"
 
     input:

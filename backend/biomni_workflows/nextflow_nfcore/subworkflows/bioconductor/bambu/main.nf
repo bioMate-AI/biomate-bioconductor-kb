@@ -17,6 +17,8 @@ process BIOC_BAMBU_TRANSCRIPT_DISCOVERY_AND_QUANTIFICATION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-bambu:3.12.1--r45ha27e39d_1"
 
     input:

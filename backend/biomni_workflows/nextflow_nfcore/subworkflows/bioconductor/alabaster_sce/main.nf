@@ -17,6 +17,8 @@ process BIOC_ALABASTER_SCE {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     conda "bioconductor-alabaster_sce"
     container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20-slim"
 

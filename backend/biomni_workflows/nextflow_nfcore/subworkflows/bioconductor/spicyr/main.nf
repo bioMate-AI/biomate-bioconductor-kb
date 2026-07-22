@@ -17,6 +17,8 @@ process BIOC_SPICYR_PAIRWISE_LOCALIZATION_MODELING {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-spicyr:1.22.0--r45hdfd78af_0"
 
     input:

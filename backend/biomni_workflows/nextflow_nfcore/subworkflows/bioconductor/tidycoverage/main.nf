@@ -17,6 +17,8 @@ process BIOC_TIDYCOVERAGE_SINGLE_LOCUS_COVERAGE {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-tidycoverage:1.6.0--r45hdfd78af_0"
 
     input:

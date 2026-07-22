@@ -17,6 +17,8 @@ process BIOC_SPOTCLEAN_STANDARD_10X_VISIUM_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-spotclean:1.12.0--r45hdfd78af_0"
 
     input:

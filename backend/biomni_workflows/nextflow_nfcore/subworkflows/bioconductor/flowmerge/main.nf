@@ -27,6 +27,8 @@ process BIOC_FLOWMERGE_AUTOMATED_GATING_AND_CLUSTER_MERGING {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-imaging:3.20-deps"
 
     input:

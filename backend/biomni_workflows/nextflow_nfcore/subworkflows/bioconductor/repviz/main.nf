@@ -17,6 +17,8 @@ process BIOC_REPVIZ_REPLICATE_SEQUENCING_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-repviz:1.22.0--r44hdfd78af_0"
 
     input:

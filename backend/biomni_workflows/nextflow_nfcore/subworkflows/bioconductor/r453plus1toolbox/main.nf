@@ -17,6 +17,8 @@ process BIOC_R453PLUS1TOOLBOX_PCR_AMPLICON_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-r453plus1toolbox:1.56.0--r44h3df3fcb_0"
 
     input:

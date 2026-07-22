@@ -23,6 +23,8 @@ process BIOC_DKS_DOUBLE_KS_DIAGNOSTIC {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20-slim"
 
     input:

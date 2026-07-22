@@ -17,6 +17,8 @@ process BIOC_MSNID_MSMS_FILTERING_AND_FDR_OPTIMIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-msnid:1.44.0--r45ha27e39d_0"
 
     input:

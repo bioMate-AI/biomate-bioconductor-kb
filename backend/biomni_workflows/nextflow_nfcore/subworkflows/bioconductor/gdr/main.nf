@@ -15,6 +15,8 @@ process BIOC_GDR_STEP_BY_STEP_DRUG_RESPONSE_PROCESSING {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-gdr:1.8.0--r45hdfd78af_0"
 
     input:

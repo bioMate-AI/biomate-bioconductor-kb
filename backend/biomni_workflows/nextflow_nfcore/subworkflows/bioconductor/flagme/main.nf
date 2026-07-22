@@ -17,6 +17,8 @@ process BIOC_FLAGME_GC_MS_ALIGNMENT_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-flagme:1.66.0--r45h01b2380_0"
 
     input:

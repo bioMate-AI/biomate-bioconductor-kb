@@ -17,6 +17,8 @@ process BIOC_FLOWSPECS_SPECTRAL_CYTOMETRY_PREPROCESSING {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-flowspecs:1.24.0--r45hdfd78af_0"
 
     input:

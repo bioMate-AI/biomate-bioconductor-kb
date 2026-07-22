@@ -15,6 +15,8 @@ process BIOC_LOLA_GENOMIC_REGION_ENRICHMENT_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-lola:1.40.1--r45hdfd78af_0"
 
     input:

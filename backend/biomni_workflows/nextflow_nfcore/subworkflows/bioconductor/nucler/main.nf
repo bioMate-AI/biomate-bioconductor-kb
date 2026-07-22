@@ -17,6 +17,8 @@ process BIOC_NUCLER_NGS_NUCLEOSOME_CALLING {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-nucler:2.42.0--r45hdfd78af_0"
 
     input:

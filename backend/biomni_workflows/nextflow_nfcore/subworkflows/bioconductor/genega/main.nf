@@ -17,6 +17,8 @@ process BIOC_GENEGA_JOINT_CODON_AND_STRUCTURE_OPTIMIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-genega:1.60.0--r45hdfd78af_0"
 
     input:

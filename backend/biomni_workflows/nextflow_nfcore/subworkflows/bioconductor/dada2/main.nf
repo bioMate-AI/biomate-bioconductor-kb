@@ -17,6 +17,8 @@ process BIOC_DADA2_PAIRED_END_DENOISING_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-dada2:1.38.0--r45ha27e39d_0"
 
     input:

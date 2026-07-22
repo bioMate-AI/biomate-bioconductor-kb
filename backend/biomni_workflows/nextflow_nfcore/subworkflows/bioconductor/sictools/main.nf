@@ -17,6 +17,8 @@ process BIOC_SICTOOLS_SNP_DIFF_DETECTION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-sictools:1.30.0--r43h54b6a8d_0"
 
     input:

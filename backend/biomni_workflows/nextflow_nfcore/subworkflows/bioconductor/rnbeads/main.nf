@@ -17,6 +17,8 @@ process BIOC_RNBEADS_INFINIUM_MICROARRAY_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-rnbeads:2.28.0--r45hdfd78af_0"
 
     input:

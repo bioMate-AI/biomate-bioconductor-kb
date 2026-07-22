@@ -17,6 +17,8 @@ process BIOC_SSVIZ_SMALL_RNA_DISTRIBUTION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-ssviz:1.44.0--r45hdfd78af_0"
 
     input:

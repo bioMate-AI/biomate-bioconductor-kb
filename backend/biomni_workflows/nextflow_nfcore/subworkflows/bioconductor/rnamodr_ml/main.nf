@@ -15,6 +15,8 @@ process BIOC_RNAMODR_ML_DETECT_2_O_METHYLATIONS_ML {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/r-base:4.3.1"
 
     input:

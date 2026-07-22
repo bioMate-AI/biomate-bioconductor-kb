@@ -17,6 +17,8 @@ process BIOC_CIRCSEQALIGNTK_CIRCULAR_GENOME_ALIGNMENT_AND_COVERAGE {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-circseqaligntk:1.12.0--r45hdfd78af_0"
 
     input:

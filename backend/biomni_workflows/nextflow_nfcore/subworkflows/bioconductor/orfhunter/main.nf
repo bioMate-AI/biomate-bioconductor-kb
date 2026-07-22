@@ -15,6 +15,8 @@ process BIOC_ORFHUNTER_TRAIN_ORF_CLASSIFIER {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-orfhunter:1.18.0--r45ha27e39d_0"
 
     input:

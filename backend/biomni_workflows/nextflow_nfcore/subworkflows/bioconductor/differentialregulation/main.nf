@@ -17,6 +17,8 @@ process BIOC_DIFFERENTIALREGULATION_SINGLE_CELL_RNA_SEQ_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-differentialregulation:2.8.0--r45ha27e39d_0"
 
     input:

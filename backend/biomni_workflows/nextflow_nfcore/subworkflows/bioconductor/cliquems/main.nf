@@ -15,6 +15,8 @@ process BIOC_CLIQUEMS_LCMS_FEATURE_ANNOTATION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-cliquems:1.24.0--r45ha27e39d_0"
 
     input:

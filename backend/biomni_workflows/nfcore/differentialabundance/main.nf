@@ -31,6 +31,8 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
     tag "DESeq2"
     label 'process_medium'
 
+    publishDir "${params.outdir}", mode: 'copy'
+
     // Full container (not -slim): has aws cli for s3 cp downloads in R.
     // Follows the same pattern as validation_deseq2_raw_counts/main.nf.
     container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20"

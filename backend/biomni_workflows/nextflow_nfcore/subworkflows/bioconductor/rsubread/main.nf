@@ -15,6 +15,8 @@ process BIOC_RSUBREAD_BULK_RNA_SEQ_ALIGNMENT_AND_QUANTIFICATION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-rsubread:2.24.0--r45h01b2380_0"
 
     input:

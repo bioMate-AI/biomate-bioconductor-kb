@@ -17,6 +17,8 @@ process BIOC_BALLGOWN_DIFFERENTIAL_EXPRESSION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-ballgown:2.42.0--r45hdfd78af_0"
 
     input:

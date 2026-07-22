@@ -17,6 +17,8 @@ process BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-seqvartools:1.48.0--r45hdfd78af_0"
 
     input:

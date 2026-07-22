@@ -17,6 +17,8 @@ process BIOC_BUSPARSE_BUS_TO_SPARSE_MATRIX_AND_FILTERING {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-busparse:1.24.0--r45ha27e39d_0"
 
     input:

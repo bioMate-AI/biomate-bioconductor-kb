@@ -17,6 +17,8 @@ process BIOC_CHIPCOMP_DIFFERENTIAL_BINDING_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-chipcomp:1.40.0--r45h01b2380_0"
 
     input:

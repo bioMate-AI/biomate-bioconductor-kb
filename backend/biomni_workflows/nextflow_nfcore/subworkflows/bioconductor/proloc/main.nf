@@ -17,6 +17,8 @@ process BIOC_PROLOC_SUPERVISED_CLASSIFICATION_SVM {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-proloc:1.50.0--r45ha27e39d_0"
 
     input:

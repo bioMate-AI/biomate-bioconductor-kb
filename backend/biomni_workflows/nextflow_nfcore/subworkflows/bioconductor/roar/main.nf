@@ -17,6 +17,8 @@ process BIOC_ROAR_STANDARD_APA_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-roar:1.46.0--r45hdfd78af_0"
 
     input:

@@ -17,6 +17,8 @@ process BIOC_CFDNAKIT_CFDNA_CNV_AND_CES_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-cfdnakit:1.8.0--r45hdfd78af_0"
 
     input:

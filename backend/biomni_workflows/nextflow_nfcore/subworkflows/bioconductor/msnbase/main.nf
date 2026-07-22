@@ -17,6 +17,8 @@ process BIOC_MSNBASE_ISOBARIC_TAGGING_QUANTITATION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-msnbase:2.36.0--r45ha27e39d_0"
 
     input:

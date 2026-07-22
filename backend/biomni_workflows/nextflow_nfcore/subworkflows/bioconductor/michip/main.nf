@@ -15,6 +15,8 @@ process BIOC_MICHIP_STEP_BY_STEP_PROCESSING {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-michip:1.64.0--r45hdfd78af_0"
 
     input:

@@ -26,6 +26,8 @@ process BIOC_MIRTARRNASEQ_MIRNA_MRNA_REGRESSION_COHORTS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim"
 
     input:

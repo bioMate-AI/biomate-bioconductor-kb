@@ -17,6 +17,8 @@ process BIOC_FASTQCLEANER_FASTQ_PREPROCESSING_AND_FILTERING {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-fastqcleaner:1.28.0--r45ha27e39d_0"
 
     input:

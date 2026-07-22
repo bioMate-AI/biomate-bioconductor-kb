@@ -15,6 +15,8 @@ process BIOC_PRAM_CONVENIENT_WRAPPER_RUNPRAM {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-pram:1.26.0--r45hdfd78af_0"
 
     input:

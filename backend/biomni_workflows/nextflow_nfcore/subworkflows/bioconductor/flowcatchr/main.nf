@@ -17,6 +17,8 @@ process BIOC_FLOWCATCHR_CELL_TRACKING_AND_KINEMATICS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-flowcatchr:1.44.0--r45hdfd78af_0"
 
     input:

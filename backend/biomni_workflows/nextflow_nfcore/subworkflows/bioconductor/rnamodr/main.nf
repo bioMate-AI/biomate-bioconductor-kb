@@ -15,6 +15,8 @@ process BIOC_RNAMODR_SINGLE_SAMPLE_MODIFICATION_DETECTION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-rnamodr:1.24.0--r45hdfd78af_0"
 
     input:

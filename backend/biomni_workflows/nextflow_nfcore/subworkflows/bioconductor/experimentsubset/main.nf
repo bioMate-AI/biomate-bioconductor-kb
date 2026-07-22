@@ -17,6 +17,8 @@ process BIOC_EXPERIMENTSUBSET {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     conda "bioconductor-experimentsubset"
     container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-single_cell:3.20-slim"
 

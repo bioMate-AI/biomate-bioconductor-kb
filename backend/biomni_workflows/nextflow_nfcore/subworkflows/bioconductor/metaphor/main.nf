@@ -17,6 +17,8 @@ process BIOC_METAPHOR_SINGLE_DEG_METABOLIC_PROFILING {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-metaphor:1.12.0--r45hdfd78af_0"
 
     input:

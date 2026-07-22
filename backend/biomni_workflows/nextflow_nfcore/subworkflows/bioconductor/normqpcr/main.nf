@@ -15,6 +15,8 @@ process BIOC_NORMQPCR_REFERENCE_GENE_SELECTION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-normqpcr:1.56.0--r45h575d39b_0"
 
     input:

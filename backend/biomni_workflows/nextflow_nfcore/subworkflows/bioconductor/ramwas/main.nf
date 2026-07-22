@@ -17,6 +17,8 @@ process BIOC_RAMWAS_STANDARD_MWAS_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-ramwas:1.34.0--r45h01b2380_0"
 
     input:

@@ -22,6 +22,8 @@ process BIOC_SEQ2PATHWAY_CHIP_SEQ_REGION_PATHWAY {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-variant_calling:3.20-slim"
 
     input:

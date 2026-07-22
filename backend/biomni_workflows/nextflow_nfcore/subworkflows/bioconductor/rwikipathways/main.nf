@@ -17,6 +17,8 @@ process BIOC_RWIKIPATHWAYS_PATHWAY_OVER_REPRESENTATION_ANALYSIS_AND_VISUALIZATIO
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-rwikipathways:1.30.0--r45hdfd78af_1"
 
     input:

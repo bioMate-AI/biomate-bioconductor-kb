@@ -15,6 +15,8 @@ process BIOC_RBEC_SYNCOM_COMMUNITY_PROFILING {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-rbec:1.18.0--r45ha27e39d_0"
 
     input:

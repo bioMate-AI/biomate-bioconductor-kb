@@ -15,6 +15,8 @@ process BIOC_TRANSMOGR_DIRECT_TRANSCRIPTOME_MODIFICATION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-transmogr:1.6.0--r45h01b2380_0"
 
     input:

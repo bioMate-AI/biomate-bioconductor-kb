@@ -18,6 +18,8 @@ process BIOC_DROPLETUTILS_IMPORT_AND_FILTER_10X_DATA {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-dropletutils:1.30.0--r45ha27e39d_0"
 
     input:

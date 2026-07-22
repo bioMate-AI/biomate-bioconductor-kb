@@ -17,6 +17,8 @@ process BIOC_SCRUFF_CEL_SEQ_PIPELINE_WRAPPER {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-scruff:1.28.0--r45hdfd78af_0"
 
     input:

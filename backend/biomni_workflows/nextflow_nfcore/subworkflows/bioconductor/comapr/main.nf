@@ -17,6 +17,8 @@ process BIOC_COMAPR_MARKER_GENOTYPE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-comapr:1.10.0--r44hdfd78af_0"
 
     input:

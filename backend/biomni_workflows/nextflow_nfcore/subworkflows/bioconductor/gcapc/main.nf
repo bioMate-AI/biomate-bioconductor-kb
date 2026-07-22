@@ -17,6 +17,8 @@ process BIOC_GCAPC_GC_CORRECTED_PEAK_CALLING_AND_REFINING {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-gcapc:1.34.0--r45hdfd78af_0"
 
     input:

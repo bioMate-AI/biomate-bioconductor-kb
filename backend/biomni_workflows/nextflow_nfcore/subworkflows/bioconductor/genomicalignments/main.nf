@@ -17,6 +17,8 @@ process BIOC_GENOMICALIGNMENTS_READ_COUNTING_FOR_DIFFERENTIAL_EXPRESSION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-genomicalignments:1.46.0--r45h01b2380_0"
 
     input:

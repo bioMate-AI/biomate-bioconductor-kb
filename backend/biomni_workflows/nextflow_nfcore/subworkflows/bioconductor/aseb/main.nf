@@ -17,6 +17,8 @@ process BIOC_ASEB_SITE_SPECIFIC_PREDICTION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-aseb:1.54.0--r45ha27e39d_0"
 
     input:

@@ -17,6 +17,8 @@ process BIOC_RBIOPAXPARSER_PARSE_AND_VISUALIZE_BIOPAX {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-rbiopaxparser:2.50.0--r45hdfd78af_0"
 
     input:

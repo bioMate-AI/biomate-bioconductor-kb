@@ -17,6 +17,8 @@ process BIOC_METHTARGETEDNGS_COMPARATIVE_METHYLATION_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-methtargetedngs:1.42.0--r45hdfd78af_0"
 
     input:

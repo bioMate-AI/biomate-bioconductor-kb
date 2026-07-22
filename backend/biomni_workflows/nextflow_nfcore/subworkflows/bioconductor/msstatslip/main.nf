@@ -17,6 +17,8 @@ process BIOC_MSSTATSLIP_LIP_MS_DIFFERENTIAL_ABUNDANCE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-msstatslip:1.16.0--r45ha27e39d_0"
 
     input:

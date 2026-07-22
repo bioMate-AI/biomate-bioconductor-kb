@@ -15,6 +15,8 @@ process BIOC_BIOCSKLEARN_INCREMENTAL_PCA {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-biocsklearn:1.32.0--py314r45hdfd78af_0"
 
     input:

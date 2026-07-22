@@ -17,6 +17,8 @@ process BIOC_HILDA_MUTATIONAL_SIGNATURE_BURDEN_TESTING {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-hilda:1.24.0--r45ha27e39d_0"
 
     input:

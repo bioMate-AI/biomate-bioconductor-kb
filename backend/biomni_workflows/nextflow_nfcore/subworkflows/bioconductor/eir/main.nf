@@ -17,6 +17,8 @@ process BIOC_EIR_SIMILARITY_SEARCH_AND_INDEXING {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-eir:1.50.0--r45ha27e39d_0"
 
     input:

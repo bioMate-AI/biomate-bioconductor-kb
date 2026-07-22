@@ -17,6 +17,8 @@ process BIOC_R4RNA_COMPARATIVE_STRUCTURE_VISUALIZATION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-r4rna:1.38.0--r45hdfd78af_0"
 
     input:

@@ -17,6 +17,8 @@ process BIOC_MBPCR_PROFILE_ESTIMATION_FROM_TEXT_FILE {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-mbpcr:1.64.0--r45hdfd78af_0"
 
     input:

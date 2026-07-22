@@ -17,6 +17,8 @@ process BIOC_CELAREF_SCRNASEQ_TO_SCRNASEQ_COMPARISON {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-celaref:1.28.0--r45hdfd78af_0"
 
     input:

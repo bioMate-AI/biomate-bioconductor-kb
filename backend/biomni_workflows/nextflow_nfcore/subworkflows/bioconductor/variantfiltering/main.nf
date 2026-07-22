@@ -17,6 +17,8 @@ process BIOC_VARIANTFILTERING_UNRELATED_INDIVIDUALS_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-variantfiltering:1.46.0--r45h01b2380_0"
 
     input:

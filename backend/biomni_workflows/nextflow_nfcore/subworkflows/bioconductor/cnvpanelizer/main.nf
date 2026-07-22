@@ -17,6 +17,8 @@ process BIOC_CNVPANELIZER_CNV_DETECTION_FROM_BAM_AND_BED {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-cnvpanelizer:1.42.0--r45hdfd78af_0"
 
     input:

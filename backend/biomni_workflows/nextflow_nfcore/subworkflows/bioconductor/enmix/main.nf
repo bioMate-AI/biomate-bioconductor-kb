@@ -17,6 +17,8 @@ process BIOC_ENMIX_PIPELINE_PREPROCESSING {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-enmix:1.46.1--r45hdfd78af_0"
 
     input:

@@ -17,6 +17,8 @@ process BIOC_FMCSR_PAIRWISE_MCS_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-fmcsr:1.52.0--r45ha27e39d_0"
 
     input:

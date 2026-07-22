@@ -15,6 +15,8 @@ process BIOC_GDRIMPORT_MAE_TO_PHARMACOSET {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-gdrimport:1.8.1--r45hdfd78af_0"
 
     input:

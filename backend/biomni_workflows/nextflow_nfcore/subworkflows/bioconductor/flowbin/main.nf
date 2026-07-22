@@ -17,6 +17,8 @@ process BIOC_FLOWBIN_MULTITUBE_FLOW_INTEGRATION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-flowbin:1.46.0--r45hdfd78af_0"
 
     input:

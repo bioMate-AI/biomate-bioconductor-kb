@@ -26,6 +26,8 @@ process BIOC_FAERS_FAERS_PHARMACOVIGILANCE_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20-slim"
 
     input:

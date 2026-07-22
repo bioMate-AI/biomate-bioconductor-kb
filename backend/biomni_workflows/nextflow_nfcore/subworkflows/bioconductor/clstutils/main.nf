@@ -15,6 +15,8 @@ process BIOC_CLSTUTILS_TAXONOMIC_CLASSIFICATION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-clstutils:1.58.0--r45hdfd78af_0"
 
     input:

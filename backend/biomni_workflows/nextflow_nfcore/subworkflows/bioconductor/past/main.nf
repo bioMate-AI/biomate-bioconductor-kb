@@ -15,6 +15,8 @@ process BIOC_PAST_GWAS_PATHWAY_ENRICHMENT {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-past:1.26.0--r45hdfd78af_0"
 
     input:

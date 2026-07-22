@@ -17,6 +17,8 @@ process BIOC_VTPNET_VTP_NETWORK_CONSTRUCTION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-vtpnet:0.50.0--r45hdfd78af_0"
 
     input:

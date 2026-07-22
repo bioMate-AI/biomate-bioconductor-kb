@@ -23,6 +23,8 @@ process BIOC_QVALUE_FDR_ESTIMATION_FROM_PVALUES {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20-slim"
 
     input:

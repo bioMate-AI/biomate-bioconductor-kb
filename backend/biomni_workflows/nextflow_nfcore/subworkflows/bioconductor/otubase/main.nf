@@ -17,6 +17,8 @@ process BIOC_OTUBASE_OTU_BASED_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-otubase:1.60.0--r45hdfd78af_0"
 
     input:

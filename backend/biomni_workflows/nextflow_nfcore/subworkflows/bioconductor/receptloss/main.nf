@@ -17,6 +17,8 @@ process BIOC_RECEPTLOSS_RECEPT_LOSS_DETECTION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-receptloss:1.18.0--r44hdfd78af_0"
 
     input:

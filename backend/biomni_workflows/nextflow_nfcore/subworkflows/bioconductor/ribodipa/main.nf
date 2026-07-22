@@ -17,6 +17,8 @@ process BIOC_RIBODIPA_RIBODIPA_WRAPPER_PIPELINE {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-ribodipa:1.18.0--r45ha27e39d_0"
 
     input:

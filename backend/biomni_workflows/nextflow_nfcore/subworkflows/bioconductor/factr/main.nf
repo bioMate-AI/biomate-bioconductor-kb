@@ -15,6 +15,8 @@ process BIOC_FACTR_CUSTOM_TRANSCRIPTOME_ANNOTATION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-factr:1.8.0--r44hdfd78af_0"
 
     input:

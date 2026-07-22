@@ -17,6 +17,8 @@ process BIOC_TKWIDGETS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     conda "bioconductor-tkwidgets"
     container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20-slim"
 

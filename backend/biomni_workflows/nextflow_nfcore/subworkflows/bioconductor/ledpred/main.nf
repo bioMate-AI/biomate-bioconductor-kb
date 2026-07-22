@@ -15,6 +15,8 @@ process BIOC_LEDPRED_STEP_BY_STEP_SVM_PREDICTION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-ledpred:1.44.0--r45hdfd78af_0"
 
     input:

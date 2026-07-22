@@ -17,6 +17,8 @@ process BIOC_WATERMELON_DNA_METHYLATION_PREPROCESSING_AND_PREDICTION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-watermelon:2.16.0--r45hdfd78af_0"
 
     input:

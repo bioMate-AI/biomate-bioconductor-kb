@@ -17,6 +17,8 @@ process BIOC_QSUTILS_COLLAPSE_AND_CORRECT_GAPS_NS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-qsutils:1.28.0--r45hdfd78af_0"
 
     input:

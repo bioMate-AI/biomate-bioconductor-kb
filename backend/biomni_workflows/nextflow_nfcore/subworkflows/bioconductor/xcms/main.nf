@@ -17,6 +17,8 @@ process BIOC_XCMS_DIRECT_INJECTION_MS_PREPROCESSING {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-xcms:4.8.0--r45ha27e39d_0"
 
     input:

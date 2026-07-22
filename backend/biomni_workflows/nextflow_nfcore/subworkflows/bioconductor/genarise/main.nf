@@ -17,6 +17,8 @@ process BIOC_GENARISE_DUAL_COLOR_MICROARRAY_ANALYSIS {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-genarise:1.86.0--r45hdfd78af_0"
 
     input:

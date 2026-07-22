@@ -25,6 +25,8 @@ process BIOC_CATEGORYCOMPARE_COMPARE_GENE_LISTS_BY_ANNOTATION {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim"
 
     input:

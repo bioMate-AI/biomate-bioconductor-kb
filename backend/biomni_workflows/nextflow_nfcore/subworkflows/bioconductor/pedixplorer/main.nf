@@ -17,6 +17,8 @@ process BIOC_PEDIXPLORER_KINSHIP_AND_PEDIGREE_SUBSETTING {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-pedixplorer:1.6.0--r45hdfd78af_0"
 
     input:

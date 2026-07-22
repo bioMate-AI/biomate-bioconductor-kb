@@ -17,6 +17,8 @@ process BIOC_SBMLR_SBML_SIMULATION_AND_EXPORT {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-sbmlr:2.6.0--r45hdfd78af_0"
 
     input:

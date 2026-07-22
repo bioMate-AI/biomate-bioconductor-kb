@@ -15,6 +15,8 @@ process BIOC_SNPSTATS_DATA_INPUT {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-snpstats:1.60.0--r45h01b2380_0"
 
     input:

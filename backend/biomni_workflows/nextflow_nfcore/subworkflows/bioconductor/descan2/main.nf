@@ -18,6 +18,8 @@ process BIOC_DESCAN2_DIFFERENTIAL_ENRICHMENT_WORKFLOW {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-descan2:1.30.0--r45ha27e39d_0"
 
     input:

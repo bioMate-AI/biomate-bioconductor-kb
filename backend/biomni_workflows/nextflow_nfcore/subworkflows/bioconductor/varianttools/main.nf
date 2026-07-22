@@ -15,6 +15,8 @@ process BIOC_VARIANTTOOLS_SINGLE_SAMPLE_CALLING {
     tag "${meta.id}"
     label 'process_medium'
 
+    publishDir \"${params.outdir}\", mode: 'copy'
+
     container "quay.io/biocontainers/bioconductor-varianttools:1.51.0--r45hdfd78af_0"
 
     input:
