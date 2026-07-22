@@ -324,7 +324,11 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   const openChatWithProject = (sessionId?: string, prefilledMessage?: string) => {
     try { localStorage.setItem("biomate-active-project-id", projectId) } catch { /* ignore */ }
     let url = sessionId ? `/?session=${encodeURIComponent(sessionId)}` : "/"
-    if (prefilledMessage && !sessionId) url += `?q=${encodeURIComponent(prefilledMessage)}`
+    // Use ?draft= (not ?q=) so the message is pre-filled into the chat input for the
+    // user to review/edit before sending — NOT auto-submitted. Analyze-generated
+    // messages are generic ("I've uploaded these files…") and almost always need the
+    // user to add scientific context (organism, design, comparison) before running.
+    if (prefilledMessage && !sessionId) url += `?draft=${encodeURIComponent(prefilledMessage)}`
     window.location.assign(url)
   }
 

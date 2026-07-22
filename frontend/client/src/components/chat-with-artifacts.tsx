@@ -57,6 +57,9 @@ interface ChatWithArtifactsProps {
   initialMessage?: string
   /** Tag for demo files to auto-attach with the initial message (e.g. 'mg_demo'). */
   initialDemoFiles?: string
+  /** Pre-filled draft for the chat input — populated once ready but NOT auto-submitted
+   *  (used by the project "Analyze with BioMate" flow so the user can edit before sending). */
+  initialDraft?: string
 }
 type RunManagerScope = 'current_chat' | 'all_chats'
 type RunManagerSort = 'updated_desc' | 'running_first' | 'failed_first'
@@ -91,7 +94,7 @@ function shortenId(raw?: string, prefix = "", maxLen = 8): string {
  * Chat-first layout: Full-width chat with workflows displayed inline as artifacts.
  * No split panel - workflows appear as collapsible cards within chat messages.
  */
-export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflowPanelOpenChange, initialMessage, initialDemoFiles }: ChatWithArtifactsProps) {
+export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflowPanelOpenChange, initialMessage, initialDemoFiles, initialDraft }: ChatWithArtifactsProps) {
   // Lift useAfterRunFlavor() out of the JSX (was inlined at line ~1883). The
   // inline call was conditional on JSX ancestors that mounted/unmounted per
   // render, so React detected a different hook-call count between renders and
@@ -505,6 +508,15 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       sender(initialMessage)
     }
   }, [senderReady, initialMessage, initialDemoFiles]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Pre-fill (but do NOT send) a draft message into the chat input. onRegisterSetDraft
+  // is registered alongside the sender, so senderReady also signals draft-setter readiness.
+  const draftAppliedRef = useRef(false)
+  useEffect(() => {
+    if (!initialDraft || draftAppliedRef.current || !setChatDraftRef.current) return
+    draftAppliedRef.current = true
+    setChatDraftRef.current(initialDraft)
+  }, [senderReady, initialDraft]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [postRunSurveyContext, setPostRunSurveyContext] = useState<{
     runId: string

@@ -153,6 +153,17 @@ function RootRoute({
     return undefined
   })
 
+  // Pre-filled draft (?draft=) from the project "Analyze with BioMate" flow. Unlike ?q=,
+  // this populates the chat input for review/edit and is NOT auto-submitted.
+  const [initialDraft] = useState<string | undefined>(() => {
+    const urlDraft = new URLSearchParams(window.location.search).get('draft')
+    if (urlDraft) {
+      window.history.replaceState(null, '', window.location.pathname)
+      return decodeURIComponent(urlDraft)
+    }
+    return undefined
+  })
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       // Preserve both the query and demo-files tag through the login flow
@@ -207,6 +218,7 @@ function RootRoute({
         onWorkflowPanelOpenChange={(open) => setSidebarCollapsed(open)}
         initialMessage={initialMessage}
         initialDemoFiles={initialDemoFiles}
+        initialDraft={initialDraft}
       />
     </PlatformLayout>
   )
