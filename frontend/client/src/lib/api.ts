@@ -5,6 +5,8 @@
  * TODO: Update BASE_URL when deploying to production
  */
 
+import { fetchWithRetry } from './fetch-retry'
+
 const BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 class ApiClient {
@@ -31,7 +33,9 @@ class ApiClient {
     }
 
     try {
-      const response = await fetch(url, config)
+      // fetchWithRetry retries transient network drops on idempotent requests
+      // only; HTTP error responses and writes fall through unchanged.
+      const response = await fetchWithRetry(url, config)
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({

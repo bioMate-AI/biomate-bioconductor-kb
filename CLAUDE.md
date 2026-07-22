@@ -460,10 +460,19 @@ Run with AWS env vars set — the test is skipped (not failed) when `LAGO_API_KE
 
 `backend/lib/galaxy/webapps/galaxy/api/nextflow_executor.py` previously
 tracked every in-flight Nextflow run in an in-process Python dict
-(`_runs[]`). Galaxy's gunicorn recycles its single worker every ~3 min
-on dev (`workers:1, max_requests:1000`), which wiped that dict — runs
-got stuck in `running` forever, autoloop SSE never fired, every long
+(`_runs[]`). At the time, Galaxy's gunicorn on dev ran a single worker that
+recycled every ~3 min (`workers:1, max_requests:1000`), which wiped that dict —
+runs got stuck in `running` forever, autoloop SSE never fired, every long
 workflow leaked silently.
+
+> **NOTE (updated 2026-07-22):** dev gunicorn config changed on 2026-06-17 and
+> now runs `--workers=4 --max_requests=3000 --max_requests_jitter=300 --preload`
+> (`backend/config/galaxy.yml.docker:21-47`, verified live via `ps aux`). Recycles
+> are now rare and staggered — do NOT cite "workers:1 / ~3-min recycle" when
+> diagnosing dev issues. In particular, transient dev `TypeError: Failed to fetch`
+> is a client↔EC2 network blip (no ALB/retry layer), NOT worker recycling — and
+> `/api/projects` is served by the Node frontend from Postgres, not Galaxy at all.
+> See `docs/20260722_PROJECT_MODULE_PERF_AND_TIER_PROPOSAL.md`.
 
 Stages 1–3c (commits `e92f06287` through `ee2556faf7`) shipped:
 - `RunStateStore` Protocol + `InMemoryRunStateStore` + `RedisRunStateStore`

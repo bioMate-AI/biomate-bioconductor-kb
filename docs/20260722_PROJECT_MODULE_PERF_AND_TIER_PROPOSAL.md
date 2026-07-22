@@ -221,10 +221,28 @@ wastes an LLM turn). Change:
 - `App.tsx`: reads `?draft=` into `initialDraft`, strips the param, passes to chat.
 - `chat-with-artifacts.tsx`: on `initialDraft`, calls the existing `setChatDraft` (populates input,
   does NOT send). Guarded by `draftAppliedRef`; readiness via `senderReady`.
-This makes UC-PW2 pass **as written** (input pre-filled with filename). Verified: **tsc clean, vitest
-944/0**. Live browser confirmation pending deploy — local browser auth doesn't stick (redirects to
-/login), and dev-public is the **live Boston BD Summit env (July 21–23)**, so deploy is held until
-post-conference or explicit go-ahead. Then re-run `project-workspace` (confirms UC-PW2 + un-skips PW3/4/5).
+This makes UC-PW2's prefill assertion pass **as written** (input pre-filled with filename). Verified:
+**tsc clean, vitest 944/0**.
+
+**DEPLOYED + CONFIRMED (2026-07-22):** committed `8f846916`, synced to dev (frontend rebuilt, health +
+smoke passed). Re-ran `project-workspace` on dev — the prefill is **confirmed working**:
+```
+[PW2] chat pre-filled: "I've uploaded these files to my project:
+- e2e_test.fastq (263 B)
+Please analyze these files and sug..."
+```
+The input now pre-fills with the filename **and size** (263 B) — which also confirms `projectFiles` is
+populated at click time (the open question from the first run). The exact bug is fixed and live.
+
+**UC-PW2 still fails DOWNSTREAM of the prefill** (not the fix): after submitting the generic message,
+`Run button visible: false` — no workflow card. Two contributing factors: (1) **dev instability** —
+pervasive `TypeError: Failed to fetch` / `net::ERR_FAILED` / 404s during the run (dev EC2 dropping API
+calls all session; also flaked PW1); (2) a **test-design mismatch** — UC-PW2 expects a *generic*
+"analyze these files" message to auto-route to a runnable workflow, but the whole point of
+pre-fill-and-edit is that the **user adds scientific context before running**. The downstream behavior
+is unchanged from the old auto-send code (same message text), so it is not a regression.
+**Follow-up:** update UC-PW2 to reflect the new UX (prefill → append context → submit → expect run),
+and re-run PW2–PW5 in a stable dev window. Do NOT burn more AWS Batch runs against an unstable dev.
 
 Uploaded file `source='upload'` is confirmed and the `onFilesChanged` wiring exists, so the auto-sent
 message *should* contain the filename — but **positive confirmation of the sent-message content is
@@ -234,6 +252,38 @@ probes), blocking the confirmation run. Re-verify in a stable dev window.
 ### Environmental note
 Dev EC2 showed transient instability during this session (flaked PW1, blocked confirmation probes).
 Not a project-module bug, but it means UC-PW2's *content* verification and PW3/4/5 remain open.
+
+### Dev `Failed to fetch` — root cause (investigated 2026-07-22)
+Read-only diagnostic investigation (SSM, nginx/Node/Galaxy logs, live `ps aux`, CloudWatch, empirical probe).
+**Debunked the leading hypothesis** (gunicorn recycling) and found the real cause:
+
+- **NOT gunicorn recycling.** Galaxy on dev now runs `--workers=4 --max_requests=3000 --max_requests_jitter=300 --preload` (live-verified; config changed 2026-06-17, `backend/config/galaxy.yml.docker:21-47`). **CLAUDE.md's run-state-persistence section ("workers:1, max_requests:1000, ~3min recycle") is STALE and should be corrected.**
+- **NOT the backend at all.** `/api/projects` is served by the **Node frontend from Postgres** — Galaxy is never in that path. Containers: 0 restarts, no OOM, CPU ~15% avg on a `t3.xlarge` (unlimited CPU credits).
+- **Root cause:** a **transient client↔EC2-public-IP network/TCP+TLS connection-establishment loss**. Empirical probe: 232 requests over 2.5 min — 229 steady at ~370 ms, then **3 consecutive 20 s timeouts (~60 s window), then instant recovery**. nginx logged **zero** entries for the probe's source IP during the gap (connections never arrived) while serving a *different* client IP normally in the same window. So the server was up; only that client's new connections were blackholed.
+- **No cushion:** `dev-public.biomate.ai → 52.42.49.175` (EC2 public IP directly) — no ALB, no client-side retry — so any network blip surfaces as `TypeError: Failed to fetch`. A multi-minute Playwright run with continuous polling (`listProjects`, `ChatHistory pull`, active-project refresh) almost certainly hits one.
+- **CORS/font error = confirmed red herring:** the harness sets `x-e2e-test-token` as a **global** header (`playwright.config.ts:43-45`, `e2e/_fixture-login.ts:97-101`), attached even to the cross-origin `fonts.gstatic.com` request → preflight rejected. Decorative-font only; zero effect on API drops; never happens for real users.
+
+**Production risk: low-moderate** — real users don't fire hundreds of retry-less requests over minutes, but the single-instance/no-ALB/no-retry topology has no resilience to blips.
+
+**Recommended fixes:**
+1. **Client-side retry w/ backoff** — ✅ **DONE (2026-07-22).** New `client/src/lib/fetch-retry.ts`
+   (`fetchWithRetry`): retries transient network errors on **idempotent methods only** (never a
+   POST/PUT/DELETE — no double-submit), never on HTTP 4xx/5xx. Wired into `ApiClient.request`
+   (`api.ts`) and `ChatHistoryService.pullFromBackend` (`chat-history.ts`) — covers all 3 observed
+   failing callers (`listProjects`, `active-project refresh` via ApiClient; `pullFromBackend` direct).
+   6 unit tests (`fetch-retry.test.ts`). tsc + vitest green (959/0).
+2. **Correct CLAUDE.md** run-state-persistence section — ✅ **DONE.** Added a dated NOTE with the
+   current `workers=4 / max_requests=3000` config and the real Failed-to-fetch cause.
+3. **Scope `x-e2e-test-token` to same-origin** — ⛔ **DECLINED (not worth the risk).** The token is
+   load-bearing: it gates auth, quota, AND **rate-limit** bypass (`auth-middleware.ts:114`,
+   `quota-middleware.ts:22`, `rate-limit.ts:17`), and the app's own in-browser API calls pass through
+   those middlewares — during heavy E2E polling they need it to avoid tripping rate limits. Removing
+   the global header would break that; scoping it to exclude only the cross-origin font needs
+   `page.route` (forbidden by the repo's no-interception rule) or self-hosting the Inter font
+   (unrelated app change). The font-CORS error is confirmed harmless (decorative, never hits real
+   users), so the cost/risk exceeds the cosmetic benefit.
+4. **ALB/CloudFront** in front of the instance — the durable infra fix for the direct-public-IP
+   fragility; deferred (larger infra change, and #1 covers the app-visible symptom).
 
 ---
 

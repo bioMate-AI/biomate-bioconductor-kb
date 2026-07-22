@@ -1,4 +1,5 @@
 import type { ChatSession, Message, DatasetConfig, WorkflowStepWithDatasets } from '@shared/schema';
+import { fetchWithRetry } from './fetch-retry';
 
 // Backend sync configuration
 const BACKEND_SYNC_ENABLED = import.meta.env.VITE_ENABLE_BACKEND_SYNC !== 'false';
@@ -386,7 +387,8 @@ class ChatHistoryService {
     try {
       this.syncStatus = 'syncing';
       const token = this.getAuthToken();
-      const response = await fetch(`${BACKEND_URL}/api/sessions`, {
+      // GET → fetchWithRetry rides out transient network drops (see fetch-retry.ts).
+      const response = await fetchWithRetry(`${BACKEND_URL}/api/sessions`, {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
