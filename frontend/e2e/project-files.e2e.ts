@@ -171,9 +171,12 @@ test.describe("project-files", () => {
     await page.goto(`${BASE_URL}/projects?project=${projectId}&tab=files`);
     await expect(page.getByTestId("project-file-tree")).toBeVisible({ timeout: 12000 });
 
-    // Expand inputs/ folder
+    // inputs/ folder starts expanded by default; only click to expand if not already open
     await expect(page.getByTestId("folder-inputs")).toBeVisible({ timeout: 8000 });
-    await page.getByTestId("folder-inputs").click();
+    const fileAlreadyVisible = await page.locator("text=to_delete.txt").first().isVisible().catch(() => false);
+    if (!fileAlreadyVisible) {
+      await page.getByTestId("folder-inputs").click();
+    }
 
     // Delete button is opacity-0 until the row is hovered — hover first to reveal it.
     const fileRow = page.locator("text=to_delete.txt").first();
@@ -200,17 +203,18 @@ test.describe("project-files", () => {
     const upRes = await page.request.post(`${BASE_URL}/api/projects/${projectId}/files/upload`, {
       multipart: { file: { name: "api_test.txt", mimeType: "text/plain", buffer: Buffer.from("api test") } },
     });
-    expect(upRes.ok()).toBeTruthy();
+    expect(upRes.ok(), `upload failed (${upRes.status()}): ${await upRes.text()}`).toBeTruthy();
 
     // List via API
     const listRes = await page.request.get(`${BASE_URL}/api/projects/${projectId}/files`);
-    expect(listRes.ok()).toBeTruthy();
+    expect(listRes.ok(), `list failed (${listRes.status()}): ${await listRes.text()}`).toBeTruthy();
     const data = await listRes.json();
     const files: any[] = data?.files ?? [];
     const found = files.find((f: any) => f.name === "api_test.txt");
-    expect(found, "uploaded file not found in files list").toBeTruthy();
+    expect(found, `uploaded file not found in files list — ${files.length} files: ${files.map(f => f.name).join(', ')}`).toBeTruthy();
     expect(found.source).toBe("upload");
-    expect(found.size).toBeGreaterThan(0);
+    // size is stored as BIGINT in PostgreSQL; pg returns it as string for large values
+    expect(Number(found.size)).toBeGreaterThan(0);
   });
 
   test("GET /api/projects/:id/files/:id/url returns presigned URL", async ({ page }) => {
