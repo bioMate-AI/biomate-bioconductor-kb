@@ -5623,7 +5623,7 @@ Rules:
 
 class ExtractPdfRequest(BaseModel):
     file_path: str
-    max_chars: int = 120000
+    max_chars: int = 50000
 
 
 @router.post(
@@ -5652,34 +5652,15 @@ def extract_pdf_text(request: ExtractPdfRequest) -> Dict[str, Any]:
     total_chars = 0
 
     try:
-        def _fmt_table(rows: Any) -> str:
-            # Render a pdfplumber table as pipe-delimited rows so numeric /
-            # technical detail survives (extract_text() alone drops tabular data).
-            out = []
-            for row in rows or []:
-                cells = [(c if c is not None else "").replace("\n", " ").strip() for c in row]
-                if any(cells):
-                    out.append(" | ".join(cells))
-            return "\n".join(out)
-
         try:
             import pdfplumber  # preferred: installed via requirements.txt
             with pdfplumber.open(abs_path) as pdf:
                 for page in pdf.pages:
-                    seg = (page.extract_text() or "").strip()
-                    # Tables carry the numeric/technical detail extract_text drops.
-                    try:
-                        tables = page.extract_tables() or []
-                    except Exception:
-                        tables = []
-                    for ti, tbl in enumerate(tables):
-                        ftxt = _fmt_table(tbl)
-                        if ftxt.strip():
-                            seg = (seg + "\n\n[Table %d]\n%s" % (ti + 1, ftxt)).strip()
-                    if seg:
-                        text_parts.append(seg)
+                    t = (page.extract_text() or "").strip()
+                    if t:
+                        text_parts.append(t)
                     n_pages += 1
-                    total_chars += len(seg)
+                    total_chars += len(t)
                     if total_chars >= request.max_chars:
                         break
         except ImportError:
