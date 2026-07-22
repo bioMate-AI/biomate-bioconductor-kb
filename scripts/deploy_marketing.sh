@@ -24,11 +24,26 @@ AZ="us-west-2a"
 EC2_USER="ubuntu"
 EC2_HOST="52.42.49.175"
 KEY_FILE="/tmp/biomate_ec2_key_sync"
+# Tunnel SSH/scp over SSM (like sync_to_dev.sh) so the deploy works from any
+# network — the prod SG only allows port 22 from a few fixed IPs, which breaks
+# direct SSH from e.g. a phone hotspot (carrier NAT). SSM rides the AWS API.
+_SSM_PROXY="aws ssm start-session --target ${INSTANCE_ID} --document-name AWS-StartSSHSession --parameters portNumber=%p --region us-west-2"
+# session-manager-plugin is required by the ProxyCommand above; install user-local.
+export PATH="$HOME/bin:$PATH"
+if ! command -v session-manager-plugin &>/dev/null; then
+  _ARCH=$(uname -m)
+  _SSM_URL="https://s3.amazonaws.com/session-manager-downloads/plugin/latest/mac_arm64/sessionmanager-bundle.zip"
+  [[ "$_ARCH" != "arm64" ]] && _SSM_URL="https://s3.amazonaws.com/session-manager-downloads/plugin/latest/mac/sessionmanager-bundle.zip"
+  mkdir -p "$HOME/bin"
+  curl -sSL "$_SSM_URL" -o /tmp/ssm-bundle.zip 2>/dev/null && \
+    unzip -qo /tmp/ssm-bundle.zip -d /tmp/ssm-bundle/ 2>/dev/null && \
+    cp /tmp/ssm-bundle/sessionmanager-bundle/bin/session-manager-plugin "$HOME/bin/" && \
+    chmod +x "$HOME/bin/session-manager-plugin"
+fi
 SRC="$REPO_ROOT/reference/claude_design"
 PROBE_ONLY="${1:-}"
 
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
-SSH="ssh -i $KEY_FILE -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o ConnectTimeout=20"
 
 inject_key() {
   [[ -f "${KEY_FILE}" ]] || ssh-keygen -t ed25519 -f "$KEY_FILE" -N "" -q
@@ -39,12 +54,26 @@ inject_key() {
       log "FATAL: ec2-instance-connect key injection failed (AWS creds / instance state?)"; exit 1; }
 }
 
+# SSH/scp over the SSM tunnel (connects to the instance id, not a public IP).
+ec2_ssh() {
+  inject_key >/dev/null
+  ssh -i "$KEY_FILE" -o ProxyCommand="$_SSM_PROXY" \
+    -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -o ConnectTimeout=30 \
+    -o ServerAliveInterval=30 -o ServerAliveCountMax=4 \
+    "${EC2_USER}@${INSTANCE_ID}" "$@"
+}
+ec2_scp() {
+  inject_key >/dev/null
+  scp -i "$KEY_FILE" -o ProxyCommand="$_SSM_PROXY" \
+    -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -o ConnectTimeout=30 \
+    -o ServerAliveInterval=30 -o ServerAliveCountMax=100 "$@"
+}
+
 log "Source: $SRC/webpage_design_v2  (14-day mentions: $(grep -c '14-day\|14 day' "$SRC/webpage_design_v2/pricing.html" 2>/dev/null))"
 
-inject_key >/dev/null
 # --- Diagnose: where does the APEX biomate.ai actually serve from? ----------
 log "Probing nginx for the biomate.ai docroot..."
-$SSH "${EC2_USER}@${EC2_HOST}" '
+ec2_ssh '
   echo "[probe] nginx server blocks mentioning biomate.ai:";
   sudo grep -rEl "server_name[^;]*biomate\.ai" /etc/nginx/ 2>/dev/null | while read f; do
     echo "  conf: $f";
@@ -62,14 +91,11 @@ if [[ "$PROBE_ONLY" == "--probe" ]]; then log "probe-only — no files written";
 TAR=/tmp/biomate_marketing_only.tar.gz
 tar -czf "$TAR" -C "$SRC" webpage_design_v2/
 log "Archive: $(du -sh "$TAR" | cut -f1), $(tar tzf "$TAR" | grep -c '\.html$') html files"
-inject_key >/dev/null
-scp -i "$KEY_FILE" -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o ConnectTimeout=20 \
-  "$TAR" "${EC2_USER}@${EC2_HOST}:/tmp/marketing_only.tar.gz" || { log "FATAL: scp failed"; exit 1; }
+ec2_scp "$TAR" "${EC2_USER}@${INSTANCE_ID}:/tmp/marketing_only.tar.gz" || { log "FATAL: scp failed"; exit 1; }
 
 # Deploy into EVERY docroot that nginx serves biomate.ai from (discovered above),
 # falling back to /var/www/biomate-marketing.
-inject_key >/dev/null
-$SSH "${EC2_USER}@${EC2_HOST}" '
+ec2_ssh '
   set -e
   rm -rf /tmp/mkt_only && mkdir -p /tmp/mkt_only
   tar -xzf /tmp/marketing_only.tar.gz -C /tmp/mkt_only
@@ -90,8 +116,7 @@ $SSH "${EC2_USER}@${EC2_HOST}" '
   rm -rf /tmp/mkt_only
 '
 log "Reloading nginx..."
-inject_key >/dev/null
-$SSH "${EC2_USER}@${EC2_HOST}" 'sudo nginx -t && sudo systemctl reload nginx && echo "[nginx] reloaded"'
+ec2_ssh 'sudo nginx -t && sudo systemctl reload nginx && echo "[nginx] reloaded"'
 
 log "Verifying live site..."
 sleep 2
