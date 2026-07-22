@@ -448,7 +448,7 @@ async function auditChatMessage(page, msgIndex, turnLabel) {
     console.log('\n══ Turn 1 — DESeq2 with pre-staged S3 data (no file upload) ══');
     const DEMO_BUCKET = 's3://biomate-nextflow-work/demo/mg_demo';
     // Use newline-delimited params so Claude doesn't concatenate them into one samplesheet value.
-    const turn1Msg = `Run differential expression on AChR+ myasthenia gravis PBMC data (GSE227835, 10 MG patients vs 10 healthy controls) — find the key complement pathway drivers.\nsamplesheet: ${DEMO_BUCKET}/sample_metadata.csv\nmatrix: ${DEMO_BUCKET}/counts_matrix.csv\ncontrasts: ${DEMO_BUCKET}/contrasts.csv`;
+    const turn1Msg = `Run differential expression on AChR+ myasthenia gravis PBMC data (GSE227835, 10 MG patients vs 10 healthy controls) — find the key differentially expressed genes.\nsamplesheet: ${DEMO_BUCKET}/sample_metadata.csv\nmatrix: ${DEMO_BUCKET}/counts_matrix.csv\ncontrasts: ${DEMO_BUCKET}/contrasts.csv`;
     console.log(`  Sending: "${turn1Msg.slice(0, 100)}..."`);
     await screenshot(page, '03_before_send');
 
@@ -484,7 +484,7 @@ async function auditChatMessage(page, msgIndex, turnLabel) {
     // (sent AFTER Turn 1 so AI sees DE results in context)
     // ════════════════════════════════════════════════════════════════════════
     console.log('\n══ Turn 2 — enrichGO (after DESeq2 context) ══');
-    const turn2Msg = 'Yes, run pathway enrichment on the DE gene list — find the top complement GO terms.\ngene_list: s3://biomate-nextflow-work/demo/mg_demo/de_genes.txt';
+    const turn2Msg = 'Yes, run pathway enrichment on the DE gene list — find the top enriched GO terms and pathways.\ngene_list: s3://biomate-nextflow-work/demo/mg_demo/de_genes.txt';
     console.log(`  Sending: "${turn2Msg}"`);
     const msgs1 = await page.locator(aiMsgSel).count();
     await sendMessage(page, turn2Msg);

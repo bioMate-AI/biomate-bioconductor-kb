@@ -123,7 +123,7 @@ const DEMO_FILE_BASE = '/demo/mg_demo'
 const EXAMPLE_QUERIES = [
   {
     label: 'MG patient stratification → ADMET',
-    query: 'Run differential expression on AChR+ myasthenia gravis PBMC data (GSE227835, 10 MG patients vs 10 healthy controls) — find the key complement pathway drivers.',
+    query: 'Run differential expression on AChR+ myasthenia gravis PBMC data (GSE227835, 10 MG patients vs 10 healthy controls) — find the key differentially expressed genes.',
     demoFiles: [
       `${DEMO_FILE_BASE}/sample_metadata.csv`,
       `${DEMO_FILE_BASE}/counts_matrix.csv`,
