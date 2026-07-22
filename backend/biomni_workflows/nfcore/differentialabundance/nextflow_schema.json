@@ -6,7 +6,7 @@
   "type": "object",
   "definitions": {
     "input_output_options": {
-      "title": "Input/output options",
+      "title": "Input Download",
       "type": "object",
       "fa_icon": "fas fa-terminal",
       "description": "Define where the pipeline should find input data and save output data.",
@@ -49,7 +49,7 @@
       }
     },
     "differential_options": {
-      "title": "Differential expression options",
+      "title": "Differential Abundance",
       "type": "object",
       "properties": {
         "differential_min_fold_change": {
