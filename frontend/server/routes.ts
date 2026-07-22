@@ -12965,7 +12965,10 @@ Rules:
   // completion, so a "no readable outputs" result is often transient. Rather
   // than caching the generic fallback permanently (it would never regenerate),
   // we retry a bounded number of times before giving up. See generic branch below.
-  const _findingsAttempts = new Map<string, number>();
+  // runId -> epoch ms of the first "outputs not readable yet" attempt, so retries
+  // are bounded by wall-clock time (outputs settle within seconds) rather than a
+  // fast attempt count that can exhaust before publishDir/Galaxy-status catches up.
+  const _findingsFirstAttempt = new Map<string, number>();
 
   // ── Output Intelligence — Findings endpoint ────────────────────────────────
   //
@@ -13179,24 +13182,29 @@ Rules:
           // Guardrail: if no output files were found, skip LLM entirely.
           // Generating key_results without real file content = hallucination.
           if (outputSamples.length === 0) {
-            // "No readable outputs" is usually TRANSIENT: findings fire at run
-            // completion, but publishDir writes to the outdir (and the run's
-            // nextflowOutputDir/WorkDir get persisted) a few seconds later. If we
-            // cache the generic fallback now it is returned forever (the cache is
-            // never invalidated), so the summary stays generic even once the CSVs
-            // land. Instead, retry a bounded number of times: clear the generating
-            // marker so the next poll regenerates, and only cache the generic
-            // result after MAX_ATTEMPTS so a genuinely output-less run still resolves.
-            const MAX_FINDINGS_ATTEMPTS = 6;
-            const _attempts = (_findingsAttempts.get(runId) || 0) + 1;
-            _findingsAttempts.set(runId, _attempts);
-            if (_attempts < MAX_FINDINGS_ATTEMPTS) {
-              console.log(`[Findings] no readable outputs yet for ${runId} (attempt ${_attempts}/${MAX_FINDINGS_ATTEMPTS}) — clearing marker to retry on next poll`);
-              _findingsCache.delete(runId); // next poll re-fires generation
+            // "No readable outputs" is almost always TRANSIENT: findings fire the
+            // instant a run completes, but the run's s3_output_files / outdir are
+            // populated from Galaxy status a few seconds later. Ground truth (a
+            // forced re-generation on a settled run returns the full summary) shows
+            // the read path itself is fine — the only failure mode is generating
+            // too early and then caching the generic fallback FOREVER (the cache is
+            // never invalidated). So retry on a WALL-CLOCK budget: keep clearing the
+            // marker (each poll re-fires generation, surfacing as "pending") until
+            // the outputs settle. A fast attempt-count budget is wrong because empty
+            // Galaxy-status calls return in ~1s and can exhaust before the outputs
+            // land. Only after the window do we cache a generic summary — and even
+            // then we tag it `_notReadable` so a later request can still recover it.
+            const now = Date.now();
+            let firstTs = _findingsFirstAttempt.get(runId);
+            if (!firstTs) { firstTs = now; _findingsFirstAttempt.set(runId, firstTs); }
+            const RETRY_WINDOW_MS = 120_000; // 2 min — outputs settle in seconds
+            if (now - firstTs < RETRY_WINDOW_MS) {
+              console.log(`[Findings] no readable outputs yet for ${runId} (${Math.round((now-firstTs)/1000)}s of ${RETRY_WINDOW_MS/1000}s) — retry on next poll`);
+              _findingsCache.delete(runId); // next poll re-fires generation → stays "pending"
               return;
             }
-            console.warn(`[Findings] giving up after ${_attempts} attempts for ${runId} — caching generic summary`);
-            _findingsAttempts.delete(runId);
+            console.warn(`[Findings] no readable outputs after ${RETRY_WINDOW_MS/1000}s for ${runId} — caching generic summary`);
+            _findingsFirstAttempt.delete(runId);
             _findingsCache.set(runId, {
               summary: `${workflowName} completed. Output files are not yet readable — check the Outputs tab for results.`,
               key_results: [],
@@ -13205,8 +13213,8 @@ Rules:
             });
             return;
           }
-          // Readable outputs found — clear any retry counter for this run.
-          _findingsAttempts.delete(runId);
+          // Readable outputs found — clear the retry clock for this run.
+          _findingsFirstAttempt.delete(runId);
 
           // Pre-process known workflow output formats into clean structured context.
           // This gives the LLM focused, low-noise input and makes guardrail matching reliable.
