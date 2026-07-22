@@ -245,12 +245,15 @@ workflow DIFFERENTIALABUNDANCE {
     def ss  = params.samplesheet ?: params.input
     def mat = params.matrix ?: ''
     def con = params.contrasts ?: ''
-    def uris = [ss, mat, con].findAll { it?.trim() }
 
-    ch_input = Channel.fromList(uris)
-                   .map { u -> file(u) }
-                   .collect()
-                   .map { files -> [[id: 'run'], files] }
+    // Channel.fromPath handles S3 URIs via the nf-amazon NIO plugin (same as enrichGO)
+    ch_ss  = Channel.fromPath(ss)
+    ch_mat = mat?.trim() ? Channel.fromPath(mat) : Channel.empty()
+    ch_con = con?.trim() ? Channel.fromPath(con) : Channel.empty()
+
+    ch_input = ch_ss.mix(ch_mat).mix(ch_con)
+        .collect()
+        .map { files -> [[id: 'run'], files] }
 
     DESEQ2_DIFFERENTIAL_ANALYSIS(ch_input)
 
