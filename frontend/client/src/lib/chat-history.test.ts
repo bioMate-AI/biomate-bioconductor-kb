@@ -1,6 +1,21 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { chatHistoryService } from './chat-history';
 
+// Self-contained in-memory localStorage shim so this suite does not depend on
+// the ambient test environment (jsdom vs node) being configured a particular way.
+function installLocalStorageShim() {
+  const store = new Map<string, string>();
+  const shim = {
+    getItem: (k: string) => (store.has(k) ? store.get(k)! : null),
+    setItem: (k: string, v: string) => { store.set(k, String(v)); },
+    removeItem: (k: string) => { store.delete(k); },
+    clear: () => { store.clear(); },
+    key: (i: number) => Array.from(store.keys())[i] ?? null,
+    get length() { return store.size; },
+  };
+  (globalThis as any).localStorage = shim;
+}
+
 /**
  * Regression: marketing "Start free" handoff (/?q=…) mounts the chat and
  * auto-submits the moment `isAuthenticated` flips true — which can happen
@@ -11,6 +26,7 @@ import { chatHistoryService } from './chat-history';
  */
 describe('chatHistoryService.setUserId — pre-auth session migration', () => {
   beforeEach(() => {
+    installLocalStorageShim();
     localStorage.clear();
   });
 
