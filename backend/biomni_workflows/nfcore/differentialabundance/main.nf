@@ -93,8 +93,8 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
     metadata  <- read.csv(meta_file, stringsAsFactors=FALSE)
     count_mat <- read.csv(mat_file, row.names=1, check.names=FALSE)
 
-    # Ensure integer counts
-    count_mat <- round(count_mat)
+    # Ensure integer counts (read.csv returns data.frame; as.matrix() required before storage.mode)
+    count_mat <- as.matrix(round(count_mat))
     storage.mode(count_mat) <- "integer"
 
     # ── 3. Build contrasts ─────────────────────────────────────────────────────
