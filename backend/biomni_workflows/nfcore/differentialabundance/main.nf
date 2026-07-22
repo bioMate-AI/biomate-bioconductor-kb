@@ -59,7 +59,8 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] install only what is missing (container has DESeq2/ggplot2/jsonlite pre-installed)
-    .bm_deps <- c("DESeq2", "ggplot2", "ggrepel")
+    # ggrepel is optional — only needed for label repelling on volcano/PCA plots
+    .bm_deps <- c("DESeq2", "ggplot2")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       message("[biomate-deps] installing: ", paste(.bm_miss, collapse=", "))
@@ -68,6 +69,8 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
       .bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL)
       suppressWarnings(suppressMessages(tryCatch(BiocManager::install(.bm_miss, update=FALSE, ask=FALSE, site_repository=.bin), error=function(e) try(install.packages(.bm_miss), silent=TRUE))))
     }
+    # ggrepel optional — try to load, silence if absent
+    suppressWarnings(try(library(ggrepel, warn.conflicts=FALSE), silent=TRUE))
 
     # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
     for (.bm_d in list.files(".", full.names = TRUE)) {
