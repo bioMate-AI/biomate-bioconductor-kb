@@ -170,6 +170,20 @@ test.describe('multi-round PDF + image, no leak, vision read', () => {
     assertNoLeak('R3 follow-up', r3);
     expect(r3.trim().length, 'R3 must be substantive').toBeGreaterThan(50);
 
-    console.log('=== multi-round PDF+image vision: ALL ASSERTIONS PASSED ===');
+    // ── Round 4: view the image BY ID via read_file (not re-attached) ────────
+    // Proves on-demand view-by-id: the stored PNG has three horizontal bands
+    // (red / green / blue). If read_file returns the pixels, the model describes
+    // them; if it returned utf8 garbage (the old bug), it can't.
+    const r4 = await chat(request, token, sessionId,
+      `Use the read_file tool to open dataset id ${png.id} and tell me exactly what colors and patterns you see in the image.`);
+    console.log(`R4 (${r4.length} chars): ${r4.slice(0, 300)}`);
+    assertNoLeak('R4 read_file image', r4);
+    expect(r4.trim().length, 'R4 must be substantive').toBeGreaterThan(50);
+    expect(
+      /red|green|blue|band|stripe|colou?r|horizontal/i.test(r4),
+      `R4 must describe the image (read_file returned viewable pixels). Got: ${r4.slice(0, 200)}`,
+    ).toBe(true);
+
+    console.log('=== multi-round PDF+image vision + view-by-id: ALL ASSERTIONS PASSED ===');
   });
 });
