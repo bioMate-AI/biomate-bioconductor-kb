@@ -2124,7 +2124,7 @@ class ResearchAgent:
                 "The user has provided the following paper. "
                 "This is your PRIMARY source — extract information from it directly and cite it as 'the attached paper'. "
                 "Use supporting literature below only for cross-referencing or context.\n\n"
-                f"{evidence['attached_paper_content'][:45000]}\n"
+                f"{evidence['attached_paper_content'][:150000]}\n"
                 "</attached_paper>"
             )
 

@@ -1704,6 +1704,16 @@ async function _extractPdfText(filePath: string, maxChars = 50000): Promise<stri
   const pythonScript = `
 import sys, json
 
+def _fmt_table(rows):
+    # Render a pdfplumber table as pipe-delimited rows so numeric / technical
+    # detail survives (extract_text() alone silently drops tabular data).
+    out = []
+    for row in rows or []:
+        cells = [(c if c is not None else '').replace('\\n', ' ').strip() for c in row]
+        if any(cells):
+            out.append(' | '.join(cells))
+    return '\\n'.join(out)
+
 def _try_pdfplumber(path, max_chars):
     try:
         import pdfplumber
@@ -1714,10 +1724,19 @@ def _try_pdfplumber(path, max_chars):
         try:
             page_count = len(pdf.pages)
             for page in pdf.pages:
-                t = (page.extract_text() or '').strip()
-                if t:
-                    parts.append(t)
-                    chars += len(t)
+                seg = (page.extract_text() or '').strip()
+                # Tables carry the numeric/technical detail that extract_text drops.
+                try:
+                    tables = page.extract_tables() or []
+                except Exception:
+                    tables = []
+                for ti, tbl in enumerate(tables):
+                    ftxt = _fmt_table(tbl)
+                    if ftxt.strip():
+                        seg = (seg + '\\n\\n[Table ' + str(ti + 1) + ']\\n' + ftxt).strip()
+                if seg:
+                    parts.append(seg)
+                    chars += len(seg)
                 if chars >= max_chars:
                     break
         finally:
@@ -1803,6 +1822,129 @@ print(json.dumps({'text': text or '', 'page_count': page_count}))
   }
 }
 
+/**
+ * Remove tool-call syntax that the model sometimes NARRATES as prose text
+ * instead of emitting as a structured tool_use block. Claude occasionally
+ * writes Anthropic function-call XML (`<function_calls>` / `<invoke name="...">`)
+ * and the ad-hoc code it wraps (e.g. `import PyPDF2`, `print(text[:5000])`)
+ * directly into a text content block — most often when reading an uploaded
+ * PDF and "thinking out loud" about how to extract it. Left unstripped, that
+ * raw XML + code leaks into the user-visible answer (the real answer follows
+ * the block in the same completion). It is also self-reinforcing: once
+ * persisted to chat history and replayed, it teaches the next turn to repeat
+ * the pattern. Strip the block, keep the surrounding real answer.
+ *
+ * Operates on COMPLETE text (post-stream / final message). For the live token
+ * stream use StreamToolCallFilter, which handles fragmented tags.
+ */
+export function stripNarratedToolCalls(text: string): string {
+  if (!text) return text;
+  if (!/<\/?(?:antml:)?(?:function_calls|invoke|parameter)\b/i.test(text)) {
+    return text;
+  }
+  let t = text;
+  // 1. Balanced <function_calls>…</function_calls> blocks (optional antml: prefix).
+  t = t.replace(/<(?:antml:)?function_calls\b[\s\S]*?<\/(?:antml:)?function_calls>/gi, '');
+  // 2. Balanced <invoke …>…</invoke> blocks not wrapped in function_calls.
+  t = t.replace(/<(?:antml:)?invoke\b[\s\S]*?<\/(?:antml:)?invoke>/gi, '');
+  // 3. Unclosed opener (stream cut mid-block, or block runs to end) — drop to end.
+  t = t.replace(/<(?:antml:)?(?:function_calls|invoke)\b[\s\S]*$/gi, '');
+  // 4. Any stray leftover tags.
+  t = t.replace(/<\/?(?:antml:)?(?:function_calls|invoke|parameter)\b[^>]*>/gi, '');
+  return t.replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/**
+ * Streaming counterpart of stripNarratedToolCalls: filters narrated tool-call
+ * XML out of a token stream one chunk at a time so the leak never reaches the
+ * user's screen live. Buffers just enough at the tail to avoid emitting a
+ * partial `<function_calls`/`<invoke` opener; suppresses everything from an
+ * opener to its matching close; passes all other text straight through.
+ * Never fabricates text — worst case it holds a fragment until flush().
+ */
+export class StreamToolCallFilter {
+  private buf = '';
+  private suppressing = false;
+  private closeTag = '';
+
+  private static readonly OPENERS: Array<{ re: RegExp; close: string }> = [
+    { re: /<(?:antml:)?function_calls\b[^>]*>/i, close: '</function_calls>' },
+    { re: /<(?:antml:)?invoke\b[^>]*>/i, close: '</invoke>' },
+  ];
+  private static readonly CANDS = ['<function_calls', '<invoke', '</function_calls', '</invoke'];
+
+  push(chunk: string): string {
+    if (!chunk) return '';
+    this.buf += chunk;
+    let out = '';
+    for (;;) {
+      if (this.suppressing) {
+        const i = this.buf.toLowerCase().indexOf(this.closeTag);
+        if (i === -1) {
+          // Retain only a tail that might hold a split close tag; drop the rest.
+          const keep = this.closeTag.length - 1;
+          if (this.buf.length > keep) this.buf = this.buf.slice(this.buf.length - keep);
+          return out;
+        }
+        this.buf = this.buf.slice(i + this.closeTag.length);
+        this.suppressing = false;
+        continue;
+      }
+      // Find the earliest COMPLETE opener tag.
+      let best = -1;
+      let bestClose = '';
+      for (const o of StreamToolCallFilter.OPENERS) {
+        const m = o.re.exec(this.buf);
+        if (m && (best === -1 || m.index < best)) {
+          best = m.index;
+          bestClose = o.close;
+        }
+      }
+      if (best !== -1) {
+        out += this.buf.slice(0, best);
+        this.buf = this.buf.slice(best);
+        this.suppressing = true;
+        this.closeTag = bestClose.toLowerCase();
+        continue;
+      }
+      // No complete opener. Emit the safe prefix; hold back only a tail that
+      // could still grow into a tool tag (incomplete opener with no '>' yet).
+      const lt = this.buf.lastIndexOf('<');
+      if (lt === -1) {
+        out += this.buf;
+        this.buf = '';
+        return out;
+      }
+      const tail = this.buf.slice(lt).toLowerCase();
+      const couldBeTag =
+        !tail.includes('>') &&
+        StreamToolCallFilter.CANDS.some((c) => c.startsWith(tail) || tail.startsWith(c));
+      if (couldBeTag) {
+        out += this.buf.slice(0, lt);
+        this.buf = this.buf.slice(lt);
+        return out;
+      }
+      // A '<' that is normal prose (e.g. "hERG < 10 µM") or a stray complete
+      // tag — emit it all; the final stripNarratedToolCalls pass removes any
+      // orphan tag from the persisted answer.
+      out += this.buf;
+      this.buf = '';
+      return out;
+    }
+  }
+
+  /** Call once the stream ends to release any safely-buffered remainder. */
+  flush(): string {
+    if (this.suppressing) {
+      this.buf = '';
+      return '';
+    }
+    const rest = stripNarratedToolCalls(this.buf);
+    this.buf = '';
+    return rest;
+  }
+}
+
 async function _fetchPaperContentFromMessage(
   message: string,
 ): Promise<{ ref: string; content: string } | null> {
@@ -1833,7 +1975,7 @@ async function _fetchPaperContentFromMessage(
           continue;
         }
         if (!localFile.filePath.toLowerCase().endsWith('.pdf')) continue;
-        const text = await _extractPdfText(localFile.filePath, 40000);
+        const text = await _extractPdfText(localFile.filePath, 120000);
         if (text) {
           textParts.push(`=== ${name} ===\n${text}`);
           refNames.push(name);
@@ -1843,7 +1985,7 @@ async function _fetchPaperContentFromMessage(
       if (textParts.length > 0) {
         return {
           ref: refNames.join(', '),
-          content: textParts.join('\n\n---\n\n').slice(0, 50000),
+          content: textParts.join('\n\n---\n\n').slice(0, 150000),
         };
       }
     } catch (err: any) {
@@ -1873,7 +2015,7 @@ async function _fetchPaperContentFromMessage(
           console.warn(`[_fetchPaperContentFromMessage] No local file for dataset ${datasetId}`);
           continue;
         }
-        const text = await _extractPdfText(localFile.filePath, 40000);
+        const text = await _extractPdfText(localFile.filePath, 120000);
         if (text) {
           textParts.push(`=== ${name} ===\n${text}`);
           refNames.push(name);
@@ -1882,7 +2024,7 @@ async function _fetchPaperContentFromMessage(
       if (textParts.length > 0) {
         return {
           ref: refNames.join(', '),
-          content: textParts.join('\n\n---\n\n').slice(0, 50000),
+          content: textParts.join('\n\n---\n\n').slice(0, 150000),
         };
       }
     } catch (err: any) {
@@ -2015,6 +2157,106 @@ async function _fetchPaperContentFromMessage(
     console.warn('[_fetchPaperContentFromMessage] fetch failed:', err.message);
   }
   return null;
+}
+
+// Anthropic vision accepts only these media types; tiff/bmp/svg are not supported.
+const _VISION_MEDIA_TYPES: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+};
+// Anthropic hard limit is 5MB per image (base64). base64 inflates ~4/3, so cap
+// raw bytes at ~3.75MB. We can't downscale (no image lib), so oversized images
+// are skipped with a note rather than silently dropped.
+const _VISION_MAX_RAW_BYTES = 3_750_000;
+const _VISION_MAX_IMAGES = 8;
+
+/**
+ * Detect image attachments in a chat message and return Anthropic image content
+ * blocks (base64) so an uploaded histology slide, gel/blot, plot, or scan is
+ * actually SEEN by the multimodal model — enabling a grounded biomedical read
+ * instead of the model guessing or trying to `read_file` the binary (which
+ * garbles and triggers the tool-call-leak failure mode).
+ *
+ * Parses the same chip formats as _fetchPaperContentFromMessage. Returns the
+ * image blocks plus the list of names that were too large or unsupported so the
+ * caller can tell the user.
+ */
+export async function _buildImageContentBlocks(
+  message: string,
+  // Resolver is injectable so this stays decoupled from the (side-effect-heavy)
+  // routes module and is unit-testable. Defaults to the routes registry.
+  resolveFile?: (id: string) => { filePath?: string } | undefined,
+): Promise<{ blocks: any[]; attached: string[]; skipped: Array<{ name: string; reason: string }> }> {
+  const blocks: any[] = [];
+  const attached: string[] = [];
+  const skipped: Array<{ name: string; reason: string }> = [];
+
+  // Collect (name, id) pairs from both the new chip format and the legacy one.
+  const refs: Array<{ name: string; id: string }> = [];
+  for (const m of message.matchAll(/\[Dataset:\s*([^\(]+?)\s*\(id:\s*([^\)]+?)\s*\)\]/gi)) {
+    refs.push({ name: m[1].trim(), id: m[2].trim() });
+  }
+  const datasetsBlock = message.match(/\[Uploaded datasets:\s*([^\]]+)\]/i)?.[1] ?? '';
+  if (datasetsBlock) {
+    for (const entry of datasetsBlock.split(/;\s*/)) {
+      const name = entry.match(/^([^:]+):/)?.[1]?.trim() ?? '';
+      const id = entry.match(/dataset_id=([a-f0-9-]+)/i)?.[1];
+      if (name && id) refs.push({ name, id });
+    }
+  }
+  if (refs.length === 0) return { blocks, attached, skipped };
+
+  let fs: typeof import('fs/promises') | null = null;
+  let getUploadedFile: ((id: string) => { filePath?: string } | undefined) | null = resolveFile ?? null;
+  try {
+    fs = await import('fs/promises');
+    if (!getUploadedFile) ({ getUploadedFile } = await import('./routes'));
+  } catch {
+    return { blocks, attached, skipped };
+  }
+
+  const seen = new Set<string>();
+  for (const { name, id } of refs) {
+    const ext = (name.toLowerCase().match(/\.[a-z0-9]+$/)?.[0]) ?? '';
+    if (!(ext in _VISION_MEDIA_TYPES)) {
+      // Only flag image-ish extensions we can't send; ignore non-image files.
+      if (['.tif', '.tiff', '.bmp', '.svg'].includes(ext)) {
+        skipped.push({ name, reason: `${ext} is not a format the vision model can read — export as PNG or JPEG` });
+      }
+      continue;
+    }
+    if (blocks.length >= _VISION_MAX_IMAGES) {
+      skipped.push({ name, reason: `only the first ${_VISION_MAX_IMAGES} images are analyzed` });
+      continue;
+    }
+    // Resolve to a local file (raw id, or a UUID embedded in an s3:// URI).
+    let localFile = getUploadedFile!(id);
+    if (!localFile?.filePath) {
+      const uuidInS3 = id.match(/uploads\/([0-9a-f-]{36})\//i)?.[1];
+      if (uuidInS3) localFile = getUploadedFile!(uuidInS3);
+    }
+    if (!localFile?.filePath || seen.has(localFile.filePath)) continue;
+    seen.add(localFile.filePath);
+    try {
+      const buf = await fs!.readFile(localFile.filePath);
+      if (buf.length > _VISION_MAX_RAW_BYTES) {
+        skipped.push({ name, reason: `image is ${(buf.length / 1e6).toFixed(1)}MB — over the 3.75MB limit; downscale and re-upload` });
+        continue;
+      }
+      blocks.push({
+        type: 'image',
+        source: { type: 'base64', media_type: _VISION_MEDIA_TYPES[ext], data: buf.toString('base64') },
+      });
+      attached.push(name);
+      console.log(`[_buildImageContentBlocks] Attached image ${name} (${(buf.length / 1024).toFixed(0)}KB, ${_VISION_MEDIA_TYPES[ext]})`);
+    } catch (err: any) {
+      console.warn(`[_buildImageContentBlocks] Failed to read ${name} (id=${id}): ${err.message}`);
+    }
+  }
+  return { blocks, attached, skipped };
 }
 
 async function extractInlineDataWithLLM(
@@ -7711,6 +7953,11 @@ Two execution surfaces. Pick by scale + whether the task matches an indexed pipe
 
 If the user explicitly says "use run_code" or "do not launch a Nextflow workflow", honor that. Otherwise pick based on what fits.
 
+TOOL-USE OUTPUT RULE (critical):
+- To use a tool (run_code, read_file, search_workflows, …) emit a REAL tool call — the system runs it and hands you the result. NEVER write tool-call syntax as prose: do not type \`<function_calls>\`, \`<invoke name="...">\`, \`</invoke>\`, or \`</function_calls>\` tags in your answer, and do not narrate the extraction plumbing (\`import PyPDF2\`, \`text.split('\\n')\`, \`print(text[:5000])\`, "let me read the file directly…") to the user.
+- When a PDF, image, or other file is attached, its extracted content is ALREADY provided to you in-context (under a [Paper content: …] block or a tool result). Read that directly and answer — do not re-implement file reading in code you show the user.
+- The user sees only your final answer. The mechanics of how you obtained it (tool calls, intermediate code) must never appear in the response text.
+
 Quality of computation:
 - For rates / percentages / proportions involving counts: ALWAYS run actual code — do not arithmetic in your head. Sum explicit numerators and denominators; never average per-group rates without verifying that's what's asked.
 - Verify denominators by inspecting the data first when the user supplied a dataset (read the column, check what it represents) before computing any rate.
@@ -7991,9 +8238,35 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       // narrating the workflow result. Reserve tools for pure data-analysis turns.
       // (isWorkflowTurn is hoisted above so it is also available for system prompt selection.)
       const agentTools = (!useThinking && onToolEvent && !isWorkflowTurn) ? BIOMATE_TOOLS : undefined;
+
+      // Vision: when the user attached image(s), send them to the multimodal model
+      // as real image content blocks so it can give a grounded biomedical read
+      // (histology, gels/blots, plots, scans) instead of guessing from filenames.
+      // Only the Claude backbone consumes agentMessages; other providers use a
+      // text-only plainMessages path below, so skip the base64 work for them.
+      const { blocks: imageBlocks, attached: attachedImages, skipped: skippedImages } =
+        this.modelConfig.responseModel.startsWith('claude-')
+          ? await _buildImageContentBlocks(message)
+          : { blocks: [] as any[], attached: [] as string[], skipped: [] as Array<{ name: string; reason: string }> };
+      let userContent: Anthropic.MessageParam['content'];
+      if (imageBlocks.length > 0) {
+        const visionNote =
+          `\n\n[${attachedImages.length} image(s) attached and shown to you: ${attachedImages.join(', ')}]` +
+          (skippedImages.length
+            ? `\n[Not shown: ${skippedImages.map(s => `${s.name} (${s.reason})`).join('; ')}]`
+            : '') +
+          `\nGive a careful biomedical read of the image(s): describe what you see, note any features of scientific interest, and offer an interpretation. State your uncertainty explicitly and frame it as informational analysis, NOT a clinical diagnosis — recommend expert/lab confirmation for anything consequential.`;
+        userContent = [
+          { type: 'text', text: userPrompt + visionNote },
+          ...imageBlocks,
+        ];
+      } else {
+        userContent = userPrompt;
+      }
+
       const agentMessages: Anthropic.MessageParam[] = [
         ...previousMessages,
-        { role: 'user', content: userPrompt },
+        { role: 'user', content: userContent },
       ];
 
 
@@ -8109,6 +8382,10 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           // Accumulate both text deltas and tool_use content blocks
           const contentBlocks: any[] = [];
           let currentBlock: any = null;
+          // Filters narrated <function_calls>/<invoke> tool-call XML out of the
+          // live token stream so it never reaches the user's screen. rawResponse
+          // keeps the raw text; it is sanitized once more before persistence.
+          const leakFilter = new StreamToolCallFilter();
 
           for await (const event of stream as any) {
             if (event?.type === 'content_block_start') {
@@ -8122,7 +8399,8 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
                 const text = String(event.delta.text || '');
                 if (text) {
                   rawResponse += text;
-                  onResponseDelta(text);
+                  const safe = leakFilter.push(text);
+                  if (safe) onResponseDelta(safe);
                   if (currentBlock?.type === 'text') currentBlock.text = (currentBlock.text || '') + text;
                 }
               } else if (event.delta?.type === 'input_json_delta' && currentBlock?.type === 'tool_use') {
@@ -8136,6 +8414,8 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
               lastStopReason = event.delta?.stop_reason || null;
             }
           }
+          const _flushed = leakFilter.flush();
+          if (_flushed) onResponseDelta(_flushed);
 
           const toolUseBlocks = contentBlocks.filter(b => b.type === 'tool_use');
           if (lastStopReason === 'tool_use' && toolUseBlocks.length > 0) {
@@ -8180,7 +8460,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         const textContent = completion.content.find((c: any) => c.type === 'text');
         rawResponse = textContent && textContent.type === 'text' ? (textContent as any).text : '';
         if (onResponseDelta && rawResponse) {
-          onResponseDelta(rawResponse);
+          onResponseDelta(stripNarratedToolCalls(rawResponse));
         }
         break;
       }
@@ -8241,6 +8521,12 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         }
         if (onResponseDelta) onResponseDelta(rawResponse);
       }
+
+      // Strip any narrated tool-call XML / code the model wrote as prose before
+      // it is parsed, quality-enforced, returned, and persisted to chat history.
+      // (The live stream is already filtered by StreamToolCallFilter; this guards
+      // the stored + final message and the non-streamed / fallback paths.)
+      rawResponse = stripNarratedToolCalls(rawResponse);
 
       // Detect and parse thinking content
       const thinkingResult = thinkingDetector.detectThinking(rawResponse);
@@ -8479,12 +8765,18 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       const { getUploadedFile } = await import('./routes');
       const localFile = getUploadedFile(fileId);
       if (localFile?.filePath) {
-        // PDF: extract text via pdfplumber (binary readFile returns garbage for PDFs)
+        // PDF: extract text via pdfplumber (binary readFile returns garbage for PDFs).
+        // A PDF has no meaningful "lines" to page through, and slicing to the first
+        // n_lines silently dropped everything past the top of page 1 (methods, results,
+        // tables — the technical detail the caller is reading the PDF for). Extract the
+        // whole document up to a generous char budget and return all of it. n_lines only
+        // scales the budget upward; it never truncates below a useful floor.
         if (localFile.filePath.toLowerCase().endsWith('.pdf')) {
-          const text = await _extractPdfText(localFile.filePath, Math.min(n_lines * 200, 40000));
+          const budget = Math.min(Math.max(n_lines * 200, 20000), 120000);
+          const text = await _extractPdfText(localFile.filePath, budget);
           if (text) {
-            const lines = text.split('\n').slice(0, n_lines);
-            return { lines, total_lines_preview: lines.length, format_hint: 'PDF', has_more: true };
+            const lines = text.split('\n');
+            return { lines, total_lines_preview: lines.length, format_hint: 'PDF', has_more: text.length >= budget };
           }
           return { error: 'PDF text extraction failed — file may be scanned or encrypted' };
         }
