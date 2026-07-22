@@ -702,7 +702,11 @@ function PhaseGroupSection({
                 {/* Param meta (first 3 params with non-null values inline, non-running non-done) */}
                 {!isRunning && !isDone && step.parameters && (() => {
                   const visible = Object.entries(step.parameters as Record<string,unknown>)
-                    .filter(([,v]) => v !== null && v !== undefined && v !== '');
+                    // Skip metadata-object placeholders ({type,label,default}) — those
+                    // params render (with real values) in the phase's params section;
+                    // the inline step-meta is for scalar runtime values only, so an
+                    // object here would stringify to "[object Object]".
+                    .filter(([,v]) => v !== null && v !== undefined && v !== '' && typeof v !== 'object');
                   if (visible.length === 0) return null;
                   return (
                     <div className="step-meta">
