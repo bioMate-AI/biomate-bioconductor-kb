@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Inside the Three Turns: The 30-Phase Pipeline From a Raw GEO Deposit to Drug Developability &mdash; BioMate AI</title>
+  <meta name="description" content="A technical deep dive into the BioMate summit demo: the ~30 discrete phases behind three plain-English turns — format detection, pseudobulk aggregation, robust DESeq2 dispersion, output inference, enrichment, and ADMET — run on a real raw GEO scRNA-seq deposit (GSE227835)."/>
+  <meta name="keywords" content="BioMate pipeline, GEO pseudobulk, scRNA-seq differential expression, DESeq2 dispersion, nf-core differentialabundance, clusterProfiler enrichGO, ADMET, GSE227835, bioinformatics automation"/>
+  <meta name="author" content="BioMate AI"/>
+  <link rel="canonical" href="https://biomate.ai/blog-summit-2026-deep-dive.html"/>
+  <meta property="og:type" content="article"/>
+  <meta property="og:title" content="Inside the Three Turns: The 30-Phase Pipeline From a Raw GEO Deposit to Drug Developability"/>
+  <meta property="og:description" content="The engineering behind the summit demo — every format branch, every fallback, every phase — on a real raw GEO scRNA-seq deposit."/>
+  <meta property="og:url" content="https://biomate.ai/blog-summit-2026-deep-dive.html"/>
+  <meta property="og:image" content="https://biomate.ai/images/blog-summit-2026-deep-dive-hero.png"/>
+  <meta property="og:site_name" content="BioMate AI"/>
+  <meta property="article:published_time" content="2026-07-22"/>
+  <meta property="article:author" content="BioMate AI"/>
+  <meta property="article:tag" content="Pipeline, scRNA-seq, Pseudobulk, DESeq2, ADMET, Myasthenia Gravis"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:site" content="@biomateai"/>
+  <meta name="twitter:title" content="Inside the Three Turns — The 30-Phase Pipeline Behind a Plain-English Demo"/>
+  <meta name="twitter:description" content="Three turns on stage. ~30 phases underneath: format detection, pseudobulk, robust DESeq2, enrichment, ADMET — on a real raw GEO deposit."/>
+  <meta name="twitter:image" content="https://biomate.ai/images/blog-summit-2026-deep-dive-hero.png"/>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "TechArticle",
+        "headline": "Inside the Three Turns: The 30-Phase Pipeline From a Raw GEO Deposit to Drug Developability",
+        "description": "A technical deep dive into the ~30 discrete phases behind the BioMate summit demo's three plain-English turns.",
+        "url": "https://biomate.ai/blog-summit-2026-deep-dive.html",
+        "datePublished": "2026-07-22",
+        "author": { "@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai" },
+        "image": "https://biomate.ai/images/blog-summit-2026-deep-dive-hero.png",
+        "keywords": "GEO pseudobulk, scRNA-seq, DESeq2, clusterProfiler, ADMET, GSE227835"
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://biomate.ai/" },
+          { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://biomate.ai/blog.html" },
+          { "@type": "ListItem", "position": 3, "name": "The 30-Phase Pipeline", "item": "https://biomate.ai/blog-summit-2026-deep-dive.html" }
+        ]
+      }
+    ]
+  }
+  </script>
+  <link rel="stylesheet" href="fonts/fonts.css"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <style>
+    :root {
+      --bg: #F5F8FB; --bg-card: #EBF1F7; --bg-card2: #E2EAF2;
+      --accent: #0B8A67; --accent-light: #096E53;
+      --text: #0E1C2F; --text-muted: #5A6E84;
+      --border: #C8D6E3; --radius: 10px;
+      --font-body: 'Open Sans', sans-serif; --font-head: 'Crimson Text', serif;
+      --font-mono: 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace;
+      --nav-h: 68px;
+    }
+    html { scroll-behavior: smooth; }
+    .bm-blog { background: var(--bg); color: var(--text); font-family: var(--font-body); font-weight: 400; line-height: 1.6; font-size: 16px; }
+    .bm-blog a { color: var(--accent-light); text-decoration: none; transition: color .2s; }
+    .bm-blog a:hover { color: var(--accent); }
+    .bm-blog img { max-width: 100%; display: block; }
+    .article-hero { width: 100%; max-height: 420px; overflow: hidden; position: relative; }
+    .article-hero img { width: 100%; height: 420px; object-fit: cover; display: block; }
+    .article-hero-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(15,22,28,.35), rgba(15,22,28,.65)); }
+    .breadcrumb { max-width: 1100px; margin: 0 auto; padding: 1.25rem clamp(1rem,4vw,2rem) 0; font-size: .8rem; color: var(--text-muted); }
+    .breadcrumb a { color: var(--accent-light); }
+    .breadcrumb span { margin: 0 .4rem; }
+    .article-outer { max-width: 1100px; margin: 0 auto; padding: 2.5rem clamp(1rem,4vw,2rem) 4rem; display: grid; grid-template-columns: 1fr 280px; gap: 3.5rem; align-items: start; }
+    @media(max-width:860px){ .article-outer { grid-template-columns: 1fr; } }
+    .article-header { margin-bottom: 2.5rem; }
+    .article-cat { font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: .5rem; display: block; }
+    .article-header h1 { font-family: var(--font-head); font-size: clamp(1.8rem,4vw,2.6rem); font-weight: 700; color: var(--text); line-height: 1.2; margin-bottom: .75rem; }
+    .article-meta { font-size: .8rem; color: var(--text-muted); display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+    .article-meta strong { color: var(--text); font-weight: 600; }
+    .article-body { font-size: .95rem; color: var(--text); line-height: 1.75; }
+    .article-body p { margin-bottom: 1.25rem; color: var(--text-muted); }
+    .article-body p.lead { font-size: 1.08rem; color: var(--text); font-weight: 400; margin-bottom: 1.75rem; border-left: 3px solid var(--accent); padding-left: 1.1rem; }
+    .article-body h2 { font-family: var(--font-head); font-size: 1.45rem; color: var(--text); margin: 2.25rem 0 .75rem; }
+    .article-body h3 { font-family: var(--font-head); font-size: 1.15rem; color: var(--text); margin: 1.75rem 0 .5rem; }
+    .article-body ul { margin: 0 0 1.25rem 1.25rem; color: var(--text-muted); }
+    .article-body ul li { margin-bottom: .5rem; font-size: .92rem; }
+    .article-body ol { margin: 0 0 1.25rem 1.25rem; color: var(--text-muted); }
+    .article-body ol li { margin-bottom: .5rem; font-size: .92rem; }
+    .article-body strong { font-weight: 700; }
+    .article-body code { font-family: var(--font-mono); font-size: .82em; background: var(--bg-card2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; color: var(--accent-light); }
+    .section-label { font-size: .68rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: .35rem; display: block; }
+    .article-divider { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+    .callout { background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 0 var(--radius) var(--radius) 0; padding: 1.1rem 1.4rem; margin: 1.75rem 0; }
+    .callout strong { color: var(--text); display: block; margin-bottom: .4rem; font-size: .88rem; }
+    .callout p { margin: 0; font-size: .88rem; color: var(--text-muted); }
+    .stat-row { display: flex; gap: 1.5rem; flex-wrap: wrap; margin: 1.5rem 0; }
+    .stat-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; flex: 1; min-width: 110px; text-align: center; }
+    .stat-box .num { font-family: var(--font-head); font-size: 1.9rem; font-weight: 700; color: var(--accent); line-height: 1; }
+    .stat-box .lbl { font-size: .72rem; color: var(--text-muted); margin-top: .25rem; }
+    /* Pipeline stage map */
+    .stage { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.15rem 1.4rem; margin: 1rem 0; }
+    .stage-head { display: flex; align-items: baseline; gap: .7rem; margin-bottom: .6rem; }
+    .stage-num { font-family: var(--font-head); font-weight: 700; color: #fff; background: var(--accent); border-radius: 6px; min-width: 30px; height: 26px; display: inline-flex; align-items: center; justify-content: center; font-size: .85rem; padding: 0 .4rem; }
+    .stage-title { font-family: var(--font-head); font-size: 1.12rem; font-weight: 700; color: var(--text); }
+    .stage-turn { font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); border: 1px solid var(--border); border-radius: 20px; padding: 2px 9px; margin-left: auto; white-space: nowrap; }
+    .stage-turn.hidden { color: var(--text-muted); }
+    .phase-list { list-style: none; margin: 0 !important; padding: 0; counter-reset: ph; }
+    .phase-list li { position: relative; padding: .3rem 0 .3rem 2rem; font-size: .88rem; color: var(--text-muted); border-bottom: 1px dashed var(--border); }
+    .phase-list li:last-child { border-bottom: none; }
+    .phase-list li::before { counter-increment: ph; content: counter(ph, decimal-leading-zero); position: absolute; left: 0; top: .3rem; font-family: var(--font-mono); font-size: .72rem; color: var(--accent); font-weight: 700; }
+    .phase-list li strong { color: var(--text); }
+    .flow-connector { text-align: center; color: var(--accent); font-size: .8rem; margin: .25rem 0; letter-spacing: .04em; }
+    .flow-connector.narrative { color: var(--text-muted); }
+    /* Format grid */
+    .format-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .8rem; margin: 1.25rem 0; }
+    @media(max-width:560px){ .format-grid { grid-template-columns: 1fr; } }
+    .format-card { background: var(--bg-card2); border: 1px solid var(--border); border-radius: var(--radius); padding: .9rem 1.1rem; }
+    .format-card .ft { font-weight: 700; color: var(--text); font-size: .9rem; margin-bottom: .25rem; }
+    .format-card .fd { font-size: .82rem; color: var(--text-muted); }
+    .format-card.highlight { border-color: var(--accent); border-left: 3px solid var(--accent); }
+    .format-card.highlight .ft::after { content: " ← GSE227835"; color: var(--accent); font-weight: 400; font-size: .72rem; }
+    /* Data table */
+    .data-table-wrap { overflow-x: auto; margin: 1.25rem 0; }
+    table.data-table { width: 100%; border-collapse: collapse; font-size: .85rem; min-width: 380px; }
+    table.data-table th, table.data-table td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--border); }
+    table.data-table th { color: var(--accent); font-weight: 700; font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; }
+    table.data-table td { color: var(--text-muted); }
+    table.data-table td:first-child { color: var(--text); font-weight: 600; }
+    table.data-table td.mono { font-family: var(--font-mono); font-size: .82rem; }
+    aside { position: sticky; top: 80px; }
+    .sidebar-widget { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.4rem; margin-bottom: 1.4rem; }
+    .sidebar-widget h3 { font-family: var(--font-head); font-size: 1.05rem; color: var(--text); margin-bottom: .9rem; padding-bottom: .45rem; border-bottom: 1px solid var(--border); }
+    .sidebar-list { list-style: none; display: flex; flex-direction: column; gap: .65rem; }
+    .sidebar-list li a { font-size: .84rem; color: var(--text); }
+    .sidebar-list li a:hover { color: var(--accent); }
+    .sidebar-list .meta { font-size: .73rem; color: var(--text-muted); margin-top: .15rem; }
+    .topic-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+    .topic-chip { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; font-size: .73rem; color: var(--text-muted); padding: 3px 8px; }
+    .toc-list { list-style: none; display: flex; flex-direction: column; gap: .5rem; }
+    .toc-list li a { font-size: .82rem; color: var(--text-muted); }
+    .toc-list li a:hover { color: var(--accent); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 24px; border-radius: 8px; font-family: var(--font-body); font-size: .9rem; font-weight: 700; cursor: pointer; text-decoration: none; transition: all .2s; border: none; }
+    .btn-primary { background: var(--accent); color: #fff; width: 100%; justify-content: center; }
+    .btn-primary:hover { background: var(--accent-light); color: #fff; }
+  </style>
+</head>
+<body>
+<div id="bm-nav"></div>
+<div class="bm-blog">
+
+<div class="article-hero">
+  <img src="images/blog-summit-2026-deep-dive-hero.png" alt="BioMate pipeline schematic: three plain-English turns fan out into ~30 backend phases across six stages — input, ingestion, differential expression, output inference, enrichment, and ADMET — run on GSE227835" />
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Newsroom</a><span>&rsaquo;</span>Technical Deep Dive
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Technical Deep Dive &middot; Platform</span>
+      <h1>Inside the Three Turns: The 30-Phase Pipeline From a Raw GEO Deposit to Drug Developability</h1>
+      <div class="article-meta">
+        <span>July 22, 2026</span>
+        <span>&middot;</span>
+        <span>12 min read</span>
+        <span>&middot;</span>
+        <strong>BioMate AI</strong>
+      </div>
+    </div>
+
+    <div class="article-body">
+
+      <p class="lead">On the summit stage, BioMate turns a real myasthenia gravis dataset into a developability verdict in <strong>three plain-English turns</strong>. That is the surface. Underneath, those three turns fan out into roughly <strong>thirty discrete phases</strong> &mdash; format detection, pseudobulk aggregation, robust dispersion estimation, output inference, enrichment, and ADMET. This is the companion to the <a href="blog-summit-2026.html">demo announcement</a>: the engineering, phase by phase, with the real numbers from the run.</p>
+
+      <div class="stat-row">
+        <div class="stat-box"><div class="num">3</div><div class="lbl">plain-English turns</div></div>
+        <div class="stat-box"><div class="num">~30</div><div class="lbl">backend phases</div></div>
+        <div class="stat-box"><div class="num">4</div><div class="lbl">raw data formats handled</div></div>
+        <div class="stat-box"><div class="num">36,601</div><div class="lbl">genes, 20 samples</div></div>
+      </div>
+
+      <span class="section-label">The Real Problem</span>
+      <h2>The Hard Part Was Never the Statistics &mdash; It Was the Raw Data</h2>
+
+      <p>Every public dataset arrives in the shape its depositor happened to use. Most bioinformatics tools quietly assume one canonical layout &mdash; usually 10x Genomics matrix bundles &mdash; and simply fail on anything else. The case for this demo, <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE227835" target="_blank" rel="noopener">GSE227835</a> (single-cell RNA-seq of AChR+ myasthenia gravis vs. healthy controls), ships as <strong>dense per-sample expression tables</strong> &mdash; one gzipped genes&times;cells matrix per subject &mdash; not the <code>matrix.mtx</code>/<code>barcodes.tsv</code>/<code>features.tsv</code> triplet most pipelines expect. A tool that only reads 10x MEX would stop before computing a single statistic.</p>
+
+      <p>BioMate&rsquo;s ingestion layer detects and normalizes <strong>four</strong> distinct raw-data shapes automatically:</p>
+
+      <div class="format-grid">
+        <div class="format-card">
+          <div class="ft">Bulk series matrix</div>
+          <div class="fd">Pre-quantified expression from the GEO series matrix &mdash; rounded to integer counts.</div>
+        </div>
+        <div class="format-card">
+          <div class="ft">10x MEX bundle</div>
+          <div class="fd">Sparse <code>matrix.mtx.gz</code> + <code>barcodes</code> + <code>features</code> per sample.</div>
+        </div>
+        <div class="format-card">
+          <div class="ft">Per-sample tarball</div>
+          <div class="fd">A <code>.tar.gz</code> per subject that unpacks to MEX files.</div>
+        </div>
+        <div class="format-card highlight">
+          <div class="ft">Dense genes&times;cells TSV</div>
+          <div class="fd">One gzipped dense table per sample &mdash; the format that broke naive readers, now handled natively.</div>
+        </div>
+      </div>
+
+      <p>Whichever shape it finds, the ingestion workflow pseudobulk-aggregates the single-cell counts up to the sample level, harmonizes the metadata, auto-detects the condition and contrast, and emits three DESeq2-ready files &mdash; <code>counts_matrix.csv</code>, <code>sample_metadata.csv</code>, and <code>contrasts.csv</code>. The user never sees any of it. They asked one question.</p>
+
+      <div class="article-divider"></div>
+
+      <span class="section-label">The Full Pipeline</span>
+      <h2>Six Stages, ~30 Phases, Three Turns</h2>
+
+      <p>Here is the complete flow. The three conversational turns map onto Stages&nbsp;2, 4, and 5; Stages&nbsp;0, 1, and 3 run invisibly around them.</p>
+
+      <!-- STAGE 0 -->
+      <div class="stage">
+        <div class="stage-head">
+          <span class="stage-num">0</span>
+          <span class="stage-title">Input &amp; Routing</span>
+          <span class="stage-turn hidden">Invisible</span>
+        </div>
+        <ol class="phase-list">
+          <li><strong>Input intake</strong> &mdash; accepts a GEO/SRA accession, a download link, a file upload, or a typed question.</li>
+          <li><strong>Accession &amp; intent detection</strong> &mdash; recognizes <code>GSE</code>/<code>GSM</code>/<code>SRA</code> patterns and the analytical intent.</li>
+          <li><strong>Routing decision</strong> &mdash; single workflow, a suggested multi-step chain, or a disambiguation question.</li>
+          <li><strong>Parameter prefill</strong> &mdash; rule-based + LLM hybrid; auto-fills the accession and defaults.</li>
+        </ol>
+      </div>
+
+      <div class="flow-connector">&darr;&nbsp; accession &rarr; ingestion</div>
+
+      <!-- STAGE 1 -->
+      <div class="stage">
+        <div class="stage-head">
+          <span class="stage-num">1</span>
+          <span class="stage-title">Ingestion &amp; Format Normalization</span>
+          <span class="stage-turn hidden">Invisible</span>
+        </div>
+        <ol class="phase-list">
+          <li><strong>GEO fetch</strong> &mdash; retrieve the series matrix and supplementary files.</li>
+          <li><strong>Format detection</strong> &mdash; branch across the four shapes above (bulk / MEX / tarball / dense TSV).</li>
+          <li><strong>Download &amp; extract</strong> &mdash; pull and unpack the raw archive for single-cell paths.</li>
+          <li><strong>Per-sample read</strong> &mdash; sparse <code>readMM</code> for MEX, dense table read for TSV.</li>
+          <li><strong>Pseudobulk aggregation</strong> &mdash; sum counts per gene per sample, with a minimum-cells filter.</li>
+          <li><strong>Gene alignment</strong> &mdash; intersect the gene set across all samples.</li>
+          <li><strong>Metadata harmonization</strong> &mdash; auto-detect the condition column (disease vs. control).</li>
+          <li><strong>Contrast auto-detection</strong> &mdash; choose reference and target groups.</li>
+          <li><strong>Emit DESeq2-ready CSVs</strong> &mdash; counts matrix, sample sheet, contrasts.</li>
+        </ol>
+      </div>
+
+      <div class="flow-connector">&darr;&nbsp; 3 CSVs become the next stage&rsquo;s inputs <strong>(data-connected)</strong></div>
+
+      <!-- STAGE 2 -->
+      <div class="stage">
+        <div class="stage-head">
+          <span class="stage-num">2</span>
+          <span class="stage-title">Differential Expression &mdash; DESeq2</span>
+          <span class="stage-turn">Turn 1</span>
+        </div>
+        <ol class="phase-list">
+          <li><strong>Stage inputs</strong> &mdash; move data from object storage onto the compute worker.</li>
+          <li><strong>Load &amp; coerce</strong> &mdash; integer coercion, missing-value clamp.</li>
+          <li><strong>Gene filtering</strong> &mdash; drop low-count genes below the expression floor.</li>
+          <li><strong>Robust dispersion &amp; test</strong> &mdash; size factors, then a <strong>parametric &rarr; local &rarr; gene-wise</strong> dispersion fallback so small or low-variance cohorts never dead-end, then the Wald test.</li>
+          <li><strong>Results &amp; significant genes</strong> &mdash; ranked table plus the significant-gene list.</li>
+          <li><strong>Diagnostics</strong> &mdash; volcano and PCA plots.</li>
+          <li><strong>QC metrics &amp; gate</strong> &mdash; evaluated against configured thresholds.</li>
+        </ol>
+      </div>
+
+      <div class="flow-connector">&darr;&nbsp; every run emits into output inference</div>
+
+      <!-- STAGE 3 -->
+      <div class="stage">
+        <div class="stage-head">
+          <span class="stage-num">3</span>
+          <span class="stage-title">Output Inference &amp; Findings</span>
+          <span class="stage-turn hidden">Per run</span>
+        </div>
+        <ol class="phase-list">
+          <li><strong>Output resolution</strong> &mdash; locate result files across the publish directory and work directory.</li>
+          <li><strong>Findings generation</strong> &mdash; read the result tables and summarize the key numbers in plain English.</li>
+          <li><strong>Report assembly</strong> &mdash; a cited, reproducible methods-and-results record.</li>
+        </ol>
+      </div>
+
+      <div class="flow-connector">&darr;&nbsp; DE gene list becomes the enrichment input <strong>(data-connected)</strong></div>
+
+      <!-- STAGE 4 -->
+      <div class="stage">
+        <div class="stage-head">
+          <span class="stage-num">4</span>
+          <span class="stage-title">Pathway Enrichment &mdash; clusterProfiler</span>
+          <span class="stage-turn">Turn 2</span>
+        </div>
+        <ol class="phase-list">
+          <li><strong>Gene-list input &amp; ID mapping</strong> &mdash; map symbols to ENTREZ identifiers.</li>
+          <li><strong>Over-representation analysis</strong> &mdash; enrichGO across Gene Ontology terms.</li>
+          <li><strong>Simplify</strong> &mdash; collapse redundant terms.</li>
+          <li><strong>Visualization</strong> &mdash; barplot, dotplot, cnetplot, emapplot, goplot.</li>
+          <li><strong>Results &amp; findings</strong> &mdash; enriched-term table, back through Stage&nbsp;3.</li>
+        </ol>
+      </div>
+
+      <div class="flow-connector narrative">&darr;&nbsp; no data link &mdash; the drug is a mechanistic hypothesis, not a pipeline output</div>
+
+      <!-- STAGE 5 -->
+      <div class="stage">
+        <div class="stage-head">
+          <span class="stage-num">5</span>
+          <span class="stage-title">Drug Developability &mdash; ADMET</span>
+          <span class="stage-turn">Turn 3</span>
+        </div>
+        <ol class="phase-list">
+          <li><strong>Molecule input</strong> &mdash; a candidate SMILES (here, iptacopan).</li>
+          <li><strong>ADMET prediction &amp; gates</strong> &mdash; clearance, hERG, CNS permeability, hepatotoxicity, with QC thresholds &mdash; then Stage&nbsp;3 findings.</li>
+        </ol>
+      </div>
+
+      <div class="callout">
+        <strong>Cross-cutting, every stage.</strong>
+        <p>Live progress streaming (per phase and step), usage metering, durable run-state so long jobs survive worker restarts, and an automatic QC remediation loop &mdash; all running alongside the six stages above.</p>
+      </div>
+
+      <div class="article-divider"></div>
+
+      <span class="section-label">The Real Run</span>
+      <h2>What Actually Came Out of GSE227835</h2>
+
+      <p>Nothing below is illustrative. These are the numbers from the pipeline on the real deposit &mdash; the biology is the data&rsquo;s, not the slide&rsquo;s.</p>
+
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Stage</th><th>Quantity</th><th>Value</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Ingestion</td><td>Samples pseudobulked (MG + HC)</td><td class="mono">20</td></tr>
+            <tr><td>Ingestion</td><td>Genes per sample</td><td class="mono">36,601</td></tr>
+            <tr><td>Ingestion</td><td>Cells per sample</td><td class="mono">~5,800&ndash;8,600</td></tr>
+            <tr><td>Differential expression</td><td>Genes tested (non-NA)</td><td class="mono">14,722</td></tr>
+            <tr><td>Differential expression</td><td>DE genes at padj &lt; 0.05</td><td class="mono">883</td></tr>
+            <tr><td>Enrichment</td><td>DE genes GO-mappable</td><td class="mono">99 / 141</td></tr>
+            <tr><td>Enrichment</td><td>Lead signature</td><td>TNF-response (GO:0071356)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>The top differentially expressed genes &mdash; <code>MCRS1</code>, <code>ANKRD49</code>, <code>NRTN</code>, <code>ETV7</code>, <code>TIGIT</code>, <code>BATF3</code>, <code>GBP1</code> &mdash; and the enriched <em>cellular response to tumor necrosis factor</em> term (padj &asymp; 0.02) point to an inflammatory signature in this cohort. That is a genuine, reproducible readout of a public dataset &mdash; surfaced by asking a question in English.</p>
+
+      <div class="article-divider"></div>
+
+      <span class="section-label">Honesty About the Wiring</span>
+      <h2>Two Real Data Connections, One Mechanistic Hypothesis</h2>
+
+      <p>It matters to be precise about what is automated data flow and what is scientific reasoning:</p>
+
+      <ul>
+        <li><strong>Stage 1 &rarr; Stage 2 (data-connected).</strong> The pseudobulk workflow&rsquo;s three CSVs are the exact inputs to differential expression. No hand-editing.</li>
+        <li><strong>Stage 2 &rarr; Stage 4 (data-connected).</strong> The differential-expression gene list is the exact input to enrichment.</li>
+        <li><strong>Stage 4 &rarr; Stage 5 (mechanistic hypothesis).</strong> The candidate drug is chosen on established biology &mdash; complement is a validated axis in AChR+ MG, and iptacopan is a clinically established complement-directed therapeutic. The ADMET assessment is a real computation; the <em>selection</em> of the molecule is a scientist&rsquo;s hypothesis, not an output of the enrichment step.</li>
+      </ul>
+
+      <div class="callout">
+        <strong>Why draw the line so sharply?</strong>
+        <p>Because a platform that blurs &ldquo;the model computed this&rdquo; with &ldquo;a human reasoned this&rdquo; is not one you can build a regulatory submission on. Every step in the pipeline is logged, cited, and reproducible &mdash; and the one step that is a hypothesis is labeled as a hypothesis.</p>
+      </div>
+
+      <span class="section-label">The Takeaway</span>
+      <h2>The Engineering Is the Product</h2>
+
+      <p>Three plain-English turns are what the audience sees. The value is in the thirty phases they don&rsquo;t: the format branch that reads a dataset other tools skip, the dispersion fallback that keeps a small cohort from dead-ending, the output inference that turns a results table into a sentence. That machinery is what turns &ldquo;we have a public dataset somewhere&rdquo; into &ldquo;here is a cited, QC-gated, reproducible answer&rdquo; &mdash; without a two-week wait in the bioinformatics queue.</p>
+
+      <p>See it live at the summit, or start from your own accession at <a href="https://www.biomate.ai">www.biomate.ai</a>.</p>
+
+    </div>
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>On This Page</h3>
+      <ul class="toc-list">
+        <li><a href="#">The raw-data problem</a></li>
+        <li><a href="#">Six stages, ~30 phases</a></li>
+        <li><a href="#">What came out of GSE227835</a></li>
+        <li><a href="#">Two data links, one hypothesis</a></li>
+        <li><a href="#">The engineering is the product</a></li>
+      </ul>
+    </div>
+
+    <div class="sidebar-widget">
+      <h3>Related Reading</h3>
+      <ul class="sidebar-list">
+        <li>
+          <a href="blog-summit-2026.html">BioMate Live at the Autoimmune Neuromuscular Summit</a>
+          <div class="meta">Jul 22, 2026 &middot; The demo announcement</div>
+        </li>
+        <li>
+          <a href="blog-why-ai-bioconductor-doesnt-run.html">Why &ldquo;AI + Bioconductor&rdquo; Usually Doesn&rsquo;t Actually Run</a>
+          <div class="meta">Platform &middot; 8 min</div>
+        </li>
+        <li>
+          <a href="blog-mg-immune-profiling-chain.html">MG Immune Profiling: Raw PBMCs to Pathway Signal</a>
+          <div class="meta">Jul 20, 2026 &middot; 9 min</div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">Pipeline</span>
+        <span class="topic-chip">scRNA-seq</span>
+        <span class="topic-chip">Pseudobulk</span>
+        <span class="topic-chip">DESeq2</span>
+        <span class="topic-chip">enrichGO</span>
+        <span class="topic-chip">ADMET</span>
+        <span class="topic-chip">GEO</span>
+      </div>
+    </div>
+
+    <a href="https://dev-public.biomate.ai/register" class="btn btn-primary">Try BioMate Free &rarr;</a>
+  </aside>
+</div>
+</div>
+
+<div id="bm-foot"></div>
+<script src="shell.js"></script>
+<script>renderShell({ active: 'newsroom' });</script>
+</body>
+</html>

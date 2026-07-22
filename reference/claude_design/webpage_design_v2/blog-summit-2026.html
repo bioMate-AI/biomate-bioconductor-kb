@@ -12,7 +12,7 @@
   <meta property="og:title" content="BioMate Live at the Autoimmune Neuromuscular &amp; Nerve Disorders Drug Development Summit"/>
   <meta property="og:description" content="Day 1, 9:45 AM EST: watch BioMate take a real myasthenia gravis dataset from raw data to a developable drug candidate in three plain-English turns."/>
   <meta property="og:url" content="https://biomate.ai/blog-summit-2026.html"/>
-  <meta property="og:image" content="https://biomate.ai/images/blog-summit-2026-hero.png"/>
+  <meta property="og:image" content="https://biomate.ai/images/blog-drug-1-target-hero.png"/>
   <meta property="og:site_name" content="BioMate AI"/>
   <meta property="article:published_time" content="2026-07-21"/>
   <meta property="article:author" content="BioMate AI"/>
@@ -22,8 +22,8 @@
   <meta name="twitter:card" content="summary_large_image"/>
   <meta name="twitter:site" content="@biomateai"/>
   <meta name="twitter:title" content="BioMate Live Demo — Autoimmune Neuromuscular Summit, Day 1 &middot; 9:45 AM EST"/>
-  <meta name="twitter:description" content="MG dataset → CFD driver → complement pathway → iptacopan clears ADMET. Three turns. Fully cited. See it live."/>
-  <meta name="twitter:image" content="https://biomate.ai/images/blog-summit-2026-hero.png"/>
+  <meta name="twitter:description" content="A raw public GEO scRNA-seq deposit → auto-pseudobulk → real DESeq2 → enriched pathways → iptacopan developability. Three plain-English turns, fully cited. See it live."/>
+  <meta name="twitter:image" content="https://biomate.ai/images/blog-drug-1-target-hero.png"/>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -35,7 +35,7 @@
         "url": "https://biomate.ai/blog-summit-2026.html",
         "datePublished": "2026-07-21",
         "author": { "@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai" },
-        "image": "https://biomate.ai/images/blog-summit-2026-hero.png",
+        "image": "https://biomate.ai/images/blog-drug-1-target-hero.png",
         "keywords": "Myasthenia Gravis, autoimmune, drug discovery, BioMate demo, neuromuscular summit"
       },
       {
@@ -153,7 +153,8 @@
 
       <div class="stat-row">
         <div class="stat-box"><div class="num">3</div><div class="lbl">plain-English turns</div></div>
-        <div class="stat-box"><div class="num">3</div><div class="lbl">scientific disciplines</div></div>
+        <div class="stat-box"><div class="num">36,601</div><div class="lbl">genes analyzed</div></div>
+        <div class="stat-box"><div class="num">20</div><div class="lbl">samples pseudobulked</div></div>
         <div class="stat-box"><div class="num">100%</div><div class="lbl">QC-gated &amp; cited</div></div>
       </div>
 
@@ -172,26 +173,31 @@
       <span class="section-label">The Solution</span>
       <h2>From Question to Cited Drug Candidate in Three Turns</h2>
 
-      <p>Our live demo shows exactly how BioMate collapses these bottlenecks using a real myasthenia gravis case.</p>
+      <p>Our live demo shows exactly how BioMate collapses these bottlenecks &mdash; starting not from a tidy, pre-processed matrix, but from a <strong>raw public dataset in whatever shape the depositor left it in</strong>. The case: <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE227835" target="_blank" rel="noopener">GSE227835</a>, a single-cell RNA-seq study of AChR+ myasthenia gravis versus healthy controls.</p>
 
       <div class="turn-block">
-        <div class="turn-label">Turn 1 &mdash; Find the driver</div>
-        <p>A single plain-English question pulls the patient dataset and runs differential expression. The top complement driver surfaces automatically: <strong>CFD (Complement Factor D)</strong> &mdash; every analytical step logged and QC-checked.</p>
+        <div class="turn-label">Turn 1 &mdash; Raw public data &rarr; real differential expression</div>
+        <p>One plain-English question ingests the GEO series, <strong>auto-detects the deposit format</strong> (here, dense per-sample expression tables &mdash; not the 10x matrix files most tools assume), pseudobulk-aggregates <strong>20 samples across 36,601 genes</strong>, and runs DESeq2. The real differentially expressed genes surface &mdash; every step logged, QC-checked, and reproducible.</p>
       </div>
 
       <div class="turn-block">
-        <div class="turn-label">Turn 2 &mdash; Confirm the pathway</div>
-        <p>BioMate runs gene-set enrichment analysis and cross-checks against the indexed literature. Result: <strong>complement activation (GO:0006958)</strong> confirmed as the lead pathway, with citations attached.</p>
+        <div class="turn-label">Turn 2 &mdash; Confirm the biology</div>
+        <p>BioMate runs gene-set enrichment on the DE genes and cross-checks the indexed literature. On this cohort the real signal is an <strong>inflammatory, TNF-response signature</strong> (e.g. GO:0071356, <em>cellular response to tumor necrosis factor</em>) &mdash; the actual output of the data, with citations attached, not a scripted result.</p>
       </div>
 
       <div class="turn-block">
-        <div class="turn-label">Turn 3 &mdash; Screen the drug</div>
-        <p>BioMate reasons to the mechanistic target (Factor B), queries ChEMBL for approved and investigational agents, retrieves <strong>iptacopan</strong> as the lead candidate, and runs a full ADMET safety panel &mdash; clearance, hERG, CNS permeability, hepatotoxicity &mdash; with QC gates enforced at every threshold.</p>
+        <div class="turn-label">Turn 3 &mdash; Assess a candidate drug</div>
+        <p>BioMate screens <strong>iptacopan</strong> &mdash; a clinically established complement-directed MG therapeutic &mdash; through a full ADMET safety panel: clearance, hERG, CNS permeability, hepatotoxicity, with QC gates enforced at every threshold. Molecule to developability verdict, in one turn.</p>
       </div>
 
       <div class="callout">
-        <strong>Three disciplines. One session.</strong>
-        <p>Genomics, pathway biology, and drug screening &mdash; from a public dataset to a developable drug candidate, with every finding cited, every computation reproducible, and every safety gate documented.</p>
+        <strong>The hard part isn&rsquo;t the analysis &mdash; it&rsquo;s the raw data.</strong>
+        <p>Every dataset arrives differently: bulk matrices, 10x MEX bundles, per-sample tarballs, dense expression tables. BioMate normalizes whatever the depositor deposited, then runs genomics, pathway biology, and drug screening in one session &mdash; every finding cited, every computation reproducible, every safety gate documented. The biology you see is the data&rsquo;s, not the slide&rsquo;s.</p>
+      </div>
+
+      <div class="callout">
+        <strong>Want the full engineering picture?</strong>
+        <p>Those three plain-English turns run <strong>~30 discrete phases</strong> under the hood &mdash; format detection, pseudobulk aggregation, robust dispersion estimation, output inference, and more. Read the deep dive: <a href="blog-summit-2026-deep-dive.html">Inside the Three Turns &mdash; The 30-Phase Pipeline From a Raw GEO Deposit to Drug Developability</a>.</p>
       </div>
 
       <span class="section-label">Find Us</span>
@@ -236,7 +242,11 @@
       <h3>Related Reading</h3>
       <ul class="sidebar-list">
         <li>
-          <a href="blog-mg-immune-profiling-chain.html">MG Immune Profiling: Raw PBMCs to Complement Pathway in One Session</a>
+          <a href="blog-summit-2026-deep-dive.html">Inside the Three Turns: The 30-Phase Pipeline From a Raw GEO Deposit to Drug Developability</a>
+          <div class="meta">Jul 22, 2026 &middot; 12 min &middot; Technical</div>
+        </li>
+        <li>
+          <a href="blog-mg-immune-profiling-chain.html">MG Immune Profiling: Raw PBMCs to Pathway Signal in One Session</a>
           <div class="meta">Jul 20, 2026 &middot; 9 min</div>
         </li>
         <li>
@@ -254,11 +264,11 @@
       <h3>Topics</h3>
       <div class="topic-chips">
         <span class="topic-chip">Myasthenia Gravis</span>
-        <span class="topic-chip">CIDP</span>
-        <span class="topic-chip">GBS</span>
+        <span class="topic-chip">scRNA-seq</span>
+        <span class="topic-chip">Pseudobulk</span>
+        <span class="topic-chip">DESeq2</span>
         <span class="topic-chip">Drug Discovery</span>
         <span class="topic-chip">ADMET</span>
-        <span class="topic-chip">Complement</span>
         <span class="topic-chip">Summit 2026</span>
       </div>
     </div>

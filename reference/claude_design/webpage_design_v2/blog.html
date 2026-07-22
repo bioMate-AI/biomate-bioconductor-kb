@@ -420,8 +420,11 @@
     const POSTS = [
       // Company News — Boston Summit (Jul 21, 2026)
       { cat: 'Company News', title: 'BioMate Live at the Autoimmune Neuromuscular & Nerve Disorders Drug Development Summit',
-        date: 'Jul 21, 2026', read: '4 min', href: 'blog-summit-2026.html',
-        desc: "BioMate is the Innovation Partner of the Autoimmune Neuromuscular & Nerve Disorders Drug Development Summit. Day 1, 9:45 AM EST: a live demo takes a real myasthenia gravis dataset from raw data to a developable drug candidate — CFD driver, complement activation, iptacopan clears ADMET — in three plain-English turns." },
+        date: 'Jul 22, 2026', read: '5 min', href: 'blog-summit-2026.html',
+        desc: "BioMate is the Innovation Partner of the Autoimmune Neuromuscular & Nerve Disorders Drug Development Summit. Day 1, 9:45 AM EST: a live demo takes a raw public GEO scRNA-seq deposit (GSE227835) from whatever format the depositor used — through auto-pseudobulk, real DESeq2, and pathway enrichment — to an ADMET developability verdict, in three plain-English turns." },
+      { cat: 'Technical', title: 'Inside the Three Turns: The 30-Phase Pipeline From a Raw GEO Deposit to Drug Developability',
+        date: 'Jul 22, 2026', read: '12 min', href: 'blog-summit-2026-deep-dive.html',
+        desc: "The engineering companion to the summit demo. Those three plain-English turns fan out into roughly thirty backend phases — format detection across four raw-data shapes, pseudobulk aggregation, a parametric→local→gene-wise DESeq2 dispersion fallback, output inference, enrichment, and ADMET — with the real numbers from the GSE227835 run and an honest map of what is data-connected versus a mechanistic hypothesis." },
       { cat: 'Company News', title: 'BioMate Partners with Vanta and Workstreet on SOC 2 & HIPAA Compliance',
         date: 'Jul 21, 2026', read: '3 min', href: 'blog-vanta-workstreet-compliance.html',
         desc: "BioMate has partnered with Vanta (www.vanta.com) and Workstreet (www.workstreet.com) to build a continuous, automated SOC 2 and HIPAA compliance program — so every workflow on BioMate sits on an auditable, security-first foundation that biopharma and clinical partners can trust." },
