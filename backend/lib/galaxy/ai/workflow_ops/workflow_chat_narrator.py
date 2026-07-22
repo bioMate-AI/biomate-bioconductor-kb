@@ -81,8 +81,27 @@ def _completed_summary(t: Dict[str, Any]) -> str:
     return "Workflow finished."
 
 
+_METRIC_LABELS: Dict[str, str] = {
+    "dili_risk":       "DILI risk",
+    "herg_ic50_uM":    "hERG IC50",
+    "herg":            "hERG",
+    "ames_mutagenicity": "Ames mutagenicity",
+    "caco2_logpapp":   "Caco-2 permeability",
+    "bbb_penetration": "BBB penetration",
+    "ppb":             "plasma protein binding",
+    "oral_bioavailability": "oral bioavailability",
+    "cyp2d6_inhibitor": "CYP2D6 inhibition",
+    "cyp3a4_substrate": "CYP3A4 substrate",
+    "clintox":         "clinical toxicity",
+}
+
+
+def _humanize_metric(metric: str) -> str:
+    return _METRIC_LABELS.get(metric, metric.replace("_", " "))
+
+
 def _qc_warn(t: Dict[str, Any]) -> str:
-    metric = t.get("metric") or "metric"
+    metric = _humanize_metric(t.get("metric") or "metric")
     val = t.get("value")
     th = t.get("threshold")
     if val is not None and th is not None:
@@ -91,9 +110,9 @@ def _qc_warn(t: Dict[str, Any]) -> str:
 
 
 def _qc_block(t: Dict[str, Any]) -> str:
-    metric = t.get("metric")
-    if metric:
-        return f"QC blocked on {metric} — adjusting parameters."
+    raw = t.get("metric")
+    if raw:
+        return f"QC blocked on {_humanize_metric(raw)} — adjusting parameters."
     return "QC blocked — adjusting parameters."
 
 

@@ -32,6 +32,24 @@
     return 'wf';
   }
 
+  // ── Metric humanization (mirrors Python _METRIC_LABELS in workflow_chat_narrator.py) ──
+  var METRIC_LABELS = {
+    dili_risk:           'DILI risk',
+    herg_ic50_uM:        'hERG IC50',
+    herg:                'hERG',
+    ames_mutagenicity:   'Ames mutagenicity',
+    caco2_logpapp:       'Caco-2 permeability',
+    bbb_penetration:     'BBB penetration',
+    ppb:                 'plasma protein binding',
+    oral_bioavailability:'oral bioavailability',
+    cyp2d6_inhibitor:    'CYP2D6 inhibition',
+    cyp3a4_substrate:    'CYP3A4 substrate',
+    clintox:             'clinical toxicity',
+  };
+  function humanizeMetric(m) {
+    return METRIC_LABELS[m] || m.replace(/_/g, ' ');
+  }
+
   // ── Friendly text renderer (matches backend narrator's _TEMPLATES) ──
   function renderFriendly(kind, t) {
     t = t || {};
@@ -55,12 +73,12 @@
         return `${name} failed. Looking into why…`;
       }
       case 'workflow.qc_gate_warning': {
-        const m = t.metric || 'metric';
+        const m = humanizeMetric(t.metric || 'metric');
         if (t.value != null && t.threshold != null) return `QC flagged ${m} = ${t.value} (threshold ${t.threshold}).`;
         return `QC flagged ${m}.`;
       }
       case 'workflow.qc_gate_blocked':
-        return t.metric ? `QC blocked on ${t.metric} — adjusting parameters.` : 'QC blocked — adjusting parameters.';
+        return t.metric ? `QC blocked on ${humanizeMetric(t.metric)} — adjusting parameters.` : 'QC blocked — adjusting parameters.';
       case 'workflow.autoloop_started': {
         const c = t.changes || {};
         const keys = Object.keys(c);
