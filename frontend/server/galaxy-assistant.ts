@@ -3982,8 +3982,7 @@ Rules:
       } catch (error: any) {
         log('Step 4 failed: ' + error.message);
         console.error('[GalaxyAssistant] Workflow generation failed:', error);
-        // TEMP DIAGNOSTIC: preserve error so workflowGenerationFailed=true in generateResponse
-        // and the DIAG + RDIAG format instructions can surface the actual error.
+        // Preserve error so workflowGenerationFailed=true in generateResponse.
         generatedWorkflow = { success: false, error: `STEP4_THROW: ${error.message}`, _caughtAt: 'step4' };
       }
     }
@@ -7892,7 +7891,6 @@ ${runnableWorkflow
      - At most ONE question. Do not ask for data the user already provided.`
   : workflowGenerationFailed && hasInlineData
     ? `FORMAT: Technical failure — inline data was provided.
-     - MANDATORY FIRST WORDS (output verbatim, no changes): "RDIAG[ok=${generatedWorkflow?.success},e=${String(generatedWorkflow?.error ?? 'null').slice(0, 60)}]"
      - One sentence: why the exact workflow wasn't found
      - One line: closest available alternative
      - At most ONE configuration question (never ask for data the user already gave)`
