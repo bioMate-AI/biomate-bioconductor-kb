@@ -122,11 +122,15 @@ leak on every round.
   EVERY turn — precisely the fix for "bot keeps asking to re-upload" (docs
   20260610 / 20260612 / 20260613). On a follow-up the model sees `<session_datasets>`
   and reads the PDF by id (getting the table-extracted text).
-- **Only genuine narrow edge — image re-vision on a follow-up:** `read_file` on an
-  image id returns text, not pixels, and `_buildImageContentBlocks` only attaches
-  images referenced in the CURRENT message. So the model can't re-SEE an image on a
-  later turn without re-attaching (it still has its turn-1 analysis in history).
-  Re-sending base64 images every turn is costly, so this is left as-is.
+- **Image re-vision on a follow-up — NOW FIXED (view-by-id).** Previously `read_file`
+  on an image id returned utf8 garbage, so the model couldn't re-SEE a stored image
+  on a later turn. Now `read_file(id)` on png/jpg/jpeg/gif/webp returns the actual
+  pixels as an Anthropic image content block in the tool_result (`toolResultContent`
+  wraps `{__imageBlocks}` into `[{text},{image}]`). Because files are durably tracked
+  by id and `sessionDatasetsBlock` surfaces the ids every turn, the model can view any
+  stored image on demand, on any turn, with no re-upload and without re-sending images
+  every turn. Proven live: E2E R4 gives only the id in prose (no chip) → model calls
+  read_file → describes the PNG's red/green/blue bands (would be impossible on garbage).
 - **E2E follow-up:** to exercise the real multi-round path, the E2E should populate
   `context.sessionDatasets` (or associate uploads with the sessionId) rather than
   sending `context: {}`. The current harness still correctly proves the leak fix,
