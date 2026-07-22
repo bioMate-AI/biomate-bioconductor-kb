@@ -213,7 +213,7 @@ export function AfterRunReport({
       <div style={styles.body}>
         {tab === "findings" && (
           <>
-            <FindingsCard runId={runId} onContinueAnalysis={onContinueAnalysis} />
+            <FindingsCard runId={runId} onContinueAnalysis={onContinueAnalysis} executionStatus={executionStatus} />
             {findings?.figures && findings.figures.length > 0 && (
               <FindingsFiguresPanel figures={findings.figures} />
             )}
