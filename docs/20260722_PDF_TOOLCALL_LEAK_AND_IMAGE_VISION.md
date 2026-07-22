@@ -111,11 +111,26 @@ leak on every round.
   preserved; image not hard-refused (vision active).
 
 ## Known limitations / next steps
-- **Multi-round attachment memory:** in R3 (no chip re-attached), the model said
-  it needs the table/gel re-attached — prior-turn file content is not re-sent
-  (chat history is string-only). Honest behavior, but for a smoother multi-round
-  UX, prior-turn extracted PDF text / image blocks should be re-injected when the
-  follow-up clearly refers to them. Deferred.
+- **Multi-round dataset memory is ALREADY handled — do not rebuild it.** The R3
+  "please re-attach the table/gel" response was a TEST-HARNESS ARTIFACT, not a
+  product gap: the E2E used a throwaway sessionId, uploaded files that were never
+  associated with that session, and sent `context: {}`, so `sessionDatasets` was
+  empty. In the real product the chat/stream route rehydrates
+  `chat_sessions.datasets` ∪ `req.session.uploadedDatasets` into
+  `context.sessionDatasets` (routes.ts ~5883), and `sessionDatasetsBlock`
+  (galaxy-assistant.ts ~7808) injects the dataset list into the system prompt on
+  EVERY turn — precisely the fix for "bot keeps asking to re-upload" (docs
+  20260610 / 20260612 / 20260613). On a follow-up the model sees `<session_datasets>`
+  and reads the PDF by id (getting the table-extracted text).
+- **Only genuine narrow edge — image re-vision on a follow-up:** `read_file` on an
+  image id returns text, not pixels, and `_buildImageContentBlocks` only attaches
+  images referenced in the CURRENT message. So the model can't re-SEE an image on a
+  later turn without re-attaching (it still has its turn-1 analysis in history).
+  Re-sending base64 images every turn is costly, so this is left as-is.
+- **E2E follow-up:** to exercise the real multi-round path, the E2E should populate
+  `context.sessionDatasets` (or associate uploads with the sessionId) rather than
+  sending `context: {}`. The current harness still correctly proves the leak fix,
+  PDF extraction, and single-turn image vision.
 - On a follow-up turn, an image analyzed in turn 1 is **not** re-sent (history is
   string-only) — the model relies on its turn-1 analysis text. Acceptable for v1.
 - Non-Claude providers (Gemini) get no vision path yet (different image format).
