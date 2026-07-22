@@ -8844,13 +8844,18 @@ ${paramLines || '(none recorded)'}`;
             // callback didn't register s3_output_files in nextflowStatus AND
             // Galaxy itself has no record of the run's output files. This is
             // the same logic /api/workflows/runs/:id/output_files uses.
-            if (nextflowStatus?.outdir && String(nextflowStatus.outdir).startsWith('s3://')) {
+            // Also fall back to execution.nextflowOutputDir stored at run-creation time
+            // so completed runs don't lose their output listing after gunicorn restarts.
+            const _s3OutdirFallback = nextflowStatus?.outdir
+              || effectiveExecutionRun?.execution?.nextflowOutputDir
+              || '';
+            if (_s3OutdirFallback && String(_s3OutdirFallback).startsWith('s3://')) {
               const hasS3FileArtifact = artifacts.some(a =>
                 a.startsWith('s3://') && !a.endsWith('/') && a.split('/').pop()?.includes('.')
               );
               if (!hasS3FileArtifact) {
                 try {
-                  const m = String(nextflowStatus.outdir).match(/^s3:\/\/([^/]+)\/(.+?)\/?$/);
+                  const m = String(_s3OutdirFallback).match(/^s3:\/\/([^/]+)\/(.+?)\/?$/);
                   if (m) {
                     const [, bucket, prefix] = m;
                     const AWS = await import('@aws-sdk/client-s3');
@@ -8881,7 +8886,7 @@ ${paramLines || '(none recorded)'}`;
                       const nonS3 = artifacts.filter(a => !a.startsWith('s3://'));
                       artifacts.length = 0;
                       artifacts.push(...nonS3, ...listed);
-                      console.log(`[Outputs] Direct S3 list fallback: ${listed.length} files under ${nextflowStatus.outdir}`);
+                      console.log(`[Outputs] Direct S3 list fallback: ${listed.length} files under ${_s3OutdirFallback}`);
                     }
                   }
                 } catch (e: any) {
