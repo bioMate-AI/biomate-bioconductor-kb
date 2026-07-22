@@ -28,6 +28,58 @@ _DB_PATH = Path(__file__).parent.parent.parent.parent.parent / "database" / "gal
 
 BIOC_CHAIN_TEMPLATES: List[Dict[str, Any]] = [
     {
+        "name": "geo_scrna_deg_v2",
+        "display_name": "GEO Accession → scRNA Pseudobulk → Differential Expression",
+        "domain": "transcriptomics",
+        "description": (
+            "End-to-end differential expression starting from JUST a GEO accession "
+            "(e.g. GSE227835) with NO pre-staged files. Auto-fetches the dataset from "
+            "NCBI GEO, pseudobulk-aggregates scRNA-seq cells per sample, auto-detects "
+            "the condition column and contrast, then runs DESeq2 differential "
+            "expression. The user provides only the GEO ID — the count matrix, sample "
+            "sheet and contrasts file are produced by step 1, not supplied by the user. "
+            "Do NOT use when the user already has an S3-staged count matrix + sample "
+            "sheet (that is the differentialabundance-only path)."
+        ),
+        "steps": [
+            {
+                "order": 1,
+                "workflow_name": "geo_scrna_pseudobulk",
+                "role": "geo_ingest_pseudobulk",
+                # geo_accession is auto-filled from the user message by the router.
+                "params_template": {},
+            },
+            {
+                "order": 2,
+                "workflow_name": "nf-core/differentialabundance",
+                "role": "differential_expression",
+                "params_template": {},
+            },
+        ],
+        "connections": [
+            # Step-1 output CSVs → step-2 nextflow params. from_output matches the
+            # pseudobulk output filenames (counts_matrix.csv / sample_metadata.csv /
+            # contrasts.csv); to_input is the differentialabundance param name.
+            {"from_step": 1, "from_output": "counts_matrix", "to_step": 2, "to_input": "matrix"},
+            {"from_step": 1, "from_output": "sample_metadata", "to_step": 2, "to_input": "samplesheet"},
+            {"from_step": 1, "from_output": "contrasts", "to_step": 2, "to_input": "contrasts"},
+        ],
+        "required_inputs": ["geo_accession"],
+        "expected_outputs": ["de_table", "significant_genes", "volcano_plot"],
+        "example_queries": [
+            "run differential expression on GSE227835",
+            "download GSE227835 and run DESeq2",
+            "find DE genes from this GEO scRNA-seq dataset",
+            "differential expression starting from a GEO accession",
+            "I have a GEO ID, run the whole DE pipeline for me",
+            "pseudobulk this GEO single-cell series and find DEGs",
+        ],
+        "tags": ["geo", "pseudobulk", "scrna", "deseq2", "differentialabundance", "accession"],
+        # Post-run: after a pseudobulk run, suggest continuing into DE.
+        "trigger_on_workflows": ["geo_scrna_pseudobulk"],
+        "trigger_on_output_extensions": [],
+    },
+    {
         "name": "bioc_bulk_rnaseq_de_v2",
         "display_name": "Bulk RNA-seq → Differential Expression → Pathway Enrichment",
         "domain": "transcriptomics",
