@@ -21,7 +21,7 @@ import { GalaxyAPIProxy } from "./galaxy-api-proxy";
 import { createPoller } from "./galaxy-state-poller";
 import { WorkflowSSEManager } from "./workflow-sse";
 import { createWorkflowNotificationService, type WorkflowNotificationService } from "./workflow-notification-service";
-import { GalaxyAssistant, type ModelConfig } from "./galaxy-assistant";
+import { GalaxyAssistant, type ModelConfig, stripNarratedToolCalls, StreamToolCallFilter } from "./galaxy-assistant";
 import { parameterRepository } from "./parameter-repository";
 import { workflowRepository } from "./workflow-repository";
 import { memoryService } from "./memory-repository";
@@ -5432,6 +5432,11 @@ ${paramLines || '(none recorded)'}`;
     let accumulatedContent = "";
     let workflowMetadata: any = null;
     let persisted = false;
+    // Strip tool-call XML the model sometimes narrates as prose (e.g. when reading
+    // a PDF) out of the SSE stream. safeSend is the single funnel every model path
+    // (Claude / Gemini / OpenAI / Ollama) emits through, so filtering here covers
+    // all of them — including paths that never reach generateResponse's sanitizer.
+    const _leakFilter = new StreamToolCallFilter();
     // Hoisted so the persistAssistantMessage closure can read it. The
     // actual resolution happens further down (Q4 ensureDefaultProject
     // path); until that point this stays undefined and the persistence
@@ -5506,15 +5511,35 @@ ${paramLines || '(none recorded)'}`;
       // Server-side accumulation (runs even if write fails / connection dead).
       if (event === 'delta') {
         const t = (data as any)?.text;
-        if (typeof t === 'string') accumulatedContent += t;
+        if (typeof t === 'string') {
+          // Filter narrated tool-call XML out of the live token stream. rawResponse
+          // held on the LLM side is unaffected; what the user sees + what we persist
+          // is clean. The filter may hold back a partial tag; flushed at 'final'.
+          const safe = _leakFilter.push(t);
+          accumulatedContent += safe;
+          if (res.writableEnded || abortController.signal.aborted) return;
+          if (safe) res.write(`event: delta\ndata: ${JSON.stringify({ ...(data as any), text: safe })}\n\n`);
+          return;
+        }
       } else if (event === 'workflow_ready') {
         workflowMetadata = data;
       } else if (event === 'final') {
+        // Release any partial-tag remainder the delta filter was holding.
+        const rem = _leakFilter.flush();
+        if (rem) {
+          accumulatedContent += rem;
+          if (!res.writableEnded && !abortController.signal.aborted) {
+            res.write(`event: delta\ndata: ${JSON.stringify({ text: rem })}\n\n`);
+          }
+        }
         // Prefer the canonical final assistant message over accumulated deltas
         // when both are available — the LLM-side message field is authoritative.
+        // Sanitize it too: some model paths bypass the LLM-side stripper.
         const finalText = (data as any)?.response;
         if (typeof finalText === 'string' && finalText.length > 0) {
-          accumulatedContent = finalText;
+          const clean = stripNarratedToolCalls(finalText);
+          accumulatedContent = clean;
+          data = { ...(data as any), response: clean };
         }
         // Capture the workflow payload from the final event too (some flows
         // emit workflow data only in 'final', not 'workflow_ready').
