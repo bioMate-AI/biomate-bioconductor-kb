@@ -3293,6 +3293,60 @@ def _list_s3_output_files(s3_uri: str) -> list:
         return []
 
 
+# Data-file extensions that represent actual workflow outputs vs Nextflow internals.
+_OUTPUT_EXTENSIONS = {
+    "csv", "tsv", "txt", "json", "html", "pdf", "png", "jpg", "jpeg",
+    "svg", "xlsx", "rds", "rdata", "vcf", "bed", "bam", "fastq", "fq",
+    "fa", "fasta", "gz", "tar", "zip", "nc", "h5", "h5ad",
+}
+# Nextflow internals to skip (by filename prefix or exact name).
+_NF_INTERNAL_NAMES = {
+    ".command.run", ".command.sh", ".command.out", ".command.err",
+    ".command.log", ".command.begin", ".exitcode", ".nextflow",
+    "trace.txt", "timeline.html", "dag.svg", "dag.html", "report.html",
+}
+
+
+def _list_s3_work_output_files(work_s3_uri: str) -> list:
+    """
+    List data output files written to the Nextflow work dir by Batch tasks.
+    Skips Nextflow internal files (.command.*, .exitcode, etc.).
+    Returns list of dicts: {key, name, size, extension, s3_uri}.
+    Fallback for when publishDir to outdir fails (common with cross-region S3).
+    """
+    try:
+        import boto3
+    except ImportError:
+        return []
+    try:
+        parts = work_s3_uri[len("s3://"):].split("/", 1)
+        bucket = parts[0]
+        prefix = (parts[1] if len(parts) > 1 else "").rstrip("/") + "/"
+        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        paginator = s3.get_paginator("list_objects_v2")
+        results = []
+        for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+            for obj in page.get("Contents", []):
+                key = obj["Key"]
+                name = key.split("/")[-1]
+                if not name or name in _NF_INTERNAL_NAMES or name.startswith("."):
+                    continue
+                ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+                if ext not in _OUTPUT_EXTENSIONS:
+                    continue
+                results.append({
+                    "s3_uri": f"s3://{bucket}/{key}",
+                    "name": name,
+                    "size": obj["Size"],
+                    "extension": ext,
+                })
+        log.info("[Nextflow] Listed %d work-dir output files from %s", len(results), work_s3_uri)
+        return results
+    except Exception as exc:
+        log.warning("[Nextflow] work-dir output listing failed for %s: %s", work_s3_uri, exc)
+        return []
+
+
 # CryoSPARC-specific: map S3 output directory names → 0-indexed step IDs
 # (matching _CRYOSPARC_STEP_PHASES in ai_assistant.py)
 _CRYOSPARC_S3_DIR_TO_STEP: Dict[str, int] = {
@@ -3819,6 +3873,7 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
         with _runs_lock:
             _present = run_id in _runs
             _outdir_for_s3 = _runs[run_id].get("outdir", "") if _present else ""
+            _workdir_for_s3 = _runs[run_id].get("workdir", "") if _present else ""
             _wf_domain_for_qc = _runs[run_id].get("workflow_domain", "") if _present else ""
             _qc_overrides_for_qc = dict(_runs[run_id].get("qc_overrides", {})) if _present else {}
 
@@ -3826,6 +3881,11 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
         _qc_gates_s3 = None
         if _present and returncode == 0 and str(_outdir_for_s3).startswith("s3://"):
             _s3_output_files = _s3_files_for_salvage or _list_s3_output_files(_outdir_for_s3)
+            # Fallback: if publishDir failed to write to outdir (common with cross-region S3
+            # in nf-amazon@3.3.0), scan the Nextflow work dir where Batch tasks copy outputs.
+            if not _s3_output_files and str(_workdir_for_s3).startswith("s3://"):
+                log.info("[Nextflow] outdir listing empty for %s — scanning workdir fallback", run_id)
+                _s3_output_files = _list_s3_work_output_files(_workdir_for_s3)
             _qc_gates_s3 = _evaluate_qc_from_s3(
                 run_id=run_id,
                 s3_output_files=_s3_output_files,
@@ -4466,9 +4526,14 @@ def execute_nextflow(
     _use_aws_fast = os.environ.get("NEXTFLOW_USE_AWS", "").lower() in ("1", "true", "yes")
     _executor_fast = (getattr(request, "compute", None) or {}).get("executor", "")
     _pre_outdir: Optional[str] = None
+    _pre_workdir: Optional[str] = None
     if (_use_aws_fast or _executor_fast == "awsbatch") and not (request.parameters or {}).get("outdir"):
         _run_uuid_short = str(uuid.uuid4())[:8]
         _pre_outdir = f"s3://{_s3_bucket_fast}/nextflow/outputs/{_uid_for_path_fast}/{_run_uuid_short}"
+        # Worker tasks copy outputs to workDir on success; head JVM publishDir to outdir often
+        # fails (cross-region S3 write in nf-amazon@3.3.0). Store workDir so output_files API
+        # can fall back to scanning it when outdir is empty.
+        _pre_workdir = f"s3://{_s3_bucket_fast}/nextflow/work/{_uid_for_path_fast}/{run_id}"
 
     # Register a minimal record up front so a status poll fired right after this
     # returns "configuring" (not 404) while the background launch runs.
@@ -4482,6 +4547,7 @@ def execute_nextflow(
         "is_pilot": bool(request.is_pilot),
         "started_at": time.time(),
         **({"outdir": _pre_outdir} if _pre_outdir else {}),
+        **({"workdir": _pre_workdir} if _pre_workdir else {}),
     }
     with _runs_lock:
         _runs[run_id] = dict(_pre_record)
@@ -4512,7 +4578,10 @@ def execute_nextflow(
         "run_id": run_id,
         "invocation_id": invocation_id,
         "status": "configuring",
-        **({"outputs": {"outdir": _pre_outdir}} if _pre_outdir else {}),
+        **({"outputs": {
+            "outdir": _pre_outdir,
+            **({"workdir": _pre_workdir} if _pre_workdir else {}),
+        }} if _pre_outdir else {}),
     }
 
 

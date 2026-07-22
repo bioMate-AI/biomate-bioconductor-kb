@@ -41,7 +41,7 @@ interface SkillItem {
   score?: number;
 }
 
-type TabId = 'databases' | 'ai' | 'skills';
+type TabId = 'databases' | 'ai'; // 'skills' disabled — /api/skills unpopulated
 
 // ── Scientific databases ───────────────────────────────────────────────────────
 
@@ -418,7 +418,8 @@ function DatabasesTab({ selected, onToggle }: { selected: string[]; onToggle: (n
 const TABS: { id: TabId; label: string; icon: React.ReactNode; count?: number; tip: string }[] = [
   { id: 'databases', label: 'Scientific Databases', icon: <Database style={{ width: 13, height: 13 }} />, count: DB.length, tip: 'Protein, genomics, omics, chemical, pathway, disease, literature, and imaging databases' },
   { id: 'ai',        label: 'AI & Platforms',       icon: <Brain    style={{ width: 13, height: 13 }} />, count: AI.length, tip: 'LLM providers, AI coding tools, and messaging platform connectors' },
-  { id: 'skills',    label: 'Skills',                icon: <Zap      style={{ width: 13, height: 13 }} />, tip: 'Scientific reasoning and data-retrieval skills available to the AI assistant' },
+  // Skills tab commented out — /api/skills returns 0 entries; re-enable when backend is populated
+  // { id: 'skills',    label: 'Skills',                icon: <Zap      style={{ width: 13, height: 13 }} />, tip: 'Scientific reasoning and data-retrieval skills available to the AI assistant' },
 ];
 
 // ── Dialog ─────────────────────────────────────────────────────────────────────
@@ -495,13 +496,12 @@ export function ConnectorsDialog({ open, onOpenChange }: ConnectorsDialogProps) 
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', display: 'flex', flexDirection: 'column' }}>
           {activeTab === 'databases' && <DatabasesTab selected={selectedDbs} onToggle={toggleDb} />}
           {activeTab === 'ai'        && <ConnectorTable rows={AI} />}
-          {activeTab === 'skills'    && <SkillsTab />}
+          {/* Skills tab disabled — re-enable when /api/skills is populated */}
         </div>
 
         <div style={{ flexShrink: 0, padding: '6px 20px', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--muted-foreground)' }}>
           {activeTab === 'databases' && dbFooter}
           {activeTab === 'ai'        && `${AI.length} connectors`}
-          {activeTab === 'skills'    && 'Active skills are injected into every AI response as domain expertise'}
         </div>
       </DialogContent>
     </Dialog>

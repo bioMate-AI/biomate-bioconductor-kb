@@ -10246,7 +10246,8 @@ ${paramLines || '(none recorded)'}`;
               startedAt: new Date(),
               executionEngine: 'nextflow',
               nextflowRunId: nextflowData.run_id,
-              nextflowOutputDir: nextflowData.outputs?.outdir
+              nextflowOutputDir: nextflowData.outputs?.outdir,
+              nextflowWorkDir: nextflowData.outputs?.workdir
             }
           });
 
@@ -11727,6 +11728,65 @@ Rules:
           }
         } catch (e: any) {
           console.warn(`[output_files] S3 list fallback failed: ${e?.message || e}`);
+        }
+      }
+
+      // workDir fallback: publishDir to outdir frequently fails (cross-region S3 write
+      // with nf-amazon@3.3.0). Batch worker tasks DO copy outputs to workDir on success.
+      // Scan workDir for data files when outdir scan returns empty.
+      if (outputFiles.length === 0) {
+        const storedWorkDir = (run as any)?.execution?.nextflowWorkDir as string | undefined;
+        if (storedWorkDir && String(storedWorkDir).startsWith('s3://')) {
+          try {
+            const m = String(storedWorkDir).match(/^s3:\/\/([^/]+)\/(.+?)\/?$/);
+            if (m) {
+              const [, bucket, prefix] = m;
+              const AWS = await import('@aws-sdk/client-s3');
+              const _nfKey = process.env.AWS_NF_ACCESS_KEY_ID;
+              const _nfSec = process.env.AWS_NF_SECRET_ACCESS_KEY;
+              const s3 = new AWS.S3Client({
+                region: 'us-east-1',
+                followRegionRedirects: true,
+                ...(_nfKey && _nfSec ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } } : {}),
+              });
+              // Data-file extensions that represent workflow outputs (not Nextflow internals).
+              const dataExts = new Set(['csv','tsv','txt','json','html','pdf','png','jpg','svg',
+                'xlsx','rds','vcf','bed','bam','fastq','fq','fa','fasta','gz','h5','h5ad']);
+              const nfInternals = new Set(['.command.run','.command.sh','.command.out',
+                '.command.err','.command.log','.command.begin','.exitcode']);
+              const listed: any[] = [];
+              let continuationToken: string | undefined;
+              do {
+                const lr: any = await s3.send(new AWS.ListObjectsV2Command({
+                  Bucket: bucket,
+                  Prefix: `${prefix}/`,
+                  ContinuationToken: continuationToken,
+                  MaxKeys: 2000,
+                }));
+                for (const obj of (lr.Contents || [])) {
+                  if (!obj.Key || obj.Key.endsWith('/')) continue;
+                  const name = obj.Key.split('/').pop() || '';
+                  if (!name || name.startsWith('.') || nfInternals.has(name)) continue;
+                  const ext = (name.includes('.') ? name.split('.').pop() : '').toLowerCase();
+                  if (!ext || !dataExts.has(ext)) continue;
+                  listed.push({
+                    name, filename: name, extension: ext,
+                    size: obj.Size || 0,
+                    s3_uri: `s3://${bucket}/${obj.Key}`,
+                    s3_key: obj.Key,
+                    download_endpoint: `/api/runs/${runId}/output/${encodeURIComponent(name)}`,
+                  });
+                }
+                continuationToken = lr.IsTruncated ? lr.NextContinuationToken : undefined;
+              } while (continuationToken);
+              if (listed.length > 0) {
+                outputFiles = listed;
+                console.log(`[output_files] workDir fallback: found ${listed.length} files under ${storedWorkDir}`);
+              }
+            }
+          } catch (e: any) {
+            console.warn(`[output_files] workDir scan failed: ${e?.message || e}`);
+          }
         }
       }
 
