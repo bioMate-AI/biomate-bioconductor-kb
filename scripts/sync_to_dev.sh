@@ -599,6 +599,16 @@ deploy_databases() {
     # Local uploads to S3 (user's internet); EC2 pulls from S3 via HTTPS
     # (in-region, ~1 Gbps) — SSM tunnel carries only the curl command, not data.
     # EC2 stale ~/.aws/credentials: rename to .bak so the instance role takes over.
+    # Backup the current dev DB before overwriting it.
+    ec2_ssh '
+      SRC=/opt/biomate/galaxy_db/galaxy_ai_tools.db
+      if [[ -f "$SRC" ]]; then
+        TS=$(date +%Y%m%d_%H%M%S)
+        cp "$SRC" "${SRC}.bak_${TS}" && echo "[db] pre-sync backup: ${SRC}.bak_${TS} ($(stat -c %s ${SRC}.bak_${TS}) bytes)"
+        # Keep only the 3 most recent backups to avoid filling the disk.
+        ls -t /opt/biomate/galaxy_db/galaxy_ai_tools.db.bak_* 2>/dev/null | tail -n +4 | xargs rm -f
+      fi
+    ' || log "[db] WARNING: pre-sync backup failed — continuing anyway"
     local S3_STAGE="s3://biomate-nextflow-outputs/tmp/db-sync/galaxy_ai_tools.db"
     log "[db] galaxy_ai_tools.db changed ($(du -sh $local_db | cut -f1)) — uploading to S3 staging..."
     aws s3 cp "$local_db" "$S3_STAGE" \
