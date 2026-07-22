@@ -141,14 +141,51 @@ process GEO_PSEUDOBULK {
             gsm_match <- regmatches(sample_name, regexpr("GSM[0-9]+", sample_name))
             label <- if (length(gsm_match) > 0) gsm_match else sample_name
 
+            # Recognise a dense per-sample expression file (genes x cells) that is
+            # NOT one of the 10x MEX component files. Many GEO scRNA series deposit
+            # one such .txt/.tsv/.csv (optionally .gz) per GSM inside RAW.tar.
+            is_mex_component <- grepl("(matrix\\\\.mtx|barcodes\\\\.tsv|(features|genes)\\\\.tsv)",
+                                      basename(entry), ignore.case=TRUE)
+            is_dense_file <- (file.info(entry)\$isdir == FALSE) &&
+                             (!is_mex_component) &&
+                             grepl("\\\\.(txt|tsv|csv)(\\\\.gz)?$", basename(entry), ignore.case=TRUE)
+
             # If entry is a tar.gz, extract it
             sample_dir <- entry
             if (file.info(entry)\$isdir == FALSE && grepl("\\\\.tar(\\\\.gz)?$", entry, ignore.case=TRUE)) {
               sample_dir <- file.path(extract_dir, label)
               dir.create(sample_dir, showWarnings=FALSE)
               tryCatch(untar(entry, exdir=sample_dir), error=function(e) NULL)
+            } else if (is_dense_file) {
+              # ── Dense genes x cells matrix branch ────────────────────────────
+              # Read as a dense matrix (gene rows x cell cols), pseudobulk by
+              # summing UMI counts across all cell columns for this sample.
+              tryCatch({
+                sep_char <- if (grepl("\\\\.csv(\\\\.gz)?$", basename(entry), ignore.case=TRUE)) "," else "\\t"
+                con <- if (grepl("\\\\.gz$", entry, ignore.case=TRUE)) gzfile(entry) else entry
+                dense <- read.table(con, header=TRUE, sep=sep_char, row.names=1,
+                                    check.names=FALSE, quote="", comment.char="",
+                                    stringsAsFactors=FALSE)
+
+                n_cells <- ncol(dense)
+                if (n_cells < min_cells) {
+                  cat(sprintf("[GEO] Skipping %s — only %d cells (min %d)\\n", label, n_cells, min_cells))
+                } else {
+                  # rowSums over the numeric cell columns; gene labels = rownames
+                  dense_mat <- data.matrix(dense)
+                  pb_counts <- rowSums(dense_mat)
+                  pb_int <- as.integer(round(pb_counts))
+                  names(pb_int) <- rownames(dense)
+                  pseudobulk_list[[label]] <- pb_int
+                  cat(sprintf("[GEO] Pseudobulked (dense) %s: %d genes, %d cells\\n",
+                              label, length(pb_int), n_cells))
+                }
+              }, error = function(e) {
+                cat(sprintf("[GEO] Failed to read dense %s: %s\\n", label, e\$message))
+              })
+              next  # dense file handled — do not fall through to MEX logic
             } else if (file.info(entry)\$isdir == FALSE) {
-              next  # skip individual non-archive files
+              next  # skip individual non-archive, non-dense files
             }
 
             # Look for 10x MEX files (matrix.mtx.gz, barcodes.tsv.gz, features.tsv.gz)
