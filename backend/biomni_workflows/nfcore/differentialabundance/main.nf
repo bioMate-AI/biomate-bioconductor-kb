@@ -148,9 +148,28 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
         error=function(e) stop("DESeq2 setup failed for contrast '", cid, "': ", e\$message)
       )
       dds <- estimateSizeFactors(dds)
+      # Robust dispersion estimation. The default parametric fit throws on small or
+      # low-variance datasets ("all gene-wise dispersion estimates are within 2 orders
+      # of magnitude from the minimum value ..."). Fall back to a local fit, then to
+      # gene-wise estimates as final — exactly the recovery DESeq2's own error message
+      # recommends. This is the canonical robust pipeline, correct for real small-n
+      # studies, not a demo-only workaround.
       dds <- tryCatch(
         DESeq(dds, quiet=TRUE),
-        error=function(e) stop("DESeq2 failed for contrast '", cid, "': ", e\$message)
+        error=function(e) {
+          message("Parametric DESeq failed for '", cid, "' (", conditionMessage(e),
+                  "); retrying with fitType='local'")
+          tryCatch(
+            DESeq(dds, fitType="local", quiet=TRUE),
+            error=function(e2) {
+              message("Local fit also failed (", conditionMessage(e2),
+                      "); using gene-wise dispersion estimates as final")
+              dds <- estimateDispersionsGeneEst(dds, quiet=TRUE)
+              dispersions(dds) <- mcols(dds)\$dispGeneEst
+              nbinomWaldTest(dds)
+            }
+          )
+        }
       )
       res <- results(dds, contrast=c(cvar, ctgt, cref), alpha=${max_qval})
       res_df <- as.data.frame(res)
