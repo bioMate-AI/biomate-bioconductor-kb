@@ -44,12 +44,12 @@
       {
         "@type": "Question",
         "name": "Does BioMate AI offer pay-as-you-go pricing?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Yes. Every new registration receives 100 free gifted credits — no credit card required. After that, purchase credits in any amount; credits never expire. Standard Bioconductor and genomics workflows cost 1–3 credits per run. GPU-intensive workflows (cryo-EM, molecular dynamics) are billed by compute time at a published credit rate. Starter pack: $10 for 500 credits. Pro pack: $50 for 3,000 credits." }
+        "acceptedAnswer": { "@type": "Answer", "text": "Yes. Every new registration receives 1,000 free gifted credits — no credit card required. After that, purchase credits in any amount; credits never expire. Standard Bioconductor and genomics workflows cost a few credits per run, and GPU-intensive workflows (cryo-EM, molecular dynamics) are billed by compute time. You always see the exact credit cost before confirming a run." }
       },
       {
         "@type": "Question",
         "name": "How does the audit packet hold up under FDA inspection?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Every evidence pack ships with prompt, model version, retrieved sources, parameters, reviewer signatures and a re-run hash. We provide a control-mapping document for 21 CFR Part 11 and ICH E6(R3)." }
+        "acceptedAnswer": { "@type": "Answer", "text": "Every evidence pack ships with prompt, model version, retrieved sources, parameters, reviewer signatures and a re-run hash. A control-mapping document for 21 CFR Part 11 and ICH E6(R3) is available on request." }
       }
     ]
   }
@@ -154,7 +154,7 @@
             <li>SSO &middot; SCIM &middot; audit log export</li>
             <li>IND filing support</li>
             <li>CRO submission package generation</li>
-            <li>Priority support &middot; 4 h SLA</li>
+            <li>Priority support</li>
           </ul>
           <a href="contact.html?topic=team" class="bm-btn bm-btn-primary">Talk to us</a>
         </article>
@@ -171,7 +171,7 @@
             <li>21 CFR Part 11 / GxP compliance packet</li>
             <li>Dedicated solution architect</li>
             <li>Volume‑adjusted pricing</li>
-            <li>99.95% uptime SLA</li>
+            <li>99.95% uptime target</li>
             <li>Procurement &amp; security review support</li>
           </ul>
           <a href="contact.html?topic=enterprise" class="bm-btn bm-btn-outline">Talk to us</a>
@@ -189,7 +189,7 @@
         <p class="bm-section-sub" style="max-width:580px;margin:0.75rem auto 0;">Buy credits in any amount. Spend them when you need to. No monthly commitment, no expiry.</p>
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem;margin-top:2rem;">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1.5rem;margin-top:2rem;max-width:760px;margin-left:auto;margin-right:auto;">
 
         <!-- Free tier -->
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem 1.5rem;position:relative;">
@@ -205,69 +205,23 @@
           <a href="https://dev-public.biomate.ai/register" class="bm-btn bm-btn-outline" style="width:100%;justify-content:center;">Start free</a>
         </div>
 
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem 1.5rem;">
-          <div style="font-size:1.05rem;font-weight:700;margin-bottom:0.4rem;">Starter credits</div>
-          <div style="font-size:2rem;font-weight:700;letter-spacing:-.02em;">$10</div>
-          <div style="font-size:.88rem;color:var(--text-2);margin-bottom:1rem;">= 500 credits</div>
-          <ul style="font-size:.9rem;line-height:1.8;list-style:none;padding:0;margin:0 0 1.25rem;color:var(--text);">
-            <li>Standard workflows: 1 credit / run</li>
-            <li>RNA-seq, scRNA-seq, methylation: 2–3 credits / run</li>
-            <li>Drug design workflows: 2 credits / run</li>
-            <li>Credits never expire</li>
-          </ul>
-          <a href="https://dev-public.biomate.ai/register" class="bm-btn bm-btn-outline" style="width:100%;justify-content:center;">Buy credits</a>
-        </div>
-
+        <!-- Pay as you go -->
         <div style="background:var(--bg);border:2px solid var(--accent);border-radius:var(--radius);padding:1.5rem 1.5rem;position:relative;">
-          <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:.78rem;font-weight:600;padding:2px 12px;border-radius:999px;">Best value</div>
-          <div style="font-size:1.05rem;font-weight:700;margin-bottom:0.4rem;">Pro credits</div>
-          <div style="font-size:2rem;font-weight:700;letter-spacing:-.02em;">$50</div>
-          <div style="font-size:.88rem;color:var(--text-2);margin-bottom:1rem;">= 3,000 credits &mdash; <span style="color:var(--accent);font-weight:600;">save 17%</span></div>
+          <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:.78rem;font-weight:600;padding:2px 12px;border-radius:999px;white-space:nowrap;">Pay as you go</div>
+          <div style="font-size:1.05rem;font-weight:700;margin-bottom:0.4rem;">Pay as you go</div>
+          <div style="font-size:2rem;font-weight:700;letter-spacing:-.02em;">Top up anytime</div>
+          <div style="font-size:.88rem;color:var(--text-2);margin-bottom:1rem;">buy more credits in any amount &mdash; credits never expire</div>
           <ul style="font-size:.9rem;line-height:1.8;list-style:none;padding:0;margin:0 0 1.25rem;color:var(--text);">
-            <li>Everything in Starter credits</li>
-            <li>GPU workflows (cryo-EM, MD): 10–30 credits / GPU-hour</li>
-            <li>Priority queue</li>
-            <li>Credits never expire</li>
+            <li>Pay only for what you run</li>
+            <li>Exact credit cost shown before every run</li>
+            <li>Standard workflows cost a few credits; GPU jobs billed by compute</li>
+            <li>No subscription, no monthly fee</li>
           </ul>
           <a href="https://dev-public.biomate.ai/register" class="bm-btn bm-btn-primary" style="width:100%;justify-content:center;">Buy credits</a>
         </div>
-
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem 1.5rem;">
-          <div style="font-size:1.05rem;font-weight:700;margin-bottom:0.4rem;">Bulk credits</div>
-          <div style="font-size:2rem;font-weight:700;letter-spacing:-.02em;">Custom</div>
-          <div style="font-size:.88rem;color:var(--text-2);margin-bottom:1rem;">10,000+ credits &mdash; volume pricing</div>
-          <ul style="font-size:.9rem;line-height:1.8;list-style:none;padding:0;margin:0 0 1.25rem;color:var(--text);">
-            <li>Everything in Pro credits</li>
-            <li>Purchase order / invoice billing</li>
-            <li>Dedicated support</li>
-            <li>Custom credit rate for large volumes</li>
-          </ul>
-          <a href="contact.html?topic=credits" class="bm-btn bm-btn-outline" style="width:100%;justify-content:center;">Talk to us</a>
-        </div>
       </div>
 
-      <div style="margin-top:2rem;overflow-x:auto;">
-        <table class="bm-compare" style="font-size:.88rem;">
-          <thead>
-            <tr>
-              <th style="width:40%;">Workflow type</th>
-              <th>Credits per run</th>
-              <th>Approx. cost</th>
-              <th>Typical runtime</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td>Standard Bioconductor (DESeq2, edgeR, limma)</td><td>1–2</td><td>$0.10–$0.20</td><td>5–15 min</td></tr>
-            <tr><td>Bulk RNA-seq with GO enrichment (DESeq2 + clusterProfiler)</td><td>2–3</td><td>$0.20–$0.30</td><td>10–20 min</td></tr>
-            <tr><td>Single-cell RNA-seq (Seurat + SingleR)</td><td>3–5</td><td>$0.30–$0.50</td><td>15–30 min</td></tr>
-            <tr><td>DNA methylation (minfi + DMRcate)</td><td>2–4</td><td>$0.20–$0.40</td><td>10–25 min</td></tr>
-            <tr><td>Drug design (bispecific, CAR-T, base editing, modality)</td><td>2–3</td><td>$0.20–$0.30</td><td>1–3 min</td></tr>
-            <tr><td>WGS variant calling (GATK4, DeepVariant)</td><td>10–20</td><td>$1–$2</td><td>1–3 h</td></tr>
-            <tr><td>Cryo-EM SPA (CryoSPARC, GPU)</td><td>30–120</td><td>$3–$12</td><td>2–8 h</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p style="text-align:center;margin-top:1rem;font-size:.85rem;color:var(--text-2);">Credit consumption depends on sample count, genome size, and compute tier. Exact cost shown before each run.</p>
+      <p style="text-align:center;margin-top:1.5rem;font-size:.85rem;color:var(--text-2);">Credit use depends on the workflow, sample count, genome size, and compute tier. You always see the exact cost before confirming a run.</p>
     </div>
   </section>
 
@@ -298,15 +252,16 @@
             <tr><td>Full audit trail export</td><td><span class="check">&#10003;</span></td><td><span class="check">&#10003;</span></td><td><span class="check">&#10003;</span></td><td><span class="check">&#10003;</span></td></tr>
             <tr><td>IND filing support</td><td><span class="dash">&mdash;</span></td><td><span class="dash">&mdash;</span></td><td><span class="check">&#10003;</span></td><td><span class="check">&#10003;</span></td></tr>
             <tr><td>CRO submission packages</td><td><span class="dash">&mdash;</span></td><td><span class="dash">&mdash;</span></td><td><span class="check">&#10003;</span></td><td><span class="check">&#10003;</span></td></tr>
-            <tr><td>SSO &middot; SCIM</td><td><span class="dash">&mdash;</span></td><td><span class="dash">&mdash;</span></td><td><span class="check">&#10003;</span></td><td><span class="check">&#10003;</span></td></tr>
-            <tr><td>21 CFR Part 11 / GxP packet</td><td><span class="dash">&mdash;</span></td><td><span class="dash">&mdash;</span></td><td><span class="dash">&mdash;</span></td><td><span class="check">&#10003;</span></td></tr>
-            <tr><td>Private deployment (VPC / on-prem)</td><td><span class="dash">&mdash;</span></td><td><span class="dash">&mdash;</span></td><td><span class="dash">&mdash;</span></td><td><span class="check">&#10003;</span></td></tr>
-            <tr><td>Customer-managed keys</td><td><span class="dash">&mdash;</span></td><td><span class="dash">&mdash;</span></td><td><span class="dash">&mdash;</span></td><td><span class="check">&#10003;</span></td></tr>
-            <tr><td>Support SLA</td><td>Email</td><td>Email</td><td>4 h</td><td>1 h, 24&times;7</td></tr>
-            <tr><td>Uptime SLA</td><td>99.9%</td><td>99.9%</td><td>99.9%</td><td>99.95%</td></tr>
+            <tr><td>SSO &middot; SCIM</td><td><span class="dash">&mdash;</span></td><td><span class="dash">&mdash;</span></td><td>On request</td><td>On request</td></tr>
+            <tr><td>21 CFR Part 11 / GxP packet</td><td><span class="dash">&mdash;</span></td><td><span class="dash">&mdash;</span></td><td><span class="dash">&mdash;</span></td><td>On request</td></tr>
+            <tr><td>Private deployment (VPC / on-prem)</td><td><span class="dash">&mdash;</span></td><td><span class="dash">&mdash;</span></td><td><span class="dash">&mdash;</span></td><td>On request</td></tr>
+            <tr><td>Customer-managed keys</td><td><span class="dash">&mdash;</span></td><td><span class="dash">&mdash;</span></td><td><span class="dash">&mdash;</span></td><td>On request</td></tr>
+            <tr><td>Support SLA</td><td>Email</td><td>Email</td><td>Priority</td><td>Dedicated, 24&times;7</td></tr>
+            <tr><td>Uptime SLA</td><td>99.9% target</td><td>99.9% target</td><td>99.9% target</td><td>99.95% target</td></tr>
           </tbody>
         </table>
       </div>
+      <p style="text-align:center;margin-top:1rem;font-size:.83rem;color:var(--text-2);">Enterprise capabilities (SSO/SCIM, compliance packets, private deployment, customer-managed keys) and support/uptime targets are scoped and confirmed as part of an Enterprise engagement.</p>
     </div>
   </section>
 
@@ -328,7 +283,7 @@
         </details>
         <details class="bm-faq-item">
           <summary>How does the audit packet hold up under FDA inspection?</summary>
-          <div class="bm-faq-a">Every evidence pack ships with prompt, model version, retrieved sources, parameters, reviewer signatures and a re‑run hash. We provide a control‑mapping document for 21 CFR Part 11 and ICH E6(R3).</div>
+          <div class="bm-faq-a">Every evidence pack ships with prompt, model version, retrieved sources, parameters, reviewer signatures and a re‑run hash. A control‑mapping document for 21 CFR Part 11 and ICH E6(R3) is available on request.</div>
         </details>
         <details class="bm-faq-item">
           <summary>Is Starter really free, and what's the trial?</summary>
@@ -344,7 +299,7 @@
         </details>
         <details class="bm-faq-item">
           <summary>How does pay-as-you-go work?</summary>
-          <div class="bm-faq-a">Every new account gets <strong>1,000 free gifted credits</strong> on signup — no card required. After that, buy credits in any amount (starting at $10 for 500 credits, or $50 for 3,000 credits). Credits are deducted per workflow run based on compute — standard Bioconductor workflows cost 1–3 credits, GPU-intensive jobs like cryo-EM cost 30–120 credits per run. Paid credits never expire. You always see the credit cost before confirming a run. No subscription, no monthly fee.</div>
+          <div class="bm-faq-a">Every new account gets <strong>1,000 free gifted credits</strong> on signup — no card required. After that, buy more credits in any amount; paid credits never expire. Credits are deducted per workflow run based on compute — standard workflows cost a few credits, GPU-intensive jobs more. You always see the exact credit cost before confirming a run. No subscription, no monthly fee.</div>
         </details>
         <details class="bm-faq-item">
           <summary>When is pay-as-you-go better than a subscription?</summary>
