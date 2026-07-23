@@ -88,8 +88,49 @@ and alerting through the SNS channel `sync_to_dev.sh` already uses
 (`arn:aws:sns:us-west-2:399683337364:biomate-deploy-events`). The current 502 on
 `/mcp` would already be firing.
 
+## Root cause of the `/mcp` 502 — and the durable fix
+
+Ground truth from the dev host (SSM, read-only):
+- `biomate-dev-frontend` is **healthy** and proxies `/mcp → 127.0.0.1:8848`, but on a
+  bridge network (`biomate-dev-net`) `127.0.0.1` is the **container's own loopback**.
+- That container is a **Node-only image** (no Python, no uvicorn, no connector code),
+  so the Python remote_mcp service **cannot run where the proxy points**.
+- remote_mcp was running **nowhere**: nothing on host `:8848`, no process, **no
+  systemd unit, no container, no supervisor**, and the connector code isn't on the
+  host. The connector repo has **no deploy artifact** for it (no Dockerfile/.service).
+
+So it wasn't crashing — **it was never deployed or supervised.** Any manual
+`python -m remote_mcp.run` was a foreground process that died with the SSM session /
+a reboot / a container swap, with nothing to restart it and nothing to re-establish
+it on deploy. Hence "down again; simple start isn't enough."
+
+**Fix (this commit) — run it as its own supervised container, deploy-integrated:**
+- `biomate-connector/Dockerfile.remote_mcp` — packages remote_mcp (python3.11 +
+  uvicorn + `mcp>=1.9` SDK, which is required for `StreamableHTTPSessionManager` /
+  `TransportSecuritySettings`), COPYing the exact dirs it imports
+  (`remote_mcp mcp oauth_server biomate_connector`) with `/app` as repo root so the
+  `mcp`-shadow bootstrap resolves. A **build-time import guard** fails the *build*
+  (not a runtime crash-loop) if the SDK is wrong or the shadow can't resolve.
+  Binds `0.0.0.0:8848` (the default `127.0.0.1` was itself part of the problem).
+- `routes.ts` — `MCP_UPSTREAM` now comes from `MCP_UPSTREAM_URL` (default
+  `127.0.0.1:8848` for local dev); dev sets it to `http://biomate-remote-mcp:8848`.
+- `sync_to_dev.sh` — `deploy_remote_mcp()` builds + `docker run --restart unless-stopped`
+  on `biomate-dev-net`, generates/persists a signing key once (not committed),
+  mounts `/var/lib/biomate` for the OAuth SQLite, then runs a **startup health check
+  + end-to-end `/mcp` probe** and dumps container logs on failure. It runs after the
+  frontend deploy (which now injects `MCP_UPSTREAM_URL`), is WARN-only (never aborts
+  the sync), and `BIOMATE_MCP_REQUIRE_AUTH=0` keeps the handshake working without the
+  key (which is only consumed at runtime, never at import).
+- The connector canary now confirms `/mcp` is up on every deploy and pages if it dies.
+
+This closes the class: supervised (survives crash/reboot/swap), correct topology
+(proxy reaches it by DNS), deploy-integrated (re-established every sync), guarded.
+
 ## Open follow-ups
-- **Fix remote_mcp :8848 on dev** (currently 502 → `/mcp` transport down).
+- **Verify remote_mcp is healthy on dev after the next sync** (build-guard + startup
+  check will report; the canary confirms `/mcp` != 502).
+- **Full OAuth flow correctness** (public issuer/resource URLs through the proxy) is
+  beyond the handshake fix — REQUIRE_AUTH=0 for now.
 - **Single-source the 3 adapter switch statements.** Manifest is single-source for
   schemas, but ChatGPT `/tools/:operationId`, Open Claw `executeOpenClaudeTool`,
   and MCP dispatch each hand-maintain a per-tool switch — a tool added to the

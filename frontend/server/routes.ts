@@ -16080,15 +16080,22 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
   // The remote_mcp Starlette app handles /mcp (Streamable-HTTP transport) and
   // /.well-known/oauth-* discovery documents. We forward all methods and pipe
   // the response so SSE streams pass through without buffering.
-  const MCP_UPSTREAM = "http://127.0.0.1:8848";
+  // Upstream is configurable so remote_mcp can run as its OWN supervised container
+  // (restart=always) reachable by Docker-DNS name — not an unsupervised process on
+  // the frontend container's loopback, which is why /mcp kept going 502 on dev.
+  // Default keeps local dev working (remote_mcp on the same host's 127.0.0.1:8848).
+  const MCP_UPSTREAM = process.env.MCP_UPSTREAM_URL || "http://127.0.0.1:8848";
+  const _mcpUp = new URL(MCP_UPSTREAM);
+  const _mcpHost = _mcpUp.hostname;
+  const _mcpPort = Number(_mcpUp.port) || (_mcpUp.protocol === "https:" ? 443 : 80);
   function mcpProxy(req: express.Request, res: express.Response) {
     const url = new URL(req.url, MCP_UPSTREAM);
     const opts = {
-      hostname: "127.0.0.1",
-      port: 8848,
+      hostname: _mcpHost,
+      port: _mcpPort,
       path: url.pathname + url.search,
       method: req.method,
-      headers: { ...req.headers, host: "127.0.0.1:8848" },
+      headers: { ...req.headers, host: `${_mcpHost}:${_mcpPort}` },
     };
     const upstream = httpRequest(opts, (upRes: any) => {
       res.writeHead(upRes.statusCode, upRes.headers);

@@ -280,6 +280,7 @@ deploy_frontend() {
     docker run -d --name biomate-dev-frontend --network biomate-dev-net \
       -p 3000:3000 --env-file /opt/biomate/.env \
       -e NODE_ENV=production -e PORT=3000 -e FORCE_HTTPS=0 \
+      -e MCP_UPSTREAM_URL=http://biomate-remote-mcp:8848 \
       --restart unless-stopped \
       -v /var/run/docker.sock:/var/run/docker.sock \
       -v /tmp/biomate_code:/tmp/biomate_code \
@@ -290,6 +291,82 @@ deploy_frontend() {
     docker ps --format "  {{.Names}}: {{.Status}}" | grep biomate-dev-frontend
   '
   log "[frontend] Done"
+}
+
+# ---------------------------------------------------------------------------
+# Layer 1b: remote_mcp — the Streamable-HTTP MCP transport, as its OWN
+# supervised container (restart=always) on biomate-dev-net, reachable by the
+# frontend /mcp proxy via Docker DNS (biomate-remote-mcp:8848). This is the
+# root-cause fix for "/mcp keeps 502-ing": the service was never deployed or
+# supervised — not in this script, not a systemd unit, and it could not run in
+# the Node-only frontend container the proxy's 127.0.0.1:8848 pointed at.
+# Lives in the separate biomate-connector repo (set CONNECTOR_REPO to override).
+# See docs/20260723_CONNECTOR_CONTRACT_TEST_AND_STABILITY.md.
+# ---------------------------------------------------------------------------
+
+deploy_remote_mcp() {
+  local connrepo="${CONNECTOR_REPO:-$(cd "$REPO_ROOT/.." && pwd)/biomate-connector}"
+  if [[ ! -f "$connrepo/Dockerfile.remote_mcp" ]]; then
+    log "[remote_mcp] connector repo / Dockerfile.remote_mcp not found at $connrepo — SKIPPING (set CONNECTOR_REPO). /mcp stays down until deployed."
+    return 0
+  fi
+  log "[remote_mcp] Packaging remote_mcp from $connrepo ..."
+  local tar_file="/tmp/biomate_remote_mcp_sync.tar.gz"
+  COPYFILE_DISABLE=1 tar -czf "$tar_file" -C "$connrepo" \
+    --exclude '.git' --exclude '__pycache__' --exclude '*.pyc' --exclude 'node_modules' \
+    Dockerfile.remote_mcp remote_mcp mcp oauth_server biomate_connector
+  log "[remote_mcp] Archive: $(du -sh "$tar_file" | cut -f1)"
+  ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/remote_mcp_sync.tar.gz"
+  ec2_ssh '
+    set -e
+    rm -rf /opt/biomate/remote_mcp_sync && mkdir -p /opt/biomate/remote_mcp_sync
+    tar -xzf /tmp/remote_mcp_sync.tar.gz -C /opt/biomate/remote_mcp_sync
+    cd /opt/biomate/remote_mcp_sync
+    # Persist a signing key ONCE (not committed) so OAuth tokens + stored API keys
+    # survive container/host restarts. Only consumed at runtime, never at import.
+    KEYFILE=/opt/biomate/remote_mcp_signing.key
+    [ -s "$KEYFILE" ] || python3 -c "import secrets;print(secrets.token_urlsafe(64))" > "$KEYFILE"
+    SIGNING_KEY=$(cat "$KEYFILE")
+    mkdir -p /opt/biomate/remote_mcp_data
+    echo "[remote_mcp] building image (build-time import guard runs here)..."
+    if ! docker build -t biomate-remote-mcp:latest -f Dockerfile.remote_mcp . 2>&1 | tail -8; then
+      echo "[remote_mcp] BUILD FAILED"; exit 1
+    fi
+    docker rm -f biomate-remote-mcp 2>/dev/null || true
+    docker run -d --name biomate-remote-mcp --network biomate-dev-net \
+      --restart unless-stopped \
+      -e BIOMATE_MCP_HOST=0.0.0.0 -e BIOMATE_MCP_PORT=8848 \
+      -e BIOMATE_API_URL=http://biomate-dev-frontend:3000 \
+      -e BIOMATE_MCP_PUBLIC_URL=https://dev-public.biomate.ai \
+      -e BIOMATE_OAUTH_ISSUER=https://dev-public.biomate.ai \
+      -e BIOMATE_MCP_REQUIRE_AUTH=0 \
+      -e BIOMATE_OAUTH_SIGNING_KEY="$SIGNING_KEY" \
+      -e BIOMATE_OAUTH_DB=/var/lib/biomate/oauth.db \
+      -v /opt/biomate/remote_mcp_data:/var/lib/biomate \
+      biomate-remote-mcp:latest
+    # Startup check — the container must reach "healthy" (uvicorn bound :8848),
+    # not crash-loop. Dump logs (ground truth) on failure so we see the reason.
+    ok=0; st=""; hs=""
+    for i in $(seq 1 15); do
+      sleep 3
+      st=$(docker inspect -f "{{.State.Status}}" biomate-remote-mcp 2>/dev/null)
+      hs=$(docker inspect -f "{{if .State.Health}}{{.State.Health.Status}}{{end}}" biomate-remote-mcp 2>/dev/null)
+      [ "$st" != "running" ] && break
+      [ "$hs" = "healthy" ] && { ok=1; break; }
+    done
+    if [ "$ok" != 1 ]; then
+      echo "[remote_mcp] STARTUP CHECK FAILED (status=$st health=$hs) — container logs:"
+      docker logs --tail 40 biomate-remote-mcp 2>&1 || true
+      exit 1
+    fi
+    # End-to-end: the frontend /mcp proxy must now reach the container (not 502).
+    code=$(curl -s -o /dev/null -w "%{http_code}" -m 8 -X POST http://localhost:3000/mcp \
+      -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
+      -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}" 2>/dev/null || echo "000")
+    echo "[remote_mcp] frontend /mcp -> HTTP $code (container status=$st health=$hs)"
+    docker ps --format "  {{.Names}}: {{.Status}}" | grep biomate-remote-mcp || true
+  '
+  log "[remote_mcp] Done"
 }
 
 # ---------------------------------------------------------------------------
@@ -1434,6 +1511,10 @@ do_sync() {
   # storage layer never hits a missing column on the new schema.
   $do_frontend  && apply_postgres_migrations
   $do_frontend  && deploy_frontend
+  # remote_mcp runs AFTER the frontend (which now points MCP_UPSTREAM_URL at the
+  # mcp container). Failure here never aborts the sync — it self-reports + logs;
+  # the connector canary below also flags a down /mcp. Never fails the deploy.
+  $do_frontend  && { deploy_remote_mcp || log "[remote_mcp] ⚠ deploy step failed — /mcp may be down; see logs above"; }
 
   # --- Post-sync health gate + auto-rollback -------------------------------
   # 120 retries × 5s = 600s (10 min). Galaxy is confirmed healthy by
