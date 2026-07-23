@@ -2303,6 +2303,22 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                         const userParams = Object.fromEntries(
                           Object.entries(params || {}).filter(([k]) => !k.startsWith('__'))
                         )
+                        // Multi-step artifacts have their own run handlers (sequential
+                        // step execution with an approval gate). handleRunWorkflow bails
+                        // out silently for these — a pipeline/chain has no nextflow_path,
+                        // so isNextflow=false, and with steps=[] the empty-steps guard
+                        // returns without running. Dispatch by workflow_type first, the
+                        // same way chat-message.tsx routes pipeline→PipelineListView and
+                        // chain→WorkflowChainPlan.
+                        const wfType = panelWorkflow?.workflow_type
+                        if (wfType === 'pipeline') {
+                          handleRunPipeline(panelWorkflow)
+                          return
+                        }
+                        if (wfType === 'chain') {
+                          handleRunChain(panelWorkflow)
+                          return
+                        }
                         handleRunWorkflow(
                           {
                             ...panelWorkflow,
