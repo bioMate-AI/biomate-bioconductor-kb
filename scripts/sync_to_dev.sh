@@ -1214,6 +1214,31 @@ smoke_test_db_search() {
   return 0
 }
 
+smoke_test_connector() {
+  # Contract gate for the MCP/connector surface: assert every tool declared in
+  # the canonical manifest resolves to a live endpoint with the declared verb,
+  # and that the ChatGPT /tools/{name} adapter handles each one. This catches the
+  # exact class of bugs fixed 2026-07-21/22 that the STATIC drift test cannot —
+  # a manifest verb/path that 404s on the running server, a tool missing from an
+  # adapter switch, a Phase-2 stub, or the /mcp remote transport being down.
+  # Runs LOCALLY (needs node) against the public dev URL — the real client path.
+  # WARN-ONLY: transient 502/timeout are reported as inconclusive, never a FAIL,
+  # so a blip can't trigger a rollback. Only a definitive contract violation FAILs.
+  local url="${CONNECTOR_TEST_URL:-https://dev-public.biomate.ai}"
+  if ! command -v node >/dev/null 2>&1; then
+    log "[smoke] connector contract SKIPPED (node not on PATH)"
+    return 0
+  fi
+  log "[smoke] Testing connector tool contract ($url)..."
+  local _out
+  _out="$(node "$REPO_ROOT/scripts/connector_contract_test.mjs" "$url" 2>&1)"
+  echo "$_out" | grep -E '\[smoke\] (FAIL|.*inconclusive|.*summary|.*reachability|.*drift)'
+  if echo "$_out" | grep -q '\[smoke\] FAIL'; then
+    return 1
+  fi
+  return 0
+}
+
 postsync_health_ok() {
   # Probe the dev host's mapped ports; retry to ride out HUP / cold start.
   # $1 = number of 5s retries (default 24 = 120s).
@@ -1427,6 +1452,12 @@ do_sync() {
         # promote to a rollback gate later if desired.)
         if ! smoke_test_db_search; then
           log "[health] ⚠ WARNING: DB-search operation-routing canary FAILED — deploy KEPT (not rolled back). Investigate proxy/operation forwarding; see docs/20260719_INTENT_DRIVEN_DB_SEARCH_AND_DEPLOY_ROOT_CAUSE.md"
+        fi
+        # Connector contract canary — WARN ONLY (same policy as db-search). Surfaces
+        # a broken MCP/connector tool (dead route, wrong verb, stub, adapter miss,
+        # or /mcp down) at deploy time instead of when a user hits it.
+        if ! smoke_test_connector; then
+          log "[health] ⚠ WARNING: connector contract canary FAILED — deploy KEPT (not rolled back). A tool's endpoint 404s / wrong verb / stub, or the manifest drifted from the running server. See docs/20260723_CONNECTOR_CONTRACT_TEST_AND_STABILITY.md"
         fi
       else
         log "[health] ✗ smoke test FAILED (workflow generation broken) — auto-rolling back"

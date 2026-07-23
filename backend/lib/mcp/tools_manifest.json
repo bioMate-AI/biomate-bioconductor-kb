@@ -1558,7 +1558,7 @@
     },
     {
       "name": "export_report",
-      "method": "POST",
+      "method": "GET",
       "path": "/api/workflows/runs/{run_id}/findings/report",
       "streaming": false
     },
@@ -1582,7 +1582,7 @@
     },
     {
       "name": "resolve_accession",
-      "method": "GET",
+      "method": "POST",
       "path": "/api/accession/resolve",
       "streaming": false
     },
@@ -1600,13 +1600,13 @@
     },
     {
       "name": "search_literature",
-      "method": "GET",
+      "method": "POST",
       "path": "/api/literature/search",
       "streaming": false
     },
     {
       "name": "recall_memory",
-      "method": "POST",
+      "method": "GET",
       "path": "/api/memory/relevant",
       "streaming": false
     },

@@ -303,6 +303,7 @@ TOOL_SCHEMAS: List[ToolSchema] = [
             "required": ["run_id"],
         },
         backend_path="/api/workflows/runs/{run_id}/findings/report",
+        backend_method="GET",
     ),
     ToolSchema(
         name="analyze_results",
@@ -391,7 +392,7 @@ TOOL_SCHEMAS: List[ToolSchema] = [
             "required": ["accession"],
         },
         backend_path="/api/accession/resolve",
-        backend_method="GET",
+        backend_method="POST",
     ),
     ToolSchema(
         name="browse_data",
@@ -491,7 +492,7 @@ TOOL_SCHEMAS: List[ToolSchema] = [
             "required": ["query"],
         },
         backend_path="/api/literature/search",
-        backend_method="GET",
+        backend_method="POST",
     ),
     ToolSchema(
         name="recall_memory",
@@ -516,6 +517,7 @@ TOOL_SCHEMAS: List[ToolSchema] = [
             "required": ["query"],
         },
         backend_path="/api/memory/relevant",
+        backend_method="GET",
     ),
     ToolSchema(
         name="upload_file",
@@ -592,7 +594,7 @@ def to_openapi() -> Dict[str, Any]:
     OAuth 2.0 with the same /oauth/authorize and /oauth/token endpoints used
     by the MCP and Skill credential flows.
 
-    Note: ChatGPT GPT Actions cap operations at ~30 per spec — we ship 14 so
+    Note: ChatGPT GPT Actions cap operations at ~30 per spec — we ship 19 so
     we are well under the limit.
     """
     paths: Dict[str, Any] = {}
