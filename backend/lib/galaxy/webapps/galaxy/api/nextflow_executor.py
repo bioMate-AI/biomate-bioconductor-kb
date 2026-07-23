@@ -4565,7 +4565,11 @@ def execute_nextflow(
             _fail_run(run_id, _msg)
             _narrate_launch_failure(invocation_id, run_id, _msg)
         except Exception as exc:
-            log.error("[Nextflow run %s] background launch crashed: %s", run_id, exc)
+            # log.exception captures the full traceback (file:line) — a bare
+            # log.error(…, exc) only prints the message, which made launch
+            # crashes like "local variable 'v3' referenced before assignment"
+            # impossible to root-cause. See docs/20260722_PROJECT_MODULE_PERF_AND_TIER_PROPOSAL.md.
+            log.exception("[Nextflow run %s] background launch crashed", run_id)
             _fail_run(run_id, f"launch failed: {exc}")
             _narrate_launch_failure(invocation_id, run_id, f"launch failed: {exc}")
 
