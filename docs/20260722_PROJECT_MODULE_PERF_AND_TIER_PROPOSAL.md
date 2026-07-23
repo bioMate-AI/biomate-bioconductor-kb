@@ -244,10 +244,59 @@ is unchanged from the old auto-send code (same message text), so it is not a reg
 **Follow-up:** update UC-PW2 to reflect the new UX (prefill → append context → submit → expect run),
 and re-run PW2–PW5 in a stable dev window. Do NOT burn more AWS Batch runs against an unstable dev.
 
+**RESOLVED (2026-07-22) — `project-workspace` 5/5 GREEN.** After deploying the retry fix (§Part 3.5
+Dev instability #1) and updating UC-PW2:
+- UC-PW2 test changes (commits `d4432fd10`, `763644bd1`): (1) pre-fill-and-edit — append routing
+  context after the prefill; (2) accept terminal state (completed OR failed) — synthetic FASTQ can't
+  scientifically complete; (3) fixed two stale selectors that only surfaced once the test ran past
+  prefill for the first time — `run-row-*` (was `project-runs-list`) and `workflow-artifact-panel`
+  (was the React component name `nextflow-workflow-viewer`).
+- Final dev run: **5/5 passed, 4.1 min, no flaky, zero retries.** UC-PW2 completed the full cycle:
+  prefill → edited msg routes to `nf-core/rnaseq` → run → terminal `failed` (accepted) → run linked
+  in project API → viewer renders → phase cards. **Zero `Failed to fetch`** this run (vs. retries +
+  failures on every prior run) — the client-side retry doing its job.
+
 Uploaded file `source='upload'` is confirmed and the `onFilesChanged` wiring exists, so the auto-sent
 message *should* contain the filename — but **positive confirmation of the sent-message content is
 pending**: dev EC2 became unstable mid-session (`Failed to fetch`, file-tree render timeouts across 3
 probes), blocking the confirmation run. Re-verify in a stable dev window.
+
+### Screenshot/output audit (2026-07-23) — findings the green tests hid
+Visual audit of the E2E screenshots (not done initially — relied on pass/fail):
+- **Verified correct:** file upload (263 B), metadata (names never "undefined", chat/run counts match),
+  chat message + BioMate response (correct nf-core/rnaseq description, no hallucination), run→tab
+  linkage, failed-run handling ("No outputs — run did not complete successfully", no stuck spinner),
+  ADMET CC5 COMPLETED with real output table, notes synthesis (real markdown, correctly "Completed Runs: None").
+- **`nf-core/rnaseq` launch crash — ROOT-CAUSED & FIXED.** The 07-22 screenshot read as `v3` but the
+  variable is actually **`s3`** (low-res misread). The `log.exception` observability fix (`b9eb575a`,
+  deployed) immediately captured the traceback from Galaxy's log file (`/app/galaxy.log`, not
+  docker-logs stdout — that's why earlier searches were empty):
+  ```
+  _launch_bg → _execute_nextflow_impl → _validate_input_paths → _validate_s3_url:2276
+  UnboundLocalError: local variable 's3' referenced before assignment
+  ```
+  **Root cause:** in `_validate_s3_url`, the boto3 `s3` client is created **only in the `else` branch**
+  for non-public buckets. For a `_PUBLIC_REF_BUCKETS` bucket (`ngi-igenomes`, `broad-references`, …) the
+  `if` branch does `pass`, so `s3` is never assigned — then `s3.head_object` at line 2276 raises. **nf-core/rnaseq
+  pulls GRCh38 references from `ngi-igenomes`**, so any run with a specific object key in a public ref
+  bucket crashes at launch. Reproduced live on 2026-07-23 (crashes at 20:33/20:35/20:37). **Fix:** skip
+  the object-existence check for public ref buckets (already trusted; also avoids requester-pays/cross-region
+  false 403s). Committed + deployed.
+- **Notes-header overlap** — NOT a real bug. Only appears in the E2E browser where the Inter font is
+  CORS-blocked (global `x-e2e-test-token` on the cross-origin font); JSX is clean vertical flow. A real
+  user's browser renders it fine. (Couldn't screenshot with fonts because the SPA auth needs that same token.)
+- **Stale probe projects** (`PROBE sent` ×2, `PROBE source check`) — my own leftovers; **cleaned up.**
+
+### DB cascade integrity (audit S6) — VERIFIED (2026-07-23, read-only SSM)
+Previously deferred (needs direct Postgres). Now closed via `docker exec biomate-dev-postgres psql`
+over read-only SSM (all mutations via the API):
+- **Schema proof** — FK `ON DELETE` rules on all children of `projects(id)`:
+  `project_knowledge / project_episodes / project_procedures / project_members / project_share_tokens`
+  = **CASCADE**; `chat_sessions / sessions / workflows / correction_log` = **SET NULL**. Exactly the
+  design contract; Postgres enforces it atomically.
+- **Behavioral proof** — created a project, notes-refresh wrote a `project_knowledge` row
+  (before: `project=1, knowledge_rows=1`), API `DELETE` returned 200 (after: `project=0,
+  knowledge_rows=0`). Hard delete, cascade fires, no orphans.
 
 ### Environmental note
 Dev EC2 showed transient instability during this session (flaked PW1, blocked confirmation probes).

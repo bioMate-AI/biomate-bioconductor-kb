@@ -2271,7 +2271,15 @@ def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
     # Skip for directory-style prefixes (key ends with '/') or bucket-only URLs.
     # Also skip head_object for glob patterns — use list_objects_v2 instead.
     _is_glob_key = any(c in key for c in ("*", "?", "[", "]"))
-    if check_object and key and not key.endswith("/") and not _is_glob_key:
+    # Public reference buckets (_PUBLIC_REF_BUCKETS above) take the `pass` branch and
+    # never create an `s3` client — referencing it here raised
+    # "UnboundLocalError: local variable 's3' referenced before assignment", which
+    # crashed nf-core launches whose inputs live in ngi-igenomes/broad-references.
+    # Those buckets are trusted (we already skip head_bucket) and are often
+    # requester-pays/cross-region where head_object 403s on legit objects — so skip
+    # the object check for them too.
+    if (check_object and key and not key.endswith("/") and not _is_glob_key
+            and bucket not in _PUBLIC_REF_BUCKETS):
         try:
             s3.head_object(Bucket=bucket, Key=key)
         except ClientError as exc:
