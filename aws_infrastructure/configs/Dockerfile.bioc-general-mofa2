@@ -1,0 +1,48 @@
+# Extends bioc-domain-general:3.20-slim with MOFA2 + its basilisk/mofapy2 Python
+# backend pre-installed.
+#
+# Why this layer exists:
+#   The 3.20-slim base does not include MOFA2. Runtime self-install fails for it in
+#   two compounding ways (observed on dev run 885ec10c):
+#     1. The Bioconductor `container-binaries/bioconductor_docker` mirror 404s for
+#        MOFA2's heavy deps (RcppEigen, RSpectra, dqrng, basilisk.utils, ...), so
+#        every dep falls back to *source* compilation — which does not finish inside
+#        a single Batch task window → `Error in library(MOFA2): no package 'MOFA2'`.
+#     2. MOFA2 trains via `run_mofa(..., use_basilisk=TRUE)`, and basilisk builds a
+#        bundled mofapy2 *conda env* on first use — slow, network-dependent, fragile
+#        to rebuild on every fresh container.
+#   Baking both in cuts a MOFA run to image-pull + train (~2-3 min once per EC2).
+#
+# Build & push (run from repo root):
+#   scripts/build_bioc_mofa2_image.sh
+# After push, mofa2/main.nf uses tag 3.20-mofa2.
+
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20-slim
+
+# 1) MOFA2 + basilisk (Python-env manager) + the workflow's declared R deps.
+#    Source builds are fine here — build time has no per-task window limit.
+RUN Rscript -e " \
+  options(repos = c(CRAN = 'https://packagemanager.posit.co/cran/__linux__/jammy/latest')); \
+  .bin_url <- sprintf( \
+    'https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker', \
+    BiocManager::version()); \
+  BiocManager::install( \
+    c('MOFA2', 'basilisk', 'reticulate', 'ggplot2', 'pheatmap', 'tidyverse'), \
+    ask = FALSE, update = FALSE, site_repository = .bin_url \
+  ); \
+  if (!requireNamespace('MOFA2', quietly = TRUE)) quit(status = 1, save = 'no') \
+"
+
+# 2) Bake the basilisk/mofapy2 conda env by training a tiny MOFA model at build time,
+#    so run_mofa(use_basilisk=TRUE) at runtime reuses the baked env instead of building
+#    it. Fail the build if MOFA cannot actually train (surfaces env problems now, not
+#    silently at runtime).
+RUN Rscript -e " \
+  suppressMessages(library(MOFA2)); set.seed(1); \
+  d <- make_example_data(n_views = 2, n_samples = 20, n_features = 40, n_factors = 3)\$data; \
+  m <- create_mofa(d); \
+  m <- prepare_mofa(m, model_options = get_default_model_options(m)); \
+  out <- run_mofa(m, outfile = tempfile(fileext = '.hdf5'), use_basilisk = TRUE); \
+  stopifnot(!is.null(out)); \
+  cat('MOFA2 + basilisk/mofapy2 env baked OK\n') \
+"

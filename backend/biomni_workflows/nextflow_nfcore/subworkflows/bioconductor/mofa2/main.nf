@@ -26,7 +26,7 @@ process BIOC_MOFA2_STANDARD_MOFA_ANALYSIS {
 
     publishDir "${params.outdir}", mode: 'copy'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20-slim"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20-mofa2"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
