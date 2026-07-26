@@ -2201,7 +2201,19 @@ def _generate_executor_config(
         # .command.run that calls `aws s3 cp` — if the container lacks the aws
         # binary, the task exits with code 127 immediately.
         # civitaspo/python-awscli:latest = Python 3 + AWS CLI v2 (verified working).
-        container = compute.get("container") or os.environ.get(
+        container = compute.get("container")
+        # ml_training workflows must run in the ml-training image (ludwig + rdkit
+        # + the ml_training package). The frontend submits without an explicit
+        # compute_config.container (workflow_ga carries none), so default it here
+        # by workflow path — otherwise the run lands in biomate-nextflow-base
+        # (no ludwig) and the TRAIN process fails. API callers that already set
+        # compute.container (executor_payload) keep their value.
+        if not container and "ml_training/" in (nf_path or ""):
+            container = os.environ.get(
+                "ML_TRAINING_IMAGE",
+                "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ml-training:latest",
+            )
+        container = container or os.environ.get(
             "NEXTFLOW_BATCH_CONTAINER", "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest"
         )
 
