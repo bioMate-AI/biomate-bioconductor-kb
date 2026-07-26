@@ -287,6 +287,29 @@ Visual audit of the E2E screenshots (not done initially — relied on pass/fail)
   user's browser renders it fine. (Couldn't screenshot with fonts because the SPA auth needs that same token.)
 - **Stale probe projects** (`PROBE sent` ×2, `PROBE source check`) — my own leftovers; **cleaned up.**
 
+### Teamwork/collaboration audit (2026-07-23) — roles are cosmetic + misleading UI
+Deep test of the team feature (beyond the green TW1–12 lifecycle tests, which only checked role labels):
+- **"editor" role grants NO capability (backend owner-only).** Live test: promoted a member to `editor`,
+  then as that editor: `PATCH /api/projects/:id` (instructions) → **404**, `POST /files/upload` → **404**,
+  `GET /files` → 200. Every content-mutating endpoint checks `existing.userId !== uid` (owner-only;
+  `project-routes.ts:205,330,365`). An editor is read-only, **identical to a viewer**. The UI's Editor
+  role + viewer↔editor dropdown promise edit rights that don't exist.
+- **UI shows edit controls to read-only members.** A viewer/editor member's browser view (screenshotted)
+  shows Upload, Edit-instructions, +tag, the ⋯ (rename/archive/delete) menu, and Analyze — all visible,
+  all 404 on click. Only the share/invite panel is correctly `isOwner`-gated (`project-detail.tsx:817+`).
+  Members DO correctly see the shared project (sidebar "SHARED" badge), owner's files, member list, "Leave project".
+- **Net:** collaboration is view-only in practice but presented as fully editable.
+
+**FIXED + VERIFIED (2026-07-26, commit `6c012935`) — "make editors real".** Backend: `_getUserRole`/
+`_isOwnerOrEditor`; `GET /:id` returns `role`+`canEdit`; `PATCH` project, file upload, file delete now
+allow owner OR editor (lifecycle/status, archive, delete-project, member mgmt, share links stay
+owner-only; file delete is project-scoped). Frontend: edit-instructions/tags/upload/delete/dropzone
+gated by `canEdit`; ⋯ actions menu stays owner-only — viewers get a clean read-only workspace. Deployed
+healthy; live-verified: viewer PATCH/upload → 404; after promotion editor PATCH → 200, upload → 201,
+edit persisted; editor status change → 403 (owner-only preserved). (Note: the fix was re-implemented
+after the first uncommitted version was lost to a between-session working-tree reset — committed
+immediately this time.)
+
 ### DB cascade integrity (audit S6) — VERIFIED (2026-07-23, read-only SSM)
 Previously deferred (needs direct Postgres). Now closed via `docker exec biomate-dev-postgres psql`
 over read-only SSM (all mutations via the API):
