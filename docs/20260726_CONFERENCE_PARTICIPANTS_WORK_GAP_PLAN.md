@@ -4,7 +4,7 @@
 **Source:** Boston Autoimmune Neuromuscular Summit contact matrix (Post-Conference Report, July 2026).
 For each participant, by priority tier: **Work** (BioMate asset/demo tailored to them — ✅=built this session, ◑=exists in the 4,000+ catalog, ○=needs build), **Gap** (what's missing to serve them), **Plan** (approach + build).
 
-**Strategic frame:** big pharma = lighthouse logos + scoped pilots (they run internal platform teams and lean build-vs-buy); the scalable buyers are those who can't DIY (small biotech, academic / individual researchers). Two tailored assets were built this session: the **target-discovery scorecard** (UCB-shaped) and **autoantibody-isotype stratification** (VorBio-shaped). See `20260726_TARGET_DISCOVERY_BUILD_FINDINGS_AND_PLAN.md`.
+**Working hypothesis (proposed, not agreed):** big pharma may be better treated as lighthouse logos + scoped pilots (they run internal platform teams and lean build-vs-buy), while the scalable buyers are those who can't DIY (small biotech, academic / individual researchers). This is a proposal for discussion, not a settled plan. Two tailored assets were built this session: the **target-discovery scorecard** (UCB-shaped) and **autoantibody-isotype stratification** (VorBio-shaped).
 
 ---
 
