@@ -148,12 +148,20 @@ process BIOC_MOFA2_STANDARD_MOFA_ANALYSIS {
             model <- run_tsne(model)
             print(plot_dimred(model, method = "TSNE", color_by = "condition", dot_size = 5))
             
-            # Rename dimensions
-            new_views <- c("Transcriptomics", "Proteomics")
-            if (length(views_names(model)) > 2) {
-              new_views <- c(new_views, paste("View", 3:length(views_names(model))))
+            # Preserve the view names carried from the input data — create_mofa() uses
+            # the named list's element names as views, so ANY combination of omics is
+            # labeled by its real modality (Transcriptomics, Methylation, Proteomics,
+            # ATAC, Mutations, ...). Only assign a generic "View N" label to genuinely
+            # unnamed views (MOFA2 auto-names unnamed data view_0, view_1, ...).
+            # (Previously these were hard-renamed to c("Transcriptomics","Proteomics",
+            # "View 3"...), which mislabeled every combination that was not exactly
+            # [transcriptomics, proteomics].)
+            .vn <- views_names(model)
+            .needs_label <- is.na(.vn) | .vn == "" | grepl("^view_?[0-9]+\$", .vn, ignore.case = TRUE)
+            if (any(.needs_label)) {
+              .vn[.needs_label] <- paste0("View ", which(.needs_label))
+              views_names(model) <- .vn
             }
-            views_names(model) <- new_views[1:length(views_names(model))]
             factors_names(model) <- paste("Factor", 1:get_dimensions(model)\$K, sep=" ")
             
             # Data extraction

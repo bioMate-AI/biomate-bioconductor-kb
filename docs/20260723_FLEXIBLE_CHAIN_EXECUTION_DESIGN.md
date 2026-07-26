@@ -173,6 +173,27 @@ Path modification (hybrid, per user steer):
   and never populates step defs), not a virtual-workflow gap. This becomes the
   concrete first target of Phase 1. Diagnosis anchor: run
   `c3d8b09e-7750-41d9-9d10-51eb6179eea2` (dev).
+
+- **Phase 0b — chain step-source fix: ✅ DONE + VERIFIED on dev (2026-07-26).**
+  Root cause of the above: a `workflow_type:'pipeline'` artifact carries steps in
+  TWO fields — structured objects in `pipeline_steps`, and a DISPLAY-ONLY
+  `string[]` in `chain_steps` (`["Predict ADMET Properties (AI)", …]`).
+  `submitWorkflowFromArtifact` read `chain_steps || pipeline_steps`, preferring
+  the strings; `buildChainSubmitSteps` then read `.nextflow_path` off strings →
+  `null` for every step → backend returned no `chain_run_id`. The Galaxy
+  `/api/workflows/chain` endpoint was proven correct in isolation (known-good
+  steps → `chain_run_id` + running steps). Fix: `pickChainStepSource()` prefers
+  whichever field holds structured step OBJECTS; `buildChainSubmitSteps` maps a
+  bare string to `workflow_name` so the backend name→path resolver can still
+  attach a path. Committed (`8a9f7752c`, cherry-picked to integration as
+  `6759cdf6a`), synced healthy, +5 regression tests (966 total green).
+  **Verified on dev:** the same panel run that previously failed
+  (`chain_run_id:None`, `steps:[(None,None)×3]`) now returns
+  `chain_run_id: chain_1785071840_259774`, resolves all three steps by name, and
+  the run is `running`. Verification anchor: run
+  `b457ed05-1cf6-417e-855e-ebe98c9ce77f` (dev).
+  **Net:** an assembled pipeline/chain artifact now dispatches from the panel
+  (Phase 0) AND submits + runs end-to-end (Phase 0b). "Run whole" works.
 - **Phase 1 — unify state (medium):** introduce `ChainPlan` as the single source of
   truth; make chat card and panel both read/write it. Collapse `pipeline_steps` /
   `chain_steps` / panel single-view into one. Persist across turns.
