@@ -135,6 +135,8 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
 
   // Project sharing
   const [isOwner, setIsOwner] = useState(false)
+  // canEdit = owner OR editor member. Viewers are read-only; gates content controls.
+  const [canEdit, setCanEdit] = useState(false)
   const [members, setMembers] = useState<Array<{ user_id: string; email: string; fullName?: string; role: string }>>([])
   const [shareEmail, setShareEmail] = useState("")
   const [shareRole, setShareRole] = useState<"viewer" | "editor">("viewer")
@@ -172,9 +174,11 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
           } as any)
           setInstructionsValue(p.researchGoal ?? p.research_goal ?? p.instructions ?? "")
           if (data.isOwner !== undefined) setIsOwner(data.isOwner)
+          // canEdit from server (owner|editor); fall back to isOwner for older payloads.
+          setCanEdit(data.canEdit ?? data.isOwner ?? false)
         } else {
           const loc = projectService.getProject(projectId)
-          if (loc) { setProject(loc); setInstructionsValue(loc.instructions || ""); setIsOwner(true) }
+          if (loc) { setProject(loc); setInstructionsValue(loc.instructions || ""); setIsOwner(true); setCanEdit(true) }
         }
       })
       .catch(() => {
@@ -464,14 +468,16 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                   className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary text-secondary-foreground px-2 py-0.5 text-xs"
                 >
                   <Tag className="w-3 h-3 opacity-60" />{tag}
+                  {canEdit && (
                   <button
                     onClick={() => removeTag(tag)}
                     className="ml-0.5 opacity-50 hover:opacity-100 leading-none"
                     aria-label={`Remove tag ${tag}`}
                   >×</button>
+                  )}
                 </span>
               ))}
-              {addingTag ? (
+              {!canEdit ? null : addingTag ? (
                 <input
                   autoFocus
                   value={tagInput}
@@ -500,6 +506,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
             <Button onClick={() => openChatWithProject()} data-testid="button-open-project-chat">
               <MessageCircle className="w-4 h-4 mr-2" />Chat
             </Button>
+            {isOwner && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" data-testid="button-project-actions">
@@ -523,6 +530,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            )}
           </div>
         </div>
       </div>
@@ -614,6 +622,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                 <ProjectFileTree
                   projectId={projectId}
                   onFilesChanged={(files) => setProjectFiles(files)}
+                  canEdit={canEdit}
                 />
               </div>
               <div className="border-t border-border px-4 py-3 bg-muted/20 shrink-0 flex items-center justify-between gap-4">
@@ -758,7 +767,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
           <div className="p-4 flex-1 overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-medium text-sm">Instructions</h3>
-              {!isEditingInstructions && (
+              {canEdit && !isEditingInstructions && (
                 <Button
                   variant="ghost" size="sm" className="h-7 w-7 p-0"
                   onClick={() => setIsEditingInstructions(true)}

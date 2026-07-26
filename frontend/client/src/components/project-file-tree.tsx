@@ -170,6 +170,7 @@ function FileRow({
   onDownload,
   copiedId,
   onCopy,
+  canEdit = true,
 }: {
   file: ProjectFile;
   projectId: string;
@@ -177,6 +178,7 @@ function FileRow({
   onDownload: (id: string) => void;
   copiedId: string | null;
   onCopy: (id: string, key: string) => void;
+  canEdit?: boolean;
 }) {
   const Icon = fileIcon(file.name, file.content_type);
   const isCopied = copiedId === file.id;
@@ -234,7 +236,7 @@ function FileRow({
         >
           <Download className="h-3 w-3 text-muted-foreground" />
         </button>
-        {file.source === "upload" && (
+        {file.source === "upload" && canEdit && (
           <button
             title="Delete"
             onClick={() => onDelete(file.id)}
@@ -292,9 +294,11 @@ export interface ProjectFileTreeProps {
   onPickFile?: (s3Key: string, fileName: string) => void;
   /** Called whenever the file list changes (load, upload, delete) */
   onFilesChanged?: (files: { name: string; size?: number }[]) => void;
+  /** When false, hide upload/delete controls (read-only viewers). Default true. */
+  canEdit?: boolean;
 }
 
-export function ProjectFileTree({ projectId, onPickFile, onFilesChanged }: ProjectFileTreeProps) {
+export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, canEdit = true }: ProjectFileTreeProps) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -414,15 +418,15 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged }: Proje
       onDrop={(e) => {
         e.preventDefault();
         setDragOver(false);
-        handleUpload(e.dataTransfer.files);
+        if (canEdit) handleUpload(e.dataTransfer.files);
       }}
       data-testid="project-file-tree"
     >
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30 shrink-0">
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex-1">Files</span>
-        {/* Desktop: native file picker. Browser: standard input. */}
-        {isDesktop() ? (
+        {/* Desktop: native file picker. Browser: standard input. Owner/editor only. */}
+        {canEdit && (isDesktop() ? (
           <Button
             size="sm"
             variant="ghost"
@@ -460,7 +464,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged }: Proje
             )}
             Upload
           </Button>
-        )}
+        ))}
         <Button
           size="sm"
           variant="ghost"
@@ -523,6 +527,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged }: Proje
                           onDownload={handleDownload}
                           copiedId={copiedId}
                           onCopy={handleCopy}
+                          canEdit={canEdit}
                         />
                       );
                     }
