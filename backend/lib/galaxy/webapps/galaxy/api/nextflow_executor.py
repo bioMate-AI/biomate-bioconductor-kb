@@ -1609,6 +1609,26 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
                     _pop_key = _no_ext
             if not src:
                 return None
+            # UNIVERSAL multi-omics interface: a declared input may be a LIST of files — one
+            # matrix per omics modality (e.g. rna.csv, methylation.csv, proteomics.csv). Stage
+            # each under its own basename so the workflow body can name every view by its file
+            # (its real modality). Single-file inputs keep the existing behavior below.
+            if isinstance(src, (list, tuple)):
+                for _one in src:
+                    if not _one:
+                        continue
+                    _base = Path(str(_one).split('?', 1)[0].rstrip('/')).name or f"{name}.dat"
+                    _dest = run_dir / _base
+                    try:
+                        _stage_declared_input(_one, _dest)
+                    except Exception as exc:
+                        log.warning("[Nextflow run %s] bioc list-input staging failed for %r: %s",
+                                    run_id, _one, exc)
+                        return None
+                    _assert_staged_input_format(_dest, name)
+                    staged.append(_dest.resolve())
+                _keys_to_pop.append(_pop_key)
+                continue
             # The `// Input:` declaration carries a *logical* base token (e.g. `sce2`, `fit2`),
             # but the workflow body frequently reads a *literal* filename with an extension
             # (`readRDS("sce2.rds")`, `file.exists("fit2.rds")`). Stage under the literal

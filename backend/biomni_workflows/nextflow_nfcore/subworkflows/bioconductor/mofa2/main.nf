@@ -2,7 +2,7 @@
 // ============================================================
 // Bioconductor workflow: MOFA2 — standard_mofa_analysis
 // Train a standard multi-omic factor analysis model on multiple data modalities and perform downstream visualization and data extraction.
-// Input: data, dt
+// Input: omics
 // Container: quay.io/biocontainers/bioconductor-mofa2:1.20.2--r45h9ee0642_0
 // R packages: ggplot2, MOFA2, pheatmap, tidyverse
 // Bioconductor: 3.20 | R: 4.4
@@ -66,11 +66,31 @@ process BIOC_MOFA2_STANDARD_MOFA_ANALYSIS {
             library(MOFA2)
             library(ggplot2)
             
-            # Read user inputs from the working directory
-            # Assuming standard RDS format for R objects
-            data <- readRDS("data.rds")
-            dt <- readRDS("dt.rds")
-            
+            # --- Assemble the multi-omics view list (UNIVERSAL interface) ---
+            # Accept ANY combination of omics as one file per modality. Named .csv/.tsv/.txt
+            # matrices (rows = features, columns = samples; column 1 = feature IDs, header row
+            # = sample IDs) are read directly and each view is NAMED BY ITS FILE (its real
+            # modality: rna, methylation, proteomics, atac, metabolomics, mutations, ...), so
+            # MOFA views carry their true labels. A pre-serialized data.rds (named list) or
+            # dt.rds is still honored for backward compatibility.
+            .read_matrix <- function(.f) {
+              .sep <- if (grepl("\\.csv\$", .f, ignore.case = TRUE)) "," else "\t"
+              as.matrix(read.table(.f, header = TRUE, row.names = 1, sep = .sep,
+                                   check.names = FALSE, stringsAsFactors = FALSE))
+            }
+            if (file.exists("data.rds")) {
+              data <- readRDS("data.rds")
+            } else {
+              .mats <- list.files(".", pattern = "\\.(csv|tsv|txt)\$", full.names = FALSE, ignore.case = TRUE)
+              .mats <- .mats[!grepl("^(versions|dt)[._]", .mats, ignore.case = TRUE)]
+              data <- list()
+              for (.f in .mats) {
+                .view <- sub("\\.[^.]+\$", "", basename(.f))   # view name = modality from filename
+                try(data[[.view]] <- .read_matrix(.f), silent = TRUE)
+              }
+            }
+            dt <- if (file.exists("dt.rds")) readRDS("dt.rds") else NULL
+
             # --- Create MOFA object ---
             if (is.list(data) && !is.data.frame(data) && length(data) > 0) {
               MOFAobject <- create_mofa(data)
