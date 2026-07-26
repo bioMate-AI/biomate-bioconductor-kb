@@ -194,6 +194,15 @@ test.describe.serial("project-team (two-user)", () => {
     expect(status.status()).toBe(403);
   });
 
+  // ── TW7c: editor must stay blocked from ALL owner-only admin (no over-grant) ─
+  test("TW7c: editor blocked from admin (archive/delete/invite/share-link → 404)", async ({ page }) => {
+    // Note: DELETE below must 404 (not delete the project) or TW8+ would break.
+    expect((await memberRequest(page, "POST", `/api/projects/${projectId}/archive`)).status()).toBe(404);
+    expect((await memberRequest(page, "DELETE", `/api/projects/${projectId}`)).status()).toBe(404);
+    expect((await memberRequest(page, "POST", `/api/projects/${projectId}/members`, { email: "x@example.com" })).status()).toBe(404);
+    expect((await memberRequest(page, "POST", `/api/projects/${projectId}/share-link`, {})).status()).toBe(404);
+  });
+
   // ── TW8: Owner revokes share link; link returns 404 ───────────────────────
   test("TW8: owner revokes share link; public preview returns 404", async ({ page }) => {
     const del = await ownerRequest(page, "DELETE", `/api/projects/${projectId}/share-link`);
