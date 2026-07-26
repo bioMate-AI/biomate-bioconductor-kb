@@ -156,8 +156,23 @@ Path modification (hybrid, per user steer):
 
 ## 6. Phased plan
 
-- **Phase 0 — unblock (small):** fix the panel run-dispatch bug (§4). Makes
-  "run whole" work from the panel at all. tsc + vitest + PBPK-chain E2E to green.
+- **Phase 0 — unblock (small): ✅ DONE + VERIFIED on dev (2026-07-26).**
+  Fixed the panel run-dispatch bug (§4). Committed `90ff3aaf`, synced healthy,
+  tsc + 961 unit tests green. **Verified:** clicking "Confirm and run workflow"
+  on the ADMET+PBPK chain in the panel now creates a run via `engine: chain`
+  (before: silent no-op, no run at all). Two E2E runs confirmed a fresh run is
+  created on click.
+  **⚠ Phase 0 EXPOSED the next gap (previously masked by the no-op):** the chain
+  run then **fails at backend submission** — `chain_run_id: None`,
+  `chain_steps: [(None,None)×3]`, `errorMessage: (none)`, `engine: chain`. The
+  sub-workflows are NOT the problem — `predict_admet_properties`,
+  `pbpk_simulation`, and `virtual_patient_cohort` all exist as real Nextflow
+  files (`backend/biomni_workflows/nextflow_nfcore/subworkflows/virtual_cell/
+  virtual_patient_cohort/main.nf` + Docker container). So this is a **backend
+  chain-assembly/submission bug** (the chain executor returns no `chain_run_id`
+  and never populates step defs), not a virtual-workflow gap. This becomes the
+  concrete first target of Phase 1. Diagnosis anchor: run
+  `c3d8b09e-7750-41d9-9d10-51eb6179eea2` (dev).
 - **Phase 1 — unify state (medium):** introduce `ChainPlan` as the single source of
   truth; make chat card and panel both read/write it. Collapse `pipeline_steps` /
   `chain_steps` / panel single-view into one. Persist across turns.

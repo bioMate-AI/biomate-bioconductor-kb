@@ -32,8 +32,39 @@ export interface ChainOutputsResponse {
   count: number
 }
 
+/**
+ * Pick the source array that holds STRUCTURED step objects.
+ *
+ * A pipeline/chain artifact can carry steps in two fields:
+ *   - `pipeline_steps` — structured objects (nextflow_path, params, connections)
+ *   - `chain_steps`    — for `workflow_type:'chain'` these are objects, but for a
+ *                        `workflow_type:'pipeline'` artifact this is a DISPLAY-ONLY
+ *                        string[] summary (e.g. ["Predict ADMET Properties (AI)", …]).
+ *
+ * The submit path needs the structured objects. Prefer whichever source is an
+ * array of objects; only fall back to a bare string[] (mapped to workflow_name
+ * for the backend name→path resolver) if that is all we have.
+ */
+export function pickChainStepSource(workflow: Record<string, unknown>): unknown[] {
+  const pipeline = workflow.pipeline_steps
+  const chain = workflow.chain_steps
+  const isObjArray = (a: unknown): boolean =>
+    Array.isArray(a) && a.length > 0 && typeof a[0] === 'object' && a[0] !== null
+  if (isObjArray(pipeline)) return pipeline as unknown[]
+  if (isObjArray(chain)) return chain as unknown[]
+  if (Array.isArray(pipeline) && pipeline.length) return pipeline as unknown[]
+  if (Array.isArray(chain) && chain.length) return chain as unknown[]
+  return []
+}
+
 export function buildChainSubmitSteps(chainSteps: unknown[]): ChainStepSubmit[] {
   return (chainSteps || []).map((raw) => {
+    // A step may arrive as a bare display string (some pipeline artifacts carry a
+    // string[] summary in chain_steps). Treat it as a workflow_name so the backend
+    // name→path resolver can still attach a nextflow_path.
+    if (typeof raw === 'string') {
+      return { nextflow_path: null, workflow_name: raw, params: {} }
+    }
     const s = (raw || {}) as Record<string, unknown>
     return {
       nextflow_path:
@@ -167,11 +198,7 @@ export async function submitWorkflowFromArtifact(
   chatSessionId?: string,
   options?: { startFromStep?: number; chainRunId?: string; endAtStep?: number },
 ): Promise<ChainSubmitResult> {
-  const steps = buildChainSubmitSteps(
-    (workflow.chain_steps as unknown[]) ||
-    (workflow.pipeline_steps as unknown[]) ||
-    [],
-  )
+  const steps = buildChainSubmitSteps(pickChainStepSource(workflow))
   const connections = buildChainConnections(workflow)
   return submitWorkflowChain({
     steps,
