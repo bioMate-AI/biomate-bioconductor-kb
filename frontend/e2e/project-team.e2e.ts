@@ -148,6 +148,17 @@ test.describe.serial("project-team (two-user)", () => {
     expect(memberRow.email).toBe(memberEmail);
   });
 
+  // ── TW5b: viewer member is READ-ONLY (capability, not just the role label) ──
+  test("TW5b: viewer member cannot edit content (PATCH + upload → 404)", async ({ page }) => {
+    const patch = await memberRequest(page, "PATCH", `/api/projects/${projectId}`, { researchGoal: "viewer tried to edit" });
+    expect(patch.status()).toBe(404);
+    const up = await page.request.post(`${BASE_URL}/api/projects/${projectId}/files/upload`, {
+      headers: { Authorization: `Bearer ${memberToken}`, "X-E2E-Test-Token": E2E_TOKEN },
+      multipart: { file: { name: "viewer.txt", mimeType: "text/plain", buffer: Buffer.from("x") } },
+    });
+    expect(up.status()).toBe(404);
+  });
+
   // ── TW6: Owner changes member's role to editor ────────────────────────────
   test("TW6: owner changes member role from viewer to editor", async ({ page }) => {
     const res = await ownerRequest(
@@ -167,6 +178,20 @@ test.describe.serial("project-team (two-user)", () => {
     const memberRow = (members as any[]).find((m: any) => m.user_id === memberUserId);
     expect(memberRow).toBeTruthy();
     expect(memberRow.role).toBe("editor");
+  });
+
+  // ── TW7b: editor member CAN edit content; lifecycle stays owner-only ───────
+  test("TW7b: editor can edit (PATCH 200, upload 201); status change → 403", async ({ page }) => {
+    const patch = await memberRequest(page, "PATCH", `/api/projects/${projectId}`, { researchGoal: "editor edited this" });
+    expect(patch.status()).toBe(200);
+    const up = await page.request.post(`${BASE_URL}/api/projects/${projectId}/files/upload`, {
+      headers: { Authorization: `Bearer ${memberToken}`, "X-E2E-Test-Token": E2E_TOKEN },
+      multipart: { file: { name: "editor.txt", mimeType: "text/plain", buffer: Buffer.from("x") } },
+    });
+    expect(up.status()).toBe(201);
+    // Lifecycle (status/archive) must remain owner-only even for editors.
+    const status = await memberRequest(page, "PATCH", `/api/projects/${projectId}`, { status: "archived" });
+    expect(status.status()).toBe(403);
   });
 
   // ── TW8: Owner revokes share link; link returns 404 ───────────────────────
