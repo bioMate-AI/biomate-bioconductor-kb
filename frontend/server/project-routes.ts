@@ -70,6 +70,28 @@ async function _isOwnerOrMember(projectId: string, uid: string): Promise<boolean
   return r.rows.length > 0;
 }
 
+// The caller's role on a project: 'owner' | 'editor' | 'viewer' | null (no access).
+// Content edits (instructions, tags, files) require owner OR editor; project
+// lifecycle (status/archive/delete), member management and share links stay owner-only.
+async function _getUserRole(
+  projectId: string, uid: string
+): Promise<'owner' | 'editor' | 'viewer' | null> {
+  const project = await memoryService.projects.getProject(projectId);
+  if (!project) return null;
+  if (project.userId === uid) return 'owner';
+  const r = await pool.query(
+    `SELECT role FROM project_members WHERE project_id = $1 AND user_id = $2`,
+    [projectId, uid]
+  );
+  if (!r.rows.length) return null;
+  return r.rows[0].role === 'editor' ? 'editor' : 'viewer';
+}
+
+async function _isOwnerOrEditor(projectId: string, uid: string): Promise<boolean> {
+  const role = await _getUserRole(projectId, uid);
+  return role === 'owner' || role === 'editor';
+}
+
 // Multer: temp disk for project file uploads (max 500 MB)
 const _projectUploadDir = path.join(process.cwd(), "data", "project-uploads");
 if (!fs.existsSync(_projectUploadDir)) fs.mkdirSync(_projectUploadDir, { recursive: true });
@@ -177,16 +199,21 @@ export function registerProjectRoutes(app: Express): void {
     try {
       const project = await memoryService.projects.getProject(id);
       if (!project) return res.status(404).json({ error: "Project not found" });
-      if (project.userId !== uid) {
+      let role: 'owner' | 'editor' | 'viewer';
+      if (project.userId === uid) {
+        role = 'owner';
+      } else {
         const memberCheck = await pool.query(
-          `SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2`,
+          `SELECT role FROM project_members WHERE project_id = $1 AND user_id = $2`,
           [id, uid]
         );
         if (!memberCheck.rows.length) return res.status(404).json({ error: "Project not found" });
+        role = memberCheck.rows[0].role === 'editor' ? 'editor' : 'viewer';
       }
       const context = await memoryService.projects.loadProjectContext(id);
-      const isOwner = project.userId === uid;
-      res.json({ project, context, isOwner });
+      const isOwner = role === 'owner';
+      // role + canEdit let the client gate edit controls (viewer = read-only).
+      res.json({ project, context, isOwner, role, canEdit: isOwner || role === 'editor' });
     } catch (e: any) {
       console.error("[projects] get failed:", e?.message ?? e);
       res.status(500).json({ error: "Failed to fetch project" });
@@ -202,8 +229,15 @@ export function registerProjectRoutes(app: Express): void {
     const { name, description, researchGoal, primaryDomain, organisms, dataModalities, status } = req.body ?? {};
     try {
       const existing = await memoryService.projects.getProject(id);
-      if (!existing || existing.userId !== uid) {
+      if (!existing) return res.status(404).json({ error: "Project not found" });
+      // Owner OR editor may edit content; non-members get 404 (no enumeration).
+      const role = await _getUserRole(id, uid);
+      if (role !== "owner" && role !== "editor") {
         return res.status(404).json({ error: "Project not found" });
+      }
+      // Lifecycle (status → active/archived/completed) stays owner-only.
+      if (status !== undefined && role !== "owner") {
+        return res.status(403).json({ error: "Only the project owner can change project status" });
       }
       if (status && !["active", "archived", "completed"].includes(status)) {
         return res.status(400).json({ error: "invalid status" });
@@ -327,7 +361,8 @@ export function registerProjectRoutes(app: Express): void {
       if (!req.file) return res.status(400).json({ error: "No file uploaded" });
       try {
         const existing = await memoryService.projects.getProject(id);
-        if (!existing || existing.userId !== uid) {
+        // Owner OR editor may upload; viewers/non-members get 404.
+        if (!existing || !(await _isOwnerOrEditor(id, uid))) {
           fs.unlink(req.file.path, () => {});
           return res.status(404).json({ error: "Project not found" });
         }
@@ -362,12 +397,14 @@ export function registerProjectRoutes(app: Express): void {
     const { id, fileId } = req.params;
     try {
       const existing = await memoryService.projects.getProject(id);
-      if (!existing || existing.userId !== uid) {
+      // Owner OR editor may delete project files; scope by project, not uploader,
+      // so collaborators can manage the shared file set (not just their own uploads).
+      if (!existing || !(await _isOwnerOrEditor(id, uid))) {
         return res.status(404).json({ error: "Project not found" });
       }
       const fileRow = await pool.query(
-        `SELECT s3_key FROM project_files WHERE id = $1 AND project_id = $2 AND user_id = $3`,
-        [fileId, id, uid]
+        `SELECT s3_key FROM project_files WHERE id = $1 AND project_id = $2`,
+        [fileId, id]
       );
       if (!fileRow.rows.length) return res.status(404).json({ error: "File not found" });
       await s3Service.deleteFile(fileRow.rows[0].s3_key);
