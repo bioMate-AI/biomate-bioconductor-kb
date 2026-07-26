@@ -266,3 +266,93 @@ test.describe.serial("project-team (two-user)", () => {
     expect((projects as any[]).find((p: any) => p.id === projectId)).toBeUndefined();
   });
 });
+
+// ── Email-invite flow (POST /members {email} — directly adds an existing user, ──
+// ── distinct from the share-link accept flow above). Conference doc flagged the ──
+// ── full send→appears→access path as untested. ─────────────────────────────────
+test.describe.serial("project-team email-invite", () => {
+  let eiProjectId = "";
+  let inviteeToken = "";
+  let inviteeUserId = "";
+  const inviteeEmail = `e2e-invitee-${Date.now()}@biomate-test.internal`;
+
+  const ownerReq = async (page: Page, method: string, path: string, body?: object) => {
+    await loginAsFixture(page);
+    return page.request.fetch(`${BASE_URL}${path}`, {
+      method, headers: { "Content-Type": "application/json" }, data: body,
+    });
+  };
+  const inviteeReq = (page: Page, method: string, path: string, body?: object) =>
+    page.request.fetch(`${BASE_URL}${path}`, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${inviteeToken}`,
+        "X-E2E-Test-Token": E2E_TOKEN,
+        "X-Forwarded-Proto": "https",
+      },
+      data: body,
+    });
+
+  test("EI0: owner creates project; register the invitee", async ({ page }) => {
+    await loginAsFixture(page);
+    const proj = await page.request.post(`${BASE_URL}/api/projects`, {
+      headers: { "Content-Type": "application/json" },
+      data: { name: `E2E Email Invite ${Date.now()}` },
+    });
+    eiProjectId = (await proj.json()).project.id;
+    expect(eiProjectId).toBeTruthy();
+    const reg = await page.request.post(`${BASE_URL}/api/auth/register`, {
+      headers: { "Content-Type": "application/json" },
+      data: { email: inviteeEmail, password: "MemberPass!2026", fullName: "E2E Invitee", termsAccepted: true },
+    });
+    expect(reg.status()).toBe(201);
+    const body = await reg.json();
+    inviteeToken = body.token;
+    inviteeUserId = body.user?.id;
+    expect(inviteeToken).toBeTruthy();
+  });
+
+  test("EI1: owner invites existing user by email as editor → 201, appears in list", async ({ page }) => {
+    const res = await ownerReq(page, "POST", `/api/projects/${eiProjectId}/members`, { email: inviteeEmail, role: "editor" });
+    expect(res.status()).toBe(201);
+    const members = await (await ownerReq(page, "GET", `/api/projects/${eiProjectId}/members`)).json();
+    const row = (members.members as any[]).find((m: any) => m.user_id === inviteeUserId);
+    expect(row).toBeTruthy();
+    expect(row.role).toBe("editor");
+    expect(row.email).toBe(inviteeEmail);
+  });
+
+  test("EI2: invited editor sees the project and can edit (PATCH 200)", async ({ page }) => {
+    const list = await inviteeReq(page, "GET", "/api/projects");
+    const { projects } = await list.json();
+    expect((projects as any[]).find((p: any) => p.id === eiProjectId)).toBeTruthy();
+    const patch = await inviteeReq(page, "PATCH", `/api/projects/${eiProjectId}`, { researchGoal: "invitee edited" });
+    expect(patch.status()).toBe(200);
+  });
+
+  test("EI3: inviting a non-existent email → 404", async ({ page }) => {
+    const res = await ownerReq(page, "POST", `/api/projects/${eiProjectId}/members`, { email: `nobody-${Date.now()}@nowhere.invalid`, role: "viewer" });
+    expect(res.status()).toBe(404);
+  });
+
+  test("EI4: re-invite updates role idempotently (editor → viewer, now read-only)", async ({ page }) => {
+    const res = await ownerReq(page, "POST", `/api/projects/${eiProjectId}/members`, { email: inviteeEmail, role: "viewer" });
+    expect([200, 201]).toContain(res.status());
+    const members = await (await ownerReq(page, "GET", `/api/projects/${eiProjectId}/members`)).json();
+    const row = (members.members as any[]).find((m: any) => m.user_id === inviteeUserId);
+    expect(row.role).toBe("viewer");
+    const patch = await inviteeReq(page, "PATCH", `/api/projects/${eiProjectId}`, { researchGoal: "should be blocked" });
+    expect(patch.status()).toBe(404);
+  });
+
+  test("EI5: non-owner (member) cannot invite others (404)", async ({ page }) => {
+    const res = await inviteeReq(page, "POST", `/api/projects/${eiProjectId}/members`, { email: "someone@example.com", role: "viewer" });
+    expect(res.status()).toBe(404);
+  });
+
+  test("EI6: cleanup — owner deletes the project", async ({ page }) => {
+    const del = await ownerReq(page, "DELETE", `/api/projects/${eiProjectId}`);
+    expect(del.ok()).toBe(true);
+  });
+});
