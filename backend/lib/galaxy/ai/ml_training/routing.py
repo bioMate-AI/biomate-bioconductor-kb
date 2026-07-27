@@ -26,8 +26,14 @@ from .config import TrainingConfig, DatasetSpec, Hyperparams
 # Verbs/objects that signal a *training* request (vs. "predict"/"screen" which
 # route to inference on an existing model).
 _TRAIN_VERBS = r"(train|build|fit|re-?train|fine-?tune)"
-_MODEL_NOUNS = r"(model|classifier|regressor|predictor|qsar|gnn|network)"
+_MODEL_NOUNS = r"(model|classifier|regressor|predictor|qsar|gnn|network|llm|language\s*model)"
 _TRAIN_RE = re.compile(rf"\b{_TRAIN_VERBS}\b.*\b{_MODEL_NOUNS}\b", re.I | re.S)
+
+# Explicit LLM fine-tuning signals → route to ludwig_llm (text-generation).
+_LLM_HINTS = re.compile(
+    r"\b(llm|large\s*language\s*model|language\s*model|instruction[- ]?tun\w*|"
+    r"chat\s*model|fine-?tune\w*\s+(a|an|the)?\s*(llm|language|gpt|chat)|"
+    r"gpt|smol\w*|llama|mistral|qwen|phi-?\d)\b", re.I)
 
 # Canonical public-dataset aliases (TDC single-pred names). Extend as needed.
 # key = lowercase phrase found in the request → (tdc_name, task_type, target_col)
@@ -77,6 +83,22 @@ def extract_training_config(
     dataset resolution order: explicit user-provided S3 data → recognised public
     alias → (gap) LLM fallback. Task/model type inferred by rules.
     """
+    # LLM fine-tuning branch — explicit LLM signal → ludwig_llm (text-generation).
+    if _LLM_HINTS.search(text):
+        from .config import LLMSpec
+        # instruction data: user S3 → else the tiny offline fixture (card is
+        # editable so the user points at their JSONL / hf:<dataset>).
+        if dataset_s3_uri:
+            dataset = DatasetSpec(s3_uri=dataset_s3_uri, split="random")
+        else:
+            dataset = DatasetSpec(name="fixture:instruct", split="random")
+        name = default_name or "instruction-tuned LLM"
+        return TrainingConfig(
+            name=name, task_type="text_generation", model_type="ludwig_llm",
+            dataset=dataset, hyperparams=Hyperparams(epochs=3, learning_rate=1e-4),
+            metric="loss", llm=LLMSpec(),
+        ).validate()
+
     alias = _match_dataset(text)
 
     # task type: alias decides; else regression hint; else classification

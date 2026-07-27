@@ -53,6 +53,9 @@ def train(cfg: TrainingConfig, dataset: LoadedDataset, artifact_dir: str) -> Tra
     elif cfg.model_type == "ludwig_tabular":
         from .ludwig_trainer import train_ludwig
         result = train_ludwig(cfg, dataset, artifact_dir)
+    elif cfg.model_type == "ludwig_llm":
+        from .llm_trainer import train_ludwig_llm
+        result = train_ludwig_llm(cfg, dataset, artifact_dir)
     elif cfg.model_type == "sklearn_gbr":
         result = _train_sklearn(cfg, dataset, artifact_dir)
     else:  # pragma: no cover - guarded by config.validate()

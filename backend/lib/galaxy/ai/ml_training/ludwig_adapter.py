@@ -65,6 +65,41 @@ def to_ludwig_config(cfg: TrainingConfig, target_col: str = "y") -> dict[str, An
     }
 
 
+def to_ludwig_llm_config(cfg: TrainingConfig) -> dict[str, Any]:
+    """Build a Ludwig LLM fine-tuning config (model_type=ludwig_llm).
+
+    Ludwig natively supports LLM fine-tuning declaratively: a text input feature
+    (the instruction) → a text output feature (the response), fine-tuned on a
+    base model with a LoRA/QLoRA adapter. This is the same low-code contract as
+    the tabular path — the user names a base model + points at instruction/output
+    columns, and Ludwig does the training. QLoRA (4-bit) keeps it feasible on
+    modest hardware; LoRA/full-finetune scale up with GPU.
+    """
+    llm = cfg.llm
+    if llm is None:
+        raise ValueError("to_ludwig_llm_config requires cfg.llm (LLMSpec)")
+    hp = cfg.hyperparams
+    config: dict[str, Any] = {
+        "model_type": "llm",
+        "base_model": llm.base_model,
+        "input_features": [{"name": llm.instruction_col, "type": "text"}],
+        "output_features": [{"name": llm.output_col, "type": "text"}],
+        "prompt": {"template": "{" + llm.instruction_col + "}"},
+        "trainer": {
+            "type": "finetune",
+            "epochs": hp.epochs,
+            "batch_size": hp.batch_size,
+            "learning_rate": hp.learning_rate,
+        },
+        "preprocessing": {"global_max_sequence_length": llm.max_sequence_length},
+    }
+    if llm.adapter in ("lora", "qlora"):
+        config["adapter"] = {"type": "lora"}
+    if llm.adapter == "qlora" and llm.quantization_bits:
+        config["quantization"] = {"bits": llm.quantization_bits}
+    return config
+
+
 def featurize_smiles_df(smiles: list[str], labels: list[float] | None,
                         target_col: str = "y"):
     """SMILES → pandas DataFrame of RDKit descriptors (+ optional target).

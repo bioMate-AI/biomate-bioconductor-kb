@@ -23,11 +23,13 @@ from typing import Any, Optional
 
 # --- Supported enums (validated; keeps the low-code surface constrained) -----
 
-TASK_TYPES = ("classification", "regression")
+TASK_TYPES = ("classification", "regression", "text_generation")
 # ludwig_tabular = low-code DL (Ludwig NN over RDKit descriptors, CPU-runnable);
-# chemprop_gnn = molecular graph DL (GPU); sklearn_gbr = cheap non-DL baseline.
-MODEL_TYPES = ("chemprop_gnn", "ludwig_tabular", "sklearn_gbr")
+# chemprop_gnn = molecular graph DL (GPU); sklearn_gbr = cheap non-DL baseline;
+# ludwig_llm = low-code LLM fine-tuning (Ludwig LoRA/QLoRA over a base model).
+MODEL_TYPES = ("chemprop_gnn", "ludwig_tabular", "sklearn_gbr", "ludwig_llm")
 FEATURIZERS = ("rdkit_2d", "morgan", "none")
+ADAPTERS = ("lora", "qlora", "none")
 
 
 class ConfigError(ValueError):
@@ -96,6 +98,35 @@ class DatasetSpec:
 
 
 @dataclass
+class LLMSpec:
+    """LLM fine-tuning knobs (model_type == 'ludwig_llm').
+
+    The dataset for LLM tuning is instruction/response text (JSONL or CSV with
+    `instruction_col` + `output_col`), NOT molecules — so it uses these columns
+    instead of DatasetSpec.smiles_col/target_col.
+    """
+    base_model: str = "HuggingFaceTB/SmolLM2-135M-Instruct"   # small default; CPU-feasible
+    instruction_col: str = "instruction"
+    output_col: str = "output"
+    max_sequence_length: int = 256
+    # Default LoRA (no quantization) is CPU-feasible on a small base model,
+    # matching the platform's CPU-first story. QLoRA (4-bit bitsandbytes) is
+    # opt-in and effectively needs a GPU.
+    adapter: str = "lora"                       # lora | qlora | none
+    quantization_bits: Optional[int] = None     # set 4 for QLoRA (GPU)
+
+    def validate(self) -> None:
+        if not self.base_model or not self.base_model.strip():
+            raise ConfigError("llm.base_model is required for ludwig_llm")
+        if self.adapter not in ADAPTERS:
+            raise ConfigError(f"llm.adapter must be one of {ADAPTERS}")
+        if self.max_sequence_length <= 0:
+            raise ConfigError("llm.max_sequence_length must be > 0")
+        if self.quantization_bits not in (None, 4, 8):
+            raise ConfigError("llm.quantization_bits must be None, 4, or 8")
+
+
+@dataclass
 class TrainingConfig:
     """The full declarative spec for one training run."""
     name: str                                   # human-readable model name
@@ -110,6 +141,7 @@ class TrainingConfig:
     higher_is_better: bool = False              # for hERG, lower risk = better
     metric: str = "auc"                         # primary metric to track/gate
     gate_threshold: Optional[float] = None      # e.g. min AUC to pass QC gate
+    llm: Optional[LLMSpec] = None               # required when model_type=ludwig_llm
 
     # -- validation -----------------------------------------------------------
     def validate(self) -> "TrainingConfig":
@@ -123,6 +155,12 @@ class TrainingConfig:
             raise ConfigError(f"featurizer must be one of {FEATURIZERS}")
         self.dataset.validate()
         self.hyperparams.validate()
+        if self.model_type == "ludwig_llm":
+            if self.llm is None:
+                raise ConfigError("model_type=ludwig_llm requires an `llm` spec")
+            self.llm.validate()
+            if self.task_type != "text_generation":
+                raise ConfigError("ludwig_llm requires task_type=text_generation")
         return self
 
     # -- (de)serialization ----------------------------------------------------
@@ -134,9 +172,11 @@ class TrainingConfig:
         d = dict(d or {})
         ds = d.pop("dataset", {}) or {}
         hp = d.pop("hyperparams", {}) or {}
+        llm = d.pop("llm", None)
         cfg = cls(
             dataset=DatasetSpec(**ds) if isinstance(ds, dict) else ds,
             hyperparams=Hyperparams(**hp) if isinstance(hp, dict) else hp,
+            llm=LLMSpec(**llm) if isinstance(llm, dict) else llm,
             **d,
         )
         return cfg
@@ -149,6 +189,34 @@ class TrainingConfig:
         renderer (file/select/number/string types), so a training job shows up
         as an ordinary workflow card. See §4.2 of the design doc.
         """
+        if self.model_type == "ludwig_llm":
+            llm = self.llm or LLMSpec()
+            required = [
+                {"name": "dataset", "type": "file",
+                 "label": "Training data (JSONL/CSV: instruction, output)",
+                 "value": self.dataset.name or self.dataset.path or self.dataset.s3_uri or "",
+                 "required": True},
+                {"name": "base_model", "type": "string", "label": "Base model (HF id)",
+                 "value": llm.base_model, "required": True},
+            ]
+            optional = [
+                {"name": "model_type", "type": "select", "label": "Model type",
+                 "allowed_values": list(MODEL_TYPES), "value": self.model_type, "default": "ludwig_tabular"},
+                {"name": "adapter", "type": "select", "label": "Adapter",
+                 "allowed_values": list(ADAPTERS), "value": llm.adapter, "default": "lora"},
+                {"name": "instruction_col", "type": "string", "label": "Instruction column",
+                 "value": llm.instruction_col, "default": "instruction"},
+                {"name": "output_col", "type": "string", "label": "Output column",
+                 "value": llm.output_col, "default": "output"},
+                {"name": "max_sequence_length", "type": "number", "label": "Max sequence length",
+                 "value": llm.max_sequence_length, "default": 256},
+                {"name": "epochs", "type": "number", "label": "Epochs",
+                 "value": self.hyperparams.epochs, "default": 3},
+                {"name": "learning_rate", "type": "number", "label": "Learning rate",
+                 "value": self.hyperparams.learning_rate, "default": 1e-4},
+            ]
+            return {"required_params": required, "optional_params": optional}
+
         required = [
             {"name": "dataset", "type": "file",
              "label": "Training data (CSV/SDF or tdc:<name>)",

@@ -136,8 +136,13 @@ def run_training_job(
     artifact_dir = artifact_dir or str(_default_artifact_root() / cfg.campaign_id / _slug(cfg.name))
     Path(artifact_dir).mkdir(parents=True, exist_ok=True)
 
-    # 1. Load data
-    dataset = load_fn(cfg.dataset)
+    # 1. Load data. LLM fine-tuning uses instruction/response text, not the
+    # molecular (smiles,label) loader — the LLM trainer loads its own rows from
+    # cfg.dataset, so pass a placeholder here.
+    if cfg.model_type == "ludwig_llm":
+        dataset = LoadedDataset([], "instruction", "output", source="llm (loaded in trainer)")
+    else:
+        dataset = load_fn(cfg.dataset)
     log.info("[ml_training] loaded %d rows from %s", len(dataset), dataset.source)
 
     # 2/3/4. Train + track + evaluate under one MLflow run

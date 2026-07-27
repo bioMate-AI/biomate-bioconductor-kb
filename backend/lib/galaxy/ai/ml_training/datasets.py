@@ -144,3 +144,126 @@ def _load_s3(spec: DatasetSpec) -> LoadedDataset:
         "s3_uri loading is wired at execution time by the Nextflow executor "
         "(inputs are staged to a local work dir). Use path= for local runs."
     )
+
+
+# ---------------------------------------------------------------------------
+# LLM fine-tuning: instruction/response datasets (text, not molecules)
+# ---------------------------------------------------------------------------
+
+# Tiny built-in instruction fixture — enough rows to exercise the LLM plumbing
+# offline (NOT a real training set).
+INSTRUCT_FIXTURE: list[dict[str, str]] = [
+    {"instruction": "Summarize: hERG is a cardiac potassium channel.",
+     "output": "hERG is a heart potassium channel linked to drug cardiotoxicity."},
+    {"instruction": "What does ADMET stand for?",
+     "output": "Absorption, Distribution, Metabolism, Excretion, and Toxicity."},
+    {"instruction": "Define IC50 in one sentence.",
+     "output": "IC50 is the concentration of a compound that inhibits a target by 50%."},
+    {"instruction": "Is caffeine a stimulant?",
+     "output": "Yes, caffeine is a central nervous system stimulant."},
+    {"instruction": "What is a SMILES string?",
+     "output": "A SMILES string is a text notation encoding a molecule's structure."},
+    {"instruction": "Define bioavailability.",
+     "output": "Bioavailability is the fraction of a dose that reaches systemic circulation."},
+    {"instruction": "What is the blood-brain barrier?",
+     "output": "The blood-brain barrier is a selective barrier protecting the brain from the blood."},
+    {"instruction": "What does LogP measure?",
+     "output": "LogP measures a compound's lipophilicity, the octanol-water partition coefficient."},
+    {"instruction": "Define half-life in pharmacology.",
+     "output": "Half-life is the time for a drug's plasma concentration to fall by half."},
+    {"instruction": "What is a QSAR model?",
+     "output": "A QSAR model relates chemical structure to biological activity quantitatively."},
+    {"instruction": "What is CYP3A4?",
+     "output": "CYP3A4 is a liver enzyme that metabolizes many drugs."},
+    {"instruction": "Define Cmax.",
+     "output": "Cmax is the maximum plasma concentration a drug reaches after dosing."},
+    {"instruction": "What is a hepatotoxicity risk?",
+     "output": "Hepatotoxicity risk is the likelihood a compound causes liver injury."},
+    {"instruction": "What is molecular weight?",
+     "output": "Molecular weight is the mass of a molecule, summed over its atoms."},
+    {"instruction": "Define clearance in PK.",
+     "output": "Clearance is the volume of plasma cleared of a drug per unit time."},
+    {"instruction": "What is the therapeutic index?",
+     "output": "The therapeutic index is the ratio of a drug's toxic dose to its effective dose."},
+]
+
+
+def load_instruction_rows(spec: DatasetSpec, instruction_col: str = "instruction",
+                          output_col: str = "output") -> list[dict[str, str]]:
+    """Load instruction/response rows for LLM fine-tuning.
+
+    Returns a list of {instruction_col: str, output_col: str} dicts (pure Python,
+    no pandas at this layer). Sources mirror load_dataset:
+      - name 'fixture:instruct' → the offline INSTRUCT_FIXTURE
+      - name 'hf:<dataset>'     → a HuggingFace instruction dataset (lazy)
+      - path                    → local .jsonl (one obj/line) or .csv
+      - s3_uri                  → staged at execution time (NotImplemented here)
+    """
+    kind = spec.source_kind()
+    if kind == "name":
+        name = (spec.name or "").strip()
+        low = name.lower()
+        if low in ("fixture:instruct", "instruct:fixture"):
+            return [{instruction_col: r["instruction"], output_col: r["output"]}
+                    for r in INSTRUCT_FIXTURE]
+        if low.startswith("hf:"):
+            return _load_hf_instruct(name.split(":", 1)[1], instruction_col, output_col)
+        raise ConfigError(
+            f"unknown LLM dataset '{name}'. Use 'hf:<dataset>', a local .jsonl/.csv "
+            f"path, or 'fixture:instruct' for the offline fixture."
+        )
+    if kind == "path":
+        return _load_instruct_file(spec.path, instruction_col, output_col)  # type: ignore[arg-type]
+    raise NotImplementedError("s3_uri LLM data is staged locally by the executor; use path=.")
+
+
+def _load_instruct_file(path: str, instruction_col: str, output_col: str) -> list[dict[str, str]]:
+    import json
+    p = Path(path)
+    if not p.exists():
+        raise ConfigError(f"LLM dataset path not found: {path}")
+    rows: list[dict[str, str]] = []
+    if p.suffix.lower() == ".jsonl":
+        for line in p.read_text().splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            obj = json.loads(line)
+            if instruction_col in obj and output_col in obj:
+                rows.append({instruction_col: str(obj[instruction_col]),
+                             output_col: str(obj[output_col])})
+    else:  # csv
+        with p.open(newline="") as fh:
+            reader = csv.DictReader(fh)
+            cols = reader.fieldnames or []
+            if instruction_col not in cols or output_col not in cols:
+                raise ConfigError(
+                    f"CSV must have '{instruction_col}' + '{output_col}' columns; got {cols}"
+                )
+            for row in reader:
+                if row[instruction_col] and row[output_col]:
+                    rows.append({instruction_col: row[instruction_col],
+                                 output_col: row[output_col]})
+    if not rows:
+        raise ConfigError(f"no usable instruction rows parsed from {path}")
+    return rows
+
+
+def _load_hf_instruct(hf_name: str, instruction_col: str, output_col: str) -> list[dict[str, str]]:
+    try:
+        from datasets import load_dataset as _hf_load  # noqa: F401
+    except ImportError as e:
+        raise ImportError(
+            "the `datasets` library is required for hf:<dataset> LLM data "
+            "(ships with the ml-training image). Use a local .jsonl or "
+            "'fixture:instruct' offline."
+        ) from e
+    from datasets import load_dataset as _hf_load
+    ds = _hf_load(hf_name, split="train")
+    rows = []
+    for r in ds:
+        ins = r.get(instruction_col) or r.get("instruction") or r.get("prompt")
+        out = r.get(output_col) or r.get("output") or r.get("response") or r.get("completion")
+        if ins and out:
+            rows.append({instruction_col: str(ins), output_col: str(out)})
+    return rows

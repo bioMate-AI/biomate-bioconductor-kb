@@ -39,6 +39,12 @@ params.gate_threshold    = null
 params.mlflow_experiment = 'biomate-ml-training'
 params.campaign_id       = 'default'
 params.outdir            = 'results'
+// LLM fine-tuning params (model_type = ludwig_llm); ignored otherwise.
+params.base_model          = ''
+params.instruction_col     = 'instruction'
+params.output_col          = 'output'
+params.adapter             = 'lora'
+params.max_sequence_length = 256
 
 process TRAIN {
     // ludwig_tabular (default) + sklearn_gbr are CPU. Use process_low
@@ -81,6 +87,11 @@ process TRAIN {
         --seed ${params.seed} \
         --metric '${params.metric}' \
         ${gate} \
+        --base-model '${params.base_model}' \
+        --instruction-col '${params.instruction_col}' \
+        --output-col '${params.output_col}' \
+        --adapter '${params.adapter}' \
+        --max-sequence-length ${params.max_sequence_length} \
         --mlflow-experiment '${params.mlflow_experiment}' \
         --campaign-id '${params.campaign_id}' \
         --out results

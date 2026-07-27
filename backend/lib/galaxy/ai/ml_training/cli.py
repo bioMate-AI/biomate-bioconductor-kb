@@ -44,11 +44,21 @@ def build_config_from_args(args: argparse.Namespace) -> TrainingConfig:
         hidden_size=args.hidden_size, dropout=args.dropout,
         learning_rate=args.learning_rate, ensemble_size=args.ensemble_size, seed=args.seed,
     )
+    llm = None
+    if args.model_type == "ludwig_llm":
+        from .config import LLMSpec
+        llm = LLMSpec(base_model=args.base_model, instruction_col=args.instruction_col,
+                      output_col=args.output_col, max_sequence_length=args.max_sequence_length,
+                      adapter=args.adapter)
+        # LLM uses text-generation + random split regardless of molecular defaults.
+        if args.task_type == "classification":
+            args.task_type = "text_generation"
+        ds.split = "random"
     return TrainingConfig(
         name=args.model_name, task_type=args.task_type, model_type=args.model_type,
         featurizer=args.featurizer, dataset=ds, hyperparams=hp,
         mlflow_experiment=args.mlflow_experiment, campaign_id=args.campaign_id,
-        metric=args.metric, gate_threshold=args.gate_threshold,
+        metric=args.metric, gate_threshold=args.gate_threshold, llm=llm,
     ).validate()
 
 
@@ -74,6 +84,12 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--metric", default="auc")
     p.add_argument("--gate-threshold", type=float, default=None, dest="gate_threshold")
+    # LLM fine-tuning (model-type=ludwig_llm)
+    p.add_argument("--base-model", default="HuggingFaceTB/SmolLM2-135M-Instruct", dest="base_model")
+    p.add_argument("--instruction-col", default="instruction", dest="instruction_col")
+    p.add_argument("--output-col", default="output", dest="output_col")
+    p.add_argument("--adapter", default="qlora")
+    p.add_argument("--max-sequence-length", type=int, default=256, dest="max_sequence_length")
     p.add_argument("--mlflow-experiment", default="biomate-ml-training", dest="mlflow_experiment")
     p.add_argument("--campaign-id", default="default", dest="campaign_id")
     p.add_argument("--out", default="results", help="output dir for metrics.json + artifact")

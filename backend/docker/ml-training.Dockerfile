@@ -36,7 +36,8 @@ RUN pip install --upgrade pip \
     && pip install --only-binary :all: blis \
     && pip install --extra-index-url https://download.pytorch.org/whl/cpu \
          torch==2.2.2+cpu torchvision==0.17.2+cpu torchaudio==2.2.2+cpu \
-    && pip install --prefer-binary ludwig rdkit PyTDC scikit-learn joblib
+    && pip install --prefer-binary ludwig rdkit PyTDC scikit-learn joblib \
+    && pip install --prefer-binary peft accelerate datasets
 
 # The ml_training package at top-level → `python -m ml_training.cli`.
 COPY backend/lib/galaxy/ai/ml_training /app/ml_training

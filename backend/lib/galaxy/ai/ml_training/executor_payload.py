@@ -86,6 +86,15 @@ def build_execute_request(
         "campaign_id": cfg.campaign_id,
         "mlflow_experiment": cfg.mlflow_experiment,
     }
+    # LLM fine-tuning params (ludwig_llm) — passed to the CLI, ignored otherwise.
+    llm = cfg.llm
+    parameters.update({
+        "base_model": llm.base_model if llm else "",
+        "instruction_col": llm.instruction_col if llm else "instruction",
+        "output_col": llm.output_col if llm else "output",
+        "adapter": llm.adapter if llm else "qlora",
+        "max_sequence_length": llm.max_sequence_length if llm else 256,
+    })
 
     compute_config: dict[str, Any] = {
         "executor": "awsbatch",
