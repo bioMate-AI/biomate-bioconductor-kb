@@ -2060,9 +2060,16 @@ class ResearchAgent:
         # Build the synthesis prompt
         prompt = self._build_synthesis_prompt(question, analysis, evidence, context)
 
+        # Deep evidence-review queries need a larger completion budget (a per-study
+        # table over many papers is truncated at the default 2000 tokens).
+        _q_low = (question or "").lower()
+        _deep_synth = any(cue in _q_low for cue in (
+            "evidence table", "verify every", "separate the evidence", "systematic",
+            "directly demonstrate", "not directly demonstrated", "for every major claim",
+        ))
         try:
             # Call LLM for synthesis
-            response = await self._call_llm(prompt)
+            response = await self._call_llm(prompt, max_tokens=6000 if _deep_synth else 2000)
 
             # Parse the response
             parsed = self._parse_llm_response(response)
@@ -2470,8 +2477,12 @@ Format: plain prose or a short bulleted list. No lengthy introductions, no "In s
 
         return "\n".join(lines)
 
-    async def _call_llm(self, prompt: str) -> str:
-        """Call the LLM with the synthesis prompt."""
+    async def _call_llm(self, prompt: str, max_tokens: int = 2000) -> str:
+        """Call the LLM with the synthesis prompt.
+
+        max_tokens is raised for deep evidence-review answers — a per-study evidence
+        table over ~15-25 papers does not fit in 2000 tokens and was being truncated.
+        """
         if not self.llm_client:
             raise ValueError("LLM client not available")
 
@@ -2482,7 +2493,7 @@ Format: plain prose or a short bulleted list. No lengthy introductions, no "In s
         if hasattr(self.llm_client, 'generate_async'):
             response = await self.llm_client.generate_async(
                 prompt=prompt,
-                max_tokens=2000,
+                max_tokens=max_tokens,
                 temperature=0
             )
         else:
@@ -2491,7 +2502,7 @@ Format: plain prose or a short bulleted list. No lengthy introductions, no "In s
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
-                lambda: self.llm_client.generate(prompt, max_tokens=2000, temperature=0)
+                lambda: self.llm_client.generate(prompt, max_tokens=max_tokens, temperature=0)
             )
 
         return response
