@@ -118,5 +118,21 @@ standard. Fix: extend the fallback chain to `wf.display_name`, `wf.chain_name`,
 | Clinical trial (BOIN) | ✅ | ✅ succeeded | ✅ MTD 30mg, Liu&Yuan boundaries |
 | ADMET panel | ✅ | ✅ completed | ✅ hERG/BBB/PPB/CYP correct |
 | PBPK chain | ✅ | ✅ runs (fixed) | description sound |
-| Multi-omics (MOFA2) | ✅ | — (needs data) | ✅ description sound |
+| Multi-omics (MOFA2) | ✅ | ✅ **completed** (run `c96493d7`) | ✅ real-modality labels + injected factors recovered |
 | Single-cell (demo) | ⚠ wrong route | ❌ FASTQC fail | ⚠ over-promised pbmc3k demo |
+
+---
+
+## Multi-omics (MOFA2) — RESOLVED + VERIFIED end-to-end (2026-07-27)
+The universal-interface + labeling fixes and the dedicated `:3.20-mofa2` container
+(MOFA2 + basilisk/mofapy2 baked) are all deployed and verified on dev Batch (run
+`c96493d7`). Fixes along the way: install MOFA2 from explicit standard-source repos
+(the auto-added `BioCcontainers` mirror 504s); `[.]` not `\\.` in R regexes
+(nextflow `"""` escaping); wrap optional plots in `try()` (GGally absent).
+**Verified output:** views labeled `methylation/proteomics/rna` (real modalities,
+not the old `Transcriptomics/Proteomics/View 3`); MOFA2 recovers the 2 injected
+shared latent factors (F1 group-split diff +2.71, F2 gradient corr +0.51; F3–6
+inactive); standardized `mofa_extracted_factors.csv` / `_weights.csv` emitted.
+This is Phase 0 of the multi-omics benchmark (see
+`docs/20260727_MULTIOMICS_BENCHMARK_DESIGN.md`). Full container/build saga:
+that doc's §6.

@@ -176,10 +176,17 @@ for dataset in DATASETS:                     # identical, pre-processed CSVs per
 
 ## 6. Phased plan
 
-- **Phase 0 — MOFA2 solid (DONE/near):** universal CSV interface + label
-  preservation deployed; dedicated MOFA2 container built & pushed
-  (`:3.20-mofa2`). Verification run pending deploy. This is method #1 + proof the
-  harness runs.
+- **Phase 0 — MOFA2 solid: ✅ DONE + VERIFIED on dev Batch (run `c96493d7`, 2026-07-27).**
+  The full harness works for method #1: universal CSV interface (3 named matrices
+  staged + read) → **real-modality view labels** (`['methylation','proteomics','rna']`,
+  NOT the old hardcoded `Transcriptomics/Proteomics/View 3`) → MOFA2 trained on the
+  dedicated `:3.20-mofa2` container (basilisk/mofapy2 baked) → factor extraction.
+  **Factor recovery sound:** on structured input (2 injected shared latent factors),
+  Factor 1 recovers the group split (mean diff +2.71), Factor 2 the gradient
+  (corr +0.51), Factors 3–6 correctly near-zero. Output = standardized
+  `mofa_extracted_factors.csv` / `_weights.csv` (the `factors.csv` contract) +
+  variance + plots. This proves the platform premise: one input contract, method
+  runs reproducibly, standardized output ready for the metric harness.
 - **Phase 1 — 2-method / 1-dataset pilot:** MOFA2 + one pure-R method (MCIA or
   SNF) on **CLL**. Wire the standardized `factors.csv` output + a metric script
   (ARI vs IGHV, factor↔drug-response). Goal: prove the harness end-to-end and
