@@ -83,21 +83,39 @@ common ground-truth metric harness.** That is the paper.
 
 ## 2. Methods (mapped to BioMate workflows)
 
-Pick a spread across method *families* (not 8 variants of one idea). ✅ = already
-in BioMate; ➕ = needs a thin workflow wrapper.
+Span the method *families* and, per the survey, the *regimes* (bulk → sc →
+spatial → FM) — because bulk-only is redundant (§1). ✅ = in BioMate; ➕ = thin
+wrapper needed; ➕➕ = new capability BioMate lacks (the real lift).
 
-| Method | Family | Supervision | Heavy deps? | BioMate |
-|---|---|---|---|---|
-| **MOFA2 / MOFA+** (Argelaguet 2018/2020) | Bayesian latent factor | unsupervised | ⚠ basilisk/Python | ✅ (`bioconductor/mofa2`, container built) |
-| **mixOmics / DIABLO** (Rohart 2017; Singh 2019) | sparse (r)GCCA | supervised | pure R | ➕ (mixOmics in bioc) |
-| **MCIA / mogsa** (Meng 2014/2019) | co-inertia | unsupervised | pure R | ✅-ish (`mogsa`) |
-| **iClusterPlus** (Mo 2013) | joint latent + clustering | unsupervised | pure R | ➕ |
-| **intNMF** (Chalise 2017) | non-negative MF | unsupervised | pure R | ➕ |
-| **SNF** (Wang 2014) | similarity network fusion | unsupervised | pure R | ➕ |
-| *(stretch)* **totalVI / MultiVI** (Gayoso 2021) | VAE | unsupervised | Python | ➕ |
+**Tier A — bulk joint-DR (the Cantini baselines; validate the harness):**
+| Method | Family | BioMate |
+|---|---|---|
+| **MOFA2 / MOFA+** (Argelaguet 2018/2020) | Bayesian latent factor | ✅ (`bioconductor/mofa2`, container built + running) |
+| **MCIA / mogsa** (Meng 2014/2019) | co-inertia (Cantini's *most robust*) | ✅-ish (`mogsa`) |
+| **intNMF** (Chalise 2017) | non-negative MF (Cantini's *best clustering*) | ➕ |
+| **iClusterPlus** (Mo 2013), **SNF** (Wang 2014), **mixOmics/DIABLO** (Singh 2019), **RGCCA**, **JIVE** | latent / network / (r)GCCA / supervised | ➕ (all pure-R — trivial containers) |
 
-The **pure-R** methods matter twice: they broaden family coverage AND de-risk the
-"MOFA2 is heavy/fragile" problem (no basilisk conda env → trivial containers).
+**Tier B — single-cell multimodal (where the field is; scMultiBench 2025 set):**
+| Method | Modalities / paradigm | Note |
+|---|---|---|
+| **Seurat WNN / v5** | vertical (paired) | strong DR/clustering baseline |
+| **totalVI, MultiVI, Multigrate** (scvi-tools) | RNA+ADT / RNA+ATAC / mosaic (VAE) | totalVI = ADT-imputation winner |
+| **GLUE / scGLUE** (2022 Nat Biotech) | diagonal (unpaired) | batch-correction winner |
+| **StabMap** | mosaic | most consistent mosaic method |
+| **scMoMaT, Matilda** | mosaic / paired | marker discovery |
+
+**Tier C — spatial multi-omics (under-benchmarked = white space):** SpatialGlue
+(2024 Nat Methods), SpaMosaic, SIMO (2025 Nat Commun), SpaDDM. ➕➕
+
+**Tier D — foundation models (unbenchmarked head-to-head):** scGPT (2024 Nat
+Methods), scMamba (2025). ➕➕ — *first fair FM-vs-jDR-vs-VAE comparison would be
+novel on its own.*
+
+The Tier-A **pure-R** methods de-risk the "MOFA2 is heavy" problem (no basilisk →
+trivial containers) and validate the harness cheaply. **Tiers B–D are the
+non-redundant contribution** and the real engineering lift — they're mostly
+Python (scvi-tools / torch); BioMate needs single-cell + spatial integration
+workflows it doesn't yet have.
 
 ---
 

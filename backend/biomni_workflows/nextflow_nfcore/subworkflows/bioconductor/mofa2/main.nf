@@ -140,33 +140,41 @@ process BIOC_MOFA2_STANDARD_MOFA_ANALYSIS {
             # Variance decomposition
             print(head(get_variance_explained(model)\$r2_total[[1]]))
             print(head(get_variance_explained(model)\$r2_per_factor[[1]]))
-            print(plot_variance_explained(model, x="view", y="factor"))
-            print(plot_variance_explained(model, x="view", y="factor", plot_total = TRUE)[[2]])
-            
+            # Visualizations are OPTIONAL: a missing plotting package (e.g. GGally for
+            # plot_factors) or an absent covariate must never abort the analysis — the
+            # extracted factor/weight/variance CSVs are the scientific output. Each plot
+            # is wrapped in try() so one failing plot does not lose the whole run.
+            try(print(plot_variance_explained(model, x="view", y="factor")), silent = TRUE)
+            try(print(plot_variance_explained(model, x="view", y="factor", plot_total = TRUE)[[2]]), silent = TRUE)
+
             # Factor visualization
-            print(plot_factor(model, factor = 1:3, color_by = "age", shape_by = "condition"))
-            p <- plot_factor(model, factors = c(1,2,3), color_by = "condition", dot_size = 3, dodge = TRUE, legend = FALSE, add_violin = TRUE, violin_alpha = 0.25)
-            p <- p + scale_color_manual(values=c("A"="black", "B"="red")) + scale_fill_manual(values=c("A"="black", "B"="red"))
-            print(p)
-            print(plot_factors(model, factors = 1:3, color_by = "condition"))
-            
+            try(print(plot_factor(model, factor = 1:3, color_by = "age", shape_by = "condition")), silent = TRUE)
+            try({
+              p <- plot_factor(model, factors = c(1,2,3), color_by = "condition", dot_size = 3, dodge = TRUE, legend = FALSE, add_violin = TRUE, violin_alpha = 0.25)
+              p <- p + scale_color_manual(values=c("A"="black", "B"="red")) + scale_fill_manual(values=c("A"="black", "B"="red"))
+              print(p)
+            }, silent = TRUE)
+            try(print(plot_factors(model, factors = 1:3, color_by = "condition")), silent = TRUE)   # needs GGally
+
             # Dynamically get view names for plotting
             view1 <- views_names(model)[1]
             view2 <- if (length(views_names(model)) > 1) views_names(model)[2] else views_names(model)[1]
-            
+
             # Weight visualization
-            print(plot_weights(model, view = view1, factor = 1, nfeatures = 10, scale = TRUE, abs = FALSE))
-            print(plot_top_weights(model, view = view1, factor = 1, nfeatures = 10))
-            
+            try(print(plot_weights(model, view = view1, factor = 1, nfeatures = 10, scale = TRUE, abs = FALSE)), silent = TRUE)
+            try(print(plot_top_weights(model, view = view1, factor = 1, nfeatures = 10)), silent = TRUE)
+
             # Data heatmaps and scatter plots
-            print(plot_data_heatmap(model, view = view2, factor = 1, features = 20, cluster_rows = TRUE, cluster_cols = FALSE, show_rownames = TRUE, show_colnames = FALSE))
-            print(plot_data_scatter(model, view = view2, factor = 1, features = 5, add_lm = TRUE, color_by = "condition"))
-            
+            try(print(plot_data_heatmap(model, view = view2, factor = 1, features = 20, cluster_rows = TRUE, cluster_cols = FALSE, show_rownames = TRUE, show_colnames = FALSE)), silent = TRUE)
+            try(print(plot_data_scatter(model, view = view2, factor = 1, features = 5, add_lm = TRUE, color_by = "condition")), silent = TRUE)
+
             # Non-linear dimensionality reduction
             set.seed(42)
-            model <- run_umap(model)
-            model <- run_tsne(model)
-            print(plot_dimred(model, method = "TSNE", color_by = "condition", dot_size = 5))
+            try({
+              model <- run_umap(model)
+              model <- run_tsne(model)
+              print(plot_dimred(model, method = "TSNE", color_by = "condition", dot_size = 5))
+            }, silent = TRUE)
             
             # Preserve the view names carried from the input data — create_mofa() uses
             # the named list's element names as views, so ANY combination of omics is

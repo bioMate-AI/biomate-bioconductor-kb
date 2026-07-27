@@ -20,7 +20,9 @@
 FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20-slim
 
 # 1a) CRAN plotting deps as fast pre-built noble binaries (base image's p3m.dev CRAN).
-RUN Rscript -e "install.packages(c('ggplot2','pheatmap','tidyverse','reticulate'), Ncpus = 2)"
+#     GGally is needed by MOFA2's plot_factors() scatter-matrix; without it that one
+#     plot is skipped at runtime (wrapped in try() in the workflow).
+RUN Rscript -e "install.packages(c('ggplot2','pheatmap','tidyverse','reticulate','GGally'), Ncpus = 2)"
 
 # 1b) MOFA2 (+ basilisk, rhdf5, HDF5Array, DelayedArray, ...) from EXPLICIT standard
 #     Bioconductor SOURCE repos. This is REQUIRED, not cosmetic: BiocManager::repositories()
