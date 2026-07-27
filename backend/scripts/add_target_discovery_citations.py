@@ -80,6 +80,17 @@ GATE3 = [
      "supports": "prognostic/predictive marker reporting standards"},
 ]
 
+REPURPOSING = [
+    {"ref": "Lamb et al. 2006, The Connectivity Map: using gene-expression signatures "
+            "to connect small molecules, genes, and disease, Science 313:1929",
+     "doi": "10.1126/science.1132939",
+     "supports": "signature-reversal connectivity scoring (KS enrichment)"},
+    {"ref": "Subramanian et al. 2017, A Next Generation Connectivity Map: L1000 platform "
+            "and the first 1,000,000 profiles, Cell 171:1437",
+     "doi": "10.1016/j.cell.2017.10.049",
+     "supports": "next-gen L1000/CMap perturbation reference + connectivity"},
+]
+
 WORKFLOWS = [
     {
         "name": "target_scorecard_ranker",
@@ -135,6 +146,21 @@ WORKFLOWS = [
         "step_count": 1,
         "tags": ["biostatistics", "biomarker", "predictive", "interaction_test",
                  "clinical_trial", "stratification", "gate3"],
+    },
+    {
+        "name": "repurposing_signature_reversal",
+        "filename": "nextflow_nfcore/subworkflows/drug_discovery/"
+                    "repurposing_signature_reversal/main.nf",
+        "domain": "drug_discovery",
+        "description": ("Repurposing hypotheses via Connectivity-Map signature reversal: "
+                        "given a disease up/down signature and a perturbation-signature "
+                        "reference (LINCS/CMap), rank perturbagens by how strongly they "
+                        "REVERSE the disease signature (negative connectivity = candidate). "
+                        "KS enrichment (Lamb 2006 / Subramanian 2017)."),
+        "citations": REPURPOSING,
+        "step_count": 1,
+        "tags": ["drug_discovery", "repurposing", "connectivity_map", "lincs",
+                 "signature_reversal", "target_discovery"],
     },
 ]
 
