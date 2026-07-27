@@ -74,18 +74,18 @@ process BIOC_MOFA2_STANDARD_MOFA_ANALYSIS {
             # MOFA views carry their true labels. A pre-serialized data.rds (named list) or
             # dt.rds is still honored for backward compatibility.
             .read_matrix <- function(.f) {
-              .sep <- if (grepl("\\.csv\$", .f, ignore.case = TRUE)) "," else "\t"
+              .sep <- if (grepl("[.]csv\$", .f, ignore.case = TRUE)) "," else "\t"
               as.matrix(read.table(.f, header = TRUE, row.names = 1, sep = .sep,
                                    check.names = FALSE, stringsAsFactors = FALSE))
             }
             if (file.exists("data.rds")) {
               data <- readRDS("data.rds")
             } else {
-              .mats <- list.files(".", pattern = "\\.(csv|tsv|txt)\$", full.names = FALSE, ignore.case = TRUE)
+              .mats <- list.files(".", pattern = "[.](csv|tsv|txt)\$", full.names = FALSE, ignore.case = TRUE)
               .mats <- .mats[!grepl("^(versions|dt)[._]", .mats, ignore.case = TRUE)]
               data <- list()
               for (.f in .mats) {
-                .view <- sub("\\.[^.]+\$", "", basename(.f))   # view name = modality from filename
+                .view <- sub("[.][^.]+\$", "", basename(.f))   # view name = modality from filename
                 try(data[[.view]] <- .read_matrix(.f), silent = TRUE)
               }
             }

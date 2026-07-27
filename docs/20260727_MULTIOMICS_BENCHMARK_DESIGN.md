@@ -26,23 +26,58 @@ on AWS Batch) *is* the benchmark harness.
 > cohorts, with an emphasis on the regimes prior benchmarks under-cover
 > (missing/partial modalities, runtime/reproducibility, method-selection guidance).
 
-### Novelty vs. the landmark benchmark
-The reference is **Cantini et al. 2021, *Nat Commun*** ("Benchmarking joint
-multi-omics dimensionality reduction approaches for the study of cancer") — MOFA,
-JIVE, MCIA, RGCCA, intNMF, scikit methods on TCGA + single-cell. Also **Tini et
-al. 2019, *Brief Bioinform*** and **Subramanian et al. 2020** (review). A rerun
-adds nothing. Our defensible deltas:
-1. **Platform / reproducibility as the contribution** (not just a leaderboard) —
-   one interface, containerized methods, re-runnable artifacts, LLM-driven method
-   selection + interpretation. This *is* the product.
-2. **Under-covered regimes:** partial-overlap / missing-modality robustness;
-   single-cell & spatial multi-omics; runtime/cost at scale.
-3. **Biology anchor:** the MG/autoimmune program (see §4) — which integration best
-   recovers known immune / drug-response structure, a question a generic cancer
-   benchmark doesn't answer.
+### Novelty — grounded in a 2026-07-27 literature survey (see §1b for the landscape)
+**The field has moved past bulk jDR.** Two anchors now own the obvious ground:
+- **Cantini et al. 2021, *Nat Commun*** (10.1038/s41467-020-20430-7) — 9 joint-DR
+  methods on simulated + TCGA + single-cell; verdict **intNMF best clustering,
+  MCIA most robust across contexts**. Shipped **momix** (a Jupyter notebook to
+  reproduce + plug in methods) — our closest conceptual competitor, but narrow
+  (bulk, jDR-only, frozen notebook).
+- **Su/Yang et al. 2025, *Nat Methods*** ("scMultiBench", 10.1038/s41592-025-02856-3)
+  — **~40 methods, 64 real + 22 sim datasets, 7 tasks**, across vertical/diagonal/
+  mosaic/cross paradigms. Winners are task- and paradigm-specific (Seurat WNN,
+  Multigrate, GLUE, StabMap, totalVI…). Explicitly flags the open problems below.
+- **Open Problems / openproblems.bio** (from NeurIPS'21 multimodal competition) —
+  a *live, containerized, continuously-run* single-cell benchmarking ecosystem.
 
-**Recommended framing: #1 + #3** (platform-as-contribution, demonstrated on a
-biology question we own).
+**So a "we compared N methods on TCGA/PBMC" paper is dead on arrival.** A 2026
+paper must clear ≥1 of:
+1. **A maintained, general, one-interface platform spanning bulk + single-cell +
+   spatial** where a user drops in *their own* data and gets standardized
+   head-to-head comparison — the seam the survey found *empty* (momix=frozen/bulk;
+   scMultiBench=codebase; Open Problems=ML-competition infra; muon/Galaxy=pipelines,
+   not comparative harnesses). **This is our primary contribution.**
+2. **Spatial multi-omics** — genuinely under-benchmarked (SpatialGlue, SpaMosaic,
+   SIMO, SpaDDM exist; no mature benchmark). White space.
+3. **Foundation-model integration head-to-head** — scGPT / scMamba vs. classical
+   jDR + VAEs under one protocol has *not* been done.
+4. **The named open problems** (Nat Methods 2025): missing-modality/mosaic
+   robustness, scalability (>100K cells / OOM), and **label-free cross-task
+   metrics** (the paper explicitly asks for these).
+
+**Recommended framing:** **#1 (platform-as-contribution) as the spine**, validated
+on a spectrum from bulk → single-cell → spatial, with the MG/autoimmune cohort as
+the biology anchor, and at least one genuinely-new axis (#2 spatial or #4
+missing-modality) to be non-redundant.
+
+> **Honest scoping consequence:** a *bulk-only* benchmark (MOFA2 + jDR on CLL/TCGA)
+> is redundant with Cantini. The defensible version **requires BioMate to add
+> single-cell (and ideally spatial) integration methods** — a real lift, but it's
+> also a product-capability gap worth closing regardless.
+
+### §1b — Competitive landscape (reproducible-platform survey)
+| Tool | What | Coverage | Gap vs. our angle |
+|---|---|---|---|
+| **momix** (Cantini 2021) | notebook to reproduce + plug jDRs | bulk cancer, jDR | frozen, narrow, not a maintained platform |
+| **Open Problems** (2022→) | live containerized continuous benchmarking | single-cell, task-based | ML-competition framing; not "run my data through many methods" |
+| **scMultiBench** (2025) | code release for the 40-method benchmark | sc multimodal | a benchmark codebase, not a user-facing platform |
+| **muon / MuData** (2021) | scverse multimodal data structure | sc/multimodal | data framework, not a comparison harness |
+| **Galaxy SPOC** (2025) | 175+ reproducible sc/spatial tools | sc + spatial | tool aggregation, not head-to-head benchmarking |
+| **mixOmics** | multi-block statistical toolbox | bulk + some sc | single-family, not cross-method |
+
+**Nobody offers a maintained, general, one-interface system that runs a user's own
+multi-omics data through many integration methods across bulk + sc + spatial with a
+common ground-truth metric harness.** That is the paper.
 
 ---
 
