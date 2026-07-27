@@ -1,0 +1,57 @@
+# Extends bioc-domain-general:3.20-slim with MOFA2 + its basilisk/mofapy2 Python
+# backend pre-installed.
+#
+# Why this layer exists:
+#   The 3.20-slim base does not include MOFA2. Runtime self-install fails for it in
+#   two compounding ways (observed on dev run 885ec10c):
+#     1. The Bioconductor `container-binaries/bioconductor_docker` mirror 404s for
+#        MOFA2's heavy deps (RcppEigen, RSpectra, dqrng, basilisk.utils, ...), so
+#        every dep falls back to *source* compilation — which does not finish inside
+#        a single Batch task window → `Error in library(MOFA2): no package 'MOFA2'`.
+#     2. MOFA2 trains via `run_mofa(..., use_basilisk=TRUE)`, and basilisk builds a
+#        bundled mofapy2 *conda env* on first use — slow, network-dependent, fragile
+#        to rebuild on every fresh container.
+#   Baking both in cuts a MOFA run to image-pull + train (~2-3 min once per EC2).
+#
+# Build & push (run from repo root):
+#   scripts/build_bioc_mofa2_image.sh
+# After push, mofa2/main.nf uses tag 3.20-mofa2.
+
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20-slim
+
+# 1a) CRAN plotting deps as fast pre-built noble binaries (base image's p3m.dev CRAN).
+#     GGally is needed by MOFA2's plot_factors() scatter-matrix; without it that one
+#     plot is skipped at runtime (wrapped in try() in the workflow).
+RUN Rscript -e "install.packages(c('ggplot2','pheatmap','tidyverse','reticulate','GGally'), Ncpus = 2)"
+
+# 1b) MOFA2 (+ basilisk, rhdf5, HDF5Array, DelayedArray, ...) from EXPLICIT standard
+#     Bioconductor SOURCE repos. This is REQUIRED, not cosmetic: BiocManager::repositories()
+#     auto-adds a priority 'BioCcontainers' repo
+#     (bioconductor.org/packages/3.20/container-binaries/bioconductor_docker) that returns
+#     504 Gateway Timeout for the whole MOFA2 tree — and neither options(BioC_binary=FALSE)
+#     nor unsetting BIOCONDUCTOR_DOCKER_VERSION removes it, so every BiocManager path 504s
+#     and MOFA2 never installs. install.packages() with an explicit repo vector never
+#     references BioCcontainers. Verified on deploy-test: INSTALLED: TRUE, 0 errors, 0 504s.
+RUN Rscript -e " \
+  r <- c( \
+    BioCsoft = 'https://bioconductor.org/packages/3.20/bioc', \
+    BioCann  = 'https://bioconductor.org/packages/3.20/data/annotation', \
+    BioCexp  = 'https://bioconductor.org/packages/3.20/data/experiment', \
+    CRAN     = 'https://p3m.dev/cran/__linux__/noble/latest'); \
+  install.packages('MOFA2', repos = r, type = 'source', Ncpus = 2); \
+  if (!requireNamespace('MOFA2', quietly = TRUE)) quit(status = 1, save = 'no') \
+"
+
+# 2) Bake the basilisk/mofapy2 conda env by training a tiny MOFA model at build time,
+#    so run_mofa(use_basilisk=TRUE) at runtime reuses the baked env instead of building
+#    it. Fail the build if MOFA cannot actually train (surfaces env problems now, not
+#    silently at runtime).
+RUN Rscript -e " \
+  suppressMessages(library(MOFA2)); set.seed(1); \
+  d <- make_example_data(n_views = 2, n_samples = 20, n_features = 40, n_factors = 3)\$data; \
+  m <- create_mofa(d); \
+  m <- prepare_mofa(m, model_options = get_default_model_options(m)); \
+  out <- run_mofa(m, outfile = tempfile(fileext = '.hdf5'), use_basilisk = TRUE); \
+  stopifnot(!is.null(out)); \
+  cat('MOFA2 + basilisk/mofapy2 env baked OK\n') \
+"
