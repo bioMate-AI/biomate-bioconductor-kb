@@ -91,6 +91,39 @@ REPURPOSING = [
      "supports": "next-gen L1000/CMap perturbation reference + connectivity"},
 ]
 
+INTEGRATION_BENCH = [
+    {"ref": "Luecken et al. 2022, Benchmarking atlas-level data integration in single-cell "
+            "genomics (scIB), Nature Methods 19:41", "doi": "10.1038/s41592-021-01336-8",
+     "supports": "two-objective integration metrics; no universal-best method"},
+    {"ref": "Korsunsky et al. 2019, Fast, sensitive and accurate integration of single-cell "
+            "data with Harmony, Nature Methods 16:1289", "doi": "10.1038/s41592-019-0619-0",
+     "supports": "LISI (iLISI/cLISI) diversity metric"},
+    {"ref": "Tran et al. 2020, A benchmark of batch-effect correction methods for single-cell "
+            "RNA sequencing data, Genome Biology 21:12", "doi": "10.1186/s13059-019-1850-9",
+     "supports": "condition-dependent method selection"},
+]
+
+METADATA_HARMONIZER = [
+    {"ref": "Kamdar et al. 2023, text2term: mapping free-text descriptions to ontology terms, "
+            "Journal of Biomedical Semantics", "doi": "",
+     "supports": "deterministic term-to-ontology mapping with confidence + human review"},
+    {"ref": "Malone et al. 2010, Modeling sample variables with an Experimental Factor "
+            "Ontology (EFO), Bioinformatics 26:1112", "doi": "10.1093/bioinformatics/btq099",
+     "supports": "controlled-vocabulary grounding (EFO)"},
+]
+
+QC_TRIAGE = [
+    {"ref": "Moore et al. 2011, Biospecimen Reporting for Improved Study Quality (BRISQ), "
+            "Biopreservation and Biobanking 9:57", "doi": "10.1089/bio.2010.0036",
+     "supports": "specimen provenance completeness"},
+    {"ref": "Yilmaz et al. 2011, Minimum information about a marker gene sequence (MIxS), "
+            "Nature Biotechnology 29:415", "doi": "10.1038/nbt.1823",
+     "supports": "minimum-information provenance fields"},
+    {"ref": "Leek et al. 2010, Tackling the widespread and critical impact of batch effects "
+            "in high-throughput data, Nature Reviews Genetics 11:733", "doi": "10.1038/nrg2825",
+     "supports": "batch-effect / batch-biology confounding"},
+]
+
 WORKFLOWS = [
     {
         "name": "target_scorecard_ranker",
@@ -161,6 +194,46 @@ WORKFLOWS = [
         "step_count": 1,
         "tags": ["drug_discovery", "repurposing", "connectivity_map", "lincs",
                  "signature_reversal", "target_discovery"],
+    },
+    {
+        "name": "integration_benchmark",
+        "filename": "nextflow_nfcore/subworkflows/single_cell/integration_benchmark/main.nf",
+        "domain": "single_cell",
+        "description": ("Harmonization select-and-evaluate scorer: score an integrated "
+                        "embedding on BOTH objectives (iLISI/cLISI + ASW batch/celltype, "
+                        "scIB) and detect OVER-CORRECTION, so the right integration method "
+                        "is selected rather than defaulting to one tool."),
+        "citations": INTEGRATION_BENCH,
+        "step_count": 1,
+        "tags": ["single_cell", "integration", "batch_correction", "harmonization",
+                 "scib", "lisi", "benchmark"],
+    },
+    {
+        "name": "metadata_harmonizer",
+        "filename": "nextflow_nfcore/subworkflows/database/metadata_harmonizer/main.nf",
+        "domain": "database",
+        "description": ("Deterministic, ontology-grounded metadata harmonizer: maps free-text "
+                        "clinical/sample values to a controlled vocabulary via a stdlib match "
+                        "cascade (exact/synonym/Jaccard/edit-distance) with confidence + "
+                        "needs_review flags. Never invents a term or ontology ID; flags "
+                        "out-of-dictionary values for human curation."),
+        "citations": METADATA_HARMONIZER,
+        "step_count": 1,
+        "tags": ["database", "metadata_harmonization", "ontology_mapping", "efo", "hpo",
+                 "human_in_the_loop", "data_curation"],
+    },
+    {
+        "name": "cohort_qc_triage",
+        "filename": "nextflow_nfcore/subworkflows/biostatistics/cohort_qc_triage/main.nf",
+        "domain": "biostatistics",
+        "description": ("Pre-harmonization QC-triage gate: metadata completeness, batch-vs-"
+                        "biology confounding (chi-square + Cramer's V), BRISQ/MIxS provenance, "
+                        "and per-sample QC-metric outliers -> INTEGRATE / TRIAGE / REJECT "
+                        "verdict. Detects un-integratable confounded cohorts."),
+        "citations": QC_TRIAGE,
+        "step_count": 1,
+        "tags": ["biostatistics", "quality_control", "cohort", "confounding", "provenance",
+                 "harmonization", "triage"],
     },
 ]
 
