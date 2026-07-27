@@ -1513,10 +1513,14 @@ class ResearchAgent:
                 key_terms = analysis.get('key_terms', [])
                 search_query = ' '.join(key_terms) if key_terms else question
 
-                # Use bioinformatics-focused search
+                # Retrieve BROADLY (the federated engine fans out across PubMed +
+                # Europe PMC + Semantic Scholar + OpenAlex and iterates). Retrieval
+                # breadth is decoupled from how many we ultimately cite — a proper
+                # evidence review needs many candidates, not self.max_citations (=5).
+                _breadth = max(self.max_citations, 25)
                 citations = await self.literature_client.search_bioinformatics(
                     query=search_query,
-                    max_results=self.max_citations,
+                    max_results=_breadth,
                     recent_years=5
                 )
 
@@ -2354,7 +2358,71 @@ class ResearchAgent:
         if context:
             prompt_parts.append(f"## Context\n{json.dumps(context, indent=2)}")
 
-        # Add the question
+        # Retrieved literature — inject the ACTUAL papers as a NUMBERED list so the
+        # model cites real sources ([N]) instead of inventing citations from memory.
+        # Previously the citations were attached only AFTER synthesis, so the model
+        # had no paper metadata in-context and hallucinated [N] markers / DOIs.
+        cites = evidence.get('citations') or []
+        if cites:
+            lit = ["## Retrieved Literature (your ONLY citation list)",
+                   "Cite these with [N] using the numbers below. Use ONLY papers from "
+                   "this list for [N] citations — never cite a paper that is not listed "
+                   "here, and never invent a DOI, PMID, or PDB ID."]
+            for i, c in enumerate(cites, 1):
+                authors = ", ".join((getattr(c, 'authors', None) or [])[:6])
+                meta = []
+                if authors:
+                    meta.append(authors)
+                if getattr(c, 'year', None):
+                    meta.append(str(c.year))
+                if getattr(c, 'journal', None):
+                    meta.append(str(c.journal))
+                if getattr(c, 'doi', None):
+                    meta.append(f"DOI:{c.doi}")
+                if getattr(c, 'pmid', None):
+                    meta.append(f"PMID:{c.pmid}")
+                if getattr(c, 'source', None):
+                    meta.append(f"src:{c.source}")
+                entry = f"[{i}] {getattr(c, 'title', None) or '(untitled)'}"
+                if meta:
+                    entry += " — " + " · ".join(meta)
+                abstract = (getattr(c, 'abstract', None) or "").strip()
+                if abstract:
+                    entry += f"\n    Abstract: {abstract[:400]}"
+                lit.append(entry)
+            prompt_parts.append("\n".join(lit))
+
+        # Rigor-adaptive instructions. A quick factual question wants a brief answer;
+        # an evidence-review request ("evidence table", "verify every DOI", "separate
+        # the evidence", "systematic") wants a thorough, structured, honestly-hedged
+        # synthesis. Detect the mode from the question.
+        _q_low = (question or "").lower()
+        _deep = any(cue in _q_low for cue in (
+            "evidence table", "verify every", "verify that every", "separate the evidence",
+            "systematic", "directly demonstrate", "not directly demonstrated",
+            "structural evidence", "biochemical", "for every major claim", "provide the paper",
+        ))
+        if _deep:
+            instructions = """## Instructions (evidence-review mode)
+Produce a rigorous, structured, evidence-graded answer.
+
+1. Use ONLY the numbered Retrieved Literature above for [N] citations. Never invent a paper, DOI, PMID, or PDB ID; if you are unsure an identifier is real, omit it.
+2. Distinguish what is DIRECTLY demonstrated experimentally from what remains a proposed model. If the retrieved evidence does not support a claim, write exactly: "Not directly demonstrated."
+3. Where the question asks for a table, produce a markdown evidence table with one row per study and the requested columns (e.g. method, organism/constructs, and per-claim yes/no).
+4. Do NOT infer a mechanism (e.g. "handover"/transfer) from separate binding measurements — label it directly demonstrated only if the transfer itself was observed.
+5. End with a concise synthesis of what is established vs unknown. Prefer completeness and honesty over brevity."""
+        else:
+            instructions = """## Instructions
+Provide a concise, evidence-based answer to the research question.
+
+1. Be direct — lead with the answer, not preamble
+2. Keep it brief: 2–4 sentences for simple factual questions; 1–3 short paragraphs for complex ones
+3. Ground claims in the benchmark evidence and database facts above (use them preferentially over training knowledge)
+4. If tool recommendations are relevant, name them specifically (1–2 max)
+5. Cite sources inline with [N] using ONLY the numbered Retrieved Literature list above; never invent a DOI/PMID/paper. If the evidence does not support a claim, say "Not directly demonstrated."
+
+Format: plain prose or a short bulleted list. No lengthy introductions, no "In summary" footers."""
+
         prompt_parts.append(f"""
 ## Research Question
 {question}
@@ -2364,16 +2432,7 @@ class ResearchAgent:
 - Domain: {analysis.get('domain')}
 - Key Terms: {', '.join(analysis.get('key_terms', []))}
 
-## Instructions
-Provide a concise, evidence-based answer to the research question.
-
-1. Be direct — lead with the answer, not preamble
-2. Keep it brief: 2–4 sentences for simple factual questions; 1–3 short paragraphs for complex ones
-3. Ground claims in the benchmark evidence and database facts above (use them preferentially over training knowledge)
-4. If tool recommendations are relevant, name them specifically (1–2 max)
-5. Cite sources inline with [N] notation only when a specific paper supports the claim
-
-Format: plain prose or a short bulleted list. No lengthy introductions, no "In summary" footers.
+{instructions}
 """)
 
         return "\n\n".join(prompt_parts)
