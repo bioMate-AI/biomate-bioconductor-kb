@@ -124,6 +124,21 @@ QC_TRIAGE = [
      "supports": "batch-effect / batch-biology confounding"},
 ]
 
+ANTIGEN = [
+    {"ref": "Reynisson et al. 2020, NetMHCpan-4.1 and NetMHCIIpan-4.0: improved MHC antigen "
+            "presentation predictions, Nucleic Acids Research 48:W449",
+     "doi": "10.1093/nar/gkaa379",
+     "supports": "peptide:MHC-I/II binding (%rank) prediction"},
+    {"ref": "Racle et al. 2023, Machine learning predictions of MHC-II specificities reveal "
+            "alternative binding mode of class II epitopes, Immunity 56:1359",
+     "doi": "10.1016/j.immuni.2023.03.009",
+     "supports": "MHC-II epitope specificity / T-cell antigen prioritisation"},
+    {"ref": "Abelin et al. 2019, Defining HLA-II ligand processing and binding rules with "
+            "mass spectrometry enhances cancer epitope prediction, Immunity 51:766",
+     "doi": "10.1016/j.immuni.2019.08.012",
+     "supports": "HLA-II immunopeptidome; under-served DP/DQ presentation"},
+]
+
 WORKFLOWS = [
     {
         "name": "target_scorecard_ranker",
@@ -234,6 +249,20 @@ WORKFLOWS = [
         "step_count": 1,
         "tags": ["biostatistics", "quality_control", "cohort", "confounding", "provenance",
                  "harmonization", "triage"],
+    },
+    {
+        "name": "antigen_resolution",
+        "filename": "nextflow_nfcore/subworkflows/immunology/antigen_resolution/main.nf",
+        "domain": "immunology",
+        "description": ("TCR<->HLA<->peptide antigen-resolution integration: fuses airrflow "
+                        "(TCR/BCR repertoire support), hlatyping (patient HLA), and "
+                        "epitopeprediction (peptide:MHC %rank) into a ranked candidate "
+                        "antigen/epitope list, emphasising the under-served HLA-DP/DQ "
+                        "class-II space. Ingests upstream outputs; serves TCR-T programs."),
+        "citations": ANTIGEN,
+        "step_count": 1,
+        "tags": ["immunology", "antigen_resolution", "tcr", "hla", "epitope",
+                 "immunopeptidome", "class_ii", "hla_dp_dq", "tcr_t"],
     },
 ]
 
