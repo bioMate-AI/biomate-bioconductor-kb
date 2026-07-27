@@ -18,7 +18,8 @@ from __future__ import annotations
 import json, os, sqlite3, sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-DB_PATH = os.path.join(ROOT, "backend", "database", "galaxy_ai_tools.db")
+DB_PATH = os.environ.get(
+    "BIOMATE_DB", os.path.join(ROOT, "backend", "database", "galaxy_ai_tools.db"))
 
 # --- peer-reviewed reference library ---------------------------------------
 OT_PLATFORM = [
@@ -66,6 +67,19 @@ FCRN_ISOTYPE = [
      "supports": "BAFF/APRIL depletion lowers all isotypes incl. IgA/IgM"},
 ]
 
+GATE3 = [
+    {"ref": "FDA-NIH Biomarker Working Group, BEST (Biomarkers, EndpointS, and other "
+            "Tools) Resource, 2016", "doi": "",
+     "supports": "predictive vs prognostic biomarker definitions; interaction testing"},
+    {"ref": "Parkes et al. 2024, PROFILE trial — biomarker-stratified RCT in Crohn's "
+            "disease, Lancet Gastroenterology & Hepatology 9:? (interaction 1%, p=0.944)",
+     "doi": "10.1016/S2468-1253(24)00034-7",
+     "supports": "canonical predictive-biomarker failure (prognostic but not predictive)"},
+    {"ref": "McShane et al. 2005, REMARK reporting recommendations for tumour marker "
+            "prognostic studies, JNCI 97:1180", "doi": "10.1093/jnci/dji237",
+     "supports": "prognostic/predictive marker reporting standards"},
+]
+
 WORKFLOWS = [
     {
         "name": "target_scorecard_ranker",
@@ -106,6 +120,21 @@ WORKFLOWS = [
         "step_count": 1,
         "tags": ["immunology", "myasthenia_gravis", "stratification",
                  "autoantibody", "fcrn", "baff_april"],
+    },
+    {
+        "name": "gate3_interaction_test",
+        "filename": "nextflow_nfcore/subworkflows/biostatistics/"
+                    "gate3_interaction_test/main.nf",
+        "domain": "biostatistics",
+        "description": ("Gate-3 test: is a biomarker PREDICTIVE (changes which treatment "
+                        "is better) or merely PROGNOSTIC? Computes the biomarker x treatment "
+                        "interaction (estimate/CI/p) on a stratified-trial dataset, plus the "
+                        "fraction of treatment decisions changed vs the marker-blind choice, "
+                        "and a gate-3 verdict. Binary + continuous outcomes."),
+        "citations": GATE3,
+        "step_count": 1,
+        "tags": ["biostatistics", "biomarker", "predictive", "interaction_test",
+                 "clinical_trial", "stratification", "gate3"],
     },
 ]
 
