@@ -12,9 +12,18 @@ export PATH="$HOME/bin:$PATH"          # session-manager-plugin lives in ~/bin (
 
 ECR_REPO="399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general"
 TAG="3.20-mofa2"
-INSTANCE_ID="i-06696b0d91f4346e0"
-AZ="us-west-2a"
-EC2_USER="ubuntu"
+# Build host selection:
+#   - Production EC2 i-06696b0d91f4346e0 CANNOT reach the ECR API (api.ecr.us-west-2 →
+#     connect timeout) → can't pull base or push. Do NOT use.
+#   - deploy-test i-0482a6fa98c6f301a reaches ECR, but is a t3.medium (4 GB) and OOMs
+#     during MOFA2's source compile (SSM ConnectionLost / SSH "Bad packet length").
+#   - Use a >=8 GB host for this build, e.g. BUILD_INSTANCE_ID=i-00deea751640a41f9
+#     (r5.2xlarge ECS host, ec2-user) which built it successfully.
+# Also: this build is long — run docker build DETACHED (nohup) on the host and poll
+# ECR for the pushed tag, rather than holding an SSH session (the SSM tunnel drops).
+INSTANCE_ID="${BUILD_INSTANCE_ID:-i-0482a6fa98c6f301a}"
+AZ="${BUILD_AZ:-us-west-2a}"
+EC2_USER="${BUILD_USER:-ubuntu}"
 KEY="/tmp/biomate_ec2_key_sync"
 _SSM_PROXY="aws ssm start-session --target ${INSTANCE_ID} --document-name AWS-StartSSHSession --parameters portNumber=%p --region us-west-2"
 

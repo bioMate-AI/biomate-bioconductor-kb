@@ -19,17 +19,24 @@
 
 FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20-slim
 
-# 1) MOFA2 + basilisk (Python-env manager) + the workflow's declared R deps.
-#    Source builds are fine here — build time has no per-task window limit.
+# 1a) CRAN plotting deps as fast pre-built noble binaries (base image's p3m.dev CRAN).
+RUN Rscript -e "install.packages(c('ggplot2','pheatmap','tidyverse','reticulate'), Ncpus = 2)"
+
+# 1b) MOFA2 (+ basilisk, rhdf5, HDF5Array, DelayedArray, ...) from EXPLICIT standard
+#     Bioconductor SOURCE repos. This is REQUIRED, not cosmetic: BiocManager::repositories()
+#     auto-adds a priority 'BioCcontainers' repo
+#     (bioconductor.org/packages/3.20/container-binaries/bioconductor_docker) that returns
+#     504 Gateway Timeout for the whole MOFA2 tree — and neither options(BioC_binary=FALSE)
+#     nor unsetting BIOCONDUCTOR_DOCKER_VERSION removes it, so every BiocManager path 504s
+#     and MOFA2 never installs. install.packages() with an explicit repo vector never
+#     references BioCcontainers. Verified on deploy-test: INSTALLED: TRUE, 0 errors, 0 504s.
 RUN Rscript -e " \
-  options(repos = c(CRAN = 'https://packagemanager.posit.co/cran/__linux__/jammy/latest')); \
-  .bin_url <- sprintf( \
-    'https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker', \
-    BiocManager::version()); \
-  BiocManager::install( \
-    c('MOFA2', 'basilisk', 'reticulate', 'ggplot2', 'pheatmap', 'tidyverse'), \
-    ask = FALSE, update = FALSE, site_repository = .bin_url \
-  ); \
+  r <- c( \
+    BioCsoft = 'https://bioconductor.org/packages/3.20/bioc', \
+    BioCann  = 'https://bioconductor.org/packages/3.20/data/annotation', \
+    BioCexp  = 'https://bioconductor.org/packages/3.20/data/experiment', \
+    CRAN     = 'https://p3m.dev/cran/__linux__/noble/latest'); \
+  install.packages('MOFA2', repos = r, type = 'source', Ncpus = 2); \
   if (!requireNamespace('MOFA2', quietly = TRUE)) quit(status = 1, save = 'no') \
 "
 
