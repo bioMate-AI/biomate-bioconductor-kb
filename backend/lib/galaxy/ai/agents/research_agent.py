@@ -2077,9 +2077,13 @@ class ResearchAgent:
             # Build citations from literature search and benchmark evidence
             citations = []
 
-            # Add citations from literature search (LiteratureCitation -> Citation)
+            # Add citations from literature search (LiteratureCitation -> Citation).
+            # For deep evidence-review queries surface more than max_citations (=5) —
+            # the downstream chat model builds the user-facing table from these, and 5
+            # relevance-ranked hits is too few for a real review.
+            _cite_cap = max(self.max_citations, 15) if _deep_synth else self.max_citations
             if evidence.get('citations'):
-                for lit_citation in evidence['citations'][:self.max_citations]:
+                for lit_citation in evidence['citations'][:_cite_cap]:
                     citations.append(Citation(
                         title=lit_citation.title,
                         authors=lit_citation.authors,

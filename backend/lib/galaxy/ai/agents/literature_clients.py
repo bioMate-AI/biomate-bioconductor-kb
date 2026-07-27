@@ -693,7 +693,19 @@ class UnifiedLiteratureClient:
                     seen.add(key)
                     unique.append(c)
             if unique:
-                unique.sort(key=lambda c: (c.year or 0, c.citation_count), reverse=True)
+                # Rank by RELEVANCE to the query (query-term overlap in title +
+                # abstract), then recency. Pure recency surfaced tangential recent
+                # reviews (e.g. "Peroxisomes in Aging") above the directly-relevant
+                # primary studies (e.g. the PEX13-SH3 structure), so the top-N the
+                # model actually reads were off-target.
+                _qtok = {w for w in re.findall(r"[a-z0-9]+", query.lower()) if len(w) > 2}
+
+                def _relevance(c: LiteratureCitation) -> tuple:
+                    text = ((c.title or "") + " " + (c.abstract or "")).lower()
+                    overlap = sum(1 for w in _qtok if w in text)
+                    return (overlap, c.year or 0, c.citation_count)
+
+                unique.sort(key=_relevance, reverse=True)
                 if verify_ids:
                     # Confirm/enrich identifiers against NCBI before the model cites them.
                     unique = await asyncio.to_thread(_enrich_citation_identifiers, unique)
