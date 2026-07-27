@@ -62,6 +62,19 @@ def _resolve_lago_api_key() -> str:
 LAGO_API_KEY = _resolve_lago_api_key()
 LAGO_TIMEOUT = 2.0  # seconds; fire-and-forget pattern, don't block requests
 
+
+def lago_enabled() -> bool:
+    """Master switch for Lago usage metering. DEFAULT OFF.
+
+    Billing runs on Stripe (subscriptions/payment) + internal quota
+    (DEFAULT_PLAN_LIMITS + Redis). Lago is a legacy usage-metering meter only
+    needed for usage-based/overage billing. With the flat-tier model
+    (docs/20260727_TIER_MODEL_DECISION.md) it is not in the critical path, so
+    emits no-op and quota reads fall back to DEFAULT_PLAN_LIMITS.
+    Set BILLING_LAGO_ENABLED=true to re-enable metered/overage billing.
+    """
+    return os.environ.get("BILLING_LAGO_ENABLED", "false").lower() == "true"
+
 # Exponential backoff delays for transient network errors (0.5s, 1s)
 _RETRY_DELAYS: tuple[float, ...] = (0.5, 1.0)
 
@@ -205,6 +218,8 @@ class LagoClient:
         This should NOT raise — billing failures must never block user requests.
         Retries up to 3 times on transient network errors.
         """
+        if not lago_enabled():
+            return True  # Lago dropped — internal Redis/file-log tracking is the source
         payload = {
             "event": {
                 "transaction_id":           event.transaction_id,
@@ -233,6 +248,8 @@ class LagoClient:
         Returns number of events successfully accepted.
         Retries up to 3 times on transient network errors.
         """
+        if not lago_enabled():
+            return len(events)  # Lago dropped — treat as accepted (internal tracking is source)
         payload = {
             "events": [
                 {
@@ -403,6 +420,8 @@ class LagoClient:
         """Create or update a Lago customer and subscribe to plan (idempotent).
         external_id is always bm_{user_id} to match the Java billing service convention.
         """
+        if not lago_enabled():
+            return True  # no Lago customer needed — Stripe owns the subscription
         ext_id = external_customer_id(user_id)
         payload = {
             "customer": {
@@ -430,6 +449,8 @@ class LagoClient:
         """Subscribe a customer to a plan (idempotent, updates existing subscription).
         Subscription external_id format: bm_{user_id}_{plan_code} — matches Java service.
         """
+        if not lago_enabled():
+            return True  # no Lago subscription — Stripe owns plan/subscription state
         ext_id = external_customer_id(user_id)
         sub_id = subscription_id(user_id, plan_code)
         payload = {
@@ -491,6 +512,8 @@ class LagoClient:
         Returns the current-period usage summary from Lago.
         Shape: { "total_amount_cents": int, "charges_usage": [...] }
         """
+        if not lago_enabled():
+            return None  # usage comes from the Redis realtime ledger, not Lago
         try:
             r = self._client.get(
                 f"/api/v1/customers/{user_id}/current_usage",
@@ -512,6 +535,8 @@ class LagoClient:
         Returns the limit in USD, or None if the plan is not found or does
         not declare a fixed amount (e.g. pure usage-based plans).
         """
+        if not lago_enabled():
+            return None  # quota comes from DEFAULT_PLAN_LIMITS when Lago is dropped
         try:
             r = self._client.get(f"/api/v1/plans/{plan_code}")
             if r.status_code != 200:

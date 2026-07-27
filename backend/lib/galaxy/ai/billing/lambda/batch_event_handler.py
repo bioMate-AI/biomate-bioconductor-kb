@@ -127,6 +127,8 @@ def _sub_id(user_id: str, plan_code: str = "base") -> str:
 def _emit_to_lago(user_id: str, job_id: str, vcpus: float, gpu_count: int,
                   memory_mib: float, duration_seconds: float) -> None:
     """Emit batch compute events to Lago using the same event codes as lago_client.py."""
+    if os.environ.get("BILLING_LAGO_ENABLED", "false").lower() != "true":
+        return  # Lago dropped — cost is tracked in Redis by _record_completed
     if not _LAGO_URL or not _LAGO_KEY:
         log.info("Lago not configured (LAGO_API_URL/LAGO_API_KEY missing) — skipping emit for job %s", job_id)
         return
