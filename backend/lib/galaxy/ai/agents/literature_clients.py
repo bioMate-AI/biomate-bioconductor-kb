@@ -38,6 +38,9 @@ class LiteratureCitation:
     source: str = "unknown"  # "pubmed", "arxiv", "semantic_scholar"
     relevance_score: float = 0.0
     citation_count: int = 0
+    # True once the identifier (PMID/DOI) has been confirmed against NCBI by a
+    # title match — so downstream can distinguish verified from search-returned IDs.
+    verified: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -53,6 +56,7 @@ class LiteratureCitation:
             "source": self.source,
             "relevance_score": self.relevance_score,
             "citation_count": self.citation_count,
+            "verified": self.verified,
         }
 
     def format_apa(self) -> str:
@@ -649,7 +653,8 @@ class UnifiedLiteratureClient:
         self,
         query: str,
         max_results: int = 10,
-        recent_years: int = 5
+        recent_years: int = 5,
+        verify_ids: bool = False,
     ) -> List[LiteratureCitation]:
         """
         Search specifically for bioinformatics/computational biology papers.
@@ -689,6 +694,9 @@ class UnifiedLiteratureClient:
                     unique.append(c)
             if unique:
                 unique.sort(key=lambda c: (c.year or 0, c.citation_count), reverse=True)
+                if verify_ids:
+                    # Confirm/enrich identifiers against NCBI before the model cites them.
+                    unique = await asyncio.to_thread(_enrich_citation_identifiers, unique)
                 log.info(
                     "search_bioinformatics: federated returned %d citations across %s (depth %d)",
                     len(unique),
@@ -769,6 +777,66 @@ def _federated_item_to_citation(item: Dict[str, Any]) -> LiteratureCitation:
         source=(item.get("_source") or item.get("source") or "federated"),
         citation_count=cc,
     )
+
+
+def _enrich_citation_identifiers(
+    citations: List[LiteratureCitation],
+    max_lookups: int = 15,
+    per_call_timeout: int = 6,
+) -> List[LiteratureCitation]:
+    """Fill missing PMIDs and CONFIRM identifiers against NCBI E-utilities.
+
+    For each citation lacking a PMID (common for OpenAlex/Semantic Scholar hits),
+    search PubMed by title, then fetch the candidate's summary and accept the PMID
+    (and DOI) only if the returned title fuzzy-matches (≥0.85) — so we never invent
+    an identifier. Sets `verified=True` on a confirmed match. Best-effort and
+    fail-safe: any error leaves the citation untouched. Serves the user requirement
+    "verify every DOI/PMID; do not invent references."
+    """
+    import urllib.parse
+    import urllib.request
+    import json as _json
+    import difflib
+
+    def _get_json(url: str):
+        with urllib.request.urlopen(url, timeout=per_call_timeout) as r:
+            return _json.loads(r.read().decode("utf-8", "ignore"))
+
+    base = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
+    done = 0
+    for c in citations:
+        if done >= max_lookups or not c.title:
+            continue
+        if c.pmid:  # already has one — leave as-is (search-returned)
+            continue
+        done += 1
+        try:
+            term = urllib.parse.quote(c.title[:220])
+            data = _get_json(f"{base}/esearch.fcgi?db=pubmed&retmax=1&retmode=json&term={term}%5BTitle%5D")
+            ids = data.get("esearchresult", {}).get("idlist", [])
+            if not ids:
+                data = _get_json(f"{base}/esearch.fcgi?db=pubmed&retmax=1&retmode=json&term={term}")
+                ids = data.get("esearchresult", {}).get("idlist", [])
+            if not ids:
+                continue
+            pmid = ids[0]
+            sdata = _get_json(f"{base}/esummary.fcgi?db=pubmed&retmode=json&id={pmid}")
+            rec = sdata.get("result", {}).get(pmid, {})
+            cand_title = (rec.get("title") or "").rstrip(".")
+            ratio = difflib.SequenceMatcher(
+                None, (c.title or "").lower().rstrip("."), cand_title.lower()
+            ).ratio()
+            if ratio >= 0.85:
+                c.pmid = pmid
+                c.verified = True
+                if not c.doi:
+                    for aid in rec.get("articleids", []):
+                        if aid.get("idtype") == "doi" and aid.get("value"):
+                            c.doi = aid["value"]
+                            break
+        except Exception:
+            continue
+    return citations
 
 
 # Factory function

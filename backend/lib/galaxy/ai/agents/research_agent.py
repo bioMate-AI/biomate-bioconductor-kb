@@ -1518,10 +1518,17 @@ class ResearchAgent:
                 # breadth is decoupled from how many we ultimately cite — a proper
                 # evidence review needs many candidates, not self.max_citations (=5).
                 _breadth = max(self.max_citations, 25)
+                _q_low = (question or "").lower()
+                _deep = any(cue in _q_low for cue in (
+                    "evidence table", "verify every", "verify that every",
+                    "separate the evidence", "systematic", "directly demonstrate",
+                    "not directly demonstrated", "for every major claim", "provide the paper",
+                ))
                 citations = await self.literature_client.search_bioinformatics(
                     query=search_query,
                     max_results=_breadth,
-                    recent_years=5
+                    recent_years=5,
+                    verify_ids=_deep,  # confirm identifiers against NCBI for rigorous reviews
                 )
 
                 evidence['citations'] = citations
