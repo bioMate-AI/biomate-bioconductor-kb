@@ -621,11 +621,21 @@ def iterative_literature_search(
         if len(collected) >= min_results:
             break
 
-        # Gap detection: if fewer than 3 new results, refine the query
+        # Gap detection: too few NEW results → BROADEN. The trailing terms of a
+        # multi-keyword query are usually the most specific and over-constrain the
+        # implicit-AND match on PubMed/Europe PMC (e.g. a query ending in
+        # "…import oligomerization handover" returns almost nothing, while
+        # "…import oligomerization" returns a full set). Drop the most specific
+        # trailing term each deepening step so coverage widens monotonically; only
+        # when the query is already short fall back to a generic widener. (The old
+        # behaviour appended "mechanism review" and reset to the original query
+        # every depth, so depths 2+ re-ran an identical narrow search and found
+        # nothing new.)
         if len(new_items) < 3 and depth < max_depth:
-            current_query = f"{query} mechanism review"  # simple refinement
-            log.info("[federated_query] depth %d: only %d new results, refining query",
-                     depth, len(new_items))
+            toks = current_query.split()
+            current_query = " ".join(toks[:-1]) if len(toks) > 3 else f"{query} review"
+            log.info("[federated_query] depth %d: %d new results, broadening to %r",
+                     depth, len(new_items), current_query)
 
     return {
         "query": query,

@@ -662,35 +662,61 @@ class UnifiedLiteratureClient:
         Returns:
             List of citations
         """
+        # PRIMARY PATH: route through the federated iterative search
+        # (PubMed + Europe PMC + Semantic Scholar + OpenAlex, entity-aware, with a
+        # gap-detection depth loop). This replaces the old 2-DB single-shot search
+        # that returned ~3 records for the PEX case. Note: the previous
+        # `AND (bioinformatics OR computational biology OR genomics OR proteomics)`
+        # augmentation is DROPPED — it filtered out structural-/molecular-biology
+        # papers (e.g. PEX13/PEX14 structural studies), which is exactly the class
+        # of query this path most needs to serve.
+        try:
+            from galaxy.ai.federated_query import iterative_literature_search
+            data = await asyncio.to_thread(
+                iterative_literature_search,
+                query,
+                max_depth=3,
+                min_results=max(max_results, 12),
+            )
+            fed = [_federated_item_to_citation(it) for it in data.get("results", [])]
+            fed = [c for c in fed if c.title]
+            seen: set = set()
+            unique: List[LiteratureCitation] = []
+            for c in fed:
+                key = c.doi or c.pmid or c.title
+                if key and key not in seen:
+                    seen.add(key)
+                    unique.append(c)
+            if unique:
+                unique.sort(key=lambda c: (c.year or 0, c.citation_count), reverse=True)
+                log.info(
+                    "search_bioinformatics: federated returned %d citations across %s (depth %d)",
+                    len(unique),
+                    ",".join(sorted({(t.get("sources") and ",".join(t["sources"])) or ""
+                                     for t in data.get("trace", [])})) or "?",
+                    data.get("depth_reached", 1),
+                )
+                return unique[:max_results]
+            log.warning("search_bioinformatics: federated path returned 0 — falling back to 2-DB")
+        except Exception as e:
+            log.warning("search_bioinformatics: federated path failed (%s) — falling back to 2-DB", e)
+
+        # FALLBACK: legacy 2-DB search (PubMed + Semantic Scholar), still WITHOUT
+        # the sabotaging augmentation, in case the federated engine is unavailable.
         current_year = datetime.now().year
         min_year = current_year - recent_years
-
-        # Enhance query for bioinformatics
-        enhanced_query = f"{query} AND (bioinformatics OR computational biology OR genomics OR proteomics)"
-
-        # Search with year filters
         tasks = [
-            self.pubmed.search(
-                enhanced_query,
-                max_results // 2,
-                min_date=f"{min_year}/01/01"
-            ),
+            self.pubmed.search(query, max_results // 2, min_date=f"{min_year}/01/01"),
             self.semantic_scholar.search(
-                query,
-                max_results // 2,
-                year_range=(min_year, current_year),
-                fields_of_study=["Biology", "Computer Science"]
+                query, max_results // 2, year_range=(min_year, current_year),
+                fields_of_study=["Biology", "Computer Science"],
             ),
         ]
-
         results = await asyncio.gather(*tasks, return_exceptions=True)
-
         all_citations = []
         for result in results:
             if isinstance(result, list):
                 all_citations.extend(result)
-
-        # Deduplicate and sort
         seen = set()
         unique = []
         for citation in all_citations:
@@ -698,10 +724,51 @@ class UnifiedLiteratureClient:
             if key and key not in seen:
                 seen.add(key)
                 unique.append(citation)
-
         unique.sort(key=lambda c: (c.year or 0, c.citation_count), reverse=True)
-
         return unique[:max_results]
+
+
+def _federated_item_to_citation(item: Dict[str, Any]) -> LiteratureCitation:
+    """Convert a federated_query merged result dict into a LiteratureCitation.
+
+    Merged items keep their per-source fields (see federated_query._merge_results)
+    plus `_source`. Authors may be a comma-string (Europe PMC) or a list (S2);
+    identifiers vary by source. We normalise the common literature fields.
+    """
+    authors = item.get("authors")
+    if isinstance(authors, str):
+        authors = [a.strip() for a in authors.split(",") if a.strip()][:8]
+    elif isinstance(authors, list):
+        authors = [str(a) for a in authors if a][:8]
+    else:
+        authors = []
+
+    year = item.get("year")
+    try:
+        year = int(year) if year not in (None, "") else None
+    except (ValueError, TypeError):
+        year = None
+
+    pmid = item.get("pmid")
+    pmid = str(pmid) if pmid not in (None, "") else None
+
+    try:
+        cc = int(item.get("citations") or item.get("citation_count") or 0)
+    except (ValueError, TypeError):
+        cc = 0
+
+    return LiteratureCitation(
+        title=(item.get("title") or "").strip(),
+        authors=authors,
+        year=year,
+        journal=item.get("journal"),
+        doi=item.get("doi"),
+        pmid=pmid,
+        abstract=item.get("abstract"),
+        url=(item.get("full_text_url") or item.get("pdf_url") or item.get("url")),
+        source=(item.get("_source") or item.get("source") or "federated"),
+        citation_count=cc,
+    )
 
 
 # Factory function
