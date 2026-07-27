@@ -187,10 +187,24 @@ for dataset in DATASETS:                     # identical, pre-processed CSVs per
   `mofa_extracted_factors.csv` / `_weights.csv` (the `factors.csv` contract) +
   variance + plots. This proves the platform premise: one input contract, method
   runs reproducibly, standardized output ready for the metric harness.
-- **Phase 1 — 2-method / 1-dataset pilot:** MOFA2 + one pure-R method (MCIA or
-  SNF) on **CLL**. Wire the standardized `factors.csv` output + a metric script
-  (ARI vs IGHV, factor↔drug-response). Goal: prove the harness end-to-end and
-  sanity-check that scores reproduce known CLL biology. **This is the go/no-go.**
+- **Phase 1 — 2-method / 1-dataset pilot on CLL. 🟢 GO signal (method #1 done):**
+  - **Data**: real CLL cohort (Dietrich 2018 / MOFA vignette) — `drugs` (310),
+    `methylation` (4248), `mrna` (5000), `mutations` (69) × 200 matched patients,
+    parsed from `CLL_data.RData` via the MOFA2 container's R on the ECS host,
+    staged to `s3://biomate-nextflow-work/cll_test/`. IGHV + trisomy12 ground truth
+    live inside the `mutations` view.
+  - **MOFA2 (method #1): ✅ VERIFIED on dev Batch (run `6517aaf4`, 2026-07-27).**
+    Universal interface handles 4 real views → labels `drugs/methylation/mrna/
+    mutations` → **Factor 1 recovers IGHV status, standardized mean diff d = +1.75**
+    (IGHV+ n=104 vs IGHV− n=84; 188 labels), all other factors |d|<0.4. This is the
+    canonical MOFA CLL result (Argelaguet 2018) — the harness reproduces known
+    biology on the field's reference cohort.
+  - **MCIA/mogsa (method #2): in progress** — needs the same universal-CSV port as
+    MOFA2 (mogsa is hardwired to the NCI60 example) + a solid container. This is the
+    "add method N+1" step, now with a proven template.
+  - **Remaining pilot work**: standardized `factors.csv` contract across methods
+    (MOFA2 already emits it) + a shared metric script (ARI/d vs IGHV, factor↔
+    drug-response). Then the MOFA2-vs-MCIA head-to-head is the go/no-go deliverable.
 - **Phase 2 — grid:** add iClusterPlus, intNMF, mixOmics/DIABLO; add TCGA subtype
   recovery. Full metric suite incl. robustness.
 - **Phase 3 — differentiators + write-up:** missing-modality/partial-overlap
