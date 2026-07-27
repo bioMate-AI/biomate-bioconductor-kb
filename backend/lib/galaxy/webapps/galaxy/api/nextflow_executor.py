@@ -1607,6 +1607,26 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
                 src = params.get(_no_ext)
                 if src:
                     _pop_key = _no_ext
+            if not src and n_path <= 1 and len(names) == 1:
+                # UNIVERSAL multi-omics fallback: the workflow declares ONE list-style input
+                # (e.g. `omics`, collected as a single `path(input_files, stageAs:'?/*')` slot),
+                # but the caller — the LLM param-prefill parsing a free-text multi-omics request
+                # ("drugs = s3://…/drugs.csv, methylation = …") — supplied the matrices under
+                # ARBITRARY param names (drugs_data, methylation, mrna, ...), not `omics`. Collect
+                # every file-valued param (s3:// URI or *.csv/.tsv/.txt/.rds/.h5ad path) into the
+                # list so the UI/routing flow works without the caller knowing the `omics` token.
+                # Each is staged under its basename below → the R body names each view by its file.
+                _fre = re.compile(r'(^s3://)|([.](csv|tsv|txt|rds|rdata|h5ad|mtx|tab)$)', re.IGNORECASE)
+                _collected = []
+                for _k, _v in list(params.items()):
+                    if isinstance(_v, str) and _fre.search(_v):
+                        _collected.append(_v)
+                        _keys_to_pop.append(_k)
+                    elif isinstance(_v, (list, tuple)) and any(isinstance(_e, str) and _fre.search(_e) for _e in _v):
+                        _collected.extend([_e for _e in _v if isinstance(_e, str) and _fre.search(_e)])
+                        _keys_to_pop.append(_k)
+                if _collected:
+                    src = _collected
             if not src:
                 return None
             # UNIVERSAL multi-omics interface: a declared input may be a LIST of files — one
