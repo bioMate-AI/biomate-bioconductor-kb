@@ -97,3 +97,32 @@ teamwork E2E already covers the *mechanics* (TW/EI); the tier tests add the *ent
 
 **Recommended sequencing:** (a) canonicalize tiers, (b) Free cap gate + tests, (c) collaboration=Team
 gate + tests, (d) UI upgrade prompts. (a) is the blocker and touches billing — do it deliberately.
+
+---
+
+## Tier ↔ Billing reconciliation (IMPLEMENTED 2026-07-27)
+
+Two axes, kept separate (this is correct — a trial user is `premium` *entitlement* with a `$25` *spend cap*):
+- **Entitlement** (features): `canonicalTier(subscriptionTier)` in `frontend/server/tier.ts` — the single source.
+- **Quota** (spend USD/mo): per canonical tier, in `frontend/server/plan-config.ts`
+  (`CANONICAL_TIER_QUOTA_USD`) and mirrored in `backend/.../quota_enforcer.py` (`DEFAULT_PLAN_LIMITS`).
+
+### The one canonical mapping (keep TS + Python in sync)
+
+| Canonical tier | Legacy `subscriptionTier` | Lago plan | Quota USD/mo |
+|---|---|---|---|
+| **free** | `free`, `academic`, `base` | `free` | **$5** |
+| **premium** | `professional`, `pro`, `premium` | `premium` (new) | **$120** |
+| **team** | `team` | `team` (new) | custom (∞ default) |
+| **enterprise** | `enterprise`, `admin` | `enterprise` | custom (∞ default) |
+
+- **Trial** is orthogonal: 14-day **$25** budget on Lago plan `base`/`basic`. Not a tier.
+- **Legacy `pro` ($500)** is grandfathered (kept in `DEFAULT_PLAN_LIMITS`); new paid individuals get the
+  new `premium` plan at $120 — so existing `pro` users' quota is not silently reduced.
+- Reconciled in code: `plan-config.ts` (`CANONICAL_TIER_QUOTA_USD`, `CANONICAL_TIER_TO_BILLING_PLAN`,
+  `quotaUsdForSubscriptionTier`, `billingPlanForCanonicalTier`) + `quota_enforcer.py`
+  (`premium`/`team` limits, `canonical_tier()` mirroring `tier.ts`). 12 tests (`tier.test.ts`) assert
+  both sides agree. All additive — no existing live quota value changed.
+
+**Still needed to turn enforcement ON:** provision a real `team` (and `premium`) plan in Lago/Java +
+set `subscriptionTier='team'` on team accounts, add upgrade-CTA UI, then flip `TIER_ENFORCEMENT=on`.
