@@ -1,5 +1,24 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { canonicalTier, meetsTier, canCollaborate, FREE_PROJECT_LIMIT } from './tier';
+
+// Source-level contract: the gates are wired into project-routes AND guarded by
+// the enforcement flag (so they can't silently drop or become always-on).
+describe('tier gate wiring (project-routes.ts)', () => {
+  const src = readFileSync(join(__dirname, 'project-routes.ts'), 'utf8');
+  it('collaboration gate is called on all 3 collaboration endpoints', () => {
+    const calls = src.match(/blockedByCollaborationTier\(req, res\)\) return/g) ?? [];
+    expect(calls.length).toBe(3); // share-link, members invite, role change
+  });
+  it('collaboration gate no-ops when enforcement is off', () => {
+    expect(src).toMatch(/if \(!tierEnforcementEnabled\(\)\) return false/);
+  });
+  it('Free-tier project cap is enforced on POST /api/projects and guarded by the flag', () => {
+    expect(src).toMatch(/PROJECT_LIMIT_REACHED/);
+    expect(src).toMatch(/tierEnforcementEnabled\(\) && canonicalTier\(\(req as any\)\.user\?\.subscriptionTier\) === "free"/);
+  });
+});
 
 describe('canonicalTier', () => {
   it('maps legacy values (academic==free)', () => {
