@@ -151,6 +151,18 @@ VIRTUAL_TRIAL = [
      "supports": "interaction-test power methodology"},
 ]
 
+QSP_POP = [
+    {"ref": "Allen et al. 2016, Efficient Generation and Selection of Virtual Populations in "
+            "Quantitative Systems Pharmacology Models, CPT Pharmacometrics Syst Pharmacol 5:140",
+     "doi": "10.1002/psp4.12063",
+     "supports": "virtual-patient population generation for QSP"},
+    {"ref": "Barturen et al. 2021, PRECISESADS molecular taxonomy of systemic autoimmune "
+            "disease, Arthritis & Rheumatology", "doi": "10.1002/art.41610",
+     "supports": "real autoimmune cohort structure / stratified response models"},
+    {"ref": "ICH M15 Guideline, General Principles for Model-Informed Drug Development, 2026",
+     "doi": "", "supports": "MIDD framework for in-silico / virtual-patient models"},
+]
+
 WORKFLOWS = [
     {
         "name": "target_scorecard_ranker",
@@ -291,6 +303,21 @@ WORKFLOWS = [
         "step_count": 1,
         "tags": ["biostatistics", "virtual_trial", "in_silico_trial", "power",
                  "sample_size", "gate3", "predictive_biomarker", "trial_design", "midd"],
+    },
+    {
+        "name": "qsp_virtual_population",
+        "filename": "nextflow_nfcore/subworkflows/biostatistics/qsp_virtual_population/main.nf",
+        "domain": "biostatistics",
+        "description": ("Real cohort -> virtual population -> gate-3 bridge. Grounds a virtual "
+                        "patient population in a REAL cohort's covariate distributions + a "
+                        "user mechanistic response model (covariate/biomarker/treatment/"
+                        "interaction coefficients), deterministically emits it in the gate-3 "
+                        "schema for virtual_trial_gate3 / gate3_interaction_test. Invents "
+                        "neither distributions nor coefficients."),
+        "citations": QSP_POP,
+        "step_count": 1,
+        "tags": ["biostatistics", "qsp", "virtual_population", "in_silico_trial",
+                 "predictive_biomarker", "gate3", "midd", "simulation"],
     },
 ]
 
