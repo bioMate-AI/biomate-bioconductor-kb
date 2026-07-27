@@ -39,8 +39,19 @@ const security = initializeSecurity(app);
 // Without this, all users share one rate-limit bucket (the proxy IP).
 app.set('trust proxy', 1);
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+// The /mcp, /oauth/*, and /.well-known/oauth* routes are RAW-STREAM proxied to
+// the remote_mcp service (see routes.ts mcpProxy). A global body parser here
+// would consume the POST body before the proxy can pipe it upstream — remote_mcp
+// then hangs waiting for a body that never arrives (observed as a 000/timeout on
+// POST /mcp initialize, while GET well-known worked). Skip parsing for those
+// paths so the untouched request stream reaches the proxy.
+const _isMcpProxyPath = (p: string) =>
+  p === '/mcp' || p.startsWith('/mcp/') ||
+  p.startsWith('/oauth/') || p.startsWith('/.well-known/oauth');
+const _jsonParser = express.json();
+const _urlencodedParser = express.urlencoded({ extended: false });
+app.use((req, res, next) => (_isMcpProxyPath(req.path) ? next() : _jsonParser(req, res, next)));
+app.use((req, res, next) => (_isMcpProxyPath(req.path) ? next() : _urlencodedParser(req, res, next)));
 app.use(cookieParser());
 
 // Session middleware configuration (will be initialized async)
