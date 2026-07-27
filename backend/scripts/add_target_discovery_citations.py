@@ -139,6 +139,18 @@ ANTIGEN = [
      "supports": "HLA-II immunopeptidome; under-served DP/DQ presentation"},
 ]
 
+VIRTUAL_TRIAL = [
+    {"ref": "FDA-NIH Biomarker Working Group, BEST Resource, 2016", "doi": "",
+     "supports": "predictive vs prognostic; interaction test target"},
+    {"ref": "Wang et al. 2019, Model-Informed Drug Development: Current US Regulatory "
+            "Practice and Future Considerations, Clin Pharmacol Ther 105:899",
+     "doi": "10.1002/cpt.1363",
+     "supports": "in-silico trial / MIDD framework for design de-risking"},
+    {"ref": "Brookes et al. 2001, Subgroup analyses in RCTs: quantifying false-positive/"
+            "false-negative risk, Health Technol Assess 5(33)", "doi": "10.3310/hta5330",
+     "supports": "interaction-test power methodology"},
+]
+
 WORKFLOWS = [
     {
         "name": "target_scorecard_ranker",
@@ -263,6 +275,22 @@ WORKFLOWS = [
         "step_count": 1,
         "tags": ["immunology", "antigen_resolution", "tcr", "hla", "epitope",
                  "immunopeptidome", "class_ii", "hla_dp_dq", "tcr_t"],
+    },
+    {
+        "name": "virtual_trial_gate3",
+        "filename": "nextflow_nfcore/subworkflows/biostatistics/virtual_trial_gate3/main.nf",
+        "domain": "biostatistics",
+        "description": ("Trial-design power simulation for the gate-3 predictive-biomarker "
+                        "test: from a design-assumption spec (biomarker prevalence, N, "
+                        "per-stratum arm outcomes), deterministically simulate n_sim virtual "
+                        "trials, run the biomarker x treatment interaction on each, and report "
+                        "POWER, expected % decisions changed, a sample-size suggestion, and a "
+                        "pass/under-powered verdict. De-risks/sizes the real RCT. Outputs "
+                        "labelled SIMULATED — a design tool, not clinical evidence."),
+        "citations": VIRTUAL_TRIAL,
+        "step_count": 1,
+        "tags": ["biostatistics", "virtual_trial", "in_silico_trial", "power",
+                 "sample_size", "gate3", "predictive_biomarker", "trial_design", "midd"],
     },
 ]
 
