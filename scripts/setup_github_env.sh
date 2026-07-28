@@ -60,6 +60,14 @@ if [[ "$DRY_RUN" == false ]]; then
 fi
 
 # Sensitive vars → GitHub Secrets. Everything else in the manifest → Variables.
+#
+# INVARIANT: GALAXY_JWT_SECRET (used by the Node billing proxy in server/routes.ts
+# to re-sign the JWT it forwards to Galaxy) MUST equal the Galaxy backend's
+# JWT_SECRET. It only exists to bridge environments where the frontend's and
+# Galaxy's JWT_SECRET differ; if they're the same, leave GALAXY_JWT_SECRET unset
+# (the proxy falls back to JWT_SECRET). A stale/mismatched GALAXY_JWT_SECRET makes
+# EVERY /api/billing/* call fail with "Signature verification failed" (401) —
+# see docs/20260727_BILLING_PROXY_JWT_401_ROOTCAUSE.md (dev incident 2026-07-27).
 SECRETS=(
   ANTHROPIC_API_KEY JWT_SECRET SESSION_SECRET BILLING_INTERNAL_KEY DATABASE_URL
   GALAXY_API_KEY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY ENCRYPTION_KEY CSRF_SECRET
