@@ -381,6 +381,18 @@ When running E2E tests that exercise real workflow execution (AWS Batch):
 
 ## Billing System
 
+> **UPDATE 2026-07-27 — Lago is DROPPED from the critical path (flat-tier billing).**
+> Billing now runs on **Stripe** (subscriptions/payment; `subscriptionTier` set from the Stripe
+> price ID) + **internal quota** (`DEFAULT_PLAN_LIMITS` in `quota_enforcer.py` + the Redis realtime
+> ledger). Lago was a usage-metering meter only needed for usage-based/overage billing, which the
+> flat-tier model (`docs/20260727_TIER_MODEL_DECISION.md`) doesn't require.
+> - `lago_enabled()` in `lago_client.py` defaults **off** (`BILLING_LAGO_ENABLED`); all emits no-op
+>   and quota reads return `None` (→ `DEFAULT_PLAN_LIMITS`). The Batch Lambda `_emit_to_lago` is gated too.
+> - The billing smoke test (`e2e/billing-smoke.e2e.ts`) verifies the **internal** pipeline
+>   (`/api/billing/usage` + `/api/billing/quota`), not Lago.
+> - Set `BILLING_LAGO_ENABLED=true` only if you re-introduce metered/overage billing.
+> The Lago-specific architecture below is retained for context / re-enablement.
+
 **Always use and test the AWS production billing stack. Never use or test against the local Lago Docker container.**
 
 ### Architecture

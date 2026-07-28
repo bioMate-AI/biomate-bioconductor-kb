@@ -63,6 +63,13 @@ def compute_cost(model: str, input_tokens: int, output_tokens: int) -> float:
 
 def _forward_to_lago(entry: Dict[str, Any]) -> None:
     """Send one LLM usage event to Lago. Runs in background thread, never raises."""
+    # Flat-tier billing: Lago is dropped from the critical path. When
+    # BILLING_LAGO_ENABLED is off (default), skip the emit entirely — otherwise a
+    # stale LAGO_API_URL still on the box makes every LLM call spawn a thread that
+    # blocks on a 5s timeout. Single source of truth: lago_client.lago_enabled().
+    from galaxy.ai.billing.core.lago_client import lago_enabled
+    if not lago_enabled():
+        return
     lago_url = os.environ.get("LAGO_API_URL", "").rstrip("/")
     lago_key = os.environ.get("LAGO_API_KEY", "")
     if not lago_url or not lago_key:
@@ -167,8 +174,11 @@ def record(
             "[CostLog] %s | %s | in=%d out=%d | $%.6f",
             user_id, model, input_tokens, output_tokens, cost_usd,
         )
-        # Forward to Lago in background — non-blocking, non-fatal
-        threading.Thread(target=_forward_to_lago, args=(entry,), daemon=True).start()
+        # Forward to Lago in background — non-blocking, non-fatal.
+        # Skip spawning the thread at all when Lago is off (flat-tier default).
+        from galaxy.ai.billing.core.lago_client import lago_enabled
+        if lago_enabled():
+            threading.Thread(target=_forward_to_lago, args=(entry,), daemon=True).start()
     except Exception as exc:
         log.warning("[CostLog] Failed to write cost entry: %s", exc)
 

@@ -19,6 +19,7 @@ import type { Express, Request, Response } from "express";
 import { authenticateToken } from "./auth-middleware";
 import { memoryService } from "./memory-repository";
 import { pool } from "./db";
+import { canonicalTier, canCollaborate, FREE_PROJECT_LIMIT, tierEnforcementEnabled } from "./tier";
 import { s3Service } from "./s3-client";
 import multer from "multer";
 import { randomUUID, randomBytes } from "crypto";
@@ -129,6 +130,20 @@ function userId(req: Request): string | null {
   return u?.id ? String(u.id) : null;
 }
 
+// Collaboration (share links, member invites, roles) is Team-only per
+// docs/20260727_TIER_MODEL_DECISION.md. When enforcement is on and the caller's
+// plan can't collaborate, sends 402 and returns true. No-op when enforcement is off.
+function blockedByCollaborationTier(req: Request, res: Response): boolean {
+  if (!tierEnforcementEnabled()) return false;
+  if (canCollaborate((req as any).user?.subscriptionTier)) return false;
+  res.status(402).json({
+    error: "TEAM_REQUIRED",
+    message: "Collaboration (sharing, inviting members, roles) requires a Team plan.",
+    upgrade: "team",
+  });
+  return true;
+}
+
 export function registerProjectRoutes(app: Express): void {
   // ─── GET /api/projects ────────────────────────────────────────────────
   // List the authenticated user's projects. Optional ?status=active|archived|completed.
@@ -172,6 +187,22 @@ export function registerProjectRoutes(app: Express): void {
         (req as any).user?.email,
         (req as any).user?.fullName ?? (req as any).user?.name
       );
+      // Free-tier project cap (docs/20260727_TIER_MODEL_DECISION.md). Off unless
+      // TIER_ENFORCEMENT=on. Counts OWNED active projects only.
+      if (tierEnforcementEnabled() && canonicalTier((req as any).user?.subscriptionTier) === "free") {
+        const owned = await pool.query(
+          `SELECT count(*)::int AS n FROM projects WHERE user_id::text = $1 AND status = 'active'`,
+          [uid]
+        );
+        if ((owned.rows[0]?.n ?? 0) >= FREE_PROJECT_LIMIT) {
+          return res.status(402).json({
+            error: "PROJECT_LIMIT_REACHED",
+            message: `Free plan is limited to ${FREE_PROJECT_LIMIT} active projects. Upgrade to Premium for unlimited.`,
+            limit: FREE_PROJECT_LIMIT,
+            upgrade: "premium",
+          });
+        }
+      }
       const project = await memoryService.projects.createProject({
         userId: uid,
         name: name.trim(),
@@ -481,6 +512,7 @@ export function registerProjectRoutes(app: Express): void {
     const { email, role = "viewer" } = req.body ?? {};
     if (!email || typeof email !== "string") return res.status(400).json({ error: "email is required" });
     if (!["viewer", "editor"].includes(role)) return res.status(400).json({ error: "role must be viewer or editor" });
+    if (blockedByCollaborationTier(req, res)) return;
     try {
       const existing = await memoryService.projects.getProject(id);
       if (!existing || existing.userId !== uid) return res.status(404).json({ error: "Project not found" });
@@ -531,6 +563,7 @@ export function registerProjectRoutes(app: Express): void {
     const { id, memberId } = req.params;
     const { role } = req.body ?? {};
     if (!["viewer", "editor"].includes(role)) return res.status(400).json({ error: "role must be viewer or editor" });
+    if (blockedByCollaborationTier(req, res)) return;
     try {
       const existing = await memoryService.projects.getProject(id);
       if (!existing || existing.userId !== uid) return res.status(404).json({ error: "Project not found" });
@@ -597,6 +630,7 @@ export function registerProjectRoutes(app: Express): void {
     const id = req.params.id;
     const { role = "viewer" } = req.body ?? {};
     if (!["viewer", "editor"].includes(role)) return res.status(400).json({ error: "role must be viewer or editor" });
+    if (blockedByCollaborationTier(req, res)) return;
     try {
       const proj = await memoryService.projects.getProject(id);
       if (!proj || proj.userId !== uid) return res.status(404).json({ error: "Project not found" });

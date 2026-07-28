@@ -92,6 +92,10 @@ experiments/
 biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/
 biomni_workflows/nextflow_nfcore/subworkflows/genomics/
 biomni_workflows/nextflow_nfcore/
+# …but DO ship the ml_training wrapper (.nf must resolve at execute time).
+# BuildKit honours this re-include even though the parent dir is excluded above.
+!biomni_workflows/nextflow_nfcore/ml_training/
+!biomni_workflows/nextflow_nfcore/ml_training/**
 
 # Docs and notes
 *.md
