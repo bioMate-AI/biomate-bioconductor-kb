@@ -44,9 +44,11 @@ noise-robustness comparison exists*; field guidance is qualitative-only):
 
 > **Whether adding a modality helps or hurts unsupervised subtype recovery is governed
 > by the integration method's view-weighting mechanism** — ARD-sparse methods (MOFA2)
-> are robust to an uninformative modality; equal-weight fusion (SNF) is degraded by it —
-> **and the effect is predictable a-priori from each modality's standalone
-> label-alignment.**
+> are robust to an uninformative modality; equal-weight fusion (SNF) is degraded by it,
+> **even when that modality independently carries the label** — the harm tracks the
+> quality of the view's *affinity graph* (sparsity/missingness), not its signal content.
+> (An initial "predictable from standalone label-alignment" form was tested and REFUTED;
+> see §2 predictor sub-experiment — the refined predictor is affinity-graph quality.)
 
 Mechanistic, controlled, quantitative, and it *resolves* a known-but-unexplained
 phenomenon (attributes the cause + gives a predictor).
@@ -81,10 +83,29 @@ but a data-prep bug (my synthetic view had double-quoted sample names → MOFA m
 views by name and rejected the mismatch; SNF fuses by position so its 0.496 is valid).
 Fixed + rerun. "A failed run is not a finding."
 
+### Predictor sub-experiment: my first hypothesis was REFUTED (this is good)
+Standalone single-modality IGHV recovery (k-means k=2 ARI, computed locally, no platform
+cost): methylation **0.760**, mutations **0.418**, drugs 0.176, mrna −0.005, noise 0.002.
+
+I predicted *"mutations hurts SNF because its standalone recovery is low."* **False** —
+mutations' standalone recovery is 0.418 (moderate, *higher* than drugs, a helpful view),
+yet adding it hurts SNF by −0.18. **Standalone label-alignment does NOT predict marginal
+contribution.** The clean predictor is wrong.
+
+**The refutation sharpens the finding** (less obvious → more novel):
+> A modality can hurt equal-weight fusion **even when it independently carries the
+> label** (mutations recovers IGHV alone *and contains it*), because SNF fuses
+> *similarity graphs* — what matters is the **quality of the view's affinity graph**
+> (mutations = 69 sparse binary features, 34% NA → degenerate similarity), not its
+> signal content. ARD weights by *variance-explained*, not graph structure, so MOFA2 is
+> immune. Two distinct harm signatures: **structured-but-degenerate** (mutations, −0.18)
+> vs **dense-but-uninformative** (noise, −0.057). Both sink SNF; neither touches MOFA2.
+
 ### What this still needs to be a *finding*, not an anecdote
-1. **Predictor** — single-modality recoveries (mrna/meth/drugs/mutations alone) vs each
-   view's marginal contribution. Prediction: mutations' *standalone* recovery is low
-   (sparse, 33% NA) → that's *why* it hurts SNF. Earns the a-priori-rule claim.
+1. **Graph-quality predictor** — test whether an affinity-quality / cross-view
+   concordance measure (NA-fraction, feature sparsity, effective rank of the view's
+   affinity, or concordance with the consensus affinity) predicts marginal harm in
+   equal-weight fusion. The standalone-recovery predictor is already refuted.
 2. **Generalization** — TCGA (≥3 cancers, PAM50). One cohort/one label ≠ a finding.
 3. **More weighting mechanisms** — intNMF / iClusterPlus / DIABLO, to show it's the
    *mechanism* (view-weighting), not "MOFA good, SNF bad."
