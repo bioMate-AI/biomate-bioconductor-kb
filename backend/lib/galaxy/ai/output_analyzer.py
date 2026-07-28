@@ -64,6 +64,12 @@ class OutputAnalyzer:
         try:
             if output_type == "vcf":
                 return self._analyze_vcf(primary_file["path"], run_id, workflow_id)
+            elif output_type == "target_scorecard":
+                return self._analyze_target_scorecard(primary_file["path"], run_id, workflow_id)
+            elif output_type == "target_evidence":
+                return self._analyze_target_evidence(primary_file["path"], run_id, workflow_id)
+            elif output_type == "patient_stratification":
+                return self._analyze_patient_stratification(primary_file["path"], run_id, workflow_id)
             elif output_type == "csv_rankings":
                 return self._analyze_csv_rankings(primary_file["path"], run_id, workflow_id)
             elif output_type == "fastq_qc":
@@ -88,6 +94,10 @@ class OutputAnalyzer:
             ("vcf", lambda n: re.search(r'\.vcf(\.gz)?$', n, re.I)),
             ("fastq_qc", lambda n: re.search(r'(multiqc_data\.json|fastqc.*\.txt|multiqc.*\.json|summary\.txt)$', n, re.I)),
             ("rna_deg", lambda n: re.search(r'(deg|deseq2|edger|limma|differential.*expression|DE_results).*\.(csv|tsv)$', n, re.I)),
+            # target-discovery outputs — more specific than the generic csv match
+            ("target_scorecard", lambda n: re.search(r'target_scorecard\.csv$', n, re.I)),
+            ("target_evidence", lambda n: re.search(r'target_evidence\.csv$', n, re.I)),
+            ("patient_stratification", lambda n: re.search(r'patient_stratification\.csv$', n, re.I)),
             ("csv_rankings", lambda n: re.search(r'\.(csv|tsv)$', n, re.I)),
             ("mrc_map", lambda n: re.search(r'\.(mrc|map|ccp4|spi|mrcs)$', n, re.I)),
         ]
@@ -203,6 +213,124 @@ class OutputAnalyzer:
             key_results=key_results,
             search_queries=search_queries,
             caveats=caveats,
+            next_steps=next_steps,
+        )
+
+    def _analyze_patient_stratification(self, path: str, run_id: str, workflow_id: str) -> AnalysisResult:
+        """Isotype/patient-stratification output — a biomarker CANDIDATE. Suggest the
+        gate-3 interaction test (predictive vs prognostic) as the decisive next step."""
+        import csv as _csv
+        rows = []
+        try:
+            with open(path, newline="") as fh:
+                rows = list(_csv.DictReader(fh))
+        except Exception as exc:
+            return self._analyze_generic([{"name": os.path.basename(path), "path": path}],
+                                         run_id, workflow_id,
+                                         extra_caveat=f"patient_stratification parse failed: {exc}")
+        n = len(rows)
+        def _flagged(r):
+            v = (r.get("telitacicept_candidate") or r.get("flagged") or "").strip().lower()
+            return v in ("yes", "true", "1")
+        n_flag = sum(1 for r in rows if _flagged(r))
+        pct = round(100.0 * n_flag / n, 1) if n else 0.0
+        summary = (f"Stratified {n} patients into biomarker subgroups; {n_flag} ({pct}%) "
+                   f"flagged. This is a biomarker CANDIDATE — it identifies a subgroup, but has "
+                   f"not yet been shown to be PREDICTIVE (to change which treatment is better).")
+        key_results = [
+            {"metric": "Patients stratified", "value": str(n), "interpretation": "biomarker-defined subgroups"},
+            {"metric": "Flagged subgroup", "value": f"{n_flag} ({pct}%)", "interpretation": "candidate responder/refractory group"},
+        ]
+        # THE SUGGESTION: validate it's predictive, not just prognostic
+        next_steps = [
+            "Validate this as a PREDICTIVE biomarker with the gate-3 interaction test "
+            "(gate3_interaction_test) on trial outcomes — is the biomarker × treatment "
+            "interaction significant, or is the subgroup merely prognostic (the PROFILE trap)?",
+            "Report the fraction of treatment decisions the biomarker changes — the number "
+            "that sets the addressable value for a trial-enrichment pitch.",
+        ]
+        return AnalysisResult(
+            run_id=run_id, workflow_id=workflow_id, output_type="patient_stratification",
+            summary=summary, key_results=key_results, search_queries=[],
+            caveats=["A subgroup is not a predictive biomarker until the interaction test passes."],
+            next_steps=next_steps,
+        )
+
+    def _analyze_target_evidence(self, path: str, run_id: str, workflow_id: str) -> AnalysisResult:
+        """query_opentarget output — evidence table; suggest ranking as the next step."""
+        import csv as _csv
+        rows = []
+        try:
+            with open(path, newline="") as fh:
+                rows = list(_csv.DictReader(fh))
+        except Exception as exc:
+            return self._analyze_generic([{"name": os.path.basename(path), "path": path}],
+                                         run_id, workflow_id,
+                                         extra_caveat=f"target_evidence parse failed: {exc}")
+        genes = [r.get("gene", "") for r in rows if r.get("gene")]
+        with_genetic = sum(1 for r in rows if (r.get("genetic_support") or "").strip())
+        summary = (f"Open Targets returned evidence for {len(rows)} candidate targets "
+                   f"({with_genetic} with a genetic-association signal). This is raw "
+                   f"per-target evidence — not yet ranked.")
+        key_results = [
+            {"metric": "Candidate targets", "value": str(len(rows)),
+             "interpretation": "Disease-associated targets pulled from Open Targets"},
+            {"metric": "With genetic support", "value": str(with_genetic),
+             "interpretation": "Targets carrying a genetic_association datatype score"},
+        ]
+        # THE SUGGESTION: user decides whether to proceed to ranking
+        next_steps = [
+            f"Rank these {len(rows)} targets with the target scorecard "
+            f"(target_scorecard_ranker) — fuses genetic support, mechanism evidence, "
+            f"tractability and safety into a ranked, provenance-backed list.",
+            "Or add your own cohort evidence (scRNA cell-specificity, bulk DE) to the "
+            "evidence table before ranking.",
+        ]
+        return AnalysisResult(
+            run_id=run_id, workflow_id=workflow_id, output_type="target_evidence",
+            summary=summary, key_results=key_results,
+            search_queries=[f"{g} disease association" for g in genes[:3]],
+            caveats=["Evidence is unranked; run the scorecard to prioritise."],
+            next_steps=next_steps,
+        )
+
+    def _analyze_target_scorecard(self, path: str, run_id: str, workflow_id: str) -> AnalysisResult:
+        """target_scorecard_ranker output — ranked targets; suggest leads / validation."""
+        import csv as _csv
+        rows = []
+        try:
+            with open(path, newline="") as fh:
+                rows = list(_csv.DictReader(fh))
+        except Exception as exc:
+            return self._analyze_generic([{"name": os.path.basename(path), "path": path}],
+                                         run_id, workflow_id,
+                                         extra_caveat=f"target_scorecard parse failed: {exc}")
+        top = rows[:5]
+        top_genes = [r.get("gene", "") for r in top if r.get("gene")]
+        tier1 = [r.get("gene", "") for r in rows if "TIER 1" in (r.get("tier", "") or "")]
+        gene_str = ", ".join(top_genes) if top_genes else "n/a"
+        summary = (f"Ranked {len(rows)} targets. Top: {gene_str}. "
+                   f"{len(tier1)} reached Tier 1. Ranking uses the Open Targets two-layer "
+                   f"method (harmonic-sum association + traffic-light prioritisation panel); "
+                   f"human review required before committing.")
+        key_results = [{"metric": f"#{i+1} {r.get('gene','')}",
+                        "value": r.get("overall_score", ""),
+                        "interpretation": r.get("tier", "")} for i, r in enumerate(top)]
+        # THE SUGGESTION: user decides the next step
+        lead_genes = ", ".join(top_genes[:2]) if top_genes else "the top targets"
+        next_steps = [
+            f"Send {lead_genes} to target_to_lead_full — pocket detection → "
+            f"pharmacophore/ADMET → docking → lead generation.",
+            "Validate the top targets in a disease-relevant model or perturbation assay "
+            "(e.g. Perturb-seq / GEARS).",
+            "Review the Open Targets prioritisation panel (target_prioritisation.csv — "
+            "tractability & safety traffic-lights) before resourcing any target.",
+        ]
+        return AnalysisResult(
+            run_id=run_id, workflow_id=workflow_id, output_type="target_scorecard",
+            summary=summary, key_results=key_results,
+            search_queries=[f"{g} druggability tractability" for g in top_genes[:3]],
+            caveats=["Rankings are a decision aid; confirm biological plausibility."],
             next_steps=next_steps,
         )
 

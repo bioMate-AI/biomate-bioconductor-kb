@@ -32,14 +32,39 @@ calculator = CostCalculator()
 
 # Fallback plan quotas in USD per month when Lago is unavailable or the plan
 # does not declare a fixed amount_cents value.
+# Canonical tiers (docs/20260727_TIER_MODEL_DECISION.md): free | premium | team |
+# enterprise. Keep these values in sync with CANONICAL_TIER_QUOTA_USD in
+# frontend/server/plan-config.ts. Trial is a 14-day $25 budget (plan base/basic),
+# orthogonal to tier. Legacy 'pro' ($500) is grandfathered; new paid individuals
+# use 'premium' ($120).
 DEFAULT_PLAN_LIMITS: dict[str, float] = {
     "free":       5.00,
     "base":      25.00,    # 14-day trial budget
     "basic":     25.00,    # 14-day trial budget (was $50 — reduced 2026-05-18)
-    "pro":      500.00,
-    "test":     float("inf"),  # test plan: no quota, unlimited usage tracking
+    "premium":  120.00,    # canonical premium ($100/mo, $120 credits)
+    "pro":      500.00,    # legacy — grandfathered
+    "team":     float("inf"),   # custom / negotiated
+    "test":     float("inf"),   # test plan: no quota, unlimited usage tracking
     "enterprise": float("inf"),  # custom limits set per customer in Lago
 }
+
+# Legacy plan/tier code → canonical entitlement tier. Mirrors canonicalTier() in
+# frontend/server/tier.ts — keep the two in sync. Entitlement (features) is a
+# separate axis from quota (spend): a trial user is 'premium' here but capped at
+# $25 via the 'base' plan quota above.
+_CANONICAL_TIER = {
+    "": "free", "free": "free", "academic": "free", "base": "free", "basic": "free",
+    "professional": "premium", "pro": "premium", "premium": "premium",
+    "team": "team",
+    "enterprise": "enterprise", "admin": "enterprise",
+}
+
+
+def canonical_tier(raw: str | None) -> str:
+    """Normalize any legacy subscriptionTier/plan code to free|premium|team|enterprise."""
+    if not raw:
+        return "free"
+    return _CANONICAL_TIER.get(raw.strip().lower(), "free")
 
 
 class QuotaExceededError(Exception):

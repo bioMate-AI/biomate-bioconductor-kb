@@ -3913,6 +3913,23 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         """
         log.info(f"[UnifiedWorkflowGeneration] Starting for intent: {user_intent}")
 
+        # ml_training route (feature-flagged via ML_TRAINING_ROUTING, default OFF).
+        # A model-TRAINING request short-circuits to the ml_training pipeline card
+        # instead of the normal workflow search. route_ml_training_result() returns
+        # None when the flag is off, for non-training intents, and for training
+        # requests it can't resolve a dataset for — so wiring this in is inert until
+        # the flag is set, and even then it can only ADD a route, never break one.
+        # Lazy-imported + guarded so any failure degrades to the normal search path.
+        try:
+            from galaxy.ai.ml_training.routing import route_ml_training_result
+            _ml_result = route_ml_training_result(user_intent)
+        except Exception as _ml_err:
+            _ml_result = None
+            log.warning("[UnifiedWorkflowGeneration] ml_training routing skipped: %s", _ml_err)
+        if _ml_result is not None:
+            log.info("[UnifiedWorkflowGeneration] ml_training route matched → training card")
+            return _ml_result
+
         # C1b — Inject recent user corrections into the intent for personalized search/generation
         # Only attempt when user_id is a UUID (LTM tables key on UUID, not Galaxy integer IDs).
         _user_id_is_uuid = bool(

@@ -1607,6 +1607,34 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
                 src = params.get(_no_ext)
                 if src:
                     _pop_key = _no_ext
+            if not src and n_path <= 1 and len(names) == 1:
+                # UNIVERSAL multi-omics fallback: the workflow declares ONE list-style input
+                # (e.g. `omics`, collected as a single `path(input_files, stageAs:'?/*')` slot),
+                # but the caller — the LLM param-prefill parsing a free-text multi-omics request
+                # ("drugs = s3://…/drugs.csv, methylation = …") — supplied the matrices under
+                # ARBITRARY param names (drugs_data, methylation, mrna, ...), not `omics`. Collect
+                # every file-valued param (s3:// URI or *.csv/.tsv/.txt/.rds/.h5ad path) into the
+                # list so the UI/routing flow works without the caller knowing the `omics` token.
+                # Each is staged under its basename below → the R body names each view by its file.
+                # Match only real input MATRICES by DATA-FILE EXTENSION. Do NOT match a bare
+                # `s3://…` prefix: the `outdir` / output-location param is also an s3:// URI but
+                # is a directory (no extension) that does not exist yet — collecting it made the
+                # wrapper try to download it and 404 on HeadObject, failing every mis-named run.
+                _fre = re.compile(r'[.](csv|tsv|txt|rds|rdata|h5ad|mtx|tab|parquet)$', re.IGNORECASE)
+                _skip_keys = {"outdir", "output", "output_dir", "output_location", "workdir",
+                              "work_dir", "publish_dir", "publishdir", "resume_from_run_id"}
+                _collected = []
+                for _k, _v in list(params.items()):
+                    if str(_k).lower() in _skip_keys:
+                        continue
+                    if isinstance(_v, str) and _fre.search(_v):
+                        _collected.append(_v)
+                        _keys_to_pop.append(_k)
+                    elif isinstance(_v, (list, tuple)) and any(isinstance(_e, str) and _fre.search(_e) for _e in _v):
+                        _collected.extend([_e for _e in _v if isinstance(_e, str) and _fre.search(_e)])
+                        _keys_to_pop.append(_k)
+                if _collected:
+                    src = _collected
             if not src:
                 return None
             # UNIVERSAL multi-omics interface: a declared input may be a LIST of files — one
@@ -2366,7 +2394,19 @@ def _generate_executor_config(
         # .command.run that calls `aws s3 cp` — if the container lacks the aws
         # binary, the task exits with code 127 immediately.
         # civitaspo/python-awscli:latest = Python 3 + AWS CLI v2 (verified working).
-        container = compute.get("container") or os.environ.get(
+        container = compute.get("container")
+        # ml_training workflows must run in the ml-training image (ludwig + rdkit
+        # + the ml_training package). The frontend submits without an explicit
+        # compute_config.container (workflow_ga carries none), so default it here
+        # by workflow path — otherwise the run lands in biomate-nextflow-base
+        # (no ludwig) and the TRAIN process fails. API callers that already set
+        # compute.container (executor_payload) keep their value.
+        if not container and "ml_training/" in (nf_path or ""):
+            container = os.environ.get(
+                "ML_TRAINING_IMAGE",
+                "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ml-training:latest",
+            )
+        container = container or os.environ.get(
             "NEXTFLOW_BATCH_CONTAINER", "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest"
         )
 

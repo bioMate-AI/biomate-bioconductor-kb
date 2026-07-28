@@ -199,12 +199,27 @@ for dataset in DATASETS:                     # identical, pre-processed CSVs per
     (IGHV+ n=104 vs IGHV− n=84; 188 labels), all other factors |d|<0.4. This is the
     canonical MOFA CLL result (Argelaguet 2018) — the harness reproduces known
     biology on the field's reference cohort.
-  - **MCIA/mogsa (method #2): in progress** — needs the same universal-CSV port as
-    MOFA2 (mogsa is hardwired to the NCI60 example) + a solid container. This is the
-    "add method N+1" step, now with a proven template.
-  - **Remaining pilot work**: standardized `factors.csv` contract across methods
-    (MOFA2 already emits it) + a shared metric script (ARI/d vs IGHV, factor↔
-    drug-response). Then the MOFA2-vs-MCIA head-to-head is the go/no-go deliverable.
+  - **UI end-to-end (method #1): tested + fixed.** API runs worked, but a
+    comprehensive UI E2E (chat → panel → run) found a gap the API hid: routing +
+    panel are correct (MOFA2 card, 4 omics matrices shown as params), but the LLM
+    param-prefill supplies the matrices under ARBITRARY names (`drugs_data`,
+    `methylation`, …) from the free-text query, while the workflow declares one
+    list-style `// Input: omics` → the executor found no `omics` param and the
+    matrices never reached MOFA2. **Fix (`nextflow_executor.py`):** when a bioc
+    workflow declares one list-style input and no same-named param exists, collect
+    all file-valued params (s3://, *.csv/.rds/.h5ad) into the list and stage each by
+    basename (view = filename). Scoped to single-list-input workflows. *Lesson: the
+    universal interface must be verified through the UI, not just the API.*
+  - **MCIA/mogsa (method #2): reframed to a CRAN method.** mogsa is hardwired to the
+    NCI60 example AND the transcriptomics container lacks mogsa (Bioc install → the
+    same 504 mirror → another dedicated-container saga). Lighter path: a **CRAN**
+    method — **SNF** (SNFtool, Wang 2014) or **intNMF** — installs as fast p3m.dev
+    noble binaries at runtime (no container build, no 504). Caveat: SNF needs
+    complete data; CLL has NAs (MOFA2 tolerates them), so method #2 needs
+    NA-handling (complete-case or impute) for a fair head-to-head.
+  - **Remaining pilot work**: verify the UI fix (clean UI run of MOFA2 on CLL); add
+    method #2 (CRAN) with a standardized cluster/`factors.csv` output; shared metric
+    script (ARI/d vs IGHV, factor↔drug-response) → the head-to-head go/no-go.
 - **Phase 2 — grid:** add iClusterPlus, intNMF, mixOmics/DIABLO; add TCGA subtype
   recovery. Full metric suite incl. robustness.
 - **Phase 3 — differentiators + write-up:** missing-modality/partial-overlap

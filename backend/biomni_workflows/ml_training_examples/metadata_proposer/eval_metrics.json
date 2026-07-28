@@ -1,0 +1,210 @@
+{
+  "metrics": {
+    "n_eval": 24,
+    "n_in_dictionary": 19,
+    "n_out_of_dictionary": 5,
+    "n_allowed_ids": 28,
+    "in_dictionary_accuracy_pct": 100.0,
+    "in_dictionary_select_precision_pct": 100.0,
+    "ood_abstention_rate_pct": 100.0,
+    "ood_leakage_count": 0,
+    "hallucinated_id_rate_pct": 0.0,
+    "hallucinated_id_count": 0,
+    "n_emitted_ids": 19,
+    "hallucinated_ids": []
+  },
+  "detail": [
+    {
+      "input": "CD8 T cells",
+      "in_dictionary": true,
+      "gold": "CL:0000625",
+      "decision": "SELECT",
+      "emitted_id": "CL:0000625",
+      "reason": "grounded match via fuzzy (score 0.68)"
+    },
+    {
+      "input": "autoimmunity",
+      "in_dictionary": true,
+      "gold": "HP:0002960",
+      "decision": "SELECT",
+      "emitted_id": "HP:0002960",
+      "reason": "grounded match via exact_label (score 1.00)"
+    },
+    {
+      "input": "CD4-positive, alpha-beta T cell",
+      "in_dictionary": true,
+      "gold": "CL:0000624",
+      "decision": "SELECT",
+      "emitted_id": "CL:0000624",
+      "reason": "grounded match via exact_label (score 1.00)"
+    },
+    {
+      "input": "CD8+ T cell",
+      "in_dictionary": true,
+      "gold": "CL:0000625",
+      "decision": "SELECT",
+      "emitted_id": "CL:0000625",
+      "reason": "grounded match via exact_synonym (score 0.98)"
+    },
+    {
+      "input": "eosinophils",
+      "in_dictionary": true,
+      "gold": "CL:0000771",
+      "decision": "SELECT",
+      "emitted_id": "CL:0000771",
+      "reason": "grounded match via exact_synonym (score 0.98)"
+    },
+    {
+      "input": "novel endotype cluster 3 (unpublished, internal name)",
+      "in_dictionary": false,
+      "gold": "ABSTAIN",
+      "decision": "ABSTAIN",
+      "emitted_id": null,
+      "reason": "no grounded candidate retrieved (out of dictionary)"
+    },
+    {
+      "input": "fever",
+      "in_dictionary": true,
+      "gold": "HP:0001945",
+      "decision": "SELECT",
+      "emitted_id": "HP:0001945",
+      "reason": "grounded match via exact_label (score 1.00)"
+    },
+    {
+      "input": "left knee synovial biopsy, formalin-fixed",
+      "in_dictionary": false,
+      "gold": "ABSTAIN",
+      "decision": "ABSTAIN",
+      "emitted_id": null,
+      "reason": "no grounded candidate retrieved (out of dictionary)"
+    },
+    {
+      "input": "MS",
+      "in_dictionary": true,
+      "gold": "MONDO:0005301",
+      "decision": "SELECT",
+      "emitted_id": "MONDO:0005301",
+      "reason": "grounded match via exact_synonym (score 0.98)"
+    },
+    {
+      "input": "ulcerative colitis",
+      "in_dictionary": true,
+      "gold": "MONDO:0005101",
+      "decision": "SELECT",
+      "emitted_id": "MONDO:0005101",
+      "reason": "grounded match via exact_label (score 1.00)"
+    },
+    {
+      "input": "swelling",
+      "in_dictionary": true,
+      "gold": "HP:0000969",
+      "decision": "SELECT",
+      "emitted_id": "HP:0000969",
+      "reason": "grounded match via exact_synonym (score 0.98)"
+    },
+    {
+      "input": "B-cell",
+      "in_dictionary": true,
+      "gold": "CL:0000236",
+      "decision": "SELECT",
+      "emitted_id": "CL:0000236",
+      "reason": "grounded match via exact_label (score 1.00)"
+    },
+    {
+      "input": "T2D",
+      "in_dictionary": true,
+      "gold": "MONDO:0005148",
+      "decision": "SELECT",
+      "emitted_id": "MONDO:0005148",
+      "reason": "grounded match via exact_synonym (score 0.98)"
+    },
+    {
+      "input": "crohn disease",
+      "in_dictionary": true,
+      "gold": "MONDO:0005011",
+      "decision": "SELECT",
+      "emitted_id": "MONDO:0005011",
+      "reason": "grounded match via exact_label (score 1.00)"
+    },
+    {
+      "input": "pDC",
+      "in_dictionary": true,
+      "gold": "CL:0000784",
+      "decision": "SELECT",
+      "emitted_id": "CL:0000784",
+      "reason": "grounded match via exact_synonym (score 0.98)"
+    },
+    {
+      "input": "lupus",
+      "in_dictionary": true,
+      "gold": "MONDO:0007915",
+      "decision": "SELECT",
+      "emitted_id": "MONDO:0007915",
+      "reason": "grounded match via exact_synonym (score 0.98)"
+    },
+    {
+      "input": "CD",
+      "in_dictionary": true,
+      "gold": "MONDO:0005011",
+      "decision": "SELECT",
+      "emitted_id": "MONDO:0005011",
+      "reason": "grounded match via exact_synonym (score 0.98)"
+    },
+    {
+      "input": "Crohn's disease",
+      "in_dictionary": true,
+      "gold": "MONDO:0005011",
+      "decision": "SELECT",
+      "emitted_id": "MONDO:0005011",
+      "reason": "grounded match via exact_synonym (score 0.98)"
+    },
+    {
+      "input": "dendritic cell",
+      "in_dictionary": true,
+      "gold": "CL:0000451",
+      "decision": "SELECT",
+      "emitted_id": "CL:0000451",
+      "reason": "grounded match via exact_label (score 1.00)"
+    },
+    {
+      "input": "HLA-DRB1 shared-epitope genotype pending",
+      "in_dictionary": false,
+      "gold": "ABSTAIN",
+      "decision": "ABSTAIN",
+      "emitted_id": null,
+      "reason": "no grounded candidate retrieved (out of dictionary)"
+    },
+    {
+      "input": "asthma",
+      "in_dictionary": true,
+      "gold": "MONDO:0004979",
+      "decision": "SELECT",
+      "emitted_id": "MONDO:0004979",
+      "reason": "grounded match via exact_label (score 1.00)"
+    },
+    {
+      "input": "spatial transcriptomics ROI annotated by pathologist",
+      "in_dictionary": false,
+      "gold": "ABSTAIN",
+      "decision": "ABSTAIN",
+      "emitted_id": null,
+      "reason": "no grounded candidate retrieved (out of dictionary)"
+    },
+    {
+      "input": "oedema",
+      "in_dictionary": true,
+      "gold": "HP:0000969",
+      "decision": "SELECT",
+      "emitted_id": "HP:0000969",
+      "reason": "grounded match via exact_synonym (score 0.98)"
+    },
+    {
+      "input": "pt reported joint stiffness worst in AM, better w movement",
+      "in_dictionary": false,
+      "gold": "ABSTAIN",
+      "decision": "ABSTAIN",
+      "emitted_id": null,
+      "reason": "no grounded candidate retrieved (out of dictionary)"
+    }
+  ]
+}

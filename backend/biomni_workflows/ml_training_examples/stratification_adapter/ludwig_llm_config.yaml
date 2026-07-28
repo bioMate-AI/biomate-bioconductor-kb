@@ -1,0 +1,87 @@
+# =============================================================================
+# Per-client stratification adapter — Ludwig LLM (LoRA) config
+# =============================================================================
+# SYNTHETIC EXAMPLE. Demonstrates the config the BioMate ml_training module
+# emits for a `ludwig_llm` LoRA fine-tune. This is NOT hand-authored production
+# config — it mirrors, field-for-field, the dict produced by
+#   galaxy.ai.ml_training.ludwig_adapter.to_ludwig_llm_config(cfg)
+# from a TrainingConfig, so you can diff the two and see they agree.
+#
+# Default base model + LoRA (no quantization) => CPU-feasible on SmolLM2-135M.
+# Switch adapter to `qlora` (4-bit) for a larger base — that path needs a GPU.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# PART A — the Ludwig ModelConfig (what LudwigModel(config) actually consumes).
+# Shape is exactly what to_ludwig_llm_config() returns:
+#   model_type, base_model, input_features, output_features, prompt,
+#   trainer{type:finetune,...}, preprocessing{global_max_sequence_length}, adapter
+# -----------------------------------------------------------------------------
+ludwig_config:
+  model_type: llm
+  base_model: HuggingFaceTB/SmolLM2-135M-Instruct   # LLMSpec.base_model (small, CPU-feasible)
+
+  input_features:
+    - name: instruction        # LLMSpec.instruction_col
+      type: text
+  output_features:
+    - name: output             # LLMSpec.output_col
+      type: text
+
+  prompt:
+    template: "{instruction}"  # to_ludwig_llm_config: "{" + instruction_col + "}"
+
+  trainer:
+    type: finetune             # Ludwig LLM fine-tune trainer
+    epochs: 3                  # Hyperparams.epochs (small dataset -> few epochs)
+    batch_size: 4              # Hyperparams.batch_size
+    learning_rate: 0.0001      # Hyperparams.learning_rate (1e-4)
+
+  preprocessing:
+    global_max_sequence_length: 512   # LLMSpec.max_sequence_length
+
+  adapter:
+    type: lora                 # LLMSpec.adapter == "lora" -> {"type": "lora"}
+  # For QLoRA (GPU), to_ludwig_llm_config also emits:
+  #   quantization:
+  #     bits: 4
+  # (only when adapter == "qlora" AND quantization_bits is set)
+
+# -----------------------------------------------------------------------------
+# PART B — the BioMate TrainingConfig that GENERATES Part A.
+# Field names match galaxy.ai.ml_training.config.{TrainingConfig,DatasetSpec,
+# LLMSpec,Hyperparams} exactly. This is the "low-code" surface a user / the
+# param-prefill layer fills; the module maps it to Part A + the CLI args.
+# -----------------------------------------------------------------------------
+training_config:
+  name: acme-immunology-stratification-adapter   # TrainingConfig.name (human-readable model name)
+  task_type: text_generation                     # REQUIRED for ludwig_llm (validate() enforces)
+  model_type: ludwig_llm                          # -> LoRA/QLoRA LLM fine-tune path
+  featurizer: none                                # not used for text; keep a valid FEATURIZERS value
+  mlflow_experiment: biomate-ml-training          # MLflow experiment the run is tracked under
+  campaign_id: acme-immunology                    # registry is per-campaign / per-client
+  metric: loss                                    # primary metric tracked for the LLM run
+  gate_threshold: null                            # optional QC gate (e.g. max eval loss); null = no gate
+
+  dataset:                                        # DatasetSpec — exactly one of name/path/s3_uri
+    # Local demo: point at the sibling JSONL (instruction/output rows).
+    path: stratification_instructions.jsonl
+    # Production: stage the client's private JSONL to S3 and set instead:
+    # s3_uri: s3://biomate-models/clients/acme/stratification/instructions.jsonl
+    split: random                                 # LLM data uses a random split (not scaffold)
+    val_frac: 0.1
+    test_frac: 0.1
+
+  llm:                                            # LLMSpec — required when model_type=ludwig_llm
+    base_model: HuggingFaceTB/SmolLM2-135M-Instruct
+    instruction_col: instruction                  # column name in the JSONL/CSV
+    output_col: output
+    max_sequence_length: 512
+    adapter: lora                                 # lora (CPU) | qlora (GPU, 4-bit) | none (full FT)
+    quantization_bits: null                       # set to 4 for QLoRA (implies GPU)
+
+  hyperparams:                                    # Hyperparams (only the LLM-relevant knobs matter here)
+    epochs: 3
+    batch_size: 4
+    learning_rate: 0.0001
+    seed: 42

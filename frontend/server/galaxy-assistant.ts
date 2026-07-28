@@ -3763,6 +3763,24 @@ Rules:
     let benchmarkEvidence: any = undefined;
     const actions = intent.actions;
 
+    // ml_training intent override (flag-gated on ML_TRAINING_ROUTING):
+    // "train/build/fine-tune a classifier/model/…" is a MODEL-TRAINING request.
+    // The intent classifier tends to bucket it as tool_search (→ the LLM
+    // recommends an indexed tool like deepFPlearn and asks for a data upload),
+    // so generateWorkflow() never runs and the backend ml_training route never
+    // fires. Force workflow_generation so generateWorkflow() calls
+    // /api/ai_assistant/generate_workflow, where the backend hook
+    // (route_ml_training_result) returns the ml_training training card.
+    // Backend still gates the actual routing on its own ML_TRAINING_ROUTING flag.
+    if (!actions.needsWorkflowGeneration && process.env.ML_TRAINING_ROUTING === '1') {
+      const _isMlTrainingRequest = /\b(train|build|fit|re-?train|fine-?tune)\b[\s\S]*\b(model|classifier|regressor|predictor|qsar|gnn|neural\s*net(?:work)?|network)\b/i.test(message);
+      if (_isMlTrainingRequest) {
+        log('ml_training intent override: forcing needsWorkflowGeneration=true');
+        actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      }
+    }
+
     // Target evidence & genetic association override:
     // "Show target evidence for CHRNA1 in MG" / "genetic associations for [gene]" /
     // "disease association strength for [target]" → target_evidence_positioning workflow.

@@ -38,14 +38,15 @@ process QUERY_OPENTARGET {
 
     output:
     path("target_evidence.csv"),            emit: evidence
+    path("target_prioritisation.csv"),      emit: prioritisation
     path("query_opentarget_output.json"),   emit: json
     path("query_opentarget_output.txt"),    emit: output
     path("versions.yml"),                   emit: versions
 
     script:
     """
-    export PARAM_DISEASE='${params.disease}'
-    export PARAM_EFO='${params.efo_id}'
+    export PARAM_DISEASE='${params.disease.toString().replace("'", "'\\''")}'
+    export PARAM_EFO='${params.efo_id.toString().replace("'", "'\\''")}'
     export PARAM_N='${params.n_targets}'
     export PARAM_MINSCORE='${params.min_association}'
 
@@ -109,8 +110,8 @@ except Exception as e:
 Q_ASSOC = ('query { disease(efoId:%s){ id name '
            'associatedTargets(page:{index:0,size:%d}){ count '
            'rows{ score datatypeScores{ id score } '
-           'target{ id approvedSymbol tractability{ modality value label } '
-           'safetyLiabilities{ event } } } } } }' % (json.dumps(efo), n_targets))
+           'target{ id approvedSymbol '
+           'prioritisation{ items{ key value } } } } } } }' % (json.dumps(efo), n_targets))
 try:
     d = gql(Q_ASSOC)
 except Exception as e:
@@ -123,32 +124,64 @@ if not disease_obj:
 rows = disease_obj["associatedTargets"]["rows"]
 total = disease_obj["associatedTargets"]["count"]
 
-# --- tractability bucket -> 0-1 ---------------------------------------------
-BUCKET_W = {
-    'Approved Drug': 1.0, 'Advanced Clinical': 0.9, 'Phase 1 Clinical': 0.8,
-    'Structure with Ligand': 0.6, 'High-Quality Ligand': 0.55, 'High-Quality Pocket': 0.5,
-    'Med-Quality Pocket': 0.42, 'Small Molecule Binder': 0.45, 'Druggable Family': 0.35,
-    'UniProt loc high conf': 0.5, 'GO CC high conf': 0.45,
-    'UniProt loc med conf': 0.4, 'UniProt SigP or TMHMM': 0.4,
-}
-def tractability_score(tract):
-    if not tract:
-        return None
-    achieved = [BUCKET_W.get(t.get('label'), 0.0) for t in tract if t.get('value')]
-    if not achieved:
-        return 0.2            # target present in OT but no tractability bucket met
-    return round(max(achieved), 3)
-
 def norm(x):
     return None if x is None else round(max(0.0, min(1.0, float(x))), 4)
 
+def _f(v, default=None):
+    if v in (None, '', 'null', 'None'):
+        return default
+    try:
+        return float(v)
+    except Exception:
+        return default
+
+# Open Targets methodology (Ochoa 2021/2023, Buniello 2025):
+#   biological_relevance = OT-normalised HARMONIC SUM of datatype scores.
+#   DISCOVERY weight profile: the known-drug ('clinical') datatype is set to weight
+#   0 (excluded) so novel mechanism targets lead rather than already-drugged
+#   symptomatic ones (e.g. K-channels hit by 3,4-diaminopyridine in MG); this is a
+#   valid OT datatype-weight adjustment. genetic_association is carried as its own
+#   axis (genetic_support), not double-counted here. Normalisation is by the
+#   UNWEIGHTED theoretical max (sum 1/i^2).
+BIO_DATATYPES = ('literature', 'animal_model', 'rna_expression',
+                 'affected_pathway', 'somatic_mutation')   # clinical excluded (w=0)
+
+def ot_harmonic(scores):
+    s = sorted((v for v in scores if v is not None), reverse=True)
+    if not s:
+        return None
+    hs = sum(v / ((i + 1) ** 2) for i, v in enumerate(s))
+    hs_max = sum(1.0 / ((i + 1) ** 2) for i in range(len(s)))
+    return hs / hs_max
+
+# OT Target-Prioritisation panel keys (traffic-light, -1..1)
+TRACT_KEYS  = ('hasLigand', 'hasPocket', 'hasSmallMoleculeBinder')
+SAFETY_KEYS = ('geneticConstraint', 'mouseKOScore', 'geneEssentiality',
+               'hasSafetyEvent', 'isCancerDriverGene', 'paralogMaxIdentityPercentage')
+PANEL_KEYS  = ('maxClinicalStage', 'hasLigand', 'hasPocket', 'hasSmallMoleculeBinder',
+               'isInMembrane', 'isSecreted', 'mouseOrthologMaxIdentityPercentage',
+               'geneticConstraint', 'mouseKOScore', 'geneEssentiality', 'hasSafetyEvent',
+               'isCancerDriverGene', 'paralogMaxIdentityPercentage',
+               'tissueSpecificity', 'tissueDistribution')
+
 evidence = []
+panel = []
 for r in rows:
     if r["score"] < min_score:
         continue
     t = r["target"]
     dts = {x["id"]: x["score"] for x in (r.get("datatypeScores") or [])}
-    n_safety = len(t.get("safetyLiabilities") or [])
+    prio = {it["key"]: _f(it["value"])
+            for it in ((t.get("prioritisation") or {}).get("items") or [])}
+
+    biol = ot_harmonic([dts.get(k) for k in BIO_DATATYPES])
+
+    tvals = [max(0.0, prio[k]) for k in TRACT_KEYS if prio.get(k) is not None]
+    tract = round(sum(tvals) / len(tvals), 3) if tvals else None
+
+    svals = [max(0.0, -prio[k]) for k in SAFETY_KEYS if prio.get(k) is not None]
+    safety = round(sum(svals) / len(svals), 3) if svals else None
+
     evidence.append({
         'gene': t["approvedSymbol"],
         'ensembl_id': t["id"],
@@ -156,19 +189,29 @@ for r in rows:
         'cell_specificity': None,
         'expression_lfc': None,
         'expression_padj': None,
-        'biological_relevance': norm(r["score"]),
-        'tractability': tractability_score(t.get("tractability")),
-        'safety_liability': round(min(1.0, n_safety / 3.0), 3),
+        'biological_relevance': norm(biol),
+        'tractability': tract,
+        'safety_liability': safety,
         'disease_cell_type': '',
-        'notes': "OT assoc=%.3f; datatypes=%s; safety_liabilities=%d" % (
-            r["score"], ",".join("%s:%.2f" % (k, v) for k, v in sorted(dts.items())), n_safety),
+        'notes': "OT assoc=%.3f; datatypes=%s; maxClinicalStage=%s" % (
+            r["score"], ",".join("%s:%.2f" % (k, v) for k, v in sorted(dts.items())),
+            prio.get('maxClinicalStage')),
     })
+    panel.append({'gene': t["approvedSymbol"], **{k: prio.get(k) for k in PANEL_KEYS}})
 
 # --- 3. write outputs (scorecard evidence schema) ---------------------------
 with open("target_evidence.csv","w",newline="") as f:
     w = csv.writer(f); w.writerow(EVIDENCE_COLS)
     for e in evidence:
         w.writerow([e[c] if e.get(c) is not None else '' for c in EVIDENCE_COLS])
+
+# OT Target-Prioritisation panel (traffic-light factors) — shown ALONGSIDE the
+# ranking, never summed into it (Open Targets two-layer model).
+with open("target_prioritisation.csv","w",newline="") as f:
+    cols = ['gene'] + list(PANEL_KEYS)
+    w = csv.writer(f); w.writerow(cols)
+    for p in panel:
+        w.writerow([p.get(c) if p.get(c) is not None else '' for c in cols])
 
 with open("query_opentarget_output.json","w") as f:
     json.dump({"status":"completed","disease":disease_name,"efo_id":efo,

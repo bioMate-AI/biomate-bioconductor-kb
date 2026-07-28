@@ -66,7 +66,7 @@ process AUTOANTIBODY_ISOTYPE_STRATIFICATION {
     script:
     """
     export PARAM_SEROLOGY='${params.serology_file}'
-    export PARAM_COHORT='${params.cohort}'
+    export PARAM_COHORT='${params.cohort.toString().replace("'", "'\\''")}'
     export PARAM_NONIGG_T='${params.non_igg_threshold}'
     export PARAM_IGG4_T='${params.igg4_threshold}'
     export PARAM_BAFFAPRIL_H='${params.baff_april_high}'
