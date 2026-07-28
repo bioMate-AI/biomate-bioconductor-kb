@@ -171,6 +171,27 @@ Note: this surfaces RUNS (workflow executions), not raw uploaded files — separ
       },
     },
   },
+  {
+    name: 'search_literature',
+    description: `Search scientific literature across PubMed, Europe PMC, Semantic Scholar, and OpenAlex in
+parallel, with an iterative broaden-on-gap loop. Use this to ground a claim in real papers, find prior
+art / mechanism evidence, or build an evidence review — instead of answering from memory. Returns ranked
+papers with title, authors, year, PMID/DOI, and abstract snippet. Cite what you use; never invent a DOI
+or PMID. Prefer this over guessing when the user asks "what evidence supports…", "find papers on…", or
+"is X established or just proposed?".`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Key entities/terms to search (e.g. "PEX13 PEX14 PEX5 oligomerization"). Over-long queries return fewer hits — keep it focused.',
+        },
+        min_results: { type: 'number', description: 'Broaden until at least this many papers are found (default 12).' },
+        max_depth: { type: 'number', description: 'Max broaden-on-gap iterations, 1–4 (default 3).' },
+      },
+      required: ['query'],
+    },
+  },
 ];
 
 /**
@@ -2770,6 +2791,7 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
             case 'run_code':    output = await this._toolRunCode(args); break;
             case 'read_file':   output = await this._toolReadFile(args, toolContext.context); break;
             case 'list_history': output = await this._toolListHistory(args, toolContext.context); break;
+            case 'search_literature': output = await this._toolSearchLiterature(args); break;
             default:            output = { error: `Unknown tool: ${name}` };
           }
         } catch (e: any) { error = e.message; output = { error }; }
@@ -8711,6 +8733,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           case 'list_run_outputs':
             output = await this._toolListRunOutputs(block.input, context);
             break;
+          case 'search_literature':
+            output = await this._toolSearchLiterature(block.input);
+            break;
           default:
             output = { error: `Unknown tool: ${block.name}` };
         }
@@ -8932,6 +8957,46 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       };
     } catch (err: any) {
       return { error: err?.message ?? String(err), domain, query };
+    }
+  }
+
+  /** search_literature tool handler — federated multi-DB literature search.
+   *  Gives the model search agency (RFC Principle 1): it can look up real papers
+   *  mid-conversation instead of answering from memory. Routes to Galaxy's
+   *  /api/literature/search (PubMed + Europe PMC + Semantic Scholar + OpenAlex,
+   *  entity-routed, iterative broaden-on-gap). Returns a compact ranked list the
+   *  model cites with real title/PMID/DOI. */
+  private async _toolSearchLiterature(input: any): Promise<unknown> {
+    const { query, min_results, max_depth } = input || {};
+    if (!query || typeof query !== 'string') return { error: 'query is required' };
+    const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+    try {
+      const r = await fetch(`${galaxyUrl}/api/literature/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, min_results: min_results ?? 12, max_depth: max_depth ?? 3 }),
+        signal: AbortSignal.timeout(45000),
+      });
+      if (!r.ok) return { error: `literature search HTTP ${r.status}`, query };
+      const data: any = await r.json();
+      const items: any[] = data?.results || data?.merged || [];
+      const papers = items.slice(0, 20).map((p: any) => ({
+        title: p.title,
+        authors: typeof p.authors === 'string' ? p.authors : (Array.isArray(p.authors) ? p.authors.slice(0, 6) : undefined),
+        year: p.year,
+        pmid: p.pmid ?? null,
+        doi: p.doi ?? null,
+        source: p._source ?? p.source,
+        abstract: p.abstract ? String(p.abstract).slice(0, 300) : undefined,
+      })).filter((p: any) => p.title);
+      return {
+        query,
+        total: papers.length,
+        papers,
+        note: 'Cite these by title + PMID/DOI. Do NOT cite any paper not in this list, and do not invent identifiers.',
+      };
+    } catch (err: any) {
+      return { error: err?.message ?? String(err), query };
     }
   }
 
