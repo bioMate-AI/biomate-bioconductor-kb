@@ -1616,9 +1616,17 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
                 # every file-valued param (s3:// URI or *.csv/.tsv/.txt/.rds/.h5ad path) into the
                 # list so the UI/routing flow works without the caller knowing the `omics` token.
                 # Each is staged under its basename below → the R body names each view by its file.
-                _fre = re.compile(r'(^s3://)|([.](csv|tsv|txt|rds|rdata|h5ad|mtx|tab)$)', re.IGNORECASE)
+                # Match only real input MATRICES by DATA-FILE EXTENSION. Do NOT match a bare
+                # `s3://…` prefix: the `outdir` / output-location param is also an s3:// URI but
+                # is a directory (no extension) that does not exist yet — collecting it made the
+                # wrapper try to download it and 404 on HeadObject, failing every mis-named run.
+                _fre = re.compile(r'[.](csv|tsv|txt|rds|rdata|h5ad|mtx|tab|parquet)$', re.IGNORECASE)
+                _skip_keys = {"outdir", "output", "output_dir", "output_location", "workdir",
+                              "work_dir", "publish_dir", "publishdir", "resume_from_run_id"}
                 _collected = []
                 for _k, _v in list(params.items()):
+                    if str(_k).lower() in _skip_keys:
+                        continue
                     if isinstance(_v, str) and _fre.search(_v):
                         _collected.append(_v)
                         _keys_to_pop.append(_k)
