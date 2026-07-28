@@ -1,0 +1,29 @@
+term_id,term_label,synonyms
+MONDO:0008383,rheumatoid arthritis,RA|rheumatoid arthritis (disorder)
+MONDO:0011849,juvenile rheumatoid arthritis,juvenile idiopathic arthritis|JIA|juvenile RA
+MONDO:0007915,systemic lupus erythematosus,SLE|lupus|systemic lupus
+MONDO:0005301,multiple sclerosis,MS|disseminated sclerosis
+MONDO:0005147,type 1 diabetes mellitus,T1D|type 1 diabetes|insulin-dependent diabetes mellitus|IDDM
+MONDO:0005148,type 2 diabetes mellitus,T2D|type 2 diabetes|non-insulin-dependent diabetes mellitus
+MONDO:0005011,Crohn disease,Crohn's disease|CD|regional enteritis
+MONDO:0005101,ulcerative colitis,UC|colitis ulcerosa
+MONDO:0004979,asthma,bronchial asthma
+MONDO:0007256,systemic scleroderma,systemic sclerosis|SSc|scleroderma
+EFO:0000685,rheumatoid arthritis (EFO),
+CL:0000624,"CD4-positive, alpha-beta T cell",CD4+ T cell|CD4 T cell|helper T cell|CD4 positive T lymphocyte
+CL:0000625,"CD8-positive, alpha-beta T cell",CD8+ T cell|CD8 T cell|cytotoxic T cell|CD8 positive T lymphocyte
+CL:0000236,B cell,B lymphocyte|B-cell
+CL:0000235,macrophage,macrophages
+CL:0000784,plasmacytoid dendritic cell,pDC|plasmacytoid DC
+CL:0000451,dendritic cell,DC|dendritic cells
+CL:0000939,"CD16-negative, CD56-bright natural killer cell",CD56 bright NK cell|CD56bright NK
+CL:0000814,mature NK T cell,NKT cell|natural killer T cell
+CL:2000001,peripheral blood mononuclear cell,PBMC|PBMCs|peripheral blood mononuclear cells
+CL:0000576,monocyte,monocytes
+CL:0000771,eosinophil,eosinophils|eosinophilic granulocyte
+HP:0002960,Autoimmunity,autoimmune|autoimmune reaction
+HP:0001369,Arthritis,joint inflammation
+HP:0000988,Skin rash,rash|cutaneous rash
+HP:0001945,Fever,pyrexia|febrile
+HP:0002829,Arthralgia,joint pain|arthralgias
+HP:0000969,Edema,oedema|swelling

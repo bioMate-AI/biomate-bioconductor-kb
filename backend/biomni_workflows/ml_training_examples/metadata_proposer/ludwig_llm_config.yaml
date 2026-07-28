@@ -1,0 +1,96 @@
+# =============================================================================
+# Per-client metadata-mapping PROPOSER — Ludwig LLM (LoRA) config
+# =============================================================================
+# GPU DROP-IN for the constrained-decoding proposer. Mirrors, field-for-field,
+# stratification_adapter/ludwig_llm_config.yaml (the established pattern) and the
+# dict produced by galaxy.ai.ml_training.ludwig_adapter.to_ludwig_llm_config(cfg)
+# from a TrainingConfig.
+#
+# WHAT THE MODEL LEARNS (and why it CAN'T hallucinate an ID)
+# ---------------------------------------------------------
+# The training rows (instructions_train.jsonl) render each metadata value TOGETHER
+# WITH its retrieved candidate list and teach the model to answer 'SELECT <n>' or
+# 'ABSTAIN' — never a raw ontology ID. At inference the constrained_decoder harness
+# renders the SAME prompt, calls the adapter (llm_select_from_candidates), and maps
+# <n> back to the retrieved candidate's real term_id. The model's output space is
+# {SELECT 1..k, ABSTAIN}; a grounded ID is substituted by the harness. This is what
+# closes the survey's ~17%-OOD + hallucinated-ID failure of free-generation LLMs.
+#
+# The deterministic CPU ranker in constrained_decoder.Proposer is the baseline /
+# oracle-of-record; this LoRA adapter is the per-client upgrade that learns the
+# client's own vocabulary, abbreviations, and abstain preferences from their
+# reviewed history — WITHOUT changing the grounding guarantee.
+#
+# Default: LoRA (no quantization) on SmolLM2-135M => CPU-feasible smoke; switch to
+# qlora + quantization_bits:4 for a larger base on the GPU Batch queue.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# PART A — the Ludwig ModelConfig (what LudwigModel(config) consumes).
+# -----------------------------------------------------------------------------
+ludwig_config:
+  model_type: llm
+  base_model: HuggingFaceTB/SmolLM2-135M-Instruct   # small, CPU-feasible
+
+  input_features:
+    - name: instruction
+      type: text
+  output_features:
+    - name: output                # "SELECT <n>" | "ABSTAIN" — never a raw ID
+      type: text
+
+  prompt:
+    template: "{instruction}"
+
+  trainer:
+    type: finetune
+    epochs: 4                      # small dataset -> few epochs
+    batch_size: 4
+    learning_rate: 0.0001          # 1e-4
+
+  preprocessing:
+    global_max_sequence_length: 768   # candidate lists make prompts longer
+
+  adapter:
+    type: lora
+  # For QLoRA (GPU), to_ludwig_llm_config also emits:
+  #   quantization:
+  #     bits: 4
+
+# -----------------------------------------------------------------------------
+# PART B — the BioMate TrainingConfig that GENERATES Part A.
+# Field names match galaxy.ai.ml_training.config.{TrainingConfig,DatasetSpec,
+# LLMSpec,Hyperparams} exactly (same as stratification_adapter).
+# -----------------------------------------------------------------------------
+training_config:
+  name: acme-immunology-metadata-proposer
+  task_type: text_generation
+  model_type: ludwig_llm
+  featurizer: none
+  mlflow_experiment: biomate-ml-training
+  campaign_id: acme-immunology
+  metric: loss
+  gate_threshold: null
+
+  dataset:
+    # Local demo: the instruction-rendered training split from build_bootstrap.py.
+    path: instructions_train.jsonl
+    # Production: stage the client's PRIVATE reviewed-mapping history to S3:
+    # s3_uri: s3://biomate-models/clients/acme/metadata/instructions.jsonl
+    split: random
+    val_frac: 0.1
+    test_frac: 0.1
+
+  llm:
+    base_model: HuggingFaceTB/SmolLM2-135M-Instruct
+    instruction_col: instruction
+    output_col: output
+    max_sequence_length: 768
+    adapter: lora                  # lora (CPU) | qlora (GPU, 4-bit) | none (full FT)
+    quantization_bits: null        # set to 4 for QLoRA (implies GPU)
+
+  hyperparams:
+    epochs: 4
+    batch_size: 4
+    learning_rate: 0.0001
+    seed: 42
