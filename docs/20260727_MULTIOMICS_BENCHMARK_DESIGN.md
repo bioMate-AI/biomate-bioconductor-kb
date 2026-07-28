@@ -258,9 +258,21 @@ for dataset in DATASETS:                     # identical, pre-processed CSVs per
     fairness guarantee for the head-to-head. Verified on CLL (run `a0f1138f`): drugs
     skew −0.75→0.06, all views sd→~1, NAs preserved (mRNA 32%). *This directly answers
     "do we have normalization?" — yes, now as a first-class, chainable platform step.*
-  - **Remaining pilot work**: re-run MOFA2 + SNF on the `normalized_*` matrices to close
-    the fairness loop (identical input to both); run SNF at C=2 for its best binary-IGHV
-    ARI; add TCGA (PAM50) as a second cohort to show the ranking generalizes.
+  - **Fairness loop CLOSED: ✅ both methods re-run on the IDENTICAL `normalized_*`
+    matrices** (runs `99240a51` SNF, `7b0dfb8b` MOFA2, scored by the same harness):
+
+    | Method | on raw CLL | on shared-normalized CLL |
+    |---|---|---|
+    | **MOFA2** | AUC 0.968, k=3 ARI 0.526 | AUC 0.964, k=3 ARI 0.495 |
+    | **SNF** | ARI 0.375 | **ARI 0.375** (byte-identical) |
+
+    The ranking (MOFA2 > SNF) holds under provably-identical preprocessing → the
+    head-to-head is **not** a normalization artifact. SNF's ARI is *identical* because
+    SNFtool z-normalizes internally — a clean validation that the shared normalize step
+    is a no-op-for-SNF (does exactly SNF's inline standardization), so it's fair.
+    (MOFA2 Factor-1 sign flipped — MOFA factors are sign-arbitrary; AUC is sign-free.)
+  - **Remaining pilot work**: run SNF at C=2 for its best binary-IGHV ARI; add TCGA
+    (PAM50) as a second cohort to show the ranking generalizes beyond CLL.
 - **Phase 2 — grid:** add iClusterPlus, intNMF, mixOmics/DIABLO; add TCGA subtype
   recovery. Full metric suite incl. robustness.
 - **Phase 3 — differentiators + write-up:** missing-modality/partial-overlap
