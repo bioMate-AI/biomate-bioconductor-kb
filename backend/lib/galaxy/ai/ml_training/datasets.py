@@ -92,19 +92,33 @@ def _load_tdc(tdc_name: str, spec: DatasetSpec) -> LoadedDataset:
     actionable error rather than an ImportError at module load.
     """
     try:
-        from tdc.single_pred import Tox  # noqa: F401
+        from tdc import single_pred  # noqa: F401
     except ImportError as e:
         raise ImportError(
             "PyTDC is required for public dataset loading. "
             "Install with `pip install PyTDC`, or use dataset name "
             "'fixture:herg' for the offline fixture."
         ) from e
-    from tdc.single_pred import Tox
-    data = Tox(name=tdc_name)
-    df = data.get_data()
-    rows = [(str(r["Drug"]), float(r["Y"])) for _, r in df.iterrows()]
-    return LoadedDataset(rows, spec.smiles_col, spec.target_col,
-                         source=f"TDC:{tdc_name} (n={len(rows)})")
+    from tdc import single_pred
+    # TDC single-pred datasets belong to different problem classes: hERG/AMES →
+    # Tox, but Caco2/BBB/CYP/Lipophilicity/Solubility/PPBR → ADME, etc. Try the
+    # common classes until one accepts the name (each raises if the name isn't
+    # in its catalogue).
+    last_err = None
+    for cls_name in ("ADME", "Tox", "HTS"):
+        cls = getattr(single_pred, cls_name, None)
+        if cls is None:
+            continue
+        try:
+            df = cls(name=tdc_name).get_data()
+            rows = [(str(r["Drug"]), float(r["Y"])) for _, r in df.iterrows()]
+            return LoadedDataset(rows, spec.smiles_col, spec.target_col,
+                                 source=f"TDC:{cls_name}:{tdc_name} (n={len(rows)})")
+        except Exception as e:  # name not in this class' catalogue — try the next
+            last_err = e
+    raise ConfigError(
+        f"TDC dataset '{tdc_name}' not found in ADME/Tox/HTS catalogues: {last_err}"
+    )
 
 
 def _load_csv(spec: DatasetSpec, path: str) -> LoadedDataset:

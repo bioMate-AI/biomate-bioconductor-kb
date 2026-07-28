@@ -25,7 +25,7 @@ from .config import TrainingConfig, DatasetSpec, Hyperparams
 
 # Verbs/objects that signal a *training* request (vs. "predict"/"screen" which
 # route to inference on an existing model).
-_TRAIN_VERBS = r"(train|build|fit|re-?train|fine-?tune)"
+_TRAIN_VERBS = r"(train|build|fit|re-?train|fine-?tune|instruction[- ]?tune)"
 _MODEL_NOUNS = r"(model|classifier|regressor|predictor|qsar|gnn|network|llm|language\s*model)"
 _TRAIN_RE = re.compile(rf"\b{_TRAIN_VERBS}\b.*\b{_MODEL_NOUNS}\b", re.I | re.S)
 

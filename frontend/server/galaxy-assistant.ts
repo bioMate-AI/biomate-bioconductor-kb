@@ -3818,7 +3818,7 @@ Rules:
     // (route_ml_training_result) returns the ml_training training card.
     // Backend still gates the actual routing on its own ML_TRAINING_ROUTING flag.
     if (!actions.needsWorkflowGeneration && process.env.ML_TRAINING_ROUTING === '1') {
-      const _isMlTrainingRequest = /\b(train|build|fit|re-?train|fine-?tune)\b[\s\S]*\b(model|classifier|regressor|predictor|qsar|gnn|neural\s*net(?:work)?|network)\b/i.test(message);
+      const _isMlTrainingRequest = /\b(train|build|fit|re-?train|fine-?tune|instruction[- ]?tune)\b[\s\S]*\b(model|classifier|regressor|predictor|qsar|gnn|neural\s*net(?:work)?|network|llm|large\s*language\s*model|language\s*model|chat\s*model)\b/i.test(message);
       if (_isMlTrainingRequest) {
         log('ml_training intent override: forcing needsWorkflowGeneration=true');
         actions.needsWorkflowGeneration = true;
