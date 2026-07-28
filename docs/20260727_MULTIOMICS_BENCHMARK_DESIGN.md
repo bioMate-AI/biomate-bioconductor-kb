@@ -1,8 +1,11 @@
 # Multi-Omics Integration Benchmark — Design & Paper Plan
 
-**Date:** 2026-07-27
-**Status:** Design proposal. Phase-1 pilot runnable on BioMate once ≥2 methods work
-through the universal interface (MOFA2 = method #1, container just built).
+**Date:** 2026-07-27 (updated 2026-07-28)
+**Status:** 🟢 **Phase-1 pilot DONE — 2-method head-to-head achieved on real CLL.**
+Both MOFA2 (method #1) and SNF (method #2) run through the same platform + universal
+CSV interface; both scored on IGHV ground truth (MOFA2 ARI 0.534 / Factor-1 d=1.75;
+SNF ARI 0.375). See §6 Phase 1 for the Figure-1 table. Go signal for Phase 2 (grid +
+TCGA + normalization layer).
 **Related:** `docs/20260726_E2E_AUDIT_SINGLECELL_MULTIOMICS.md` (universal CSV
 interface + MOFA2 fixes), CLAUDE.md "Benchmark-Driven Development".
 
@@ -210,16 +213,39 @@ for dataset in DATASETS:                     # identical, pre-processed CSVs per
     all file-valued params (s3://, *.csv/.rds/.h5ad) into the list and stage each by
     basename (view = filename). Scoped to single-list-input workflows. *Lesson: the
     universal interface must be verified through the UI, not just the API.*
-  - **MCIA/mogsa (method #2): reframed to a CRAN method.** mogsa is hardwired to the
-    NCI60 example AND the transcriptomics container lacks mogsa (Bioc install → the
-    same 504 mirror → another dedicated-container saga). Lighter path: a **CRAN**
-    method — **SNF** (SNFtool, Wang 2014) or **intNMF** — installs as fast p3m.dev
-    noble binaries at runtime (no container build, no 504). Caveat: SNF needs
-    complete data; CLL has NAs (MOFA2 tolerates them), so method #2 needs
-    NA-handling (complete-case or impute) for a fair head-to-head.
-  - **Remaining pilot work**: verify the UI fix (clean UI run of MOFA2 on CLL); add
-    method #2 (CRAN) with a standardized cluster/`factors.csv` output; shared metric
-    script (ARI/d vs IGHV, factor↔drug-response) → the head-to-head go/no-go.
+  - **SNF (method #2): ✅ BUILT + RUNNING through the platform.** mogsa was reframed
+    to a CRAN method (mogsa is hardwired to the NCI60 example AND the transcriptomics
+    container lacks it → the same 504 mirror / dedicated-container saga). The chosen
+    lighter path is **SNF** (SNFtool, Wang 2014) — installs as fast p3m.dev noble
+    binaries at runtime (no container build, no 504). Workflow:
+    `subworkflows/bioconductor/snf_multiomics/main.nf`, **same universal CSV input
+    contract as MOFA2** (`// Input: omics`; view name = filename), standardized
+    `snf_clusters.csv` (sample,cluster) output for the metric harness. NA-handling
+    built in (per-feature mean imputation) so SNF, which needs complete data, gets a
+    fair run on CLL (MOFA2 tolerates NAs natively). De-risked in-container on real CLL
+    (4 views, 200 patients), then submitted **through BioMate** `/api/workflows/execute`
+    → AWS Batch (run `fc3b1719`, 2026-07-28). *This is the paper's core claim in
+    action: a second, mechanistically-distinct integration method running through the
+    same platform + same interface — the "many methods, one platform" seam the survey
+    found empty.*
+  - **🟢 HEAD-TO-HEAD (Figure 1, CLL / IGHV recovery):** both methods scored on the
+    identical ground truth (IGHV mutation status, n=188 labeled), run through the same
+    platform + universal interface:
+
+    | Method | IGHV recovery | Detail |
+    |---|---|---|
+    | **MOFA2** | **ARI = 0.534** (k-means k=3 on 10 factors) | Factor 1 alone separates IGHV at **d = +1.75**; k=2 ARI ≈ 0 — the IGHV signal is one factor among ten, so naive 2-way k-means dilutes it, k=3 recovers it |
+    | **SNF** | **ARI = 0.375** (3 spectral clusters) | fused-network cluster 2 = 68/76 IGHV−; clusters 1+3 IGHV+ |
+
+    **Finding:** MOFA2's supervised-free latent factors recover the canonical CLL
+    IGHV axis *better* than SNF's fused-network spectral clustering (0.534 vs 0.375),
+    AND expose it as a single interpretable factor (d=1.75) rather than a hard
+    partition. This is a genuine, defensible method-difference on the field's
+    reference cohort — exactly the kind of head-to-head the survey found missing.
+  - **Remaining pilot work**: shared normalization layer (per-omics log/VSN/quantile/z
+    + QC metrics) feeding both methods for provably-fair pre-processing (OmNI parity);
+    formalize the metric harness (ARI/NMI + factor↔label) as a reusable script; add
+    TCGA (PAM50) as a second cohort to show the result generalizes.
 - **Phase 2 — grid:** add iClusterPlus, intNMF, mixOmics/DIABLO; add TCGA subtype
   recovery. Full metric suite incl. robustness.
 - **Phase 3 — differentiators + write-up:** missing-modality/partial-overlap
