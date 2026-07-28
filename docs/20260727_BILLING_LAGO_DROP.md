@@ -170,14 +170,46 @@ current guidance.
 
 ---
 
+### 6. `backend/lib/galaxy/ai/cost_log.py` (found during live testing)
+A **second, ungated** direct-Lago emit surfaced on dev: `cost_log._forward_to_lago()` POSTed every
+LLM usage event to Lago because dev still has a stale `LAGO_API_URL`/`LAGO_API_KEY` set — so each
+Galaxy-backend LLM call spawned a daemon thread that blocked on a 5s timeout (`[CostLog→Lago]
+Forward failed (non-fatal): urlopen error timed out`). Gated with the same single source of truth
+(`lago_client.lago_enabled()`): skip spawning the thread in `record()` and early-return in
+`_forward_to_lago()`. Local JSONL cost log + Redis ledger unchanged — only the Lago forward stops.
+(commit `d72900b09`)
+
+---
+
 ## How this was verified
 
-- **Gate behavior:** standalone-loaded `lago_client.py` (bypassing the heavy Galaxy import) and
-  asserted: disabled → `send_event`=`True`, `send_batch_events`=N, `get_plan_limit_usd`=`None`,
-  `upsert_customer`=`True`. All pass.
-- **Python syntax:** all three backend files parse clean.
-- **Frontend:** `billing-smoke.e2e.ts` compiles (4 tests).
-- **Unit tests:** `test_lago_gate.py` (5 tests) written for the proper billing-test env / CI.
+**Pre-sync (laptop):**
+- **Gate behavior:** standalone-loaded `lago_client.py` (bypassing the heavy Galaxy import) —
+  disabled → `send_event`=`True`, `get_plan_limit_usd`=`None`, `upsert_customer`=`True`. All pass.
+- **Python 3.9 compat:** `py_compile` clean on `lago_client.py`, `batch_event_handler.py`, `cost_log.py`.
+- **Frontend:** `tsc` clean; `vitest run` = **942 passed / 6 skipped**; `tier.test.ts` 12/12.
+- **Unit tests:** `test_lago_gate.py` (5 tests) for the proper billing-test env / CI.
+
+**On dev (live, read-only SSM):**
+- **Deployed gate is live:** on the box, `lago_enabled()` = `False`, `get_plan_limit_usd('premium')`
+  = `None` (→ `DEFAULT_PLAN_LIMITS`). Galaxy restarted healthy on py3.9 with all gates loaded.
+- **UI end-to-end (`frontend/e2e/chat-costlog-verify.e2e.ts`, passed):** logged in as the canonical
+  fixture in a real browser and sent an ADMET prompt → Galaxy generated the `predict_admet_properties`
+  workflow → `cost_log.record()` fired. Correlating `galaxy.log` before/after:
+
+  | Signal | Before | After the UI chat |
+  |---|---|---|
+  | `[CostLog]` internal-ledger writes | last `02:12` | **new `02:48:48`, `02:48:57`** (cost recorded) |
+  | `[CostLog→Lago]` forward attempts | `28153`, last `23:43:30` | **`28153`, last `23:43:30` (unchanged)** |
+
+  → A real cost event was recorded through the UI **with zero Lago forwards** — the gate holds on a
+  freshly-triggered event, and the internal ledger still captures the cost.
+
+> **Note — billing has no UI surface today:** the `/billing` route is intentionally commented out in
+> `client/src/App.tsx` (SB-9: "not yet wired to the backend"), so the Lago drop is a backend-only
+> change with no billing page to test. Separately, the Node→Galaxy billing proxy returns 401 on dev
+> (a pre-existing `GALAXY_JWT_SECRET` mismatch, unrelated to this change) — fix that before enabling
+> the billing page.
 
 ---
 
