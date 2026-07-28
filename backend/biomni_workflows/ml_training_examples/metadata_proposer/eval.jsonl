@@ -1,0 +1,24 @@
+{"input": "CD8 T cells", "gold_term_id": "CL:0000625", "gold_label": "CD8-positive, alpha-beta T cell", "in_dictionary": true}
+{"input": "autoimmunity", "gold_term_id": "HP:0002960", "gold_label": "Autoimmunity", "in_dictionary": true}
+{"input": "CD4-positive, alpha-beta T cell", "gold_term_id": "CL:0000624", "gold_label": "CD4-positive, alpha-beta T cell", "in_dictionary": true}
+{"input": "CD8+ T cell", "gold_term_id": "CL:0000625", "gold_label": "CD8-positive, alpha-beta T cell", "in_dictionary": true}
+{"input": "eosinophils", "gold_term_id": "CL:0000771", "gold_label": "eosinophil", "in_dictionary": true}
+{"input": "novel endotype cluster 3 (unpublished, internal name)", "gold_term_id": "ABSTAIN", "gold_label": "", "in_dictionary": false}
+{"input": "fever", "gold_term_id": "HP:0001945", "gold_label": "Fever", "in_dictionary": true}
+{"input": "left knee synovial biopsy, formalin-fixed", "gold_term_id": "ABSTAIN", "gold_label": "", "in_dictionary": false}
+{"input": "MS", "gold_term_id": "MONDO:0005301", "gold_label": "multiple sclerosis", "in_dictionary": true}
+{"input": "ulcerative colitis", "gold_term_id": "MONDO:0005101", "gold_label": "ulcerative colitis", "in_dictionary": true}
+{"input": "swelling", "gold_term_id": "HP:0000969", "gold_label": "Edema", "in_dictionary": true}
+{"input": "B-cell", "gold_term_id": "CL:0000236", "gold_label": "B cell", "in_dictionary": true}
+{"input": "T2D", "gold_term_id": "MONDO:0005148", "gold_label": "type 2 diabetes mellitus", "in_dictionary": true}
+{"input": "crohn disease", "gold_term_id": "MONDO:0005011", "gold_label": "Crohn disease", "in_dictionary": true}
+{"input": "pDC", "gold_term_id": "CL:0000784", "gold_label": "plasmacytoid dendritic cell", "in_dictionary": true}
+{"input": "lupus", "gold_term_id": "MONDO:0007915", "gold_label": "systemic lupus erythematosus", "in_dictionary": true}
+{"input": "CD", "gold_term_id": "MONDO:0005011", "gold_label": "Crohn disease", "in_dictionary": true}
+{"input": "Crohn's disease", "gold_term_id": "MONDO:0005011", "gold_label": "Crohn disease", "in_dictionary": true}
+{"input": "dendritic cell", "gold_term_id": "CL:0000451", "gold_label": "dendritic cell", "in_dictionary": true}
+{"input": "HLA-DRB1 shared-epitope genotype pending", "gold_term_id": "ABSTAIN", "gold_label": "", "in_dictionary": false}
+{"input": "asthma", "gold_term_id": "MONDO:0004979", "gold_label": "asthma", "in_dictionary": true}
+{"input": "spatial transcriptomics ROI annotated by pathologist", "gold_term_id": "ABSTAIN", "gold_label": "", "in_dictionary": false}
+{"input": "oedema", "gold_term_id": "HP:0000969", "gold_label": "Edema", "in_dictionary": true}
+{"input": "pt reported joint stiffness worst in AM, better w movement", "gold_term_id": "ABSTAIN", "gold_label": "", "in_dictionary": false}

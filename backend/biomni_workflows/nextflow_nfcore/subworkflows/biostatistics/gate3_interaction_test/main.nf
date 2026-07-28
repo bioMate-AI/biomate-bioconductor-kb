@@ -61,11 +61,11 @@ process GATE3_INTERACTION_TEST {
     script:
     """
     export PARAM_TRIAL='${params.trial_file}'
-    export PARAM_ANALYSIS='${params.analysis}'
+    export PARAM_ANALYSIS='${params.analysis.toString().replace("'", "'\\''")}'
     export PARAM_OUTCOME_TYPE='${params.outcome_type}'
-    export PARAM_BM_POS='${params.biomarker_positive}'
-    export PARAM_TX_EXP='${params.treatment_experimental}'
-    export PARAM_DEFAULT_TX='${params.default_treatment}'
+    export PARAM_BM_POS='${params.biomarker_positive.toString().replace("'", "'\\''")}'
+    export PARAM_TX_EXP='${params.treatment_experimental.toString().replace("'", "'\\''")}'
+    export PARAM_DEFAULT_TX='${params.default_treatment.toString().replace("'", "'\\''")}'
     export PARAM_HIB='${params.higher_is_better}'
     export PARAM_MIN_INT='${params.min_interaction}'
     export PARAM_ALPHA='${params.alpha}'

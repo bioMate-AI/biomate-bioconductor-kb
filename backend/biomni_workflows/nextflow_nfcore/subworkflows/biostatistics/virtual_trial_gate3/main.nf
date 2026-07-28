@@ -72,7 +72,7 @@ process VIRTUAL_TRIAL_GATE3 {
     script:
     """
     export PARAM_SPEC='${params.spec_file}'
-    export PARAM_ANALYSIS='${params.analysis}'
+    export PARAM_ANALYSIS='${params.analysis.toString().replace("'", "'\\''")}'
     export PARAM_N_SIM='${params.n_sim}'
     export PARAM_ALPHA='${params.alpha}'
     export PARAM_MIN_INT='${params.min_interaction}'

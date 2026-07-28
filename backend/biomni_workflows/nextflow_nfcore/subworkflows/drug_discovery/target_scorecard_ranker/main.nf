@@ -53,6 +53,45 @@ params.outdir       = './results'
 params.evidence_file = 'NONE'          // REQUIRED path to real per-target evidence CSV/JSON
 params.disease       = 'unspecified disease'
 
+// -- Disease-class-aware biological-relevance weight profile ------------------
+//    TRANSPARENT & RULE-BASED (no learned/black-box ranking). query_opentarget.nf
+//    collapses the per-datatype Open-Targets evidence into a SINGLE
+//    `biological_relevance` number using a fixed "discovery" datatype-weight
+//    profile: the known-drug `clinical` datatype is ZEROED (weight 0) and every
+//    other biological datatype (incl. single-axis `somatic_mutation`) enters an
+//    UNWEIGHTED harmonic sum. That is correct for immune/genetics-driven disease
+//    (drug-blind rediscovery — e.g. MG top-2 = C5 + FcRn) but WRONG for
+//    solid-tumour oncology, where a driver oncogene's disease evidence is often
+//    predominantly `clinical` + `somatic_mutation` (e.g. ERBB2 in breast cancer:
+//    clinical:0.91, somatic_mutation:0.46, nothing else) — so it is demoted below
+//    GWAS passengers.
+//
+//    This ranker keeps the harmonic-sum machinery and, when a non-default profile
+//    is selected, RECOMPUTES `biological_relevance` from the raw per-datatype
+//    scores that query_opentarget.nf already preserves in the `notes` column
+//    (`datatypes=clinical:0.91,somatic_mutation:0.46,...`). Only the per-datatype
+//    WEIGHTS differ by profile; nothing else changes.
+//
+//    Per-datatype weights by profile (applied inside the harmonic sum):
+//      profile        clinical  somatic_mutation  literature/animal_model/rna_expression/affected_pathway
+//      discovery      0.00      1.00              1.00     (default — byte-for-byte the upstream behaviour)
+//      solid_tumour   0.80      1.00              1.00     (re-admits somatic in full + partial clinical)
+//
+//    Re-admission is MONOTONIC: the recomputed biological_relevance is floored at
+//    the upstream (discovery) value, so re-admitting the `clinical` datatype can
+//    only RAISE a target's biological signal, never dilute one that was already
+//    strong on somatic/pathway alone. A somatic-driven oncogene keeps its score;
+//    a clinically-actioned driver (ERBB2) gains.
+//
+//    'discovery' is the DEFAULT and leaves biological_relevance exactly as read
+//    from the CSV (no notes re-parsing, no behaviour change). 'solid_tumour'
+//    (alias 'oncology') opts in to the re-admission above.
+params.weight_profile = 'discovery'    // 'discovery' (default) | 'solid_tumour' | 'oncology'
+//    Optional disease-class selector: maps to a weight_profile. 'auto' keeps the
+//    explicit --weight_profile (default 'discovery'); 'immune' forces 'discovery';
+//    'solid_tumour' forces the solid_tumour profile. No network calls.
+params.disease_class  = 'auto'         // 'auto' (default) | 'immune' | 'solid_tumour'
+
 // -- Axis weights (must be interpretable; sum is renormalised internally) -----
 params.w_genetic      = '0.30'
 params.w_specificity  = '0.15'
@@ -106,8 +145,10 @@ process TARGET_SCORECARD_RANKER {
 
     script:
     """
-    export PARAM_EVIDENCE='${params.evidence_file}'
-    export PARAM_DISEASE='${params.disease}'
+    export PARAM_EVIDENCE='${params.evidence_file.toString().replace("'", "'\\''")}'
+    export PARAM_DISEASE='${params.disease.toString().replace("'", "'\\''")}'
+    export PARAM_WEIGHT_PROFILE='${params.weight_profile.toString().replace("'", "'\\''")}'
+    export PARAM_DISEASE_CLASS='${params.disease_class.toString().replace("'", "'\\''")}'
     export PARAM_W_GENETIC='${params.w_genetic}'
     export PARAM_W_SPEC='${params.w_specificity}'
     export PARAM_W_EXPR='${params.w_expression}'
@@ -121,7 +162,7 @@ process TARGET_SCORECARD_RANKER {
     export PARAM_TIER2='${params.tier2_cut}'
     export PARAM_TIER3='${params.tier3_cut}'
     export PARAM_ADV_METHOD='${params.advanced_method}'
-    export PARAM_NETWORK='${params.network_file}'
+    export PARAM_NETWORK='${params.network_file.toString().replace("'", "'\\''")}'
     export PARAM_RWR_RESTART='${params.rwr_restart}'
     export PARAM_DISAGREE_DELTA='${params.disagreement_rank_delta}'
 
@@ -161,6 +202,89 @@ WEIGHTS = norm_weights({
     'tractability':         _f(os.environ.get('PARAM_W_TRACT'),   0.20),
 })
 AXES = list(WEIGHTS.keys())
+
+# --------------------------------------------------- disease-class weight profile
+# TRANSPARENT, rule-based re-weighting of the *biological_relevance* axis by
+# disease class. query_opentarget.nf collapses the OT per-datatype scores into a
+# single biological_relevance number using a fixed "discovery" datatype profile
+# (clinical zeroed; every biological datatype — incl. single-axis somatic_mutation
+# — in an unweighted harmonic sum). For solid-tumour oncology that demotes driver
+# oncogenes whose evidence is predominantly clinical + somatic. When a non-default
+# profile is selected we RECOMPUTE biological_relevance from the raw per-datatype
+# scores that query_opentarget.nf preserves in the `notes` column, using only the
+# per-datatype WEIGHTS below (harmonic-sum machinery unchanged).
+#
+#   profile        clinical  somatic_mutation  literature/animal_model/rna_expression/affected_pathway
+#   discovery      0.00      1.00              1.00     (DEFAULT — biological_relevance left exactly as read)
+#   solid_tumour   0.80      1.00              1.00     (re-admits somatic in full + partial clinical)
+# Re-admission is MONOTONIC (recomputed value floored at the discovery value in
+# normalise_target) so re-admitting `clinical` never dilutes a somatic-strong target.
+BIO_DATATYPE_PROFILES = {
+    'discovery':    {'clinical': 0.0, 'somatic_mutation': 1.0, 'literature': 1.0,
+                     'animal_model': 1.0, 'rna_expression': 1.0, 'affected_pathway': 1.0},
+    'solid_tumour': {'clinical': 0.8, 'somatic_mutation': 1.0, 'literature': 1.0,
+                     'animal_model': 1.0, 'rna_expression': 1.0, 'affected_pathway': 1.0},
+}
+
+def resolve_weight_profile():
+    '''Map --weight_profile / --disease_class to a canonical profile name.
+    disease_class != auto wins (explicit class overrides the raw profile flag);
+    'oncology' is an accepted alias of 'solid_tumour'. Default is 'discovery',
+    which is byte-for-byte the current (upstream) behaviour.'''
+    wp = (os.environ.get('PARAM_WEIGHT_PROFILE', 'discovery') or 'discovery').strip().lower()
+    dc = (os.environ.get('PARAM_DISEASE_CLASS', 'auto') or 'auto').strip().lower()
+    if wp in ('oncology', 'solid_tumour', 'solid tumour', 'solid-tumour'):
+        wp = 'solid_tumour'
+    elif wp not in ('discovery',):
+        wp = 'discovery'
+    if dc in ('solid_tumour', 'solid tumour', 'solid-tumour', 'oncology'):
+        wp = 'solid_tumour'
+    elif dc == 'immune':
+        wp = 'discovery'
+    # dc == 'auto' (or anything else) -> keep wp as resolved from --weight_profile
+    return wp
+
+WEIGHT_PROFILE = resolve_weight_profile()
+
+def _parse_notes_datatypes(notes):
+    '''Extract raw per-datatype OT scores from a query_opentarget.nf `notes`
+    string: "OT assoc=..; datatypes=clinical:0.91,somatic_mutation:0.46,..; .."
+    Returns {datatype: float} or {} if the segment is absent/unparseable.'''
+    if not notes or 'datatypes=' not in notes:
+        return {}
+    seg = notes.split('datatypes=', 1)[1]
+    # datatypes segment ends at the next '; ' (before maxClinicalStage=...)
+    seg = seg.split(';', 1)[0]
+    out = {}
+    for tok in seg.split(','):
+        tok = tok.strip()
+        if not tok or ':' not in tok:
+            continue
+        k, _, v = tok.rpartition(':')
+        fv = _f(v)
+        if k and fv is not None:
+            out[k.strip()] = fv
+    return out
+
+def bio_relevance_for_profile(datatype_scores, profile):
+    '''Weighted harmonic sum of raw datatype scores under a per-datatype weight
+    profile (OpenTargets association-score method). Each score is scaled by its
+    datatype weight, sorted desc, harmonic-summed, and normalised by the weighted
+    theoretical max. Returns None if no datatype contributes.'''
+    weights = BIO_DATATYPE_PROFILES[profile]
+    contribs = sorted((weights.get(k, 1.0) * v
+                       for k, v in datatype_scores.items()
+                       if k in weights and weights.get(k, 1.0) > 0 and v is not None),
+                      reverse=True)
+    if not contribs:
+        return None
+    hs = sum(c / ((i + 1) ** 2) for i, c in enumerate(contribs))
+    used_w = sorted((weights.get(k, 1.0)
+                     for k, v in datatype_scores.items()
+                     if k in weights and weights.get(k, 1.0) > 0 and v is not None),
+                    reverse=True)
+    hs_max = sum(w / ((i + 1) ** 2) for i, w in enumerate(used_w))
+    return round(hs / hs_max, 4) if hs_max > 0 else None
 
 # ------------------------------------------------------ load evidence (real only)
 def _rows_from_csv(path):
@@ -207,12 +331,25 @@ def expression_evidence(lfc, padj):
 
 def normalise_target(row):
     gene = (row.get('gene') or row.get('symbol') or row.get('name') or '').strip()
+    # biological_relevance: default 'discovery' profile leaves it exactly as read
+    # from the CSV (byte-for-byte upstream behaviour). Non-default profiles
+    # RECOMPUTE it from the raw per-datatype scores preserved in `notes`.
+    bio = clamp01(_f(row.get('biological_relevance')))
+    if WEIGHT_PROFILE != 'discovery':
+        dts = _parse_notes_datatypes(row.get('notes', ''))
+        if dts:
+            recomputed = bio_relevance_for_profile(dts, WEIGHT_PROFILE)
+            if recomputed is not None:
+                recomputed = clamp01(recomputed)
+                # MONOTONIC floor: re-admitting clinical can only raise the
+                # biological signal, never dilute a somatic/pathway-strong target.
+                bio = recomputed if bio is None else max(bio, recomputed)
     axes = {
         'genetic_support':      clamp01(_f(row.get('genetic_support'))),
         'cell_specificity':     clamp01(_f(row.get('cell_specificity'))),
         'expression_evidence':  expression_evidence(_f(row.get('expression_lfc')),
                                                      _f(row.get('expression_padj'))),
-        'biological_relevance': clamp01(_f(row.get('biological_relevance'))),
+        'biological_relevance': bio,
         'tractability':         clamp01(_f(row.get('tractability'))),
     }
     safety = clamp01(_f(row.get('safety_liability')))
@@ -446,6 +583,8 @@ run_meta = {
     'evidence_source': source_label,
     'n_targets': len(scored),
     'weights': WEIGHTS,
+    'weight_profile': WEIGHT_PROFILE,
+    'weight_profile_bio_datatypes': BIO_DATATYPE_PROFILES[WEIGHT_PROFILE],
     'safety_penalty_max': safety_pen,
     'min_coverage_flag': min_cov,
     'expression_caps': {'lfc_cap': lfc_cap, 'sig_cap': sig_cap},
@@ -513,6 +652,25 @@ lines.append('AI-ranked, provenance-backed prioritisation. Rankings are a decisi
 lines.append('')
 lines.append('**Axis weights:** ' + ', '.join(f'{k}={v:.2f}' for k, v in WEIGHTS.items())
              + f'  |  safety penalty (max) = {safety_pen:.2f}')
+lines.append('')
+_bio_prof = BIO_DATATYPE_PROFILES[WEIGHT_PROFILE]
+lines.append(f'**Weight profile:** `{WEIGHT_PROFILE}` — per-datatype weights into '
+             '`biological_relevance`: '
+             + ', '.join(f'{k}={_bio_prof[k]:.2f}' for k in
+                         ('clinical', 'somatic_mutation', 'literature',
+                          'animal_model', 'rna_expression', 'affected_pathway')) + '.')
+if WEIGHT_PROFILE == 'discovery':
+    lines.append('_Discovery (drug-blind) profile: `clinical` datatype excluded, '
+                 'every biological datatype equally weighted — correct for '
+                 'immune/genetics-driven disease. `biological_relevance` is taken '
+                 'as-supplied by the upstream evidence query (unchanged)._')
+else:
+    lines.append('_Solid-tumour profile: `somatic_mutation` re-admitted at full '
+                 'weight and `clinical` given partial (0.50) weight, so a driver '
+                 'oncogene whose OT evidence is predominantly clinical + somatic '
+                 '(e.g. ERBB2 in breast cancer) is no longer demoted below GWAS '
+                 'passengers. `biological_relevance` is recomputed from the raw '
+                 'per-datatype scores preserved in the evidence `notes` column._')
 lines.append('')
 lines.append('## Ranked targets')
 lines.append('')

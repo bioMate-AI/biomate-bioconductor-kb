@@ -92,7 +92,7 @@ process QSP_VIRTUAL_POPULATION {
     """
     export PARAM_COVARIATE='${params.covariate_file}'
     export PARAM_MODEL='${params.model_file}'
-    export PARAM_ANALYSIS='${params.analysis}'
+    export PARAM_ANALYSIS='${params.analysis.toString().replace("'", "'\\''")}'
     export PARAM_N_PATIENTS='${params.n_patients}'
     export PARAM_BM_PREV='${params.biomarker_prevalence}'
     export PARAM_ALLOC='${params.allocation_ratio}'

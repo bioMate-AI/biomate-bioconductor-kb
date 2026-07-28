@@ -52,7 +52,7 @@ process INTEGRATION_BENCHMARK {
     script:
     """
     export PARAM_EMB='${params.embedding_file}'
-    export PARAM_METHOD='${params.method_name}'
+    export PARAM_METHOD='${params.method_name.toString().replace("'", "'\\''")}'
     export PARAM_K='${params.k}'
     export PARAM_BW='${params.batch_weight}'
     export PARAM_GT='${params.good_threshold}'
@@ -129,8 +129,50 @@ for i in range(n):
     iLISI.append(inv_simpson([batch[j] for j in knn[i]]))
     cLISI.append(inv_simpson([ctype[j] for j in knn[i]]))
 ilisi=sum(iLISI)/n; clisi=sum(cLISI)/n
-# normalise: iLISI in [1,nb] -> [0,1] (high=mixed=good); cLISI in [1,nc] -> purity (high=pure=good)
-ilisi_score = (ilisi-1)/(nb-1) if nb>1 else 0.0
+
+# --- Scale-robust batch-mixing normalization via permutation null ---------------
+# BUG (found on the 9-batch scIB pancreas dataset): the old linear map
+#   ilisi_score = (iLISI-1)/(nb-1)
+# assumes perfect mixing yields iLISI == nb. That is only attainable in the
+# infinite-k limit. With finite k and many batches (nb=9, k=30) even perfectly
+# random label assignment can't fill each k-neighbourhood with all nb batches in
+# their true proportions, so iLISI tops out well below nb. Result: batch_removal
+# had a ceiling ~0.44-0.58 and could never cross good_threshold=0.6, making the
+# OVER-CORRECTED branch (batch_removal >= t > bio) UNREACHABLE — everything that
+# was actually over-corrected mislabelled as UNDER-CORRECTED.
+#
+# FIX: normalize against the EMPIRICAL perfect-mixing reference for THIS k and
+# THESE batch proportions. Shuffle the batch labels (deterministic seeded loop —
+# no wall-clock / Math.random) and recompute mean iLISI on the SAME kNN graph;
+# the average over several shuffles is the inverse-Simpson diversity you'd see if
+# batches were mixed as well as randomly possible. Then
+#   ilisi_score = clip((iLISI - 1) / (perm_iLISI - 1), 0, 1)
+# reaches ~1.0 at true perfect mixing regardless of nb, so the fixed 0.6
+# threshold is meaningful again and the OVER-CORRECTED branch is reachable.
+import random as _random
+_N_PERM = 10
+_perm_means = []
+_base = list(batch)
+_rng = _random.Random(1234567)   # fixed seed -> deterministic, reproducible
+for _p in range(_N_PERM):
+    _shuf = list(_base)
+    _rng.shuffle(_shuf)
+    _s = 0.0
+    for i in range(n):
+        _s += inv_simpson([_shuf[j] for j in knn[i]])
+    _perm_means.append(_s / n)
+perm_ilisi = sum(_perm_means) / len(_perm_means)   # empirical perfect-mixing iLISI at this k
+# normalise batch mixing against the permutation null (fallback to linear if the
+# null is degenerate, e.g. a single batch dominating so perm_iLISI ~ 1)
+if perm_ilisi > 1.0 + 1e-9:
+    ilisi_score = (ilisi - 1.0) / (perm_ilisi - 1.0)
+elif nb > 1:
+    ilisi_score = (ilisi - 1.0) / (nb - 1.0)
+else:
+    ilisi_score = 0.0
+ilisi_score = max(0.0, min(1.0, ilisi_score))
+# cLISI purity: high=pure=good; linear map is fine here (bio floor is handled by
+# reporting cLISI/ASW as-is; only the batch-mixing ceiling broke the verdict).
 clisi_purity = 1.0 - (clisi-1)/(nc-1) if nc>1 else 1.0
 
 # silhouette by a grouping
@@ -179,6 +221,7 @@ else:
 res={'status':'completed','method':method,'n_cells':n,'n_batches':nb,'n_celltypes':nc,
      'k':k,
      'batch_removal':{'score':batch_removal,'iLISI':round(ilisi,3),'iLISI_score':round(ilisi_score,4),
+                      'perm_null_iLISI':round(perm_ilisi,3),'iLISI_norm':'permutation_null',
                       'ASW_batch':round(asw_batch,4),'ASW_batch_score':round(asw_batch_score,4)},
      'biology_conservation':{'score':bio_conservation,'cLISI':round(clisi,3),
                              'cLISI_purity':round(clisi_purity,4),'ASW_celltype':round(asw_ct,4),

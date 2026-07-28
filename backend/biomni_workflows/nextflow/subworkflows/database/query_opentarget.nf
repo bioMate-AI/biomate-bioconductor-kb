@@ -45,8 +45,8 @@ process QUERY_OPENTARGET {
 
     script:
     """
-    export PARAM_DISEASE='${params.disease}'
-    export PARAM_EFO='${params.efo_id}'
+    export PARAM_DISEASE='${params.disease.toString().replace("'", "'\\''")}'
+    export PARAM_EFO='${params.efo_id.toString().replace("'", "'\\''")}'
     export PARAM_N='${params.n_targets}'
     export PARAM_MINSCORE='${params.min_association}'
 

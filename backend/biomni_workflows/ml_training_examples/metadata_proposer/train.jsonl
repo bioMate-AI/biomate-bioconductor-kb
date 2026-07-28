@@ -1,0 +1,57 @@
+{"input": "rheum. arthritis", "gold_term_id": "MONDO:0008383", "gold_label": "rheumatoid arthritis", "in_dictionary": true}
+{"input": "scleroderma", "gold_term_id": "MONDO:0007256", "gold_label": "systemic scleroderma", "in_dictionary": true}
+{"input": "macrophages", "gold_term_id": "CL:0000235", "gold_label": "macrophage", "in_dictionary": true}
+{"input": "arthralgia", "gold_term_id": "HP:0002829", "gold_label": "Arthralgia", "in_dictionary": true}
+{"input": "monocyte", "gold_term_id": "CL:0000576", "gold_label": "monocyte", "in_dictionary": true}
+{"input": "rash", "gold_term_id": "HP:0000988", "gold_label": "Skin rash", "in_dictionary": true}
+{"input": "B cell", "gold_term_id": "CL:0000236", "gold_label": "B cell", "in_dictionary": true}
+{"input": "JIA", "gold_term_id": "MONDO:0011849", "gold_label": "juvenile rheumatoid arthritis", "in_dictionary": true}
+{"input": "SLE", "gold_term_id": "MONDO:0007915", "gold_label": "systemic lupus erythematosus", "in_dictionary": true}
+{"input": "skin rash", "gold_term_id": "HP:0000988", "gold_label": "Skin rash", "in_dictionary": true}
+{"input": "Rheumatoid Arthritis", "gold_term_id": "MONDO:0008383", "gold_label": "rheumatoid arthritis", "in_dictionary": true}
+{"input": "pyrexia", "gold_term_id": "HP:0001945", "gold_label": "Fever", "in_dictionary": true}
+{"input": "joint inflammation", "gold_term_id": "HP:0001369", "gold_label": "Arthritis", "in_dictionary": true}
+{"input": "PBMC", "gold_term_id": "CL:2000001", "gold_label": "peripheral blood mononuclear cell", "in_dictionary": true}
+{"input": "bronchial asthma", "gold_term_id": "MONDO:0004979", "gold_label": "asthma", "in_dictionary": true}
+{"input": "CD4+ T cell", "gold_term_id": "CL:0000624", "gold_label": "CD4-positive, alpha-beta T cell", "in_dictionary": true}
+{"input": "autoimmune", "gold_term_id": "HP:0002960", "gold_label": "Autoimmunity", "in_dictionary": true}
+{"input": "B lymphocyte", "gold_term_id": "CL:0000236", "gold_label": "B cell", "in_dictionary": true}
+{"input": "UC", "gold_term_id": "MONDO:0005101", "gold_label": "ulcerative colitis", "in_dictionary": true}
+{"input": "clinician note: query overlap syndrome, refer rheum", "gold_term_id": "ABSTAIN", "gold_label": "", "in_dictionary": false}
+{"input": "type 2 diabetes mellitus", "gold_term_id": "MONDO:0005148", "gold_label": "type 2 diabetes mellitus", "in_dictionary": true}
+{"input": "batch QC failed \u2014 RIN 3.2, excluded from integration", "gold_term_id": "ABSTAIN", "gold_label": "", "in_dictionary": false}
+{"input": "RA", "gold_term_id": "MONDO:0008383", "gold_label": "rheumatoid arthritis", "in_dictionary": true}
+{"input": "responder per investigator global assessment week 24", "gold_term_id": "ABSTAIN", "gold_label": "", "in_dictionary": false}
+{"input": "peripheral blood mononuclear cells", "gold_term_id": "CL:2000001", "gold_label": "peripheral blood mononuclear cell", "in_dictionary": true}
+{"input": "adverse event grade 2 injection-site reaction", "gold_term_id": "ABSTAIN", "gold_label": "", "in_dictionary": false}
+{"input": "concomitant medication: methotrexate 15mg weekly", "gold_term_id": "ABSTAIN", "gold_label": "", "in_dictionary": false}
+{"input": "cytotoxic T cell", "gold_term_id": "CL:0000625", "gold_label": "CD8-positive, alpha-beta T cell", "in_dictionary": true}
+{"input": "multiple sclerosis", "gold_term_id": "MONDO:0005301", "gold_label": "multiple sclerosis", "in_dictionary": true}
+{"input": "systemic lupus erythematosus", "gold_term_id": "MONDO:0007915", "gold_label": "systemic lupus erythematosus", "in_dictionary": true}
+{"input": "cohort C enrolled under compassionate-use pathway", "gold_term_id": "ABSTAIN", "gold_label": "", "in_dictionary": false}
+{"input": "cyclic peptide macrocycle permeability assay plate 7", "gold_term_id": "ABSTAIN", "gold_label": "", "in_dictionary": false}
+{"input": "NKT cell", "gold_term_id": "CL:0000814", "gold_label": "mature NK T cell", "in_dictionary": true}
+{"input": "type 1 diabetes", "gold_term_id": "MONDO:0005147", "gold_label": "type 1 diabetes mellitus", "in_dictionary": true}
+{"input": "helper T cell", "gold_term_id": "CL:0000624", "gold_label": "CD4-positive, alpha-beta T cell", "in_dictionary": true}
+{"input": "site 4 collection protocol v2.1 amendment pending IRB", "gold_term_id": "ABSTAIN", "gold_label": "", "in_dictionary": false}
+{"input": "arthritis", "gold_term_id": "HP:0001369", "gold_label": "Arthritis", "in_dictionary": true}
+{"input": "PBMCs", "gold_term_id": "CL:2000001", "gold_label": "peripheral blood mononuclear cell", "in_dictionary": true}
+{"input": "CD4 T cell", "gold_term_id": "CL:0000624", "gold_label": "CD4-positive, alpha-beta T cell", "in_dictionary": true}
+{"input": "joint pain", "gold_term_id": "HP:0002829", "gold_label": "Arthralgia", "in_dictionary": true}
+{"input": "instrument: 10x Chromium Next GEM 3' v3.1", "gold_term_id": "ABSTAIN", "gold_label": "", "in_dictionary": false}
+{"input": "sample stored at -80C for 14 months, single freeze-thaw", "gold_term_id": "ABSTAIN", "gold_label": "", "in_dictionary": false}
+{"input": "T1D", "gold_term_id": "MONDO:0005147", "gold_label": "type 1 diabetes mellitus", "in_dictionary": true}
+{"input": "macrophage", "gold_term_id": "CL:0000235", "gold_label": "macrophage", "in_dictionary": true}
+{"input": "flow panel P3 gate: live singlets, CD45+", "gold_term_id": "ABSTAIN", "gold_label": "", "in_dictionary": false}
+{"input": "DC", "gold_term_id": "CL:0000451", "gold_label": "dendritic cell", "in_dictionary": true}
+{"input": "quality flag: doublet-enriched, needs re-sort", "gold_term_id": "ABSTAIN", "gold_label": "", "in_dictionary": false}
+{"input": "juvenile idiopathic arthritis", "gold_term_id": "MONDO:0011849", "gold_label": "juvenile rheumatoid arthritis", "in_dictionary": true}
+{"input": "systemic sclerosis", "gold_term_id": "MONDO:0007256", "gold_label": "systemic scleroderma", "in_dictionary": true}
+{"input": "monocytes", "gold_term_id": "CL:0000576", "gold_label": "monocyte", "in_dictionary": true}
+{"input": "IDDM", "gold_term_id": "MONDO:0005147", "gold_label": "type 1 diabetes mellitus", "in_dictionary": true}
+{"input": "rheumatoid arthritis (disorder)", "gold_term_id": "MONDO:0008383", "gold_label": "rheumatoid arthritis", "in_dictionary": true}
+{"input": "rheumatoid arth.", "gold_term_id": "MONDO:0008383", "gold_label": "rheumatoid arthritis", "in_dictionary": true}
+{"input": "plasmacytoid dendritic cell", "gold_term_id": "CL:0000784", "gold_label": "plasmacytoid dendritic cell", "in_dictionary": true}
+{"input": "specimen SPREC code TTL-A-Z-B", "gold_term_id": "ABSTAIN", "gold_label": "", "in_dictionary": false}
+{"input": "CD56 bright NK cell", "gold_term_id": "CL:0000939", "gold_label": "CD16-negative, CD56-bright natural killer cell", "in_dictionary": true}
+{"input": "juvenile RA", "gold_term_id": "MONDO:0011849", "gold_label": "juvenile rheumatoid arthritis", "in_dictionary": true}
