@@ -89,6 +89,17 @@ process BIOC_MOFA2_STANDARD_MOFA_ANALYSIS {
                 try(data[[.view]] <- .read_matrix(.f), silent = TRUE)
               }
             }
+            # [biomate] align all views to their COMMON samples, consistent order. Real
+            # cohorts (e.g. TCGA) measure each omic on a different, overlapping sample
+            # set; create_mofa_from_matrix requires identical samples/order across views.
+            if (is.list(data) && !is.data.frame(data) && length(data) >= 2) {
+              .common <- Reduce(intersect, lapply(data, colnames))
+              if (length(.common) >= 2) {
+                data <- lapply(data, function(m) m[, .common, drop = FALSE])
+                cat(sprintf("[mofa2] %d views aligned to %d common samples\\n", length(data), length(.common)))
+              }
+            }
+
             dt <- if (file.exists("dt.rds")) readRDS("dt.rds") else NULL
 
             # --- Create MOFA object ---

@@ -70,6 +70,14 @@ process BIOC_SNF_MULTIOMICS {
     }
     stopifnot(length(data) >= 2)
 
+    # [biomate] align all views to their COMMON samples, in a consistent order. Real
+    # cohorts (e.g. TCGA) measure each omic on a different, overlapping sample set;
+    # SNF requires identical samples/order across views (else non-conformable arrays).
+    .common <- Reduce(intersect, lapply(data, colnames))
+    stopifnot(length(.common) >= 2)
+    data <- lapply(data, function(m) m[, .common, drop = FALSE])
+    cat(sprintf("[snf] %d views aligned to %d common samples\\n", length(data), length(.common)))
+
     # --- SNF pipeline ---
     K <- 20L      # KNN neighbours (SNF default)
     alpha <- 0.5  # kernel width (SNF default)
