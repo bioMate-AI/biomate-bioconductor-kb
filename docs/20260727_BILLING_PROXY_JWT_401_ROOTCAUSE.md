@@ -1,9 +1,17 @@
 # Billing UI 401 — Root Cause: stale `GALAXY_JWT_SECRET` on the dev frontend
 
 **Date:** 2026-07-27
-**Status:** 🔴 Root-caused, **fix is an ops/env change** (not code) — handed off, not yet applied
-**Severity:** Billing page + any `/api/billing/*` call is broken on **dev** for every user
+**Status:** ✅ RESOLVED on dev 2026-07-28 (removed stale `GALAXY_JWT_SECRET` from `/opt/biomate/.env`
++ recreated `biomate-dev-frontend`). `/api/billing/{quota,usage}` now return **200** through the
+public proxy. **Follow-ups still open:** (1) remove/correct the stale `GALAXY_JWT_SECRET` in the dev
+**GitHub secret** so it doesn't return on the next full redeploy; (2) verify the invariant in **prod**.
+**Severity:** Billing page + any `/api/billing/*` call was broken on **dev** for every user
 **Scope:** dev environment config only — **not** a code bug, **not** related to the Lago drop
+
+> **Verification (2026-07-28):** after the env fix, `GET https://dev-public.biomate.ai/api/billing/quota`
+> with a fixture Bearer → `200 {"used_usd":5.224686,"quota_usd":null,"over_quota":false}`;
+> `/api/billing/usage` → `200` with the full internal breakdown (llm $3.98 / 906 calls, compute
+> $1.25 / 148 jobs) — all from the internal ledger, Lago-free.
 
 ---
 
