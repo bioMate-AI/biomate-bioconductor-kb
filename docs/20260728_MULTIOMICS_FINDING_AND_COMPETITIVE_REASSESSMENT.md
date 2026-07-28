@@ -42,13 +42,15 @@ papers; "integration benefit is context-dependent"). The sharper, genuinely-open
 question (confirmed open by search: *no clean MOFA-ARD-vs-SNF-equal-weight
 noise-robustness comparison exists*; field guidance is qualitative-only):
 
-> **Whether adding a modality helps or hurts unsupervised subtype recovery is governed
-> by the integration method's view-weighting mechanism** — ARD-sparse methods (MOFA2)
-> are robust to an uninformative modality; equal-weight fusion (SNF) is degraded by it,
-> **even when that modality independently carries the label** — the harm tracks the
-> quality of the view's *affinity graph* (sparsity/missingness), not its signal content.
-> (An initial "predictable from standalone label-alignment" form was tested and REFUTED;
-> see §2 predictor sub-experiment — the refined predictor is affinity-graph quality.)
+> **Robustness to a low-value modality is governed by the integration method's
+> view-weighting mechanism** — ARD-sparse methods (MOFA2) are robust to a bad view;
+> equal-weight fusion (SNF) is degraded by it, **even when that modality independently
+> carries the label** (mutations). **AND which modality helps is method-dependent and
+> NOT predictable from cheap per-view properties** — standalone recovery, label-alignment,
+> and affinity-concordance all fail as predictors (see §2 full-ablation table). The
+> practical consequence: intuition about modality value is unreliable → you must run the
+> head-to-head. (Two earlier clean-predictor forms — "standalone label-alignment" then
+> "affinity-graph quality" — were both tested and REFUTED. This is the honest result.)
 
 Mechanistic, controlled, quantitative, and it *resolves* a known-but-unexplained
 phenomenon (attributes the cause + gives a predictor).
@@ -101,14 +103,47 @@ contribution.** The clean predictor is wrong.
 > immune. Two distinct harm signatures: **structured-but-degenerate** (mutations, −0.18)
 > vs **dense-but-uninformative** (noise, −0.057). Both sink SNF; neither touches MOFA2.
 
+### Full ablation — ALL cheap predictors fail (the honest, decisive result)
+SNF leave-one-out on the base-3 (base3 ARI = 0.553) + the two additions, per-view
+marginal contribution vs candidate metrics:
+
+| view | marginal→SNF | NA | standalone | IGHV-sil | concord |
+|---|---|---|---|---|---|
+| **drugs** | **+0.280** | 0.08 | 0.176 | 0.10 | 0.008 |
+| methylation | +0.089 | 0.02 | 0.760 | 0.16 | 0.053 |
+| mrna | **−0.021** | 0.32 | −0.005 | 0.05 | 0.072 |
+| mutations | −0.178 | 0.34 | 0.418 | 0.15 | 0.062 |
+| noise | −0.057 | 0.00 | 0.002 | 0.00 | −0.003 |
+
+Pearson r (marginal vs metric, n=5): standalone **+0.05**, IGHV-sil **+0.10**, concord
+**−0.42 (wrong sign)**, NA-fraction **−0.53 (best, moderate, unstable at n=5)**.
+
+**Two surprises, both real:**
+1. **Standalone value ≠ fused value.** `drugs` is the *most* valuable in fusion (+0.28)
+   despite weak standalone (0.176); `methylation` — strongest standalone (0.760) — adds
+   only +0.089; `mrna` slightly *hurts* (−0.021). Fused and standalone value are ~uncorrelated.
+2. **No single cheap metric predicts marginal contribution.** Two *distinct* harm
+   mechanisms sink equal-weight fusion — high-missingness/sparse views (mrna, mutations
+   ~0.33 NA) AND uninformative-dense views (noise, 0 NA) — and no one scalar catches both.
+
+**This REFRAMES the thesis (honestly):** the splashy "we predict the best modality/method
+a-priori" claim is **not supported** on CLL. What *is* robust and defensible:
+
+> **(a)** Robustness to a bad modality is a property of the method's view-weighting
+> (ARD-sparse robust; equal-weight degraded) — the 2×2 + ARD weights prove this.
+> **(b)** *Which* modality helps is method-dependent and **not predictable from cheap
+> per-view properties** — so intuition is unreliable and **you must actually run the
+> head-to-head.** That is a *negative result that motivates the benchmark platform*,
+> not a magic recommender. Weaker as a headline, but true — and still a real product
+> argument (don't trust your gut about modality value; benchmark it).
+
 ### What this still needs to be a *finding*, not an anecdote
-1. **Graph-quality predictor** — test whether an affinity-quality / cross-view
-   concordance measure (NA-fraction, feature sparsity, effective rank of the view's
-   affinity, or concordance with the consensus affinity) predicts marginal harm in
-   equal-weight fusion. The standalone-recovery predictor is already refuted.
-2. **Generalization** — TCGA (≥3 cancers, PAM50). One cohort/one label ≠ a finding.
-3. **More weighting mechanisms** — intNMF / iClusterPlus / DIABLO, to show it's the
+1. **Generalization** — TCGA (≥3 cancers, PAM50). Critically: does the *unpredictability*
+   itself replicate, and does NA-fraction (the one weak signal) hold or vanish? One
+   cohort/one label ≠ a finding.
+2. **More weighting mechanisms** — intNMF / iClusterPlus / DIABLO, to show (a) is the
    *mechanism* (view-weighting), not "MOFA good, SNF bad."
+3. Larger view panels (>5) so predictor correlations aren't n=5-unstable.
 
 ---
 
