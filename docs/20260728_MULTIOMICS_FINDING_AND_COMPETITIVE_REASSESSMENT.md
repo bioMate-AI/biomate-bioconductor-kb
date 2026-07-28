@@ -1,0 +1,109 @@
+# Multi-Omics: The Finding + an Honest Competitive Reassessment
+
+**Date:** 2026-07-28
+**Context:** Follow-on to `docs/20260727_MULTIOMICS_BENCHMARK_DESIGN.md` (Phase-1 pilot).
+Two questions forced this doc: *"what is the innovation?"* and *"you sure no one is
+doing it?"* — both correct to press. The answer changed the plan.
+
+---
+
+## 1. Competitive reassessment — the platform novelty is largely gone
+
+An earlier survey (in the design doc) claimed the "LLM-orchestrated reproducible
+multi-omics platform" seam was empty. A targeted 2026-07-28 search **refuted that.**
+A cluster of 2025–2026 systems now occupies it:
+
+| System | What it is | Overlap with BioMate |
+|---|---|---|
+| **OmniBioAI** (omnibioai.org) | agentic (LangGraph) reproducible multi-omics, local/HPC/**cloud** (AWS/Azure/GCP), bulk+sc+spatial | **near-twin of our platform pitch** |
+| **OmicOS** (bioRxiv 2026-06) | omics agent ecosystem (OmicVerse), 90% Pass@1 / 50 tasks | agent-for-omics, our lane |
+| **OmicsNavigator** (bioRxiv 2025-07) | LLM multi-agent, autonomous insight from raw **spatial** omics | **takes the spatial+LLM white space** |
+| **OMICX** (Genomics 2026) | code-free NL single-cell analysis, LLM agent | NL-interface angle |
+| **CEPICS** (2019) | platform that runs **≥5 integration methods** + clustering/survival metrics, upload-your-own-results | **the prior for "platform-as-method-benchmark"** |
+| **scMultiBench** (Nat Methods 2025) | 40-method sc benchmark + method-selection guidance | method-comparison + guidance (sc) |
+
+**Consequence:** "LLM + reproducible + cloud + multi-omics" is **not a contribution in
+mid-2026.** Two of three "white space" candidates (spatial+LLM, agent-systems) are
+also taken. Adjective-stacking novelty ("we combined 4 things") collapses under this.
+
+**What survived — narrow but real:** none of the *agentic platforms* (OmniBioAI, OmicOS,
+OMICX) does **fair head-to-head benchmarking of integration METHODS with ground-truth
+recovery metrics**; the *method benchmarks* (CEPICS, scMultiBench, momix) are static
+codebases, not run-your-own-data platforms. So "the platform IS the method-benchmark
+harness" is an *incremental merge* of CEPICS + an agentic platform — defensible as a
+**tool note**, not as a novel-method paper. Hence the pivot below.
+
+---
+
+## 2. The pivot — find a real *finding*, not a platform
+
+A bare "adding modalities can hurt" is **already known** (many survival-ML ablation
+papers; "integration benefit is context-dependent"). The sharper, genuinely-open
+question (confirmed open by search: *no clean MOFA-ARD-vs-SNF-equal-weight
+noise-robustness comparison exists*; field guidance is qualitative-only):
+
+> **Whether adding a modality helps or hurts unsupervised subtype recovery is governed
+> by the integration method's view-weighting mechanism** — ARD-sparse methods (MOFA2)
+> are robust to an uninformative modality; equal-weight fusion (SNF) is degraded by it —
+> **and the effect is predictable a-priori from each modality's standalone
+> label-alignment.**
+
+Mechanistic, controlled, quantitative, and it *resolves* a known-but-unexplained
+phenomenon (attributes the cause + gives a predictor).
+
+### 2×2 controlled experiment (real CLL, through the platform)
+Inputs = mrna + methylation + drugs; **IGHV held out as label** (dropping the mutations
+view removes label leakage). Scored by `scripts/multiomics_metric_harness.py`.
+
+| Condition | SNF (equal-weight) | MOFA2 (ARD) |
+|---|---|---|
+| 3 real modalities | ARI **0.553** | AUC **0.967** / k2-ARI 0.797 |
+| + **mutations** (real, sparse, *contains IGHV*) | ARI **0.375**  (**−0.18**) | AUC **0.968** (flat) |
+| + **pure-noise** modality (2000× Gaussian) | ARI **0.496**  (**−0.057**) | *(rerun in flight — run e06888b3)* |
+
+**Headline (real data):** adding the mutations view **hurts SNF by 0.18 ARI — even
+though that view literally contains the label** — while MOFA2 is flat. Equal weighting
+is dragged down by a sparse/noisy view; ARD zeroes it. The synthetic-noise cell
+confirms the direction (−0.057, smaller because pure Gaussian is *less* structured-
+misleading than the real mutations view).
+
+*Discipline note:* the first MOFA2+noise run FAILED — **not** a MOFA robustness result,
+but a data-prep bug (my synthetic view had double-quoted sample names → MOFA matches
+views by name and rejected the mismatch; SNF fuses by position so its 0.496 is valid).
+Fixed + rerun. "A failed run is not a finding."
+
+### What this still needs to be a *finding*, not an anecdote
+1. **Predictor** — single-modality recoveries (mrna/meth/drugs/mutations alone) vs each
+   view's marginal contribution. Prediction: mutations' *standalone* recovery is low
+   (sparse, 33% NA) → that's *why* it hurts SNF. Earns the a-priori-rule claim.
+2. **Generalization** — TCGA (≥3 cancers, PAM50). One cohort/one label ≠ a finding.
+3. **More weighting mechanisms** — intNMF / iClusterPlus / DIABLO, to show it's the
+   *mechanism* (view-weighting), not "MOFA good, SNF bad."
+
+---
+
+## 3. How the finding makes the platform stronger (the flywheel)
+
+The finding is not just a paper — it's the **method-selection rule** no competitor
+ships: *"your modality set contains a weakly-aligned layer (mutations); it degrades
+equal-weight fusion by ~0.18 but not ARD methods → recommend MOFA2, or drop that layer
+for SNF."* OmniBioAI/OmicOS run *a* pipeline with no such guidance; CEPICS compares
+methods but gives no recommendation. **Science → rule → product differentiation → more
+science.** Plus BioMate's structural moat that pure-software competitors can't copy: the
+wet-lab DBTL loop (a benchmark that ends in a re-executable CRO order, not a figure).
+
+**Two tracks, one flywheel** (per user "both are important"): (a) the finding paper,
+(b) a stronger platform whose wedge IS the finding-driven recommender. The honest
+sequencing: **verify the finding first** (predictor + TCGA), because the recommender's
+credibility *is* the finding.
+
+---
+
+## 4. Runs (provenance)
+- 3 real modalities: MOFA2 `f45e29d4`, SNF `bd351c4b`
+- + noise: SNF `d6dbc925` (valid), MOFA2 `8a26ae66` (failed: quoted-names bug) → rerun `e06888b3`
+- + mutations (from Phase-1): SNF ARI 0.375 (4-view run), MOFA2 AUC 0.968
+- Noise modality: `s3://biomate-nextflow-work/cll_test/noise_modality.csv` (2000×200 Gaussian, seed 42)
+
+**Next:** confirm the 2×2 (MOFA2+noise), then the single-modality predictor sweep
+(8 runs), then TCGA. See [[project_multiomics_benchmark]].
