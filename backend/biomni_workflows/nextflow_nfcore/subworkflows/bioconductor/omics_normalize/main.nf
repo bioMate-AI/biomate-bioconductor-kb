@@ -82,7 +82,11 @@ process BIOC_OMICS_NORMALIZE {
       v <- as.numeric(M); fin <- v[is.finite(v)]
       # PMAD: pooled median absolute deviation of per-feature values (spread robustness)
       pmad <- median(abs(fin - median(fin)))
-      mu <- mean(fin); pcv <- if (is.finite(mu) && mu != 0) sd(fin) / abs(mu) else NA_real_
+      mu <- mean(fin)
+      # PCV (coefficient of variation) is only defined on ratio-scale (non-negative,
+      # non-centred) data. After z-scoring mean -> 0, so sd/|mean| explodes -> report
+      # NA rather than an astronomical artifact.
+      pcv <- if (is.finite(mu) && min(fin) >= 0 && mu > 1e-9) sd(fin) / mu else NA_real_
       list(n_features = nrow(M), n_samples = ncol(M),
            frac_na = mean(!is.finite(v)),
            mean = mu, sd = sd(fin), skew = .skew(fin),
