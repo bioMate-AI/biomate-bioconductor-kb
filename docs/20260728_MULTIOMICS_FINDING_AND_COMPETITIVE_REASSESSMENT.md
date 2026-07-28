@@ -59,13 +59,22 @@ view removes label leakage). Scored by `scripts/multiomics_metric_harness.py`.
 |---|---|---|
 | 3 real modalities | ARI **0.553** | AUC **0.967** / k2-ARI 0.797 |
 | + **mutations** (real, sparse, *contains IGHV*) | ARI **0.375**  (**−0.18**) | AUC **0.968** (flat) |
-| + **pure-noise** modality (2000× Gaussian) | ARI **0.496**  (**−0.057**) | *(rerun in flight — run e06888b3)* |
+| + **pure-noise** modality (2000× Gaussian) | ARI **0.496**  (**−0.057**) | AUC **0.967** / k2-ARI 0.797 (**flat**) |
 
 **Headline (real data):** adding the mutations view **hurts SNF by 0.18 ARI — even
 though that view literally contains the label** — while MOFA2 is flat. Equal weighting
 is dragged down by a sparse/noisy view; ARD zeroes it. The synthetic-noise cell
-confirms the direction (−0.057, smaller because pure Gaussian is *less* structured-
-misleading than the real mutations view).
+confirms the direction (SNF −0.057; MOFA2 flat, 0.967→0.967).
+
+**Mechanistic smoking gun (ARD, from the +noise MOFA2 weights):** per-view mean
+|loading| across all factors — methylation **0.128**, mrna **0.115** (the IGHV
+carriers), drugs 0.008, **noise_modality 0.003** (~40× smaller than the informative
+views, the smallest of all four). MOFA2's ARD prior *learns* to assign the
+uninformative view near-zero weight; SNF equal-weights it by construction. This is the
+*causal* explanation for the table above, not a correlation. (MOFA2+noise: run
+`e06888b3` → outdir `7228270b`; succeeded despite the platform status lagging at
+"running" — a completion-detection lag, verified via S3 outputs + `.command.err`
+showing only non-fatal warnings.)
 
 *Discipline note:* the first MOFA2+noise run FAILED — **not** a MOFA robustness result,
 but a data-prep bug (my synthetic view had double-quoted sample names → MOFA matches
