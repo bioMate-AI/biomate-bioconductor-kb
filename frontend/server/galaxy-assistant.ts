@@ -192,6 +192,28 @@ or PMID. Prefer this over guessing when the user asks "what evidence supports…
       required: ['query'],
     },
   },
+  {
+    name: 'search_my_data',
+    description: `Search the USER'S OWN datasets across all their BioMate projects — uploaded files and
+workflow run outputs alike (counts matrices, FASTQs, VCFs, structures, reports, etc.). Use this before
+asking the user to upload something, or when they refer to "my data", "the file I uploaded", "results
+from my last run", or a dataset by partial name. Returns matching files with name, type, size, the
+workflow/step that produced them, and the project they live in. Prefer this over assuming a file isn't
+available — the user may already have it in the platform.`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Terms to match against filename, workflow, step, or source (e.g. "rnaseq counts", "salmon quant", "vcf"). Space-separated tokens are AND-matched.',
+        },
+        type: { type: 'string', description: 'Optional content-type filter substring (e.g. "csv", "fastq", "image", "pdb").' },
+        source: { type: 'string', description: 'Optional exact source filter: "upload" or "run_output".' },
+        limit: { type: 'number', description: 'Max results (default 25, cap 100).' },
+      },
+      required: ['query'],
+    },
+  },
 ];
 
 /**
@@ -2792,6 +2814,7 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
             case 'read_file':   output = await this._toolReadFile(args, toolContext.context); break;
             case 'list_history': output = await this._toolListHistory(args, toolContext.context); break;
             case 'search_literature': output = await this._toolSearchLiterature(args); break;
+            case 'search_my_data': output = await this._toolSearchMyData(args, toolContext.context); break;
             default:            output = { error: `Unknown tool: ${name}` };
           }
         } catch (e: any) { error = e.message; output = { error }; }
@@ -8736,6 +8759,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           case 'search_literature':
             output = await this._toolSearchLiterature(block.input);
             break;
+          case 'search_my_data':
+            output = await this._toolSearchMyData(block.input, context);
+            break;
           default:
             output = { error: `Unknown tool: ${block.name}` };
         }
@@ -8994,6 +9020,67 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         total: papers.length,
         papers,
         note: 'Cite these by title + PMID/DOI. Do NOT cite any paper not in this list, and do not invent identifiers.',
+      };
+    } catch (err: any) {
+      return { error: err?.message ?? String(err), query };
+    }
+  }
+
+  /** search_my_data tool handler — unified dataset catalog over the user's OWN
+   *  files (uploads + run outputs) across all their projects. Queries the DB
+   *  directly, scoped to context.userId, so the model can discover client data
+   *  instead of asking for a re-upload (RFC unified data plane). */
+  private async _toolSearchMyData(input: any, context: ChatContext): Promise<unknown> {
+    const query = (input?.query ?? '').toString().trim();
+    if (!query) return { error: 'query is required' };
+    const uid = context?.userId ? String(context.userId) : undefined;
+    if (!uid) return { error: 'no authenticated user in context' };
+    const type = (input?.type ?? '').toString().trim();
+    const source = (input?.source ?? '').toString().trim();
+    let limit = Number(input?.limit);
+    if (!Number.isFinite(limit) || limit < 1) limit = 25;
+    if (limit > 100) limit = 100;
+    try {
+      const { pool } = await import('./db');
+      const params: any[] = [uid];
+      const clauses: string[] = ['user_id = $1'];
+      const tokens = query.split(/\s+/).filter(Boolean).slice(0, 6);
+      for (const tok of tokens) {
+        params.push(`%${tok}%`);
+        const i = params.length;
+        clauses.push(
+          `(name ILIKE $${i} OR COALESCE(workflow_name,'') ILIKE $${i} OR ` +
+          `COALESCE(step_name,'') ILIKE $${i} OR source ILIKE $${i} OR ` +
+          `COALESCE(input_context::text,'') ILIKE $${i})`
+        );
+      }
+      if (type) { params.push(`%${type}%`); clauses.push(`content_type ILIKE $${params.length}`); }
+      if (source) { params.push(source); clauses.push(`source = $${params.length}`); }
+      params.push(limit);
+      const sql =
+        `SELECT id, project_id, name, size, content_type, source, run_id, ` +
+        `workflow_name, step_name, created_at FROM project_files ` +
+        `WHERE ${clauses.join(' AND ')} ORDER BY created_at DESC LIMIT $${params.length}`;
+      const result = await pool.query(sql, params);
+      const files = result.rows.map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        type: r.content_type,
+        size: r.size,
+        source: r.source,
+        workflow: r.workflow_name ?? undefined,
+        step: r.step_name ?? undefined,
+        run_id: r.run_id ?? undefined,
+        project_id: r.project_id,
+        created_at: r.created_at,
+      }));
+      return {
+        query,
+        total: files.length,
+        files,
+        note: files.length
+          ? 'These are the user\'s real files. Reference them by name; use the id/run_id to wire them into a workflow. Do not ask the user to re-upload a file already listed here.'
+          : 'No matching datasets found in the user\'s projects. It is safe to ask them to upload the file.',
       };
     } catch (err: any) {
       return { error: err?.message ?? String(err), query };

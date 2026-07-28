@@ -352,6 +352,61 @@ export function registerProjectRoutes(app: Express): void {
     }
   });
 
+  // ─── GET /api/data/search ─────────────────────────────────────────────
+  // Unified dataset catalog: search ALL of a user's datasets across every
+  // project (uploads + run outputs), so the assistant can discover the
+  // client's OWN data — not just external literature (RFC unified data plane).
+  // Scoped strictly to the caller (user_id = $1). Tokenized ILIKE match over
+  // filename, workflow, step, source, and captured input context.
+  app.get("/api/data/search", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const q = (req.query.q ?? "").toString().trim();
+    const type = (req.query.type ?? "").toString().trim();
+    const source = (req.query.source ?? "").toString().trim();
+    let limit = parseInt((req.query.limit ?? "25").toString(), 10);
+    if (!Number.isFinite(limit) || limit < 1) limit = 25;
+    if (limit > 100) limit = 100;
+    try {
+      const params: any[] = [uid];
+      const clauses: string[] = ["user_id = $1"];
+      // Tokenize the query — every token must match somewhere (AND of ORs),
+      // so "rnaseq counts" finds files matching both terms, not the literal phrase.
+      const tokens = q.split(/\s+/).filter(Boolean).slice(0, 6);
+      for (const tok of tokens) {
+        params.push(`%${tok}%`);
+        const i = params.length;
+        clauses.push(
+          `(name ILIKE $${i} OR COALESCE(workflow_name,'') ILIKE $${i} OR ` +
+          `COALESCE(step_name,'') ILIKE $${i} OR source ILIKE $${i} OR ` +
+          `COALESCE(input_context::text,'') ILIKE $${i})`
+        );
+      }
+      if (type) { params.push(`%${type}%`); clauses.push(`content_type ILIKE $${params.length}`); }
+      if (source) { params.push(source); clauses.push(`source = $${params.length}`); }
+      params.push(limit);
+      const sql =
+        `SELECT id, project_id, name, s3_key, size, content_type, source, run_id, ` +
+        `workflow_name, step_name, created_at FROM project_files ` +
+        `WHERE ${clauses.join(" AND ")} ORDER BY created_at DESC LIMIT $${params.length}`;
+      const result = await pool.query(sql, params);
+      // Enrich with project names (bounded: dedupe project_ids, best-effort lookup).
+      const names: Record<string, string> = {};
+      const uniqueProjects = Array.from(new Set(result.rows.map((r: any) => r.project_id))).slice(0, 25);
+      await Promise.all(uniqueProjects.map(async (pid: any) => {
+        try {
+          const p = await memoryService.projects.getProject(String(pid));
+          if (p?.name) names[String(pid)] = p.name;
+        } catch { /* best-effort */ }
+      }));
+      const files = result.rows.map((r: any) => ({ ...r, project_name: names[String(r.project_id)] ?? null }));
+      res.json({ query: q, total: files.length, files });
+    } catch (e: any) {
+      console.error("[data_search] failed:", e?.message ?? e);
+      res.status(500).json({ error: "Failed to search datasets" });
+    }
+  });
+
   // ─── GET /api/projects/:id/sessions ──────────────────────────────────
   // List chat sessions linked to a project, newest first (max 50).
   app.get("/api/projects/:id/sessions", authenticateToken, async (req: Request, res: Response) => {
