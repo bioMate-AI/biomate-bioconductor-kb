@@ -214,6 +214,24 @@ available — the user may already have it in the platform.`,
       required: ['query'],
     },
   },
+  {
+    name: 'list_data_sources',
+    description: `List the external biological data sources BioMate can query — its canonical
+self-awareness catalog (UniProt, PDB, PubChem, ChEMBL, gnomAD, ClinVar, KEGG, Reactome, PubMed,
+Europe PMC, and more). Use this when the user asks "what databases can you access?", "can you query
+<X>?", or before telling the user a source is unavailable — check here first instead of guessing.
+Returns each source's name, category, the entity types it covers, and which surfaces reach it, plus
+a summary count. Sources marked status "planned" are not yet wired (do not claim they work).`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        category: { type: 'string', description: 'Optional filter, e.g. "compound", "gene", "variant", "literature", "structure", "pathway".' },
+        entity_type: { type: 'string', description: 'Optional: only sources covering this entity type (gene, protein, compound, variant, pathway, structure, disease, literature).' },
+        status: { type: 'string', description: 'Optional: "live" (default view is all) or "planned".' },
+      },
+      required: [],
+    },
+  },
 ];
 
 /**
@@ -2815,6 +2833,7 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
             case 'list_history': output = await this._toolListHistory(args, toolContext.context); break;
             case 'search_literature': output = await this._toolSearchLiterature(args); break;
             case 'search_my_data': output = await this._toolSearchMyData(args, toolContext.context); break;
+            case 'list_data_sources': output = await this._toolListDataSources(args); break;
             default:            output = { error: `Unknown tool: ${name}` };
           }
         } catch (e: any) { error = e.message; output = { error }; }
@@ -8762,6 +8781,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           case 'search_my_data':
             output = await this._toolSearchMyData(block.input, context);
             break;
+          case 'list_data_sources':
+            output = await this._toolListDataSources(block.input);
+            break;
           default:
             output = { error: `Unknown tool: ${block.name}` };
         }
@@ -9084,6 +9106,46 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       };
     } catch (err: any) {
       return { error: err?.message ?? String(err), query };
+    }
+  }
+
+  /** list_data_sources tool handler — reads the canonical data-source registry
+   *  from Galaxy (galaxy.ai.data_sources) so the model can answer "what can you
+   *  reach?" from the single source of truth. Filters client-side; flags planned
+   *  (not-yet-wired) sources so the model doesn't over-claim. */
+  private async _toolListDataSources(input: any): Promise<unknown> {
+    const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+    const category = (input?.category ?? '').toString().trim().toLowerCase();
+    const entityType = (input?.entity_type ?? '').toString().trim().toLowerCase();
+    const status = (input?.status ?? '').toString().trim().toLowerCase();
+    try {
+      const r = await fetch(`${galaxyUrl}/api/data_sources`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!r.ok) return { error: `data_sources HTTP ${r.status}` };
+      const data: any = await r.json();
+      let sources: any[] = Array.isArray(data?.sources) ? data.sources : [];
+      if (category) sources = sources.filter((s) => (s.category || '').toLowerCase() === category);
+      if (entityType) sources = sources.filter((s) => (s.entity_types || []).map((e: string) => e.toLowerCase()).includes(entityType));
+      if (status) sources = sources.filter((s) => (s.status || '').toLowerCase() === status);
+      const compact = sources.map((s) => ({
+        id: s.id,
+        name: s.name,
+        category: s.category,
+        entity_types: s.entity_types,
+        surfaces: s.surfaces,
+        status: s.status,
+      }));
+      return {
+        summary: data?.summary,
+        total_matched: compact.length,
+        sources: compact,
+        note: 'These are BioMate\'s real integrated data sources. status "planned" is NOT wired — do not claim it works. Query a live source with the query_database / federated path.',
+      };
+    } catch (err: any) {
+      return { error: err?.message ?? String(err) };
     }
   }
 
