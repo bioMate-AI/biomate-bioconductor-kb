@@ -3067,6 +3067,29 @@ def literature_search(
 
 
 @router.get(
+    "/api/data_sources",
+    summary="Canonical registry of BioMate's external data sources (self-awareness catalog)"
+)
+def data_sources_catalog(
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """Return the canonical data-source registry + a by-surface/status summary.
+    Backs the assistant's `list_data_sources` tool so it can answer "what data
+    can I reach?" from the single source of truth instead of guessing.
+    See galaxy.ai.data_sources / docs/20260728_UNIFIED_DATA_SOURCE_REGISTRY.md."""
+    try:
+        from galaxy.ai import data_sources as ds
+        return {
+            "success": True,
+            "summary": ds.summary(),
+            "sources": ds.list_data_sources(),
+        }
+    except Exception as e:
+        log.warning(f"[data_sources] catalog failed: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@router.get(
     "/api/ai_assistant/test_init",
     summary="Test AI Assistant initialization only"
 )
