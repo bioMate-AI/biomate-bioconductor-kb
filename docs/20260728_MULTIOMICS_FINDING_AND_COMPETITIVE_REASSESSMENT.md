@@ -164,6 +164,34 @@ credibility *is* the finding.
 
 ---
 
+## 3b. Track B — TCGA generalization (in progress): the ranking FLIPS across cohorts
+Second cohort staged through the platform via the canonical Rappoport & Shamir 2018
+benchmark (TCGA, mRNA/methylation/miRNA). **AML** (exp top-5000-var / methy / miRNA;
+runs `4593a3e6` MOFA2, `c3a5cdd7` SNF — after the sample-intersect fix, see §4a),
+scored vs cytogenetic-risk (3-class), matched k=3:
+
+| Cohort (label) | MOFA2 | SNF | winner |
+|---|---|---|---|
+| **CLL** (IGHV — strong molecular) | ARI 0.53 / AUC 0.97 | ARI 0.38–0.55 | **MOFA2** |
+| **TCGA-AML** (cyto-risk, k=3) | ARI **0.093** / NMI 0.156 | ARI **0.174** / NMI 0.278 | **SNF** |
+
+**The method ranking FLIPS between cohorts** — MOFA2 wins on CLL, SNF wins on AML. This
+is the strongest evidence yet for the reframed thesis: *no universal-best method; which
+one to trust is cohort/label-dependent → you must benchmark.* Honest caveats: (1) AML
+cyto-risk is a **prognostic** label, weakly omics-encoded → both methods score low
+(0.09–0.17); SNF did isolate one clean Favorable cluster (14/1/0). (2) A **strong
+molecular** label is the cleaner test — **BRCA PAM50 / GBM Verhaak next** (downloads
+currently blocked by TAU-server rate-limiting; retry pending). One flipped ranking on a
+weak label is suggestive, not conclusive; ≥2 strong-label cohorts needed to publish.
+
+### §4a — capability fix this unlocked (stronger-platform win)
+Real TCGA cohorts measure each omic on a **different, overlapping sample set** (AML:
+exp 173 / methy 194 / miRNA 188). MOFA2 (`create_mofa_from_matrix`) and SNF both require
+identical samples/order across views → both failed on first AML run. **Root-cause fix:**
+both workflows now `Reduce(intersect, colnames)` and subset every view to the common set
+before integration (no-op when views already match, so CLL is unaffected). The universal
+interface now handles heterogeneous real-world coverage — needed for every TCGA cohort.
+
 ## 4. Runs (provenance)
 - 3 real modalities: MOFA2 `f45e29d4`, SNF `bd351c4b`
 - + noise: SNF `d6dbc925` (valid), MOFA2 `8a26ae66` (failed: quoted-names bug) → rerun `e06888b3`
