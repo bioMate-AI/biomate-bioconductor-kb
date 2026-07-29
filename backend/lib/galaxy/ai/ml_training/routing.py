@@ -33,7 +33,16 @@ _TRAIN_RE = re.compile(rf"\b{_TRAIN_VERBS}\b.*\b{_MODEL_NOUNS}\b", re.I | re.S)
 _LLM_HINTS = re.compile(
     r"\b(llm|large\s*language\s*model|language\s*model|instruction[- ]?tun\w*|"
     r"chat\s*model|fine-?tune\w*\s+(a|an|the)?\s*(llm|language|gpt|chat)|"
-    r"gpt|smol\w*|llama|mistral|qwen|phi-?\d)\b", re.I)
+    r"gpt|smol\w*|llama|mistral|qwen|phi-?\d|dpo|grpo|rlhf|"
+    r"preference\s*(optim\w*|tun\w*|data)|reinforcement\s*learning|reward\s*model)\b",
+    re.I)
+# Preference-optimization (DPO) vs. RL (GRPO) sub-intents within the LLM branch.
+_DPO_HINTS = re.compile(
+    r"\b(dpo|direct\s*preference|preference\s*(optim\w*|tun\w*|pair|data)|"
+    r"chosen[/ ]?rejected|rlhf(?!.*grpo))\b", re.I)
+_GRPO_HINTS = re.compile(
+    r"\b(grpo|group\s*relative|reinforcement\s*learning|reward\s*(function|model|signal)|"
+    r"\brl\b\s*fine)\b", re.I)
 
 # Canonical public-dataset aliases (TDC single-pred names). Extend as needed.
 # key = lowercase phrase found in the request → (tdc_name, task_type, target_col)
@@ -83,18 +92,24 @@ def extract_training_config(
     dataset resolution order: explicit user-provided S3 data → recognised public
     alias → (gap) LLM fallback. Task/model type inferred by rules.
     """
-    # LLM fine-tuning branch — explicit LLM signal → ludwig_llm (text-generation).
+    # LLM fine-tuning branch — explicit LLM signal → ludwig_llm SFT, or a TRL
+    # preference/RL method (DPO/GRPO) when the request names one.
     if _LLM_HINTS.search(text):
         from .config import LLMSpec
-        # instruction data: user S3 → else the tiny offline fixture (card is
-        # editable so the user points at their JSONL / hf:<dataset>).
+        if _GRPO_HINTS.search(text):
+            model_type, default_ds, name = "trl_grpo", "fixture:prompts", "GRPO-tuned LLM"
+        elif _DPO_HINTS.search(text):
+            model_type, default_ds, name = "trl_dpo", "fixture:preference", "DPO-tuned LLM"
+        else:
+            model_type, default_ds, name = "ludwig_llm", "fixture:instruct", "instruction-tuned LLM"
+        # data: user S3 → else the tiny offline fixture (card is editable so the
+        # user points at their JSONL / hf:<dataset>).
         if dataset_s3_uri:
             dataset = DatasetSpec(s3_uri=dataset_s3_uri, split="random")
         else:
-            dataset = DatasetSpec(name="fixture:instruct", split="random")
-        name = default_name or "instruction-tuned LLM"
+            dataset = DatasetSpec(name=default_ds, split="random")
         return TrainingConfig(
-            name=name, task_type="text_generation", model_type="ludwig_llm",
+            name=default_name or name, task_type="text_generation", model_type=model_type,
             dataset=dataset, hyperparams=Hyperparams(epochs=3, learning_rate=1e-4),
             metric="loss", llm=LLMSpec(),
         ).validate()

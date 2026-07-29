@@ -1,0 +1,82 @@
+name: Build & push trl-training image
+
+# Preference-optimization / RL training image for DPO + GRPO (TRL). Kept
+# SEPARATE from ml-training because TRL 0.24 needs newer torch/transformers/
+# pyarrow than Ludwig 0.10.4's pins allow. Same CLI entrypoint
+# (`python -m ml_training.cli`); the executor selects this image for
+# model_type in {trl_dpo, trl_grpo} via TRL_TRAINING_IMAGE.
+
+on:
+  workflow_dispatch: {}
+  push:
+    tags:
+      - 'trl-training-v**'
+
+permissions:
+  id-token: write     # OIDC assume-role
+  contents: read
+
+concurrency:
+  group: trl-training-image-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: us-west-2
+  ECR_REGISTRY: 399683337364.dkr.ecr.us-west-2.amazonaws.com
+  ECR_REPO: biomate/trl-training
+  ROLE_ARN: arn:aws:iam::399683337364:role/GitHubActionsECRPush
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute build tags
+        id: tags
+        run: echo "sha_tag=sha-${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # ECR repo `biomate/trl-training` (us-west-2) is pre-created out of band —
+      # the GitHubActionsECRPush role can push but not ecr:CreateRepository.
+
+      # torch + transformers pull multiple GB; reclaim the large preinstalled
+      # runner toolchains first so the build doesn't hit "No space left on device".
+      - name: Free up runner disk space
+        run: |
+          echo "Before:"; df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                      /opt/hostedtoolcache/CodeQL /usr/local/.ghcup || true
+          sudo docker image prune --all --force || true
+          echo "After:"; df -h / | tail -1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/docker/trl-training.Dockerfile
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:latest
+          cache-from: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:buildcache
+          cache-to: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:buildcache,mode=max
+
+      - name: Smoke — CLI runs in the pushed image
+        run: |
+          docker run --rm ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+            python -m ml_training.cli --help >/dev/null
+          echo "trl-training image smoke OK"

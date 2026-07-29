@@ -139,8 +139,9 @@ def run_training_job(
     # 1. Load data. LLM fine-tuning uses instruction/response text, not the
     # molecular (smiles,label) loader — the LLM trainer loads its own rows from
     # cfg.dataset, so pass a placeholder here.
-    if cfg.model_type == "ludwig_llm":
-        dataset = LoadedDataset([], "instruction", "output", source="llm (loaded in trainer)")
+    from .config import LLM_MODEL_TYPES
+    if cfg.model_type in LLM_MODEL_TYPES:
+        dataset = LoadedDataset([], "instruction", "output", source="llm/text (loaded in trainer)")
     else:
         dataset = load_fn(cfg.dataset)
     log.info("[ml_training] loaded %d rows from %s", len(dataset), dataset.source)

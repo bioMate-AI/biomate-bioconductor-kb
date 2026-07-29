@@ -28,9 +28,15 @@ DEFAULT_NEXTFLOW_PATH = "ml_training/chemprop_train.nf"
 # RDKit + PyTDC + the ml_training package) is built by ml-training-image.yml; the
 # GPU image (adds chemprop/torch-cuda) is a later step.
 _DEFAULT_CPU_IMAGE = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ml-training:latest"
+# TRL (DPO/GRPO) needs newer torch/transformers/pyarrow that conflict with
+# Ludwig's pins, so it ships in a separate image.
+_DEFAULT_TRL_IMAGE = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/trl-training:latest"
 
 
 def _resolve_container(cfg: TrainingConfig) -> str:
+    from .config import TRL_MODEL_TYPES
+    if cfg.model_type in TRL_MODEL_TYPES:
+        return os.environ.get("TRL_TRAINING_IMAGE", _DEFAULT_TRL_IMAGE)
     if cfg.model_type == "chemprop_gnn":
         return os.environ.get("ML_TRAINING_GPU_IMAGE") \
             or os.environ.get("ML_TRAINING_IMAGE", _DEFAULT_CPU_IMAGE)
@@ -94,6 +100,11 @@ def build_execute_request(
         "output_col": llm.output_col if llm else "output",
         "adapter": llm.adapter if llm else "qlora",
         "max_sequence_length": llm.max_sequence_length if llm else 256,
+        # Preference optimization (trl_dpo) / RL (trl_grpo) params.
+        "beta": llm.beta if llm else 0.1,
+        "num_generations": llm.num_generations if llm else 4,
+        "reward": llm.reward if llm else "length",
+        "reward_keyword": llm.reward_keyword if llm else "",
     })
 
     compute_config: dict[str, Any] = {

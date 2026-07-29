@@ -45,12 +45,15 @@ def build_config_from_args(args: argparse.Namespace) -> TrainingConfig:
         learning_rate=args.learning_rate, ensemble_size=args.ensemble_size, seed=args.seed,
     )
     llm = None
-    if args.model_type == "ludwig_llm":
+    from .config import LLM_MODEL_TYPES
+    if args.model_type in LLM_MODEL_TYPES:
         from .config import LLMSpec
         llm = LLMSpec(base_model=args.base_model, instruction_col=args.instruction_col,
                       output_col=args.output_col, max_sequence_length=args.max_sequence_length,
-                      adapter=args.adapter)
-        # LLM uses text-generation + random split regardless of molecular defaults.
+                      adapter=args.adapter, beta=args.beta,
+                      num_generations=args.num_generations, reward=args.reward,
+                      reward_keyword=args.reward_keyword)
+        # LLM/RL uses text-generation + random split regardless of molecular defaults.
         if args.task_type == "classification":
             args.task_type = "text_generation"
         ds.split = "random"
@@ -90,6 +93,13 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--output-col", default="output", dest="output_col")
     p.add_argument("--adapter", default="qlora")
     p.add_argument("--max-sequence-length", type=int, default=256, dest="max_sequence_length")
+    # Preference optimization (trl_dpo) / RL (trl_grpo)
+    p.add_argument("--beta", type=float, default=0.1, help="DPO KL beta")
+    p.add_argument("--num-generations", type=int, default=4, dest="num_generations",
+                   help="GRPO samples per prompt")
+    p.add_argument("--reward", default="length", help="GRPO reward: length|keyword|numeric_answer")
+    p.add_argument("--reward-keyword", default="", dest="reward_keyword",
+                   help="keyword for --reward keyword")
     p.add_argument("--mlflow-experiment", default="biomate-ml-training", dest="mlflow_experiment")
     p.add_argument("--campaign-id", default="default", dest="campaign_id")
     p.add_argument("--out", default="results", help="output dir for metrics.json + artifact")

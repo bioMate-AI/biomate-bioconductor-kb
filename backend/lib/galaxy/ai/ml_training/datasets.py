@@ -263,6 +263,108 @@ def _load_instruct_file(path: str, instruction_col: str, output_col: str) -> lis
     return rows
 
 
+# ---------------------------------------------------------------------------
+# Preference data (DPO) + prompts (GRPO) for TRL preference/RL training
+# ---------------------------------------------------------------------------
+
+# {prompt, chosen, rejected} — chosen is the preferred response.
+PREFERENCE_FIXTURE: list[dict[str, str]] = [
+    {"prompt": "What is hERG?", "chosen": "hERG is a cardiac potassium channel; blocking it risks arrhythmia.", "rejected": "hERG is a kind of fish."},
+    {"prompt": "Define IC50.", "chosen": "IC50 is the concentration that inhibits a target by 50%.", "rejected": "IC50 is a car model."},
+    {"prompt": "Is caffeine a stimulant?", "chosen": "Yes, caffeine stimulates the central nervous system.", "rejected": "No, caffeine is a sedative."},
+    {"prompt": "What does ADMET mean?", "chosen": "Absorption, Distribution, Metabolism, Excretion, Toxicity.", "rejected": "It means a type of magnet."},
+    {"prompt": "What is LogP?", "chosen": "LogP measures lipophilicity (octanol-water partition).", "rejected": "LogP is a log file format."},
+    {"prompt": "Define bioavailability.", "chosen": "The fraction of a dose reaching systemic circulation.", "rejected": "The number of pills in a bottle."},
+    {"prompt": "What is CYP3A4?", "chosen": "A liver enzyme metabolizing many drugs.", "rejected": "A programming language."},
+    {"prompt": "What is the blood-brain barrier?", "chosen": "A selective barrier protecting the brain from blood-borne substances.", "rejected": "A wall around hospitals."},
+]
+
+# {prompt} — GRPO samples completions and scores them with a reward function.
+PROMPT_FIXTURE: list[dict[str, str]] = [
+    {"prompt": "Explain hERG cardiotoxicity in one sentence."},
+    {"prompt": "Summarize what ADMET stands for."},
+    {"prompt": "Give a one-line definition of IC50."},
+    {"prompt": "Describe the blood-brain barrier briefly."},
+    {"prompt": "What does LogP measure? Answer briefly."},
+    {"prompt": "Define drug bioavailability in one line."},
+    {"prompt": "What is CYP3A4? One sentence."},
+    {"prompt": "State the therapeutic index in one sentence."},
+]
+
+
+def load_preference_rows(spec: DatasetSpec) -> list[dict[str, str]]:
+    """Load {prompt, chosen, rejected} rows for DPO. Sources mirror the others:
+    name 'fixture:preference' | 'hf:<ds>' | local .jsonl/.csv | s3 (exec-staged)."""
+    kind = spec.source_kind()
+    if kind == "name":
+        low = (spec.name or "").strip().lower()
+        if low in ("fixture:preference", "preference:fixture"):
+            return [dict(r) for r in PREFERENCE_FIXTURE]
+        if low.startswith("hf:"):
+            return _load_hf_generic(spec.name.split(":", 1)[1], ("prompt", "chosen", "rejected"))
+        raise ConfigError("unknown DPO dataset; use 'fixture:preference', hf:<ds>, or a .jsonl/.csv path")
+    if kind == "path":
+        return _load_cols_file(spec.path, ("prompt", "chosen", "rejected"))  # type: ignore[arg-type]
+    raise NotImplementedError("s3_uri DPO data is staged locally by the executor; use path=.")
+
+
+def load_prompt_rows(spec: DatasetSpec) -> list[dict[str, str]]:
+    """Load {prompt} rows for GRPO."""
+    kind = spec.source_kind()
+    if kind == "name":
+        low = (spec.name or "").strip().lower()
+        if low in ("fixture:prompts", "prompts:fixture", "fixture:instruct"):
+            return [dict(r) for r in PROMPT_FIXTURE]
+        if low.startswith("hf:"):
+            return _load_hf_generic(spec.name.split(":", 1)[1], ("prompt",))
+        raise ConfigError("unknown GRPO dataset; use 'fixture:prompts', hf:<ds>, or a .jsonl/.csv path")
+    if kind == "path":
+        return _load_cols_file(spec.path, ("prompt",))  # type: ignore[arg-type]
+    raise NotImplementedError("s3_uri GRPO data is staged locally by the executor; use path=.")
+
+
+def _load_cols_file(path: str, cols: tuple) -> list[dict[str, str]]:
+    import json
+    p = Path(path)
+    if not p.exists():
+        raise ConfigError(f"dataset path not found: {path}")
+    rows: list[dict[str, str]] = []
+    if p.suffix.lower() == ".jsonl":
+        for line in p.read_text().splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            obj = json.loads(line)
+            if all(c in obj for c in cols):
+                rows.append({c: str(obj[c]) for c in cols})
+    else:
+        with p.open(newline="") as fh:
+            reader = csv.DictReader(fh)
+            fns = reader.fieldnames or []
+            if not all(c in fns for c in cols):
+                raise ConfigError(f"CSV must have columns {cols}; got {fns}")
+            for row in reader:
+                if all(row.get(c) for c in cols):
+                    rows.append({c: row[c] for c in cols})
+    if not rows:
+        raise ConfigError(f"no usable rows ({cols}) parsed from {path}")
+    return rows
+
+
+def _load_hf_generic(hf_name: str, cols: tuple) -> list[dict[str, str]]:
+    try:
+        from datasets import load_dataset as _hf_load  # noqa: F401
+    except ImportError as e:
+        raise ImportError("the `datasets` library is required for hf:<dataset>.") from e
+    from datasets import load_dataset as _hf_load
+    ds = _hf_load(hf_name, split="train")
+    rows = []
+    for r in ds:
+        if all(c in r and r[c] for c in cols):
+            rows.append({c: str(r[c]) for c in cols})
+    return rows
+
+
 def _load_hf_instruct(hf_name: str, instruction_col: str, output_col: str) -> list[dict[str, str]]:
     try:
         from datasets import load_dataset as _hf_load  # noqa: F401

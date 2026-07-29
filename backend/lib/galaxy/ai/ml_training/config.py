@@ -27,9 +27,17 @@ TASK_TYPES = ("classification", "regression", "text_generation")
 # ludwig_tabular = low-code DL (Ludwig NN over RDKit descriptors, CPU-runnable);
 # chemprop_gnn = molecular graph DL (GPU); sklearn_gbr = cheap non-DL baseline;
 # ludwig_llm = low-code LLM fine-tuning (Ludwig LoRA/QLoRA over a base model).
-MODEL_TYPES = ("chemprop_gnn", "ludwig_tabular", "sklearn_gbr", "ludwig_llm")
+# trl_dpo = LLM preference optimization (DPO, TRL); trl_grpo = LLM reinforcement
+# learning (GRPO, TRL). Both run in the separate trl-training image (modern
+# torch+trl, no Ludwig) since TRL's deps conflict with Ludwig's pins.
+MODEL_TYPES = ("chemprop_gnn", "ludwig_tabular", "sklearn_gbr", "ludwig_llm",
+               "trl_dpo", "trl_grpo")
+LLM_MODEL_TYPES = ("ludwig_llm", "trl_dpo", "trl_grpo")   # text-generation family
+TRL_MODEL_TYPES = ("trl_dpo", "trl_grpo")                 # run in trl-training image
 FEATURIZERS = ("rdkit_2d", "morgan", "none")
 ADAPTERS = ("lora", "qlora", "none")
+# Built-in reward functions for GRPO (a real reward fn or a named built-in).
+REWARD_KINDS = ("length", "keyword", "numeric_answer")
 
 
 class ConfigError(ValueError):
@@ -114,16 +122,27 @@ class LLMSpec:
     # opt-in and effectively needs a GPU.
     adapter: str = "lora"                       # lora | qlora | none
     quantization_bits: Optional[int] = None     # set 4 for QLoRA (GPU)
+    # --- preference optimization (trl_dpo) / reinforcement learning (trl_grpo) ---
+    beta: float = 0.1                           # DPO KL regularization strength
+    num_generations: int = 4                    # GRPO: samples per prompt (group size)
+    reward: str = "length"                      # GRPO reward: length|keyword|numeric_answer
+    reward_keyword: str = ""                    # for reward=keyword
 
     def validate(self) -> None:
         if not self.base_model or not self.base_model.strip():
-            raise ConfigError("llm.base_model is required for ludwig_llm")
+            raise ConfigError("llm.base_model is required for LLM training")
         if self.adapter not in ADAPTERS:
             raise ConfigError(f"llm.adapter must be one of {ADAPTERS}")
         if self.max_sequence_length <= 0:
             raise ConfigError("llm.max_sequence_length must be > 0")
         if self.quantization_bits not in (None, 4, 8):
             raise ConfigError("llm.quantization_bits must be None, 4, or 8")
+        if self.beta <= 0:
+            raise ConfigError("llm.beta (DPO) must be > 0")
+        if self.num_generations < 2:
+            raise ConfigError("llm.num_generations (GRPO) must be >= 2")
+        if self.reward not in REWARD_KINDS:
+            raise ConfigError(f"llm.reward must be one of {REWARD_KINDS}")
 
 
 @dataclass
@@ -155,12 +174,12 @@ class TrainingConfig:
             raise ConfigError(f"featurizer must be one of {FEATURIZERS}")
         self.dataset.validate()
         self.hyperparams.validate()
-        if self.model_type == "ludwig_llm":
+        if self.model_type in LLM_MODEL_TYPES:
             if self.llm is None:
-                raise ConfigError("model_type=ludwig_llm requires an `llm` spec")
+                raise ConfigError(f"model_type={self.model_type} requires an `llm` spec")
             self.llm.validate()
             if self.task_type != "text_generation":
-                raise ConfigError("ludwig_llm requires task_type=text_generation")
+                raise ConfigError(f"{self.model_type} requires task_type=text_generation")
         return self
 
     # -- (de)serialization ----------------------------------------------------
@@ -189,25 +208,25 @@ class TrainingConfig:
         renderer (file/select/number/string types), so a training job shows up
         as an ordinary workflow card. See §4.2 of the design doc.
         """
-        if self.model_type == "ludwig_llm":
+        if self.model_type in LLM_MODEL_TYPES:
             llm = self.llm or LLMSpec()
+            is_dpo = self.model_type == "trl_dpo"
+            is_grpo = self.model_type == "trl_grpo"
+            data_label = ("Preference data (JSONL/CSV: prompt, chosen, rejected)" if is_dpo
+                          else "Prompts (JSONL/CSV: prompt)" if is_grpo
+                          else "Training data (JSONL/CSV: instruction, output)")
             required = [
-                {"name": "dataset", "type": "file",
-                 "label": "Training data (JSONL/CSV: instruction, output)",
+                {"name": "dataset", "type": "file", "label": data_label,
                  "value": self.dataset.name or self.dataset.path or self.dataset.s3_uri or "",
                  "required": True},
                 {"name": "base_model", "type": "string", "label": "Base model (HF id)",
                  "value": llm.base_model, "required": True},
             ]
             optional = [
-                {"name": "model_type", "type": "select", "label": "Model type",
-                 "allowed_values": list(MODEL_TYPES), "value": self.model_type, "default": "ludwig_tabular"},
+                {"name": "model_type", "type": "select", "label": "Training method",
+                 "allowed_values": list(MODEL_TYPES), "value": self.model_type, "default": "ludwig_llm"},
                 {"name": "adapter", "type": "select", "label": "Adapter",
                  "allowed_values": list(ADAPTERS), "value": llm.adapter, "default": "lora"},
-                {"name": "instruction_col", "type": "string", "label": "Instruction column",
-                 "value": llm.instruction_col, "default": "instruction"},
-                {"name": "output_col", "type": "string", "label": "Output column",
-                 "value": llm.output_col, "default": "output"},
                 {"name": "max_sequence_length", "type": "number", "label": "Max sequence length",
                  "value": llm.max_sequence_length, "default": 256},
                 {"name": "epochs", "type": "number", "label": "Epochs",
@@ -215,6 +234,23 @@ class TrainingConfig:
                 {"name": "learning_rate", "type": "number", "label": "Learning rate",
                  "value": self.hyperparams.learning_rate, "default": 1e-4},
             ]
+            if is_dpo:
+                optional.append({"name": "beta", "type": "number", "label": "DPO beta (KL)",
+                                 "value": llm.beta, "default": 0.1})
+            elif is_grpo:
+                optional += [
+                    {"name": "num_generations", "type": "number", "label": "GRPO samples/prompt",
+                     "value": llm.num_generations, "default": 4},
+                    {"name": "reward", "type": "select", "label": "Reward function",
+                     "allowed_values": list(REWARD_KINDS), "value": llm.reward, "default": "length"},
+                ]
+            else:  # ludwig_llm SFT
+                optional += [
+                    {"name": "instruction_col", "type": "string", "label": "Instruction column",
+                     "value": llm.instruction_col, "default": "instruction"},
+                    {"name": "output_col", "type": "string", "label": "Output column",
+                     "value": llm.output_col, "default": "output"},
+                ]
             return {"required_params": required, "optional_params": optional}
 
         required = [

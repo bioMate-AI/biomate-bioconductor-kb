@@ -45,6 +45,11 @@ params.instruction_col     = 'instruction'
 params.output_col          = 'output'
 params.adapter             = 'lora'
 params.max_sequence_length = 256
+// Preference optimization (trl_dpo) / RL (trl_grpo); ignored otherwise.
+params.beta                = 0.1
+params.num_generations     = 4
+params.reward              = 'length'
+params.reward_keyword      = ''
 
 process TRAIN {
     // ludwig_tabular (default) + sklearn_gbr are CPU. Use process_low
@@ -92,6 +97,10 @@ process TRAIN {
         --output-col '${params.output_col}' \
         --adapter '${params.adapter}' \
         --max-sequence-length ${params.max_sequence_length} \
+        --beta ${params.beta} \
+        --num-generations ${params.num_generations} \
+        --reward '${params.reward}' \
+        --reward-keyword '${params.reward_keyword}' \
         --mlflow-experiment '${params.mlflow_experiment}' \
         --campaign-id '${params.campaign_id}' \
         --out results

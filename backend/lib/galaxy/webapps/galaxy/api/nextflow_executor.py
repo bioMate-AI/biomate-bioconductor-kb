@@ -2359,7 +2359,7 @@ def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
 def _generate_executor_config(
     compute: dict, config_dir: Path, *, user_id: str = "unknown", run_id: str = "unknown",
     credentials: Optional[Dict[str, Any]] = None, nf_path: str = "",
-    output_location: Optional[Dict[str, Any]] = None,
+    output_location: Optional[Dict[str, Any]] = None, model_type: str = "",
 ) -> Optional[Path]:
     """
     Generate a temporary nextflow.config for non-local executors.
@@ -2402,10 +2402,18 @@ def _generate_executor_config(
         # (no ludwig) and the TRAIN process fails. API callers that already set
         # compute.container (executor_payload) keep their value.
         if not container and "ml_training/" in (nf_path or ""):
-            container = os.environ.get(
-                "ML_TRAINING_IMAGE",
-                "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ml-training:latest",
-            )
+            # TRL preference/RL methods (DPO/GRPO) need newer torch/transformers
+            # than Ludwig's pins allow, so they ship in a separate image.
+            if model_type in ("trl_dpo", "trl_grpo"):
+                container = os.environ.get(
+                    "TRL_TRAINING_IMAGE",
+                    "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/trl-training:latest",
+                )
+            else:
+                container = os.environ.get(
+                    "ML_TRAINING_IMAGE",
+                    "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ml-training:latest",
+                )
         container = container or os.environ.get(
             "NEXTFLOW_BATCH_CONTAINER", "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest"
         )
@@ -5210,6 +5218,7 @@ def _execute_nextflow_impl(
         compute, log_dir, user_id=billing_user_id, run_id=run_id,
         credentials=dict(request.credentials or {}),
         nf_path=str(nf_path),
+        model_type=str(params.get("model_type", "")),
         # Thread the user-supplied output_location through so _resolve_outdir
         # can compute the correct S3 outdir per the Phase C picker. Regression
         # fix 2026-06-20 — commit 930aab12c referenced request.output_location
