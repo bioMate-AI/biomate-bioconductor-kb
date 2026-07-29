@@ -174,15 +174,27 @@ scored vs cytogenetic-risk (3-class), matched k=3:
 |---|---|---|---|
 | **CLL** (IGHV — strong molecular) | ARI 0.53 / AUC 0.97 | ARI 0.38–0.55 | **MOFA2** |
 | **TCGA-AML** (cyto-risk, k=3) | ARI **0.093** / NMI 0.156 | ARI **0.174** / NMI 0.278 | **SNF** |
+| **TCGA-BRCA** (PAM50 — strong molecular) | ARI **0.202** / NMI 0.319 | ARI **0.325** / NMI 0.440 | **SNF** |
 
-**The method ranking FLIPS between cohorts** — MOFA2 wins on CLL, SNF wins on AML. This
-is the strongest evidence yet for the reframed thesis: *no universal-best method; which
-one to trust is cohort/label-dependent → you must benchmark.* Honest caveats: (1) AML
-cyto-risk is a **prognostic** label, weakly omics-encoded → both methods score low
-(0.09–0.17); SNF did isolate one clean Favorable cluster (14/1/0). (2) A **strong
-molecular** label is the cleaner test — **BRCA PAM50 / GBM Verhaak next** (downloads
-currently blocked by TAU-server rate-limiting; retry pending). One flipped ranking on a
-weak label is suggestive, not conclusive; ≥2 strong-label cohorts needed to publish.
+Runs: AML `4593a3e6`/`c3a5cdd7`; BRCA `720804af`/`a6e24987`.
+
+**The method ranking is DATA-DEPENDENT — MOFA2 wins CLL, SNF wins both TCGA cohorts.**
+This is the core, honest, publishable message: *no universal-best method; which one to
+trust is cohort/label-dependent → you must benchmark.* Across 3 cohorts + 2 strong
+molecular labels (IGHV, PAM50), the winner flips.
+
+**Honest caveats (none threaten the flip; two make SNF's win conservative):**
+1. **SNF C is hardcoded = 3.** On 4-class PAM50 it is handicapped (it lumped
+   LumA/LumB/Her2, cleanly isolated Basal 56/59) — yet still beat MOFA2. Matching C to
+   the label's class count would only *help* SNF. *Refinement:* parameterize C and
+   re-run C=4 on BRCA for a fully fair number.
+2. **AML cyto-risk is prognostic** (weakly omics-encoded) → both low (0.09–0.17).
+3. **Modest TCGA recovery (0.2–0.33).** PAM50 is *expression*-defined; integrating
+   methy+miRNA may dilute it — a separate "more-can-hurt" thread worth an exp-only
+   baseline (predicted: single-omic expression may recover PAM50 *better* than the
+   integrated result).
+4. MOFA2 scored via k-means on 10 factors; a factor-count/k sweep is the matched-fairness
+   refinement. The *flip* is robust to these; the *magnitudes* may shift.
 
 ### §4a — capability fix this unlocked (stronger-platform win)
 Real TCGA cohorts measure each omic on a **different, overlapping sample set** (AML:
