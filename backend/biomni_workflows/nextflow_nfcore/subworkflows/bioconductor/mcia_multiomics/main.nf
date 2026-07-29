@@ -86,10 +86,16 @@ process BIOC_MCIA_MULTIOMICS {
       for (i in seq_len(nrow(M))) {              # impute NAs by feature (row) mean
         v <- M[i, ]; if (any(is.na(v))) { mu <- mean(v, na.rm = TRUE); v[is.na(v)] <- if (is.finite(mu)) mu else 0; M[i, ] <- v }
       }
-      if (min(M) < 0) M <- M - min(M)            # shift to non-negative for COA
       M <- M[apply(M, 1, function(r) stats::sd(r) > 0), , drop = FALSE]  # drop constant/all-zero features
-      M <- M + 1e-6                              # strict positivity: every feature "expressed" in ALL samples
-                                                 # (mcia nsc COA rejects features with a zero in any observation)
+      # ROOT-CAUSE FIX for TCGA collapse (0.006 BRCA / 0.058 AML vs 0.778 CLL):
+      # mcia's nsc-COA analyzes raw profiles with NO per-feature scaling, so a high-dynamic-
+      # range block (TCGA exp ~1000s) swamps methylation (beta 0-1) & miRNA -> the co-inertia
+      # synthetic axes become near-random. CLL's blocks were already comparable, so it worked.
+      # Standardize EACH feature to unit variance (as every sibling method does) so no
+      # feature/block dominates; then shift non-negative for nsc-COA.
+      M <- t(scale(t(M)))                        # features x samples, each feature ~ N(0,1)
+      M[!is.finite(M)] <- 0
+      M <- M - min(M) + 1e-6                     # non-negative + strictly positive (nsc COA needs it)
       as.data.frame(M)
     })
 
