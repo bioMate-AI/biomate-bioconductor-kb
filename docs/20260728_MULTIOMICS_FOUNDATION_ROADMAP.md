@@ -87,8 +87,37 @@ Only when a method passes all 5 is it "covered."
    real gap (a modality/task/scale/robustness regime no method handles) becomes visible.
    That gap — not a guessed-at hybrid — is the innovation + high-end-publication candidate.
 
-**Status:** starting step 1 with **intNMF** (Cantini's clustering winner) — the first
-outstanding method, mirroring the SNF workflow's CRAN-light pattern.
+## RESULTS (2026-07-29) — 6-method foundation E2E, matched-k, 3 real cohorts
+
+All through BioMate (chat API → AWS Batch), fair matched-k (k = label class count),
+scored by `scripts/multiomics_metric_harness.py`:
+
+| Method (family) | CLL/IGHV (k2) | AML/cyto (k3) | BRCA/PAM50 (k4) |
+|---|---|---|---|
+| MOFA2 (latent factor) | **0.797** | 0.093 | 0.202 |
+| SNF (network fusion) | 0.705 | **0.174** | **0.323** |
+| intNMF (integrative NMF) | 0.705 | 0.160 | 0.221 |
+| MCIA (co-inertia) | 0.778 | 0.058* | 0.006* |
+| iClusterPlus (Bayesian latent) | 0.778 | 0.033 | 0.167 |
+| JIVE (joint+individual var) | 0.652 | 0.085 | 0.112 |
+
+*MCIA-TCGA untrustworthy — the positivity/feature-prep for nsc COA distorts the TCGA
+signal (0.778 on CLL is fine); needs a prep fix. **SNF most consistent** (top on both
+TCGA); **MOFA2 wins CLL**; no universal winner (now over 6 methods, not 2).
+
+**Path-B seed (noise robustness, CLL k2):** only SNF degrades under a pure-noise view
+(−0.036); MOFA2/MCIA/JIVE/intNMF all robust (±0.00–0.02). Pattern holds directionally
+(equal-weight fusion fragile; latent methods robust) but is SUBTLE for pure noise — the
+dramatic case is structured-degenerate views (mutations −0.18) and partial sample
+overlap. The real science test is **mosaic/partial-overlap robustness**, not pure noise.
+
+**Pending deploy:** MFA (RGCCA replacement), StabMap (single-cell). **Fix queued:**
+MCIA-TCGA prep.
+
+---
+
+**Status:** step 1 largely done — 6 methods E2E. Next: deploy MFA + StabMap, fix
+MCIA-TCGA, then the Path-B mosaic experiment.
 
 Related: [[project_multiomics_benchmark]]; supersedes the premature "finding/paper" framing
 in `docs/20260728_MULTIOMICS_FINDING_AND_COMPETITIVE_REASSESSMENT.md` (that work is now
