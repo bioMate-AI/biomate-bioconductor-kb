@@ -196,3 +196,24 @@ workflow BIOC_MULTIOMICS_BENCHMARK_WORKFLOW {
     agreement = BENCHMARK_COMPARE.out.agreement
     versions  = BENCHMARK_COMPARE.out.versions
 }
+
+// --- Anonymous entry: makes the file runnable DIRECTLY by BioMate's executor ---------------
+// The executor's `_build_bioc_entry_wrapper` returns None for any .nf that already has an
+// anonymous `workflow {` and runs it via plain `nextflow run file.nf` with params — so we
+// self-stage the omics here instead of relying on the single-process wrapper (which would
+// mis-target the composed BENCHMARK_COMPARE process). params.omics is a LIST of s3:// (or
+// local) CSV paths; `file()` turns each into a Nextflow Path (the S3 plugin downloads s3://).
+// The whole file list is bound to ONE stageAs slot (tuple[ meta, [files] ]), exactly the
+// shape each method process expects. Labels are NOT handled here — the named workflow reads
+// params.labels internally and routes it only to COMPARE, so the ground-truth never enters
+// the omics list the methods glob.
+workflow {
+    def _omics = (params.omics instanceof List) ? params.omics
+               : (params.omics ? [params.omics] : [])
+    if (!_omics) error "multiomics_benchmark: params.omics is required (a list of omics CSV paths)"
+    ch_input = Channel.fromList(_omics)
+                      .map { file(it) }
+                      .collect()
+                      .map { fs -> tuple([id: 'sample'], fs) }
+    BIOC_MULTIOMICS_BENCHMARK_WORKFLOW(ch_input)
+}
