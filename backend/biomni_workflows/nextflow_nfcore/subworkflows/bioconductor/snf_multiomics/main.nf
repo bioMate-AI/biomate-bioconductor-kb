@@ -82,7 +82,8 @@ process BIOC_SNF_MULTIOMICS {
     K <- 20L      # KNN neighbours (SNF default)
     alpha <- 0.5  # kernel width (SNF default)
     Tt <- 20L     # SNF fusion iterations (SNF default)
-    C <- 3L       # number of subtypes to extract via spectral clustering
+    C <- ${params.n_clusters ?: 3}L   # subtypes to extract; pass n_clusters to match the
+                                       # label's class count for fair cross-method comparison
 
     Wall <- lapply(data, function(m) {
       X <- t(as.matrix(m))                    # SNF expects samples x features

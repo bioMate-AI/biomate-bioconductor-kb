@@ -72,8 +72,8 @@ process BIOC_INTNMF_MULTIOMICS {
     cat(sprintf("[intnmf] %d views aligned to %d common samples\\n", length(data), length(.common)))
 
     # --- IntNMF data prep: samples x features, NON-NEGATIVE, scaled to comparable range ---
-    K <- 4L   # number of clusters (cancer-subtype default; k-matching to the label's class
-              # count is the documented fairness refinement — see foundation roadmap)
+    K <- ${params.n_clusters ?: 4}L   # number of clusters; pass n_clusters to match the
+              # label's class count for fair cross-method comparison (foundation roadmap)
     dat <- lapply(data, function(m) {
       X <- t(as.matrix(m))                      # IntNMF expects samples x features
       for (j in seq_len(ncol(X))) {             # impute NAs by feature mean (needs complete data)
