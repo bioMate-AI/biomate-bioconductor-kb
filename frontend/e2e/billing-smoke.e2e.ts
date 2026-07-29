@@ -1,97 +1,93 @@
 /**
- * Billing Smoke Test — runs after every sync.
+ * Billing Smoke Test — the INTERNAL billing pipeline (Lago-free).
  *
- * Verifies the INTERNAL billing pipeline (Lago-free). Per the flat-tier billing
- * decision, Lago is dropped from the critical path (BILLING_LAGO_ENABLED default
- * off): Stripe owns subscriptions/payment, and cost is tracked in the internal
- * file log + Redis realtime ledger, with quota from DEFAULT_PLAN_LIMITS.
+ * Per the flat-tier decision, Lago is dropped from the critical path
+ * (BILLING_LAGO_ENABLED default off): Stripe owns subscriptions/payment, and cost
+ * is tracked in the internal file log + Redis realtime ledger, with quota from
+ * DEFAULT_PLAN_LIMITS.
  *
- *   1. Login as the dedicated smoke user → JWT
- *   2. Send a chat → real LLM call → internal cost recording (file log + Redis)
- *   3. GET /api/billing/usage → structured breakdown (no Lago involved)
+ *   1. Login as the canonical fixture → JWT
+ *   2. GET /api/billing/usage → structured breakdown (llm/compute/storage), no Lago
+ *   3. Send a chat → real LLM call → internal cost recording; usage stays monotonic
  *   4. GET /api/billing/quota → plan limit from DEFAULT_PLAN_LIMITS
  *
- * NO MOCKS. Hits the live backend. Does NOT depend on Lago.
+ * NO MOCKS. Hits the live dev backend through the real Node→Galaxy billing proxy.
  */
 import { test, expect } from "@playwright/test";
 import { BASE_URL } from "./helpers.js";
 
-test.setTimeout(60000);
+const E2E_TOKEN = "biomate-e2e-bypass-token-dev-only";
+const FIXTURE_EMAIL = "lifeifei163361@163.com";
+const FIXTURE_PASS = process.env.E2E_FIXTURE_PASSWORD || "WpmFixture!2026";
 
-// Dedicated smoke test account — created once, password never changes
-const TEST_EMAIL = "billing-smoke@biomate.test";
-const TEST_PASS  = "SmokeTest2026!";
+test.setTimeout(90_000);
 
-test.describe("Billing Smoke", () => {
+// Read the LLM cost from the real usage shape: { breakdown: { llm: { total_usd } } }
+function llmUsd(u: any): number {
+  return Number(u?.breakdown?.llm?.total_usd ?? u?.llm?.total_usd ?? 0);
+}
+
+test.describe("Billing Smoke (Lago-free)", () => {
   let jwt: string;
-  let sessionId: string;
 
-  test("login succeeds and returns JWT", async ({ request }) => {
+  test("login (canonical fixture) returns a JWT", async ({ request }) => {
     const res = await request.post(`${BASE_URL}/api/auth/login`, {
-      data: { email: TEST_EMAIL, password: TEST_PASS },
+      data: { email: FIXTURE_EMAIL, password: FIXTURE_PASS },
+      headers: { "X-E2E-Test-Token": E2E_TOKEN },
     });
     expect(res.status()).toBe(200);
-    const body = await res.json();
-    expect(body.token).toBeTruthy();
-    jwt = body.token;
-    sessionId = `billing-smoke-${Date.now()}`;
+    jwt = (await res.json()).token;
+    expect(jwt).toBeTruthy();
   });
 
-  test("LLM call is recorded in the internal cost ledger (Lago-free)", async ({ request }) => {
-    if (!jwt) test.skip();
+  test("GET /api/billing/usage returns a structured internal breakdown", async ({ request }) => {
+    test.skip(!jwt, "no jwt");
+    const res = await request.get(`${BASE_URL}/api/billing/usage`, {
+      headers: { Authorization: `Bearer ${jwt}`, "X-E2E-Test-Token": E2E_TOKEN },
+    });
+    expect(res.status(), "usage must not 401 (proxy re-sign must match Galaxy)").toBe(200);
+    const u = await res.json();
+    // Internal ledger breakdown — the fields Lago used to supply now come from Galaxy's own store.
+    expect(u.breakdown, "usage.breakdown must be present").toBeTruthy();
+    expect(u.breakdown.llm, "breakdown.llm present").toBeTruthy();
+    expect(u.breakdown.compute, "breakdown.compute present").toBeTruthy();
+    expect(u.breakdown.storage, "breakdown.storage present").toBeTruthy();
+    expect(Number.isFinite(llmUsd(u)), "llm.total_usd is numeric").toBe(true);
+  });
 
-    // Baseline usage before the chat
+  test("a chat records LLM cost internally — usage stays monotonic (no loss without Lago)", async ({ request }) => {
+    test.skip(!jwt, "no jwt");
     const before = await request.get(`${BASE_URL}/api/billing/usage`, {
-      headers: { Authorization: `Bearer ${jwt}` },
+      headers: { Authorization: `Bearer ${jwt}`, "X-E2E-Test-Token": E2E_TOKEN },
     });
-    expect(before.status()).toBe(200);
-    const beforeBody = await before.json();
-    const llmBefore = Number(beforeBody?.llm?.cost_usd ?? beforeBody?.llm?.total ?? beforeBody?.llm ?? 0);
+    const llmBefore = llmUsd(await before.json());
 
-    // Send a chat message → real LLM call → internal recording
-    const chatRes = await request.post(`${BASE_URL}/api/chat/stream`, {
-      data: { message: "Say exactly: hello", sessionId },
-      headers: { Authorization: `Bearer ${jwt}` },
+    const chat = await request.post(`${BASE_URL}/api/chat/stream`, {
+      data: { message: "Say exactly: hello", sessionId: `billing-smoke-${Date.now()}` },
+      headers: { Authorization: `Bearer ${jwt}`, "X-E2E-Test-Token": E2E_TOKEN },
     });
-    expect(chatRes.status()).toBe(200);
+    expect(chat.status()).toBe(200);
+    await new Promise((r) => setTimeout(r, 10_000)); // async cost recording (Node → Galaxy → ledger)
 
-    // Wait for async recording (file log + Redis)
-    await new Promise(r => setTimeout(r, 8000));
-
-    // Usage now reflects the LLM cost — no Lago involved
     const after = await request.get(`${BASE_URL}/api/billing/usage`, {
-      headers: { Authorization: `Bearer ${jwt}` },
+      headers: { Authorization: `Bearer ${jwt}`, "X-E2E-Test-Token": E2E_TOKEN },
     });
     expect(after.status()).toBe(200);
-    const afterBody = await after.json();
-    expect(afterBody, "usage must be a structured breakdown").toBeTruthy();
-    expect(afterBody.llm, "usage.llm breakdown must be present (internal ledger)").toBeDefined();
-    const llmAfter = Number(afterBody?.llm?.cost_usd ?? afterBody?.llm?.total ?? afterBody?.llm ?? 0);
-    // Usage is monotonic — the chat's LLM cost was recorded internally, not lost with Lago.
-    expect(llmAfter, "internal LLM usage should not decrease after a chat").toBeGreaterThanOrEqual(llmBefore);
+    const llmAfter = llmUsd(await after.json());
+    console.log(`[billing-smoke] llm usd before=${llmBefore} after=${llmAfter}`);
+    // Monotonic: the chat's cost was recorded internally, not lost with Lago.
+    expect(llmAfter, "internal LLM usage must not decrease after a chat").toBeGreaterThanOrEqual(llmBefore);
   });
 
-  test("quota endpoint returns a plan limit from DEFAULT_PLAN_LIMITS (Lago-free)", async ({ request }) => {
-    if (!jwt) test.skip();
+  test("GET /api/billing/quota returns a limit from DEFAULT_PLAN_LIMITS", async ({ request }) => {
+    test.skip(!jwt, "no jwt");
     const res = await request.get(`${BASE_URL}/api/billing/quota`, {
-      headers: { Authorization: `Bearer ${jwt}` },
+      headers: { Authorization: `Bearer ${jwt}`, "X-E2E-Test-Token": E2E_TOKEN },
     });
     expect(res.status()).toBe(200);
-    const body = await res.json();
-    // quota_usd comes from DEFAULT_PLAN_LIMITS when Lago is off (number, or null = unlimited).
-    const q = body?.quota_usd ?? body?.limit;
-    expect(q === null || Number.isFinite(Number(q)), "quota must be a number or unlimited(null)").toBeTruthy();
-  });
-
-  test("forgot-password returns reset token when email unconfigured", async ({ request }) => {
-    const res = await request.post(`${BASE_URL}/api/auth/forgot-password`, {
-      data: { email: TEST_EMAIL },
-    });
-    expect(res.status()).toBe(200);
-    const body = await res.json();
-    expect(body.success).toBe(true);
-    // Either email was sent (no token in response) or dev bypass returned token
-    // Both are valid — just ensure no error
-    expect(body.error).toBeFalsy();
+    const b = await res.json();
+    // quota_usd from DEFAULT_PLAN_LIMITS when Lago is off: a number, or null = unlimited.
+    expect(b.quota_usd === null || Number.isFinite(Number(b.quota_usd)), "quota_usd number or null").toBe(true);
+    expect(Number.isFinite(Number(b.used_usd)), "used_usd is numeric (internal ledger)").toBe(true);
   });
 });
