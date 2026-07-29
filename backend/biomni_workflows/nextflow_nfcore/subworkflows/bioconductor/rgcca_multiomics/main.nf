@@ -36,8 +36,10 @@ process BIOC_RGCCA_MULTIOMICS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    # RGCCA is CRAN — install as a fast p3m.dev noble binary (no Bioc mirror, no 504).
-    if (!requireNamespace("RGCCA", quietly = TRUE)) install.packages("RGCCA", Ncpus = 2)
+    # RGCCA is CRAN — force pre-compiled p3m.dev noble BINARIES. The default repo tried to
+    # compile the 'Deriv' dependency from source and hit `make Error 1`; binaries skip the build.
+    if (!requireNamespace("RGCCA", quietly = TRUE))
+      install.packages(c("Deriv", "RGCCA"), repos = "https://p3m.dev/cran/__linux__/noble/latest", Ncpus = 2)
 
     # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
     for (.bm_d in list.files(".", full.names = TRUE)) {
