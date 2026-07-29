@@ -1,7 +1,11 @@
 # Fix: project-uploaded file params resolved to bare filenames, not S3 URIs
 
 **Date:** 2026-07-28
-**Status:** 🟢 Root-caused + fix implemented (frontend/server) — pending deploy + re-run verification
+**Status:** ✅ Fixed + VERIFIED on dev (2026-07-29). Capstone e2e now **passes**: run `9a92d0e4`
+completed in 2m24s with 10 real DE genes (complement-cascade signature — correct for AChR+ MG).
+galaxy.log confirms Nextflow received `--matrix/--samplesheet/--contrasts
+s3://biomate-nextflow-work/uploads/project-<id>/…` (the exact scheme `_stageProjectFileToNextflow`
+produces). Committed `9ea65fe7a`.
 **Severity:** P2 — running a multi-file workflow (differentialabundance, etc.) from project-uploaded
 files fails at launch
 **Found by:** `frontend/e2e/project-real-run-capstone.e2e.ts` (real GSE227835 counts through a project)

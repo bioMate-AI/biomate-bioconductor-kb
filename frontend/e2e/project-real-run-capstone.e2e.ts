@@ -49,7 +49,7 @@ test.describe.serial('project-real-run-capstone', () => {
   // S3 URIs, so AWS Batch couldn't open them and the run failed at launch. Fixed by
   // resolveProjectFileParams() in server/routes.ts (stages project files into the
   // Batch bucket + substitutes the s3:// URI). fixme lifted once verified on dev.
-  test.fixme('MG counts → differentialabundance → COMPLETED run with real DE results', async ({ browser, request }) => {
+  test('MG counts → differentialabundance → COMPLETED run with real DE results', async ({ browser, request }) => {
     test.setTimeout(90_000 + EXEC_TIMEOUT_MS + 180_000);
     const page = await browser.newPage();
     page.on('console', (m) => { if (/SSE|Execution|error/i.test(m.text())) console.log(`[browser] ${m.text().slice(0, 160)}`); });
