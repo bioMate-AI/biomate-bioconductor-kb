@@ -300,18 +300,24 @@
             "enum": [
               "uniprot",
               "pdb",
+              "pdbe",
               "alphafold",
+              "interpro",
+              "string",
               "ncbi_gene",
+              "ensembl",
               "dbsnp",
               "clinvar",
               "gnomad",
               "kegg",
               "reactome",
-              "chebi",
-              "pubchem",
+              "go",
               "hpo",
-              "omim",
-              "string"
+              "chebi",
+              "chembl",
+              "pubchem",
+              "bindingdb",
+              "pharos"
             ]
           },
           "query": {
@@ -781,18 +787,24 @@
             "enum": [
               "uniprot",
               "pdb",
+              "pdbe",
               "alphafold",
+              "interpro",
+              "string",
               "ncbi_gene",
+              "ensembl",
               "dbsnp",
               "clinvar",
               "gnomad",
               "kegg",
               "reactome",
-              "chebi",
-              "pubchem",
+              "go",
               "hpo",
-              "omim",
-              "string"
+              "chebi",
+              "chembl",
+              "pubchem",
+              "bindingdb",
+              "pharos"
             ]
           },
           "query": {
@@ -1300,18 +1312,24 @@
               "enum": [
                 "uniprot",
                 "pdb",
+                "pdbe",
                 "alphafold",
+                "interpro",
+                "string",
                 "ncbi_gene",
+                "ensembl",
                 "dbsnp",
                 "clinvar",
                 "gnomad",
                 "kegg",
                 "reactome",
-                "chebi",
-                "pubchem",
+                "go",
                 "hpo",
-                "omim",
-                "string"
+                "chebi",
+                "chembl",
+                "pubchem",
+                "bindingdb",
+                "pharos"
               ]
             },
             "query": {
