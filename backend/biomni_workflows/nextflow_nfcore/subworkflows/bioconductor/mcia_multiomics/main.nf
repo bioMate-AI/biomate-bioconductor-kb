@@ -87,6 +87,9 @@ process BIOC_MCIA_MULTIOMICS {
         v <- M[i, ]; if (any(is.na(v))) { mu <- mean(v, na.rm = TRUE); v[is.na(v)] <- if (is.finite(mu)) mu else 0; M[i, ] <- v }
       }
       if (min(M) < 0) M <- M - min(M)            # shift to non-negative for COA
+      M <- M[apply(M, 1, function(r) stats::sd(r) > 0), , drop = FALSE]  # drop constant/all-zero features
+      M <- M + 1e-6                              # strict positivity: every feature "expressed" in ALL samples
+                                                 # (mcia nsc COA rejects features with a zero in any observation)
       as.data.frame(M)
     })
 
