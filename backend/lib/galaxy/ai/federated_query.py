@@ -43,7 +43,7 @@ ENTITY_SOURCES: Dict[str, List[str]] = {
                    "go", "gnomad", "pubmed", "semantic_scholar"],
     "protein":    ["uniprot", "pdb", "alphafold", "interpro", "string",
                    "go", "chembl", "pubmed", "semantic_scholar"],
-    "compound":   ["chembl", "chebi", "kegg", "pubmed", "semantic_scholar"],
+    "compound":   ["chembl", "pubchem", "chebi", "kegg", "pubmed", "semantic_scholar"],
     "variant":    ["dbsnp", "clinvar", "gnomad", "pubmed", "semantic_scholar"],
     "pathway":    ["kegg", "reactome", "go", "pubmed"],
     "structure":  ["pdb", "alphafold", "interpro"],
@@ -324,6 +324,26 @@ def _fetch_chembl(query: str) -> Dict:
                         "mw": props.get("full_mwt")})
     return {"source": "chembl", "results": results}
 
+def _fetch_pubchem(query: str) -> Dict:
+    # PubChem PUG-REST compound lookup (keyless). Mirrors ai_assistant._query_pubchem
+    # lookup mode so the federated fan-out reaches PubChem too — previously PubChem
+    # was only reachable via the single-source query_database path, never the fan-out.
+    import re
+    term = query.strip()
+    selector = "cid" if re.match(r"^\d+$", term) else "name"
+    enc = urllib.parse.quote(term, safe="")
+    url = (f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/{selector}/{enc}/property/"
+           f"IUPACName,MolecularFormula,MolecularWeight,ConnectivitySMILES/JSON")
+    data = _get(url)
+    props = (((data or {}).get("PropertyTable") or {}).get("Properties") or [])
+    results = [{"cid": p.get("CID"),
+                "name": p.get("IUPACName"),
+                "formula": p.get("MolecularFormula"),
+                "mw": p.get("MolecularWeight"),
+                "smiles": p.get("ConnectivitySMILES") or p.get("CanonicalSMILES")}
+               for p in props[:5]]
+    return {"source": "pubchem", "results": results}
+
 def _fetch_interpro(query: str) -> Dict:
     q = urllib.parse.quote(query)
     data = _get(f"https://www.ebi.ac.uk/interpro/api/entry/?search={q}&format=json&page_size=5")
@@ -436,6 +456,7 @@ _FETCHERS = {
     "hpo":              _fetch_hpo,
     "chebi":            _fetch_chebi,
     "chembl":           _fetch_chembl,
+    "pubchem":          _fetch_pubchem,
     "interpro":         _fetch_interpro,
     "gnomad":           _fetch_gnomad,
     "dbsnp":            lambda q: _fetch_ncbi_entrez(q, "snp"),
@@ -553,7 +574,7 @@ def _merge_results(results: Dict[str, Dict], entity_type: str) -> List[Dict]:
                        "go", "gnomad", "pubmed", "semantic_scholar"],
         "protein":    ["uniprot", "pdb", "alphafold", "interpro", "string",
                        "go", "chembl", "pubmed", "semantic_scholar"],
-        "compound":   ["chembl", "chebi", "kegg", "pubmed", "semantic_scholar"],
+        "compound":   ["chembl", "pubchem", "chebi", "kegg", "pubmed", "semantic_scholar"],
         "variant":    ["clinvar", "dbsnp", "gnomad", "pubmed", "semantic_scholar"],
         "pathway":    ["reactome", "kegg", "go", "pubmed"],
         "structure":  ["pdb", "alphafold", "interpro"],
