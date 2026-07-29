@@ -8393,7 +8393,19 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         const providers: Array<{ name: string; fn: () => Promise<string>; available: boolean }> = [
           {
             name: 'Gemini',
-            fn: () => this._generateWithGemini(systemPrompt, plainMessages, onResponseDelta),
+            // Activate the agentic tool loop on the PRIMARY Gemini backbone — same
+            // gate as the Claude path (8338). Without this, the default gemini-3.5-flash
+            // config ran tool-less: run_code/list_history AND the data-plane tools
+            // (search_literature/search_my_data/list_data_sources) never attached, so
+            // the model hallucinated tool use and denied capabilities it has. The
+            // _generateWithGemini loop executes tools + emits tool_event when handed a
+            // toolContext (as the fallback at the catch below already does).
+            fn: () => this._generateWithGemini(
+              systemPrompt, plainMessages, onResponseDelta, 4096, undefined,
+              (!useThinking && onToolEvent && !isWorkflowTurn)
+                ? { tools: BIOMATE_TOOLS, context, onToolEvent }
+                : undefined,
+            ),
             available: !!this.gemini && responseModel.startsWith('gemini-'),
           },
           {
