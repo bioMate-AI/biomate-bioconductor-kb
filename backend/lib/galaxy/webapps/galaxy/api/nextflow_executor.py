@@ -1622,7 +1622,11 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
                 # wrapper try to download it and 404 on HeadObject, failing every mis-named run.
                 _fre = re.compile(r'[.](csv|tsv|txt|rds|rdata|h5ad|mtx|tab|parquet)$', re.IGNORECASE)
                 _skip_keys = {"outdir", "output", "output_dir", "output_location", "workdir",
-                              "work_dir", "publish_dir", "publishdir", "resume_from_run_id"}
+                              "work_dir", "publish_dir", "publishdir", "resume_from_run_id",
+                              # benchmark workflow: ground-truth label + method selector are NOT
+                              # omics modalities — labels is an s3://…csv (would match _fre) that
+                              # must reach only the COMPARE scoring step, never the method inputs.
+                              "labels", "label", "benchmark_methods", "methods", "n_clusters"}
                 _collected = []
                 for _k, _v in list(params.items()):
                     if str(_k).lower() in _skip_keys:
