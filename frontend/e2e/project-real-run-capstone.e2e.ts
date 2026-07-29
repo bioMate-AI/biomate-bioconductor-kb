@@ -44,11 +44,11 @@ async function overallStatus(page: Page): Promise<string> {
 }
 
 test.describe.serial('project-real-run-capstone', () => {
-  // KNOWN GAP (docs/20260728_PROJECT_MULTIFILE_PARAM_MAPPING_GAP.md): the project
-  // upload→analyze→run path launches with empty toolParameters — the 3 uploaded
-  // files aren't mapped to differentialabundance's matrix/samplesheet/contrasts,
-  // so the run fails at launch. fixme until the input→param mapping is fixed; this
-  // test is the regression hook that should turn green once it is.
+  // Regression for docs/20260728_PROJECT_MULTIFILE_PARAM_MAPPING_GAP.md: project
+  // files were routed with BARE FILENAMES (matrix=counts_matrix.csv) instead of
+  // S3 URIs, so AWS Batch couldn't open them and the run failed at launch. Fixed by
+  // resolveProjectFileParams() in server/routes.ts (stages project files into the
+  // Batch bucket + substitutes the s3:// URI). fixme lifted once verified on dev.
   test.fixme('MG counts → differentialabundance → COMPLETED run with real DE results', async ({ browser, request }) => {
     test.setTimeout(90_000 + EXEC_TIMEOUT_MS + 180_000);
     const page = await browser.newPage();

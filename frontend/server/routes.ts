@@ -964,6 +964,65 @@ async function _uploadFileToS3(localPath: string, datasetId: string, fileName: s
   }
 }
 
+// Stage a project-uploaded file (stored in the app bucket S3_BUCKET_NAME, which
+// AWS Batch workers cannot read) into the Batch-readable Nextflow bucket via a
+// server-side cross-bucket copy. Returns the resolvable s3:// URI, or undefined.
+async function _stageProjectFileToNextflow(
+  srcBucket: string, srcKey: string, projectId: string, fileName: string,
+): Promise<string | undefined> {
+  const destBucket = process.env.NEXTFLOW_S3_BUCKET || process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
+  const destKey = `uploads/project-${projectId}/${fileName}`;
+  const destUri = `s3://${destBucket}/${destKey}`;
+  try {
+    const { CopyObjectCommand } = await import('@aws-sdk/client-s3');
+    const s3 = await _s3ClientForBucket(destBucket);
+    // CopySource is `/<bucket>/<url-encoded-key>` (each path segment encoded).
+    const copySource = `/${srcBucket}/${srcKey.split('/').map(encodeURIComponent).join('/')}`;
+    await s3.send(new CopyObjectCommand({ Bucket: destBucket, Key: destKey, CopySource: copySource }));
+    console.log(`[ProjectStage] ${srcBucket}/${srcKey} → ${destUri}`);
+    return destUri;
+  } catch (err: any) {
+    console.warn(`[ProjectStage] cross-bucket copy failed for ${srcKey}: ${err?.message}`);
+    return undefined;
+  }
+}
+
+// Replace bare-filename workflow params with resolvable s3:// URIs for files the
+// user uploaded to the active project. Root-cause fix for "upload to project →
+// Analyze → run": the Analyze flow maps files to param roles by name but leaves
+// the value a bare filename (e.g. matrix=counts_matrix.csv), which AWS Batch
+// cannot open → the run fails at launch. Here we look each bare filename up in
+// the project's files and stage it into the Batch bucket.
+async function resolveProjectFileParams(rawParams: Record<string, any>, projectId: string): Promise<void> {
+  const srcBucket = process.env.S3_BUCKET_NAME || '';
+  if (!srcBucket) return;
+  const looksBareFile = (v: any): boolean =>
+    typeof v === 'string' && !!v &&
+    !v.startsWith('s3://') && !v.startsWith('/') && !v.includes('://') &&
+    !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-/i.test(v) &&  // not a UUID/dataset id
+    /\.[A-Za-z0-9]{1,8}$/.test(v) && !/\s/.test(v);        // has a file extension, no spaces
+  if (!Object.values(rawParams).some(looksBareFile)) return;
+  const rows = await pool.query(`SELECT name, s3_key FROM project_files WHERE project_id = $1`, [projectId]);
+  const byName = new Map<string, string>();
+  for (const r of rows.rows) if (r.name && r.s3_key) byName.set(r.name, r.s3_key);
+  if (!byName.size) return;
+  const stagedCache = new Map<string, string>();
+  for (const [k, v] of Object.entries(rawParams)) {
+    if (!looksBareFile(v)) continue;
+    const s3Key = byName.get(v as string);
+    if (!s3Key) continue;
+    let uri = stagedCache.get(v as string);
+    if (!uri) {
+      const got = await _stageProjectFileToNextflow(srcBucket, s3Key, projectId, v as string);
+      if (got) { uri = got; stagedCache.set(v as string, got); }
+    }
+    if (uri) {
+      console.log(`[Execute] resolved project file param ${k}: "${v}" → ${uri}`);
+      rawParams[k] = uri;
+    }
+  }
+}
+
 // Clean up temp uploads older than UPLOAD_TTL_HOURS to prevent unbounded disk growth.
 const UPLOAD_TTL_MS = (parseInt(process.env.UPLOAD_TTL_HOURS || '48', 10)) * 60 * 60 * 1000;
 async function cleanStaleUploads(): Promise<void> {
@@ -10137,6 +10196,16 @@ ${paramLines || '(none recorded)'}`;
             undefined;
           if ('profile' in rawParams) delete rawParams.profile;
           if ('executor' in rawParams) delete rawParams.executor;
+
+          // Resolve bare-filename params against the active project's uploaded
+          // files, staging them into the Batch-readable bucket (see fn docs).
+          if (request.projectId) {
+            try {
+              await resolveProjectFileParams(rawParams, request.projectId);
+            } catch (e: any) {
+              console.warn('[Execute] project file param resolution failed (non-fatal):', e?.message);
+            }
+          }
 
           // Build UUID → { filePath, name } map from session datasets + in-memory registry
           const _uuidFilePaths: Record<string, { filePath: string; name: string }> = {};
