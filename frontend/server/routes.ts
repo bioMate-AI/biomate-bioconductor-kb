@@ -8083,6 +8083,24 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
+  // GET /api/data_sources — canonical registry of BioMate's external data sources
+  // (self-awareness catalog). Proxies the Galaxy endpoint so the UI + external
+  // clients can see what BioMate can query; the assistant's list_data_sources tool
+  // reaches Galaxy directly. See docs/20260728_UNIFIED_DATA_SOURCE_REGISTRY.md.
+  app.get("/api/data_sources", optionalAuth, async (_req, res) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const upstream = await fetch(`${galaxyUrl}/api/data_sources`, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+      });
+      const data = await upstream.json();
+      res.status(upstream.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // POST /api/databases/query — query biological databases (used by MCP query_database)
   // Pass database="federated" (or omit) to fan-out to all relevant sources in parallel.
   // Pass a specific database name to hit a single source.
