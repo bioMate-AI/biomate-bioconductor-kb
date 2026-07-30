@@ -208,8 +208,17 @@ workflow BIOC_MULTIOMICS_BENCHMARK_WORKFLOW {
 // params.labels internally and routes it only to COMPARE, so the ground-truth never enters
 // the omics list the methods glob.
 workflow {
-    def _omics = (params.omics instanceof List) ? params.omics
-               : (params.omics ? [params.omics] : [])
+    // params.omics may arrive as a real Nextflow List OR (when the executor serializes the
+    // request params) as a JSON/comma STRING like `["s3://a.csv","s3://b.csv"]`. Parse both:
+    // strip surrounding brackets, split on commas (s3 URIs contain none), strip quotes/space.
+    def _raw = params.omics
+    def _omics = []
+    if (_raw instanceof List) {
+        _omics = _raw.collect { it.toString() }
+    } else if (_raw != null) {
+        def s = _raw.toString().trim().replaceAll(/^\[/, '').replaceAll(/\]$/, '')
+        _omics = s.split(',').collect { it.trim().replaceAll(/^["']+/, '').replaceAll(/["']+$/, '') }.findAll { it }
+    }
     if (!_omics) error "multiomics_benchmark: params.omics is required (a list of omics CSV paths)"
     ch_input = Channel.fromList(_omics)
                       .map { file(it) }
