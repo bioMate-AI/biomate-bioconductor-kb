@@ -4879,6 +4879,18 @@ def _execute_nextflow_impl(
     # scripts with named-only workflows (e.g. runnable subworkflows).
     selected_entry = (request.entry or "").strip() or _detect_nextflow_entry(nf_path)
 
+    # A file with an anonymous `workflow { }` block is runnable DIRECTLY — Nextflow runs that
+    # block with no `-entry`. Prefer it over any named `take:` workflow in the same file, so a
+    # COMPOSED pipeline (e.g. multiomics_benchmark: an anonymous entry that self-stages omics
+    # and calls a named `take:` workflow which fans out to N method processes) launches instead
+    # of being rejected by the take-without-wrapper fail-fast guard below.
+    if not (request.entry or "").strip():
+        try:
+            if re.search(r"(?m)^\s*workflow\s*\{", nf_path.read_text(errors="replace")):
+                selected_entry = None
+        except OSError:
+            pass
+
     # Bioconductor subworkflows declare their inputs via `// Input:` and expose only a
     # `take:`-bound named workflow — `-entry` cannot bind that channel, so the workflow is
     # unrunnable as-is. Build an anonymous entry wrapper that stages the user's declared
