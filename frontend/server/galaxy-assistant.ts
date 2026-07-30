@@ -8335,7 +8335,13 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       // here would only confuse Claude into calling run_code/read_file instead of
       // narrating the workflow result. Reserve tools for pure data-analysis turns.
       // (isWorkflowTurn is hoisted above so it is also available for system prompt selection.)
-      const agentTools = (!useThinking && onToolEvent && !isWorkflowTurn) ? BIOMATE_TOOLS : undefined;
+      // Gate on the ACTUAL generated workflow, not isWorkflowTurn. isWorkflowTurn is
+      // also true when a workflow was merely *suggested* (shouldGenerate) but none was
+      // produced — a frequent false positive on plain data/compute/lookup questions
+      // ("list my files", "compute this"), which wrongly suppressed the whole agentic
+      // tool layer and made the model hallucinate/deny tools it has. Tools are only
+      // counter-productive when there is a real workflow to narrate (generatedWorkflow).
+      const agentTools = (!useThinking && onToolEvent && !generatedWorkflow) ? BIOMATE_TOOLS : undefined;
 
       // Vision: when the user attached image(s), send them to the multimodal model
       // as real image content blocks so it can give a grounded biomedical read
@@ -8400,14 +8406,12 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             // the model hallucinated tool use and denied capabilities it has. The
             // _generateWithGemini loop executes tools + emits tool_event when handed a
             // toolContext (as the fallback at the catch below already does).
-            fn: () => {
-              const _toolsOn = (!useThinking && onToolEvent && !isWorkflowTurn);
-              onResponseDelta?.(`[[DIAG geminiPrimary think=${useThinking} wf=${isWorkflowTurn} onTool=${!!onToolEvent} toolsOn=${!!_toolsOn}]]`);
-              return this._generateWithGemini(
-                systemPrompt, plainMessages, onResponseDelta, 4096, undefined,
-                _toolsOn ? { tools: BIOMATE_TOOLS, context, onToolEvent } : undefined,
-              );
-            },
+            fn: () => this._generateWithGemini(
+              systemPrompt, plainMessages, onResponseDelta, 4096, undefined,
+              (!useThinking && onToolEvent && !generatedWorkflow)
+                ? { tools: BIOMATE_TOOLS, context, onToolEvent }
+                : undefined,
+            ),
             available: !!this.gemini && responseModel.startsWith('gemini-'),
           },
           {
@@ -8694,8 +8698,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             })),
             { role: 'user' as const, content: userPrompt },
           ];
-          // Pass tools so Gemini can call run_code and read_file (always enable for analysis turns)
-          const geminiTools = !isWorkflowTurn ? BIOMATE_TOOLS : undefined;
+          // Pass tools so Gemini can call run_code and read_file (always enable for analysis turns).
+          // Gate on the real generated workflow, not isWorkflowTurn (mere suggestion) — see 8344.
+          const geminiTools = !generatedWorkflow ? BIOMATE_TOOLS : undefined;
           const geminiResponse = await this._generateWithGemini(
             systemPrompt, plainMessages, onResponseDelta, 4096, 'gemini-3.5-flash',
             geminiTools ? { tools: geminiTools, context, onToolEvent } : undefined,
