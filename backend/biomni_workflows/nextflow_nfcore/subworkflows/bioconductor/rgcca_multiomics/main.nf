@@ -1,18 +1,18 @@
 #!/usr/bin/env nextflow
 // ============================================================
-// Bioconductor-style workflow: MFA — Multiple Factor Analysis multi-omics clustering
-// NOTE: this file replaces the original RGCCA implementation. RGCCA's hard dependency
-// `Deriv` has no noble binary on p3m and fails to compile from source (codegen Makefile
-// -> `make Error 1`) in the bioc-domain-general:3.20-slim container. MFA (Escofier &
-// Pages) is the reliable-install substitute: CRAN FactoMineR (guaranteed noble binary),
-// and it is the canonical multi-BLOCK factor method in the same canonical-correlation /
-// co-inertia family — integrates multiple groups of variables into one weighted common
-// factor space, then clusters samples on the shared coordinates. Process/workflow names
-// kept as *_RGCCA_* so the executor resolves the file path unchanged; the METHOD is MFA
-// (relabel as "MFA" in the benchmark matrix). Same universal CSV interface as MOFA2/SNF.
+// Bioconductor-style workflow: MFA (base-R) — Multiple Factor Analysis multi-omics clustering
+// NOTE: replaces RGCCA and the FactoMineR::MFA attempt. BOTH pulled the `Deriv` dependency
+// (RGCCA directly; FactoMineR -> car -> pbkrtest -> Deriv), which has no noble binary on p3m
+// and fails to compile (`make Error 1`, codegen Makefile) in bioc-domain-general:3.20-slim.
+// This implements MFA directly via its ACTUAL algorithm in BASE-R: standardize each block,
+// weight each block by 1/(first singular value) so no single block dominates the joint
+// variance, concatenate, then a global SVD -> shared sample factor coordinates -> k-means.
+// Zero package install (no Deriv, no Bioc 504, no compile). Same multi-block factor family
+// as MFA/RGCCA. Process/workflow names kept as *_RGCCA_* so the executor resolves the file
+// path unchanged; the METHOD is MFA. Universal CSV interface as MOFA2/SNF.
 // Input: omics
-// Container: bioc-domain-general:3.20-slim (FactoMineR from CRAN at runtime)
-// R packages: FactoMineR
+// Container: bioc-domain-general:3.20-slim (base-R only — no install)
+// R packages: (none — base stats: svd, scale, kmeans)
 // ============================================================
 
 nextflow.enable.dsl = 2
@@ -39,9 +39,7 @@ process BIOC_RGCCA_MULTIOMICS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    # FactoMineR is CRAN and ubiquitous -> installs as a fast p3m.dev noble BINARY via the
-    # container default repo (no source build, no Deriv, no make error, no Bioc 504).
-    if (!requireNamespace("FactoMineR", quietly = TRUE)) install.packages("FactoMineR", Ncpus = 2)
+    # base-R only — MFA via block-weighted global SVD. No install, no Deriv, no Bioc 504.
 
     # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
     for (.bm_d in list.files(".", full.names = TRUE)) {
@@ -51,8 +49,6 @@ process BIOC_RGCCA_MULTIOMICS {
         }
       }
     }
-
-    suppressMessages({ library(FactoMineR) })
 
     # --- read the multi-omics view list (UNIVERSAL interface, same as MOFA2/SNF) ---
     .read_matrix <- function(.f) {
@@ -76,32 +72,38 @@ process BIOC_RGCCA_MULTIOMICS {
     data <- lapply(data, function(m) m[, .common, drop = FALSE])
     cat(sprintf("[mfa] %d views aligned to %d common samples\\n", length(data), length(.common)))
 
-    # --- MFA data prep: samples x features per block, impute NA, cap variable features ---
-    .prep <- function(m, vname) {
+    # --- per-block prep: samples x features, impute NA, drop zero-var, cap, STANDARDIZE ---
+    .prep <- function(m) {
       X <- t(as.matrix(m))                      # samples x features
       for (j in seq_len(ncol(X))) {             # impute NAs by feature mean
         v <- X[, j]; if (any(is.na(v))) { mu <- mean(v, na.rm = TRUE); v[is.na(v)] <- if (is.finite(mu)) mu else 0; X[, j] <- v }
       }
       vv <- apply(X, 2, var)
-      X <- X[, is.finite(vv) & vv > 0, drop = FALSE]        # drop zero-variance features (MFA needs variance)
+      X <- X[, is.finite(vv) & vv > 0, drop = FALSE]        # drop zero-variance features
       if (ncol(X) > 2000) {                                 # cap to top-2000 most-variable for speed
         vv <- apply(X, 2, var); X <- X[, order(vv, decreasing = TRUE)[1:2000], drop = FALSE]
       }
-      colnames(X) <- paste(vname, colnames(X), sep = "__")  # unique names across blocks
+      X <- scale(X)                                         # standardize each feature (MFA type='s')
+      X[!is.finite(X)] <- 0
       X
     }
-    blocks <- Map(.prep, data, names(data))
+    blocks <- lapply(data, .prep)
 
-    # --- Multiple Factor Analysis -> shared sample coordinates -> clustering ---
-    base <- as.data.frame(do.call(cbind, blocks), check.names = FALSE)
-    grp  <- vapply(blocks, ncol, 0L)            # number of variables per block
-    ncp  <- max(2L, ${params.n_clusters ?: 4}L)
+    # --- MFA algorithm (base-R): weight each block by 1/(first singular value) so no block
+    #     dominates, concatenate, global SVD -> sample factor coordinates -> k-means. ---
+    ncp <- max(2L, ${params.n_clusters ?: 4}L)
+    .wblocks <- lapply(blocks, function(X) {
+      d1 <- tryCatch(svd(X, nu = 0, nv = 0)\$d[1], error = function(e) 1)
+      if (!is.finite(d1) || d1 <= 0) d1 <- 1
+      X / d1                                                # MFA block weighting
+    })
+    M <- do.call(cbind, .wblocks)                           # samples x (weighted) features
+    .sv <- svd(M, nu = min(as.integer(ncp), nrow(M) - 1L), nv = 0)
+    .k  <- min(as.integer(ncp), ncol(.sv\$u), length(.sv\$d))
+    coords <- sweep(.sv\$u[, seq_len(.k), drop = FALSE], 2, .sv\$d[seq_len(.k)], "*")  # samples x factors
     set.seed(1)
-    res <- FactoMineR::MFA(base, group = as.integer(grp), type = rep("s", length(blocks)),
-                           ncp = ncp, name.group = names(blocks), graph = FALSE)
-    coords <- as.matrix(res\$ind\$coord)          # samples x MFA dimensions
-    group  <- kmeans(coords, ${params.n_clusters ?: 4}, nstart = 10)\$cluster
-    samples <- rownames(coords); if (is.null(samples)) samples <- .common
+    group <- kmeans(coords, ${params.n_clusters ?: 4}, nstart = 10)\$cluster
+    samples <- rownames(M); if (is.null(samples)) samples <- .common
 
     write.csv(data.frame(sample = samples, cluster = as.integer(group), check.names = FALSE),
               "mfa_clusters.csv", row.names = FALSE)
@@ -109,7 +111,7 @@ process BIOC_RGCCA_MULTIOMICS {
               "mfa_views.csv", row.names = FALSE)
 
     writeLines(c('"BIOC_RGCCA_MULTIOMICS":',
-      paste0('    method: MFA (FactoMineR ', as.character(packageVersion('FactoMineR')), ')')),
+      paste0('    method: MFA (base-R block-weighted SVD; R ', as.character(getRversion()), ')')),
       "versions.yml")
     """
 
