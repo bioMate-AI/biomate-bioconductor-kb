@@ -72,6 +72,7 @@ import {
 import * as mfaService from "./mfa-service";
 import toolsManifest from "./tools_manifest.json";
 import { registerConnectorAdapters } from "./connector-adapters";
+import { registerBenchmarkOrchestrator } from "./benchmark-orchestrator";
 
 // Initialize OpenAI (optional for development)
 const openai = (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim()) ? new OpenAI({
@@ -11954,6 +11955,56 @@ Rules:
       res.status(500).json({ error: e.message });
     }
   });
+
+  // ── Multi-Omics Benchmark orchestrator ──
+  // Fan out to N USER-SELECTED method runs + score their clusters.csv in Node.
+  // See docs/20260730_BENCHMARK_ORCHESTRATOR_DESIGN.md. Thin adapters reuse the existing
+  // execute / run-status / output_files paths; readS3Text parses the full s3://bucket/key
+  // (cluster files live in the nextflow-work bucket, not the default upload bucket).
+  {
+    const _selfBase = () => `http://localhost:${process.env.PORT || 5000}`;
+    registerBenchmarkOrchestrator(app, {
+      submitRun: async ({ name, nextflow_path, parameters, req }) => {
+        const r = await fetch(`${_selfBase()}/api/workflows/execute`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: (req.headers as any).authorization || '',
+            cookie: (req.headers as any).cookie || '',
+            'X-Forwarded-Proto': 'https',
+          } as any,
+          body: JSON.stringify({
+            workflowDefinition: { name, domain: 'multi_omics', nextflow_path, parameters },
+            executionConfig: { nextflow_profile: 'aws' },
+          }),
+        });
+        const d: any = await r.json().catch(() => ({}));
+        const runId = d.runId || d.run_id;
+        if (!runId) throw new Error(`execute returned no runId (HTTP ${r.status}): ${JSON.stringify(d).slice(0, 200)}`);
+        return runId as string;
+      },
+      getRun: async (runId: string) => {
+        const run = await storage.getExecutionRun(runId).catch(() => null);
+        return run ? { status: ((run as any).status as string) || 'unknown' } : null;
+      },
+      getOutputFiles: async (runId: string) => {
+        const r = await fetch(
+          `${_selfBase()}/api/workflows/runs/${runId}/output_files`,
+          { headers: { 'X-Forwarded-Proto': 'https' } as any },
+        );
+        const d: any = await r.json().catch(() => ({}));
+        return ((d.output_files as any[]) || []).map((f: any) => ({ name: f.name || f.filename, s3_uri: f.s3_uri }));
+      },
+      readS3Text: async (uri: string) => {
+        const m = /^s3:\/\/([^/]+)\/(.+)$/.exec(uri || '');
+        if (!m) return '';
+        const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const client = new S3Client({ region: process.env.AWS_REGION || 'us-west-2' });
+        const out = await client.send(new GetObjectCommand({ Bucket: m[1], Key: m[2] }));
+        return (await (out.Body as any).transformToString()) as string;
+      },
+    });
+  }
 
   // ── B.1 — Counted output download endpoint (Phase B output-lockdown) ──
   // Replaces direct user S3 access. Resolves run + file → generates a
