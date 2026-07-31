@@ -40,10 +40,13 @@ async function overallStatus(page: Page): Promise<string> {
   }).catch(() => 'unknown');
 }
 
-// Real UI e2e (canonical fixture, to-completion + report audit). Routing works ("Wgs Germline
-// Gatk", high-confidence); execution FAILED AT LAUNCH (steps=0/0, returncode=1) -- likely the
-// single required input param not auto-filling. Needs root-cause; see
-// docs/20260730_WGS_CRYOEM_UI_E2E_FINDINGS.md. Un-fixme once WGS launches cleanly.
+// Real UI e2e (canonical fixture, to-completion + report audit).
+// PROGRESS: the launch-race ("fetch failed") bug is FIXED (routes.ts retry budget) -- the run now
+// LAUNCHES (nextflow cmd present). REMAINING BLOCKER: the reference genome alias is passed to the
+// workflow as the bare string "--reference hg38" instead of the S3 FASTA path
+// (s3://ngi-igenomes/.../hg38/.../genome.fa), so BWA/GATK can't open the reference and it fails at
+// ~10s. The genome-alias -> S3-FASTA resolution is inconsistent (an earlier run had the full path).
+// Un-fixme once reference resolution is fixed. See docs/20260730_WGS_CRYOEM_ROOTCAUSE_AND_FIXES.md.
 test.fixme('WGS variant calling (SRR1518169 -> hg38 -> GATK -> snpEff) completes via the UI', async ({ browser, request }) => {
   test.setTimeout(180_000 + EXEC_TIMEOUT_MS);
   const page = await browser.newPage();

@@ -57,9 +57,17 @@ fast with a clear reason** rather than hang/fail opaquely — but it cannot *com
 ## Verification
 
 - tsc clean; `vitest` 978 passed; `nextflow_executor.py` compiles on py3.9.
-- **WGS:** re-run the UI e2e (`wgs-capstone.e2e.ts`, un-fixme) after deploy → should complete
-  (routing + params + Batch + GATK + snpEff). The retry fix specifically prevents the recycle-race
-  failure.
+- **WGS launch fix — VERIFIED (2026-07-31):** after deploy, the re-run **launched** (galaxy.log has
+  the `nextflow run …/wgs_germline_gatk/main.nf -profile aws …` cmd; no more "fetch failed"). The
+  retry-budget fix works.
+- **WGS — NEW remaining blocker (revealed by the launch fix):** the run now fails at ~10 s because the
+  reference genome is passed as the **bare string `--reference hg38`** instead of the S3 FASTA path
+  (`s3://ngi-igenomes/igenomes/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta/genome.fa`). BWA/GATK
+  can't open a reference named "hg38". The genome-alias → S3-FASTA resolution is **inconsistent** —
+  the very first failed run (`634d6eea`) had the full S3 path in its params, this run got the bare
+  alias. **Next fix:** make `reference` deterministically resolve genome aliases (hg38/GRCh38/…) to
+  the igenomes FASTA S3 path (rule-based, per CLAUDE.md "canonical alias normalization"). WGS test
+  stays `fixme` until then.
 - **Cryo-EM:** remains `fixme` until the AMI is rebuilt; the code fix is verified by review + compile
   (can't complete end-to-end without the AMI).
 
