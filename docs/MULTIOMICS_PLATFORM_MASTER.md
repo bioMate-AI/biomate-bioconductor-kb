@@ -107,6 +107,11 @@ alignment → marginal value": **REFUTED** (r≈0). Real test = partial-overlap 
   `20260728_SINGLECELL_TRACK_SCOPING.md`, `20260730_BENCHMARK_ORCHESTRATOR_DESIGN.md`
 
 ## 8. Change log (append each significant step)
+- **2026-07-30 (later):** SOTA normalization VALIDATED on mixed TCGA-BRCA (run) — modality
+  auto-detection correct on all 3 views: exp→rnaseq→log2-CPM (mean 2984→6.36), methy→
+  methylation→M-value (β 0.45→−0.59), mirna→log2-CPM. MFA reimplemented in base-R
+  (block-weighted SVD, zero install → Deriv failure class eliminated; de-risk pending).
+  Orchestrator wiring into routes.ts in progress.
 - **2026-07-30:** MCIA per-feature-scaling fix → TCGA 0.058/0.006 → 0.237/0.332 (now top on TCGA).
   SOTA per-modality normalization shipped (log2-CPM/log1p-CP10k/M-value/TF-IDF/median-centre).
   Benchmark → backend-orchestrator decision (composed workflow hit COMPARE head-kill).
