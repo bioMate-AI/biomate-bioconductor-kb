@@ -11992,8 +11992,15 @@ Rules:
         return runId as string;
       },
       getRun: async (runId: string) => {
-        const run = await storage.getExecutionRun(runId).catch(() => null);
-        return run ? { status: ((run as any).status as string) || 'unknown' } : null;
+        // Status lives at execution.status (same field the run API/UI uses), NOT top-level
+        // on the raw record — self-GET the run endpoint so child aggregation reads it correctly.
+        const r = await fetch(
+          `${_selfBase()}/api/workflows/runs/${runId}`,
+          { headers: { 'X-Forwarded-Proto': 'https' } as any },
+        );
+        const d: any = await r.json().catch(() => ({}));
+        const status = d?.execution?.status || d?.status || null;
+        return status ? { status: String(status) } : null;
       },
       getOutputFiles: async (runId: string) => {
         const r = await fetch(
