@@ -2814,7 +2814,6 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
 
       // Check for function calls
       const fnCalls = allParts.filter((p: any) => p.functionCall);
-      if (turn === 0) onResponseDelta?.(`[[GLOOP decls=${geminiTools ? (geminiTools[0].functionDeclarations || []).length : 0} fnCalls=${fnCalls.length} parts=${allParts.length} hasCtx=${!!toolContext}]]`);
       if (fnCalls.length === 0 || !toolContext) break;  // No tools or no context — done
 
       // Execute all function calls
@@ -8415,14 +8414,12 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             // the model hallucinated tool use and denied capabilities it has. The
             // _generateWithGemini loop executes tools + emits tool_event when handed a
             // toolContext (as the fallback at the catch below already does).
-            fn: () => {
-              const _on = (!useThinking && onToolEvent && !hasRunnableWorkflow);
-              onResponseDelta?.(`[[DIAG hasWF=${!!_gw} wfSucc=${_gw?.success} wfErr=${!!_gw?.error} runnable=${hasRunnableWorkflow} toolsOn=${!!_on}]]`);
-              return this._generateWithGemini(
-                systemPrompt, plainMessages, onResponseDelta, 4096, undefined,
-                _on ? { tools: BIOMATE_TOOLS, context, onToolEvent } : undefined,
-              );
-            },
+            fn: () => this._generateWithGemini(
+              systemPrompt, plainMessages, onResponseDelta, 4096, undefined,
+              (!useThinking && onToolEvent && !hasRunnableWorkflow)
+                ? { tools: BIOMATE_TOOLS, context, onToolEvent }
+                : undefined,
+            ),
             available: !!this.gemini && responseModel.startsWith('gemini-'),
           },
           {
