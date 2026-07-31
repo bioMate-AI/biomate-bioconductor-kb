@@ -29,10 +29,13 @@ software-only competitors (OmniBioAI, OmicOS, OmicsNavigator, OMICX, CEPICS) can
 | **SNF** | similarity network fusion | ✅ solid | 0.705 | 0.174 | 0.323 |
 | **intNMF** | integrative NMF | ✅ solid | 0.705 | 0.160 | 0.221 |
 | **MCIA** | co-inertia | ✅ solid (fixed 07-30) | 0.778 | **0.237** | **0.332** |
+| **MFA** (base-R SVD) | multi-block factor | ✅ solid (07-30) | **0.876** | 0.125 | 0.189 |
 | **iClusterPlus** | Bayesian latent | ⚠️ TCGA weak (undertuned) | 0.778 | 0.033 | 0.167 |
 | **JIVE** | joint+individual var | ⚠️ TCGA weak | 0.652 | 0.085 | 0.112 |
-| **MFA** (RGCCA replacement) | multi-block factor | ❌ blocked (Deriv install) | — | — | — |
 | **StabMap** (single-cell) | mosaic embedding | ❌ needs mosaic data | — | — | — |
+
+**7 methods now run E2E.** Per-cohort leaders: **MFA** on CLL (0.876), **MCIA** on both
+TCGA (0.237/0.332). Still no universal winner — leader changes by cohort.
 
 All matched-k (k = label class count), fair, through the platform, scored by the harness.
 
@@ -107,6 +110,13 @@ alignment → marginal value": **REFUTED** (r≈0). Real test = partial-overlap 
   `20260728_SINGLECELL_TRACK_SCOPING.md`, `20260730_BENCHMARK_ORCHESTRATOR_DESIGN.md`
 
 ## 8. Change log (append each significant step)
+- **2026-07-30 (latest):** MFA base-R SVD verified — **7th method working** (CLL 0.876 best /
+  AML 0.125 / BRCA 0.189). Benchmark orchestrator endpoint LIVE (POST fans out user-selected
+  methods → child runs); fixed getRun adapter (read execution.status, not top-level → children
+  were stuck "unknown"). Single-cell + DL/FM integration registry created
+  (`20260730_SINGLECELL_TOOLS_DATA_RESOURCES_TO_INTEGRATE.md`): P0 = MultiVI/totalVI (scvi GPU
+  container) vs classical — serves DL-track + mosaic regime; FMs (scGPT/scMamba/UCE) to
+  benchmark-not-assume (VCBench / "one PCA rules them all" show FMs lose to baselines).
 - **2026-07-30 (later):** SOTA normalization VALIDATED on mixed TCGA-BRCA (run) — modality
   auto-detection correct on all 3 views: exp→rnaseq→log2-CPM (mean 2984→6.36), methy→
   methylation→M-value (β 0.45→−0.59), mirna→log2-CPM. MFA reimplemented in base-R
