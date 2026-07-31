@@ -2814,6 +2814,14 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
 
       // Check for function calls
       const fnCalls = allParts.filter((p: any) => p.functionCall);
+      // Sentinel-gated diagnostic (invisible to real users): only emits when the probe
+      // message contains __DIAGTOOLS__. Reveals whether the tool declarations actually
+      // reach the model at runtime vs. the model declining to call — the last unknown in
+      // the Gemini agentic-tools issue. Remove once the layer-2 cause is confirmed.
+      if (turn === 0 && typeof lastMessage === 'string' && lastMessage.includes('__DIAGTOOLS__')) {
+        const _decls = geminiTools ? ((geminiTools[0] as any).functionDeclarations || []).length : 0;
+        onResponseDelta?.(`[[GTOOLS decls=${_decls} fnCalls=${fnCalls.length} hasCtx=${!!toolContext} textLen=${rawResponse.length}]]`);
+      }
       if (fnCalls.length === 0 || !toolContext) break;  // No tools or no context — done
 
       // Execute all function calls
