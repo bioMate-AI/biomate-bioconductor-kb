@@ -11992,14 +11992,14 @@ Rules:
         return runId as string;
       },
       getRun: async (runId: string) => {
-        // Status lives at execution.status (same field the run API/UI uses), NOT top-level
-        // on the raw record — self-GET the run endpoint so child aggregation reads it correctly.
-        const r = await fetch(
-          `${_selfBase()}/api/workflows/runs/${runId}`,
-          { headers: { 'X-Forwarded-Proto': 'https' } as any },
-        );
-        const d: any = await r.json().catch(() => ({}));
-        const status = d?.execution?.status || d?.status || null;
+        // Canonical status field is record.execution.status (every other routes.ts consumer
+        // reads execRun.execution.status — e.g. the resume path ~L3905). Read storage DIRECTLY:
+        // no HTTP round-trip, no auth. (A self-GET to /api/workflows/runs/:id fails — that
+        // endpoint requires auth, so without a token it returns "Not authenticated" → the
+        // children were stuck "unknown" forever. Reading top-level .status was also wrong: the
+        // field is nested under .execution.)
+        const run = await storage.getExecutionRun(runId).catch(() => null);
+        const status = (run as any)?.execution?.status || null;
         return status ? { status: String(status) } : null;
       },
       getOutputFiles: async (runId: string) => {
