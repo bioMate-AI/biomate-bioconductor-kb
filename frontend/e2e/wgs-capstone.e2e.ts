@@ -41,12 +41,13 @@ async function overallStatus(page: Page): Promise<string> {
 }
 
 // Real UI e2e (canonical fixture, to-completion + report audit).
-// PROGRESS: the launch-race ("fetch failed") bug is FIXED (routes.ts retry budget) -- the run now
-// LAUNCHES (nextflow cmd present). REMAINING BLOCKER: the reference genome alias is passed to the
-// workflow as the bare string "--reference hg38" instead of the S3 FASTA path
-// (s3://ngi-igenomes/.../hg38/.../genome.fa), so BWA/GATK can't open the reference and it fails at
-// ~10s. The genome-alias -> S3-FASTA resolution is inconsistent (an earlier run had the full path).
-// Un-fixme once reference resolution is fixed. See docs/20260730_WGS_CRYOEM_ROOTCAUSE_AND_FIXES.md.
+// FIXED: launch-race ("fetch failed") -> run now launches (routes.ts retry budget).
+// DEFINITIVE remaining blocker (ground truth, not theory): the SRA-accession pre-step
+// (nf-core/fetchngs, _run_fetchngs_prefetch) is launched with the awsbatch executor but a LOCAL
+// -w work dir -> nextflow: "an S3 bucket must be provided as working directory" -> rc=1 in ~6s,
+// before the main workflow. Affects ALL SRA-accession workflows. Fix = run fetchngs on Batch+S3
+// and thread the S3 samplesheet (see docs/20260730_WGS_CRYOEM_ROOTCAUSE_AND_FIXES.md). Reference/
+// requester-pays were red herrings (the main workflow never ran). Un-fixme once fetchngs is fixed.
 test.fixme('WGS variant calling (SRR1518169 -> hg38 -> GATK -> snpEff) completes via the UI', async ({ browser, request }) => {
   test.setTimeout(180_000 + EXEC_TIMEOUT_MS);
   const page = await browser.newPage();
