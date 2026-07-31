@@ -1134,6 +1134,30 @@ def _is_public_accession(value: str) -> bool:
     return _classify_accession(value) is not None
 
 
+def _workflow_handles_sra_natively(nf_path: str) -> bool:
+    """True if the workflow downloads SRA accessions itself (has a FASTERQ_DUMP /
+    prefetch process or an isSRA branch), so the accession-chain fetchngs prefetch
+    should be SKIPPED and the raw accession passed straight through to the workflow.
+
+    Why this matters (root cause of every SRA-accession Batch launch dying in ~6s):
+    the accession chain otherwise runs nf-core/fetchngs as a pre-step, which (a) fails
+    on Batch because it's launched with the awsbatch executor but a LOCAL work dir, and
+    (b) even if it succeeded would substitute a samplesheet.csv into --reads, which a
+    workflow's `fromFilePairs(...)` / `isSRA` path (e.g. wgs_germline_gatk) then rejects.
+    A workflow that already knows how to fetch SRA must receive the raw accession.
+    """
+    try:
+        text = Path(nf_path).read_text(errors="ignore")
+    except Exception:
+        return False
+    # Native SRA-handling signals: a fasterq-dump/prefetch process, or an isSRA branch
+    # matching accession patterns (SRR/ERR/DRR).
+    return bool(re.search(
+        r"FASTERQ[_ ]?DUMP|fasterq-dump|\bprefetch\b|\[SED\]RR|from_?sra|sra_download",
+        text, re.IGNORECASE,
+    ))
+
+
 # ---------------------------------------------------------------------------
 # Request / response models
 # ---------------------------------------------------------------------------
@@ -5286,6 +5310,17 @@ def _execute_nextflow_impl(
             continue
         info = _classify_accession(str(value))
         if info:
+            # Skip the fetchngs prefetch for SEQUENCING accessions when the target
+            # workflow downloads SRA itself (FASTERQ_DUMP / isSRA branch, e.g.
+            # wgs_germline_gatk). Intercepting would run the (Batch-incompatible) fetchngs
+            # pre-step and then substitute a samplesheet.csv the workflow's reads path
+            # rejects. Pass the raw accession straight through instead.
+            if info["handler"] == "sequencing" and _workflow_handles_sra_natively(str(nf_path)):
+                log.info(
+                    f"[Nextflow run {run_id}] --{key}={info['accession']}: workflow handles "
+                    f"SRA natively → passing raw accession (skipping fetchngs prefetch)"
+                )
+                continue
             accession_params[key] = info
             log.info(
                 f"[Nextflow run {run_id}] Detected {info['label']} accession in "
