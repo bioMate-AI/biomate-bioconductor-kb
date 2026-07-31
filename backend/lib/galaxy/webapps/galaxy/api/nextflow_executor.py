@@ -8106,19 +8106,43 @@ def execute_cryosparc(
     cs_exec.CRYOSPARC_INSTANCE_TYPE = _selected_instance_type
 
     # ── Step 1c: provision the CryoSPARC GPU instance ────────────────────────
-    # When CRYOSPARC_SKIP_PROVISION=1, the server is already running at CRYOSPARC_HOST
-    # and no EC2 provisioning is needed (e.g. dev/staging with a permanent CryoSPARC host).
+    # A cryo run must reach a CryoSPARC master whose API is actually SERVING before
+    # any Batch GPU task submits — otherwise every task races a half-booted (or dead)
+    # host and the run fails opaquely. We never trust an unverified host and never fall
+    # back to the mock (use_cryosparc stays True below). No single always-on host is
+    # assumed: the on-demand path provisions per run and terminates on completion.
     if os.environ.get("CRYOSPARC_SKIP_PROVISION", "").strip() in ("1", "true", "yes"):
-        log.info("[CryoSPARC] CRYOSPARC_SKIP_PROVISION=1 — using existing host %s", cs_exec.CRYOSPARC_HOST)
-    else:
-        log.info("[CryoSPARC] Provisioning %s GPU instance for direct execution...", _selected_instance_type)
+        # Permanent-host model (dev/staging): don't launch EC2, but STILL health-check
+        # the configured host so a dead master fails fast with a clear 503 instead of
+        # letting every Batch task fail to connect to a closed port.
+        _cs_host = cs_exec.CRYOSPARC_HOST
+        _cs_port = int(getattr(cs_exec, "CRYOSPARC_PORT", 0) or os.environ.get("CRYOSPARC_PORT", "30000") or "30000")
+        import socket as _socket
         try:
-            instance_ip = cs_exec.start_instance(wait=True)
-            cs_exec.CRYOSPARC_HOST = instance_ip or cs_exec.CRYOSPARC_HOST
-            log.info("[CryoSPARC] Instance ready at %s", cs_exec.CRYOSPARC_HOST)
+            with _socket.create_connection((_cs_host, _cs_port), timeout=8):
+                pass
+            log.info("[CryoSPARC] CRYOSPARC_SKIP_PROVISION=1 — health-checked existing host %s:%s OK", _cs_host, _cs_port)
+        except Exception as _hc_exc:
+            raise HTTPException(
+                status_code=503,
+                detail=(f"CRYOSPARC_SKIP_PROVISION is set but the CryoSPARC master at "
+                        f"{_cs_host}:{_cs_port} is not reachable ({_hc_exc}). Start the CryoSPARC "
+                        f"host, or unset CRYOSPARC_SKIP_PROVISION to provision a GPU instance on demand."),
+            )
+    else:
+        log.info("[CryoSPARC] Ensuring an on-demand CryoSPARC GPU master is up (provision + API health check)...")
+        try:
+            # ensure_cryosparc_running() provisions (or reuses) the instance AND blocks
+            # until the CryoSPARC API answers (up to 15 min) — unlike start_instance(wait=True),
+            # which returned as soon as EC2 was 'running', before the service was listening.
+            # Serialise with the same lock the direct-API path uses so concurrent runs don't
+            # launch duplicate instances. On failure this raises → 503 below (never mock).
+            with cs_exec._INSTANCE_LOCK:
+                cs_exec.ensure_cryosparc_running()
+            log.info("[CryoSPARC] Instance ready and API serving at %s", cs_exec.CRYOSPARC_HOST)
         except Exception as exc:
             raise HTTPException(status_code=503,
-                                detail=f"Failed to provision CryoSPARC GPU instance: {exc}")
+                                detail=f"Failed to provision a live CryoSPARC GPU instance: {exc}")
 
     # ── Step 2: resolve movies_path — stage from S3 if needed ────────────────
     movies_path_raw = (params.get("movie_dir") or params.get("movies_path") or

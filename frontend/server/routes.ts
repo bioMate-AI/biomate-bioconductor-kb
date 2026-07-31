@@ -10319,11 +10319,18 @@ ${paramLines || '(none recorded)'}`;
           //   - HTTP 502/503/504: gunicorn worker recycled mid-request
           //   - TypeError "fetch failed": ECONNREFUSED during worker restart (<1s window)
           // Fixed 3s delay — gunicorn recycles in <5s.
+          // A launch POST can coincide with a gunicorn worker-pool recycle
+          // (--workers=4 --max_requests=3000): the pool takes ~50s to come back
+          // accepting connections, during which every POST throws "fetch failed"
+          // (ECONNREFUSED/ECONNRESET) or 502/503/504. The old 3×3s (~6s) budget was
+          // shorter than that window, so a launch racing a recycle failed the user's
+          // run with 0 steps. Widen the retry budget to OUTLAST a full recycle (~58s).
           let nextflowResponse: Response | null = null;
-          for (let _attempt = 0; _attempt < 3; _attempt++) {
-            if (_attempt > 0) {
-              await new Promise(r => setTimeout(r, 3000));
-              console.log(`[Nextflow Direct] Retry attempt ${_attempt} after transient Galaxy error`);
+          const _retryBackoffsMs = [0, 3000, 5000, 8000, 12000, 15000, 15000]; // 7 attempts, ~58s
+          for (let _attempt = 0; _attempt < _retryBackoffsMs.length; _attempt++) {
+            if (_retryBackoffsMs[_attempt] > 0) {
+              await new Promise(r => setTimeout(r, _retryBackoffsMs[_attempt]));
+              console.log(`[Nextflow Direct] Retry attempt ${_attempt}/${_retryBackoffsMs.length - 1} after transient Galaxy error`);
             }
             try {
               nextflowResponse = await fetch(`${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/execute`, {
@@ -10332,12 +10339,13 @@ ${paramLines || '(none recorded)'}`;
                 body: _nfBody,
               });
             } catch (fetchErr: any) {
-              console.warn(`[Nextflow Direct] Galaxy fetch error (attempt ${_attempt + 1}/3): ${fetchErr.message}`);
-              if (_attempt < 2) continue; // retry on network error (ECONNREFUSED during worker restart)
-              throw fetchErr;             // last attempt — propagate
+              const _last = _attempt === _retryBackoffsMs.length - 1;
+              console.warn(`[Nextflow Direct] Galaxy fetch error (attempt ${_attempt + 1}/${_retryBackoffsMs.length}): ${fetchErr.message}`);
+              if (!_last) continue; // retry on network error (ECONNREFUSED/RESET during worker recycle)
+              throw fetchErr;       // exhausted the recycle window — propagate
             }
             if (nextflowResponse.ok || ![502, 503, 504].includes(nextflowResponse.status)) break;
-            console.warn(`[Nextflow Direct] Galaxy returned ${nextflowResponse.status} (attempt ${_attempt + 1}/3) — will retry`);
+            console.warn(`[Nextflow Direct] Galaxy returned ${nextflowResponse.status} (attempt ${_attempt + 1}/${_retryBackoffsMs.length}) — will retry`);
           }
 
           if (!nextflowResponse!.ok) {
