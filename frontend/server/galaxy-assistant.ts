@@ -2814,6 +2814,7 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
 
       // Check for function calls
       const fnCalls = allParts.filter((p: any) => p.functionCall);
+      if (turn === 0) onResponseDelta?.(`[[GLOOP decls=${geminiTools ? (geminiTools[0].functionDeclarations || []).length : 0} fnCalls=${fnCalls.length} parts=${allParts.length} hasCtx=${!!toolContext}]]`);
       if (fnCalls.length === 0 || !toolContext) break;  // No tools or no context — done
 
       // Execute all function calls
