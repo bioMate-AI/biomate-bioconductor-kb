@@ -1,0 +1,51 @@
+name: Auto-assign reviewers
+
+# When a PR is opened against a protected branch, automatically request review
+# from the fixed reviewer pool (minus the PR author). Any one of them approving
+# satisfies branch protection (required approvals = 1), so nobody has to wait
+# for a specific person. This keeps the SOC2 "Application changes reviewed"
+# control fully green — it is a real second-person review, not a bypass.
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+    branches:
+      - integration/next-phase
+      - main
+
+permissions:
+  pull-requests: write
+
+jobs:
+  assign:
+    # Skip draft PRs — request reviewers only once the PR is ready.
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const pool = ['yaoyun-dev', 'sodalvjian', 'zheganjue519'];
+            const author = context.payload.pull_request.user.login;
+            const reviewers = pool.filter(
+              u => u.toLowerCase() !== author.toLowerCase()
+            );
+            if (reviewers.length === 0) {
+              core.info('Author is the only person in the pool; nothing to request.');
+              return;
+            }
+            // Request one-by-one so a single un-assignable user does not block
+            // the others (e.g. a reviewer who lost repo access).
+            for (const reviewer of reviewers) {
+              try {
+                await github.rest.pulls.requestReviewers({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: context.payload.pull_request.number,
+                  reviewers: [reviewer],
+                });
+                core.info(`Requested review from ${reviewer}`);
+              } catch (e) {
+                core.warning(`Could not request ${reviewer}: ${e.message}`);
+              }
+            }
