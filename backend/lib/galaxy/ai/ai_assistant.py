@@ -5638,7 +5638,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                         'nextflow_path': composed['nextflow_path'],
                         'workflow_name': composed['workflow_name'],
                         'workflow_type': 'nextflow',
-                        'source': composed['source'],
+                        'source': composed.get('source', 'template_compose'),
                         'cache_hit': composed.get('cache_hit', False),
                         'confidence': int(score),
                         'template_match_score': int(score),
@@ -5648,7 +5648,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                             "as a structural guide and composed a Nextflow workflow. "
                             "Please review the tool selection before running."
                         ),
-                        'message': composed['message'],
+                        'message': composed.get('message', f"Composed Nextflow workflow: {composed.get('workflow_name', best_match.name)}"),
                         'workflow_ga': {
                             'name': composed['workflow_name'],
                             'description': user_intent,
