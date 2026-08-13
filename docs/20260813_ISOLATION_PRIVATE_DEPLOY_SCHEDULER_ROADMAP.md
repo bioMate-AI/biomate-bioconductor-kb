@@ -1,0 +1,231 @@
+# Isolation · Private Deployment · Scheduler — Implementation Roadmap
+
+**Date:** 2026-08-13
+**Branch:** `feat/compute-platform-v2` (cut from `integration/next-phase`)
+**Author:** engineering (session-authored)
+**Status:** Phase 0 skeleton in progress
+
+---
+
+## Motivation — three verified capability gaps
+
+A code-grounded review (2026-08-13) confirmed three real gaps. File:line
+references are against `integration/next-phase` at the time of writing.
+
+### ① Sandbox isolation — weakest link
+- Production workflows (`NEXTFLOW_USE_AWS=true`) route to AWS Batch and get
+  container/ECS-task isolation — OK.
+- **Local execution + user-uploaded `.nf`** run as a bare
+  `subprocess.Popen()` under the backend process identity — no container,
+  no seccomp/gVisor, no egress limits.
+  See `backend/lib/galaxy/webapps/galaxy/api/nextflow_executor.py` — user
+  `.nf` written to `/tmp/biomate_user_nf/{user_tag}/` (~L4664) then launched
+  via `subprocess.Popen(...)`.
+- Upload handler `POST /api/workflows/upload-file`
+  (`frontend/server/routes.ts`) stores raw `file_content` with **no
+  validation**.
+- Multi-tenancy is only per-user S3 prefixes
+  (`outputs/{user_id}/{run_id}`). Local filesystem is shared; interactive
+  tools (Jupyter/RStudio) have no session-level isolation or resource caps.
+- **Verdict:** safe only for trusted enterprise / single-tenant. Not safe
+  for multi-tenant public SaaS with arbitrary-code execution.
+
+### ② Private deployment — "private within AWS" yes, "off-AWS / air-gap" no
+- Terraform (`infra/terraform/`), `docker-compose`, external env
+  (`/opt/biomate/.env` + Secrets Manager) → private deploy inside a
+  customer's own AWS VPC is feasible.
+- **AWS is a hard dependency:** 9× `import boto3` in the executor; S3 +
+  Batch + RDS + Redis are load-bearing; Nextflow fetches the `nf-amazon`
+  plugin online (executor unsets `NXF_OFFLINE`). Full air-gap does not run
+  today.
+- No Helm/K8s — EC2 + docker-compose only.
+- **Verdict:** can deliver private in-customer-AWS; cannot deliver pure
+  on-prem / 信创 / offline yet.
+
+### ③ Local↔remote dispatch — a switch, not a scheduler
+- Single global flag `NEXTFLOW_USE_AWS`: true → all Batch, false → all
+  local. No per-job selection.
+  See `nextflow_executor.py` routing block ~L4783–4872.
+- Memory tiers exist (`process_low/medium/high/high_memory` =
+  12/36/72/200 GB, `process_gpu` = 8 vCPU/32 GB + GPU) but are hardcoded by
+  Nextflow process label, not chosen from measured demand
+  (~L2407 in `_generate_executor_config`).
+- No local↔remote failure fallback, no cost/speed optimizer, no hybrid
+  scheduling.
+- **Verdict:** "automatic dispatch" does not exist — only a manual flag.
+
+---
+
+## Architectural spine — the key decision
+
+All three features are changes to **which backend executes and how**.
+Rather than rewrite the routing logic three times, we introduce one shared
+abstraction and hang all three features off it:
+
+```
+Phase 0  Compute/Storage backend abstraction
+         (ComputeBackend / StorageBackend / RunSpec / Scheduler skeleton)
+   │  ——— common prerequisite; behind feature flag; default behavior unchanged
+   ├──────────────┬───────────────────┬────────────────────┐
+   ▼              ▼                    ▼                    ▼
+ ① Sandbox     ② Private (AWS)      ② Private (air-gap)   ③ Scheduler
+ SandboxedLocal Terraform param     MinIO/Slurm/K8s        Scheduler policy
+ Backend        + Batch in TF       + offline plugins      + cost model
+                                    + install kit          + fallback
+```
+
+- **Sandbox** = a new `SandboxedLocalBackend` (container/microVM wrapper).
+- **Private deploy** = swappable backends (`AWSBatch`→`Slurm`/`K8s`,
+  `S3`→`MinIO`).
+- **Scheduler** = `Scheduler.select_backend()` upgraded from boolean switch
+  to capability/cost scoring + fallback.
+
+---
+
+## Phase 0 — Compute/Storage abstraction spine (2–3 weeks) — PREREQUISITE
+
+**Deliverables**
+1. `RunSpec` — normalized resource/routing descriptor (cpus, mem, gpu,
+   est_data_gb, data_locality, needs_network, trust_level + the current
+   routing inputs).
+2. `ComputeBackend` Protocol — `submit / poll / cancel / collect_outputs`.
+   Wrap the existing two paths as `LocalSubprocessBackend` and
+   `AWSBatchBackend` with **identical behavior**.
+3. `StorageBackend` Protocol — `S3Backend` today, `endpoint_url` parameter
+   reserved for MinIO.
+4. `Scheduler.select_backend(spec)` — v1 is **logic-equivalent** to today's
+   `NEXTFLOW_USE_AWS` + personal-workflow + S3-autodetect decision.
+5. Feature flag `COMPUTE_BACKEND_V2` (default off). **Shadow mode**: when
+   on, compute the new scheduler's decision alongside the legacy decision
+   and log agreement — never act on it. Zero behavior change either way.
+
+**Acceptance:** the 4 domain real runs (ADMET / RNA-seq / WGS / CryoEM)
+produce identical routing under shadow mode; scheduler decision matches
+legacy on every case. This is the only high-risk refactor — lock down
+zero-regression here before anything is switched over.
+
+---
+
+## Feature ① Sandbox (3–5 weeks) — keep arbitrary code + real sandbox
+
+**Tiered threat model (configurable strength):**
+
+| Tier | Isolation | Use |
+|---|---|---|
+| **1 (default)** | rootless Podman/Docker per run: userns remap, `--cap-drop ALL`, `no-new-privileges`, default seccomp, read-only rootfs + tmpfs workdir, cgroups v2 cpu/mem/pids caps (from RunSpec tier) | trusted enterprise |
+| **2** | Tier 1 + egress default-deny, allowlist via proxy (package mirrors + reference data), netns + iptables | multi-tenant SaaS default |
+| **3** | gVisor (`runsc`) runtime or Firecracker microVM/run (kernel-level) | untrusted code |
+
+**Work**
+1. `SandboxedLocalBackend` (on Phase 0): launch head + tasks inside a
+   sandbox container instead of bare subprocess. Nextflow native
+   `-with-podman`/`-with-docker` for task layer; head wrapped too.
+2. Per-run ephemeral workdir + per-run UID — remove the shared
+   `/tmp/biomate_user_nf` cross-run surface. Mount only that run's inputs.
+3. Upload static pre-check (defense in depth, not the boundary): AST/lint
+   the `.nf`, reject obvious escapes (`--privileged`, mount `/`, curl|bash
+   to internal IPs, absolute host paths). Add at upload handler + pre-exec.
+4. Interactive tools: cgroup cpu/mem caps, egress policy, idle-timeout
+   reaping, per-session netns.
+5. `run_code` tool routed through the sandbox backend.
+6. Config `SANDBOX_TIER=1|2|3`, defaulted by deployment mode.
+
+**Acceptance:** an escape test-suite (read host `/etc/shadow`, reach
+`169.254.169.254`, fork bomb, write host FS) is fully blocked; the 4
+domains are unaffected.
+
+---
+
+## Feature ② Private deployment — two sub-targets
+
+### ②-A Private inside customer AWS (2–3 weeks) — ship first
+
+**Work**
+1. Terraform refactor: promote hardcoded `envs/test` values into a reusable
+   root module + per-customer `.tfvars`; drop hardcoded VPC/instance IDs;
+   provision RDS/Redis/S3/Batch/IAM inside the customer's VPC.
+2. Bring AWS Batch compute environments + queues (incl. GPU spot) into
+   Terraform (currently manual/implicit).
+3. Package a customer bootstrap: one `.tfvars` + one `deploy.sh` stands up
+   the full stack; data never leaves the customer VPC.
+
+### ②-B Air-gap / on-prem / 信创 (4–6 weeks)
+
+**Work (all on Phase 0 abstraction)**
+1. `MinIOStorageBackend` (S3-compatible via `endpoint_url`; verify Galaxy
+   objectstore + every executor S3 call honors the override).
+2. `SlurmBackend` / `K8sBackend` (Nextflow native slurm/k8s executors).
+3. Offline Nextflow plugins: bake `nf-amazon`/`nf-minio`/local into the
+   image `NXF_HOME` plugin cache; set `NXF_OFFLINE=true`; stop unsetting it.
+4. Secrets provider abstraction in `deploy.sh` (Secrets Manager →
+   env-file/Vault).
+5. Offline image + data kit: mirror ECR to customer registry; provide
+   `docker save/load` bundle + workflow DB + embeddings `.npz` + reference
+   data bundle.
+6. Delivery form: Helm chart + air-gap install guide.
+
+**Acceptance:** on a network-isolated host with MinIO + local Postgres +
+local Redis + Slurm/K8s, RNA-seq (deseq2) runs green with real DE results.
+
+---
+
+## Feature ③ Full scheduler (3–4 weeks) — cost/speed + hybrid
+
+**Work (on Phase 0 Scheduler skeleton, upgraded incrementally)**
+1. Resource estimator: derive `RunSpec` from the workflow (process labels →
+   cpu/mem/gpu; input sizes → est runtime/data; data location → local vs S3
+   vs on-prem). Replaces the global flag.
+2. Backend registry + capability/cost model: each backend registers
+   `has_gpu / max_mem / $-per-vCPU-hr / queue depth / data locality`
+   (local, Batch spot/on-demand, Slurm, K8s); wire spot pricing.
+3. Policy engine: weighted score per job (cost × speed × locality); respect
+   user/plan constraints (free tier → local only; data-residency → on-prem
+   only).
+4. Capacity awareness: query Batch queue depth + local semaphore
+   utilization; prefer idle.
+5. Failure fallback: on backend failure / queue timeout, re-dispatch to the
+   next-best backend (with `-resume` where possible); per-backend circuit
+   breaker. Fills the missing local↔remote fallback.
+6. Hybrid scheduling: split a workflow — light preprocessing local, heavy /
+   GPU steps remote — via Nextflow per-process executor mapping (config
+   already supports it; the scheduler generates the process→executor table).
+7. Observability: per-run "why this backend" decision log; est-vs-actual
+   cost into existing Lago billing.
+
+**Acceptance:** with no manual flag, GPU jobs auto-route to the GPU queue,
+small jobs stay local, jobs fall back when the Batch queue is saturated,
+and the cost-decision log is explainable.
+
+---
+
+## Sequencing & timeline
+
+| Milestone | Content | Duration | Unlocks |
+|---|---|---|---|
+| **M0** | Phase 0 spine (zero-regression refactor) | 2–3w | everything |
+| **M1** | ① Sandbox Tier 1+2 + ②-A private-in-AWS | 3–4w (parallel) | multi-tenant + first private pharma customer |
+| **M2** | ③ Scheduler (rules→scoring→fallback→hybrid) | 3–4w | real local/remote auto-dispatch |
+| **M3** | ① Sandbox Tier 3 + ②-B air-gap/K8s | 4–6w | 信创 / on-prem / medical hard requirements |
+
+Total ≈ 3–4 months single-threaded; M1 items parallelizable.
+
+---
+
+## Discipline (per CLAUDE.md)
+
+- Every step behind a feature flag, default = old behavior. Phase 0 must
+  prove zero regression on all 4 domains before anything switches over.
+- No production workflow-file edits for scheduling/benchmark reasons.
+- Sandbox escape cases are real attack tests, never mocked.
+- Each milestone appends a dated `docs/*.md` progress note.
+
+---
+
+## Progress log
+
+- **2026-08-13** — Roadmap authored. Branch `feat/compute-platform-v2` cut
+  from `integration/next-phase`. Phase 0 skeleton started:
+  `backend/lib/galaxy/ai/compute/` (`run_spec`, `backends/`, `storage/`,
+  `scheduler`), flag `COMPUTE_BACKEND_V2` (default off, shadow-mode only).
+</content>
+</invoke>

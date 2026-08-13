@@ -4878,6 +4878,33 @@ def _execute_nextflow_impl(
                 f"[Nextflow] Auto-setting S3 outdir for S3 inputs: {effective_outdir}"
             )
 
+    # --- Phase 0 compute-platform-v2 SHADOW MODE (COMPUTE_BACKEND_V2) ---
+    # Observational only: build a RunSpec from the same inputs the legacy
+    # routing block above just used, ask the new Scheduler what it WOULD
+    # pick, and log whether it agrees. Never mutates `compute` — this exists
+    # purely to prove the abstraction reaches parity before it takes over.
+    # Fully guarded so an import/logic error here can never affect a run.
+    try:
+        from galaxy.ai.compute.scheduler import shadow_compare
+        from galaxy.ai.compute.run_spec import RunSpec as _RunSpec
+
+        _shadow_choice = shadow_compare(
+            _RunSpec.from_request(
+                executor_requested=_executor_requested,
+                nextflow_path=_nf_path_str,
+                outdir=str(params.get("outdir", "")),
+                params=params,
+                use_aws_env=_use_aws_env,
+                user_id=_uid_for_path,
+                run_id=_run_id or "",
+            ),
+            legacy_executor=compute.get("executor", ""),
+        )
+        if _shadow_choice is not None:
+            log.info("[compute-v2 shadow] %s", _shadow_choice)
+    except Exception as _shadow_exc:  # pragma: no cover - defensive
+        log.debug("[compute-v2 shadow] skipped: %s", _shadow_exc)
+
     # Validate all input paths exist and total size ≤ 10 GB.
     _validate_input_paths(params)
     _validate_epitope_netmhc_params(nf_path, params)
