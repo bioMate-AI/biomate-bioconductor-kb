@@ -2973,8 +2973,54 @@ def _evaluate_qc_from_s3(
             for f in s3_output_files
         )
         is_cryo = any(k in domain_upper for k in ("CRYO", "CRYOSPARC", "CRYOEM", "CRYO_EM"))
-        if not (is_admet or is_admet_files) and not is_cryo:
-            return []  # S3 QC supported for ADMET and CryoEM domains
+        is_preproc = any(k in domain_upper for k in ("PREPROC", "CLEANING", "QC_CLEAN"))
+        is_preproc_files = any(
+            f.get("filename", "").endswith("qc_report.json") for f in s3_output_files
+        )
+        if (not (is_admet or is_admet_files) and not is_cryo
+                and not (is_preproc or is_preproc_files)):
+            return []  # S3 QC supported for ADMET, CryoEM, and preprocessing/cleaning domains
+
+        # ── Preprocessing / cleaning QC path (over-correction gate) ─────────
+        # The clean_and_verify subworkflow emits qc_report.json already in the
+        # {"_all_metrics":[{name,measured,unit,threshold,pass}, ...]} shape, so this branch
+        # just downloads + surfaces the failing metrics. Additive: returns [] if not preproc.
+        if ((is_preproc or is_preproc_files)
+                and not is_cryo and not (is_admet or is_admet_files)):
+            _qc_uri = ""
+            for _f in s3_output_files:
+                if _f.get("filename", "").endswith("qc_report.json"):
+                    _qc_uri = _f.get("s3_uri", "")
+                    break
+            if not _qc_uri.startswith("s3://"):
+                return []
+            try:
+                import boto3
+                _bucket, _key = _qc_uri[5:].split("/", 1)
+                _report = _json.loads(
+                    boto3.client("s3").get_object(Bucket=_bucket, Key=_key)["Body"].read()
+                )
+            except Exception as _e:  # noqa: BLE001 — safe-fail, gate is best-effort
+                log.warning("[QC Gate] preproc qc_report.json read failed for %s: %s", run_id, _e)
+                return []
+            _fails: List[Dict] = []
+            for _m in _report.get("_all_metrics", []):
+                if _m.get("pass", True):
+                    continue
+                _name = _m.get("name", "")
+                _fails.append({
+                    "name": _name,
+                    "measured": _m.get("measured"),
+                    "threshold": _m.get("threshold"),
+                    "unit": _m.get("unit", ""),
+                    # biology-erasure is a hard halt; batch/outlier issues are advisory
+                    "severity": "halt" if _name.lower().startswith("biology") else "advisory",
+                    "message": (
+                        "%s: measured %s vs threshold %s"
+                        % (_name, _m.get("measured"), _m.get("threshold"))
+                    ),
+                })
+            return _fails
 
         # ── CryoEM path ────────────────────────────────────────────────────
         if is_cryo and not (is_admet or is_admet_files):
