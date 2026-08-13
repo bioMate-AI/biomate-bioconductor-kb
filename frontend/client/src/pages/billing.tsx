@@ -263,13 +263,18 @@ function AddCreditsDialog({
         const err = await res.json().catch(() => ({})) as { message?: string }
         throw new Error(err.message ?? `HTTP ${res.status}`)
       }
-      const { url } = await res.json() as { url?: string }
+      const { url, devMode } = await res.json() as { url?: string; devMode?: boolean }
       if (url) {
         window.location.href = url
-      } else {
-        // Stripe not configured — simulate success for dev
-        toast({ title: "Credits added (dev mode)", description: `+$${(selected / 100).toFixed(2)} added to your quota.` })
+      } else if (devMode) {
+        // Explicit dev-only simulation (server gated by BILLING_DEV_CREDITS in
+        // non-production). Clearly labeled so it can never be mistaken for a real
+        // payment in production.
+        toast({ title: "Credits added (dev mode — no real payment)", description: `+$${(selected / 100).toFixed(2)} simulated in dev only.` })
         onOpenChange(false)
+      } else {
+        // No checkout URL and not the dev fallback → payment system unavailable.
+        throw new Error("Payment is not available right now. Please contact support.")
       }
     } catch (e: any) {
       toast({ title: "Payment failed", description: e.message, variant: "destructive" })

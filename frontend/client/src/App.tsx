@@ -610,11 +610,11 @@ function Router({
         </AuthenticatedPageLayout>
       </Route> */}
 
-      {/* <Route path="/billing">
+      <Route path="/billing">
         <AuthenticatedPageLayout>
           <BillingPage />
         </AuthenticatedPageLayout>
-      </Route> */}
+      </Route>
 
       <Route path="/admin/feedback-dashboard">
         <AuthenticatedPageLayout>

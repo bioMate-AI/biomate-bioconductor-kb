@@ -568,6 +568,29 @@ def internal_set_quota(payload: SetQuotaPayload):
     return {"ok": True, "user_id": payload.user_id, "quota_usd": payload.quota_usd}
 
 
+class SetPlanPayload(BaseModel):
+    user_id: str
+    plan: str   # canonical plan code: free / premium / team / enterprise
+
+
+@router.post("/internal/billing/set_plan", dependencies=[Depends(require_internal_key)])
+def internal_set_plan(payload: SetPlanPayload):
+    """
+    Change a user's plan post-signup (subscription upgrade/downgrade/cancel).
+    Called by the Stripe subscription webhook so the ENFORCED Redis quota tracks
+    the plan the user is actually paying for. Without this, subscription tier lived
+    only in Postgres (users.subscriptionTier) while quota kept the signup cap —
+    a paying Premium user stayed capped at Free. Delegates to ensure_quota_set,
+    which persists user_plan and the plan's quota cap in Redis (the same mechanism
+    sign-up uses).
+    """
+    if not payload.plan:
+        raise HTTPException(status_code=400, detail="plan is required")
+    limit = ensure_quota_set(payload.user_id, payload.plan)
+    log.info("set_plan user=%s plan=%s → quota=$%.2f", payload.user_id, payload.plan, limit)
+    return {"ok": True, "user_id": payload.user_id, "plan": payload.plan, "quota_usd": limit}
+
+
 class AddCreditsPayload(BaseModel):
     user_id: str
     amount_usd: float      # e.g. 10.0, 25.0, 50.0

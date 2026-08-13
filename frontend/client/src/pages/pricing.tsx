@@ -33,10 +33,10 @@ export default function PricingPage() {
     {
       name: "Premium",
       description: "For individual researchers",
-      price: { monthly: 49, annual: 44 },
-      credits: "$45",
+      price: { monthly: 100, annual: 80 },
+      credits: "$120",
       features: [
-        { name: "$45 in monthly credits", included: true },
+        { name: "$120 in monthly credits", included: true },
         { name: "Unlimited workflow generation", included: true },
         { name: "Priority compute resources", included: true },
         { name: "Priority support", included: true },
@@ -50,12 +50,10 @@ export default function PricingPage() {
     },
     {
       name: "Team",
-      description: "For research teams",
-      price: { monthly: 79, annual: 71 },
-      credits: "$120",
-      perUser: true,
+      description: "For research teams — custom, sales-led",
+      price: { monthly: "Custom", annual: "Custom" },
       features: [
-        { name: "$120 in monthly credits per user", included: true },
+        { name: "Custom pooled credit allocation", included: true },
         { name: "Everything in Premium", included: true },
         { name: "Shared workspaces", included: true },
         { name: "100 GB storage per user", included: true },
@@ -64,7 +62,7 @@ export default function PricingPage() {
         { name: "Role-based access control", included: true },
         { name: "Dedicated support channel", included: true }
       ],
-      cta: "Start Free Trial",
+      cta: "Contact Sales",
       popular: false
     },
     {
@@ -88,7 +86,7 @@ export default function PricingPage() {
   ]
 
   const handleSelectPlan = (planName: string) => {
-    if (planName === "Enterprise") {
+    if (planName === "Enterprise" || planName === "Team") {
       setLocation('/contact')
     } else if (planName === "Free") {
       setLocation('/register')
@@ -154,7 +152,7 @@ export default function PricingPage() {
                       <span className="text-4xl font-bold">
                         ${isAnnual ? plan.price.annual : plan.price.monthly}
                       </span>
-                      <span className="text-muted-foreground">/month{plan.perUser ? "/user" : ""}</span>
+                      <span className="text-muted-foreground">/month</span>
                       {isAnnual && typeof plan.price.annual === "number" && plan.price.annual > 0 && (
                         <div className="text-sm text-muted-foreground mt-1">
                           Billed ${plan.price.annual * 12}/year
@@ -168,7 +166,7 @@ export default function PricingPage() {
                 {plan.credits && (
                   <div className="mt-3">
                     <Badge variant="secondary" className="text-sm">
-                      {plan.credits} monthly credits{plan.perUser ? " per user" : ""}
+                      {plan.credits} monthly credits
                     </Badge>
                   </div>
                 )}

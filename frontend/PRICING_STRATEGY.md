@@ -1,5 +1,12 @@
 # BioMate Pricing Strategy 2025
 
+> **⚠️ SUPERSEDED (pricing numbers only) — see `docs/20260727_TIER_MODEL_DECISION.md`.**
+> The tier *numbers* in this 2025 doc are outdated. The **canonical, live** pricing (matches
+> the deployed `www.biomate.ai/pricing.html` and the backend quota `DEFAULT_PLAN_LIMITS`) is:
+> **Free $0** (3 projects, $5 spend cap) · **Premium $100/mo** ($80/mo annual, single-user, $120 credit cap) ·
+> **Team** custom / sales-led · **Enterprise** custom. Ignore the "Pro $20 / Team $40/user" figures below.
+> The hybrid credit *model* described here is still directionally accurate.
+
 ## Executive Summary
 
 BioMate employs a **hybrid pricing model** inspired by successful developer platforms like Replit: a predictable base subscription combined with flexible usage-based charges. This approach balances affordability for light users with scalability for power users, while maintaining transparency and predictability.

@@ -110,14 +110,6 @@ const toolCategories: ToolCategory[] = [
 ]
 
 
-// ---------------------------------------------------------------------------
-// Billing widget — disabled until billing page ships (BUG-10b)
-// ---------------------------------------------------------------------------
-
-function BillingWidget() {
-  return null
-}
-
 interface AppSidebarProps {
   onNewChat?: () => void
   onChatSelect?: (chatId: string) => void
@@ -515,10 +507,6 @@ export function AppSidebar({
         </div>
         */}
       </div>
-
-      {/* Billing summary — hidden until billing page is ready
-      <BillingWidget />
-      */}
 
       {/* Footer */}
       <div style={{ borderTop: '1px solid var(--bm-border)', padding: '10px 10px 4px', display: 'flex', alignItems: 'center', gap: 9 }}>

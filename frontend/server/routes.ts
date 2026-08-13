@@ -3022,8 +3022,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/payments/add-credits", authenticateToken, async (req, res) => {
     try {
       if (!stripeService.isConfigured()) {
-        // Dev mode: return null URL so billing.tsx shows toast instead of redirecting
-        return res.json({ url: null });
+        // Dev-only credit simulation: only when explicitly opted in AND not in
+        // production. In production (or when the flag is off) return a real 503
+        // like the other payment endpoints — NEVER a success-shaped { url: null },
+        // which would let the client claim credits were added without payment.
+        if (process.env.NODE_ENV !== 'production' && process.env.BILLING_DEV_CREDITS === 'true') {
+          // Signal dev-mode simulation explicitly so the client can label it.
+          return res.json({ url: null, devMode: true });
+        }
+        return res.status(503).json({
+          error: 'Payment system not configured',
+          message: 'Stripe is not set up. Contact support.',
+        });
       }
 
       const { amountCents, returnUrl } = req.body;

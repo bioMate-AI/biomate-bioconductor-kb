@@ -4068,14 +4068,26 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                 _billing_url = f"{_galaxy_base}/internal/billing/job_completed"
                 _started = run_meta.get("started_at") or _completed_at_now
                 _duration = max(_completed_at_now - _started, 1.0)
+                # Prefer the real per-run compute specs captured at submit time
+                # (from compute_config, e.g. the cryo-EM GPU fleet path). Fall
+                # back to the historical defaults when the caller didn't supply
+                # them — which is the common case for Nextflow-on-Batch runs,
+                # where per-task cpus/memory live in the workflow's process
+                # directives and Batch auto-selects the instance ("optimal").
+                # A Lambda fed by Batch EventBridge events later overwrites
+                # this record with the exact per-instance cost when its rule is
+                # wired; this direct emit is the fallback compute-billing signal.
+                _bill_vcpus = run_meta.get("billing_vcpus") or 4.0
+                _bill_memory_mb = run_meta.get("billing_memory_mb") or 8192
+                _bill_instance_type = run_meta.get("billing_instance_type") or "optimal"
                 _bill_payload = _billing_json.dumps({
                     "user_id": run_meta["user_id"],
                     "job_id": run_id,
                     "workflow_id": run_meta.get("nextflow_path", run_id),
                     "status": "SUCCEEDED" if returncode == 0 else "FAILED",
-                    "instance_type": "optimal",
-                    "vcpus": 4.0,
-                    "memory_mb": 8192,
+                    "instance_type": _bill_instance_type,
+                    "vcpus": float(_bill_vcpus),
+                    "memory_mb": int(_bill_memory_mb),
                     "gpu_count": 0,
                     "duration_seconds": _duration,
                 }).encode()
@@ -5347,6 +5359,35 @@ def _execute_nextflow_impl(
         log.debug("[runs.bootstrap] poller start skipped: %s", _boot_exc)
 
     _started_at_now = time.time()
+
+    # Capture any explicit compute-resource hints at submit time so the
+    # run-completion billing emit (see the C2c block) can report the real
+    # per-run vCPU / memory / instance type instead of hard-coded literals.
+    # For general Nextflow-on-Batch runs these are usually ABSENT — Nextflow
+    # sets per-task cpus/memory via process directives in the workflow config
+    # and the Batch queue uses instance_type="optimal" (Batch auto-selects
+    # the instance), so no aggregate value is knowable here. The values ARE
+    # knowable when a caller supplies them via compute_config (e.g. the
+    # cryo-EM GPU fleet path sets compute.instance_type). When absent, the
+    # keys stay None and the billing emit falls back to its defaults —
+    # behaviour is unchanged. Coerce numerics defensively; never store 0.
+    def _pos_num_or_none(_v):
+        try:
+            _n = float(_v)
+            return _n if _n > 0 else None
+        except (TypeError, ValueError):
+            return None
+
+    _billing_vcpus = _pos_num_or_none(
+        compute.get("vcpus") if isinstance(compute, dict) else None
+    )
+    _billing_memory_mb = _pos_num_or_none(
+        compute.get("memory_mb") if isinstance(compute, dict) else None
+    )
+    _billing_instance_type = (
+        compute.get("instance_type") if isinstance(compute, dict) else None
+    ) or None
+
     _run_record_init = {
         "run_id": run_id,
         "invocation_id": invocation_id,
@@ -5372,6 +5413,11 @@ def _execute_nextflow_impl(
         "user_id": request.user_id or "anonymous",
         "is_pilot": bool(request.is_pilot),
         "started_at": _started_at_now,
+        # Billing compute-resource hints (None when not supplied by caller;
+        # the C2c completion emit falls back to defaults in that case).
+        "billing_vcpus": _billing_vcpus,
+        "billing_memory_mb": _billing_memory_mb,
+        "billing_instance_type": _billing_instance_type,
         # Accession metadata (empty dict when not applicable)
         "accession_params": {k: v["label"] for k, v in accession_params.items()},
     }

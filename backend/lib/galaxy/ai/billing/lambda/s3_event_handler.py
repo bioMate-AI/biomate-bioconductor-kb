@@ -113,6 +113,15 @@ def _process_record(s3_record: dict) -> None:
     user_id     = tags.get(USER_TAG_NAME, "")
     workflow_id = tags.get("workflow_id", "unknown")
 
+    # Upload objects are tagged with the billing external-customer id (bm_<uuid>,
+    # set by s3-client.ts buildTagging), but the Redis ledger and /api/billing/usage
+    # key on the RAW uuid — as do all compute/Nextflow path-derived ids below.
+    # Strip the bm_ prefix so uploads bill to the same ledger key as everything else;
+    # otherwise the same user is split across two keys and usage under-counts storage.
+    # (User ids are UUIDs and never start with "bm_", so this strip is safe/idempotent.)
+    if user_id.startswith("bm_"):
+        user_id = user_id[len("bm_"):]
+
     # Fallback: extract user_id from the S3 key path (Nextflow outputs + user upload paths)
     if not user_id:
         user_id = _user_id_from_key(key)

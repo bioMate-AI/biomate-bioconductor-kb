@@ -83,6 +83,11 @@ export class StripeService {
         .where(eq(users.id, userId));
     }
 
+    // Premium includes a 14-day free trial, but only for users who have not already
+    // used/passed their free trial — checked against their DB record (trialUsed +
+    // account age). Repeat/expired-trial users are charged immediately (no trial).
+    const trialEligible = this.isTrialEligible(user);
+
     // Create checkout session
     const session = await this.stripe.checkout.sessions.create({
       customer: customerId,
@@ -98,15 +103,21 @@ export class StripeService {
       cancel_url: cancelUrl || `${APP_URL}/pricing?payment=canceled`,
       metadata: {
         userId: user.id,
+        trial_granted: trialEligible ? 'true' : 'false',
       },
       subscription_data: {
         metadata: {
           userId: user.id,
         },
+        // 14-day trial only when eligible; otherwise omit → immediate charge.
+        ...(trialEligible ? { trial_period_days: 14 } : {}),
       },
     });
 
-    console.log(`[Stripe] Checkout session created for user ${userId}`);
+    console.log(
+      `[Stripe] Checkout session created for user ${userId} ` +
+      `(trial ${trialEligible ? 'GRANTED (14d)' : 'SKIPPED — already used/expired'})`,
+    );
     return session;
   }
 
@@ -130,6 +141,53 @@ export class StripeService {
 
     console.log(`[Stripe] Portal session created for user ${userId}`);
     return session;
+  }
+
+  /**
+   * A user is eligible for the 14-day Premium free trial ONLY if they have not
+   * already consumed a free trial period: `trialUsed` must be false AND their
+   * account must still be within the 2-week window from sign-up (the same free
+   * period the free registration grants). Existing users whose 2-week trial has
+   * already passed pay immediately — no repeat free trials on re-subscribe.
+   */
+  isTrialEligible(user: {
+    trialUsed?: boolean | null;
+    createdAt?: Date | null;
+    trialStartedAt?: Date | null;
+  }): boolean {
+    if (user.trialUsed) return false;
+    const start = user.createdAt ?? user.trialStartedAt;
+    if (start) {
+      const ageDays = (Date.now() - new Date(start).getTime()) / 86_400_000;
+      if (ageDays > 14) return false; // free-trial window already passed
+    }
+    return true;
+  }
+
+  /**
+   * Sync a plan change (subscribe / upgrade / cancel) to the billing backend so the
+   * ENFORCED Redis quota matches the tier the user is paying for. Without this, the
+   * subscription webhook updated only Postgres users.subscriptionTier while the quota
+   * kept the sign-up cap — a paying Premium user stayed capped at Free ($5).
+   */
+  private async _syncPlanToBilling(userId: string, plan: string): Promise<void> {
+    const billingUrl = process.env.BILLING_API_URL || 'http://localhost:8081';
+    const billingKey = process.env.BILLING_INTERNAL_KEY || process.env.BILLING_API_KEY || 'change-me';
+    try {
+      const res = await fetch(`${billingUrl}/internal/billing/set_plan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Internal-Key': billingKey },
+        body: JSON.stringify({ user_id: userId, plan }),
+      });
+      if (!res.ok) {
+        console.error(`[Stripe] set_plan failed (${res.status}): ${await res.text()}`);
+      } else {
+        const body = await res.json() as { quota_usd?: number };
+        console.log(`[Stripe] Plan synced user=${userId} plan=${plan} → quota=$${body.quota_usd}`);
+      }
+    } catch (err) {
+      console.error('[Stripe] _syncPlanToBilling network error:', err);
+    }
   }
 
   /**
@@ -193,12 +251,14 @@ export class StripeService {
       return;
     }
 
-    // Determine tier from price ID
+    // Determine tier from price ID. Use the CANONICAL plan names that
+    // quota_enforcer.DEFAULT_PLAN_LIMITS keys on (premium=$120, enterprise=inf) —
+    // the Premium self-serve tier is billed via the PROFESSIONAL_* price IDs.
     const priceId = subscription.items.data[0]?.price.id;
-    let tier = 'academic';
+    let tier = 'premium';
 
     if (priceId === PRICE_IDS.professional_monthly || priceId === PRICE_IDS.professional_yearly) {
-      tier = 'professional';
+      tier = 'premium';
     } else if (priceId === PRICE_IDS.enterprise_monthly || priceId === PRICE_IDS.enterprise_yearly) {
       tier = 'enterprise';
     }
@@ -215,6 +275,12 @@ export class StripeService {
         updatedAt: new Date(),
       })
       .where(eq(users.id, userId));
+
+    // Propagate the tier to the billing backend so the enforced quota matches the
+    // plan (active/trialing → the paid cap; other statuses stay as-is here).
+    if (subscription.status === 'active' || subscription.status === 'trialing') {
+      await this._syncPlanToBilling(userId, tier);
+    }
 
     console.log(`[Stripe] Updated subscription for user ${userId}: ${subscription.status}`);
   }
@@ -238,6 +304,9 @@ export class StripeService {
         updatedAt: new Date(),
       })
       .where(eq(users.id, userId));
+
+    // Cancellation → revert the enforced quota to the free tier.
+    await this._syncPlanToBilling(userId, 'free');
 
     console.log(`[Stripe] Subscription canceled for user ${userId}`);
   }
@@ -514,6 +583,13 @@ export class StripeService {
    */
   getPricingTiers() {
     return {
+      // Canonical self-serve tier (pricing.tsx / checkout.tsx send tier="premium").
+      // Billed via the PROFESSIONAL_* price IDs until the env vars are renamed.
+      premium: {
+        monthly: PRICE_IDS.professional_monthly,
+        yearly: PRICE_IDS.professional_yearly,
+      },
+      // Legacy aliases (kept so older links / callers still resolve).
       academic: {
         monthly: PRICE_IDS.academic_monthly,
         yearly: PRICE_IDS.academic_yearly,

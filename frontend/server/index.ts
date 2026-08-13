@@ -48,10 +48,17 @@ app.set('trust proxy', 1);
 const _isMcpProxyPath = (p: string) =>
   p === '/mcp' || p.startsWith('/mcp/') ||
   p.startsWith('/oauth/') || p.startsWith('/.well-known/oauth');
+// The Stripe webhook route (routes.ts) uses express.raw() and verifies the signature
+// over the ORIGINAL raw body. A global express.json() here would parse it into an
+// object first, making constructEvent throw "payload must be a string or Buffer" ->
+// every webhook 400s (signature verification impossible). Skip parsing for it so the
+// route's own raw parser receives the untouched bytes.
+const _needsRawBody = (req: Request) =>
+  _isMcpProxyPath(req.path) || req.path === '/api/payments/webhook';
 const _jsonParser = express.json();
 const _urlencodedParser = express.urlencoded({ extended: false });
-app.use((req, res, next) => (_isMcpProxyPath(req.path) ? next() : _jsonParser(req, res, next)));
-app.use((req, res, next) => (_isMcpProxyPath(req.path) ? next() : _urlencodedParser(req, res, next)));
+app.use((req, res, next) => (_needsRawBody(req) ? next() : _jsonParser(req, res, next)));
+app.use((req, res, next) => (_needsRawBody(req) ? next() : _urlencodedParser(req, res, next)));
 app.use(cookieParser());
 
 // Session middleware configuration (will be initialized async)
