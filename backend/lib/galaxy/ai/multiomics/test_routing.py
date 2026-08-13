@@ -1,0 +1,73 @@
+"""Tests for feature-flagged multi-omics integration chat routing.
+Run: `cd backend && PYTHONPATH=lib python3.9 lib/galaxy/ai/multiomics/test_routing.py`
+"""
+from galaxy.ai.multiomics.routing import (
+    detect_multiomics_intent, route_multiomics_result, _extract_modalities, _infer_goal,
+)
+
+
+def test_detect_two_modalities_with_integrate_verb():
+    assert detect_multiomics_intent("integrate my RNA-seq and methylation data") is True
+    assert detect_multiomics_intent("combine transcriptomics, proteomics and mutations") is True
+
+
+def test_detect_rejects_single_modality_or_no_integrate():
+    assert detect_multiomics_intent("run RNA-seq differential expression") is False   # 1 modality, no integrate
+    assert detect_multiomics_intent("integrate this genome") is False                  # integrate verb but <2 omics
+    assert detect_multiomics_intent("analyze my proteomics data") is False             # 1 modality
+
+
+def test_extract_modalities_distinct_types():
+    mods = _extract_modalities("fuse RNA, methylation, miRNA and drug-response matrices")
+    dtypes = sorted(m.data_type for m in mods)
+    assert dtypes == ["drug_response", "methylation", "mirna", "rna"], dtypes
+
+
+def test_infer_goal():
+    assert _infer_goal("integrate rna and methylation to find patient subtypes") == "clustering"
+    assert _infer_goal("integrate rna and protein into shared latent factors") == "factors"
+    assert _infer_goal("integrate rna and cnv") is None
+
+
+def test_route_inert_when_flag_off():
+    assert route_multiomics_result("integrate RNA and methylation", enabled=False) is None
+    assert route_multiomics_result("integrate RNA and methylation", enabled=None) is None  # env unset → off
+
+
+def test_route_returns_card_when_enabled():
+    r = route_multiomics_result("integrate my RNA and proteomics data", enabled=True)
+    assert r is not None
+    assert r["source"] == "multiomics"
+    ga = r["workflow_ga"]
+    assert ga["method"] == "MOFA2"                       # default: paired continuous
+    assert ga["nextflow_path"].endswith("mofa2/main.nf")
+    assert ga["runnable"] is True
+    assert ga["required_params"][0]["name"] == "omics"
+    assert ga["normalization_plan"]["RNA"]               # normalization carried into the card
+    assert ga["pipeline"] == ["normalize", "MOFA2"]      # 2-step: normalize THEN integrate
+    assert "Normalize each modality" in ga["description"]
+
+
+def test_route_clustering_goal_picks_snf():
+    r = route_multiomics_result("combine RNA and methylation to cluster patients into subtypes", enabled=True)
+    ga = r["workflow_ga"]
+    assert ga["method"] == "SNF", ga["method"]
+    assert ga["nextflow_path"].endswith("snf_multiomics/main.nf")
+    assert ga["optional_params"][0]["name"] == "n_clusters"
+
+
+def test_route_returns_none_for_non_integration():
+    assert route_multiomics_result("call variants in this WGS sample", enabled=True) is None
+    assert route_multiomics_result("screen these SMILES for hERG", enabled=True) is None
+
+
+if __name__ == "__main__":
+    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
+    passed = 0
+    for t in tests:
+        try:
+            t(); print(f"  PASS {t.__name__}"); passed += 1
+        except Exception as e:
+            print(f"  FAIL {t.__name__}: {e}")
+    print(f"\n{passed}/{len(tests)} tests passed")
+    raise SystemExit(0 if passed == len(tests) else 1)

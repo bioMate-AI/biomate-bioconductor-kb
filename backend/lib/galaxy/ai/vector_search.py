@@ -26,6 +26,57 @@ except ImportError:
     log.warning("sentence-transformers not installed. Vector search will be disabled.")
 
 
+# Bump when the embedded-text recipe changes so cached vectors are recomputed
+# even if the underlying DB rows are unchanged (the per-row hash + DB signature
+# both fold this in). "sciflat" = scientific_context flattened from JSON prose.
+_EMBED_RECIPE = "sciflat-v1"
+
+# Keys in the scientific_context JSON that are provenance/confidence metadata,
+# not scientific content — skipped when flattening to embedded prose.
+_SCI_CTX_NOISE_KEYS = frozenset({
+    "evidence", "confidence", "evidence_quality", "missing_evidence_for",
+    "information_sources", "needs_verification", "claim", "source",
+    "tool_homepage", "tool_documentation", "key_publications",
+    "min_samples", "min_replicates", "not_suitable", "not_recommended_for",
+})
+
+
+def _flatten_sci_context(raw, cap: int = 800) -> str:
+    """Pull human-readable prose out of a scientific_context JSON blob (v1 or v2
+    shape), dropping provenance/confidence metadata. Returns '' for empty input;
+    falls back to the truncated raw string if it isn't JSON."""
+    if not raw:
+        return ""
+    import json as _json
+    try:
+        doc = _json.loads(raw)
+    except Exception:
+        return str(raw)[:cap]
+    out = []
+
+    def walk(o):
+        if isinstance(o, dict):
+            for k, v in o.items():
+                if k in _SCI_CTX_NOISE_KEYS:
+                    continue
+                walk(v)
+        elif isinstance(o, list):
+            for v in o:
+                walk(v)
+        elif isinstance(o, str):
+            s = o.strip()
+            if s and s.lower() != "n/a" and "needs_verification" not in s.lower():
+                out.append(s)
+
+    walk(doc)
+    seen, parts = set(), []
+    for s in out:
+        if s not in seen:
+            seen.add(s)
+            parts.append(s)
+    return "; ".join(parts)[:cap]
+
+
 def _detect_device_safe(timeout_seconds: float = 5.0) -> str:
     """
     Safely detect if CUDA is available with a timeout.
@@ -165,79 +216,127 @@ class VectorToolSearch:
         log.info(f"Loaded {len(self.tool_ids)} tool embeddings "
                 f"(shape: {self.embeddings.shape})")
 
-    def _create_embeddings(self):
-        """Create embeddings for all tools in database."""
-        log.info("Creating embeddings for all tools...")
+    @staticmethod
+    def _tool_row_fields(row):
+        """(text_for_embedding, per_row_hash) from a tools row. The hash covers
+        the same fields, so a content change flips it and forces re-encode."""
+        import hashlib
+        (tool_id, name, desc, category, help_text, tags, edam_ops, edam_topics,
+         sci_ctx, sci_ctx_v2) = row
+        parts = [name] if name else []
+        if desc:
+            parts.append(desc[:500])  # Truncate long descriptions
+        # scientific_context is the richest enrichment (~10k tools) — prefer v2,
+        # flattened from JSON to prose (drops provenance/confidence noise).
+        sci = _flatten_sci_context(sci_ctx_v2) or _flatten_sci_context(sci_ctx)
+        if sci:
+            parts.append(f"Scientific context: {sci}")
+        if category:
+            parts.append(f"Category: {category}")
+        if help_text:
+            parts.append(f"Help: {help_text[:300]}")
+        if tags:
+            parts.append(f"Tags: {tags}")
+        if edam_ops:
+            parts.append(f"Operations: {edam_ops}")
+        if edam_topics:
+            parts.append(f"Topics: {edam_topics}")
+        text = ". ".join(parts)
+        # Recipe token folded in so a text-recipe change forces re-encode even
+        # when the raw row is unchanged.
+        h = hashlib.sha256(
+            (_EMBED_RECIPE + "\x1e" + "\x1e".join(str(x or "") for x in row)).encode("utf-8", "replace")
+        ).hexdigest()
+        return text, h
 
+    def _create_embeddings(self):
+        """Build or INCREMENTALLY update tool embeddings.
+
+        Only new tools and tools whose text changed are encoded; unchanged
+        tools reuse their cached vector. This avoids re-encoding the whole
+        ~12k corpus (minutes of compute + cost) on every small drift — a
+        27-row drift costs 27 encodes, not 12,297.
+
+        Legacy .npz files with no per-row hashes are TRUSTED for the tool_ids
+        they already carry (only genuinely new tools are encoded), so the
+        migration to incremental itself does NOT trigger a full rebuild.
+        """
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-
-        # Fetch all tools with relevant fields
         cursor.execute('''
             SELECT tool_id, name, description, category, help_text, tags,
-                   edam_operations, edam_topics
+                   edam_operations, edam_topics, scientific_context, scientific_context_v2
             FROM tools
         ''')
-
-        self.tool_ids = []
-        texts = []
-
-        for row in cursor.fetchall():
-            tool_id, name, desc, category, help_text, tags, edam_ops, edam_topics = row
-            self.tool_ids.append(tool_id)
-
-            # Create rich text representation for embedding
-            # Combine multiple fields for better semantic understanding
-            parts = [name] if name else []
-            if desc:
-                parts.append(desc[:500])  # Truncate long descriptions
-            if category:
-                parts.append(f"Category: {category}")
-            if help_text:
-                parts.append(f"Help: {help_text[:300]}")
-            if tags:
-                parts.append(f"Tags: {tags}")
-            if edam_ops:
-                parts.append(f"Operations: {edam_ops}")
-            if edam_topics:
-                parts.append(f"Topics: {edam_topics}")
-
-            text = ". ".join(parts)
-            texts.append(text)
-
+        rows = cursor.fetchall()
         conn.close()
-
-        if not texts:
+        if not rows:
             log.warning("No tools found in database")
             return
 
-        # Batch encode with progress
-        log.info(f"Encoding {len(texts)} tools...")
-        self.embeddings = self.model.encode(
-            texts,
-            show_progress_bar=True,
-            batch_size=64,
-            convert_to_numpy=True
-        )
+        # Load cached vectors + per-row hashes (if any) for reuse.
+        cache = {}  # tool_id -> (vector, hash_or_None)
+        if Path(self.embedding_path).exists():
+            try:
+                data = np.load(self.embedding_path, allow_pickle=True)
+                ids = list(data['tool_ids'])
+                embs = data['embeddings']
+                hashes = list(data['row_hashes']) if 'row_hashes' in data.files else [None] * len(ids)
+                for i, tid in enumerate(ids):
+                    cache[tid] = (embs[i], hashes[i])
+            except Exception as exc:
+                log.warning(f"[VectorSearch] incremental cache load failed (full rebuild): {exc}")
 
-        # Compute the same signature _embeddings_stale will check
-        # against on load. Stored as a 0-dim object array.
+        tool_ids, row_hashes = [], []
+        final = []                 # per-position vector or None (to fill after encode)
+        to_encode, enc_pos = [], []
+        reused = 0
+        for pos, row in enumerate(rows):
+            tid = row[0]
+            text, h = self._tool_row_fields(row)
+            tool_ids.append(tid)
+            row_hashes.append(h)
+            cached = cache.get(tid)
+            # Reuse when: cached vector exists AND (hash matches, or legacy row has
+            # no stored hash → trust it rather than force a corpus-wide re-encode).
+            if cached is not None and cached[0] is not None and (cached[1] is None or cached[1] == h):
+                final.append(cached[0])
+                reused += 1
+            else:
+                final.append(None)
+                to_encode.append(text)
+                enc_pos.append(pos)
+
+        if to_encode:
+            log.info(f"[VectorSearch] incremental: encoding {len(to_encode)} new/changed "
+                     f"of {len(rows)} tools (reused {reused})")
+            vecs = self.model.encode(
+                to_encode, show_progress_bar=True, batch_size=64, convert_to_numpy=True
+            )
+            for j, pos in enumerate(enc_pos):
+                final[pos] = vecs[j]
+        else:
+            log.info(f"[VectorSearch] incremental: all {reused} tool embeddings current — nothing to encode")
+
+        self.tool_ids = tool_ids
+        self.embeddings = np.vstack(final)
+
         try:
             _, sig = self._compute_tools_db_signature()
         except Exception as exc:
             log.warning(f"[VectorSearch] signature compute on save failed: {exc}")
             sig = ""
 
-        # Save for reuse
         log.info(f"Saving embeddings to {self.embedding_path}")
         np.savez_compressed(
             self.embedding_path,
             tool_ids=np.array(self.tool_ids, dtype=object),
             embeddings=self.embeddings,
+            row_hashes=np.array(row_hashes, dtype=object),
             tools_signature=np.array(sig, dtype=object),
         )
-
-        log.info(f"Created embeddings for {len(self.tool_ids)} tools (sig={sig[:12] if sig else 'none'}..)")
+        log.info(f"[VectorSearch] saved {len(self.tool_ids)} embeddings "
+                 f"({len(to_encode)} encoded, {reused} reused, sig={sig[:12] if sig else 'none'}..)")
 
     # ------------------------------------------------------------------
     # Staleness detection (mirror of unified_workflow_search's pattern)
@@ -246,10 +345,9 @@ class VectorToolSearch:
     def _compute_tools_db_signature(self) -> tuple:
         """Compute (row_count, sha256_hex) over the DB's tools rows.
 
-        Hashes the same (tool_id, name, description, category,
-        help_text, tags, edam_operations, edam_topics) tuples
-        _create_embeddings reads, so any change that would affect the
-        encoded text shows up as a different signature.
+        Hashes the same fields _create_embeddings reads (incl.
+        scientific_context / scientific_context_v2), so any change that
+        would affect the encoded text shows up as a different signature.
         """
         import hashlib
         conn = sqlite3.connect(self.db_path)
@@ -257,12 +355,14 @@ class VectorToolSearch:
         cursor.execute(
             "SELECT tool_id, COALESCE(name,''), COALESCE(description,''), "
             "COALESCE(category,''), COALESCE(help_text,''), COALESCE(tags,''), "
-            "COALESCE(edam_operations,''), COALESCE(edam_topics,'') "
+            "COALESCE(edam_operations,''), COALESCE(edam_topics,''), "
+            "COALESCE(scientific_context,''), COALESCE(scientific_context_v2,'') "
             "FROM tools ORDER BY tool_id"
         )
         rows = cursor.fetchall()
         conn.close()
         h = hashlib.sha256()
+        h.update((_EMBED_RECIPE + "\x1f").encode("utf-8"))  # recipe change => new sig
         for r in rows:
             h.update("\x1e".join(str(x) for x in r).encode("utf-8", errors="replace"))
             h.update(b"\x1f")

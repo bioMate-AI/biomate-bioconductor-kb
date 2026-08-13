@@ -3930,6 +3930,22 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             log.info("[UnifiedWorkflowGeneration] ml_training route matched → training card")
             return _ml_result
 
+        # multi-omics integration route (feature-flagged via MULTIOMICS_ROUTING, default OFF).
+        # An "integrate my RNA + methylation + proteomics" request short-circuits to a
+        # data-shape-selected integration card (which method + per-modality normalization +
+        # which workflow to run) instead of the normal single-workflow search. Same
+        # discipline as ml_training above: inert until the flag is set, only ADDs a route,
+        # and guarded so any failure degrades to the normal search path.
+        try:
+            from galaxy.ai.multiomics.routing import route_multiomics_result
+            _mo_result = route_multiomics_result(user_intent)
+        except Exception as _mo_err:
+            _mo_result = None
+            log.warning("[UnifiedWorkflowGeneration] multiomics routing skipped: %s", _mo_err)
+        if _mo_result is not None:
+            log.info("[UnifiedWorkflowGeneration] multiomics route matched → integration card")
+            return _mo_result
+
         # C1b — Inject recent user corrections into the intent for personalized search/generation
         # Only attempt when user_id is a UUID (LTM tables key on UUID, not Galaxy integer IDs).
         _user_id_is_uuid = bool(
