@@ -145,16 +145,24 @@ class SandboxConfig:
             m for m in os.environ.get("SANDBOX_RO_MOUNTS", "").split(",") if m.strip()
         ]
 
-        # Deterministic non-root uid derived from run_id so concurrent runs
-        # don't share an identity (avoids the shared /tmp/biomate_user_nf
-        # cross-run surface). Range 20000-29999 avoids system/user collisions.
-        # NB: hashlib, NOT builtin hash() — str hashing is salted by
-        # PYTHONHASHSEED and varies per process, so a re-launch (orphan
+        # Non-root uid for the container. Default: a deterministic per-run uid
+        # derived from run_id so concurrent runs don't share an identity
+        # (range 20000-29999). hashlib, NOT builtin hash() — str hashing is
+        # PYTHONHASHSEED-salted and varies per process, so a re-launch (orphan
         # recovery) would otherwise get a different UID for the same run.
-        run_uid = None
-        if run_id:
+        #
+        # SANDBOX_RUN_UID overrides this. Needed for docker-out-of-docker: the
+        # host bind-mounts the run's work dir (owned by the backend's uid) into
+        # the sandbox, so the sandbox must run as that same uid to write to it.
+        # Set it to the backend process uid in a DooD deployment.
+        _uid_override = os.environ.get("SANDBOX_RUN_UID", "").strip()
+        if _uid_override.isdigit():
+            run_uid = int(_uid_override)
+        elif run_id:
             _digest = hashlib.sha256(run_id.encode("utf-8")).digest()
             run_uid = 20000 + (int.from_bytes(_digest[:4], "big") % 10000)
+        else:
+            run_uid = None
 
         return cls(
             enabled=enabled,
