@@ -212,12 +212,34 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
     // or built locally from frontend/Dockerfile.biotools (slower path).
     const sandboxImage = process.env.RUN_CODE_IMAGE || 'biomate-biotools:1';
 
+    // Container hardening — parity with the Nextflow sandbox
+    // (backend/lib/galaxy/ai/compute/sandbox/command.py). Low-risk flags
+    // default ON (they don't affect normal compute code): drop all Linux
+    // capabilities, block privilege escalation, cap process count. Read-only
+    // rootfs + gVisor are OPT-IN, since some libraries write outside /work and
+    // /tmp; enable per deployment via env once verified.
+    const pidsLimit = process.env.RUN_CODE_PIDS_LIMIT || '512';
+    const readOnly = /^(1|true|yes)$/i.test(process.env.RUN_CODE_READONLY || '');
+    const tmpfsMb = process.env.RUN_CODE_TMPFS_MB || '512';
+    const gvisorRuntime = (process.env.RUN_CODE_RUNTIME
+      || (Number(process.env.SANDBOX_TIER) >= 3 ? 'runsc' : '')).trim();
+    const hardeningArgs: string[] = [
+      '--cap-drop', 'ALL',
+      '--security-opt', 'no-new-privileges',
+      '--pids-limit', pidsLimit,
+    ];
+    if (gvisorRuntime) hardeningArgs.unshift('--runtime', gvisorRuntime);
+    if (readOnly) {
+      hardeningArgs.push('--read-only', '--tmpfs', `/tmp:rw,nosuid,nodev,size=${tmpfsMb}m`);
+    }
+
     const runViaDocker = () => new Promise<{ stdout: string; stderr: string; exitCode: number }>(
       (resolve) => {
         let stdout = '';
         let stderr = '';
         const dockerArgs = [
           'run', '--rm',
+          ...hardeningArgs,
           '--network=none',
           '--memory=2g', '--cpus=2',
           '--user', `${uid}:${gid}`,
@@ -268,6 +290,14 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
             cpus: 2,
             user: `${uid}:${gid}`,
             env: { DATA_DIR: containerData, OUTPUT_DIR: containerOutput, HOME: '/tmp' },
+            // Hardening knobs (parity with the Nextflow sandbox). The sidecar
+            // applies these as docker flags; older sidecars ignore unknown keys.
+            capDrop: 'ALL',
+            noNewPrivileges: true,
+            pidsLimit: Number(pidsLimit),
+            readOnly,
+            tmpfsMb: Number(tmpfsMb),
+            runtime: gvisorRuntime || undefined,
           }),
           signal: controller.signal,
         });

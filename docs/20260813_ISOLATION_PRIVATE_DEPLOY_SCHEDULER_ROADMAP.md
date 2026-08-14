@@ -322,9 +322,31 @@ Total ≈ 3–4 months single-threaded; M1 items parallelizable.
     none` → **NF_EXIT=0**, task executed, output produced.
 
   All three tiers are now proven on real infra: tier 1 (container isolation),
-  tier 2 (+ egress none), tier 3 (+ gVisor). Remaining Feature ① items
-  unchanged: 4-domain workflow E2E under SANDBOX_ENABLED (needs the executor
-  branch synced), run_code routing, interactive-tools hardening, custom
-  seccomp / Firecracker tier-3b.
+  tier 2 (+ egress none), tier 3 (+ gVisor).
+
+- **2026-08-14 (integration proof + two real bugs fixed)** — Ran the ACTUAL
+  `build_sandbox_command` output (not hand-typed flags) for all 3 tiers on
+  test. Caught two bugs the self-tests couldn't:
+  1. `filter_container_env` forwarded host `PATH` → clobbered the image PATH →
+     `nextflow` not found → exit 127. Fixed with `IMAGE_OWNED_ENV` (PATH/HOME/
+     NXF_HOME/JAVA_HOME/CAPSULE_CACHE_DIR/NXF_OFFLINE dropped; image owns them).
+  2. `run_uid` used builtin `hash()` (PYTHONHASHSEED-salted, non-deterministic
+     across processes) → switched to `hashlib.sha256`. Re-ran all 3 tiers with
+     the fixed shipped-code argv → NF_EXIT=0 each. (commit 75d1c4f6f)
+
+- **2026-08-14 (Feature ① — run_code hardened to parity)** — `run_code`
+  (frontend/server/code-runner.ts) already sandboxed (docker `--network=none`
+  `--memory` `--cpus` `--user` non-root, minimal env — no cred leak). Added
+  the missing hardening to parity with the Nextflow sandbox: `--cap-drop ALL`,
+  `--security-opt no-new-privileges`, `--pids-limit` (default ON — safe for
+  compute); `--read-only`+tmpfs (`RUN_CODE_READONLY`) and gVisor
+  (`RUN_CODE_RUNTIME` / `SANDBOX_TIER>=3`) opt-in. Mirrored into the sidecar
+  contract. Validated on test: default + strict(gVisor+read-only) → EXIT=0,
+  output written. tsc clean.
+
+  **Feature ① remaining:** 4-domain workflow E2E under SANDBOX_ENABLED (needs
+  the executor branch synced to test); interactive-tools hardening
+  (Jupyter/RStudio cgroup+egress+idle-reap+netns); custom seccomp profile;
+  Firecracker tier-3b.
 </content>
 </invoke>
