@@ -278,17 +278,37 @@ Total ≈ 3–4 months single-threaded; M1 items parallelizable.
     py3.9 imports clean.
 
   **Feature ① remaining (not in this commit):**
-  1. **Build the `biomate-nextflow-sandbox` image** (nextflow + java + task
-     runtimes on PATH) and publish it; wire into the deploy flow. Until it
-     exists, `SANDBOX_ENABLED=true` fails closed (by design).
-  2. **Real E2E** on a host with docker/podman (+ gVisor for tier3): confirm
-     the 4 domains run green under `SANDBOX_ENABLED=true`, and run an escape
-     test-suite (host FS read, 169.254.169.254, fork bomb, cred exfil).
-     Cannot be done in this sandbox (no container runtime / dev sync).
+  1. ~~Build the `biomate-nextflow-sandbox` image~~ — DONE (2026-08-14, below).
+  2. **Real E2E** — the 4 domains under `SANDBOX_ENABLED=true` (full workflow
+     paths), + gVisor tier3 (test host has no runsc). Sandbox *mechanism* is
+     now validated (below); the 4-domain workflow runs still need dev-sync.
   3. **`run_code` tool** — route its Python/R exec through the same sandbox
      (separate code path from nextflow_executor).
   4. **Interactive tools** (Jupyter/RStudio GIE) — add cgroup caps, egress
      policy, idle-timeout reaping, per-session netns.
   5. Author a **custom seccomp profile** + optional Firecracker tier-3b.
+
+- **2026-08-14 (Feature ① — sandbox image built + validated on TEST)** —
+  `docker/sandbox/Dockerfile`: FROM `biomate-nextflow-base` (Debian 13,
+  python3+awscli+rdkit) + openjdk-21-jre-headless + Nextflow 25.10.5. Under a
+  read-only rootfs Nextflow needs a writable NXF_HOME, so the framework is
+  baked into a read-only `/opt/nxf_seed` and an entrypoint seeds a writable
+  NXF_HOME on tmpfs at start (offline, no runtime download). Built ON THE
+  TEST box (i-0482a6fa98c6f301a) via SSM — never dev/prod
+  (i-06696b0d…, customer-facing) — and pushed to ECR
+  `biomate-nextflow-sandbox:latest` (577 MB; nothing pulls it without
+  `SANDBOX_ENABLED`). SandboxConfig default image updated to the ECR URI.
+
+  **Validated on test with the exact flags command.py emits**
+  (`--rm --cap-drop ALL --security-opt no-new-privileges --read-only
+  --tmpfs /tmp --user 20001:20001 --cpus 2 --memory 12g --pids-limit 512
+  --network none`):
+  - nextflow -version → 25.10.5 ✓
+  - local `hello.nf` run → **NF_EXIT=0**, task executed, output produced ✓
+  - read-only rootfs enforced (touch /root denied) ✓
+  - `--network none` → 169.254.169.254 unreachable ✓
+  - non-root uid=20001 ✓
+  - cap-drop → mknod "Operation not permitted" ✓
+  - test host has NO gVisor (`runsc`) → tier 3 not exercisable there.
 </content>
 </invoke>

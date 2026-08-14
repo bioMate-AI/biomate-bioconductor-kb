@@ -69,7 +69,9 @@ class SandboxConfig:
     enabled: bool = False
     tier: SandboxTier = SandboxTier.TIER1
     runtime: str = "docker"                 # "docker" | "podman"
-    image: str = "biomate-nextflow-sandbox:latest"
+    # Built + validated on test 2026-08-14 (docker/sandbox/Dockerfile), pushed
+    # to ECR. Override with SANDBOX_IMAGE. Nothing pulls it unless enabled.
+    image: str = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-sandbox:latest"
     container_nextflow_bin: str = "nextflow"  # nextflow on PATH inside image
 
     # cgroup limits
@@ -146,7 +148,10 @@ class SandboxConfig:
             enabled=enabled,
             tier=tier,
             runtime=os.environ.get("SANDBOX_RUNTIME", "docker"),
-            image=os.environ.get("SANDBOX_IMAGE", "biomate-nextflow-sandbox:latest"),
+            image=os.environ.get(
+                "SANDBOX_IMAGE",
+                "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-sandbox:latest",
+            ),
             container_nextflow_bin=os.environ.get("SANDBOX_NEXTFLOW_BIN", "nextflow"),
             cpus=cpus,
             mem_gb=mem_gb,
