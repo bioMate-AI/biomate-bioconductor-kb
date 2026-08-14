@@ -17,6 +17,7 @@ this module changes nothing until an operator opts in.
 
 from __future__ import annotations
 
+import hashlib
 import os
 from dataclasses import dataclass, field
 from enum import IntEnum
@@ -54,11 +55,18 @@ SECRET_ENV_MARKERS = (
     "OPENAI", "ANTHROPIC", "GEMINI", "HF_TOKEN", "HUGGING",
 )
 
-# Env keys that are safe (and needed) inside the sandbox.
+# Env keys the IMAGE owns — never forward the host's value, it would clobber
+# the container's own (e.g. forwarding host PATH hides /usr/local/bin/nextflow
+# → exit 127). The sandbox image sets these itself (see docker/sandbox/).
+IMAGE_OWNED_ENV = (
+    "PATH", "HOME", "NXF_HOME", "JAVA_HOME", "CAPSULE_CACHE_DIR", "NXF_OFFLINE",
+)
+
+# Run-specific env that is safe (and useful) to forward into the sandbox.
+# Deliberately excludes IMAGE_OWNED_ENV above.
 SAFE_ENV_ALLOWLIST = (
-    "PATH", "HOME", "LANG", "LC_ALL", "TERM", "TZ",
-    "NXF_VER", "NXF_HOME", "NXF_OFFLINE", "NXF_ANSI_LOG", "NXF_OPTS",
-    "JAVA_HOME", "JAVA_OPTS",
+    "LANG", "LC_ALL", "TZ",
+    "NXF_VER", "NXF_ANSI_LOG", "NXF_OPTS", "JAVA_OPTS",
 )
 
 
@@ -140,9 +148,13 @@ class SandboxConfig:
         # Deterministic non-root uid derived from run_id so concurrent runs
         # don't share an identity (avoids the shared /tmp/biomate_user_nf
         # cross-run surface). Range 20000-29999 avoids system/user collisions.
+        # NB: hashlib, NOT builtin hash() — str hashing is salted by
+        # PYTHONHASHSEED and varies per process, so a re-launch (orphan
+        # recovery) would otherwise get a different UID for the same run.
         run_uid = None
         if run_id:
-            run_uid = 20000 + (abs(hash(run_id)) % 10000)
+            _digest = hashlib.sha256(run_id.encode("utf-8")).digest()
+            run_uid = 20000 + (int.from_bytes(_digest[:4], "big") % 10000)
 
         return cls(
             enabled=enabled,

@@ -81,7 +81,9 @@ def test_env_credential_filtering():
         "BIOMATE_PUBLIC_URL": "https://x",
     }
     filtered = filter_container_env(env)
-    _check("env: keeps PATH", filtered.get("PATH") == "/usr/bin")
+    # PATH/HOME are image-owned — forwarding the host value would clobber the
+    # container's own and hide /usr/local/bin/nextflow (exit 127). Must DROP.
+    _check("env: DROPS image-owned PATH", "PATH" not in filtered)
     _check("env: keeps NXF_VER", filtered.get("NXF_VER") == "25.10.5")
     _check("env: keeps BIOMATE_PUBLIC_", filtered.get("BIOMATE_PUBLIC_URL") == "https://x")
     for leaked in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "LAGO_API_KEY",

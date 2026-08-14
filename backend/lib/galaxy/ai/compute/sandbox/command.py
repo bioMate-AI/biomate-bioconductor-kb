@@ -17,6 +17,7 @@ from typing import Dict, List, Optional, Tuple
 from .config import (
     SandboxConfig,
     SandboxTier,
+    IMAGE_OWNED_ENV,
     SAFE_ENV_ALLOWLIST,
     SECRET_ENV_MARKERS,
 )
@@ -31,19 +32,23 @@ def is_secret_env_key(key: str) -> bool:
 def filter_container_env(env: Dict[str, str]) -> Dict[str, str]:
     """Keep only safe env; drop anything credential-bearing.
 
-    Allowlist wins for known-safe keys; everything else is kept only if it
-    does not match a secret marker. This prevents AWS/LLM/DB/billing creds in
-    the backend process env from leaking into untrusted user code.
+    Order matters: image-owned keys are dropped first (forwarding the host's
+    PATH/HOME would clobber the container's own and break nextflow lookup),
+    then secrets, then the allowlist + safe NXF_/public prefixes. This keeps
+    AWS/LLM/DB/billing creds out of untrusted user code and never overrides
+    the image's runtime infrastructure.
     """
     out: Dict[str, str] = {}
     for k, v in (env or {}).items():
+        if k in IMAGE_OWNED_ENV:
+            continue  # image provides these; forwarding host values breaks them
+        if is_secret_env_key(k):
+            continue
         if k in SAFE_ENV_ALLOWLIST:
             out[k] = v
             continue
-        if is_secret_env_key(k):
-            continue
-        # Pass through non-secret NXF_*/BIOMATE_ hints, drop the rest to keep
-        # the sandbox env minimal and predictable.
+        # Pass through non-secret NXF_*/BIOMATE_PUBLIC_ hints, drop the rest to
+        # keep the sandbox env minimal and predictable.
         if k.startswith("NXF_") or k.startswith("BIOMATE_PUBLIC_"):
             out[k] = v
     return out
