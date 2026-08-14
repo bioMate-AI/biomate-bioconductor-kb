@@ -310,5 +310,21 @@ Total ≈ 3–4 months single-threaded; M1 items parallelizable.
   - non-root uid=20001 ✓
   - cap-drop → mknod "Operation not permitted" ✓
   - test host has NO gVisor (`runsc`) → tier 3 not exercisable there.
+
+- **2026-08-14 (Feature ① — tier 3 gVisor validated on TEST)** — Installed
+  gVisor (`runsc release-20260810.0`) on the test box (i-0482a6fa98c6f301a)
+  via SSM and registered it as a Docker runtime with `runsc install` +
+  `systemctl reload docker` (reload, NOT restart — existing test containers
+  untouched). `docker info` Runtimes now lists `runsc`. Validated tier 3:
+  - `docker run --runtime=runsc … uname -r` → `4.19.0-gvisor`; `dmesg` →
+    "Starting gVisor..." (kernel interception confirmed).
+  - `hello.nf` under `--runtime=runsc` + the full tier flags + `--network
+    none` → **NF_EXIT=0**, task executed, output produced.
+
+  All three tiers are now proven on real infra: tier 1 (container isolation),
+  tier 2 (+ egress none), tier 3 (+ gVisor). Remaining Feature ① items
+  unchanged: 4-domain workflow E2E under SANDBOX_ENABLED (needs the executor
+  branch synced), run_code routing, interactive-tools hardening, custom
+  seccomp / Firecracker tier-3b.
 </content>
 </invoke>
