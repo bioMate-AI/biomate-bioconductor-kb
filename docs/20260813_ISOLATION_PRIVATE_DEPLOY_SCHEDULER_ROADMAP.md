@@ -344,9 +344,44 @@ Total ≈ 3–4 months single-threaded; M1 items parallelizable.
   contract. Validated on test: default + strict(gVisor+read-only) → EXIT=0,
   output written. tsc clean.
 
-  **Feature ① remaining:** 4-domain workflow E2E under SANDBOX_ENABLED (needs
-  the executor branch synced to test); interactive-tools hardening
-  (Jupyter/RStudio cgroup+egress+idle-reap+netns); custom seccomp profile;
-  Firecracker tier-3b.
+- **2026-08-14 (Feature ① — LIVE on test: complete BioMate in sandbox mode)** —
+  Deployed the sandbox into the running test backend and ran a real workflow
+  through the live API, fully sandboxed. Method (all on test i-0482, never
+  dev/prod):
+  - Test backend code is baked in the image (`dev-backend:sha-c7f5ee5eb806`,
+    a divergent lineage — 9279 lines vs my branch's 9911) and NOT bind-mounted.
+    So: pulled test's exact executor, confirmed the patched regions are
+    byte-identical to my branch base, and applied my executor diff with
+    `git apply` (clean). Built a **thin overlay image**
+    `dev-backend:sandbox-test` = FROM the current test image + docker CLI
+    (static 27.3.1) + `galaxy` added to the docker-socket group (gid 988) +
+    the patched executor + the compute package. Real module import verified
+    inside the image (`IMPORT_OK`+`COMPUTE_OK`, full galaxy deps, py3.9).
+  - Solved two docker-out-of-docker issues: **volume-path alignment**
+    (identity-mount `/tmp/nextflow_runs` + `/tmp/biomate_user_nf` so host and
+    backend see the same paths) and **uid alignment** (`SANDBOX_RUN_UID=1000`
+    so the sandbox writes the backend-owned work dir).
+  - Deployed via a compose **override** (`docker-compose.sandbox.yml`):
+    sandbox image + docker.sock + identity mounts + `SANDBOX_ENABLED=true
+    SANDBOX_TIER=2 SANDBOX_RUN_UID=1000 SANDBOX_IMAGE=<ecr>`. Backend healthy;
+    `BACKEND_CAN_DOCKER` confirmed. Config backed up.
+  - **E2E through the live API**: `POST /api/nextflow/execute` with a personal
+    `.nf` → `[sandbox] run … → tier-2 container (net=none, cpus=2, mem=12g)` →
+    status **succeeded, returncode 0**, task output `sandboxed-on-test-1000`
+    (ran as uid 1000 inside the sandbox, output read back by the backend).
+  - Batch workflows unaffected (NEXTFLOW_USE_AWS=true unchanged;
+    `_maybe_sandboxed_launch` returns None for awsbatch → identical path).
+
+  **Rollback (one step):** `cd /opt/biomate && rm docker-compose.sandbox.yml &&
+  BACKEND_IMAGE=…/dev-backend:sha-c7f5ee5eb806 docker compose -f
+  docker-compose.deploy.yml up -d galaxy-backend-deploy`. Backups:
+  `.env.bak.sandbox.*`, `docker-compose.deploy.yml.bak.sandbox.*`.
+
+  **Feature ① remaining:** heavy-domain personal-workflow sandbox image
+  (current sandbox image has python+nextflow+rdkit, not R/bioc — heavy local
+  user workflows would need a richer image or per-process containers);
+  interactive-tools hardening (Jupyter/RStudio); custom seccomp; Firecracker
+  tier-3b; durable image (thin overlay is on test, not yet in the CI/deploy
+  pipeline).
 </content>
 </invoke>
