@@ -13,16 +13,32 @@ Python 3.9 hosts without AWS libs installed.
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
+from ..launcher import HeadLauncher
 from ..run_spec import RunSpec, TIER_RESOURCES, ResourceTier
-from .base import BackendCapabilities, ComputeBackend, RunHandle, RunStatus
+from .base import (
+    BackendCapabilities,
+    ComputeBackend,
+    HeadLaunchMixin,
+    RunHandle,
+    RunStatus,
+)
 
 
-class AWSBatchBackend(ComputeBackend):
-    """Runs Nextflow with the awsbatch executor against an AWS Batch queue."""
+class AWSBatchBackend(HeadLaunchMixin, ComputeBackend):
+    """Runs Nextflow with the awsbatch executor against an AWS Batch queue.
+
+    The Nextflow head still launches locally (via the shared
+    :meth:`launch_head`); "awsbatch" only changes the generated executor
+    config (nf-amazon plugin, S3 workdir, memory-tier withLabel block, GPU
+    queue). Building that config for :meth:`submit` is M0.2.
+    """
 
     name = "awsbatch"
+
+    def __init__(self, head_launcher: Optional[HeadLauncher] = None) -> None:
+        super().__init__(head_launcher=head_launcher)
 
     def capabilities(self) -> BackendCapabilities:
         # Max mem/cpu reflect the largest hardcoded tier today

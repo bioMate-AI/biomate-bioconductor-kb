@@ -13,20 +13,38 @@ subprocess runs inside a locked-down container / microVM".
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
+from ..launcher import HeadLauncher
 from ..run_spec import RunSpec
-from .base import BackendCapabilities, ComputeBackend, RunHandle, RunStatus
+from .base import (
+    BackendCapabilities,
+    ComputeBackend,
+    HeadLaunchMixin,
+    RunHandle,
+    RunStatus,
+)
 
 
-class LocalSubprocessBackend(ComputeBackend):
+class LocalSubprocessBackend(HeadLaunchMixin, ComputeBackend):
     """Runs Nextflow as a local subprocess on the backend host.
 
+    The head-launch step is wired: :meth:`launch_head` delegates to the
+    injected/registered :class:`HeadLauncher` (the executor's
+    ``_launch_nextflow_head``). The remaining piece of :meth:`submit` —
+    building the command / executor config for a local run — is M0.2 and is
+    extracted under E2E verification (see the roadmap).
+
     WARNING (documented, not yet fixed): no isolation. Suitable only for
-    trusted single-tenant use until Feature ① lands. See the roadmap.
+    trusted single-tenant use until Feature ① lands — at which point this
+    backend is subclassed as ``SandboxedLocalBackend`` with a sandboxed
+    HeadLauncher.
     """
 
     name = "local"
+
+    def __init__(self, head_launcher: Optional[HeadLauncher] = None) -> None:
+        super().__init__(head_launcher=head_launcher)
 
     def capabilities(self) -> BackendCapabilities:
         return BackendCapabilities(

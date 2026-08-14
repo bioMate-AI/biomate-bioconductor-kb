@@ -4639,6 +4639,113 @@ def _narrate_launch_failure(invocation_id: str, run_id: str, message: str) -> No
         log.debug("[runs] launch-failure narration failed for %s: %s", run_id, _e)
 
 
+def _launch_nextflow_head(
+    *,
+    cmd: list,
+    env: dict,
+    work_dir: Path,
+    log_path: Path,
+    run_id: str,
+) -> subprocess.Popen:
+    """Launch the Nextflow head process — the shared, overridable launch seam.
+
+    This is the single primitive every compute backend shares: the Nextflow
+    HEAD process always runs as a local subprocess (local/awsbatch/slurm/k8s
+    differ only in the generated executor config, not in how the head is
+    launched). It is also the exact point Feature ① (sandbox) overrides —
+    a sandboxed backend wraps this Popen in a container / gVisor / microVM.
+    See docs/20260813_ISOLATION_PRIVATE_DEPLOY_SCHEDULER_ROADMAP.md (M0).
+
+    Behavior is identical to the inline block it replaced: bounded-concurrency
+    slot acquire → FD-decoupled Popen → record pid in the run-state store →
+    background reaper that releases the slot on exit. Returns the process, or
+    raises HTTPException (503 slot timeout / 500 launch failure).
+    """
+    _slot_acquired = False  # bind before the try so the except path is safe
+    try:
+        # FD-decouple: child writes stdout/stderr directly to log_path. DO NOT
+        # REVERT to stdout=subprocess.PIPE — that pattern blocks the Nextflow
+        # JVM on a full pipe buffer when the gunicorn worker recycles, killing
+        # the run ~60s after Phase A submits. See _stream_logs and
+        # docs/20260603_TIER0_COMPREHENSIVE_E2E_AND_DISPATCH_BUG.md.
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        # Bounded concurrency: block here until a slot frees up. Prevents
+        # OOM-kill of the Galaxy container when many submissions arrive at once.
+        # Slot is released by a background reaper when the NF head process exits
+        # (see thread spawned below).
+        _slot_acquired = _nf_launch_semaphore.acquire(timeout=300)
+        if not _slot_acquired:
+            log.error(
+                f"[Nextflow run {run_id}] timed out waiting for launch slot "
+                f"(>{_nf_max_concurrent} concurrent runs in flight for >5min)"
+            )
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "Too many concurrent Nextflow runs in flight. "
+                    "Wait for some to complete and retry."
+                ),
+            )
+        _log_fh = open(log_path, "wb", buffering=0)
+        process = subprocess.Popen(
+            cmd,
+            stdout=_log_fh,
+            stderr=subprocess.STDOUT,
+            cwd=str(work_dir),
+            env=env,
+            start_new_session=True,
+            close_fds=True,
+        )
+        _log_fh.close()  # child holds its own fd; parent doesn't need it
+        # Stage 3d — record the detached subprocess PID in the store so the
+        # orphan poller can detect exit from any worker. The primary launch
+        # path (this one, used for ADMET / nf-core / Bioc / etc.) doesn't
+        # stash the Popen in _runs[]; the slot-release thread holds it.
+        try:
+            get_run_state_store().set_pid(run_id, process.pid)
+        except Exception as _store_exc:
+            log.debug("[runs] store.set_pid failed for %s: %s", run_id, _store_exc)
+        # Release the semaphore slot when the head process exits.
+        def _release_slot(p: subprocess.Popen, rid: str) -> None:
+            try:
+                p.wait()
+            finally:
+                try:
+                    _nf_launch_semaphore.release()
+                    log.info(f"[Nextflow run {rid}] launch slot released")
+                except ValueError:
+                    pass  # already released
+        threading.Thread(
+            target=_release_slot, args=(process, run_id),
+            daemon=True, name=f"nf-slot-{run_id[:8]}",
+        ).start()
+        return process
+    except HTTPException:
+        raise
+    except Exception as exc:
+        # Release the slot we may have acquired before the failure.
+        if _slot_acquired:
+            try: _nf_launch_semaphore.release()
+            except ValueError: pass
+        log.error(f"[Nextflow run {run_id}] failed to launch: {exc}")
+        raise HTTPException(status_code=500, detail=f"Failed to launch Nextflow: {exc}")
+
+
+# Register the production head-launch primitive as the compute-platform-v2
+# default launcher, so compute backends (M0.2) reuse the exact same launch
+# path instead of duplicating it. Guarded — a failure here must never affect
+# module load or the legacy execution path, which calls the function directly.
+try:
+    from galaxy.ai.compute.launcher import (
+        CallableHeadLauncher as _CallableHeadLauncher,
+        set_default_head_launcher as _set_default_head_launcher,
+    )
+
+    _set_default_head_launcher(_CallableHeadLauncher(_launch_nextflow_head))
+except Exception as _launcher_reg_exc:  # pragma: no cover - defensive
+    log.debug("[compute-v2] head-launcher registration skipped: %s", _launcher_reg_exc)
+
+
 @router.post("/api/nextflow/execute", summary="Launch a Nextflow workflow")
 def execute_nextflow(
     request: NextflowExecuteRequest,
@@ -5587,72 +5694,12 @@ def _execute_nextflow_impl(
                 log.warning("[Nextflow run %s] Could not copy .nextflow cache: %s", run_id, _e)
 
     # Use the writable work_dir as cwd — nf_path.parent is read-only in container.
-    try:
-        # FD-decouple: child writes stdout/stderr directly to log_path. DO NOT
-        # REVERT to stdout=subprocess.PIPE — that pattern blocks the Nextflow
-        # JVM on a full pipe buffer when the gunicorn worker recycles, killing
-        # the run ~60s after Phase A submits. See _stream_logs and
-        # docs/20260603_TIER0_COMPREHENSIVE_E2E_AND_DISPATCH_BUG.md.
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        # Bounded concurrency: block here until a slot frees up. Prevents
-        # OOM-kill of the Galaxy container when many submissions arrive at once.
-        # Slot is released by a background reaper when the NF head process exits
-        # (see thread spawned below).
-        _slot_acquired = _nf_launch_semaphore.acquire(timeout=300)
-        if not _slot_acquired:
-            log.error(
-                f"[Nextflow run {run_id}] timed out waiting for launch slot "
-                f"(>{_nf_max_concurrent} concurrent runs in flight for >5min)"
-            )
-            raise HTTPException(
-                status_code=503,
-                detail=(
-                    "Too many concurrent Nextflow runs in flight. "
-                    "Wait for some to complete and retry."
-                ),
-            )
-        _log_fh = open(log_path, "wb", buffering=0)
-        process = subprocess.Popen(
-            cmd,
-            stdout=_log_fh,
-            stderr=subprocess.STDOUT,
-            cwd=str(work_dir),
-            env=env,
-            start_new_session=True,
-            close_fds=True,
-        )
-        _log_fh.close()  # child holds its own fd; parent doesn't need it
-        # Stage 3d — record the detached subprocess PID in the store so the
-        # orphan poller can detect exit from any worker. The primary launch
-        # path (this one, used for ADMET / nf-core / Bioc / etc.) doesn't
-        # stash the Popen in _runs[]; the slot-release thread holds it.
-        try:
-            get_run_state_store().set_pid(run_id, process.pid)
-        except Exception as _store_exc:
-            log.debug("[runs] store.set_pid failed for %s: %s", run_id, _store_exc)
-        # Release the semaphore slot when the head process exits.
-        def _release_slot(p: subprocess.Popen, rid: str) -> None:
-            try:
-                p.wait()
-            finally:
-                try:
-                    _nf_launch_semaphore.release()
-                    log.info(f"[Nextflow run {rid}] launch slot released")
-                except ValueError:
-                    pass  # already released
-        threading.Thread(
-            target=_release_slot, args=(process, run_id),
-            daemon=True, name=f"nf-slot-{run_id[:8]}",
-        ).start()
-    except HTTPException:
-        raise
-    except Exception as exc:
-        # Release the slot we may have acquired before the failure.
-        if _slot_acquired:
-            try: _nf_launch_semaphore.release()
-            except ValueError: pass
-        log.error(f"[Nextflow run {run_id}] failed to launch: {exc}")
-        raise HTTPException(status_code=500, detail=f"Failed to launch Nextflow: {exc}")
+    # Launch via the shared head-launch primitive (M0 seam). Behavior is
+    # identical to the previous inline block; extraction makes this the single
+    # point every backend shares and the sandbox backend overrides.
+    process = _launch_nextflow_head(
+        cmd=cmd, env=env, work_dir=work_dir, log_path=log_path, run_id=run_id,
+    )
 
     # Stream logs in background
     t = threading.Thread(

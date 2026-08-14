@@ -15,7 +15,13 @@ Future backends hang off the same Protocol:
 
 from __future__ import annotations
 
-from .base import ComputeBackend, RunHandle, RunStatus, BackendCapabilities
+from .base import (
+    ComputeBackend,
+    RunHandle,
+    RunStatus,
+    BackendCapabilities,
+    HeadLaunchMixin,
+)
 from .local import LocalSubprocessBackend
 from .aws_batch import AWSBatchBackend
 
@@ -24,6 +30,7 @@ __all__ = [
     "RunHandle",
     "RunStatus",
     "BackendCapabilities",
+    "HeadLaunchMixin",
     "LocalSubprocessBackend",
     "AWSBatchBackend",
 ]

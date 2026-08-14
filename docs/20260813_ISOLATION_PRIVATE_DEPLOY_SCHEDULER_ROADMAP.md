@@ -227,5 +227,29 @@ Total ≈ 3–4 months single-threaded; M1 items parallelizable.
   from `integration/next-phase`. Phase 0 skeleton started:
   `backend/lib/galaxy/ai/compute/` (`run_spec`, `backends/`, `storage/`,
   `scheduler`), flag `COMPUTE_BACKEND_V2` (default off, shadow-mode only).
+  Committed `b1b8de6d6`, pushed.
+
+- **2026-08-13 (M0.1)** — Head-launch primitive extracted.
+  `nextflow_executor._launch_nextflow_head` is now the single, named,
+  overridable launch seam (semaphore → FD-decoupled Popen → set_pid →
+  slot-release reaper); the legacy path calls it (byte-identical extraction,
+  plus a latent `_slot_acquired` NameError hardened). Defined the head-launch
+  seam in the compute package (`launcher.py`: `LaunchRequest`,
+  `HeadLauncher` Protocol, `CallableHeadLauncher`, default-launcher
+  registry) and a `HeadLaunchMixin` so `Local`/`AWSBatch` backends share one
+  launch path; the executor registers `_launch_nextflow_head` as the default
+  launcher (guarded). Self-tests: scheduler parity 7/7, launcher wiring 7/7,
+  py3.9 imports clean. **Not yet verified end-to-end** — full-module import
+  needs `a2wsgi` (absent here) and this sandbox can't sync to dev; E2E on the
+  4 domains is required before trusting the extraction in production.
+
+  **M0.2 (next, E2E-gated):** extract the executor-config / command
+  generation into `LocalSubprocessBackend.submit()` /
+  `AWSBatchBackend.submit()` (the part where local/awsbatch/slurm/k8s
+  actually diverge), then add a `COMPUTE_BACKEND_V2=active` mode that routes
+  through `Scheduler.select_backend` + `backend.submit()`. This touches the
+  launch monolith's config path and MUST be done in a session with dev sync
+  + E2E on ADMET / RNA-seq / WGS / CryoEM (no speculative deploys — see
+  CLAUDE.md).
 </content>
 </invoke>

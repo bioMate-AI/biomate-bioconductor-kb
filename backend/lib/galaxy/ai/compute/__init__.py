@@ -34,6 +34,13 @@ from __future__ import annotations
 
 from .run_spec import RunSpec, DataLocality, TrustLevel, ResourceTier
 from .scheduler import Scheduler, BackendChoice, compute_backend_v2_enabled
+from .launcher import (
+    HeadLauncher,
+    LaunchRequest,
+    CallableHeadLauncher,
+    set_default_head_launcher,
+    get_default_head_launcher,
+)
 
 __all__ = [
     "RunSpec",
@@ -43,4 +50,9 @@ __all__ = [
     "Scheduler",
     "BackendChoice",
     "compute_backend_v2_enabled",
+    "HeadLauncher",
+    "LaunchRequest",
+    "CallableHeadLauncher",
+    "set_default_head_launcher",
+    "get_default_head_launcher",
 ]

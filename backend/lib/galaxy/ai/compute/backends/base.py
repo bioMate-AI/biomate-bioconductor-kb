@@ -19,6 +19,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
 
 from ..run_spec import RunSpec
+from ..launcher import HeadLauncher, LaunchRequest, get_default_head_launcher
 
 
 class RunStatus(str, Enum):
@@ -67,6 +68,35 @@ class BackendCapabilities:
     usd_per_vcpu_hour: Optional[float] = None
     # Data localities this backend can read/write natively.
     data_localities: List[str] = field(default_factory=list)
+
+
+class HeadLaunchMixin:
+    """Shared plumbing for backends whose head process is launched the same way.
+
+    Local / AWS-Batch / Slurm / K8s all launch an identical local Nextflow
+    head; they differ only in the executor config they generate. This mixin
+    holds the injected :class:`HeadLauncher` and exposes :meth:`launch_head`
+    so those backends share one launch path (and the sandbox backend swaps in
+    a sandboxed launcher). Injection is preferred for tests; falling back to
+    the process-wide default keeps production wiring a one-liner.
+    """
+
+    def __init__(self, head_launcher: Optional[HeadLauncher] = None) -> None:
+        self._head_launcher = head_launcher
+
+    @property
+    def head_launcher(self) -> Optional[HeadLauncher]:
+        return self._head_launcher or get_default_head_launcher()
+
+    def launch_head(self, req: LaunchRequest) -> Any:
+        launcher = self.head_launcher
+        if launcher is None:
+            raise RuntimeError(
+                "No HeadLauncher available. Inject one into the backend or "
+                "call launcher.set_default_head_launcher() from the executor. "
+                "See docs/20260813 roadmap (M0)."
+            )
+        return launcher.launch(req)
 
 
 @runtime_checkable
