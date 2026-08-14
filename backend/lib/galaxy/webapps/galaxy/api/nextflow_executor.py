@@ -4731,6 +4731,58 @@ def _launch_nextflow_head(
         raise HTTPException(status_code=500, detail=f"Failed to launch Nextflow: {exc}")
 
 
+def _maybe_sandboxed_launch(
+    *,
+    cmd: list,
+    env: dict,
+    work_dir: Path,
+    log_path: Path,
+    run_id: str,
+    nf_path,
+    executor: str,
+):
+    """Launch inside a sandbox container when required; else return None.
+
+    Feature ①, flag-gated by SANDBOX_ENABLED (default off → returns None, so
+    the caller uses the direct head-launch and nothing changes). When on, it
+    wraps local runs of user-uploaded workflows (untrusted .nf); set
+    SANDBOX_ALL_LOCAL=true to wrap every local run. AWS Batch runs already get
+    ECS-task isolation and are not re-wrapped.
+
+    FAIL-CLOSED: once the sandbox is deemed required for a run, any error here
+    propagates rather than silently falling back to unsandboxed execution —
+    an operator who enabled the sandbox must never get a naked subprocess.
+    """
+    _enabled = os.environ.get("SANDBOX_ENABLED", "").lower() in ("1", "true", "yes")
+    if not _enabled:
+        return None
+    if executor == "awsbatch":
+        return None
+    _nf_str = str(nf_path or "")
+    _is_personal = _nf_str.startswith("/tmp/biomate_user_nf/")
+    _all_local = os.environ.get("SANDBOX_ALL_LOCAL", "").lower() in ("1", "true", "yes")
+    if not (_is_personal or _all_local):
+        return None
+
+    # Sandbox is required for this run — do NOT swallow errors below.
+    from galaxy.ai.compute.launcher import LaunchRequest, CallableHeadLauncher
+    from galaxy.ai.compute.sandbox.config import SandboxConfig
+    from galaxy.ai.compute.sandbox.launcher import SandboxedHeadLauncher
+
+    cfg = SandboxConfig.from_env(run_id=run_id)
+    launcher = SandboxedHeadLauncher(CallableHeadLauncher(_launch_nextflow_head), cfg)
+    log.info(
+        "[sandbox] run %s → tier-%d container (%s, net=%s, cpus=%s, mem=%dg)",
+        run_id, int(cfg.tier), cfg.image, cfg.network_mode, cfg.cpus, cfg.mem_gb,
+    )
+    return launcher.launch(
+        LaunchRequest(
+            cmd=cmd, env=env, work_dir=work_dir, log_path=log_path, run_id=run_id,
+            extra={"nf_source_path": _nf_str or None},
+        )
+    )
+
+
 # Register the production head-launch primitive as the compute-platform-v2
 # default launcher, so compute backends (M0.2) reuse the exact same launch
 # path instead of duplicating it. Guarded — a failure here must never affect
@@ -4773,6 +4825,36 @@ def execute_nextflow(
         _tmp_path = _tmp_dir / _safe_name
         _tmp_path.write_text(request.file_content, encoding='utf-8')
         log.info("[Nextflow] Wrote user-uploaded workflow to %s (%d bytes)", _tmp_path, len(request.file_content))
+        # Feature ① — static pre-check of user-uploaded workflow source.
+        # Defense in depth; the sandbox CONTAINER is the real boundary. Only
+        # active when SANDBOX_ENABLED (default off → zero change): rejects with
+        # 422 in strict mode on a blocking hit, otherwise advisory-logs.
+        try:
+            from galaxy.ai.compute.sandbox.config import SandboxConfig as _SbxCfg
+            from galaxy.ai.compute.sandbox.validator import (
+                validate_nextflow_source as _validate_nf,
+                has_blocking as _has_block,
+                format_violations as _fmt_v,
+            )
+            _sbx_cfg = _SbxCfg.from_env()
+            if _sbx_cfg.enabled and _sbx_cfg.validate_uploads:
+                _viol = _validate_nf(request.file_content)
+                if _viol:
+                    _msg = _fmt_v(_viol)
+                    if _sbx_cfg.strict and _has_block(_viol):
+                        log.warning("[sandbox] rejecting upload %s: %s", _tmp_path, _msg)
+                        raise HTTPException(
+                            status_code=422,
+                            detail={
+                                "error": "Uploaded workflow failed the sandbox security pre-check",
+                                "violations": _msg,
+                            },
+                        )
+                    log.warning("[sandbox] upload %s advisory violations: %s", _tmp_path, _msg)
+        except HTTPException:
+            raise
+        except Exception as _sbx_exc:  # pragma: no cover - defensive
+            log.debug("[sandbox] upload pre-check skipped: %s", _sbx_exc)
         # Mutate the request so all downstream code (path resolution, logging) uses the real path
         request = request.model_copy(update={"nextflow_path": str(_tmp_path), "file_content": None})
 
@@ -5694,12 +5776,18 @@ def _execute_nextflow_impl(
                 log.warning("[Nextflow run %s] Could not copy .nextflow cache: %s", run_id, _e)
 
     # Use the writable work_dir as cwd — nf_path.parent is read-only in container.
-    # Launch via the shared head-launch primitive (M0 seam). Behavior is
-    # identical to the previous inline block; extraction makes this the single
-    # point every backend shares and the sandbox backend overrides.
-    process = _launch_nextflow_head(
+    # Launch via the shared head-launch primitive (M0 seam). Feature ①: when
+    # SANDBOX_ENABLED, qualifying local/user runs are wrapped in a locked-down
+    # container (fail-closed); otherwise (default) the direct primitive runs —
+    # behavior identical to the previous inline block.
+    process = _maybe_sandboxed_launch(
         cmd=cmd, env=env, work_dir=work_dir, log_path=log_path, run_id=run_id,
+        nf_path=nf_path, executor=compute.get("executor", ""),
     )
+    if process is None:
+        process = _launch_nextflow_head(
+            cmd=cmd, env=env, work_dir=work_dir, log_path=log_path, run_id=run_id,
+        )
 
     # Stream logs in background
     t = threading.Thread(

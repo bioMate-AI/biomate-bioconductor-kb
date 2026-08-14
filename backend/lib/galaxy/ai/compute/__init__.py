@@ -41,6 +41,13 @@ from .launcher import (
     set_default_head_launcher,
     get_default_head_launcher,
 )
+from .sandbox import (
+    SandboxConfig,
+    SandboxTier,
+    SandboxedHeadLauncher,
+    build_sandbox_command,
+    validate_nextflow_source,
+)
 
 __all__ = [
     "RunSpec",
@@ -55,4 +62,9 @@ __all__ = [
     "CallableHeadLauncher",
     "set_default_head_launcher",
     "get_default_head_launcher",
+    "SandboxConfig",
+    "SandboxTier",
+    "SandboxedHeadLauncher",
+    "build_sandbox_command",
+    "validate_nextflow_source",
 ]

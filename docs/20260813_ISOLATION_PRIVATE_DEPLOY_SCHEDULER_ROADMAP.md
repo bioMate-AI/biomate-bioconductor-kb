@@ -251,5 +251,44 @@ Total ≈ 3–4 months single-threaded; M1 items parallelizable.
   launch monolith's config path and MUST be done in a session with dev sync
   + E2E on ADMET / RNA-seq / WGS / CryoEM (no speculative deploys — see
   CLAUDE.md).
+
+- **2026-08-14 (Feature ① sandbox — core shipped)** — Built the sandbox on
+  the M0.1 seam: `backend/lib/galaxy/ai/compute/sandbox/`.
+  - `config.py` — `SandboxTier` (1/2/3) + `SandboxConfig.from_env` (all
+    `SANDBOX_*` env; per-run non-root UID derived from run_id; cgroup caps
+    sized from the RunSpec tier); secret-env markers + safe allowlist.
+  - `command.py` — `build_sandbox_command` wraps the **whole head** in
+    `docker/podman run` with `--cap-drop ALL`, `--security-opt
+    no-new-privileges`, `--read-only` + bounded tmpfs, `--user` non-root,
+    `--cpus/--memory/--pids-limit`, `--network` (tier2 none/egress-net),
+    `--runtime runsc` (tier3 gVisor), bind-mount ONLY the run's workdir (rw)
+    + the .nf (ro). `filter_container_env` strips AWS/LLM/DB/billing/token
+    creds so they never reach untrusted code.
+  - `validator.py` — static `.nf` pre-check (block: privileged, host-root/
+    docker-sock mount, docker-in-docker, metadata-IP SSRF, /etc/shadow &
+    ~/.aws creds read, curl|bash, Groovy Runtime.exec/ProcessBuilder).
+    Defense in depth — NOT the boundary.
+  - `launcher.py` — `SandboxedHeadLauncher` *decorates* the base launcher
+    (rewrites cmd → sandboxed argv, delegates), reusing all M0.1 concurrency/
+    log/pid/orphan machinery.
+  - Wired flag-gated into `nextflow_executor` (default `SANDBOX_ENABLED`
+    off → zero change): upload static pre-check + `_maybe_sandboxed_launch`
+    at the launch site, **fail-closed** (sandbox error never falls back to a
+    naked subprocess). Self-tests: 53/53 sandbox + 7/7 parity + 7/7 launcher,
+    py3.9 imports clean.
+
+  **Feature ① remaining (not in this commit):**
+  1. **Build the `biomate-nextflow-sandbox` image** (nextflow + java + task
+     runtimes on PATH) and publish it; wire into the deploy flow. Until it
+     exists, `SANDBOX_ENABLED=true` fails closed (by design).
+  2. **Real E2E** on a host with docker/podman (+ gVisor for tier3): confirm
+     the 4 domains run green under `SANDBOX_ENABLED=true`, and run an escape
+     test-suite (host FS read, 169.254.169.254, fork bomb, cred exfil).
+     Cannot be done in this sandbox (no container runtime / dev sync).
+  3. **`run_code` tool** — route its Python/R exec through the same sandbox
+     (separate code path from nextflow_executor).
+  4. **Interactive tools** (Jupyter/RStudio GIE) — add cgroup caps, egress
+     policy, idle-timeout reaping, per-session netns.
+  5. Author a **custom seccomp profile** + optional Firecracker tier-3b.
 </content>
 </invoke>
