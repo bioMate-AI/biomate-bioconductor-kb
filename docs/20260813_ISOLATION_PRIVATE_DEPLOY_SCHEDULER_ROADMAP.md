@@ -388,21 +388,30 @@ Total ≈ 3–4 months single-threaded; M1 items parallelizable.
   `R-sandboxed-ok mean=-0.022 uid=1000`. Local user workflows needing R/bioc
   now run fully sandboxed on test.
 
-- **2026-08-14 (Feature ① — run_code frontend deploy: attempted, REVERTED)** —
-  run_code hardening (code-runner.ts) is committed + the hardened `docker run`
-  flags were separately proven on test (default + strict gVisor, EXIT=0).
-  Deploying it to the test *frontend* needs a full bundle rebuild (frontend is
-  `node dist/index.js`, vite+esbuild). A hand-built server-only esbuild
-  overlay crash-looped the frontend → **rolled back** to the original image
-  (site restored, HTTP 200; backend sandbox untouched). run_code is also not
-  docker-wired on test today (no docker.sock in the frontend, no RUN_CODE
-  env). Correct next path: build the frontend through its normal CI and
-  redeploy, + mount docker.sock (or a run_code sidecar) + set RUN_CODE_IMAGE.
-  A build/deploy-pipeline task, not a code problem.
+- **2026-08-14 (Feature ① — run_code hardening LIVE on test)** — First
+  attempt (rebuilding the server bundle from my branch source) crash-looped
+  the frontend — the deployed frontend is an OLDER commit
+  (`dev-frontend:sha-2c42bc9e6c0b`) than my branch, so a from-source bundle
+  diverged. Reverted immediately (site restored). Correct approach: patch the
+  **deployed bundle in place** — `docker cp` its `dist/index.js`, inject the
+  hardening tokens into the run_code `dockerArgs` array (after `"--rm"`:
+  `--cap-drop ALL`, `--security-opt no-new-privileges`, `--pids-limit 512`) —
+  exactly one match, `node --check` passes → zero divergence. Built
+  `dev-frontend:sandbox-test2` (FROM the deployed image + patched bundle),
+  deployed with docker.sock + identity-mount `/tmp/biomate_code` +
+  `RUN_CODE_IMAGE=heavy`. Frontend healthy, site HTTP 200.
+  **E2E via the PUBLIC domain** (`POST /api/code/run`):
+  - python → `uid:0`, **`NET:blocked-by-sandbox`** (network none proven),
+    exit 0, output file written.
+  - R → `mean=-0.036`, exit 0, output file written (heavy image has R).
+  - running bundle confirms `cap-drop` + `no-new-privileges` present.
+  (run_code runs as uid 0 inside the container but de-capped + network-none;
+  a non-root uid is a later refinement.)
 
-  **Feature ① remaining:** run_code frontend deploy via CI (above);
-  interactive-tools hardening (Jupyter/RStudio); custom seccomp; Firecracker
-  tier-3b; durable images into the CI/deploy pipeline (both sandbox images +
-  the thin backend overlay currently live only on the test host).
+  **Feature ① remaining:** interactive-tools hardening (Jupyter/RStudio);
+  non-root uid for run_code; custom seccomp; Firecracker tier-3b; durable
+  images + overlays into the CI/deploy pipeline (currently live only on the
+  test host: backend `dev-backend:sandbox-test`, frontend
+  `dev-frontend:sandbox-test2`, sandbox images `:latest`+`:heavy`).
 </content>
 </invoke>
