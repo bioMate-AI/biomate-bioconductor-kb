@@ -377,11 +377,32 @@ Total ≈ 3–4 months single-threaded; M1 items parallelizable.
   docker-compose.deploy.yml up -d galaxy-backend-deploy`. Backups:
   `.env.bak.sandbox.*`, `docker-compose.deploy.yml.bak.sandbox.*`.
 
-  **Feature ① remaining:** heavy-domain personal-workflow sandbox image
-  (current sandbox image has python+nextflow+rdkit, not R/bioc — heavy local
-  user workflows would need a richer image or per-process containers);
+- **2026-08-14 (Feature ① — heavy R/bioc sandbox image LIVE on test)** —
+  Built `biomate-nextflow-sandbox:heavy` (`docker/sandbox/Dockerfile.heavy`,
+  FROM `bioc-domain-general:3.20-mofa2` = R+Bioconductor+python+java + the
+  same Nextflow-runner hardening). Validated under real isolation flags: R
+  workflow tier-2 (network none) NF_EXIT=0 (`mean=0.03`) and tier-3 (gVisor)
+  NF_EXIT=0. Pushed to ECR; switched test `SANDBOX_IMAGE` → heavy; backend
+  recreated healthy. **Live-API E2E**: `POST /api/nextflow/execute` with an R
+  personal `.nf` → `[sandbox] run … → sandbox:heavy` → succeeded, output
+  `R-sandboxed-ok mean=-0.022 uid=1000`. Local user workflows needing R/bioc
+  now run fully sandboxed on test.
+
+- **2026-08-14 (Feature ① — run_code frontend deploy: attempted, REVERTED)** —
+  run_code hardening (code-runner.ts) is committed + the hardened `docker run`
+  flags were separately proven on test (default + strict gVisor, EXIT=0).
+  Deploying it to the test *frontend* needs a full bundle rebuild (frontend is
+  `node dist/index.js`, vite+esbuild). A hand-built server-only esbuild
+  overlay crash-looped the frontend → **rolled back** to the original image
+  (site restored, HTTP 200; backend sandbox untouched). run_code is also not
+  docker-wired on test today (no docker.sock in the frontend, no RUN_CODE
+  env). Correct next path: build the frontend through its normal CI and
+  redeploy, + mount docker.sock (or a run_code sidecar) + set RUN_CODE_IMAGE.
+  A build/deploy-pipeline task, not a code problem.
+
+  **Feature ① remaining:** run_code frontend deploy via CI (above);
   interactive-tools hardening (Jupyter/RStudio); custom seccomp; Firecracker
-  tier-3b; durable image (thin overlay is on test, not yet in the CI/deploy
-  pipeline).
+  tier-3b; durable images into the CI/deploy pipeline (both sandbox images +
+  the thin backend overlay currently live only on the test host).
 </content>
 </invoke>
