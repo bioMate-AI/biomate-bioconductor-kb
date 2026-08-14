@@ -408,10 +408,37 @@ Total ≈ 3–4 months single-threaded; M1 items parallelizable.
   (run_code runs as uid 0 inside the container but de-capped + network-none;
   a non-root uid is a later refinement.)
 
-  **Feature ① remaining:** interactive-tools hardening (Jupyter/RStudio);
-  non-root uid for run_code; custom seccomp; Firecracker tier-3b; durable
-  images + overlays into the CI/deploy pipeline (currently live only on the
-  test host: backend `dev-backend:sandbox-test`, frontend
-  `dev-frontend:sandbox-test2`, sandbox images `:latest`+`:heavy`).
+- **2026-08-14 (Feature ① — gVisor default on BOTH surfaces)** — Upgraded
+  test to maximum isolation on both user-code paths:
+  - Backend `SANDBOX_TIER=2 → 3` (gVisor). Verified: R personal `.nf` via the
+    live API → `[sandbox] run … → tier-3 container` → succeeded,
+    `R-sandboxed-ok mean=-0.016`.
+  - run_code: injected `--runtime runsc` into the deployed bundle's dockerArgs
+    (frontend `dev-frontend:sandbox-test3`). Verified via public
+    `/api/code/run`: python → `kernel: 4.19.0-gvisor`, `NET:blocked`, exit 0.
+  Both `.nf` workflows and run_code now run under gVisor + cap-drop ALL +
+  no-new-privileges + network-none (+ read-only for `.nf`).
+
+  **Feature ① remaining (each with the reason it's not done yet):**
+  - **Interactive tools (Jupyter/RStudio/GIE)** — launched by Galaxy's native
+    InteractiveTool manager (container from the tool XML, run by Galaxy's job
+    runner), so hardening = a Galaxy `job_conf` change
+    (`docker_run_extra_arguments`: --cpus/--memory/--network/--cap-drop +
+    interactive GC for idle reaping), NOT the compute sandbox package. Also
+    not E2E-verifiable on test (in-browser session proxy is missing). Left as
+    a documented, separate Galaxy-config task rather than an unverifiable edit
+    to the live backend.
+  - **run_code non-root uid** — runs as uid 0 (frontend is root; the code uses
+    `process.getuid()`). De-capped + gVisor + network-none, but a fixed
+    non-root uid needs the baseDir made writable to it (chmod). Minor
+    refinement.
+  - **docker-socket-proxy** — would limit the backend/frontend docker.sock
+    blast radius to a create/run API subset. Real improvement but reconfigures
+    the working docker access; deferred to avoid destabilizing a verified
+    setup without a careful test pass.
+  - **custom seccomp**; **Firecracker tier-3b** (gVisor already covers
+    kernel-level isolation); **durable images + overlays into CI** (currently
+    live only on the test host: `dev-backend:sandbox-test`,
+    `dev-frontend:sandbox-test3`, `biomate-nextflow-sandbox:latest`+`:heavy`).
 </content>
 </invoke>
