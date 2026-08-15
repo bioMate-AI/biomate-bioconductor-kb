@@ -543,3 +543,47 @@ Total ≈ 3–4 months single-threaded; M1 items parallelizable.
   (4) wildcard DNS `*.ep.interactivetool.test…`; (5) Caddy on-demand-TLS
   block; (6) browser verify. Reverted test to the clean verified sandbox
   (site 200, sandbox workflow succeeded, zero leftover IT containers).
+
+- **2026-08-15 (Feature ① — INTERACTIVE TOOLS WORKING END-TO-END over public HTTPS)** —
+  Finished the proxy layer. The full chain works: browser → Caddy
+  (on-demand TLS) → gx-it-proxy → jupyter → renders JupyterLab (HTTP 200).
+  Verified: `https://<key-token>.ep.interactivetool.test.stage-public.biomate.ai/ipython/lab`
+  returns `<title>JupyterLab`.
+
+  **The working recipe (all on test i-0482, durable):**
+  1. **Identity mounts** host↔backend at the SAME paths Galaxy uses
+     (`/app/database/jobs_directory`, `/app/database/files`,
+     `/app/tools/interactive` [tar-copied]), `chown 1000:1000` (Galaxy uid).
+  2. **job_conf** `docker_interactive` destination (`docker_net:
+     biomate-deploy-net` + cpu/mem/pids caps), mapped by EXACT tool id.
+  3. **galaxy.yml** `interactivetools_enable/upstream_proxy` (+ the map path).
+  4. **Map-IP fix**: Galaxy records its own IP + host-port (unreachable). A
+     persistent `biomate-gxit` container (image `biomate-gxit-proxy:1` =
+     node + gx-it-proxy + sqlite) runs gx-it-proxy `--sessions <map>
+     --port 8910` on `--network host`, with a 2s loop rewriting the map
+     `host` col → `127.0.0.1` (so it targets the host-published port).
+  5. **Wildcard DNS** `*.ep.interactivetool.test.stage-public.biomate.ai` →
+     test IP (Route53).
+  6. **Caddy** additive block `*.ep.interactivetool.…` with `tls { on_demand }`
+     (ask → frontend /api/health) → `reverse_proxy 127.0.0.1:8910`. Main
+     site untouched (validated + reloaded, still HTTP 200).
+  7. **Frontend URL-rewrite** (bundle patch, `dev-frontend:sandbox-test4`):
+     Galaxy stamps the IT URL with the request host (ignores
+     galaxy_infrastructure_url / interactivetools_proxy_host), and the
+     frontend proxies to Galaxy server-side, so the launch response's `url`
+     is rewritten to `https://<key-token>.ep.interactivetool.test.stage-public.biomate.ai/…`.
+
+  **Hardening applied** to IT containers: `--cpus=2 --memory=4g
+  --pids-limit=512 --security-opt no-new-privileges` (via docker_interactive
+  extra args). (No cap-drop/network-none — IT needs its own user + the proxy
+  must reach it.)
+
+  **Caveats:** on-demand TLS issues a cert per session hostname (LE rate
+  limit ~50/week/registered-domain — fine for test, revisit for scale). IT
+  sessions are `--rm` + idle-timeout (relaunch as needed). The
+  `/app/database/files` identity mount relocates Galaxy's dataset dir to an
+  (initially empty) host dir — acceptable on test. All IT infra is durable
+  (gx-it-proxy restart-enabled, Caddy host file, DNS, backend/frontend
+  override) but lives only on the test host (not yet in CI).
+
+  Sandbox intact throughout (tier-3 workflow succeeded; site HTTP 200).
