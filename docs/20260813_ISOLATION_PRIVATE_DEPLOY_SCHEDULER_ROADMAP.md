@@ -512,3 +512,34 @@ Total ≈ 3–4 months single-threaded; M1 items parallelizable.
   env removed): site HTTP 200, sandbox workflow succeeded. Host artifacts
   left for a future finish: `/app/tools/interactive` copy,
   `/opt/biomate/job_conf.it.yml`, `/opt/biomate/it_state/`, wildcard DNS.
+
+- **2026-08-15 (Feature ① — IT proxy layer: continued, more layers found, reverted clean)** —
+  Pushed further on the proxy layer. Progress + newly-found issues:
+  - Added `galaxy_infrastructure_url` + `interactivetools_map` directly to a
+    bind-mounted galaxy.yml → **still** built the entry URL as
+    `…ep.interactivetool.localhost:8081` (Galaxy derives the IT host from the
+    request host, not galaxy_infrastructure_url — so it'd be correct only when
+    launched via the real-domain UI, not via localhost API).
+  - **Map address mismatch (the key blocker):** the `gxitproxy` row stores the
+    container bridge IP + the *host-published* port (`172.18.0.2:32770`) — not
+    a reachable pair (container listens on 8888; 32770 is the host port). For
+    the upstream-proxy model the map needs either `containerIP:8888` (proxy on
+    the docker net) or `host:32770`. Needs Galaxy docker_net / port-detection
+    config tuning.
+  - **gx-it-proxy CLI/format drift:** current `@galaxyproject/gx-it-proxy`
+    uses `--sessions` (not `--sessionMap`); sqlite-map compatibility with
+    Galaxy 25.1's writer needs pinning.
+  - IT session containers are `--rm` + short-lived (exit when idle) — the
+    test loop must keep one alive.
+
+  **Honest assessment:** the IT backend execution is PROVEN (container on host
+  + map populated), but the proxy layer is a genuine multi-hour, version-
+  specific Galaxy-IT + gx-it-proxy integration (each step surfaces another
+  config layer), and the final "renders in the browser" check needs a browser.
+  It should be a focused, dedicated effort — not folded into the sandbox work.
+  Concrete remaining: (1) fix map to a reachable IP:port (docker_net/port
+  config); (2) pin a gx-it-proxy version + its sqlite/session format; (3)
+  set the IT URL host to the real domain (launch via UI or force via config);
+  (4) wildcard DNS `*.ep.interactivetool.test…`; (5) Caddy on-demand-TLS
+  block; (6) browser verify. Reverted test to the clean verified sandbox
+  (site 200, sandbox workflow succeeded, zero leftover IT containers).
