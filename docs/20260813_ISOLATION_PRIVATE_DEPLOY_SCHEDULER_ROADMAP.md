@@ -472,3 +472,43 @@ Total ≈ 3–4 months single-threaded; M1 items parallelizable.
   IT env + it_state mount removed). Confirmed: site HTTP 200, `SANDBOX_TIER=3`,
   sandbox workflow succeeded (`R-sandboxed-ok mean=-0.008`). Wildcard DNS left
   in place (harmless) for a future Pulsar/K8s-based IT effort.
+
+- **2026-08-15 (Feature ① — interactive tools: lightest "identity-mount" approach VERIFIED VIABLE)** —
+  Re-attempted the IT fix with the identity-mount idea (no Pulsar/K8s, no
+  replacing Galaxy/Nextflow). Findings:
+  1. **Standalone feasibility**: the jupyter image (amd64) runs on the host,
+     publishes 8888→host port, curl-reachable. The physical basis holds.
+  2. **The architectural blocker IS solvable via identity mounts + perms.**
+     Created host-side dirs at the SAME paths Galaxy uses
+     (`/app/database/jobs_directory`, `/app/database/files`,
+     `/app/tools/interactive` [tar-copied from the container]), bind-mounted
+     them identity-style into the backend, `chown`ed to the Galaxy uid (1000)
+     — the first blocker after that was `PermissionError` on the job dir,
+     fixed by the chown. Added a `docker_interactive` job destination
+     (bridge net + `--cpus/--memory/--pids-limit/no-new-privileges`); the
+     `tools:` regex mapping did NOT take but an **exact tool-id** mapping did
+     (`interactive_tool_jupyter_notebook → docker_interactive`).
+  3. **Result: Galaxy launched the Jupyter container ON THE HOST**
+     (`0.0.0.0:32769->8888`), **populated `interactivetools_map.sqlite`**
+     (`gxitproxy` row: container IP 172.18.0.2, port 32769), entry point
+     `active: true`. Sandbox workflow still succeeded throughout.
+
+  So: **interactive-tool backend execution works in the current containerized
+  architecture** — Pulsar/K8s NOT required, Galaxy/Nextflow untouched.
+
+  **Remaining (known proxy/TLS layer, several steps):**
+  - Entry URL used `…ep.interactivetool.localhost:8081` — the
+    `GALAXY_CONFIG_OVERRIDE_GALAXY_INFRASTRUCTURE_URL` /
+    `_INTERACTIVETOOLS_PROXY_HOST` overrides did NOT apply at runtime
+    (galaxy.yml shows None). Must set these so the URL uses the real domain;
+    real subdomain format is `<key>-<token>.ep.interactivetool.<domain>` →
+    wildcard DNS must be `*.ep.interactivetool.test.stage-public.biomate.ai`
+    (the `*.interactivetool.…` I created is one label short).
+  - Run **gx-it-proxy** reading the shared map (`/opt/biomate/it_state`).
+  - **Caddy** additive on-demand-TLS block `*.ep.interactivetool.<domain>` →
+    gx-it-proxy. Then browser (or curl) verify `/ipython/lab` renders.
+
+  **Reverted** test to the clean verified sandbox (IT mounts + job_conf +
+  env removed): site HTTP 200, sandbox workflow succeeded. Host artifacts
+  left for a future finish: `/app/tools/interactive` copy,
+  `/opt/biomate/job_conf.it.yml`, `/opt/biomate/it_state/`, wildcard DNS.
