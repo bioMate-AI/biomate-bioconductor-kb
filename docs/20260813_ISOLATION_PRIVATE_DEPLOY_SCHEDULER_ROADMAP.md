@@ -420,14 +420,9 @@ Total ≈ 3–4 months single-threaded; M1 items parallelizable.
   no-new-privileges + network-none (+ read-only for `.nf`).
 
   **Feature ① remaining (each with the reason it's not done yet):**
-  - **Interactive tools (Jupyter/RStudio/GIE)** — launched by Galaxy's native
-    InteractiveTool manager (container from the tool XML, run by Galaxy's job
-    runner), so hardening = a Galaxy `job_conf` change
-    (`docker_run_extra_arguments`: --cpus/--memory/--network/--cap-drop +
-    interactive GC for idle reaping), NOT the compute sandbox package. Also
-    not E2E-verifiable on test (in-browser session proxy is missing). Left as
-    a documented, separate Galaxy-config task rather than an unverifiable edit
-    to the live backend.
+  - **Interactive tools (Jupyter/RStudio/GIE)** — ATTEMPTED end-to-end
+    (2026-08-15) and hit a genuine ARCHITECTURAL blocker; see the dated entry
+    below. Not a config fix.
   - **run_code non-root uid** — runs as uid 0 (frontend is root; the code uses
     `process.getuid()`). De-capped + gVisor + network-none, but a fixed
     non-root uid needs the baseDir made writable to it (chmod). Minor
@@ -442,3 +437,38 @@ Total ≈ 3–4 months single-threaded; M1 items parallelizable.
     `dev-frontend:sandbox-test3`, `biomate-nextflow-sandbox:latest`+`:heavy`).
 </content>
 </invoke>
+
+- **2026-08-15 (Feature ① — interactive-tools session proxy: ATTEMPTED, architectural blocker found, reverted)** —
+  Goal: fix the broken in-browser interactive-tool sessions + harden them.
+  Did (all reversible): created wildcard DNS
+  `*.interactivetool.test.stage-public.biomate.ai` → test IP (Route53, kept);
+  set `GALAXY_CONFIG_OVERRIDE_GALAXY_INFRASTRUCTURE_URL` /
+  `_INTERACTIVETOOLS_PROXY_HOST` / `_INTERACTIVETOOLS_MAP`; added a
+  `docker_interactive` job destination (bridge net + `--cpus/--memory/
+  --pids-limit/no-new-privileges`) via a bind-mounted job_conf; recreated the
+  backend and **verified the sandbox workflow still ran** (tier-3, R output).
+  Launched `interactive_tool_jupyter_notebook` via the Galaxy API (admin key,
+  user `biomate-admin`) — the job + entry point were created.
+
+  **Blocker (root cause):** Galaxy runs INSIDE a container and launches IT
+  containers via the **host** docker.sock. The job's `docker run` uses
+  `-v /app:/app:ro -v /app/database/jobs_directory/.../working:...:rw` etc. —
+  paths that exist in the *backend container*, not on the host — so the host
+  docker daemon can't mount them. It also mapped to `docker_local`
+  (`--net host`, so `-p 8888` is a no-op → no reachable published port).
+  Galaxy's local docker job runner assumes Galaxy and the docker daemon
+  **share a filesystem**; a containerized Galaxy + host docker.sock breaks
+  that assumption. This is architectural, not a config tweak.
+
+  **Real fixes (future, each substantial):** (a) bind-mount ALL Galaxy
+  job/app paths identically host↔container (impractical: /app is the image
+  filesystem); (b) run IT jobs via **Pulsar** or the **Kubernetes** runner
+  (proper remote/containerized IT execution); (c) run Galaxy un-containerized
+  on the host. Plus the proxy layer still needed: gx-it-proxy reading the
+  shared `interactivetools_map` + Caddy on-demand-TLS block for
+  `*.interactivetool.<domain>` → gx-it-proxy (DNS already created).
+
+  **Reverted** the backend to the exact verified sandbox state (job_conf +
+  IT env + it_state mount removed). Confirmed: site HTTP 200, `SANDBOX_TIER=3`,
+  sandbox workflow succeeded (`R-sandboxed-ok mean=-0.008`). Wildcard DNS left
+  in place (harmless) for a future Pulsar/K8s-based IT effort.
