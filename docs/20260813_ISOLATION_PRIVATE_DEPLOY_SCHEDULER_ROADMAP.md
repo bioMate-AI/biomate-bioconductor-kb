@@ -587,3 +587,12 @@ Total ≈ 3–4 months single-threaded; M1 items parallelizable.
   override) but lives only on the test host (not yet in CI).
 
   Sandbox intact throughout (tier-3 workflow succeeded; site HTTP 200).
+
+- **2026-08-16 (Feature ① — run_code non-root uid closed)** — Patched the
+  frontend bundle (`dev-frontend:sandbox-test5`): run_code container now runs
+  `--user 1000:1000` (was root, since `process.getuid()`=0 in the root
+  frontend) + `chmod 0777` the run baseDir/output/input so the non-root uid
+  can write. Verified via public `/api/code/run`: `uid/gid: 1000 1000`,
+  `kernel 4.19.0-gvisor`, network BLOCKED, mknod DENIED, output written,
+  exit 0. So run_code is now gVisor + cap-drop + no-new-privileges +
+  network-none + non-root + resource limits — the full sandbox, no root.
