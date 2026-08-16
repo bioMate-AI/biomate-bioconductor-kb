@@ -129,6 +129,22 @@ def rebuild(db_path: Path, dry_run: bool) -> None:
     after = conn.execute("SELECT COUNT(*) FROM tools_fts").fetchone()[0]
     conn.close()
     print(f"FTS rows after: {after} (added {after - before})")
+
+    # Also populate the semantic tool-embedding column for any tools that lack a
+    # vector (they rode in with this enrichment). Guarded: no-op if the encoder
+    # (embed server / sentence-transformers) isn't available on this machine, or if
+    # BIOMATE_SKIP_TOOL_EMBED=1 — in that case run scripts/embed_missing_tools.py
+    # separately where the model is. Keeps embeddings in-DB + incremental.
+    import os as _os
+    if _os.getenv("BIOMATE_SKIP_TOOL_EMBED", "").strip() not in ("1", "true", "yes"):
+        try:
+            import sys as _sys
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", "lib"))
+            from galaxy.ai.vector_search import VectorToolSearch as _VTS
+            _n = _VTS(str(db_path), auto_create=False).embed_missing_tools()
+            print(f"Tool embeddings: populated {_n} missing vectors into tools.embedding")
+        except Exception as _emb_exc:
+            print(f"Tool embeddings: skipped ({_emb_exc}) — run scripts/embed_missing_tools.py where the model is")
     print("Done.")
 
 

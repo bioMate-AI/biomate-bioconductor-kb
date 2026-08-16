@@ -73,6 +73,10 @@ def _handle_client(conn: socket.socket, wf_model, chain_model) -> None:
                     texts = req["texts"]
                     vecs = chain_model.encode(texts, convert_to_numpy=True)
                     _send_msg(conn, json.dumps({"ok": True, "vecs": vecs.tolist()}).encode())
+                elif op == "encode_batch_wf":
+                    texts = req["texts"]
+                    vecs = wf_model.encode(texts, convert_to_numpy=True)
+                    _send_msg(conn, json.dumps({"ok": True, "vecs": vecs.tolist()}).encode())
                 else:
                     _send_msg(conn, json.dumps({"ok": False, "err": f"unknown op: {op}"}).encode())
             except Exception as exc:

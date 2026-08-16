@@ -1434,7 +1434,7 @@ do_sync() {
     _ldb_size=$(stat -c %s "$REPO_ROOT/backend/database/galaxy_ai_tools.db" 2>/dev/null \
       || stat -f %z "$REPO_ROOT/backend/database/galaxy_ai_tools.db" 2>/dev/null \
       || echo 0)
-    if [[ "${_ldb_size:-0}" -ge "${_DEV_DB_SIZE:-0}" ]]; then
+    if [[ "${_ldb_size:-0}" -ge "${_DEV_DB_SIZE:-0}" || "${_ldb_size:-0}" -ge 104857600 ]]; then
       do_db=true
     else
       log "[db] local (${_ldb_size}B) < dev (${_DEV_DB_SIZE:-?}B) — skipping time-based DB sync"
@@ -1624,7 +1624,7 @@ if [[ -n "$_LOCAL_DB_MD5" ]]; then
       'GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1); GC="${GC:-biomate-galaxy-dev}"; docker exec "$GC" stat -c %s /app/database/galaxy_ai_tools.db 2>/dev/null || echo 0' 2>/dev/null || echo '0')"
   if [[ "$_LOCAL_DB_MD5" != "$_DEV_DB_MD5" ]]; then
     _LOCAL_DB_SIZE="$(stat -c %s "$_LOCAL_DB" 2>/dev/null || stat -f %z "$_LOCAL_DB" 2>/dev/null || echo 0)"
-    if [[ "${_LOCAL_DB_SIZE:-0}" -lt "${_DEV_DB_SIZE:-0}" ]]; then
+    if [[ "${_LOCAL_DB_SIZE:-0}" -lt "${_DEV_DB_SIZE:-0}" && "${_LOCAL_DB_SIZE:-0}" -lt 104857600 ]]; then
       log "DB: local (${_LOCAL_DB_SIZE}B) < dev (${_DEV_DB_SIZE}B) — skipping upload to preserve larger dev DB"
     else
       CHANGED="$CHANGED"$'\n'"backend/database/"

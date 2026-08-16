@@ -172,6 +172,13 @@ def start_workflow_search_warmup() -> None:
             "[WorkflowSearchWarmup] done in %.1fs (chains=%d, chain_index_built=%s)",
             _twarm.time() - _t0, _chains_n, locals().get("_built", False),
         )
+        # Eagerly warm the semantic TOOL index too (loads the shipped .npz, ~1s)
+        # so /api/tool_search is semantic from the first request per worker.
+        try:
+            from galaxy.ai.enhanced_tool_search import warm_tool_index
+            warm_tool_index()
+        except Exception as _texc:
+            logging.warning("[ToolSearchWarmup] not warmed: %s", _texc)
 
     try:
         import threading as _wthreading
@@ -6090,6 +6097,44 @@ def detect_skills(
     except Exception as e:
         log.warning("[skills] detect failed: %s", e)
         return {"success": False, "error": str(e), "detected": []}
+
+
+class SkillUploadRequest(BaseModel):
+    filename: Optional[str] = Field(default=None, description="Original filename (used for the slug)")
+    content: str = Field(..., description="Full .md skill file text, including YAML frontmatter")
+
+
+@router.post(
+    "/api/skills/upload",
+    summary="Upload a custom expert-role .md skill file"
+)
+def upload_skill(
+    request: SkillUploadRequest,
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """Validate a user-supplied .md skill (must have `name` + `triggers` in frontmatter),
+    write it to the skills dir, and hot-reload the manager so /api/skills reflects it."""
+    import re as _re
+    try:
+        from galaxy.ai.skill_manager import _parse_frontmatter, SKILLS_DIR, reload_skill_manager
+        meta, _body = _parse_frontmatter(request.content or "")
+        if not meta.get("name") or not meta.get("triggers"):
+            raise HTTPException(
+                status_code=400,
+                detail="Skill .md must have YAML frontmatter with `name` and `triggers`.",
+            )
+        # slug from name (safe filename)
+        slug = _re.sub(r"[^a-z0-9_-]+", "-", str(meta["name"]).strip().lower()).strip("-") or "skill"
+        SKILLS_DIR.mkdir(parents=True, exist_ok=True)
+        dest = SKILLS_DIR / f"{slug}.md"
+        dest.write_text(request.content, encoding="utf-8")
+        mgr = reload_skill_manager()
+        return {"success": True, "skill_id": slug, "total": len(mgr.list_expert_skills())}
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.warning("[skills] upload failed: %s", e)
+        return {"success": False, "error": str(e)}
 
 
 class SkillBlockRequest(BaseModel):

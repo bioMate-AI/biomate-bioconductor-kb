@@ -63,7 +63,18 @@ class FastAPIToolSearch:
             500: Search error
         """
         try:
-            results = self.search_index.search(q, category=category, limit=limit)
+            # Route through EnhancedToolSearch: FTS ∪ semantic (dense) candidates,
+            # scored on scientific_context. Falls back to plain FTS on any error or
+            # when a category filter is set (the enhanced path filters differently),
+            # so the live tool-search path can never break.
+            if not category and getattr(self, "enhanced_search", None) is not None:
+                try:
+                    results = self.enhanced_search.search_with_context(q, limit=limit)
+                except Exception as _enh_exc:
+                    log.warning(f"enhanced tool search failed, FTS fallback: {_enh_exc}")
+                    results = self.search_index.search(q, category=None, limit=limit)
+            else:
+                results = self.search_index.search(q, category=category, limit=limit)
             return {
                 "query": q,
                 "category": category,

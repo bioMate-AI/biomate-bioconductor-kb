@@ -113,6 +113,21 @@ class EmbeddingClient:
             return np.array(resp["vecs"], dtype=np.float32)
         return None
 
+    def encode_batch_wf(self, texts: List[str], chunk: int = 128) -> Optional[np.ndarray]:
+        """Encode a batch of texts using the workflow model (bge-small) — for
+        building the TOOL index without loading the model in-worker. Chunks the
+        request so each socket call stays under the per-call timeout. Returns None
+        (→ caller falls back to in-process) if any chunk fails."""
+        if not texts:
+            return np.empty((0, 384), dtype=np.float32)
+        out = []
+        for i in range(0, len(texts), chunk):
+            resp = self._call({"op": "encode_batch_wf", "texts": texts[i:i + chunk]})
+            if not (resp and resp.get("ok") and resp.get("vecs")):
+                return None
+            out.append(np.array(resp["vecs"], dtype=np.float32))
+        return np.vstack(out)
+
     def available(self) -> bool:
         """Quick liveness check."""
         if self._disabled:

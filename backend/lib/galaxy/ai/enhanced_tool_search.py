@@ -8,10 +8,71 @@ Based on NFCORE_VS_SCIENTIFIC_CONTEXT_ANALYSIS.md:
 - scientific_context: Decision-making guidance, applicability (100% of tools)
 """
 
-import json
+import json  # force-redeploy marker: semantic tool search cbd71bb7d
 import logging
+import threading
 from typing import Dict, List, Optional, Any
 from pathlib import Path
+
+# Non-blocking warmer for the semantic tool index. VectorToolSearch builds the
+# ~12k-tool matrix in __init__ (via the shared embed server), which takes ~1-2 min
+# the first time — so we build it in a DAEMON THREAD and serve FTS-only until it's
+# ready. This guarantees the live /api/tool_search path never blocks on the build.
+_VS_SINGLETON = None
+_VS_WARMING = False
+_VS_LOCK = threading.Lock()
+
+
+def _get_warm_vector_search(db_path: str):
+    """Return a ready VectorToolSearch, or None if it's still warming (→ FTS-only)."""
+    global _VS_SINGLETON, _VS_WARMING
+    if _VS_SINGLETON is not None and _VS_SINGLETON.is_available():
+        return _VS_SINGLETON
+    with _VS_LOCK:
+        if _VS_WARMING:
+            return None
+        _VS_WARMING = True
+
+    def _build():
+        global _VS_SINGLETON, _VS_WARMING
+        try:
+            from galaxy.ai.vector_search import get_vector_search
+            vs = get_vector_search(db_path)
+            if vs is not None and vs.is_available():
+                _VS_SINGLETON = vs   # only cache a READY index
+            log.info("[EnhancedToolSearch] semantic tool index warm (available=%s)",
+                     vs.is_available() if vs else False)
+        except Exception as exc:
+            log.warning("[EnhancedToolSearch] semantic index build failed: %s", exc)
+        finally:
+            _VS_WARMING = False      # reset so a failed attempt can retry later
+
+    threading.Thread(target=_build, name="tool-vec-warmup", daemon=True).start()
+    return None
+
+
+def warm_tool_index(db_path: str = None):
+    """Eagerly load the semantic tool index into THIS worker — call from the
+    per-worker startup warmup (post_fork) so tool search is semantic from the
+    first request, not after a lazy first-request warm. Synchronous (the caller
+    is already a background startup thread); the shipped .npz load is ~1s."""
+    global _VS_SINGLETON
+    if _VS_SINGLETON is not None and _VS_SINGLETON.is_available():
+        return _VS_SINGLETON
+    try:
+        if db_path is None:
+            from galaxy.tools.search_index import ToolSearchIndex
+            db_path = ToolSearchIndex().db_path
+        from galaxy.ai.vector_search import get_vector_search
+        vs = get_vector_search(db_path)
+        if vs is not None and vs.is_available():
+            _VS_SINGLETON = vs
+        log.info("[ToolSearchWarmup] semantic tool index available=%s tools=%d",
+                 vs.is_available() if vs else False, len(vs.tool_ids) if vs else 0)
+        return vs
+    except Exception as exc:
+        log.warning("[ToolSearchWarmup] eager warm failed: %s", exc)
+        return None
 
 log = logging.getLogger(__name__)
 
@@ -77,6 +138,33 @@ class EnhancedToolSearch:
         except Exception as e:
             log.error(f"FTS5 search failed: {e}")
             return []
+
+        # Step 1b: UNION with semantic candidates (dense retrieval over the full
+        # corpus, incl. scientific_context) so we recover tools that lexical FTS
+        # misses on common bio verbs. Fully guarded — tool search must never break
+        # if the embed server / vector index is unavailable (degrades to FTS-only).
+        try:
+            vs = _get_warm_vector_search(self.search_index.db_path)
+            if vs is not None and vs.is_available():
+                fts_ids = {t.get('tool_id') for t in initial_results}
+                sem = vs.search(query, limit=min(50, limit * 3)) or []
+                added = 0
+                for st in sem:
+                    tid = st.get('tool_id')
+                    if not tid or tid in fts_ids:
+                        continue
+                    row = self.search_index.get_by_id(tid)
+                    if row:
+                        # synthetic BM25-like rank from cosine so downstream fts_score works
+                        row['rank'] = -10.0 * float(st.get('similarity', 0.5))
+                        row['_semantic'] = True
+                        initial_results.append(row)
+                        fts_ids.add(tid)
+                        added += 1
+                log.info(f"Semantic search added {added} tools FTS missed "
+                         f"(total candidates: {len(initial_results)})")
+        except Exception as e:
+            log.warning(f"Semantic augmentation skipped (FTS-only): {e}")
 
         # Step 2: Enhance with scientific context + nfcore metadata scoring
         enhanced_results = []

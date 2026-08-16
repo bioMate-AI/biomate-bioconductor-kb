@@ -27,54 +27,11 @@ except ImportError:
 
 
 # Bump when the embedded-text recipe changes so cached vectors are recomputed
-# even if the underlying DB rows are unchanged (the per-row hash + DB signature
-# both fold this in). "sciflat" = scientific_context flattened from JSON prose.
-_EMBED_RECIPE = "sciflat-v1"
-
-# Keys in the scientific_context JSON that are provenance/confidence metadata,
-# not scientific content — skipped when flattening to embedded prose.
-_SCI_CTX_NOISE_KEYS = frozenset({
-    "evidence", "confidence", "evidence_quality", "missing_evidence_for",
-    "information_sources", "needs_verification", "claim", "source",
-    "tool_homepage", "tool_documentation", "key_publications",
-    "min_samples", "min_replicates", "not_suitable", "not_recommended_for",
-})
-
-
-def _flatten_sci_context(raw, cap: int = 800) -> str:
-    """Pull human-readable prose out of a scientific_context JSON blob (v1 or v2
-    shape), dropping provenance/confidence metadata. Returns '' for empty input;
-    falls back to the truncated raw string if it isn't JSON."""
-    if not raw:
-        return ""
-    import json as _json
-    try:
-        doc = _json.loads(raw)
-    except Exception:
-        return str(raw)[:cap]
-    out = []
-
-    def walk(o):
-        if isinstance(o, dict):
-            for k, v in o.items():
-                if k in _SCI_CTX_NOISE_KEYS:
-                    continue
-                walk(v)
-        elif isinstance(o, list):
-            for v in o:
-                walk(v)
-        elif isinstance(o, str):
-            s = o.strip()
-            if s and s.lower() != "n/a" and "needs_verification" not in s.lower():
-                out.append(s)
-
-    walk(doc)
-    seen, parts = set(), []
-    for s in out:
-        if s not in seen:
-            seen.add(s)
-            parts.append(s)
-    return "; ".join(parts)[:cap]
+# even if the underlying DB rows are unchanged (per-row hash + DB signature fold
+# this in). "shorttext" = name/desc/category/help/tags/edam only — NOT
+# scientific_context (that's large and already drives EnhancedToolSearch scoring,
+# so embedding it too was redundant and made the 12k build impractically slow).
+_EMBED_RECIPE = "shorttext-v1"  # redeploy-tag
 
 
 def _detect_device_safe(timeout_seconds: float = 5.0) -> str:
@@ -162,35 +119,52 @@ class VectorToolSearch:
         self.tool_ids: List[str] = []
         self.embeddings: Optional[np.ndarray] = None
         self._initialized = False
+        self._use_server = False   # prefer the shared embed_server over in-process ST
 
-        if SENTENCE_TRANSFORMERS_AVAILABLE:
+        # Prefer the shared embed server (bge-small, same model) so we don't load
+        # a SentenceTransformer per gunicorn worker. Fall back to in-process ST.
+        if self._embed_server_available() or SENTENCE_TRANSFORMERS_AVAILABLE:
             self._initialize()
         else:
-            log.warning("Vector search disabled - sentence-transformers not available")
+            log.warning("Vector search disabled - no embed server and no sentence-transformers")
+
+    @staticmethod
+    def _embed_server_available() -> bool:
+        try:
+            from galaxy.ai.embed_client import get_client
+            return get_client().available()
+        except Exception:
+            return False
 
     def _initialize(self):
-        """Load model and embeddings."""
+        """Load embeddings; use the shared embed server if up, else in-process ST."""
         try:
-            # Determine device - use safe detection if not specified
-            if self.device is None:
-                self.device = _detect_device_safe(timeout_seconds=5.0)
-                log.info(f"Auto-detected device: {self.device}")
+            if self._embed_server_available():
+                self._use_server = True
+                log.info("[VectorSearch] Embed server available — skipping in-process model load")
+            else:
+                # Determine device - use safe detection if not specified
+                if self.device is None:
+                    self.device = _detect_device_safe(timeout_seconds=5.0)
+                    log.info(f"Auto-detected device: {self.device}")
+                log.info(f"Loading sentence transformer model: {self.model_name} on {self.device}")
+                self.model = SentenceTransformer(self.model_name, device=self.device,
+                                                 local_files_only=True)
 
-            # Load model on specified device — local_files_only prevents network
-            # check on HuggingFace (model is already cached).
-            log.info(f"Loading sentence transformer model: {self.model_name} on {self.device}")
-            self.model = SentenceTransformer(self.model_name, device=self.device,
-                                             local_files_only=True)
-
-            # Load or create embeddings.
-            # Staleness contract (added 2026-06-13 — same fix as the
-            # workflow side; see docs/20260613_DENSE_EMBEDDINGS_PATHS.md §6):
-            # after a load, compare the live DB's content signature to
-            # the one stamped into the .npz at build time. Mismatch →
-            # rebuild. Catches both row-count drift and in-place edits.
-            if Path(self.embedding_path).exists():
+            # Doc-embedding source, in preference order:
+            #   1. tools.embedding BLOB column — DB-NATIVE. Propagates with the DB
+            #      via the normal sync, updated incrementally per tool at enrichment
+            #      time (mirrors cryo_em_chunks.embedding_blob). This is the real home.
+            #   2. shipped/legacy .npz artifact (transitional; being retired).
+            #   3. build from scratch (last resort).
+            if self._load_from_db_column():
+                log.info("[VectorSearch] loaded %d embeddings from tools.embedding column",
+                         len(self.tool_ids))
+            elif Path(self.embedding_path).exists():
                 self._load_embeddings()
-                if self.auto_create and self._embeddings_stale():
+                if getattr(self, '_shipped', False):
+                    log.info("[VectorSearch] using shipped .npz artifact — skipping staleness rebuild")
+                elif self.auto_create and self._embeddings_stale():
                     log.info("[VectorSearch] .npz is stale vs DB — rebuilding")
                     self._create_embeddings()
             elif self.auto_create:
@@ -205,6 +179,152 @@ class VectorToolSearch:
             log.error(f"Failed to initialize vector search: {e}")
             self._initialized = False
 
+    def _lazy_load_model(self):
+        """Last-resort in-process model load — used only if the embed server is
+        preferred but a call fails (e.g. server not yet restarted with a new op)."""
+        if self.model is not None or not SENTENCE_TRANSFORMERS_AVAILABLE:
+            return
+        try:
+            if self.device is None:
+                self.device = _detect_device_safe(timeout_seconds=5.0)
+            log.warning("[VectorSearch] embed server unusable — loading in-process ST fallback")
+            self.model = SentenceTransformer(self.model_name, device=self.device,
+                                             local_files_only=True)
+        except Exception as exc:
+            log.error("[VectorSearch] in-process ST fallback load failed: %s", exc)
+
+    def _encode_batch(self, texts):
+        """Encode a batch of texts to a (N,384) matrix via the shared embed
+        server (bge, no in-worker model), falling back to in-process ST. None on
+        total failure."""
+        if self._use_server:
+            try:
+                from galaxy.ai.embed_client import get_client
+                vecs = get_client().encode_batch_wf(texts)
+                if vecs is not None:
+                    return vecs
+                log.warning("[VectorSearch] embed server batch failed; falling back to in-process")
+            except Exception as exc:
+                log.warning("[VectorSearch] embed server batch error: %s", exc)
+        if self.model is None:
+            self._lazy_load_model()
+        if self.model is not None:
+            return self.model.encode(texts, batch_size=64, convert_to_numpy=True)
+        return None
+
+    def _encode_query(self, text):
+        """Encode one query to a (384,) vector via the shared embed server, else ST."""
+        if self._use_server:
+            try:
+                from galaxy.ai.embed_client import get_client
+                vec = get_client().encode_wf(text)
+                if vec is not None:
+                    return vec
+            except Exception as exc:
+                log.warning("[VectorSearch] embed server query error: %s", exc)
+        if self.model is None:
+            self._lazy_load_model()
+        if self.model is not None:
+            return self.model.encode([text], convert_to_numpy=True)[0]
+        return None
+
+    def _load_from_db_column(self) -> bool:
+        """Load doc embeddings from the tools.embedding BLOB column — the DB-native
+        home (propagates with the DB, incremental per tool). Returns True iff it
+        loaded a non-empty set. No model/extension needed to READ (plain BLOBs +
+        numpy); the query is still encoded via the embed server / ST."""
+        import struct
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cols = {r[1] for r in conn.execute("PRAGMA table_info(tools)")}
+            if "embedding" not in cols:
+                conn.close()
+                return False
+            rows = conn.execute(
+                "SELECT tool_id, embedding FROM tools WHERE embedding IS NOT NULL"
+            ).fetchall()
+            conn.close()
+            if not rows:
+                return False
+            ids, mats = [], []
+            for tid, blob in rows:
+                if not blob:
+                    continue
+                n = len(blob) // 4
+                mats.append(struct.unpack(f"{n}f", blob))
+                ids.append(tid)
+            if not ids:
+                return False
+            self.tool_ids = ids
+            self.embeddings = np.asarray(mats, dtype=np.float32)
+            return True
+        except Exception as exc:
+            log.warning("[VectorSearch] tools.embedding column load failed: %s", exc)
+            return False
+
+    def upsert_tool_embedding(self, tool_id: str, text: str) -> bool:
+        """INCREMENTAL: compute one tool's embedding and store it in the
+        tools.embedding column. Call this from the enrichment pipeline whenever a
+        tool is added or its text changes — no full rebuild, just one row. The
+        vector rides the DB to dev on the next sync."""
+        import struct
+        try:
+            vec = self._encode_query(text)   # bge via embed server or ST
+            if vec is None:
+                return False
+            blob = struct.pack(f"{len(vec)}f", *[float(x) for x in vec])
+            conn = sqlite3.connect(self.db_path)
+            try:
+                conn.execute("ALTER TABLE tools ADD COLUMN embedding BLOB")
+            except Exception:
+                pass
+            conn.execute("UPDATE tools SET embedding=? WHERE tool_id=?", (blob, tool_id))
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as exc:
+            log.warning("[VectorSearch] upsert_tool_embedding failed for %s: %s", tool_id, exc)
+            return False
+
+    def embed_missing_tools(self, reembed_all: bool = False) -> int:
+        """INCREMENTAL population of the tools.embedding column: embed every tool
+        that has no vector yet (or all of them if the text recipe changed). Run
+        this after tool ingestion/enrichment — it only touches new/changed rows,
+        so it's cheap, and the vectors then ride the DB to dev on the next sync.
+        Returns the number embedded."""
+        import struct
+        conn = sqlite3.connect(self.db_path)
+        try:
+            conn.execute("ALTER TABLE tools ADD COLUMN embedding BLOB")
+        except Exception:
+            pass
+        where = "" if reembed_all else "WHERE embedding IS NULL"
+        rows = conn.execute(
+            f"SELECT tool_id, name, description, category, help_text, tags, "
+            f"edam_operations, edam_topics FROM tools {where}"
+        ).fetchall()
+        if not rows:
+            conn.close()
+            log.info("[VectorSearch] embed_missing_tools: nothing to embed")
+            return 0
+        ids, texts = [], []
+        for r in rows:
+            text, _ = self._tool_row_fields(r)
+            ids.append(r[0])
+            texts.append(text or r[0] or "")
+        vecs = self._encode_batch(texts)
+        if vecs is None:
+            conn.close()
+            log.warning("[VectorSearch] embed_missing_tools: encode unavailable (no server/model)")
+            return 0
+        for tid, vec in zip(ids, vecs):
+            blob = struct.pack(f"{len(vec)}f", *[float(x) for x in vec])
+            conn.execute("UPDATE tools SET embedding=? WHERE tool_id=?", (blob, tid))
+        conn.commit()
+        conn.close()
+        log.info("[VectorSearch] embed_missing_tools: embedded %d tools into tools.embedding", len(ids))
+        return len(ids)
+
     def _load_embeddings(self):
         """Load pre-computed embeddings from disk."""
         log.info(f"Loading embeddings from {self.embedding_path}")
@@ -212,25 +332,23 @@ class VectorToolSearch:
 
         self.tool_ids = list(data['tool_ids'])
         self.embeddings = data['embeddings']
+        # A "shipped" marker means this .npz was built offline as a deploy
+        # artifact (fast box) and shipped via S3 — TRUST it, don't trigger the
+        # slow in-container rebuild even if the DB signature drifts slightly.
+        self._shipped = 'shipped' in getattr(data, 'files', [])
 
         log.info(f"Loaded {len(self.tool_ids)} tool embeddings "
-                f"(shape: {self.embeddings.shape})")
+                f"(shape: {self.embeddings.shape}, shipped={self._shipped})")
 
     @staticmethod
     def _tool_row_fields(row):
         """(text_for_embedding, per_row_hash) from a tools row. The hash covers
         the same fields, so a content change flips it and forces re-encode."""
         import hashlib
-        (tool_id, name, desc, category, help_text, tags, edam_ops, edam_topics,
-         sci_ctx, sci_ctx_v2) = row
+        tool_id, name, desc, category, help_text, tags, edam_ops, edam_topics = row
         parts = [name] if name else []
         if desc:
             parts.append(desc[:500])  # Truncate long descriptions
-        # scientific_context is the richest enrichment (~10k tools) — prefer v2,
-        # flattened from JSON to prose (drops provenance/confidence noise).
-        sci = _flatten_sci_context(sci_ctx_v2) or _flatten_sci_context(sci_ctx)
-        if sci:
-            parts.append(f"Scientific context: {sci}")
         if category:
             parts.append(f"Category: {category}")
         if help_text:
@@ -265,7 +383,7 @@ class VectorToolSearch:
         cursor = conn.cursor()
         cursor.execute('''
             SELECT tool_id, name, description, category, help_text, tags,
-                   edam_operations, edam_topics, scientific_context, scientific_context_v2
+                   edam_operations, edam_topics
             FROM tools
         ''')
         rows = cursor.fetchall()
@@ -309,10 +427,10 @@ class VectorToolSearch:
 
         if to_encode:
             log.info(f"[VectorSearch] incremental: encoding {len(to_encode)} new/changed "
-                     f"of {len(rows)} tools (reused {reused})")
-            vecs = self.model.encode(
-                to_encode, show_progress_bar=True, batch_size=64, convert_to_numpy=True
-            )
+                     f"of {len(rows)} tools (reused {reused}, server={self._use_server})")
+            vecs = self._encode_batch(to_encode)
+            if vecs is None:
+                raise RuntimeError("tool embedding encode failed (server + in-process both unavailable)")
             for j, pos in enumerate(enc_pos):
                 final[pos] = vecs[j]
         else:
@@ -345,9 +463,9 @@ class VectorToolSearch:
     def _compute_tools_db_signature(self) -> tuple:
         """Compute (row_count, sha256_hex) over the DB's tools rows.
 
-        Hashes the same fields _create_embeddings reads (incl.
-        scientific_context / scientific_context_v2), so any change that
-        would affect the encoded text shows up as a different signature.
+        Hashes the same fields _create_embeddings reads (name/description/
+        category/help_text/tags/edam_*), so any change that would affect the
+        encoded text shows up as a different signature.
         """
         import hashlib
         conn = sqlite3.connect(self.db_path)
@@ -355,8 +473,7 @@ class VectorToolSearch:
         cursor.execute(
             "SELECT tool_id, COALESCE(name,''), COALESCE(description,''), "
             "COALESCE(category,''), COALESCE(help_text,''), COALESCE(tags,''), "
-            "COALESCE(edam_operations,''), COALESCE(edam_topics,''), "
-            "COALESCE(scientific_context,''), COALESCE(scientific_context_v2,'') "
+            "COALESCE(edam_operations,''), COALESCE(edam_topics,'') "
             "FROM tools ORDER BY tool_id"
         )
         rows = cursor.fetchall()
@@ -433,8 +550,10 @@ class VectorToolSearch:
             search_text = query
 
         try:
-            # Encode query
-            query_embedding = self.model.encode([search_text], convert_to_numpy=True)[0]
+            # Encode query (shared embed server if up, else in-process ST)
+            query_embedding = self._encode_query(search_text)
+            if query_embedding is None:
+                return []
 
             # Compute cosine similarity with all tools
             # Normalize embeddings for cosine similarity
@@ -553,3 +672,5 @@ def get_vector_search(db_path: str, **kwargs) -> VectorToolSearch:
         return VectorToolSearch(db_path, **kwargs)
     else:
         return MockVectorSearch(db_path, **kwargs)
+
+# tool-embed-ship redeploy 1786496282
