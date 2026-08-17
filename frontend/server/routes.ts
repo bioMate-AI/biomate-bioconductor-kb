@@ -14331,7 +14331,19 @@ Respond ONLY with valid JSON (no markdown wrapper):
   // Get active interactive sessions
   app.get("/api/interactive/sessions", authenticateToken, async (req, res) => {
     try {
-      const sessions = await galaxyAPIProxy.getActiveInteractiveSessions();
+      const rawSessions = await galaxyAPIProxy.getActiveInteractiveSessions();
+      // Galaxy stamps the session entry-point URL with the internal container
+      // host (…ep.interactivetool.galaxy-backend-deploy:8080). This is the
+      // endpoint the client reads the *ready* URL from, so rewrite it to the
+      // public interactive-tools proxy host here too (see rewriteInteractiveToolUrl).
+      const sessions = (rawSessions || []).map((s: any) => {
+        if (!s || typeof s !== 'object') return s;
+        const out = { ...s };
+        for (const k of ['entry_point_url', 'url', 'target']) {
+          if (typeof out[k] === 'string' && out[k]) out[k] = rewriteInteractiveToolUrl(out[k]);
+        }
+        return out;
+      });
       res.json({ sessions, count: sessions.length });
     } catch (error: any) {
       // Galaxy /api/entry_points returns 5xx when interactive tools aren't configured.
