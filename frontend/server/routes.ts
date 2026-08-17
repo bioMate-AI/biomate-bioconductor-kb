@@ -85,6 +85,43 @@ const galaxyAPIProxy = galaxyAPIBackend; // Alias for consistency
 const tokenCounter = new TokenCounter();
 
 /**
+ * Galaxy stamps interactive-tool entry-point URLs with the host it *saw* on the
+ * launch request (an internal/loopback host), ignoring both
+ * `galaxy_infrastructure_url` and `interactivetools_proxy_host`. So the URL it
+ * returns points at an unreachable host. We rewrite the base domain to the
+ * publicly-routable interactive-tools proxy host while preserving the
+ * per-session subdomain label (`<key>-<token>.interactivetool`).
+ *
+ * Config: INTERACTIVETOOLS_PROXY_HOST (or the Galaxy override env
+ * GALAXY_CONFIG_OVERRIDE_INTERACTIVETOOLS_PROXY_HOST) e.g.
+ * `interactivetool.test.stage-public.biomate.ai`. When unset, the URL is
+ * returned unchanged (local dev, where the stamped host is already correct).
+ */
+export function rewriteInteractiveToolUrl(rawUrl: string): string {
+  const proxyHost = (
+    process.env.INTERACTIVETOOLS_PROXY_HOST
+    || process.env.GALAXY_CONFIG_OVERRIDE_INTERACTIVETOOLS_PROXY_HOST
+    || ''
+  ).trim().replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  if (!proxyHost || !rawUrl) return rawUrl;
+  try {
+    const u = new URL(rawUrl);
+    // The entry-point hostname is `<label>.interactivetool.<host>`, where the
+    // configured proxy host already includes the `interactivetool.` segment.
+    const marker = '.interactivetool.';
+    const idx = u.hostname.indexOf(marker);
+    if (idx === -1) return rawUrl; // not an IT entry-point URL — leave as-is
+    const label = u.hostname.slice(0, idx); // `<key>-<token>`
+    u.hostname = `${label}.${proxyHost}`;
+    u.protocol = 'https:';
+    u.port = '';
+    return u.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
+/**
  * Returns a GalaxyAPIProxy scoped to the authenticated user's own Galaxy API key.
  * Falls back to the shared admin proxy if the user has no personal key yet
  * (e.g. existing users provisioned before this feature, or when Galaxy is unreachable).
@@ -9550,7 +9587,8 @@ ${paramLines || '(none recorded)'}`;
 
       // Construct entry point URL if not provided
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const entryPointUrl = result.entry_point_url || `${galaxyUrl}/interactivetool/jobs/${result.job_id}`;
+      const rawEntryPointUrl = result.entry_point_url || `${galaxyUrl}/interactivetool/jobs/${result.job_id}`;
+      const entryPointUrl = rewriteInteractiveToolUrl(rawEntryPointUrl);
 
       res.json({
         success: true,

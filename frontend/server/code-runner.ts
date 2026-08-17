@@ -202,8 +202,16 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
     //     (production: no docker socket in the frontend container)
     //   - else → spawn ephemeral `docker run` against the host socket (dev only)
     const sidecarUrl = process.env.RUN_CODE_BACKEND_URL;
-    const uid = (process.getuid?.() ?? 1000);
-    const gid = (process.getgid?.() ?? 1000);
+    // Never run sandboxed user code as root, even when the frontend process
+    // itself is root (containers commonly run as uid 0 → process.getuid()===0).
+    // RUN_CODE_UID/GID override explicitly; otherwise inherit the host identity
+    // but coerce 0 → 1000 so a root frontend still drops privileges in the
+    // sandbox. Number('0')||x and Number(undefined=NaN)||x both fall through
+    // to the coerced default, which is exactly what we want (0 is never valid).
+    const hostUid = process.getuid?.() ?? 1000;
+    const hostGid = process.getgid?.() ?? 1000;
+    const uid = Number(process.env.RUN_CODE_UID) || (hostUid === 0 ? 1000 : hostUid);
+    const gid = Number(process.env.RUN_CODE_GID) || (hostGid === 0 ? 1000 : hostGid);
     // Canonical sandbox image. Override with RUN_CODE_IMAGE for custom builds.
     // The image is published to ECR (399683337364.dkr.ecr.us-west-2.amazonaws.com/
     // biomate/biotools:1) — `docker pull` it on a fresh machine after running
