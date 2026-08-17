@@ -2587,6 +2587,21 @@ export class GalaxyAssistant {
       computedModelConfig.responseModel = GEMINI_FLASH_MODEL;
       console.log('[GalaxyAssistant] No ANTHROPIC_API_KEY — switching responseModel to gemini flash');
     }
+    // Inverse (QA 2026-08-17): the default config points at Gemini, but on an
+    // Anthropic-only deployment (no GEMINI_API_KEY) the Gemini primary 404s and
+    // the code falls back to a NON-agentic Claude path where BIOMATE_TOOLS
+    // (run_code, …) are never attached — so the model fabricates tool output
+    // instead of executing. When Anthropic is present but Gemini is not, route
+    // the gemini-configured models to Claude so the full agentic tool loop runs.
+    if (options.anthropicApiKey && !geminiKey) {
+      if (computedModelConfig.responseModel?.startsWith('gemini-')) {
+        computedModelConfig.responseModel = 'claude-sonnet-4-5';
+      }
+      if (computedModelConfig.intentModel?.startsWith('gemini-')) {
+        computedModelConfig.intentModel = 'claude-haiku-4-5';
+      }
+      console.log('[GalaxyAssistant] No GEMINI_API_KEY — routing gemini models to Claude (response=sonnet-4-5, intent=haiku-4-5) so the agentic tool loop + run_code work');
+    }
     this.modelConfig = computedModelConfig;
     this.sessionMemory = new SessionMemoryUpdater(this.claude);
     // Wire persistence: after each Haiku update, write sessionMemory into conversationState JSONB
