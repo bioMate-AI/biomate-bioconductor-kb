@@ -596,3 +596,33 @@ Total ≈ 3–4 months single-threaded; M1 items parallelizable.
   `kernel 4.19.0-gvisor`, network BLOCKED, mknod DENIED, output written,
   exit 0. So run_code is now gVisor + cap-drop + no-new-privileges +
   network-none + non-root + resource limits — the full sandbox, no root.
+
+- **2026-08-17 (FULL-SUITE browser + docker-events QA — findings)** — Tested
+  the whole thing via a real headless browser (playwright-core) with an
+  authenticated session (self-registered trial account, JWT cookie inject +
+  x-e2e-test-token), correlating every chat action against `docker events` on
+  the host. Verified matrix:
+  - **run_code direct API** (`/api/code/run`): REAL gVisor sandbox
+    (4.19.0-gvisor, non-root uid 1000, network BLOCKED, mknod denied). ✓
+  - **Personal `.nf` upload → run**: REAL local gVisor sandbox (tier-3). ✓ (API)
+  - **Interactive Jupyter**: REAL — opened in browser, ran a cell
+    (`uid=1000 non_root=True`, light runc container). ✓
+  - **Chat → workflow → Confirm & Run** (ADMET for aspirin): REAL execution
+    on AWS Batch — `Batch job submitted PREDICT_ADMET_PROPERTIES
+    job_id=60f79593…`, succeeded, 6 S3 outputs, billing emitted (131s). ✓
+  - **Chat inline "run this code" (run_code tool)**: ❌ **FABRICATED** — the
+    chat LLM does NOT call the run_code tool. Proven three ways: (a) asked for
+    a SHA256 it can't guess → wrong/absent; (b) asked for mean/median/std →
+    returned median 61.5 & std 29.14 which are WRONG (real: 50.5 & 28.64,
+    i.e. the LLM did the arithmetic itself and botched it); (c) `docker
+    events` during the requests showed ZERO run_code/sandbox containers (only
+    health-checks). The AI even prints a `<run_code>` block and says
+    "executed in the sandbox" while nothing runs; it also mis-routes simple
+    code requests into workflow-card generation.
+
+  **Conclusion:** the sandbox + Batch + interactive-tool execution paths all
+  work for real. The one real defect is a CHAT/LLM-ORCHESTRATION bug (not a
+  sandbox bug): the assistant fabricates run_code output instead of invoking
+  the tool. Fix belongs in the chat tool-calling/routing layer
+  (galaxy-assistant / orchestrator) — the run_code tool itself executes
+  correctly when actually called (proven via /api/code/run).
