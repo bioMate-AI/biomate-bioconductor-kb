@@ -14299,9 +14299,16 @@ Respond ONLY with valid JSON (no markdown wrapper):
         inputs
       );
 
+      // Galaxy stamps entry_point_url with the internal host it saw — rewrite to
+      // the public interactive-tools proxy host (see rewriteInteractiveToolUrl).
+      const entryPointUrl = result.entry_point_url
+        ? rewriteInteractiveToolUrl(result.entry_point_url)
+        : result.entry_point_url;
+
       res.json({
         ...result,
-        message: `Interactive tool launched. ${result.entry_point_url ? 'Access URL provided.' : 'Waiting for session.'}`
+        entry_point_url: entryPointUrl,
+        message: `Interactive tool launched. ${entryPointUrl ? 'Access URL provided.' : 'Waiting for session.'}`
       });
     } catch (error: any) {
       console.error("[Interactive] Error launching:", error.message);
