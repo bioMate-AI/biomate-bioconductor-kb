@@ -676,3 +676,28 @@ Total ≈ 3–4 months single-threaded; M1 items parallelizable.
      bundle patch; branch source lacks it, so the UI "open" URL uses the
      request host (wrong for the proxy). Direct proxy URL still works. Needs a
      config-driven source fix (galaxy_infrastructure_url / proxy_host).
+
+- **2026-08-17 (pre-merge source gaps CLOSED + full end-to-end re-verify on test)**
+  The two TEST-ONLY bundle patches are now proper source fixes, rebuilt from
+  the branch (3 rebuilds: src3/src4/src5) and re-verified on the fresh image:
+  - **run_code non-root** (code-runner.ts): coerce host uid/gid 0→1000 +
+    RUN_CODE_UID/GID overrides. Verified: `uid=1000(rstudio)`, `/proc/version
+    = Linux 4.19.0-gvisor` (real gVisor), outbound network blocked, exec hash
+    matches local. Commit e91bc4f67.
+  - **IT entry-URL rewrite** (routes.ts): rewriteInteractiveToolUrl() applied
+    at all three surfaces — /api/interactive-tools/launch, /api/interactive/launch
+    (e91bc4f67, 927f7fbdf) AND /api/interactive/sessions (b43f07a65). The
+    sessions endpoint is where the client reads the *ready* URL (the `target`
+    field; launch returns queued w/ no URL). Config-driven via
+    INTERACTIVETOOLS_PROXY_HOST (injected into the frontend container env).
+    Verified end-to-end: sessions returns
+    `https://<id>-<tok>.ep.interactivetool.test.stage-public.biomate.ai/ipython/lab`
+    and that URL returns HTTP 200 serving `<title>JupyterLab</title>` through
+    Caddy on-demand TLS + gx-it-proxy.
+  - **Regression re-verified on fresh image**: chat run_code real (hash
+    9180d2db… in stream + tool_call/tool_result); ADMET still routes to a
+    drug_discovery workflow (nextflow_path×3, 0 run_code calls).
+
+  **Full sandbox suite now GREEN on test with NO test-only patches remaining.**
+  Branch feat/compute-platform-v2 @ b43f07a65. NOT merged (per user: full test
+  first). Test image: dev-frontend:branch-test (sha 8cd2f104) + dev-backend:sandbox-test.
