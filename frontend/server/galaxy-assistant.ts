@@ -3399,6 +3399,32 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
         || /\b(GO|KEGG|Reactome|MSigDB)\b/.test(message);
   }
 
+  /**
+   * Explicit direct-code-execution request — the user wants an ad-hoc
+   * run_code computation, NOT a Nextflow pipeline. If such a request is
+   * (mis)classified as workflow_generation, generateWorkflow() produces a
+   * workflow card which sets hasRunnableWorkflow=true, which DISABLES the
+   * run_code tool at the agent-tools gate — so the model can no longer call
+   * run_code and instead FABRICATES output (prints a <run_code> block as
+   * prose and claims "executed in the sandbox" while nothing runs). Keeping
+   * needsWorkflowGeneration=false leaves the run_code tool enabled so the
+   * code actually executes in the sandbox. Conservative: only fires on an
+   * explicit run_code ask AND when no real-pipeline keyword is present, so it
+   * never hijacks a genuine workflow request.
+   * (QA 2026-08-17: chat fabricated run_code output — root cause was this
+   * mis-route + the tool-gate; see docs/20260813 roadmap.)
+   */
+  private _isDirectCodeExecutionQuery(message: string): boolean {
+    const explicit =
+      /\b(use\s+run_?code|via\s+run_?code|with\s+run_?code|run_?code\b|run\s+this\s+(python|r|bash|code|script|snippet)|execute\s+this\s+(python|r|bash|code|script|snippet))\b/i.test(message)
+      || /\bdo\s+not\s+(launch|generate|create|build)\s+(a\s+)?(nextflow\s+)?(workflow|pipeline)\b/i.test(message);
+    if (!explicit) return false;
+    // Don't hijack genuine pipeline / named-workflow requests.
+    const pipeline =
+      /\b(nextflow|pipeline|rna-?seq|scrna|single-?cell|wgs|wes|variant\s+calling|sarek|cryo-?em|admet|pbpk|boin|fastqc|trimmomatic|\bstar\b|salmon|kallisto|alignment|assembl|clusterprofiler|deseq2|epitope|docking|autodock|codon|pocket|target\s+evidence)\b/i.test(message);
+    return !pipeline;
+  }
+
   /** Force workflow_generation on all intents when a named ANDV stepwise workflow is explicit. */
   private _applyNamedWorkflowOverridesToDecomposition(
     decomposition: IntentDecomposition,
@@ -3834,6 +3860,19 @@ Rules:
     let researchResponse: any = undefined;
     let benchmarkEvidence: any = undefined;
     const actions = intent.actions;
+
+    // Direct-code-execution override (QA 2026-08-17): when the user EXPLICITLY
+    // asks to run ad-hoc code (run_code) rather than a pipeline, do NOT
+    // generate a workflow — a generated workflow disables the run_code tool at
+    // the agent-tools gate and makes the model fabricate output instead of
+    // actually executing. Flip to the direct-compute path so run_code stays
+    // enabled and really runs in the sandbox. Conservative guard (explicit ask
+    // + no pipeline keyword) so genuine workflow requests are untouched.
+    if (actions.needsWorkflowGeneration && this._isDirectCodeExecutionQuery(message)) {
+      log('Direct-code-execution override: needsWorkflowGeneration=false → run_code stays enabled');
+      actions.needsWorkflowGeneration = false;
+      actions.needsLLMReasoning = true;
+    }
 
     // ml_training intent override (flag-gated on ML_TRAINING_ROUTING):
     // "train/build/fine-tune a classifier/model/…" is a MODEL-TRAINING request.

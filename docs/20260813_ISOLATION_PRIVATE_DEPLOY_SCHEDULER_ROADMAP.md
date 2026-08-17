@@ -626,3 +626,26 @@ Total ≈ 3–4 months single-threaded; M1 items parallelizable.
   the tool. Fix belongs in the chat tool-calling/routing layer
   (galaxy-assistant / orchestrator) — the run_code tool itself executes
   correctly when actually called (proven via /api/code/run).
+
+- **2026-08-17 (chat run_code fabrication — root cause + source fix)** —
+  Root cause of the chat fabricating run_code: the agent-tools gate disables
+  the run_code tool whenever a workflow is generated for the turn
+  (`agentTools = !useThinking && onToolEvent && !hasRunnableWorkflow ? … `;
+  the deployed OLDER frontend uses the worse `!isWorkflowTurn`). The intent
+  classifier over-routes explicit "run this code" requests to
+  workflow_generation → a workflow card is produced → run_code tool is
+  disabled → the model prints a `<run_code>` block as prose and claims
+  "executed in the sandbox" while nothing runs. **Fix (source, branch):**
+  added `_isDirectCodeExecutionQuery()` + an override in the actions-resolution
+  path that, for an explicit run_code ask with no pipeline keyword, forces
+  `needsWorkflowGeneration=false` so no workflow is generated and the run_code
+  tool stays enabled (the improved `!hasRunnableWorkflow` gate is already on
+  this branch). tsc clean.
+
+  **Deployment caveat:** the test frontend runs an OLDER, divergent commit
+  (uses `!isWorkflowTurn`, different classifier structure), so this source fix
+  can't be safely hand-patched into its live bundle (fragile, risks breaking
+  the shared test chat). It ships correctly via a normal frontend build from
+  this branch (CI or a full vite+esbuild rebuild) — NOT via a surgical bundle
+  patch. The run_code tool + sandbox themselves are correct; this is purely
+  the chat routing/tool-gating layer.
