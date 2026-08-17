@@ -649,3 +649,30 @@ Total ≈ 3–4 months single-threaded; M1 items parallelizable.
   this branch (CI or a full vite+esbuild rebuild) — NOT via a surgical bundle
   patch. The run_code tool + sandbox themselves are correct; this is purely
   the chat routing/tool-gating layer.
+
+- **2026-08-17 (chat run_code fabrication FIXED + verified on test)** — Built
+  the branch frontend (full vite+esbuild) and deployed it to test
+  (`dev-frontend:branch-test`) + `RUN_CODE_RUNTIME=runsc`. Two root causes,
+  two source fixes:
+  1. Routing carve-out `_isDirectCodeExecutionQuery()` — explicit run_code
+     asks no longer generate a workflow (which had disabled the tool).
+  2. Backbone: when Anthropic key present but no GEMINI_API_KEY, route the
+     gemini-configured response/intent models → Claude, so the full agentic
+     tool loop runs (previously it fell back to a non-agentic Claude path with
+     no tools attached).
+  **Verified end-to-end** (browser + docker events + un-fakeable hash): chat
+  "use run_code: sha256(...)" → correct hash `3011366b…` (MATCH) AND a real
+  `biomate-nextflow-sandbox:heavy` container spawned (create→start→die→
+  destroy). Regression: ADMET request still routes to a workflow (carve-out
+  excludes pipeline keywords). Both fixes committed (e3bad09f8, d9d961827).
+
+  **Pre-merge source gaps found (must commit to source before merge — they
+  were TEST-ONLY bundle patches, so the branch-built frontend lacks them):**
+  1. **run_code non-root uid** — the sandbox-test5 bundle forced uid 1000;
+     branch source still uses `process.getuid()` (=0 in the root frontend), so
+     branch-test runs run_code as root (still de-capped + gVisor + net-none,
+     but root). Needs a clean source change (fixed non-root uid or env).
+  2. **Interactive-tool entry-URL rewrite** — was a test-domain-hardcoded
+     bundle patch; branch source lacks it, so the UI "open" URL uses the
+     request host (wrong for the proxy). Direct proxy URL still works. Needs a
+     config-driven source fix (galaxy_infrastructure_url / proxy_host).
