@@ -4770,7 +4770,17 @@ def _maybe_sandboxed_launch(
     from galaxy.ai.compute.sandbox.launcher import SandboxedHeadLauncher
 
     cfg = SandboxConfig.from_env(run_id=run_id)
-    launcher = SandboxedHeadLauncher(CallableHeadLauncher(_launch_nextflow_head), cfg)
+    _base_launcher = CallableHeadLauncher(_launch_nextflow_head)
+    # Feature ① — narrow launcher (flag-gated by NF_HEAD_LAUNCHER_URL). When set,
+    # the head's `docker run` is dispatched to the launcher microservice instead
+    # of run locally, so the backend needs no docker access for the head and the
+    # launcher re-validates the argv (closes the create+bind host-escape residual
+    # for the local .nf head). Unset → run locally, exactly as before.
+    _head_launcher_url = os.environ.get("NF_HEAD_LAUNCHER_URL", "").strip()
+    if _head_launcher_url:
+        from galaxy.ai.compute.sandbox.launcher import LauncherClientHeadLauncher
+        _base_launcher = LauncherClientHeadLauncher(_base_launcher, _head_launcher_url, cfg.image)
+    launcher = SandboxedHeadLauncher(_base_launcher, cfg)
     log.info(
         "[sandbox] run %s → tier-%d container (%s, net=%s, cpus=%s, mem=%dg)",
         run_id, int(cfg.tier), cfg.image, cfg.network_mode, cfg.cpus, cfg.mem_gb,

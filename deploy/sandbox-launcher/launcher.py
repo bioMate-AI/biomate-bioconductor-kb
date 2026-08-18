@@ -43,6 +43,73 @@ CPUS = os.environ.get("LAUNCHER_CPUS", "2")
 PIDS_LIMIT = os.environ.get("LAUNCHER_PIDS_LIMIT", "512")
 ALLOWED_INTERP = {"python3", "python", "Rscript", "R", "bash", "sh"}
 
+# Prefixes a Nextflow-head bind mount source may resolve under. The head runs
+# fully sandboxed; these are the only host paths it is allowed to see.
+HEAD_PREFIXES = [
+    os.path.realpath(p)
+    for p in os.environ.get("LAUNCHER_HEAD_PREFIXES", "/tmp/nextflow_runs,/tmp/biomate_user_nf").split(",")
+    if p.strip()
+]
+EXIT_SENTINEL = "__LAUNCHER_EXIT__"
+
+
+def _under_prefixes(path, prefixes):
+    rp = os.path.realpath(path)
+    return any(rp == p or rp.startswith(p + os.sep) for p in prefixes)
+
+
+def validate_head_argv(argv, image):
+    """Validate a caller-proposed ``docker/podman run ... nextflow`` argv.
+
+    The backend builds the head command (build_sandbox_command) — complex logic
+    we don't duplicate here — but we NEVER trust it: a compromised backend could
+    craft an escaping argv. Enforce the safety envelope by inspection.
+    """
+    if len(argv) < 3 or os.path.basename(str(argv[0])) not in ("docker", "podman") or argv[1] != "run":
+        raise ValueError("not a docker/podman run")
+
+    def has_pair(flag, val):
+        return any(argv[i] == flag and argv[i + 1] == val for i in range(len(argv) - 1))
+
+    if not has_pair("--cap-drop", "ALL"):
+        raise ValueError("missing --cap-drop ALL")
+    if not has_pair("--security-opt", "no-new-privileges"):
+        raise ValueError("missing --security-opt no-new-privileges")
+    if ENFORCED_RUNTIME and not has_pair("--runtime", ENFORCED_RUNTIME):
+        raise ValueError(f"missing --runtime {ENFORCED_RUNTIME}")
+
+    if ALLOWED_IMAGES and image not in ALLOWED_IMAGES:
+        raise ValueError("image not in allowlist")
+    if image not in argv:
+        raise ValueError("declared image not present in argv")
+
+    user_ok = False
+    for i in range(len(argv) - 1):
+        tok, nxt = argv[i], argv[i + 1]
+        # never share host namespaces
+        if tok in ("--privileged", "--cap-add", "--device", "--userns"):
+            raise ValueError(f"forbidden flag {tok}")
+        if tok in ("--network", "--net", "--pid", "--ipc", "--uts", "--cgroupns") and nxt in ("host", "=host"):
+            raise ValueError(f"forbidden {tok} host")
+        if tok.startswith(("--network=host", "--net=host", "--pid=host", "--ipc=host", "--privileged")):
+            raise ValueError(f"forbidden {tok}")
+        if tok == "--security-opt" and "unconfined" in nxt:
+            raise ValueError("seccomp/apparmor unconfined forbidden")
+        if tok == "--user":
+            uid = nxt.split(":")[0]
+            if uid in ("0", "root"):
+                raise ValueError("root user forbidden")
+            user_ok = True
+        if tok in ("-v", "--volume", "--mount"):
+            src = nxt.split(":")[0] if tok != "--mount" else ""
+            if "docker.sock" in nxt or "/var/run" in nxt:
+                raise ValueError("docker socket mount forbidden")
+            if src and not _under_prefixes(src, HEAD_PREFIXES):
+                raise ValueError(f"mount source not under allowed prefixes: {src}")
+    if not user_ok:
+        raise ValueError("missing non-root --user")
+    return True
+
 
 def build_cmd(spec):
     """Validate the RunSpec and build the enforced-safe `docker run` argv.
@@ -114,10 +181,13 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, {"error": "not found"})
 
     def do_POST(self):
-        if self.path.rstrip("/") != "/run":
+        path = self.path.rstrip("/")
+        if path not in ("/run", "/run_head"):
             return self._send(404, {"error": "not found"})
         if TOKEN and self.headers.get("Authorization", "") != f"Bearer {TOKEN}":
             return self._send(401, {"error": "unauthorized"})
+        if path == "/run_head":
+            return self._do_run_head()
         try:
             n = int(self.headers.get("Content-Length", "0"))
             spec = json.loads(self.rfile.read(n) or b"{}")
@@ -135,6 +205,55 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, {"stdout": "", "stderr": "[launcher] timeout", "exitCode": 124})
         except Exception as e:
             self._send(500, {"stdout": "", "stderr": f"[launcher error] {e}", "exitCode": 1})
+
+    def _do_run_head(self):
+        """Run a long-lived, already-built sandbox head argv, streaming combined
+        output back and terminating with a `__LAUNCHER_EXIT__ <code>` sentinel
+        line so the caller (backend head-client) learns the exit code."""
+        try:
+            n = int(self.headers.get("Content-Length", "0"))
+            spec = json.loads(self.rfile.read(n) or b"{}")
+        except Exception as e:
+            return self._send(400, {"error": f"bad json: {e}"})
+        argv = spec.get("argv")
+        image = str(spec.get("image", ""))
+        if not isinstance(argv, list) or not argv:
+            return self._send(400, {"error": "argv required"})
+        try:
+            validate_head_argv([str(a) for a in argv], image)
+        except ValueError as e:
+            return self._send(400, {"error": f"[launcher rejected] {e}"})
+        # stream: 200 + chunked plain text; the head process's stdout/stderr are
+        # relayed line-by-line, then a sentinel with the exit code.
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Transfer-Encoding", "chunked")
+        self.end_headers()
+
+        def chunk(data: bytes):
+            self.wfile.write(f"{len(data):X}\r\n".encode())
+            self.wfile.write(data)
+            self.wfile.write(b"\r\n")
+            self.wfile.flush()
+
+        proc = None
+        try:
+            proc = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1, text=True)
+            for line in iter(proc.stdout.readline, ""):
+                chunk(line.encode("utf-8", "replace"))
+            proc.wait()
+            code = proc.returncode
+        except Exception as e:
+            chunk(f"[launcher head error] {e}\n".encode())
+            code = 1
+            if proc:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+        chunk(f"{EXIT_SENTINEL} {code}\n".encode())
+        self.wfile.write(b"0\r\n\r\n")  # terminating chunk
+        self.wfile.flush()
 
 
 if __name__ == "__main__":
