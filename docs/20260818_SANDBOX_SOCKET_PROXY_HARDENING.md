@@ -93,16 +93,47 @@ Verified on test (i-0482):
 So even a fully RCE'd frontend can only ask the launcher to run a validated
 RunSpec — it cannot bind-mount host paths or pick a privileged runtime/image.
 
-### Remaining
+### Backend / .nf head → launcher (DONE + verified, 2026-08-18)
 
-- **Backend / .nf head** still launches sandboxes directly (raw socket). Migrate
-  it onto the launcher next (extend the allowlist prefix to
-  `/tmp/biomate_user_nf` + `/tmp/nextflow_runs` and add an `nf_head` RunSpec kind).
-- **Interactive tools** can then also be moved onto the launcher as the single
-  docker choke point, which resolves the backend/IT proxy incompatibility above.
-- Bake `biomate-sandbox-launcher` into CI (currently the test host runs it from
-  `docker:27-cli` + `apk add python3` + bind-mounted `launcher.py`; the repo
-  Dockerfile is the production form).
+The local Nextflow head now routes through the launcher too, flag-gated by
+`NF_HEAD_LAUNCHER_URL` (commit c6792a3db):
+
+- Launcher `POST /run_head` takes the already-built sandbox `docker run` argv and
+  VALIDATES it (mounts under `LAUNCHER_HEAD_PREFIXES` = `/tmp/nextflow_runs,
+  /tmp/biomate_user_nf`; forced runsc/non-root/cap-drop; no `--privileged`/host/
+  socket), then runs it streaming.
+- `head_client.py` (runs as the backend head subprocess) POSTs the argv and
+  relays the stream to the run log; `LauncherClientHeadLauncher` slots it into
+  the existing launch machinery (slot/FD/pid/reaper). The backend runs NO docker
+  for the head.
+
+Verified on test: personal `.nf` run → `.head_argv.json` shows the client sent
+`docker run --rm --runtime runsc … --network none`; the head ran sandboxed
+(evidence: `uid=1000`, `4.19.0-gvisor`, `NET=BLOCKED`); run `succeeded`. Launcher
+rejects `-v /:/host`, `--privileged`, root user (400). Regression audit: the
+deployed sandbox config has empty `extra_ro_mounts`, personal `.nf` lives under
+`/tmp/biomate_user_nf` and bioc wrappers under `/tmp/nextflow_runs` — all covered
+by the prefixes — and the launcher runs the *identical* argv, so it is a faithful
+validated pass-through (no network/behaviour change).
+
+NOTE: the backend still holds the raw socket **only for interactive tools** — so
+the socket cannot be removed yet, and .nf-head migration alone does not reduce
+the backend-RCE surface until IT is also migrated (below).
+
+### Remaining (the last mile)
+
+- **Interactive tools → launcher.** This is the blocker for removing the backend
+  raw socket. Galaxy's native IT docker job runner launches a long-lived,
+  port-published container and inspects it to register the entry-point URL — a
+  richer lifecycle than the fire-and-forget head. It needs either a launcher
+  `run_detached + inspect` API that Galaxy's runner calls, or moving IT off the
+  local-docker runner. The earlier socket-proxy attempt also broke IT (exit 125 /
+  no URL) in a way manual repros couldn't reproduce, so this is a genuine
+  Galaxy-internals task, not a quick config change.
+- **Remove the backend raw socket** once IT no longer needs it, then the backend
+  is zero-docker like the frontend.
+- **Bake into CI**: `biomate-sandbox-launcher` image + the bind-mounted backend
+  patches (currently test-host-only) → the `sandbox-test`/branch images.
 
 ## Rollback
 
