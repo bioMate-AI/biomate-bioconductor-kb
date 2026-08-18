@@ -89,8 +89,8 @@ services:
   # sandboxes on behalf of the frontend and enforces the safe envelope (workdir
   # under /tmp/biomate_code, image allowlist, forced runsc/non-root/net-none/caps).
   sandbox-launcher:
-    build: ./sandbox-launcher
-    image: biomate-sandbox-launcher:1
+    image: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/sandbox-launcher:2
+    pull_policy: always
     restart: unless-stopped
     environment:
       - DOCKER_HOST=tcp://docker-socket-proxy:2375   # launcher -> proxy -> daemon
@@ -110,8 +110,8 @@ services:
       - biomate-deploy-net
 
   galaxy-backend-deploy:
-    image: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/dev-backend:sandbox-test
-    pull_policy: never
+    image: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/dev-backend:sandbox-v3
+    pull_policy: always
     volumes:
       # NO raw docker.sock — backend is now zero-socket (Stage 3).
       # Docker access goes via DOCKER_HOST below: backend -> proxy -> daemon.

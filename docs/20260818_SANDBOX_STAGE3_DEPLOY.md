@@ -155,15 +155,34 @@ Mount-path risk analysis:
 
 ---
 
-## Stage 4 — CI bake (TODO)
+## Stage 4 — CI bake (DONE 2026-08-18)
 
-Replace bind-mount patches with baked images:
-1. Build backend image from `feat/compute-platform-v2` branch (includes the
-   `commands.py` fix) → tag `sandbox-v3`.
-2. Bake `biomate-sandbox-launcher:2` from updated `launcher.py`.
-3. Update `docker-compose.sandbox.yml` `image:` refs to the baked tags.
-4. Add `docker-compose.sandbox.yml` to the GHA deploy matrix for
-   `test`/`prod` environments.
+Bind-mount patches replaced with baked ECR images:
+
+| Image | Tag | What's baked in |
+|---|---|---|
+| `biomate/dev-backend` | `sandbox-v3` | commands.py, nextflow_executor.py, head_client.py, compute/sandbox/launcher.py |
+| `biomate/sandbox-launcher` | `2` | deploy/sandbox-launcher/launcher.py (all new endpoints) |
+
+Build method on test i-0482 (avoids OOM — COPY-only layers, no package install):
+```dockerfile
+# backend
+FROM ...dev-backend:sandbox-test
+COPY nextflow_executor.py /app/lib/galaxy/webapps/galaxy/api/nextflow_executor.py
+COPY head_client.py       /app/lib/galaxy/ai/compute/sandbox/head_client.py
+COPY launcher.py          /app/lib/galaxy/ai/compute/sandbox/launcher.py
+COPY commands.py          /app/lib/galaxy/util/commands.py
+
+# launcher
+FROM docker:27-cli
+RUN apk add --no-cache python3
+COPY launcher.py /launcher.py
+EXPOSE 8899
+CMD ["python3", "/launcher.py"]
+```
+
+`docker-compose.sandbox.yml` updated to reference both ECR images.
+Overlay has zero bind-mount patches — all code is in the images.
 
 ---
 
