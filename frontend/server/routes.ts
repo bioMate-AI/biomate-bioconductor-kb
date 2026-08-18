@@ -7,6 +7,8 @@ import "./jobs/handlers/download-all-zip";
 import "./jobs/handlers/methods-report";
 import "./jobs/handlers/findings-analysis";
 import { createServer, request as httpRequest, type Server } from "http";
+import { execSync as _execSync } from "node:child_process";
+import { WebSocket as _WSClient, WebSocketServer } from "ws";
 import { storage } from "./storage";
 import OpenAI from "openai";
 import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs, instrumentEvents, instruments, INSTRUMENT_TYPES, apiKeys } from "../shared/schema";
@@ -14261,9 +14263,26 @@ Respond ONLY with valid JSON (no markdown wrapper):
         inputs
       );
 
+      // Resolve the per-session entry-point token for THIS job so the client can
+      // open /interactive/<token>/<entry_url> (routed by the multi-session proxy).
+      // Correlated to the launched job_id (decoded in-container), so it is race-free
+      // under concurrent launches. The entry-point row is written a moment after the
+      // job is created, so poll briefly. Note: we deliberately do NOT wait for the
+      // container to be "active" — in DooD the entry point never flips to configured,
+      // but the raw token + container are usable via the /interactive proxy at once.
+      let entryPointUrl: string | null = result.entry_point_url || null;
+      if (result.job_id) {
+        for (let i = 0; i < 12 && !entryPointUrl; i++) {
+          const ep = tokenForJob(result.job_id);
+          if (ep?.token) { entryPointUrl = `/interactive/${ep.token}/${ep.entry_url || "ipython/lab"}`; break; }
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+      }
+
       res.json({
         ...result,
-        message: `Interactive tool launched. ${result.entry_point_url ? 'Access URL provided.' : 'Waiting for session.'}`
+        entry_point_url: entryPointUrl,
+        message: `Interactive tool launched. ${entryPointUrl ? "Access URL provided." : "Waiting for session."}`
       });
     } catch (error: any) {
       console.error("[Interactive] Error launching:", error.message);
@@ -16281,7 +16300,129 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
   app.all("/oauth/token", mcpProxy);
   app.get("/healthz", (_req, res) => res.json({ ok: true }));
 
+  // ── Interactive Tools reverse proxy — MULTI-SESSION (per-token) ─────────────
+  // Each IT session gets a unique Galaxy entry-point token. Public URL:
+  //   /interactive/<token>/ipython/lab
+  // We resolve <token> -> its OWN container via Galaxy's DB linkage
+  //   token -> interactivetool_entry_point.job_id -> job_container_association.container_name
+  // (Galaxy's container-monitor host/port is unreliable in this DooD setup, but this linkage
+  // is exact), then docker-inspect the container's published port and proxy HTTP+WS to it via
+  // the host gateway. For HTML we rewrite JupyterLab's baseUrl (/ipython/ ->
+  // /interactive/<token>/ipython/) so every asset/API/kernel-WS request stays under the
+  // per-session path and routes back to the same container — enabling concurrent sessions.
+  const IT_GATEWAY = process.env.IT_HOST_GATEWAY || "172.19.0.1";
+  const _itCache = new Map<string, { port: number; at: number }>();
+  function targetForToken(token: string): { host: string; port: number } | null {
+    if (!/^[a-zA-Z0-9]{6,32}$/.test(token)) return null; // guard: token is Galaxy-generated alnum
+    const cached = _itCache.get(token);
+    if (cached && Date.now() - cached.at < 15000) return { host: IT_GATEWAY, port: cached.port };
+    try {
+      const py =
+        "import sqlite3;c=sqlite3.connect('/app/database/universe.sqlite');" +
+        `r=c.execute('select job_id from interactivetool_entry_point where token=?',('${token}',)).fetchone();` +
+        "j=c.execute('select container_name from job_container_association where job_id=?',(r[0],)).fetchone() if r else None;" +
+        "print(j[0] if j else '')";
+      const name = _execSync(`docker exec biomate-galaxy-dev python3 -c "${py}"`, { encoding: "utf8", timeout: 6000 }).trim();
+      if (!/^[a-f0-9]{16,}$/i.test(name)) return null;
+      const ports = JSON.parse(_execSync(`docker inspect ${name} --format "{{json .NetworkSettings.Ports}}"`, { encoding: "utf8", timeout: 6000 }).trim());
+      for (const k of ["8888/tcp", "8787/tcp", "5005/tcp"]) {
+        if (ports[k]?.[0]?.HostPort) {
+          const port = parseInt(ports[k][0].HostPort, 10);
+          _itCache.set(token, { port, at: Date.now() });
+          return { host: IT_GATEWAY, port };
+        }
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+  // Resolve the per-session token for a SPECIFIC launched job (encoded id from
+  // /api/tools). We cannot use Galaxy's /api/entry_points `target` here: in the
+  // DooD dev setup the container-monitor never marks the entry point `configured`
+  // (it can't resolve the child address), so `active`/`target` stay null forever —
+  // even though the container is up and the raw token exists in the DB immediately.
+  // So decode the job id (default id_secret; matches workflow_restarter.py) inside
+  // the galaxy container and read the token straight from the entry-point row keyed
+  // by THIS job_id. Job-correlated => race-free under concurrent launches.
+  function tokenForJob(encodedJobId: string): { token: string; entry_url: string } | null {
+    if (!/^[a-f0-9]{16,64}$/i.test(encodedJobId)) return null; // guard: Galaxy-encoded hex id
+    try {
+      const py =
+        "import sqlite3;from galaxy.security.idencoding import IdEncodingHelper;" +
+        "h=IdEncodingHelper(id_secret='USING THE DEFAULT IS NOT SECURE!');" +
+        `jid=h.decode_id('${encodedJobId}');` +
+        "c=sqlite3.connect('/app/database/universe.sqlite');" +
+        "r=c.execute('select token,entry_url from interactivetool_entry_point where job_id=? order by id desc limit 1',(jid,)).fetchone();" +
+        "print((r[0]+chr(9)+(r[1] or 'ipython/lab')) if r else '')";
+      const out = _execSync(
+        `docker exec -e PYTHONPATH=/app/lib biomate-galaxy-dev python3 -c "${py}"`,
+        { encoding: "utf8", timeout: 8000 }
+      ).trim();
+      if (!out) return null;
+      const [token, entry_url] = out.split("\t");
+      if (!/^[a-z0-9]{6,32}$/i.test(token)) return null;
+      return { token, entry_url: entry_url || "ipython/lab" };
+    } catch {
+      return null;
+    }
+  }
+  app.use("/interactive", (req, res) => {
+    const m = req.url.match(/^\/([a-zA-Z0-9]{6,32})(\/.*)?$/);
+    if (!m) { res.status(404).send("interactive: expected /interactive/<token>/..."); return; }
+    const token = m[1];
+    const sub = m[2] || "/"; // container path, e.g. /ipython/lab or /ipython/static/...
+    const target = targetForToken(token);
+    if (!target) { res.status(503).send("Interactive session not ready"); return; }
+    const proxied = httpRequest(
+      { host: target.host, port: target.port, method: req.method, path: sub, headers: { ...req.headers, host: `${target.host}:${target.port}` } },
+      (pr) => {
+        if (/text\/html/i.test(String(pr.headers["content-type"] || ""))) {
+          // Rewrite baseUrl so the app's own requests stay per-session.
+          const chunks: Buffer[] = [];
+          pr.on("data", (d: Buffer) => chunks.push(d));
+          pr.on("end", () => {
+            const body = Buffer.concat(chunks).toString("utf8").split("/ipython/").join(`/interactive/${token}/ipython/`);
+            const h: any = { ...pr.headers }; delete h["content-length"];
+            res.writeHead(pr.statusCode || 200, h);
+            res.end(body);
+          });
+        } else {
+          res.writeHead(pr.statusCode || 502, pr.headers);
+          pr.pipe(res);
+        }
+      }
+    );
+    proxied.on("error", (e) => { if (!res.headersSent) res.status(502).send(`IT proxy error: ${e.message}`); });
+    req.pipe(proxied);
+  });
+
   const httpServer = createServer(app);
+
+  // WebSocket upgrade proxy — per-token, mirrors the HTTP path rewrite.
+  httpServer.on("upgrade", (req, socket, head) => {
+    const m = req.url?.match(/^\/interactive\/([a-zA-Z0-9]{6,32})(\/.*)?$/);
+    if (!m) return;
+    const token = m[1];
+    const sub = m[2] || "/";
+    const target = targetForToken(token);
+    if (!target) { socket.destroy(); return; }
+    try {
+      const upstream = new _WSClient(`ws://${target.host}:${target.port}${sub}`, {
+        headers: { cookie: req.headers.cookie || "" },
+      });
+      const wss = new WebSocketServer({ noServer: true });
+      wss.handleUpgrade(req, socket, head, (client: any) => {
+        const flush: any[] = [];
+        client.on("message", (m2: any) => (upstream.readyState === 1 ? upstream.send(m2) : flush.push(m2)));
+        upstream.on("open", () => { while (flush.length) upstream.send(flush.shift()); });
+        upstream.on("message", (m2: any) => client.readyState === 1 && client.send(m2));
+        client.on("close", () => upstream.close());
+        upstream.on("close", () => client.close());
+        upstream.on("error", () => client.close());
+      });
+    } catch { socket.destroy(); }
+  });
 
   return httpServer;
 }

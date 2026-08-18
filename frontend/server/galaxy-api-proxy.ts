@@ -745,10 +745,45 @@ export class GalaxyAPIProxy {
 
       console.log('[GalaxyAPIProxy] Calling generate_workflow — intent:', request.user_intent);
 
-      const response = await this.client.post<WorkflowGenerationResponse>(
-        '/api/ai_assistant/generate_workflow',
-        backendRequest
-      );
+      // Retry on TRANSIENT connection errors — Galaxy (biomate-galaxy-dev:8080) restarts on
+      // deploys/recycles, and a request landing in that few-second window would otherwise
+      // surface to the user as "could not generate workflow (ECONNREFUSED)". A transient
+      // network blip must not hard-fail generation; genuine errors (4xx/validation) still fall
+      // straight through to the catch below.
+      const _isTransient = (e: any): boolean => {
+        const code = String(e?.code || '').toUpperCase();
+        const msg = String(e?.message || e?.detail || '').toLowerCase();
+        const status = e?.status ?? e?.response?.status;
+        return (
+          ['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'ECONNABORTED', 'EPIPE', 'EAI_AGAIN'].includes(code) ||
+          /econnrefused|econnreset|etimedout|socket hang up|network error|fetch failed|timeout/.test(msg) ||
+          status === 502 || status === 503 || status === 504
+        );
+      };
+      // Budget sized to span a Galaxy gunicorn restart tail (a sync runs
+      // `galaxyctl restart gunicorn`; :8080 refuses for ~10-40s). 5 attempts with
+      // capped linear backoff (1.2/2.4/3.6/4.8s → ~12s total) absorbs a fast reload
+      // or a worker recycle without making the user wait through a genuine outage —
+      // a full multi-minute restart still fails fast enough. Per-wait capped at 5s.
+      const MAX_RETRIES = 4; // → 5 total attempts
+      let response: any;
+      for (let attempt = 0; ; attempt++) {
+        try {
+          response = await this.client.post<WorkflowGenerationResponse>(
+            '/api/ai_assistant/generate_workflow',
+            backendRequest
+          );
+          break;
+        } catch (e: any) {
+          if (attempt < MAX_RETRIES && _isTransient(e)) {
+            const waitMs = Math.min(5000, 1200 * (attempt + 1));
+            console.warn(`[GalaxyAPIProxy] transient Galaxy error (attempt ${attempt + 1}/${MAX_RETRIES + 1}), retrying in ${waitMs}ms:`, e?.code || e?.message);
+            await new Promise((r) => setTimeout(r, waitMs));
+            continue;
+          }
+          throw e; // non-transient or retries exhausted → existing catch returns success:false
+        }
+      }
 
       console.log('[GalaxyAPIProxy] source:', response.data.source, '| type:', response.data.workflow_type);
 

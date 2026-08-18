@@ -91,6 +91,38 @@ export function InteractiveLauncher({
     state: string
   } | null>(null)
   const [copied, setCopied] = useState(false)
+  // The launch API returns the session URL as soon as the entry-point row exists (~1-2s),
+  // but the container needs ~10-30s more to actually serve — the URL 503s until then.
+  // Poll it to readiness so we don't hand the user a dead link. 'timeout' still lets them
+  // open it (slow boots do eventually serve); it just drops the "ready" guarantee.
+  const [readyState, setReadyState] = useState<'idle' | 'starting' | 'ready' | 'timeout'>('idle')
+
+  useEffect(() => {
+    const url = session?.entryPointUrl
+    if (!url) { setReadyState('idle'); return }
+    let cancelled = false
+    setReadyState('starting')
+    const started = Date.now()
+    const MAX_MS = 45000
+    const tick = async () => {
+      if (cancelled) return
+      try {
+        // Same-origin GET through our /interactive proxy; 200 once the container serves,
+        // 503 while it (or its DB linkage) is still coming up.
+        const res = await fetch(url, { method: 'GET', redirect: 'manual', cache: 'no-store' })
+        // 200 = serving; opaqueredirect (status 0) = a redirect from a live upstream.
+        // 503 = our proxy couldn't resolve/reach the container yet → keep polling.
+        if (!cancelled && (res.status === 200 || res.type === 'opaqueredirect')) {
+          setReadyState('ready'); return
+        }
+      } catch { /* network blip — keep polling */ }
+      if (cancelled) return
+      if (Date.now() - started > MAX_MS) { setReadyState('timeout'); return }
+      setTimeout(tick, 2000)
+    }
+    const t = setTimeout(tick, 1000)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [session?.entryPointUrl])
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 B'
@@ -312,25 +344,52 @@ export function InteractiveLauncher({
         ) : (
           /* Session Active */
           <div className="space-y-4">
-            <Alert className="border-green-500/50 bg-green-50/50 dark:bg-green-950/20">
-              <Check className="h-4 w-4 text-green-600" />
-              <AlertTitle className="text-green-800 dark:text-green-200">
-                {toolInfo.name} Session Active
-              </AlertTitle>
-              <AlertDescription className="text-green-700 dark:text-green-300">
-                <p className="text-sm">Your interactive environment is ready.</p>
-                <p className="text-xs mt-1">State: {session.state}</p>
-              </AlertDescription>
-            </Alert>
+            {readyState === 'starting' ? (
+              <Alert className="border-blue-500/50 bg-blue-50/50 dark:bg-blue-950/20">
+                <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+                <AlertTitle className="text-blue-800 dark:text-blue-200">
+                  Starting {toolInfo.name}…
+                </AlertTitle>
+                <AlertDescription className="text-blue-700 dark:text-blue-300">
+                  <p className="text-sm">Your container is booting — this can take up to ~30 seconds.</p>
+                  <p className="text-xs mt-1">State: {session.state}</p>
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <Alert className="border-green-500/50 bg-green-50/50 dark:bg-green-950/20">
+                <Check className="h-4 w-4 text-green-600" />
+                <AlertTitle className="text-green-800 dark:text-green-200">
+                  {toolInfo.name} Session {readyState === 'timeout' ? 'Launched' : 'Active'}
+                </AlertTitle>
+                <AlertDescription className="text-green-700 dark:text-green-300">
+                  <p className="text-sm">
+                    {readyState === 'timeout'
+                      ? 'Still finishing startup — you can open it now; it may take a few more seconds to load.'
+                      : 'Your interactive environment is ready.'}
+                  </p>
+                  <p className="text-xs mt-1">State: {session.state}</p>
+                </AlertDescription>
+              </Alert>
+            )}
 
             {session.entryPointUrl ? (
               <div className="space-y-3">
                 <Button
                   className="w-full"
+                  disabled={readyState === 'starting'}
                   onClick={() => window.open(session.entryPointUrl, '_blank')}
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Open {toolInfo.name} in New Tab
+                  {readyState === 'starting' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Waiting for {toolInfo.name} to start…
+                    </>
+                  ) : (
+                    <>
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Open {toolInfo.name} in New Tab
+                    </>
+                  )}
                 </Button>
 
                 <div className="p-3 bg-muted rounded-lg">
