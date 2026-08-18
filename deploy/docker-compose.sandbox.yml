@@ -27,26 +27,29 @@
 #    Verified on test: run_code → uid=1000 + 4.19.0-gvisor + hash-match; launcher
 #    rejects baseDir=/etc, non-allowlist image, and scriptPath traversal (400).
 #
-#    STATUS (2026-08-18, Stage 3 implemented):
+#    STATUS (2026-08-18, Stage 4 COMPLETE — Option-A IT integration verified):
 #      - frontend  -> launcher (NO docker access; run_code fully host-escape
 #                              hardened). Launcher -> proxy -> daemon.
-#      - backend   -> proxy   (NO raw socket). Galaxy IT job scripts and
-#                              monitor.py now reach the daemon via
-#                              DOCKER_HOST=tcp://docker-socket-proxy:2375.
-#                              Root cause of the earlier exit-125 failure was
-#                              new_clean_env() stripping DOCKER_HOST from the
-#                              job subprocess env — fixed in
-#                              backend/lib/galaxy/util/commands.py.
-#                              IT docker calls are NOT routed through the narrow
-#                              launcher (Option C, not A): they go proxy->daemon
-#                              directly, guarded by the endpoint allowlist.
+#      - backend   -> launcher (Option A, ACTIVE). Galaxy IT container launches
+#                              now go through POST /run_it on sandbox-launcher,
+#                              which validates the full docker-run argv (image
+#                              allowlist, no privileged, no socket mounts, volume
+#                              sources under /app). container_monitor.py uses
+#                              GET /inspect_it/<name> for port discovery instead
+#                              of running docker directly. docker wait (read-only)
+#                              is still routed through DOCKER_HOST→proxy.
+#                              Verified on test i-0482: IT job state=ok, exit=0,
+#                              container_runtime.json written, notebook persisted.
+#                              Root cause of prior failure: Galaxy passes shell
+#                              variable refs like "$_GALAXY_JOB_TMP_DIR:..." as
+#                              volume specs; these fail launcher prefix validation.
+#                              Fix: _containerize_via_it_launcher() now skips any
+#                              volume whose string repr contains "$".
 #
-#    RESIDUAL (see docs/20260818_SANDBOX_SOCKET_PROXY_HARDENING.md): even where
-#    the proxy is in front, tecnativa/docker-socket-proxy is endpoint-level, so
-#    POST /containers/create with a malicious bind mount is still reachable. Full
-#    host-escape closure needs a body-filtering proxy or a narrow launcher
-#    microservice that constructs the docker command itself and never accepts
-#    caller-supplied mounts/privileged/runtime. That is the documented next step.
+#    RESIDUAL: launcher enforces IT image allowlist + volume prefix + no-priv.
+#    gVisor runtime is NOT enforced for IT containers (many IT images need a real
+#    kernel ABI). The launcher's IT_ENFORCE_NON_ROOT is off by default (Jupyter /
+#    RStudio images run as root). These are documented trade-offs, not gaps.
 
 services:
   # Allowlisting proxy in front of the Docker daemon. Only this container holds
@@ -89,7 +92,7 @@ services:
   # sandboxes on behalf of the frontend and enforces the safe envelope (workdir
   # under /tmp/biomate_code, image allowlist, forced runsc/non-root/net-none/caps).
   sandbox-launcher:
-    image: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/sandbox-launcher:2
+    image: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/sandbox-launcher:3
     pull_policy: always
     restart: unless-stopped
     environment:
@@ -110,7 +113,7 @@ services:
       - biomate-deploy-net
 
   galaxy-backend-deploy:
-    image: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/dev-backend:sandbox-v3
+    image: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/dev-backend:sandbox-v5
     pull_policy: always
     volumes:
       # NO raw docker.sock — backend is now zero-socket (Stage 3).

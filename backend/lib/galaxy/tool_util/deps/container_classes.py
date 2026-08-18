@@ -531,7 +531,15 @@ _on_exit() {{
         for gp in (self.tool_info.guest_ports or []):
             argv += ["-p", str(gp)]
         for v in (volumes or []):
-            argv += ["-v", str(v)]
+            vstr = str(v)
+            # Skip dynamic volumes whose source path is a shell variable reference
+            # (e.g. "$_GALAXY_JOB_TMP_DIR:..."). The launcher runs docker via
+            # subprocess — no shell expansion — so literal "$VAR" is an invalid path.
+            if "$" in vstr:
+                continue
+            # Strip shell-quoting double-quotes Galaxy may wrap around dynamic paths.
+            vstr = vstr.strip('"')
+            argv += ["-v", vstr]
         if working_directory:
             argv += ["-w", working_directory]
         # IT containers need network connectivity (proxy→container). host-net is
