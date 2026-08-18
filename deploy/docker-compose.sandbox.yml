@@ -135,6 +135,11 @@ services:
       - DOCKER_HOST=tcp://docker-socket-proxy:2375
       # .nf head dispatched to the narrow launcher (validated argv, gVisor-forced).
       - NF_HEAD_LAUNCHER_URL=http://sandbox-launcher:8899
+      # Option-A IT: route IT container launch + port-discovery through the narrow
+      # launcher so the mount body is validated (endpoint-level proxy can't see it).
+      # container_monitor.py uses GET /inspect_it/<name> instead of docker port.
+      # containerize_command() sends POST /run_it instead of docker run directly.
+      - IT_LAUNCHER_URL=http://sandbox-launcher:8899
     depends_on:
       - docker-socket-proxy
 

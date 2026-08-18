@@ -1,3 +1,4 @@
+import json
 import os
 import string
 from abc import (
@@ -463,6 +464,13 @@ class DockerContainer(Container, HasDockerLikeVolumes):
 
         docker_host_props = self.docker_host_props
 
+        # Option-A IT path: when IT_LAUNCHER_URL is set and this is an IT tool
+        # (has guest_ports), route the docker run through the narrow launcher so
+        # the mount body is validated — not just the endpoint (proxy can't see it).
+        it_launcher_url = os.environ.get("IT_LAUNCHER_URL", "")
+        if it_launcher_url and self.tool_info.guest_ports:
+            return self._containerize_via_it_launcher(command, volumes, working_directory)
+
         cached_image_file = self.__get_cached_image_file()
         if not cached_image_file:
             # TODO: Add option to cache it once here and create cached_image_file.
@@ -500,6 +508,61 @@ _on_exit() {{
 {TRAP_KILL_CONTAINER}
 {cache_command}
 {run_command}"""
+
+    def _containerize_via_it_launcher(self, command: str, volumes, working_directory: str) -> str:
+        """Return a job-script fragment that launches an IT container through the
+        narrow sandbox launcher (POST /run_it) instead of calling docker directly.
+
+        Security rationale: an endpoint-level socket-proxy (Option C) allows
+        POST /containers/create but cannot inspect the request body — so a
+        compromised Galaxy process could still inject a malicious bind mount.
+        The narrow launcher validates the full argv before touching docker, closing
+        that gap. The launcher also enforces the same body-level rules as it does
+        for run_code and .nf head (no privileged, no socket mounts, image allowlist).
+
+        The job is kept in Galaxy's "running" state via ``docker wait``, which is a
+        read-only operation (GET /containers/<name>/wait) safe to route through the
+        DOCKER_HOST proxy without body inspection.
+        """
+        it_launcher_url = os.environ.get("IT_LAUNCHER_URL", "")
+        # Build a clean argv list — no shell variable expansions. The launcher
+        # will run this via subprocess so ${GALAXY_SLOTS:-1} would be literal.
+        argv: List[str] = ["docker", "run", "-d", "--rm", "--name", self.container_name]
+        for gp in (self.tool_info.guest_ports or []):
+            argv += ["-p", str(gp)]
+        for v in (volumes or []):
+            argv += ["-v", str(v)]
+        if working_directory:
+            argv += ["-w", working_directory]
+        # IT containers need network connectivity (proxy→container). host-net is
+        # blocked by validate_it_argv; default bridge is the safe choice.
+        net = self.prop("net", "bridge") or "bridge"
+        argv += ["--net", net]
+        # Fixed resource limits — avoid ${GALAXY_SLOTS:-1} shell expansion.
+        argv += ["--memory", "4g", "--cpus", "1"]
+        argv.append(self.container_id)
+        if command:
+            # Wrap in sh -c to avoid argv-splitting the multi-word command.
+            argv += ["sh", "-c", command]
+
+        payload = json.dumps({"argv": argv, "image": self.container_id})
+        # Safety: payload contains only double-quoted JSON; safe to embed in single-quotes.
+        container_name = self.container_name
+        stop_payload = json.dumps({"container": container_name})
+
+        return f"""
+_IT_CONTAINER="{container_name}"
+_on_exit() {{
+  curl -sf -X POST {it_launcher_url}/stop_it \\
+    -H 'Content-Type: application/json' \\
+    -d '{stop_payload}' >/dev/null 2>&1 || true
+}}
+trap _on_exit EXIT
+curl -sf -X POST {it_launcher_url}/run_it \\
+  -H 'Content-Type: application/json' \\
+  -d '{payload}' >/dev/null || {{ echo "[sandbox] IT launch via launcher failed" >&2; exit 1; }}
+docker wait "$_IT_CONTAINER"
+"""
 
     def __cache_from_file_command(self, cached_image_file: str, docker_host_props: Dict[str, Any]) -> str:
         images_cmd = docker_util.build_docker_images_command(truncate=False, **docker_host_props)

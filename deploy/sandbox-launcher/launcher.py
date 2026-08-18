@@ -63,14 +63,16 @@ IT_PREFIXES = [
     ).split(",")
     if p.strip()
 ]
-IT_ALLOWED_IMAGES = {
+IT_ALLOWED_IMAGES = [
     x.strip()
     for x in os.environ.get(
         "LAUNCHER_IT_ALLOWED_IMAGES",
         "quay.io/bgruening/docker-jupyter-notebook,quay.io/bgruening/docker-rstudio,cxgene,jupyter",
     ).split(",")
     if x.strip()
-}
+]
+# When true, root UID is rejected for IT containers (default off — many IT images run as root).
+IT_ENFORCE_NON_ROOT = os.environ.get("LAUNCHER_IT_ENFORCE_NON_ROOT", "0") in ("1", "true", "yes")
 
 EXIT_SENTINEL = "__LAUNCHER_EXIT__"
 
@@ -100,7 +102,11 @@ def validate_it_argv(argv, image):
     if "-d" not in argv and "--detach" not in argv:
         raise ValueError("IT containers must run detached (-d)")
 
-    if IT_ALLOWED_IMAGES and image not in IT_ALLOWED_IMAGES:
+    # Prefix match: allowlist entry "quay.io/bgruening/jupyter" matches "quay.io/bgruening/jupyter:2021-03-05"
+    if IT_ALLOWED_IMAGES and not any(
+        image == a or image.startswith(a + ":") or image.startswith(a + "/")
+        for a in IT_ALLOWED_IMAGES
+    ):
         raise ValueError("IT image not in allowlist")
     if image not in argv:
         raise ValueError("declared image not present in argv")
@@ -115,10 +121,10 @@ def validate_it_argv(argv, image):
             raise ValueError(f"forbidden {tok}")
         if tok == "--security-opt" and "unconfined" in nxt:
             raise ValueError("seccomp/apparmor unconfined forbidden")
-        if tok == "--user":
+        if tok == "--user" and IT_ENFORCE_NON_ROOT:
             uid = nxt.split(":")[0]
             if uid in ("0", "root"):
-                raise ValueError("root user forbidden")
+                raise ValueError("root user forbidden (IT_ENFORCE_NON_ROOT)")
         if tok in ("-v", "--volume", "--mount"):
             src = nxt.split(":")[0] if tok != "--mount" else ""
             if "docker.sock" in nxt or "/var/run" in nxt:

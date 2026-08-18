@@ -19,7 +19,31 @@ from galaxy.util.sockets import get_ip
 GetIpCallable = Callable[[], str]
 
 
+def _parse_ports_via_launcher(container_name, launcher_url):
+    """Poll the narrow launcher GET /inspect_it/<name> until the container's
+    port mapping is available.  Replaces the direct ``docker port`` subprocess
+    call so the monitor has no docker access of its own when IT_LAUNCHER_URL
+    is set (Option A).
+    """
+    import urllib.request
+    url = f"{launcher_url}/inspect_it/{container_name}"
+    while True:
+        try:
+            req = urllib.request.Request(url)
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read())
+            if data.get("exitCode") == 0 and data.get("ports"):
+                return data["ports"]
+        except Exception:
+            pass
+        time.sleep(2)
+
+
 def parse_ports(container_name, connection_configuration):
+    it_launcher_url = os.environ.get("IT_LAUNCHER_URL", "")
+    if it_launcher_url:
+        return _parse_ports_via_launcher(container_name, it_launcher_url)
+
     while True:
         ports_command = docker_util.build_docker_simple_command(
             "port", container_name=container_name, **connection_configuration
