@@ -1,0 +1,118 @@
+# BioMate sandbox deployment overlay (feature ①: execution isolation).
+#
+# Layered on top of deploy/docker-compose.deploy.yml:
+#   docker compose -f docker-compose.deploy.yml -f docker-compose.sandbox.yml up -d
+#
+# What this overlay adds
+# ----------------------
+# 1. Execution sandbox (gVisor). run_code (frontend) and the local Nextflow
+#    head / user-uploaded .nf (backend) run in gVisor (runsc) with cap-drop
+#    ALL, no-new-privileges, network=none, non-root uid, read-only rootfs, and
+#    cpu/mem/pids limits. Driven by SANDBOX_ENABLED / SANDBOX_TIER / RUN_CODE_*.
+#
+# 2. Docker-socket hardening (docker-socket-proxy). The app containers used to
+#    mount the raw /var/run/docker.sock — full root-equivalent host access if
+#    the app process is ever RCE'd. The frontend now reaches the daemon ONLY
+#    through docker-socket-proxy, which allowlists the minimal endpoints
+#    `docker run` needs (containers/images/networks/exec) and blocks build,
+#    swarm, volumes, secrets, configs, plugins, system-prune and distribution.
+#
+#    STATUS (2026-08-18, verified on test i-0482):
+#      - frontend  -> proxy   (run_code fully hardened; verified uid=1000 +
+#                              4.19.0-gvisor through the proxy; volume/swarm/
+#                              build calls return 403).
+#      - backend   -> raw sock (STILL on the raw socket ON PURPOSE). Routing the
+#                              backend through the proxy breaks Galaxy interactive
+#                              tools: the local .nf sandbox works through the
+#                              proxy, but Galaxy's IT container port-discovery /
+#                              entry-point registration fails (job exits 125, no
+#                              session URL) even though every manual `docker run`
+#                              with the full IT flag-set passes the proxy. Root
+#                              cause is a Galaxy-IT-specific docker access pattern,
+#                              not a simple allowlist gap — tracked as a follow-up.
+#
+#    RESIDUAL (see docs/20260818_SANDBOX_SOCKET_PROXY_HARDENING.md): even where
+#    the proxy is in front, tecnativa/docker-socket-proxy is endpoint-level, so
+#    POST /containers/create with a malicious bind mount is still reachable. Full
+#    host-escape closure needs a body-filtering proxy or a narrow launcher
+#    microservice that constructs the docker command itself and never accepts
+#    caller-supplied mounts/privileged/runtime. That is the documented next step.
+
+services:
+  # Allowlisting proxy in front of the Docker daemon. Only this container holds
+  # the (read-only) socket; the app containers talk to it over the internal
+  # network via DOCKER_HOST=tcp://docker-socket-proxy:2375.
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    restart: unless-stopped
+    environment:
+      # allow — the minimal set `docker run` (+ Galaxy IT) needs
+      - CONTAINERS=1
+      - IMAGES=1
+      - NETWORKS=1
+      - EXEC=1
+      - POST=1
+      - INFO=1
+      - VERSION=1
+      - PING=1
+      # deny — dangerous surfaces (explicit, though tecnativa defaults these off)
+      - BUILD=0
+      - COMMIT=0
+      - CONFIGS=0
+      - SECRETS=0
+      - SWARM=0
+      - SERVICES=0
+      - TASKS=0
+      - NODES=0
+      - PLUGINS=0
+      - VOLUMES=0
+      - SYSTEM=0
+      - DISTRIBUTION=0
+      - AUTH=0
+      - SESSION=0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - biomate-deploy-net
+
+  galaxy-backend-deploy:
+    image: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/dev-backend:sandbox-test
+    pull_policy: never
+    volumes:
+      # NOTE: backend keeps the raw socket until the Galaxy-IT/proxy
+      # incompatibility above is resolved. The .nf head it launches still runs
+      # fully sandboxed (gVisor) regardless of how the launch call reaches the
+      # daemon.
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/nextflow_runs:/tmp/nextflow_runs
+      - /tmp/biomate_user_nf:/tmp/biomate_user_nf
+      - /opt/biomate/job_conf.it.yml:/app/config/job_conf.yml:ro
+      - /opt/biomate/galaxy.it.yml:/app/config/galaxy.yml:ro
+      - /opt/biomate/it_state:/app/it_state
+      - /app/database/jobs_directory:/app/database/jobs_directory
+      - /app/database/files:/app/database/files
+      - /app/tools/interactive:/app/tools/interactive:ro
+    environment:
+      - SANDBOX_ENABLED=true
+      - SANDBOX_TIER=3
+      - SANDBOX_RUN_UID=1000
+      - SANDBOX_IMAGE=399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-sandbox:heavy
+      - COMPUTE_BACKEND_V2=true   # feature ③ scheduler shadow-mode (observational)
+
+  frontend-deploy:
+    image: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/dev-frontend:branch-test
+    pull_policy: never
+    volumes:
+      # No raw docker.sock — the frontend reaches the daemon only via the proxy.
+      - /tmp/biomate_code:/tmp/biomate_code
+    environment:
+      - RUN_CODE_IMAGE=399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-sandbox:heavy
+      - RUN_CODE_RUNTIME=runsc
+      - INTERACTIVETOOLS_PROXY_HOST=interactivetool.test.stage-public.biomate.ai
+      - DOCKER_HOST=tcp://docker-socket-proxy:2375
+    depends_on:
+      - docker-socket-proxy
+
+networks:
+  biomate-deploy-net:
+    external: true
