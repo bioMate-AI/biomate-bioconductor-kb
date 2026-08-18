@@ -50,12 +50,82 @@ HEAD_PREFIXES = [
     for p in os.environ.get("LAUNCHER_HEAD_PREFIXES", "/tmp/nextflow_runs,/tmp/biomate_user_nf").split(",")
     if p.strip()
 ]
+
+# Prefixes and allowed images for Galaxy interactive-tool (IT) containers.
+# Stage 3 (Option C): IT still runs via DOCKER_HOST→proxy; these prefixes are
+# used by the future /run_it endpoint (Option A: detached lifecycle through the
+# launcher so IT mounts are also body-validated, not just endpoint-gated).
+IT_PREFIXES = [
+    os.path.realpath(p)
+    for p in os.environ.get(
+        "LAUNCHER_IT_PREFIXES",
+        "/app/database/jobs_directory,/app/database/files,/app/tools/interactive,/app",
+    ).split(",")
+    if p.strip()
+]
+IT_ALLOWED_IMAGES = {
+    x.strip()
+    for x in os.environ.get(
+        "LAUNCHER_IT_ALLOWED_IMAGES",
+        "quay.io/bgruening/docker-jupyter-notebook,quay.io/bgruening/docker-rstudio,cxgene,jupyter",
+    ).split(",")
+    if x.strip()
+}
+
 EXIT_SENTINEL = "__LAUNCHER_EXIT__"
 
 
 def _under_prefixes(path, prefixes):
     rp = os.path.realpath(path)
     return any(rp == p or rp.startswith(p + os.sep) for p in prefixes)
+
+
+def validate_it_argv(argv, image):
+    """Validate a caller-proposed ``docker run -d`` argv for an IT container.
+
+    IT containers differ from the head in three ways:
+      • they run detached (``-d``) — the caller gets back a container name/id;
+      • they publish a port (``-p <guest>``) — allowed, but host-net is not;
+      • they stay alive for the user's session duration.
+
+    The same escape-closure philosophy as ``validate_head_argv``: we never trust
+    the caller's argv; we ENFORCE the safe envelope by inspection.
+
+    Not yet wired into Galaxy's IT runner (Option A, future). Called today only
+    by ``POST /run_it`` which is not yet invoked in production — but the endpoint
+    exists so Galaxy can be switched to use it without touching the launcher again.
+    """
+    if len(argv) < 3 or os.path.basename(str(argv[0])) not in ("docker", "podman") or argv[1] != "run":
+        raise ValueError("not a docker/podman run")
+    if "-d" not in argv and "--detach" not in argv:
+        raise ValueError("IT containers must run detached (-d)")
+
+    if IT_ALLOWED_IMAGES and image not in IT_ALLOWED_IMAGES:
+        raise ValueError("IT image not in allowlist")
+    if image not in argv:
+        raise ValueError("declared image not present in argv")
+
+    for i in range(len(argv) - 1):
+        tok, nxt = argv[i], str(argv[i + 1])
+        if tok in ("--privileged", "--cap-add", "--device", "--userns"):
+            raise ValueError(f"forbidden flag {tok}")
+        if tok in ("--network", "--net", "--pid", "--ipc", "--uts", "--cgroupns") and nxt in ("host", "=host"):
+            raise ValueError(f"forbidden {tok} host")
+        if tok.startswith(("--network=host", "--net=host", "--pid=host", "--ipc=host", "--privileged")):
+            raise ValueError(f"forbidden {tok}")
+        if tok == "--security-opt" and "unconfined" in nxt:
+            raise ValueError("seccomp/apparmor unconfined forbidden")
+        if tok == "--user":
+            uid = nxt.split(":")[0]
+            if uid in ("0", "root"):
+                raise ValueError("root user forbidden")
+        if tok in ("-v", "--volume", "--mount"):
+            src = nxt.split(":")[0] if tok != "--mount" else ""
+            if "docker.sock" in nxt or "/var/run" in nxt:
+                raise ValueError("docker socket mount forbidden")
+            if src and not _under_prefixes(src, IT_PREFIXES):
+                raise ValueError(f"IT mount source not under allowed prefixes: {src}")
+    return True
 
 
 def validate_head_argv(argv, image):
@@ -175,19 +245,29 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     def do_GET(self):
-        if self.path == "/health":
-            self._send(200, {"ok": True})
-        else:
-            self._send(404, {"error": "not found"})
+        path = self.path.rstrip("/")
+        if path == "/health":
+            return self._send(200, {"ok": True})
+        # GET /inspect_it/<name> — return published ports for an IT container.
+        # Safe: read-only; the container name is alphanumeric (hex UUID).
+        if path.startswith("/inspect_it/"):
+            if TOKEN and self.headers.get("Authorization", "") != f"Bearer {TOKEN}":
+                return self._send(401, {"error": "unauthorized"})
+            return self._do_inspect_it(path[len("/inspect_it/"):])
+        self._send(404, {"error": "not found"})
 
     def do_POST(self):
         path = self.path.rstrip("/")
-        if path not in ("/run", "/run_head"):
+        if path not in ("/run", "/run_head", "/run_it", "/stop_it"):
             return self._send(404, {"error": "not found"})
         if TOKEN and self.headers.get("Authorization", "") != f"Bearer {TOKEN}":
             return self._send(401, {"error": "unauthorized"})
         if path == "/run_head":
             return self._do_run_head()
+        if path == "/run_it":
+            return self._do_run_it()
+        if path == "/stop_it":
+            return self._do_stop_it()
         try:
             n = int(self.headers.get("Content-Length", "0"))
             spec = json.loads(self.rfile.read(n) or b"{}")
@@ -205,6 +285,77 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, {"stdout": "", "stderr": "[launcher] timeout", "exitCode": 124})
         except Exception as e:
             self._send(500, {"stdout": "", "stderr": f"[launcher error] {e}", "exitCode": 1})
+
+    # ------------------------------------------------------------------
+    # Interactive-tool (IT) lifecycle endpoints — Option A hook.
+    # Not yet wired into Galaxy's IT runner (Stage 3 uses DOCKER_HOST→proxy
+    # via new_clean_env fix instead).  Implemented here so Galaxy can be
+    # switched to the narrow-launcher path without touching the launcher again.
+    # ------------------------------------------------------------------
+
+    def _do_run_it(self):
+        """POST /run_it — launch a Galaxy IT container detached, return name.
+
+        Body: {"argv": [...], "image": "<name>"}
+        Response: {"container": "<name>", "exitCode": 0} or error.
+        """
+        try:
+            n = int(self.headers.get("Content-Length", "0"))
+            spec = json.loads(self.rfile.read(n) or b"{}")
+        except Exception as e:
+            return self._send(400, {"error": f"bad json: {e}"})
+        argv = spec.get("argv")
+        image = str(spec.get("image", ""))
+        if not isinstance(argv, list) or not argv:
+            return self._send(400, {"error": "argv required"})
+        try:
+            validate_it_argv([str(a) for a in argv], image)
+        except ValueError as e:
+            return self._send(400, {"error": f"[launcher rejected] {e}"})
+        try:
+            p = subprocess.run(argv, capture_output=True, text=True, timeout=30)
+            container = p.stdout.strip()
+            self._send(200, {"container": container, "stderr": p.stderr[:2000], "exitCode": p.returncode})
+        except subprocess.TimeoutExpired:
+            self._send(200, {"container": "", "stderr": "[launcher] timeout", "exitCode": 124})
+        except Exception as e:
+            self._send(500, {"container": "", "stderr": f"[launcher error] {e}", "exitCode": 1})
+
+    def _do_inspect_it(self, name):
+        """GET /inspect_it/<name> — return published port mapping for IT container.
+
+        Runs ``docker port <name>`` and returns the raw text so the caller
+        (monitor.py replacement) can parse it without its own docker access.
+        Response: {"ports": "<raw docker port output>", "exitCode": 0}
+        """
+        if not re.fullmatch(r"[a-z0-9_-]{1,128}", name):
+            return self._send(400, {"error": "invalid container name"})
+        try:
+            p = subprocess.run(["docker", "port", name], capture_output=True, text=True, timeout=10)
+            self._send(200, {"ports": p.stdout, "stderr": p.stderr[:1000], "exitCode": p.returncode})
+        except Exception as e:
+            self._send(500, {"ports": "", "stderr": f"[launcher error] {e}", "exitCode": 1})
+
+    def _do_stop_it(self):
+        """POST /stop_it — stop and remove an IT container by name.
+
+        Body: {"container": "<name>"}
+        Runs ``docker stop <name> && docker rm -f <name>``.
+        """
+        try:
+            n = int(self.headers.get("Content-Length", "0"))
+            spec = json.loads(self.rfile.read(n) or b"{}")
+        except Exception as e:
+            return self._send(400, {"error": f"bad json: {e}"})
+        name = str(spec.get("container", ""))
+        if not name or not re.fullmatch(r"[a-z0-9_-]{1,128}", name):
+            return self._send(400, {"error": "invalid container name"})
+        try:
+            subprocess.run(["docker", "stop", name], capture_output=True, timeout=30)
+            subprocess.run(["docker", "rm", "-f", name], capture_output=True, timeout=15)
+            self._send(200, {"ok": True})
+        except Exception as e:
+            self._send(500, {"ok": False, "error": f"[launcher error] {e}"})
 
     def _do_run_head(self):
         """Run a long-lived, already-built sandbox head argv, streaming combined
@@ -259,7 +410,9 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     print(
         f"[launcher] :{PORT} prefix={WORKDIR_PREFIX} runtime={ENFORCED_RUNTIME or 'none'} "
-        f"images={sorted(ALLOWED_IMAGES) or 'ANY'}",
+        f"images={sorted(ALLOWED_IMAGES) or 'ANY'} "
+        f"it_images={sorted(IT_ALLOWED_IMAGES) or 'ANY'} "
+        f"endpoints=run,run_head,run_it,inspect_it,stop_it",
         flush=True,
     )
     ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()

@@ -27,18 +27,19 @@
 #    Verified on test: run_code → uid=1000 + 4.19.0-gvisor + hash-match; launcher
 #    rejects baseDir=/etc, non-allowlist image, and scriptPath traversal (400).
 #
-#    STATUS (2026-08-18, verified on test i-0482):
+#    STATUS (2026-08-18, Stage 3 implemented):
 #      - frontend  -> launcher (NO docker access; run_code fully host-escape
 #                              hardened). Launcher -> proxy -> daemon.
-#      - backend   -> raw sock (STILL on the raw socket ON PURPOSE). Routing the
-#                              backend through the proxy breaks Galaxy interactive
-#                              tools: the local .nf sandbox works through the
-#                              proxy, but Galaxy's IT container port-discovery /
-#                              entry-point registration fails (job exits 125, no
-#                              session URL) even though every manual `docker run`
-#                              with the full IT flag-set passes the proxy. Root
-#                              cause is a Galaxy-IT-specific docker access pattern,
-#                              not a simple allowlist gap — tracked as a follow-up.
+#      - backend   -> proxy   (NO raw socket). Galaxy IT job scripts and
+#                              monitor.py now reach the daemon via
+#                              DOCKER_HOST=tcp://docker-socket-proxy:2375.
+#                              Root cause of the earlier exit-125 failure was
+#                              new_clean_env() stripping DOCKER_HOST from the
+#                              job subprocess env — fixed in
+#                              backend/lib/galaxy/util/commands.py.
+#                              IT docker calls are NOT routed through the narrow
+#                              launcher (Option C, not A): they go proxy->daemon
+#                              directly, guarded by the endpoint allowlist.
 #
 #    RESIDUAL (see docs/20260818_SANDBOX_SOCKET_PROXY_HARDENING.md): even where
 #    the proxy is in front, tecnativa/docker-socket-proxy is endpoint-level, so
@@ -112,11 +113,8 @@ services:
     image: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/dev-backend:sandbox-test
     pull_policy: never
     volumes:
-      # NOTE: backend keeps the raw socket until the Galaxy-IT/proxy
-      # incompatibility above is resolved. The .nf head it launches still runs
-      # fully sandboxed (gVisor) regardless of how the launch call reaches the
-      # daemon.
-      - /var/run/docker.sock:/var/run/docker.sock
+      # NO raw docker.sock — backend is now zero-socket (Stage 3).
+      # Docker access goes via DOCKER_HOST below: backend -> proxy -> daemon.
       - /tmp/nextflow_runs:/tmp/nextflow_runs
       - /tmp/biomate_user_nf:/tmp/biomate_user_nf
       - /opt/biomate/job_conf.it.yml:/app/config/job_conf.yml:ro
@@ -131,10 +129,14 @@ services:
       - SANDBOX_RUN_UID=1000
       - SANDBOX_IMAGE=399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-sandbox:heavy
       - COMPUTE_BACKEND_V2=true   # feature ③ scheduler shadow-mode (observational)
-      # The local .nf head is dispatched to the launcher (validated argv), so the
-      # backend runs no docker for the head. It still holds the raw socket above
-      # ONLY for interactive tools — the last-mile blocker (Galaxy IT internals).
+      # Stage 3: backend reaches the daemon through the socket-proxy (no raw sock).
+      # new_clean_env() now passes DOCKER_HOST to job subprocesses, so IT's
+      # docker-run and monitor.py docker-port both use the proxy correctly.
+      - DOCKER_HOST=tcp://docker-socket-proxy:2375
+      # .nf head dispatched to the narrow launcher (validated argv, gVisor-forced).
       - NF_HEAD_LAUNCHER_URL=http://sandbox-launcher:8899
+    depends_on:
+      - docker-socket-proxy
 
   frontend-deploy:
     image: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/dev-frontend:branch-test
