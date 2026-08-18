@@ -94,12 +94,15 @@ services:
     environment:
       - DOCKER_HOST=tcp://docker-socket-proxy:2375   # launcher -> proxy -> daemon
       - LAUNCHER_WORKDIR_PREFIX=/tmp/biomate_code
+      - LAUNCHER_HEAD_PREFIXES=/tmp/nextflow_runs,/tmp/biomate_user_nf
       - LAUNCHER_ALLOWED_IMAGES=399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-sandbox:heavy
       - LAUNCHER_RUNTIME=runsc
       - LAUNCHER_UID=1000
       - LAUNCHER_GID=1000
     volumes:
-      - /tmp/biomate_code:/tmp/biomate_code   # shared workdir with the frontend
+      - /tmp/biomate_code:/tmp/biomate_code       # shared run_code workdir (frontend)
+      - /tmp/nextflow_runs:/tmp/nextflow_runs     # shared .nf head workdir (backend)
+      - /tmp/biomate_user_nf:/tmp/biomate_user_nf # personal .nf sources (backend)
     depends_on:
       - docker-socket-proxy
     networks:
@@ -128,6 +131,10 @@ services:
       - SANDBOX_RUN_UID=1000
       - SANDBOX_IMAGE=399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-sandbox:heavy
       - COMPUTE_BACKEND_V2=true   # feature ③ scheduler shadow-mode (observational)
+      # The local .nf head is dispatched to the launcher (validated argv), so the
+      # backend runs no docker for the head. It still holds the raw socket above
+      # ONLY for interactive tools — the last-mile blocker (Galaxy IT internals).
+      - NF_HEAD_LAUNCHER_URL=http://sandbox-launcher:8899
 
   frontend-deploy:
     image: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/dev-frontend:branch-test
