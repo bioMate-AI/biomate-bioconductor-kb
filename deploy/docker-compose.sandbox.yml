@@ -17,10 +17,19 @@
 #    `docker run` needs (containers/images/networks/exec) and blocks build,
 #    swarm, volumes, secrets, configs, plugins, system-prune and distribution.
 #
+# 3. Narrow launcher (true host-escape closure for run_code). The frontend has
+#    NO docker access at all — not even the proxy. It calls sandbox-launcher over
+#    HTTP (RUN_CODE_BACKEND_URL), which is the only app-side holder of docker
+#    access and ENFORCES the safe envelope: the workdir bind must resolve under
+#    /tmp/biomate_code, the image must be allowlisted, and runtime(gVisor)/user
+#    (non-root)/network(none)/caps are forced by the launcher, never the caller.
+#    This closes the create+bind residual an endpoint-level proxy cannot filter.
+#    Verified on test: run_code → uid=1000 + 4.19.0-gvisor + hash-match; launcher
+#    rejects baseDir=/etc, non-allowlist image, and scriptPath traversal (400).
+#
 #    STATUS (2026-08-18, verified on test i-0482):
-#      - frontend  -> proxy   (run_code fully hardened; verified uid=1000 +
-#                              4.19.0-gvisor through the proxy; volume/swarm/
-#                              build calls return 403).
+#      - frontend  -> launcher (NO docker access; run_code fully host-escape
+#                              hardened). Launcher -> proxy -> daemon.
 #      - backend   -> raw sock (STILL on the raw socket ON PURPOSE). Routing the
 #                              backend through the proxy breaks Galaxy interactive
 #                              tools: the local .nf sandbox works through the
@@ -75,6 +84,27 @@ services:
     networks:
       - biomate-deploy-net
 
+  # Narrow launcher — the ONLY app-side holder of docker access. Runs run_code
+  # sandboxes on behalf of the frontend and enforces the safe envelope (workdir
+  # under /tmp/biomate_code, image allowlist, forced runsc/non-root/net-none/caps).
+  sandbox-launcher:
+    build: ./sandbox-launcher
+    image: biomate-sandbox-launcher:1
+    restart: unless-stopped
+    environment:
+      - DOCKER_HOST=tcp://docker-socket-proxy:2375   # launcher -> proxy -> daemon
+      - LAUNCHER_WORKDIR_PREFIX=/tmp/biomate_code
+      - LAUNCHER_ALLOWED_IMAGES=399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-sandbox:heavy
+      - LAUNCHER_RUNTIME=runsc
+      - LAUNCHER_UID=1000
+      - LAUNCHER_GID=1000
+    volumes:
+      - /tmp/biomate_code:/tmp/biomate_code   # shared workdir with the frontend
+    depends_on:
+      - docker-socket-proxy
+    networks:
+      - biomate-deploy-net
+
   galaxy-backend-deploy:
     image: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/dev-backend:sandbox-test
     pull_policy: never
@@ -103,15 +133,17 @@ services:
     image: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/dev-frontend:branch-test
     pull_policy: never
     volumes:
-      # No raw docker.sock — the frontend reaches the daemon only via the proxy.
+      # No docker access at all (no socket, no DOCKER_HOST). run_code is dispatched
+      # to sandbox-launcher over HTTP; only the shared workdir is mounted so the
+      # frontend can stage the script/inputs the launcher will bind into /work.
       - /tmp/biomate_code:/tmp/biomate_code
     environment:
       - RUN_CODE_IMAGE=399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-sandbox:heavy
       - RUN_CODE_RUNTIME=runsc
       - INTERACTIVETOOLS_PROXY_HOST=interactivetool.test.stage-public.biomate.ai
-      - DOCKER_HOST=tcp://docker-socket-proxy:2375
+      - RUN_CODE_BACKEND_URL=http://sandbox-launcher:8899
     depends_on:
-      - docker-socket-proxy
+      - sandbox-launcher
 
 networks:
   biomate-deploy-net:

@@ -64,21 +64,45 @@ server-side with fixed safe flags (the chat user supplies *code*, never docker
 flags), so this only matters under an app-process RCE. Still, endpoint-level
 filtering does not fully close host-escape.
 
-## True closure (recommended next step): narrow launcher
+## True closure — narrow launcher (IMPLEMENTED for run_code, 2026-08-18)
 
-Replace direct `docker run` from the app with a small trusted **launcher
-microservice** that:
+The create+bind residual is now closed for run_code by a small trusted
+**launcher microservice** (`deploy/sandbox-launcher/`, image
+`biomate-sandbox-launcher:1`):
 
-- is the only holder of the docker socket (or proxy);
-- exposes a narrow IPC accepting a validated `RunSpec` (image, command,
-  workdir-id, tier) — never caller-supplied mounts / `--privileged` / `--runtime`;
-- constructs the `docker run` line itself with the fixed sandbox flags
-  (`--cap-drop ALL`, `--network=none`, `--user`, `--read-only`, `--runtime runsc`,
-  bind only the one workdir).
+- it is the only app-side holder of docker access (talks to the daemon via the
+  socket-proxy — launcher → proxy → daemon, two layers);
+- it implements the existing code-runner sidecar contract (`POST /run`) but
+  ENFORCES the safe envelope — the workdir bind must resolve under
+  `/tmp/biomate_code`, the image must be allowlisted, and
+  runtime(gVisor)/user(non-root)/network(none)/caps/no-new-privileges are forced
+  by the launcher, never taken from the caller;
+- the **frontend now has NO docker access at all** (no socket, no `DOCKER_HOST`);
+  run_code is dispatched to the launcher via `RUN_CODE_BACKEND_URL`.
 
-This closes the create+bind residual that the endpoint-level proxy cannot, and
-would also give a single choke point that IT could be migrated onto — resolving
-the backend/IT incompatibility above at the same time.
+Verified on test (i-0482):
+
+| Check | Result |
+|---|---|
+| run_code via public API | ✅ `uid=1000`, `4.19.0-gvisor`, **hash-match** — real sandboxed exec through frontend → launcher → proxy → daemon |
+| frontend docker access | ✅ none (`DOCKER_HOST` unset, no socket mount) |
+| malicious `baseDir=/etc` | ✅ rejected 400 `baseDir not under /tmp/biomate_code` |
+| non-allowlist image | ✅ rejected 400 |
+| `scriptPath` traversal | ✅ rejected 400 |
+
+So even a fully RCE'd frontend can only ask the launcher to run a validated
+RunSpec — it cannot bind-mount host paths or pick a privileged runtime/image.
+
+### Remaining
+
+- **Backend / .nf head** still launches sandboxes directly (raw socket). Migrate
+  it onto the launcher next (extend the allowlist prefix to
+  `/tmp/biomate_user_nf` + `/tmp/nextflow_runs` and add an `nf_head` RunSpec kind).
+- **Interactive tools** can then also be moved onto the launcher as the single
+  docker choke point, which resolves the backend/IT proxy incompatibility above.
+- Bake `biomate-sandbox-launcher` into CI (currently the test host runs it from
+  `docker:27-cli` + `apk add python3` + bind-mounted `launcher.py`; the repo
+  Dockerfile is the production form).
 
 ## Rollback
 
