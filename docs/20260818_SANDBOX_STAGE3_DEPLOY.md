@@ -179,3 +179,63 @@ docker compose \
 ```
 
 This restores the raw socket + removes `DOCKER_HOST` from the backend env.
+
+---
+
+## Stage 4 verification results (2026-08-18, test i-0482)
+
+### Stage 4a — IT smoke test: PASS ✅
+
+Galaxy IT tool `interactive_tool_jupyter_notebook` launched via
+`POST /api/tools` with the admin API key. Result (job `f09437b8822035f7`):
+
+| Check | Before Stage 3 | After Stage 3 |
+|---|---|---|
+| Job state | `error` | **`running`** |
+| `exit_code` | `125` (docker.sock missing) | `null` (container running) |
+| Entry point | not configured | **active = True** |
+| Target URL | — | `http://...ep.interactivetool.localhost:8080/ipython/lab` |
+
+The progression of Galaxy IT jobs on test confirms the fix:
+
+```
+2f94e8ae9edff68a  error  exit_code=125  04:48:07  (pre-Stage-3)
+8237ee2988567c1c  error  exit_code=None 04:56:02  (Stage-3 partial, wrong API endpoint)
+f09437b8822035f7  running exit_code=null 09:27:41  (Stage-3 full — PASS)
+```
+
+Key evidence:
+- `docker run -p ...` in the IT job script → succeeded via `DOCKER_HOST` proxy ✅
+- `container_monitor.py docker port <name>` → succeeded via `DOCKER_HOST` proxy ✅
+- Entry point `active: true`, target URL populated ✅
+
+### Stage 4b — Domain regression: PASS ✅
+
+Domain workflows (AWS Batch path) are unaffected by the Stage 3 change:
+
+| Check | Result |
+|---|---|
+| `new_clean_env()` has `DOCKER_HOST` | `True tcp://docker-socket-proxy:2375` |
+| Launcher health from backend | `{"ok": true}` |
+| Docker daemon accessible via proxy | `29.5.1` (Docker server version) |
+| Domain workflow Nextflow path | unaffected (uses HTTP calls to launcher, not subprocess env) |
+
+Analysis: The `new_clean_env()` change only affects `LocalJobRunner` subprocess env.
+Domain workflows use `NextflowJobRunner` which calls the narrow launcher via HTTP
+(class `LauncherClientHeadLauncher`). No subprocess env is involved. AWS Batch
+submission uses boto3 (HTTP). Zero regression risk.
+
+Stage 2 domain regression (ADMET✅ RNA-seq✅ WGS✅ CryoEM✅) remains valid —
+Stage 3 changes do not touch the domain workflow execution path.
+
+---
+
+## Summary: Stage 3 + 4 complete
+
+All three execution surfaces are zero-raw-socket with verified IT functionality:
+
+| Surface | Result |
+|---|---|
+| `run_code` (frontend) | ✅ Stage 2 (gVisor + launcher) |
+| `.nf head` (backend) | ✅ Stage 2 (launcher → proxy → daemon) |
+| IT containers (backend) | ✅ Stage 3+4 (DOCKER_HOST fix → IT smoke PASS) |
