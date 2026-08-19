@@ -2124,8 +2124,14 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             isPanelOpen={panelOpen}
             onStreamingChange={(streaming) => {
               setPanelGenerating(streaming)
-              // When streaming ends, clear the skeleton if no workflow arrived.
+              if (streaming && !panelOpen) {
+                // Pre-open the panel immediately so the user sees a skeleton
+                // instead of waiting 20 s with no feedback.
+                setPanelOpen(true)
+                onWorkflowPanelOpenChange?.(true)
+              }
               if (!streaming && panelOpen && !panelWorkflow) {
+                // Streaming ended with no workflow — close the skeleton panel.
                 setPanelOpen(false)
                 onWorkflowPanelOpenChange?.(false)
               }
@@ -2367,6 +2373,29 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                     />
                   )
                 })()
+              ) : panelGenerating ? (
+                /* Skeleton shown while AI is generating a workflow response */
+                <div className="flex-1 p-5 space-y-5 overflow-hidden">
+                  <div className="space-y-2 animate-pulse">
+                    <div className="h-5 bg-muted rounded-md w-3/5" />
+                    <div className="h-3 bg-muted/70 rounded w-full" />
+                    <div className="h-3 bg-muted/70 rounded w-4/5" />
+                  </div>
+                  <div className="h-px bg-border" />
+                  <div className="space-y-2 animate-pulse">
+                    <div className="h-3 bg-muted rounded w-1/4 mb-3" />
+                    <div className="h-9 bg-muted/60 rounded-md" />
+                    <div className="h-9 bg-muted/60 rounded-md" />
+                    <div className="h-9 bg-muted/60 rounded-md w-4/5" />
+                  </div>
+                  <div className="h-px bg-border" />
+                  <div className="space-y-2 animate-pulse">
+                    <div className="h-3 bg-muted rounded w-1/3 mb-3" />
+                    <div className="h-7 bg-muted/40 rounded-md" />
+                    <div className="h-7 bg-muted/40 rounded-md w-5/6" />
+                    <div className="h-7 bg-muted/40 rounded-md w-2/3" />
+                  </div>
+                </div>
               ) : (
                 <div className="flex h-full items-center justify-center">
                   <p className="text-sm text-muted-foreground text-center px-4">
