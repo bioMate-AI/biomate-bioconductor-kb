@@ -105,6 +105,8 @@ interface ChatInterfaceProps {
   ) => void
   /** Called when the streaming (thinking/generating) state changes. */
   onStreamingChange?: (isStreaming: boolean) => void
+  /** Called just before a message with file attachments is submitted. */
+  onSubmitWithFiles?: () => void
 }
 
 // ── Onboarding welcome ────────────────────────────────────────────────────────
@@ -479,6 +481,7 @@ export function ChatInterface({
   onRegisterSetDraft,
   onRegisterSendMessage,
   onStreamingChange,
+  onSubmitWithFiles,
 }: ChatInterfaceProps) {
   const [isTypingLocal, setIsTypingLocal] = useState(false)
   // Notify parent when streaming state changes so it can show a panel skeleton.
@@ -1664,6 +1667,7 @@ export function ChatInterface({
       onChatUpdated(withPlaceholder)
     }
 
+    if (files && files.length > 0) onSubmitWithFiles?.()
     setIsTypingLocal(true)
 
     analytics.track('query_sent', { query_length: content.length })

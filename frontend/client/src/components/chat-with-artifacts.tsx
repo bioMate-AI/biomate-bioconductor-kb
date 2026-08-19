@@ -152,6 +152,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   const [panelWorkflow, setPanelWorkflow] = useState<any | null>(null)
   // True while the AI is streaming a response — used to show a skeleton in the panel.
   const [panelGenerating, setPanelGenerating] = useState(false)
+  // Set to true just before a message with file attachments is submitted so
+  // onStreamingChange can open the panel skeleton preemptively.
+  const pendingPanelFromFiles = useRef(false)
   // Gap 2 — apply assistant-emitted workflow edits to the open panel artifact.
   // Backend extractor not yet wired (TODO in docs/20260521_GAP2_CHAT_DRIVEN_EDITS.md);
   // this effect activates the moment any assistant message arrives with
@@ -2122,14 +2125,17 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             onOpenWorkflowInPanel={handleOpenWorkflowInPanel}
             panelWorkflowMessageId={panelWorkflowMessageId}
             isPanelOpen={panelOpen}
+            onSubmitWithFiles={() => { pendingPanelFromFiles.current = true }}
             onStreamingChange={(streaming) => {
               setPanelGenerating(streaming)
-              if (streaming && !panelOpen) {
-                // Pre-open the panel immediately so the user sees a skeleton
-                // instead of waiting 20 s with no feedback.
+              if (streaming && !panelOpen && pendingPanelFromFiles.current) {
+                // Pre-open only when the submission had file attachments — file
+                // uploads almost always produce a workflow so showing the skeleton
+                // immediately gives the user immediate feedback without false opens.
                 setPanelOpen(true)
                 onWorkflowPanelOpenChange?.(true)
               }
+              if (streaming) pendingPanelFromFiles.current = false
               if (!streaming && panelOpen && !panelWorkflow) {
                 // Streaming ended with no workflow — close the skeleton panel.
                 setPanelOpen(false)
