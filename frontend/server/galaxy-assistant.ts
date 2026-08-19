@@ -3432,12 +3432,93 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
   private _isDirectCodeExecutionQuery(message: string): boolean {
     const explicit =
       /\b(use\s+run_?code|via\s+run_?code|with\s+run_?code|run_?code\b|run\s+this\s+(python|r|bash|code|script|snippet)|execute\s+this\s+(python|r|bash|code|script|snippet))\b/i.test(message)
-      || /\bdo\s+not\s+(launch|generate|create|build)\s+(a\s+)?(nextflow\s+)?(workflow|pipeline)\b/i.test(message);
+      || /\bdo\s+not\s+(launch|generate|create|build)\s+(a\s+)?(nextflow\s+)?(workflow|pipeline)\b/i.test(message)
+      // Chinese: 运行/执行这段代码, 帮我运行, 请运行以下
+      || /(?:运行|执行|跑一下|帮我跑|帮我运行|请运行|请执行)(?:这段|以下|下面|如下)?(?:代码|脚本|程序|python|Python|R语言|bash)/u.test(message)
+      // Message contains an explicit code block to run (triple-backtick with code)
+      || /```(?:python|r|bash|sh|javascript|js)?\s*\n[\s\S]{10,}?```/i.test(message);
     if (!explicit) return false;
     // Don't hijack genuine pipeline / named-workflow requests.
     const pipeline =
       /\b(nextflow|pipeline|rna-?seq|scrna|single-?cell|wgs|wes|variant\s+calling|sarek|cryo-?em|admet|pbpk|boin|fastqc|trimmomatic|\bstar\b|salmon|kallisto|alignment|assembl|clusterprofiler|deseq2|epitope|docking|autodock|codon|pocket|target\s+evidence)\b/i.test(message);
     return !pipeline;
+  }
+
+  /**
+   * Returns the Galaxy interactive-tool type the message is requesting,
+   * or null if it's not an IT launch request.
+   * Supports English and Chinese.
+   */
+  private _getInteractiveToolRequest(message: string): { toolId: string; label: string } | null {
+    const lc = message.toLowerCase();
+    // RStudio patterns (check before Jupyter — "r studio" is unambiguous)
+    if (/\b(rstudio|r\s+studio)\b/i.test(message)
+        || /(?:启动|打开|开启|运行|跑一个).*(?:rstudio|r\s*studio)/u.test(message)) {
+      return { toolId: 'interactive_tool_rstudio', label: 'RStudio' };
+    }
+    // Jupyter patterns
+    if (/\b(jupyter|jupyter\s+notebook|jupyter\s+lab|jupyterlab|notebook\s+server)\b/i.test(message)
+        || /(?:启动|打开|开启|运行|跑一个).*(?:jupyter|notebook|笔记本|交互.*工具|interactive.*tool)/u.test(message)
+        || /(?:jupyter|notebook|笔记本).*(?:启动|打开|开启)/u.test(message)) {
+      return { toolId: 'interactive_tool_jupyter_notebook', label: 'Jupyter Notebook' };
+    }
+    // Catch-all Chinese: "帮我启动一个交互工具"
+    if (/(?:帮我|请|想要)(?:启动|打开|开启).*(?:交互|interactive)/u.test(message)) {
+      return { toolId: 'interactive_tool_jupyter_notebook', label: 'Jupyter Notebook' };
+    }
+    return null;
+  }
+
+  /** Launch a Galaxy interactive tool and return a GalaxyAssistantResponse with the entry URL. */
+  private async _handleInteractiveToolLaunch(
+    toolId: string,
+    label: string,
+    context: ChatContext,
+    onResponseDelta?: (chunk: string) => void
+  ): Promise<GalaxyAssistantResponse> {
+    const api = this._api();
+    try {
+      // Get or create a Galaxy history for this session
+      let historyId: string;
+      const histories = await api.getHistories().catch(() => []);
+      if (histories.length > 0) {
+        historyId = histories[0].id;
+      } else {
+        historyId = await api.createHistory(`BioMate IT Session`);
+      }
+
+      const result = await api.launchInteractiveTool(toolId, historyId, {});
+
+      // Rewrite the entry URL through the public IT proxy if configured
+      let entryUrl: string | undefined = result.entry_point_url;
+      if (entryUrl) {
+        const { rewriteInteractiveToolUrl } = await import('./routes');
+        entryUrl = rewriteInteractiveToolUrl(entryUrl);
+      }
+
+      const urlLine = entryUrl
+        ? `\n\n[Open ${label}](${entryUrl})`
+        : '\n\nThe session is queued — it may take 30–60 seconds to become ready. Refresh the Interactive Sessions tab to get your URL.';
+
+      const msg = `Your **${label}** session is starting (job ID: \`${result.job_id}\`).${urlLine}`;
+      onResponseDelta?.(msg);
+
+      return {
+        message: msg,
+        intentType: 'interactive_tool_launch',
+        suggestions: [`Show me active sessions`, `Launch RStudio instead`, `Run code with run_code`],
+        sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: false, thinkingUsed: false },
+      };
+    } catch (err: any) {
+      const errMsg = `Failed to launch **${label}**: ${err.message || 'Galaxy API error'}. Make sure Galaxy interactive tools are configured and the tool is installed.`;
+      onResponseDelta?.(errMsg);
+      return {
+        message: errMsg,
+        intentType: 'interactive_tool_launch',
+        suggestions: [],
+        sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: false, thinkingUsed: false },
+      };
+    }
   }
 
   /** Force workflow_generation on all intents when a named ANDV stepwise workflow is explicit. */
@@ -3691,6 +3772,14 @@ Rules:
     const log = (step: string) => console.log(`[GalaxyAssistant] [${Date.now() - startTime}ms] ${step}`);
 
     log('Processing message: ' + message.substring(0, 50));
+
+    // IT launch shortcut: "帮我启动Jupyter / launch RStudio" → skip intent analysis,
+    // call Galaxy IT API directly, return a response with the session URL.
+    const itRequest = this._getInteractiveToolRequest(message);
+    if (itRequest) {
+      log(`IT launch shortcut: ${itRequest.toolId}`);
+      return this._handleInteractiveToolLaunch(itRequest.toolId, itRequest.label, context, onResponseDelta);
+    }
 
     // Load domain profile context (cached per user, 5-min TTL)
     const domainProfile = await this._fetchDomainProfile(context.userId);
