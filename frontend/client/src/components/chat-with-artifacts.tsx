@@ -150,6 +150,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   const [panelOpen, setPanelOpen] = useState(false)
   const [panelWorkflowMessageId, setPanelWorkflowMessageId] = useState<string | null>(null)
   const [panelWorkflow, setPanelWorkflow] = useState<any | null>(null)
+  // True while the AI is streaming a response — used to show a skeleton in the panel.
+  const [panelGenerating, setPanelGenerating] = useState(false)
   // Gap 2 — apply assistant-emitted workflow edits to the open panel artifact.
   // Backend extractor not yet wired (TODO in docs/20260521_GAP2_CHAT_DRIVEN_EDITS.md);
   // this effect activates the moment any assistant message arrives with
@@ -2120,6 +2122,14 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             onOpenWorkflowInPanel={handleOpenWorkflowInPanel}
             panelWorkflowMessageId={panelWorkflowMessageId}
             isPanelOpen={panelOpen}
+            onStreamingChange={(streaming) => {
+              setPanelGenerating(streaming)
+              // When streaming ends, clear the skeleton if no workflow arrived.
+              if (!streaming && panelOpen && !panelWorkflow) {
+                setPanelOpen(false)
+                onWorkflowPanelOpenChange?.(false)
+              }
+            }}
             onRegisterSetDraft={(setter) => { setChatDraftRef.current = setter }}
             onRegisterSendMessage={(sender) => { sendChatMessageRef.current = sender as typeof sendChatMessageRef.current; setSenderReady(true) }}
           />
@@ -2160,6 +2170,13 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                 onMouseDown={handlePanelResizeStart}
                 title="Drag to resize panel"
               />
+            )}
+            {/* Generating banner — shows while AI is streaming a response */}
+            {panelGenerating && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/60 border-b text-xs text-muted-foreground flex-shrink-0">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                Generating…
+              </div>
             )}
             {/* Slim chrome bar */}
             <div className="flex items-center gap-2 px-3 py-1 border-b flex-shrink-0" style={{ minHeight: 36 }}>

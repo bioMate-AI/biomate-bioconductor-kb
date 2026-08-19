@@ -103,6 +103,8 @@ interface ChatInterfaceProps {
       contextOverride?: Record<string, unknown>,
     ) => void,
   ) => void
+  /** Called when the streaming (thinking/generating) state changes. */
+  onStreamingChange?: (isStreaming: boolean) => void
 }
 
 // ── Onboarding welcome ────────────────────────────────────────────────────────
@@ -476,8 +478,11 @@ export function ChatInterface({
   isPanelOpen = false,
   onRegisterSetDraft,
   onRegisterSendMessage,
+  onStreamingChange,
 }: ChatInterfaceProps) {
   const [isTypingLocal, setIsTypingLocal] = useState(false)
+  // Notify parent when streaming state changes so it can show a panel skeleton.
+  useEffect(() => { onStreamingChange?.(isTypingLocal) }, [isTypingLocal, onStreamingChange])
   const [workflowGeneratingPhase, setWorkflowGeneratingPhase] = useState<'thinking' | 'workflow'>('thinking')
   // Independent flag: shows "BioMate is generating workflow…" cue for 1.5 s after
   // onSuccess when a workflow was produced. workflow_ready + final arrive in the same
