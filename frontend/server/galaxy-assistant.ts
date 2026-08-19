@@ -3503,8 +3503,10 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
           try {
             const sessions = await api.getActiveInteractiveSessions();
             const mine = sessions.find((s: any) => s.job_id === result.job_id);
-            if (mine?.entry_point_url) {
-              entryUrl = rewriteInteractiveToolUrl(mine.entry_point_url);
+            // Galaxy's /api/entry_points returns "target" not "entry_point_url"
+            const rawUrl = mine?.target || mine?.entry_point_url || (mine as any)?.url;
+            if (rawUrl) {
+              entryUrl = rewriteInteractiveToolUrl(rawUrl);
             }
           } catch { /* ignore poll errors */ }
           if (!entryUrl) onResponseDelta?.('.');
