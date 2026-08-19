@@ -150,6 +150,39 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   const [panelOpen, setPanelOpen] = useState(false)
   const [panelWorkflowMessageId, setPanelWorkflowMessageId] = useState<string | null>(null)
   const [panelWorkflow, setPanelWorkflow] = useState<any | null>(null)
+
+  // Persist panel open state so refresh restores the panel.
+  useEffect(() => {
+    try {
+      if (panelOpen && panelWorkflowMessageId && currentChatSession?.id) {
+        localStorage.setItem('biomate-panel-open', JSON.stringify({
+          sessionId: currentChatSession.id,
+          messageId: panelWorkflowMessageId,
+        }))
+      } else if (!panelOpen) {
+        localStorage.removeItem('biomate-panel-open')
+      }
+    } catch {}
+  }, [panelOpen, panelWorkflowMessageId, currentChatSession?.id])
+
+  // On session load, restore panel if it was open when the user last left.
+  const panelRestoredRef = useRef(false)
+  useEffect(() => {
+    if (panelRestoredRef.current || panelOpen) return
+    const msgs = currentChatSession?.messages
+    if (!msgs?.length) return
+    try {
+      const saved = JSON.parse(localStorage.getItem('biomate-panel-open') || 'null')
+      if (!saved || saved.sessionId !== currentChatSession?.id) return
+      const wf = msgs.find((m: any) => m.id === saved.messageId)
+      if (!wf?.metadata?.workflow) return
+      panelRestoredRef.current = true
+      setPanelWorkflow(wf.metadata.workflow)
+      setPanelWorkflowMessageId(saved.messageId)
+      setPanelOpen(true)
+      onWorkflowPanelOpenChange?.(true)
+    } catch {}
+  }, [currentChatSession?.id, currentChatSession?.messages, panelOpen, onWorkflowPanelOpenChange])
   // True while the AI is streaming a response — used to show a skeleton in the panel.
   const [panelGenerating, setPanelGenerating] = useState(false)
   // Set to true just before a message with file attachments is submitted so
