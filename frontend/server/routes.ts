@@ -9352,24 +9352,7 @@ ${paramLines || '(none recorded)'}`;
         return res.status(404).json({ error: "Output not found" });
       }
 
-      // Fetch file from Galaxy, local path, or S3 presigned URL.
-      let fileStream: any;
-      const localPath = String((output as any)?.metadata?.localPath || "");
-      const s3Uri    = String((output as any)?.metadata?.s3Uri     || "");
-      if (output.galaxyDatasetId) {
-        fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
-      } else if (localPath) {
-        fileStream = createReadStream(localPath);
-      } else if (s3Uri) {
-        // Redirect to a presigned download URL for S3 objects
-        const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
-        const presignUrl = `${galaxyUrl}/api/nextflow/outputs/download?s3_uri=${encodeURIComponent(s3Uri)}&run_id=direct`;
-        return res.redirect(302, presignUrl);
-      } else {
-        return res.status(404).json({ error: "Output has no display source" });
-      }
-
-      // Set appropriate content type for inline display
+      // Content type map (used in both stream and S3-proxy paths below)
       const contentTypeMap: Record<string, string> = {
         'png': 'image/png',
         'jpg': 'image/jpeg',
@@ -9384,9 +9367,38 @@ ${paramLines || '(none recorded)'}`;
         'tsv': 'text/tab-separated-values',
       };
 
+      // Fetch file from Galaxy, local path, or S3 (proxied so iframe stays same-origin).
+      let fileStream: any;
+      const localPath = String((output as any)?.metadata?.localPath || "");
+      const s3Uri    = String((output as any)?.metadata?.s3Uri     || "");
+      if (output.galaxyDatasetId) {
+        fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
+      } else if (localPath) {
+        fileStream = createReadStream(localPath);
+      } else if (s3Uri) {
+        // Proxy S3 content so the iframe remains same-origin (CSP frame-src 'self').
+        const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+        const presignUrl = `${galaxyUrl}/api/nextflow/outputs/download?s3_uri=${encodeURIComponent(s3Uri)}&run_id=direct`;
+        const s3Res = await fetch(presignUrl, { redirect: 'follow', signal: AbortSignal.timeout(30000) });
+        if (!s3Res.ok) {
+          return res.status(s3Res.status).json({ error: `S3 fetch failed: ${s3Res.statusText}` });
+        }
+        const ext = output.extension || s3Uri.split('.').pop() || 'bin';
+        const ct = contentTypeMap[ext] || s3Res.headers.get('content-type') || 'application/octet-stream';
+        res.setHeader('Content-Type', ct);
+        res.setHeader('Content-Disposition', 'inline');
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+        const body = await s3Res.arrayBuffer();
+        return res.send(Buffer.from(body));
+      } else {
+        return res.status(404).json({ error: "Output has no display source" });
+      }
+
       const contentType = contentTypeMap[output.extension] || 'application/octet-stream';
       res.setHeader('Content-Type', contentType);
       res.setHeader('Content-Disposition', 'inline');
+      // Allow same-origin iframes to embed this display content (overrides helmet's global DENY).
+      res.setHeader('X-Frame-Options', 'SAMEORIGIN');
 
       // Pipe the stream to response
       fileStream.pipe(res);
