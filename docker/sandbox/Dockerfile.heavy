@@ -1,0 +1,53 @@
+# biomate-nextflow-sandbox:heavy — R/Bioconductor-capable sandbox runner.
+#
+# Same hardened Nextflow HEAD runner as docker/sandbox/Dockerfile, but built
+# FROM the R/Bioconductor domain image so local-executor USER workflows that
+# need R/bioc (DESeq2, edgeR, clusterProfiler, …) can run fully sandboxed.
+# The light image (Dockerfile) has python+rdkit+nextflow only; this one adds
+# the full R/bioc task runtime.
+#
+# Runs under the exact flags command.py emits (read-only, cap-drop ALL,
+# no-new-privileges, --user non-root, cpu/mem/pids caps, --network none, and
+# --runtime runsc for tier 3). Writable state → /tmp (tmpfs) or the work dir;
+# NXF_HOME is baked read-only and seeded to tmpfs by the entrypoint.
+#
+# Build on the TEST host (amd64):
+#   docker build -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-sandbox:heavy \
+#     -f docker/sandbox/Dockerfile.heavy docker/sandbox
+ARG BASE=399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20-mofa2
+FROM ${BASE}
+
+ARG NXF_VER=25.10.5
+USER root
+
+# Ensure a JRE >= 17 (Nextflow 25.x). The bioc base ships a JRE; install
+# openjdk-21 only if it's absent or too old.
+RUN JV=$(java -version 2>&1 | head -1 | grep -oE '"[0-9]+' | tr -d '"' || true); \
+    echo "base java major=${JV:-none}"; \
+    if [ -z "$JV" ] || [ "$JV" -lt 17 ]; then \
+      apt-get update && apt-get install -y --no-install-recommends openjdk-21-jre-headless \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi
+
+# Nextflow launcher + baked framework seed (read-only), same as the light image.
+ENV NXF_VER=${NXF_VER}
+RUN mkdir -p /opt/nxf_seed/capsule \
+    && (command -v curl >/dev/null 2>&1 || (apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*)) \
+    && curl -s https://get.nextflow.io | bash \
+    && mv nextflow /usr/local/bin/nextflow && chmod 755 /usr/local/bin/nextflow \
+    && NXF_HOME=/opt/nxf_seed CAPSULE_CACHE_DIR=/opt/nxf_seed/capsule NXF_VER=${NXF_VER} nextflow -version \
+    && chmod -R a+rX /opt/nxf_seed
+
+# Entrypoint seeds a writable NXF_HOME on tmpfs from the read-only baked copy.
+RUN printf '#!/bin/sh\nset -e\nexport NXF_HOME="${NXF_HOME:-/tmp/.nextflow}"\nmkdir -p "$NXF_HOME"\ncp -rn /opt/nxf_seed/. "$NXF_HOME"/ 2>/dev/null || true\nexec "$@"\n' \
+      > /usr/local/bin/nxf-entrypoint.sh \
+    && chmod 755 /usr/local/bin/nxf-entrypoint.sh
+
+ENV HOME=/tmp \
+    NXF_HOME=/tmp/.nextflow \
+    CAPSULE_CACHE_DIR=/tmp/.nextflow/capsule \
+    NXF_ANSI_LOG=false \
+    NXF_OFFLINE=true
+
+ENTRYPOINT ["/usr/local/bin/nxf-entrypoint.sh"]
+CMD ["bash"]

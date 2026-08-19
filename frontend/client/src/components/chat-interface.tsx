@@ -103,6 +103,10 @@ interface ChatInterfaceProps {
       contextOverride?: Record<string, unknown>,
     ) => void,
   ) => void
+  /** Called when the streaming (thinking/generating) state changes. */
+  onStreamingChange?: (isStreaming: boolean) => void
+  /** Called just before a message with file attachments is submitted. */
+  onSubmitWithFiles?: () => void
 }
 
 // ── Onboarding welcome ────────────────────────────────────────────────────────
@@ -476,8 +480,12 @@ export function ChatInterface({
   isPanelOpen = false,
   onRegisterSetDraft,
   onRegisterSendMessage,
+  onStreamingChange,
+  onSubmitWithFiles,
 }: ChatInterfaceProps) {
   const [isTypingLocal, setIsTypingLocal] = useState(false)
+  // Notify parent when streaming state changes so it can show a panel skeleton.
+  useEffect(() => { onStreamingChange?.(isTypingLocal) }, [isTypingLocal, onStreamingChange])
   const [workflowGeneratingPhase, setWorkflowGeneratingPhase] = useState<'thinking' | 'workflow'>('thinking')
   // Independent flag: shows "BioMate is generating workflow…" cue for 1.5 s after
   // onSuccess when a workflow was produced. workflow_ready + final arrive in the same
@@ -1659,6 +1667,7 @@ export function ChatInterface({
       onChatUpdated(withPlaceholder)
     }
 
+    if (files && files.length > 0) onSubmitWithFiles?.()
     setIsTypingLocal(true)
 
     analytics.track('query_sent', { query_length: content.length })

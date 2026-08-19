@@ -2587,6 +2587,21 @@ export class GalaxyAssistant {
       computedModelConfig.responseModel = GEMINI_FLASH_MODEL;
       console.log('[GalaxyAssistant] No ANTHROPIC_API_KEY — switching responseModel to gemini flash');
     }
+    // Inverse (QA 2026-08-17): the default config points at Gemini, but on an
+    // Anthropic-only deployment (no GEMINI_API_KEY) the Gemini primary 404s and
+    // the code falls back to a NON-agentic Claude path where BIOMATE_TOOLS
+    // (run_code, …) are never attached — so the model fabricates tool output
+    // instead of executing. When Anthropic is present but Gemini is not, route
+    // the gemini-configured models to Claude so the full agentic tool loop runs.
+    if (options.anthropicApiKey && !geminiKey) {
+      if (computedModelConfig.responseModel?.startsWith('gemini-')) {
+        computedModelConfig.responseModel = 'claude-sonnet-4-5';
+      }
+      if (computedModelConfig.intentModel?.startsWith('gemini-')) {
+        computedModelConfig.intentModel = 'claude-haiku-4-5';
+      }
+      console.log('[GalaxyAssistant] No GEMINI_API_KEY — routing gemini models to Claude (response=sonnet-4-5, intent=haiku-4-5) so the agentic tool loop + run_code work');
+    }
     this.modelConfig = computedModelConfig;
     this.sessionMemory = new SessionMemoryUpdater(this.claude);
     // Wire persistence: after each Haiku update, write sessionMemory into conversationState JSONB
@@ -3399,6 +3414,130 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
         || /\b(GO|KEGG|Reactome|MSigDB)\b/.test(message);
   }
 
+  /**
+   * Explicit direct-code-execution request — the user wants an ad-hoc
+   * run_code computation, NOT a Nextflow pipeline. If such a request is
+   * (mis)classified as workflow_generation, generateWorkflow() produces a
+   * workflow card which sets hasRunnableWorkflow=true, which DISABLES the
+   * run_code tool at the agent-tools gate — so the model can no longer call
+   * run_code and instead FABRICATES output (prints a <run_code> block as
+   * prose and claims "executed in the sandbox" while nothing runs). Keeping
+   * needsWorkflowGeneration=false leaves the run_code tool enabled so the
+   * code actually executes in the sandbox. Conservative: only fires on an
+   * explicit run_code ask AND when no real-pipeline keyword is present, so it
+   * never hijacks a genuine workflow request.
+   * (QA 2026-08-17: chat fabricated run_code output — root cause was this
+   * mis-route + the tool-gate; see docs/20260813 roadmap.)
+   */
+  private _isDirectCodeExecutionQuery(message: string): boolean {
+    const explicit =
+      /\b(use\s+run_?code|via\s+run_?code|with\s+run_?code|run_?code\b|run\s+this\s+(python|r|bash|code|script|snippet)|execute\s+this\s+(python|r|bash|code|script|snippet))\b/i.test(message)
+      || /\bdo\s+not\s+(launch|generate|create|build)\s+(a\s+)?(nextflow\s+)?(workflow|pipeline)\b/i.test(message)
+      // Chinese: 运行/执行这段代码, 帮我运行, 请运行以下
+      || /(?:运行|执行|跑一下|帮我跑|帮我运行|请运行|请执行)(?:这段|以下|下面|如下)?(?:代码|脚本|程序|python|Python|R语言|bash)/u.test(message)
+      // Message contains an explicit code block to run (triple-backtick with code)
+      || /```(?:python|r|bash|sh|javascript|js)?\s*\n[\s\S]{10,}?```/i.test(message);
+    if (!explicit) return false;
+    // Don't hijack genuine pipeline / named-workflow requests.
+    const pipeline =
+      /\b(nextflow|pipeline|rna-?seq|scrna|single-?cell|wgs|wes|variant\s+calling|sarek|cryo-?em|admet|pbpk|boin|fastqc|trimmomatic|\bstar\b|salmon|kallisto|alignment|assembl|clusterprofiler|deseq2|epitope|docking|autodock|codon|pocket|target\s+evidence)\b/i.test(message);
+    return !pipeline;
+  }
+
+  /**
+   * Returns the Galaxy interactive-tool type the message is requesting,
+   * or null if it's not an IT launch request.
+   * Supports English and Chinese.
+   */
+  private _getInteractiveToolRequest(message: string): { toolId: string; label: string } | null {
+    const lc = message.toLowerCase();
+    // RStudio patterns (check before Jupyter — "r studio" is unambiguous)
+    if (/\b(rstudio|r\s+studio)\b/i.test(message)
+        || /(?:启动|打开|开启|运行|跑一个).*(?:rstudio|r\s*studio)/u.test(message)) {
+      return { toolId: 'interactive_tool_rstudio', label: 'RStudio' };
+    }
+    // Jupyter patterns
+    if (/\b(jupyter|jupyter\s+notebook|jupyter\s+lab|jupyterlab|notebook\s+server)\b/i.test(message)
+        || /(?:启动|打开|开启|运行|跑一个).*(?:jupyter|notebook|笔记本|交互.*工具|interactive.*tool)/u.test(message)
+        || /(?:jupyter|notebook|笔记本).*(?:启动|打开|开启)/u.test(message)) {
+      return { toolId: 'interactive_tool_jupyter_notebook', label: 'Jupyter Notebook' };
+    }
+    // Catch-all Chinese: "帮我启动一个交互工具"
+    if (/(?:帮我|请|想要)(?:启动|打开|开启).*(?:交互|interactive)/u.test(message)) {
+      return { toolId: 'interactive_tool_jupyter_notebook', label: 'Jupyter Notebook' };
+    }
+    return null;
+  }
+
+  /** Launch a Galaxy interactive tool and return a GalaxyAssistantResponse with the entry URL. */
+  private async _handleInteractiveToolLaunch(
+    toolId: string,
+    label: string,
+    context: ChatContext,
+    onResponseDelta?: (chunk: string) => void
+  ): Promise<GalaxyAssistantResponse> {
+    const api = this._api();
+    try {
+      // Get or create a Galaxy history for this session
+      let historyId: string;
+      const histories = await api.getHistories().catch(() => []);
+      if (histories.length > 0) {
+        historyId = histories[0].id;
+      } else {
+        historyId = await api.createHistory(`BioMate IT Session`);
+      }
+
+      const result = await api.launchInteractiveTool(toolId, historyId, {});
+
+      // Galaxy IT containers take 30–90s to start; poll for the entry_point_url.
+      const { rewriteInteractiveToolUrl } = await import('./routes');
+      let entryUrl: string | undefined = result.entry_point_url
+        ? rewriteInteractiveToolUrl(result.entry_point_url)
+        : undefined;
+
+      if (!entryUrl) {
+        onResponseDelta?.(`Your **${label}** session is starting (job \`${result.job_id}\`)… waiting for container`);
+        // Poll up to 90 seconds (18 × 5s)
+        for (let i = 0; i < 18 && !entryUrl; i++) {
+          await new Promise(r => setTimeout(r, 5000));
+          try {
+            const sessions = await api.getActiveInteractiveSessions();
+            const mine = sessions.find((s: any) => s.job_id === result.job_id);
+            // Galaxy's /api/entry_points returns "target" not "entry_point_url"
+            const rawUrl = mine?.target || mine?.entry_point_url || (mine as any)?.url;
+            if (rawUrl) {
+              entryUrl = rewriteInteractiveToolUrl(rawUrl);
+            }
+          } catch { /* ignore poll errors */ }
+          if (!entryUrl) onResponseDelta?.('.');
+        }
+      }
+
+      const urlLine = entryUrl
+        ? `\n\n[Open ${label}](${entryUrl})`
+        : '\n\nContainer is still starting — check the Interactive Sessions tab in a minute for the URL.';
+
+      const msg = `Your **${label}** session is ready (job \`${result.job_id}\`).${urlLine}`;
+      onResponseDelta?.(msg);
+
+      return {
+        message: msg,
+        intentType: 'interactive_tool_launch',
+        suggestions: [`Show me active sessions`, `Launch RStudio instead`, `Run code with run_code`],
+        sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: false, thinkingUsed: false },
+      };
+    } catch (err: any) {
+      const errMsg = `Failed to launch **${label}**: ${err.message || 'Galaxy API error'}. Make sure Galaxy interactive tools are configured and the tool is installed.`;
+      onResponseDelta?.(errMsg);
+      return {
+        message: errMsg,
+        intentType: 'interactive_tool_launch',
+        suggestions: [],
+        sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: false, thinkingUsed: false },
+      };
+    }
+  }
+
   /** Force workflow_generation on all intents when a named ANDV stepwise workflow is explicit. */
   private _applyNamedWorkflowOverridesToDecomposition(
     decomposition: IntentDecomposition,
@@ -3651,6 +3790,14 @@ Rules:
 
     log('Processing message: ' + message.substring(0, 50));
 
+    // IT launch shortcut: "帮我启动Jupyter / launch RStudio" → skip intent analysis,
+    // call Galaxy IT API directly, return a response with the session URL.
+    const itRequest = this._getInteractiveToolRequest(message);
+    if (itRequest) {
+      log(`IT launch shortcut: ${itRequest.toolId}`);
+      return this._handleInteractiveToolLaunch(itRequest.toolId, itRequest.label, context, onResponseDelta);
+    }
+
     // Load domain profile context (cached per user, 5-min TTL)
     const domainProfile = await this._fetchDomainProfile(context.userId);
     const domainProfileContext = this._buildDomainProfileContext(domainProfile);
@@ -3834,6 +3981,19 @@ Rules:
     let researchResponse: any = undefined;
     let benchmarkEvidence: any = undefined;
     const actions = intent.actions;
+
+    // Direct-code-execution override (QA 2026-08-17): when the user EXPLICITLY
+    // asks to run ad-hoc code (run_code) rather than a pipeline, do NOT
+    // generate a workflow — a generated workflow disables the run_code tool at
+    // the agent-tools gate and makes the model fabricate output instead of
+    // actually executing. Flip to the direct-compute path so run_code stays
+    // enabled and really runs in the sandbox. Conservative guard (explicit ask
+    // + no pipeline keyword) so genuine workflow requests are untouched.
+    if (actions.needsWorkflowGeneration && this._isDirectCodeExecutionQuery(message)) {
+      log('Direct-code-execution override: needsWorkflowGeneration=false → run_code stays enabled');
+      actions.needsWorkflowGeneration = false;
+      actions.needsLLMReasoning = true;
+    }
 
     // ml_training intent override (flag-gated on ML_TRAINING_ROUTING):
     // "train/build/fine-tune a classifier/model/…" is a MODEL-TRAINING request.

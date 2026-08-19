@@ -1313,7 +1313,9 @@ export class GalaxyAPIProxy {
   async getActiveInteractiveSessions(): Promise<Array<{
     job_id: string;
     tool_id: string;
-    entry_point_url: string;
+    /** Galaxy returns "target" for the session URL, not "entry_point_url" */
+    target?: string;
+    entry_point_url?: string;
     created: string;
   }>> {
     const response = await this.client.get('/api/entry_points?running=true');

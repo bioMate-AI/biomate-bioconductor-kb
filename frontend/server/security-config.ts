@@ -184,7 +184,15 @@ export function configureSecurityHeaders(app: Express) {
                 'https://s3.amazonaws.com',
                 ...devConnectSrc,
               ],
-              frameSrc: ["'none'"],
+              // 'self' allows /api/outputs/{id}/display iframes (same-origin).
+              // S3 patterns cover presigned-URL redirects for workflow HTML outputs.
+              frameSrc: [
+                "'self'",
+                'https://*.s3.amazonaws.com',
+                'https://*.s3.us-east-1.amazonaws.com',
+                'https://*.s3.us-west-2.amazonaws.com',
+                ...(process.env.GALAXY_URL ? [process.env.GALAXY_URL] : []),
+              ],
               objectSrc: ["'none'"],
               // Only upgrade insecure requests when HTTPS is actually available
               upgradeInsecureRequests: (config.env === 'production' && config.forceHTTPS) ? [] : null,

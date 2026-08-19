@@ -87,6 +87,43 @@ const galaxyAPIProxy = galaxyAPIBackend; // Alias for consistency
 const tokenCounter = new TokenCounter();
 
 /**
+ * Galaxy stamps interactive-tool entry-point URLs with the host it *saw* on the
+ * launch request (an internal/loopback host), ignoring both
+ * `galaxy_infrastructure_url` and `interactivetools_proxy_host`. So the URL it
+ * returns points at an unreachable host. We rewrite the base domain to the
+ * publicly-routable interactive-tools proxy host while preserving the
+ * per-session subdomain label (`<key>-<token>.interactivetool`).
+ *
+ * Config: INTERACTIVETOOLS_PROXY_HOST (or the Galaxy override env
+ * GALAXY_CONFIG_OVERRIDE_INTERACTIVETOOLS_PROXY_HOST) e.g.
+ * `interactivetool.test.stage-public.biomate.ai`. When unset, the URL is
+ * returned unchanged (local dev, where the stamped host is already correct).
+ */
+export function rewriteInteractiveToolUrl(rawUrl: string): string {
+  const proxyHost = (
+    process.env.INTERACTIVETOOLS_PROXY_HOST
+    || process.env.GALAXY_CONFIG_OVERRIDE_INTERACTIVETOOLS_PROXY_HOST
+    || ''
+  ).trim().replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  if (!proxyHost || !rawUrl) return rawUrl;
+  try {
+    const u = new URL(rawUrl);
+    // The entry-point hostname is `<label>.interactivetool.<host>`, where the
+    // configured proxy host already includes the `interactivetool.` segment.
+    const marker = '.interactivetool.';
+    const idx = u.hostname.indexOf(marker);
+    if (idx === -1) return rawUrl; // not an IT entry-point URL — leave as-is
+    const label = u.hostname.slice(0, idx); // `<key>-<token>`
+    u.hostname = `${label}.${proxyHost}`;
+    u.protocol = 'https:';
+    u.port = '';
+    return u.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
+/**
  * Returns a GalaxyAPIProxy scoped to the authenticated user's own Galaxy API key.
  * Falls back to the shared admin proxy if the user has no personal key yet
  * (e.g. existing users provisioned before this feature, or when Galaxy is unreachable).
@@ -1095,6 +1132,8 @@ const upload = multer({
       '.nwk', '.newick', '.treefile', '.tree', '.mafft', '.clipkit', '.iqtree', '.log',
       // Generic compressed and model/distance/tree files
       '.gz', '.mldist', '.model', '.phy', '.phylip', '.aln', '.bionj', '.contree', '.splits', '.nxs', '.nexus',
+      // Nextflow / workflow definition files (user-uploaded .nf pipelines for sandbox execution)
+      '.nf', '.config', '.groovy',
     ];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowedExtensions.some(allowed => file.originalname.toLowerCase().endsWith(allowed))) {
@@ -9315,24 +9354,7 @@ ${paramLines || '(none recorded)'}`;
         return res.status(404).json({ error: "Output not found" });
       }
 
-      // Fetch file from Galaxy, local path, or S3 presigned URL.
-      let fileStream: any;
-      const localPath = String((output as any)?.metadata?.localPath || "");
-      const s3Uri    = String((output as any)?.metadata?.s3Uri     || "");
-      if (output.galaxyDatasetId) {
-        fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
-      } else if (localPath) {
-        fileStream = createReadStream(localPath);
-      } else if (s3Uri) {
-        // Redirect to a presigned download URL for S3 objects
-        const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
-        const presignUrl = `${galaxyUrl}/api/nextflow/outputs/download?s3_uri=${encodeURIComponent(s3Uri)}&run_id=direct`;
-        return res.redirect(302, presignUrl);
-      } else {
-        return res.status(404).json({ error: "Output has no display source" });
-      }
-
-      // Set appropriate content type for inline display
+      // Content type map (used in both stream and S3-proxy paths below)
       const contentTypeMap: Record<string, string> = {
         'png': 'image/png',
         'jpg': 'image/jpeg',
@@ -9347,9 +9369,38 @@ ${paramLines || '(none recorded)'}`;
         'tsv': 'text/tab-separated-values',
       };
 
+      // Fetch file from Galaxy, local path, or S3 (proxied so iframe stays same-origin).
+      let fileStream: any;
+      const localPath = String((output as any)?.metadata?.localPath || "");
+      const s3Uri    = String((output as any)?.metadata?.s3Uri     || "");
+      if (output.galaxyDatasetId) {
+        fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
+      } else if (localPath) {
+        fileStream = createReadStream(localPath);
+      } else if (s3Uri) {
+        // Proxy S3 content so the iframe remains same-origin (CSP frame-src 'self').
+        const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+        const presignUrl = `${galaxyUrl}/api/nextflow/outputs/download?s3_uri=${encodeURIComponent(s3Uri)}&run_id=direct`;
+        const s3Res = await fetch(presignUrl, { redirect: 'follow', signal: AbortSignal.timeout(30000) });
+        if (!s3Res.ok) {
+          return res.status(s3Res.status).json({ error: `S3 fetch failed: ${s3Res.statusText}` });
+        }
+        const ext = output.extension || s3Uri.split('.').pop() || 'bin';
+        const ct = contentTypeMap[ext] || s3Res.headers.get('content-type') || 'application/octet-stream';
+        res.setHeader('Content-Type', ct);
+        res.setHeader('Content-Disposition', 'inline');
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+        const body = await s3Res.arrayBuffer();
+        return res.send(Buffer.from(body));
+      } else {
+        return res.status(404).json({ error: "Output has no display source" });
+      }
+
       const contentType = contentTypeMap[output.extension] || 'application/octet-stream';
       res.setHeader('Content-Type', contentType);
       res.setHeader('Content-Disposition', 'inline');
+      // Allow same-origin iframes to embed this display content (overrides helmet's global DENY).
+      res.setHeader('X-Frame-Options', 'SAMEORIGIN');
 
       // Pipe the stream to response
       fileStream.pipe(res);
@@ -9552,7 +9603,8 @@ ${paramLines || '(none recorded)'}`;
 
       // Construct entry point URL if not provided
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const entryPointUrl = result.entry_point_url || `${galaxyUrl}/interactivetool/jobs/${result.job_id}`;
+      const rawEntryPointUrl = result.entry_point_url || `${galaxyUrl}/interactivetool/jobs/${result.job_id}`;
+      const entryPointUrl = rewriteInteractiveToolUrl(rawEntryPointUrl);
 
       res.json({
         success: true,
@@ -14305,7 +14357,19 @@ Respond ONLY with valid JSON (no markdown wrapper):
   // Get active interactive sessions
   app.get("/api/interactive/sessions", authenticateToken, async (req, res) => {
     try {
-      const sessions = await galaxyAPIProxy.getActiveInteractiveSessions();
+      const rawSessions = await galaxyAPIProxy.getActiveInteractiveSessions();
+      // Galaxy stamps the session entry-point URL with the internal container
+      // host (…ep.interactivetool.galaxy-backend-deploy:8080). This is the
+      // endpoint the client reads the *ready* URL from, so rewrite it to the
+      // public interactive-tools proxy host here too (see rewriteInteractiveToolUrl).
+      const sessions = (rawSessions || []).map((s: any) => {
+        if (!s || typeof s !== 'object') return s;
+        const out = { ...s };
+        for (const k of ['entry_point_url', 'url', 'target']) {
+          if (typeof out[k] === 'string' && out[k]) out[k] = rewriteInteractiveToolUrl(out[k]);
+        }
+        return out;
+      });
       res.json({ sessions, count: sessions.length });
     } catch (error: any) {
       // Galaxy /api/entry_points returns 5xx when interactive tools aren't configured.

@@ -19,6 +19,44 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { FindingsCard } from "@/components/findings-card";
 
+// Text-like file extensions we render inline as text (in a <pre>) rather than
+// in an <iframe>. Chrome blocks iframing a step-file response served with
+// `X-Content-Type-Options: nosniff` for non-HTML MIME types (application/json,
+// text/plain, …) → "该内容被屏蔽了 / This content is blocked". Fetching the body
+// and rendering it as text sidesteps the frame-navigation block entirely.
+const TEXT_PREVIEW_EXTS = new Set([
+  'json', 'txt', 'text', 'log', 'csv', 'tsv', 'tab', 'yml', 'yaml', 'md',
+  'out', 'err', 'txt', 'nf', 'config', 'sh', 'py', 'r', 'vcf', 'bed', 'gff',
+  'gtf', 'sam', 'fasta', 'fa', 'fastq', 'fq', 'xml', 'ini', 'cfg', 'tsv',
+]);
+
+// Inline text preview: fetch the file body and render in a <pre>. Truncates
+// very large files so the modal stays responsive (a Download link is always
+// offered by the surrounding chrome for the full file).
+function TextFilePreview({ url, name }: { url: string; name: string }) {
+  const [text, setText] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setText(null); setErr(null);
+    fetch(url, { credentials: 'include' })
+      .then(async r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const body = await r.text();
+        if (!cancelled) setText(body.length > 200_000 ? body.slice(0, 200_000) + '\n\n… (truncated — download for the full file)' : body);
+      })
+      .catch(e => { if (!cancelled) setErr((e as Error).message); });
+    return () => { cancelled = true; };
+  }, [url]);
+  if (err) return <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 12 }}>Preview unavailable ({err}). Use Download below.</div>;
+  if (text === null) return <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 12 }}>Loading {name}…</div>;
+  return (
+    <pre style={{ width: '100%', maxHeight: 400, overflow: 'auto', margin: 0, padding: 12, border: '1px solid var(--border)', borderRadius: 4, fontFamily: 'ui-monospace, monospace', fontSize: 12, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+      {text}
+    </pre>
+  );
+}
+
 // Strip raw Nextflow debug log lines down to a readable one-liner.
 // Input:  "Jul-22 07:56:33.018 [Task monitor] DEBUG ... name: STEP (DESeq2); ... exit: 1; error: Essential container...; workDir: s3://..."
 // Output: "DESeq2 exited with code 1 — Essential container in task exited"
@@ -1097,8 +1135,14 @@ function OutputsTab({
               <img src={fileUrl(previewFile)} alt={previewFile.name} style={{ maxWidth: '100%', borderRadius: 4 }} />
             ) : ['html','htm'].includes(previewFile.ext) ? (
               <iframe src={fileUrl(previewFile)} title={previewFile.name} style={{ width: '100%', height: 480, border: '1px solid var(--border)', borderRadius: 4 }} />
+            ) : ['pdf'].includes(previewFile.ext) ? (
+              <iframe src={fileUrl(previewFile)} title={previewFile.name} style={{ width: '100%', height: 480, border: '1px solid var(--border)', borderRadius: 4 }} />
+            ) : TEXT_PREVIEW_EXTS.has(previewFile.ext) ? (
+              <TextFilePreview url={fileUrl(previewFile)} name={previewFile.name} />
             ) : (
-              <iframe src={fileUrl(previewFile)} title={previewFile.name} style={{ width: '100%', height: 400, border: '1px solid var(--border)', borderRadius: 4, fontFamily: 'ui-monospace, monospace' }} />
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 12, textAlign: 'center' }}>
+                Inline preview not available for .{previewFile.ext} files. Use Download below.
+              </div>
             )}
             <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
               <a href={fileUrl(previewFile, true)} download style={{ fontSize: 12, color: 'var(--accent, oklch(0.55 0.18 260))' }}>↓ Download</a>

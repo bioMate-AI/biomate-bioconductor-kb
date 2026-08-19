@@ -173,7 +173,13 @@ def new_clean_env():
     Returns a minimal environment to use when invoking a subprocess
     """
     env = {}
-    for k in ("HOME", "LC_CTYPE", "PATH", "TMPDIR"):
+    # DOCKER_HOST: Galaxy IT job scripts invoke `docker run -p` and monitor.py
+    # invokes `docker port` from within the clean subprocess env.  When the
+    # backend container reaches the daemon via a tcp proxy (DOCKER_HOST=tcp://…)
+    # rather than the default unix socket, both calls fail with exit-125 unless
+    # DOCKER_HOST is forwarded here.  Passing it is safe: the value is controlled
+    # by the container config, not by user input.
+    for k in ("HOME", "LC_CTYPE", "PATH", "TMPDIR", "DOCKER_HOST"):
         if k in os.environ:
             env[k] = os.environ[k]
     if "TMPDIR" not in env:

@@ -1,0 +1,167 @@
+# BioMate sandbox deployment overlay (feature ①: execution isolation).
+#
+# Layered on top of deploy/docker-compose.deploy.yml:
+#   docker compose -f docker-compose.deploy.yml -f docker-compose.sandbox.yml up -d
+#
+# What this overlay adds
+# ----------------------
+# 1. Execution sandbox (gVisor). run_code (frontend) and the local Nextflow
+#    head / user-uploaded .nf (backend) run in gVisor (runsc) with cap-drop
+#    ALL, no-new-privileges, network=none, non-root uid, read-only rootfs, and
+#    cpu/mem/pids limits. Driven by SANDBOX_ENABLED / SANDBOX_TIER / RUN_CODE_*.
+#
+# 2. Docker-socket hardening (docker-socket-proxy). The app containers used to
+#    mount the raw /var/run/docker.sock — full root-equivalent host access if
+#    the app process is ever RCE'd. The frontend now reaches the daemon ONLY
+#    through docker-socket-proxy, which allowlists the minimal endpoints
+#    `docker run` needs (containers/images/networks/exec) and blocks build,
+#    swarm, volumes, secrets, configs, plugins, system-prune and distribution.
+#
+# 3. Narrow launcher (true host-escape closure for run_code). The frontend has
+#    NO docker access at all — not even the proxy. It calls sandbox-launcher over
+#    HTTP (RUN_CODE_BACKEND_URL), which is the only app-side holder of docker
+#    access and ENFORCES the safe envelope: the workdir bind must resolve under
+#    /tmp/biomate_code, the image must be allowlisted, and runtime(gVisor)/user
+#    (non-root)/network(none)/caps are forced by the launcher, never the caller.
+#    This closes the create+bind residual an endpoint-level proxy cannot filter.
+#    Verified on test: run_code → uid=1000 + 4.19.0-gvisor + hash-match; launcher
+#    rejects baseDir=/etc, non-allowlist image, and scriptPath traversal (400).
+#
+#    STATUS (2026-08-18, Stage 4 COMPLETE — Option-A IT integration verified):
+#      - frontend  -> launcher (NO docker access; run_code fully host-escape
+#                              hardened). Launcher -> proxy -> daemon.
+#      - backend   -> launcher (Option A, ACTIVE). Galaxy IT container launches
+#                              now go through POST /run_it on sandbox-launcher,
+#                              which validates the full docker-run argv (image
+#                              allowlist, no privileged, no socket mounts, volume
+#                              sources under /app). container_monitor.py uses
+#                              GET /inspect_it/<name> for port discovery instead
+#                              of running docker directly. docker wait (read-only)
+#                              is still routed through DOCKER_HOST→proxy.
+#                              Verified on test i-0482: IT job state=ok, exit=0,
+#                              container_runtime.json written, notebook persisted.
+#                              Root cause of prior failure: Galaxy passes shell
+#                              variable refs like "$_GALAXY_JOB_TMP_DIR:..." as
+#                              volume specs; these fail launcher prefix validation.
+#                              Fix: _containerize_via_it_launcher() now skips any
+#                              volume whose string repr contains "$".
+#
+#    RESIDUAL: launcher enforces IT image allowlist + volume prefix + no-priv.
+#    gVisor runtime is NOT enforced for IT containers (many IT images need a real
+#    kernel ABI). The launcher's IT_ENFORCE_NON_ROOT is off by default (Jupyter /
+#    RStudio images run as root). These are documented trade-offs, not gaps.
+
+services:
+  # Allowlisting proxy in front of the Docker daemon. Only this container holds
+  # the (read-only) socket; the app containers talk to it over the internal
+  # network via DOCKER_HOST=tcp://docker-socket-proxy:2375.
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    restart: unless-stopped
+    environment:
+      # allow — the minimal set `docker run` (+ Galaxy IT) needs
+      - CONTAINERS=1
+      - IMAGES=1
+      - NETWORKS=1
+      - EXEC=1
+      - POST=1
+      - INFO=1
+      - VERSION=1
+      - PING=1
+      # deny — dangerous surfaces (explicit, though tecnativa defaults these off)
+      - BUILD=0
+      - COMMIT=0
+      - CONFIGS=0
+      - SECRETS=0
+      - SWARM=0
+      - SERVICES=0
+      - TASKS=0
+      - NODES=0
+      - PLUGINS=0
+      - VOLUMES=0
+      - SYSTEM=0
+      - DISTRIBUTION=0
+      - AUTH=0
+      - SESSION=0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - biomate-deploy-net
+
+  # Narrow launcher — the ONLY app-side holder of docker access. Runs run_code
+  # sandboxes on behalf of the frontend and enforces the safe envelope (workdir
+  # under /tmp/biomate_code, image allowlist, forced runsc/non-root/net-none/caps).
+  sandbox-launcher:
+    image: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/sandbox-launcher:3
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      - DOCKER_HOST=tcp://docker-socket-proxy:2375   # launcher -> proxy -> daemon
+      - LAUNCHER_WORKDIR_PREFIX=/tmp/biomate_code
+      - LAUNCHER_HEAD_PREFIXES=/tmp/nextflow_runs,/tmp/biomate_user_nf
+      - LAUNCHER_ALLOWED_IMAGES=399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-sandbox:heavy
+      - LAUNCHER_RUNTIME=runsc
+      - LAUNCHER_UID=1000
+      - LAUNCHER_GID=1000
+    volumes:
+      - /tmp/biomate_code:/tmp/biomate_code       # shared run_code workdir (frontend)
+      - /tmp/nextflow_runs:/tmp/nextflow_runs     # shared .nf head workdir (backend)
+      - /tmp/biomate_user_nf:/tmp/biomate_user_nf # personal .nf sources (backend)
+    depends_on:
+      - docker-socket-proxy
+    networks:
+      - biomate-deploy-net
+
+  galaxy-backend-deploy:
+    image: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/dev-backend:sandbox-v5
+    pull_policy: always
+    volumes:
+      # NO raw docker.sock — backend is now zero-socket (Stage 3).
+      # Docker access goes via DOCKER_HOST below: backend -> proxy -> daemon.
+      - /tmp/nextflow_runs:/tmp/nextflow_runs
+      - /tmp/biomate_user_nf:/tmp/biomate_user_nf
+      - /opt/biomate/job_conf.it.yml:/app/config/job_conf.yml:ro
+      - /opt/biomate/galaxy.it.yml:/app/config/galaxy.yml:ro
+      - /opt/biomate/it_state:/app/it_state
+      - /app/database/jobs_directory:/app/database/jobs_directory
+      - /app/database/files:/app/database/files
+      - /app/tools/interactive:/app/tools/interactive:ro
+    environment:
+      - SANDBOX_ENABLED=true
+      - SANDBOX_TIER=3
+      - SANDBOX_RUN_UID=1000
+      - SANDBOX_IMAGE=399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-sandbox:heavy
+      - COMPUTE_BACKEND_V2=true   # feature ③ scheduler shadow-mode (observational)
+      # Stage 3: backend reaches the daemon through the socket-proxy (no raw sock).
+      # new_clean_env() now passes DOCKER_HOST to job subprocesses, so IT's
+      # docker-run and monitor.py docker-port both use the proxy correctly.
+      - DOCKER_HOST=tcp://docker-socket-proxy:2375
+      # .nf head dispatched to the narrow launcher (validated argv, gVisor-forced).
+      - NF_HEAD_LAUNCHER_URL=http://sandbox-launcher:8899
+      # Option-A IT: route IT container launch + port-discovery through the narrow
+      # launcher so the mount body is validated (endpoint-level proxy can't see it).
+      # container_monitor.py uses GET /inspect_it/<name> instead of docker port.
+      # containerize_command() sends POST /run_it instead of docker run directly.
+      - IT_LAUNCHER_URL=http://sandbox-launcher:8899
+    depends_on:
+      - docker-socket-proxy
+
+  frontend-deploy:
+    image: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/dev-frontend:branch-test
+    pull_policy: never
+    volumes:
+      # No docker access at all (no socket, no DOCKER_HOST). run_code is dispatched
+      # to sandbox-launcher over HTTP; only the shared workdir is mounted so the
+      # frontend can stage the script/inputs the launcher will bind into /work.
+      - /tmp/biomate_code:/tmp/biomate_code
+    environment:
+      - RUN_CODE_IMAGE=399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-sandbox:heavy
+      - RUN_CODE_RUNTIME=runsc
+      - INTERACTIVETOOLS_PROXY_HOST=interactivetool.test.stage-public.biomate.ai
+      - RUN_CODE_BACKEND_URL=http://sandbox-launcher:8899
+    depends_on:
+      - sandbox-launcher
+
+networks:
+  biomate-deploy-net:
+    external: true
