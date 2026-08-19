@@ -3489,18 +3489,33 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
 
       const result = await api.launchInteractiveTool(toolId, historyId, {});
 
-      // Rewrite the entry URL through the public IT proxy if configured
-      let entryUrl: string | undefined = result.entry_point_url;
-      if (entryUrl) {
-        const { rewriteInteractiveToolUrl } = await import('./routes');
-        entryUrl = rewriteInteractiveToolUrl(entryUrl);
+      // Galaxy IT containers take 30–90s to start; poll for the entry_point_url.
+      const { rewriteInteractiveToolUrl } = await import('./routes');
+      let entryUrl: string | undefined = result.entry_point_url
+        ? rewriteInteractiveToolUrl(result.entry_point_url)
+        : undefined;
+
+      if (!entryUrl) {
+        onResponseDelta?.(`Your **${label}** session is starting (job \`${result.job_id}\`)… waiting for container`);
+        // Poll up to 90 seconds (18 × 5s)
+        for (let i = 0; i < 18 && !entryUrl; i++) {
+          await new Promise(r => setTimeout(r, 5000));
+          try {
+            const sessions = await api.getActiveInteractiveSessions();
+            const mine = sessions.find((s: any) => s.job_id === result.job_id);
+            if (mine?.entry_point_url) {
+              entryUrl = rewriteInteractiveToolUrl(mine.entry_point_url);
+            }
+          } catch { /* ignore poll errors */ }
+          if (!entryUrl) onResponseDelta?.('.');
+        }
       }
 
       const urlLine = entryUrl
         ? `\n\n[Open ${label}](${entryUrl})`
-        : '\n\nThe session is queued — it may take 30–60 seconds to become ready. Refresh the Interactive Sessions tab to get your URL.';
+        : '\n\nContainer is still starting — check the Interactive Sessions tab in a minute for the URL.';
 
-      const msg = `Your **${label}** session is starting (job ID: \`${result.job_id}\`).${urlLine}`;
+      const msg = `Your **${label}** session is ready (job \`${result.job_id}\`).${urlLine}`;
       onResponseDelta?.(msg);
 
       return {

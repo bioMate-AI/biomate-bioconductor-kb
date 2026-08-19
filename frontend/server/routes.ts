@@ -1130,6 +1130,8 @@ const upload = multer({
       '.nwk', '.newick', '.treefile', '.tree', '.mafft', '.clipkit', '.iqtree', '.log',
       // Generic compressed and model/distance/tree files
       '.gz', '.mldist', '.model', '.phy', '.phylip', '.aln', '.bionj', '.contree', '.splits', '.nxs', '.nexus',
+      // Nextflow / workflow definition files (user-uploaded .nf pipelines for sandbox execution)
+      '.nf', '.config', '.groovy',
     ];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowedExtensions.some(allowed => file.originalname.toLowerCase().endsWith(allowed))) {
