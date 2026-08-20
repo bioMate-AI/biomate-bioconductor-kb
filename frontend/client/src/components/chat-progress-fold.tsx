@@ -39,7 +39,13 @@ export type ProgressGroup =
   | { kind: 'folded'; speaker: string; hidden: Message[]; latest: Message; key: string }
 
 function isProgress(m: Message): boolean {
-  return m.role !== 'user' && (m as any).metadata?.type === 'workflow_progress'
+  if (m.role === 'user') return false
+  // Primary signal (live): metadata.type. Durable fallback (reload): the
+  // `progress-<inv>-<kind>-<ts>` id created by handleWorkflowProgress survives
+  // persistence even though metadata is stripped on save — so a reloaded
+  // session's progress lines still fold instead of rendering as full messages.
+  return (m as any).metadata?.type === 'workflow_progress'
+    || (typeof m.id === 'string' && m.id.startsWith('progress-'))
 }
 
 function speakerOf(m: Message): string {

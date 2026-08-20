@@ -159,7 +159,14 @@ export function ChatMessage({
   // the backend narrator (see backend/lib/galaxy/ai/workflow_ops/workflow_chat_narrator.py)
   // and delivered via the workflow SSE stream. Rendered as a single line, not
   // a full assistant card.
-  const isProgressMessage = !isUser && message.metadata?.type === "workflow_progress"
+  // Primary signal (live): metadata.type. Durable fallback (reload): the
+  // `progress-<inv>-<kind>-<ts>` id survives persistence even when metadata is
+  // stripped on save — so reloaded progress lines still render compact (not a
+  // full assistant card with speaker label + action buttons + gaps).
+  const isProgressMessage = !isUser && (
+    message.metadata?.type === "workflow_progress"
+    || (typeof message.id === "string" && message.id.startsWith("progress-"))
+  )
   // Once this message's workflow has been opened in the right panel, remember it
   // so that closing the panel shows the wf-chip (not the full card again).
   const wasInPanelRef = useRef(false);
@@ -368,8 +375,10 @@ export function ChatMessage({
             BioMate
             {!isUser && (() => {
               const msgKind = message.metadata?.kind as string | undefined
-              const sp = isWorkflowMessage ? 'wf'
-                : msgKind?.startsWith('workflow.qc_') ? 'qc'
+              // No 'wf' pill: a workflow card already says it's a workflow, so a
+              // "BioMate WF" label is pure duplication. Keep the meaningful
+              // speaker pills (qc/loop/find/agent/plan) only.
+              const sp = msgKind?.startsWith('workflow.qc_') ? 'qc'
                 : msgKind?.startsWith('workflow.autoloop') ? 'loop'
                 : msgKind?.startsWith('findings.') ? 'find'
                 : msgKind?.startsWith('deepagent.') ? 'agent'

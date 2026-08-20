@@ -568,6 +568,13 @@ class ChatHistoryService {
         workflow_id: msg.workflowId || null,
         thinking_content: msg.thinking_content || null,
         thinking_level: msg.thinking_level || null,
+        // Persist metadata + invocationId so they survive reload — the load path
+        // (getSessionFromBackend) already restores both. Without this, workflow-
+        // progress lines lose metadata.type/kind on save and reload as full
+        // messages instead of a folded "Working · N updates" stream, and lose
+        // their speaker pills / rationale.
+        metadata: msg.metadata || null,
+        invocation_id: (msg as any).invocationId || null,
         error_code: null,
         error_message: null
       })),

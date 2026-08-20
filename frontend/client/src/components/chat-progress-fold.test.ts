@@ -119,4 +119,19 @@ describe('groupProgressMessages', () => {
     expect(groups).toHaveLength(10)
     expect(groups.every(g => g.kind === 'single')).toBe(true)
   })
+
+  it('folds reloaded progress lines by id prefix when metadata was stripped on persist', () => {
+    // On reload, persisted progress messages keep their `progress-…` id but lose
+    // metadata.type/kind. They must still be recognized as progress and fold —
+    // instead of rendering as full assistant messages (the regression this fixes).
+    counter = 0
+    const reloaded = (): Message => {
+      counter += 1
+      return { id: `progress-inv-step-${counter}`, role: 'assistant', content: 'tick', metadata: {} } as unknown as Message
+    }
+    const messages: Message[] = Array.from({ length: 6 }, reloaded)
+    const groups = groupProgressMessages(messages, 2)
+    expect(groups).toHaveLength(1)
+    expect(groups[0].kind).toBe('folded')
+  })
 })
