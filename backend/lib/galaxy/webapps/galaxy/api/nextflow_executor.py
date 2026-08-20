@@ -936,6 +936,148 @@ def _read_run_nextflow_log_text(log_dir: Path) -> tuple[str, list[str]]:
     return combined, log_tail
 
 
+# ── User-facing failure sanitization (Findings 1 & 2, 2026-08-17) ─────────────
+# Raw Nextflow logs expose backend internals — S3 paths, ECR image refs, container
+# and worker recycles, JVM stack traces, work-dir hashes. Those MUST NOT reach the
+# browser (docs/20260817_FAILURE_UX_FINDINGS_AND_PLAN.md, Finding 1). Every status
+# payload leaves through `_sanitize_status_payload`, which (a) classifies a failure
+# into a safe verdict (Finding 2's transient-vs-deterministic decision) and (b)
+# redacts internals from any log tail / error string. The raw logs remain only in
+# the server-side .nextflow.log files, never in the API payload.
+
+_REDACT_PATTERNS = [
+    (re.compile(r's3://[^\s"\'()]+'), '[storage]'),
+    (re.compile(r'\d{12}\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com/[^\s"\'()]+'), '[image]'),
+    (re.compile(r'arn:aws[^\s"\'()]+'), '[resource]'),
+    (re.compile(r'/(?:tmp|app|home|mnt|opt|data|work)/[^\s"\'():]+'), '[path]'),
+    (re.compile(r'\b[0-9a-f]{2}/[0-9a-f]{30,}\b'), '[workdir]'),
+    (re.compile(r'\bi-[0-9a-f]{8,}\b'), '[host]'),
+    (re.compile(r'\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b'), '[id]'),
+]
+# Lines that are pure backend internals — dropped entirely from any user-facing tail.
+_INTERNAL_LINE_RE = re.compile(
+    r'(?:\bat (?:nextflow|groovy|org\.codehaus|java\.|sun\.|jdk\.)'
+    r'|nextflow\.exception'
+    r'|\bgunicorn\b|worker recycle|_stream_logs'
+    r'|\.nextflow\.log|dkr\.ecr\.'
+    r'|--- error context ---'
+    r')', re.IGNORECASE)
+
+
+def _redact_internal(text: str) -> str:
+    """Redact backend identifiers (storage URIs, images, paths, host/job ids) from a string."""
+    if not text:
+        return text
+    for pat, repl in _REDACT_PATTERNS:
+        text = pat.sub(repl, text)
+    return text
+
+
+def _sanitize_log_tail(log_tail: Optional[Union[list, str]]) -> list:
+    """User-safe log tail: drop pure-internal lines, redact identifiers on the rest."""
+    if not log_tail:
+        return [] if log_tail is None else log_tail
+    lines = log_tail if isinstance(log_tail, list) else str(log_tail).splitlines()
+    out: list = []
+    for line in lines:
+        s = str(line)
+        if _INTERNAL_LINE_RE.search(s):
+            continue
+        out.append(_redact_internal(s))
+    return out
+
+
+def _classify_failure(
+    status: str,
+    log_tail: Optional[Union[list, str]] = None,
+    returncode: Optional[int] = None,
+    duration_s: Optional[int] = None,
+) -> Optional[Dict[str, Any]]:
+    """Classify a failed run into a user-safe verdict. Reads the RAW log for pattern
+    matching but returns NONE of it. `suggested_action` in
+    {resume, resume_more_resources, fix_and_resume, check_input, restart_last_resort}.
+    `is_transient=True` means a plain resume can succeed unchanged; False means the
+    cause is deterministic and something must change before resuming."""
+    if str(status).lower() not in ("failed", "error", "cancelled"):
+        return None
+    raw = "\n".join(str(x) for x in log_tail) if isinstance(log_tail, list) else str(log_tail or "")
+    low = raw.lower()
+    rc = returncode
+
+    def verdict(category: str, msg: str, transient: bool, action: str) -> Dict[str, Any]:
+        return {"category": category, "user_message": msg,
+                "is_transient": transient, "suggested_action": action}
+
+    # ── transient infrastructure (a plain resume can succeed) ──
+    if any(k in low for k in ("spot", "reclaim", "instance was terminated", "host ec2",
+                              "dockertimeouterror", "cannot pull", "unable to pull",
+                              "connection reset", "connection timed out", "i/o error")):
+        return verdict("infra_transient",
+                       "A temporary infrastructure interruption stopped the run. "
+                       "It can resume from the last completed step.", True, "resume")
+    if any(k in low for k in ("worker recycle", "log-stream", "orphan")) or rc == -1:
+        return verdict("infra_transient",
+                       "The run was interrupted by a backend restart. "
+                       "It can resume from where it left off.", True, "resume")
+    # ── out of memory (deterministic: needs more memory) ──
+    if ("outofmemory" in low or "out of memory" in low or rc == 137
+            or "exit status : 137" in low or "oomkilled" in low):
+        return verdict("resource_memory",
+                       "A step ran out of memory. Retrying it with more memory "
+                       "should let the run finish.", False, "resume_more_resources")
+    # ── wall-time / duration limit (deterministic: needs more time) ──
+    if (any(k in low for k in ("walltime", "wall time", "time limit",
+                               "timed out after", "terminated after"))
+            or (duration_s is not None and duration_s > 8 * 3600)):
+        return verdict("resource_time",
+                       "The run hit its time limit. Resuming from the last completed "
+                       "step with a longer limit should let it finish.", False,
+                       "resume_more_resources")
+    # ── configuration / parameter / syntax (deterministic: needs a fix) ──
+    if any(k in low for k in ("unexpected token", "syntax error", "no such variable",
+                              "missingpropertyexception", "cannot find", "not specified")):
+        return verdict("config_param",
+                       "A configuration or parameter issue stopped the run before it "
+                       "could complete. It needs a parameter fix, then it can resume.",
+                       False, "fix_and_resume")
+    # ── input data (deterministic: check the input) ──
+    if any(k in low for k in ("not a valid", "malformed", "empty file", "no such file",
+                              "cannot read", "invalid format")):
+        return verdict("input_data",
+                       "An input file looks malformed or unreadable. "
+                       "Check the input, then resume.", False, "check_input")
+    # ── generic tool/process failure ──
+    if any(k in low for k in ("process failed", "processfailedexception", "exit status",
+                              "command error", "pipeline failed", "workflow execution failed")):
+        return verdict("tool_error",
+                       "A step failed while running. It can resume from the last "
+                       "completed step; if it recurs, a parameter change may be needed.",
+                       False, "fix_and_resume")
+    # ── unknown ──
+    return verdict("unknown",
+                   "The run stopped before completing. "
+                   "You can resume from the last completed step.", False, "resume")
+
+
+def _sanitize_status_payload(resp: Dict[str, Any]) -> Dict[str, Any]:
+    """Single chokepoint before a status payload leaves for the browser: attach a
+    classified `failure` verdict on failed runs and redact backend internals from
+    log_tail + error string fields. Never ships raw Nextflow logs to the client."""
+    if not isinstance(resp, dict):
+        return resp
+    status = str(resp.get("status", "")).lower()
+    raw_tail = resp.get("log_tail")
+    if status in ("failed", "error", "cancelled"):
+        resp["failure"] = _classify_failure(
+            status, raw_tail, resp.get("returncode"), resp.get("duration_s"))
+    if "log_tail" in resp:
+        resp["log_tail"] = _sanitize_log_tail(raw_tail)
+    for _k in ("error", "errorMessage", "error_message", "message"):
+        if isinstance(resp.get(_k), str):
+            resp[_k] = _redact_internal(resp[_k])
+    return resp
+
+
 def _evaluate_workflow_trace_terminal(
     log_dir: Path,
     log_full_text: str,
@@ -6258,7 +6400,17 @@ def pause_nextflow_run(run_id: str) -> Dict[str, Any]:
 def get_nextflow_status(
     run_id: str,
 ) -> Dict[str, Any]:
-    """Return current status of a Nextflow run."""
+    """User-facing run status — SANITIZED. Delegates to the internal impl then runs
+    the payload through `_sanitize_status_payload` (attaches a classified `failure`
+    verdict, redacts backend internals from log_tail/error). Never returns raw logs."""
+    return _sanitize_status_payload(_get_nextflow_status_impl(run_id))
+
+
+def _get_nextflow_status_impl(
+    run_id: str,
+) -> Dict[str, Any]:
+    """Internal status computation — may contain raw internals; NEVER returned to the
+    browser directly. Public callers use get_nextflow_status (which sanitizes)."""
     info = _run_lookup(run_id)
 
     if info is not None:

@@ -10826,6 +10826,36 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
+  // Browser-egress sanitizers (Finding 1 — never leak backend internals; mirror of
+  // nextflow_executor.py _redact_internal/_sanitize_log_tail). Belt-and-suspenders on
+  // top of the Galaxy-side sanitize: also scrubs LEGACY stored nextflowStatus/error
+  // snapshots written before the backend fix.
+  const redactInternalText = (text: string): string =>
+    (!text ? text : text
+      .replace(/s3:\/\/[^\s"'()]+/g, "[storage]")
+      .replace(/\d{12}\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com\/[^\s"'()]+/g, "[image]")
+      .replace(/arn:aws[^\s"'()]+/g, "[resource]")
+      .replace(/\/(?:tmp|app|home|mnt|opt|data|work)\/[^\s"'():]+/g, "[path]")
+      .replace(/\bi-[0-9a-f]{8,}\b/g, "[host]")
+      .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/g, "[id]"));
+  const INTERNAL_LINE_RE = /(?:\bat (?:nextflow|groovy|org\.codehaus|java\.|sun\.|jdk\.)|nextflow\.exception|\bgunicorn\b|worker recycle|_stream_logs|\.nextflow\.log|dkr\.ecr\.|--- error context ---)/i;
+  const sanitizeNextflowStatusForClient = (s: any): any => {
+    if (!s || typeof s !== "object") return s;
+    const out: any = { ...s };
+    if (Array.isArray(out.log_tail)) {
+      out.log_tail = out.log_tail
+        .map((l: any) => String(l))
+        .filter((l: string) => !INTERNAL_LINE_RE.test(l))
+        .map((l: string) => redactInternalText(l));
+    } else if (typeof out.log_tail === "string") {
+      out.log_tail = redactInternalText(out.log_tail);
+    }
+    for (const k of ["error", "errorMessage", "error_message", "message"]) {
+      if (typeof out[k] === "string") out[k] = redactInternalText(out[k]);
+    }
+    return out;
+  };
+
   // Get execution run status (lightweight polling endpoint)
   app.get("/api/workflows/runs/:id/status", async (req, res) => {
     try {
@@ -11206,9 +11236,12 @@ ${paramLines || '(none recorded)'}`;
         progress: run.progress,
         metrics: mergedMetrics,
         steps: req.query.includeSteps === 'true' ? run.steps : undefined,
-        errorMessage: run.execution.errorMessage,
+        // Finding 1: redact backend internals from the user-facing error + status.
+        errorMessage: run.execution.errorMessage
+          ? redactInternalText(run.execution.errorMessage)
+          : run.execution.errorMessage,
         autofix,
-        nextflowStatus,
+        nextflowStatus: sanitizeNextflowStatusForClient(nextflowStatus),
         artifactReadiness,
       });
     } catch (error: any) {
