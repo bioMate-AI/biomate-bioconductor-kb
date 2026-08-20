@@ -53,8 +53,14 @@ const _isMcpProxyPath = (p: string) =>
 // object first, making constructEvent throw "payload must be a string or Buffer" ->
 // every webhook 400s (signature verification impossible). Skip parsing for it so the
 // route's own raw parser receives the untouched bytes.
+// The /interactive/<token>/* routes are RAW-STREAM proxied to the interactive-tool
+// container (routes.ts /interactive proxy). Same failure mode as MCP above: a global
+// body parser drains the POST stream, so req.pipe() forwards an empty body and Jupyter
+// hangs (observed as 000/timeout on POST /api/kernels — starting a kernel — while every
+// GET worked). Skip parsing so the untouched stream reaches the proxy.
 const _needsRawBody = (req: Request) =>
-  _isMcpProxyPath(req.path) || req.path === '/api/payments/webhook';
+  _isMcpProxyPath(req.path) || req.path === '/api/payments/webhook' ||
+  req.path.startsWith('/interactive/');
 const _jsonParser = express.json();
 const _urlencodedParser = express.urlencoded({ extended: false });
 app.use((req, res, next) => (_needsRawBody(req) ? next() : _jsonParser(req, res, next)));

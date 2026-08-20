@@ -16477,10 +16477,13 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
       });
       const wss = new WebSocketServer({ noServer: true });
       wss.handleUpgrade(req, socket, head, (client: any) => {
-        const flush: any[] = [];
-        client.on("message", (m2: any) => (upstream.readyState === 1 ? upstream.send(m2) : flush.push(m2)));
-        upstream.on("open", () => { while (flush.length) upstream.send(flush.shift()); });
-        upstream.on("message", (m2: any) => client.readyState === 1 && client.send(m2));
+        // Preserve frame type (text vs binary). Jupyter's default kernel-channel protocol
+        // sends JSON as TEXT frames; forwarding them as binary makes the kernel silently drop
+        // the message (execute_request never runs → no reply). ws gives isBinary per message.
+        const flush: Array<{ data: any; isBinary: boolean }> = [];
+        client.on("message", (m2: any, isBinary: boolean) => (upstream.readyState === 1 ? upstream.send(m2, { binary: isBinary }) : flush.push({ data: m2, isBinary })));
+        upstream.on("open", () => { while (flush.length) { const f = flush.shift()!; upstream.send(f.data, { binary: f.isBinary }); } });
+        upstream.on("message", (m2: any, isBinary: boolean) => client.readyState === 1 && client.send(m2, { binary: isBinary }));
         client.on("close", () => upstream.close());
         upstream.on("close", () => client.close());
         upstream.on("error", () => client.close());
