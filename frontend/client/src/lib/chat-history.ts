@@ -154,8 +154,15 @@ class ChatHistoryService {
   }
   
   // Create a new chat session
-  createNewSession(): ChatSession {
+  createNewSession(projectId?: string | null): ChatSession {
+    // Link from creation to the active project (Option A). Default to the SAME
+    // source the chat-stream path uses (localStorage 'biomate-active-project-id',
+    // see chat-interface.tsx), so creation-time linkage matches message-time
+    // linkage. Null (top-level chat) stays unlinked per policy.
+    const resolvedProjectId = projectId
+      ?? (typeof window !== 'undefined' ? localStorage.getItem('biomate-active-project-id') : null);
     const newSession: ChatSession = {
+      ...(resolvedProjectId ? { projectId: resolvedProjectId } as any : {}),
       id: `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       title: "New Chat",
       timestamp: new Date(),
@@ -556,6 +563,9 @@ class ChatHistoryService {
       title: session.title,
       session_type: 'chat',
       status: session.status,
+      // Link to a project when the chat was started inside one (Option A). Backend
+      // COALESCEs so this never clobbers an existing link; null = top-level chat.
+      project_id: (session as any).projectId ?? null,
       message_count: session.messages.length,
       token_count: this.estimateTokenCount(session.messages),
       messages: session.messages.map(msg => ({

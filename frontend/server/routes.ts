@@ -14684,6 +14684,11 @@ Respond ONLY with valid JSON (no markdown wrapper):
   app.post("/api/sessions", authenticateToken, express.json(), async (req: any, res) => {
     try {
       const { session_id, title, messages, workflows, datasets } = req.body;
+      // Option A (no policy change): honor an explicit project_id at creation so a
+      // chat started INSIDE a project is linked from the first sync, not only after
+      // its first message. COALESCE on conflict never clobbers an existing link, and
+      // a null (top-level chat) stays unlinked per policy ("chats can have no project").
+      const projectId = (req.body?.project_id ?? req.body?.projectId) || null;
       if (!session_id) return res.status(400).json({ error: 'session_id required' });
       // Cap incoming dataset list at MAX_DATASET_REFS (32, drop oldest)
       // to match the same defense applied at the PUT site + the in-memory
@@ -14692,15 +14697,17 @@ Respond ONLY with valid JSON (no markdown wrapper):
       // and docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
       const cappedDatasets = capDatasetReferences(datasets || []);
       const rows = await pool.query(
-        `INSERT INTO chat_sessions (session_id, user_id, title, messages, workflows, datasets)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO chat_sessions (session_id, user_id, title, messages, workflows, datasets, project_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          ON CONFLICT (session_id) DO UPDATE SET
            title = EXCLUDED.title, messages = EXCLUDED.messages,
            workflows = EXCLUDED.workflows, datasets = EXCLUDED.datasets,
+           project_id = COALESCE(chat_sessions.project_id, EXCLUDED.project_id),
            last_activity = NOW()
          RETURNING *`,
         [session_id, req.user.id, title || 'New Chat',
-         JSON.stringify(messages || []), JSON.stringify(workflows || []), JSON.stringify(cappedDatasets)]
+         JSON.stringify(messages || []), JSON.stringify(workflows || []), JSON.stringify(cappedDatasets),
+         projectId]
       );
       res.status(201).json(rows.rows[0]);
     } catch (err: any) {
