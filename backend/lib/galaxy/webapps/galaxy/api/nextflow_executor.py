@@ -995,18 +995,34 @@ def _classify_failure(
 ) -> Optional[Dict[str, Any]]:
     """Classify a failed run into a user-safe verdict. Reads the RAW log for pattern
     matching but returns NONE of it. `suggested_action` in
-    {resume, resume_more_resources, fix_and_resume, check_input, restart_last_resort}.
-    `is_transient=True` means a plain resume can succeed unchanged; False means the
-    cause is deterministic and something must change before resuming."""
+    {resume, resume_more_resources, fix_and_resume, check_input, report,
+    restart_last_resort}. `is_transient=True` means a plain resume can succeed
+    unchanged; False means the cause is deterministic and something must change
+    before resuming. `fix_strategy` is the language-neutral tier the UI renders —
+    {auto_fixable, user_action_required, not_fixable} — mirroring
+    autofix.user_guidance.FixStrategy (docs/20260823_FAILURE_COMMUNICATION_STRATIFICATION.md)."""
     if str(status).lower() not in ("failed", "error", "cancelled"):
         return None
     raw = "\n".join(str(x) for x in log_tail) if isinstance(log_tail, list) else str(log_tail or "")
     low = raw.lower()
     rc = returncode
 
+    # category → fix_strategy tier (T1 auto-fix / T2 needs-you / T3-T4 not-user-fixable).
+    _STRATEGY = {
+        "infra_transient": "auto_fixable",
+        "resource_memory": "auto_fixable",
+        "resource_time": "auto_fixable",
+        "config_param": "user_action_required",
+        "input_data": "user_action_required",
+        "tool_error": "user_action_required",
+        "workflow_code": "not_fixable",   # T4: BioMate's defect, not the user's
+        "unknown": "not_fixable",
+    }
+
     def verdict(category: str, msg: str, transient: bool, action: str) -> Dict[str, Any]:
         return {"category": category, "user_message": msg,
-                "is_transient": transient, "suggested_action": action}
+                "is_transient": transient, "suggested_action": action,
+                "fix_strategy": _STRATEGY.get(category, "not_fixable")}
 
     # ── transient infrastructure (a plain resume can succeed) ──
     if any(k in low for k in ("spot", "reclaim", "instance was terminated", "host ec2",
@@ -1033,6 +1049,22 @@ def _classify_failure(
                        "The run hit its time limit. Resuming from the last completed "
                        "step with a longer limit should let it finish.", False,
                        "resume_more_resources")
+    # ── workflow-code defect (T4: the pipeline's OWN code is buggy — BioMate's fault,
+    #    not the user's input; a plain re-run repeats the crash). These are Groovy/DSL2
+    #    compile or JSON/GString parse signatures that only come from the .nf/embedded
+    #    code, never from user data — e.g. the JsonSlurper "Unable to determine the
+    #    current character…" error. Must precede config_param/tool_error so a code bug
+    #    is never mislabeled as a user-fixable parameter issue or offered a resume. ──
+    if any(k in low for k in ("unable to determine the current character",
+                              "compilationfailedexception", "compilation failed",
+                              "startup failed", "groovy.json", "jsonslurper",
+                              "groovy.lang.missingmethodexception",
+                              "no signature of method", "unable to parse script")):
+        return verdict("workflow_code",
+                       "This looks like a defect in the workflow itself — a step's code "
+                       "failed to run, not your input. A plain re-run would hit the same "
+                       "error, so we've flagged it for the BioMate team to fix.",
+                       False, "report")
     # ── configuration / parameter / syntax (deterministic: needs a fix) ──
     if any(k in low for k in ("unexpected token", "syntax error", "no such variable",
                               "missingpropertyexception", "cannot find", "not specified")):
