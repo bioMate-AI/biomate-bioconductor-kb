@@ -110,6 +110,9 @@ class ChatHistoryService {
         timestamp: new Date(bs.created_at),
         lastActivity: new Date(bs.last_activity),
         status: bs.status as 'active' | 'archived',
+        // Carry the session's project link so it round-trips (Option A) and the
+        // client knows which project a chat belongs to.
+        ...(bs.project_id ? { projectId: bs.project_id } as any : {}),
         messages: (bs.messages || []).map((m: any) => ({
           id: m.message_id,
           role: m.role,

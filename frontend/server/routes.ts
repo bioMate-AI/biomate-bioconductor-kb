@@ -14641,7 +14641,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
   app.get("/api/sessions/:sessionId", authenticateToken, async (req: any, res) => {
     try {
       const rows = await pool.query(
-        `SELECT session_id, title, status, created_at, last_activity, messages, workflows, datasets
+        `SELECT session_id, title, status, created_at, last_activity, messages, workflows, datasets, project_id
          FROM chat_sessions WHERE session_id = $1 AND user_id = $2`,
         [req.params.sessionId, req.user.id]
       );
