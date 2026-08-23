@@ -14626,7 +14626,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
     try {
       const limit = Math.min(parseInt((req.query as any).limit || '20', 10), 100);
       const rows = await pool.query(
-        `SELECT session_id, title, status, created_at, last_activity,
+        `SELECT session_id, title, status, created_at, last_activity, project_id,
                 jsonb_array_length(messages) AS message_count
          FROM chat_sessions WHERE user_id = $1
          ORDER BY last_activity DESC LIMIT $2`,

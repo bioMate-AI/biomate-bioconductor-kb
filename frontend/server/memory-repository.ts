@@ -245,7 +245,20 @@ export class ProjectMemoryRepository {
     const project = await db.query.projects.findFirst({
       where: eq(ltmSchema.projects.id, projectId),
     });
-    return project || null;
+    if (!project) return null;
+    // Attach real per-project counts (chats + workflow runs) so the detail
+    // DETAILS panel shows accurate numbers instead of "—" (matches getUserProjects).
+    try {
+      const { pool } = await import('./db');
+      const c = await pool.query(
+        `SELECT (SELECT COUNT(*) FROM chat_sessions WHERE project_id = $1)::int AS sc,
+                (SELECT COUNT(*) FROM execution_runs WHERE project_id = $1)::int AS rc`,
+        [projectId]
+      );
+      (project as any).sessionCount = c.rows[0]?.sc ?? 0;
+      (project as any).runCount = c.rows[0]?.rc ?? 0;
+    } catch { /* counts are best-effort */ }
+    return project;
   }
 
   /**
@@ -282,7 +295,9 @@ export class ProjectMemoryRepository {
          p.tags,
          p.created_at     AS "createdAt",
          p.updated_at     AS "updatedAt",
-         p.archived_at    AS "archivedAt"
+         p.archived_at    AS "archivedAt",
+         (SELECT COUNT(*) FROM chat_sessions cs WHERE cs.project_id = p.id)::int AS "sessionCount",
+         (SELECT COUNT(*) FROM execution_runs er WHERE er.project_id = p.id)::int AS "runCount"
        FROM projects p
        WHERE (p.user_id::text = $1
          OR EXISTS (

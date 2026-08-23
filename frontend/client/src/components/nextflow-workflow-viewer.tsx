@@ -1553,6 +1553,29 @@ export function NextflowWorkflowViewer({
     }
   };
 
+  // Fix B (#5): resume a FAILED run from its last cached step via the same
+  // /rerun (-resume) path QC remediation uses. The backend resume is status-
+  // agnostic (reconstructs -w <prev_work_dir> from the run id), so a failed
+  // run reuses its cached completed steps and only re-runs the failed one.
+  const _failure = (nextflowStatus as any)?.failure as
+    { user_message?: string; is_transient?: boolean; suggested_action?: string } | undefined;
+  const canResumeFailed = status === 'failed' && !!activeRunId && !!_failure
+    && ['resume', 'resume_more_resources', 'fix_and_resume'].includes(_failure.suggested_action || '');
+  const handleResumeFromFailed = async () => {
+    if (!activeRunId) { onExecute?.(params); return; }
+    try {
+      // (click already tracked as run_again_clicked at the button)
+      await fetch(`/api/workflows/runs/${encodeURIComponent(activeRunId)}/rerun`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ params }),
+      });
+    } catch (e) {
+      console.error('[NFViewer] resume-from-failed failed:', e);
+    }
+  };
+
   const dismissQcGate = React.useCallback((reason: 'user' | 'timeout') => {
     if (qcGateTimerRef.current) { clearInterval(qcGateTimerRef.current); qcGateTimerRef.current = null; }
     setShowQcInline(false);
@@ -3329,7 +3352,7 @@ export function NextflowWorkflowViewer({
             <button
               className="btn primary"
               data-testid={status === 'completed' ? 'panel-run-again-cta' : 'button-run-workflow-panel'}
-              onClick={() => { if (status === 'completed' || status === 'failed') analytics.track('run_again_clicked', { source: 'panel' }); handleExecute(); }}
+              onClick={() => { if (status === 'completed' || status === 'failed') analytics.track('run_again_clicked', { source: 'panel' }); if (canResumeFailed) { void handleResumeFromFailed(); } else { handleExecute(); } }}
               disabled={
                 (isPrereqBlocked && status !== 'completed')
                 || isAutofixActive
@@ -3349,12 +3372,25 @@ export function NextflowWorkflowViewer({
               }
             >
               {status === 'failed' ? (
-                'Restart'
+                canResumeFailed
+                  ? (_failure?.suggested_action === 'fix_and_resume' ? 'Fix & resume' : 'Resume from last step')
+                  : 'Restart'
               ) : status === 'completed' ? (
                 'Run again'
               ) : (
                 'Confirm and run workflow'
               )}
+            </button>
+          )}
+          {canResumeFailed && (
+            <button
+              type="button"
+              data-testid="button-start-over-failed"
+              onClick={() => { analytics.track('run_again_clicked', { source: 'panel' }); handleExecute(); }}
+              title="Discards cached work and re-runs the whole pipeline from the beginning"
+              style={{ marginLeft: 8, fontSize: 11, color: 'var(--bm-text-dim, oklch(0.55 0.01 260))', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              Start over
             </button>
           )}
           {showingSubmittedParams && (status === 'completed' || status === 'failed') && (
