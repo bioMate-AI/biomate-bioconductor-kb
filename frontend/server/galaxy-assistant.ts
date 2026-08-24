@@ -4884,7 +4884,6 @@ Rules:
     _sessionDatasets?: Array<{ id: string; name: string; type: string }>
   ): string {
     if (!wf) return '';
-    const workflowName = wf.workflow_name || wf.name || 'workflow';
     // Check for unfilled required params to warn the user
     const wfGaParams = wf.workflow_ga || {};
     const unfilledRequired = (wfGaParams.required_params || wf.required_params || []).filter(
@@ -4892,10 +4891,17 @@ Rules:
                   (p.default === null || p.default === undefined || p.default === '') &&
                   !p.autoFilled
     );
+    // NOTE: We deliberately do NOT emit a "<name> is ready in the panel — check
+    // the steps and parameters, then click Confirm & Run" preamble here. That
+    // sentence duplicated the workflow card rendered directly below the message
+    // (same name, same Confirm & Run affordance) and carried no extra signal.
+    // The structured summary (Predict … / Input / Key steps / Expected output)
+    // is supplied by the caller's base message. This helper now only surfaces
+    // the required-parameter warning, which the card does NOT show inline.
     const warning = unfilledRequired.length > 0
-      ? `\n⚠️ **${unfilledRequired.length} required parameter${unfilledRequired.length === 1 ? '' : 's'}** need to be filled — open the panel to configure before running.`
+      ? `⚠️ **${unfilledRequired.length} required parameter${unfilledRequired.length === 1 ? '' : 's'}** need to be filled — open the panel to configure before running.`
       : '';
-    return `**${workflowName}** is ready in the panel — check the steps and parameters, then click **Confirm & Run**.${warning}`;
+    return warning;
   }
 
   /**

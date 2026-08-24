@@ -567,6 +567,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   const recentRunSwitchesRef = useRef<number[]>([])
   const recentErrorCountsRef = useRef<Map<string, { count: number; windowStartMs: number }>>(new Map())
   const outputDeadEndSignalRunsRef = useRef<Set<string>>(new Set())
+  // Runs for which a FIND-style completion summary has already been emitted to
+  // chat. Idempotency guard so reload / re-poll / status re-fire don't duplicate.
+  const completionSummaryRunsRef = useRef<Set<string>>(new Set())
   const retryWithoutProgressRef = useRef<Map<string, { count: number; baselineProgress: number; windowStartMs: number }>>(new Map())
   const runListRequestSeqRef = useRef(0)
   const buildRunLineageContext = () => {
@@ -788,6 +791,134 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       setTimeout(() => setShowPostRunSurvey(true), 8000)
     }
   }, [currentRun?.id, currentRun?.execution?.status, currentRun?.execution?.galaxyInvocationId])
+
+  // ── Inline completion summary (FIND-style conclusion) ──────────────────────
+  // When a run COMPLETES, the chat only carried folded `workflow_progress`
+  // pills (the last one being "Workflow finished. N/M steps succeeded.") — the
+  // user never saw the actual answer inline and had to open the right-hand
+  // Findings tab. This effect emits a normal AI chat message (metadata.type
+  // 'findings', kind 'findings.summary') on completion, which the fold logic
+  // in chat-progress-fold.tsx keeps VISIBLE (the `find` speaker never folds),
+  // matching the claude-design ChatStream reference where FIND/conclusion
+  // lines stay inline.
+  //
+  // Idempotency: once per run via completionSummaryRunsRef, plus a durable
+  // check for an existing `findings-<runId>` message so a session reload /
+  // re-poll / status re-fire cannot duplicate it.
+  useEffect(() => {
+    const runId = currentRun?.id
+    const status = currentRun?.execution?.status
+    if (!runId || status !== 'completed') return
+    if (completionSummaryRunsRef.current.has(runId)) return
+    completionSummaryRunsRef.current.add(runId)
+
+    const sessionId = currentChatSession?.id
+    if (!sessionId) return
+
+    const workflowName: string =
+      (currentRun as any)?.workflowName ||
+      currentRun?.workflowDefinition?.name ||
+      'Workflow'
+    const completedSteps = currentRun?.progress?.completedSteps ?? 0
+    const totalSteps = currentRun?.progress?.totalSteps ?? 0
+    const findingsMsgId = `findings-${runId}`
+
+    // Durable idempotency: bail if this run's summary already exists in the
+    // persisted session (survives reload where the ref is reset).
+    const existingSession = chatHistoryService.getSession(sessionId)
+    if (existingSession?.messages?.some((m) => m.id === findingsMsgId)) return
+
+    let cancelled = false
+
+    const emit = (content: string) => {
+      if (cancelled) return
+      const session = chatHistoryService.getSession(sessionId)
+      if (!session) return
+      if (session.messages.some((m) => m.id === findingsMsgId)) return
+      const findingsMsg: Message = {
+        id: findingsMsgId,
+        role: 'assistant',
+        content,
+        timestamp: new Date(),
+        invocationId: currentRun?.execution?.galaxyInvocationId || runId,
+        metadata: {
+          // NOT 'workflow_progress' → chat-progress-fold keeps it visible.
+          type: 'findings',
+          kind: 'findings.summary',
+        } as any,
+      }
+      const updated = chatHistoryService.updateSession(session.id, {
+        messages: [...session.messages, findingsMsg],
+      })
+      if (updated) onChatUpdated(updated)
+    }
+
+    const stepLine =
+      totalSteps > 0
+        ? `${completedSteps}/${totalSteps} steps finished`
+        : 'run finished'
+    const reportLink = `[Open the Findings panel](#findings) for full results, tables, and the downloadable report.`
+
+    ;(async () => {
+      try {
+        // Reuse the same findings endpoint the AfterRunReport reads. If the
+        // structured summary is ready we surface real values; otherwise we
+        // emit a concise generic completion line (no fabricated numbers) and
+        // point the user at the Findings panel where analysis continues.
+        const resp = await fetch(`/api/workflows/runs/${runId}/findings`, {
+          credentials: 'include',
+        })
+        if (cancelled) return
+        if (resp.ok) {
+          const data: any = await resp.json()
+          const summary: string | undefined =
+            typeof data?.summary === 'string' ? data.summary.trim() : undefined
+          const keyResults: any[] = Array.isArray(data?.key_results)
+            ? data.key_results
+            : Array.isArray(data?.keyResults)
+              ? data.keyResults
+              : []
+          if (data?.status === 'ready' && (summary || keyResults.length > 0)) {
+            const lines: string[] = [`**${workflowName} — complete.**`]
+            if (summary) lines.push('', summary)
+            const bullets = keyResults
+              .slice(0, 3)
+              .map((k: any) => {
+                if (typeof k === 'string') return `- ${k}`
+                const metric = k?.metric || k?.name || k?.label
+                const value = k?.value ?? k?.result
+                const interp = k?.interpretation || k?.significance
+                if (metric && value !== undefined && value !== null) {
+                  return `- **${metric}:** ${value}${interp ? ` — ${interp}` : ''}`
+                }
+                if (k?.finding) {
+                  return `- ${k.finding}${k?.significance ? ` — ${k.significance}` : ''}`
+                }
+                return null
+              })
+              .filter(Boolean) as string[]
+            if (bullets.length > 0) {
+              lines.push('', '**Key results:**', ...bullets)
+            }
+            lines.push('', reportLink)
+            emit(lines.join('\n'))
+            return
+          }
+        }
+      } catch {
+        /* fall through to generic line — never block completion messaging */
+      }
+      // No structured results available in the payload (still analyzing, no
+      // readable outputs, or endpoint error): emit a concise, honest line.
+      emit(
+        `**${workflowName} — complete.** ${stepLine}. ${reportLink}`,
+      )
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [currentRun?.id, currentRun?.execution?.status, currentChatSession?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle execution errors
   useEffect(() => {
