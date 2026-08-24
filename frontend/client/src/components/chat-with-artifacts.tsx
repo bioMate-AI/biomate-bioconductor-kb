@@ -12,6 +12,7 @@ import { useActiveProject } from "@/contexts/active-project-context"
 import { applyWorkflowEdits, type WorkflowEdit } from "@/lib/workflow-edits"
 import { extractWorkflowEdits } from "@/lib/workflow-edits-extract"
 import { normalizePrereqChecklist } from "@/lib/prereq-normalizer"
+import { buildRunCompletionSummary } from "@/lib/chat-completion-summary"
 // WorkflowHistoryPanel removed
 import { chatHistoryService } from "@/lib/chat-history"
 import { submitWorkflowFromArtifact, buildChainSubmitSteps, buildChainConnections, resumeWorkflowChain } from "@/lib/chain-execution"
@@ -853,66 +854,23 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       if (updated) onChatUpdated(updated)
     }
 
-    const stepLine =
-      totalSteps > 0
-        ? `${completedSteps}/${totalSteps} steps finished`
-        : 'run finished'
-    const reportLink = `[Open the Findings panel](#findings) for full results, tables, and the downloadable report.`
-
     ;(async () => {
+      // Reuse the same findings endpoint the AfterRunReport reads. If the
+      // structured summary is ready we surface real values; otherwise
+      // buildRunCompletionSummary emits a concise generic completion line (no
+      // fabricated numbers) pointing at the Findings panel. Never block on error.
+      let data: any = null
       try {
-        // Reuse the same findings endpoint the AfterRunReport reads. If the
-        // structured summary is ready we surface real values; otherwise we
-        // emit a concise generic completion line (no fabricated numbers) and
-        // point the user at the Findings panel where analysis continues.
         const resp = await fetch(`/api/workflows/runs/${runId}/findings`, {
           credentials: 'include',
         })
         if (cancelled) return
-        if (resp.ok) {
-          const data: any = await resp.json()
-          const summary: string | undefined =
-            typeof data?.summary === 'string' ? data.summary.trim() : undefined
-          const keyResults: any[] = Array.isArray(data?.key_results)
-            ? data.key_results
-            : Array.isArray(data?.keyResults)
-              ? data.keyResults
-              : []
-          if (data?.status === 'ready' && (summary || keyResults.length > 0)) {
-            const lines: string[] = [`**${workflowName} — complete.**`]
-            if (summary) lines.push('', summary)
-            const bullets = keyResults
-              .slice(0, 3)
-              .map((k: any) => {
-                if (typeof k === 'string') return `- ${k}`
-                const metric = k?.metric || k?.name || k?.label
-                const value = k?.value ?? k?.result
-                const interp = k?.interpretation || k?.significance
-                if (metric && value !== undefined && value !== null) {
-                  return `- **${metric}:** ${value}${interp ? ` — ${interp}` : ''}`
-                }
-                if (k?.finding) {
-                  return `- ${k.finding}${k?.significance ? ` — ${k.significance}` : ''}`
-                }
-                return null
-              })
-              .filter(Boolean) as string[]
-            if (bullets.length > 0) {
-              lines.push('', '**Key results:**', ...bullets)
-            }
-            lines.push('', reportLink)
-            emit(lines.join('\n'))
-            return
-          }
-        }
+        if (resp.ok) data = await resp.json()
       } catch {
         /* fall through to generic line — never block completion messaging */
       }
-      // No structured results available in the payload (still analyzing, no
-      // readable outputs, or endpoint error): emit a concise, honest line.
-      emit(
-        `**${workflowName} — complete.** ${stepLine}. ${reportLink}`,
-      )
+      if (cancelled) return
+      emit(buildRunCompletionSummary(workflowName, data, completedSteps, totalSteps))
     })()
 
     return () => {
