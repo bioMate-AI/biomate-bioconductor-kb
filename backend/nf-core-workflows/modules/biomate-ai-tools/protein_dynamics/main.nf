@@ -30,6 +30,10 @@ process BIOEMU_SAMPLE {
     script:
     def prefix   = task.ext.prefix ?: "${meta.id}"
     def n_samp   = n_samples ?: 100
+    // Real-run gate: if BioEmu fails, HARD-FAIL by default. The Gaussian-noise surrogate
+    // is a NON-REAL ensemble and is emitted ONLY when explicitly opted in (tests/dev),
+    // stamped is_real=false so downstream refuses it. Never silently report fake dynamics.
+    def allow_surrogate = task.ext.allow_surrogate ? 'True' : 'False'
     """
     set -euo pipefail
 
@@ -52,10 +56,12 @@ import numpy as np
 input_file   = "${pdb_or_fasta}"
 prefix       = "${prefix}"
 n_samples    = int("${n_samp}")
+ALLOW_SURROGATE = ${allow_surrogate}   # injected from task.ext.allow_surrogate (default False)
 
 os.makedirs("ensemble_pdbs", exist_ok=True)
 
 bioemu_ok = False
+ensemble_method = "bioemu"   # flips to "gaussian_surrogate" only on opt-in fallback
 
 # -- Extract FASTA from PDB if input is a PDB file ---------------------------
 ext = os.path.splitext(input_file)[1].lower()
@@ -188,11 +194,28 @@ except Exception as ex:
     print(f"[BIOEMU_SAMPLE] BioEmu error: {ex} — using MDAnalysis fallback", flush=True)
 
 if not bioemu_ok:
-    # MDAnalysis fallback: generate Gaussian-perturbed conformations (~0.5 Å sigma)
-    # approximates thermal backbone fluctuations for ordered proteins at 300 K
+    # BioEmu did not produce a real conformational ensemble.
+    # HARD REAL-RUN GATE (default): fail loudly so the run is marked FAILED. A physics-free
+    # 0.5 Å Gaussian jitter is NOT a conformational ensemble (it cannot span alternate states /
+    # elevator transitions) — silently reporting it as SUCCESS would poison M3–M6 with fake
+    # dynamics that look real. Per project discipline: fix the root cause (BioEmu deps/weights/
+    # GPU), never bypass.
+    if not ALLOW_SURROGATE:
+        print("[BIOEMU_SAMPLE] FATAL: BioEmu produced no ensemble and ALLOW_SURROGATE is off. "
+              "Refusing to emit a Gaussian-noise surrogate as a real ensemble. Fix BioEmu "
+              "(dependencies/weights/GPU) — do not bypass. For a deliberately-labeled NON-REAL "
+              "surrogate in tests, set task.ext.allow_surrogate = true.", file=sys.stderr)
+        sys.exit(1)
+
+    # Opt-in surrogate (tests/dev ONLY). Output is stamped is_real=false (see MANIFEST) so any
+    # downstream consumer can refuse it. Must never feed a scientific claim.
+    ensemble_method = "gaussian_surrogate"
+    print("[BIOEMU_SAMPLE] WARNING: ALLOW_SURROGATE on — emitting 0.5 Å Gaussian-perturbed "
+          "conformers. NON-REAL ensemble; MUST NOT be used for path/kinetics or any claim.",
+          file=sys.stderr)
     pdb_file = input_file if ext in (".pdb", ".ent") else None
     if pdb_file is None:
-        print("[BIOEMU_SAMPLE] ERROR: MDAnalysis fallback requires PDB input", file=sys.stderr)
+        print("[BIOEMU_SAMPLE] ERROR: surrogate requires PDB input", file=sys.stderr)
         sys.exit(1)
 
     import MDAnalysis as mda
@@ -200,11 +223,11 @@ if not bioemu_ok:
     print(f"[BIOEMU_SAMPLE] Loading {pdb_file} with MDAnalysis...", flush=True)
     u = mda.Universe(pdb_file)
     n_atoms = len(u.atoms)
-    print(f"[BIOEMU_SAMPLE] {n_atoms} atoms loaded — generating {n_samples} perturbed conformers", flush=True)
+    print(f"[BIOEMU_SAMPLE] {n_atoms} atoms loaded — generating {n_samples} surrogate conformers", flush=True)
 
     ref_positions = u.atoms.positions.copy()
     rng = np.random.default_rng(42)
-    sigma = 0.5  # Å — typical Cα RMSF for ordered regions
+    sigma = 0.5  # Å
 
     for i in range(n_samples):
         u.atoms.positions = ref_positions + rng.normal(0, sigma, ref_positions.shape).astype("float32")
@@ -213,7 +236,7 @@ if not bioemu_ok:
             writer.write(u.atoms)
 
     u.atoms.positions = ref_positions
-    print(f"[BIOEMU_SAMPLE] MDAnalysis fallback: {n_samples} conformers written", flush=True)
+    print(f"[BIOEMU_SAMPLE] surrogate: {n_samples} conformers written", flush=True)
 
 # Verify output
 pdbs = sorted(glob.glob("ensemble_pdbs/*.pdb"))
@@ -223,11 +246,17 @@ if not pdbs:
 
 print(f"[BIOEMU_SAMPLE] Generated {len(pdbs)} conformers", flush=True)
 
-# Write a manifest so downstream processes know the count
+# Write a manifest so downstream processes know the count AND whether the ensemble is real.
+# Downstream M3–M6 must refuse is_real=false before running path/kinetics or emitting claims.
+is_real = (ensemble_method == "bioemu")
 with open("ensemble_pdbs/MANIFEST.txt", "w") as fh:
     fh.write(f"n_conformers={len(pdbs)}\\n")
+    fh.write(f"ensemble_method={ensemble_method}\\n")
+    fh.write(f"is_real={'true' if is_real else 'false'}\\n")
     for p in pdbs:
         fh.write(os.path.basename(p) + "\\n")
+if not is_real:
+    print("[BIOEMU_SAMPLE] NOTE: MANIFEST is_real=false — surrogate ensemble, not for scientific use.", flush=True)
 PYEOF
 
     # -- Pack ensemble into a single archive -----------------------------------

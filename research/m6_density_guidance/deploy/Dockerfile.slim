@@ -1,0 +1,22 @@
+FROM nvidia/cuda:11.3.1-cudnn8-runtime-ubuntu20.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends wget git ca-certificates unzip build-essential zlib1g-dev && rm -rf /var/lib/apt/lists/*
+RUN wget -q https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -O /tmp/mc.sh && bash /tmp/mc.sh -b -p /opt/conda && rm /tmp/mc.sh
+ENV PATH=/opt/conda/bin:$PATH
+RUN conda create -y -n omtps python=3.9 && conda clean -afy
+# full compiled/scientific stack from conda-forge (incl deeptime/sklearn/scipy/networkx/statsmodels the eval chain needs)
+RUN conda install -y -n omtps -c conda-forge "numpy>=1.21,<1.24" mdtraj openmm pdbfixer pyemma pandas awscli \
+      scikit-learn scipy networkx statsmodels deeptime && conda clean -afy
+SHELL ["conda","run","-n","omtps","/bin/bash","-c"]
+RUN pip install --no-cache-dir torch==1.12.1+cu113 -f https://download.pytorch.org/whl/torch_stable.html && \
+    pip install --no-cache-dir biopython==1.79 wandb==0.18.7 dm-tree einops torchdiffeq fair-esm \
+        ase torch-geometric rmsd tqdm gsd flow_matching ema-pytorch tensorboard moleculekit parmed \
+        matplotlib ipython scienceplots pillow && \
+    pip install --no-cache-dir --no-deps torchmd==0.0.2
+RUN conda clean -afy && rm -rf /opt/conda/pkgs/* /root/.cache /tmp/* && \
+    find /opt/conda -follow -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null; \
+    find /opt/conda -follow -type f -name '*.a' -delete 2>/dev/null; true
+COPY OM-TPS /opt/OM-TPS
+WORKDIR /opt/OM-TPS/two-for-one-diffusion
+# BUILD-TIME IMPORT SMOKE TEST: green build => the run's full import chain works (no runtime whack-a-mole)
+RUN python -c "import evaluate.evaluate_fastfolders, evaluate.evaluators, datasets.dataset_utils_empty, models.flow_matching, models.ddpm, dynamics.langevin, utils, actions, density_guidance; print('OMTPS_IMPORTS_OK')"

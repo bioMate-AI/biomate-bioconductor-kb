@@ -1,0 +1,16 @@
+FROM nvidia/cuda:11.3.1-cudnn8-runtime-ubuntu20.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends wget git ca-certificates build-essential zlib1g-dev unzip && rm -rf /var/lib/apt/lists/*
+RUN wget -q https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -O /tmp/mc.sh && bash /tmp/mc.sh -b -p /opt/conda && rm /tmp/mc.sh
+ENV PATH=/opt/conda/bin:$PATH
+RUN conda create -y -n omtps python=3.9 && conda clean -a -y
+# all numpy-sensitive / compiled pkgs under ONE conda-forge solve (loosened pins -> satisfiable)
+RUN conda install -y -n omtps -c conda-forge "numpy>=1.21,<1.24" mdtraj openmm pdbfixer pyemma pandas awscli && conda clean -a -y
+SHELL ["conda","run","-n","omtps","/bin/bash","-c"]
+# pure-python / torch via pip (numpy-tolerant; pip won't upgrade already-satisfied numpy)
+RUN pip install torch==1.12.1+cu113 -f https://download.pytorch.org/whl/torch_stable.html && \
+    pip install biopython==1.79 wandb==0.18.7 dm-tree einops torchdiffeq fair-esm \
+        ase torch-geometric rmsd tqdm gsd flow_matching ema-pytorch tensorboard moleculekit parmed matplotlib && \
+    pip install --no-deps torchmd==0.0.2
+COPY OM-TPS /opt/OM-TPS
+WORKDIR /opt/OM-TPS/two-for-one-diffusion

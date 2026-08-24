@@ -163,3 +163,6 @@ yarn-error.log*
 desktop/src-tauri/target/
 data/validation/gwas/*.tsv.gz
 data/validation/gwas/*.gz
+research/OM-TPS/
+research/mdgen/
+research/string-method/

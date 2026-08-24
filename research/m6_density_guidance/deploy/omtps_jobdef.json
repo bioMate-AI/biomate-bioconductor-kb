@@ -1,0 +1,10 @@
+{
+  "image": "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/om-tps:v1",
+  "jobRoleArn": "arn:aws:iam::399683337364:role/ecsInstanceRole",
+  "resourceRequirements": [
+    {"type": "GPU", "value": "1"},
+    {"type": "VCPU", "value": "8"},
+    {"type": "MEMORY", "value": "40960"}
+  ],
+  "command": ["bash", "-c", "echo override-at-submit"]
+}
