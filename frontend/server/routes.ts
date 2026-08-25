@@ -14342,10 +14342,22 @@ Respond ONLY with valid JSON (no markdown wrapper):
         }
       }
 
+      // Tool-specific input mapping. CellxGene requires an `infile` (an h5ad HDA) — it visualizes a
+      // specific dataset and Galaxy 400s the launch without it. Map the first selected dataset id to
+      // the tool's `infile` param. (Jupyter/RStudio ignore inputs.)
+      let launchInputs = inputs || {};
+      if (/cellxgene/i.test(String(tool_id))) {
+        const dsIds: string[] = Array.isArray(launchInputs?.dataset_ids) ? launchInputs.dataset_ids : [];
+        if (!dsIds.length) {
+          return res.status(400).json({ error: "CellxGene requires an input .h5ad dataset. Select one dataset to visualize." });
+        }
+        launchInputs = { ...launchInputs, infile: { src: "hda", id: dsIds[0] } };
+      }
+
       const result = await userProxy(req).launchInteractiveTool(
         tool_id,
         historyId,
-        inputs
+        launchInputs
       );
 
       // Resolve the per-session entry-point token for THIS job so the client can
@@ -14357,9 +14369,14 @@ Respond ONLY with valid JSON (no markdown wrapper):
       // but the raw token + container are usable via the /interactive proxy at once.
       let entryPointUrl: string | null = result.entry_point_url || null;
       if (result.job_id) {
-        for (let i = 0; i < 12 && !entryPointUrl; i++) {
+        // Poll up to ~30s: lightweight tools (Jupyter) register their entry point in ~2s, but heavier
+        // ones (CellxGene copies + loads the h5ad; other viewers pull large images) take ~15-25s to
+        // dispatch + register. 12s was too short and returned a null URL for those.
+        for (let i = 0; i < 30 && !entryPointUrl; i++) {
           const ep = tokenForJob(result.job_id);
-          if (ep?.token) { entryPointUrl = `/interactive/${ep.token}/${ep.entry_url || "ipython/lab"}`; break; }
+          // entry_url is already normalized (no leading slash); empty for tools that land at root
+          // (RStudio) → /interactive/<token>/ ; 'ipython/lab' for Jupyter.
+          if (ep?.token) { entryPointUrl = `/interactive/${ep.token}/${ep.entry_url}`; break; }
           await new Promise((r) => setTimeout(r, 1000));
         }
       }
@@ -16429,9 +16446,13 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
       const name = _execSync(`docker exec biomate-galaxy-dev python3 -c "${py}"`, { encoding: "utf8", timeout: 6000 }).trim();
       if (!/^[a-f0-9]{16,}$/i.test(name)) return null;
       const ports = JSON.parse(_execSync(`docker inspect ${name} --format "{{json .NetworkSettings.Ports}}"`, { encoding: "utf8", timeout: 6000 }).trim());
-      for (const k of ["8888/tcp", "8787/tcp", "5005/tcp"]) {
-        if (ports[k]?.[0]?.HostPort) {
-          const port = parseInt(ports[k][0].HostPort, 10);
+      // Port-agnostic: an interactive-tool container publishes exactly one entry-point port. Take the
+      // first published TCP port whatever it is (Jupyter 8888, RStudio 8787, CellxGene 80, Shiny 3838,
+      // iobio 9001, …) so ALL 32 tools route without a hardcoded per-tool list.
+      for (const k of Object.keys(ports || {})) {
+        const hp = ports[k]?.[0]?.HostPort;
+        if (hp) {
+          const port = parseInt(hp, 10);
           _itCache.set(token, { port, at: Date.now() });
           return { host: IT_GATEWAY, port };
         }
@@ -16458,15 +16479,19 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
         `jid=h.decode_id('${encodedJobId}');` +
         "c=sqlite3.connect('/app/database/universe.sqlite');" +
         "r=c.execute('select token,entry_url from interactivetool_entry_point where job_id=? order by id desc limit 1',(jid,)).fetchone();" +
-        "print((r[0]+chr(9)+(r[1] or 'ipython/lab')) if r else '')";
+        "print((r[0]+chr(9)+(r[1] or '')) if r else '')";
       const out = _execSync(
         `docker exec -e PYTHONPATH=/app/lib biomate-galaxy-dev python3 -c "${py}"`,
         { encoding: "utf8", timeout: 8000 }
       ).trim();
       if (!out) return null;
-      const [token, entry_url] = out.split("\t");
+      const [token, rawEntry] = out.split("\t");
       if (!/^[a-z0-9]{6,32}$/i.test(token)) return null;
-      return { token, entry_url: entry_url || "ipython/lab" };
+      // entry_url is the tool's landing path (Jupyter: 'ipython/lab'; RStudio: none → root).
+      // Normalize: strip leading slashes so the caller can build /interactive/<token>/<entry_url>
+      // without a double slash when it's empty.
+      const entry_url = (rawEntry || "").replace(/^\/+/, "");
+      return { token, entry_url };
     } catch {
       return null;
     }
@@ -16478,21 +16503,32 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
     const sub = m[2] || "/"; // container path, e.g. /ipython/lab or /ipython/static/...
     const target = targetForToken(token);
     if (!target) { res.status(503).send("Interactive session not ready"); return; }
+    const publicHost = String(req.headers.host || "");
+    const internalRe = new RegExp(`https?://${target.host.replace(/\./g, "\\.")}(:${target.port})?`, "g");
+    // Rewrite any absolute internal-host URL (e.g. RStudio's redirects) back to the public host.
+    const fixLoc = (h: any) => { if (h && h.location) h.location = String(h.location).replace(internalRe, `https://${publicHost}`); return h; };
     const proxied = httpRequest(
-      { host: target.host, port: target.port, method: req.method, path: sub, headers: { ...req.headers, host: `${target.host}:${target.port}` } },
+      // X-RStudio-Root-Path: RStudio reads its base path from this header per request (its tool XML
+      // declares requires_path_in_header_named="X-RStudio-Root-Path"), so it emits correct per-session
+      // URLs. X-Forwarded-* tell it the real public host/proto so redirects don't leak the internal
+      // gateway address. Host stays internal for tools (e.g. Jupyter) that validate it. Harmless to
+      // tools that ignore these.
+      { host: target.host, port: target.port, method: req.method, path: sub, headers: { ...req.headers, host: `${target.host}:${target.port}`, "x-rstudio-root-path": `/interactive/${token}`, "x-forwarded-proto": "https", "x-forwarded-host": publicHost } },
       (pr) => {
         if (/text\/html/i.test(String(pr.headers["content-type"] || ""))) {
-          // Rewrite baseUrl so the app's own requests stay per-session.
+          // Rewrite baseUrl + any absolute internal-host URLs so the app's own requests stay per-session.
           const chunks: Buffer[] = [];
           pr.on("data", (d: Buffer) => chunks.push(d));
           pr.on("end", () => {
-            const body = Buffer.concat(chunks).toString("utf8").split("/ipython/").join(`/interactive/${token}/ipython/`);
-            const h: any = { ...pr.headers }; delete h["content-length"];
+            const body = Buffer.concat(chunks).toString("utf8")
+              .split("/ipython/").join(`/interactive/${token}/ipython/`)
+              .replace(internalRe, `https://${publicHost}`);
+            const h: any = fixLoc({ ...pr.headers }); delete h["content-length"];
             res.writeHead(pr.statusCode || 200, h);
             res.end(body);
           });
         } else {
-          res.writeHead(pr.statusCode || 502, pr.headers);
+          res.writeHead(pr.statusCode || 502, fixLoc({ ...pr.headers }));
           pr.pipe(res);
         }
       }
@@ -16513,7 +16549,7 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
     if (!target) { socket.destroy(); return; }
     try {
       const upstream = new _WSClient(`ws://${target.host}:${target.port}${sub}`, {
-        headers: { cookie: req.headers.cookie || "" },
+        headers: { cookie: req.headers.cookie || "", "x-rstudio-root-path": `/interactive/${token}` },
       });
       const wss = new WebSocketServer({ noServer: true });
       wss.handleUpgrade(req, socket, head, (client: any) => {

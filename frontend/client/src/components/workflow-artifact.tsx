@@ -1684,6 +1684,7 @@ export function WorkflowArtifact({
         onOpenChange={setShowInteractiveLauncher}
         outputs={outputs}
         historyId={galaxyHistoryId}
+        datasetFormat={outputs?.[0]?.name?.split(".").pop()?.toLowerCase() || ""}
       />
 
       {/* P3: Subworkflow Extractor */}

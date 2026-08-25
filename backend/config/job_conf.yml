@@ -33,6 +33,41 @@ execution:
       docker_volumes: $defaults
       docker_run_extra_arguments: -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY -e OLLAMA_HOST=http://localhost:11434 -e LLM_SOURCE=Ollama -e MPLCONFIGDIR=/tmp -e HOME=/tmp
 
+    # Interactive tools (Jupyter/RStudio/CellxGene) run a persistent CHILD container via
+    # docker-out-of-docker. It must NOT mount $galaxy_root (/app) — that path does not exist
+    # on the host daemon, so the child got an empty mount and could not find its files.
+    # Mount only host-resolvable paths (job/working/files live under /app/database, which is
+    # symlinked on the host to the real DB dir by sync_to_dev.sh:enable_interactive_tools).
+    # The IT container image itself is supplied by the tool XML, not docker_default_container_id.
+    docker_interactive:
+      runner: local
+      docker_enabled: true
+      docker_auto_rm: true
+      # No docker_set_user: interactive-tool images run as their OWN default user.
+      # Jupyter's default is jovyan (uid 1000) — identical to the old --user 1000:1000, so
+      # unaffected — while RStudio (rocker) needs root for its /init + chmod, which --user broke
+      # (job exited 1). This is the reliable knob; the tool→destination regex routing to a separate
+      # root destination proved flaky to reload.
+      docker_volumes: $job_directory:rw,$working_directory:rw,$default_file_path:rw
+      docker_run_extra_arguments: -e MPLCONFIGDIR=/tmp -e HOME=/tmp
+
+    # RStudio needs its s6-overlay /init to run as ROOT (rocker/rstudio does root
+    # setup then drops to the rstudio user). Forcing --user $UID makes server startup
+    # fail and the job errors. Same as docker_interactive but WITHOUT docker_set_user,
+    # so the container runs as the image's own default user (root for rocker/rstudio).
+    docker_interactive_root:
+      runner: local
+      docker_enabled: true
+      docker_auto_rm: true
+      # Empty string EXPLICITLY disables --user (absence would default to $UID). RStudio's
+      # s6-overlay v2 init requires root; --user 1000:1000 => "s6-supervise: unable to exec run:
+      # Permission denied" and the job exits 1 ~15s in.
+      docker_set_user: ''
+      docker_volumes: $job_directory:rw,$working_directory:rw,$default_file_path:rw
+      # DISABLE_AUTH=true: skip RStudio's sign-in page and open straight into the IDE (the session
+      # is already gated by BioMate auth + the per-token proxy).
+      docker_run_extra_arguments: -e MPLCONFIGDIR=/tmp -e HOME=/tmp -e DISABLE_AUTH=true
+
     # Biomni tools environment
     docker_biomni:
       runner: local
@@ -48,6 +83,27 @@ execution:
 tools:
   - id: biomni_.*
     environment: docker_biomni
+  # Built-in data-ingestion tools need no container — run them in the plain local
+  # runner so uploads and URL/S3 fetch actually materialize. The default
+  # docker_local destination requires a docker binary that the Galaxy container
+  # does not have, so these jobs errored with "docker: command not found" and left
+  # every uploaded/fetched dataset in state=error, size=0 (empty HDA).
+  - id: upload1
+    environment: local
+  - id: __DATA_FETCH__
+    environment: local
+  # ALL interactive tools → the root (no docker_set_user) destination. Running each container as its
+  # OWN default user is what Galaxy IT expects: Jupyter's default is jovyan, RStudio's s6 needs root,
+  # CellxGene binds privileged port 80 — forcing --user $UID breaks the latter two. One rule covers
+  # the whole set (no per-tool ids). The exact-id rules below are a belt-and-suspenders fallback in
+  # case this Galaxy build does not honor the regex here (verify after a FULL galaxyctl restart —
+  # a gunicorn HUP does not reload job routing, which earlier looked like "regex not matching").
+  - id: interactive_tool_.*
+    environment: docker_interactive_root
+  - id: interactive_tool_rstudio
+    environment: docker_interactive_root
+  - id: interactive_tool_cellxgene
+    environment: docker_interactive_root
 
 limits:
   - type: registered_user_concurrent_jobs

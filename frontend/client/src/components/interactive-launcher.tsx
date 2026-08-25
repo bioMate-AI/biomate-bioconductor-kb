@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { recommendViewers, VIEWER_META, VIEWER_TOOL_ID, type ViewerKey } from "@/lib/interactive-viewers"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -30,43 +31,27 @@ interface InteractiveLauncherProps {
   onOpenChange: (open: boolean) => void
   outputs?: OutputFile[]
   historyId?: string
-  /** Pre-select this tool when the dialog opens.
-   *  Callers should pick based on file extension:
-   *    h5ad/loom  → 'cellxgene'
-   *    rds/rdata  → 'rstudio'
-   *    csv/tsv    → 'rstudio'
-   *    everything → 'jupyter' (default)
-   */
+  /** Explicitly pre-select this viewer. Usually leave unset and pass `datasetFormat` instead —
+   *  the primary viewer is then auto-selected by the dataset's Galaxy datatype. */
   initialTool?: InteractiveTool
+  /** Dataset Galaxy datatype/extension (e.g. 'h5ad','vcf','bam'). Drives auto-selection: the matching
+   *  viewer is pre-selected and only relevant viewers (+ Jupyter/RStudio escape-hatch) are shown. */
+  datasetFormat?: string
 }
 
-type InteractiveTool = 'jupyter' | 'rstudio' | 'cellxgene'
+// Viewer identity + metadata now live in the shared registry (src/lib/interactive-viewers.ts) so the
+// format→viewer mapping is one source of truth. Optional preloaded-package badges augment the meta.
+type InteractiveTool = ViewerKey
 
-const INTERACTIVE_TOOLS: Record<InteractiveTool, {
-  name: string
-  description: string
-  preloaded: string[]
-  bestFor: string
-}> = {
-  jupyter: {
-    name: 'Jupyter Notebook',
-    description: 'Python 3.10 interactive environment',
-    preloaded: ['pandas', 'numpy', 'matplotlib', 'seaborn', 'scanpy', 'scikit-learn'],
-    bestFor: 'Custom analysis, visualization, machine learning'
-  },
-  rstudio: {
-    name: 'RStudio',
-    description: 'R 4.3 statistical computing environment',
-    preloaded: ['DESeq2', 'edgeR', 'ggplot2', 'tidyverse', 'Bioconductor'],
-    bestFor: 'Statistical analysis, Bioconductor packages'
-  },
-  cellxgene: {
-    name: 'CellxGene',
-    description: 'Interactive single-cell visualization',
-    preloaded: ['Scanpy integration', 'UMAP/t-SNE', 'Gene expression browser'],
-    bestFor: 'Single-cell RNA-seq visualization and exploration'
-  }
+const PRELOADED: Partial<Record<InteractiveTool, string[]>> = {
+  jupyter: ['pandas', 'numpy', 'matplotlib', 'scanpy', 'scikit-learn'],
+  rstudio: ['DESeq2', 'edgeR', 'ggplot2', 'tidyverse', 'Bioconductor'],
+  cellxgene: ['UMAP/t-SNE', 'Gene expression browser'],
 }
+const INTERACTIVE_TOOLS: Record<InteractiveTool, { name: string; description: string; bestFor: string; preloaded: string[] }> =
+  Object.fromEntries(
+    (Object.keys(VIEWER_META) as InteractiveTool[]).map((k) => [k, { ...VIEWER_META[k], preloaded: PRELOADED[k] ?? [] }])
+  ) as any
 
 export function InteractiveLauncher({
   open,
@@ -74,14 +59,22 @@ export function InteractiveLauncher({
   outputs = [],
   historyId,
   initialTool,
+  datasetFormat,
 }: InteractiveLauncherProps) {
-  const [selectedTool, setSelectedTool] = useState<InteractiveTool>(initialTool ?? 'jupyter')
+  // Contextual launch (a dataset format is known) → auto-select the primary viewer and show only
+  // relevant ones (+ Jupyter/RStudio escape-hatch). Manual launch from the panel (no format) → show
+  // ALL viewers and default to Jupyter. Explicit initialTool always wins.
+  const rec = recommendViewers(datasetFormat)
+  const allViewers = Object.keys(VIEWER_META) as InteractiveTool[]
+  const defaultTool: InteractiveTool = initialTool ?? (datasetFormat ? rec.primary : 'jupyter')
+  const shownTools: InteractiveTool[] = datasetFormat ? [rec.primary, ...rec.alternatives] : allViewers
+  const [selectedTool, setSelectedTool] = useState<InteractiveTool>(defaultTool)
 
-  // Sync to initialTool whenever the dialog opens or initialTool changes.
+  // Re-apply the auto-selection whenever the dialog opens or the dataset/tool changes.
   // Because Dialog doesn't unmount, state persists between opens.
   useEffect(() => {
-    if (open) setSelectedTool(initialTool ?? 'jupyter')
-  }, [open, initialTool])
+    if (open) setSelectedTool(defaultTool)
+  }, [open, initialTool, datasetFormat])
   const [selectedOutputs, setSelectedOutputs] = useState<Set<string>>(new Set())
   const [isLaunching, setIsLaunching] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -197,9 +190,7 @@ export function InteractiveLauncher({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tool_id: selectedTool === 'jupyter' ? 'interactive_tool_jupyter_notebook' :
-                   selectedTool === 'rstudio' ? 'interactive_tool_rstudio' :
-                   'interactive_tool_cellxgene',
+          tool_id: VIEWER_TOOL_ID[selectedTool],
           inputs: {
             history_id: historyId,
             dataset_ids: Array.from(selectedOutputs)
@@ -264,7 +255,10 @@ export function InteractiveLauncher({
                 onValueChange={(v) => setSelectedTool(v as InteractiveTool)}
                 className="space-y-3"
               >
-                {(Object.entries(INTERACTIVE_TOOLS) as [InteractiveTool, typeof INTERACTIVE_TOOLS['jupyter']][]).map(([key, tool]) => (
+                {shownTools.map((key, idx) => {
+                  const tool = INTERACTIVE_TOOLS[key]
+                  const preloaded = tool.preloaded ?? []
+                  return (
                   <div
                     key={key}
                     className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
@@ -276,6 +270,9 @@ export function InteractiveLauncher({
                     <div className="flex-1">
                       <Label htmlFor={key} className="text-sm font-medium cursor-pointer">
                         {tool.name}
+                        {idx === 0 && datasetFormat && (
+                          <Badge variant="secondary" className="ml-2 text-[10px]">Recommended for .{datasetFormat}</Badge>
+                        )}
                       </Label>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {tool.description}
@@ -283,21 +280,20 @@ export function InteractiveLauncher({
                       <p className="text-xs text-muted-foreground mt-1">
                         <strong>Best for:</strong> {tool.bestFor}
                       </p>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {tool.preloaded.slice(0, 4).map(pkg => (
-                          <Badge key={pkg} variant="secondary" className="text-xs">
-                            {pkg}
-                          </Badge>
-                        ))}
-                        {tool.preloaded.length > 4 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{tool.preloaded.length - 4} more
-                          </Badge>
-                        )}
-                      </div>
+                      {preloaded.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {preloaded.slice(0, 4).map(pkg => (
+                            <Badge key={pkg} variant="secondary" className="text-xs">{pkg}</Badge>
+                          ))}
+                          {preloaded.length > 4 && (
+                            <Badge variant="outline" className="text-xs">+{preloaded.length - 4} more</Badge>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
-                ))}
+                  )
+                })}
               </RadioGroup>
             </div>
 

@@ -2,11 +2,27 @@
 <!-- BioMate interactive tool registrations.
      Referenced by galaxy.yml.docker → tool_config_file.
      Tools live at backend/tools/interactive/ which is copied into the image at /app/tools/interactive/
+
+     CURATED SET (not all 32 Galaxy-bundled interactive tools). The value of interactive tools is
+     hands-on exploration of the user's own data + a code escape-hatch — not figure generation
+     (workflows already do figures). We enable only the tools that fit BioMate's domains; the other
+     ~24 (quantum/materials/climate/ecology/remote-desktop/etc.) are off-domain and stay disabled.
+
+     Routing is generic: job_conf routes interactive_tool_.* to docker_interactive_root (each image
+     runs as its own default user) and the /interactive proxy probes the container's single published
+     port — so any enabled tool works with no per-tool wiring. Each pulls its biocontainer on first launch.
 -->
 <toolbox>
     <section id="interactivetools" name="Interactive Tools">
-        <tool file="interactive/interactivetool_jupyter_notebook.xml" />
-        <tool file="interactive/interactivetool_rstudio.xml" />
-        <tool file="interactive/interactivetool_cellxgene_1.1.1.xml" />
+        <!-- ✅ verified working -->
+        <tool file="interactive/interactivetool_jupyter_notebook.xml" />   <!-- Python notebook / general + escape-hatch -->
+        <tool file="interactive/interactivetool_rstudio.xml" />            <!-- R/Bioconductor IDE -->
+        <tool file="interactive/interactivetool_cellxgene_1.1.1.xml" />    <!-- single-cell interactive viz (h5ad) -->
+        <!-- domain-relevant (enabled; per-tool container startup not yet individually verified) -->
+        <tool file="interactive/interactivetool_vcf_iobio.xml" />          <!-- real-time VCF/variant QC viz -->
+        <tool file="interactive/interactivetool_bam_iobio.xml" />          <!-- real-time BAM/alignment QC viz -->
+        <tool file="interactive/interactivetool_higlass.xml" />            <!-- Hi-C / multiscale genome browsing -->
+        <tool file="interactive/interactivetool_isee.xml" />               <!-- Bioconductor SingleCellExperiment explorer -->
+        <tool file="interactive/interactivetool_pavian.xml" />             <!-- metagenomics taxonomy explorer (kraken/bracken) -->
     </section>
 </toolbox>

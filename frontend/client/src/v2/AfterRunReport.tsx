@@ -837,6 +837,7 @@ function InteractiveToolsRow({ outputs }: { outputs: OutputFile[] }) {
         onOpenChange={setOpen}
         outputs={currentFiles}
         initialTool={selectedTool}
+        datasetFormat={currentFiles?.[0]?.name?.split(".").pop()?.toLowerCase() || ""}
       />
     </div>
   );
