@@ -1468,9 +1468,15 @@ def _candidate_bases() -> list[Path]:
         backend_root / "biomni_workflows" / "nextflow_nfcore",
         backend_root / "biomni_workflows" / "nextflow_nfcore" / "subworkflows",
         backend_root / "biomni_workflows" / "nextflow_nfcore" / "workflows",
-        backend_root / "biomni_workflows" / "nfcore",  # nfcore/ stubs (differentialabundance etc.)
+        # REAL downloaded nf-core pipelines (their own per-process biocontainers + bin/
+        # scripts) MUST be searched BEFORE the display-only stubs in biomni_workflows/nfcore/.
+        # The stubs declare no container and call tools absent from the base image, so they
+        # fail at runtime ("trim_galore: command not found"); when a real pipeline exists
+        # (e.g. nf-core-workflows/rnaseq/main.nf) it must win. Stubs remain a fallback below
+        # for pipelines with no real download. (Fix: resolver preferred stub → real 2026-08-24.)
         backend_root / "nf-core-workflows",
         backend_root / "nf-core-workflows" / "modules" / "biomate-ai-tools",
+        backend_root / "biomni_workflows" / "nfcore",  # display-only stubs (fallback: no real pipeline)
         backend_root / "nf-core-modules",
         backend_root / "nf-core-modules" / "subworkflows" / "nf-core",
     ])
@@ -2648,6 +2654,17 @@ def _generate_executor_config(
             *( [f"    container = '{container}'"] if "/nf-core-workflows/" not in nf_path else [] ),
             f"    outdir = '{_resolve_outdir(output_location, s3_bucket, user_id, run_id)}'",
             "}",
+            # nf-core writes execution_report/timeline/trace/dag into ${outdir}/pipeline_info/
+            # and REWRITES them live as tasks finish. On S3 (nf-amazon) each rewrite calls
+            # S3FileSystemProvider.newOutputStream, which throws FileAlreadyExistsException on
+            # the 2nd write unless overwrite is set — failing the WHOLE run at the very end even
+            # though every task output already succeeded (seen live on nf-core/rnaseq 2026-08-25:
+            # 34-min run, all tasks OK, died only publishing execution_report_*.html). Force
+            # overwrite so the report rewrites succeed on S3.
+            "timeline.overwrite = true",
+            "report.overwrite = true",
+            "trace.overwrite = true",
+            "dag.overwrite = true",
             # DISABLE publishDir entirely on the head JVM. publishDir is what
             # spawns S3 TransferManager which constructs S3CrtAsyncClient
             # which loads the AWS CRT native lib. That lib's dlopen randomly
