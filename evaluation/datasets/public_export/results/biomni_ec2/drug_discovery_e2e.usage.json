@@ -1,0 +1,12 @@
+{
+  "task": "drug_discovery_e2e",
+  "model": "anthropic/claude-sonnet-4.5",
+  "n": 15,
+  "wall_s": 1393.6,
+  "cost_usd": 11.5997,
+  "cost_per_item_usd": 0.7733,
+  "mean_latency_ms": 140339,
+  "p50_latency_ms": 149851,
+  "n_errors": 11,
+  "repeats": 1
+}

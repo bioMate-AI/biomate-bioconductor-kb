@@ -1,0 +1,12 @@
+{
+  "task": "pbpk_benchmark",
+  "model": "anthropic/claude-sonnet-4.5",
+  "n": 15,
+  "wall_s": 633.5,
+  "cost_usd": 6.1207,
+  "cost_per_item_usd": 0.408,
+  "mean_latency_ms": 27624,
+  "p50_latency_ms": 29159,
+  "n_errors": 0,
+  "repeats": 1
+}
