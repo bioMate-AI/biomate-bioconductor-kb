@@ -1,0 +1,2 @@
+model,n,accuracy,ci_lo,ci_hi,lat_median_s,lat_max_s,cost_usd_per_item,task_type,note
+gpt-5.6-luna,8,0.875,0.529,0.978,189.7,325.5,0.00206,gwas_variant_prioritization,"BioMate full pipeline through live dev backend (2026-08-26); single task type; dev serves gpt-5.6-luna not Sonnet 4.6"

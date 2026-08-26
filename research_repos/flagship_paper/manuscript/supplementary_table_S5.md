@@ -44,4 +44,19 @@ A separate open-model run (`model_selection`) records `gemma4:31b` at **160.5 s/
 
 **Consequence for the reported knowledge scores.** The D3 figures (BiomniEval1 71.1%, BixBench 92.0%, SGI-Bench ≈40%) were produced with this latency-selected mid-tier generator; they are therefore a **floor**, with headroom under a more accurate generator (GPT-5, +≈0.09 median-macro on the regulatory task) at the cost of a looser latency tail. The engine-free results (S5.2) are unaffected.
 
-**Honesty note.** The cross-model evidence here is on the regulatory-generation task family (`multitask_crossjudge`/`model_selection`), not on BiomniEval1 itself; the selection *criterion* (bounded-tail latency + accuracy floor) is what generalises, and no BiomniEval1-specific cross-model number is asserted without a committed run.
+**Honesty note.** The cross-model evidence in this subsection is on the regulatory-generation task family (`multitask_crossjudge`/`model_selection`), not on BiomniEval1 itself; the selection *criterion* (bounded-tail latency + accuracy floor) is what generalises. A first BiomniEval1-specific arm through the full BioMate pipeline is now committed and reported in S5.5; a full macro-average cross-model sweep remains the next step.
+
+## S5.5 First BiomniEval1-specific BioMate-through-a-model arm (committed run)
+
+Enabled by the `resolve_model(role)` refactor (backend model set by `BIOMATE_MODEL`; verified end-to-end), we ran the first BiomniEval1 arm end-to-end through the deployed BioMate pipeline (runner `evaluation/runners/run_biomate_llm_matrix.py`; results `evaluation/results/biomni_eval1_devarm/eval_results.db` and `results/biomate_llm_matrix/biomni_eval1.csv`, dev, 2026-08-26):
+
+| System | BiomniEval1 task | Backend model (observed) | n | Accuracy [Wilson 95%] | Latency median / max | LLM cost/item |
+|---|---|---|---|---|---|---|
+| BioMate (full pipeline, dev) | gwas_variant_prioritization | `gpt-5.6-luna` | 8 | **0.875** [0.529, 0.978] | 189.7 s / 325.5 s | ≈$0.0021 |
+
+This is **one arm, not the sweep** — read with these caveats:
+
+- **Single task type, small n.** All 8 items are `gwas_variant_prioritization` (the `--max-tasks 8` slice of the ordered task list). This is *not* the BiomniEval1 macro-average and is not comparable to the 71.1% macro figure (S5.3); it says only that on this one knowledge subtask BioMate answered 7/8 correctly through a mid-tier deployed generator, consistent with S5.4's "mid-tier generator is a floor" reading.
+- **Single model.** This measures BioMate through the *current dev backend*, not a model sweep. The cross-model comparison across configured `BIOMATE_MODEL` values is the runnable, un-run procedure documented in `docs/20260826_BIOMATE_LLM_MATRIX_STATUS.md`.
+- **The observed deployed backend is `gpt-5.6-luna`, not Sonnet 4.6.** Every one of the 8 responses carried `model = gpt-5.6-luna`. The dev chat path therefore currently serves GPT-5.6-luna, whereas the historical D3 scores (S5.3/S5.4) were produced under Sonnet 4.6 (2026-04-29). This is a deployment-config divergence noted for accuracy — it does not re-score the historical numbers, but it does mean the "Sonnet 4.6 is the deployed choice" statement in S5.4 describes the selection *decision*, not the model live on dev at this snapshot.
+- **Latency is full-pipeline wall-clock** (retrieve → interpret → generate → score), not a bare provider-API `elapsed_s`; it is **not** comparable to S5.4's direct-API latency table.
