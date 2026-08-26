@@ -795,17 +795,17 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
 
   // ── Inline completion summary (FIND-style conclusion) ──────────────────────
   // When a run COMPLETES, the chat only carried folded `workflow_progress`
-  // pills (the last one being "Workflow finished. N/M steps succeeded.") — the
-  // user never saw the actual answer inline and had to open the right-hand
-  // Findings tab. This effect emits a normal AI chat message (metadata.type
-  // 'findings', kind 'findings.summary') on completion, which the fold logic
-  // in chat-progress-fold.tsx keeps VISIBLE (the `find` speaker never folds),
-  // matching the claude-design ChatStream reference where FIND/conclusion
-  // lines stay inline.
+  // pills (last one "Workflow finished") — the user never saw the answer inline
+  // and had to open the right-hand Findings tab. This effect emits a normal AI
+  // chat message (metadata.type 'findings') that chat-progress-fold keeps
+  // VISIBLE, matching the claude-design ChatStream FIND/conclusion convention.
   //
-  // Idempotency: once per run via completionSummaryRunsRef, plus a durable
-  // check for an existing `findings-<runId>` message so a session reload /
-  // re-poll / status re-fire cannot duplicate it.
+  // It does NOT fire-once: findings generation lags completion by up to ~2 min,
+  // so a single fetch almost always misses the real values. Instead we WATCH —
+  // emit "complete … analyzing results…" immediately, then poll the findings
+  // endpoint and UPDATE the same `findings-<runId>` message in place, so it
+  // settles to the real summary + key results as they finish (report-in-process).
+  // The message id keeps it idempotent across reload / re-poll (upsert, no dupes).
   useEffect(() => {
     const runId = currentRun?.id
     const status = currentRun?.execution?.status
@@ -820,28 +820,33 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       (currentRun as any)?.workflowName ||
       currentRun?.workflowDefinition?.name ||
       'Workflow'
-    const completedSteps = currentRun?.progress?.completedSteps ?? 0
     const totalSteps = currentRun?.progress?.totalSteps ?? 0
     const findingsMsgId = `findings-${runId}`
-
-    // Durable idempotency: bail if this run's summary already exists in the
-    // persisted session (survives reload where the ref is reset).
-    const existingSession = chatHistoryService.getSession(sessionId)
-    if (existingSession?.messages?.some((m) => m.id === findingsMsgId)) return
+    const invocationId = currentRun?.execution?.galaxyInvocationId || runId
 
     let cancelled = false
 
-    const emit = (content: string) => {
+    // Create the findings message on first call, then UPDATE it in place on
+    // later calls (same id) so it evolves from "analyzing…" to the real values.
+    const upsert = (content: string) => {
       if (cancelled) return
       const session = chatHistoryService.getSession(sessionId)
       if (!session) return
-      if (session.messages.some((m) => m.id === findingsMsgId)) return
+      const existing = session.messages.find((m) => m.id === findingsMsgId)
+      if (existing) {
+        if (existing.content === content) return
+        const messages = session.messages.map((m) =>
+          m.id === findingsMsgId ? { ...m, content } : m)
+        const updated = chatHistoryService.updateSession(session.id, { messages })
+        if (updated) onChatUpdated(updated)
+        return
+      }
       const findingsMsg: Message = {
         id: findingsMsgId,
         role: 'assistant',
         content,
         timestamp: new Date(),
-        invocationId: currentRun?.execution?.galaxyInvocationId || runId,
+        invocationId,
         metadata: {
           // NOT 'workflow_progress' → chat-progress-fold keeps it visible.
           type: 'findings',
@@ -855,22 +860,27 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     }
 
     ;(async () => {
-      // Reuse the same findings endpoint the AfterRunReport reads. If the
-      // structured summary is ready we surface real values; otherwise
-      // buildRunCompletionSummary emits a concise generic completion line (no
-      // fabricated numbers) pointing at the Findings panel. Never block on error.
-      let data: any = null
-      try {
-        const resp = await fetch(`/api/workflows/runs/${runId}/findings`, {
-          credentials: 'include',
-        })
+      // Poll the findings endpoint (the AfterRunReport source) and report the
+      // outcome in-process: an immediate "analyzing…" that upgrades to real
+      // values the moment findings are `ready`. Bounded to the backend's ~120s
+      // findings-generation window; never fabricates, never blocks on error.
+      const DEADLINE = Date.now() + 135_000
+      while (!cancelled && Date.now() < DEADLINE) {
+        let data: any = null
+        try {
+          const resp = await fetch(`/api/workflows/runs/${runId}/findings`, {
+            credentials: 'include',
+          })
+          if (cancelled) return
+          if (resp.ok) data = await resp.json()
+        } catch {
+          /* keep the analyzing line; retry on next tick */
+        }
         if (cancelled) return
-        if (resp.ok) data = await resp.json()
-      } catch {
-        /* fall through to generic line — never block completion messaging */
+        upsert(buildRunCompletionSummary(workflowName, data, totalSteps))
+        if (data?.status === 'ready') return // settled — findings won't change further
+        await new Promise((r) => setTimeout(r, 6000))
       }
-      if (cancelled) return
-      emit(buildRunCompletionSummary(workflowName, data, completedSteps, totalSteps))
     })()
 
     return () => {
