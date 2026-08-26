@@ -7,7 +7,7 @@ A structural comparison of BioMate against the two nearest open tool-ecosystem a
 | | BioMate | Biomni | ToolUniverse / TxAgent |
 |---|---|---|---|
 | **Unit of coverage** | validated multi-step **workflow** (containerised pipeline) | **Python/R function** the LLM composes into code | **API/tool** the agent calls |
-| **Count** | **4,057 workflows** · 12,301 indexed tools | **150+ tools · 100+ software · 59 databases** across ~23 modules | **211 tools** (TxAgent paper 2025) → **≈640 tool-source files in the live repo** (grown since) |
+| **Count** | **4,057 workflows** · 12,301 indexed tools | **150+ tools · 100+ software · 59 databases** across 23 tool modules (25 biomedical subfields per Science 2025) | **211 tools** (TxAgent paper 2025) → **≈640 tool-source files in the live repo** (grown since) |
 | **Organising axis** | **analysis modality** (transcriptomics, variant-calling, single-cell, epigenomics, …; 39 domains) | **biological subfield** (biochemistry, cancer_biology, immunology, pharmacology, …; 23 modules) | **data source / API** (AlphaFold, BindingDB, BioGRID, arXiv, Bioconductor, …) |
 | **Execution** | executes the pipeline on **AWS Batch** (containerised, governed) | LLM **generates and runs code** over the functions | **calls the tool/API**; reasoning agent (TxAgent) chains calls |
 | **Governance** | evidence-graded QC gates + 21 CFR Part 11-aligned audit trail | not documented | not documented |
@@ -19,7 +19,7 @@ Because the units differ (a BioMate *workflow* bundles many steps and tools; a B
 The clearest overlap is not at the tool level (different units/naming) but at the **underlying biomedical databases** all three wrap:
 
 - **Both BioMate and ToolUniverse wrap Bioconductor** (ToolUniverse `bioconductor_tools.json`; BioMate holds 3,315 Bioconductor workflows) — a direct, verified overlap.
-- **All three front the same core databases** — UniProt, PDB, AlphaFold, ChEMBL/PubChem, BindingDB, BioGRID, Ensembl, GEO — BioMate's "60+ databases," Biomni's **59 curated databases**, and ToolUniverse's data-source tools (AlphaFold/BindingDB/BioGRID/… JSONs) draw on the same public resources.
+- **All three front common public databases** — verified in ToolUniverse's fetched sources are **AlphaFold, BindingDB, BioGRID** (and BioMate's "60+ databases" and Biomni's **59 curated databases** draw on the same class of public resources such as UniProt/PDB/ChEMBL/Ensembl/GEO); the full per-system database lists were not exhaustively cross-verified, so we name only the verified overlaps.
 - **Domain overlap (name-mapped, approximate):** BioMate ∩ Biomni on genomics, systems-biology, imaging↔bioimaging, and drug-discovery↔pharmacology; the axes only partially align because BioMate indexes by *analysis modality* and Biomni by *biological subfield*, so a precise domain-Venn understates the true conceptual overlap in both directions.
 
 *Why we do not report a precise tool-name overlap %:* the three inventories use different units and naming conventions (a workflow's `tools_used` entry, a Biomni `def query_uniprot`, a ToolUniverse `UniProt_get_entry`), so any exact-string intersection would be an artefact of naming, not capability. The honest overlap statement is the shared-database substrate above.

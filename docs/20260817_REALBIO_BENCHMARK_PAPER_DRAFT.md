@@ -93,7 +93,7 @@ All results below come from the committed `score.py` on committed `predictions.j
 
 ### 5.2 Leaderboard — LLMs as actually used vs BioMate (8 tasks: 5 core + 3 newly-added; from committed `score.py`)
 
-Each LLM is evaluated **the way it is actually used** — the model with its own knowledge and the task, no candidate list injected. n per cell: routing 200 · autofix 100 · param_prefill 170 · workflow_gen 40 · protocol 100 · pbpk 15 · boin 20 · dd 15. `gpt-5.3-chat-latest` is excluded (routing scored 0.000 — a failed run, not a valid measurement).
+Each LLM is evaluated **the way it is actually used** — the model with its own knowledge and the task, no candidate list injected. n per cell: routing 200 · autofix 100 · param_prefill 170 · workflow_gen 40 · protocol 100 · pbpk 15 · boin 18 · dd 15. `gpt-5.3-chat-latest` is excluded (routing scored 0.000 — a failed run, not a valid measurement).
 
 ![Figure 2. Cross-domain routing: LLMs as actually used vs BioMate.](figures/realbio/fig2_leaderboard.png)
 
@@ -101,16 +101,16 @@ Each LLM is evaluated **the way it is actually used** — the model with its own
 |---|---|---|---|---|---|---|---|---|
 | **BioMate** (engine-free curated retrieval) | **0.965** [0.930, 0.983] | — | — | — | — | **100%◊** | **80.0%★** | — |
 | Claude Opus 5 | 0.615 | 0.870 | **0.757** | 0.500 | 0.330 | 0.133 | **0.400** | 0.700 |
-| Gemini 3.1 Pro | 0.580 | **0.880** | 0.693 | 0.500 | **0.630** | 0.000 | 0.250 | 0.700 |
-| GPT-5.6 | 0.530 | 0.860 | 0.671 | 0.500 | 0.460 | **0.200** | **0.450** | 0.700 |
-| Kimi K3 | 0.450 | 0.770 | 0.628 | 0.450 | 0.360 | 0.000 | 0.150 | 0.700 |
-| DeepSeek V4 | 0.415 | 0.800 | 0.621 | 0.500 | 0.420 | 0.067 | 0.150 | 0.667 |
-| GLM-5.2 | 0.400 | 0.830 | 0.641 | 0.500 | 0.440 | 0.000 | 0.100 | 0.700 |
-| GPT-5.6-luna | 0.355 | 0.830 | 0.624 | 0.500 | 0.340 | **0.200** | 0.350 | 0.700 |
-| Qwen3.8-Max | 0.345 | 0.860 | 0.692 | 0.500 | 0.460 | 0.000 | 0.100 | 0.700 |
-| Biomni (Stanford A1)¶ | 0.950 | 0.950 | 0.708 | 0.500 | 0.500 | 0.000 ¶¹ | 0.450 | 1.0 (n=4) ¶² |
+| Gemini 3.1 Pro | 0.580 | **0.880** | 0.693 | 0.500 | **0.630** | 0.000 | 0.278 | 0.700 |
+| GPT-5.6 | 0.530 | 0.860 | 0.671 | 0.500 | 0.460 | **0.200** | **0.500** | 0.700 |
+| Kimi K3 | 0.450 | 0.770 | 0.628 | 0.450 | 0.360 | 0.000 | 0.167 | 0.700 |
+| DeepSeek V4 | 0.415 | 0.800 | 0.621 | 0.500 | 0.420 | 0.067 | 0.167 | 0.667 |
+| GLM-5.2 | 0.400 | 0.830 | 0.641 | 0.500 | 0.440 | 0.000 | 0.111 | 0.700 |
+| GPT-5.6-luna | 0.355 | 0.830 | 0.624 | 0.500 | 0.340 | **0.200** | 0.389 | 0.700 |
+| Qwen3.8-Max | 0.345 | 0.860 | 0.692 | 0.500 | 0.460 | 0.000 | 0.111 | 0.700 |
+| Biomni (Stanford A1)¶ | 0.950 | 0.950 | 0.708 | 0.500 | 0.500 | 0.000 ¶¹ | 0.500 | 1.0 (n=4) ¶² |
 
-*Metric definitions (three newly-added tasks).* **pbpk** = fraction of PK predictions within 2-fold of the published reference, scored over all 15 items; a non-parseable / no-final-number answer counts as a miss (Kimi and Qwen produced ~30k-token reasoning with no usable number, hence 0.00). **boin** = exact match of the recommended MTD dose in mg to `reference.true_MTD_mg`, over 20 items. **dd** = mean Spearman rank correlation between the model's strongest-first ligand ranking and `ligand_rank_order`, over 15 items. Task means across the 8 LLMs: pbpk **0.075**, boin **0.244**, dd **0.694**.
+*Metric definitions (three newly-added tasks).* **pbpk** = fraction of PK predictions within 2-fold of the published reference, scored over all 15 items; a non-parseable / no-final-number answer counts as a miss (Kimi and Qwen produced ~30k-token reasoning with no usable number, hence 0.00). **boin** = exact match of the recommended MTD dose in mg to `reference.true_MTD_mg`, over 18 scorable items (2 of 20 excluded: null true_MTD_mg). **dd** = mean Spearman rank correlation between the model's strongest-first ligand ranking and `ligand_rank_order`, over 15 items. Task means across the 8 LLMs: pbpk **0.075**, boin **0.271**, dd **0.694**.
 
 *Reading (honest).* LLMs used directly are **near-useless at PBPK simulation** (mean 0.075 within-2-fold), **mediocre at BOIN dose-finding** (mean 0.244 exact-MTD), but **good at ligand ranking** (mean 0.694 Spearman) — a knowledge task rather than a simulation task. We report `dd` deliberately as a case where direct LLMs already do well: RealBio is **not rigged to only surface LLM failures**; it surfaces the tasks LLMs cannot do (simulation, deterministic dose-finding) *and* the ones they can (ranking from pharmacological knowledge).
 

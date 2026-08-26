@@ -37,7 +37,7 @@ Both committed on `docs/target-id-stratification-surveys-20260817` and mirrored 
 | protocol-QC | PASS/FAIL | 0.33–0.63 | — | **0.925**† |
 | workflow_gen | category | 0.50 | — | — (not committed) |
 | **pbpk** (new) | within-2-fold | 0–20% | **7.5%** | **100%** ◊ (18/18) |
-| **boin** (new) | exact MTD-mg | 10–45% | **24%** | **80.0%** ★ (48/60) |
+| **boin** (new) | exact MTD-mg | 11–50% | **27%** | **80.0%** ★ (48/60) |
 | **dd** (new) | Spearman rank | 0.67–0.70 | **0.70** | — (see §4) |
 
 † BioMate param/protocol from its own harness (n differs from the LLM sweep). ◊ BioMate pbpk from its validated
@@ -134,7 +134,7 @@ Same byte-identical prompts + same `score.py` as the 8-LLM sweep. Results in
 | Task | Biomni (sonnet-4.5) | LLM-direct | Read |
 |---|---|---|---|
 | pbpk | **0%** (0/15) | 7.5% | ⚠️ **format artifact, NOT inability** — agent computes rich mechanistic PK (clearance/AUC), which doesn't match the single reference Cmax within-2-fold when squeezed to one number |
-| boin | **45%** (9/20 exact MTD) | 24% | Biomni scaffold **beats** direct LLMs on dose-finding |
+| boin | **50%** (9/18 exact MTD; 2 null-GT excluded) | 27% | Biomni scaffold **beats** direct LLMs on dose-finding |
 | dd | **Spearman 1.0** on 4/15 scored | 0.70 | perfect ranking on the 4 that ran; **11 dropped** to OpenRouter 402 dips (dd's large context → big reservation). Tiny sample — report as partial, not a headline |
 
 **Capability verdict (the honest one):** Biomni **can** do these tasks — it writes + executes real

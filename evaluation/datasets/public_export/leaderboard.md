@@ -10,28 +10,28 @@ Every number traces to a predictions file scored by the one shared objective sco
 | Model | routing (direct use) | autofix | param_prefill (F1) | workflow_gen | protocol_QC | pbpk (within-2-fold) | boin (exact MTD-mg) | dd (Spearman) |
 |---|---|---|---|---|---|---|---|---|
 | Claude Opus 5 | 0.615 | 0.870 | 0.757 | 0.500 | 0.330 | 0.133 | **0.400** | **0.700** |
-| Gemini 3.1 Pro | 0.580 | 0.880 | 0.693 | 0.500 | **0.630** | 0.000 | 0.250 | **0.700** |
-| GPT-5.6 | 0.530 | 0.860 | 0.671 | 0.500 | 0.460 | **0.200** | **0.450** | **0.700** |
-| Qwen3.8-Max | 0.345 | 0.860 | 0.692 | 0.500 | 0.460 | 0.000 | 0.100 | **0.700** |
-| GLM-5.2 | 0.400 | 0.830 | 0.641 | 0.500 | 0.440 | 0.000 | 0.100 | **0.700** |
-| GPT-5.6-luna | 0.355 | 0.830 | 0.624 | 0.500 | 0.340 | **0.200** | 0.350 | **0.700** |
-| Kimi K3 | 0.450 | 0.770 | 0.628 | 0.450 | 0.360 | 0.000 | 0.150 | **0.700** |
-| DeepSeek V4 | 0.415 | 0.800 | 0.621 | 0.500 | 0.420 | 0.067 | 0.150 | 0.667 |
+| Gemini 3.1 Pro | 0.580 | 0.880 | 0.693 | 0.500 | **0.630** | 0.000 | 0.278 | **0.700** |
+| GPT-5.6 | 0.530 | 0.860 | 0.671 | 0.500 | 0.460 | **0.200** | **0.500** | **0.700** |
+| Qwen3.8-Max | 0.345 | 0.860 | 0.692 | 0.500 | 0.460 | 0.000 | 0.111 | **0.700** |
+| GLM-5.2 | 0.400 | 0.830 | 0.641 | 0.500 | 0.440 | 0.000 | 0.111 | **0.700** |
+| GPT-5.6-luna | 0.355 | 0.830 | 0.624 | 0.500 | 0.340 | **0.200** | 0.389 | **0.700** |
+| Kimi K3 | 0.450 | 0.770 | 0.628 | 0.450 | 0.360 | 0.000 | 0.167 | **0.700** |
+| DeepSeek V4 | 0.415 | 0.800 | 0.621 | 0.500 | 0.420 | 0.067 | 0.167 | 0.667 |
 
-*n: routing 200 · autofix 100 · param_prefill 170 · workflow_gen 40 · protocol 100 · pbpk 15 · boin 20 · dd 15.*
+*n: routing 200 · autofix 100 · param_prefill 170 · workflow_gen 40 · protocol 100 · pbpk 15 · boin 18 · dd 15.*
 
-**Metric definitions (three newly-added tasks).** **pbpk** = fraction of PK predictions within 2-fold of the published reference, scored over all 15 items — a non-parseable / no-final-number answer counts as a miss (Kimi and Qwen produced ~30k-token reasoning with no usable number, hence 0.00). **boin** = exact match of the recommended MTD dose in mg to `reference.true_MTD_mg`, over 20 items. **dd** = mean Spearman rank correlation between the model's strongest-first ligand ranking and `ligand_rank_order`, over 15 items. **The reading:** LLMs used directly are near-useless at PBPK simulation (mean 0.075), mediocre at BOIN dose-finding (mean 0.244), but *good* at ligand ranking (mean 0.694) — a knowledge task. This last point is deliberate evidence that RealBio is **not rigged to only surface LLM failures**: on `dd`, direct LLMs already do well.
+**Metric definitions (three newly-added tasks).** **pbpk** = fraction of PK predictions within 2-fold of the published reference, scored over all 15 items — a non-parseable / no-final-number answer counts as a miss (Kimi and Qwen produced ~30k-token reasoning with no usable number, hence 0.00). **boin** = exact match of the recommended MTD dose in mg to `reference.true_MTD_mg`, over 18 scorable items (2 of 20 excluded: null true_MTD_mg). **dd** = mean Spearman rank correlation between the model's strongest-first ligand ranking and `ligand_rank_order`, over 15 items. **The reading:** LLMs used directly are near-useless at PBPK simulation (mean 0.075), mediocre at BOIN dose-finding (mean 0.271), but *good* at ligand ranking (mean 0.694) — a knowledge task. This last point is deliberate evidence that RealBio is **not rigged to only surface LLM failures**: on `dd`, direct LLMs already do well.
 
 ## Product / agent rows (different harness — reported separately, not mixed into the raw table)
 
 | System | Condition | routing | autofix | param F1 | wf_gen | protocol | pbpk (2-fold) | boin (MTD) | dd (Spearman) | n |
 |---|---|---|---|---|---|---|---|---|---|---|
 | **BioMate** | **C2 — full system, engine-free curated retrieval** | **0.965** [0.930, 0.983] | —‡ | **0.848**† | —‡ | **0.925**† | **100%**◊ | **80.0%**★ | —§ | 200 / 115 / 20 / 18 / 60 |
-| Biomni (Stanford A1) | agent scaffold; Opus-5 (5 pilot tasks) / Sonnet-4.5 (pbpk·boin·dd)¶ | 0.950 | 0.950 | 0.708 | 0.500 | 0.500 | 0%◊◊ | **45.0%** | 1.0 (n=4)★★ | 40·15·20·4 |
+| Biomni (Stanford A1) | agent scaffold; Opus-5 (5 pilot tasks) / Sonnet-4.5 (pbpk·boin·dd)¶ | 0.950 | 0.950 | 0.708 | 0.500 | 0.500 | 0%◊◊ | **50.0%** | 1.0 (n=4)★★ | 40·15·18·4 |
 
 ¶ **Biomni engine.** The 5 pilot tasks used Opus-5. The 3 computation tasks could **not**: Biomni's A1 loop appends each code `<observation>` as an assistant message and continues it (assistant *prefill*), which Claude removed across ≥4.6 — Opus-5/4.6/4.8 all reject it. So pbpk/boin/dd use **claude-sonnet-4.5** (Biomni's default Claude tier). Byte-identical prompts + the same `score.py` as the LLM sweep (a fair same-prompt cell).
 ◊◊ **Biomni pbpk 0% is a format artifact, not an inability.** Biomni writes + runs a real hepatic-clearance PK model, but its mechanistic outputs (clearance/AUC, various units) don't land within 2-fold of the reference *Cmax* when squeezed to a single number — the same underspecified prompt the LLMs faced (they reached 0–20%). Capability is present; this cell is *constrained-format accuracy*, not a can/can't verdict.
-★★ **Biomni dd 1.0 (n=4).** Perfect ligand ranking on the 4 of 15 items that completed; the other 11 were dropped to OpenRouter credit-throttling (dd's large context inflates the per-request reservation). Tiny sample — **not** comparable to the LLMs' 0.70 (n=15); reported as partial. Biomni boin **45%** (9/20) ties the best single LLM (GPT-5.6) and beats the LLM mean (24%) — here the agent scaffold genuinely helps.
+★★ **Biomni dd 1.0 (n=4).** Perfect ligand ranking on the 4 of 15 items that completed; the other 11 were dropped to OpenRouter credit-throttling (dd's large context inflates the per-request reservation). Tiny sample — **not** comparable to the LLMs' 0.70 (n=15); reported as partial. Biomni boin **50%** (9/18, 2 null-GT items excluded) ties the best single LLM (GPT-5.6) and beats the LLM mean (27%) — here the agent scaffold genuinely helps.
 
 † BioMate param_prefill (0.848, n=115) and protocol-QC (0.925, n=20) are from BioMate's benchmark harness — the source from which RealBio was derived (`docs/20260429_BENCHMARK_MATRIX_COMPLETE.md`); n differs from the LLM sweep.
 ‡ BioMate autofix and workflow_gen were not located as finalized cells in the benchmark matrix; to be filled from BioMate's harness (not re-run — the tasks were run; the exact export cells need confirming).

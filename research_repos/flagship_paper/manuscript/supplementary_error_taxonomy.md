@@ -50,7 +50,7 @@ Columns: correct · **wrong endpoint** (valid PK quantity, not the scored Cmax) 
 
 *Observation.* The 7.5% mean accuracy conceals three distinct behaviours. (i) **Wrong endpoint** is frequent among the strongest reasoners (Gemini 9/15, GPT-5.6 7/15, Opus 6/15): they compute a PK value within 2-fold of AUC/t½/Tmax but not of the scored Cmax. (ii) **Verbose no-answer** dominates the open-weight models (Kimi 15/15, Qwen 15/15, DeepSeek 12/15). (iii) **Wrong scale** dominates the Biomni agent (11/15), whose mechanistic derivations land off-scale.
 
-### 2.3 BOIN dose-finding (n = 20)
+### 2.3 BOIN dose-finding (n = 18; 2 of 20 items excluded — null `true_MTD_mg`, unscorable)
 
 Columns: correct · wrong dose · **no-answer**.
 
@@ -81,4 +81,4 @@ Columns: correct · wrong dose · **no-answer**.
 3. **Near-zero hallucination on routing is a distinguishing safety property.** BioMate hallucinates a non-existent workflow in 8/200 items; direct LLMs do so in 37–116/200. For a system that *executes* what it selects, fabricating a target is a categorically more dangerous failure than choosing a wrong-but-real one — the taxonomy, not the accuracy, exposes this.
 4. **Output discipline is a real deployment gap for open-weight models.** *Verbose no-answer* is negligible for the closed frontier models but dominant for Kimi/Qwen/DeepSeek/GLM on both pbpk and boin. A deployment that cannot extract a final answer fails regardless of latent capability; this is an integration property a leaderboard of accuracies does not show.
 
-**Scope and limitations.** Counts are from the committed n = 15/20/200 predictions; the pbpk and boin cells carry wide confidence intervals at these sample sizes and the modal-failure statements are descriptive, not inferential. The endpoint/scale boundary for pbpk is defined operationally (2-fold of any reference quantity) and inherits the reference set's own uncertainty. No prediction was re-generated for this analysis.
+**Scope and limitations.** Counts are from the committed n = 15/18/200 predictions; the pbpk and boin cells carry wide confidence intervals at these sample sizes and the modal-failure statements are descriptive, not inferential. The endpoint/scale boundary for pbpk is defined operationally (2-fold of any reference quantity) and inherits the reference set's own uncertainty. No prediction was re-generated for this analysis.

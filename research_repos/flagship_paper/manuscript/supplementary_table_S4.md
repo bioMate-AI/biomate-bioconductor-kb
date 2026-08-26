@@ -10,7 +10,7 @@ This is the competitive capability matrix underlying the positioning claims of �
 
 | Dimension | **BioMate** | Biomni (Stanford) | Google AI Co-Scientist | Coscientist (CMU) | ChemCrow | The AI Scientist (Sakana) |
 |---|---|---|---|---|---|---|
-| Domain breadth | Multi-domain (4,057 workflows / 39 domains) | Multi-domain — 25 biomedical subfields | Broad (hypothesis-gen, any field) | Chemistry only | Chemistry only | Computational ML only |
+| Domain breadth | Multi-domain (4,057 workflows / 39 domains) | Multi-domain — 25 biomedical subfields (23 tool modules in the repo) | Broad (hypothesis-gen, any field) | Chemistry only | Chemistry only | Computational ML only |
 | Execution mode | **Validated-pipeline orchestration** | LLM-*generated code* (full system privileges) | None (hypothesis only) | Robotic wet-lab chemistry | Robotic wet-lab chemistry | LLM-*generated* ML code |
 | Runs validated community tools (vs self-written code) | Yes (validated workflows) | Uses tools **and** generates own code | n/a | Yes (defined tool set) | Yes — 18 pre-built validated tools | No (writes own code) |
 | ⭐ Nextflow/nf-core · Galaxy · Bioconductor integration | **Yes — all three** | Not documented (verified: none in repo) | Not documented | No (chemistry) | No (chemistry) | No (ML) |
@@ -24,7 +24,7 @@ This is the competitive capability matrix underlying the positioning claims of �
 
 | Dimension | Robin / FutureHouse suite | STELLA | BioMedAgent | TxAgent / ToolUniverse (Harvard) |
 |---|---|---|---|---|
-| Domain breadth | Biomedical (multi-agent; one demonstrated end-to-end case: ripasudil / dry-AMD) | Biomedical/scientific (self-evolving) | Biomedical data analysis | Therapeutic reasoning / precision medicine over a **211-tool** biomedical tool ecosystem (ToolUniverse) |
+| Domain breadth | Biomedical (multi-agent; one demonstrated end-to-end case: ripasudil / dry-AMD) | Biomedical/scientific (self-evolving) | Biomedical data analysis | Therapeutic reasoning / precision medicine over ToolUniverse (**211 tools** in the TxAgent paper 2025; the live repo is larger, ≈640 tool-source files) |
 | Execution mode | Cross-specialty orchestration of *reasoning* agents; humans do all wet-lab | Self-generated code (Dev Agent) | Chains tools into executable workflows (77% reported) | LLM multi-step **tool-calling** over a curated tool/API set; no pipeline generation or execution |
 | Runs validated community tools vs self-written code | Finch **writes+runs its own** Jupyter/Python; PaperQA2/Crow/Falcon = literature RAG | Self-generated code | Tool-chaining into executable workflows | **Yes** — invokes a defined set of 211 curated tools/APIs (does not write pipelines) |
 | ⭐ Nextflow/nf-core · Galaxy · Bioconductor | None (generated code may import a Bioconductor *library*, but no pipeline orchestration) | None | None | None (tool/API wrappers, not pipeline orchestration) |
