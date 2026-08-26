@@ -495,11 +495,26 @@ export class AuthService {
         }
 
         if (isStale) {
-          console.warn(`[auth] User ${user.email} galaxyApiKey is stale (${staleReason}) — clearing + re-provisioning`);
-          await db.update(users)
-            .set({ galaxyApiKey: null, galaxyUserId: null, galaxyUsername: null })
-            .where(eq(users.id, user.id));
-          await this.provisionGalaxyUser(user.id, user.email);
+          // Re-provision FIRST, and only overwrite the stored credentials if it
+          // succeeds. provisionGalaxyUser() persists a fresh galaxyUserId /
+          // galaxyApiKey / galaxyUsername on success (returns true) and never
+          // throws — on failure it returns false and kicks off background
+          // retries. The previous code cleared the key to null BEFORE
+          // re-provisioning, so when /internal/users/provision is down (e.g.
+          // after a sync_to_dev DB swap resets Galaxy universe.sqlite) the user
+          // was left with a NULL key → every per-user Galaxy op 400s
+          // (createHistory, interactive-tool launch, uploads-as-HDA). A
+          // transient /api/users/current probe blip could also falsely mark a
+          // GOOD key stale and null it. Keeping the (possibly stale) key on
+          // failure is strictly safer: a stale key and a null key both fail the
+          // same way, but the stale key preserves galaxyUserId for the next
+          // drift check and lets background retries swap in a valid key without
+          // stranding the session. See docs/20260610_STALE_GALAXY_USER_DRIFT.md.
+          console.warn(`[auth] User ${user.email} galaxyApiKey is stale (${staleReason}) — re-provisioning (keeping existing key until it succeeds)`);
+          const reprovisioned = await this.provisionGalaxyUser(user.id, user.email);
+          if (!reprovisioned) {
+            console.warn(`[auth] User ${user.email} re-provisioning failed — keeping existing key (NOT nulling) so background retries can recover it`);
+          }
         }
       } catch (e: any) {
         console.warn(`[auth] galaxyApiKey validation skipped for ${user.email}: ${e?.message ?? e}`);
