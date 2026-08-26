@@ -34,6 +34,22 @@ This is the competitive capability matrix underlying the positioning claims of �
 | Wet-lab execution | No — humans execute ("AI engine for biology, NOT an automated lab") | No | No | No (computational reasoning) |
 | Maturity | Hosted agent platform; Nature 2026 | Research prototype (2025) | Nat Biomed Eng 2026 (s41551-026-01634-6) | Research release; arXiv 2503.10970 (2025) + open repos (mims-harvard/ToolUniverse, /TxAgent) |
 
+## Coverage & breadth — scope and unit (not a raw-count race)
+
+*Coverage is compared on two axes — domain **scope** and the **unit** of coverage — because the systems are not counted in the same units. BioMate's unit is a **validated multi-step workflow** (a containerised pipeline); the tool-ecosystem systems count **single tools/functions/APIs**. A workflow is not a tool, so raw counts are not directly comparable; the meaningful comparison is domain scope plus the unit-appropriate count. Numbers below are from each system's primary source.*
+
+| System | Domain scope | Unit of coverage | Count | Source |
+|---|---|---|---|---|
+| **BioMate** | **39 biological domains** (omics → drug-discovery → cryo-EM → clinical pharmacology) | validated multi-step **workflows** | **4,057** | `galaxy_ai_tools.db` snapshot 2026-08-17 (verified) |
+| Biomni | 25 biomedical domains | tools + software + databases (+ LLM code-gen) | **150+ tools · 100+ software · 59 databases** | Science 2025; HAI Stanford |
+| TxAgent / ToolUniverse | therapeutic reasoning / precision medicine | tools / APIs | **211 tools** | arXiv 2503.10970 |
+| ChemCrow | chemistry | expert-designed tools | **18 tools** | Nat Mach Intell 2024 |
+| Coscientist | chemistry | defined robotic + tool set | small defined set | Nature 2023 |
+| Google AI Co-Scientist | any field (hypothesis only) | — (no execution) | n/a | arXiv 2502.18864 |
+| The AI Scientist | ML only | self-written code | n/a | arXiv 2408.06292 |
+
+**Reading (breadth-first, not "biggest pile").** BioMate's distinguishing coverage properties are (a) the **widest biological-domain scope** — 39 domains spanning multi-omics, drug discovery, structural biology, and clinical pharmacology — versus chemistry-only (ChemCrow, Coscientist), ML-only (The AI Scientist), or Biomni's 25 domains; and (b) the **unit is a validated, containerised pipeline**, not a raw tool the model must compose (the same distinction the core-matrix execution-mode row draws). BioMate's per-domain spread from the snapshot: transcriptomics ≈1,693, genomics ≈750, epigenomics ≈262, proteomics ≈182, variant-calling ≈181, drug-discovery ≈122, single-cell ≈95, and others. **We explicitly do not claim "more tools than Biomni/ToolUniverse"** — a workflow and a tool are different units; the claim is *domain scope + validated-pipeline granularity*, not raw count.
+
 ## Where competitors genuinely lead (credited)
 
 - **Biomni** has the broadest biomedical scope (25 subfields), comparable to BioMate on breadth; its retrieval + code-gen architecture is a published Science 2025 contribution.
