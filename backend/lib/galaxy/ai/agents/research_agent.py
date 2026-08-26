@@ -16,6 +16,7 @@ import io
 import logging
 import os
 import re
+import asyncio
 import urllib.request
 import urllib.parse
 from dataclasses import dataclass, field
@@ -804,6 +805,48 @@ def _score_omim_diseases_by_hpo_overlap(
     return scored
 
 
+# ── Retrieval-recall widening: query decomposition (LitQA2 Lever 1) ───────────
+
+def _build_search_queries(question: str, key_terms: list, primary_query: str = None,
+                          max_queries: int = 6) -> List[str]:
+    """Decompose a specific research question into complementary retrieval queries to
+    widen gold-paper recall.
+
+    A single AND-joined query (' '.join(key_terms)) under-retrieves on specific
+    questions — the answer-bearing paper is frequently never surfaced (measured LitQA2
+    retrieval recall 16.6%). Running the joined query *plus* the raw natural-language
+    question *plus* a few salient term-pairs and rare singletons, then merging the
+    candidate pools, substantially raises recall. This affects retrieval breadth only;
+    the downstream citation-grounding / anti-confabulation guard is unchanged, so a
+    wider pool cannot introduce a mismatched citation — it only gives the guard a better
+    chance of finding the correct paper before it (rightly) abstains.
+
+    Returns an ordered, de-duplicated list with the precise joined query first (so the
+    most specific match is preferred), broadening toward recall.
+    """
+    queries: List[str] = []
+    seen = set()
+
+    def _add(q):
+        q = (q or "").strip()
+        if q and len(q) > 2 and q.lower() not in seen:
+            seen.add(q.lower())
+            queries.append(q)
+
+    kt = [str(t).strip() for t in (key_terms or []) if t and len(str(t).strip()) > 2]
+    _add(primary_query or (' '.join(kt) if kt else question))  # narrow, precise
+    _add(question)                                             # natural-language / semantic recall
+    top = kt[:5]
+    for i in range(len(top)):                                  # salient term-pairs (mid-breadth)
+        for j in range(i + 1, len(top)):
+            _add(f"{top[i]} {top[j]}")
+            if len(queries) >= max_queries:
+                return queries[:max_queries]
+    for t in sorted(kt, key=len, reverse=True)[:2]:            # rarest/most specific singletons
+        _add(t)
+    return queries[:max_queries]
+
+
 # ── Improvement C: CRISPR screen literature search ───────────────────────────
 
 def _search_crispr_screen_pubmed(condition: str) -> str:
@@ -1511,7 +1554,7 @@ class ResearchAgent:
         if include_citations and self.literature_client:
             try:
                 key_terms = analysis.get('key_terms', [])
-                search_query = ' '.join(key_terms) if key_terms else question
+                primary_query = ' '.join(key_terms) if key_terms else question
 
                 # Retrieve BROADLY (the federated engine fans out across PubMed +
                 # Europe PMC + Semantic Scholar + OpenAlex and iterates). Retrieval
@@ -1524,15 +1567,49 @@ class ResearchAgent:
                     "separate the evidence", "systematic", "directly demonstrate",
                     "not directly demonstrated", "for every major claim", "provide the paper",
                 ))
-                citations = await self.literature_client.search_bioinformatics(
-                    query=search_query,
-                    max_results=_breadth,
-                    recent_years=5,
-                    verify_ids=_deep,  # confirm identifiers against NCBI for rigorous reviews
-                )
+
+                # RECALL FIX (LitQA2): a single AND-joined query (' '.join(key_terms))
+                # under-retrieves on *specific* questions — the answer-bearing paper is
+                # frequently never surfaced (measured retrieval recall 16.6%). Decompose
+                # the question into several complementary queries — the joined key terms,
+                # the raw natural-language question, and a few salient term-pairs / rare
+                # singletons — fan the federated search across all of them, and MERGE the
+                # candidate pools (dedup by DOI/PMID/title). This widens *retrieval recall*
+                # only: the downstream citation-grounding / anti-confabulation guard is
+                # unchanged, so BioMate still abstains rather than answer from an
+                # unverified paper (the 0-mismatched-citations property is preserved).
+                sub_queries = _build_search_queries(question, key_terms, primary_query)
+                _per_q = max(self.max_citations, 15)
+
+                async def _one_query(_q):
+                    try:
+                        return await self.literature_client.search_bioinformatics(
+                            query=_q, max_results=_per_q, recent_years=5, verify_ids=_deep,
+                        )
+                    except Exception as _e:
+                        log.debug(f"sub-query search failed for '{_q[:60]}': {_e}")
+                        return []
+
+                _results = await asyncio.gather(*[_one_query(q) for q in sub_queries])
+
+                # Merge + dedup (first-seen order preserves the precise joined query first)
+                citations = []
+                _seen_keys = set()
+                for _lst in _results:
+                    for _c in (_lst or []):
+                        _key = (getattr(_c, 'doi', None) or getattr(_c, 'pmid', None)
+                                or (getattr(_c, 'title', '') or '').lower().strip())
+                        if not _key or _key in _seen_keys:
+                            continue
+                        _seen_keys.add(_key)
+                        citations.append(_c)
+                citations = citations[:max(_breadth, 40)]
 
                 evidence['citations'] = citations
-                log.info(f"Retrieved {len(citations)} citations from literature search")
+                log.info(
+                    f"Retrieved {len(citations)} citations from {len(sub_queries)} decomposed "
+                    f"queries (recall-widened literature search)"
+                )
             except Exception as e:
                 log.warning(f"Literature search failed: {e}")
 
