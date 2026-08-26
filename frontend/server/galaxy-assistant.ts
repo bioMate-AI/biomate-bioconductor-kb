@@ -2728,7 +2728,7 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
   ): Promise<string> {
     if (!this.gemini) throw new Error('Gemini client not initialized — set GEMINI_API_KEY');
     const geminiModelName = modelOverride
-      ?? (this.modelConfig.responseModel.startsWith('gemini-') ? this.modelConfig.responseModel : 'gemini-3.5-flash');
+      ?? (this.modelConfig.responseModel.startsWith('gemini-') ? this.modelConfig.responseModel : GEMINI_FLASH_MODEL);
 
     // Convert Anthropic tool definitions → Gemini FunctionDeclarations
     const typeMap: Record<string, SchemaType> = {
@@ -7035,8 +7035,8 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
           if (chainResult !== null) {
             resultText = chainResult;
           } else if (process.env.ANTHROPIC_API_KEY) {
-            // Direct Haiku only when we have a real key
-            const haiku = 'claude-haiku-4-5-20251001';
+            // Direct Haiku only when we have a real key (centralised tool-ranking model)
+            const haiku = this.modelConfig.toolRankingModel;
             const fallbackCompletion = await this._withAnthropicRetry(
               () => this._getClaude().messages.create({
                 model: haiku,

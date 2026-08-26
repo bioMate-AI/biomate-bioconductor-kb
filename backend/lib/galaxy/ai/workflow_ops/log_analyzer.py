@@ -9,6 +9,7 @@ Workflow日志智能分析器
 """
 
 import logging
+from galaxy.ai.model_resolver import resolve_model
 import re
 import time
 import json
@@ -398,7 +399,7 @@ class WorkflowLogAnalyzer:
         try:
             # 选择模型：目前只使用 Haiku（Sonnet 不可用）
             has_errors = any(issue.severity == IssueSeverity.ERROR for issue in issues)
-            model = 'claude-3-haiku-20240307'  # 统一使用 Haiku
+            model = resolve_model('audit')
 
             result = self.llm_client.call(
                 messages=messages,

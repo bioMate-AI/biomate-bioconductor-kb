@@ -5,6 +5,7 @@ Workflow自动修复系统
 """
 
 import logging
+from galaxy.ai.model_resolver import resolve_model
 import json
 import re
 from typing import Dict, List, Optional, Any
@@ -545,7 +546,7 @@ class WorkflowAutoHealer:
         try:
             result = self.llm_client.call(
                 messages=[{"role": "user", "content": prompt}],
-                model='gemini-3.5-flash',
+                model=resolve_model('rag'),
                 temperature=0.0,
             )
 

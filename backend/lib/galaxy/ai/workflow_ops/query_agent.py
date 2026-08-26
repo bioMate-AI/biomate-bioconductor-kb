@@ -5,6 +5,7 @@ Workflow交互式查询Agent
 """
 
 import logging
+from galaxy.ai.model_resolver import resolve_model
 import json
 from typing import Dict, List, Optional, Any
 from datetime import datetime
@@ -78,7 +79,7 @@ class WorkflowQueryAgent:
                     {"role": "system", "content": "你是Galaxy Nextflow workflow助手，帮助用户理解和调试workflow。回答要准确、简洁、实用。"},
                     {"role": "user", "content": prompt}
                 ],
-                model='gemini-3.5-flash',
+                model=resolve_model('rag'),
                 temperature=0.0,
             )
 

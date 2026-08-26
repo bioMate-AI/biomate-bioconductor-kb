@@ -12,6 +12,7 @@ LLM Universal Fixer - 通用智能修复器
 """
 
 import logging
+from galaxy.ai.model_resolver import resolve_model
 import json
 import re
 import inspect
@@ -186,7 +187,7 @@ class LLMUniversalFixer(BaseAutoFixer):
             # 调用 LLM
             response = self.llm_client.call(
                 messages=[{"role": "user", "content": prompt}],
-                model="claude-sonnet-4-20250514",
+                model=resolve_model('autofix'),
                 temperature=0,  # 低温度确保稳定输出
                 max_tokens=6000  # 足够长以支持复杂场景
             )

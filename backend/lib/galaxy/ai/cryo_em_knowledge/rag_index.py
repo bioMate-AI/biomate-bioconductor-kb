@@ -36,6 +36,7 @@ Usage
 """
 
 from __future__ import annotations
+from galaxy.ai.model_resolver import resolve_model
 
 import argparse
 import json
@@ -143,7 +144,7 @@ def _embed_with_anthropic(texts: list[str], api_key: str) -> list[list[float]]:
     for i, text in enumerate(texts):
         try:
             resp = client.messages.create(
-                model="gemini-3.5-flash",
+                model=resolve_model('rag'),
                 max_tokens=1,
                 messages=[{"role": "user", "content": text}],
                 system="Return a single token.",

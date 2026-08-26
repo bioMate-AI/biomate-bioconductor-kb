@@ -708,7 +708,7 @@ def get_all_providers() -> Dict[str, Dict[str, Any]]:
         'gemini': {
             'name': 'Google Gemini',
             'models': GEMINI_MODELS,
-            'recommended': 'gemini-2.0-flash-exp',
+            'recommended': 'gemini-3.5-flash',
             'api_key_required': True,
             'local': False,
             'description': 'Google multimodal AI with strong performance'

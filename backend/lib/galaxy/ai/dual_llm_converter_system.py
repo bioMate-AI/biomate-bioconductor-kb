@@ -18,6 +18,7 @@ Date: 2025-11-20
 """
 
 import json
+from galaxy.ai.model_resolver import resolve_model
 import time
 import tempfile
 import subprocess
@@ -334,7 +335,7 @@ class GeminiClient:
 
     def __init__(self, api_key: str):
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        self.model = genai.GenerativeModel(resolve_model('intent'))
 
     def convert_processes_parallel(self, processes: List[Dict],
                                    doc_provider: DocumentationProvider):
@@ -404,7 +405,7 @@ class GeminiClient:
             nextflow_code=process_code,
             environment_yml=env_yml,
             confidence=0.8,  # Gemini default confidence
-            model='gemini-2.0-flash-exp'
+            model=resolve_model('intent')
         )
 
 
@@ -500,7 +501,7 @@ class ProcessConverter:
                     nextflow_code=result,
                     environment_yml=env_yml,
                     confidence=0.9,  # Claude confidence
-                    model='claude-sonnet-4.5'
+                    model=resolve_model('convert')
                 )
                 print(f"   ✅ {proc['id']}")
         else:

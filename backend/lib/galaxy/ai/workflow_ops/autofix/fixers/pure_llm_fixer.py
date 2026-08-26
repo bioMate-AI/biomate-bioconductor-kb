@@ -5,6 +5,7 @@ Pure LLM AutoFixer - 零规则，纯 LLM 驱动
 """
 
 import logging
+from galaxy.ai.model_resolver import resolve_model
 import json
 from typing import Dict, List, Any, Optional
 from pathlib import Path
@@ -78,7 +79,7 @@ class PureLLMAutoFixer:
                 try:
                     # 调用 LLM
                     response = self.llm_client.messages.create(
-                        model="claude-sonnet-4-20250514",
+                        model=resolve_model('autofix'),
                         max_tokens=4096,
                         tools=tools,
                         messages=messages

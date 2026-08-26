@@ -12,6 +12,7 @@ Agent-based Auto Fixer
 """
 
 import logging
+from galaxy.ai.model_resolver import resolve_model
 import json
 from pathlib import Path
 from typing import Dict, List, Any, Optional
@@ -182,7 +183,7 @@ Start by listing the workflow directory to see what files are available.
             try:
                 response = self.llm_client.call(
                     messages=self.conversation_history,
-                    model="claude-sonnet-4-20250514",
+                    model=resolve_model('autofix'),
                     temperature=0,
                     max_tokens=4000,
                     tools=tool_definitions  # 🔥 关键：传递工具定义
@@ -403,7 +404,7 @@ Provide ONLY the JSON array, no additional text."""
         try:
             response = self.llm_client.call(
                 messages=self.conversation_history,
-                model="claude-sonnet-4-20250514",
+                model=resolve_model('autofix'),
                 temperature=0,
                 max_tokens=2000
             )

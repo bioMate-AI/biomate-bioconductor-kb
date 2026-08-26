@@ -10,6 +10,7 @@ Date: 2025-11-22
 """
 
 from typing import Dict, List, Optional
+from galaxy.ai.model_resolver import resolve_model
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 
@@ -187,7 +188,7 @@ class EnhancedProcessConverter:
                     nextflow_code=result,
                     environment_yml=env_yml,
                     confidence=0.9,
-                    model='claude-sonnet-4.5'
+                    model=resolve_model('convert')
                 )
                 print(f"   ✅ {proc['id']}")
         else:

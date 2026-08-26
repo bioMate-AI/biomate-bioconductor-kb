@@ -6,6 +6,7 @@ LLM-First Auto Fixer
 """
 
 import logging
+from galaxy.ai.model_resolver import resolve_model
 import json
 import re
 from datetime import datetime
@@ -185,7 +186,7 @@ class LLMFirstFixer(BaseAutoFixer):
         try:
             response = self.llm_client.call(
                 messages=[{"role": "user", "content": prompt}],
-                model="claude-sonnet-4-20250514",  # 使用最新的Claude Sonnet 4模型
+                model=resolve_model('autofix'),  # 使用最新的Claude Sonnet 4模型
                 temperature=0,  # 低温度确保稳定输出
                 max_tokens=4000
             )

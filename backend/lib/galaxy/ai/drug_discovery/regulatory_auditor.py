@@ -33,6 +33,7 @@ Can also be run standalone: RegulatoryAuditor(region).audit(markdown, ctx)
 """
 
 from __future__ import annotations
+from galaxy.ai.model_resolver import resolve_model
 
 import json
 import logging
@@ -379,7 +380,7 @@ class RegulatoryAuditor:
             import anthropic
             client = anthropic.Anthropic()
             msg = client.messages.create(
-                model="claude-haiku-4-5-20251001",
+                model=resolve_model('audit'),
                 max_tokens=1024,
                 system=_JUDGE_SYSTEM,
                 messages=[{"role": "user", "content": prompt}],

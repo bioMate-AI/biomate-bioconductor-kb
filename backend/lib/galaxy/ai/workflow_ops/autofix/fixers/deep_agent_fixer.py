@@ -12,6 +12,7 @@ Deep Agent Fixer - 基于 Deep Agent 的智能修复器
 """
 
 import logging
+from galaxy.ai.model_resolver import resolve_model
 import json
 import sys
 from pathlib import Path
@@ -87,7 +88,7 @@ class DeepAgentFixer(BaseAutoFixer):
             # 创建 LLM 客户端（使用最新的 Claude Sonnet 4 模型）
             self.llm_client = LLMClient(
                 api_key=api_key,
-                model="claude-sonnet-4-20250514"
+                model=resolve_model('autofix')
             )
 
             self.deep_agent_available = True

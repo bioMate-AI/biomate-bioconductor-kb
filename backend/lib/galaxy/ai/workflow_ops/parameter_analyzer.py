@@ -5,6 +5,7 @@ Workflow Parameter Analyzer
 """
 
 import logging
+from galaxy.ai.model_resolver import resolve_model
 import re
 import json
 import os
@@ -159,7 +160,7 @@ Return a JSON object with a "recommendations" array.
         client = anthropic.Anthropic(api_key=api_key)
 
         message = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
+            model=resolve_model('param'),
             max_tokens=2048,
             messages=[
                 {"role": "user", "content": prompt}

@@ -13,6 +13,7 @@ Date: 2025-11-24
 """
 
 import json
+from galaxy.ai.model_resolver import resolve_model
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 import os
@@ -50,7 +51,7 @@ class BiologicalLogicDetector:
 
         import google.generativeai as genai
         genai.configure(api_key=self.gemini_api_key)
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        self.model = genai.GenerativeModel(resolve_model('intent'))
 
     def detect_biological_groups(self, galaxy_wf: Dict) -> List[BiologicalGroup]:
         """
