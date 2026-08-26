@@ -1060,6 +1060,13 @@ class UnifiedWorkflowSearch:
         'vep': ['vep', 'variant', 'effect', 'predictor'],
         'qc': ['quality', 'control'],
         'fastqc': ['fastqc', 'quality', 'control'],
+        # "Dock"/"binding" (verb & noun forms users actually type) must reach the
+        # docking workflows, which are indexed under the token "docking". FTS5 does
+        # NOT stem dock->docking, so a bare "dock" matched 0 workflows and the search
+        # fell back to generic tokens (binding/predicted), surfacing boltz (a
+        # structure-PREDICTION tool) instead of AutoDock Vina / DiffDock.
+        'dock': ['dock', 'docking'],
+        'docking': ['docking', 'dock', 'binding', 'affinity'],
     }
 
     def _infer_domain_preferences(self, query: str) -> Tuple[set, set]:
