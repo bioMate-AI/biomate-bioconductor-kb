@@ -19,7 +19,7 @@ from pathlib import Path as FilePath
 from typing import Dict, List, Any, Optional
 
 from fastapi import HTTPException, Path, Query, Depends
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from galaxy import util
 from galaxy.managers.context import ProvidesUserContext
@@ -2879,6 +2879,25 @@ class CitationModel(BaseModel):
     formatted_apa: str = Field("", description="APA formatted citation")
     formatted_short: str = Field("", description="Short citation format")
     formatted_bibtex: str = Field("", description="BibTeX format")
+
+    @field_validator('year', mode='before')
+    @classmethod
+    def _coerce_year(cls, v):
+        """Coerce blank / non-numeric year to None (year is Optional[int]).
+
+        Some tool citations (e.g. AutoDock Vina) carry year='' (empty string) rather than
+        None. Pydantic v2 refuses to parse '' as int and aborts the ENTIRE
+        generate_workflow request with a 500 ("citation metadata validation ... publication
+        year was empty"), blocking docking workflow generation. Treat blank/garbage as
+        'no year' — downstream formatting already renders that as '(n.d.)'.
+        """
+        if v is None or isinstance(v, int):
+            return v
+        s = str(v).strip()
+        if s.isdigit():
+            return int(s)
+        m = re.search(r'\d{4}', s)  # salvage an embedded 4-digit year if present
+        return int(m.group()) if m else None
 
 
 class MethodsSectionModel(BaseModel):
