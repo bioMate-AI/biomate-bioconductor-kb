@@ -81,7 +81,8 @@ process BOLTZ_PREDICT {
         --recycling_steps ${params.recycling_steps} \\
         ${msa_flag} \\
         --accelerator gpu \\
-        --devices 1
+        --devices 1 \\
+        --num_workers 0
     """
 }
 
