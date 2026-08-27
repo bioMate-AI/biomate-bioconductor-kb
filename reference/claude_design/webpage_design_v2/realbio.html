@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en" data-palette="default" data-type="default" data-density="cozy">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RealBio — an open, objectively-scored benchmark for bioinformatics AI agents — BioMate AI</title>
+  <meta name="description" content="RealBio is an open, objectively-scored, cross-system benchmark of 505 real-world bioinformatics-automation items across 5 tasks, graded by one shared open scorer (score.py, no LLM judge). Run your own system on the fixed items and land on the leaderboard. CC-BY-4.0." />
+  <link rel="canonical" href="https://biomate.ai/realbio.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="RealBio — an open, objectively-scored benchmark for bioinformatics AI agents" />
+  <meta property="og:description" content="505 items · 5 objective-ground-truth tasks · one shared open scorer (no LLM judge). Anti-self-grading by construction. Run your own system and land on the leaderboard. CC-BY-4.0." />
+  <meta property="og:url" content="https://biomate.ai/realbio.html" />
+  <meta property="og:image" content="https://biomate.ai/assets/logo.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="RealBio — an open, objectively-scored benchmark for bioinformatics AI agents" />
+  <meta name="twitter:description" content="505 items · 5 objective tasks · one open scorer, no LLM judge. Anti-self-grading. Run your own system, land on the leaderboard. CC-BY-4.0." />
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org", "@type": "Dataset",
+    "name": "RealBio Benchmark",
+    "description": "An open, objectively-scored, cross-system benchmark of 505 real-world bioinformatics-automation items across 5 tasks (routing, parameter pre-fill, protocol QC, BOIN dose-escalation, PBPK), each with published ground truth graded by one shared open scorer (score.py) — no LLM judge for the objective tasks.",
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "url": "https://biomate.ai/realbio.html",
+    "codeRepository": "https://github.com/bioMate-AI/realbio-benchmark",
+    "sameAs": "https://huggingface.co/datasets/YaoyunZhangHug/realbio_benchmark",
+    "creator": { "@type": "Organization", "name": "BioMate AI" }
+  }
+  </script>
+</head>
+<body>
+  <section class="bm-topic-hero">
+    <div class="bm-topic-hero-inner bm-anim-up">
+      <nav style="font-size:.8rem;color:var(--text-faint);margin-bottom:1.5rem;">
+        <a href="index.html">Home</a> &rsaquo; <a href="benchmarks.html">Benchmarks</a> &rsaquo; RealBio
+      </nav>
+      <span class="bm-eyebrow">Open cross-system benchmark · drug development & genomics</span>
+      <h1 class="bm-display" style="margin-top:1rem;margin-bottom:1.25rem;">RealBio: can an AI agent actually <em>run</em> a biomedical pipeline — not just discuss it?</h1>
+      <p class="bm-lead" style="max-width:800px;">Modern drug discovery and genomics run on multi-step computational pipelines — pick the right analysis, configure it, quality-control the data, model the drug, choose a safe trial dose. Teams increasingly want an <strong>AI agent to drive them</strong>. RealBio asks the blunt question: can an agent get the <em>objectively-checkable</em> answer right? <strong>505 fixed public items across 5 real drug-development / genomics tasks</strong>, each with published ground truth, graded by <strong>one shared open scorer</strong> (<code>score.py</code> — deterministic, no AI judge). The finding: frontier LLMs know biology but <strong>fail at execution</strong> — worst on the clinical-pharmacology tasks (predicting drug exposure, choosing a trial dose) — while a purpose-built platform (BioMate) leads every task.</p>
+      <p style="margin-top:1.5rem;">
+        <a class="bm-btn" href="https://github.com/bioMate-AI/realbio-benchmark">Data + scorer on GitHub &rarr;</a>
+        <a class="bm-btn bm-btn-ghost" href="https://huggingface.co/datasets/YaoyunZhangHug/realbio_benchmark" style="margin-left:.5rem;">Dataset on HuggingFace</a>
+        <a class="bm-btn bm-btn-ghost" href="#leaderboard" style="margin-left:.5rem;">See the leaderboard</a>
+      </p>
+    </div>
+  </section>
+
+  <section class="bm-section bm-bg-1">
+    <div class="bm-section-inner">
+      <span class="bm-eyebrow">What makes it different</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.75rem;">Anti-self-grading, by construction</h2>
+      <div class="bm-metric-grid" style="max-width:920px;">
+        <div class="bm-metric-card"><div class="bm-metric-number">505</div><div class="bm-metric-label">fixed items</div><div class="bm-metric-note">5 objective-ground-truth tasks</div></div>
+        <div class="bm-metric-card"><div class="bm-metric-number">1</div><div class="bm-metric-label">shared open scorer</div><div class="bm-metric-note">score.py &middot; no LLM judge</div></div>
+        <div class="bm-metric-card"><div class="bm-metric-number">10</div><div class="bm-metric-label">systems on the board</div><div class="bm-metric-note">8 frontier LLMs + a domain agent + BioMate</div></div>
+        <div class="bm-metric-card"><div class="bm-metric-number">CC-BY-4.0</div><div class="bm-metric-label">fully open</div><div class="bm-metric-note">data, ground truth, scorer, harness</div></div>
+      </div>
+      <p class="bm-body" style="max-width:760px;margin-top:1.25rem;">Tasks are real bioinformatics automation — not multiple-choice trivia. Every number traces to committed <code>score.py</code> output on committed predictions; every leaderboard cell re-scores from the released files.</p>
+    </div>
+  </section>
+
+  <section class="bm-section bm-bg-2">
+    <div class="bm-section-inner">
+      <span class="bm-eyebrow">The five tasks, in plain language</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">The real drug-development relay</h2>
+      <p class="bm-body" style="max-width:820px;">Taking a therapy from a molecule or a dataset toward the clinic is a computational relay. RealBio's five tasks are five real hand-offs in it — grouped into <strong>Orchestration</strong> (set the analysis up) and <strong>Execution</strong> (run the science, including the clinical-pharmacology computations). Quality control isn't a separate stage — it's embedded in every task.</p>
+      <div style="overflow-x:auto;margin-top:1.25rem;">
+        <table class="bm-table" style="min-width:760px;">
+          <thead><tr><th>Band</th><th>Task</th><th>In plain English</th><th>Why an error is costly</th><th>Coverage</th></tr></thead>
+          <tbody>
+            <tr><td>Orchestration</td><td><strong>Pipeline routing</strong></td><td>Pick the single correct analysis pipeline for a plain-English request (RNA-seq vs. variant-calling vs. single-cell …).</td><td>The wrong pipeline wastes days of compute and real sample money.</td><td>200 items · <strong>63 pipelines</strong>, all omics domains</td></tr>
+            <tr><td>Orchestration</td><td><strong>Parameter pre-fill</strong></td><td>Fill the pipeline's settings from the request — and <em>only</em> the ones actually specified, never invented.</td><td>Over-filling silently corrupts a run; both failures look like success.</td><td>170 items · <strong>11 categories, 143 parameters</strong></td></tr>
+            <tr><td>Execution</td><td><strong>QC gating</strong></td><td>Decide PASS/FAIL on a real sequencing sample; a universal cutoff false-alarms on specialized assays (single-cell, small-RNA, cryo-EM).</td><td>Discarding good data — or keeping bad data — corrupts every downstream result.</td><td>100 items · <strong>99 assays</strong> · GEO/PRIDE/EMDB</td></tr>
+            <tr><td>Execution</td><td><strong>Trial dose-finding</strong> (BOIN)</td><td><strong>BOIN</strong> = Bayesian Optimal INterval, a Phase&nbsp;I clinical-trial design. From toxicity data, recommend the Maximum Tolerated Dose (MTD).</td><td>A first-in-human patient-safety call: too high harms patients, too low fails the drug.</td><td>20 items · <strong>20 trial scenarios</strong> (oncology, ADCs, pediatric)</td></tr>
+            <tr><td>Execution</td><td><strong>Drug-exposure prediction</strong> (PBPK)</td><td><strong>PBPK</strong> = Physiologically-Based PharmacoKinetics: predict blood concentration (Cmax, AUC, half-life) from a molecule's chemistry, dose and route.</td><td>Sets the first-in-human dose and underpins FDA submissions.</td><td>15 items · <strong>15 marketed drugs</strong> across classes</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="bm-metric-note" style="margin-top:.75rem;max-width:820px;">Every abbreviation (BOIN, PBPK, MTD, Cmax, AUC, GEO/PRIDE/EMDB) is a standard drug-development or bioinformatics term. Items are original tasks authored from public sources — not drawn from any system's training set. <strong>The pattern:</strong> LLMs used directly do fine on knowledge-heavy orchestration but collapse on the execution tasks — PBPK simulation (mean 0.08 within-2-fold) and BOIN dose-finding (mean 0.24 exact-MTD) — exactly where a wrong answer is a safety error.</p>
+    </div>
+  </section>
+
+  <section class="bm-section bm-bg-2" id="leaderboard">
+    <div class="bm-section-inner">
+      <span class="bm-eyebrow">Cross-system leaderboard</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">BioMate leads every task</h2>
+      <p class="bm-body" style="max-width:820px;">On the same fixed items and the same open scorer, <strong>BioMate is first on all five tasks</strong> — routing <strong>0.965</strong>, parameter-F1 <strong>0.848</strong>, protocol-QC <strong>0.925</strong>, PBPK <strong>1.00</strong>, BOIN <strong>0.80</strong>. The runner-up differs by task (Biomni ties routing; Claude Opus 5 is second on parameters; Gemini 3.1 Pro second on protocol), so the lead is broad, not a one-task artifact. The clearest pattern among the LLMs: used the way they are actually deployed, they fail <em>execution</em> tasks — PBPK simulation (mean 0.08 within-2-fold) and deterministic BOIN dose-finding (mean 0.24 exact-MTD) — while doing well on knowledge-driven extraction.</p>
+      <div style="overflow-x:auto;margin-top:1.25rem;">
+        <table class="bm-table" style="min-width:720px;">
+          <thead><tr><th>System</th><th>Routing</th><th>Param&nbsp;(F1)</th><th>Protocol&nbsp;QC</th><th>PBPK&nbsp;(2&times;)</th><th>BOIN&nbsp;(MTD)</th></tr></thead>
+          <tbody>
+            <tr><td><strong>BioMate</strong> (product)</td><td><strong>0.965</strong></td><td><strong>0.848</strong></td><td><strong>0.925</strong></td><td><strong>1.00</strong></td><td><strong>0.80</strong></td></tr>
+            <tr><td>Claude Opus 5</td><td>0.615</td><td>0.757</td><td>0.330</td><td>0.133</td><td>0.444</td></tr>
+            <tr><td>Gemini 3.1 Pro</td><td>0.580</td><td>0.693</td><td>0.630</td><td>0.000</td><td>0.278</td></tr>
+            <tr><td>GPT-5.6</td><td>0.530</td><td>0.671</td><td>0.460</td><td>0.200</td><td>0.500</td></tr>
+            <tr><td>Kimi K3</td><td>0.450</td><td>0.628</td><td>0.360</td><td>0.000</td><td>0.167</td></tr>
+            <tr><td>DeepSeek V4</td><td>0.415</td><td>0.621</td><td>0.420</td><td>0.067</td><td>0.167</td></tr>
+            <tr><td>GLM-5.2</td><td>0.400</td><td>0.641</td><td>0.440</td><td>0.000</td><td>0.111</td></tr>
+            <tr><td>Qwen3.8-Max</td><td>0.345</td><td>0.692</td><td>0.460</td><td>0.000</td><td>0.111</td></tr>
+            <tr><td>Biomni (Stanford A1)</td><td>0.950</td><td>0.708</td><td>0.500</td><td>0.000</td><td>0.500</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="bm-metric-note" style="margin-top:.75rem;max-width:820px;">Every cell is a same-item, same-scorer result that re-scores from the committed prediction files under <code>results/</code>.</p>
+
+      <h3 class="bm-h3" style="margin-top:2rem;margin-bottom:.5rem;">Efficiency &amp; engine (measured)</h3>
+      <p class="bm-body" style="max-width:820px;"><strong>Latency</strong> below is the <strong>routing</strong> task (same 200 items) — the one metric measured identically for every system, so the only clean head-to-head. Cost is reported separately, because no single task logged tokens for all systems.</p>
+      <div style="overflow-x:auto;margin-top:1rem;">
+        <table class="bm-table" style="min-width:640px;">
+          <thead><tr><th>System</th><th>Routing latency (median)</th><th>Engine</th></tr></thead>
+          <tbody>
+            <tr><td><strong>BioMate</strong> (product)</td><td><strong>2.3 s</strong></td><td>Mixture of LLMs — primary Claude Sonnet 4.5; secondary Claude Haiku 4.5, Gemini 3.5 Flash, Gemini 3.1 Pro, GPT-5.6-luna</td></tr>
+            <tr><td>Claude Opus 5</td><td>2.7 s</td><td>Anthropic Claude Opus 5</td></tr>
+            <tr><td>Gemini 3.1 Pro</td><td>3.6 s</td><td>Google Gemini 3.1 Pro</td></tr>
+            <tr><td>GPT-5.6</td><td>&mdash; (subset only)</td><td>OpenAI GPT-5.6</td></tr>
+            <tr><td>GPT-5.6-luna</td><td>1.6 s</td><td>OpenAI GPT-5.6-luna</td></tr>
+            <tr><td>Kimi K3</td><td>3.2 s</td><td>Moonshot Kimi K3</td></tr>
+            <tr><td>DeepSeek V4</td><td>3.8 s</td><td>DeepSeek V4</td></tr>
+            <tr><td>GLM-5.2</td><td>0.8 s</td><td>Z.ai GLM-5.2</td></tr>
+            <tr><td>Qwen3.8-Max</td><td>4.0 s</td><td>Alibaba Qwen3.8-Max</td></tr>
+            <tr><td>Biomni (A1)</td><td>3.9 s</td><td>Agent scaffold — Claude Opus 5 (routing/param/protocol), Claude Sonnet 4.5 (PBPK/BOIN)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="bm-metric-note" style="margin-top:1.25rem;max-width:820px;"><strong>Per-call cost — being revised.</strong> The token/cost analysis is temporarily withheld while we make it a clean, same-task comparison across all systems; it will be added back once corrected. Latency above is the interim same-task efficiency metric.</p>
+    </div>
+  </section>
+
+  <section class="bm-section bm-bg-1">
+    <div class="bm-section-inner">
+      <span class="bm-eyebrow">Who is on the board</span>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.75rem;">Participating systems</h2>
+      <p class="bm-body" style="max-width:820px;margin-bottom:1rem;">Every system was run on the same fixed items and scored by the same <code>score.py</code>. LLMs were run the way they are actually deployed (model + task); BioMate as the product; Biomni as its published agent scaffold.</p>
+      <div style="overflow-x:auto;">
+        <table class="bm-table" style="min-width:640px;">
+          <thead><tr><th>System</th><th>Organization</th><th>Link</th></tr></thead>
+          <tbody>
+            <tr><td><strong>BioMate</strong> (product)</td><td>BioMate AI</td><td><a href="https://biomate.ai">biomate.ai</a></td></tr>
+            <tr><td>Claude Opus 5</td><td>Anthropic</td><td><a href="https://www.anthropic.com/claude">anthropic.com/claude</a></td></tr>
+            <tr><td>Gemini 3.1 Pro</td><td>Google DeepMind</td><td><a href="https://deepmind.google/models/gemini/">deepmind.google/models/gemini</a></td></tr>
+            <tr><td>GPT-5.6 &middot; GPT-5.6-luna</td><td>OpenAI</td><td><a href="https://openai.com/">openai.com</a></td></tr>
+            <tr><td>Kimi K3</td><td>Moonshot AI</td><td><a href="https://www.moonshot.ai/">moonshot.ai</a></td></tr>
+            <tr><td>DeepSeek V4</td><td>DeepSeek</td><td><a href="https://www.deepseek.com/">deepseek.com</a></td></tr>
+            <tr><td>GLM-5.2</td><td>Z.ai (Zhipu AI)</td><td><a href="https://z.ai/">z.ai</a></td></tr>
+            <tr><td>Qwen3.8-Max</td><td>Alibaba Qwen</td><td><a href="https://qwen.ai/">qwen.ai</a></td></tr>
+            <tr><td>Biomni (A1)</td><td>Stanford (Zou Lab)</td><td><a href="https://biomni.stanford.edu/">biomni.stanford.edu</a> &middot; <a href="https://doi.org/10.1126/science.adz4351">Science 2025</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="bm-section bm-bg-2">
+    <div class="bm-section-inner" style="text-align:center;">
+      <h2 class="bm-h2" style="margin-bottom:.75rem;">Run your own system</h2>
+      <p class="bm-lead" style="max-width:680px;margin:0 auto 1.5rem;">The items, ground truth, and scorer are public. Run your system on the fixed items, score with the shared <code>score.py</code>, and your result is directly comparable to the leaderboard.</p>
+      <a class="bm-btn" href="https://github.com/bioMate-AI/realbio-benchmark">GitHub: bioMate-AI/realbio-benchmark &rarr;</a>
+      <a class="bm-btn bm-btn-ghost" href="https://huggingface.co/datasets/YaoyunZhangHug/realbio_benchmark" style="margin-left:.5rem;">HuggingFace dataset</a>
+    </div>
+  </section>
+  <script src="shell.js?v=20260609b"></script>
+</body>
+</html>
