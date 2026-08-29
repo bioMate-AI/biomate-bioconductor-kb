@@ -24,6 +24,9 @@
 // Validated logic: scripts/clean_and_verify_qc_proofpoint.py + scripts/qc_battery.py
 // (bulk/ComBat: gate tracks biology +0.58, batch-removal anti-tracks -0.86, false-accept 0.14->0.00)
 // NOTE: R not yet executed on Batch — verify via one post-merge E2E on a confounded matrix.
+// Input: omics
+// (^ the bioc entry-wrapper reads this header to stage params.omics=[expr.csv, meta.csv]
+//  into the process work dir; without it the wrapper binds one empty placeholder -> R aborts)
 // ============================================================
 
 nextflow.enable.dsl = 2
