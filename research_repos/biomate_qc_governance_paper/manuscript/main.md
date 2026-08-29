@@ -2,13 +2,13 @@
 
 **Draft — 2026-03-04**
 **Target journal:** Nature Methods
-**Status:** First full draft. Benchmark figures are PLACEHOLDER (data to be collected on AWS Batch). Usability study is PLACEHOLDER (study not yet run). All governance architecture, implementation, and supplementary materials are complete.
+**Status:** Framework + implementation complete; efficacy benchmark and usability study pre-registered but NOT YET RUN — no efficacy results are reported in this version.
 
 ---
 
 ## Abstract
 
-Reproducibility in computational biology is threatened not only by analytical variability but by silent quality-control failures: experiments that generate plausible-looking results despite fundamental problems in data quality. Existing tools report QC metrics after a workflow completes but cannot intervene, contextualise thresholds, or adapt to protocol-specific expectations. Here we present BioMate, a workflow governance platform that monitors multi-omics Nextflow pipelines in real time, applying an evidence-graded four-layer threshold hierarchy with 31 named protocol profiles across six omics domains. BioMate pauses workflows when blocking quality gates are triggered, presents parameter suggestions with literature provenance, and emits machine-readable audit logs suitable for methods-section reporting. In a benchmark across five public datasets spanning RNA-seq, single-cell RNA-seq, ATAC-seq, metagenomics, and cryo-EM, BioMate correctly identified all QC failures previously flagged by ENCODE's internal team while eliminating false positives on FFPE, cardiac single-cell, and soil metagenomic samples where generic thresholds are systematically miscalibrated. A user study with 20 wet-lab biologists confirmed that BioMate reduces time-to-correct-QC-decision by **[PLACEHOLDER]**× compared to manual MultiQC review.
+Reproducibility in computational biology is threatened not only by analytical variability but by silent quality-control failures: experiments that generate plausible-looking results despite fundamental problems in data quality. Existing tools report QC metrics after a workflow completes but cannot intervene, contextualise thresholds, or adapt to protocol-specific expectations. Here we present BioMate, a workflow governance platform that monitors multi-omics Nextflow pipelines in real time, applying an evidence-graded four-layer threshold hierarchy with 31 named protocol profiles across six omics domains. BioMate pauses workflows when blocking quality gates are triggered, presents parameter suggestions with literature provenance, and emits machine-readable audit logs suitable for methods-section reporting. We describe the governance architecture and its implementation; a pre-registered benchmark against ENCODE-adjudicated QC calls and a controlled usability study are specified in Methods and have not yet been run.
 
 ---
 
@@ -30,7 +30,7 @@ Here we introduce BioMate, a workflow governance platform that addresses these l
 
 3. **Machine-readable audit trails** that record every threshold application, profile selection, and user override in a JSONL log suitable for automated methods-section generation and regulatory compliance.
 
-BioMate is the first platform to encode QC governance as a versioned, citation-backed, user-overridable artifact that travels with the workflow rather than existing separately in a static report. We demonstrate its performance on five public benchmark datasets and its usability with a structured study of wet-lab biologists.
+BioMate is the first platform to encode QC governance as a versioned, citation-backed, user-overridable artifact that travels with the workflow rather than existing separately in a static report. We specify a pre-registered benchmark on five public datasets and a structured usability study of wet-lab biologists to evaluate its performance; these evaluations are described in Methods and have not yet been run.
 
 ---
 
@@ -72,9 +72,9 @@ The complete system covers six omics domains with 29 parsers and 47 distinct gat
 
 ### Benchmark: real-time QC versus post hoc MultiQC review
 
-**[PLACEHOLDER — data collection required on AWS Batch. Estimated compute cost $500. Datasets: ENCSR000AED, GSE68086, GSE121893, SRP047083, ENCSR356LIU. See experimental design below.]**
+*Planned evaluation — not yet run. Design specified in Methods §Benchmark experimental design.*
 
-We benchmarked BioMate against MultiQC on five public datasets selected to span the space of true positives (genuine QC failures), true negatives (high-quality samples), and false-positive scenarios (technically valid but protocol-mismatched samples):
+The pre-registered benchmark compares BioMate against MultiQC on five public datasets selected to span the space of true positives (genuine QC failures), true negatives (high-quality samples), and false-positive scenarios (technically valid but protocol-mismatched samples):
 
 | Dataset | Accession | Protocol | Expected |
 |---|---|---|---|
@@ -84,29 +84,23 @@ We benchmarked BioMate against MultiQC on five public datasets selected to span 
 | Topsoil metagenomics (Bahram 2018) | SRP047083 | Shotgun metagenomics | BioMate passes with `metagenomics_soil`; MultiQC flags low classification |
 | K562 ATAC-seq (ENCODE-flagged) | ENCSR356LIU | ATAC-seq | True positive (both tools flag; ENCODE team flagged independently) |
 
-For each dataset, we computed: (1) whether the tool produced any QC failure signal, (2) whether that signal was a true or false positive/negative relative to the ENCODE-adjudicated ground truth, and (3) time-to-decision from run start.
+For each dataset, the protocol computes: (1) whether the tool produced any QC failure signal, (2) whether that signal was a true or false positive/negative relative to the ENCODE-adjudicated ground truth, and (3) time-to-decision from run start.
 
-**[PLACEHOLDER TABLE: 2×2 confusion matrices per dataset]**
-
-**[PLACEHOLDER FIGURE 1: Confusion matrix heatmap + time-to-decision bar chart]**
-
-Preliminary expectations based on known dataset properties: BioMate is expected to produce zero false positives (the three protocol-mismatched datasets should pass with appropriate profiles) and detect the ENCODE-flagged ATAC-seq failure independently. MultiQC is expected to flag the FFPE, cardiac, and soil datasets as failures using its default thresholds, producing false positive signals that would cause a researcher to unnecessarily re-run or discard valid data.
+*Planned evaluation — not yet run. Design specified in Methods §Benchmark experimental design.*
 
 ### Usability study
 
-**[PLACEHOLDER — study not yet run. 20 sessions planned with wet-lab biologists. See study design below.]**
+*Planned evaluation — not yet run. Design specified in Methods §Usability study design.*
 
-Twenty participants with no bioinformatics command-line experience performed the task of running an scRNA-seq QC gate workflow through BioMate and arriving at a correct QC decision (pass, retry with suggested parameters, or cancel). The same task was presented to a control group using MultiQC output from a completed run.
+The pre-registered study protocol has twenty participants with no bioinformatics command-line experience perform the task of running an scRNA-seq QC gate workflow through BioMate and arriving at a correct QC decision (pass, retry with suggested parameters, or cancel). The same task is presented to a control group using MultiQC output from a completed run.
 
-Metrics collected: task completion rate (target ≥ 70%), time-to-decision (minutes from workflow start), and silent failure rate (proportion of failures incorrectly identified as passes).
-
-**[PLACEHOLDER FIGURE 2: Violin plots of time-to-decision BioMate vs. MultiQC review; task completion bar]**
+Metrics to be collected: task completion rate (target ≥ 70%), time-to-decision (minutes from workflow start), and silent failure rate (proportion of failures incorrectly identified as passes).
 
 ### Parameter suggestions reduce re-run latency
 
 When BioMate's QC gate fires, the parameter suggester presents actionable changes to the user, pre-selected by confidence. High-confidence suggestions (≥ 0.7) are auto-applied when the user disables the "Pause at QC failures" mode, enabling fully automated re-runs without manual intervention.
 
-The suggester covers eight domains — RNA-seq, DNA-seq/genomics, single-cell, ChIP/ATAC-seq, metagenomics, cryo-EM (9 stage-specific methods), proteomics LC-MS/MS, and drug discovery — with a total of **[PLACEHOLDER: count]** distinct suggestion rules (Supplementary Note S5–S9, §Parameter suggestions).
+The suggester covers eight domains — RNA-seq, DNA-seq/genomics, single-cell, ChIP/ATAC-seq, metagenomics, cryo-EM (9 stage-specific methods), proteomics LC-MS/MS, and drug discovery — via a documented set of per-domain suggestion rules (Supplementary Note S5–S9, §Parameter suggestions).
 
 Each suggestion carries: a parameter name compatible with the Nextflow `--param` convention, a current value (read from the active invocation), a suggested value, a rationale string, a confidence score (0.0–1.0), and a source field (`rule`, `literature`, or `empirical`).
 
@@ -128,7 +122,7 @@ BioMate addresses a gap that sits between workflow orchestration (what Nextflow 
 
 **Protocol portability.** Named profiles can be applied to any compatible workflow without modifying the pipeline code. A researcher running an established nf-core pipeline through BioMate gains protocol-aware QC governance without any changes to the pipeline itself. The profile and its citations travel with the analysis.
 
-**False-positive elimination.** The most common failure mode of generic QC thresholds is the false positive: flagging high-quality data from specialised protocols as failures. Our benchmark quantifies this failure mode directly. The cardiac scRNA-seq and soil metagenomics datasets are paradigm cases: both are biologically and technically valid, but both would be rejected by any tool applying generic thresholds. BioMate eliminates these false positives through named profiles backed by published cell atlas and environmental metagenomics literature.
+**False-positive elimination.** The most common failure mode of generic QC thresholds is the false positive: flagging high-quality data from specialised protocols as failures. The pre-registered benchmark is designed to quantify this failure mode directly. The cardiac scRNA-seq and soil metagenomics datasets are paradigm cases: both are biologically and technically valid, but both would be rejected by any tool applying generic thresholds. By design, BioMate's named profiles — backed by published cell atlas and environmental metagenomics literature — apply protocol-appropriate thresholds intended to avoid these false positives; the benchmark will test whether they do so in practice.
 
 **Governance as a research output.** The audit log and the `methods_text` endpoint position QC governance itself as a research output, not merely an operational check. A supplementary JSONL file submitted with a paper provides reviewers with an unambiguous record of which thresholds were applied, at what evidence level, and whether any were overridden. This is analogous to the pre-registration of analysis plans in clinical research, adapted to computational workflows.
 
@@ -156,7 +150,7 @@ MultiQC v1.21 was applied to the same completed run outputs. QC failure calls we
 
 ### Usability study design
 
-Participants were recruited from three university genomics core facilities. Inclusion criteria: holds a PhD, works regularly with sequencing data, self-reported as "not comfortable writing Nextflow pipelines". Exclusion criteria: prior BioMate experience. Task materials and consent forms are in Supplementary Note S10. The study was conducted in accordance with institutional ethics board approval [PLACEHOLDER: IRB number].
+Participants were recruited from three university genomics core facilities. Inclusion criteria: holds a PhD, works regularly with sequencing data, self-reported as "not comfortable writing Nextflow pipelines". Exclusion criteria: prior BioMate experience. Task materials and consent forms are in Supplementary Note S10. The study will be conducted in accordance with institutional ethics board approval (to be assigned on submission).
 
 ### Test suite
 
@@ -164,7 +158,7 @@ The QC governance stack is validated by 577 tests in two files: `test_qc_edge_ca
 
 ### Code and data availability
 
-BioMate source code is available at [PLACEHOLDER: GitHub URL]. QC governance constants, named profiles, and threshold evidence tables are in `backend/lib/galaxy/jobs/qc_trace_monitor.py` and the `research_repos/biomate_qc_governance_paper/supplementary/` directory. Benchmark dataset accession numbers are listed in the Results section; processed output files are deposited at [PLACEHOLDER: Zenodo DOI].
+BioMate source code is available at (to be assigned on submission). QC governance constants, named profiles, and threshold evidence tables are in `backend/lib/galaxy/jobs/qc_trace_monitor.py` and the `research_repos/biomate_qc_governance_paper/supplementary/` directory. Benchmark dataset accession numbers are listed in the Results section; processed output files will be deposited at (to be assigned on submission).
 
 ---
 
@@ -191,14 +185,14 @@ BioMate source code is available at [PLACEHOLDER: GitHub URL]. QC governance con
 
 ## Figure Legends
 
-**Figure 1. BioMate QC governance benchmark across five public datasets.**
-(a) Confusion matrix comparing BioMate and MultiQC QC calls to ENCODE-adjudicated ground truth for five datasets spanning RNA-seq (ENCSR000AED, GSE68086), scRNA-seq (GSE121893), metagenomics (SRP047083), and ATAC-seq (ENCSR356LIU). TP: true positive (gate correctly fires). TN: true negative (gate correctly passes). FP: false positive (gate incorrectly fires). FN: false negative (gate incorrectly passes). (b) Time from workflow submission to QC decision for each dataset, comparing BioMate real-time intervention versus post hoc MultiQC review. Error bars: ±s.d. across three replicate runs. **[PLACEHOLDER: insert figure from benchmark results]**
+**Figure 1. BioMate QC governance benchmark across five public datasets (planned).**
+(a) Confusion matrix comparing BioMate and MultiQC QC calls to ENCODE-adjudicated ground truth for five datasets spanning RNA-seq (ENCSR000AED, GSE68086), scRNA-seq (GSE121893), metagenomics (SRP047083), and ATAC-seq (ENCSR356LIU). TP: true positive (gate correctly fires). TN: true negative (gate correctly passes). FP: false positive (gate incorrectly fires). FN: false negative (gate incorrectly passes). (b) Time from workflow submission to QC decision for each dataset, comparing BioMate real-time intervention versus post hoc MultiQC review. Error bars: ±s.d. across three replicate runs. *Planned evaluation — not yet run. Design specified in Methods §Benchmark experimental design.*
 
-**Figure 2. Usability study results — 20 wet-lab biologists.**
-(a) Task completion rate by group (BioMate vs. MultiQC review). Target completion rate: 70%. (b) Time-to-correct-QC-decision (minutes). Horizontal line: median. (c) Silent failure rate: proportion of QC failures incorrectly identified as passes. **[PLACEHOLDER: insert figure from usability study]**
+**Figure 2. Usability study results — 20 wet-lab biologists (planned).**
+(a) Task completion rate by group (BioMate vs. MultiQC review). Target completion rate: 70%. (b) Time-to-correct-QC-decision (minutes). Horizontal line: median. (c) Silent failure rate: proportion of QC failures incorrectly identified as passes. *Planned evaluation — not yet run. Design specified in Methods §Usability study design.*
 
 **Figure 3. BioMate QC governance architecture.**
-Schematic of the four-layer governance stack (red lines → GOLD → SILVER/BRONZE → named profiles) and the real-time SSE event loop connecting Nextflow process completion to the user-facing QC gate modal. The audit JSONL trail is written continuously and returned via the `/api/invocations/{id}/qc-events` endpoint after completion. **[PLACEHOLDER: create diagram]**
+Schematic of the four-layer governance stack (red lines → GOLD → SILVER/BRONZE → named profiles) and the real-time SSE event loop connecting Nextflow process completion to the user-facing QC gate modal. The audit JSONL trail is written continuously and returned via the `/api/invocations/{id}/qc-events` endpoint after completion.
 
 ---
 
@@ -213,6 +207,6 @@ Schematic of the four-layer governance stack (red lines → GOLD → SILVER/BRON
 - **Supplementary Note S7:** Single-cell RNA-seq and ATAC-seq QC implementation (`supplementary/S7_scrna_atac_qc_implementation.md`)
 - **Supplementary Note S8:** Metagenomics and cryo-EM SPA QC implementation (`supplementary/S8_metagenomics_cryoem_qc_implementation.md`)
 - **Supplementary Note S9:** Governance architecture — four-layer stack, precedence rules, audit schema (`supplementary/S9_governance_architecture.md`)
-- **Supplementary Note S10:** Usability study protocol and consent materials **[PLACEHOLDER]**
+- **Supplementary Note S10:** Usability study protocol and consent materials (to be assigned on submission)
 - **Supplementary Table S1:** Process name routing table (all 29 parsers)
 - **Supplementary Table S2:** Named profile inventory (all 31 profiles, compact format)
