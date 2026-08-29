@@ -3732,6 +3732,56 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
 
         return result
 
+    def _detect_geo_platform(self, gse_id: str) -> Optional[str]:
+        """Read GEO's own Series metadata to determine data modality — the DATA-FIRST
+        signal for routing (vs guessing from the user's prose).
+
+        Returns 'microarray' | 'scrna' | 'bulk_rnaseq' | None (unknown / lookup failed).
+        One HTTP GET to GEO's SOFT text endpoint; `!Series_type` is authoritative for
+        array-vs-sequencing, and title/summary/design disambiguate scRNA from bulk.
+        Any failure returns None so the caller can fall back — never raises into routing.
+        Results are cached per accession for the process lifetime.
+        """
+        cache = getattr(self, '_geo_platform_cache', None)
+        if cache is None:
+            cache = self._geo_platform_cache = {}
+        if gse_id in cache:
+            return cache[gse_id]
+        result: Optional[str] = None
+        try:
+            import urllib.request as _u
+            url = (f"https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={gse_id}"
+                   "&targ=self&form=text&view=quick")
+            with _u.urlopen(url, timeout=4) as _r:
+                text = _r.read().decode('utf-8', 'replace')
+            types, meta = [], []
+            for ln in text.splitlines():
+                low = ln.lower()
+                if low.startswith('!series_type'):
+                    types.append(low.split('=', 1)[-1].strip())
+                elif (low.startswith('!series_title') or low.startswith('!series_summary')
+                      or low.startswith('!series_overall_design')):
+                    meta.append(low.split('=', 1)[-1].strip())
+            blob = ' '.join(meta)
+            has_array = any('array' in t for t in types)
+            has_seq = any('sequencing' in t for t in types)
+            sc = any(k in blob for k in [
+                'single cell', 'single-cell', 'scrna', 'sc-rna', '10x', 'droplet',
+                'drop-seq', 'chromium', 'single nucleus', 'single-nucleus', 'snrna',
+            ])
+            if has_array and not has_seq:
+                result = 'microarray'
+            elif has_seq and not has_array:
+                result = 'scrna' if sc else 'bulk_rnaseq'
+            else:
+                result = None  # mixed / no type line → unknown, let caller fall back
+            log.info("[GeoFastPath] GEO %s metadata: types=%s → platform=%s", gse_id, types, result)
+        except Exception as _e:
+            log.info("[GeoFastPath] GEO platform lookup for %s failed (%s) — caller falls back", gse_id, _e)
+            result = None
+        cache[gse_id] = result
+        return result
+
     def _try_fast_path_geo_scrna_pseudobulk(  # noqa: deploy-trigger
         self,
         user_intent: str,
@@ -3782,6 +3832,32 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         ])
         if not _is_de_intent:
             return None
+
+        # Modality gate: pseudobulk AGGREGATES single cells, so it is only meaningful
+        # for scRNA data. Decide DATA-FIRST, not by guessing from prose — read GEO's own
+        # Series metadata (ground truth) for the accession. Microarray / bulk RNA-seq →
+        # defer to normal routing (limma / differentialabundance); single-cell → pseudobulk.
+        _platform = self._detect_geo_platform(_geo_id)  # 'microarray'|'scrna'|'bulk_rnaseq'|None
+        if _platform in ('microarray', 'bulk_rnaseq'):
+            log.info("[GeoFastPath] GEO %s platform=%s (not single-cell) — skipping pseudobulk fast path, "
+                     "deferring to normal routing (limma/differentialabundance)", _geo_id, _platform)
+            return None
+        if _platform is None:
+            # GEO metadata unavailable (network/parse) → conservative keyword FALLBACK only:
+            # skip pseudobulk on an explicit non-single-cell prose signal, else keep the
+            # scRNA default. Keywords are the fallback, not the primary signal.
+            _non_scrna = any(kw in _q for kw in [
+                'microarray', 'micro-array', 'micro array', 'affymetrix', 'agilent',
+                'beadchip', 'expression array', 'gene expression array', 'array express',
+            ])
+            _scrna_signal = any(kw in _q for kw in [
+                'scrna', 'sc-rna', 'single cell', 'single-cell', 'pseudobulk', '10x', 'cellranger',
+            ])
+            if _non_scrna and not _scrna_signal:
+                log.info("[GeoFastPath] GEO %s metadata unavailable; non-single-cell keyword signal "
+                         "— skipping pseudobulk fast path (fallback)", _geo_id)
+                return None
+        # _platform == 'scrna', or unknown with no non-single-cell signal → proceed with pseudobulk
 
         # Look up geo_scrna_pseudobulk in the DB
         top = self.workflow_search.get_workflow_by_filename_pattern('%geo_scrna_pseudobulk%')
