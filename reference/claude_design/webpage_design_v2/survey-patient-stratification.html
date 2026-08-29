@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en" data-palette="default" data-type="default" data-density="cozy">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Patient Stratification — Survey — BioMate AI</title>
+  <meta name="description" content="A comprehensive survey of patient stratification: transcriptomic subtypes (PAM50, consensus molecular subtypes, interferon-signature), unsupervised class discovery, multi-omics integrative clustering, single-cell/spatial, clinical/genomic biomarkers &amp; polygenic risk scores, and ML / causal-HTE / adaptive-trial / immunotherapy stratification." />
+  <meta name="keywords" content="patient stratification, molecular subtypes, PAM50, consensus molecular subtypes, multi-omics clustering, biomarkers, polygenic risk score, companion diagnostic, immunotherapy response, precision medicine" />
+  <link rel="canonical" href="https://biomate.ai/survey-patient-stratification.html" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Patient Stratification — Survey — BioMate AI" />
+  <meta property="og:description" content="A comprehensive survey of patient stratification: transcriptomic subtypes (PAM50, consensus molecular subtypes, interferon-signature), unsupervised class discovery, multi-omics integrative clustering, single-cell/spatial, clinical/genomic biomarkers &amp; polygenic risk scores, and ML / causal-HTE / adaptive-trial / immunotherapy stratification." />
+  <meta property="og:url" content="https://biomate.ai/survey-patient-stratification.html" />
+  <meta property="og:image" content="https://biomate.ai/assets/logo.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Patient Stratification — Survey — BioMate AI" />
+  <meta name="twitter:description" content="A comprehensive survey of patient stratification: transcriptomic subtypes (PAM50, consensus molecular subtypes, interferon-signature), unsupervised class discovery, multi-omics integrative clustering, single-cell/spatial, clinical/genomic biomarkers &amp; polygenic risk scores, and ML / causal-HTE / adaptive-trial / immunotherapy stratification." />
+  <meta name="twitter:image" content="https://biomate.ai/assets/logo.png" />
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  "headline": "Patient Stratification \u2014 Survey",
+  "description": "A comprehensive survey of patient stratification: transcriptomic subtypes (PAM50, consensus molecular subtypes, interferon-signature), unsupervised class discovery, multi-omics integrative clustering, single-cell/spatial, clinical/genomic biomarkers and polygenic risk scores, and ML / causal-HTE / adaptive-trial / immunotherapy stratification.",
+  "datePublished": "2026-08-17",
+  "dateModified": "2026-08-17",
+  "author": {
+    "@type": "Organization",
+    "name": "BioMate AI",
+    "url": "https://biomate.ai"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "BioMate AI",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://biomate.ai/assets/logo.png"
+    }
+  },
+  "keywords": [
+    "patient stratification",
+    "molecular subtypes",
+    "PAM50",
+    "consensus molecular subtypes",
+    "multi-omics clustering",
+    "biomarkers",
+    "polygenic risk score",
+    "companion diagnostic",
+    "immunotherapy response",
+    "precision medicine"
+  ],
+  "url": "https://biomate.ai/survey-patient-stratification.html",
+  "mainEntityOfPage": "https://biomate.ai/survey-patient-stratification.html",
+  "inLanguage": "en",
+  "isPartOf": {
+    "@type": "CollectionPage",
+    "name": "BioMate Research Surveys",
+    "url": "https://biomate.ai/surveys.html"
+  },
+  "citation": [
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1038/nm.3967"
+    },
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1200/JCO.2008.18.1370"
+    },
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1172/JCI91190"
+    },
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1038/s41591-018-0136-1"
+    },
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1038/nmeth.2810"
+    }
+  ]
+}
+  </script>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://biomate.ai/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Research Surveys",
+      "item": "https://biomate.ai/surveys.html"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Patient Stratification",
+      "item": "https://biomate.ai/survey-patient-stratification.html"
+    }
+  ]
+}
+  </script>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .bm-prose{max-width:820px;font-size:.98rem;line-height:1.72;color:var(--text)}
+    .bm-prose h2{font-family:var(--font-head);font-size:1.5rem;color:var(--text);margin:2.4rem 0 .5rem;padding-top:1.2rem;border-top:1px solid var(--border)}
+    .bm-prose h2:first-of-type{border-top:none;padding-top:0}
+    .bm-prose h3{font-family:var(--font-head);font-size:1.2rem;color:var(--text);margin:1.6rem 0 .4rem}
+    .bm-prose h4{font-family:var(--font-head);font-size:1.04rem;color:var(--text);margin:1.1rem 0 .3rem}
+    .bm-prose p{margin:.7rem 0}
+    .bm-prose strong{color:var(--text);font-weight:700}
+    .bm-prose a{color:var(--accent);text-decoration:none;font-weight:500}
+    .bm-prose a:hover{text-decoration:underline}
+    .bm-prose ul,.bm-prose ol{margin:.6rem 0 .9rem 1.25rem;padding:0}
+    .bm-prose li{margin:.35rem 0}
+    .bm-prose code{font-family:var(--font-mono,monospace);font-size:.86em;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px}
+    .bm-prose hr{border:none;border-top:1px solid var(--border);margin:2rem 0}
+    .bm-prose blockquote{border-left:3px solid var(--accent);margin:1rem 0;padding:.4rem 0 .4rem 1.1rem;color:var(--text-muted)}
+    .bm-prose table{width:100%;border-collapse:collapse;margin:1.1rem 0;font-size:.9rem}
+    .bm-prose th,.bm-prose td{border:1px solid var(--border);padding:.5rem .7rem;text-align:left;vertical-align:top}
+    .bm-prose th{background:var(--bg-2);font-family:var(--font-head);font-weight:700}
+    .bm-prose em{color:var(--text-muted)}
+    .bm-survey-cta{display:flex;gap:1.1rem;align-items:center;flex-wrap:wrap;background:var(--bg-2);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--radius);padding:1.2rem 1.5rem;margin:1.6rem 0 2.4rem}
+    .bm-survey-cta .body{flex:1 1 340px}
+    .bm-survey-cta h3{font-family:var(--font-head);font-size:1.1rem;margin:0 0 .3rem;color:var(--text)}
+    .bm-survey-cta p{margin:0;color:var(--text-muted);font-size:.9rem}
+    .bm-survey-related{margin-top:2.4rem;padding-top:1.4rem;border-top:1px solid var(--border);font-size:.9rem;color:var(--text-muted)}
+    .bm-survey-related a{color:var(--accent);text-decoration:none;font-weight:600}
+  </style>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+</head>
+<body>
+  <div id="bm-nav"></div>
+
+  <main class="bm-section bm-section-narrow">
+    <div class="bm-section-inner">
+      <span class="bm-eyebrow">Research · Survey</span>
+      <h1 class="bm-h1">Patient Stratification</h1>
+      <p class="bm-lead">A comprehensive, verified-citation overview of how patients are sorted into treatment-relevant subgroups — molecular subtypes, multi-omics clustering, single-cell/spatial, biomarkers &amp; PRS, and ML/causal/adaptive-trial methods.</p>
+
+      <div class="bm-survey-cta">
+        <div class="body">
+          <h3>BioMate in practice</h3>
+          <p>See how BioMate runs multi-omics responder stratification end-to-end — read the companion article: <a href="blog-patient-stratification.html">where BioMate fits in this landscape &rarr;</a></p>
+        </div>
+        <a class="bm-btn bm-btn-primary bm-btn-sm" href="https://dev-public.biomate.ai/register">Try BioMate free</a>
+      </div>
+
+      <article class="bm-prose">
+<p><em>Compiled 2026-08-17. Every citation traces to a real paper (PubMed/PMC/journal/FDA), the great majority verified against NCBI E-utilities or the primary record this session. Vendor claims, contested results, and unverified items are explicitly flagged. No DOIs are fabricated.</em></p>
+<p><strong>Scope.</strong> A mechanistic, honestly-caveated overview of <strong>all major current approaches to patient stratification</strong> — sorting an apparently-homogeneous disease population into subgroups that differ in prognosis or treatment response — across oncology, immunology, and common disease, <strong>not limited to any one modality</strong>. Organized by <strong>approach family</strong>: (Part A) established molecular subtypes &amp; unsupervised class discovery; (Part B) multi-omics, single-cell/spatial, and signature-scoring stratifiers; (Part C) clinical/genomic biomarkers, PRS, imaging, and the regulatory frame; (Part D) ML/AI, causal HTE, adaptive trials, EHR phenotyping, and immunotherapy stratification. For each: <em>what it is → how it defines the subgroup (mechanism) → key tools → clinical use → strengths → limitations</em>, closing with an honest read on <strong>what is actually adopted / winning now</strong>.</p>
+<p><strong>Two distinctions that unify the whole field.</strong></p>
+<ol type="1">
+<li><strong>Predictive vs prognostic.</strong> A <em>prognostic</em> marker informs likely outcome <em>regardless of treatment</em>; a <em>predictive</em> marker informs <em>differential benefit from a specific treatment</em> and requires a significant treatment-by-biomarker interaction (Ballman, <em>JCO</em> 2015, <a href="https://pubmed.ncbi.nlm.nih.gov/26392104/">10.1200/JCO.2015.63.3651</a>). Plain ML captures the prognostic signal; causal/HTE methods and enrichment designs target the predictive signal. Conflating them drives wrong decisions.</li>
+<li><strong>Supervised vs unsupervised.</strong> Discover subgroups <em>de novo</em> (clustering) vs assign a new sample to a <em>pre-defined</em> subtype (nearest-centroid/classifier). The systems that reach the clinic pair a robust <strong>single-sample classifier</strong> with a specific, mechanism-linked decision.</li>
+</ol>
+<p><strong>The recurring, generalizable caution:</strong> bulk-expression subtypes are routinely <strong>contaminated by non-tumor/stromal/immune content</strong> (always ask <em>what cells produced the signal</em>), stability statistics measure <em>reproducibility of a procedure, not biological reality</em>, and <strong>a valid endotype biomarker does not guarantee a successful drug</strong> or a perfect responder-predictor.</p>
+<hr />
+<h2 id="part-a--established-molecular-subtypes--unsupervised-class-discovery">Part A — Established Molecular Subtypes &amp; Unsupervised Class Discovery</h2>
+<h3 id="a1-transcriptomic-molecular-subtypes-the-deployed-workhorse">A1. Transcriptomic molecular subtypes (the deployed workhorse)</h3>
+<p>Partition a disease by genome-wide mRNA using either unsupervised clustering (discover) or a supervised nearest-centroid classifier (assign), then tie subtypes to biology and outcome.</p>
+<ul>
+<li><strong>PAM50 breast cancer</strong> (Luminal A/B, HER2-enriched, Basal-like, Normal-like). Derived from the Perou/Sørlie intrinsic-subtype concept; <strong>Parker et al. 2009</strong> (<em>JCO</em>, <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC2667820/">10.1200/JCO.2008.18.1370</a>) minimized to <strong>50 genes</strong> and a <strong>nearest-centroid (Spearman) classifier</strong> + a continuous <strong>Risk-of-Recurrence (ROR)</strong> score. Commercialized as <strong>Prosigna</strong> on NanoString nCounter; <strong>FDA 510(k)-cleared Sept 2013</strong> as a <em>prognostic</em> assay (10-yr distant-recurrence risk in postmenopausal HR+ early breast cancer). <em>(Note: Oncotype DX/TAILORx is the assay with level-1 <em>predictive</em> chemo-benefit evidence; Prosigna's cleared claim is prognostic.)</em> <strong>Limit:</strong> subtype instability near centroid boundaries (LumA/LumB flip); <strong>Normal-like</strong> is largely a low-cellularity artifact/QC flag.</li>
+<li><strong>Consensus Molecular Subtypes (CMS) of colorectal cancer</strong> (CMS1 MSI-immune / CMS2 canonical / CMS3 metabolic / CMS4 mesenchymal). <strong>Guinney et al. 2015</strong> (<em>Nat Med</em>, <a href="https://pubmed.ncbi.nlm.nih.gov/26457759/">10.1038/nm.3967</a>) for the CRC Subtyping Consortium reconciled six competing classifiers via <strong>network-based consensus</strong> on ~4,000 transcriptomes → subtypes stable to method choice. ~13% are mixed/indeterminate (honest "unclassified" bin). Frequencies ~CMS1 14% / CMS2 37% / CMS3 13% / CMS4 23%. Classifiers: CMSclassifier, CMScaller (<strong>Eide 2017</strong>, <a href="https://pubmed.ncbi.nlm.nih.gov/29192179/">10.1038/s41598-017-16747-x</a>). CMS1 rationalizes checkpoint blockade (aligns with dMMR/MSI-H pembrolizumab); CMS4 (worst prognosis) is stroma/TGF-β-driven. <strong>Limit:</strong> CMS4 signal is stroma-driven (cellularity-sensitive); single-sample calls less stable than the pooled consensus.</li>
+<li><strong>TCGA expression subtypes.</strong> <strong>GBM</strong> (Proneural/Neural/Classical/Mesenchymal; <strong>Verhaak 2010</strong>, <a href="https://pubmed.ncbi.nlm.nih.gov/20129251/">10.1016/j.ccr.2009.12.020</a>) — later refined to <strong>three</strong> subtypes after <strong>Wang 2017</strong> (<a href="https://pubmed.ncbi.nlm.nih.gov/28697342/">10.1016/j.ccell.2017.06.003</a>) <strong>removed Neural as a normal-brain contamination artifact</strong> (the canonical bulk-contamination cautionary tale). <strong>Bladder</strong> (6-class consensus, <strong>Kamoun 2020</strong>, <a href="https://pubmed.ncbi.nlm.nih.gov/31563503/">10.1016/j.eururo.2019.09.006</a>); <strong>Gastric</strong> (EBV/MSI/GS/CIN, TCGA 2014, <a href="https://pubmed.ncbi.nlm.nih.gov/25079317/">10.1038/nature13480</a>) — EBV/MSI → checkpoint immunotherapy.</li>
+<li><strong>SLE / autoimmune interferon-signature subtypes</strong> (IFN-high vs IFN-low) — a <em>pathway-activation</em> subtype from coordinated ISG over-expression (<strong>Baechler 2003</strong>, <em>PNAS</em> <a href="https://pubmed.ncbi.nlm.nih.gov/12604793/">10.1073/pnas.0337679100</a>); the <strong>Chaussabel modular framework</strong> (<em>Immunity</em> 2008, <a href="https://pubmed.ncbi.nlm.nih.gov/18631455/">10.1016/j.immuni.2008.05.012</a>) and longitudinal <strong>Banchereau 2016</strong> (<em>Cell</em>, <a href="https://pubmed.ncbi.nlm.nih.gov/27040498/">10.1016/j.cell.2016.03.008</a>) added plasmablast/neutrophil modules tracking flares/nephritis. Trial-enrichment closed the loop: <strong>anifrolumab</strong> (anti-IFNAR1) had larger effect in IFN-high patients (<strong>TULIP-2, Morand 2020</strong>, <em>NEJM</em> <a href="https://pubmed.ncbi.nlm.nih.gov/31851795/">10.1056/NEJMoa1912196</a>); <strong>FDA-approved Aug 2, 2021</strong>. <strong>Limit:</strong> the IFN signature is dynamic (flares/infection/treatment); IFN-high <em>enriches</em> but doesn't guarantee response.</li>
+<li><strong>Asthma T2-high/T2-low</strong> — a 3-gene bronchial-epithelial signature <strong>POSTN/CLCA1/SERPINB2</strong> (<strong>Woodruff 2009</strong>, <em>AJRCCM</em> <a href="https://pubmed.ncbi.nlm.nih.gov/19483109/">10.1164/rccm.200903-0392OC</a> — <em>not PNAS, a common miscitation</em>). Underpins eosinophil/FeNO-guided biologics (anti-IL-5/IL-4Rα). <strong>Cautionary tale:</strong> serum periostin as a predictive biomarker for anti-IL-13 <strong>failed</strong> in Phase 3 (LAVOLTA, <strong>Hanania 2016</strong>, <a href="https://pubmed.ncbi.nlm.nih.gov/27616196/">10.1016/S2213-2600(16)30265-X</a>) — a valid endotype biomarker did not yield a successful drug.</li>
+</ul>
+<h3 id="a2-unsupervised-clustering--class-discovery-how-subtypes-are-found-de-novo">A2. Unsupervised clustering / class discovery (how subtypes are found de novo)</h3>
+<p>The hard problem is not <em>finding</em> clusters (algorithms always return a partition) but proving they are <strong>real, reproducible, biologically meaningful</strong>.</p>
+<ul>
+<li><strong>Hierarchical clustering</strong> (Eisen heatmap/dendrogram, <strong>Eisen 1998</strong>, <em>PNAS</em> <a href="https://pubmed.ncbi.nlm.nih.gov/9843981/">10.1073/pnas.95.25.14863</a>) — foundational; discovered breast intrinsic subtypes (<strong>Perou 2000</strong>) and DLBCL GCB-vs-ABC cell-of-origin (<strong>Alizadeh 2000</strong>, <a href="https://pubmed.ncbi.nlm.nih.gov/10676951/">10.1038/35000501</a>). <strong>Limit:</strong> greedy/irreversible; metric+linkage sensitive; cut-height arbitrary; no significance test.</li>
+<li><strong>Consensus clustering / ConsensusClusterPlus</strong> — resampling meta-method quantifying stability and selecting <em>k</em> via consensus matrix / CDF / Δ(k) (<strong>Monti 2003</strong>, <em>Mach Learn</em> [10.1023/A:1023949509487]; package <strong>Wilkerson &amp; Hayes 2010</strong>, <a href="https://academic.oup.com/bioinformatics/article/26/12/1572/281699">10.1093/bioinformatics/btq170</a>). The TCGA-subtyping workhorse.</li>
+<li><strong>NMF / metagenes</strong> — parts-based, interpretable factorization with cophenetic-correlation rank selection (<strong>Brunet 2004</strong>, <em>PNAS</em> <a href="https://pubmed.ncbi.nlm.nih.gov/15016911/">10.1073/pnas.0308531101</a>); conceptual basis of mutational-signature extraction.</li>
+<li><strong>The reproducibility caveat (load-bearing).</strong> <strong>Şenbabaoğlu 2014</strong> (<em>Sci Rep</em> <a href="https://pubmed.ncbi.nlm.nih.gov/25158761/">10.1038/srep06207</a>) showed consensus clustering produces <strong>crisp, stable-looking heatmaps on structureless null data</strong>; Δ(k) is often uninformative; proposes <strong>PAC (Proportion of Ambiguously Clustered pairs)</strong> and a reference/null model. <strong>Guardrails:</strong> compare against a null (M3C/SigClust/gap), report PAC, require external-cohort validation, rule out batch/technical covariates, and confirm biological+clinical coherence before claiming a subtype exists.</li>
+</ul>
+<hr />
+<h2 id="part-b--multi-omics-single-cellspatial--signature-scoring-stratifiers">Part B — Multi-Omics, Single-Cell/Spatial &amp; Signature-Scoring Stratifiers</h2>
+<h3 id="b1-multi-omics-integrative-clustering">B1. Multi-omics integrative clustering</h3>
+<p>Given <em>N</em> omics on the <em>same</em> patients, find one subtype set reflecting joint structure — better than any single layer.</p>
+<ul>
+<li><strong>iCluster / iClusterPlus / iClusterBayes</strong> — joint latent-variable models (shared <strong>Z</strong> drives every layer). iClusterPlus adds mixed-data GLM likelihoods + lasso; iClusterBayes is fully Bayesian (MCMC, spike-and-slab, posterior uncertainty). Bioconductor <code>iClusterPlus</code>; TCGA workhorse. <strong>Shen 2009</strong> (<a href="https://pubmed.ncbi.nlm.nih.gov/19759197/">Bioinformatics 25:2906</a>); <strong>Mo 2018</strong> (<em>Biostatistics</em> [10.1093/biostatistics/kxx017]). <strong>Limit:</strong> compute-heavy grid search; linear.</li>
+<li><strong>MOFA / MOFA+</strong> — unsupervised Bayesian PCA-generalization → interpretable <strong>factors</strong> with per-modality variance decomposition; handles missing assays and mixed likelihoods; <strong>MOFA+</strong> scales to single-cell. <strong>Argelaguet 2018</strong> (<em>Mol Syst Biol</em> e8124), <strong>2020</strong> (<em>Genome Biol</em> <a href="https://pubmed.ncbi.nlm.nih.gov/32393329/">10.1186/s13059-020-02015-1</a>). Canonical <strong>CLL</strong> application recovered IGHV/trisomy-12 + an oxidative-stress factor predictive of survival. <strong>Limit:</strong> linear; clustering is a downstream choice.</li>
+<li><strong>Similarity Network Fusion (SNF)</strong> — build per-omic patient-similarity networks, fuse via iterative cross-diffusion, spectral-cluster the fused network. Nonlinear, noise-robust, a top benchmark performer. <strong>Wang 2014</strong> (<em>Nat Methods</em> <a href="https://www.nature.com/articles/nmeth.2810">10.1038/nmeth.2810</a>); GBM/kidney examples. <strong>Limit:</strong> black-box (no feature drivers); needs complete data; hyperparameter-sensitive.</li>
+<li><strong>MOVICS</strong> — ensemble meta-framework running <strong>10 algorithms</strong> + consensus + full cancer-subtyping downstream (<strong>Lu 2020</strong>, <em>Bioinformatics</em> [10.1093/bioinformatics/btaa1018]). <strong>DIABLO / mixOmics</strong> — the <strong>supervised</strong> counterpart: multi-block sparse PLS-DA toward a <em>known</em> outcome → compact cross-omics biomarker panel (<strong>Singh 2019</strong>, <a href="https://pubmed.ncbi.nlm.nih.gov/30657866/">10.1093/bioinformatics/bty1054</a>).</li>
+<li><strong>Benchmarks (no universal winner).</strong> <strong>Rappoport &amp; Shamir 2018</strong> (<em>NAR</em> <a href="https://pubmed.ncbi.nlm.nih.gov/30295871/">10.1093/nar/gky889</a>) — SNF/similarity methods among the strongest across 10 TCGA types; performance varies by cancer and metric. <strong>Cantini 2021</strong> (<em>Nat Commun</em> <a href="https://pubmed.ncbi.nlm.nih.gov/33402734/">10.1038/s41467-020-20430-7</a>) — intNMF best for clustering, MCIA most consistent, MOFA strongest for interpretability. <strong>Practical rule:</strong> match method to data type + clinical question; validate on survival/external cohorts.</li>
+</ul>
+<h3 id="b2-single-cell--spatial-stratification">B2. Single-cell &amp; spatial stratification</h3>
+<p>Convert high-dimensional expression into patient-level features — a composition vector, a latent multicellular program, a whole-TME archetype, or a spatial neighborhood.</p>
+<ul>
+<li><strong>Cell-composition / cell-state signatures</strong> — stratify by relative abundance of cell types/states; because proportions are <strong>compositional</strong>, use <strong>scCODA</strong> (Bayesian Dirichlet-Multinomial) or <strong>Milo</strong> (kNN-neighborhood NB-GLM, captures continuous states). Verified disease examples: COVID-19 severity (<strong>Stephenson 2021</strong>, <em>Nat Med</em> [10.1038/s41591-021-01329-2]), SLE (<strong>Perez 2022</strong>, <em>Science</em> [10.1126/science.abf1970] — ISG-high monocytes + GZMH+ CD8 split patients into two molecular subtypes), UC anti-TNF resistance via <strong>IL13RA2+/IL11+ inflammatory fibroblasts</strong> (<strong>Smillie 2019</strong>, <em>Cell</em> [10.1016/j.cell.2019.06.029], PMID 31348891). <strong>Limit:</strong> compositionality trap; annotation non-portability; dissociation bias; discards space.</li>
+<li><strong>Ecotypes / EcoTyper</strong> — deconvolve bulk (CIBERSORTx) → NMF cell states → <strong>ecotypes</strong> (co-occurring multicellular communities) that stratify prognostically; unlocks single-cell-like structure from large legacy bulk cohorts. <strong>Luca 2021</strong> (<em>Cell</em> [10.1016/j.cell.2021.09.014], 10 conserved carcinoma ecotypes) and <strong>Steen 2021</strong> (<em>Cancer Cell</em> [10.1016/j.ccell.2021.08.011], DLBCL ecotypes). <em>(Flag: exact "CE1–CE10"/"LE1–LE10" labels are high-confidence but not line-verified.)</em> <strong>Limit:</strong> deconvolution reference-bound; co-occurrence ≠ physical co-localization.</li>
+<li><strong>TME archetypes</strong> — coarse, deployable pan-cancer taxonomy. <strong>Bagaev 2021</strong> (<em>Cancer Cell</em> [10.1016/j.ccell.2021.04.014]) — 29 functional signatures → <strong>4 conserved TME subtypes (IE / IE-F / F / D)</strong> that <strong>predicted anti-PD-1/PD-L1/CTLA-4 response</strong> across melanoma/bladder/gastric (immune-favorable respond best). <strong>Combes 2022</strong> (<em>Cell</em> [10.1016/j.cell.2021.12.004], PMID 34963056 — <em>corrected from a common mislabel</em>) — <strong>12 dominant immune archetypes</strong> recurring across cancers. <strong>Limit:</strong> coarse-graining; batch/cohort-sensitive; correlative, not a qualified CDx.</li>
+<li><strong>Spatial neighborhoods</strong> — the only family that measures <em>who is next to whom</em>. <strong>Schürch 2020</strong> (<em>Cell</em> [10.1016/j.cell.2020.10.021]) CODEX CRC → <strong>9 conserved cellular neighborhoods</strong>; CN <em>coupling/fragmentation</em> predicted outcome (organization, not just abundance, stratifies — why some "infiltrated" tumors still fail immunotherapy). Tools: SpaGCN, BayesSpace, squidpy. <strong>Limit:</strong> low throughput; small cohorts; immature standardization.</li>
+</ul>
+<h3 id="b3-signature-scoring--deconvolution-expression--a-per-patient-score">B3. Signature scoring &amp; deconvolution (expression → a per-patient score)</h3>
+<ul>
+<li><strong>Enrichment/module scoring</strong> — <strong>ssGSEA</strong> (rank-based per-sample enrichment; <strong>Barbie 2009</strong>, <em>Nature</em> [10.1038/nature08460]) and <strong>GSVA</strong> (<strong>Hänzelmann 2013</strong>, <em>BMC Bioinformatics</em> [10.1186/1471-2105-14-7]); <strong>Seurat AddModuleScore</strong> (background-corrected module activity; <strong>Tirosh 2016</strong>, <em>Science</em> [10.1126/science.aad0501]). Continuous scores (IFN, proliferation, exhaustion) thresholded into strata. <strong>Limit:</strong> scores are cohort-relative (GSVA), gene-set-dependent, arbitrary thresholds, conflate cell source.</li>
+<li><strong>Deconvolution</strong> — <strong>CIBERSORT/CIBERSORTx</strong> (ν-SVR against the LM22 22-cell-type matrix + batch correction + cell-type-specific expression imputation; <strong>Newman 2015</strong> <em>Nat Methods</em> [10.1038/nmeth.3337], <strong>2019</strong> <em>Nat Biotechnol</em> [10.1038/s41587-019-0114-2]); plus <strong>xCell</strong>, <strong>MCP-counter</strong>, <strong>EPIC</strong> (absolute fractions), <strong>quanTIseq</strong> (RNA-seq TIL10). Immune fractions (CD8, M1/M2) stratify prognosis/ICB response. <strong>Limit:</strong> relative-vs-absolute confusion, reference-matrix dependence, spillover between correlated subsets, platform/batch effects.</li>
+<li><strong>Companion-diagnostic-adjacent: the 18-gene T-cell-inflamed GEP / TIS</strong> — <strong>Ayers 2017</strong> (<em>JCI</em> <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5531419/">10.1172/JCI91190</a>); LASSO-derived across 9 tumor types on pembrolizumab, fixed weights + fixed cutoff (−1.540), AUC ~0.75 (vs PD-L1 IHC ~0.65). The closest of these to a CDx role (still decision-support, not an FDA-approved CDx replacing PD-L1 IHC).</li>
+</ul>
+<hr />
+<h2 id="part-c--clinicalgenomic-biomarkers-prs-imaging--the-regulatory-frame">Part C — Clinical/Genomic Biomarkers, PRS, Imaging &amp; the Regulatory Frame</h2>
+<h3 id="c1-single-analyte--genomic-biomarkers-the-mature-adopted-layer">C1. Single-analyte &amp; genomic biomarkers (the mature, adopted layer)</h3>
+<ul>
+<li><strong>Driver mutations</strong> (EGFR, BRAF, ALK/ROS1/RET/NTRK fusions, KRAS G12C) → matched TKIs, via tissue NGS or plasma cfDNA. <strong>FoundationOne CDx</strong> (tissue) and <strong>Guardant360 CDx</strong> (liquid) are FDA companion diagnostics. <strong>Limit:</strong> acquired resistance; a positive test ≠ response (BRAF V600E colorectal responds poorly to BRAF-inhibitor monotherapy — context matters).</li>
+<li><strong>HER2</strong> (IHC → reflex ISH) → trastuzumab/T-DXd; <strong>HercepTest</strong> was the first protein-based FDA CDx. The emerging <strong>"HER2-low"</strong> category exposes the limits of the original binary cut-point.</li>
+<li><strong>ER/PR</strong> (IHC) → endocrine therapy — oldest predictive biomarker; predicts <em>candidacy</em>, not magnitude (why gene-expression assays were layered on top).</li>
+<li><strong>MSI-H / dMMR</strong> → the basis of the <strong>first-ever tissue-agnostic FDA approval</strong> (pembrolizumab, 23 May 2017; <strong>Le 2017</strong>, <em>Science</em> <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5576142/">10.1126/science.aan6733</a>, ORR 53%).</li>
+<li><strong>TMB</strong> ≥10 mut/Mb → tissue-agnostic pembrolizumab (16 Jun 2020). <strong>Key nuance:</strong> <strong>no universal pan-cancer threshold</strong> — the predictive cut-point varies by histology (<strong>Samstein 2019</strong>, <em>Nat Genet</em> <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6365097/">10.1038/s41588-018-0312-8</a>).</li>
+<li><strong>PD-L1 IHC</strong> — companion <em>or</em> complementary depending on drug/indication; the "harmonization problem" (non-interchangeable clones 22C3/28-8/SP263/SP142; TPS/CPS/IC scoring; interobserver variability; <strong>Blueprint</strong> discordance, <strong>Hirsch 2017</strong>).</li>
+<li><strong>Multigene expression assays</strong> — <strong>Oncotype DX</strong> (21-gene RS; the only assay validated for <em>chemo-benefit prediction</em>, TAILORx/RxPONDER) and <strong>MammaPrint</strong> (70-gene, MINDACT). <em>Routine, reimbursed.</em></li>
+</ul>
+<h3 id="c2-polygenic-risk-scores-prs">C2. Polygenic risk scores (PRS)</h3>
+<p>Aggregate hundreds-to-millions of common variants (GWAS-weighted) into one liability score that <em>shifts</em> an individual relative to a clinical baseline (a <strong>risk enhancer</strong>, not a binary call). CAD/ASCVD example (AHA 2025, Genomics plc): adding PRS to the AHA PREVENT tool gave ~6% NRI, reclassified ~8%, and high-PRS near-threshold individuals were ~2× likelier to develop ASCVD <em>(vendor press release — directionally reliable, not peer-reviewed)</em>. <strong>ESC 2025</strong> formally endorsed cautious PRS use. <strong>Central limitation — ancestry portability:</strong> European-dominated GWAS training degrades PRS performance in non-European populations (the PRIMED consortium exists to fix this). Adoption: mostly LDT/research; harder to validate than single-analyte assays.</p>
+<h3 id="c3-proteinserum-panels--imagingpathology">C3. Protein/serum panels &amp; imaging/pathology</h3>
+<ul>
+<li><strong>High-plex proteomics</strong> — <strong>Olink</strong> (PEA, ~21–5,000 proteins from 1–2 µL) and <strong>SomaScan</strong> (aptamer, ~1,300→11,000 proteins) → learned multi-protein <em>signatures</em> that beat single markers for CV risk and immune phenotyping. Mostly <strong>research/translational</strong>, few FDA-cleared CDx; platform-specific units (NPX vs RFU) not comparable; overlapping inflammatory pathways make disease-<em>specific</em> signatures hard.</li>
+<li><strong>Radiomics</strong> — quantitative CT/MRI/PET features (increasingly DL) for prognosis/response/subtype inference; predominantly research-grade, growing use for trial enrichment.</li>
+<li><strong>Digital-pathology foundation models (2024 frontier)</strong> — self-supervised on millions of WSI tiles → transferable embeddings predicting subtype/biomarker/mutation/prognosis directly from cheap H&amp;E. <strong>UNI</strong> (<strong>Chen 2024</strong>, <em>Nat Med</em> [10.1038/s41591-024-02857-3]; &gt;100M images/100k WSIs/20 tissues), <strong>Virchow</strong> (<strong>Vorontsov 2024</strong>, <em>Nat Med</em> [10.1038/s41591-024-03141-0]; 1.5M WSIs, 0.95 specimen-level AUROC incl. rare cancers), <strong>Prov-GigaPath</strong> (<strong>Xu 2024</strong>, <em>Nature</em> [10.1038/s41586-024-07441-w]). Strong benchmarks, mostly <strong>not yet standalone FDA-cleared</strong> (task-specific products like Paige Prostate are the cleared exceptions).</li>
+</ul>
+<h3 id="c4-regulatory--trial-framing">C4. Regulatory &amp; trial framing</h3>
+<ul>
+<li><strong>Companion (CDx)</strong> = information <em>essential</em> for safe/effective use (must run before prescribing; co-approved with the drug). <strong>Complementary</strong> = <em>aids</em> the benefit/risk decision but not required (e.g. some PD-L1 tests).</li>
+<li><strong>FDA Biomarker Qualification Program</strong> — three-stage pathway (21st Century Cures Act) qualifying a biomarker for a defined <strong>"context of use"</strong> reusable across programs.</li>
+<li><strong>Enrichment (FDA guidance, final Mar 2019)</strong> — decrease heterogeneity; <strong>prognostic enrichment</strong> (likelier to have the event); <strong>predictive enrichment</strong> (likelier to respond by mechanism — the biomarker-driven, CDx-co-development case).</li>
+</ul>
+<hr />
+<h2 id="part-d--mlai-causal-hte-adaptive-trials-ehr-phenotyping--immune-stratification">Part D — ML/AI, Causal HTE, Adaptive Trials, EHR Phenotyping &amp; Immune Stratification</h2>
+<h3 id="d1-supervised-ml-for-outcomeresponse-prediction-the-prognostic-workhorse">D1. Supervised ML for outcome/response prediction (the prognostic workhorse)</h3>
+<p>Penalized regression (<strong>glmnet</strong>, elastic-net signatures) → deep survival (<strong>DeepSurv</strong>, <strong>Cox-nnet</strong>) → multimodal fusion (attention-MIL <strong>PORPOISE</strong>, <em>Cancer Cell</em> 2022, <a href="https://pubmed.ncbi.nlm.nih.gov/35944502/">PMID 35944502</a> — WSI + RNA-seq/CNV/mutation → per-patient hazard; high-attention regions containing TILs corroborate favorable prognosis in 12/14 cancers). <strong>The dominant story is failure-by-methodology, not algorithm:</strong> <strong>Roberts 2021</strong> (<em>Nat Mach Intell</em> [10.1038/s42256-021-00307-0]) — of 2,212 COVID imaging-ML studies, <strong>none of 62 fully-reviewed were clinically usable</strong> (leakage, no external validation/calibration); <strong>Kapoor &amp; Narayanan 2023</strong> (<em>Patterns</em> [10.1016/j.patter.2023.100804]) — leakage in 294 papers across 17 fields. External validation + calibration + leakage control decide whether a stratifier is real.</p>
+<h3 id="d2-causal-inference--heterogeneous-treatment-effects-the-predictive-signal">D2. Causal inference / heterogeneous treatment effects (the <em>predictive</em> signal)</h3>
+<p>Estimate the <strong>CATE</strong> τ(x)=E[Y(1)−Y(0)|X] under unconfoundedness + overlap, then stratify by who benefits — distinct from D1 (which predicts outcome level, not treatment <em>effect</em>).</p>
+<ul>
+<li><strong>Meta-learners</strong> — <strong>X-learner</strong> (<strong>Künzel 2019</strong>, <em>PNAS</em> [10.1073/pnas.1804597116]; robust under imbalanced assignment), <strong>R-learner</strong> (<strong>Nie &amp; Wager 2021</strong>, <em>Biometrika</em>; quasi-oracle, Neyman-orthogonal).</li>
+<li><strong>Forests</strong> — <strong>Causal Forests</strong> (<strong>Wager &amp; Athey 2018</strong>, <em>JASA</em>; honesty → valid CIs) and <strong>Generalized Random Forests</strong> (<code>grf</code>; IV forests under unobserved confounding).</li>
+<li><strong>Bayesian trees</strong> — <strong>BART</strong> (<strong>Hill 2011</strong>) and <strong>Bayesian Causal Forests</strong> (<strong>Hahn 2020</strong>; prognostic+treatment reparameterization removes regularization-induced confounding, fewer spurious subgroups).</li>
+<li><strong>Neural</strong> — <strong>DragonNet</strong> (<strong>Shi 2019</strong>; targeted regularization → doubly-robust).</li>
+<li><strong>Subgroup ID + honest intervals</strong> — <strong>Virtual Twins</strong>, <strong>SIDES/SIDEScreen</strong> (splits on a <em>differential-effect</em> criterion → recovers <em>predictive</em> biomarkers), <strong>conformal ITE intervals</strong> (<strong>Lei &amp; Candès 2021</strong>; distribution-free coverage). <strong>Limit:</strong> all assume unconfoundedness + overlap (silently violated in RWD); subgroup methods risk multiplicity-driven false discovery.</li>
+</ul>
+<h3 id="d3-adaptive--enrichment-trial-designs-the-deployed-oncology-winner">D3. Adaptive &amp; enrichment trial designs (the deployed oncology winner)</h3>
+<p>Governed by FDA <strong>Enrichment</strong> (2019), <strong>Adaptive Designs</strong> (2019), and <strong>Complex Innovative Trial Designs</strong> (2020) guidances (prospectively-planned adaptations, study-wide Type-I control, simulation reports). Methods: <strong>Adaptive Signature/Enrichment Designs</strong> (Freidlin &amp; Simon; Simon &amp; Simon 2013). <strong>Master protocols</strong> (<strong>Woodcock &amp; LaVange 2017</strong>, <em>NEJM</em> [10.1056/NEJMra1510062]): <strong>basket</strong> (one therapy across diseases), <strong>umbrella</strong> (one disease, biomarker-matched arms), <strong>platform</strong> (perpetual). Landmark trials: <strong>VE-BASKET</strong> (<strong>Hyman 2015</strong>, <em>NEJM</em> — BRAF V600 across histologies; taught the falsifiable lesson <strong>biomarker ≠ histology-agnostic guarantee</strong>: colorectal did not respond), <strong>Lung-MAP</strong>, <strong>BATTLE</strong> (response-adaptive randomization), <strong>I-SPY 2</strong> (Bayesian RAR within 8 biomarker signatures, arms "graduate"), <strong>NCI-MATCH</strong> (<strong>Flaherty 2020</strong>, <em>JCO</em> — 5,954 profiled, 37.6% actionable, ~26% assignable — the real-world yield of genomic matching at scale). <strong>Limit:</strong> predictive enrichment narrows the label + assumes a locked assay; Bayesian borrowing trades power for Type-I risk in discordant baskets.</p>
+<h3 id="d4-ehr--real-world-phenotyping">D4. EHR / real-world phenotyping</h3>
+<p>Rule-based portable algorithms (<strong>eMERGE</strong>, <strong>Kho 2012</strong> — replicated TCF7L2 across 5 EMRs; shared via <strong>PheKB</strong>) → <strong>PheWAS</strong> (<strong>Denny 2010</strong>) → unsupervised subtyping (<strong>TDA T2D 3 subtypes</strong>, <strong>Li 2015</strong>, <em>Sci Transl Med</em>; <strong>Deep Patient</strong>, <strong>Miotto 2016</strong>) → weakly-supervised (<strong>Anchor &amp; Learn</strong>; APHRODITE/OHDSI) → <strong>federated learning</strong> (<strong>EXAM</strong>, <strong>Dayan 2021</strong>, <em>Nat Med</em> — 20 institutions, +16% AUC, +38% generalizability without pooling data) → <strong>EHR foundation models</strong> (<strong>Med-BERT</strong>, <strong>BEHRT</strong>, <strong>ETHOS</strong> — zero-shot health-timeline forecasting; <em>ETHOS is npj Digital Medicine, not Nat Med</em>). <strong>Limit:</strong> billing codes are noisy phenotype proxies; unsupervised subtypes need clinical validation; FMs inherit coding/site bias.</p>
+<h3 id="d5-immune--immunotherapy-stratification-converging-on-combinations-not-single-markers">D5. Immune / immunotherapy stratification (converging on combinations, not single markers)</h3>
+<ul>
+<li><strong>Expression signatures</strong> — <strong>TIDE</strong> (<strong>Jiang 2018</strong>, <em>Nat Med</em> [10.1038/s41591-018-0136-1] — models T-cell dysfunction vs exclusion via CTL-interaction genes), <strong>GEP</strong> (Ayers, §B3), <strong>IMPRES</strong> (<strong>Auslander 2018</strong> — 15 checkpoint-gene pairwise inequalities; ⚠️ <strong>contested</strong>: <strong>Carter 2019</strong> matters-arising [10.1038/s41591-019-0671-4] showed it doesn't robustly replicate).</li>
+<li><strong>Mutational/DNA-repair</strong> — <strong>TMB</strong> (Samstein, no universal threshold) and <strong>MSI-H/dMMR</strong> (Le, tissue-agnostic approval).</li>
+<li><strong>irAE risk (an open problem)</strong> — <strong>Jing 2020</strong> (<em>Nat Commun</em>) multi-omic prediction; ⚠️ <strong>no locked clinical-grade irAE biomarker exists</strong> (HLA, autoantibodies, IL-6/CRP, microbiome, TCR clonality all candidate-only).</li>
+<li><strong>The incumbent &amp; its limits</strong> — PD-L1 IHC is predictive <em>on average</em> but unreliable (<strong>SITC taskforce, Kluger 2020</strong>; Blueprint discordance). <strong>Independent benchmark</strong> (<strong>Litchfield 2021</strong>, <em>Cell</em> [10.1016/j.cell.2020.11.041]): <strong>clonal TMB + GEP + CXCL9</strong> carry <strong>independent</strong> predictive information — combinations outperform singletons.</li>
+</ul>
+<h3 id="d6-emerging-frontier-with-a-credibility-gap">D6. Emerging (frontier with a credibility gap)</h3>
+<p><strong>Digital twins</strong> (Unlearn PROCOVA prognostic covariate → ~9–26% sample-size reduction in a peer-reviewed AD trial; ⚠️ the circulated "35% smaller control arms" is vendor marketing), <strong>generative EHR models</strong> (ETHOS, Foresight), <strong>LLMs over records</strong> (⚠️ LLM phenotyping still needs expert refinement; Med-PaLM is QA-benchmarked, not real cohort stratification), and <strong>single-cell FMs</strong> (scGPT/Geneformer; ⚠️ independent benchmarks report zero-shot sometimes underperforms simple baselines — do not overstate).</p>
+<hr />
+<h2 id="whats-actually-adopted--winning-now-the-honest-split">What's Actually Adopted / Winning Now (the honest split)</h2>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Adoption state</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Driver mutations, HER2, ER/PR, MSI-H/dMMR, TMB, PD-L1 + FDA CDx</td>
+<td><strong>Standard of care</strong>, guideline-embedded (oncology)</td>
+</tr>
+<tr>
+<td>Oncotype DX / multigene breast signatures</td>
+<td><strong>Routine, reimbursed</strong>, prospectively validated (TAILORx/RxPONDER, MINDACT)</td>
+</tr>
+<tr>
+<td>Transcriptomic subtypes reaching clinic (Prosigna/PAM50, IFN-signature, eosinophil/FeNO endotypes)</td>
+<td><strong>Deployed</strong> — each pairs a robust single-sample classifier with a mechanism-linked decision</td>
+</tr>
+<tr>
+<td>Master protocols + genomic matching (I-SPY 2, Lung-MAP, NCI-MATCH)</td>
+<td><strong>Operationalized, FDA-endorsed</strong> reality of stratified oncology trials</td>
+</tr>
+<tr>
+<td>Multi-omics integrative clustering (MOFA/SNF/iCluster)</td>
+<td><strong>Research-standard</strong> for subtype discovery; no universal winner; validate on survival/external cohorts</td>
+</tr>
+<tr>
+<td>Immune signatures (TIDE/GEP/TMB)</td>
+<td><strong>Research→translational</strong>; combinations &gt; singletons; PD-L1 unreliable alone; IMPRES contested; irAE unsolved</td>
+</tr>
+<tr>
+<td>PRS</td>
+<td><strong>Early clinical entry</strong> (ESC 2025 cautious); risk-enhancer use; ancestry portability is the blocker</td>
+</tr>
+<tr>
+<td>High-plex proteomics (Olink/SomaScan), radiomics</td>
+<td><strong>Research/translational</strong>; strong discovery signal, standardization gap</td>
+</tr>
+<tr>
+<td>Pathology &amp; EHR foundation models, digital twins</td>
+<td><strong>Fast-moving frontier</strong>; strong transfer/benchmarks, real validation gaps, mostly pre-CDx</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Three throughlines:</strong></p>
+<ol type="1">
+<li><strong>The predictive-vs-prognostic discipline decides what licenses a treatment claim</strong> — effect-modification methods (causal forests, R-/X-learners, BCF, SIDES, adaptive enrichment), not plain outcome prediction.</li>
+<li><strong>The mature, adopted layer is single-analyte/genomic oncology biomarkers with FDA companion diagnostics + validated multigene assays</strong>, deployed inside adaptive master protocols.</li>
+<li><strong>The dominant failure mode across the ML/omics frontier is methodological, not algorithmic</strong> — leakage, no external validation, no calibration, arbitrary thresholds, bulk contamination, and stability mistaken for biology. The field is moving toward <strong>multimodal, causally-grounded, uncertainty-aware stratification embedded in adaptive trials</strong> — bottlenecked less by model capacity than by validation rigor and locked, assay-ready biomarkers.</li>
+</ol>
+<hr />
+<h3 id="verification--honesty-notes">Verification &amp; honesty notes</h3>
+<ul>
+<li><strong>Verified this session (NCBI E-utilities / PMC / primary record):</strong> all Part-A transcriptomic-subtype refs (PAM50/CMS/TCGA/SLE-IFN/asthma) and clustering refs (Eisen/Perou/Alizadeh/Monti/Wilkerson/Brunet/Şenbabaoğlu); Part-B multi-omics (iCluster/MOFA/SNF/MOVICS/DIABLO + Rappoport &amp; Cantini benchmarks), single-cell/spatial (scCODA/Milo, Stephenson/Perez/Smillie, Luca/Steen EcoTyper, Bagaev/Combes, Schürch), signature/deconvolution (ssGSEA/GSVA, CIBERSORT/x, AddModuleScore, GEP, xCell/MCP/EPIC/quanTIseq); Part-C genomic biomarkers, PRS evidence, pathology FMs, regulatory framework; Part-D ML/causal/trial/EHR/immune (~55 sources, DOIs resolving).</li>
+<li><strong>Corrections surfaced:</strong> Woodruff 2009 = <em>AJRCCM</em> not PNAS; GBM "Neural" subtype = contamination artifact (Wang 2017); Combes archetypes = PMID 34963056 (<em>Cell</em> 2022), not the commonly-attached Cancer Cell PMID; ETHOS = <em>npj Digital Medicine</em> not <em>Nat Med</em>.</li>
+<li><strong>Flagged contested / vendor / unverified:</strong> IMPRES robustness (Carter rebuttal); irAE has no locked biomarker; single-cell FM zero-shot gains contested; digital-twin "35%" figure is vendor marketing; AHA-2025 PRS numbers are a press release; UNI/Virchow training numbers from abstract-level summaries; MammaPrint/MINDACT is widely-reported background; EcoTyper CE/LE exact labels high-confidence-not-line-verified; SLE "Bennett 2003" and "sifalimumab Khamashta 2016" flagged UNVERIFIED. Publisher bot-blocks (Science/Cell/AACR/FDA/NEJM) cross-verified via PMC/PubMed. <strong>No DOIs were fabricated.</strong></li>
+</ul>
+<p><em>Companion document: <code>docs/20260817_TARGET_IDENTIFICATION_SURVEY.md</code>.</em></p>
+      </article>
+
+      <div class="bm-survey-related">
+        <strong>Companion showcase:</strong> <a href="blog-patient-stratification.html">Patient Stratification on BioMate &rarr;</a><br/>
+        <strong>Other surveys:</strong> <a href="survey-target-identification.html">Drug Target Identification</a> · <a href="survey-multi-omics.html">Multi-Omics Data Integration</a> · <a href="survey-virtual-cell.html">Virtual Cell Modeling</a> · <a href="survey-protein-conformation.html">Protein Conformational Ensembles &amp; Dynamics</a> · <a href="surveys.html">All surveys &rarr;</a>
+      </div>
+    </div>
+  </main>
+
+  <div id="bm-foot"></div>
+  <script src="shell.js?v=20260609b"></script>
+  <script>renderShell({ active: 'research' });</script>
+</body>
+</html>

@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en" data-palette="default" data-type="default" data-density="cozy">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Who Actually Responds? Multi-Omics Patient Stratification on BioMate — BioMate AI</title>
+  <meta name="description" content="Stratification is the difference between a failed trial and an approved drug. BioMate runs the predictive, multi-omics responder analysis the field is converging on — MOFA2 joint decomposition, single-cell responder DE — reproducibly, on your own cohort." />
+  <meta name="keywords" content="patient stratification, responder signature, MOFA2, multi-omics, precision medicine, biomarker, immunotherapy response, CIDP, BioMate AI" />
+  <link rel="canonical" href="https://biomate.ai/blog-patient-stratification.html" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Who Actually Responds? Multi-Omics Patient Stratification on BioMate — BioMate AI" />
+  <meta property="og:description" content="Stratification is the difference between a failed trial and an approved drug. BioMate runs the predictive, multi-omics responder analysis the field is converging on — MOFA2 joint decomposition, single-cell responder DE — reproducibly, on your own cohort." />
+  <meta property="og:url" content="https://biomate.ai/blog-patient-stratification.html" />
+  <meta property="og:image" content="https://biomate.ai/images/blog-patient-stratification-hero.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Who Actually Responds? Multi-Omics Patient Stratification on BioMate — BioMate AI" />
+  <meta name="twitter:description" content="Stratification is the difference between a failed trial and an approved drug. BioMate runs the predictive, multi-omics responder analysis the field is converging on — MOFA2 joint decomposition, single-cell responder DE — reproducibly, on your own cohort." />
+  <meta name="twitter:image" content="https://biomate.ai/images/blog-patient-stratification-hero.png" />
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Who Actually Responds? Multi-Omics Patient Stratification on BioMate",
+  "description": "Stratification is the difference between a failed trial and an approved drug. BioMate runs the predictive, multi-omics responder analysis the field is converging on \u2014 MOFA2 joint decomposition, single-cell responder DE \u2014 reproducibly, on your own cohort.",
+  "datePublished": "2026-08-17",
+  "dateModified": "2026-08-17",
+  "author": {
+    "@type": "Organization",
+    "name": "BioMate AI",
+    "url": "https://biomate.ai"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "BioMate AI",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://biomate.ai/assets/logo.png"
+    }
+  },
+  "keywords": [
+    "patient stratification",
+    "responder signature",
+    "MOFA2",
+    "multi-omics",
+    "precision medicine",
+    "biomarker",
+    "immunotherapy response",
+    "CIDP",
+    "BioMate AI"
+  ],
+  "url": "https://biomate.ai/blog-patient-stratification.html",
+  "mainEntityOfPage": "https://biomate.ai/blog-patient-stratification.html",
+  "inLanguage": "en",
+  "articleSection": "Genomics",
+  "isPartOf": {
+    "@type": "Blog",
+    "name": "BioMate AI Blog",
+    "url": "https://biomate.ai/blog.html"
+  },
+  "citation": [
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1038/nm.3967"
+    },
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1172/JCI91190"
+    },
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.15252/msb.20178124"
+    }
+  ],
+  "mentions": {
+    "@type": "ScholarlyArticle",
+    "name": "Patient Stratification \u2014 Survey",
+    "url": "https://biomate.ai/survey-patient-stratification.html"
+  }
+}
+  </script>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://biomate.ai/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Newsroom",
+      "item": "https://biomate.ai/blog.html"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Who Actually Responds? Multi-Omics Patient Stratification on BioMate",
+      "item": "https://biomate.ai/blog-patient-stratification.html"
+    }
+  ]
+}
+  </script>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .bm-prose{max-width:780px;font-size:1.0rem;line-height:1.74;color:var(--text)}
+    .bm-prose h2{font-family:var(--font-head);font-size:1.45rem;color:var(--text);margin:2.2rem 0 .5rem}
+    .bm-prose h3{font-family:var(--font-head);font-size:1.15rem;color:var(--text);margin:1.5rem 0 .4rem}
+    .bm-prose p{margin:.8rem 0}
+    .bm-prose strong{color:var(--text);font-weight:700}
+    .bm-prose a{color:var(--accent);text-decoration:none;font-weight:500}
+    .bm-prose a:hover{text-decoration:underline}
+    .bm-prose ul{margin:.6rem 0 .9rem 1.25rem;padding:0}
+    .bm-prose li{margin:.4rem 0}
+    .bm-prose blockquote{border-left:3px solid var(--accent);margin:1.2rem 0;padding:.5rem 0 .5rem 1.1rem;color:var(--text-muted);font-size:1.02rem}
+    .bm-prose code{font-family:var(--font-mono,monospace);font-size:.86em;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px}
+    .bm-article-meta{display:flex;gap:.8rem;flex-wrap:wrap;align-items:center;font-size:.85rem;color:var(--text-muted);margin:.4rem 0 1.6rem}
+    .bm-article-meta .cat{background:var(--accent);color:#fff;border-radius:4px;padding:2px 9px;font-weight:600}
+    .bm-blog-hero{position:relative;width:100%;height:min(46vh,400px);overflow:hidden}
+    .bm-blog-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+    .bm-blog-hero-scrim{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(15,22,28,.30),rgba(15,22,28,.80))}
+    .bm-blog-hero-inner{position:absolute;left:0;right:0;bottom:0;max-width:820px;margin:0 auto;padding:0 1.5rem 1.8rem}
+    .bm-blog-hero-inner .bm-eyebrow{color:#e8eef1}
+    .bm-blog-hero-inner h1{color:#fff;margin:.35rem 0 .6rem;font-family:var(--font-head);font-size:2rem;line-height:1.2}
+    .bm-blog-hero-inner .bm-article-meta{margin:0;color:#dfe7eb}
+    .bm-blog-hero-inner .bm-article-meta span{color:#dfe7eb}
+    .bm-survey-cta{display:flex;gap:1.1rem;align-items:center;flex-wrap:wrap;background:var(--bg-2);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--radius);padding:1.2rem 1.5rem;margin:2rem 0}
+    .bm-survey-cta .body{flex:1 1 340px}
+    .bm-survey-cta h3{font-family:var(--font-head);font-size:1.1rem;margin:0 0 .3rem;color:var(--text)}
+    .bm-survey-cta p{margin:0;color:var(--text-muted);font-size:.9rem}
+    .bm-endnote{margin-top:2.4rem;padding-top:1.4rem;border-top:1px solid var(--border);font-size:.88rem;color:var(--text-muted)}
+    .bm-endnote a{color:var(--accent);text-decoration:none;font-weight:600}
+  </style>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+</head>
+<body>
+  <div id="bm-nav"></div>
+
+  <section class="bm-blog-hero">
+    <img src="images/blog-patient-stratification-hero.png" alt="Who Actually Responds? Multi-Omics Patient Stratification on BioMate" />
+    <div class="bm-blog-hero-scrim"></div>
+    <div class="bm-blog-hero-inner">
+      <span class="bm-eyebrow">Newsroom · BioMate Showcase</span>
+      <h1>Who Actually Responds? Multi-Omics Patient Stratification on BioMate</h1>
+      <div class="bm-article-meta"><span class="cat">Genomics</span><span>Aug 17, 2026</span><span>9 min read</span><span>BioMate Team</span></div>
+    </div>
+  </section>
+
+  <main class="bm-section bm-section-narrow">
+    <div class="bm-section-inner">
+      <article class="bm-prose">
+<p class="lead">Most drugs work for some patients and not others. <strong>Finding the "some" before the trial</strong> is patient stratification — and it is the single highest-leverage move in modern drug development. Our <a href="survey-patient-stratification.html">Patient Stratification survey</a> maps the whole field, from PAM50 and consensus molecular subtypes to causal machine learning and adaptive trials. Here's how BioMate puts it to work.</p>
+
+<h2>The one distinction that matters</h2>
+<p>The survey's throughline is <strong>predictive vs. prognostic</strong>: a prognostic marker tells you the likely outcome regardless of treatment; a <em>predictive</em> marker tells you who benefits from <em>a specific</em> therapy — and only the latter licenses a treatment decision. Plain outcome-prediction models capture the prognostic signal; it takes multi-omics factor models, causal methods, and enrichment designs to isolate the predictive one. The mature, adopted layer is genomic biomarkers with FDA companion diagnostics (MSI-H, HER2, the 18-gene T-cell-inflamed <a href="https://doi.org/10.1172/JCI91190">GEP</a>) plus validated multigene assays.</p>
+
+<h2>What BioMate does</h2>
+<ul>
+<li><strong>Cross-modal responder stratification.</strong> BioMate runs <a href="https://doi.org/10.15252/msb.20178124">MOFA2</a> joint decomposition across RNA-seq + Olink proteomics on the same patients. In a worked CIDP analysis, Factor 1 (complement) separated responders at AUROC 0.79 and Factor 2 (FcRn) at 0.71 — and the pipeline reproduced the canonical CLL benchmark (IGHV status, AUROC 0.98) on the way, so you can trust the harness before trusting the result.</li>
+<li><strong>Single-cell responder biology.</strong> scRNA-seq clustering → responder differential expression → pathway enrichment runs in one session (e.g., an anti-TNF non-responder signature with CXCL13 +4.2 log₂FC).</li>
+<li><strong>Molecular subtyping.</strong> Transcriptomic subtype classifiers and interferon-signature scoring connect a cohort to the treatment-relevant subgroup — the same logic behind <a href="https://doi.org/10.1038/nm.3967">consensus molecular subtypes</a> and IFN-high trial enrichment.</li>
+<li><strong>Reproducible scoring.</strong> Every stratifier is scored against gold-standard labels with a documented metric harness — the survey's core caution is that most published models fail on leakage and missing validation, so BioMate bakes the validation in.</li>
+</ul>
+
+<h2>Where BioMate fits in the comparison</h2>
+<p>The survey shows stratification winning inside adaptive master protocols with multi-omics, causally-grounded signatures. BioMate operationalizes the multi-omics half — a plain-English path from raw RNA-seq + proteomics to a scored, cross-validated responder signature — so a translational team can build and stress-test a stratifier on <em>their</em> cohort in a session rather than a quarter.</p>
+
+<h3>Honest boundaries</h3>
+<p>These are research/translational analyses, not FDA-cleared companion diagnostics; predictive claims require a treatment-by-biomarker interaction and prospective validation, which BioMate helps you design and test — not skip.</p>
+
+        <div class="bm-survey-cta">
+          <div class="body">
+            <h3>Go deeper: the full survey</h3>
+            <p>This showcase is one half of a pair. For the complete, verified-citation map of the field — every method, honest strengths and limits, and what is actually winning — read the <a href="survey-patient-stratification.html">Patient Stratification survey</a>.</p>
+          </div>
+          <a class="bm-btn bm-btn-primary bm-btn-sm" href="https://dev-public.biomate.ai/register">Try BioMate free</a>
+        </div>
+      </article>
+
+      <div class="bm-endnote">
+        <strong>Read the survey:</strong> <a href="survey-patient-stratification.html">Patient Stratification &rarr;</a> ·
+        <strong>All surveys:</strong> <a href="surveys.html">Research Surveys &rarr;</a> ·
+        <strong>More:</strong> <a href="blog.html">Newsroom</a>
+      </div>
+    </div>
+  </main>
+
+  <div id="bm-foot"></div>
+  <script src="shell.js?v=20260609b"></script>
+  <script>renderShell({ active: 'newsroom' });</script>
+</body>
+</html>

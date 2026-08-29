@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en" data-palette="default" data-type="default" data-density="cozy">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Protein Conformation &amp; Dynamics — Survey — BioMate AI</title>
+  <meta name="description" content="A verified-citation survey of protein conformational-ensemble &amp; dynamics prediction: AlphaFold baselines, molecular dynamics &amp; enhanced sampling, generative ensemble models (BioEmu, AlphaFlow, MSA-subsampling), cryo-EM heterogeneity (cryoDRGN, 3DFlex), and integrative disordered-protein modeling." />
+  <meta name="keywords" content="protein conformation, conformational ensemble, molecular dynamics, AlphaFold, BioEmu, cryo-EM heterogeneity, cryoDRGN, intrinsically disordered protein, protein dynamics, enhanced sampling" />
+  <link rel="canonical" href="https://biomate.ai/survey-protein-conformation.html" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Protein Conformation &amp; Dynamics — Survey — BioMate AI" />
+  <meta property="og:description" content="A verified-citation survey of protein conformational-ensemble &amp; dynamics prediction: AlphaFold baselines, molecular dynamics &amp; enhanced sampling, generative ensemble models (BioEmu, AlphaFlow, MSA-subsampling), cryo-EM heterogeneity (cryoDRGN, 3DFlex), and integrative disordered-protein modeling." />
+  <meta property="og:url" content="https://biomate.ai/survey-protein-conformation.html" />
+  <meta property="og:image" content="https://biomate.ai/assets/logo.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Protein Conformation &amp; Dynamics — Survey — BioMate AI" />
+  <meta name="twitter:description" content="A verified-citation survey of protein conformational-ensemble &amp; dynamics prediction: AlphaFold baselines, molecular dynamics &amp; enhanced sampling, generative ensemble models (BioEmu, AlphaFlow, MSA-subsampling), cryo-EM heterogeneity (cryoDRGN, 3DFlex), and integrative disordered-protein modeling." />
+  <meta name="twitter:image" content="https://biomate.ai/assets/logo.png" />
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  "headline": "Protein Conformation and Dynamics \u2014 Survey",
+  "description": "A verified-citation survey of protein conformational-ensemble and dynamics prediction: AlphaFold baselines, molecular dynamics and enhanced sampling, generative ensemble models (BioEmu, AlphaFlow, MSA-subsampling), cryo-EM heterogeneity (cryoDRGN, 3DFlex), and integrative disordered-protein modeling.",
+  "datePublished": "2026-08-17",
+  "dateModified": "2026-08-17",
+  "author": {
+    "@type": "Organization",
+    "name": "BioMate AI",
+    "url": "https://biomate.ai"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "BioMate AI",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://biomate.ai/assets/logo.png"
+    }
+  },
+  "keywords": [
+    "protein conformation",
+    "conformational ensemble",
+    "molecular dynamics",
+    "AlphaFold",
+    "BioEmu",
+    "cryo-EM heterogeneity",
+    "cryoDRGN",
+    "intrinsically disordered protein",
+    "protein dynamics",
+    "enhanced sampling"
+  ],
+  "url": "https://biomate.ai/survey-protein-conformation.html",
+  "mainEntityOfPage": "https://biomate.ai/survey-protein-conformation.html",
+  "inLanguage": "en",
+  "isPartOf": {
+    "@type": "CollectionPage",
+    "name": "BioMate Research Surveys",
+    "url": "https://biomate.ai/surveys.html"
+  },
+  "citation": [
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1038/s41586-021-03819-2"
+    },
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1038/s41586-024-07487-w"
+    },
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1126/science.adv9817"
+    },
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1038/s41592-020-01049-4"
+    },
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1038/s41586-023-06832-9"
+    }
+  ]
+}
+  </script>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://biomate.ai/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Research Surveys",
+      "item": "https://biomate.ai/surveys.html"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Protein Conformational Ensembles and Dynamics",
+      "item": "https://biomate.ai/survey-protein-conformation.html"
+    }
+  ]
+}
+  </script>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .bm-prose{max-width:820px;font-size:.98rem;line-height:1.72;color:var(--text)}
+    .bm-prose h2{font-family:var(--font-head);font-size:1.5rem;color:var(--text);margin:2.4rem 0 .5rem;padding-top:1.2rem;border-top:1px solid var(--border)}
+    .bm-prose h2:first-of-type{border-top:none;padding-top:0}
+    .bm-prose h3{font-family:var(--font-head);font-size:1.2rem;color:var(--text);margin:1.6rem 0 .4rem}
+    .bm-prose h4{font-family:var(--font-head);font-size:1.04rem;color:var(--text);margin:1.1rem 0 .3rem}
+    .bm-prose p{margin:.7rem 0}
+    .bm-prose strong{color:var(--text);font-weight:700}
+    .bm-prose a{color:var(--accent);text-decoration:none;font-weight:500}
+    .bm-prose a:hover{text-decoration:underline}
+    .bm-prose ul,.bm-prose ol{margin:.6rem 0 .9rem 1.25rem;padding:0}
+    .bm-prose li{margin:.35rem 0}
+    .bm-prose code{font-family:var(--font-mono,monospace);font-size:.86em;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px}
+    .bm-prose hr{border:none;border-top:1px solid var(--border);margin:2rem 0}
+    .bm-prose blockquote{border-left:3px solid var(--accent);margin:1rem 0;padding:.4rem 0 .4rem 1.1rem;color:var(--text-muted)}
+    .bm-prose table{width:100%;border-collapse:collapse;margin:1.1rem 0;font-size:.9rem}
+    .bm-prose th,.bm-prose td{border:1px solid var(--border);padding:.5rem .7rem;text-align:left;vertical-align:top}
+    .bm-prose th{background:var(--bg-2);font-family:var(--font-head);font-weight:700}
+    .bm-prose em{color:var(--text-muted)}
+    .bm-survey-cta{display:flex;gap:1.1rem;align-items:center;flex-wrap:wrap;background:var(--bg-2);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--radius);padding:1.2rem 1.5rem;margin:1.6rem 0 2.4rem}
+    .bm-survey-cta .body{flex:1 1 340px}
+    .bm-survey-cta h3{font-family:var(--font-head);font-size:1.1rem;margin:0 0 .3rem;color:var(--text)}
+    .bm-survey-cta p{margin:0;color:var(--text-muted);font-size:.9rem}
+    .bm-survey-related{margin-top:2.4rem;padding-top:1.4rem;border-top:1px solid var(--border);font-size:.9rem;color:var(--text-muted)}
+    .bm-survey-related a{color:var(--accent);text-decoration:none;font-weight:600}
+  </style>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+</head>
+<body>
+  <div id="bm-nav"></div>
+
+  <main class="bm-section bm-section-narrow">
+    <div class="bm-section-inner">
+      <span class="bm-eyebrow">Research · Survey</span>
+      <h1 class="bm-h1">Protein Conformational Ensembles &amp; Dynamics</h1>
+      <p class="bm-lead">A verified-citation survey of methods that go beyond a single static structure — molecular dynamics, generative ensemble models, cryo-EM heterogeneity, and integrative multi-state modeling of disordered proteins.</p>
+
+      <div class="bm-survey-cta">
+        <div class="body">
+          <h3>BioMate in practice</h3>
+          <p>See how BioMate runs cryo-EM heterogeneity &amp; ensemble generation on AWS Batch — read the companion article: <a href="blog-protein-conformation.html">where BioMate fits in this landscape &rarr;</a></p>
+        </div>
+        <a class="bm-btn bm-btn-primary bm-btn-sm" href="https://dev-public.biomate.ai/register">Try BioMate free</a>
+      </div>
+
+      <article class="bm-prose">
+<p><em>A methods survey for a public research audience — every citation verified against its primary source (publisher DOI page, PubMed, or arXiv). Last verified 2026-08-17. No DOIs are fabricated. This is a general survey of the public field only.</em></p>
+<h2 id="introduction">Introduction</h2>
+<p>For two decades, the central goal of structural biology was to determine <em>the</em> structure of a protein — a single set of coordinates. Deep learning has largely solved that problem: AlphaFold2 and its successors now predict static folds at near-experimental accuracy for most proteins. But proteins are not statues. They breathe, flex, and cycle between functionally distinct conformational states — open/closed enzymes, active/inactive receptors, inward/outward-facing transporters, folded/disordered regions. Function <em>is</em> motion. A single static coordinate set captures, at best, one snapshot of a distribution, and can actively mislead when the biologically relevant state is a minor or transient one. This survey organizes the field by <strong>approach family</strong> — from static baselines through physics-based simulation, generative machine-learning ensemble models, cryo-EM heterogeneity analysis, and integrative multi-state modeling of disordered systems — giving for each what it is, how it works, key tools, evidence, strengths, and limitations, closing with an honest assessment of what is actually winning.</p>
+<hr />
+<h2 id="family-1--static-structure-prediction-as-the-baseline">Family 1 — Static structure prediction as the baseline</h2>
+<p><strong>What it is.</strong> End-to-end deep-learning models that map a protein sequence (plus, usually, an MSA) to a single 3D structure — the modern baseline every dynamics method builds on or reacts against.</p>
+<p><strong>Mechanism.</strong> AlphaFold2 uses an attention-based "Evoformer" over MSA and pairwise residue representations feeding a structure module that produces atomic coordinates end-to-end. RoseTTAFold uses a three-track architecture coupling 1D/2D/3D reasoning. ESMFold replaces the MSA with a protein <em>language model</em> (ESM-2), predicting structure from a single sequence at metagenomic scale. AlphaFold3 generalizes to a diffusion-based generative head over all-atom coordinates, extending to protein–ligand, protein–nucleic-acid, and multi-chain complexes.</p>
+<p><strong>Key tools.</strong> AlphaFold2; AlphaFold3; RoseTTAFold / RoseTTAFold All-Atom; ESMFold (ESM-2); open re-implementations (OpenFold; Boltz-1/2).</p>
+<p><strong>Evidence.</strong> AlphaFold2 achieved median backbone accuracy near experimental error at CASP14; ESMFold folded hundreds of millions of metagenomic sequences; AlphaFold3 extended high accuracy to biomolecular interactions.</p>
+<p><strong>Limitations — why a single structure is insufficient for dynamics.</strong> These models are trained to reproduce the <em>one</em> deposited PDB structure and by default return a single high-confidence conformation. They do not report populations, do not sample alternative functional states, and give no free energies or kinetics. For allosteric enzymes, GPCRs, transporters, and disordered regions — where the <em>distribution</em> of states is the biology — a single prediction is at best incomplete. This gap motivates every family below.</p>
+<p><strong>Citations.</strong> Jumper et al. 2021, <em>Nature</em> — <a href="https://doi.org/10.1038/s41586-021-03819-2">10.1038/s41586-021-03819-2</a> (PMID 34265844); Abramson et al. 2024, <em>Nature</em> (AlphaFold 3) — <a href="https://doi.org/10.1038/s41586-024-07487-w">10.1038/s41586-024-07487-w</a> (PMID 38718835); Baek et al. 2021, <em>Science</em> (RoseTTAFold) — <a href="https://doi.org/10.1126/science.abj8754">10.1126/science.abj8754</a>; Lin et al. 2023, <em>Science</em> (ESMFold) — <a href="https://doi.org/10.1126/science.ade2574">10.1126/science.ade2574</a>.</p>
+<hr />
+<h2 id="family-2--physics-based-molecular-dynamics--enhanced-sampling">Family 2 — Physics-based molecular dynamics &amp; enhanced sampling</h2>
+<p><strong>What it is.</strong> Simulation of protein motion by numerically integrating Newton's equations under a molecular force field. MD is the only family that produces genuine <em>time-ordered trajectories</em> — real "movies" — with physically grounded free energies and kinetics.</p>
+<p><strong>Mechanism.</strong> An empirical force field (AMBER, CHARMM, OPLS) assigns energies to bonds/angles/torsions/non-bonded terms; atoms are propagated in femtosecond steps. Because functional transitions occur on µs–s timescales, the field relies on <strong>enhanced sampling</strong>: <em>metadynamics</em> adds history-dependent bias along collective variables; <em>replica-exchange MD (REMD)</em> swaps temperature replicas to cross barriers; <em>accelerated MD</em> raises low-energy regions to speed rare events. <strong>Markov State Models (MSMs)</strong> stitch many short trajectories into a kinetic network of metastable states. <em>AlphaFold-seeded MD</em> uses predicted structures as diverse starting points. <em>Special-purpose hardware</em> (Anton, D. E. Shaw) reaches millisecond all-atom trajectories directly.</p>
+<p><strong>Key tools.</strong> Engines: GROMACS, AMBER, CHARMM, NAMD, OpenMM. Force fields: ff14SB, CHARMM36. Enhanced sampling: metadynamics (PLUMED), REMD, accelerated MD, weighted-ensemble/string methods. MSMs: PyEMMA, MSMBuilder. Hardware: Anton.</p>
+<p><strong>Evidence.</strong> Anton produced the first atomic-level millisecond folding and conformational-change trajectories; MSMs matured into a rigorous statistical framework; metadynamics/REMD/aMD are standard, heavily validated free-energy and rare-event methods.</p>
+<p><strong>Strengths.</strong> Physically principled; yields free energies, kinetics, and mechanism — the gold standard for <em>how</em> a protein moves, transition pathways, and coupling (e.g., ion/substrate coupling in transporters, ligand-induced allostery).</p>
+<p><strong>Limitations.</strong> Expensive (large systems / long timescales); force-field inaccuracies (especially IDPs and some ion interactions); enhanced sampling needs well-chosen collective variables; large collective transitions can remain under-sampled. This cost/timescale wall is what generative ML tries to leapfrog.</p>
+<p><strong>Citations.</strong> Laio &amp; Parrinello 2002, <em>PNAS</em> (metadynamics) — <a href="https://doi.org/10.1073/pnas.202427399">10.1073/pnas.202427399</a>; Sugita &amp; Okamoto 1999, <em>Chem Phys Lett</em> (REMD) — <a href="https://doi.org/10.1016/S0009-2614(99)01123-9">10.1016/S0009-2614(99)01123-9</a>; Hamelberg et al. 2004, <em>JCP</em> (aMD) — <a href="https://doi.org/10.1063/1.1755656">10.1063/1.1755656</a>; Husic &amp; Pande 2018, <em>JACS</em> (MSM) — <a href="https://doi.org/10.1021/jacs.7b12191">10.1021/jacs.7b12191</a>; Shaw et al. 2010, <em>Science</em> (Anton) — <a href="https://doi.org/10.1126/science.1187409">10.1126/science.1187409</a>; Abraham et al. 2015, <em>SoftwareX</em> (GROMACS) — <a href="https://doi.org/10.1016/j.softx.2015.06.001">10.1016/j.softx.2015.06.001</a>; Maier et al. 2015, <em>JCTC</em> (ff14SB) — <a href="https://doi.org/10.1021/acs.jctc.5b00255">10.1021/acs.jctc.5b00255</a>.</p>
+<hr />
+<h2 id="family-3--generative--ml-conformational-ensemble-models">Family 3 — Generative / ML conformational ensemble models</h2>
+<p><strong>What it is.</strong> Deep generative models that sample <em>many</em> conformations for a sequence, aiming to approximate the equilibrium (Boltzmann) distribution — populations included — orders of magnitude faster than MD. <strong>Crucial caveat:</strong> most are <strong>equilibrium-ensemble generators</strong> (states and populations, <em>no time axis</em>), not true trajectory/"movie" models. Only a few (e.g., MDGen) generate time-ordered dynamics, and those remain small-scale.</p>
+<p><strong>Mechanism.</strong> Sub-strategies: <strong>(a) MSA manipulation of AlphaFold</strong> — subsampling/clustering the input MSA induces AF2 to output alternative functional states (AF-Cluster; subsampling recovers transporter/receptor endpoints and approximate populations). <strong>(b) Repurposing folding networks as samplers</strong> — AlphaFlow/ESMFlow retrain under a flow-matching objective; EigenFold and Str2Str use diffusion/score-based sampling. <strong>(c) Learned Boltzmann samplers</strong> — Boltzmann Generators (normalizing flows with exact reweighting); DiG (Distributional Graphormer) predicts equilibrium distributions; BioEmu emulates equilibrium ensembles at scale. <strong>(d) Force-guided diffusion</strong> — ConfDiff injects force guidance into SE(3) diffusion. <strong>(e) Trajectory generation</strong> — MDGen models MD trajectories directly (true dynamics, tetrapeptide-scale).</p>
+<p><strong>Key tools.</strong> AF-Cluster; MSA-subsampling (del Alamo; AFsample2; subsampled AF2); AlphaFlow/ESMFlow; EigenFold; Str2Str; ConfDiff; Boltzmann Generators; DiG; idpGAN; BioEmu; MDGen.</p>
+<p><strong>Evidence.</strong> MSA-subsampled AF2 recovers both outward- and inward-facing transporter states across many transporters and GPCRs. BioEmu reports thousands of conformers per GPU-hour, capturing cryptic pockets and domain motions at accuracy approaching long MD but ~10⁵× faster. Boltzmann Generators demonstrated correctly reweighted equilibrium sampling. AF-Cluster resolved a known fold-switching protein's two states.</p>
+<p><strong>Strengths.</strong> Dramatically cheaper than MD; produce diverse conformers and (for the best methods) calibrated populations; excellent for cryptic-pocket discovery and structural-prior/hypothesis generation.</p>
+<p><strong>Limitations.</strong> Most give <em>no kinetics or time ordering</em>; population calibration is uneven; large collective transitions (full transporter alternating-access) are systematically under-sampled by equilibrium generators; many are single-chain (BioEmu is single-chain, Cα-level); accuracy is bounded by PDB training bias toward stable states.</p>
+<p><strong>Citations.</strong> Wayment-Steele et al. 2024, <em>Nature</em> (AF-Cluster) — <a href="https://doi.org/10.1038/s41586-023-06832-9">10.1038/s41586-023-06832-9</a>; del Alamo et al. 2022, <em>eLife</em> (MSA subsampling) — <a href="https://doi.org/10.7554/eLife.75751">10.7554/eLife.75751</a>; Kalakoti &amp; Wallner 2025, <em>Commun Biol</em> (AFsample2) — <a href="https://doi.org/10.1038/s42003-025-07791-9">10.1038/s42003-025-07791-9</a>; Monteiro da Silva et al. 2024, <em>Nat Commun</em> — <a href="https://doi.org/10.1038/s41467-024-46715-9">10.1038/s41467-024-46715-9</a>; Zheng et al. 2024, <em>Nat Mach Intell</em> (DiG) — <a href="https://doi.org/10.1038/s42256-024-00837-3">10.1038/s42256-024-00837-3</a>; Noé et al. 2019, <em>Science</em> (Boltzmann Generators) — <a href="https://doi.org/10.1126/science.aaw1147">10.1126/science.aaw1147</a>; Janson et al. 2023, <em>Nat Commun</em> (idpGAN) — <a href="https://doi.org/10.1038/s41467-023-36443-x">10.1038/s41467-023-36443-x</a>; Jing et al. 2023 (EigenFold) — <a href="https://arxiv.org/abs/2304.02198">arXiv:2304.02198</a>; Lu et al. 2024 (Str2Str) — <a href="https://arxiv.org/abs/2306.03117">arXiv:2306.03117</a>; Jing et al. 2024 (AlphaFlow/ESMFlow) — <a href="https://arxiv.org/abs/2402.04845">arXiv:2402.04845</a>; Wang et al. 2024 (ConfDiff) — <a href="https://arxiv.org/abs/2403.14088">arXiv:2403.14088</a>; Lewis et al. 2025, <em>Science</em> (BioEmu) — <a href="https://doi.org/10.1126/science.adv9817">10.1126/science.adv9817</a>; Jing et al. 2024 (MDGen) — <a href="https://arxiv.org/abs/2409.17808">arXiv:2409.17808</a>.</p>
+<hr />
+<h2 id="family-4--cryo-em-conformational-heterogeneity">Family 4 — Cryo-EM conformational heterogeneity</h2>
+<p><strong>What it is.</strong> Methods that extract <em>multiple</em> conformational states — or continuous motion — from a single cryo-EM dataset, treating structural heterogeneity as signal. Each of the hundreds of thousands to millions of imaged particles is a frozen snapshot of a distinct conformation; the task is to recover the distribution.</p>
+<p><strong>Mechanism.</strong> <strong>cryoDRGN</strong> trains a VAE that learns a continuous low-dimensional latent space of conformations; <strong>cryoDRGN-AI</strong> extends this to neural <em>ab initio</em> reconstruction. <strong>3D Variability Analysis (3DVA)</strong> in cryoSPARC solves for linear variability components (continuous flexibility + discrete states). <strong>3DFlex</strong> models the map as a deformable canonical density plus a learned flow field. <strong>ManifoldEM</strong> places particle snapshots on a manifold to retrieve functional pathways and energy landscapes. <strong>RECOVAR</strong> uses regularized covariance estimation with kernel regression. <strong>DynaMight</strong> estimates per-particle deformations.</p>
+<p><strong>Key tools.</strong> cryoSPARC (+ 3DVA + 3DFlex); cryoDRGN / cryoDRGN-AI; ManifoldEM; RECOVAR; DynaMight; RELION (classification-based discrete heterogeneity).</p>
+<p><strong>Evidence.</strong> cryoDRGN resolved compositional and conformational heterogeneity in ribosome and spliceosome datasets; 3DFlex resolved continuous membrane-protein motion (e.g., TRPV1); ManifoldEM recovered functional energy landscapes from experimental snapshots.</p>
+<p><strong>Strengths.</strong> Grounded in real experimental data (not a model prior); resolves both discrete states and continuous motion; the definitive way to observe the conformational distribution a specific sample actually populates; extends to native context via cryo-ET.</p>
+<p><strong>Limitations.</strong> Requires a good particle stack; states below the reconstruction floor (rare conformers, or those lost to vitrification / air-water-interface bias) never enter the data; independent comparisons show learned deformation densities can diverge from ground truth, so orthogonal validation (smFRET, HDX-MS) is advisable.</p>
+<p><strong>Citations.</strong> Zhong et al. 2021, <em>Nat Methods</em> (cryoDRGN) — <a href="https://doi.org/10.1038/s41592-020-01049-4">10.1038/s41592-020-01049-4</a>; Levy et al. 2025, <em>Nat Methods</em> (cryoDRGN-AI) — <a href="https://doi.org/10.1038/s41592-025-02720-4">10.1038/s41592-025-02720-4</a>; Punjani &amp; Fleet 2021, <em>J Struct Biol</em> (3DVA) — <a href="https://doi.org/10.1016/j.jsb.2021.107702">10.1016/j.jsb.2021.107702</a>; Punjani &amp; Fleet 2023, <em>Nat Methods</em> (3DFlex) — <a href="https://doi.org/10.1038/s41592-023-01853-8">10.1038/s41592-023-01853-8</a>; Dashti et al. 2020, <em>Nat Commun</em> (ManifoldEM) — <a href="https://doi.org/10.1038/s41467-020-18403-x">10.1038/s41467-020-18403-x</a>; Gilles &amp; Singer 2025, <em>PNAS</em> (RECOVAR) — <a href="https://doi.org/10.1073/pnas.2419140122">10.1073/pnas.2419140122</a>; Schwab et al. 2024, <em>Nat Methods</em> (DynaMight) — <a href="https://doi.org/10.1038/s41592-024-02377-5">10.1038/s41592-024-02377-5</a>; Punjani et al. 2017, <em>Nat Methods</em> (cryoSPARC) — <a href="https://doi.org/10.1038/nmeth.4169">10.1038/nmeth.4169</a>.</p>
+<hr />
+<h2 id="family-5--intrinsically-disordered-proteins--integrative-multi-state-modeling">Family 5 — Intrinsically disordered proteins &amp; integrative multi-state modeling</h2>
+<p><strong>What it is.</strong> Methods for proteins (or regions) with <em>no single</em> folded structure — intrinsically disordered proteins (IDPs) — and integrative approaches combining sparse experimental measurements into an ensemble or multi-state model. Here the "structure" is fundamentally a distribution.</p>
+<p><strong>Mechanism.</strong> IDP ensembles are built by generating large candidate-conformer pools then selecting/reweighting a sub-ensemble whose <em>averaged</em> observables match experiment. <strong>Flexible-meccano</strong> generates disordered pools from residue-specific backbone statistics; the <strong>Ensemble Optimization Method (EOM)</strong> selects a sub-ensemble to fit SAXS; <strong>ENSEMBLE</strong> optimizes against combined NMR (chemical shifts, RDCs, PREs) and SAXS restraints. More broadly, the <strong>Integrative Modeling Platform (IMP)</strong> formalizes Bayesian combination of heterogeneous data (EM, cross-linking MS, SAXS, FRET, prior structures) to determine multi-state structures of large assemblies. ML generators (idpGAN) now emit disordered ensembles directly.</p>
+<p><strong>Key tools.</strong> Flexible-meccano; EOM (SAXS); ENSEMBLE (NMR+SAXS); IMP (integrative/Bayesian); idpGAN; NMR/SAXS-restrained MD.</p>
+<p><strong>Evidence.</strong> SAXS-based EOM and NMR-restrained ensembles are the established route to quantitative IDP descriptions; IMP underlies landmark integrative structures of large assemblies (e.g., the nuclear pore complex).</p>
+<p><strong>Strengths.</strong> Directly experiment-restrained; principled treatment of proteins with no single structure; IMP scales to very large heterogeneous assemblies; naturally multi-state.</p>
+<p><strong>Limitations.</strong> Under-determined — many ensembles fit the same averaged data, so results need maximum-entropy/regularization and are not unique; heavily dependent on data quality/quantity; labor-intensive; force-field and pool-generation biases propagate.</p>
+<p><strong>Citations.</strong> Russel et al. 2012, <em>PLoS Biol</em> (IMP) — <a href="https://doi.org/10.1371/journal.pbio.1001244">10.1371/journal.pbio.1001244</a>; Bernadó et al. 2007, <em>JACS</em> (EOM) — <a href="https://doi.org/10.1021/ja069124n">10.1021/ja069124n</a>; Krzeminski et al. 2013, <em>Bioinformatics</em> (ENSEMBLE) — <a href="https://doi.org/10.1093/bioinformatics/bts701">10.1093/bioinformatics/bts701</a>; Ozenne et al. 2012, <em>Bioinformatics</em> (Flexible-meccano) — <a href="https://doi.org/10.1093/bioinformatics/bts172">10.1093/bioinformatics/bts172</a>; Jensen et al. 2014, <em>Chem Rev</em> — <a href="https://doi.org/10.1021/cr400688u">10.1021/cr400688u</a>.</p>
+<hr />
+<h2 id="whats-winning--the-honest-state">What's Winning / The Honest State</h2>
+<ul>
+<li><strong>No single method wins; the field is converging on hybrids.</strong> The most reliable multi-state models in 2026 <em>combine</em> families: a fast generative or MSA-subsampled prior proposes states, physics-based MD/enhanced sampling gives mechanism and free energies, and experimental data (cryo-EM heterogeneity, NMR/SAXS, smFRET, HDX-MS) validates and anchors. Any purely computational ensemble is a hypothesis until experimentally checked.</li>
+<li><strong>Static prediction is effectively solved; dynamics is not.</strong> AlphaFold-class models give near-perfect single structures but no distributions, populations, kinetics, or alternative functional states by default.</li>
+<li><strong>Generative ensemble models are the fastest-moving frontier — with real caveats.</strong> BioEmu, DiG, AlphaFlow, MSA-subsampling deliver conformers at a tiny fraction of MD cost and are excellent for cryptic-pocket discovery. But most produce <em>equilibrium ensembles, not trajectories</em>; population calibration is uneven; large collective transitions are under-sampled. "Protein movie" claims are frequently over-stated — true trajectory generators (MDGen) remain peptide-scale.</li>
+<li><strong>MD remains the gold standard for mechanism</strong> — the only family giving time-ordered pathways, kinetics, and free energies — at a cost generative models race to undercut.</li>
+<li><strong>Cryo-EM heterogeneity is the strongest experimental grounding</strong> — cryoDRGN(-AI), 3DVA/3DFlex, RECOVAR, DynaMight recover multi-state distributions directly from data, but only for states that enter the particle stack, and learned densities need orthogonal validation.</li>
+</ul>
+<h3 id="biomate-positioning">BioMate Positioning</h3>
+<p>BioMate operates here as an <strong>execution platform</strong>, not a new algorithm. On its AWS-Batch compute layer it provides indexed, production <strong>cryo-EM workflows</strong> — including single-particle processing and conformational-heterogeneity analysis (the cryoSPARC / cryoDRGN-family methods of Family 4) — letting users resolve multiple states and continuous motion directly from their own particle data. It additionally offers a <strong>generative conformational-ensemble capability</strong> (Family-3-style equilibrium ensemble generation) producing many candidate conformers for a sequence, useful for cryptic-pocket discovery and as structural priors. BioMate's contribution is making these published methods runnable end-to-end at scale with live progress and downloadable results — orchestration and accessibility of the state of the art, not a proprietary replacement for it. The honest boundaries described throughout (equilibrium ensembles are not trajectories; computational ensembles need experimental validation; large collective transitions are hard) apply equally to results produced on the platform.</p>
+<hr />
+<p><em>Verification note: all references confirmed against primary sources (publisher DOI, PubMed, or arXiv); no DOIs fabricated. Companion showcase: <code>blog-protein-conformation.html</code>. Related BioMate surveys: target identification, patient stratification, multi-omics integration, virtual cell modeling.</em></p>
+      </article>
+
+      <div class="bm-survey-related">
+        <strong>Companion showcase:</strong> <a href="blog-protein-conformation.html">Protein Conformational Ensembles &amp; Dynamics on BioMate &rarr;</a><br/>
+        <strong>Other surveys:</strong> <a href="survey-target-identification.html">Drug Target Identification</a> · <a href="survey-patient-stratification.html">Patient Stratification</a> · <a href="survey-multi-omics.html">Multi-Omics Data Integration</a> · <a href="survey-virtual-cell.html">Virtual Cell Modeling</a> · <a href="surveys.html">All surveys &rarr;</a>
+      </div>
+    </div>
+  </main>
+
+  <div id="bm-foot"></div>
+  <script src="shell.js?v=20260609b"></script>
+  <script>renderShell({ active: 'research' });</script>
+</body>
+</html>

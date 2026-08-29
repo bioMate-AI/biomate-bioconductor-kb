@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en" data-palette="default" data-type="default" data-density="cozy">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Virtual Cell Modeling — Survey — BioMate AI</title>
+  <meta name="description" content="A verified-citation survey of virtual cell modeling: single-cell foundation models (scGPT, Geneformer, scFoundation), perturbation prediction (GEARS, CPA, STATE), the AI-Virtual-Cell roadmap, whole-cell mechanistic models, and the 2025 benchmarks showing deep models do not yet beat simple baselines." />
+  <meta name="keywords" content="virtual cell, single-cell foundation model, scGPT, Geneformer, perturbation prediction, GEARS, Virtual Cell Challenge, Perturb-seq, whole-cell model, AI virtual cell" />
+  <link rel="canonical" href="https://biomate.ai/survey-virtual-cell.html" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Virtual Cell Modeling — Survey — BioMate AI" />
+  <meta property="og:description" content="A verified-citation survey of virtual cell modeling: single-cell foundation models (scGPT, Geneformer, scFoundation), perturbation prediction (GEARS, CPA, STATE), the AI-Virtual-Cell roadmap, whole-cell mechanistic models, and the 2025 benchmarks showing deep models do not yet beat simple baselines." />
+  <meta property="og:url" content="https://biomate.ai/survey-virtual-cell.html" />
+  <meta property="og:image" content="https://biomate.ai/assets/logo.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Virtual Cell Modeling — Survey — BioMate AI" />
+  <meta name="twitter:description" content="A verified-citation survey of virtual cell modeling: single-cell foundation models (scGPT, Geneformer, scFoundation), perturbation prediction (GEARS, CPA, STATE), the AI-Virtual-Cell roadmap, whole-cell mechanistic models, and the 2025 benchmarks showing deep models do not yet beat simple baselines." />
+  <meta name="twitter:image" content="https://biomate.ai/assets/logo.png" />
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  "headline": "Virtual Cell Modeling \u2014 Survey",
+  "description": "A verified-citation survey of virtual cell modeling: single-cell foundation models (scGPT, Geneformer, scFoundation), perturbation prediction (GEARS, CPA, STATE), the AI-Virtual-Cell roadmap, whole-cell mechanistic models, and the 2025 benchmarks showing deep models do not yet beat simple baselines.",
+  "datePublished": "2026-08-17",
+  "dateModified": "2026-08-17",
+  "author": {
+    "@type": "Organization",
+    "name": "BioMate AI",
+    "url": "https://biomate.ai"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "BioMate AI",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://biomate.ai/assets/logo.png"
+    }
+  },
+  "keywords": [
+    "virtual cell",
+    "single-cell foundation model",
+    "scGPT",
+    "Geneformer",
+    "perturbation prediction",
+    "GEARS",
+    "Virtual Cell Challenge",
+    "Perturb-seq",
+    "whole-cell model",
+    "AI virtual cell"
+  ],
+  "url": "https://biomate.ai/survey-virtual-cell.html",
+  "mainEntityOfPage": "https://biomate.ai/survey-virtual-cell.html",
+  "inLanguage": "en",
+  "isPartOf": {
+    "@type": "CollectionPage",
+    "name": "BioMate Research Surveys",
+    "url": "https://biomate.ai/surveys.html"
+  },
+  "citation": [
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1038/s41592-024-02201-0"
+    },
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1038/s41586-023-06139-9"
+    },
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1016/j.cell.2024.11.015"
+    },
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1016/j.cell.2022.05.013"
+    },
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1038/s41592-025-02772-6"
+    }
+  ]
+}
+  </script>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://biomate.ai/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Research Surveys",
+      "item": "https://biomate.ai/surveys.html"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Virtual Cell Modeling",
+      "item": "https://biomate.ai/survey-virtual-cell.html"
+    }
+  ]
+}
+  </script>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .bm-prose{max-width:820px;font-size:.98rem;line-height:1.72;color:var(--text)}
+    .bm-prose h2{font-family:var(--font-head);font-size:1.5rem;color:var(--text);margin:2.4rem 0 .5rem;padding-top:1.2rem;border-top:1px solid var(--border)}
+    .bm-prose h2:first-of-type{border-top:none;padding-top:0}
+    .bm-prose h3{font-family:var(--font-head);font-size:1.2rem;color:var(--text);margin:1.6rem 0 .4rem}
+    .bm-prose h4{font-family:var(--font-head);font-size:1.04rem;color:var(--text);margin:1.1rem 0 .3rem}
+    .bm-prose p{margin:.7rem 0}
+    .bm-prose strong{color:var(--text);font-weight:700}
+    .bm-prose a{color:var(--accent);text-decoration:none;font-weight:500}
+    .bm-prose a:hover{text-decoration:underline}
+    .bm-prose ul,.bm-prose ol{margin:.6rem 0 .9rem 1.25rem;padding:0}
+    .bm-prose li{margin:.35rem 0}
+    .bm-prose code{font-family:var(--font-mono,monospace);font-size:.86em;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px}
+    .bm-prose hr{border:none;border-top:1px solid var(--border);margin:2rem 0}
+    .bm-prose blockquote{border-left:3px solid var(--accent);margin:1rem 0;padding:.4rem 0 .4rem 1.1rem;color:var(--text-muted)}
+    .bm-prose table{width:100%;border-collapse:collapse;margin:1.1rem 0;font-size:.9rem}
+    .bm-prose th,.bm-prose td{border:1px solid var(--border);padding:.5rem .7rem;text-align:left;vertical-align:top}
+    .bm-prose th{background:var(--bg-2);font-family:var(--font-head);font-weight:700}
+    .bm-prose em{color:var(--text-muted)}
+    .bm-survey-cta{display:flex;gap:1.1rem;align-items:center;flex-wrap:wrap;background:var(--bg-2);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--radius);padding:1.2rem 1.5rem;margin:1.6rem 0 2.4rem}
+    .bm-survey-cta .body{flex:1 1 340px}
+    .bm-survey-cta h3{font-family:var(--font-head);font-size:1.1rem;margin:0 0 .3rem;color:var(--text)}
+    .bm-survey-cta p{margin:0;color:var(--text-muted);font-size:.9rem}
+    .bm-survey-related{margin-top:2.4rem;padding-top:1.4rem;border-top:1px solid var(--border);font-size:.9rem;color:var(--text-muted)}
+    .bm-survey-related a{color:var(--accent);text-decoration:none;font-weight:600}
+  </style>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+</head>
+<body>
+  <div id="bm-nav"></div>
+
+  <main class="bm-section bm-section-narrow">
+    <div class="bm-section-inner">
+      <span class="bm-eyebrow">Research · Survey</span>
+      <h1 class="bm-h1">Virtual Cell Modeling</h1>
+      <p class="bm-lead">A verified-citation survey of computational models that predict cellular state and perturbation response — single-cell foundation models, perturbation predictors, the AI-Virtual-Cell vision, whole-cell mechanistic models, and the honest benchmarks correcting the hype.</p>
+
+      <div class="bm-survey-cta">
+        <div class="body">
+          <h3>BioMate in practice</h3>
+          <p>See BioMate's Virtual Cell Challenge 2026 strategy and mechanistic workflows — read the companion article: <a href="blog-virtual-cell.html">where BioMate fits in this landscape &rarr;</a></p>
+        </div>
+        <a class="bm-btn bm-btn-primary bm-btn-sm" href="https://dev-public.biomate.ai/register">Try BioMate free</a>
+      </div>
+
+      <article class="bm-prose">
+<p><em>Survey date: 2026-08-17 · Every citation verified by fetching the source (Crossref / PubMed / publisher). DOIs, PMIDs, and arXiv IDs are given where they resolve. Anything not machine-verifiable is marked <strong>UNVERIFIED</strong>. No DOIs are fabricated.</em></p>
+<h2 id="introduction">Introduction</h2>
+<p>A "virtual cell" is a computational model that predicts a cell's state and its response to interventions — genetic perturbations, drugs, or environmental changes — without running the wet-lab experiment. The field spans two historically separate lineages that are now converging: <strong>mechanistic simulation</strong> (ODE/SBML kinetics, flux-balance metabolism, agent-based tissue models, and the whole-cell simulations pioneered by Karr et al.), and <strong>data-driven machine learning</strong> (single-cell foundation models pretrained on tens to hundreds of millions of cells, and perturbation-response predictors). A 2024 <em>Cell</em> roadmap by Bunne, Roohani, Leskovec, Quake, Regev and 30+ others crystallized this into the "AI Virtual Cell" (AIVC) vision. Crucially, the most important recent development is not a new model but a <strong>credibility correction</strong>: multiple 2025 benchmarks (Kedzierska et al.; Ahlmann-Eltze et al.) show that today's large foundation models, used zero-shot or for perturbation prediction, do <strong>not yet reliably beat simple linear or mean baselines</strong> — and the Arc Institute's Virtual Cell Challenge was created in part to force honest, held-out evaluation. This survey organizes the field by approach family, giving mechanism, key tools, evidence, strengths, limits, and verified citations for each.</p>
+<hr />
+<h2 id="family-1--single-cell-foundation-models-scfms">Family 1 — Single-Cell Foundation Models (SCFMs)</h2>
+<p><strong>What it is.</strong> Transformer models pretrained self-supervised on massive unlabeled single-cell transcriptomes, producing a general-purpose "cell embedding" that can be fine-tuned or used zero-shot for downstream tasks (cell-type annotation, batch integration, perturbation, gene-network inference).</p>
+<p><strong>How it models/predicts (mechanism).</strong> A cell (~20,000 gene counts) is tokenized and fed to a transformer with a masked-prediction pretraining objective, but the tokenization differs by model:</p>
+<ul>
+<li><strong>scGPT</strong> (Cui et al. 2024) — value-binning tokens; a generative masked-attention objective; ~33M cells. The reference "GPT-style" SCFM. <em>Nat Methods</em> 2024;21(8):1470–1480. DOI <strong>10.1038/s41592-024-02201-0</strong>.</li>
+<li><strong>Geneformer</strong> (Theodoris et al. 2023) — <strong>rank-value encoding</strong> (genes ordered by expression rank, no absolute values); pretrained on ~30M cells ("Genecorpus-30M"). Pitch: <em>transfer learning for network biology</em>. <em>Nature</em> 2023;618:616–624. DOI <strong>10.1038/s41586-023-06139-9</strong>.</li>
+<li><strong>scFoundation / xTrimoGene</strong> (Hao et al. 2024) — <strong>continuous value embedding</strong> (no lossy binning), an <strong>asymmetric encoder–decoder</strong> processing only non-zero genes, and <strong>Read-Depth-Aware (RDA)</strong> pretraining; ~100M params, &gt;50M human cells, 19,264 genes. <em>Nat Methods</em> 2024;21(8):1481–1491. DOI <strong>10.1038/s41592-024-02305-7</strong>. (The backbone BioMap adapted to win VCC 2025.)</li>
+<li><strong>scBERT</strong> (Yang et al. 2022) — early BERT-style SCFM for cell-type annotation. <em>Nat Mach Intell</em> 2022;4:852–866. DOI <strong>10.1038/s42256-022-00534-z</strong>.</li>
+<li><strong>UCE (Universal Cell Embeddings)</strong> (Rosen, Roohani et al. 2023) — 33-layer, ~650M-param model on &gt;36M cells across 300+ CELLxGENE datasets, using <strong>ESM2 protein embeddings</strong> so genes from any species map into one universal space. bioRxiv 10.1101/2023.11.28.568918.</li>
+<li><strong>TranscriptFormer</strong> (CZI, 2025) — cross-species generative SCFM (~112M cells, 12 species); Apache-2.0 licensed. bioRxiv 10.1101/2025.04.25.650731 (<strong>UNVERIFIED DOI</strong> — confirm on click).</li>
+</ul>
+<p><strong>Evidence / strengths.</strong> Strong when <strong>fine-tuned</strong> on a labeled downstream task; competitive cell-type annotation, batch integration, useful embeddings; enable transfer to data-scarce settings. UCE/TranscriptFormer add cross-species generalization.</p>
+<p><strong>Limitations (load-bearing).</strong> In <strong>zero-shot</strong> use, Kedzierska et al. 2025 (<em>Genome Biology</em> 26:101; DOI <strong>10.1186/s13059-025-03574-x</strong>; PMID 40251685) showed scGPT and Geneformer perform <strong>inconsistently and often worse</strong> than plain highly-variable-gene selection, scVI, or Harmony for cell-type clustering across five datasets. Recurring lesson: single-cell data is dominated by technical noise (dropout, batch), the biological signal is near-linear, and huge models overfit that noise — so <strong>curation + statistical structure often beats raw scale</strong>.</p>
+<hr />
+<h2 id="family-2--perturbation-response-prediction">Family 2 — Perturbation-Response Prediction</h2>
+<p><strong>What it is.</strong> Models that predict the transcriptome-wide response to a specific perturbation (silence gene X, apply drug Y at dose Z), including generalization to <strong>unseen</strong> single or combinatorial perturbations.</p>
+<p><strong>Mechanism.</strong></p>
+<ul>
+<li><strong>scGen</strong> (Lotfollahi et al. 2019) — VAE doing <strong>latent-space vector arithmetic</strong> (learn a "perturbation direction," add to unseen contexts). <em>Nat Methods</em> 2019;16:715–721. DOI <strong>10.1038/s41592-019-0494-8</strong>.</li>
+<li><strong>CPA (Compositional Perturbation Autoencoder)</strong> (Lotfollahi et al. 2023) — <strong>adversarially disentangles</strong> basal state, perturbation, dose, covariates into composable latent factors → drug-combination and dose-response prediction. <em>Mol Syst Biol</em> 2023;19:e11517. DOI <strong>10.15252/msb.202211517</strong>.</li>
+<li><strong>chemCPA</strong> (Hetzel et al. 2022) — extends CPA to <strong>unseen drugs</strong> via molecular-structure encoding. NeurIPS 2022; arXiv:2204.13545.</li>
+<li><strong>GEARS</strong> (Roohani et al.) — <strong>GNN over a GO / co-expression knowledge graph</strong>, predicting effects of <strong>multigene (combinatorial)</strong> perturbations including genes never perturbed alone. <em>Nat Biotechnol</em> 2024;42:927–935. DOI <strong>10.1038/s41587-023-01905-6</strong>.</li>
+<li><strong>STATE</strong> (Arc Institute; Adduri et al. 2025) — <strong>set-attention state-transition model</strong> on &gt;100M perturbed cells across 70 contexts + a cell-embedding model on 167M cells; reports <strong>&gt;50% improvement</strong> in perturbation-effect discrimination. bioRxiv 10.1101/2025.06.26.661135 (<strong>non-commercial license</strong>).</li>
+<li><strong>BioMap xTrimoSCPerturb</strong> — the <strong>VCC 2025 grand-prize winner</strong>; fused the scFoundation backbone with explicit statistical baseline features and a metric-aligned (PDS+DES+MAE) loss. Documented via the Arc VCC 2025 wrap-up + BioMap's post; <strong>no peer-reviewed methods paper verified yet — internal recipe details are vendor-claimed / UNVERIFIED</strong>.</li>
+</ul>
+<p><strong>Key datasets &amp; benchmark.</strong> Genome-scale Perturb-seq — <strong>Replogle et al. 2022</strong>, <em>Cell</em> 185:2559–2575.e28, DOI <strong>10.1016/j.cell.2022.05.013</strong> — is the foundational training/transfer resource (K562/RPE1, ~8K genes). Norman et al. 2019 (combinatorial CRISPRa, GSE133344) is the standard combinatorial testbed. The <strong>Arc Virtual Cell Challenge</strong> (2025; H1-hESC, 300 CRISPRi perturbations split 150/50/100) is the flagship held-out evaluation, scored on PDS (perturbation-discrimination), DES (differential-expression), and MAE.</p>
+<p><strong>Strengths.</strong> GEARS and STATE genuinely push combinatorial and cross-context generalization.</p>
+<p><strong>Limitations.</strong> See Family 5 — for <strong>unseen</strong> and <strong>combinatorial</strong> perturbations, deep predictors have <strong>not yet beaten additive / mean baselines</strong> in controlled benchmarks. The winning VCC recipes were <strong>hybrids</strong> (statistics + curation + selective DL), not pure end-to-end nets.</p>
+<hr />
+<h2 id="family-3--the-ai-virtual-cell-aivc-vision">Family 3 — The "AI Virtual Cell" (AIVC) Vision</h2>
+<p><strong>What it is.</strong> A field-defining roadmap: <strong>Bunne, Roohani, Rosen, … Regev, Lundberg, Leskovec, Quake et al. 2024</strong>, "How to build the virtual cell with artificial intelligence: Priorities and opportunities," <em>Cell</em> 2024;187:7045–7063, DOI <strong>10.1016/j.cell.2024.11.015</strong>.</p>
+<p><strong>How it frames the problem.</strong> Proposes the AIVC as a multi-scale, multi-modal system of "universal representations" of molecules, cells, and tissues, learned from large atlases, that can be <strong>queried and simulated</strong> — predict unmeasured states and responses (virtual instruments / virtual perturbations) and be validated against real experiments.</p>
+<p><strong>Operationalization.</strong> Arc Institute turned the vision into a measurable target with the <strong>Virtual Cell Challenge</strong> — "Virtual Cell Challenge: Toward a Turing test for the virtual cell," <em>Cell</em>, June 26, 2025, PII <strong>S0092-8674(25)00675-0</strong> (<strong>numeric DOI UNVERIFIED</strong> — cited by verified publisher URL). Supporting infrastructure: the <strong>Arc Virtual Cell Atlas</strong> and <strong>Tahoe-100M</strong> (100M cells, ~1,100 drugs × 50 cancer lines), CZI's <strong>CELLxGENE Census</strong> and <strong>cz-benchmarks/cell-eval</strong> harness.</p>
+<p><strong>Strengths.</strong> Aligns a fragmented field on shared objectives, metrics, and open data; catalyzed the honest-evaluation movement.</p>
+<p><strong>Limitations.</strong> Aspirational — no current system is a true virtual cell; the gap between vision and demonstrated accuracy (Family 5) is large.</p>
+<hr />
+<h2 id="family-4--whole-cell--mechanistic-models">Family 4 — Whole-Cell &amp; Mechanistic Models</h2>
+<p><strong>What it is.</strong> Bottom-up simulations grounded in molecular mechanism: ODE/SBML kinetics, flux-balance metabolism (FBA), agent-based/spatial tissue models, integrative whole-cell models.</p>
+<p><strong>Mechanism.</strong></p>
+<ul>
+<li><strong>Whole-cell model</strong> — <strong>Karr et al. 2012</strong>, "A Whole-Cell Computational Model Predicts Phenotype from Genotype," <em>Cell</em> 150:389–401, DOI <strong>10.1016/j.cell.2012.05.044</strong>. Simulates every characterized gene function of <em>Mycoplasma genitalium</em> via ~28 integrated submodels, predicting phenotype from genotype. The landmark proof-of-concept.</li>
+<li><strong>Flux-balance analysis (FBA)</strong> — genome-scale metabolic models (Recon3D, Human-GEM) solved by linear programming under stoichiometric/steady-state constraints; tool COBRApy. (Orth et al. 2010, <em>Nat Biotechnol</em> 28:245–248.)</li>
+<li><strong>ODE/SBML kinetic simulation</strong> — mass-action / Michaelis-Menten networks (Tellurium, AMICI, COPASI); used for signaling and cardiac safety (CiPA O'Hara-Rudy action-potential model).</li>
+<li><strong>Agent-based / spatial</strong> — PhysiCell, Chaste, CompuCell3D, Morpheus, FLAME-GPU2 for tumor microenvironment, morphogenesis, drug penetration.</li>
+<li><strong>Hybrid mechanistic + ML</strong> — SBML-to-JAX, adjoint-sensitivity fitting (AMICI + pyPESTO), composable multi-scale frameworks (Vivarium).</li>
+</ul>
+<p><strong>Strengths.</strong> Interpretable, causal, extrapolate to unseen conditions in principle, and are the <strong>regulatorily-accepted</strong> end of the spectrum (PBPK, CiPA/QSP appear in real FDA/EMA submissions).</p>
+<p><strong>Limitations.</strong> Require extensive prior knowledge and parameterization; do not scale to whole human-cell transcriptomic response; the Karr-style approach remains confined to minimal organisms and is computationally heavy.</p>
+<hr />
+<h2 id="family-5--honest-negative-results-benchmarks--the-evaluation-debate">Family 5 — Honest Negative Results, Benchmarks &amp; the Evaluation Debate</h2>
+<p><strong>What it is.</strong> Rigorous benchmark studies whose central finding is that the hype has outrun the evidence — the field's most important recent contribution.</p>
+<ul>
+<li><strong>Ahlmann-Eltze, Huber &amp; Anders 2025</strong> — "Deep-learning-based gene perturbation effect prediction does not yet outperform simple linear baselines," <em>Nature Methods</em> 22:1657–1661, DOI <strong>10.1038/s41592-025-02772-6</strong>, PMID 40759747. For <strong>combinatorial</strong> perturbations DL did <strong>not beat a simple additive model</strong>; for <strong>unseen</strong> genes DL did <strong>not beat predicting the training mean</strong>.</li>
+<li><strong>Kedzierska, Crawford, Amini &amp; Lu 2025</strong> — "Zero-shot evaluation reveals limitations of single-cell foundation models," <em>Genome Biology</em> 26:101, DOI <strong>10.1186/s13059-025-03574-x</strong>, PMID 40251685.</li>
+<li><strong>PerturBench</strong> (Wu et al. 2024) — arXiv:2408.10609 — ~27 perturbation methods across ~29 datasets with rank-based specificity metrics; strong non-DL baselines.</li>
+<li><strong>The VCC as a benchmark.</strong> The Arc wrap-up reports a trivial <strong>cell-mean baseline beat most deep models on MAE</strong>, and that "pure end-to-end neural networks have yet to outperform hybrid models" — which is why the challenge weights <strong>PDS</strong> (perturbation-specificity) as the deciding metric (a constant prediction scores chance = 0.5).</li>
+</ul>
+<p><strong>The debate.</strong> Cross-paper score comparisons are usually invalid (different tasks/data/metrics). The defensible recipe the community is converging on: <strong>your own task + your own metric + a permuted null + a simple baseline + an oracle/ceiling</strong>, all on the same held-out split.</p>
+<hr />
+<h2 id="whats-winning--the-honest-state">What's Winning / The Honest State</h2>
+<ul>
+<li><strong>Mechanistic models win where they're accepted:</strong> PBPK, CiPA/QSP, and FBA are the only virtual-cell approaches with real regulatory standing today.</li>
+<li><strong>For perturbation-response, hybrids win — not pure deep learning.</strong> All three VCC 2025 winners (BioMap xTrimoSCPerturb; Altos flow-matching; Team Outlier's TransPert) beat brute-force scale by combining <strong>curated data + explicit statistical priors + metric-aligned loss</strong>. TransPert (3rd overall, #1 on PDS) used <strong>no neural net at all</strong>.</li>
+<li><strong>Foundation models are useful but oversold.</strong> Fine-tuned they help; zero-shot they frequently lose to HVG/scVI (Kedzierska 2025). For unseen/combinatorial perturbation they don't yet beat linear baselines (Ahlmann-Eltze 2025).</li>
+<li><strong>The honest gap:</strong> no system today is a true "virtual cell." STATE and the AIVC roadmap point the direction; the near-term frontier is <strong>cross-context / cross-cell-type transfer</strong> with rigorous held-out evaluation, where statistics-first hybrids currently lead.</li>
+</ul>
+<hr />
+<h2 id="biomate-positioning">BioMate Positioning</h2>
+<p><em>(Accurate, from BioMate's internal docs; several items are plans/experiments, not shipped capabilities.)</em></p>
+<ul>
+<li><strong>Mechanistic virtual-cell infrastructure (built).</strong> Four Phase-1 workflows run on BioMate's AWS-Batch engine: CiPA cardiac-safety ODE (hERG mechanistic confirmation), ODE signaling simulation, metabolic-flux FBA, and LINCS-L1000 transcriptomic MoA — integrated with existing ADMET/PBPK/RNA-seq workflows.</li>
+<li><strong>Perturbation-prediction infrastructure (staged).</strong> GEARS, CPA, scGen, scFoundation/TranscriptFormer catalogued with licenses/GPU sizing/Docker recipes; several are <strong>planned Phase-2 GPU workflows</strong>.</li>
+<li><strong>VCC 2026 participation (active).</strong> BioMate registered a team for the Arc Virtual Cell Challenge (starts Aug 20, 2026), with a validated scoring harness (cell-mean / additive / oracle-NN baselines) and a statistics-first plan: pseudobulk per perturbation, test-time features (baseline expression, MSigDB-C7 pathway membership, Open Targets genetics priors), <strong>similarity-weighted cross-line transfer</strong>, and <strong>global PDS scale-calibration</strong> — mirroring the TransPert recipe, adding DL only if it beats the statistical floor.</li>
+<li><strong>Cross-line transfer + PDS calibration (validated at baseline level).</strong> BioMate independently reproduced the key VCC scoring behavior (constant predictions → chance PDS 0.5; nearest-neighbor borrowing → PDS ≈ 0.81 calibrated), confirming that perturbation-<em>specific</em> prediction and distance calibration are the high-leverage levers.</li>
+<li><strong>Honest scope.</strong> BioMate does <strong>not</strong> claim a trained perturbation model beating SOTA, nor a whole-cell simulator; its differentiators are the <strong>execution engine</strong> (mechanistic + ML workflows on managed AWS Batch), a <strong>rigorous baseline/eval harness</strong>, and a <strong>statistics-first VCC strategy</strong> aligned with what actually won in 2025.</li>
+</ul>
+<hr />
+<h2 id="references-verified-via-crossrefpubmed-unless-flagged">References (verified via Crossref/PubMed unless flagged)</h2>
+<ol type="1">
+<li>Cui H, et al. <strong>scGPT</strong>. <em>Nat Methods</em> 2024;21(8):1470–1480. DOI 10.1038/s41592-024-02201-0.</li>
+<li>Theodoris CV, et al. <strong>Geneformer</strong>. <em>Nature</em> 2023;618:616–624. DOI 10.1038/s41586-023-06139-9.</li>
+<li>Hao M, et al. <strong>scFoundation/xTrimoGene</strong>. <em>Nat Methods</em> 2024;21(8):1481–1491. DOI 10.1038/s41592-024-02305-7.</li>
+<li>Yang F, et al. <strong>scBERT</strong>. <em>Nat Mach Intell</em> 2022;4:852–866. DOI 10.1038/s42256-022-00534-z.</li>
+<li>Rosen Y, Roohani Y, et al. <strong>UCE</strong>. bioRxiv 2023. DOI 10.1101/2023.11.28.568918.</li>
+<li>CZI. <strong>TranscriptFormer</strong>. bioRxiv 2025. DOI 10.1101/2025.04.25.650731. <strong>[UNVERIFIED]</strong></li>
+<li>Lotfollahi M, et al. <strong>scGen</strong>. <em>Nat Methods</em> 2019;16:715–721. DOI 10.1038/s41592-019-0494-8.</li>
+<li>Lotfollahi M, et al. <strong>CPA</strong>. <em>Mol Syst Biol</em> 2023;19:e11517. DOI 10.15252/msb.202211517.</li>
+<li>Hetzel L, et al. <strong>chemCPA</strong>. NeurIPS 2022. arXiv:2204.13545.</li>
+<li>Roohani Y, et al. <strong>GEARS</strong>. <em>Nat Biotechnol</em> 2024;42:927–935. DOI 10.1038/s41587-023-01905-6.</li>
+<li>Replogle JM, et al. Genome-scale <strong>Perturb-seq</strong>. <em>Cell</em> 2022;185:2559–2575.e28. DOI 10.1016/j.cell.2022.05.013.</li>
+<li>Adduri AK, et al. <strong>State</strong> (Arc). bioRxiv 2025. DOI 10.1101/2025.06.26.661135. [Non-commercial.]</li>
+<li>Bunne C, Roohani Y, … Quake SR. How to build the virtual cell with AI. <em>Cell</em> 2024;187:7045–7063. DOI 10.1016/j.cell.2024.11.015.</li>
+<li>Arc Institute. Virtual Cell Challenge: Toward a Turing test for the virtual cell. <em>Cell</em>, Jun 26, 2025. <a href="https://www.cell.com/cell/fulltext/S0092-8674(25)00675-0">https://www.cell.com/cell/fulltext/S0092-8674(25)00675-0</a> <strong>[numeric DOI UNVERIFIED]</strong></li>
+<li>Karr JR, et al. A Whole-Cell Computational Model Predicts Phenotype from Genotype. <em>Cell</em> 2012;150:389–401. DOI 10.1016/j.cell.2012.05.044.</li>
+<li>Ahlmann-Eltze C, Huber W, Anders S. Deep-learning perturbation prediction does not yet outperform linear baselines. <em>Nat Methods</em> 2025;22:1657–1661. DOI 10.1038/s41592-025-02772-6. PMID 40759747.</li>
+<li>Kedzierska KZ, et al. Zero-shot evaluation reveals limitations of single-cell foundation models. <em>Genome Biology</em> 2025;26:101. DOI 10.1186/s13059-025-03574-x. PMID 40251685.</li>
+<li>Wu Y, et al. <strong>PerturBench</strong>. arXiv:2408.10609 (2024).</li>
+<li>Lopez R, et al. <strong>scVI</strong>. <em>Nat Methods</em> 2018;15:1053–1058. DOI 10.1038/s41592-018-0229-2.</li>
+<li>Lotfollahi M, et al. <strong>scArches</strong>. <em>Nat Biotechnol</em> 2022;40:121–130. DOI 10.1038/s41587-021-01001-7.</li>
+</ol>
+<p><em>Supporting resources: Arc VCC 2025 wrap-up (arcinstitute.org); Tahoe-100M / Virtual Cell Atlas; CELLxGENE Census; scPerturb (Peidli et al. 2024) Zenodo 10.5281/zenodo.13350497.</em></p>
+<p><em>Companion showcase: <code>blog-virtual-cell.html</code>. Related BioMate surveys: target identification, patient stratification, multi-omics integration, protein conformation.</em></p>
+      </article>
+
+      <div class="bm-survey-related">
+        <strong>Companion showcase:</strong> <a href="blog-virtual-cell.html">Virtual Cell Modeling on BioMate &rarr;</a><br/>
+        <strong>Other surveys:</strong> <a href="survey-target-identification.html">Drug Target Identification</a> · <a href="survey-patient-stratification.html">Patient Stratification</a> · <a href="survey-multi-omics.html">Multi-Omics Data Integration</a> · <a href="survey-protein-conformation.html">Protein Conformational Ensembles &amp; Dynamics</a> · <a href="surveys.html">All surveys &rarr;</a>
+      </div>
+    </div>
+  </main>
+
+  <div id="bm-foot"></div>
+  <script src="shell.js?v=20260609b"></script>
+  <script>renderShell({ active: 'research' });</script>
+</body>
+</html>

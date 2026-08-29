@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en" data-palette="default" data-type="default" data-density="cozy">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>No Universal Winner: Running Seven Multi-Omics Integrators Head-to-Head on BioMate — BioMate AI</title>
+  <meta name="description" content="Two landmark benchmarks agree there is no single best multi-omics integration method — the leader changes with the dataset. BioMate runs seven (MOFA2, SNF, intNMF, MCIA, MFA, iClusterPlus, JIVE) through one interface and scores them on your data." />
+  <meta name="keywords" content="multi-omics integration, MOFA2, similarity network fusion, intNMF, MCIA, iCluster, JIVE, cancer subtyping, BioMate AI, benchmark" />
+  <link rel="canonical" href="https://biomate.ai/blog-multi-omics.html" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="No Universal Winner: Running Seven Multi-Omics Integrators Head-to-Head on BioMate — BioMate AI" />
+  <meta property="og:description" content="Two landmark benchmarks agree there is no single best multi-omics integration method — the leader changes with the dataset. BioMate runs seven (MOFA2, SNF, intNMF, MCIA, MFA, iClusterPlus, JIVE) through one interface and scores them on your data." />
+  <meta property="og:url" content="https://biomate.ai/blog-multi-omics.html" />
+  <meta property="og:image" content="https://biomate.ai/images/blog-multi-omics-hero.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="No Universal Winner: Running Seven Multi-Omics Integrators Head-to-Head on BioMate — BioMate AI" />
+  <meta name="twitter:description" content="Two landmark benchmarks agree there is no single best multi-omics integration method — the leader changes with the dataset. BioMate runs seven (MOFA2, SNF, intNMF, MCIA, MFA, iClusterPlus, JIVE) through one interface and scores them on your data." />
+  <meta name="twitter:image" content="https://biomate.ai/images/blog-multi-omics-hero.png" />
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "No Universal Winner: Running Seven Multi-Omics Integrators Head-to-Head on BioMate",
+  "description": "Two landmark benchmarks agree there is no single best multi-omics integration method \u2014 the leader changes with the dataset. BioMate runs seven (MOFA2, SNF, intNMF, MCIA, MFA, iClusterPlus, JIVE) through one interface and scores them on your data.",
+  "datePublished": "2026-08-17",
+  "dateModified": "2026-08-17",
+  "author": {
+    "@type": "Organization",
+    "name": "BioMate AI",
+    "url": "https://biomate.ai"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "BioMate AI",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://biomate.ai/assets/logo.png"
+    }
+  },
+  "keywords": [
+    "multi-omics integration",
+    "MOFA2",
+    "similarity network fusion",
+    "intNMF",
+    "MCIA",
+    "iCluster",
+    "JIVE",
+    "cancer subtyping",
+    "BioMate AI",
+    "benchmark"
+  ],
+  "url": "https://biomate.ai/blog-multi-omics.html",
+  "mainEntityOfPage": "https://biomate.ai/blog-multi-omics.html",
+  "inLanguage": "en",
+  "articleSection": "Genomics",
+  "isPartOf": {
+    "@type": "Blog",
+    "name": "BioMate AI Blog",
+    "url": "https://biomate.ai/blog.html"
+  },
+  "citation": [
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1038/s41467-020-20430-7"
+    },
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1093/nar/gky889"
+    },
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1038/nmeth.2810"
+    }
+  ],
+  "mentions": {
+    "@type": "ScholarlyArticle",
+    "name": "Multi-Omics Data Integration \u2014 Survey",
+    "url": "https://biomate.ai/survey-multi-omics.html"
+  }
+}
+  </script>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://biomate.ai/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Newsroom",
+      "item": "https://biomate.ai/blog.html"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "No Universal Winner: Running Seven Multi-Omics Integrators Head-to-Head on BioMate",
+      "item": "https://biomate.ai/blog-multi-omics.html"
+    }
+  ]
+}
+  </script>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .bm-prose{max-width:780px;font-size:1.0rem;line-height:1.74;color:var(--text)}
+    .bm-prose h2{font-family:var(--font-head);font-size:1.45rem;color:var(--text);margin:2.2rem 0 .5rem}
+    .bm-prose h3{font-family:var(--font-head);font-size:1.15rem;color:var(--text);margin:1.5rem 0 .4rem}
+    .bm-prose p{margin:.8rem 0}
+    .bm-prose strong{color:var(--text);font-weight:700}
+    .bm-prose a{color:var(--accent);text-decoration:none;font-weight:500}
+    .bm-prose a:hover{text-decoration:underline}
+    .bm-prose ul{margin:.6rem 0 .9rem 1.25rem;padding:0}
+    .bm-prose li{margin:.4rem 0}
+    .bm-prose blockquote{border-left:3px solid var(--accent);margin:1.2rem 0;padding:.5rem 0 .5rem 1.1rem;color:var(--text-muted);font-size:1.02rem}
+    .bm-prose code{font-family:var(--font-mono,monospace);font-size:.86em;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px}
+    .bm-article-meta{display:flex;gap:.8rem;flex-wrap:wrap;align-items:center;font-size:.85rem;color:var(--text-muted);margin:.4rem 0 1.6rem}
+    .bm-article-meta .cat{background:var(--accent);color:#fff;border-radius:4px;padding:2px 9px;font-weight:600}
+    .bm-blog-hero{position:relative;width:100%;height:min(46vh,400px);overflow:hidden}
+    .bm-blog-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+    .bm-blog-hero-scrim{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(15,22,28,.30),rgba(15,22,28,.80))}
+    .bm-blog-hero-inner{position:absolute;left:0;right:0;bottom:0;max-width:820px;margin:0 auto;padding:0 1.5rem 1.8rem}
+    .bm-blog-hero-inner .bm-eyebrow{color:#e8eef1}
+    .bm-blog-hero-inner h1{color:#fff;margin:.35rem 0 .6rem;font-family:var(--font-head);font-size:2rem;line-height:1.2}
+    .bm-blog-hero-inner .bm-article-meta{margin:0;color:#dfe7eb}
+    .bm-blog-hero-inner .bm-article-meta span{color:#dfe7eb}
+    .bm-survey-cta{display:flex;gap:1.1rem;align-items:center;flex-wrap:wrap;background:var(--bg-2);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--radius);padding:1.2rem 1.5rem;margin:2rem 0}
+    .bm-survey-cta .body{flex:1 1 340px}
+    .bm-survey-cta h3{font-family:var(--font-head);font-size:1.1rem;margin:0 0 .3rem;color:var(--text)}
+    .bm-survey-cta p{margin:0;color:var(--text-muted);font-size:.9rem}
+    .bm-endnote{margin-top:2.4rem;padding-top:1.4rem;border-top:1px solid var(--border);font-size:.88rem;color:var(--text-muted)}
+    .bm-endnote a{color:var(--accent);text-decoration:none;font-weight:600}
+  </style>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+</head>
+<body>
+  <div id="bm-nav"></div>
+
+  <section class="bm-blog-hero">
+    <img src="images/blog-multi-omics-hero.png" alt="No Universal Winner: Running Seven Multi-Omics Integrators Head-to-Head on BioMate" />
+    <div class="bm-blog-hero-scrim"></div>
+    <div class="bm-blog-hero-inner">
+      <span class="bm-eyebrow">Newsroom · BioMate Showcase</span>
+      <h1>No Universal Winner: Running Seven Multi-Omics Integrators Head-to-Head on BioMate</h1>
+      <div class="bm-article-meta"><span class="cat">Genomics</span><span>Aug 17, 2026</span><span>8 min read</span><span>BioMate Team</span></div>
+    </div>
+  </section>
+
+  <main class="bm-section bm-section-narrow">
+    <div class="bm-section-inner">
+      <article class="bm-prose">
+<p class="lead">If you only remember one thing about multi-omics integration, make it this: <strong>there is no universal winner.</strong> The two flagship benchmarks — <a href="https://doi.org/10.1093/nar/gky889">Rappoport &amp; Shamir 2018</a> and <a href="https://doi.org/10.1038/s41467-020-20430-7">Cantini 2021</a> — both conclude that the best method depends on the dataset and the question. Our <a href="survey-multi-omics.html">Multi-Omics Integration survey</a> lays out the full method landscape. The practical consequence is what BioMate is built for.</p>
+
+<h2>Why "pick one method" is the wrong move</h2>
+<p>Factor models (<a href="https://doi.org/10.15252/msb.20178124">MOFA</a>, iCluster) give interpretable, view-attributable factors; network fusion (<a href="https://doi.org/10.1038/nmeth.2810">SNF</a>) is nonlinear and noise-robust; non-negative factorization (intNMF) is best at recovering ground-truth clusters; MCIA is the most consistent all-rounder. Because the leader changes by cohort, the defensible workflow is to <strong>run several and compare them with a fair, quantitative harness on your own data</strong> — exactly the thing that's tedious to set up by hand.</p>
+
+<h2>What BioMate does</h2>
+<ul>
+<li><strong>Seven SOTA integrators, one interface.</strong> MOFA2, SNF, intNMF, MCIA, MFA, iClusterPlus, and JIVE run end-to-end on AWS Batch (Nextflow), each invoked through a <strong>universal CSV interface</strong> (features × samples per modality, sample-intersected across views).</li>
+<li><strong>Head-to-head, scored against ground truth.</strong> A worked pilot compared them on real chronic lymphocytic leukemia (matched to IGHV status) and TCGA (matched to PAM50), via a reproducible metric harness — and <strong>reproduced the literature's message on the user's own data</strong>: MOFA2 led on CLL, MCIA led on TCGA. Leader changes by cohort, as the benchmarks predict.</li>
+<li><strong>SOTA normalization, automatically.</strong> Per-modality normalization (log2-CPM for bulk RNA, log1p-CP10k for scRNA, M-value for methylation, TF-IDF for scATAC, median-centering for proteomics) is applied before integration — fixing the failure mode where one high-magnitude view swamps the rest.</li>
+</ul>
+
+<h2>Where BioMate fits in the comparison</h2>
+<p>BioMate does not claim a new integration algorithm or a new benchmark result — Cantini already settled "no universal winner." Its contribution is a <strong>maintained, your-own-data, cloud platform</strong> that turns that finding into a one-command comparison, unifying bulk and (in progress) single-cell/spatial integration under one roof, with a wet-lab loop behind it.</p>
+
+<h3>Honest boundaries</h3>
+<p>Several modalities (MS proteomics, metabolomics, spatial, CNV, microbiome) have the universal interface in principle but are not yet runtime-validated end-to-end — the survey's honesty standard applies to BioMate's own capabilities too.</p>
+
+        <div class="bm-survey-cta">
+          <div class="body">
+            <h3>Go deeper: the full survey</h3>
+            <p>This showcase is one half of a pair. For the complete, verified-citation map of the field — every method, honest strengths and limits, and what is actually winning — read the <a href="survey-multi-omics.html">Multi-Omics Data Integration survey</a>.</p>
+          </div>
+          <a class="bm-btn bm-btn-primary bm-btn-sm" href="https://dev-public.biomate.ai/register">Try BioMate free</a>
+        </div>
+      </article>
+
+      <div class="bm-endnote">
+        <strong>Read the survey:</strong> <a href="survey-multi-omics.html">Multi-Omics Data Integration &rarr;</a> ·
+        <strong>All surveys:</strong> <a href="surveys.html">Research Surveys &rarr;</a> ·
+        <strong>More:</strong> <a href="blog.html">Newsroom</a>
+      </div>
+    </div>
+  </main>
+
+  <div id="bm-foot"></div>
+  <script src="shell.js?v=20260609b"></script>
+  <script>renderShell({ active: 'newsroom' });</script>
+</body>
+</html>

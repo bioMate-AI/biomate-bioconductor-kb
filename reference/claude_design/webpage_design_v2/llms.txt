@@ -2,7 +2,7 @@
 
 > AI assistant for biomedical research and application — serving pharma, biotech, academic labs, and core facilities. Provides 4,000+ validated workflows with AI-guided QC and audit-ready results.
 
-## Last updated: 2026-07-20
+## Last updated: 2026-08-17
 
 BioMate AI is an AI assistant for biomedical research and application, founded in 2025 and headquartered in Houston, Texas (Texas Medical Center). Wikidata entity: Q140074014 (https://www.wikidata.org/wiki/Q140074014). It enables researchers to run complex bioinformatics and drug discovery workflows through plain-English requests — no command-line expertise required. Results arrive structured, quality-graded, and reproducible.
 
@@ -51,6 +51,24 @@ BioMate AI is an AI assistant for biomedical research and application, founded i
 - [Contact](https://biomate.ai/contact.html): Support, partnerships, and enterprise inquiries
 - [Privacy Policy](https://biomate.ai/privacy.html): Data handling, retention, HIPAA, and subprocessors
 - [Terms of Service](https://biomate.ai/terms.html): Acceptable use, data ownership, and liability
+
+## Research surveys
+
+Verified-citation surveys of the state of the art across BioMate's research directions. Each survey maps the full method landscape, gives an honest "what is actually winning" assessment, and links to a companion showcase of what BioMate does. Every load-bearing claim traces to a primary source (DOI/PMID/arXiv); no DOIs are fabricated. Index: https://biomate.ai/surveys.html
+
+- [Drug Target Identification survey](https://biomate.ai/survey-target-identification.html): human genetics (GWAS, locus-to-gene, colocalization, cis-Mendelian randomization), functional genomics (CRISPR screens, DepMap, synthetic lethality), omics & network biology, and a verified 14-company AI-platform scorecard. Key finding: drug mechanisms with human genetic support reach approval ~2–2.6× more often (Nelson 2015; Minikel 2024); no AI platform has yet shown human efficacy from an AI-nominated novel target (only Insilico's TNIK links a novel target to a positive peer-reviewed Phase 2 → Phase 3).
+- [Patient Stratification survey](https://biomate.ai/survey-patient-stratification.html): transcriptomic subtypes (PAM50, consensus molecular subtypes, interferon signature, asthma T2), unsupervised class discovery, multi-omics integrative clustering, single-cell/spatial, clinical/genomic biomarkers & polygenic risk scores, and ML / causal-HTE / adaptive-trial / immunotherapy stratification. Core distinction: predictive vs prognostic; the dominant failure mode is methodological (leakage, no external validation), not algorithmic.
+- [Multi-Omics Integration survey](https://biomate.ai/survey-multi-omics.html): joint latent-variable models (MOFA, iCluster), network fusion (SNF), matrix factorization (intNMF), supervised integration (DIABLO), deep learning (totalVI, MultiVI, GLUE, SpatialGlue), consensus frameworks (MOVICS), and the Rappoport-2018 / Cantini-2021 benchmarks. Verdict: no universal winner — the best method depends on the dataset and the question.
+- [Virtual Cell Modeling survey](https://biomate.ai/survey-virtual-cell.html): single-cell foundation models (scGPT, Geneformer, scFoundation), perturbation predictors (GEARS, CPA, Arc's STATE), the AI-Virtual-Cell roadmap (Bunne 2024), whole-cell mechanistic models, and the 2025 benchmarks (Ahlmann-Eltze; Kedzierska) showing deep models do not yet beat simple linear/mean baselines; hybrids won the 2025 Virtual Cell Challenge.
+- [Protein Conformational Ensembles & Dynamics survey](https://biomate.ai/survey-protein-conformation.html): AlphaFold static baselines, physics-based molecular dynamics & enhanced sampling, generative ensemble models (BioEmu, DiG, AlphaFlow, MSA-subsampling), cryo-EM conformational heterogeneity (cryoDRGN, 3DFlex, RECOVAR), and integrative disordered-protein modeling. No single method wins; the reliable route combines a fast prior, physics for mechanism, and experimental data to validate.
+
+## Research survey showcases — what BioMate does
+
+- [Finding the Right Target](https://biomate.ai/blog-target-identification.html): BioMate runs the genetics-anchored target pipeline end-to-end (GWAS → locus-to-gene → colocalization → Mendelian randomization → Open Targets; a worked RA run prioritized TYK2/JAK1/IL6R/PTPN22/CD20 in 15–30 min), plus ADMET auto-loop, docking/QSAR/RBFE, and MPO optimization.
+- [Multi-Omics Patient Stratification](https://biomate.ai/blog-patient-stratification.html): MOFA2 responder decomposition (CIDP: complement Factor AUROC 0.79, FcRn 0.71; CLL IGHV benchmark AUROC 0.98 reproduced) + single-cell responder DE, scored against gold-standard labels.
+- [Seven Multi-Omics Integrators Head-to-Head](https://biomate.ai/blog-multi-omics.html): MOFA2/SNF/intNMF/MCIA/MFA/iClusterPlus/JIVE through one universal CSV interface, scored on your data (reproduces "leader changes by cohort": MOFA2 led CLL, MCIA led TCGA).
+- [The Virtual Cell, Honestly](https://biomate.ai/blog-virtual-cell.html): a validated PDS/DES/MAE harness with cell-mean/additive/oracle baselines and a statistics-first cross-line-transfer strategy (PDS 0.5 → ~0.81 calibrated) for the Arc Virtual Cell Challenge 2026, plus four mechanistic virtual-cell workflows (CiPA ODE, FBA, signaling ODE, LINCS-L1000).
+- [Beyond a Single Structure](https://biomate.ai/blog-protein-conformation.html): cryo-EM conformational-heterogeneity workflows (cryoDRGN/cryoSPARC family) and generative ensemble generation on AWS Batch.
 
 ## Blog — selected articles
 

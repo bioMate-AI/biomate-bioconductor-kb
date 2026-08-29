@@ -126,6 +126,11 @@
             <span style="font-size:.85rem;color:var(--text-muted);" id="bm-post-count"></span>
           </div>
           <div class="bm-blog-grid" id="bm-posts"><noscript>
+            <article><h3><a href="blog-target-identification.html">Finding the Right Target: How BioMate Turns Human Genetics Into Drug Discovery</a></h3><p>Aug 17, 2026 · 9 min · Genetically-supported targets reach approval ~2–2.6× more often; BioMate runs GWAS → L2G → coloc → Mendelian randomization → Open Targets end-to-end. Companion to the Target Identification survey.</p></article>
+            <article><h3><a href="blog-patient-stratification.html">Who Actually Responds? Multi-Omics Patient Stratification on BioMate</a></h3><p>Aug 17, 2026 · 9 min · MOFA2 joint decomposition + single-cell responder DE, scored against gold-standard labels. Companion to the Patient Stratification survey.</p></article>
+            <article><h3><a href="blog-multi-omics.html">No Universal Winner: Running Seven Multi-Omics Integrators Head-to-Head on BioMate</a></h3><p>Aug 17, 2026 · 8 min · MOFA2, SNF, intNMF, MCIA, MFA, iClusterPlus, JIVE through one interface, scored on your data. Companion to the Multi-Omics Integration survey.</p></article>
+            <article><h3><a href="blog-virtual-cell.html">The Virtual Cell, Honestly: BioMate's Statistics-First Strategy for the 2026 Challenge</a></h3><p>Aug 17, 2026 · 9 min · A validated PDS/DES/MAE harness and statistics-first cross-line transfer for the Arc Virtual Cell Challenge 2026. Companion to the Virtual Cell Modeling survey.</p></article>
+            <article><h3><a href="blog-protein-conformation.html">Beyond a Single Structure: Conformational Ensembles and Cryo-EM Heterogeneity on BioMate</a></h3><p>Aug 17, 2026 · 8 min · cryo-EM heterogeneity (cryoDRGN/cryoSPARC family) + generative ensemble generation on AWS Batch. Companion to the Protein Conformation survey.</p></article>
             <article><h3><a href="blog-mg-immune-profiling-chain.html">MG Immune Profiling in Three Steps: From Raw PBMCs to Complement Pathway in One Session</a></h3><p>Jul 20, 2026 · 9 min · scRNA-seq clustering (GSE142256) → DESeq2 responder DE → clusterProfiler complement enrichment (GO:0006958, p &lt; 0.01) in one BioMate session.</p></article>
             <article><h3><a href="blog-cd40l-indication-expansion.html">From MG to CIDP to GBS: Mapping CD40L Genetic Evidence Across Three Indications in One Run</a></h3><p>Jul 20, 2026 · 10 min · gwas_scrna_eqtl_target_chain: MG 3 GWAS loci PP4=0.72; CIDP 1 locus PP4=0.44; GBS no genome-wide signal. Evidence-ranked indication map in one run.</p></article>
             <article><h3><a href="blog-ind-evidence-package-chain.html">IND-Ready in One Session: ADMET → PBPK → §2.6 Narrative → Signed Audit Trail</a></h3><p>Jul 20, 2026 · 9 min · 11-compartment PBPK (Cmax ~30 µg/mL, MAPE &lt; 10%) + CTD §2.6.1 narrative + SHA256 audit manifest with claims_index.json in one session.</p></article>
@@ -418,6 +423,23 @@
 
     // Real posts from the BioMate blog — newest first
     const POSTS = [
+      // Research Survey Showcases — SOTA + where BioMate fits (Aug 17, 2026)
+      { cat: 'Drug Development', title: 'Finding the Right Target: How BioMate Turns Human Genetics Into Drug Discovery',
+        date: 'Aug 17, 2026', read: '9 min', href: 'blog-target-identification.html',
+        desc: "The best-quantified fact in drug discovery — genetically-supported targets are ~2–2.6× more likely to reach approval — is the recipe BioMate runs end-to-end: GWAS → locus-to-gene → colocalization → Mendelian randomization → Open Targets, plus ADMET, docking, and MPO optimization. Companion to the Target Identification survey." },
+      { cat: 'Genomics', title: 'Who Actually Responds? Multi-Omics Patient Stratification on BioMate',
+        date: 'Aug 17, 2026', read: '9 min', href: 'blog-patient-stratification.html',
+        desc: "Stratification is the difference between a failed trial and an approved drug. BioMate runs the predictive, multi-omics responder analysis the field is converging on — MOFA2 joint decomposition, single-cell responder DE — reproducibly, on your own cohort. Companion to the Patient Stratification survey." },
+      { cat: 'Genomics', title: 'No Universal Winner: Running Seven Multi-Omics Integrators Head-to-Head on BioMate',
+        date: 'Aug 17, 2026', read: '8 min', href: 'blog-multi-omics.html',
+        desc: "Two landmark benchmarks agree there is no single best multi-omics integration method — the leader changes with the dataset. BioMate runs seven (MOFA2, SNF, intNMF, MCIA, MFA, iClusterPlus, JIVE) through one interface and scores them on your data. Companion to the Multi-Omics Integration survey." },
+      { cat: 'AI & LLMs', title: 'The Virtual Cell, Honestly: BioMate\'s Statistics-First Strategy for the 2026 Challenge',
+        date: 'Aug 17, 2026', read: '9 min', href: 'blog-virtual-cell.html',
+        desc: "The biggest recent result in virtual-cell modeling is a credibility correction: large deep models don't yet beat simple baselines on perturbation prediction. BioMate's Virtual Cell Challenge 2026 strategy leans into that — a validated harness, statistics-first transfer, and mechanistic workflows. Companion to the Virtual Cell Modeling survey." },
+      { cat: 'Structural Biology', title: 'Beyond a Single Structure: Conformational Ensembles and Cryo-EM Heterogeneity on BioMate',
+        date: 'Aug 17, 2026', read: '8 min', href: 'blog-protein-conformation.html',
+        desc: "AlphaFold solved the single-structure problem — but proteins are not statues. BioMate runs the methods that capture motion: cryo-EM conformational-heterogeneity workflows and generative ensemble generation, end-to-end on AWS Batch. Companion to the Protein Conformation survey." },
+
       // Company News — Boston Summit (Jul 21, 2026)
       { cat: 'Company News', title: 'BioMate Live at the Autoimmune Neuromuscular & Nerve Disorders Drug Development Summit',
         date: 'Jul 22, 2026', read: '5 min', href: 'blog-summit-2026.html',

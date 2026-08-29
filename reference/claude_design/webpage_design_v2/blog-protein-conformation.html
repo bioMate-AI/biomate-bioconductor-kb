@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en" data-palette="default" data-type="default" data-density="cozy">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Beyond a Single Structure: Conformational Ensembles and Cryo-EM Heterogeneity on BioMate — BioMate AI</title>
+  <meta name="description" content="AlphaFold solved the single-structure problem — but proteins are not statues. BioMate runs the methods that capture motion: cryo-EM conformational-heterogeneity workflows and generative ensemble generation, end-to-end on AWS Batch." />
+  <meta name="keywords" content="protein conformation, conformational ensemble, cryo-EM heterogeneity, cryoDRGN, AlphaFold, molecular dynamics, BioEmu, protein dynamics, BioMate AI" />
+  <link rel="canonical" href="https://biomate.ai/blog-protein-conformation.html" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Beyond a Single Structure: Conformational Ensembles and Cryo-EM Heterogeneity on BioMate — BioMate AI" />
+  <meta property="og:description" content="AlphaFold solved the single-structure problem — but proteins are not statues. BioMate runs the methods that capture motion: cryo-EM conformational-heterogeneity workflows and generative ensemble generation, end-to-end on AWS Batch." />
+  <meta property="og:url" content="https://biomate.ai/blog-protein-conformation.html" />
+  <meta property="og:image" content="https://biomate.ai/images/blog-protein-conformation-hero.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Beyond a Single Structure: Conformational Ensembles and Cryo-EM Heterogeneity on BioMate — BioMate AI" />
+  <meta name="twitter:description" content="AlphaFold solved the single-structure problem — but proteins are not statues. BioMate runs the methods that capture motion: cryo-EM conformational-heterogeneity workflows and generative ensemble generation, end-to-end on AWS Batch." />
+  <meta name="twitter:image" content="https://biomate.ai/images/blog-protein-conformation-hero.png" />
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Beyond a Single Structure: Conformational Ensembles and Cryo-EM Heterogeneity on BioMate",
+  "description": "AlphaFold solved the single-structure problem \u2014 but proteins are not statues. BioMate runs the methods that capture motion: cryo-EM conformational-heterogeneity workflows and generative ensemble generation, end-to-end on AWS Batch.",
+  "datePublished": "2026-08-17",
+  "dateModified": "2026-08-17",
+  "author": {
+    "@type": "Organization",
+    "name": "BioMate AI",
+    "url": "https://biomate.ai"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "BioMate AI",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://biomate.ai/assets/logo.png"
+    }
+  },
+  "keywords": [
+    "protein conformation",
+    "conformational ensemble",
+    "cryo-EM heterogeneity",
+    "cryoDRGN",
+    "AlphaFold",
+    "molecular dynamics",
+    "BioEmu",
+    "protein dynamics",
+    "BioMate AI"
+  ],
+  "url": "https://biomate.ai/blog-protein-conformation.html",
+  "mainEntityOfPage": "https://biomate.ai/blog-protein-conformation.html",
+  "inLanguage": "en",
+  "articleSection": "Structural Biology",
+  "isPartOf": {
+    "@type": "Blog",
+    "name": "BioMate AI Blog",
+    "url": "https://biomate.ai/blog.html"
+  },
+  "citation": [
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1038/s41586-021-03819-2"
+    },
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1038/s41592-020-01049-4"
+    },
+    {
+      "@type": "CreativeWork",
+      "sameAs": "https://doi.org/10.1126/science.adv9817"
+    }
+  ],
+  "mentions": {
+    "@type": "ScholarlyArticle",
+    "name": "Protein Conformational Ensembles & Dynamics \u2014 Survey",
+    "url": "https://biomate.ai/survey-protein-conformation.html"
+  }
+}
+  </script>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://biomate.ai/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Newsroom",
+      "item": "https://biomate.ai/blog.html"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Beyond a Single Structure: Conformational Ensembles and Cryo-EM Heterogeneity on BioMate",
+      "item": "https://biomate.ai/blog-protein-conformation.html"
+    }
+  ]
+}
+  </script>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .bm-prose{max-width:780px;font-size:1.0rem;line-height:1.74;color:var(--text)}
+    .bm-prose h2{font-family:var(--font-head);font-size:1.45rem;color:var(--text);margin:2.2rem 0 .5rem}
+    .bm-prose h3{font-family:var(--font-head);font-size:1.15rem;color:var(--text);margin:1.5rem 0 .4rem}
+    .bm-prose p{margin:.8rem 0}
+    .bm-prose strong{color:var(--text);font-weight:700}
+    .bm-prose a{color:var(--accent);text-decoration:none;font-weight:500}
+    .bm-prose a:hover{text-decoration:underline}
+    .bm-prose ul{margin:.6rem 0 .9rem 1.25rem;padding:0}
+    .bm-prose li{margin:.4rem 0}
+    .bm-prose blockquote{border-left:3px solid var(--accent);margin:1.2rem 0;padding:.5rem 0 .5rem 1.1rem;color:var(--text-muted);font-size:1.02rem}
+    .bm-prose code{font-family:var(--font-mono,monospace);font-size:.86em;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px}
+    .bm-article-meta{display:flex;gap:.8rem;flex-wrap:wrap;align-items:center;font-size:.85rem;color:var(--text-muted);margin:.4rem 0 1.6rem}
+    .bm-article-meta .cat{background:var(--accent);color:#fff;border-radius:4px;padding:2px 9px;font-weight:600}
+    .bm-blog-hero{position:relative;width:100%;height:min(46vh,400px);overflow:hidden}
+    .bm-blog-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+    .bm-blog-hero-scrim{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(15,22,28,.30),rgba(15,22,28,.80))}
+    .bm-blog-hero-inner{position:absolute;left:0;right:0;bottom:0;max-width:820px;margin:0 auto;padding:0 1.5rem 1.8rem}
+    .bm-blog-hero-inner .bm-eyebrow{color:#e8eef1}
+    .bm-blog-hero-inner h1{color:#fff;margin:.35rem 0 .6rem;font-family:var(--font-head);font-size:2rem;line-height:1.2}
+    .bm-blog-hero-inner .bm-article-meta{margin:0;color:#dfe7eb}
+    .bm-blog-hero-inner .bm-article-meta span{color:#dfe7eb}
+    .bm-survey-cta{display:flex;gap:1.1rem;align-items:center;flex-wrap:wrap;background:var(--bg-2);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--radius);padding:1.2rem 1.5rem;margin:2rem 0}
+    .bm-survey-cta .body{flex:1 1 340px}
+    .bm-survey-cta h3{font-family:var(--font-head);font-size:1.1rem;margin:0 0 .3rem;color:var(--text)}
+    .bm-survey-cta p{margin:0;color:var(--text-muted);font-size:.9rem}
+    .bm-endnote{margin-top:2.4rem;padding-top:1.4rem;border-top:1px solid var(--border);font-size:.88rem;color:var(--text-muted)}
+    .bm-endnote a{color:var(--accent);text-decoration:none;font-weight:600}
+  </style>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-65JDDPEDQ5');
+  </script>
+</head>
+<body>
+  <div id="bm-nav"></div>
+
+  <section class="bm-blog-hero">
+    <img src="images/blog-protein-conformation-hero.png" alt="Beyond a Single Structure: Conformational Ensembles and Cryo-EM Heterogeneity on BioMate" />
+    <div class="bm-blog-hero-scrim"></div>
+    <div class="bm-blog-hero-inner">
+      <span class="bm-eyebrow">Newsroom · BioMate Showcase</span>
+      <h1>Beyond a Single Structure: Conformational Ensembles and Cryo-EM Heterogeneity on BioMate</h1>
+      <div class="bm-article-meta"><span class="cat">Structural Biology</span><span>Aug 17, 2026</span><span>8 min read</span><span>BioMate Team</span></div>
+    </div>
+  </section>
+
+  <main class="bm-section bm-section-narrow">
+    <div class="bm-section-inner">
+      <article class="bm-prose">
+<p class="lead"><a href="https://doi.org/10.1038/s41586-021-03819-2">AlphaFold</a> effectively solved single-structure prediction. But function is <em>motion</em> — enzymes open and close, receptors switch on and off, transporters flip inward and outward — and a single static coordinate set can be actively misleading when the biology lives in a minor or transient state. Our <a href="survey-protein-conformation.html">Protein Conformation survey</a> maps every family of methods that goes beyond one structure. Here's what BioMate makes runnable.</p>
+
+<h2>Why one structure isn't enough</h2>
+<p>The survey organizes the field into five families: static prediction (the baseline), physics-based molecular dynamics (the gold standard for mechanism, but expensive), generative ensemble models (fast, but mostly equilibrium ensembles — not time-ordered "movies"), cryo-EM heterogeneity (the strongest <em>experimental</em> grounding), and integrative modeling of disordered proteins. The honest verdict: no single method wins, and the reliable route combines a fast prior, physics for mechanism, and experimental data to validate.</p>
+
+<h2>What BioMate does</h2>
+<ul>
+<li><strong>Cryo-EM conformational heterogeneity, end-to-end.</strong> Production workflows on AWS Batch run single-particle processing and heterogeneity analysis — the <a href="https://doi.org/10.1038/s41592-020-01049-4">cryoDRGN</a> / cryoSPARC family (3D variability, 3DFlex) — to recover multiple discrete states and continuous motion directly from a user's own particle stack, with live progress and downloadable results.</li>
+<li><strong>Generative conformational ensembles.</strong> An ensemble-generation capability produces many candidate conformers for a sequence — the fast, <a href="https://doi.org/10.1126/science.adv9817">BioEmu</a>-style equilibrium-ensemble approach — useful for cryptic-pocket discovery and as structural priors for docking.</li>
+<li><strong>Wired into the platform.</strong> Structure and ensemble outputs feed the same plain-English, quality-graded pipeline as BioMate's docking, ADMET, and structural-biology workflows.</li>
+</ul>
+
+<h2>Where BioMate fits in the comparison</h2>
+<p>BioMate isn't a new algorithm in this space — it's the <strong>orchestration and accessibility layer</strong> that makes the published state of the art runnable at scale, without a structural-biology compute team. Given the survey's finding that experimental cryo-EM heterogeneity is the strongest grounding for multi-state models, making those exact methods one plain-English request away is the practical contribution.</p>
+
+<h3>Honest boundaries</h3>
+<p>The survey's cautions apply to results produced on the platform too: equilibrium ensembles are not trajectories, computational ensembles need experimental validation, and large collective transitions remain hard for every method. BioMate runs the state of the art honestly — it doesn't overstate it.</p>
+
+        <div class="bm-survey-cta">
+          <div class="body">
+            <h3>Go deeper: the full survey</h3>
+            <p>This showcase is one half of a pair. For the complete, verified-citation map of the field — every method, honest strengths and limits, and what is actually winning — read the <a href="survey-protein-conformation.html">Protein Conformational Ensembles & Dynamics survey</a>.</p>
+          </div>
+          <a class="bm-btn bm-btn-primary bm-btn-sm" href="https://dev-public.biomate.ai/register">Try BioMate free</a>
+        </div>
+      </article>
+
+      <div class="bm-endnote">
+        <strong>Read the survey:</strong> <a href="survey-protein-conformation.html">Protein Conformational Ensembles & Dynamics &rarr;</a> ·
+        <strong>All surveys:</strong> <a href="surveys.html">Research Surveys &rarr;</a> ·
+        <strong>More:</strong> <a href="blog.html">Newsroom</a>
+      </div>
+    </div>
+  </main>
+
+  <div id="bm-foot"></div>
+  <script src="shell.js?v=20260609b"></script>
+  <script>renderShell({ active: 'newsroom' });</script>
+</body>
+</html>

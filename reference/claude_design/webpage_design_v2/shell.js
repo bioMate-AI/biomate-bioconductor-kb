@@ -62,7 +62,14 @@
             ${dropdown('research', 'Research', 'benchmarks.html', [
               { label: 'Benchmarks',   href: 'benchmarks.html' },
               { label: 'Tutorials',    href: 'tutorials.html' },
-              { label: 'Publications', href: 'publications.html' }
+              { label: 'Publications', href: 'publications.html' },
+              { divider: true },
+              { label: 'Research Surveys',          href: 'surveys.html', bold: true },
+              { label: 'Target Identification',     href: 'survey-target-identification.html' },
+              { label: 'Patient Stratification',    href: 'survey-patient-stratification.html' },
+              { label: 'Multi-Omics Integration',   href: 'survey-multi-omics.html' },
+              { label: 'Virtual Cell Modeling',     href: 'survey-virtual-cell.html' },
+              { label: 'Protein Conformation',      href: 'survey-protein-conformation.html' }
             ])}
             <li><a href="pricing.html"${active === 'pricing' ? ' class="active"' : ''}>Pricing</a></li>
             ${dropdown('developers', 'Developers', 'connectors.html', [
@@ -133,6 +140,7 @@
                 <li><a href="services.html#drug-discovery">Drug Discovery</a></li>
                 <li><a href="services.html#genomics">Genomics &amp; Multi-Omics</a></li>
                 <li><a href="services.html#structural-biology">Structural Biology</a></li>
+                <li><a href="surveys.html">Research Surveys</a></li>
                 <li><a href="blog.html">Newsroom &rarr;</a></li>
               </ul>
             </div>
