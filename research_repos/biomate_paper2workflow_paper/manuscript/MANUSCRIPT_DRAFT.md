@@ -59,6 +59,10 @@ paper-fetcher → methods-extractor → tool-locator → wrapper-generator → c
    (exists)        (partial)          (exists)         (exists)         (prototype)       (production)
 ```
 
+![Figure 1](../../../docs/figures/c7/fig1_paper2workflow_pipeline.png)
+
+**Figure 1 | The five-stage paper-to-workflow pipeline.** Retrieval-grounded synthesis of an executable Nextflow/nf-core run from a paper's Methods: paper-fetcher → methods-extractor → tool-locator → wrapper-generator → chain-composer, with a production QC auto-loop. Per-stage status tags (exists / partial / exists / exists / prototype) are the module's current maturity. The design is retrieval-first — tool-locator and wrapper-generator match the extracted methods to the 2,455-workflow catalog before any free synthesis, which is gated behind a confidence threshold and fails safe ("no pipeline found" rather than plausible-but-wrong code).
+
 The module is retrieval-first: the tool-locator and wrapper-generator attempt to *match* the extracted methods to existing catalog workflows before any free synthesis. Synthesis is gated behind a confidence threshold.
 
 ### 3.2 Stage details and their production substrates

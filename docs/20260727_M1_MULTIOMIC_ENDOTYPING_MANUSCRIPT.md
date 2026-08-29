@@ -53,7 +53,7 @@ The implication is that a credible endotype requires a *pipeline*, not a single 
 The pipeline (Fig. 1) is an ordered sequence of five stages, each with a defined computation and an explicit evaluation, such that a claimed endotype can be regenerated and re-validated by a third party. Each stage is an openly implemented, independently tested workflow (Table 1; Code availability).
 
 ### A quality-control triage gate rejects un-integratable cohorts
-Before integration, each candidate dataset passes a triage gate that computes metadata completeness over required fields, tests batch-versus-biology confounding via a χ² test and Cramér's *V* on the batch × group contingency table, checks provenance completeness (BRISQ/MIxS fields^6^), and flags per-sample quality-control outliers with a robust median/median-absolute-deviation rule. The gate returns an explicit verdict — INTEGRATE, TRIAGE (fixable, itemized), or REJECT. A cohort whose batch perfectly predicts the biological group (Cramér's *V* ≈ 1) is un-integratable and is rejected *before* it can manufacture a false endotype, directly addressing the largest single source of inter-cohort difference.
+Before integration, each candidate dataset passes a triage gate that computes metadata completeness over required fields, tests batch-versus-biology confounding via a χ² test and Cramér's *V* on the batch × group contingency table, checks provenance completeness (BRISQ/MIxS fields^6^), and flags per-sample quality-control outliers with a robust median/median-absolute-deviation rule. The gate returns an explicit verdict — INTEGRATE, TRIAGE (fixable, itemized), or REJECT. A cohort whose batch perfectly predicts the biological group (Cramér's *V* ≈ 1) is un-integratable and is rejected *before* it can manufacture a false endotype, directly addressing a major source of inter-cohort difference.
 
 ### Grounded metadata harmonization never fabricates identifiers
 Free-text clinical values are mapped to a controlled vocabulary (EFO^7^, HPO, Cell Ontology, UBERON) by a deterministic match cascade — exact label, exact synonym, token-set Jaccard, then character edit-distance — with a confidence assigned from the winning tier. The mapper never invents a term or an ontology identifier: a value can map only to an ID literally present in the ontology, and every low-confidence, ambiguous, or out-of-dictionary value is flagged for human review. This is deliberate: LLM-only mapping is unreliable on unseen terms and fabricates plausible identifiers, so the metadata layer is human-in-the-loop by design, with per-client adaptation limited to a *proposer* whose suggestions a curator confirms.
@@ -73,7 +73,7 @@ The pipeline's components are individually implemented and verified on controlle
 
 ## Discussion
 
-The prevailing failure mode — run an integration method, consensus-cluster, report silhouettes — cannot distinguish a mechanistic endotype from a clustering artefact, because it skips the questions that decide reproducibility: was the data integratable, were annotations grounded, was batch removed without erasing biology, and does the partition survive out-of-cohort. By making those questions *gates* rather than afterthoughts, the pipeline trades a single number for an auditable, reproducible claim. That discipline — not any single clustering algorithm — is what a downstream trial-stratification decision can be built on.
+The prevailing failure mode — run an integration method, consensus-cluster, report silhouettes — cannot distinguish a mechanistic endotype from a clustering artefact, because it skips the questions that decide reproducibility: was the data integratable, were annotations grounded, was batch removed without erasing biology, and does the partition survive out-of-cohort. By making those questions *gates* rather than afterthoughts, the pipeline trades a single number for an auditable, reproducible claim. That discipline — not any single clustering algorithm — is what a downstream trial-stratification decision should be built on, once the pipeline is validated on real cohorts.
 
 ---
 
@@ -90,13 +90,15 @@ The prevailing failure mode — run an integration method, consensus-cluster, re
 **Statistics and reproducibility.** All tests are two-sided. All method choices, thresholds, and scores are logged. Software: Nextflow (orchestration); Python 3.10 and R/Bioconductor (MOFA+, ComBat-seq). Workflows are deterministic where stochasticity is involved (fixed seeds).
 
 **Data availability.** No new data were generated. Consortium resources referenced: AMP AIM, 3TR/ADEx.
-**Code availability.** The pipeline stages are released as open workflows: `cohort_qc_triage`, `metadata_harmonizer`, `integration_benchmark` (and `target_scorecard_ranker` downstream).
+**Code availability.** The pipeline stages are implemented as workflows in the platform: `cohort_metadata_qc`, `metadata_harmonizer`, `integration_benchmark` (and `target_scorecard_ranker` downstream), available as nf-core subworkflows in the repository. [Add the repository/DOI.]
 
 ---
 
 ## Figures and Tables
 
-**Figure 1 | The reproducible endotyping pipeline.** Schematic of the five ordered stages — QC-triage gate → grounded metadata harmonization → select-and-evaluate integration (with over-correction detection) → MOFA+ endotype discovery → gate-0 out-of-cohort validation — with the decision (INTEGRATE/TRIAGE/REJECT; auto-selected method; validated/rejected partition) emitted at each gate. *[Figure to be provided.]*
+![Figure 1](figures/m1/fig1_endotyping_pipeline.png)
+
+**Figure 1 | The reproducible endotyping pipeline.** Schematic of the five ordered stages — QC-triage gate → grounded metadata harmonization → select-and-evaluate integration (with over-correction detection) → MOFA+ endotype discovery → gate-0 out-of-cohort validation — with the decision (INTEGRATE/TRIAGE/REJECT; auto-selected method; validated/rejected partition) emitted at each gate.
 
 **Table 1 | Integration-method menu and the two-objective scoring harness.**
 
