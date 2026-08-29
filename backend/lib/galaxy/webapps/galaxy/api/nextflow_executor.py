@@ -2634,9 +2634,44 @@ def _generate_executor_config(
         #     staging upload. 3.4.4+ has it fixed. We don't inject
         #     publishDir=null for nf-core, so the CRT crash path stays cold.
         nfamazon_version = "3.4.4" if "/nf-core-workflows/" in nf_path else "3.3.0"
+        _plugin_ids = [f"    id 'nf-amazon@{nfamazon_version}'"]
+        # This -c override's plugins{} scope REPLACES the pipeline's own plugins{}
+        # scope, so an nf-core pipeline's `id 'nf-schema@X'` pin is dropped here.
+        # With no pin left, the pipeline's `include from 'plugin/nf-schema'` makes
+        # Nextflow auto-install nf-schema@latest (e.g. 2.7.3) — non-reproducible and
+        # able to break a pipeline written against an older nf-schema API (verified
+        # live on nf-core/sarek: pin 2.4.2 in its config, but ran under 2.7.3).
+        # Fix: carry the pipeline's own nf-schema pin forward into THIS block so it
+        # stays pinned. When the pipeline pins the known-broken 2.4.2 (the
+        # "Ambiguous method overloading ... SummaryCreator#maybeMask" abort on
+        # Nextflow 25.10 / Groovy 4), substitute the smallest maybeMask-fixed
+        # release (2.5.1). nf-validation pipelines (e.g. differentialabundance)
+        # declare no nf-schema plugin, so nothing is added and they are unaffected.
+        if "/nf-core-workflows/" in nf_path and nf_path:
+            _BROKEN_NF_SCHEMA = {"2.4.2"}
+            _NF_SCHEMA_FIX = "2.5.1"
+            try:
+                _pipe_cfg = Path(nf_path).parent / "nextflow.config"
+                if _pipe_cfg.is_file():
+                    _m = re.search(
+                        r"nf-schema@([0-9][0-9.]*)", _pipe_cfg.read_text(errors="replace")
+                    )
+                    if _m:
+                        _ver = (
+                            _NF_SCHEMA_FIX if _m.group(1) in _BROKEN_NF_SCHEMA else _m.group(1)
+                        )
+                        _plugin_ids.append(f"    id 'nf-schema@{_ver}'")
+                        log.info(
+                            "[nextflow] pinning nf-schema@%s in override config for %s "
+                            "(pipeline pins @%s; the -c plugins block would otherwise "
+                            "unpin it -> latest)",
+                            _ver, Path(nf_path).parent.name, _m.group(1),
+                        )
+            except OSError:
+                pass
         lines = [
             "plugins {",
-            f"    id 'nf-amazon@{nfamazon_version}'",
+            *_plugin_ids,
             "}",
             # Override params.container so workflow configs that do
             # `process { container = params.container }` use the ECR image.
