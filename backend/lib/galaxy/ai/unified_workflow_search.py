@@ -135,6 +135,48 @@ SOURCE_PRIORITY = {
 }
 
 
+def _is_component_subworkflow(filename: str, source: str = "") -> bool:
+    """True only for a GENUINE pipeline COMPONENT — a helper step meant to be
+    composed, not run directly. Retrieval deprioritizes/excludes these, but they
+    remain available to the workflow composer (generation).
+
+    NOT everything under a 'subworkflows/' path is a component. BioMate's domain
+    catalog lives under `nextflow_nfcore/subworkflows/<domain>/` (drug_discovery,
+    pharmacology, genomics, cryo_em, single_cell, …) but those are COMPLETE,
+    runnable, user-facing workflows (docking, ADMET, retrosynthesis, …) that were
+    merely filed under a 'subworkflows/' path — they must NOT be treated as
+    components in complete-workflow retrieval (that's what the −8 penalty + the
+    "never rank a subworkflow above a pipeline" prompt were wrongly doing).
+
+    Genuine components are:
+      * nf-core subworkflows — source ``nfcore_subwf``, filenames
+        ``nf-core-modules/subworkflows/…`` or ``nfcore/subworkflows/…``.
+      * the bioconductor subtree ``…/subworkflows/bioconductor/…`` — a mix of
+        complete DE chains AND single-function R wrappers; kept classified as-is
+        for now and reclassified per-entry in a separate pass (do not promote
+        wholesale — avoids wrong-workflow inflation).
+
+    CRITICAL — anchoring: the BioMate domain catalog lives under
+    ``nextflow_nfcore/subworkflows/<domain>/`` whose path *contains the
+    substring* ``nfcore/subworkflows/``. A bare ``"nfcore/subworkflows/" in fn``
+    therefore matches the ENTIRE domain catalog and re-penalizes exactly the
+    283 complete workflows this function is meant to promote — making the whole
+    reclassification a silent no-op. The nf-core check MUST be anchored so it
+    only matches genuine nf-core paths (``nfcore/subworkflows/…`` at the start,
+    or the ``nf-core-modules/subworkflows/`` component tree), never
+    ``nextflow_nfcore/subworkflows/``.
+    """
+    fn = filename or ""
+    if source == "nfcore_subwf":
+        return True
+    # Anchored nf-core check — does NOT match `nextflow_nfcore/subworkflows/`.
+    if fn.startswith("nfcore/subworkflows/") or "nf-core-modules/subworkflows/" in fn:
+        return True
+    if "/subworkflows/bioconductor/" in fn:
+        return True
+    return False
+
+
 # ------------------------------------------------------------------
 # Execution-quality bonus (B-4: "Routing prefers runnable")
 # ------------------------------------------------------------------
@@ -722,9 +764,10 @@ class UnifiedWorkflowSearch:
         for wf_id, name, desc, source, filename in rows:
             short_desc = (desc or "")[:120].replace("\n", " ")
             base_label = SOURCE_LABELS.get(source or "", "pipeline")
-            # Detect subworkflows from filename path — they are helper steps, not
-            # standalone tools the user would invoke directly.
-            is_subwf = "/subworkflows/" in (filename or "")
+            # Only GENUINE components are labelled as such to the LLM (nf-core
+            # subworkflows + bioconductor subtree). BioMate's complete domain
+            # workflows filed under subworkflows/ are labelled as normal pipelines.
+            is_subwf = _is_component_subworkflow(filename, source)
             kind = "subworkflow (pipeline component)" if is_subwf else base_label
             catalog_lines.append(f"{wf_id}. [{kind}] {name}: {short_desc}")
         catalog_text = "\n".join(catalog_lines)
@@ -1601,12 +1644,11 @@ class UnifiedWorkflowSearch:
         except:
             input_types = []
 
-        # Subworkflow detection: these are pipeline components, not standalone tools.
-        # Using filename path as the structural signal — no keyword matching.
-        is_subworkflow = (
-            source == "nfcore_subwf"
-            or "/subworkflows/" in (filename or "")
-        )
+        # Component detection: only GENUINE components (nf-core subworkflows +
+        # the bioconductor subtree) are deprioritized. BioMate's complete domain
+        # workflows under nextflow_nfcore/subworkflows/<domain>/ are NOT components
+        # and must be retrievable as first-class complete workflows.
+        is_subworkflow = _is_component_subworkflow(filename, source)
 
         # Calculate custom score — use LLM-derived domain lists when provided
         score = self._calculate_score(query, name, description or "", tools, tags, source, domain or "general", fts_score,
