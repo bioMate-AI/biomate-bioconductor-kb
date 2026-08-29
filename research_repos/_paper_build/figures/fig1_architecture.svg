@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#16232B" flood-opacity="0.14"/>
+    </filter>
+    <linearGradient id="teal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#17879B"/><stop offset="1" stop-color="#0F6E7E"/>
+    </linearGradient>
+    <linearGradient id="tealtint" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#EAF4F6"/>
+    </linearGradient>
+    <marker id="arr" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#0F6E7E"/>
+    </marker>
+    <marker id="arrg" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#9AA5AE"/>
+    </marker>
+  </defs>
+
+  <rect width="1280" height="640" fill="#FFFFFF"/>
+
+  <!-- header -->
+  <text x="40" y="46" font-size="25" font-weight="700" fill="#16232B">One governed loop over a curated, executable catalog</text>
+  <text x="40" y="72" font-size="15" fill="#5A6B73">From a plain-language request to a validated pipeline — the intelligence lives in the catalog and deterministic retrieval, not a larger model.</text>
+
+  <!-- request pill -->
+  <g filter="url(#soft)">
+    <rect x="40" y="104" width="210" height="40" rx="20" fill="#16232B"/>
+  </g>
+  <circle cx="66" cy="124" r="8" fill="#17879B"/>
+  <text x="84" y="129" font-size="14" fill="#FFFFFF" font-weight="600">plain-language request</text>
+  <path d="M145,144 L145,164" stroke="#0F6E7E" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- pipeline stages -->
+  <g font-size="13">
+    <!-- card template drawn per stage -->
+    <!-- STAGE 1 -->
+    <g filter="url(#soft)"><rect x="40" y="168" width="212" height="104" rx="12" fill="url(#tealtint)" stroke="#CBE0E4"/></g>
+    <rect x="40" y="168" width="212" height="30" rx="12" fill="url(#teal)"/>
+    <rect x="40" y="186" width="212" height="12" fill="url(#teal)"/>
+    <text x="56" y="188" font-size="13" font-weight="700" fill="#FFFFFF">1 · INTERPRET</text>
+    <text x="56" y="222" fill="#16232B" font-weight="600">Parse intent</text>
+    <text x="56" y="242" fill="#5A6B73">disambiguate ·</text>
+    <text x="56" y="259" fill="#5A6B73">refuse if ambiguous</text>
+
+    <!-- STAGE 2 -->
+    <g filter="url(#soft)"><rect x="292" y="168" width="212" height="104" rx="12" fill="url(#tealtint)" stroke="#CBE0E4"/></g>
+    <rect x="292" y="168" width="212" height="30" rx="12" fill="url(#teal)"/>
+    <rect x="292" y="186" width="212" height="12" fill="url(#teal)"/>
+    <text x="308" y="188" font-size="13" font-weight="700" fill="#FFFFFF">2 · ROUTE</text>
+    <text x="308" y="222" fill="#16232B" font-weight="600">Retrieve the workflow</text>
+    <text x="308" y="242" fill="#5A6B73">hybrid dense + lexical ·</text>
+    <text x="308" y="259" fill="#5A6B73">confidence-ranked</text>
+
+    <!-- STAGE 3 -->
+    <g filter="url(#soft)"><rect x="544" y="168" width="212" height="104" rx="12" fill="url(#tealtint)" stroke="#CBE0E4"/></g>
+    <rect x="544" y="168" width="212" height="30" rx="12" fill="url(#teal)"/>
+    <rect x="544" y="186" width="212" height="12" fill="url(#teal)"/>
+    <text x="560" y="188" font-size="13" font-weight="700" fill="#FFFFFF">3 · PREPARE</text>
+    <text x="560" y="222" fill="#16232B" font-weight="600">Fill parameters</text>
+    <text x="560" y="242" fill="#5A6B73">recover missing</text>
+    <text x="560" y="259" fill="#5A6B73">prerequisites</text>
+
+    <!-- STAGE 4 -->
+    <g filter="url(#soft)"><rect x="796" y="168" width="212" height="104" rx="12" fill="url(#tealtint)" stroke="#CBE0E4"/></g>
+    <rect x="796" y="168" width="212" height="30" rx="12" fill="url(#teal)"/>
+    <rect x="796" y="186" width="212" height="12" fill="url(#teal)"/>
+    <text x="812" y="188" font-size="13" font-weight="700" fill="#FFFFFF">4 · EXECUTE</text>
+    <text x="812" y="222" fill="#16232B" font-weight="600">Containerized run</text>
+    <text x="812" y="242" fill="#5A6B73">Nextflow on</text>
+    <text x="812" y="259" fill="#5A6B73">AWS Batch</text>
+
+    <!-- STAGE 5 -->
+    <g filter="url(#soft)"><rect x="1048" y="168" width="192" height="104" rx="12" fill="url(#tealtint)" stroke="#CBE0E4"/></g>
+    <rect x="1048" y="168" width="192" height="30" rx="12" fill="url(#teal)"/>
+    <rect x="1048" y="186" width="192" height="12" fill="url(#teal)"/>
+    <text x="1064" y="188" font-size="13" font-weight="700" fill="#FFFFFF">5 · REPORT</text>
+    <text x="1064" y="222" fill="#16232B" font-weight="600">Audit-ready result</text>
+    <text x="1064" y="242" fill="#5A6B73">findings · methods ·</text>
+    <text x="1064" y="259" fill="#5A6B73">provenance</text>
+  </g>
+
+  <!-- pipeline arrows -->
+  <g stroke="#0F6E7E" stroke-width="2.2" fill="none">
+    <path d="M252,220 L292,220" marker-end="url(#arr)"/>
+    <path d="M504,220 L544,220" marker-end="url(#arr)"/>
+    <path d="M756,220 L796,220" marker-end="url(#arr)"/>
+    <path d="M1008,220 L1048,220" marker-end="url(#arr)"/>
+  </g>
+
+  <!-- ===== CATALOG substrate (under ROUTE) ===== -->
+  <g filter="url(#soft)"><rect x="40" y="326" width="716" height="150" rx="14" fill="#F7FAFB" stroke="#D8E6E9"/></g>
+  <text x="60" y="356" font-size="15" font-weight="700" fill="#0F6E7E">CURATED EXECUTABLE CATALOG</text>
+  <text x="60" y="378" font-size="13" fill="#5A6B73">4,057 workflows · 39 domains · containers + literature-grounded QC thresholds</text>
+  <!-- domain chips -->
+  <g font-size="12" fill="#16232B">
+    <g>
+      <rect x="60" y="392" width="128" height="26" rx="13" fill="#E3F0F2"/><text x="74" y="409">transcriptomics 1,693</text>
+      <rect x="196" y="392" width="96" height="26" rx="13" fill="#E3F0F2"/><text x="210" y="409">genomics 750</text>
+      <rect x="300" y="392" width="118" height="26" rx="13" fill="#E3F0F2"/><text x="314" y="409">epigenomics 262</text>
+      <rect x="426" y="392" width="112" height="26" rx="13" fill="#E3F0F2"/><text x="440" y="409">proteomics 182</text>
+      <rect x="546" y="392" width="120" height="26" rx="13" fill="#E3F0F2"/><text x="560" y="409">drug disc. 122</text>
+    </g>
+    <g>
+      <rect x="60" y="426" width="104" height="26" rx="13" fill="#EEF4F5"/><text x="74" y="443">cryo-EM · PBPK</text>
+      <rect x="172" y="426" width="150" height="26" rx="13" fill="#EEF4F5"/><text x="186" y="443">variant-calling · single-cell</text>
+      <rect x="330" y="426" width="176" height="26" rx="13" fill="#EEF4F5"/><text x="344" y="443">+ 32 further domains · full census</text>
+    </g>
+  </g>
+  <!-- retrieve arrow catalog <-> route -->
+  <path d="M398,326 L398,272" stroke="#0F6E7E" stroke-width="2.2" fill="none" marker-end="url(#arr)"/>
+  <path d="M420,272 L420,326" stroke="#9AA5AE" stroke-width="1.6" fill="none" stroke-dasharray="4 3" marker-end="url(#arrg)"/>
+  <text x="436" y="300" font-size="11.5" fill="#8A97A3">retrieve · query</text>
+  <!-- no-LLM callout -->
+  <rect x="588" y="426" width="150" height="26" rx="13" fill="#16232B"/>
+  <text x="603" y="443" font-size="12" fill="#FFFFFF" font-weight="600">no LLM in the loop</text>
+
+  <!-- ===== GOVERNANCE band (under EXECUTE + REPORT) ===== -->
+  <g filter="url(#soft)"><rect x="796" y="326" width="444" height="150" rx="14" fill="#FDFBF6" stroke="#EADFC7"/></g>
+  <text x="816" y="356" font-size="15" font-weight="700" fill="#A9812B">EVIDENCE-GRADED QC GOVERNANCE</text>
+  <text x="816" y="378" font-size="13" fill="#5A6B73">117 gates · 35 domains · 21 CFR Part 11-aligned JSONL audit</text>
+  <!-- grade chips -->
+  <g font-size="12" font-weight="700">
+    <rect x="816" y="392" width="86" height="28" rx="6" fill="#F6ECD2" stroke="#C79A2E"/><text x="831" y="411" fill="#8A6A17">GOLD 56</text>
+    <rect x="910" y="392" width="92" height="28" rx="6" fill="#ECEFF2" stroke="#8A97A3"/><text x="925" y="411" fill="#55636B">SILVER 45</text>
+    <rect x="1010" y="392" width="92" height="28" rx="6" fill="#F1E4D8" stroke="#A9673C"/><text x="1025" y="411" fill="#7A4A28">BRONZE 9</text>
+  </g>
+  <!-- outcomes -->
+  <g font-size="12" font-weight="700">
+    <rect x="816" y="430" width="74" height="26" rx="13" fill="#E4F3EA"/><text x="831" y="447" fill="#2E9E6B">PASS</text>
+    <rect x="898" y="430" width="104" height="26" rx="13" fill="#FBF0D8"/><text x="913" y="447" fill="#C08A1E">ADVISORY</text>
+    <rect x="1010" y="430" width="74" height="26" rx="13" fill="#F7E2DE"/><text x="1030" y="447" fill="#C0483B">HALT</text>
+  </g>
+  <text x="1090" y="447" font-size="11.5" fill="#8A97A3">logged</text>
+  <!-- gates fire during execute -->
+  <path d="M902,326 L902,272" stroke="#C79A2E" stroke-width="2.2" fill="none" marker-end="url(#arr)"/>
+  <text x="912" y="300" font-size="11.5" fill="#A9812B">gates fire</text>
+
+  <!-- advisory note (demoted to C6): small, honest, no messy loop -->
+  <text x="816" y="500" font-size="12" fill="#A08A55" font-style="italic">Gate signal also feeds an advisory remediation engine (companion C6).</text>
+
+  <!-- footer strip -->
+  <text x="40" y="600" font-size="12.5" fill="#8A97A3">Deterministic retrieval, validated container, evidence-graded gate, portable audit trail — governance is one pillar; per-request code generation is deliberately not the design.</text>
+</svg>

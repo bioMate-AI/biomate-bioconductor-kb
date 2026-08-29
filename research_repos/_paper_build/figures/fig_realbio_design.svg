@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="600" viewBox="0 0 1280 600" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#16232B" flood-opacity="0.14"/>
+    </filter>
+    <linearGradient id="teal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#17879B"/><stop offset="1" stop-color="#0F6E7E"/>
+    </linearGradient>
+    <linearGradient id="ink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#243943"/><stop offset="1" stop-color="#16232B"/>
+    </linearGradient>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="6.5" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#0F6E7E"/>
+    </marker>
+  </defs>
+  <rect width="1280" height="600" fill="#FFFFFF"/>
+
+  <!-- header -->
+  <text x="40" y="44" font-size="25" font-weight="700" fill="#16232B">RealBio — one open protocol, every system scored on identical items</text>
+  <text x="40" y="70" font-size="15" fill="#5A6B73">8 objective-ground-truth tasks · 660 items · one released scorer, no LLM judge. Fairness is built into the design, not asserted.</text>
+
+  <!-- ===== COL 1: TASKS ===== -->
+  <text x="40" y="112" font-size="13" font-weight="700" fill="#0F6E7E">8 TASKS · 660 ITEMS</text>
+  <g font-size="12.5" fill="#16232B">
+    <g>
+      <rect x="40" y="124" width="196" height="30" rx="7" fill="#EAF4F6" stroke="#CBE0E4"/><text x="54" y="143">cross-domain routing</text><text x="212" y="143" font-weight="700" fill="#0F6E7E">200</text>
+      <rect x="40" y="160" width="196" height="30" rx="7" fill="#EAF4F6" stroke="#CBE0E4"/><text x="54" y="179">parameter prefill</text><text x="212" y="179" font-weight="700" fill="#0F6E7E">170</text>
+      <rect x="40" y="196" width="196" height="30" rx="7" fill="#EAF4F6" stroke="#CBE0E4"/><text x="54" y="215">protocol thresholds</text><text x="212" y="215" font-weight="700" fill="#0F6E7E">100</text>
+      <rect x="40" y="232" width="196" height="30" rx="7" fill="#EAF4F6" stroke="#CBE0E4"/><text x="54" y="251">autofix</text><text x="212" y="251" font-weight="700" fill="#0F6E7E">100</text>
+      <rect x="40" y="268" width="196" height="30" rx="7" fill="#EAF4F6" stroke="#CBE0E4"/><text x="54" y="287">workflow generation</text><text x="212" y="287" font-weight="700" fill="#0F6E7E">40</text>
+      <rect x="40" y="304" width="196" height="30" rx="7" fill="#EAF4F6" stroke="#CBE0E4"/><text x="54" y="323">BOIN dose-finding</text><text x="212" y="323" font-weight="700" fill="#0F6E7E">20</text>
+      <rect x="40" y="340" width="196" height="30" rx="7" fill="#EAF4F6" stroke="#CBE0E4"/><text x="54" y="359">PBPK PK values</text><text x="212" y="359" font-weight="700" fill="#0F6E7E">15</text>
+      <rect x="40" y="376" width="196" height="30" rx="7" fill="#EAF4F6" stroke="#CBE0E4"/><text x="54" y="395">drug-discovery ranking</text><text x="212" y="395" font-weight="700" fill="#0F6E7E">15</text>
+    </g>
+  </g>
+  <text x="40" y="428" font-size="11.5" fill="#8A97A3">published ground truth · CC-BY-4.0</text>
+
+  <!-- arrow to item set -->
+  <path d="M240,265 L286,265" stroke="#0F6E7E" stroke-width="2.4" fill="none" marker-end="url(#arr)"/>
+
+  <!-- ===== COL 2: IDENTICAL ITEM SET ===== -->
+  <g filter="url(#soft)"><rect x="292" y="176" width="150" height="180" rx="14" fill="url(#ink)"/></g>
+  <text x="367" y="214" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">IDENTICAL</text>
+  <text x="367" y="234" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">ITEM SET</text>
+  <text x="367" y="262" font-size="26" font-weight="700" fill="#17879B" text-anchor="middle">660</text>
+  <text x="367" y="282" font-size="11.5" fill="#B9C6CC" text-anchor="middle">same prompts</text>
+  <text x="367" y="298" font-size="11.5" fill="#B9C6CC" text-anchor="middle">for every system</text>
+  <text x="367" y="330" font-size="11.5" fill="#8FA3AB" text-anchor="middle">byte-identical</text>
+
+  <!-- fan-out to 3 systems -->
+  <g stroke="#0F6E7E" stroke-width="2.2" fill="none">
+    <path d="M442,220 C480,220 480,244 516,244" marker-end="url(#arr)"/>
+    <path d="M442,266 L516,266" marker-end="url(#arr)"/>
+    <path d="M442,312 C480,312 480,288 516,288" marker-end="url(#arr)"/>
+  </g>
+
+  <!-- ===== COL 3: THREE SYSTEM CLASSES ===== -->
+  <text x="522" y="150" font-size="13" font-weight="700" fill="#0F6E7E">THREE SYSTEM CLASSES, SAME ITEMS</text>
+  <!-- BioMate -->
+  <g filter="url(#soft)"><rect x="522" y="166" width="300" height="56" rx="10" fill="#EAF4F6" stroke="#17879B" stroke-width="1.5"/></g>
+  <text x="538" y="190" font-size="14" font-weight="700" fill="#0F6E7E">BioMate</text>
+  <text x="538" y="210" font-size="12" fill="#5A6B73">curated catalog + deterministic retrieval · no LLM in loop</text>
+  <!-- Biomni -->
+  <g filter="url(#soft)"><rect x="522" y="238" width="300" height="56" rx="10" fill="#FDFBF6" stroke="#C79A2E" stroke-width="1.3"/></g>
+  <text x="538" y="262" font-size="14" font-weight="700" fill="#A9812B">Biomni</text>
+  <text x="538" y="282" font-size="12" fill="#5A6B73">agent scaffold · function-library + code loop</text>
+  <!-- LLMs -->
+  <g filter="url(#soft)"><rect x="522" y="310" width="300" height="70" rx="10" fill="#F4F6F7" stroke="#9AA5AE" stroke-width="1.3"/></g>
+  <text x="538" y="332" font-size="14" font-weight="700" fill="#55636B">8 frontier LLMs, used directly</text>
+  <g font-size="10.5" fill="#55636B">
+    <text x="538" y="352">Opus-5 · Gemini 3.1 · GPT-5.6 · Kimi-K3</text>
+    <text x="538" y="368">DeepSeek-V4 · GLM-5.2 · GPT-5.6-luna · Qwen3.8</text>
+  </g>
+
+  <!-- converge to scorer -->
+  <g stroke="#0F6E7E" stroke-width="2.2" fill="none">
+    <path d="M822,194 C860,194 862,258 900,258" marker-end="url(#arr)"/>
+    <path d="M822,266 L900,266" marker-end="url(#arr)"/>
+    <path d="M822,345 C860,345 862,282 900,282" marker-end="url(#arr)"/>
+  </g>
+
+  <!-- ===== COL 4: ONE SCORER ===== -->
+  <g filter="url(#soft)"><rect x="906" y="206" width="150" height="120" rx="14" fill="url(#teal)"/></g>
+  <text x="981" y="238" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">score.py</text>
+  <text x="981" y="262" font-size="11.5" fill="#DCEEF1" text-anchor="middle">one objective scorer</text>
+  <text x="981" y="280" font-size="11.5" fill="#DCEEF1" text-anchor="middle">exact-match metrics</text>
+  <text x="981" y="304" font-size="12" font-weight="700" fill="#FFE9B8" text-anchor="middle">NO LLM JUDGE</text>
+  <path d="M1056,266 L1092,266" stroke="#0F6E7E" stroke-width="2.4" fill="none" marker-end="url(#arr)"/>
+
+  <!-- ===== COL 5: LEADERBOARD (routing headline) ===== -->
+  <text x="1098" y="150" font-size="13" font-weight="700" fill="#0F6E7E">LEADERBOARD — routing</text>
+  <g font-size="11.5">
+    <!-- scale: x 1098..1250 = 0..1.0 ; bar y rows -->
+    <text x="1098" y="192" fill="#16232B" font-weight="700">BioMate</text>
+    <rect x="1098" y="198" width="146" height="16" rx="4" fill="#0F6E7E"/><text x="1250" y="211" text-anchor="end" fill="#FFFFFF" font-weight="700">.965</text>
+    <text x="1098" y="234" fill="#A9812B" font-weight="700">Biomni</text>
+    <rect x="1098" y="240" width="144" height="16" rx="4" fill="#C79A2E"/><text x="1250" y="253" text-anchor="end" fill="#FFFFFF" font-weight="700">.950</text>
+    <text x="1098" y="276" fill="#55636B">best LLM · Opus-5</text>
+    <rect x="1098" y="282" width="93" height="16" rx="4" fill="#9AA5AE"/><text x="1196" y="295" fill="#55636B">.615</text>
+    <text x="1098" y="318" fill="#55636B">LLM range (8, direct)</text>
+    <rect x="1098" y="324" width="52" height="16" rx="4" fill="#C4CDD3"/>
+    <rect x="1150" y="324" width="41" height="16" rx="4" fill="#DDE3E7"/>
+    <text x="1098" y="356" fill="#8A97A3" font-size="10.5">.345 — .615</text>
+  </g>
+  <text x="1098" y="392" font-size="11.5" fill="#16232B" font-weight="600">Re-scorable now from</text>
+  <text x="1098" y="408" font-size="11.5" fill="#16232B" font-weight="600">committed predictions.</text>
+
+  <!-- footer takeaways -->
+  <line x1="40" y1="470" x2="1250" y2="470" stroke="#E4EAEC" stroke-width="1"/>
+  <g font-size="13" fill="#16232B">
+    <circle cx="48" cy="500" r="4" fill="#0F6E7E"/><text x="62" y="505"><tspan font-weight="700">Same items.</tspan> Every system sees byte-identical prompts and the same published ground truth.</text>
+    <circle cx="48" cy="528" r="4" fill="#C79A2E"/><text x="62" y="533"><tspan font-weight="700">Same metric.</tspan> One released, objective scorer — no LLM judge, no per-system tuning of the rubric.</text>
+    <circle cx="48" cy="556" r="4" fill="#243943"/><text x="62" y="561"><tspan font-weight="700">Not rigged for BioMate.</tspan> Direct LLMs already win the knowledge task (drug-discovery ranking); the benchmark surfaces real strengths and real failures.</text>
+  </g>
+</svg>
