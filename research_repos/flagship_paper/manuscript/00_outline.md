@@ -1,5 +1,10 @@
 # Flagship Paper — Outline
 
+> **⚠ DECISION 2026-08-26 — auto-loop convergence DEMOTED (option A); this planning outline is superseded by `MANUSCRIPT_DRAFT.md`.** The flagship was finalized as **governance-centric**. "Auto-loop convergence" is **not** a flagship headline contribution and **not** in the title. The auto-loop remediation engine appears in the flagship only as a **described, deployed *advisory* feature** (§5), with an explicit non-claim in Limitations ("we make no autonomous-convergence performance claim"); its **convergence benchmarking is deferred to companion paper C6**. Consequences that override the planning below:
+> - **Actual title** (MANUSCRIPT_DRAFT.md): *"BioMate: a governed, validated-catalog biomedical agent that routes, executes, and audits bioinformatics workflows"* — **not** title option 1 below.
+> - **Actual contributions** are the four in MANUSCRIPT_DRAFT.md §1 (executing agent · cross-domain integration + evaluation · demonstrated breadth · one governance pillar) — **not** the "Two contributions" (governance + convergence) framing below.
+> - **E2 (auto-loop convergence) and E3 (remediation reliability) are NOT flagship experiments** — they belong to C6. Only **E1** (false-rejection) and **E4** (audit completeness) are flagship experiments (both implemented). The E2/E3 items and title/contribution text below are retained for history but are **superseded**.
+
 **Working title options:**
 1. *Interactive Evidence-Graded QC Governance and Auto-Loop Convergence for Drug Discovery Workflows*
 2. *From Silent Filtering to Auditable Governance: Cross-Domain QC and Autonomous Remediation in Computational Drug Discovery*
