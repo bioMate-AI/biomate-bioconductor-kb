@@ -40,14 +40,14 @@ Standard Nature-style discipline followed:
 
 ## 3. Data status by figure
 
-| Figure | Status | Source / owner |
+| Figure | Status (updated 2026-08-27) | Source / owner |
 |---|---|---|
-| E1 — false-rejection × profile × domain | **cryo done; HTS+LNP pending** | another agent (per user) |
-| E2 — auto-loop convergence | **pending** | another agent |
-| E3 — provenance grade × remediation reliability | **pending E2** | flagship paper |
-| E4 — audit-trail completeness | **pending design** | flagship paper |
+| E1 — false-rejection × profile × domain | **DONE** — HTS + LNP implemented (`run_e1.py`, `results/e1_*.csv`, `figures/e1_false_rejection.*`); matches the manuscript §3 claim exactly (verified); cryo panel is from the companion cryo paper | flagship paper |
+| E2 — auto-loop convergence | **NOT a flagship experiment** — demoted to companion **C6** per option-A decision (2026-08-26); the flagship makes no convergence claim (Limitations) | companion C6 |
+| E3 — provenance grade × remediation reliability | **NOT a flagship experiment** — belongs to **C6** (depends on E2) | companion C6 |
+| E4 — audit-trail completeness | **DONE** — implemented (`scripts/e4_*.py`, `results/e4_*.csv`, figure) and the manuscript is now aligned to the committed experiment (per-decision provenance completeness 1.0 vs 0.0, domain-tool baselines, Mann–Whitney p=1.6e-4) via option-A (#191) | flagship paper |
 
-Intro is fully writeable now without E1–E4 numerical claims (those go in §3 Results).
+Only **E1** and **E4** are flagship experiments; both are done and consistent with the manuscript. E2/E3 are C6.
 
 ---
 
@@ -59,3 +59,26 @@ Intro is fully writeable now without E1–E4 numerical claims (those go in §3 R
 4. **E2 success criterion:** ≤3 iterations 96.4% is the current MEMORY claim; is this the headline number, or do we want stratified rates per domain (ADMET vs CYP-DDI vs PBPK)?
 5. **E4 design:** what does "audit completeness" mean operationally — JSONL field coverage, replay determinism, or external-reviewer agreement?
 6. **Comparator policy:** the cryo paper benchmarks against CryoSPARC Live; the flagship needs cross-domain comparators (KNIME, Galaxy, manual scripts?). User to choose.
+
+---
+
+## 5. E4 implemented ≠ E4 as described in the manuscript — ✅ RESOLVED via option A (#191, 2026-08-27)
+
+> **✅ RESOLVED (2026-08-27, author chose option A).** The manuscript E4 claims were rewritten to match the committed experiment (per-decision provenance completeness 1.0 vs 0.0; domain-tool baselines CryoSPARC Live / RELION 4 / DataWarrior / PK-Sim / Spotfire / SAS BOIN; Mann–Whitney U=0, p=1.6e-4 read as a formality) across all six locations — abstract, Fig 4b caption (was contradicting its own figure), §3 Results, Methods/Statistics, Related-work §1.2, §5.3. Tower/Galaxy/KNIME are retained only as the C3 companion data-model comparison. See PR #191. The original finding is preserved below for the record.
+
+E4 is **no longer "pending design"** (§3 table line 48 is stale): a full harness is committed — `scripts/e4_generate_logs.py`, `scripts/e4_audit_completeness.py`, `results/e4_completeness_summary.csv` + `..._per_run.csv`, `figures/e4_audit_completeness.{py,png}`, and 10 BioMate + 10 baseline logs across 5 domains. **But the implemented experiment and the manuscript prose (abstract, Fig 4b caption, §3) describe three different things**, verified against code:
+
+| Axis | Manuscript prose (abstract / Fig 4b / §3) | **Committed experiment (script + figure + methods)** |
+|---|---|---|
+| **Metric** | "**10 governance-specific fields**, BioMate carries all ten, **10/10 vs 0/10**" (field checklist) | **per-decision provenance completeness** = fraction of gate decisions carrying `paper_ref + DOI + provenance grade`, scored 0/.33/.67/1.0, mean per run → BioMate **1.0** vs baseline **0.0** |
+| **Comparators** | "**Nextflow Tower, Galaxy, KNIME Server**" | **domain scientific tools**: CryoSPARC Live, RELION 4, DataWarrior, manual ADMET CSV, TIBCO Spotfire, PK-Sim/GastroPlus, SAS BOIN macro |
+| **Statistics** | "deliberately attach **no** inferential p-value … a significance test would be inappropriate" | **Mann–Whitney U = 0, two-sided p = 1.57×10⁻⁴** (computed in the script, annotated on the figure) |
+| **n** | (implied 10 fields) | **n = 10 runs per group** (5 domains × 2) |
+
+Net: the Fig 4b **caption contradicts its own figure** (the figure plots the domain-tool baselines with the p-value; the caption talks about Tower/Galaxy/KNIME and a 10-field checklist with no p-value). "Tower/Galaxy/KNIME" appears **only** in prose (`00_outline.md`, `MANUSCRIPT_DRAFT.md`, this file) — there is no data, script, or figure for that comparison.
+
+**Decision for the user (one of):**
+- **(A)** Align the manuscript to the experiment that exists — describe E4 as per-decision provenance completeness (1.0 vs 0.0) against the **domain-tool** baselines, with the Mann–Whitney p reported (as a formality on a near-degenerate table, like the stability Kappa=1.0). This is the honest, already-backed option and arguably the stronger comparison (real per-domain tools). Also fix §Related-work's "appear here only as the Fig. 4b audit-field comparators" line (currently names Tower/Galaxy/KNIME).
+- **(B)** Keep the Tower/Galaxy/KNIME 10-field framing and **build that experiment** (new logs + field-coverage analysis for the three orchestration platforms). Not yet run.
+
+I did **not** edit the manuscript E4 claims — the reconciliation direction is an authoring decision. (I also earlier removed the fictional `approver`/`override-justification` audit field from §5/§A9 in PR #176; the audit *schema* those sections now describe is verified against the emitter code.)
