@@ -75,6 +75,10 @@ We present BioMate-Cryo, a platform that addresses all three gaps through four i
 
 ### 2.1 Pipeline Architecture
 
+![Figure 1](../../../docs/figures/c4/fig1_governance.png)
+
+**Figure 1 | Interactive evidence-graded QC governance for single-particle cryo-EM.** The 23-step CryoSPARC SPA pipeline across four parallelized phases (A preprocessing, B picking, C classification, D reconstruction), instrumented with seven QC gates. Each gate is graded by evidence strength — GOLD (published consensus; override requires PI-level sign-off: FSC-0.143 per Henderson 2012, atomic-model quality), SILVER (method best practice: orientation anisotropy per Tan 2017), BRONZE (community heuristic: motion, CTF, particle-count, junk-class) — and emits a PASS / ADVISORY / HALT decision written to a portable JSONL audit trail. Governance loop: halt → explain → suggest → await → record.
+
 BioMate-Cryo orchestrates the 23-step CryoSPARC single-particle analysis workflow across four parallelized phases, dispatching independent jobs simultaneously across available GPU workers based on stage dependency analysis (Fig. 1):
 
 **Phase A — Preprocessing (per-micrograph parallel):** Movie import → patch motion correction → patch CTF estimation → micrograph curation. BioMate-Cryo dispatches these independently across N_batch micrograph batches simultaneously.

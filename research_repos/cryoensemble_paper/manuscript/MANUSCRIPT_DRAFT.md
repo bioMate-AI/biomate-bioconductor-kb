@@ -195,9 +195,9 @@ The ADK benchmark tests whether per-particle image likelihood conditioning can r
 
 **Ground-truth geometry.** Open (4AKE) and closed (1AKE) ADK conformations are separated by 7.13 Å RMSD after Kabsch alignment. This is a large domain motion well above the 2.0 Å recovery threshold, making it a hard test of state recovery.
 
-**Results.** Table 0 summarises the four methods on the open and closed states.
+**Results.** Table 2 summarises the four methods on the open and closed states.
 
-**Table 0: ADK benchmark results (N=2,000 particles, 5% closed state)**
+**Table 2: ADK benchmark results (N=2,000 particles, 5% closed state)**
 
 | Method | Closed RMSD (Å) | Closed recovered? | Open RMSD (Å) | Open recovered? |
 |--------|----------------|-------------------|---------------|-----------------|
@@ -216,9 +216,9 @@ Both the prior-only and the CryoEnsemble posterior recover the closed state (RMS
 
 ### 3.1 Conformational Completeness Gap Across Ten Protein Families
 
-Across all ten proteins, the simulated cryoDRGN clustering consistently fails to capture Tier 3 (rare/cryptic-state) conformers while successfully covering Tier 1 and Tier 2 conformers (Fig. 2, Table 2).
+Across all ten proteins, the simulated cryoDRGN clustering consistently fails to capture Tier 3 (rare/cryptic-state) conformers while successfully covering Tier 1 and Tier 2 conformers (Fig. 2, Table 3).
 
-**Table 2: Conformational completeness gap by protein (16-protein benchmark, surrogate model)**
+**Table 3: Conformational completeness gap by protein (16-protein benchmark, surrogate model)**
 
 | Protein | Category | N prior | Gap fraction | Rare-state gap | Mean gap RMSD (Å) |
 |---------|----------|---------|-------------|---------------|-------------------|
@@ -248,9 +248,9 @@ The Tier 1 and Tier 2 conformers are fully covered (gap fraction 0% for both), c
 
 ### 3.2 Gap Conformers Are Enriched for Druggable Surface Exposures
 
-Gap conformers show consistently higher surface pocket exposure than both cryoDRGN-reconstructed clusters and captured conformers (Fig. 3, Table 3). Enrichment is statistically significant (Mann-Whitney U, p < 0.05) in 7/10 proteins. For β₂AR: +9.4% (0.184 vs. 0.168, p = 0.013). For TRPV1: +13.7% (0.190 vs. 0.167, p = 0.002). The largest enrichments are in adenylate kinase (+28.5%, p < 0.001 for both open and closed forms) and p53 DBD (+28.5%, p < 0.001), both proteins with published cryptic allosteric sites. Hsp90 and μ-opioid receptor show modest, non-significant enrichment (+1.7%, +4.1%), consistent with their more compact ground-state surfaces.
+Gap conformers show consistently higher surface pocket exposure than both cryoDRGN-reconstructed clusters and captured conformers (Fig. 3, Table 4). Enrichment is statistically significant (Mann-Whitney U, p < 0.05) in 7/10 proteins. For β₂AR: +9.4% (0.184 vs. 0.168, p = 0.013). For TRPV1: +13.7% (0.190 vs. 0.167, p = 0.002). The largest enrichments are in adenylate kinase (+28.5%, p < 0.001 for both open and closed forms) and p53 DBD (+28.5%, p < 0.001), both proteins with published cryptic allosteric sites. Hsp90 and μ-opioid receptor show modest, non-significant enrichment (+1.7%, +4.1%), consistent with their more compact ground-state surfaces.
 
-**Table 3: Pocket landscape enrichment (all 10 proteins)**
+**Table 4: Pocket landscape enrichment (all 10 proteins)**
 
 | Protein | Cryo score | Gap score | Enrichment | p-value | Novel sites |
 |---------|-----------|-----------|-----------|---------|-------------|
@@ -276,9 +276,9 @@ Across ten proteins, gap conformers show +16.1% mean pocket enrichment over cryo
 
 We tested whether the BME reweighting approach used by cryoENsemble and EMMIVox can recover gap conformers when conditioned on cryoDRGN cluster centroids as the "experimental data."
 
-The result is unambiguous across all ten proteins (Fig. 4, Table 4): at any value of λ > 0, the posterior probability of gap conformers decreases monotonically toward zero. At the optimal λ* = 10.0 (maximizing data fit while maintaining ESS/N ≥ 0.30), the posterior gap probability is **exactly 0.000 in all ten proteins**. The weight previously assigned to gap conformers (prior gap probability uniformly 0.100) is entirely redistributed to Tier 2 (domain-motion) conformers, which are enriched 1.7–2.1× relative to the prior. Posterior ensemble structural diversity decreases from a mean of 0.845 Å (prior) to 0.367 Å (posterior) — the posterior collapses toward the dominant cryo-EM-observed states.
+The result is unambiguous across all ten proteins (Fig. 4, Table 5): at any value of λ > 0, the posterior probability of gap conformers decreases monotonically toward zero. At the optimal λ* = 10.0 (maximizing data fit while maintaining ESS/N ≥ 0.30), the posterior gap probability is **exactly 0.000 in all ten proteins**. The weight previously assigned to gap conformers (prior gap probability uniformly 0.100) is entirely redistributed to Tier 2 (domain-motion) conformers, which are enriched 1.7–2.1× relative to the prior. Posterior ensemble structural diversity decreases from a mean of 0.845 Å (prior) to 0.367 Å (posterior) — the posterior collapses toward the dominant cryo-EM-observed states.
 
-**Table 4: BME reweighting results (all 10 proteins)**
+**Table 5: BME reweighting results (all 10 proteins)**
 
 | Protein | λ* | Prior gap prob. | Posterior gap prob. | Div. prior (Å) | Div. post. (Å) |
 |---------|----|----------------|--------------------|----|-----|
@@ -348,6 +348,8 @@ RECOVAR (Gilles & Singer, PNAS 2025) demonstrates that PCA-based conformational 
 
 **Gaussian surrogate vs. BioEmu-1.** Our conformational ensembles are generated by Gaussian perturbation, not by a trained generative model or MD simulation. The surrogate is a positive control that validates the gap metric and BME insufficiency proof; it is not intended to represent the full conformational diversity of real proteins. Real BioEmu-1 ensembles will generate larger, correlated domain motions, and Pilot 0 (in preparation) will replace the surrogate with actual BioEmu-1 outputs for β₂AR and TRPV1.
 
+**The generative ensemble path is not yet operational — this is a framework + proof-of-concept, not a working end-to-end pipeline.** Every quantitative result here rests on the Gaussian surrogate; the score-based diffusion prior conditioned on BioEmu-derived ensembles (the actual ensemble *generator*) is specified but **not yet functional on real data** — our engineering runs to date have not produced a validated multi-state ensemble from the generator (server-side and integration failures are still being resolved). Consequently no claim in this paper should be read as demonstrating a working cryo-EM→ensemble→pocket pipeline; the contribution is the completeness-gap metric and the mechanistic PoC that motivate building one. The end-to-end system is future work contingent on a functioning generator.
+
 **ADK PoC uses coordinate-space particles, not 2D projections.** The synthetic particles in the ADK benchmark (§3.0/§2.7) are noisy Cα coordinate vectors rather than simulated 2D cryo-EM images. This simplification isolates the per-particle likelihood mechanism from projection geometry and CTF effects. Full validation on actual 2D image projections with realistic CTF simulation is the next experimental milestone. We expect the core result (rare-state recovery from per-particle signal) to hold, but the optimal σ for the per-particle likelihood will differ.
 
 **Simulated cryoDRGN output.** The cryoDRGN reconstruction is simulated by clustering, not by actual particle image processing. Real cryoDRGN behavior includes CTF estimation errors, particle misalignment, and beam-induced motion that may alter the gap fraction. Future work will measure the gap on EMPIAR-10059 (TRPV1, 27,983 particles; Batch run in preparation) using actual cryoDRGN outputs.
@@ -405,7 +407,7 @@ PDB structures used: 2RH1, 3J5P, 4AKE, 1AKE, 2CG9, 1CLL, 2OCJ, 1RTD, 4DKL, 1BL8 
 
 ## Supplementary Material
 
-**Figure 0 (new, main text):** ADK synthetic benchmark — four-panel figure: (A) open/closed structure overlay with RMSD annotation; (B) particle RMSD distribution showing 95% open / 5% closed; (C) cryoDRGN cluster centroids vs. ground truth — 7.11 Å gap; (D) CryoEnsemble posterior recovery — 0.82 Å. Source: `scripts/cryo_pilot/poc_figure.png`.
+**Figure 1 (new, main text):** ADK synthetic benchmark — four-panel figure: (A) open/closed structure overlay with RMSD annotation; (B) particle RMSD distribution showing 95% open / 5% closed; (C) cryoDRGN cluster centroids vs. ground truth — 7.11 Å gap; (D) CryoEnsemble posterior recovery — 0.82 Å. Source: `scripts/cryo_pilot/poc_figure.png`.
 
 **Supplementary Figure S1:** Multi-scale Gaussian perturbation model — schematic of three tiers with RMSD distributions per tier per protein.
 
