@@ -16,7 +16,7 @@ Bioinformatics tool catalogs (bio.tools, the Galaxy ToolShed, nf-core) are curat
 
 ### 1.1 The curation lag
 
-Bioinformatics software is published faster than any hand-curated catalog can absorb it. bio.tools, the Galaxy ToolShed, and nf-core each rely on human submission and review; the median tool reaches a catalog months after its GitHub release, if ever. A platform that routes user intents to executable tools (BioMate routes over ~2,455 workflows and ~9,200 tools) is therefore always behind the literature. Automating discovery-to-integration is attractive — but only if the automation produces artifacts that actually run.
+Bioinformatics software is published faster than any hand-curated catalog can absorb it. bio.tools¹, the Galaxy ToolShed², and nf-core³ each rely on human submission and review; the median tool reaches a catalog months after its GitHub release, if ever. A platform that routes user intents to executable tools (BioMate routes over ~2,455 workflows and ~9,200 tools) is therefore always behind the literature. Automating discovery-to-integration is attractive — but only if the automation produces artifacts that actually run.
 
 ### 1.2 What "integration" honestly requires
 
@@ -33,7 +33,7 @@ Integrating a tool is not adding a database row. A usable integration needs: a c
 
 ## 2. Related work
 
-**Tool catalogs.** bio.tools, the Galaxy ToolShed, and nf-core/modules are the community references; all are human-curated. Bioconda / BioContainers provide the reproducible container substrate our GENERATE stage resolves against. **Automated wrapper generation.** Galaxy's `planemo` scaffolds and tests wrappers but is developer-driven, not autonomous discovery. **LLM code/metadata generation.** The paper-to-code systems (DeepCode, Paper2Code; see companion manuscript) show LLMs can draft runnable code but do not address tool-catalog integration or wrapper parameter completeness. To our knowledge no prior system runs autonomous daily GitHub→catalog integration for bioinformatics with an execution-validated quality gate — and our own results explain why: the execution-validation step is where autonomy currently breaks.
+**Tool catalogs.** bio.tools¹, the Galaxy ToolShed², and nf-core/modules³ are the community references; all are human-curated. Bioconda⁴ / BioContainers⁵ provide the reproducible container substrate our GENERATE stage resolves against. **Automated wrapper generation.** Galaxy's `planemo`⁶ scaffolds and tests wrappers but is developer-driven, not autonomous discovery. **LLM code/metadata generation.** The paper-to-code systems (DeepCode⁷, Paper2Code⁸; see companion manuscript) show LLMs can draft runnable code but do not address tool-catalog integration or wrapper parameter completeness. To our knowledge no prior system runs autonomous daily GitHub→catalog integration for bioinformatics with an execution-validated quality gate — and our own results explain why: the execution-validation step is where autonomy currently breaks.
 
 ---
 
@@ -47,6 +47,10 @@ GitHub    docs+    Galaxy XML   XML       exec    DB row
           citations + container  checks    test    auto_discovered=1
 ```
 Orchestrated by `scripts/run_pipeline.py`; scheduled daily at 02:00 UTC (`setup_cron.sh`) with `DAYS_BACK=1`, `MIN_STARS=10`, no limit, `ENABLE_TEST=0` by default (execution testing is expensive and, as Section 5 shows, currently low-yield). A yearly backfill mode uses `MIN_STARS=75` with month-by-month windows.
+
+![Figure 1](../../../docs/figures/c8/fig1_pipeline.png)
+
+**Figure 1 | The six-stage auto-update pipeline (DETECT → FETCH → GENERATE → VALIDATE → TEST → INTEGRATE, + BLOG).** Green stages (DETECT, FETCH, INTEGRATE, BLOG) are production-viable; the GENERATE→VALIDATE→TEST core (amber/red) is where autonomy breaks — VALIDATE is *syntactic only* and TEST passes zero wrappers (§5). The GENERATE container step resolves tags via the BioContainers API⁵ rather than guessing `:latest`, which fixed the 50% broken-container defect. INTEGRATE succeeds only with execution testing disabled (`ENABLE_TEST=0`).
 
 ### 3.2 Stages
 
@@ -93,6 +97,10 @@ These results support the claim that **discovery, metadata extraction, and selec
 - **Parameters are empty or dummy.** A quality-gate assessment of **14 auto-discovered tools found 0 workflow-ready**; 3 graded B+ (0.81–0.84), 7 D, 4 F, with missing/dummy parameters the blocking issue in **11/14**. For comparison, 96% of the ~9,200 hand-curated tools carry real parameters, versus **0–57%** meaningful (43% empty, 57% placeholder) for auto tools. Without a real parameter schema the platform cannot render a usable input form — the wrapper is a stub.
 - **Containers: guessing fails, resolution works.** A verification of 16 integrated tools found **8/16 (50%) referenced non-existent Docker containers** (e.g. `colabfold:latest`, `foldseek:latest`). After integrating the **BioContainers API** for container resolution, a 15-tool batch achieved **15/15 valid containers** (0 `:latest`; 11 BioContainers + 4 language-runtime fallbacks), with 34/34 tests green across edge/unit/E2E/comprehensive suites. This isolates a concrete, fixable failure mode (name guessing) from the harder one (parameter completeness).
 
+![Figure 2](../../../docs/figures/c8/fig2_boundary.png)
+
+**Figure 2 | Where automation stops.** Per-stage production-ready fraction, every value from §5: discovery (264 repos in ~25 min), feasibility/selection (5/10 correctly triaged tool-vs-library), metadata + citation extraction, and container resolution (8/16 broken → 15/15 valid after BioContainers-API resolution⁵) all reach effectively 100%; parameter completeness (0/14 workflow-ready; params empty/dummy in 11/14) and execution-validated wrappers (0 passed in every recorded run) reach 0%. The boundary — not a headline success rate — is the paper's central finding.
+
 ### 5.3 What the numbers mean
 
 The pipeline is a **strong discovery-and-metadata engine with a stub-wrapper output.** The DETECT/FETCH/feasibility/blog stages produce genuinely useful artifacts; the GENERATE→TEST core produces wrappers that pass *syntactic* validation but fail *functional* readiness (no parameters, unverified execution). Reporting this boundary honestly is more valuable to the community than a self-graded "100%," because it says exactly where a human must still intervene and where research effort should go (parameter inference from docs; execution-in-the-loop generation).
@@ -119,7 +127,7 @@ We present these as the roadmap, not as solved.
 
 **Where autonomy is real.** Continuous discovery, citation/metadata extraction, LLM feasibility triage, and BioContainers-grounded container resolution are production-viable and reduce human catalog effort.
 
-**Where it is not.** Autonomous generation of *executable, parameter-complete* wrappers is unsolved. The root cause is that parameters live in prose (help text, `--flag` docs, examples) that current generation does not reliably parse into a typed schema, and that syntactic validation cannot catch functional emptiness. Execution-in-the-loop generation (generate → run → repair against real test data), analogous to AI-Scientist-v2's tree-search and to BioMate's QC auto-loop, is the promising direction — but it is expensive, which is why `ENABLE_TEST=0` today.
+**Where it is not.** Autonomous generation of *executable, parameter-complete* wrappers is unsolved. The root cause is that parameters live in prose (help text, `--flag` docs, examples) that current generation does not reliably parse into a typed schema, and that syntactic validation cannot catch functional emptiness. Execution-in-the-loop generation (generate → run → repair against real test data), analogous to AI-Scientist-v2's tree-search⁹ and to BioMate's QC auto-loop, is the promising direction — but it is expensive, which is why `ENABLE_TEST=0` today.
 
 **Relationship to paper ingestion.** This pipeline and the paper-to-workflow module (companion manuscript) are two arms of the same capability-acquisition loop: one ingests GitHub tools, the other ingests published methods. Both deposit new capability into the same catalog, and both hit the same wall — turning a description into a *parameter-complete, executable* artifact — which suggests the parameter-inference problem is the shared, high-value research target.
 
@@ -140,9 +148,37 @@ An autonomous GitHub→catalog pipeline for bioinformatics is achievable for *di
 
 ---
 
+## References
+
+1. Ison J, Rapacki K, Ménager H, et al. Tools and data services registry: a community effort to document bioinformatics resources. *Nucleic Acids Res.* 2016;44(D1):D38–D47. doi:10.1093/nar/gkv1116
+2. The Galaxy Community. The Galaxy platform for accessible, reproducible, and collaborative data analyses: 2024 update. *Nucleic Acids Res.* 2024;52(W1):W83–W94. doi:10.1093/nar/gkae410
+3. Ewels PA, Peltzer A, Fillinger S, et al. The nf-core framework for community-curated bioinformatics pipelines. *Nat Biotechnol.* 2020;38(3):276–278. doi:10.1038/s41587-020-0439-x
+4. Grüning B, Dale R, Sjödin A, et al. Bioconda: sustainable and comprehensive software distribution for the life sciences. *Nat Methods.* 2018;15(7):475–476. doi:10.1038/s41592-018-0046-7
+5. da Veiga Leprevost F, Grüning BA, Alves Aflitos S, et al. BioContainers: an open-source and community-driven framework for software standardization. *Bioinformatics.* 2017;33(16):2580–2582. doi:10.1093/bioinformatics/btx192
+6. Bray SA, Chilton J, Bernt M, et al. The Planemo toolkit for developing, deploying, and executing scientific data analyses in Galaxy and beyond. *Genome Res.* 2023;33(2):261–268. doi:10.1101/gr.276963.122
+7. Li Z, Li Z, Guo Z, Ren X, Huang C. DeepCode: Open Agentic Coding. *arXiv preprint* arXiv:2512.07921. 2025.
+8. Seo M, Baek J, Lee S, Hwang SJ. Paper2Code: Automating Code Generation from Scientific Papers in Machine Learning. *arXiv preprint* arXiv:2504.17192. 2025.
+9. Yamada Y, Lange RT, Lu C, et al. The AI Scientist-v2: Workshop-Level Automated Scientific Discovery via Agentic Tree Search. *arXiv preprint* arXiv:2504.08066. 2025.
+
+---
+
 ## Reproducibility
 
 - Pipeline: `/home/yzhang/biomate/auto_update/` (scripts, `data/pipeline_stats_*.json`, `quality_report_*.json`, `blog_worthiness_results.json`)
 - System doc: `docs/06-auto-update/20260112_AUTO_UPDATE_SYSTEM.md`; architecture: `docs/architecture/25_auto_update_pipeline.drawio.xml`
 - Container-fix validation: `auto_update/FINAL_TEST_RESULTS_20251107.md`; verification: `auto_update/VERIFICATION_TEST_RESULTS_20251107.md`
 - Quality gate: `auto_update/TOOL_QUALITY_GATE_SYSTEM_20251117_114300.md`
+
+---
+
+## Supplement S1 — Container-resolution worked examples
+
+The concrete before→after for the container-correctness result (§5.2, Fig. 2). Three representative cases from the batch where the generator's naive `toolname:latest` referenced a non-existent image, and the BioContainers-API resolution⁵ recovered a real, pinned, accessible tag. All values are transcribed verbatim from the committed verification logs (`auto_update/VERIFICATION_TEST_RESULTS_20251107.md`) and fix logs (`auto_update/FINAL_TEST_RESULTS_20251107.md`).
+
+| Tool | Generated tag (broken) | Verification error | Resolved tag (BioContainers API) |
+|---|---|---|---|
+| ColabFold | `colabfold:latest` | Repository doesn't exist | `quay.io/biocontainers/colabfold:1.5.5--pyh7cba7a3_2` |
+| foldseek | `foldseek:latest` | Repository doesn't exist | `quay.io/biocontainers/foldseek:10.941cd33--h5021889_1` |
+| MMseqs2 | `mmseqs2:latest` | Repository doesn't exist | `quay.io/biocontainers/mmseqs2:18.8cc5c--hd6d6fdc_0` |
+
+**Batch outcome (15 tools):** 8/16 initially referenced non-existent containers (`:latest`); after BioContainers-API resolution the fixed batch was **15/15 valid** — 11 resolved to pinned BioContainers tags and 4 to language-runtime fallbacks (`dash`, `galaxy`, `PyDESeq2` → `python:3.9-slim`; `rush` → `golang:1.19`), with **0/15** remaining `:latest` (`grep ":latest"` → no matches). This isolates container *name-guessing* as a fully solved failure mode, distinct from the unsolved parameter-completeness problem (§5.2).
