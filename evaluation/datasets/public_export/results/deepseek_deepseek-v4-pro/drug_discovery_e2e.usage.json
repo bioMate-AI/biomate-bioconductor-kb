@@ -1,0 +1,16 @@
+{
+  "task": "drug_discovery_e2e",
+  "mode": null,
+  "model": "deepseek/deepseek-v4-pro",
+  "n": 15,
+  "n_with_usage": 15,
+  "input_tokens_total": 4872,
+  "output_tokens_total": 3926,
+  "input_tokens_mean": 324.8,
+  "output_tokens_mean": 261.73333333333335,
+  "latency_ms_p50": 4873,
+  "latency_ms_p95": 13523,
+  "latency_ms_mean": 7766.8,
+  "n_with_latency": 15,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

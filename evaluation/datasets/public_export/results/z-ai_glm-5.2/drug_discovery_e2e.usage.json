@@ -1,0 +1,16 @@
+{
+  "task": "drug_discovery_e2e",
+  "mode": null,
+  "model": "z-ai/glm-5.2",
+  "n": 15,
+  "n_with_usage": 15,
+  "input_tokens_total": 4935,
+  "output_tokens_total": 2567,
+  "input_tokens_mean": 329.0,
+  "output_tokens_mean": 171.13333333333333,
+  "latency_ms_p50": 2381,
+  "latency_ms_p95": 4428,
+  "latency_ms_mean": 2773.866666666667,
+  "n_with_latency": 15,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

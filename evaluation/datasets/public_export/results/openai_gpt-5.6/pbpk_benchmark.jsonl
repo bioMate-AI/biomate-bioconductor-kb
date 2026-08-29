@@ -1,0 +1,15 @@
+{"id": "PK-001", "prediction": "7.07", "prompt_tokens": 135, "completion_tokens": 525, "latency_ms": 12731}
+{"id": "PK-002", "prediction": "5.0", "prompt_tokens": 141, "completion_tokens": 1857, "latency_ms": 33706}
+{"id": "PK-003", "prediction": "110", "prompt_tokens": 139, "completion_tokens": 743, "latency_ms": 15085}
+{"id": "PK-004", "prediction": "10.2", "prompt_tokens": 133, "completion_tokens": 928, "latency_ms": 18565}
+{"id": "PK-005", "prediction": "55", "prompt_tokens": 143, "completion_tokens": 1415, "latency_ms": 26256}
+{"id": "PK-006", "prediction": "0.63", "prompt_tokens": 146, "completion_tokens": 1561, "latency_ms": 32385}
+{"id": "PK-007", "prediction": "0.23", "prompt_tokens": 153, "completion_tokens": 1411, "latency_ms": 27822}
+{"id": "PK-008", "prediction": "250", "prompt_tokens": 169, "completion_tokens": 1428, "latency_ms": 27628}
+{"id": "PK-009", "prediction": "1000", "prompt_tokens": 161, "completion_tokens": 1042, "latency_ms": 23169}
+{"id": "PK-010", "prediction": "180", "prompt_tokens": 136, "completion_tokens": 993, "latency_ms": 17926}
+{"id": "PK-011", "prediction": "16.9", "prompt_tokens": 143, "completion_tokens": 1043, "latency_ms": 26556}
+{"id": "PK-012", "prediction": "17.0", "prompt_tokens": 162, "completion_tokens": 1266, "latency_ms": 26583}
+{"id": "PK-013", "prediction": "110", "prompt_tokens": 143, "completion_tokens": 1123, "latency_ms": 25430}
+{"id": "PK-014", "prediction": "683.3", "prompt_tokens": 154, "completion_tokens": 362, "latency_ms": 8949}
+{"id": "PK-015", "prediction": "4.7", "prompt_tokens": 148, "completion_tokens": 1662, "latency_ms": 37548}

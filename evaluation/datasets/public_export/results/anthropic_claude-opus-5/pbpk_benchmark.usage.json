@@ -1,0 +1,16 @@
+{
+  "task": "pbpk_benchmark",
+  "mode": null,
+  "model": "anthropic/claude-opus-5",
+  "n": 15,
+  "n_with_usage": 15,
+  "input_tokens_total": 3245,
+  "output_tokens_total": 6054,
+  "input_tokens_mean": 216.33333333333334,
+  "output_tokens_mean": 403.6,
+  "latency_ms_p50": 9396,
+  "latency_ms_p95": 12527,
+  "latency_ms_mean": 9032.333333333334,
+  "n_with_latency": 15,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

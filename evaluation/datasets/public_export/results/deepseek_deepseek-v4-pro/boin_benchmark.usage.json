@@ -1,0 +1,16 @@
+{
+  "task": "boin_benchmark",
+  "mode": null,
+  "model": "deepseek/deepseek-v4-pro",
+  "n": 20,
+  "n_with_usage": 20,
+  "input_tokens_total": 4758,
+  "output_tokens_total": 33266,
+  "input_tokens_mean": 237.9,
+  "output_tokens_mean": 1663.3,
+  "latency_ms_p50": 34939,
+  "latency_ms_p95": 60434,
+  "latency_ms_mean": 36226.8,
+  "n_with_latency": 20,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

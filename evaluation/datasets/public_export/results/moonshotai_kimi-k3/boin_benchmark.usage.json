@@ -1,0 +1,16 @@
+{
+  "task": "boin_benchmark",
+  "mode": null,
+  "model": "moonshotai/kimi-k3",
+  "n": 20,
+  "n_with_usage": 20,
+  "input_tokens_total": 6251,
+  "output_tokens_total": 32624,
+  "input_tokens_mean": 312.55,
+  "output_tokens_mean": 1631.2,
+  "latency_ms_p50": 21325,
+  "latency_ms_p95": 68962,
+  "latency_ms_mean": 28878.95,
+  "n_with_latency": 20,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

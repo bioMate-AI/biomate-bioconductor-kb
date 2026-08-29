@@ -1,0 +1,16 @@
+{
+  "task": "pbpk_benchmark",
+  "mode": null,
+  "model": "openai/gpt-5.6-luna",
+  "n": 15,
+  "n_with_usage": 15,
+  "input_tokens_total": 2206,
+  "output_tokens_total": 23525,
+  "input_tokens_mean": 147.06666666666666,
+  "output_tokens_mean": 1568.3333333333333,
+  "latency_ms_p50": 16300,
+  "latency_ms_p95": 23160,
+  "latency_ms_mean": 17445.8,
+  "n_with_latency": 15,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

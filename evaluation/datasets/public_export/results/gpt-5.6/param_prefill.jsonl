@@ -1,0 +1,170 @@
+{"id": "pf_001", "prediction": {"input": "human lung adenocarcinoma samples"}}
+{"id": "pf_002", "prediction": {"genome": "GRCm39", "input": "bulk RNA-seq"}}
+{"id": "pf_003", "prediction": {}}
+{"id": "pf_004", "prediction": {"genome": "GRCz11"}}
+{"id": "pf_005", "prediction": {"input": "Drosophila wing disc ATAC-seq chromatin accessibility"}}
+{"id": "pf_006", "prediction": {"genome": "WBcel235", "input": "aging RNA-seq across lifespan"}}
+{"id": "pf_007", "prediction": {"genome": "R64-1-1", "input": "heat stress transcriptomics"}}
+{"id": "pf_008", "prediction": {"genome": "TAIR10", "input": "circadian rhythm RNA-seq"}}
+{"id": "pf_009", "prediction": {"input": "WGS"}}
+{"id": "pf_010", "prediction": {"genome": "GRCh38"}}
+{"id": "pf_011", "prediction": {"input": "RNA-seq"}}
+{"id": "pf_012", "prediction": {"genome": "GRCm39", "input": "RNA-seq"}}
+{"id": "pf_013", "prediction": {"input": "primary mouse hepatocytes"}}
+{"id": "pf_014", "prediction": {"genome": "GRCz11"}}
+{"id": "pf_015", "prediction": {"input": "Human iPSC-derived neurons after 28-day neuronal differentiation"}}
+{"id": "pf_016", "prediction": {"genome": "Xenla10.1"}}
+{"id": "pf_017", "prediction": {}}
+{"id": "pf_018", "prediction": {"genome": "GCF_000013425.1"}}
+{"id": "pf_019", "prediction": {"genome": "GRCh38", "input": "patient blood"}}
+{"id": "pf_020", "prediction": {}}
+{"id": "pf_021", "prediction": {"genome": "GRCh38", "strandedness": "reverse"}}
+{"id": "pf_022", "prediction": {"input": "total RNA", "strandedness": "stranded"}}
+{"id": "pf_023", "prediction": {"strandedness": "reverse"}}
+{"id": "pf_024", "prediction": {"strandedness": "reverse"}}
+{"id": "pf_025", "prediction": {"strandedness": "unstranded"}}
+{"id": "pf_026", "prediction": {"input": "SMART-seq2"}}
+{"id": "pf_027", "prediction": {"strandedness": "reverse"}}
+{"id": "pf_028", "prediction": {"strandedness": "stranded"}}
+{"id": "pf_029", "prediction": {"input": "polyA", "strandedness": "unstranded"}}
+{"id": "pf_030", "prediction": {"input": "pico", "strandedness": "stranded"}}
+{"id": "pf_031", "prediction": {"input": "RNA"}}
+{"id": "pf_032", "prediction": {"input": "FFPE tissue", "strandedness": "stranded"}}
+{"id": "pf_033", "prediction": {"strandedness": "reverse"}}
+{"id": "pf_034", "prediction": {"input": "total RNA", "strandedness": "unstranded"}}
+{"id": "pf_035", "prediction": {"input": "total RNA", "strandedness": "reverse"}}
+{"id": "pf_036", "prediction": {"input": "tumor-only"}}
+{"id": "pf_037", "prediction": {"input": "single-sample blood DNA", "tools": "GATK"}}
+{"id": "pf_038", "prediction": {"input": "GVCFs from previous runs", "joint_germline": true}}
+{"id": "pf_039", "prediction": {"wes": true}}
+{"id": "pf_040", "prediction": {}}
+{"id": "pf_041", "prediction": {"single_end": false}}
+{"id": "pf_042", "prediction": {"macs2_broad": true}}
+{"id": "pf_043", "prediction": {"macs2_broad": false}}
+{"id": "pf_044", "prediction": {"non_directional": true}}
+{"id": "pf_045", "prediction": {"pseudo_aligner": "Salmon"}}
+{"id": "pf_046", "prediction": {"input": "16S rRNA", "region": "V3-V4"}}
+{"id": "pf_047", "prediction": {}}
+{"id": "pf_048", "prediction": {}}
+{"id": "pf_049", "prediction": {"with_umi": true}}
+{"id": "pf_050", "prediction": {"save_trimmed": true}}
+{"id": "pf_051", "prediction": {"coverage": "0.5x"}}
+{"id": "pf_052", "prediction": {"input": "ctDNA", "target_coverage": "1000x"}}
+{"id": "pf_053", "prediction": {"expected_cells": 5000}}
+{"id": "pf_054", "prediction": {"expected_cells": 50000}}
+{"id": "pf_055", "prediction": {"max_spots": 500000}}
+{"id": "pf_056", "prediction": {"max_reads": 100000}}
+{"id": "pf_057", "prediction": {"min_reads": 10}}
+{"id": "pf_058", "prediction": {"fdr_cutoff": 0.05}}
+{"id": "pf_059", "prediction": {"top_hvg": 3000}}
+{"id": "pf_060", "prediction": {"clip_a_tail": 10}}
+{"id": "pf_061", "prediction": {"gpu_acceleration": false}}
+{"id": "pf_062", "prediction": {"max_cpus": 4}}
+{"id": "pf_063", "prediction": {"trim_quality": 20}}
+{"id": "pf_064", "prediction": {"minlen": 50}}
+{"id": "pf_065", "prediction": {"gc_normalize": true}}
+{"id": "pf_066", "prediction": {"protocol": "10x Genomics Chromium Single Cell 3' Gene Expression v3.1"}}
+{"id": "pf_067", "prediction": {"protocol": "10x Genomics Chromium Single Cell 3' Gene Expression v2"}}
+{"id": "pf_068", "prediction": {}}
+{"id": "pf_069", "prediction": {}}
+{"id": "pf_070", "prediction": {"FW_primer": "341F", "RV_primer": "806R", "input": "16S rRNA V3-V4 region amplicon"}}
+{"id": "pf_071", "prediction": {"FW_primer": "27F", "RV_primer": "534R"}}
+{"id": "pf_072", "prediction": {"genome": "GRCh38"}}
+{"id": "pf_073", "prediction": {"genome": "GRCh38"}}
+{"id": "pf_074", "prediction": {"database": "UniProtKB/Swiss-Prot"}}
+{"id": "pf_075", "prediction": {}}
+{"id": "pf_076", "prediction": {"cosmic_db": true}}
+{"id": "pf_077", "prediction": {"phylop_score": "phyloP100way"}}
+{"id": "pf_078", "prediction": {"dbsnp": "155"}}
+{"id": "pf_079", "prediction": {"gtf": "RefSeq"}}
+{"id": "pf_080", "prediction": {"gtf": "gencode.v44.primary_assembly.annotation.gtf.gz"}}
+{"id": "pf_081", "prediction": {"genome": "GRCm39", "strandedness": "stranded"}}
+{"id": "pf_082", "prediction": {"expected_cells": 8000, "genome": "GRCh38", "protocol": "10x Genomics 3' v3"}}
+{"id": "pf_083", "prediction": {"strandedness": "reverse"}}
+{"id": "pf_084", "prediction": {"input": "paired-end 150 bp whole-genome bisulfite sequencing reads"}}
+{"id": "pf_085", "prediction": {"input": true, "macs2_broad": false, "single_end": false}}
+{"id": "pf_086", "prediction": {"tools": "GATK", "wes": true}}
+{"id": "pf_087", "prediction": {"acquisition_method": "data-independent acquisition", "input": "human plasma"}}
+{"id": "pf_088", "prediction": {"input": "250 bp paired-end reads"}}
+{"id": "pf_089", "prediction": {"input": "tumor-normal matched whole-genome sequencing (WGS)", "tools": ["GATK Mutect2", "Strelka2"]}}
+{"id": "pf_090", "prediction": {"input": "hashtag oligos (HTO)", "protocol": "10x Genomics Chromium v3 cell hashing demultiplexing"}}
+{"id": "pf_091", "prediction": {}}
+{"id": "pf_092", "prediction": {}}
+{"id": "pf_093", "prediction": {}}
+{"id": "pf_094", "prediction": {}}
+{"id": "pf_095", "prediction": {}}
+{"id": "pf_096", "prediction": {}}
+{"id": "pf_097", "prediction": {}}
+{"id": "pf_098", "prediction": {}}
+{"id": "pf_099", "prediction": {}}
+{"id": "pf_100", "prediction": {}}
+{"id": "pf_101", "prediction": {"particle_diameter": 130, "particle_diameter_angstroms": 130}}
+{"id": "pf_102", "prediction": {"pixel_size": 0.83}}
+{"id": "pf_103", "prediction": {"accelerating_voltage": "300 kV", "kv": "300 kV", "voltage": "300 kV"}}
+{"id": "pf_104", "prediction": {"symmetry": "C1"}}
+{"id": "pf_105", "prediction": {"read_length": 100, "single_end": true}}
+{"id": "pf_106", "prediction": {"isobaric_label": "TMTpro 16plex", "labeling_reagent": "TMTpro 16plex", "tmt_reagent": "TMTpro 16plex"}}
+{"id": "pf_107", "prediction": {"coverage": "30x"}}
+{"id": "pf_108", "prediction": {"dt": "2 fs", "run_time": "100 ns", "simulation_length_ns": 100, "simulation_time": "100 ns"}}
+{"id": "pf_109", "prediction": {"narrow_peak": true, "qvalue": 0.01}}
+{"id": "pf_110", "prediction": {"outdir": "s3://my-bucket/rnaseq-results/", "output_dir": "s3://my-bucket/rnaseq-results/", "strandedness": "stranded"}}
+{"id": "pf_111", "prediction": {"defocus_max_um": 3.0, "defocus_min_um": 1.0}}
+{"id": "pf_112", "prediction": {"analysis_type": "somatic variant calling", "germline": false, "paired_analysis": false, "tools": ["GATK4 Mutect2"]}}
+{"id": "pf_113", "prediction": {"keep_mito": false, "max_fragment_size": 200, "paired_end": true}}
+{"id": "pf_114", "prediction": {"num_molecules": 5000, "temperature": 1.0}}
+{"id": "pf_115", "prediction": {"min_coverage": 10, "rrbs": true}}
+{"id": "pf_116", "prediction": {"cmax_nM": 80, "herg_ic50_nM": 150}}
+{"id": "pf_117", "prediction": {"cav12_ic50_nM": 500, "herg_ic50_nM": 300, "nav15_ic50_nM": 2000}}
+{"id": "pf_118", "prediction": {"cmax_nM": 200, "fu_plasma": 0.3, "heart_rate_bpm": 60, "herg_ic50_nM": 50}}
+{"id": "pf_119", "prediction": {"cmax_nM": 50, "drug_ic50_nM": 3, "pathway": "MAPK/ERK", "target_node": "MEK"}}
+{"id": "pf_120", "prediction": {"drug_ic50_nM": 200, "pathway": "PI3K signaling", "simulation_time_h": 24, "stimulus": "EGF", "stimulus_conc_nM": 10, "target_node": "AKT"}}
+{"id": "pf_121", "prediction": {"cmax_nM": 3, "drug_ic50_nM": 1, "pathway": "apoptosis", "pathway_is_apoptosis": true, "target_node": "BCL2"}}
+{"id": "pf_122", "prediction": {"bsep_ic50_uM": 2, "cell_type": "hepatocytes", "cmax_uM": 10, "complex_i_ic50_uM": 5}}
+{"id": "pf_123", "prediction": {"cell_type": "cardiac", "complex_iii_ic50_uM": 8, "fat_oxidation_ic50_uM": 15}}
+{"id": "pf_124", "prediction": {"cell_line": "MCF7", "down_genes": ["TP53", "CDKN1A"], "query_mode": "mimic", "up_genes": ["MYC", "CDK4", "CCND1"]}}
+{"id": "pf_125", "prediction": {"cell_line": "K562", "down_genes": ["BAX", "CASP3"], "query_mode": "disease_reversal", "up_genes": ["BCL2", "MYC"]}}
+{"id": "pf_126", "prediction": {"cell_line": "K562", "perturb_genes": ["MYC"], "perturbation_type": "knockout", "top_k_degs": 50}}
+{"id": "pf_127", "prediction": {"cell_line": "RPE1", "perturb_genes": ["KRAS", "BRAF"], "perturbation_type": "CRISPRi"}}
+{"id": "pf_128", "prediction": {"cell_line": "MCF7", "drug_a_cmax_nM": 50, "drug_a_name": "trametinib", "drug_a_targets": ["MEK1", "MEK2"], "drug_b_cmax_nM": 100, "drug_b_name": "palbociclib", "drug_b_targets": ["CDK4", "CDK6"]}}
+{"id": "pf_129", "prediction": {"drug_a_cmax_nM": 3, "drug_a_name": "venetoclax", "drug_a_targets": ["BCL2"], "drug_b_cmax_nM": 10, "drug_b_name": "navitoclax", "drug_b_targets": ["BCL-XL"], "synergy_model": "ZIP"}}
+{"id": "pf_130", "prediction": {"cmax_mg_L": 3, "drug_name": "erlotinib", "ec50_mg_L": 0.5, "initial_tumor_vol_mm3": 150, "treatment_days": 84}}
+{"id": "pf_131", "prediction": {"auc_mg_h_L": 120, "dosing_interval_days": 3, "tgi_model": "Simeoni", "tumor_penetration": 0.3}}
+{"id": "pf_132", "prediction": {"bioavailability": 0.6, "cl_L_h": 15, "dose_mg": 200, "ec50_mg_L": 2, "n_patients": 1000, "vd_L": 80}}
+{"id": "pf_133", "prediction": {"dose_range": "50-400 mg", "ec50_mg_L": 1, "iiv_cl_cv": 0.4, "pta_target": 0.9}}
+{"id": "pf_134", "prediction": {"covariate_age_mean": 70, "renal_clearance_fraction": 0.3}}
+{"id": "pf_135", "prediction": {"inline_genes": ["MKI67", "MYC", "CDK4", "CDKN1A"]}}
+{"id": "pf_136", "prediction": {"dsb_normalize": true, "expected_cells": 5000, "genome": "GRCh38"}}
+{"id": "pf_137", "prediction": {"expected_cells": 10000, "protocol": "CITE-seq", "wnn_integration": false}}
+{"id": "pf_138", "prediction": {"min_atac_fragments": 200, "tss_enrichment_min": 5.0}}
+{"id": "pf_139", "prediction": {"link_peaks_to_genes": true}}
+{"id": "pf_140", "prediction": {"expected_doublet_rate": 0.064, "n_cells": 8000}}
+{"id": "pf_141", "prediction": {"method": "DoubletFinder", "n_cells": 3000, "n_neighbors": 25, "pca_components": 30}}
+{"id": "pf_142", "prediction": {"abseq": true, "expected_cells": 15000, "genome": "GRCh38", "panel": 45}}
+{"id": "pf_143", "prediction": {"expected_cells": 5000, "genome": "GRCm39", "min_umis": 300, "panel": "BD Rhapsody targeted panel"}}
+{"id": "pf_144", "prediction": {"expected_cells": 1000000, "kit": "Parse Biosciences Evercode WT Mega"}}
+{"id": "pf_145", "prediction": {"expected_cells": 20000, "genome": "GRCm39", "kit": "Parse Evercode WT Mini", "min_genes": 100, "min_umis": 200}}
+{"id": "pf_146", "prediction": {"n_cells_expected": 8000, "n_genes": 500, "platform": "Vizgen MERSCOPE", "segmentation_method": "Baysor"}}
+{"id": "pf_147", "prediction": {"deconvolution": true, "platform": "seqFISH+", "spatial_analysis": "SpatialDE"}}
+{"id": "pf_148", "prediction": {"platform": "10x Genomics Xenium", "spatial_analysis": "tumor core, invasive margin, and immune infiltrate domain mapping"}}
+{"id": "pf_149", "prediction": {"expected_cells": 8000, "genome": "GRCh38", "wnn_integration": false}}
+{"id": "pf_150", "prediction": {"method": "consensus (DoubletFinder AND Scrublet)"}}
+{"id": "pf_151", "prediction": {"tf_activity": "chromVAR"}}
+{"id": "pf_152", "prediction": {"expected_cells": 2000, "genome": "GRCh38", "panel": "BD Rhapsody multiome ATAC+RNA"}}
+{"id": "pf_153", "prediction": {"genome": "GRCh38", "kit": "WT", "min_umis": 500}}
+{"id": "pf_154", "prediction": {"platform": "CODEX", "spatial_analysis": "map B cell follicles, T cell zones, and germinal centers"}}
+{"id": "pf_155", "prediction": {"doublet_threshold": 0.15, "n_cells": 12000}}
+{"id": "pf_156", "prediction": {"cd3_arm": "CD3", "format": "BiTE", "n_designs": 20, "target_indication": "B-cell acute lymphoblastic leukemia"}}
+{"id": "pf_157", "prediction": {"format": "CrossMab", "immunogenicity_screen": true, "linker_type": "rigid", "n_designs": 15, "target_indication": "autoimmune disease"}}
+{"id": "pf_158", "prediction": {"format": "knob-into-hole IgG bispecific", "linker_type": "G4S4", "target_indication": "lung cancer"}}
+{"id": "pf_159", "prediction": {"developability_filter": false, "format": "VHH nanobody fusion bispecific", "target_indication": "hematology"}}
+{"id": "pf_160", "prediction": {"cd3_arm": "CD3", "format": "DART", "linker_type": "charged positive", "n_designs": 25}}
+{"id": "pf_161", "prediction": {"target_gene": "PCSK9", "therapeutic_context": "liver tissue"}}
+{"id": "pf_162", "prediction": {"chemical_mods": "ESC full modification chemistry", "guide_strand": "5'-GCAUCUGAGUUUGGCACUUAG-3'", "target_gene": "TTR"}}
+{"id": "pf_163", "prediction": {"seed_mismatch_tol": 0, "sirna_design": "Dicer-substrate siRNA", "target_gene": "SNCA", "therapeutic_context": "CNS delivery"}}
+{"id": "pf_164", "prediction": {"chemical_mods": "2'-O-methyl modifications at seed positions", "therapeutic_context": "reduction of siRNA off-targeting"}}
+{"id": "pf_165", "prediction": {"guide_strand": "passenger", "n_top_offtargets": 50, "strand_bias_check": true, "target_species": "GRCm39", "therapeutic_context": "hepatocyte siRNA"}}
+{"id": "pf_166", "prediction": {"format": "DVD-Ig", "linker_type": "G4S3", "n_designs": 12, "target_indication": "infectious disease"}}
+{"id": "pf_167", "prediction": {"chemical_mods": "phosphorothioate backbone", "therapeutic_context": "Phase 1 clinical siRNA for hepatitis B virus (HBV), administered by eye injection"}}
+{"id": "pf_168", "prediction": {"format": "CrossMab", "immunogenicity_screen": false, "n_designs": 30, "target_indication": "autoimmune"}}
+{"id": "pf_169", "prediction": {"chemical_mods": ["2'-O-methyl", "2'-fluoro"], "sirna_design": "asymmetric", "therapeutic_context": "VEGFA targeting in muscle"}}
+{"id": "pf_170", "prediction": {"seed_mismatch_tol": 1, "target_species": "GRCh38", "therapeutic_context": "blood cancer"}}

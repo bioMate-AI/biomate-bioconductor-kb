@@ -1,0 +1,27 @@
+{"id": "GSE22055", "accession": "GSE22055", "modality": "microarray", "method": "limma", "metadata": "GEO Series_type: Expression profiling by array; GPL570; HNSCC", "source_role": "validated live + GEO"}
+{"id": "GSE50790", "accession": "GSE50790", "modality": "microarray", "method": "limma", "metadata": "GEO Series_type: Expression profiling by array; GPL570", "source_role": "nf-core/differentialabundance affy test"}
+{"id": "E-MTAB-2967", "accession": "E-MTAB-2967", "modality": "microarray", "method": "limma", "metadata": "ArrayExpress: Affymetrix HuGene 1.0 ST, 58 arrays", "source_role": "Bioconductor maEndToEnd"}
+{"id": "GSE37382", "accession": "GSE37382", "modality": "microarray", "method": "limma", "metadata": "GEO Series_type: Expression profiling by array; GPL11532", "source_role": "refine.bio microarray"}
+{"id": "GSE37418", "accession": "GSE37418", "modality": "microarray", "method": "limma", "metadata": "GEO Series_type: Expression profiling by array; GPL570", "source_role": "refine.bio microarray DE"}
+{"id": "GSE4107", "accession": "GSE4107", "modality": "microarray", "method": "limma", "metadata": "GEO Series_type: Expression profiling by array; GPL570", "source_role": "GEO limma microarray"}
+{"id": "GSE168137", "accession": "GSE168137", "modality": "bulk_rnaseq", "method": "DESeq2", "metadata": "GEO Series_type: high throughput sequencing; GPL19057; mouse", "source_role": "BioAgent-Bench alzheimer"}
+{"id": "GSE161904", "accession": "GSE161904", "modality": "bulk_rnaseq", "method": "DESeq2", "metadata": "GEO Series_type: high throughput sequencing; GPL13112; mouse", "source_role": "BioAgent-Bench alzheimer"}
+{"id": "GSE118523", "accession": "GSE118523", "modality": "bulk_rnaseq", "method": "DESeq2", "metadata": "GEO Series_type: high throughput sequencing; GPL17021; mouse", "source_role": "BioAgent-Bench alzheimer"}
+{"id": "SRR1278968", "accession": "SRR1278968", "modality": "bulk_rnaseq", "method": "DESeq2", "metadata": "ENA library_strategy: RNA-Seq; HiSeq2000; C. parapsilosis", "source_role": "BioAgent-Bench deseq"}
+{"id": "ERR188297", "accession": "ERR188297", "modality": "bulk_rnaseq", "method": "DESeq2", "metadata": "ENA library_strategy: RNA-Seq; GEUVADIS ERP001942", "source_role": "BioAgent-Bench transcript-quant"}
+{"id": "GSE52778", "accession": "GSE52778", "modality": "bulk_rnaseq", "method": "DESeq2", "metadata": "GEO Series_type: high throughput sequencing; GPL11154; human (airway)", "source_role": "DESeq2 airway vignette"}
+{"id": "GSE18508", "accession": "GSE18508", "modality": "bulk_rnaseq", "method": "DESeq2", "metadata": "GEO Series_type: high throughput sequencing; GPL9061; Drosophila (pasilla)", "source_role": "DESeq2/DEXSeq pasilla"}
+{"id": "SRP009615", "accession": "SRP009615", "modality": "bulk_rnaseq", "method": "DESeq2", "metadata": "SRA library_strategy: RNA-Seq; K562, 12 samples", "source_role": "recount3 quickstart"}
+{"id": "SRP140558", "accession": "SRP140558", "modality": "bulk_rnaseq", "method": "DESeq2", "metadata": "SRA library_strategy: RNA-Seq; human PBMC, 62 samples", "source_role": "refine.bio RNA-seq"}
+{"id": "SRP254919", "accession": "SRP254919", "modality": "bulk_rnaseq", "method": "DESeq2", "metadata": "ENA library_strategy: RNA-Seq; mouse", "source_role": "nf-core/differentialabundance test"}
+{"id": "GSE110004", "accession": "GSE110004", "modality": "bulk_rnaseq", "method": "DESeq2", "metadata": "GEO Series_type: high throughput sequencing; S. cerevisiae", "source_role": "nf-core/rnaseq full-size"}
+{"id": "GSE214544", "accession": "GSE214544", "modality": "scrna_seq", "method": "scran_seurat_scanpy", "metadata": "GEO: 10x Genomics, Cell Ranger, GPL30173; skeletal muscle", "source_role": "BioAgent-Bench single-cell"}
+{"id": "GSE204716", "accession": "GSE204716", "modality": "scrna_seq", "method": "scran_seurat_scanpy", "metadata": "GEO: 10x Chromium 3'; GPL24676; PBMC", "source_role": "CellAtria worked example"}
+{"id": "GSE60361", "accession": "GSE60361", "modality": "scrna_seq", "method": "scran_seurat_scanpy", "metadata": "GEO: high throughput sequencing; STRT/C1; 3005 cells (Zeisel)", "source_role": "OSCA canonical"}
+{"id": "GSE63472", "accession": "GSE63472", "modality": "scrna_seq", "method": "scran_seurat_scanpy", "metadata": "GEO: high throughput sequencing; Drop-seq; retina (Macosko)", "source_role": "OSCA Drop-seq"}
+{"id": "SRR8599150", "accession": "SRR8599150", "modality": "scrna_seq", "method": "scran_seurat_scanpy", "metadata": "ENA: 10x Chromium v2; mouse retina (GSE126783)", "source_role": "nf-core/scrnaseq test"}
+{"id": "NA12878", "accession": "NA12878", "modality": "wgs_wes", "method": "GATK", "metadata": "GIAB HG001; WES (SureSelect v7) + 30X WGS; GRCh38 truth", "source_role": "BioAgent-Bench giab + nf-core/sarek"}
+{"id": "HCC1395", "accession": "HCC1395", "modality": "wgs_wes", "method": "GATK", "metadata": "SEQC2 breast-cancer tumor/normal WES cell-line pair", "source_role": "nf-core/sarek somatic test"}
+{"id": "PXD001819", "accession": "PXD001819", "modality": "ms_proteomics", "method": "quantms", "metadata": "PRIDE: yeast-UPS1 LFQ; Orbitrap Velos; DDA", "source_role": "nf-core/quantms lfq_full"}
+{"id": "PXD005486", "accession": "PXD005486", "modality": "ms_proteomics", "method": "quantms", "metadata": "PRIDE: 10-plex TMT isobaric", "source_role": "nf-core/quantms tmt_full"}
+{"id": "PXD004684", "accession": "PXD004684", "modality": "ms_proteomics", "method": "quantms", "metadata": "PRIDE: SWATH-MS DIA; Q Exactive", "source_role": "nf-core/quantms dia_full"}

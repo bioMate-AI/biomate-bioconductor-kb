@@ -1,0 +1,68 @@
+{
+  "suite": "RealBio Benchmark",
+  "repo": "realbio_benchmark",
+  "tagline": "Real-world execution benchmarks for bioinformatics AI agents",
+  "benchmarks": [
+    {
+      "name": "cross_domain_routing",
+      "items": 200,
+      "gt": "correct_workflow",
+      "task": "Given a natural-language analysis request, name the single correct WORKFLOW that should run it (targets are public nf-core pipeline names where applicable). Credit for acceptable_alts."
+    },
+    {
+      "name": "param_prefill",
+      "items": 170,
+      "gt": "expected_params",
+      "task": "Extract structured parameters from a natural-language request; do not fill parameters that were not specified (must_not_fill)."
+    },
+    {
+      "name": "protocol_thresholds",
+      "items": 100,
+      "gt": [
+        "ground_truth",
+        "expected_correct_action"
+      ],
+      "task": "Given a sequencing protocol and a generic QC threshold, decide whether the sample is biologically VALID and whether it should PASS or FAIL \u2014 vs the naive universal-threshold action."
+    },
+    {
+      "name": "autofix_benchmark",
+      "items": 100,
+      "gt": "category",
+      "task": "Given a failed pipeline run and its error log, classify the failure into one of 10 objective fix categories (genome_mismatch, resource_failure, container_error, dependency_mismatch, missing_input, param_type_error, param_scope_error, data_format_error, output_assertion_error, cloud_storage_error). A free-text 'expected_fix' reference is provided as a secondary signal."
+    },
+    {
+      "name": "workflow_generation",
+      "items": 40,
+      "gt": {
+        "any": [
+          "expected_category",
+          "key_tools"
+        ]
+      },
+      "task": "Given a research intent, select the correct analysis category (partition A) OR identify the required key tools (partition B). Both ground truths are standard and catalog-neutral."
+    },
+    {
+      "name": "boin_benchmark",
+      "items": 20,
+      "gt": "reference",
+      "task": "Given a BOIN dose-escalation scenario, produce the correct dose decision."
+    },
+    {
+      "name": "pbpk_benchmark",
+      "items": 15,
+      "gt": "reference",
+      "task": "Given a compound (SMILES), dose and route, predict PK; reference = published clinical PK values."
+    },
+    {
+      "name": "drug_discovery_e2e",
+      "items": 15,
+      "gt": [
+        "ligand_rank_order"
+      ],
+      "task": "Given a protein structure (PDB) and ligands with experimental Kd, reproduce the affinity rank order."
+    }
+  ],
+  "license": "CC-BY-4.0",
+  "version": "v1",
+  "note": "Public neutralized export for fair cross-system comparison. Internal source not included."
+}

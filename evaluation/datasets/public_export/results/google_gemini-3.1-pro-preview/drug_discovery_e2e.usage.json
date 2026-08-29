@@ -1,0 +1,16 @@
+{
+  "task": "drug_discovery_e2e",
+  "mode": null,
+  "model": "google/gemini-3.1-pro-preview",
+  "n": 15,
+  "n_with_usage": 15,
+  "input_tokens_total": 5045,
+  "output_tokens_total": 3617,
+  "input_tokens_mean": 336.3333333333333,
+  "output_tokens_mean": 241.13333333333333,
+  "latency_ms_p50": 3184,
+  "latency_ms_p95": 4743,
+  "latency_ms_mean": 3438.3333333333335,
+  "n_with_latency": 15,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

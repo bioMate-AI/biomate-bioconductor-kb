@@ -1,0 +1,16 @@
+{
+  "task": "boin_benchmark",
+  "mode": null,
+  "model": "anthropic/claude-opus-5",
+  "n": 20,
+  "n_with_usage": 20,
+  "input_tokens_total": 6908,
+  "output_tokens_total": 11758,
+  "input_tokens_mean": 345.4,
+  "output_tokens_mean": 587.9,
+  "latency_ms_p50": 13060,
+  "latency_ms_p95": 17157,
+  "latency_ms_mean": 11412.95,
+  "n_with_latency": 20,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

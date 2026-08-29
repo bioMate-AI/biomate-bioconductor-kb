@@ -1,4 +1,10 @@
 
+# 2026-08-28 — large data/caches: keep in S3, never in git (GitHub 100MB hard limit)
+# CCLE expression matrices, ontology dumps — all public / re-downloadable
+research/immune_llm_baseline/data/ccle/
+**/onto_cache/*.obo
+**/onto_cache/*.owl
+
 *~
 <*>
 *$py.class

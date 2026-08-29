@@ -1,0 +1,249 @@
+task,difficulty,n_items,method,metric,score
+routing_bare,ALL,200,Claude Opus 5,accuracy,0.615
+routing_bare,ALL,200,Gemini 3.1 Pro,accuracy,0.58
+routing_bare,ALL,200,GPT-5.6,accuracy,0.53
+routing_bare,ALL,200,GPT-5.6-luna,accuracy,0.355
+routing_bare,ALL,200,Qwen3.8-Max,accuracy,0.345
+routing_bare,ALL,200,GLM-5.2,accuracy,0.4
+routing_bare,ALL,200,Kimi K3,accuracy,0.45
+routing_bare,ALL,200,DeepSeek V4,accuracy,0.415
+routing_bare,ALL,200,BioMate,accuracy,0.965
+routing_bare,direct,125,Claude Opus 5,accuracy,0.616
+routing_bare,direct,125,Gemini 3.1 Pro,accuracy,0.592
+routing_bare,direct,125,GPT-5.6,accuracy,0.552
+routing_bare,direct,125,GPT-5.6-luna,accuracy,0.36
+routing_bare,direct,125,Qwen3.8-Max,accuracy,0.368
+routing_bare,direct,125,GLM-5.2,accuracy,0.44
+routing_bare,direct,125,Kimi K3,accuracy,0.44
+routing_bare,direct,125,DeepSeek V4,accuracy,0.448
+routing_bare,direct,125,BioMate,accuracy,0.968
+routing_bare,indirect,36,Claude Opus 5,accuracy,0.611
+routing_bare,indirect,36,Gemini 3.1 Pro,accuracy,0.556
+routing_bare,indirect,36,GPT-5.6,accuracy,0.472
+routing_bare,indirect,36,GPT-5.6-luna,accuracy,0.389
+routing_bare,indirect,36,Qwen3.8-Max,accuracy,0.278
+routing_bare,indirect,36,GLM-5.2,accuracy,0.389
+routing_bare,indirect,36,Kimi K3,accuracy,0.5
+routing_bare,indirect,36,DeepSeek V4,accuracy,0.361
+routing_bare,indirect,36,BioMate,accuracy,0.944
+routing_bare,adversarial,39,Claude Opus 5,accuracy,0.615
+routing_bare,adversarial,39,Gemini 3.1 Pro,accuracy,0.564
+routing_bare,adversarial,39,GPT-5.6,accuracy,0.513
+routing_bare,adversarial,39,GPT-5.6-luna,accuracy,0.308
+routing_bare,adversarial,39,Qwen3.8-Max,accuracy,0.333
+routing_bare,adversarial,39,GLM-5.2,accuracy,0.282
+routing_bare,adversarial,39,Kimi K3,accuracy,0.436
+routing_bare,adversarial,39,DeepSeek V4,accuracy,0.359
+routing_bare,adversarial,39,BioMate,accuracy,0.974
+routing_catalog,ALL,200,Claude Opus 5,accuracy,0.96
+routing_catalog,ALL,200,Gemini 3.1 Pro,accuracy,0.95
+routing_catalog,ALL,200,GPT-5.6,accuracy,0.93
+routing_catalog,ALL,200,GPT-5.6-luna,accuracy,0.885
+routing_catalog,ALL,200,Qwen3.8-Max,accuracy,0.935
+routing_catalog,ALL,200,GLM-5.2,accuracy,0.89
+routing_catalog,ALL,200,Kimi K3,accuracy,0.86
+routing_catalog,ALL,200,DeepSeek V4,accuracy,0.8
+routing_catalog,ALL,200,Biomni (A1),accuracy,0.95
+routing_catalog,ALL,200,BioMate,accuracy,0.965
+routing_catalog,direct,125,Claude Opus 5,accuracy,0.968
+routing_catalog,direct,125,Gemini 3.1 Pro,accuracy,0.968
+routing_catalog,direct,125,GPT-5.6,accuracy,0.952
+routing_catalog,direct,125,GPT-5.6-luna,accuracy,0.912
+routing_catalog,direct,125,Qwen3.8-Max,accuracy,0.944
+routing_catalog,direct,125,GLM-5.2,accuracy,0.88
+routing_catalog,direct,125,Kimi K3,accuracy,0.84
+routing_catalog,direct,125,DeepSeek V4,accuracy,0.784
+routing_catalog,direct,125,Biomni (A1),accuracy,0.95
+routing_catalog,direct,125,BioMate,accuracy,0.968
+routing_catalog,indirect,36,Claude Opus 5,accuracy,0.944
+routing_catalog,indirect,36,Gemini 3.1 Pro,accuracy,0.944
+routing_catalog,indirect,36,GPT-5.6,accuracy,0.917
+routing_catalog,indirect,36,GPT-5.6-luna,accuracy,0.889
+routing_catalog,indirect,36,Qwen3.8-Max,accuracy,0.917
+routing_catalog,indirect,36,GLM-5.2,accuracy,0.972
+routing_catalog,indirect,36,Kimi K3,accuracy,0.917
+routing_catalog,indirect,36,DeepSeek V4,accuracy,0.861
+routing_catalog,indirect,36,Biomni (A1),accuracy,0.909
+routing_catalog,indirect,36,BioMate,accuracy,0.944
+routing_catalog,adversarial,39,Claude Opus 5,accuracy,0.949
+routing_catalog,adversarial,39,Gemini 3.1 Pro,accuracy,0.897
+routing_catalog,adversarial,39,GPT-5.6,accuracy,0.872
+routing_catalog,adversarial,39,GPT-5.6-luna,accuracy,0.795
+routing_catalog,adversarial,39,Qwen3.8-Max,accuracy,0.923
+routing_catalog,adversarial,39,GLM-5.2,accuracy,0.846
+routing_catalog,adversarial,39,Kimi K3,accuracy,0.872
+routing_catalog,adversarial,39,DeepSeek V4,accuracy,0.795
+routing_catalog,adversarial,39,Biomni (A1),accuracy,1.0
+routing_catalog,adversarial,39,BioMate,accuracy,0.974
+param_prefill,ALL,170,Claude Opus 5,param_f1,0.757
+param_prefill,ALL,170,Gemini 3.1 Pro,param_f1,0.693
+param_prefill,ALL,170,GPT-5.6,param_f1,0.671
+param_prefill,ALL,170,GPT-5.6-luna,param_f1,0.624
+param_prefill,ALL,170,Qwen3.8-Max,param_f1,0.692
+param_prefill,ALL,170,GLM-5.2,param_f1,0.641
+param_prefill,ALL,170,Kimi K3,param_f1,0.628
+param_prefill,ALL,170,DeepSeek V4,param_f1,0.621
+param_prefill,easy,61,Claude Opus 5,param_f1,0.836
+param_prefill,easy,61,Gemini 3.1 Pro,param_f1,0.762
+param_prefill,easy,61,GPT-5.6,param_f1,0.729
+param_prefill,easy,61,GPT-5.6-luna,param_f1,0.647
+param_prefill,easy,61,Qwen3.8-Max,param_f1,0.741
+param_prefill,easy,61,GLM-5.2,param_f1,0.647
+param_prefill,easy,61,Kimi K3,param_f1,0.675
+param_prefill,easy,61,DeepSeek V4,param_f1,0.641
+param_prefill,medium,72,Claude Opus 5,param_f1,0.745
+param_prefill,medium,72,Gemini 3.1 Pro,param_f1,0.669
+param_prefill,medium,72,GPT-5.6,param_f1,0.643
+param_prefill,medium,72,GPT-5.6-luna,param_f1,0.611
+param_prefill,medium,72,Qwen3.8-Max,param_f1,0.677
+param_prefill,medium,72,GLM-5.2,param_f1,0.635
+param_prefill,medium,72,Kimi K3,param_f1,0.599
+param_prefill,medium,72,DeepSeek V4,param_f1,0.62
+param_prefill,hard,37,Claude Opus 5,param_f1,0.677
+param_prefill,hard,37,Gemini 3.1 Pro,param_f1,0.65
+param_prefill,hard,37,GPT-5.6,param_f1,0.651
+param_prefill,hard,37,GPT-5.6-luna,param_f1,0.617
+param_prefill,hard,37,Qwen3.8-Max,param_f1,0.656
+param_prefill,hard,37,GLM-5.2,param_f1,0.647
+param_prefill,hard,37,Kimi K3,param_f1,0.623
+param_prefill,hard,37,DeepSeek V4,param_f1,0.597
+workflow_gen,ALL,40,Claude Opus 5,accuracy,0.5
+workflow_gen,ALL,40,Gemini 3.1 Pro,accuracy,0.5
+workflow_gen,ALL,40,GPT-5.6,accuracy,0.5
+workflow_gen,ALL,40,GPT-5.6-luna,accuracy,0.5
+workflow_gen,ALL,40,Qwen3.8-Max,accuracy,0.5
+workflow_gen,ALL,40,GLM-5.2,accuracy,0.5
+workflow_gen,ALL,40,Kimi K3,accuracy,0.45
+workflow_gen,ALL,40,DeepSeek V4,accuracy,0.5
+workflow_gen,easy,6,Claude Opus 5,accuracy,1.0
+workflow_gen,easy,6,Gemini 3.1 Pro,accuracy,1.0
+workflow_gen,easy,6,GPT-5.6,accuracy,1.0
+workflow_gen,easy,6,GPT-5.6-luna,accuracy,1.0
+workflow_gen,easy,6,Qwen3.8-Max,accuracy,1.0
+workflow_gen,easy,6,GLM-5.2,accuracy,1.0
+workflow_gen,easy,6,Kimi K3,accuracy,0.833
+workflow_gen,easy,6,DeepSeek V4,accuracy,1.0
+workflow_gen,medium,16,Claude Opus 5,accuracy,0.812
+workflow_gen,medium,16,Gemini 3.1 Pro,accuracy,0.812
+workflow_gen,medium,16,GPT-5.6,accuracy,0.812
+workflow_gen,medium,16,GPT-5.6-luna,accuracy,0.812
+workflow_gen,medium,16,Qwen3.8-Max,accuracy,0.812
+workflow_gen,medium,16,GLM-5.2,accuracy,0.812
+workflow_gen,medium,16,Kimi K3,accuracy,0.75
+workflow_gen,medium,16,DeepSeek V4,accuracy,0.812
+workflow_gen,hard,18,Claude Opus 5,accuracy,0.056
+workflow_gen,hard,18,Gemini 3.1 Pro,accuracy,0.056
+workflow_gen,hard,18,GPT-5.6,accuracy,0.056
+workflow_gen,hard,18,GPT-5.6-luna,accuracy,0.056
+workflow_gen,hard,18,Qwen3.8-Max,accuracy,0.056
+workflow_gen,hard,18,GLM-5.2,accuracy,0.056
+workflow_gen,hard,18,Kimi K3,accuracy,0.056
+workflow_gen,hard,18,DeepSeek V4,accuracy,0.056
+autofix,ALL,100,Claude Opus 5,fix_category_accuracy,0.87
+autofix,ALL,100,Gemini 3.1 Pro,fix_category_accuracy,0.88
+autofix,ALL,100,GPT-5.6,fix_category_accuracy,0.86
+autofix,ALL,100,GPT-5.6-luna,fix_category_accuracy,0.83
+autofix,ALL,100,Qwen3.8-Max,fix_category_accuracy,0.86
+autofix,ALL,100,GLM-5.2,fix_category_accuracy,0.83
+autofix,ALL,100,Kimi K3,fix_category_accuracy,0.77
+autofix,ALL,100,DeepSeek V4,fix_category_accuracy,0.8
+autofix,easy,54,Claude Opus 5,fix_category_accuracy,0.833
+autofix,easy,54,Gemini 3.1 Pro,fix_category_accuracy,0.852
+autofix,easy,54,GPT-5.6,fix_category_accuracy,0.833
+autofix,easy,54,GPT-5.6-luna,fix_category_accuracy,0.833
+autofix,easy,54,Qwen3.8-Max,fix_category_accuracy,0.833
+autofix,easy,54,GLM-5.2,fix_category_accuracy,0.815
+autofix,easy,54,Kimi K3,fix_category_accuracy,0.796
+autofix,easy,54,DeepSeek V4,fix_category_accuracy,0.796
+autofix,medium,40,Claude Opus 5,fix_category_accuracy,0.9
+autofix,medium,40,Gemini 3.1 Pro,fix_category_accuracy,0.9
+autofix,medium,40,GPT-5.6,fix_category_accuracy,0.875
+autofix,medium,40,GPT-5.6-luna,fix_category_accuracy,0.825
+autofix,medium,40,Qwen3.8-Max,fix_category_accuracy,0.875
+autofix,medium,40,GLM-5.2,fix_category_accuracy,0.85
+autofix,medium,40,Kimi K3,fix_category_accuracy,0.75
+autofix,medium,40,DeepSeek V4,fix_category_accuracy,0.8
+autofix,hard,6,Claude Opus 5,fix_category_accuracy,1.0
+autofix,hard,6,Gemini 3.1 Pro,fix_category_accuracy,1.0
+autofix,hard,6,GPT-5.6,fix_category_accuracy,1.0
+autofix,hard,6,GPT-5.6-luna,fix_category_accuracy,0.833
+autofix,hard,6,Qwen3.8-Max,fix_category_accuracy,1.0
+autofix,hard,6,GLM-5.2,fix_category_accuracy,0.833
+autofix,hard,6,Kimi K3,fix_category_accuracy,0.667
+autofix,hard,6,DeepSeek V4,fix_category_accuracy,0.833
+pbpk,ALL,15,Claude Opus 5,within_2fold,0.133
+pbpk,ALL,15,Gemini 3.1 Pro,within_2fold,0.0
+pbpk,ALL,15,GPT-5.6,within_2fold,0.2
+pbpk,ALL,15,GPT-5.6-luna,within_2fold,0.2
+pbpk,ALL,15,Qwen3.8-Max,within_2fold,0.0
+pbpk,ALL,15,GLM-5.2,within_2fold,0.0
+pbpk,ALL,15,Kimi K3,within_2fold,0.0
+pbpk,ALL,15,DeepSeek V4,within_2fold,0.067
+pbpk,ALL,15,Biomni (A1),within_2fold,0.0
+pbpk,ALL,15,BioMate,within_2fold,0.2
+pbpk,easy,3,Claude Opus 5,within_2fold,0.0
+pbpk,easy,3,Gemini 3.1 Pro,within_2fold,0.0
+pbpk,easy,3,GPT-5.6,within_2fold,0.333
+pbpk,easy,3,GPT-5.6-luna,within_2fold,0.333
+pbpk,easy,3,Qwen3.8-Max,within_2fold,0.0
+pbpk,easy,3,GLM-5.2,within_2fold,0.0
+pbpk,easy,3,Kimi K3,within_2fold,0.0
+pbpk,easy,3,DeepSeek V4,within_2fold,0.0
+pbpk,easy,3,Biomni (A1),within_2fold,0.0
+pbpk,easy,3,BioMate,within_2fold,0.333
+pbpk,medium,7,Claude Opus 5,within_2fold,0.143
+pbpk,medium,7,Gemini 3.1 Pro,within_2fold,0.0
+pbpk,medium,7,GPT-5.6,within_2fold,0.143
+pbpk,medium,7,GPT-5.6-luna,within_2fold,0.143
+pbpk,medium,7,Qwen3.8-Max,within_2fold,0.0
+pbpk,medium,7,GLM-5.2,within_2fold,0.0
+pbpk,medium,7,Kimi K3,within_2fold,0.0
+pbpk,medium,7,DeepSeek V4,within_2fold,0.143
+pbpk,medium,7,Biomni (A1),within_2fold,0.0
+pbpk,medium,7,BioMate,within_2fold,0.0
+pbpk,hard,5,Claude Opus 5,within_2fold,0.2
+pbpk,hard,5,Gemini 3.1 Pro,within_2fold,0.0
+pbpk,hard,5,GPT-5.6,within_2fold,0.2
+pbpk,hard,5,GPT-5.6-luna,within_2fold,0.2
+pbpk,hard,5,Qwen3.8-Max,within_2fold,0.0
+pbpk,hard,5,GLM-5.2,within_2fold,0.0
+pbpk,hard,5,Kimi K3,within_2fold,0.0
+pbpk,hard,5,DeepSeek V4,within_2fold,0.0
+pbpk,hard,5,Biomni (A1),within_2fold,0.0
+pbpk,hard,5,BioMate,within_2fold,0.4
+boin,ALL,20,Claude Opus 5,accuracy,0.444
+boin,ALL,20,Gemini 3.1 Pro,accuracy,0.278
+boin,ALL,20,GPT-5.6,accuracy,0.5
+boin,ALL,20,GPT-5.6-luna,accuracy,0.389
+boin,ALL,20,Qwen3.8-Max,accuracy,0.111
+boin,ALL,20,GLM-5.2,accuracy,0.111
+boin,ALL,20,Kimi K3,accuracy,0.167
+boin,ALL,20,DeepSeek V4,accuracy,0.167
+boin,ALL,20,Biomni (A1),accuracy,0.5
+boin,easy,4,Claude Opus 5,accuracy,0.0
+boin,easy,4,Gemini 3.1 Pro,accuracy,0.0
+boin,easy,4,GPT-5.6,accuracy,0.75
+boin,easy,4,GPT-5.6-luna,accuracy,0.5
+boin,easy,4,Qwen3.8-Max,accuracy,0.0
+boin,easy,4,GLM-5.2,accuracy,0.0
+boin,easy,4,Kimi K3,accuracy,0.0
+boin,easy,4,DeepSeek V4,accuracy,0.25
+boin,easy,4,Biomni (A1),accuracy,0.25
+boin,medium,11,Claude Opus 5,accuracy,0.455
+boin,medium,11,Gemini 3.1 Pro,accuracy,0.364
+boin,medium,11,GPT-5.6,accuracy,0.273
+boin,medium,11,GPT-5.6-luna,accuracy,0.182
+boin,medium,11,Qwen3.8-Max,accuracy,0.091
+boin,medium,11,GLM-5.2,accuracy,0.0
+boin,medium,11,Kimi K3,accuracy,0.182
+boin,medium,11,DeepSeek V4,accuracy,0.091
+boin,medium,11,Biomni (A1),accuracy,0.455
+boin,hard,5,Claude Opus 5,accuracy,1.0
+boin,hard,5,Gemini 3.1 Pro,accuracy,0.333
+boin,hard,5,GPT-5.6,accuracy,1.0
+boin,hard,5,GPT-5.6-luna,accuracy,1.0
+boin,hard,5,Qwen3.8-Max,accuracy,0.333
+boin,hard,5,GLM-5.2,accuracy,0.667
+boin,hard,5,Kimi K3,accuracy,0.333
+boin,hard,5,DeepSeek V4,accuracy,0.333
+boin,hard,5,Biomni (A1),accuracy,1.0

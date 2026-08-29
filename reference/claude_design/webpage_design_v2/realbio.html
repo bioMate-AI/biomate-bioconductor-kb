@@ -38,7 +38,7 @@
       </nav>
       <span class="bm-eyebrow">Open cross-system benchmark · drug development & genomics</span>
       <h1 class="bm-display" style="margin-top:1rem;margin-bottom:1.25rem;">RealBio: can an AI agent actually <em>run</em> a biomedical pipeline — not just discuss it?</h1>
-      <p class="bm-lead" style="max-width:800px;">Modern drug discovery and genomics run on multi-step computational pipelines — pick the right analysis, configure it, quality-control the data, model the drug, choose a safe trial dose. Teams increasingly want an <strong>AI agent to drive them</strong>. RealBio asks the blunt question: can an agent get the <em>objectively-checkable</em> answer right? <strong>505 fixed public items across 5 real drug-development / genomics tasks</strong>, each with published ground truth, graded by <strong>one shared open scorer</strong> (<code>score.py</code> — deterministic, no AI judge). The finding: frontier LLMs know biology but <strong>fail at execution</strong> — worst on the clinical-pharmacology tasks (predicting drug exposure, choosing a trial dose) — while a purpose-built platform (BioMate) leads every task.</p>
+      <p class="bm-lead" style="max-width:800px;">Modern drug discovery and genomics run on multi-step computational pipelines — pick the right analysis, configure it, quality-control the data, model the drug, choose a safe trial dose. Teams increasingly want an <strong>AI agent to drive them</strong>. RealBio asks the blunt question: can an agent get the <em>objectively-checkable</em> answer right? <strong>505 fixed public items across 5 real drug-development / genomics tasks</strong>, each with published ground truth, graded by <strong>one shared open scorer</strong> (<code>score.py</code> — deterministic, no AI judge). The finding: frontier LLMs know biology but <strong>fail at execution</strong> — worst on the clinical-pharmacology tasks (predicting drug exposure, choosing a trial dose) — while a purpose-built platform (BioMate) leads the orchestration tasks decisively — though the hardest execution tasks (drug-exposure, dose-finding) are difficult for every system, BioMate included.</p>
       <p style="margin-top:1.5rem;">
         <a class="bm-btn" href="https://github.com/bioMate-AI/realbio-benchmark">Data + scorer on GitHub &rarr;</a>
         <a class="bm-btn bm-btn-ghost" href="https://huggingface.co/datasets/YaoyunZhangHug/realbio_benchmark" style="margin-left:.5rem;">Dataset on HuggingFace</a>
@@ -85,13 +85,13 @@
   <section class="bm-section bm-bg-2" id="leaderboard">
     <div class="bm-section-inner">
       <span class="bm-eyebrow">Cross-system leaderboard</span>
-      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">BioMate leads every task</h2>
-      <p class="bm-body" style="max-width:820px;">On the same fixed items and the same open scorer, <strong>BioMate is first on all five tasks</strong> — routing <strong>0.965</strong>, parameter-F1 <strong>0.848</strong>, protocol-QC <strong>0.925</strong>, PBPK <strong>1.00</strong>, BOIN <strong>0.80</strong>. The runner-up differs by task (Biomni ties routing; Claude Opus 5 is second on parameters; Gemini 3.1 Pro second on protocol), so the lead is broad, not a one-task artifact. The clearest pattern among the LLMs: used the way they are actually deployed, they fail <em>execution</em> tasks — PBPK simulation (mean 0.08 within-2-fold) and deterministic BOIN dose-finding (mean 0.24 exact-MTD) — while doing well on knowledge-driven extraction.</p>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">BioMate leads orchestration — and the execution tasks are hard for everyone</h2>
+      <p class="bm-body" style="max-width:820px;">On the <strong>routing</strong> task, measured on the identical 200 items and the same open scorer, <strong>BioMate scores 0.965 vs the best directly-used LLM's 0.615</strong> — a decisive orchestration lead (parameter-F1 <strong>0.848</strong> and protocol-QC <strong>0.925</strong> come from BioMate's own harness, the source from which RealBio was derived; <em>n</em> differs). The <em>execution</em> tasks are hard for <em>everyone</em>: on the <strong>same 15 PBPK items</strong>, BioMate scores <strong>0.20 within-2-fold — a tie with the best LLM (GPT-5.6, 0.20)</strong> and above the LLM mean (0.08), <em>not</em> a lead (its generic PBPK workflow systematically over-predicts C<sub>max</sub>). Same-item BOIN is pending — the 0.80 shown is BioMate's internal <em>n</em>=60 benchmark, a related but different item set. The clearest pattern: LLMs used the way they are actually deployed collapse on execution — PBPK (mean 0.08 within-2-fold) and BOIN (mean 0.24 exact-MTD) — while doing well on knowledge-driven extraction.</p>
       <div style="overflow-x:auto;margin-top:1.25rem;">
         <table class="bm-table" style="min-width:720px;">
           <thead><tr><th>System</th><th>Routing</th><th>Param&nbsp;(F1)</th><th>Protocol&nbsp;QC</th><th>PBPK&nbsp;(2&times;)</th><th>BOIN&nbsp;(MTD)</th></tr></thead>
           <tbody>
-            <tr><td><strong>BioMate</strong> (product)</td><td><strong>0.965</strong></td><td><strong>0.848</strong></td><td><strong>0.925</strong></td><td><strong>1.00</strong></td><td><strong>0.80</strong></td></tr>
+            <tr><td><strong>BioMate</strong> (product)</td><td><strong>0.965</strong></td><td>0.848†</td><td>0.925†</td><td>0.20</td><td>0.80§</td></tr>
             <tr><td>Claude Opus 5</td><td>0.615</td><td>0.757</td><td>0.330</td><td>0.133</td><td>0.444</td></tr>
             <tr><td>Gemini 3.1 Pro</td><td>0.580</td><td>0.693</td><td>0.630</td><td>0.000</td><td>0.278</td></tr>
             <tr><td>GPT-5.6</td><td>0.530</td><td>0.671</td><td>0.460</td><td>0.200</td><td>0.500</td></tr>
@@ -103,15 +103,40 @@
           </tbody>
         </table>
       </div>
-      <p class="bm-metric-note" style="margin-top:.75rem;max-width:820px;">Every cell is a same-item, same-scorer result that re-scores from the committed prediction files under <code>results/</code>.</p>
+      <p class="bm-metric-note" style="margin-top:.75rem;max-width:820px;">Every LLM and Biomni cell is a same-item, same-scorer result re-scoring from the committed prediction files under <code>results/</code>. For BioMate, <strong>routing (0.965) and PBPK (0.20) are same-item</strong>; <strong>†</strong> parameter-F1 and protocol-QC are from BioMate's own harness — the source from which RealBio was derived (<em>n</em> = 115 / 20, differs from the LLM sweep); <strong>§</strong> BOIN 0.80 is BioMate's internal <em>n</em>=60 dose-finding benchmark (related, different items) — the same-item BOIN run is pending. No cross-harness number is presented as a same-item head-to-head.</p>
 
-      <h3 class="bm-h3" style="margin-top:2rem;margin-bottom:.5rem;">Efficiency &amp; engine (measured)</h3>
+      <h3 class="bm-h3" style="margin-top:2.25rem;margin-bottom:.5rem;">Where does it break? — performance by item difficulty</h3>
+      <p class="bm-body" style="max-width:820px;">Every item carries a difficulty label, so the single leaderboard number resolves into <em>where</em> each system holds and where it breaks. Two cuts tell the story (full task&nbsp;×&nbsp;difficulty&nbsp;×&nbsp;method tables: <code>difficulty_breakdown.csv</code> on GitHub).</p>
+      <p class="bm-metric-note" style="max-width:820px;margin-top:.75rem;"><strong>Routing, by phrasing difficulty — the knowledge engine is the mechanism.</strong> Hand the <em>same</em> LLM BioMate's curated catalog and its routing roughly <strong>doubles</strong> at every difficulty; BioMate sits at that catalog-augmented level and stays flat even on adversarial phrasings.</p>
+      <div style="overflow-x:auto;margin-top:.75rem;">
+        <table class="bm-table" style="min-width:560px;">
+          <thead><tr><th>Routing accuracy</th><th>direct (125)</th><th>indirect (36)</th><th>adversarial (39)</th></tr></thead>
+          <tbody>
+            <tr><td>8 LLMs used directly (mean)</td><td>0.48</td><td>0.44</td><td>0.43</td></tr>
+            <tr><td>Same 8 LLMs <strong>+ BioMate catalog</strong> (mean)</td><td>0.91</td><td>0.92</td><td>0.87</td></tr>
+            <tr><td><strong>BioMate</strong></td><td><strong>0.97</strong></td><td><strong>0.94</strong></td><td><strong>0.97</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="bm-metric-note" style="max-width:820px;margin-top:1.25rem;"><strong>The harder tiers are genuinely harder — for everyone.</strong> Parameter pre-fill degrades smoothly with difficulty; workflow selection falls off a cliff — every directly-used LLM solves the easy tier and essentially none solve the hard tier.</p>
+      <div style="overflow-x:auto;margin-top:.75rem;">
+        <table class="bm-table" style="min-width:560px;">
+          <thead><tr><th>Best directly-used LLM</th><th>easy</th><th>medium</th><th>hard</th></tr></thead>
+          <tbody>
+            <tr><td>Parameter pre-fill (F1)</td><td>0.84</td><td>0.75</td><td>0.68</td></tr>
+            <tr><td>Workflow selection (accuracy)</td><td>1.00</td><td>0.81</td><td><strong>0.06</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="bm-metric-note" style="margin-top:.6rem;max-width:820px;">Small per-tier samples on the execution tasks (PBPK 3/7/5, BOIN 4/11/5) — read those directional, not precise; the routing (n=200) and parameter (n=170) cuts are well-powered. Method: the official <code>score.py</code> applied to each difficulty bucket (no metric reimplemented).</p>
+
+      <h3 class="bm-h3" style="margin-top:2.25rem;margin-bottom:.5rem;">Efficiency &amp; engine (measured)</h3>
       <p class="bm-body" style="max-width:820px;"><strong>Latency</strong> below is the <strong>routing</strong> task (same 200 items) — the one metric measured identically for every system, so the only clean head-to-head. Cost is reported separately, because no single task logged tokens for all systems.</p>
       <div style="overflow-x:auto;margin-top:1rem;">
         <table class="bm-table" style="min-width:640px;">
           <thead><tr><th>System</th><th>Routing latency (median)</th><th>Engine</th></tr></thead>
           <tbody>
-            <tr><td><strong>BioMate</strong> (product)</td><td><strong>2.3 s</strong></td><td>Mixture of LLMs — primary Claude Sonnet 4.5; secondary Claude Haiku 4.5, Gemini 3.5 Flash, Gemini 3.1 Pro, GPT-5.6-luna</td></tr>
+            <tr><td><strong>BioMate</strong> (product)</td><td><strong>2.3 s</strong></td><td><strong>Large-scale biomedical knowledge engine</strong> — a curated catalog of <strong>2,400+ indexed tools &amp; workflows across 34 domains</strong> with a retrieval/routing layer — <em>on top of</em> a mixture of LLMs (primary Claude Sonnet 4.5; secondary Claude Haiku 4.5, Gemini 3.5 Flash / 3.1 Pro, GPT-5.6-luna). The catalog, not the model, is the differentiator: handed the same catalog, a frontier LLM's routing jumps <strong>~+35–40&nbsp;pp</strong> (bare vs. catalog, measured).</td></tr>
             <tr><td>Claude Opus 5</td><td>2.7 s</td><td>Anthropic Claude Opus 5</td></tr>
             <tr><td>Gemini 3.1 Pro</td><td>3.6 s</td><td>Google Gemini 3.1 Pro</td></tr>
             <tr><td>GPT-5.6</td><td>&mdash; (subset only)</td><td>OpenAI GPT-5.6</td></tr>
@@ -161,6 +186,5 @@
       <a class="bm-btn bm-btn-ghost" href="https://huggingface.co/datasets/YaoyunZhangHug/realbio_benchmark" style="margin-left:.5rem;">HuggingFace dataset</a>
     </div>
   </section>
-  <script src="shell.js?v=20260609b"></script>
 </body>
 </html>

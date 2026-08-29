@@ -1,0 +1,16 @@
+{
+  "task": "drug_discovery_e2e",
+  "mode": null,
+  "model": "moonshotai/kimi-k3",
+  "n": 15,
+  "n_with_usage": 15,
+  "input_tokens_total": 6036,
+  "output_tokens_total": 2770,
+  "input_tokens_mean": 402.4,
+  "output_tokens_mean": 184.66666666666666,
+  "latency_ms_p50": 2557,
+  "latency_ms_p95": 3891,
+  "latency_ms_mean": 2694.733333333333,
+  "n_with_latency": 15,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

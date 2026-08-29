@@ -1,0 +1,16 @@
+{
+  "task": "drug_discovery_e2e",
+  "mode": null,
+  "model": "anthropic/claude-opus-5",
+  "n": 15,
+  "n_with_usage": 15,
+  "input_tokens_total": 7295,
+  "output_tokens_total": 209,
+  "input_tokens_mean": 486.3333333333333,
+  "output_tokens_mean": 13.933333333333334,
+  "latency_ms_p50": 2254,
+  "latency_ms_p95": 2633,
+  "latency_ms_mean": 2440.4666666666667,
+  "n_with_latency": 15,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

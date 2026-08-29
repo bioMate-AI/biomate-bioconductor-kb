@@ -1,0 +1,15 @@
+{"id": "sys_001", "prediction": [3, 2, 1], "prompt_tokens": 289, "completion_tokens": 13, "latency_ms": 2180}
+{"id": "sys_002", "prediction": [2, 1, 3], "prompt_tokens": 321, "completion_tokens": 13, "latency_ms": 831}
+{"id": "sys_003", "prediction": [3, 2, 1], "prompt_tokens": 295, "completion_tokens": 13, "latency_ms": 1076}
+{"id": "sys_004", "prediction": [1, 2, 3], "prompt_tokens": 334, "completion_tokens": 13, "latency_ms": 1895}
+{"id": "sys_005", "prediction": [3, 1, 2], "prompt_tokens": 313, "completion_tokens": 13, "latency_ms": 1171}
+{"id": "sys_006", "prediction": [2, 1, 3], "prompt_tokens": 369, "completion_tokens": 13, "latency_ms": 1214}
+{"id": "sys_007", "prediction": [1, 2, 3], "prompt_tokens": 338, "completion_tokens": 13, "latency_ms": 2062}
+{"id": "sys_008", "prediction": [1, 2, 3], "prompt_tokens": 329, "completion_tokens": 13, "latency_ms": 870}
+{"id": "sys_009", "prediction": [3, 1, 2], "prompt_tokens": 270, "completion_tokens": 13, "latency_ms": 1154}
+{"id": "sys_010", "prediction": [1, 3, 2], "prompt_tokens": 306, "completion_tokens": 13, "latency_ms": 1100}
+{"id": "sys_011", "prediction": [1, 2, 3], "prompt_tokens": 301, "completion_tokens": 13, "latency_ms": 888}
+{"id": "sys_012", "prediction": [3, 1, 2], "prompt_tokens": 320, "completion_tokens": 13, "latency_ms": 981}
+{"id": "sys_013", "prediction": [1, 3, 2], "prompt_tokens": 299, "completion_tokens": 13, "latency_ms": 1043}
+{"id": "sys_014", "prediction": [1, 2, 3], "prompt_tokens": 385, "completion_tokens": 13, "latency_ms": 1157}
+{"id": "sys_015", "prediction": [1, 2, 3], "prompt_tokens": 346, "completion_tokens": 13, "latency_ms": 1151}

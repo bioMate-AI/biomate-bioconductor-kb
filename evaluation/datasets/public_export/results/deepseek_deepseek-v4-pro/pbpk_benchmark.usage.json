@@ -1,0 +1,16 @@
+{
+  "task": "pbpk_benchmark",
+  "mode": null,
+  "model": "deepseek/deepseek-v4-pro",
+  "n": 15,
+  "n_with_usage": 15,
+  "input_tokens_total": 2312,
+  "output_tokens_total": 24674,
+  "input_tokens_mean": 154.13333333333333,
+  "output_tokens_mean": 1644.9333333333334,
+  "latency_ms_p50": 32934,
+  "latency_ms_p95": 59252,
+  "latency_ms_mean": 32255.866666666665,
+  "n_with_latency": 15,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

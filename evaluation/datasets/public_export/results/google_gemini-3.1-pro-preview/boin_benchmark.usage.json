@@ -1,0 +1,16 @@
+{
+  "task": "boin_benchmark",
+  "mode": null,
+  "model": "google/gemini-3.1-pro-preview",
+  "n": 20,
+  "n_with_usage": 20,
+  "input_tokens_total": 5195,
+  "output_tokens_total": 27731,
+  "input_tokens_mean": 259.75,
+  "output_tokens_mean": 1386.55,
+  "latency_ms_p50": 14199,
+  "latency_ms_p95": 15376,
+  "latency_ms_mean": 11038.45,
+  "n_with_latency": 20,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

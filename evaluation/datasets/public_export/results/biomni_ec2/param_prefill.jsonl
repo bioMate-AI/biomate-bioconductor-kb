@@ -1,0 +1,40 @@
+{"id": "pf_001", "prediction": {"genome": "GRCh38"}, "latency_ms": 4213}
+{"id": "pf_002", "prediction": {}, "latency_ms": null}
+{"id": "pf_003", "prediction": {"genome": "mRatBN7.2"}, "latency_ms": 7890}
+{"id": "pf_004", "prediction": {"genome": "GRCz11"}, "latency_ms": 4751}
+{"id": "pf_005", "prediction": {"genome": "dm6"}, "latency_ms": 4537}
+{"id": "pf_006", "prediction": {"genome": "WBcel235"}, "latency_ms": 6025}
+{"id": "pf_007", "prediction": {"genome": "sacCer3"}, "latency_ms": 5135}
+{"id": "pf_008", "prediction": {"genome": "TAIR10"}, "latency_ms": 4371}
+{"id": "pf_009", "prediction": {"genome": "GRCh38"}, "latency_ms": 6959}
+{"id": "pf_010", "prediction": {"genome": "GRCh38"}, "latency_ms": 7112}
+{"id": "pf_011", "prediction": {}, "latency_ms": null}
+{"id": "pf_012", "prediction": {"genome": "GRCm39"}, "latency_ms": 7759}
+{"id": "pf_013", "prediction": {"genome": "GRCm39"}, "latency_ms": 6373}
+{"id": "pf_014", "prediction": {}, "latency_ms": null}
+{"id": "pf_015", "prediction": {"genome": "GRCh38"}, "latency_ms": 3863}
+{"id": "pf_016", "prediction": {"genome": "xenLae2"}, "latency_ms": 7352}
+{"id": "pf_017", "prediction": {"genome": "GRCh38"}, "latency_ms": 5647}
+{"id": "pf_018", "prediction": {}, "latency_ms": null}
+{"id": "pf_019", "prediction": {"genome": "GRCh38"}, "latency_ms": 5285}
+{"id": "pf_020", "prediction": {}, "latency_ms": null}
+{"id": "pf_021", "prediction": {"genome": "GRCh38", "strandedness": "reverse"}, "latency_ms": 6116}
+{"id": "pf_022", "prediction": {"strandedness": "reverse"}, "latency_ms": 8145}
+{"id": "pf_023", "prediction": {}, "latency_ms": null}
+{"id": "pf_024", "prediction": {"strandedness": "reverse"}, "latency_ms": 3953}
+{"id": "pf_025", "prediction": {"strandedness": "unstranded"}, "latency_ms": 3553}
+{"id": "pf_026", "prediction": {"strandedness": "unstranded"}, "latency_ms": 4822}
+{"id": "pf_027", "prediction": {}, "latency_ms": null}
+{"id": "pf_028", "prediction": {}, "latency_ms": null}
+{"id": "pf_029", "prediction": {"strandedness": "unstranded"}, "latency_ms": 3482}
+{"id": "pf_030", "prediction": {}, "latency_ms": null}
+{"id": "pf_031", "prediction": {"strandedness": "unstranded"}, "latency_ms": 5903}
+{"id": "pf_032", "prediction": {"strandedness": "reverse"}, "latency_ms": 7486}
+{"id": "pf_033", "prediction": {}, "latency_ms": null}
+{"id": "pf_034", "prediction": {"strandedness": "unstranded"}, "latency_ms": 7407}
+{"id": "pf_035", "prediction": {"strandedness": "reverse"}, "latency_ms": 5618}
+{"id": "pf_036", "prediction": {}, "latency_ms": null}
+{"id": "pf_037", "prediction": {"input": "DNA", "tools": "GATK"}, "latency_ms": 5234}
+{"id": "pf_038", "prediction": {"joint_germline": true}, "latency_ms": 4540}
+{"id": "pf_039", "prediction": {"wes": true}, "latency_ms": 3383}
+{"id": "pf_040", "prediction": {"remove_doublets": true}, "latency_ms": 7333}

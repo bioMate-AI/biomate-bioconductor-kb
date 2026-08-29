@@ -1,0 +1,16 @@
+{
+  "task": "pbpk_benchmark",
+  "mode": null,
+  "model": "openai/gpt-5.6",
+  "n": 15,
+  "n_with_usage": 15,
+  "input_tokens_total": 2206,
+  "output_tokens_total": 17359,
+  "input_tokens_mean": 147.06666666666666,
+  "output_tokens_mean": 1157.2666666666667,
+  "latency_ms_p50": 26256,
+  "latency_ms_p95": 33706,
+  "latency_ms_mean": 24022.6,
+  "n_with_latency": 15,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

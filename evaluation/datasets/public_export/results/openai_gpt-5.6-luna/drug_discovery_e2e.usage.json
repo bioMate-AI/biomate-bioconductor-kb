@@ -1,0 +1,16 @@
+{
+  "task": "drug_discovery_e2e",
+  "mode": null,
+  "model": "openai/gpt-5.6-luna",
+  "n": 15,
+  "n_with_usage": 15,
+  "input_tokens_total": 4815,
+  "output_tokens_total": 806,
+  "input_tokens_mean": 321.0,
+  "output_tokens_mean": 53.733333333333334,
+  "latency_ms_p50": 2162,
+  "latency_ms_p95": 2697,
+  "latency_ms_mean": 2236.6,
+  "n_with_latency": 15,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

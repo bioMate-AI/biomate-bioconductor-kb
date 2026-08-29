@@ -1,0 +1,16 @@
+{
+  "task": "drug_discovery_e2e",
+  "mode": null,
+  "model": "qwen/qwen3.8-max",
+  "n": 15,
+  "n_with_usage": 15,
+  "input_tokens_total": 5707,
+  "output_tokens_total": 2848,
+  "input_tokens_mean": 380.46666666666664,
+  "output_tokens_mean": 189.86666666666667,
+  "latency_ms_p50": 4703,
+  "latency_ms_p95": 5344,
+  "latency_ms_mean": 4940.6,
+  "n_with_latency": 15,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

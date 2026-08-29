@@ -1,0 +1,29 @@
+# RealBio Benchmark — baseline model roster.  EDIT HERE to add/update models (one line each).
+# Last refreshed: 2026-08-04.
+#
+# Each entry:
+#   name     display name on the leaderboard
+#   model    the API model id (as the provider expects it)
+#   base_url OpenAI-compatible endpoint (null = OpenAI native); OpenRouter serves the rest
+#   key_env  env var holding that endpoint's API key
+#   status   verified | UNVERIFIED_SLUG (confirm the id against the provider's live /models list)
+#
+# The driver (run_all.py) runs every model whose key_env is SET and skips the rest, so it runs
+# whatever is currently available and fills the gaps as keys/models are added.
+
+models:
+  # ---- frontier (proprietary) ----
+  - {name: gpt-5.6,        model: gpt-5.6,                      base_url: null,                            key_env: OPENAI_API_KEY,     status: verified}
+  - {name: claude-opus-5,  model: anthropic/claude-opus-5,      base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: UNVERIFIED_SLUG}
+  - {name: gemini-3.2-pro, model: google/gemini-3.2-pro,        base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: UNVERIFIED_SLUG}
+
+  # ---- open source / open weight (latest, 2026) ----
+  - {name: kimi-k3,        model: moonshotai/kimi-k3,           base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: UNVERIFIED_SLUG}
+  - {name: qwen3-max,      model: qwen/qwen3-max,               base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: UNVERIFIED_SLUG}
+  - {name: deepseek-v4,    model: deepseek/deepseek-v4,         base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: UNVERIFIED_SLUG}
+  - {name: glm-5.2,        model: z-ai/glm-5.2,                 base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: UNVERIFIED_SLUG}
+  - {name: gemma-4-31b,    model: google/gemma-4-31b,           base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: UNVERIFIED_SLUG}
+
+# NOTE: the OpenRouter model ids above are best-guess slugs and are marked UNVERIFIED_SLUG.
+# Before running, confirm each against the live list:  python3 run_all.py --list-provider-models
+# (queries the endpoint's /models with your key). Only 'gpt-5.6' is verified working on this env.

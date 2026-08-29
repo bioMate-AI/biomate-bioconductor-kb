@@ -1,0 +1,16 @@
+{
+  "task": "boin_benchmark",
+  "mode": null,
+  "model": "openai/gpt-5.6-luna",
+  "n": 20,
+  "n_with_usage": 20,
+  "input_tokens_total": 4585,
+  "output_tokens_total": 11194,
+  "input_tokens_mean": 229.25,
+  "output_tokens_mean": 559.7,
+  "latency_ms_p50": 7489,
+  "latency_ms_p95": 21011,
+  "latency_ms_mean": 8631.8,
+  "n_with_latency": 20,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

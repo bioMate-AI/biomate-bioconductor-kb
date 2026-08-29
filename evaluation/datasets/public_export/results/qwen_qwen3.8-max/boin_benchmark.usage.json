@@ -1,0 +1,16 @@
+{
+  "task": "boin_benchmark",
+  "mode": null,
+  "model": "qwen/qwen3.8-max",
+  "n": 20,
+  "n_with_usage": 20,
+  "input_tokens_total": 5819,
+  "output_tokens_total": 35735,
+  "input_tokens_mean": 290.95,
+  "output_tokens_mean": 1786.75,
+  "latency_ms_p50": 43053,
+  "latency_ms_p95": 49186,
+  "latency_ms_mean": 38706.0,
+  "n_with_latency": 20,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

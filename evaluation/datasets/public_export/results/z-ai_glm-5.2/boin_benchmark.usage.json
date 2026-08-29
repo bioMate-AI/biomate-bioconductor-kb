@@ -1,0 +1,16 @@
+{
+  "task": "boin_benchmark",
+  "mode": null,
+  "model": "z-ai/glm-5.2",
+  "n": 20,
+  "n_with_usage": 20,
+  "input_tokens_total": 4691,
+  "output_tokens_total": 31053,
+  "input_tokens_mean": 234.55,
+  "output_tokens_mean": 1552.65,
+  "latency_ms_p50": 21806,
+  "latency_ms_p95": 35085,
+  "latency_ms_mean": 18909.85,
+  "n_with_latency": 20,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

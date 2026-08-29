@@ -118,16 +118,18 @@ def score_param_prefill(gt, preds):
 def score_pbpk(gt, preds):
     n = ok = 0
     for i, r in gt.items():
-        if i not in preds: continue
         try:
             ref = float(re.search(r"[-+]?\d*\.?\d+", str(r["reference"])).group())
+        except Exception:
+            continue  # no valid reference (null GT) — item is not scoreable, excluded from denominator
+        n += 1  # a scoreable item: a missing OR unparseable prediction below counts as a failure, not a drop
+        try:
             p = float(preds[i])
         except Exception:
-            continue
-        n += 1
+            continue  # non-answer -> failure (stays in denominator n, not credited to ok)
         if ref > 0 and 0.5 <= p / ref <= 2.0: ok += 1
     return {"scored": n, "within_2fold": round(ok / n, 4) if n else None, "ci95": wilson(ok, n),
-            "note": "fraction of PK predictions within 2-fold of published reference"}
+            "note": "fraction of PK predictions within 2-fold of published reference; missing/unparseable predictions count as failures (denominator = all scoreable items)"}
 
 def score_drug_disc(gt, preds):
     def spearman(a, b):

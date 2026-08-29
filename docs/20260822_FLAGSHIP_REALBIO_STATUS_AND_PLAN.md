@@ -36,17 +36,23 @@ Both committed on `docs/target-id-stratification-surveys-20260817` and mirrored 
 | autofix | category | 0.77–0.88 | — | — (not committed) |
 | protocol-QC | PASS/FAIL | 0.33–0.63 | — | **0.925**† |
 | workflow_gen | category | 0.50 | — | — (not committed) |
-| **pbpk** (new) | within-2-fold | 0–20% | **7.5%** | **100%** ◊ (18/18) |
-| **boin** (new) | exact MTD-mg | 11–50% | **27%** | **80.0%** ★ (48/60) |
+| **pbpk** (new) | within-2-fold | 0–20% | **7.5%** | **0.20** ◊ (3/15, same-item) |
+| **boin** (new) | exact MTD-mg | 10–45% | **24%** | 0.80 ★ (48/60, cross-harness; same-item pending) |
 | **dd** (new) | Spearman rank | 0.67–0.70 | **0.70** | — (see §4) |
 
-† BioMate param/protocol from its own harness (n differs from the LLM sweep). ◊ BioMate pbpk from its validated
-pharmacology set (18 FDA-guidance cases; same within-2-fold metric, different items). ★ BioMate boin from its
-internal BOIN benchmark (n=60). Biomni agent scaffold: routing 0.950 (38/40), autofix 0.95 (n=40 pilot).
+† BioMate param/protocol from its own harness (n differs from the LLM sweep). ◊ **BioMate pbpk 0.20 is the genuine
+same-item cell** (3/15 within-2-fold on the exact 15 RealBio compounds; `docs/20260827_BIOMATE_PBPK_SAME_ITEM_RESULT.md`)
+— it **ties** the best LLM (GPT-5.6, 0.20) and beats the LLM mean (0.075); it does **not** lead pbpk (generic PBPK
+over-predicts Cmax). The earlier cross-harness **100%** (18-case FDA disease-state AUC-ratio set, different items) is
+NOT a same-item result and was removed from the public leaderboard/site (2026-08-27). ★ BioMate boin 0.80 from its
+internal BOIN benchmark (n=60) is cross-harness; the **same-item BOIN run is pending** (infra-blocked by the dead dev
+AWS key). Biomni agent scaffold: routing 0.950 (38/40), autofix 0.95 (n=40 pilot).
 
-**Reading:** LLMs-direct fail PBPK (simulation, 7.5%), are mediocre at BOIN (dose-finding, 24%), but *good* at
-ligand ranking (dd, 0.70 — a knowledge task; shows RealBio is not rigged to only surface LLM weakness). BioMate
-wins the computation-heavy tasks decisively.
+**Reading:** LLMs-direct fail PBPK (simulation, 7.5%) and are mediocre at BOIN (24%), but are *good* at ligand ranking
+(dd, 0.70 — a knowledge task; shows RealBio is not rigged to only surface LLM weakness). BioMate **leads the
+orchestration tasks decisively** (routing 0.965 same-item vs best-LLM 0.615); on the **same-item execution tasks it is
+competitive, not dominant** — pbpk ties the best LLM (0.20), boin same-item still to run. The honest headline is
+"engine-free retrieval wins orchestration + is cost/speed-free; execution is hard for everyone," not "leads every task."
 
 **Provenance:** `leaderboard.csv` / `leaderboard.md` / `score.py` in `evaluation/datasets/public_export/`;
 canonical BioMate scores in `docs/20260429_BENCHMARK_MATRIX_COMPLETE.md` and
@@ -134,7 +140,7 @@ Same byte-identical prompts + same `score.py` as the 8-LLM sweep. Results in
 | Task | Biomni (sonnet-4.5) | LLM-direct | Read |
 |---|---|---|---|
 | pbpk | **0%** (0/15) | 7.5% | ⚠️ **format artifact, NOT inability** — agent computes rich mechanistic PK (clearance/AUC), which doesn't match the single reference Cmax within-2-fold when squeezed to one number |
-| boin | **50%** (9/18 exact MTD; 2 null-GT excluded) | 27% | Biomni scaffold **beats** direct LLMs on dose-finding |
+| boin | **45%** (9/20 exact MTD) | 24% | Biomni scaffold **beats** direct LLMs on dose-finding |
 | dd | **Spearman 1.0** on 4/15 scored | 0.70 | perfect ranking on the 4 that ran; **11 dropped** to OpenRouter 402 dips (dd's large context → big reservation). Tiny sample — report as partial, not a headline |
 
 **Capability verdict (the honest one):** Biomni **can** do these tasks — it writes + executes real
