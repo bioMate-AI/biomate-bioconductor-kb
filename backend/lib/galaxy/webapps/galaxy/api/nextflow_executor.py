@@ -2807,12 +2807,20 @@ def _generate_executor_config(
         # Host-mounted AWS CLI (aws.batch.cliPath) must resolve zlib before Nextflow's
         # S3 staging runs. process.environment and beforeScript are applied too late;
         # ECS `docker run -e` via containerOptions is not.
+        # NB: deliberately does NOT include /usr/local/lib. Some biocontainers ship an
+        # incompatible /usr/local/lib/libtinfo.so.6; forcing it onto LD_LIBRARY_PATH made
+        # every `sh` print "libtinfo.so.6: no version information available" on stderr.
+        # Single-command tools ignore that, but pyFlow-based callers (Strelka, Manta)
+        # treat ANY task-wrapper stderr as fatal ("Anomalous task wrapper stderr output")
+        # and abort — sarek germline variant calling died there (17/20 tasks, no VCF).
+        # The mounted libz lives in /usr/lib64 + /usr/lib/x86_64-linux-gnu (earlier here),
+        # and container-native /usr/local/lib libs still resolve via ldconfig, so dropping
+        # it keeps S3 staging working while unblocking the pyFlow tools.
         _ld_aws_host = (
             "/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:"
             "/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu:"
             "/lib64:/usr/lib64:/usr/lib:/lib:"
-            "/opt/conda/lib:/opt/conda/x86_64-conda-linux-gnu/lib:"
-            "/usr/local/lib"
+            "/opt/conda/lib:/opt/conda/x86_64-conda-linux-gnu/lib"
         )
         # For nf-core paths: nf-core uses minimal biocontainers without libz,
         # and the host-mounted /opt/aws-cli/bin/aws is dynamically linked
