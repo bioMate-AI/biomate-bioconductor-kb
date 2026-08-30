@@ -1,0 +1,52 @@
+<mxfile host="app.diagrams.net" modified="2026-08-29T00:00:00.000Z" agent="BioMate Documentation V2" version="21.0.0" type="device">
+  <diagram id="biomate-v2-qc" name="QC Auto-Loop">
+    <mxGraphModel dx="1434" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="QC Gate + ADMET Auto-Loop (advisory: suggests, does not auto-restart)" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=18;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="250" y="20" width="700" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="out" value="Run outputs on S3&#10;toxicity_report.json / qc_report.json / qc_metrics.json" style="rounded=1;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="380" y="70" width="440" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ev" value="_evaluate_qc_from_s3 (nextflow_executor.py:3179)" style="rounded=1;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
+          <mxGeometry x="400" y="150" width="400" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="th" value="qc_thresholds.json (994 L)&#10;RED_LINE / GOLD / SILVER / BRONZE / ADVISORY&#10;hERG: high 1.0µM, medium 10µM, prob 0.9" style="rounded=1;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=8;" parent="1" vertex="1">
+          <mxGeometry x="60" y="140" width="300" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="dec" value="action?&#10;metric vs threshold" style="rhombus;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+          <mxGeometry x="480" y="230" width="240" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pass" value="PASS&#10;advance / complete" style="rounded=1;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+          <mxGeometry x="120" y="360" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="adv" value="ADVISORY (&#8804;1.3x / band 1.15)&#10;SSE autoloop_gate_results&#10;warn + continue" style="rounded=1;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+          <mxGeometry x="500" y="355" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="halt" value="HALT (hERG IC50 &lt; 10µM,&#10;biology-erasure, red-line)" style="rounded=1;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="880" y="355" width="240" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rem" value="param_tuner: was&#8594;now remediation&#10;step = HERG_BASE_STEP x log10(target/observed)&#10;new_logp_max = current - step (5.0 &#8594; 4.71)&#10;DILI &#8594; Lammert-2010 (logp 4.0, mw 400); Ames strict" style="rounded=1;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;spacingLeft=8;" parent="1" vertex="1">
+          <mxGeometry x="760" y="460" width="400" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="ui" value="SSE autoloop_update {remediations, suggested_params, params_used}&#10;persisted by invocation_id &#8594; GET /autoloop-suggestions&#10;UI shows was&#8594;now diff; user re-runs manually" style="rounded=1;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=8;" parent="1" vertex="1">
+          <mxGeometry x="700" y="590" width="460" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c1" style="endArrow=block;html=1;" parent="1" source="out" target="ev" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="c2" style="endArrow=block;html=1;dashed=1;strokeColor=#6c8ebf;" parent="1" source="th" target="ev" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="c3" style="endArrow=block;html=1;" parent="1" source="ev" target="dec" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="c4" value="pass" style="endArrow=block;html=1;" parent="1" source="dec" target="pass" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="c5" value="advisory" style="endArrow=block;html=1;" parent="1" source="dec" target="adv" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="c6" value="halt" style="endArrow=block;html=1;" parent="1" source="dec" target="halt" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="c7" style="endArrow=block;html=1;" parent="1" source="halt" target="rem" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="c8" style="endArrow=block;html=1;" parent="1" source="rem" target="ui" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

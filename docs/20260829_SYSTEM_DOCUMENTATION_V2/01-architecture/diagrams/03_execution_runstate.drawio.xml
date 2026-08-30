@@ -1,0 +1,58 @@
+<mxfile host="app.diagrams.net" modified="2026-08-29T00:00:00.000Z" agent="BioMate Documentation V2" version="21.0.0" type="device">
+  <diagram id="biomate-v2-exec-runstate" name="Execution and Run-State">
+    <mxGraphModel dx="1434" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="Run Execution + Run-State Persistence + Orphan Completion" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=20;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="350" y="20" width="700" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ex" value="POST /api/nextflow/execute&#10;mint run_id/invocation_id&#10;write 'configuring' &#8594; _runs[] + store&#10;return immediately (async)" style="rounded=1;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;spacingLeft=8;" parent="1" vertex="1">
+          <mxGeometry x="60" y="90" width="280" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="lh" value="_launch_nextflow_head&#10;semaphore (max 10) &#8594; 503&#10;Popen(stdout=logfile, buffering=0,&#10;start_new_session=True)  [FD-decoupled]" style="rounded=1;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;spacingLeft=8;" parent="1" vertex="1">
+          <mxGeometry x="60" y="210" width="280" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="head" value="Nextflow HEAD&#10;(local detached subprocess)&#10;survives gunicorn recycle" style="rounded=1;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="60" y="340" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="batch" value="AWS Batch tasks&#10;CPU/GPU queue &#8594; S3 outputs" style="rounded=1;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="60" y="440" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="store" value="RunStateStore&#10;RUN_STATE_STORE=redis&#10;(else InMemory: fix inactive)" style="shape=cylinder3;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="560" y="200" width="220" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="keys" value="nextflow:run:{id} hash&#10;:runs:active set&#10;:{id}:pid&#10;:{id}:completing (SETNX+EX)&#10;7-day TTL" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;align=left;spacingLeft=8;" parent="1" vertex="1">
+          <mxGeometry x="540" y="340" width="260" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="poll" value="CompletionPoller (per worker, every 5s)&#10;list_active_runs &#8594; pid gone? &#8594; acquire lock" style="rounded=1;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=8;" parent="1" vertex="1">
+          <mxGeometry x="1000" y="200" width="330" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="fin" value="orphan_finalizer.finalize_orphaned_run&#10;infer RC (log markers &#8594; trace &#8594; log-tail &#8594; S3 &#8594; outdir)&#10;update store finalized_by=orphan_poller" style="rounded=1;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=8;" parent="1" vertex="1">
+          <mxGeometry x="1000" y="300" width="330" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="pg" value="POST /internal/runs/by-invocation/:id/status&#10;&#8594; flip Postgres execution_runs row&#10;+ terminal SSE + StudyRunLogger" style="rounded=1;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=8;" parent="1" vertex="1">
+          <mxGeometry x="1000" y="420" width="330" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="stream" value="_stream_logs: process.wait()&#10;false-success/failure salvage&#10;&#8594; terminal + _evaluate_qc_from_s3" style="rounded=1;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;spacingLeft=8;" parent="1" vertex="1">
+          <mxGeometry x="380" y="560" width="330" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a1" style="endArrow=block;html=1;" parent="1" source="ex" target="lh" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a2" style="endArrow=block;html=1;" parent="1" source="lh" target="head" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a3" value="submit tasks" style="endArrow=block;html=1;" parent="1" source="head" target="batch" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a4" value="set_run / set_pid" style="endArrow=block;html=1;dashed=1;strokeColor=#6c8ebf;" parent="1" source="ex" target="store" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a5" style="endArrow=block;html=1;" parent="1" source="store" target="keys" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a6" value="reads" style="endArrow=block;html=1;dashed=1;strokeColor=#82b366;" parent="1" source="poll" target="store" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a7" style="endArrow=block;html=1;" parent="1" source="poll" target="fin" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a8" style="endArrow=block;html=1;" parent="1" source="fin" target="pg" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a9" value="normal completion" style="endArrow=block;html=1;dashed=1;" parent="1" source="head" target="stream" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a10" value="detects orphan from ANY worker" style="endArrow=block;html=1;dashed=1;strokeColor=#b85450;" parent="1" source="head" target="poll" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

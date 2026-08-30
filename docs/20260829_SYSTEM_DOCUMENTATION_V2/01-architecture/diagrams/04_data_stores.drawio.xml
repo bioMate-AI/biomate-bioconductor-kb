@@ -1,0 +1,53 @@
+<mxfile host="app.diagrams.net" modified="2026-08-29T00:00:00.000Z" agent="BioMate Documentation V2" version="21.0.0" type="device">
+  <diagram id="biomate-v2-data" name="Data Stores">
+    <mxGraphModel dx="1434" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="BioMate Data Stores (verified counts 2026-08-29)" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=20;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="400" y="20" width="600" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sqlite" value="SQLite (backend/database)" style="swimlane;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;startSize=26;" parent="1" vertex="1">
+          <mxGeometry x="60" y="80" width="640" height="330" as="geometry" />
+        </mxCell>
+        <mxCell id="aidb" value="galaxy_ai_tools.db (315 MB, gitignored)&#10;workflows = 4,057 | tools = 12,301 | 39 domains&#10;FTS5: workflows_fts, tools_fts&#10;vec0(embedding float[384]) cryo_em_chunks_vec&#10;+ learning/telemetry tables&#10;(canonical on dev + S3 db-backups/)" style="shape=cylinder3;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;align=left;spacingLeft=8;verticalAlign=middle;" parent="sqlite" vertex="1">
+          <mxGeometry x="30" y="40" width="340" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="uni" value="universe.sqlite (3 MB)&#10;Galaxy core ORM, 187 tables" style="shape=cylinder3;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" parent="sqlite" vertex="1">
+          <mxGeometry x="400" y="40" width="210" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="misc" value="benchmark_knowledge.db (86KB)&#10;regulatory_skills.db (45KB)&#10;control.sqlite (Celery, dev)" style="shape=cylinder3;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;align=left;spacingLeft=8;" parent="sqlite" vertex="1">
+          <mxGeometry x="400" y="130" width="210" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="stub" value="0-byte STUBS: backend/data/*.db, backend/galaxy_ai_tools.db&#10;(fresh clone gets these; pull real DB from S3, never --rebuild)" style="rounded=1;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;spacingLeft=8;" parent="sqlite" vertex="1">
+          <mxGeometry x="30" y="230" width="580" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pg" value="PostgreSQL (Drizzle)" style="swimlane;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;startSize=26;" parent="1" vertex="1">
+          <mxGeometry x="740" y="80" width="600" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="app" value="app schema (schema.ts, 1573 L)&#10;users, workflow_executions, execution_runs,&#10;instruments, download_jobs, audit_logs, billing fields" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#82b366;align=left;spacingLeft=8;" parent="pg" vertex="1">
+          <mxGeometry x="20" y="40" width="560" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ltm" value="LTM schema (ltm-schema.ts, 646 L)&#10;project_episodes, project_procedures, user_preferences,&#10;correction_log, project_knowledge, sessions, messages" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#82b366;align=left;spacingLeft=8;" parent="pg" vertex="1">
+          <mxGeometry x="20" y="120" width="560" height="66" as="geometry" />
+        </mxCell>
+
+        <mxCell id="redis" value="Redis / ElastiCache (shared; all fall back to in-memory)" style="swimlane;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;startSize=26;" parent="1" vertex="1">
+          <mxGeometry x="60" y="440" width="640" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="rs" value="run-state: nextflow:run:* (RUN_STATE_STORE=redis)" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#d79b00;" parent="redis" vertex="1"><mxGeometry x="20" y="40" width="600" height="26" as="geometry" /></mxCell>
+        <mxCell id="led" value="billing ledger: cost:{uid}:month:{YYYY-MM}:{llm|compute}" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#d79b00;" parent="redis" vertex="1"><mxGeometry x="20" y="72" width="600" height="26" as="geometry" /></mxCell>
+        <mxCell id="ws" value="workflow session: wfsess:*  |  federated-query cache" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#d79b00;" parent="redis" vertex="1"><mxGeometry x="20" y="104" width="600" height="26" as="geometry" /></mxCell>
+
+        <mxCell id="s3" value="AWS S3" style="swimlane;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;startSize=26;" parent="1" vertex="1">
+          <mxGeometry x="740" y="440" width="600" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="b1" value="biomate-nextflow-work (workdirs + outputs, primary)" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#b85450;" parent="s3" vertex="1"><mxGeometry x="20" y="40" width="560" height="26" as="geometry" /></mxCell>
+        <mxCell id="b2" value="biomate-cryo-data | biomate-test-data" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#b85450;" parent="s3" vertex="1"><mxGeometry x="20" y="72" width="560" height="26" as="geometry" /></mxCell>
+        <mxCell id="b3" value="db-backups/ (enriched DB pull path) | s3-billing-events(+dlq)" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#b85450;" parent="s3" vertex="1"><mxGeometry x="20" y="104" width="560" height="26" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

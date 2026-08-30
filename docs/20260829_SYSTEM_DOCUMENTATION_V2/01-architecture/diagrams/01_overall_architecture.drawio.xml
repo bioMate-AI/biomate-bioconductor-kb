@@ -1,0 +1,101 @@
+<mxfile host="app.diagrams.net" modified="2026-08-29T00:00:00.000Z" agent="BioMate Documentation V2" version="21.0.0" type="device">
+  <diagram id="biomate-v2-overall" name="Overall Architecture">
+    <mxGraphModel dx="1434" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="BioMate — Overall System Architecture (verified 2026-08-29)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;fontColor=#333333;" parent="1" vertex="1">
+          <mxGeometry x="380" y="20" width="840" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Client layer -->
+        <mxCell id="client" value="Browser — React SPA (frontend/client: 183 components + flag-gated v2/)" style="swimlane;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;startSize=26;" parent="1" vertex="1">
+          <mxGeometry x="80" y="80" width="1440" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="ui" value="Chat interface + right-panel nextflow-workflow-viewer + EventSource (SSE)" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" parent="client" vertex="1">
+          <mxGeometry x="380" y="40" width="680" height="36" as="geometry" />
+        </mxCell>
+
+        <!-- Node layer -->
+        <mxCell id="node" value="Node / Express (frontend/server, ~120 modules) — host :5000 / container :3000" style="swimlane;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;startSize=26;" parent="1" vertex="1">
+          <mxGeometry x="80" y="210" width="1440" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="routes" value="routes.ts&#10;308 handlers" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#82b366;" parent="node" vertex="1">
+          <mxGeometry x="40" y="46" width="200" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="ga" value="galaxy-assistant.ts&#10;LLM chat + generation (9.7k LOC)" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#82b366;" parent="node" vertex="1">
+          <mxGeometry x="280" y="46" width="260" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sse" value="workflow-sse.ts +&#10;galaxy-state-poller.ts" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#82b366;" parent="node" vertex="1">
+          <mxGeometry x="580" y="46" width="220" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="auth" value="auth-service / oauth / mfa&#10;stripe-service" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#82b366;" parent="node" vertex="1">
+          <mxGeometry x="840" y="46" width="240" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="prox" value="/api/billing/* + /api/galaxy/*&#10;proxy to Python" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#82b366;" parent="node" vertex="1">
+          <mxGeometry x="1120" y="46" width="260" height="54" as="geometry" />
+        </mxCell>
+
+        <!-- Galaxy backend layer -->
+        <mxCell id="galaxy" value="Galaxy backend — Python 3.9 / gunicorn (workers=4, preload) — host :8081 / container :8080" style="swimlane;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;startSize=26;" parent="1" vertex="1">
+          <mxGeometry x="80" y="370" width="1440" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="ai" value="ai_assistant.py&#10;orchestrator (6.9k LOC)&#10;generate_workflow_unified" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#d79b00;" parent="galaxy" vertex="1">
+          <mxGeometry x="30" y="40" width="240" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="search" value="unified_workflow_search&#10;FTS5 + BGE vec (384-d)" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#d79b00;" parent="galaxy" vertex="1">
+          <mxGeometry x="290" y="40" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="nex" value="nextflow_executor.py&#10;launch/track/finalize (10k LOC)&#10;head = LOCAL subprocess" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#d79b00;" parent="galaxy" vertex="1">
+          <mxGeometry x="530" y="40" width="250" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="runs" value="ai/runs/&#10;run-state store + poller" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#d79b00;" parent="galaxy" vertex="1">
+          <mxGeometry x="800" y="40" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="qc" value="QC gates + auto-loop&#10;qc_thresholds.json" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#d79b00;" parent="galaxy" vertex="1">
+          <mxGeometry x="1020" y="40" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="bill" value="ai/billing/&#10;router + quota + ledger" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#d79b00;" parent="galaxy" vertex="1">
+          <mxGeometry x="1210" y="40" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Cloud layer -->
+        <mxCell id="cloud" value="Cloud / Managed (AWS us-west-2, acct 399683337364)" style="swimlane;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;startSize=26;" parent="1" vertex="1">
+          <mxGeometry x="80" y="560" width="1440" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="batch" value="AWS Batch&#10;biomate-nextflow-queue&#10;biomate-gpu-spot-queue" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#b85450;" parent="cloud" vertex="1">
+          <mxGeometry x="30" y="40" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ec2" value="EC2 + CryoSPARC API&#10;g6.12xlarge (cryo-EM,&#10;bypasses Batch)" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#b85450;" parent="cloud" vertex="1">
+          <mxGeometry x="250" y="40" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="s3" value="S3&#10;biomate-nextflow-work&#10;cryo-data / test-data" style="shape=cylinder3;html=1;fillColor=#ffffff;strokeColor=#b85450;" parent="cloud" vertex="1">
+          <mxGeometry x="470" y="36" width="150" height="76" as="geometry" />
+        </mxCell>
+        <mxCell id="redis" value="Redis / ElastiCache&#10;run-state + billing ledger" style="shape=cylinder3;html=1;fillColor=#ffffff;strokeColor=#b85450;" parent="cloud" vertex="1">
+          <mxGeometry x="640" y="36" width="160" height="76" as="geometry" />
+        </mxCell>
+        <mxCell id="pg" value="PostgreSQL&#10;app + LTM (Drizzle)" style="shape=cylinder3;html=1;fillColor=#ffffff;strokeColor=#b85450;" parent="cloud" vertex="1">
+          <mxGeometry x="820" y="36" width="150" height="76" as="geometry" />
+        </mxCell>
+        <mxCell id="llm" value="LLM providers&#10;Anthropic/Google/OpenAI/&#10;DeepSeek/Zhipu/local" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#b85450;" parent="cloud" vertex="1">
+          <mxGeometry x="990" y="40" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="stripe" value="Stripe&#10;+ billing Lambdas" style="rounded=1;html=1;fillColor=#ffffff;strokeColor=#b85450;" parent="cloud" vertex="1">
+          <mxGeometry x="1210" y="40" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- edges -->
+        <mxCell id="e1" style="endArrow=block;html=1;strokeColor=#333333;" parent="1" source="client" target="node" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" value="proxy /api/*" style="endArrow=block;html=1;strokeColor=#333333;" parent="1" source="node" target="galaxy" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" value="tasks" style="endArrow=block;html=1;strokeColor=#333333;" parent="1" source="nex" target="batch" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" value="run-state / ledger" style="endArrow=block;html=1;dashed=1;strokeColor=#b85450;" parent="1" source="galaxy" target="redis" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5" value="app + LTM" style="endArrow=block;html=1;dashed=1;strokeColor=#b85450;" parent="1" source="node" target="pg" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e6" value="chat / generation" style="endArrow=block;html=1;dashed=1;strokeColor=#82b366;" parent="1" source="ga" target="llm" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e7" value="/internal/sse-inject" style="endArrow=block;html=1;strokeColor=#d79b00;" parent="1" source="nex" target="sse" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e8" value="outputs" style="endArrow=block;html=1;strokeColor=#333333;" parent="1" source="batch" target="s3" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
