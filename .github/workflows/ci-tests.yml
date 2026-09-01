@@ -135,6 +135,16 @@ jobs:
             echo "No tests directory found"
           fi
 
+      - name: Sandbox self-tests (no docker, no AWS)
+        # Validates the execution-sandbox code path (Feature ①: gVisor isolation,
+        # IT launcher argv validation, env credential filtering) without needing a
+        # container runtime.  Hard gate: these must pass before any sandbox image
+        # is promoted to production.  See deploy/sandbox-launcher/test_it_launcher.py
+        # and backend/lib/galaxy/ai/compute/sandbox/test_sandbox.py.
+        run: |
+          python3 backend/lib/galaxy/ai/compute/sandbox/test_sandbox.py
+          python3 deploy/sandbox-launcher/test_it_launcher.py
+
       - name: Check .dockerignore
         run: |
           test -f backend/.dockerignore || { echo "::warning::backend/.dockerignore missing"; }

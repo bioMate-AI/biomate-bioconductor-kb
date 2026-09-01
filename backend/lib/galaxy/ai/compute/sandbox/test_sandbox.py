@@ -1,18 +1,45 @@
 """Self-tests for Feature ① sandbox (no pytest / no docker / no boto3):
 
-    cd backend && PYTHONPATH=lib python3 -m galaxy.ai.compute.sandbox.test_sandbox
+    python3 backend/lib/galaxy/ai/compute/sandbox/test_sandbox.py
 
 Asserts the generated command argv, env filtering, validator rules, tier
-escalation, and the launcher decoration — all without a container runtime.
+escalation, the launcher decoration, and IT-launcher job-script generation —
+all without a container runtime.
+
+Note: run as a direct script (not -m) so that galaxy/ai/__init__.py's
+heavy eager imports (ai_assistant → networkx, etc.) are never triggered.
+The stub below blocks galaxy.ai before any subpackage import.
 """
 
 from __future__ import annotations
 
-from ..launcher import LaunchRequest, CallableHeadLauncher
-from .config import SandboxConfig, SandboxTier
-from .command import build_sandbox_command, filter_container_env, is_secret_env_key
-from .validator import validate_nextflow_source, has_blocking
-from .launcher import SandboxedHeadLauncher
+import os
+import sys
+import types
+
+# ------------------------------------------------------------------
+# Bootstrap: add backend/lib to sys.path and stub galaxy.ai so that
+# galaxy/ai/__init__.py (which pulls in networkx and other heavy deps)
+# is never executed when we only need the compute/sandbox subpackages.
+# ------------------------------------------------------------------
+_here = os.path.dirname(os.path.abspath(__file__))
+_lib = os.path.abspath(os.path.join(_here, "../../../.."))  # backend/lib
+if _lib not in sys.path:
+    sys.path.insert(0, _lib)
+
+if "galaxy.ai" not in sys.modules:
+    _stub = types.ModuleType("galaxy.ai")
+    # __path__ is required so Python recognises this as a package and can
+    # find galaxy.ai.compute.* subpackages without executing __init__.py.
+    _stub.__path__ = [os.path.join(_lib, "galaxy", "ai")]
+    _stub.__package__ = "galaxy.ai"
+    sys.modules["galaxy.ai"] = _stub
+
+from galaxy.ai.compute.launcher import LaunchRequest, CallableHeadLauncher  # noqa: E402
+from galaxy.ai.compute.sandbox.config import SandboxConfig, SandboxTier  # noqa: E402
+from galaxy.ai.compute.sandbox.command import build_sandbox_command, filter_container_env, is_secret_env_key  # noqa: E402
+from galaxy.ai.compute.sandbox.validator import validate_nextflow_source, has_blocking  # noqa: E402
+from galaxy.ai.compute.sandbox.launcher import SandboxedHeadLauncher  # noqa: E402
 
 
 _FAILS = 0
@@ -158,6 +185,65 @@ def test_launcher_decoration():
     _check("launcher: run_id passed through", seen["run_id"] == "run1")
 
 
+def test_it_launcher_job_script():
+    """Job script for an IT tool routes through curl /run_it, not bare docker run.
+
+    Tests _containerize_via_it_launcher() in galaxy.tool_util.deps.container_classes:
+      - generated script contains curl POST /run_it (no direct docker run -d)
+      - cleanup trap uses curl POST /stop_it
+      - docker wait is present (read-only, safe through the socket proxy)
+      - container name and port appear in the embedded JSON payload
+      - volume entries containing shell variable refs ($VAR) are skipped so
+        the launcher subprocess never sees an unexpanded literal "$VAR" path
+        (root cause of prior IT exit-125 on real Galaxy job mounts)
+
+    Skipped gracefully if galaxy.tool_util.deps is not importable.
+    """
+    try:
+        import galaxy.tool_util.deps.container_classes as cc
+    except ImportError as exc:
+        print(f"[SKIP] test_it_launcher_job_script: {exc}")
+        return
+
+    class _FakeTool:
+        guest_ports = [8888]
+
+    class _FakeCtx:
+        container_id = "quay.io/bgruening/docker-jupyter-notebook:2021"
+        container_name = "abc123def456"
+        tool_info = _FakeTool()
+
+        def prop(self, name, default):
+            return default
+
+    import os
+    prev = os.environ.get("IT_LAUNCHER_URL")
+    os.environ["IT_LAUNCHER_URL"] = "http://sandbox-launcher:8899"
+    try:
+        script = cc.DockerContainer._containerize_via_it_launcher(
+            _FakeCtx(),
+            command="",
+            volumes=[
+                "/app/database/jobs_directory/0:/app/database/jobs_directory/0:rw",
+                '"$_GALAXY_JOB_TMP_DIR:/tmp/job:rw"',  # must be skipped
+            ],
+            working_directory="/app/database/jobs_directory/0",
+        )
+    finally:
+        if prev is None:
+            del os.environ["IT_LAUNCHER_URL"]
+        else:
+            os.environ["IT_LAUNCHER_URL"] = prev
+
+    _check("it-script: curl /run_it in script", "run_it" in script and "curl" in script)
+    _check("it-script: no bare 'docker run' (only docker wait)", "docker run" not in script)
+    _check("it-script: docker wait present", "docker wait" in script)
+    _check("it-script: /stop_it cleanup trap", "stop_it" in script)
+    _check("it-script: container name in payload", "abc123def456" in script)
+    _check("it-script: port 8888 in argv JSON", "8888" in script)
+    _check("it-script: dollar volume not in argv JSON", "$_GALAXY_JOB_TMP_DIR" not in script)
+
+
 def run() -> int:
     test_isolation_flags_tier1()
     test_tier2_restricts_egress()
@@ -165,6 +251,7 @@ def run() -> int:
     test_env_credential_filtering()
     test_validator_blocks_escapes()
     test_launcher_decoration()
+    test_it_launcher_job_script()
     print(f"\n{'-'*44}\n{'PASS' if not _FAILS else 'FAIL'}: {_FAILS} failure(s)")
     return 1 if _FAILS else 0
 

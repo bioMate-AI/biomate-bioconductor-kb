@@ -354,9 +354,8 @@ TOOL_SCHEMAS: List[ToolSchema] = [
             "properties": {
                 "database": {
                     "type": "string",
-                    # Kept in lock-step with the backed ai_assistant.query_database
-                    # handlers (every id here has a real _query_* method). `omim`
-                    # was removed 2026-07-28 — it was advertised with no handler.
+                    "description": "Database to query. Kept in lock-step with ai_assistant.query_database handlers; every id has a real _query_* method.",
+                    # `omim` removed 2026-07-28 — advertised with no handler.
                     # See galaxy.ai.data_sources (canonical registry).
                     "enum": [
                         "uniprot", "pdb", "pdbe", "alphafold", "interpro", "string",

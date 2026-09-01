@@ -849,6 +849,7 @@
                 "properties": {
                   "database": {
                     "type": "string",
+                    "description": "Database to query. Kept in lock-step with ai_assistant.query_database handlers; every id has a real _query_* method.",
                     "enum": [
                       "uniprot",
                       "pdb",

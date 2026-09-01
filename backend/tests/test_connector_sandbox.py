@@ -116,6 +116,11 @@ VALID_SAMPLES: Dict[str, Dict[str, Any]] = {
     "query_database": {"database": "uniprot", "query": "P04637"},
     "recall_memory": {"query": "previous hERG screens", "scope": "runs", "limit": 3},
     "upload_file": {"filename": "compounds.csv", "size_bytes": 1234, "content_type": "text/csv"},
+    "watch_run": {"run_id": "run-xyz"},
+    "resolve_accession": {"accession": "GSE183947"},
+    "browse_data": {"source_id": "ebi_ftp"},
+    "fetch_public_data": {"source_id": "ebi_ftp", "remote_path": "/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz"},
+    "search_literature": {"query": "DESeq2 bulk RNA-seq breast cancer ER+ 2020-2024"},
 }
 
 
@@ -217,6 +222,105 @@ def test_openai_request_body_structurally_valid():
     }
     assert json.dumps(body)
     from openai.types.chat import ChatCompletionToolParam  # noqa: F401
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 4b. Surface adapter auto-discovery + manifest drift guards
+#
+# TEST_PLAN §4 — TO WRITE items now implemented:
+#
+#   4.1  New surface adapter with mcp-snippet.json in connectors/*/ is validated
+#        automatically — no code change needed to add coverage for a new surface.
+#
+#   4.2  Removing a tool from the manifest causes this file's VALID_SAMPLES check
+#        to fail (stale entry guard), and the OpenAPI operation-ID check above to
+#        fail if openapi.json was not updated — together they close the drift loop.
+#
+#   4.3  Adding a required param without 'description' fails this suite so the gap
+#        is caught before any directory submission.
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_surface_adapters_auto_discovered_and_valid():
+    """4.1 — Every connectors/<surface>/mcp-snippet.json is discovered automatically.
+
+    Adding a new surface adapter (mcp-snippet.json in any connectors/ subdir)
+    is enough for this test to cover it — no code change required.
+
+    Validates:
+      • valid JSON
+      • mcpServers.biomate.{command, args, env} keys present
+      • env block contains at least one credential/token key
+    """
+    snippets = sorted((REPO_ROOT / "connectors").glob("*/mcp-snippet.json"))
+    assert snippets, (
+        "No mcp-snippet.json found under connectors/ — at least one surface adapter "
+        "must exist for the connector suite to be meaningful."
+    )
+    for snippet_path in snippets:
+        surface = snippet_path.parent.name
+        try:
+            cfg = json.loads(snippet_path.read_text())
+        except json.JSONDecodeError as exc:
+            pytest.fail(f"{surface}/mcp-snippet.json: invalid JSON: {exc}")
+
+        assert "mcpServers" in cfg, f"{surface}: missing top-level 'mcpServers' key"
+        assert "biomate" in cfg["mcpServers"], (
+            f"{surface}: mcpServers must have a 'biomate' entry"
+        )
+        biomate = cfg["mcpServers"]["biomate"]
+        for required_key in ("command", "args", "env"):
+            assert required_key in biomate, (
+                f"{surface}: mcpServers.biomate missing '{required_key}'"
+            )
+        # env must carry at least one credential key so copy-paste installs work
+        has_cred = any(
+            k for k in biomate["env"] if "TOKEN" in k.upper() or "KEY" in k.upper()
+        )
+        assert has_cred, (
+            f"{surface}: mcpServers.biomate.env has no credential key "
+            "(expected a key containing 'TOKEN' or 'KEY')"
+        )
+
+
+def test_valid_samples_no_stale_entries():
+    """4.2 — VALID_SAMPLES must not contain entries for tools removed from the manifest.
+
+    When a tool is deleted from tools_manifest.py, VALID_SAMPLES (and the OpenAPI
+    spec's operationIds, caught by test_openapi_operation_ids_unique) must be
+    updated in the same commit.  A stale entry here means adapter regeneration
+    was missed — this test makes that visible immediately.
+    """
+    known = {t.name for t in tm.TOOL_SCHEMAS}
+    stale = set(VALID_SAMPLES) - known
+    assert not stale, (
+        f"VALID_SAMPLES has entries for tools no longer in the manifest: {stale}. "
+        "Remove the stale entries and regenerate any adapters that referenced "
+        "the deleted tool."
+    )
+
+
+def test_every_required_param_has_description():
+    """4.3 — Every param in a tool's required[] list must carry a 'description'.
+
+    Missing descriptions break:
+      • Anthropic / OpenAI SDK auto-documentation shown to the model
+      • The Claude Skills system (which surfaces param descriptions inline)
+      • Directory reviewers who read the OpenAPI spec
+
+    Adding a required param without 'description' fails here before submission.
+    """
+    failures: List[str] = []
+    for t in tm.TOOL_SCHEMAS:
+        props = t.input_schema.get("properties", {})
+        required = t.input_schema.get("required", [])
+        for param_name in required:
+            desc = props.get(param_name, {}).get("description", "").strip()
+            if not desc:
+                failures.append(f"{t.name}.{param_name}")
+    assert not failures, (
+        f"Required params missing 'description' field: {failures}. "
+        "Every required param must document its purpose."
+    )
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -378,12 +482,12 @@ def test_mcp_initialize_handshake(mcp_server):
     assert resp["result"]["capabilities"]["tools"]
 
 
-def test_mcp_tools_list_returns_14_tools(mcp_server):
+def test_mcp_tools_list_returns_19_tools(mcp_server):
     _initialize(mcp_server)
     _send(mcp_server, {"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
     resp = _read_one(mcp_server)
     names = [t["name"] for t in resp["result"]["tools"]]
-    assert len(names) == 14
+    assert len(names) == 19
     for required in ("biomate_session", "search_workflow", "get_run", "export_report"):
         assert required in names
 
