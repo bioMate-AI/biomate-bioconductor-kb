@@ -1,0 +1,12 @@
+[2mtarget : https://dev-public.biomate.ai
+domains: rnaseq
+log dir: /Users/renyuankai/work/biometa/biomate/docs/real_run_harness[0m
+
+[33m── rnaseq → e2e/complete-workflow.e2e.ts ──[0m
+  → FAIL(rc=1)  run_id=—
+
+
+[33m════ SUMMARY ════[0m
+  [31mrnaseq   FAIL(rc=1)  [0m run_id=—
+
+[31m1 domain(s) failed[0m

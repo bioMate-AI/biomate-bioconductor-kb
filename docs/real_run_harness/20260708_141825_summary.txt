@@ -1,0 +1,8 @@
+[2mtarget : https://dev-public.biomate.ai
+domains: __none__
+log dir: /Users/renyuankai/work/biometa/biomate/docs/real_run_harness[0m
+
+
+[33m════ SUMMARY ════[0m
+
+[32mALL GREEN[0m
