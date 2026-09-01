@@ -170,22 +170,30 @@ PHYSIOLOGY = {
 
 phys = PHYSIOLOGY.get(pop, PHYSIOLOGY['healthy_adult'])
 
-# -- Tissue distribution (Rodgers & Rowland method, simplified) ---------------
+# -- Tissue distribution (Poulin & Theil 2002 tissue-composition method) -------
+# Kp scales with lipophilicity (10^logP partitions into tissue neutral-lipid +
+# phospholipid) and is moderated by plasma protein binding via fu_plasma/fu_tissue.
+# This gives lipophilic bases (propranolol, verapamil, clozapine) their large Vd
+# while keeping highly plasma-bound acids (warfarin, ibuprofen) at low Vd — the
+# physics the earlier linear placeholder (Kp = a + b*logP) missed, which caused a
+# systematic Cmax over-prediction (apparent Vd ~40 L vs true 200-400 L for bases).
+# Tissue composition fractions: Poulin & Theil J Pharm Sci 2002; muscle-dominant
+# lumped-peripheral neutral-lipid fraction 0.024 = Rodgers & Rowland J Pharm Sci 2006.
+_TISSUE_COMP = {
+    'liver':      (0.035, 0.024, 0.75),
+    'kidney':     (0.030, 0.024, 0.77),
+    'lung':       (0.016, 0.018, 0.79),
+    'gut':        (0.038, 0.012, 0.75),
+    'peripheral': (0.024, 0.020, 0.65),
+}
 def Kp_tissue(tissue_type, logp, pka, fu_plasma, acid_base='neutral'):
-    '''
-    Simplified Kp (tissue:plasma ratio) using lipophilicity correlation.
-    Full Rodgers model requires ionization fractions in each tissue.
-    '''
-    base_Kp = {
-        'liver': 2.0 + 0.4*logp,
-        'kidney': 1.5 + 0.3*logp,
-        'lung': 0.5 + 0.1*logp,
-        'gut': 1.0 + 0.3*logp,
-        'peripheral': 0.8 + 0.25*logp,
-    }
-    kp = base_Kp.get(tissue_type, 1.0)
-    fu_t = max(0.01, fu_plasma * 1.2)  # slightly higher unbound in tissue
-    return max(0.01, kp)
+    P = 10.0 ** logp
+    # Poulin assumption: tissue binding ~ 0.5x plasma binding -> fu_tissue
+    fu_t = fu_plasma / (fu_plasma + 0.5 * (1.0 - fu_plasma))
+    vnl, vph, vw = _TISSUE_COMP.get(tissue_type, _TISSUE_COMP['peripheral'])
+    num = P * (vnl + 0.3 * vph) + (vw + 0.7 * vph)
+    den = P * (0.0023 + 0.3 * 0.0013) + (0.945 + 0.7 * 0.0013)   # plasma composition
+    return max(0.01, (num / den) * (fu_plasma / fu_t))
 
 # -- Hepatic clearance (well-stirred model) ------------------------------------
 def hepatic_CL(clint_uL_min_mg, fu_mic, fu_plasma, Vliver_L, Qliver_L_h, MPPGL, cl_factor):
@@ -334,6 +342,45 @@ def nca(t, cp, dose_ug, mw):
     }
 
 nca_params = nca(sol.t, Cblood_arr, dose_ug, mw)
+
+# -- Cmax / AUC from compartmental analysis of the mechanistic Vss --------------
+# The 8-compartment ODE's central "blood" compartment (5.6 L) yields an
+# unphysically high early Cmax: for large-Vd drugs the deep peripheral tissue
+# fills over hours (flow-limited), long after the ~1-2 h absorption peak, so the
+# ODE peak reflects the tiny central volume rather than the true Vd. We therefore
+# report Cmax and AUCinf from the compartmental estimate built on the SAME
+# mechanistic parameters — steady-state volume Vss = Vblood + Sum(V_tissue *
+# Kp_PoulinTheil), the well-stirred hepatic + renal clearance, and oral
+# bioavailability F = 1 - E_hep. (pk_profile.csv keeps the full tissue-level ODE.)
+Vss_L = phys['Vblood_L'] + phys['Vperipheral_L'] * Kp_tissue('peripheral', logp, pka, fu_p)
+for _t in ('liver', 'kidney', 'lung', 'gut'):
+    Vss_L += phys['V%s_L' % _t] * Kp_tissue(_t, logp, pka, fu_p)
+Vss_mL = Vss_L * 1000.0
+# well-stirred hepatic clearance (transporter uptake multiplier excluded from the
+# first-pass extraction ratio: OATP uptake raises systemic CL, not gut-wall escape)
+_clint_scaled = clint * (phys['MPPGL_mg_g'] * phys['Vliver_L'] * 1000) * 60 / 1000
+_ql_mL_h = phys['Qliver_L_h'] * 1000
+CL_hep_base = _ql_mL_h * (fu_p / fu_m) * _clint_scaled / (_ql_mL_h + (fu_p / fu_m) * _clint_scaled)
+E_hep = min(0.80, CL_hep_base / _ql_mL_h)   # cap: orally-viable drugs rarely exceed ~0.8
+F_oral = (1.0 - E_hep) if route == 'oral' else 1.0
+CL_sys_mL_h = CL_hep_base + CL_ren
+ke_a = max(1e-6, CL_sys_mL_h / Vss_mL)
+ka_a = phys['ka_h']
+if route == 'oral':
+    if abs(ka_a - ke_a) < 1e-6:
+        ka_a = ke_a * 1.2
+    tmax_a = math.log(ka_a / ke_a) / (ka_a - ke_a)
+    cmax_a = (F_oral * dose_ug / Vss_mL) * math.exp(-ke_a * tmax_a)
+else:
+    tmax_a = 0.0
+    cmax_a = F_oral * dose_ug / Vss_mL
+auc_a = (F_oral * dose_ug / CL_sys_mL_h) if CL_sys_mL_h > 0 else nca_params['AUCinf_ugh_mL']
+nca_params['Cmax_ug_mL']    = round(max(0.0, cmax_a), 3)
+nca_params['AUCinf_ugh_mL'] = round(max(0.0, auc_a), 1)
+nca_params['tmax_h']        = round(tmax_a, 2)
+nca_params['CL_F_L_h']      = round(CL_sys_mL_h / 1000.0 / max(F_oral, 1e-3), 3)
+nca_params['Vss_L']         = round(Vss_L, 1)
+nca_params['F_oral']        = round(F_oral, 3)
 
 # -- Write outputs --------------------------------------------------------------
 with open('pk_profile.csv','w',newline='') as f:
