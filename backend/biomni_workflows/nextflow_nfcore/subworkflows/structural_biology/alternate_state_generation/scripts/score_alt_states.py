@@ -51,12 +51,12 @@ def main():
     ai,_=pd.open_side(a.ref,"A")
     anchor_sign=np.sign(ai)
 
-    per_gen={}; best=None
+    per_gen={}; best=None; alt_generators=set()
     for spec in a.generator:
         name,path=spec.split(":",1)
         pdbs=sorted(glob.glob(os.path.join(path,"**","*.pdb"),recursive=True)+glob.glob(path))
         pdbs=[p for p in pdbs if os.path.isfile(p) and os.path.getsize(p)>1000]
-        outward=[]
+        flipped=[]                                        # models in the ALTERNATE (non-anchor) basin
         for p in pdbs:
             if plddt(p) < a.plddt_min: continue
             try:
@@ -65,30 +65,57 @@ def main():
             except Exception:
                 continue
             if np.sign(ac)!=anchor_sign:                 # flipped = alternate state
-                outward.append((float(ac),p))
-        outward.sort()                                    # most-flipped first
-        per_gen[name]={"n_scored":len(pdbs),"n_outward":len(outward),
-                       "best_asym":round(outward[0][0],2) if outward else None}
-        if outward and (best is None or outward[0][0]<best[0]):
-            best=(outward[0][0], outward[0][1], name)
+                flipped.append((float(ac),p))
+        flipped.sort()                                    # most-flipped first
+        per_gen[name]={"n_scored":len(pdbs),"n_alt_state":len(flipped),
+                       "best_asym":round(flipped[0][0],2) if flipped else None}
+        if flipped:
+            alt_generators.add(name)
+            if best is None or flipped[0][0]<best[0]:
+                best=(flipped[0][0], flipped[0][1], name)
 
-    n_gen_outward=sum(1 for g in per_gen.values() if g["n_outward"]>0)
-    consensus = n_gen_outward >= a.min_generators
+    # --- consensus reliability: fraction of independent strategies that reach the alternate basin ---
+    n_strat=len(a.generator)
+    reliability = round(len(alt_generators)/n_strat, 2) if n_strat else 0.0
+
+    # --- MSA-ablation memorization signal (colmask=deep MSA vs depth=shallow MSA) ---
+    in_deep  = "colmask" in alt_generators           # column-mask uses the full/deep MSA
+    in_shallow = "depth" in alt_generators           # depth-reduction uses shallow MSA
+    in_boltz = "boltz" in alt_generators             # independent model family
+    if in_shallow and not in_deep:
+        memo="MSA-dependent (reasoned) — recovered only under depth-reduction; low memorization risk"
+    elif in_deep and in_shallow:
+        memo="MSA-robust across depth — corroborated; run deposit-proximity check (BioMate PDB search)"
+    elif in_deep and not in_shallow:
+        memo="deep-MSA default basin — likely the model's dominant prediction"
+    else:
+        memo="only non-AF2 (Boltz) reached it — cross-family evidence"
+    if in_boltz and (in_deep or in_shallow):
+        memo += "; independently corroborated by Boltz-2 (different model family)"
+
+    consensus = len(alt_generators) >= a.min_generators
     report={"anchor":os.path.basename(a.ref),"anchor_asym":round(float(ai),2),
-            "per_generator":per_gen,"generators_populating_alt_state":n_gen_outward,
-            "min_generators_required":a.min_generators,
-            "consensus_accepted":bool(consensus),
-            "best_candidate":{"asym":round(best[0],2),"generator":best[2],
-                              "file":os.path.basename(best[1])} if best else None}
-    if consensus and best:
+            "n_strategies":n_strat,
+            "per_strategy":per_gen,
+            "alternate_state":{
+                "reached":bool(alt_generators),
+                "strategies_populating":sorted(alt_generators),
+                "consensus_reliability":reliability,       # 0-1: how many independent strategies agree
+                "memorization_signal":memo,
+                "best_asym":round(best[0],2) if best else None,
+                "best_strategy":best[2] if best else None,
+                "best_file":os.path.basename(best[1]) if best else None},
+            "min_strategies_required":a.min_generators,
+            "gate_pass":bool(consensus)}
+    if best:                                              # emit the candidate whenever the alt basin is reached
         shutil.copy(best[1], a.out_candidate)
         report["out_candidate"]=a.out_candidate
     json.dump(report, open(a.report,"w"), indent=2)
     print(json.dumps(report,indent=2))
-    # loud-fail gate: no consensus => non-zero so the Nextflow gate flags it
+    # loud-fail gate: alternate basin never reached by any strategy
     if not consensus:
         print("GATE FAIL: alternate state not reached by >= "
-              f"{a.min_generators} independent generators", file=sys.stderr)
+              f"{a.min_generators} independent strategies", file=sys.stderr)
 
 if __name__=="__main__":
     main()
