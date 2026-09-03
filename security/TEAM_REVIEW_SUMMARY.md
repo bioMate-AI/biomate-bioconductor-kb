@@ -22,20 +22,23 @@ Please verify each fact below against production reality and reply inline (owner
 
 | # | Verify | Repo said | Your answer |
 |---|---|---|---|
-| E1 | Primary **IdP** + federated tools | not found in repo | |
-| E3 | **MFA enforced in prod?** | prototype only (70/70 tests, not integrated) | |
-| E4 | **VPN / access broker** now | SSM confirmed; VPN "planned Q3 2026" | |
-| E5 | **MDM** on laptops? | none found | |
-| E6 | **RDS backup retention** | conflicting 7-day vs 15-day | |
-| E7 | **Single-AZ vs multi-AZ** (EC2/RDS/Redis) | single-AZ | |
-| E8 | **Secrets Manager migration** complete? | some secrets still in host `.env` | |
-| E9 | **Vuln scanning** cadence + result location | dep scans + monthly ZAP (unconfirmed) | |
-| E10 | **Change SoD** — PR approval records distinct reviewer/approver? | protected branches + CI confirmed | |
-| E13 | **Lab VLAN** in scope or carved out? | isolated, insecure gRPC/HTTP | |
-| E14 | **run_code sandboxing** / prompt-injection controls | not confirmed | |
-| E15 | Break-glass **SSH IP/CIDR** current | `104.63.31.236/32` (may be stale) | |
+| E1 | Primary **IdP** + federated tools | not found in repo | AWS IAM Identity Center is the IdP (SAML provider `AWSSSO_9ce4e5ae50e484e9_DO_NOT_DELETE` confirmed in IAM). GitHub Actions is federated to AWS via OIDC (`token.actions.githubusercontent.com`). Google Workspace is the probable upstream directory for AWS SSO but not programmatically confirmed. GitHub and Slack have no SSO/federation evidence. **Gap:** two team members (Georgiy Mamedaliev, Jian Lv) are on personal Gmail and outside Workspace management. |
+| E3 | **MFA enforced in prod?** | prototype only (70/70 tests, not integrated) | NOT enforced. `mfa-service.ts` exists with 70 tests passing but MFA is user-optional — no middleware enforces it before granting access. Google Workspace MFA also not enforced (Vanta test failing as of 2026-09-02). Gap documented as P2-5. |
+| E4 | **VPN / access broker** now | SSM confirmed; VPN "planned Q3 2026" | SSM Session Manager confirmed as the access broker (no open SSH). No VPN is deployed — remains planned, not delivered. Port 22 on biomate-sg is IP-restricted for break-glass only. |
+| E5 | **MDM** on laptops? | none found | None. Confirmed via Vanta (MDM-1 control failing) and absence of any MDM config in repo. |
+| E6 | **RDS backup retention** | conflicting 7-day vs 15-day | [CONFIRM] — galaxy-dev IAM user lacks rds:DescribeDBInstances permission. Must be verified in AWS console by someone with RDS access. |
+| E7 | **Single-AZ vs multi-AZ** (EC2/RDS/Redis) | single-AZ | EC2 instance (`i-06696b0d91f4346e0`) confirmed in us-west-2a (single AZ). RDS and Redis AZ configuration cannot be confirmed via current credentials — verify in AWS console. |
+| E8 | **Secrets Manager migration** complete? | some secrets still in host `.env` | Partial. Primary secrets (galaxy-env bundle, RDS password, billing keys) are in Secrets Manager. However: (1) deploy.sh has a fallback to `/opt/biomate/.env` if SM fetch fails, so `.env` is still actively maintained; (2) `.env.example` contains `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` — unclear if static keys are fully eliminated. Migration is not complete. |
+| E9 | **Vuln scanning** cadence + result location | dep scans + monthly ZAP (unconfirmed) | Trivy runs on every PR; results uploaded to GitHub Code Scanning (SARIF format) — confirmed in `.github/workflows/ci-tests.yml`. Amazon Inspector is running (EventBridge managed rule `DO-NOT-DELETE-AmazonInspectorEc2ManagedRule` confirmed). **However:** Trivy is informational only — explicitly NOT a hard merge gate (confirmed by comment in CI config). No DAST/ZAP confirmed. No Dependabot. |
+| E10 | **Change SoD** — PR approval records distinct reviewer/approver? | protected branches + CI confirmed | As of 2026-09-02: YES — `enforce_admins=true`, `dismiss_stale_reviews=true`, `require_last_push_approval=true` set on both biomate and stack repos. Historical gap: 64 PRs merged without approval Aug 4–Sep 1 2026, acknowledged as exceptions in Vanta with documented reason (small team, controls not yet enforced, no PHI risk). |
+| E13 | **Lab VLAN** in scope or carved out? | isolated, insecure gRPC/HTTP | Carved out. No code or infra evidence of lab VLAN accessing production data. System Description correctly lists it as out of scope. Confirm with team that lab instruments are on an isolated network with no production data access. |
+| E14 | **run_code sandboxing** / prompt-injection controls | not confirmed | Code complete (compute-platform-v2, Stages 1–4 merged 2026-09-01). `SANDBOX_ENABLED` defaults to `False` — sandboxed execution is NOT active in production as of 2026-09-02. Cannot assert sandboxed execution for the observation period start. |
+| E15 | Break-glass **SSH IP/CIDR** current | `104.63.31.236/32` (may be stale) | **Confirmed (production SG).** `biomate-sg` (`sg-0b2188a4d48d989b8`) is the production security group used by EC2 `i-06696b0d91f4346e0`. Port 22 allows 4 CIDRs: `104.63.31.236/32`, `172.58.49.122/32`, `172.58.48.213/32`, `172.58.53.46/32`. All 4 are individual /32 IPs (team members). |
 
-Non-eng `[CONFIRM]`s (Yaoyun/HR): HRIS (E2), background checks (E11), customer status pre/active (E12).
+Non-eng answers (Yaoyun, 2026-09-03):
+- **E2 (HRIS):** No HRIS system in use. Team size is small (founding partners only); formal HRIS will be adopted when headcount grows. Employee population is derivable from the Google Workspace user list.
+- **E11 (Background checks):** No formal background-check process. All current team members are co-founders/partners. No third-party hires requiring background screening at this stage.
+- **E12 (Customer status):** Pre-customer — platform is in internal beta/testing phase. No paying customers as of the filing date.
 
 ## 4. What the package says about our posture (honest)
 **Strong / already true (the technical spine):**
