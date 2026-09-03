@@ -3885,6 +3885,33 @@ def _build_qc_report_from_s3_files(s3_files: List[Dict], outdir: str) -> Optiona
 
         step = data.get("step", rf.get("name", ""))
 
+        # BioMate alternate_state_generation report → surface reliability + memorization as QC metrics
+        # so the existing QC panel renders them (measured-vs-threshold, green/red). Keyed on the report's
+        # own `alternate_state` field, not a step name; `continue` skips the cryo-EM branches below.
+        if isinstance(data, dict) and "alternate_state" in data:
+            alt = data.get("alternate_state") or {}
+            rel = alt.get("consensus_reliability")
+            if rel is not None:
+                all_metrics.append({"name": "Alternate-state reliability", "step": step,
+                                     "measured": round(float(rel), 2), "unit": "",
+                                     "threshold": 0.5, "pass": float(rel) >= 0.5})
+            ba = alt.get("best_asym")
+            if ba is not None:
+                all_metrics.append({"name": "State-call |asym| (>=1.0 high-reliability)", "step": step,
+                                     "measured": round(abs(float(ba)), 2), "unit": "",
+                                     "threshold": 1.0, "pass": abs(float(ba)) >= 1.0})
+            memo = alt.get("memorization_signal")
+            if memo:
+                _low = ("reasoned" in memo.lower()) or ("low" in memo.lower())
+                all_metrics.append({"name": "Memorization risk", "step": step,
+                                     "measured": "LOW" if _low else "HIGH", "unit": "",
+                                     "threshold": "LOW", "pass": bool(_low)})
+            metrics["alternate_state"] = {
+                "reliability": rel, "best_asym": ba, "reached": alt.get("reached"),
+                "strategies": alt.get("strategies_populating"), "memorization": memo,
+            }
+            continue
+
         if "02_patch_motion" in step or "02_motion" in step:
             num_mics = data.get("num_micrographs")
             motion_entry: Dict[str, Any] = {}
