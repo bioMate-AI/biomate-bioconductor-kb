@@ -56,8 +56,8 @@ These facts were pulled from the repo and **must be verified as current** before
 | E3 | **MFA** — enforced in production? (repo shows prototype only) | Eng | ✅ (confirmed: NOT enforced — gap documented as P2-5) |
 | E4 | **VPN / access broker** current state (SSM confirmed; VPN was "planned Q3 2026") | Eng | ✅ (SSM confirmed as access broker; no VPN deployed) |
 | E5 | **MDM** — any workstation management? (none found in repo) | Eng | ✅ (confirmed: none — MDM-1 failing in Vanta) |
-| E6 | **RDS backup retention** actual value (recon saw both 7-day and 15-day) | Eng | ☐ (still needs console check — galaxy-dev lacks rds:DescribeDBInstances) |
-| E7 | **Single-AZ vs multi-AZ** current topology (EC2/RDS/Redis) | Eng | ◐ (EC2 confirmed single-AZ us-west-2a; RDS/Redis AZ config needs console verification) |
+| E6 | **RDS backup retention** actual value (recon saw both 7-day and 15-day) | Eng | ✅ (confirmed: 7-day retention on both `biomate-postgres` (prod) and `biomate-test-galaxy` (test) via SSO admin query 2026-09-03) |
+| E7 | **Single-AZ vs multi-AZ** current topology (EC2/RDS/Redis) | Eng | ✅ (confirmed: ALL single-AZ — EC2 us-west-2a, RDS `biomate-postgres` us-west-2b, RDS `biomate-test-galaxy` us-west-2a, Redis `biomate-redis-enc` us-west-2d; Multi-AZ disabled on all; AutoFailover disabled on Redis) |
 | E8 | **Secrets Manager migration** status (some secrets still in host `.env`?) | Eng | ✅ (confirmed: partial — primary secrets in SM but `.env` fallback still active; not complete) |
 | E9 | **Vulnerability scanning** cadence (dep scans + OWASP ZAP) + where results live | Eng | ✅ (Trivy on every PR → GitHub Code Scanning SARIF; Inspector running; informational only, not hard gate; no ZAP/Dependabot) |
 | E10 | **Change-mgmt SoD** — does PR approval record a distinct reviewer/approver? | Eng | ✅ (fixed 2026-09-02: enforce_admins+dismiss_stale+last-push-approval set; 64 historical exceptions documented in Vanta) |
