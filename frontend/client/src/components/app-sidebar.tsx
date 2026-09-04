@@ -350,6 +350,20 @@ export function AppSidebar({
             <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Generate regulatory submission documents</span>
           </span>
         </button>
+        <button className="side-link" data-testid="button-models-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/models')}>
+          <Layers className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span>Models</span>
+            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Train, adapt & run models · registry</span>
+          </span>
+        </button>
+        <button className="side-link" data-testid="button-design-generate-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/design')}>
+          <FlaskConical className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span>Design &amp; Generate</span>
+            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Generate candidates against property objectives</span>
+          </span>
+        </button>
       </div>
 
       {/* Projects section — always visible */}

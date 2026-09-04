@@ -55,6 +55,8 @@ import DebugOutputs from "@/pages/DebugOutputs";
 import DebugViewerChain from "@/pages/DebugViewerChain";
 import WorkflowDeepLink from "@/pages/WorkflowDeepLink";
 import CapabilitiesPage from "@/pages/capabilities";
+import { ModelsPanel } from "@/components/models";
+import { DesignGenerate } from "@/components/design-generate/DesignGenerate";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { TutorialTipOverlay } from "@/components/tutorial-tip-overlay";
@@ -644,6 +646,26 @@ function Router({
         <PublicPageLayout>
           <CapabilitiesPage />
         </PublicPageLayout>
+      </Route>
+
+      {/* DL upgrade wave-1/wave-2 — Models + Design&Generate surfaces.
+          Components: components/models (ModelsPanel) and
+          components/design-generate (DesignGenerate). Node proxy routes for
+          /api/models·/api/inference·/api/generate live in server/routes.ts. */}
+      <Route path="/models">
+        <AuthenticatedPageLayout>
+          <div className="max-w-5xl mx-auto p-4">
+            <ModelsPanel />
+          </div>
+        </AuthenticatedPageLayout>
+      </Route>
+
+      <Route path="/design">
+        <AuthenticatedPageLayout>
+          <div className="max-w-5xl mx-auto p-4">
+            <DesignGenerate />
+          </div>
+        </AuthenticatedPageLayout>
       </Route>
 
 {/* Deep link from chat connectors — loads a generated workflow by id and
