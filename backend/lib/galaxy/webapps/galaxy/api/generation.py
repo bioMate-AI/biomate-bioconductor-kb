@@ -54,12 +54,18 @@ log = logging.getLogger(__name__)
 
 router = Router(tags=["generation"])
 
-# In-process run registry: run_id -> run record. A design run is short-lived and
-# advisory (it does not launch AWS Batch), so an in-process dict is sufficient
-# here; if this ever needs cross-worker visibility it can adopt the same
-# RunStateStore the Nextflow executor uses.
-_runs: Dict[str, Dict[str, Any]] = {}
-_runs_lock = threading.Lock()
+# Run registry — cross-worker via the shared RunStateStore. A design run is
+# short-lived, but the run record is written by a background thread on the worker
+# that served POST /api/generate while the client polls GET /api/generate/{id},
+# which round-robins across all 4 dev workers. An in-process dict would 404 on
+# ~75% of polls; the shared store (RUN_STATE_STORE=redis on dev) makes the record
+# visible to every worker. run_ids are prefixed "gen_" so they never collide with
+# nextflow/inference run keys, and we never set_pid() so the CompletionPoller
+# skips them.
+def _store():
+    from galaxy.ai.runs.run_state_store import get_run_state_store
+
+    return get_run_state_store()
 
 
 # ---------------------------------------------------------------------------
@@ -469,10 +475,15 @@ def _finish_empty(run_id, generator, notes, reason, n_generated=0):
 
 
 def _set_run(run_id: str, **fields) -> None:
-    with _runs_lock:
-        rec = _runs.setdefault(run_id, {})
-        rec.update(fields)
-        rec["updated_at"] = time.time()
+    # Create-or-merge (matches the old setdefault semantics). The record is only
+    # ever created in start_generation (before the worker thread starts), so the
+    # get-then-branch is not racing a concurrent creator for the same run_id.
+    fields["updated_at"] = time.time()
+    store = _store()
+    if store.get_run(run_id) is None:
+        store.set_run(run_id, fields)
+    else:
+        store.update_run(run_id, **fields)
 
 
 # ---------------------------------------------------------------------------
@@ -499,10 +510,9 @@ def start_generation(request: GenerateRequest) -> Dict[str, Any]:
 @router.get("/api/generate/{run_id}", summary="Poll a de-novo design run")
 def get_generation(run_id: str) -> Dict[str, Any]:
     """Return the run's status and (when complete) candidates / pareto / rejected."""
-    with _runs_lock:
-        rec = _runs.get(run_id)
-        if rec is None:
-            raise HTTPException(status_code=404, detail=f"unknown run_id {run_id!r}")
-        out = dict(rec)
+    rec = _store().get_run(run_id)
+    if rec is None:
+        raise HTTPException(status_code=404, detail=f"unknown run_id {run_id!r}")
+    out = dict(rec)
     out["run_id"] = run_id
     return out

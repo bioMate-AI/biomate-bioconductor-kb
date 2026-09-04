@@ -127,13 +127,6 @@ _BIONEMO_PREFIX = "bionemo:"
 _CUSTOM_PREFIX = "custom:"
 
 
-def _bionemo_available() -> bool:
-    """True if a NVIDIA_API_KEY is present (necessary, not sufficient)."""
-    import os
-
-    return bool(os.environ.get("NVIDIA_API_KEY", ""))
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Custom-model catalog — enumerated from the CustomModelRegistry SQLite.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -278,17 +271,25 @@ def _evidence_class_for(model_id: str) -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# In-process inference run registry
+# Inference run registry — cross-worker via the shared RunStateStore
 # ─────────────────────────────────────────────────────────────────────────────
-# run_id -> {status, evidence_class, model_id, result, error, created_at}
-_infer_runs: Dict[str, Dict[str, Any]] = {}
-_infer_lock = threading.Lock()
+# Dev gunicorn runs --workers=4 with no sticky routing, so a module-level dict
+# would 404 on ~75% of polls (POST lands on worker A, GET round-robins to B/C/D).
+# We reuse the exact store the Nextflow executor uses (RUN_STATE_STORE=redis on
+# dev). Our run_ids are uniquely prefixed ("inf-"), so they never collide with
+# nextflow run keys; and because we never call set_pid(), the CompletionPoller
+# skips them (it returns early when get_pid() is None) — no cross-contamination.
+def _store():
+    from galaxy.ai.runs.run_state_store import get_run_state_store
+
+    return get_run_state_store()
 
 
 def _new_run(model_id: str, evidence_class: str) -> str:
     run_id = f"inf-{uuid.uuid4().hex[:12]}"
-    with _infer_lock:
-        _infer_runs[run_id] = {
+    _store().set_run(
+        run_id,
+        {
             "run_id": run_id,
             "model_id": model_id,
             "evidence_class": evidence_class,
@@ -296,26 +297,17 @@ def _new_run(model_id: str, evidence_class: str) -> str:
             "result": None,
             "error": None,
             "created_at": time.time(),
-        }
+        },
+    )
     return run_id
 
 
 def _finish_run(run_id: str, result: Dict[str, Any]) -> None:
-    with _infer_lock:
-        rec = _infer_runs.get(run_id)
-        if rec is None:
-            return
-        rec["status"] = "completed"
-        rec["result"] = result
+    _store().update_run(run_id, status="completed", result=result)
 
 
 def _fail_run(run_id: str, error: str) -> None:
-    with _infer_lock:
-        rec = _infer_runs.get(run_id)
-        if rec is None:
-            return
-        rec["status"] = "failed"
-        rec["error"] = error
+    _store().update_run(run_id, status="failed", error=error)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -368,7 +360,7 @@ for _m in (ModelSummary, InferRequest, InferResponse):
     "/api/models",
     summary="List catalog models (BioNeMo self-host + registered custom).",
 )
-async def list_models() -> List[Dict[str, Any]]:
+def list_models() -> List[Dict[str, Any]]:
     return _catalog()
 
 
@@ -379,7 +371,7 @@ async def list_models() -> List[Dict[str, Any]]:
     "/api/models/{model_id:path}",
     summary="Model detail: identity, evidence, lineage, consumers, interface, versions.",
 )
-async def get_model(model_id: str) -> Dict[str, Any]:
+def get_model(model_id: str) -> Dict[str, Any]:
     row = _find_catalog_row(model_id)
     if row is None:
         raise HTTPException(status_code=404, detail=f"Unknown model id: {model_id}")
@@ -464,7 +456,7 @@ def _custom_consumers(model_name: str) -> List[str]:
     "/api/models/{model_id:path}/infer",
     summary="Dispatch a pre-trained inference; returns a run_id to poll.",
 )
-async def infer(model_id: str, body: InferRequest) -> Dict[str, Any]:
+def infer(model_id: str, body: InferRequest) -> Dict[str, Any]:
     row = _find_catalog_row(model_id)
     if row is None:
         raise HTTPException(status_code=404, detail=f"Unknown model id: {model_id}")
@@ -504,23 +496,21 @@ async def infer(model_id: str, body: InferRequest) -> Dict[str, Any]:
     "/api/inference/{run_id}/result",
     summary="Inference result, shaped by evidence class.",
 )
-async def get_inference_result(run_id: str) -> Dict[str, Any]:
-    with _infer_lock:
-        rec = _infer_runs.get(run_id)
-        if rec is None:
-            raise HTTPException(status_code=404, detail=f"Unknown run_id: {run_id}")
-        rec = dict(rec)  # shallow copy for read outside the lock
+def get_inference_result(run_id: str) -> Dict[str, Any]:
+    rec = _store().get_run(run_id)
+    if rec is None:
+        raise HTTPException(status_code=404, detail=f"Unknown run_id: {run_id}")
 
-    if rec["status"] == "running":
+    if rec.get("status") == "running":
         return {"run_id": run_id, "status": "running"}
-    if rec["status"] == "failed":
-        return {"run_id": run_id, "status": "failed", "error": rec["error"]}
+    if rec.get("status") == "failed":
+        return {"run_id": run_id, "status": "failed", "error": rec.get("error")}
 
-    result = rec["result"] or {}
+    result = rec.get("result") or {}
     return {
         "run_id": run_id,
         "status": "completed",
-        "evidenceClass": rec["evidence_class"],
+        "evidenceClass": rec.get("evidence_class"),
         **result,
     }
 
@@ -537,18 +527,23 @@ def _dispatch_bionemo(
     """
     fn_name = model_id[len(_BIONEMO_PREFIX):]
 
-    if not _bionemo_available():
-        return _stub_result(
-            evidence_class,
-            reason="NVIDIA_API_KEY not set — BioNeMo NIM unreachable",
-        )
-
     try:
-        from galaxy.ai.bionemo_client import BioNeMoClient
+        from galaxy.ai.bionemo_client import BioNeMoClient, MODE_STUB
 
         client = BioNeMoClient()
     except Exception as exc:  # noqa: BLE001
         return _stub_result(evidence_class, reason=f"BioNeMo client init failed: {exc}")
+
+    # The client owns backend selection (self_host | hosted_api | stub) — do NOT
+    # re-gate on NVIDIA_API_KEY here: production mode is self_host (a URL, no key),
+    # so a key-only check would stub out every inference even with the NIM up.
+    # When nothing is configured the client's effective mode is stub; surface its
+    # own honest reason. Otherwise dispatch and let per-call stub handling (below)
+    # label an unreachable backend.
+    if client._effective_mode() == MODE_STUB:
+        return _stub_result(
+            evidence_class, reason=client._stub_reason(fn_name, MODE_STUB)
+        )
 
     if evidence_class == STRUCTURE:
         return _bionemo_structure(client, fn_name, inputs)
@@ -567,8 +562,12 @@ def _bionemo_structure(client, fn_name: str, inputs: Dict[str, Any]) -> Dict[str
 
     if fn_name == "esmfold":
         pdb = client.esmfold(sequence)
-        # ESMFold returns a PDB string; per-residue pLDDT lives in the B-factor
-        # column. We surface the file ref and parse pLDDT if present.
+        # ESMFold returns a PDB string ('' when the backend is unreachable —
+        # never a fabricated structure). Label the empty case as a stub so the
+        # UI shows "backend unreachable", not an empty-but-real prediction.
+        if not pdb:
+            return _stub_result(STRUCTURE, reason="ESMFold backend unreachable")
+        # per-residue pLDDT lives in the B-factor column.
         plddt = _plddt_from_pdb(pdb)
         return {
             "structureFileRef": _store_blob(pdb, suffix=".pdb"),
@@ -577,13 +576,20 @@ def _bionemo_structure(client, fn_name: str, inputs: Dict[str, Any]) -> Dict[str
             "regions": [],
         }
 
-    # boltz2 / alphafold2 / openfold2 → dict payloads (CIF + confidence)
+    # boltz2 / alphafold2 / openfold2 → dict payloads (CIF + confidence).
+    # Route through the mode-aware entry points so self_host / stub are honoured
+    # (openfold2 must NOT call _nvcf_call directly — that bypasses self_host and
+    # leaks data to NVIDIA's hosted API contrary to the data-residency posture).
     if fn_name == "boltz2":
         raw = client.boltz2(sequence)
     elif fn_name == "alphafold2":
         raw = client.alphafold2(sequence)
     else:
-        raw = client._nvcf_call(fn_name, {"sequence": sequence})  # openfold2 etc.
+        raw = client._call(fn_name, {"sequence": sequence})  # openfold2 etc.
+
+    # An unreachable backend returns a labelled stub dict — surface it as such.
+    if client._is_stub(raw):
+        return _stub_result(STRUCTURE, reason=raw.get("reason", "backend unreachable"))
 
     structures = raw.get("structures") or raw.get("pdbs") or []
     struct_str = structures[0] if structures else ""
@@ -609,6 +615,8 @@ def _bionemo_genomic(client, fn_name: str, inputs: Dict[str, Any]) -> Dict[str, 
     num_tokens = int(inputs.get("num_tokens", 100))
 
     raw = client.evo2_generate(sequence, num_tokens=num_tokens, model=fn_name)
+    if client._is_stub(raw):
+        return _stub_result(GENOMIC, reason=raw.get("reason", "backend unreachable"))
     generated = raw.get("sequence", "")
     # Evo2 emits a generated sequence; we expose it as a 'marks' track over the
     # generated region. No per-base scores are fabricated.

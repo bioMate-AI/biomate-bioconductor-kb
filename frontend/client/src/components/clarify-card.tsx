@@ -143,7 +143,9 @@ export function ClarifyCard({
       return idx === -1 ? 0 : idx
     }),
   )
-  const [own, setOwn] = useState("")
+  // Free-text is keyed PER QUESTION — a single shared string would make a later
+  // free-text answer overwrite an earlier one (both read the same value at confirm).
+  const [own, setOwn] = useState<Record<string, string>>({})
 
   if (N === 0) return null
 
@@ -151,12 +153,16 @@ export function ClarifyCard({
   const pick = picks[i]
   const setPick = (v: number) => setPicks((a) => a.map((x, j) => (j === i ? v : x)))
 
-  const answerFor = (qq: ClarifyQuestion, p: number, ownText: string): ClarifyAnswer => {
+  const answerFor = (
+    qq: ClarifyQuestion,
+    p: number,
+    ownMap: Record<string, string>,
+  ): ClarifyAnswer => {
     if (p === FREETEXT) {
       return {
         questionId: qq.id,
         target: { type: qq.target, name: qq.field },
-        value: ownText,
+        value: ownMap[qq.id] ?? "",
         source: "freetext",
       }
     }
@@ -281,9 +287,9 @@ export function ClarifyCard({
             {pick === FREETEXT && (
               <input
                 data-testid={`clarify-own-${q.id}`}
-                value={own}
+                value={own[q.id] ?? ""}
                 placeholder="e.g. GRCh38 but with our internal annotation"
-                onChange={(e) => setOwn(e.target.value)}
+                onChange={(e) => setOwn((m) => ({ ...m, [q.id]: e.target.value }))}
                 onClick={(e) => e.stopPropagation()}
                 className="w-full rounded border border-border bg-background px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />

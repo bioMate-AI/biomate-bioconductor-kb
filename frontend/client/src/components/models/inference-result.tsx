@@ -137,8 +137,9 @@ function ChemicalView({
   const hits: ChemHit[] = (r.hits ?? []).map((h) => ({
     id: h.id,
     smiles: h.smiles,
-    // A stub/held hit has no measured score; the viewer suppresses it when held.
-    score: h.score ?? 0,
+    // A stub/held hit has no measured score — keep it null (NOT 0) so HitGrid
+    // sorts it as unranked rather than as the worst real score.
+    score: h.score ?? null,
     confidence: h.confidence,
     herg: h.herg ?? "—",
     drugLike: h.drugLike ?? "—",

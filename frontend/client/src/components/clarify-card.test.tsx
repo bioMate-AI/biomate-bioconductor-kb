@@ -120,6 +120,29 @@ describe("<ClarifyCard>", () => {
     })
   })
 
+  it("keeps per-question free-text independent across questions", async () => {
+    // Regression: a single shared `own` string made a later free-text answer
+    // overwrite an earlier one. Q1 and Q3 both free-texted with DIFFERENT text
+    // must both survive to the emitted answer set.
+    const user = userEvent.setup()
+    const onDone = vi.fn<[ClarifyAnswer[]], void>()
+    render(<ClarifyCard questions={CLARIFY_QUESTIONS} onDone={onDone} />)
+
+    // Q1 free-text
+    await user.click(screen.getByTestId("clarify-opt-reference_build-freetext"))
+    await user.type(screen.getByTestId("clarify-own-reference_build"), "build-ONE")
+    await user.click(screen.getByTestId("clarify-next")) // -> Q2
+    await user.click(screen.getByTestId("clarify-next")) // -> Q3 (accept inferred workflow)
+    // Q3 free-text with different text
+    await user.click(screen.getByTestId("clarify-opt-output_template-freetext"))
+    await user.type(screen.getByTestId("clarify-own-output_template"), "template-THREE")
+    await user.click(screen.getByTestId("clarify-next")) // confirm
+
+    const answers = onDone.mock.calls[0][0]
+    expect(answers[0]).toMatchObject({ questionId: "reference_build", value: "build-ONE", source: "freetext" })
+    expect(answers[2]).toMatchObject({ questionId: "output_template", value: "template-THREE", source: "freetext" })
+  })
+
   it("skip-one advances and dispatches a skip event", async () => {
     const user = userEvent.setup()
     const onSkip = vi.fn()
