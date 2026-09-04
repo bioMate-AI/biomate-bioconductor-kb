@@ -2,13 +2,28 @@
 /*
  * drug_discovery/reinvent4_lead_design
  *
- * Generative drug design using REINVENT4 (AstraZeneca, Apache-2.0).
- * Reinforcement learning optimization of SMILES-based molecular generator.
+ * Generative lead design (BRICS enumeration baseline).
+ *
+ * HONESTY NOTE (2026-09): despite the directory name, the GENERATE step below
+ * is RDKit BRICS decompose/reassemble + medchem enumeration — a deterministic
+ * combinatorial enumerator, NOT REINVENT4 reinforcement learning and NOT a
+ * trained generative policy.  The step is named GENERATE_BRICS accordingly and
+ * its "score_history" is a presentation artefact, not an RL training curve.
+ *
+ * The generator is a SWAP-POINT.  A real target/property-conditioned learned
+ * generator (NVIDIA BioNeMo GenMol / MolMIM) drops into this slot via the
+ * Python abstraction:
+ *     backend/lib/galaxy/ai/drug_discovery/generators.py       (Generator.propose)
+ *     backend/lib/galaxy/ai/drug_discovery/denovo_pipeline.py  (closed loop:
+ *         generate -> predict -> GP/HVI score+select -> rank), where affinity
+ *         and ADMET are IN-LOOP acquisition signals, not a post-hoc filter.
+ *
  * Supports: de novo design, scaffold decoration, linker design, scaffold hopping.
  *
  * Pipeline Steps:
  * 1. VALIDATE_INPUT       — parse seed SMILES, validate with RDKit, check drug-likeness
- * 2. REINVENT_DESIGN      — REINVENT4 RL loop: sample → score → update policy
+ * 2. GENERATE_BRICS       — RDKit BRICS + medchem enumeration (SWAP-POINT for a
+ *                           learned generator; see generators.py). NOT REINVENT4 RL.
  * 3. FILTER_RANK          — RDKit post-filter: drug-likeness, PAINS, diversity,
  *                           novelty vs. seed (Tanimoto < 0.4)
  * 4. REPORT               — ranked CSV + SDF + score trajectory plot + HTML summary
@@ -26,11 +41,12 @@
  *   design_report.html           — human-readable HTML with structure grid + score breakdown
  *
  * References:
- *   REINVENT4: Loeffler et al. J. Cheminform. 2024, 16:20
- *   GitHub: https://github.com/MolecularAI/REINVENT4
+ *   BRICS: Degen et al. ChemMedChem 2008, 3:1503-1507 (fragmentation used by GENERATE_BRICS)
  *   QED: Bickerton et al. Nature Chem. 2012, 4:90-98
  *   SA score: Ertl & Schuffenhauer J. Cheminform. 2009, 1:8
  *   PAINS: Baell & Holloway J. Med. Chem. 2010, 53:2719-2740
+ *   REINVENT4 (target learned generator, NOT run here): Loeffler et al.
+ *     J. Cheminform. 2024, 16:20 — https://github.com/MolecularAI/REINVENT4
  */
 
 nextflow.enable.dsl = 2
@@ -164,15 +180,25 @@ PYEOF
 
 
 // [Molecule Generation]
-process REINVENT_DESIGN {
+process GENERATE_BRICS {
     /*
-     * Core REINVENT4 RL optimization loop.
-     * Trains a molecular generator policy to maximize scoring function.
+     * BRICS enumeration baseline (NOT REINVENT4 RL, NOT a trained policy).
+     *
+     * Deterministically enumerates analogues by BRICS decompose/reassemble of
+     * the seed + recombination with a small medchem fragment library, then
+     * scores them with cheap RDKit descriptors.  This is the SWAP-POINT: the
+     * Python abstraction generators.py::Generator.propose() exposes the same
+     * generate step so a real target-conditioned learned generator
+     * (BioNeMoGenerator -> GenMol/MolMIM) can replace this without touching the
+     * downstream filter/rank stages.  The Python closed loop
+     * (denovo_pipeline.py) additionally feeds affinity/ADMET back in-loop via
+     * the existing bayesian_optimizer.py GP + hypervolume acquisition.
+     *
      * Outputs:
-     *   raw_molecules.csv     — all generated (SMILES, score, epoch)
-     *   score_history.json    — epoch → mean/top score
+     *   raw_molecules.csv     — all generated (SMILES, score)
+     *   score_history.json    — presentation chunking of scores (NOT an RL curve)
      */
-    tag "reinvent4_rl"
+    tag "brics_enumeration"
     container REINVENT4_CONTAINER
     publishDir "${params.outdir}/rl", mode: params.publish_dir_mode
 
@@ -329,7 +355,7 @@ with open("raw_molecules.csv", "w", newline="") as csvf:
     writer.writeheader()
     writer.writerows(scored[:top_n])
 
-# Write score_history.json (simulated RL trajectory)
+# Write score_history.json (presentation chunking of enumeration scores — NOT an RL curve)
 history = []
 chunk = max(1, len(scored) // max(n_steps, 1))
 for step in range(1, n_steps + 1):
@@ -577,7 +603,7 @@ if history:
     ax.plot(epochs, top_scores,  'r-', linewidth=2, label='Top score')
     ax.fill_between(epochs, mean_scores, top_scores, alpha=0.1, color='purple')
     ax.set_xlabel('RL Epoch'); ax.set_ylabel('Score')
-    ax.set_title('REINVENT4 Score Trajectory'); ax.legend(); ax.grid(True, alpha=0.3)
+    ax.set_title('BRICS Enumeration Score Distribution (chunked; not an RL curve)'); ax.legend(); ax.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.savefig('score_trajectory.png', dpi=150, bbox_inches='tight')
     plt.close()
@@ -618,9 +644,9 @@ for i, row in enumerate(top_rows[:20], 1):
     html_rows += f'<tr style="background:{color}"><td>{i}</td><td><code>{row.get("smiles","")}</code></td><td><b>{score:.4f}</b></td><td>{row.get("qed","")}</td><td>{row.get("sa_score","")}</td><td>{row.get("mw","")}</td></tr>'
 
 with open('design_report.html', 'w') as f:
-    f.write(f'''<!DOCTYPE html><html><head><meta charset="utf-8"><title>REINVENT4 Report</title>
+    f.write(f'''<!DOCTYPE html><html><head><meta charset="utf-8"><title>BRICS Lead Design Report</title>
 <style>body{{font-family:Arial,sans-serif;margin:40px}} table{{border-collapse:collapse;width:100%}} th{{background:#1565c0;color:white;padding:8px}} td{{padding:6px;border-bottom:1px solid #ddd}}</style></head>
-<body><h1>REINVENT4 Design Report</h1>
+<body><h1>BRICS Lead Design Report</h1>
 <p>Seed: <code>{summary["seed_smiles"]}</code> | Mode: {summary["design_mode"]} | Molecules: {summary["molecules_after_filter"]}</p>
 <table><tr><th>Rank</th><th>SMILES</th><th>Score</th><th>QED</th><th>SA</th><th>MW</th></tr>{html_rows}</table>
 </body></html>''')
@@ -651,12 +677,12 @@ workflow {
     // ── Step 1: Validate input SMILES ─────────────────────────────────────
     VALIDATE_INPUT()
 
-    // ── Step 2: REINVENT4 RL training ─────────────────────────────────────
-    REINVENT_DESIGN(VALIDATE_INPUT.out.input_config)
+    // ── Step 2: BRICS enumeration (swap-point for a learned generator) ────
+    GENERATE_BRICS(VALIDATE_INPUT.out.input_config)
 
     // ── Step 3: Filter + rank ─────────────────────────────────────────────
     FILTER_RANK(
-        REINVENT_DESIGN.out.molecules,
+        GENERATE_BRICS.out.molecules,
         VALIDATE_INPUT.out.input_config
     )
 
@@ -664,7 +690,7 @@ workflow {
     REPORT(
         FILTER_RANK.out.csv,
         FILTER_RANK.out.sdf,
-        REINVENT_DESIGN.out.history,
+        GENERATE_BRICS.out.history,
         FILTER_RANK.out.stats,
         VALIDATE_INPUT.out.input_config
     )
@@ -675,7 +701,7 @@ workflow {
             def data = new groovy.json.JsonSlurper().parseText(summary.text)
             log.info ""
             log.info "═══════════════════════════════════════════════════"
-            log.info "  REINVENT4 Lead Design — Results Summary"
+            log.info "  BRICS Lead Design — Results Summary"
             log.info "═══════════════════════════════════════════════════"
             log.info "  Design mode:   ${data.design_mode}"
             log.info "  Scoring:       ${data.scoring_function}"
