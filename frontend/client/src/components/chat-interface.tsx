@@ -444,6 +444,7 @@ function ReturningUserWelcome(_props: { onSend: (msg: string) => void }) {
   // Greeting + 8-domain × 4-query grid removed per todo (item #11):
   // the hardcoded suggested queries haven't been E2E-validated against every
   // workflow. Restore once each query is verified to drive a complete run.
+  // GATE: scripts/coldstart_executability_guard.py must go green (every WELCOME_PROMPT backed by a workflow in passed_workflows.txt) before re-enabling — currently 9/32.
   return null;
 }
 
