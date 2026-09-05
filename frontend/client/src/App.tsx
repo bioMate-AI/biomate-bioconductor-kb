@@ -429,7 +429,6 @@ function PlatformLayout({
             <AppSidebar
               onNewChat={() => { onNewChat(); setMobileMenuOpen(false); }}
               onChatSelect={(id) => { onChatSelect(id); setMobileMenuOpen(false); }}
-              onCategorySelect={onCategorySelect}
               onToolSelect={onToolSelect}
               onProjectSelect={(id) => { onProjectSelect(id); setMobileMenuOpen(false); }}
               onNewProject={() => { onNewProject(); setMobileMenuOpen(false); }}
@@ -475,10 +474,10 @@ function PlatformLayout({
               <button onClick={onNewChat} data-testid="button-new-chat" className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="New chat">
                 <Plus className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
               </button>
-              <button className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="Workflows">
+              <button onClick={toggleSidebar} data-testid="button-rail-workflows" className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="Workflows — expand sidebar">
                 <FlaskConical className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
               </button>
-              <button className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="Chat history">
+              <button onClick={toggleSidebar} data-testid="button-rail-chat-history" className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="Chat history — expand sidebar">
                 <MessageCircle className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
               </button>
               <div className="flex-1" />
@@ -490,7 +489,6 @@ function PlatformLayout({
               <AppSidebar
                 onNewChat={onNewChat}
                 onChatSelect={onChatSelect}
-                onCategorySelect={onCategorySelect}
                 onToolSelect={onToolSelect}
                 onProjectSelect={onProjectSelect}
                 onNewProject={onNewProject}

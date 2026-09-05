@@ -14,31 +14,13 @@ import type { Project } from "@shared/schema"
 import {
   MessageCircle,
   Plus,
-  Dna,
-  BarChart3,
-  Database,
   Settings,
-  Workflow,
-  Clock,
-  Star,
   ChevronRight,
   ChevronDown,
-  Zap,
   FileText,
-  Activity,
-  Target,
-  Layers,
-  GitBranch,
-  Search,
-  Filter,
-  BarChart,
-  PieChart,
-  TrendingUp,
   FolderOpen,
   PanelLeft,
-  DollarSign,
   FlaskConical,
-  BookOpen,
   Cable,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -55,65 +37,9 @@ interface ToolItem {
   icon: any
 }
 
-interface ToolCategory {
-  name: string
-  icon: any
-  count: number
-  tools: ToolItem[]
-}
-
-const toolCategories: ToolCategory[] = [
-  {
-    name: "Genomics", 
-    icon: Dna, 
-    count: 45,
-    tools: [
-      { id: 'fastqc', name: 'FastQC', description: 'Quality assessment of sequencing data', complexity: 'simple', category: 'genomics', icon: Activity },
-      { id: 'hisat2', name: 'HISAT2', description: 'Splice-aware RNA-seq alignment', complexity: 'intermediate', category: 'genomics', icon: Target },
-      { id: 'bwa-mem', name: 'BWA-MEM', description: 'Fast and accurate read alignment', complexity: 'intermediate', category: 'genomics', icon: Target },
-      { id: 'star', name: 'STAR', description: 'Ultrafast RNA-seq aligner', complexity: 'complex', category: 'genomics', icon: Star },
-      { id: 'gatk', name: 'GATK', description: 'Variant discovery toolkit', complexity: 'complex', category: 'genomics', icon: Search },
-      { id: 'freebayes', name: 'FreeBayes', description: 'Bayesian variant caller', complexity: 'intermediate', category: 'genomics', icon: Search }
-    ]
-  },
-  {
-    name: "Statistics", 
-    icon: BarChart3, 
-    count: 28,
-    tools: [
-      { id: 'deseq2', name: 'DESeq2', description: 'Differential gene expression analysis', complexity: 'complex', category: 'statistics', icon: BarChart },
-      { id: 'edger', name: 'edgeR', description: 'Empirical analysis of digital gene expression', complexity: 'complex', category: 'statistics', icon: BarChart },
-      { id: 'limma', name: 'limma', description: 'Linear models for microarray data', complexity: 'intermediate', category: 'statistics', icon: TrendingUp },
-      { id: 'multiqc', name: 'MultiQC', description: 'Aggregate bioinformatics analyses', complexity: 'simple', category: 'statistics', icon: PieChart }
-    ]
-  },
-  {
-    name: "Data Sources", 
-    icon: Database, 
-    count: 32,
-    tools: [
-      { id: 'samtools', name: 'SAMtools', description: 'Tools for SAM/BAM manipulation', complexity: 'simple', category: 'data-sources', icon: Database },
-      { id: 'bcftools', name: 'BCFtools', description: 'Tools for VCF/BCF files', complexity: 'intermediate', category: 'data-sources', icon: Database },
-      { id: 'picard', name: 'Picard', description: 'Java tools for sequencing data', complexity: 'intermediate', category: 'data-sources', icon: Layers }
-    ]
-  },
-  {
-    name: "Workflows", 
-    icon: Workflow, 
-    count: 15,
-    tools: [
-      { id: 'rna-seq', name: 'RNA-seq Pipeline', description: 'Complete RNA sequencing workflow', complexity: 'complex', category: 'workflows', icon: GitBranch },
-      { id: 'variant-calling', name: 'Variant Calling', description: 'SNP and indel discovery pipeline', complexity: 'complex', category: 'workflows', icon: GitBranch },
-      { id: 'chip-seq', name: 'ChIP-seq Pipeline', description: 'Chromatin immunoprecipitation workflow', complexity: 'complex', category: 'workflows', icon: GitBranch }
-    ]
-  },
-]
-
-
 interface AppSidebarProps {
   onNewChat?: () => void
   onChatSelect?: (chatId: string) => void
-  onCategorySelect?: (category: string) => void
   onToolSelect?: (tool: ToolItem) => void
   onProjectSelect?: (projectId: string) => void
   onNewProject?: () => void
@@ -128,7 +54,6 @@ interface AppSidebarProps {
 export function AppSidebar({ 
   onNewChat = () => console.log('New chat triggered'),
   onChatSelect = (id) => console.log('Chat selected:', id),
-  onCategorySelect = (cat) => console.log('Category selected:', cat),
   onToolSelect = (tool) => console.log('Tool selected:', tool.name),
   onProjectSelect = (id) => console.log('Project selected:', id),
   onNewProject = () => console.log('New project triggered'),
@@ -170,10 +95,7 @@ export function AppSidebar({
     const id = setInterval(fetchSessionStatuses, 15000)
     return () => clearInterval(id)
   }, [fetchSessionStatuses])
-  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [projectsExpanded, setProjectsExpanded] = useState(true);
-  const [chatsExpanded, setChatsExpanded] = useState(true);
-  const [toolCategoriesExpanded, setToolCategoriesExpanded] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [historyInitialTab, setHistoryInitialTab] = useState<'runs' | 'imports' | 'upload'>('runs');
@@ -211,15 +133,6 @@ export function AppSidebar({
     return () => window.removeEventListener('biomate:projects-updated', refreshProjects);
   }, []);
   const recentProjects = projectService.getAllProjects().slice(0, 5);
-
-  const toggleCategory = (categoryName: string) => {
-    setExpandedCategories(prev => 
-      prev.includes(categoryName)
-        ? prev.filter(name => name !== categoryName)
-        : [...prev, categoryName]
-    );
-    onCategorySelect(categoryName);
-  };
 
   function getRelativeTime(date: Date): string {
     const now = new Date()
@@ -485,27 +398,6 @@ export function AppSidebar({
             <span>Settings &amp; API Keys</span>
           </button>
         </div>
-
-        {/* Beta: Actions panel hidden — Starred Workflows, Recent Tools,
-            Billing — dialogs not yet wired to backend.
-            Re-enable once each action lands a real implementation.
-
-        <div style={{ marginTop: 16, borderTop: '1px solid var(--bm-border)', paddingTop: 10 }}>
-          <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600 }}>Actions</div>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowStarredDialog(true)} data-testid="button-starred-workflows">
-            <Star className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Starred Workflows</span>
-          </button>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowRecentToolsDialog(true)} data-testid="button-recent-tools">
-            <Clock className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Recent Tools</span>
-          </button>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/billing')} data-testid="button-billing">
-            <DollarSign className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Billing</span>
-          </button>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => { analytics.track('settings_opened'); setShowSettingsDialog(true); }} data-testid="button-settings">
-            <Settings className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Settings</span>
-          </button>
-        </div>
-        */}
       </div>
 
       {/* Footer */}

@@ -3,25 +3,25 @@
  * =======================
  * Systematic coverage of every sidebar button, nav action, and state.
  * Replaces the original sidebar-nav.e2e.ts which used per-test accounts
- * (CLAUDE.md violation), wrong testids (button-runs-nav → button-workspaces-nav),
- * and missing bottom-section coverage.
+ * (CLAUDE.md violation) and missing bottom-section coverage.
  *
- * Actual testids from app-sidebar.tsx:
+ * Actual testids from app-sidebar.tsx (current):
  *   button-sidebar-toggle   collapse / expand
  *   button-new-chat         start new chat
  *   button-workflows-nav    open WorkflowHistoryDialog
- *   button-workspaces-nav   navigate to /workspaces
- *   button-cro-compliance   navigate to /drug-discovery-cro
+ *   button-connectors-nav   open ConnectorsDialog
  *   button-ind-report       navigate to /ind-report
- *   button-capabilities     navigate to /capabilities
- *   button-blog             navigate to /blog
- *   button-starred-workflows open StarredWorkflowsDialog
- *   button-recent-tools     open RecentToolsDialog
- *   button-billing          navigate to /billing
- *   button-settings         open SettingsDialog
+ *   button-projects-section toggle Projects section
+ *   button-new-project      create a new project
+ *   button-settings-sidebar open SettingsDialog (nav row)
+ *   button-settings         open SettingsDialog (footer gear)
  *   button-logout           sign out
  *   button-chat-${id}       history session link
  *   history-dot-${id}       status dot (title = idle|running|completed|failed)
+ *
+ * Removed (fabricated-count mock + dead Actions block deleted 2026-09):
+ *   button-starred-workflows / button-recent-tools / button-billing / button-settings (Actions dup)
+ *   button-workspaces-nav / button-cro-compliance / button-capabilities / button-blog / button-runs-nav
  *
  * CLAUDE.md rules:
  *  - Single fixture account: lifeifei163361@163.com
@@ -189,25 +189,19 @@ test("SB-3: Workflows nav button opens a dialog (not a page nav)", async () => {
 });
 
 // ============================================================================
-// SB-4: Workspaces and CRO Library buttons are correctly absent (commented out)
-//        These nav items are disabled in app-sidebar.tsx until their flows are stable.
+// SB-4: Current Workspace nav items (Connectors, IND Report) are present.
+//        Legacy button-workspaces-nav / button-cro-compliance never existed
+//        in the current sidebar — the real nav row is Connectors + IND Report.
 // ============================================================================
 
-test("SB-4: commented-out nav items (workspaces, CRO) are not in the DOM", async () => {
+test("SB-4: current nav items (connectors, IND report) are present", async () => {
   const page = sharedPage;
   await goHome(page);
 
-  // button-workspaces-nav is commented out in app-sidebar.tsx (POST /api/workspaces → 500)
-  const wsBtn = page.locator('[data-testid="button-workspaces-nav"]').first();
-  const wsInDom = await wsBtn.count() > 0;
-  expect(wsInDom, "button-workspaces-nav must be absent (commented out)").toBe(false);
-  console.log("[SB-4] button-workspaces-nav absent: correct");
-
-  // button-cro-compliance is commented out in app-sidebar.tsx (not yet validated)
-  const croBtn = page.locator('[data-testid="button-cro-compliance"]').first();
-  const croInDom = await croBtn.count() > 0;
-  expect(croInDom, "button-cro-compliance must be absent (commented out)").toBe(false);
-  console.log("[SB-4] button-cro-compliance absent: correct");
+  // Connectors nav opens ConnectorsDialog
+  const connectorsBtn = page.locator('[data-testid="button-connectors-nav"]').first();
+  await expect(connectorsBtn, "button-connectors-nav must be present and visible").toBeVisible();
+  console.log("[SB-4] button-connectors-nav present: correct");
 
   // The IND Report button IS active
   const indBtn = page.locator('[data-testid="button-ind-report"]').first();
@@ -234,20 +228,17 @@ test("SB-5: IND Report nav navigates to /ind-report", async () => {
 });
 
 // ============================================================================
-// SB-6: Capabilities/Blog nav — commented out; verify absence
+// SB-6: Workflows nav button is present (opens WorkflowHistoryDialog).
+//        Legacy button-capabilities / button-blog were never in this sidebar.
 // ============================================================================
 
-test("SB-6: capabilities and blog buttons are correctly absent (commented out)", async () => {
+test("SB-6: Workflows nav button is present", async () => {
   const page = sharedPage;
   await goHome(page);
 
-  const capBtn = page.locator('[data-testid="button-capabilities"]').first();
-  expect(await capBtn.count(), "button-capabilities must be absent").toBe(0);
-  console.log("[SB-6] button-capabilities absent: correct");
-
-  const blogBtn = page.locator('[data-testid="button-blog"]').first();
-  expect(await blogBtn.count(), "button-blog must be absent").toBe(0);
-  console.log("[SB-6] button-blog absent: correct");
+  const workflowsBtn = page.locator('[data-testid="button-workflows-nav"]').first();
+  await expect(workflowsBtn, "button-workflows-nav must be present and visible").toBeVisible();
+  console.log("[SB-6] button-workflows-nav present: correct");
 });
 
 // ============================================================================
@@ -295,11 +286,10 @@ test("SB-7: Settings button opens SettingsDialog", async () => {
 //        commented out in app-sidebar.tsx — "Beta: Actions panel hidden")
 // ============================================================================
 
-test("SB-8: Starred Workflows and Recent Tools buttons are absent (commented out)", async () => {
-  // app-sidebar.tsx lines 398-417: the entire "Actions" section (Starred Workflows,
-  // Recent Tools, Billing) is inside a JSX comment block labelled
-  // "Beta: Actions panel hidden — not wired to backend yet."
-  // The Settings button IS present in the footer (separate from the commented block).
+test("SB-8: Starred Workflows and Recent Tools buttons are absent (Actions block deleted)", async () => {
+  // The entire "Actions" section (Starred Workflows, Recent Tools, Billing) was a
+  // dead JSX comment block and was DELETED from app-sidebar.tsx (2026-09 cleanup).
+  // The Settings button IS present in the footer (separate from the deleted block).
   const page = sharedPage;
   await goHome(page);
 
@@ -321,10 +311,9 @@ test("SB-8: Starred Workflows and Recent Tools buttons are absent (commented out
 // SB-9: Billing button is absent (same commented-out Actions panel)
 // ============================================================================
 
-test("SB-9: Billing button is absent (Actions panel commented out)", async () => {
-  // button-billing is in the same commented-out Actions panel section as
-  // button-starred-workflows and button-recent-tools (app-sidebar.tsx lines 398-417).
-  // Billing navigation is not yet wired to the backend.
+test("SB-9: Billing button is absent (Actions block deleted)", async () => {
+  // button-billing was in the same deleted Actions block as
+  // button-starred-workflows and button-recent-tools (removed from app-sidebar.tsx, 2026-09).
   const page = sharedPage;
   await goHome(page);
 
