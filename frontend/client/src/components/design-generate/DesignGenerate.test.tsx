@@ -10,6 +10,8 @@ import { describe, it, expect, vi } from "vitest"
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react"
 import {
   DesignGenerate,
+  reRank,
+  classifyRejection,
   type GenerateClient,
   type GenerationRun,
 } from "./DesignGenerate"
@@ -159,5 +161,112 @@ describe("DesignGenerate", () => {
   it("surfaces the honest 'affinity skipped, not fabricated' note", async () => {
     await runToCompletion(makeClient(COMPLETED))
     expect(screen.getByTestId("dg-notes").textContent).toMatch(/not fabricated/i)
+  })
+
+  // ---- §5.4 Pareto / trade-off view ---------------------------------------
+  it("renders a Pareto trade-off view with front points highlighted (§5.4)", async () => {
+    await runToCompletion(makeClient(COMPLETED))
+    const pareto = screen.getByTestId("pareto-view")
+    expect(pareto).toBeTruthy()
+    expect(within(pareto).getByTestId("pareto-svg")).toBeTruthy()
+    // Every candidate is plotted, including the gate-rejected one (stays visible).
+    expect(within(pareto).getByTestId("pareto-point-BM-0001")).toBeTruthy()
+    expect(within(pareto).getByTestId("pareto-point-BM-0002")).toBeTruthy()
+    // The pareto member (CCO == BM-0001) is flagged on-front; the other is not.
+    expect(within(pareto).getByTestId("pareto-point-BM-0001").getAttribute("data-on-front")).toBe("true")
+    expect(within(pareto).getByTestId("pareto-point-BM-0002").getAttribute("data-on-front")).toBe("false")
+  })
+
+  it("shows an honest empty Pareto state when fewer than two objectives", async () => {
+    const oneObj: GenerationRun = {
+      ...COMPLETED,
+      objectives: [{ name: "drug_like", unit: "QED", direction: "maximize" }],
+      candidates: [
+        {
+          ...COMPLETED.candidates![0],
+          objectives: [{ name: "drug_like", value: 0.91, unit: "QED", target: null, direction: "maximize" }],
+        },
+      ],
+      rejected: [],
+    }
+    await runToCompletion(makeClient(oneObj))
+    expect(screen.getByTestId("pareto-empty").textContent).toMatch(/needs two objectives/i)
+  })
+
+  // ---- §5.5 editable criteria/weights strip (re-rank without re-running) ---
+  it("renders an editable criteria/weights strip that states the criteria (§5.5)", async () => {
+    await runToCompletion(makeClient(COMPLETED))
+    const strip = screen.getByTestId("criteria-strip")
+    expect(within(strip).getByTestId("criteria-row-drug_like")).toBeTruthy()
+    expect(within(strip).getByTestId("criteria-weight-drug_like")).toBeTruthy()
+    // Weights are stated on the ranking.
+    expect(screen.getByTestId("criteria-stated").textContent).toMatch(/w=/)
+  })
+
+  it("re-ranks client-side when a weight changes, WITHOUT re-running (§5.4)", async () => {
+    const client = makeClient(COMPLETED)
+    await runToCompletion(client)
+    const pollCallsBefore = (client.poll as any).mock.calls.length
+    // Zero out drug_like so property_envelope (both 1.0) dominates — order is a
+    // pure client-side re-sort; no new poll/start is issued.
+    fireEvent.change(screen.getByTestId("criteria-weight-drug_like"), { target: { value: "0" } })
+    // No extra backend call fired by editing a weight.
+    expect((client.poll as any).mock.calls.length).toBe(pollCallsBefore)
+    expect((client.start as any).mock.calls.length).toBe(1)
+    expect(screen.getByTestId("mobj-row-BM-0001")).toBeTruthy()
+  })
+
+  it("reRank sorts by weighted desirability and pushes held candidates last", () => {
+    const mk = (id: string, qed: number, verdict = "accepted") => ({
+      id,
+      smiles: id,
+      score: qed,
+      confidence: "high",
+      herg: "gate",
+      drugLike: `QED ${qed}`,
+      verdict,
+      objectives: [{ name: "drug_like", value: qed, unit: "QED", target: null, direction: "maximize" }],
+    })
+    const cands = [mk("low", 0.3), mk("held", 0.99, "held"), mk("high", 0.9)]
+    const ranked = reRank(cands as any, { drug_like: { target: null, weight: 1 } })
+    expect(ranked.map((c) => c.id)).toEqual(["high", "low", "held"])
+  })
+
+  // ---- §5.2 rejection profile by cause ------------------------------------
+  it("shows the rejection profile broken down by cause (§5.2)", async () => {
+    const multiReject: GenerationRun = {
+      ...COMPLETED,
+      rejected: [
+        { id: "BM-0002", smiles: "x", reason: "structural alert: nitro_group", objectives: [] },
+        { id: "BM-0003", smiles: "y", reason: "banned moiety: [N+](=O)[O-]", objectives: [] },
+        { id: "BM-0004", smiles: "z", reason: "invalid structure (unparseable)", objectives: [] },
+      ],
+    }
+    await runToCompletion(makeClient(multiReject))
+    const prof = screen.getByTestId("rejection-profile")
+    expect(within(prof).getByTestId("rejection-cause-structural_alert")).toBeTruthy()
+    expect(within(prof).getByTestId("rejection-cause-banned_moiety")).toBeTruthy()
+    expect(within(prof).getByTestId("rejection-cause-valence")).toBeTruthy()
+    expect(within(prof).getByTestId("rejection-count-structural_alert").textContent).toBe("1")
+  })
+
+  it("classifyRejection buckets backend reason strings by cause", () => {
+    expect(classifyRejection("structural alert: nitro_group")).toBe("structural_alert")
+    expect(classifyRejection("banned moiety: [N+]")).toBe("banned_moiety")
+    expect(classifyRejection("invalid structure (unparseable)")).toBe("valence")
+    expect(classifyRejection("synthetic accessibility below floor")).toBe("sa_floor")
+    expect(classifyRejection("something else")).toBe("other")
+  })
+
+  // ---- §5.3/§5.5 per-row "why?" drill-in ----------------------------------
+  it("opens a per-row why? with model/version/confidence + honest analogue (§5.3)", async () => {
+    await runToCompletion(makeClient(COMPLETED))
+    fireEvent.click(screen.getByTestId("why-toggle-BM-0001"))
+    await waitFor(() => expect(screen.getByTestId("why-detail-BM-0001")).toBeTruthy())
+    // Model version names the deterministic generator; confidence is surfaced.
+    expect(screen.getByTestId("why-version-BM-0001").textContent).toMatch(/deterministic/i)
+    expect(screen.getByTestId("why-confidence-BM-0001").textContent).toMatch(/high/i)
+    // Honest: no nearest measured analogue in the backend contract, so it says so.
+    expect(screen.getByTestId("why-analogue-BM-0001").textContent).toMatch(/not available/i)
   })
 })
