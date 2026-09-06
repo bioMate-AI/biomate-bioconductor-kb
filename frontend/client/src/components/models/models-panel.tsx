@@ -99,7 +99,223 @@ function RegistryTrack({ onOpenModel }: { onOpenModel: (id: string) => void }) {
   )
 }
 
-// ── Descriptive track (Train / Adapt / Optimise) ─────────────────────────────
+// ── Optimise track (DMTA loop) ───────────────────────────────────────────────
+/**
+ * The closed loop, as rounds: design · make · test · analyse. Ported from the
+ * prototype OptimiseTab/WetLabRound structure — the loop header (running/round),
+ * surrogate model links, rounds list, and the proposal table where a rejected
+ * proposal stays visible with its reason (safety-gate rejections shown, not
+ * silently dropped).
+ *
+ * There is no WS1 read endpoint for the loop in this wave, so all data arrives
+ * via the `data` prop; when it is absent the honest empty state renders (no
+ * fabricated rounds, proposals or scores).
+ */
+export interface OptimiseSurrogate {
+  /** Registry model id (opens the model object). */
+  id: string
+  /** Display label, e.g. "admet-herg v3". */
+  label: string
+}
+export interface OptimiseRound {
+  round: string
+  status: string
+  what: string
+  when: string
+}
+export interface OptimiseProposal {
+  id: string
+  /** Score text as reported by the loop — never invented on the client. */
+  score: string
+  confidence: string
+  /** "accepted" | "…rejected…" (safety-gate reason) | anything else → held. */
+  verdict: string
+}
+export interface OptimiseData {
+  running: boolean
+  round: string | number
+  budget?: string
+  refitPolicy?: string
+  surrogates: OptimiseSurrogate[]
+  rounds: OptimiseRound[]
+  proposal: OptimiseProposal[]
+}
+
+function proposalVerdictColor(verdict: string): string {
+  if (verdict === "accepted") return "#22c55e"
+  if (/reject/i.test(verdict)) return "#ef4444"
+  return "#f59e0b" // held / anything else
+}
+
+function OptimiseTrack({
+  data,
+  onOpenModel,
+}: {
+  data?: OptimiseData
+  onOpenModel: (id: string) => void
+}) {
+  if (!data) {
+    return (
+      <Card data-testid="track-optimise">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Optimise · design · make · test · analyse</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <p className="text-xs text-muted-foreground" data-testid="optimise-empty">
+            No optimisation loop is running in this project yet. Start a design–make–test–analyse
+            loop and the rounds, the surrogate models, and each round's proposal appear here.
+          </p>
+          <ul className="space-y-1">
+            {[
+              "A surrogate proposes, the bench measures, and a refit runs as a tracked training run — nothing about the loop is exempt from the evidence rules.",
+              "Every proposal is accounted for; a candidate that produced no number still returns a reason.",
+              "Censored values stay censored (IC50 > 30 µM is fitted as an inequality, never as 30).",
+              "A rejected proposal stays on the list with its safety-gate reason.",
+            ].map((b) => (
+              <li key={b} className="text-[11px] flex items-start gap-1.5">
+                <span className="mt-1 inline-block h-1 w-1 rounded-full bg-muted-foreground shrink-0" />
+                <span>{b}</span>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <div className="space-y-3" data-testid="track-optimise">
+      {/* Loop header + surrogate + rounds */}
+      <Card data-testid="optimise-loop">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <CardTitle className="text-sm">Design · make · test · analyse</CardTitle>
+            <Badge
+              variant="outline"
+              className="text-[10px] gap-1 ml-auto"
+              style={{ color: data.running ? "#22c55e" : "#94a3b8" }}
+              data-testid="optimise-loop-state"
+            >
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ background: data.running ? "#22c55e" : "#94a3b8" }}
+              />
+              {data.running ? `running · round ${data.round}` : "stopped"}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="grid grid-cols-[6rem_1fr] gap-x-2 gap-y-1 text-xs">
+            <span className="text-muted-foreground">Surrogate</span>
+            <span className="flex flex-wrap items-center gap-1" data-testid="optimise-surrogates">
+              {data.surrogates.length ? (
+                data.surrogates.map((s, i) => (
+                  <span key={s.id} className="flex items-center gap-1">
+                    {i > 0 && <span className="text-muted-foreground">+</span>}
+                    <button
+                      type="button"
+                      className="font-mono text-primary hover:underline"
+                      onClick={() => onOpenModel(s.id)}
+                      data-testid={`optimise-surrogate-${s.id}`}
+                    >
+                      {s.label}
+                    </button>
+                  </span>
+                ))
+              ) : (
+                <span className="text-muted-foreground">—</span>
+              )}
+            </span>
+            {data.budget && (
+              <>
+                <span className="text-muted-foreground">Budget</span>
+                <span>{data.budget}</span>
+              </>
+            )}
+            {data.refitPolicy && (
+              <>
+                <span className="text-muted-foreground">Refit policy</span>
+                <span>{data.refitPolicy}</span>
+              </>
+            )}
+          </div>
+          <div className="space-y-1" data-testid="optimise-rounds">
+            {data.rounds.map((r) => (
+              <div
+                key={r.round}
+                className="flex items-center gap-2 text-xs"
+                data-testid={`optimise-round-${r.round}`}
+              >
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground shrink-0" />
+                <span className="font-semibold">{r.round}</span>
+                <Badge variant="outline" className="text-[10px]">{r.status}</Badge>
+                <span>{r.what}</span>
+                <span className="text-[10px] text-muted-foreground ml-auto">{r.when}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Proposal table */}
+      <Card data-testid="optimise-proposal">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-sm">Round {data.round} proposal</CardTitle>
+            <span className="text-[10px] text-muted-foreground ml-auto">
+              steerable before anything is ordered
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-1">
+          <div className="rounded border text-xs" data-testid="optimise-proposal-table">
+            <div className="grid grid-cols-[1.2fr_0.8fr_0.9fr_1.2fr] gap-2 bg-muted px-2 py-1 font-semibold">
+              <span>Candidate</span>
+              <span>Score</span>
+              <span>Confidence</span>
+              <span>Verdict</span>
+            </div>
+            {data.proposal.length ? (
+              data.proposal.map((p) => (
+                <div
+                  key={p.id}
+                  className="grid grid-cols-[1.2fr_0.8fr_0.9fr_1.2fr] gap-2 px-2 py-1 items-center border-t"
+                  data-testid={`optimise-proposal-${p.id}`}
+                >
+                  <span className="font-mono font-semibold truncate">{p.id}</span>
+                  <span className="font-mono">{p.score}</span>
+                  <span className="text-muted-foreground">{p.confidence}</span>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] gap-1 w-fit"
+                    style={{ color: proposalVerdictColor(p.verdict) }}
+                    data-testid={`optimise-proposal-verdict-${p.id}`}
+                  >
+                    <span
+                      className="inline-block h-1.5 w-1.5 rounded-full"
+                      style={{ background: proposalVerdictColor(p.verdict) }}
+                    />
+                    {p.verdict}
+                  </Badge>
+                </div>
+              ))
+            ) : (
+              <p className="px-2 py-2 text-[11px] text-muted-foreground border-t">
+                No proposal for this round yet.
+              </p>
+            )}
+          </div>
+          <p className="text-[10px] text-muted-foreground pt-1">
+            A rejected proposal stays on the list with its reason — you must be able to see what the
+            loop wanted to do, and why the safety gate did not allow it.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+// ── Descriptive track (Train / Adapt) ────────────────────────────────────────
 function DescriptiveTrack({
   title,
   lead,
@@ -139,11 +355,23 @@ export interface ModelsPanelProps {
   tab?: number
   onTabChange?: (tab: number) => void
   className?: string
+  /**
+   * Live DMTA loop data for the Optimise track. There is no WS1 read endpoint
+   * for the loop in this wave, so the parent supplies it; when absent, the
+   * Optimise track shows its honest empty state.
+   */
+  optimiseData?: OptimiseData
 }
 
 const TRACK_ICONS = [GraduationCap, Wand2, Repeat, Rocket, Library]
 
-export function ModelsPanel({ project = "Project", tab, onTabChange, className }: ModelsPanelProps) {
+export function ModelsPanel({
+  project = "Project",
+  tab,
+  onTabChange,
+  className,
+  optimiseData,
+}: ModelsPanelProps) {
   const [internalTab, setInternalTab] = useState(0)
   const activeTab = tab ?? internalTab
   const setTab = (i: number) => {
@@ -158,7 +386,11 @@ export function ModelsPanel({ project = "Project", tab, onTabChange, className }
   if (openModelId) {
     return (
       <div className={className} data-testid="models-panel">
-        <ModelObjectLoader modelId={openModelId} onBack={() => setOpenModelId(null)} />
+        <ModelObjectLoader
+          modelId={openModelId}
+          onBack={() => setOpenModelId(null)}
+          onOpenModel={(ref) => setOpenModelId(ref)}
+        />
       </div>
     )
   }
@@ -232,16 +464,7 @@ export function ModelsPanel({ project = "Project", tab, onTabChange, className }
             </TabsContent>
 
             <TabsContent value="2">
-              <DescriptiveTrack
-                testid="track-optimise"
-                title="Optimise"
-                lead="The closed loop, as rounds: design · make · test · analyse. A surrogate proposes, the bench measures, and a refit runs as a tracked training run — nothing about the loop is exempt from the evidence rules."
-                bullets={[
-                  "Every proposal is accounted for; a candidate that produced no number still returns a reason.",
-                  "Censored values stay censored (IC50 > 30 µM is fitted as an inequality, never as 30).",
-                  "A rejected proposal stays on the list with its reason.",
-                ]}
-              />
+              <OptimiseTrack data={optimiseData} onOpenModel={setOpenModelId} />
             </TabsContent>
 
             <TabsContent value="3">

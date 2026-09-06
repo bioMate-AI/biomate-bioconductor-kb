@@ -18,7 +18,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
-import { ModelsPanel } from "./models-panel"
+import { ModelsPanel, type OptimiseData } from "./models-panel"
 import { ModelObject } from "./model-object"
 import { RunPretrained } from "./run-pretrained"
 import { InferenceResultView } from "./inference-result"
@@ -117,6 +117,49 @@ describe("ModelsPanel", () => {
   })
 })
 
+describe("ModelsPanel — Optimise / DMTA track", () => {
+  it("shows the honest empty state when no loop data is supplied", async () => {
+    mockFetchByUrl({ "/api/models": CATALOG })
+    render(<ModelsPanel project="Test project" tab={2} />, { wrapper: wrapper() })
+    await waitFor(() => expect(screen.getByTestId("track-optimise")).toBeTruthy())
+    expect(screen.getByTestId("optimise-empty")).toBeTruthy()
+  })
+
+  it("renders the DMTA loop, surrogate links and the proposal table with a safety-gate rejection", async () => {
+    mockFetchByUrl({
+      "/api/models/custom:camp1/potency-gp": MODEL_DETAIL,
+      "/api/models": CATALOG,
+    })
+    const OPT: OptimiseData = {
+      running: true,
+      round: 4,
+      budget: "96 assays per round · set by you, never inferred",
+      refitPolicy: "refit on ≥ 6 returned results",
+      surrogates: [{ id: "custom:camp1/potency-gp", label: "potency-gp v2" }],
+      rounds: [
+        { round: "Round 3", status: "closed", what: "8 measured, refit applied", when: "2026-08" },
+        { round: "Round 4", status: "proposed", what: "12 candidates", when: "now" },
+      ],
+      proposal: [
+        { id: "cand-1", score: "7.4", confidence: "medium", verdict: "accepted" },
+        { id: "cand-2", score: "> 30 µM", confidence: "low", verdict: "rejected · hERG gate" },
+      ],
+    }
+    render(<ModelsPanel project="Test project" tab={2} optimiseData={OPT} />, { wrapper: wrapper() })
+
+    await waitFor(() => expect(screen.getByTestId("optimise-loop")).toBeTruthy())
+    expect(screen.getByTestId("optimise-loop-state").textContent).toContain("running")
+    expect(screen.getByTestId("optimise-round-Round 4")).toBeTruthy()
+    expect(screen.getByTestId("optimise-proposal-cand-1")).toBeTruthy()
+    // A rejected proposal stays on the list with its safety-gate reason.
+    expect(screen.getByTestId("optimise-proposal-verdict-cand-2").textContent).toContain("hERG gate")
+
+    // Surrogate link opens the model object.
+    fireEvent.click(screen.getByTestId("optimise-surrogate-custom:camp1/potency-gp"))
+    await waitFor(() => expect(screen.getByTestId("model-object")).toBeTruthy())
+  })
+})
+
 describe("ModelObject", () => {
   it("renders the evidence gate triple (measured · threshold · verdict)", () => {
     render(<ModelObject detail={MODEL_DETAIL} modelId="bionemo:boltz2" />, { wrapper: wrapper() })
@@ -137,6 +180,52 @@ describe("ModelObject", () => {
 
     fireEvent.mouseDown(screen.getByTestId("model-tab-versions"))
     await waitFor(() => expect(screen.getByTestId("model-version-2.0")).toBeTruthy())
+  })
+
+  it("renders lineage/consumers/versions as objects: clickable links + interface signature + header actions", async () => {
+    const onOpenData = vi.fn()
+    const onOpenRun = vi.fn()
+    const onOpenConsumer = vi.fn()
+    const onUseInRun = vi.fn()
+    const onSupersede = vi.fn()
+    render(
+      <ModelObject
+        detail={MODEL_DETAIL}
+        modelId="bionemo:boltz2"
+        onOpenData={onOpenData}
+        onOpenRun={onOpenRun}
+        onOpenConsumer={onOpenConsumer}
+        onUseInRun={onUseInRun}
+        onSupersede={onSupersede}
+      />,
+      { wrapper: wrapper() },
+    )
+
+    // Header actions
+    fireEvent.click(screen.getByTestId("model-object-use-in-run"))
+    expect(onUseInRun).toHaveBeenCalledWith("bionemo:boltz2")
+    fireEvent.click(screen.getByTestId("model-object-supersede"))
+    expect(onSupersede).toHaveBeenCalledWith("bionemo:boltz2")
+
+    // Lineage rows are objects, not strings
+    fireEvent.mouseDown(screen.getByTestId("model-tab-lineage"))
+    await waitFor(() => expect(screen.getByTestId("lineage-dataset-link")).toBeTruthy())
+    fireEvent.click(screen.getByTestId("lineage-dataset-link"))
+    expect(onOpenData).toHaveBeenCalledWith("assay_2026_08.csv · v4")
+    fireEvent.click(screen.getByTestId("lineage-run-link"))
+    expect(onOpenRun).toHaveBeenCalledWith("camp1")
+
+    // Consumer "open →" fires the callback
+    fireEvent.mouseDown(screen.getByTestId("model-tab-used"))
+    await waitFor(() => expect(screen.getByTestId("model-consumer-open-camp1")).toBeTruthy())
+    fireEvent.click(screen.getByTestId("model-consumer-open-camp1"))
+    expect(onOpenConsumer).toHaveBeenCalledWith("camp1")
+
+    // Interface signature line is present (derived from kind: rest)
+    fireEvent.mouseDown(screen.getByTestId("model-tab-iface"))
+    await waitFor(() =>
+      expect(screen.getByTestId("model-iface-signature").textContent).toContain("infer"),
+    )
   })
 })
 
