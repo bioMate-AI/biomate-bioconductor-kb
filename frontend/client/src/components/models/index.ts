@@ -3,7 +3,13 @@
  * "Run a pre-trained model" inference→viewer routing.
  */
 export { ModelsPanel, MODELS_TRACKS } from "./models-panel"
-export type { ModelsPanelProps } from "./models-panel"
+export type {
+  ModelsPanelProps,
+  OptimiseData,
+  OptimiseSurrogate,
+  OptimiseRound,
+  OptimiseProposal,
+} from "./models-panel"
 export { ModelObject, ModelObjectLoader } from "./model-object"
 export { RunPretrained } from "./run-pretrained"
 export { InferenceResultView } from "./inference-result"
