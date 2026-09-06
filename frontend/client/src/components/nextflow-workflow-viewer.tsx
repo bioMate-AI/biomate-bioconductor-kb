@@ -19,6 +19,9 @@ import { useToast } from "@/hooks/use-toast";
 import { LicenseGate } from "./license-gate";
 import { AutoLoopPanel } from "./auto-loop-panel";
 import type { AutoLoopPanelState } from "./auto-loop-panel";
+import { ApprovalGate, type ApprovalGateData } from "./approval-gate";
+import { RolesCard, VerifyPattern, type RolesData, type VerifyKind } from "./roles-verify";
+import { SkipDependency, type PhaseSkipInfo } from "./skip-dependency";
 import { stripAnsi } from "@/lib/utils";
 import { AfterRunReport } from "@/v2/AfterRunReport";
 
@@ -2606,6 +2609,55 @@ export function NextflowWorkflowViewer({
               either tab so SSE-driven phase state isn't lost on tab switch. */}
       <div style={{ display: (activeTab === 'phases' || activeTab === 'settings') ? 'contents' : 'none' }}>
       <div className="panel-body" data-tour="panel-body" data-testid={activeTab === 'settings' ? 'panel-settings' : 'panel-phases'}>
+          {/* ── Human approval gate (§7.6) ──────────────────────────────────────
+              Rendered when the run is awaiting human approval. The panel
+              represents that state as status === 'pending_review'. Placed at the
+              top of the shared body (NOT inside the phases-tab-only wrapper) so
+              it is visible on whichever tab is active — pending_review auto-
+              defaults to the Settings tab. A human approval reads in the same
+              measured · threshold · verdict grammar as a QC gate. Approve resumes
+              the run (handleExecute), Deny cancels (onCancel), "Ask a reviewer"
+              hands off to chat (onAdjustViaChat).
+              NOTE: the backend does not yet emit a dedicated "awaiting approval"
+              SSE trigger — this surfaces on the existing pending_review status;
+              wiring a first-class approval trigger is a documented follow-up. */}
+          {status === 'pending_review' && (() => {
+            const approvalData: ApprovalGateData = {
+              what: `Run "${workflowDefinition?.name || workflowDefinition?.workflowName || 'this workflow'}"`,
+              why: 'This run is paused for human review before it starts consuming compute.',
+              cost: 'Approving starts the workflow on the configured infrastructure.',
+              measured: [
+                {
+                  key: 'Review state',
+                  measured: 'awaiting approval',
+                  threshold: 'human sign-off required before run',
+                  verdict: 'needs approval',
+                },
+              ],
+              who: projectId
+                ? 'You can approve this — you own this run in the project.'
+                : 'You can approve this — this is your run.',
+              policy: 'Governed by the workflow approval policy.',
+            };
+            return (
+              <div style={{ margin: '0 18px 10px' }}>
+                <ApprovalGate
+                  data={approvalData}
+                  onResolve={(record) => {
+                    if (record.decision === 'approve') {
+                      handleExecute();
+                    } else if (record.decision === 'deny') {
+                      onCancel?.();
+                    } else {
+                      onAdjustViaChat?.(
+                        `I'd like a reviewer to sign off on running "${workflowDefinition?.name || 'this workflow'}" before it starts.`,
+                      );
+                    }
+                  }}
+                />
+              </div>
+            );
+          })()}
           {/* ── Phases-tab-only runtime section ─────────────────────────────── */}
           <div style={{ display: activeTab === 'phases' ? 'contents' : 'none' }}>
           {/* Step-wise controls hint — only when real phase groups exist */}
@@ -2819,6 +2871,40 @@ export function NextflowWorkflowViewer({
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             </div>
+
+          {/* ── Permissions & verification (§7.3) ──────────────────────────────
+              Governance surfaces in the Settings tab. RolesCard shows what the
+              current user can/cannot do here — disabled-not-hidden, with the
+              role each control needs. VerifyPattern shows every gate kind in the
+              one measured · threshold · verdict grammar. Both are read-only.
+              The roles here reflect the real ownership model (you own your own
+              run / project); a richer multi-collaborator role feed is a
+              documented follow-up when a project-roles endpoint surfaces here. */}
+          {(() => {
+            const scope = projectId ? 'This project' : 'This run';
+            const rolesData: RolesData = {
+              you: 'Owner',
+              project: scope,
+              caps: [
+                { capability: 'Run this workflow', needs: 'Owner', allowed: true },
+                { capability: 'Change parameters & QC thresholds', needs: 'Owner', allowed: true },
+                { capability: 'Cancel a running job', needs: 'Owner', allowed: true },
+                { capability: 'Register a model from this run', needs: 'Owner', allowed: true },
+                { capability: 'Invite a reviewer', needs: 'Owner', allowed: true },
+              ],
+            };
+            const verifyKinds: VerifyKind[] = [
+              { kind: 'Workflow QC gate', measuredBy: 'a measurement on your data', stops: 'halts the run', where: 'Spec 07' },
+              { kind: 'Human approval', measuredBy: 'a person', stops: 'holds the run until sign-off', where: 'Spec 7.6' },
+              { kind: 'License gate', measuredBy: 'the workflow license terms', stops: 'blocks the run', where: 'Spec 07' },
+            ];
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '10px 18px 4px' }}>
+                <RolesCard data={rolesData} />
+                <VerifyPattern kinds={verifyKinds} />
+              </div>
+            );
+          })()}
           </div>{/* end settings-tab-only section */}
 
           {/* ── Phases-tab-only — phase cards + everything below ──────────── */}
@@ -2925,6 +3011,30 @@ export function NextflowWorkflowViewer({
                 </button>
               </div>
             )}
+
+            {/* ── Skip dependency map (§7.5 / §2.5.1) ────────────────────────────
+                Per-phase skippable state, DAG-aware. Skip is a declared workflow
+                capability — a phase is only skippable if the workflow declares a
+                skip parameter for it. No workflow in the catalog currently
+                declares skip params and no backend skip endpoint exists yet, so
+                every phase renders read-only as "not declared skippable" (honest
+                state) — visible, not hidden. When a skip endpoint + declared skip
+                params land, feed `skippable`/`param`/`blocks`/`warn` from the DAG
+                and pass an `onToggle` handler. Shown pre-run only. */}
+            {groupedPhases.some((g: any) => g.key !== 'all') && (status === 'idle' || status === 'pending_review') && (() => {
+              const realGroups = groupedPhases.filter((g: any) => g.key !== 'all');
+              const skipPhases: PhaseSkipInfo[] = realGroups.map((g: any) => ({
+                id: g.key,
+                skippable: false,
+                why: `${g.label || `Phase ${g.key}`} — this workflow does not declare a skip parameter for this phase, so it always runs.`,
+              }));
+              if (skipPhases.length === 0) return null;
+              return (
+                <div style={{ padding: '4px 18px 10px' }}>
+                  <SkipDependency phases={skipPhases} />
+                </div>
+              );
+            })()}
 
             {/* ── License gate (informational, stays in body) ─────────────────── */}
             {(workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (status === 'idle' || status === 'pending_review') && (
