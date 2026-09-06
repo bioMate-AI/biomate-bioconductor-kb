@@ -17,7 +17,7 @@
  */
 
 import { useState, useEffect, useRef } from "react";
-import { Loader2, X, FileText, Download, ZoomIn, ChevronDown, ChevronUp, Laptop } from "lucide-react";
+import { Loader2, X, FileText, Download, ZoomIn, ChevronDown, ChevronUp, Laptop, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, stripAnsi } from "@/lib/utils";
 import { DensityMapViewer } from "./viewers/density-map-viewer";
@@ -40,6 +40,12 @@ export interface StepOutputPreviewProps {
    * Optional project ID threaded through from callers with project context.
    */
   projectId?: string | null;
+  /**
+   * Optional "Open full step view" affordance. When provided, a button is shown
+   * in the preview header that opens the step-as-object surface (StepDetail):
+   * provenance, resolved params with origin badges, and a rendered ⇄ raw toggle.
+   */
+  onOpenFullStepView?: () => void;
 }
 
 interface FetchedContent {
@@ -594,7 +600,7 @@ function CryoChartPreview({ runId, file, onClose, projectId, chartType }: StepOu
   );
 }
 
-export function StepOutputPreview({ runId, file, onClose, projectId }: StepOutputPreviewProps) {
+export function StepOutputPreview({ runId, file, onClose, projectId, onOpenFullStepView }: StepOutputPreviewProps) {
   const ext = file.extension.toLowerCase().replace(/^\./, '');
   const viewer = resolveViewer(ext);
 
@@ -621,11 +627,11 @@ export function StepOutputPreview({ runId, file, onClose, projectId }: StepOutpu
     }
   }
 
-  return <FetchingPreview runId={runId} file={file} onClose={onClose} projectId={projectId} viewer={viewer} ext={ext} />;
+  return <FetchingPreview runId={runId} file={file} onClose={onClose} projectId={projectId} viewer={viewer} ext={ext} onOpenFullStepView={onOpenFullStepView} />;
 }
 
 function FetchingPreview({
-  runId, file, onClose, projectId, viewer, ext,
+  runId, file, onClose, projectId, viewer, ext, onOpenFullStepView,
 }: StepOutputPreviewProps & { viewer: ViewerKind; ext: string }) {
   const [content, setContent] = useState<FetchedContent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -689,6 +695,19 @@ function FetchingPreview({
           <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          {onOpenFullStepView && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 gap-1 px-1.5 shrink-0 text-[11px]"
+              onClick={onOpenFullStepView}
+              data-testid="open-full-step-view"
+              title="Open full step view — provenance, resolved parameters, rendered ⇄ raw"
+            >
+              <Maximize2 className="h-3 w-3" />
+              Full step view
+            </Button>
+          )}
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
             <X className="h-3.5 w-3.5" />
           </Button>
