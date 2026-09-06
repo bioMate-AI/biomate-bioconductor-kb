@@ -47,16 +47,65 @@ function fmt(v: string | number | null): string {
   return v === null || v === undefined ? "—" : String(v)
 }
 
+/**
+ * The interface `signature` line (e.g. `scored(smiles) -> list[float]`) is a
+ * call-shape descriptor, not a measured number. The WS1 thin layer exposes only
+ * `interface.kind`; a richer detail may carry an optional `signature`. When the
+ * backend does not supply one we derive an honest generic shape from the kind —
+ * never a fabricated per-model signature.
+ */
+function ifaceSignature(iface: ModelDetail["interface"]): string {
+  const sig = (iface as { signature?: string | null }).signature
+  if (sig) return sig
+  switch (iface.kind) {
+    case "python":
+      return "call(inputs) -> result"
+    case "container":
+      return "run(inputs) -> result"
+    case "rest":
+      return "POST /infer {inputs} -> result"
+    default:
+      return "call(inputs) -> result"
+  }
+}
+
 interface ModelObjectProps {
   detail: ModelDetail
   modelId: string
   onBack?: () => void
   className?: string
+  /** Open the lineage dataset version object. */
+  onOpenData?: (datasetVersion: string) => void
+  /** Open the lineage training-run object. */
+  onOpenRun?: (trainingRunId: string) => void
+  /** Open another version / model object (prior version, consumer, etc.). */
+  onOpenModel?: (ref: string) => void
+  /** Open the surface that consumes this model (a run's gate, a score column, a loop). */
+  onOpenConsumer?: (consumer: string) => void
+  /** Compare a version against the current one on the same held-out set. */
+  onCompareVersion?: (version: string) => void
+  /** Call this model from a workflow gate, a score column, or an optimisation loop. */
+  onUseInRun?: (modelId: string) => void
+  /** Train a new version; the current one stays callable until consumers move. */
+  onSupersede?: (modelId: string) => void
 }
 
-export function ModelObject({ detail, modelId, onBack, className }: ModelObjectProps) {
+export function ModelObject({
+  detail,
+  modelId,
+  onBack,
+  className,
+  onOpenData,
+  onOpenRun,
+  onOpenModel,
+  onOpenConsumer,
+  onCompareVersion,
+  onUseInRun,
+  onSupersede,
+}: ModelObjectProps) {
   const { identity, evidence, lineage, consumers, versions } = detail
   const gate: ModelGate = evidence.gate
+  const currentVersion = identity.version
 
   return (
     <Card className={className} data-testid="model-object">
@@ -86,7 +135,26 @@ export function ModelObject({ detail, modelId, onBack, className }: ModelObjectP
           {identity.confidenceBand && (
             <Badge variant="outline" className="text-[10px]">{identity.confidenceBand} confidence</Badge>
           )}
-          <span className="text-[10px] text-muted-foreground ml-auto">{identity.origin}</span>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-[10px] text-muted-foreground">{identity.origin}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 text-[11px] px-2"
+              onClick={() => onSupersede?.(modelId)}
+              data-testid="model-object-supersede"
+            >
+              Supersede
+            </Button>
+            <Button
+              size="sm"
+              className="h-6 text-[11px] px-2"
+              onClick={() => onUseInRun?.(modelId)}
+              data-testid="model-object-use-in-run"
+            >
+              Use in a run
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
@@ -143,21 +211,63 @@ export function ModelObject({ detail, modelId, onBack, className }: ModelObjectP
             </p>
           </TabsContent>
 
-          {/* ── Lineage: where it came from ── */}
+          {/* ── Lineage: where it came from — objects, not strings ── */}
           <TabsContent value="lineage" className="space-y-1 text-xs" data-testid="model-lineage">
             <div className="grid grid-cols-[8rem_1fr] gap-1 py-1 border-b">
               <span className="text-muted-foreground">Dataset</span>
-              <span className="font-mono">{fmt(lineage.datasetVersion)}</span>
+              {lineage.datasetVersion && onOpenData ? (
+                <button
+                  type="button"
+                  className="font-mono text-left text-primary hover:underline"
+                  onClick={() => onOpenData(lineage.datasetVersion as string)}
+                  data-testid="lineage-dataset-link"
+                >
+                  {lineage.datasetVersion}
+                </button>
+              ) : (
+                <span className="font-mono">{fmt(lineage.datasetVersion)}</span>
+              )}
             </div>
             <div className="grid grid-cols-[8rem_1fr] gap-1 py-1 border-b">
               <span className="text-muted-foreground">Training run</span>
-              <span className="font-mono">{fmt(lineage.trainingRunId)}</span>
+              {lineage.trainingRunId && onOpenRun ? (
+                <button
+                  type="button"
+                  className="font-mono text-left text-primary hover:underline"
+                  onClick={() => onOpenRun(lineage.trainingRunId as string)}
+                  data-testid="lineage-run-link"
+                >
+                  {lineage.trainingRunId}
+                </button>
+              ) : (
+                <span className="font-mono">{fmt(lineage.trainingRunId)}</span>
+              )}
             </div>
             <div className="grid grid-cols-[8rem_1fr] gap-1 py-1">
               <span className="text-muted-foreground">Prior versions</span>
-              <span className="font-mono">
-                {lineage.priorVersions.length ? lineage.priorVersions.join(" · ") : "—"}
-              </span>
+              {lineage.priorVersions.length ? (
+                <span className="font-mono flex flex-wrap gap-x-1 gap-y-0.5">
+                  {lineage.priorVersions.map((pv, i) => (
+                    <span key={pv} className="flex items-center gap-1">
+                      {i > 0 && <span className="text-muted-foreground">·</span>}
+                      {onOpenModel ? (
+                        <button
+                          type="button"
+                          className="text-primary hover:underline"
+                          onClick={() => onOpenModel(pv)}
+                          data-testid={`lineage-prior-${pv}`}
+                        >
+                          {pv}
+                        </button>
+                      ) : (
+                        <span>{pv}</span>
+                      )}
+                    </span>
+                  ))}
+                </span>
+              ) : (
+                <span className="font-mono">—</span>
+              )}
             </div>
             <p className="text-[10px] text-muted-foreground pt-1">
               Same lineage discipline as a dataset: the training run and the dataset version are
@@ -165,19 +275,40 @@ export function ModelObject({ detail, modelId, onBack, className }: ModelObjectP
             </p>
           </TabsContent>
 
-          {/* ── Used by: the blast radius ── */}
+          {/* ── Used by: the blast radius, rendered kind · where · how ── */}
           <TabsContent value="used" className="space-y-1" data-testid="model-used">
             {consumers.length ? (
-              consumers.map((c) => (
-                <div
-                  key={c}
-                  className="flex items-center gap-2 rounded border px-2 py-1 text-xs"
-                  data-testid={`model-consumer-${c}`}
-                >
-                  <Badge variant="outline" className="text-[10px]">consumer</Badge>
-                  <span className="font-mono truncate">{c}</span>
-                </div>
-              ))
+              consumers.map((c) => {
+                // The WS1 layer gives a plain string; where it encodes a
+                // "kind:where·how" shape we surface it, else the string is the
+                // "where" and the kind is a generic "consumer". No value invented.
+                const [head, ...howParts] = c.split("·")
+                const how = howParts.join("·").trim()
+                const kindMatch = head.match(/^([a-z ]+):(.+)$/i)
+                const kind = kindMatch ? kindMatch[1].trim() : "consumer"
+                const where = kindMatch ? kindMatch[2].trim() : head.trim()
+                return (
+                  <div
+                    key={c}
+                    className="flex items-center gap-2 rounded border px-2 py-1 text-xs"
+                    data-testid={`model-consumer-${c}`}
+                  >
+                    <Badge variant="outline" className="text-[10px] shrink-0">{kind}</Badge>
+                    <span className="flex flex-col min-w-0">
+                      <span className="font-mono truncate">{where}</span>
+                      {how && <span className="text-[10px] text-muted-foreground truncate">{how}</span>}
+                    </span>
+                    <button
+                      type="button"
+                      className="ml-auto shrink-0 text-primary hover:underline"
+                      onClick={() => onOpenConsumer?.(c)}
+                      data-testid={`model-consumer-open-${c}`}
+                    >
+                      open →
+                    </button>
+                  </div>
+                )
+              })
             ) : (
               <p className="text-[11px] text-muted-foreground" data-testid="model-no-consumers">
                 No consumers yet — nothing in the account calls this model.
@@ -189,13 +320,16 @@ export function ModelObject({ detail, modelId, onBack, className }: ModelObjectP
             </p>
           </TabsContent>
 
-          {/* ── Interface: how it is called ── */}
+          {/* ── Interface: how it is called, with the call signature ── */}
           <TabsContent value="iface" className="space-y-2 text-xs" data-testid="model-iface">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-muted-foreground">Called as</span>
               <Badge variant="outline" className="text-[10px] capitalize" data-testid="model-iface-kind">
                 {detail.interface.kind}
               </Badge>
+              <span className="font-mono text-[11px]" data-testid="model-iface-signature">
+                {ifaceSignature(detail.interface)}
+              </span>
             </div>
             <p className="text-[10px] text-muted-foreground">
               The pipeline calls the registry, not the implementation — so a lab's own model
@@ -203,21 +337,41 @@ export function ModelObject({ detail, modelId, onBack, className }: ModelObjectP
             </p>
           </TabsContent>
 
-          {/* ── Versions ── */}
+          {/* ── Versions — with a compare affordance ── */}
           <TabsContent value="versions" className="space-y-1" data-testid="model-versions">
-            {versions.map((v) => (
-              <div
-                key={v.v}
-                className="flex items-center gap-2 rounded border px-2 py-1 text-xs"
-                data-testid={`model-version-${v.v}`}
-              >
-                <span className="font-mono font-semibold">{v.v}</span>
-                <GateVerdict verdict={v.verdict} />
-              </div>
-            ))}
+            {versions.map((v) => {
+              const isCurrent = v.v === currentVersion
+              return (
+                <div
+                  key={v.v}
+                  className={
+                    "flex items-center gap-2 rounded border px-2 py-1 text-xs" +
+                    (isCurrent ? " border-primary/50 bg-muted/40" : "")
+                  }
+                  data-testid={`model-version-${v.v}`}
+                >
+                  <span className="font-mono font-semibold">{v.v}</span>
+                  <GateVerdict verdict={v.verdict} />
+                  {isCurrent && (
+                    <Badge variant="outline" className="text-[10px]">current</Badge>
+                  )}
+                  {!isCurrent && (
+                    <button
+                      type="button"
+                      className="ml-auto text-primary hover:underline"
+                      onClick={() => onCompareVersion?.(v.v)}
+                      data-testid={`model-version-compare-${v.v}`}
+                    >
+                      compare
+                    </button>
+                  )}
+                </div>
+              )
+            })}
             <p className="text-[10px] text-muted-foreground pt-1">
               Superseding never deletes. A completed run keeps the exact version it called, so an old
-              report stays reproducible.
+              report stays reproducible. Compare weighs a version against the current one on the same
+              held-out set.
             </p>
           </TabsContent>
         </Tabs>
@@ -231,9 +385,21 @@ interface ModelObjectLoaderProps {
   modelId: string
   onBack?: () => void
   className?: string
+  onOpenData?: (datasetVersion: string) => void
+  onOpenRun?: (trainingRunId: string) => void
+  onOpenModel?: (ref: string) => void
+  onOpenConsumer?: (consumer: string) => void
+  onCompareVersion?: (version: string) => void
+  onUseInRun?: (modelId: string) => void
+  onSupersede?: (modelId: string) => void
 }
 
-export function ModelObjectLoader({ modelId, onBack, className }: ModelObjectLoaderProps) {
+export function ModelObjectLoader({
+  modelId,
+  onBack,
+  className,
+  ...actions
+}: ModelObjectLoaderProps) {
   const { data, isLoading, isError, error } = useModel(modelId)
 
   if (isLoading) {
@@ -264,5 +430,13 @@ export function ModelObjectLoader({ modelId, onBack, className }: ModelObjectLoa
       </Card>
     )
   }
-  return <ModelObject detail={data} modelId={modelId} onBack={onBack} className={className} />
+  return (
+    <ModelObject
+      detail={data}
+      modelId={modelId}
+      onBack={onBack}
+      className={className}
+      {...actions}
+    />
+  )
 }
