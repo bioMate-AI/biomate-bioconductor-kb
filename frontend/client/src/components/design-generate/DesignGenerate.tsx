@@ -30,7 +30,7 @@
  * owns only form state and the poll loop. No science is fabricated here.
  */
 
-import { useState, useCallback, useRef, useEffect } from "react"
+import React, { useState, useCallback, useRef, useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -43,7 +43,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { HitGrid, type ChemHit, type HitVerdict } from "@/components/viewers/hit-grid"
-import { Play, ChevronDown, ShieldAlert, Target } from "lucide-react"
+import { Play, ChevronDown, ShieldAlert, Target, GitCompare, SlidersHorizontal, Info } from "lucide-react"
 
 // ---------------------------------------------------------------------------
 // Backend data contract (mirrors backend/.../api/generation.py schemas)
@@ -200,14 +200,81 @@ function ObjectiveCell({ o }: { o: ObjectiveValue }) {
   )
 }
 
+/** Per-row "why?" drill-in (§5.3/§5.5): the model + version + confidence behind
+ *  the row, and the nearest-analogue rationale. Uses only data that actually
+ *  arrives — where the backend carries no nearest measured analogue, it says so
+ *  honestly rather than inventing one. */
+function WhyRow({
+  candidate,
+  colSpan,
+  provenance,
+}: {
+  candidate: GenCandidate
+  colSpan: number
+  provenance: WhyProvenance
+}) {
+  return (
+    <tr data-testid={`why-detail-${candidate.id}`} className="bg-muted/30">
+      <td colSpan={colSpan} className="px-3 py-2">
+        <div className="space-y-1 text-[11px]">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold">Model</span>
+            <span className="font-mono">{provenance.model}</span>
+            <span className="text-muted-foreground">·</span>
+            <span className="font-semibold">Version</span>
+            <span className="font-mono" data-testid={`why-version-${candidate.id}`}>
+              {provenance.version}
+            </span>
+            <span className="text-muted-foreground">·</span>
+            <span className="font-semibold">Confidence</span>
+            <span className="font-mono capitalize" data-testid={`why-confidence-${candidate.id}`}>
+              {candidate.confidence}
+            </span>
+          </div>
+          <div>
+            <span className="font-semibold">What drove it: </span>
+            <span className="text-muted-foreground">
+              {candidate.objectives.length > 0
+                ? candidate.objectives
+                    .map((o) => `${o.name} ${o.value} ${o.unit}${o.target != null ? ` (${o.direction === "maximize" ? "≥" : "≤"} ${o.target})` : ""}`)
+                    .join("; ")
+                : "no per-objective values available"}
+            </span>
+          </div>
+          <div data-testid={`why-analogue-${candidate.id}`}>
+            <span className="font-semibold">Nearest measured analogue: </span>
+            <span className="text-muted-foreground italic">{provenance.nearestAnalogue}</span>
+          </div>
+          {candidate.verdict === "held" && (
+            <div className="text-amber-600">
+              Held — outside the model&apos;s applicability region; ranked nowhere and offered no
+              confident number.
+            </div>
+          )}
+        </div>
+      </td>
+    </tr>
+  )
+}
+
+interface WhyProvenance {
+  model: string
+  version: string
+  nearestAnalogue: string
+}
+
 function MultiObjectiveView({
   candidates,
   objectiveMeta,
+  provenance,
 }: {
   candidates: GenCandidate[]
   objectiveMeta: GenObjectiveMeta[]
+  provenance: WhyProvenance
 }) {
+  const [openWhy, setOpenWhy] = useState<Record<string, boolean>>({})
   const names = objectiveMeta.map((m) => m.name)
+  const colCount = 1 + objectiveMeta.length + 3 // candidate + objectives + score + verdict + why
   return (
     <Card data-testid="multi-objective-view">
       <CardHeader className="pb-2">
@@ -236,47 +303,63 @@ function MultiObjectiveView({
                   score*
                 </th>
                 <th className="px-2 py-1 text-left font-semibold">Verdict</th>
+                <th className="px-2 py-1 text-left font-semibold">why?</th>
               </tr>
             </thead>
             <tbody>
               {candidates.map((c) => {
                 const byName = new Map(c.objectives.map((o) => [o.name, o]))
+                const isOpen = !!openWhy[c.id]
                 return (
-                  <tr
-                    key={c.id}
-                    data-testid={`mobj-row-${c.id}`}
-                    className={`border-b last:border-0 ${c.verdict === "rejected" ? "opacity-70" : ""}`}
-                  >
-                    <td className="px-2 py-1 font-mono font-semibold">{c.id}</td>
-                    {names.map((n) => {
-                      const o = byName.get(n)
-                      return o ? (
-                        <ObjectiveCell key={n} o={o} />
-                      ) : (
-                        <td key={n} className="px-2 py-1 text-muted-foreground italic">
-                          n/a
-                        </td>
-                      )
-                    })}
-                    <td className="px-2 py-1 font-mono text-muted-foreground">{c.score}</td>
-                    <td className="px-2 py-1">
-                      <span
-                        className="text-[10px] capitalize"
-                        style={{
-                          color:
-                            c.verdict === "accepted"
-                              ? "#22c55e"
-                              : c.verdict === "rejected"
-                                ? "#ef4444"
-                                : c.verdict === "held"
-                                  ? "#94a3b8"
-                                  : "#f59e0b",
-                        }}
-                      >
-                        {c.verdict}
-                      </span>
-                    </td>
-                  </tr>
+                  <React.Fragment key={c.id}>
+                    <tr
+                      data-testid={`mobj-row-${c.id}`}
+                      className={`border-b last:border-0 ${c.verdict === "rejected" ? "opacity-70" : ""}`}
+                    >
+                      <td className="px-2 py-1 font-mono font-semibold">{c.id}</td>
+                      {names.map((n) => {
+                        const o = byName.get(n)
+                        return o ? (
+                          <ObjectiveCell key={n} o={o} />
+                        ) : (
+                          <td key={n} className="px-2 py-1 text-muted-foreground italic">
+                            n/a
+                          </td>
+                        )
+                      })}
+                      <td className="px-2 py-1 font-mono text-muted-foreground">{c.score}</td>
+                      <td className="px-2 py-1">
+                        <span
+                          className="text-[10px] capitalize"
+                          style={{
+                            color:
+                              c.verdict === "accepted"
+                                ? "#22c55e"
+                                : c.verdict === "rejected"
+                                  ? "#ef4444"
+                                  : c.verdict === "held"
+                                    ? "#94a3b8"
+                                    : "#f59e0b",
+                          }}
+                        >
+                          {c.verdict}
+                        </span>
+                      </td>
+                      <td className="px-2 py-1">
+                        <button
+                          type="button"
+                          data-testid={`why-toggle-${c.id}`}
+                          aria-expanded={isOpen}
+                          className="inline-flex items-center gap-0.5 text-[10px] text-primary hover:underline"
+                          onClick={() => setOpenWhy((s) => ({ ...s, [c.id]: !s[c.id] }))}
+                        >
+                          <Info className="h-3 w-3" />
+                          why?
+                        </button>
+                      </td>
+                    </tr>
+                    {isOpen && <WhyRow candidate={c} colSpan={colCount} provenance={provenance} />}
+                  </React.Fragment>
                 )
               })}
             </tbody>
@@ -347,6 +430,477 @@ function RejectedSet({ rejected }: { rejected: RejectedCandidate[] }) {
 }
 
 // ---------------------------------------------------------------------------
+// Editable criteria / weights strip (§5.5) + client-side re-rank (§5.4 rule)
+//
+// "A single blended number is never shown … weights are the user's to set, are
+//  stated on every ranking, and changing them re-ranks WITHOUT re-running the
+//  predictions." The strip edits an in-place target + weight per objective; the
+//  re-rank is a pure client-side re-sort over the candidates already returned.
+// ---------------------------------------------------------------------------
+
+export interface CriterionSetting {
+  target: number | null // the objective's target (own units) — null = none stated
+  weight: number // relative weight (>= 0); the criteria are STATED on the ranking
+}
+
+export type CriteriaMap = Record<string, CriterionSetting>
+
+/** Seed the criteria from the run's objective meta + the values on candidate 1
+ *  (so a stated target like property_envelope's 1.0 pre-fills honestly). */
+function seedCriteria(
+  objectiveMeta: GenObjectiveMeta[],
+  candidates: GenCandidate[],
+): CriteriaMap {
+  const first = candidates[0]
+  const byName = new Map((first?.objectives ?? []).map((o) => [o.name, o]))
+  const out: CriteriaMap = {}
+  for (const m of objectiveMeta) {
+    const seededTarget = byName.get(m.name)?.target ?? null
+    out[m.name] = { target: seededTarget ?? null, weight: 1 }
+  }
+  return out
+}
+
+/** Per-objective desirability in [0,1] under the user's target + direction.
+ *  Uses only values already returned — no re-prediction. When no target is
+ *  stated the raw value is used directly (already normalised 0-1 for the
+ *  molecule-derived objectives we back). */
+function desirability(o: ObjectiveValue, target: number | null): number {
+  const v = o.value
+  if (target == null) {
+    // No target stated — direction still orders it; clamp to [0,1] softly.
+    return o.direction === "minimize" ? 1 - clamp01(v) : clamp01(v)
+  }
+  if (target === 0) return o.direction === "minimize" ? (v <= 0 ? 1 : 0) : clamp01(v)
+  const ratio = v / target
+  // maximize: meeting/exceeding target => 1; minimize: at/below target => 1.
+  return o.direction === "minimize" ? clamp01(1 / Math.max(ratio, 1e-9)) : clamp01(ratio)
+}
+
+function clamp01(x: number): number {
+  return Math.max(0, Math.min(1, x))
+}
+
+/** The user's weighted desirability for a candidate — a RE-SORT KEY ONLY, shown
+ *  next to the per-objective values, never presented as "the one number". */
+export function rankKey(c: GenCandidate, criteria: CriteriaMap): number {
+  let num = 0
+  let den = 0
+  for (const o of c.objectives) {
+    const crit = criteria[o.name]
+    const w = crit ? Math.max(0, crit.weight) : 1
+    if (w === 0) continue
+    num += w * desirability(o, crit ? crit.target : o.target ?? null)
+    den += w
+  }
+  return den > 0 ? num / den : c.score
+}
+
+/** Re-rank the candidates under the user's criteria WITHOUT re-running. Held
+ *  (out-of-domain) candidates carry no confident number, so they sort to the
+ *  end and keep their place-nowhere status (§5.5.1). */
+export function reRank(candidates: GenCandidate[], criteria: CriteriaMap): GenCandidate[] {
+  return [...candidates].sort((a, b) => {
+    const aHeld = a.verdict === "held"
+    const bHeld = b.verdict === "held"
+    if (aHeld && bHeld) return 0
+    if (aHeld) return 1
+    if (bHeld) return -1
+    return rankKey(b, criteria) - rankKey(a, criteria)
+  })
+}
+
+function CriteriaStrip({
+  objectiveMeta,
+  criteria,
+  onChange,
+}: {
+  objectiveMeta: GenObjectiveMeta[]
+  criteria: CriteriaMap
+  onChange: (name: string, patch: Partial<CriterionSetting>) => void
+}) {
+  if (objectiveMeta.length === 0) return null
+  const stated = objectiveMeta
+    .map((m) => {
+      const c = criteria[m.name]
+      const t = c?.target
+      return `${m.name} (${m.direction === "maximize" ? "↑" : "↓"}${
+        t != null ? " " + (m.direction === "maximize" ? "≥" : "≤") + " " + t : ""
+      }, w=${c?.weight ?? 1})`
+    })
+    .join(" · ")
+  return (
+    <Card data-testid="criteria-strip">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <SlidersHorizontal className="h-4 w-4" />
+          Criteria &amp; weights
+        </CardTitle>
+        <p className="text-[10px] text-muted-foreground">
+          Weights are the user&apos;s to set and are stated on every ranking. Changing a
+          target or weight re-ranks the candidates below <strong>without re-running</strong>
+          the predictions — no single blended number is optimised.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <div className="overflow-auto rounded border text-xs">
+          <table className="min-w-full">
+            <thead className="bg-muted">
+              <tr>
+                <th className="px-2 py-1 text-left font-semibold">Objective</th>
+                <th className="px-2 py-1 text-left font-semibold">Direction</th>
+                <th className="px-2 py-1 text-left font-semibold">Target</th>
+                <th className="px-2 py-1 text-left font-semibold">Weight</th>
+              </tr>
+            </thead>
+            <tbody>
+              {objectiveMeta.map((m) => {
+                const c = criteria[m.name] ?? { target: null, weight: 1 }
+                return (
+                  <tr key={m.name} data-testid={`criteria-row-${m.name}`} className="border-b last:border-0">
+                    <td className="px-2 py-1 font-mono font-semibold whitespace-nowrap">
+                      {m.name}
+                      <span className="text-[10px] text-muted-foreground ml-1">/{m.unit}</span>
+                    </td>
+                    <td className="px-2 py-1 text-[10px] text-muted-foreground">
+                      {m.direction === "maximize" ? "maximize ↑" : "minimize ↓"}
+                    </td>
+                    <td className="px-2 py-1">
+                      <Input
+                        data-testid={`criteria-target-${m.name}`}
+                        value={c.target == null ? "" : String(c.target)}
+                        placeholder="none"
+                        onChange={(e) => {
+                          const raw = e.target.value.trim()
+                          const v = raw === "" ? null : parseFloat(raw)
+                          onChange(m.name, { target: raw === "" ? null : Number.isFinite(v as number) ? (v as number) : null })
+                        }}
+                        className="h-6 w-20 text-xs font-mono"
+                      />
+                    </td>
+                    <td className="px-2 py-1">
+                      <Input
+                        data-testid={`criteria-weight-${m.name}`}
+                        type="number"
+                        min={0}
+                        step={0.5}
+                        value={String(c.weight)}
+                        onChange={(e) => {
+                          const v = parseFloat(e.target.value)
+                          onChange(m.name, { weight: Number.isFinite(v) ? Math.max(0, v) : 0 })
+                        }}
+                        className="h-6 w-20 text-xs font-mono"
+                      />
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-[10px] text-muted-foreground" data-testid="criteria-stated">
+          Ranking criteria: {stated}
+        </p>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Pareto / trade-off view (§5.4) — 2-objective front, front points highlighted
+//
+// "The trade-off is shown rather than collapsed." Candidates are plotted on two
+// chosen objectives; the members of the backend's `pareto` front (matched by
+// SMILES) are highlighted. Lightweight inline SVG (same pattern as PlddtChart /
+// the other viewers) — no chart library.
+// ---------------------------------------------------------------------------
+
+function ParetoView({
+  candidates,
+  objectiveMeta,
+  paretoSmiles,
+}: {
+  candidates: GenCandidate[]
+  objectiveMeta: GenObjectiveMeta[]
+  paretoSmiles: string[]
+}) {
+  // Default to the first two objectives; let the user re-pick either axis when
+  // more than two exist (a 2-objective trade-off is what a chemist reads).
+  const [xName, setXName] = useState(objectiveMeta[0]?.name ?? "")
+  const [yName, setYName] = useState(objectiveMeta[1]?.name ?? objectiveMeta[0]?.name ?? "")
+
+  if (objectiveMeta.length < 2) {
+    return (
+      <Card data-testid="pareto-view">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <GitCompare className="h-4 w-4" />
+            Trade-off (Pareto) view
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-muted-foreground" data-testid="pareto-empty">
+            A trade-off needs two objectives. This run optimised{" "}
+            {objectiveMeta.length === 1 ? "one objective" : "no objectives"} — nothing to
+            trade off, so no front is drawn.
+          </p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const xm = objectiveMeta.find((m) => m.name === xName) ?? objectiveMeta[0]
+  const ym = objectiveMeta.find((m) => m.name === yName) ?? objectiveMeta[1]
+
+  const paretoSet = new Set(paretoSmiles)
+  const pts = candidates
+    .map((c) => {
+      const x = c.objectives.find((o) => o.name === xm.name)
+      const y = c.objectives.find((o) => o.name === ym.name)
+      if (!x || !y) return null
+      return { id: c.id, smiles: c.smiles, x: x.value, y: y.value, verdict: c.verdict, onFront: paretoSet.has(c.smiles) }
+    })
+    .filter((p): p is NonNullable<typeof p> => p !== null)
+
+  if (pts.length === 0) {
+    return (
+      <Card data-testid="pareto-view">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <GitCompare className="h-4 w-4" />
+            Trade-off (Pareto) view
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-muted-foreground" data-testid="pareto-empty">
+            No candidate carries both selected objectives, so no trade-off can be plotted.
+          </p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const W = 100
+  const H = 70
+  const PAD = 8
+  const xs = pts.map((p) => p.x)
+  const ys = pts.map((p) => p.y)
+  const xmin = Math.min(...xs)
+  const xmax = Math.max(...xs)
+  const ymin = Math.min(...ys)
+  const ymax = Math.max(...ys)
+  const sx = (v: number) => PAD + ((v - xmin) / (xmax - xmin || 1)) * (W - 2 * PAD)
+  const sy = (v: number) => H - PAD - ((v - ymin) / (ymax - ymin || 1)) * (H - 2 * PAD)
+
+  // Order the front points for a connecting line: sort by x, then y.
+  const frontPts = pts.filter((p) => p.onFront).sort((a, b) => a.x - b.x || a.y - b.y)
+  const frontPath =
+    frontPts.length >= 2
+      ? frontPts.map((p, i) => `${i === 0 ? "M" : "L"} ${sx(p.x).toFixed(2)} ${sy(p.y).toFixed(2)}`).join(" ")
+      : ""
+
+  const AxisSelect = ({
+    value,
+    onChange,
+    testid,
+  }: {
+    value: string
+    onChange: (v: string) => void
+    testid: string
+  }) => (
+    <select
+      data-testid={testid}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="h-6 rounded border bg-background px-1 text-[10px] font-mono"
+    >
+      {objectiveMeta.map((m) => (
+        <option key={m.name} value={m.name}>
+          {m.name} /{m.unit}
+        </option>
+      ))}
+    </select>
+  )
+
+  return (
+    <Card data-testid="pareto-view">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <GitCompare className="h-4 w-4" />
+          Trade-off (Pareto) view
+        </CardTitle>
+        <p className="text-[10px] text-muted-foreground">
+          The trade-off is shown, not collapsed. Each dot is a candidate on two objectives;
+          highlighted dots are on the non-dominated (Pareto) front — no candidate beats them on
+          both. {paretoSet.size === 0 && "No front members were returned for this run."}
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <div className="flex items-center gap-2 flex-wrap text-[10px] text-muted-foreground">
+          <span>Y:</span>
+          <AxisSelect value={ym.name} onChange={setYName} testid="pareto-y-axis" />
+          <span className="ml-2">X:</span>
+          <AxisSelect value={xm.name} onChange={setXName} testid="pareto-x-axis" />
+        </div>
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="w-full"
+          style={{ height: 220 }}
+          role="img"
+          aria-label={`Trade-off of ${ym.name} against ${xm.name}`}
+          data-testid="pareto-svg"
+        >
+          {/* axes */}
+          <line x1={PAD} y1={H - PAD} x2={W - PAD} y2={H - PAD} stroke="var(--border)" strokeWidth={0.4} vectorEffect="non-scaling-stroke" />
+          <line x1={PAD} y1={PAD} x2={PAD} y2={H - PAD} stroke="var(--border)" strokeWidth={0.4} vectorEffect="non-scaling-stroke" />
+          {/* pareto front path */}
+          {frontPath && (
+            <path d={frontPath} fill="none" stroke="#6366f1" strokeWidth={0.6} strokeDasharray="1.5 1" vectorEffect="non-scaling-stroke" data-testid="pareto-front-path" />
+          )}
+          {/* points */}
+          {pts.map((p) => (
+            <circle
+              key={p.id}
+              data-testid={`pareto-point-${p.id}`}
+              data-on-front={p.onFront ? "true" : "false"}
+              cx={sx(p.x)}
+              cy={sy(p.y)}
+              r={p.onFront ? 1.6 : 1.0}
+              fill={
+                p.verdict === "rejected"
+                  ? "#ef4444"
+                  : p.onFront
+                    ? "#6366f1"
+                    : p.verdict === "held"
+                      ? "#94a3b8"
+                      : "#22c55e"
+              }
+              stroke={p.onFront ? "#312e81" : "none"}
+              strokeWidth={p.onFront ? 0.4 : 0}
+              vectorEffect="non-scaling-stroke"
+            >
+              <title>
+                {p.id} — {xm.name} {p.x}, {ym.name} {p.y}
+                {p.onFront ? " (on front)" : ""}
+              </title>
+            </circle>
+          ))}
+        </svg>
+        <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+          <span>
+            {xm.name} → ({xmin} … {xmax}) /{xm.unit}
+          </span>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap text-[10px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1">
+            <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#6366f1" }} /> on front (
+            {pts.filter((p) => p.onFront).length})
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#22c55e" }} /> dominated
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#ef4444" }} /> gate-rejected
+          </span>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Rejection profile by cause (§5.2) — counted AND characterised, not just totals
+//
+// "412 of 500 passed; 61 failed synthetic accessibility, 27 hit a structural
+//  alert" — a high rejection rate is the most useful early signal that the
+//  constraints are wrong. We bucket the free-text gate reason into causes.
+// ---------------------------------------------------------------------------
+
+type RejectionCause = "structural_alert" | "banned_moiety" | "sa_floor" | "valence" | "other"
+
+const CAUSE_LABEL: Record<RejectionCause, string> = {
+  structural_alert: "structural alert",
+  banned_moiety: "banned moiety",
+  sa_floor: "synthetic-accessibility floor",
+  valence: "invalid valence / unparseable",
+  other: "other gate",
+}
+
+/** Classify a backend rejection reason string into a cause bucket. The backend
+ *  emits e.g. "structural alert: nitro_group", "banned moiety: [N+]…",
+ *  "invalid structure (unparseable)"; a synthetic-accessibility floor reason is
+ *  bucketed if/when the gate emits it — no cause is fabricated. */
+export function classifyRejection(reason: string): RejectionCause {
+  const r = reason.toLowerCase()
+  if (r.includes("structural alert")) return "structural_alert"
+  if (r.includes("banned moiety")) return "banned_moiety"
+  if (r.includes("synthetic accessibility") || r.includes("sa ") || r.includes("sa_") || r.includes("sascore")) return "sa_floor"
+  if (r.includes("valence") || r.includes("unparseable") || r.includes("invalid structure")) return "valence"
+  return "other"
+}
+
+function RejectionProfile({
+  rejected,
+  nGenerated,
+  nScored,
+}: {
+  rejected: RejectedCandidate[]
+  nGenerated?: number
+  nScored?: number
+}) {
+  if (rejected.length === 0) return null
+  const byCause = new Map<RejectionCause, RejectedCandidate[]>()
+  for (const r of rejected) {
+    const cause = classifyRejection(r.reason)
+    const arr = byCause.get(cause) ?? []
+    arr.push(r)
+    byCause.set(cause, arr)
+  }
+  const order: RejectionCause[] = ["structural_alert", "banned_moiety", "sa_floor", "valence", "other"]
+  const rows = order.filter((c) => byCause.has(c)).map((c) => ({ cause: c, items: byCause.get(c)! }))
+  const total = rejected.length
+  const passedNote =
+    nScored != null && nGenerated != null
+      ? `${nScored} scored of ${nGenerated} generated`
+      : null
+  return (
+    <Card data-testid="rejection-profile">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <ShieldAlert className="h-4 w-4 text-red-500" />
+          Rejection profile
+          <Badge variant="outline" className="text-[10px]" style={{ color: "#ef4444" }}>
+            {total}
+          </Badge>
+        </CardTitle>
+        <p className="text-[10px] text-muted-foreground">
+          Rejections are counted <em>and characterised</em> by cause — the failure profile is the
+          diagnostic. {passedNote}
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-1">
+        {rows.map(({ cause, items }) => (
+          <div
+            key={cause}
+            data-testid={`rejection-cause-${cause}`}
+            className="flex items-center gap-2 rounded border px-2 py-1 text-xs"
+          >
+            <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ background: "#ef4444" }} />
+            <span className="font-semibold capitalize">{CAUSE_LABEL[cause]}</span>
+            <Badge variant="outline" className="text-[10px] ml-auto" data-testid={`rejection-count-${cause}`}>
+              {items.length}
+            </Badge>
+            <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[40%]" title={items.map((i) => i.id).join(", ")}>
+              {items.map((i) => i.id).join(", ")}
+            </span>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
@@ -373,6 +927,27 @@ export function DesignGenerate({ client = defaultClient, onOpenModel, className 
   const [run, setRun] = useState<GenerationRun | null>(null)
   const [error, setError] = useState<string | null>(null)
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // --- editable criteria/weights (§5.5) — client-side re-rank, no re-run ----
+  const [criteria, setCriteria] = useState<CriteriaMap>({})
+  // Reset the criteria to the run's seeded defaults whenever a new completed
+  // result arrives (keyed by run_id + objective names so a re-run reseeds).
+  const objectiveKey = (run?.objectives ?? []).map((m) => m.name).join(",")
+  useEffect(() => {
+    if (run?.status === "completed" && (run.objectives?.length ?? 0) > 0) {
+      setCriteria(seedCriteria(run.objectives ?? [], run.candidates ?? []))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [run?.run_id, run?.status, objectiveKey])
+
+  const updateCriterion = useCallback(
+    (name: string, patch: Partial<CriterionSetting>) =>
+      setCriteria((c) => {
+        const prev: CriterionSetting = c[name] ?? { target: null, weight: 1 }
+        return { ...c, [name]: { ...prev, ...patch } }
+      }),
+    [],
+  )
 
   useEffect(
     () => () => {
@@ -438,10 +1013,32 @@ export function DesignGenerate({ client = defaultClient, onOpenModel, className 
   }, [client, buildBody, pollLoop])
 
   const running = run?.status === "running"
-  const candidates = run?.candidates ?? []
+  const rawCandidates = run?.candidates ?? []
   const rejected = run?.rejected ?? []
   const objectiveMeta = run?.objectives ?? []
+  // Client-side re-rank under the user's criteria/weights — WITHOUT re-running
+  // the predictions (§5.4 "changing them re-ranks without re-running"). Falls
+  // back to backend order when no criteria are set yet.
+  const candidates = useMemo(
+    () => (Object.keys(criteria).length > 0 ? reRank(rawCandidates, criteria) : rawCandidates),
+    [rawCandidates, criteria],
+  )
   const hits = candidates.map(toHit)
+
+  // Honest provenance for the per-row "why?" (§5.3/§5.5): the model+version are
+  // the run's generator + objective predictors; there is no per-candidate
+  // nearest measured analogue in the backend contract, so we say so plainly
+  // rather than inventing one.
+  const whyProvenance: WhyProvenance = useMemo(() => {
+    const objs = (run?.objectives ?? []).map((m) => `${m.name}/${m.unit}`).join(", ")
+    return {
+      model: run?.generator
+        ? `${run.generator}${objs ? ` + objective predictors (${objs})` : ""}`
+        : "objective predictors",
+      version: run?.generator_is_learned === false ? "deterministic enumeration (unversioned)" : run?.generator ?? "n/a",
+      nearestAnalogue: "not available — no measured assay series was returned with this run",
+    }
+  }, [run?.generator, run?.generator_is_learned, objectiveKey])
 
   return (
     <div className={`space-y-3 ${className ?? ""}`} data-testid="design-generate">
@@ -629,17 +1226,28 @@ export function DesignGenerate({ client = defaultClient, onOpenModel, className 
 
       {/* ---- results ---- */}
       {run?.status === "completed" && candidates.length === 0 && (
-        <Card data-testid="dg-empty">
-          <CardContent className="text-xs text-muted-foreground py-4">
-            No candidates cleared the pipeline. The failure profile is above — the
-            constraints or seed are the most likely cause. Nothing was fabricated to
-            fill a shortlist.
-          </CardContent>
-        </Card>
+        <>
+          <Card data-testid="dg-empty">
+            <CardContent className="text-xs text-muted-foreground py-4">
+              No candidates cleared the pipeline. The failure profile is above — the
+              constraints or seed are the most likely cause. Nothing was fabricated to
+              fill a shortlist.
+            </CardContent>
+          </Card>
+          {/* §5.8 "Most generations rejected → reports the rejection profile" */}
+          <RejectionProfile rejected={rejected} nGenerated={run.n_generated} nScored={run.n_scored} />
+        </>
       )}
 
       {candidates.length > 0 && (
         <>
+          {/* Editable criteria/weights strip — re-ranks below without re-running (§5.5) */}
+          <CriteriaStrip
+            objectiveMeta={objectiveMeta}
+            criteria={criteria}
+            onChange={updateCriterion}
+          />
+
           {/* Ranked candidates via the wave-1 HitGrid (rejected stay visible) */}
           <HitGrid
             hits={hits}
@@ -648,8 +1256,22 @@ export function DesignGenerate({ client = defaultClient, onOpenModel, className 
             onOpenModel={onOpenModel}
           />
 
-          {/* Multi-objective view — own units, no composite score */}
-          <MultiObjectiveView candidates={candidates} objectiveMeta={objectiveMeta} />
+          {/* Trade-off / Pareto view — the front is shown, not collapsed (§5.4) */}
+          <ParetoView
+            candidates={candidates}
+            objectiveMeta={objectiveMeta}
+            paretoSmiles={run?.pareto ?? []}
+          />
+
+          {/* Multi-objective view — own units, no composite score, per-row why? */}
+          <MultiObjectiveView
+            candidates={candidates}
+            objectiveMeta={objectiveMeta}
+            provenance={whyProvenance}
+          />
+
+          {/* Rejection profile by cause — counted AND characterised (§5.2) */}
+          <RejectionProfile rejected={rejected} nGenerated={run?.n_generated} nScored={run?.n_scored} />
 
           {/* Safety-as-a-gate — rejected candidates kept with reason */}
           <RejectedSet rejected={rejected} />
