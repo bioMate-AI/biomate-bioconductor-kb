@@ -515,3 +515,121 @@ code, pre, .font-mono {
 .speaker-pill[data-speaker="loop"]  { background: var(--bm-loop); }
 .speaker-pill[data-speaker="agent"] { background: var(--bm-agent); }
 .speaker-pill[data-speaker="find"]  { background: var(--bm-find); }
+
+/* ============================================================
+   Data-centric UI — ported reference semantic classes
+   -----------------------------------------------------------
+   The new data-centric components (DL viewers, model objects,
+   design/generate cards) were built in shadcn/Tailwind and do
+   NOT sit inside the `[data-v2-ui]` / `.wf-panel` scopes where
+   the reference tokens + `.file-chip`/`.node`/`.trow` classes
+   already live. To let them consume the reference design 1:1
+   WITHOUT re-theming the global Tailwind layer, we (a) expose
+   the unprefixed status/surface tokens the ported classes use
+   on `:root` (aliased to the same reference oklch values that
+   `--bm-*` already carries), and (b) port the exact class
+   rules verbatim from the reference prototype
+   (reference/claude_design/data_centroid_design/BioMate
+   Prototype.html). Ported near-verbatim; do not restyle here.
+   ============================================================ */
+:root {
+  /* Unprefixed aliases so component inline `var(--ok)` etc. resolve
+     app-wide (mirrors the `[data-v2-ui]`/`.wf-panel` token set). */
+  --ok:            var(--bm-ok);
+  --ok-soft:       var(--bm-ok-soft);
+  --warn:          var(--bm-warn);
+  --warn-soft:     var(--bm-warn-soft);
+  --err:           var(--bm-err);
+  --err-soft:      var(--bm-err-soft);
+  --accent:        var(--bm-accent);
+  --accent-soft:   var(--bm-accent-soft);
+  --accent-ink:    var(--bm-accent-ink);
+  --run:           var(--bm-accent);
+  --run-soft:      var(--bm-accent-soft);
+  --surface:       var(--bm-surface);
+  --surface-3:     var(--bm-surface-3);
+  --border:        var(--bm-border);
+  --border-strong: var(--bm-border-strong);
+  --text:          var(--bm-text);
+  --text-muted:    var(--bm-text-muted);
+  --text-dim:      var(--bm-text-dim);
+  --bg-elev:       var(--bm-bg-elev);
+  --r-sm:          var(--bm-r-sm);
+  --r-md:          var(--bm-r-md);
+  --font-ui:       var(--bm-font-ui);
+  --font-mono:     var(--bm-font-mono);
+}
+
+/* dataset chip with a quality-colored dot (.fc-q) */
+.file-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 8px 4px 7px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  font: 500 11.5px/1.5 var(--font-mono);
+  color: var(--text);
+  max-width: 100%;
+}
+.file-chip.is-dataset { cursor: pointer; }
+.file-chip.is-dataset:hover { border-color: var(--accent); background: var(--accent-soft); }
+.file-chip .fc-q { width: 7px; height: 7px; border-radius: 999px; flex: none; }
+.file-chip .fc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-chip .fc-note {
+  flex: none; font: 700 9.5px/1 var(--font-ui);
+  text-transform: uppercase; letter-spacing: .04em; color: var(--accent-ink);
+}
+
+/* selectable node (model / object card) */
+.node {
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  background: var(--bg-elev); padding: 9px 10px;
+  display: flex; flex-direction: column; gap: 5px;
+  text-align: left; width: 100%;
+}
+.node:hover { border-color: var(--border-strong); }
+.node.on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.node.isrun { background: var(--surface); border-style: dashed; }
+
+/* trajectory row + status dot (.tdot) */
+.trow {
+  display: grid; grid-template-columns: 24px minmax(0, 1fr);
+  gap: 9px; align-items: start; padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+}
+.trow:last-child { border-bottom: none; }
+.tdot {
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--surface-3); color: var(--text-muted);
+}
+.trow.route .tdot, .trow.clarify .tdot { background: var(--accent-soft); color: var(--accent); }
+.trow.gate .tdot { background: var(--warn-soft); color: var(--warn); }
+.trow.note .tdot { background: var(--ok-soft); color: var(--ok); }
+
+/* score-track tab bar (.trackbar / .trackb) */
+.trackbar {
+  display: flex; gap: 4px; border-bottom: 1px solid var(--border);
+  padding-bottom: 0; flex-wrap: wrap;
+}
+.trackb {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  border: 0; border-bottom: 2px solid transparent; background: none;
+  padding: 5px 8px; font: 500 12px/1.5 var(--font-ui); color: var(--text-dim);
+}
+.trackb:hover { color: var(--text); }
+.trackb.on { color: var(--text); font-weight: 600; border-bottom-color: var(--accent); }
+
+/* QC / approval gate */
+.gate {
+  display: flex; flex-direction: column; gap: 10px; padding: 14px;
+  border: 1px solid var(--warn); border-radius: var(--r-md);
+  background: var(--warn-soft); color: var(--text);
+}
+.gate.approval { border-color: var(--warn); }
+
+/* generic surface card */
+.card2 {
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  background: var(--bg-elev); padding: 14px;
+}

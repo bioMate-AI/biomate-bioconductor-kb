@@ -113,8 +113,9 @@ export function SeqTracks({ locus, tracks, flagged = [], bp, onOpenInterval, cla
                 >
                   {track.kind === "line" && track.values && (
                     <>
-                      <path d={`${linePath(track.values)} L${VW},${VH} L0,${VH} Z`} fill="rgba(59,130,246,0.12)" />
-                      <path d={linePath(track.values)} fill="none" stroke="#3b82f6" strokeWidth={0.7} vectorEffect="non-scaling-stroke" />
+                      {/* reference muted blue for the per-base signal */}
+                      <path d={`${linePath(track.values)} L${VW},${VH} L0,${VH} Z`} fill="rgba(75,143,214,0.12)" />
+                      <path d={linePath(track.values)} fill="none" stroke="#4b8fd6" strokeWidth={0.7} vectorEffect="non-scaling-stroke" />
                     </>
                   )}
                   {track.kind === "marks" && (track.intervals ?? []).map(([a, b], i) => (
@@ -124,13 +125,13 @@ export function SeqTracks({ locus, tracks, flagged = [], bp, onOpenInterval, cla
                       y={4}
                       width={((b - a) * VW) / extent}
                       height={12}
-                      fill="#f59e0b"
+                      fill="var(--warn)"
                       opacity={0.75}
                       rx={0.6}
                     />
                   ))}
                   {track.kind === "ticks" && (track.values ?? []).map((x, i) => (
-                    <rect key={i} x={(x * VW) / extent} y={3} width={0.5} height={14} fill="#64748b" />
+                    <rect key={i} x={(x * VW) / extent} y={3} width={0.5} height={14} fill="var(--text-dim)" />
                   ))}
                 </svg>
               </div>
