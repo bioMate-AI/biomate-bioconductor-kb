@@ -494,35 +494,159 @@ function TrainTrack({
   )
 }
 
-// ── Descriptive track (Adapt) ─────────────────────────────────────────────────
-function DescriptiveTrack({
-  title,
-  lead,
-  bullets,
-  testid,
+// ── Adapt track ───────────────────────────────────────────────────────────────
+/**
+ * The Adapt track, ported from the prototype AdaptTab: adaptation is a list of
+ * switchable things, not an opaque model change. The adaptation-level ladder
+ * (rule → index → adapter, cheapest first) is fixed design content; the
+ * "What was learned" list of before→after edit pairs is the data-bearing part.
+ *
+ * Each learned pair carries an `on` state owned by the parent; toggling fires
+ * `onToggleLearned(id)` (no persistence endpoint in this wave). When there are
+ * no pairs the honest empty state renders — nothing is learned silently.
+ */
+export interface AdaptPair {
+  id: string
+  /** The learned rule, e.g. "prefer 'cohort' over 'group' in methods". */
+  learned: string
+  /** Scope label, e.g. "organisation" / "project". */
+  scope: string
+  /** The correction: what BioMate wrote before → what you changed it to. */
+  before: string
+  after: string
+  /** Where the edit came from, e.g. "Methods draft · 2026-08". */
+  source: string
+  /** Whether this learned rule is currently active. */
+  on: boolean
+}
+export interface AdaptData {
+  /** Count of queued before→after pairs not yet trained on. */
+  pendingCount?: number
+  pairs: AdaptPair[]
+}
+
+const ADAPT_LEVELS: [string, string, string][] = [
+  ["Prompt rule", "cheapest · instant", "a written instruction, applied every run"],
+  ["Few-shot index", "cheap · seconds", "retrieved examples steer the output"],
+  ["Trained adapter", "costly · a training run", "weights updated, gated like any model"],
+]
+
+function AdaptTrack({
+  data,
+  onToggleLearned,
+  onRetrain,
 }: {
-  title: string
-  lead: string
-  bullets: string[]
-  testid: string
+  data?: AdaptData
+  onToggleLearned?: (id: string) => void
+  onRetrain?: () => void
 }) {
+  const pairs = data?.pairs ?? []
+  const activeCount = pairs.filter((p) => p.on).length
   return (
-    <Card data-testid={testid}>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        <p className="text-xs text-muted-foreground">{lead}</p>
-        <ul className="space-y-1">
-          {bullets.map((b) => (
-            <li key={b} className="text-[11px] flex items-start gap-1.5">
-              <span className="mt-1 inline-block h-1 w-1 rounded-full bg-muted-foreground shrink-0" />
-              <span>{b}</span>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
+    <div className="space-y-3" data-testid="track-adapt">
+      {/* Adaptation level ladder */}
+      <Card data-testid="adapt-levels">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <CardTitle className="text-sm">Adaptation level</CardTitle>
+            <Badge variant="outline" className="text-[10px]">scope: organisation</Badge>
+            <Button
+              size="sm"
+              className="h-6 text-[11px] px-2 ml-auto"
+              onClick={() => onRetrain?.()}
+              data-testid="adapt-retrain"
+            >
+              Re-train on my edits
+              {data?.pendingCount ? ` (${data.pendingCount})` : ""}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            When you correct BioMate's output, the before→after pair is queued. Nothing is learned
+            silently: every learned rule appears below and can be switched off.
+          </p>
+          <div className="space-y-1">
+            {ADAPT_LEVELS.map(([n, cost, state]) => (
+              <div key={n} className="rounded border px-2 py-1.5 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">{n}</span>
+                  <span className="text-[10px] text-muted-foreground ml-auto">{cost}</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground">{state}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Cheapest first: a rule is preferred over an index, and an index over a trained adapter.
+            The level in use is visible, because it changes what "forget this" means.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* What was learned */}
+      <Card data-testid="adapt-learned">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-sm">What was learned</CardTitle>
+            {pairs.length > 0 && (
+              <span className="text-[10px] text-muted-foreground ml-auto">
+                {activeCount} of {pairs.length} active
+              </span>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {pairs.length ? (
+            pairs.map((p) => (
+              <div
+                key={p.id}
+                className={"rounded border px-2 py-1.5 text-xs space-y-1" + (p.on ? "" : " opacity-60")}
+                data-testid={`adapt-pair-${p.id}`}
+              >
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold">{p.learned}</span>
+                  <Badge variant="outline" className="text-[10px] ml-auto">{p.scope}</Badge>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={p.on}
+                    className={
+                      "relative inline-flex h-4 w-7 items-center rounded-full transition-colors " +
+                      (p.on ? "bg-primary" : "bg-muted")
+                    }
+                    onClick={() => onToggleLearned?.(p.id)}
+                    data-testid={`adapt-pair-toggle-${p.id}`}
+                  >
+                    <span
+                      className={
+                        "inline-block h-3 w-3 rounded-full bg-background transition-transform " +
+                        (p.on ? "translate-x-3.5" : "translate-x-0.5")
+                      }
+                    />
+                  </button>
+                </div>
+                <div className="flex items-center gap-2 text-[11px]">
+                  <span className="line-through text-red-500/80" data-testid={`adapt-pair-before-${p.id}`}>
+                    {p.before}
+                  </span>
+                  <span className="text-muted-foreground">→</span>
+                  <span className="text-green-600" data-testid={`adapt-pair-after-${p.id}`}>
+                    {p.after}
+                  </span>
+                </div>
+                <p className="text-[10px] text-muted-foreground">from your edit in {p.source}</p>
+              </div>
+            ))
+          ) : (
+            <p className="text-[11px] text-muted-foreground" data-testid="adapt-learned-empty">
+              Nothing learned yet. When you correct a BioMate output, the before→after pair is queued
+              here as a switchable rule — never applied silently.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 
@@ -542,6 +666,17 @@ export interface ModelsPanelProps {
    */
   trainData?: TrainData
   /**
+   * Live adaptation data (learned before→after pairs) for the Adapt track. No
+   * WS1 read/persist endpoint in this wave, so the parent owns the pair state;
+   * when absent, the Adapt track shows its honest empty state (the level ladder
+   * is fixed design content and always renders).
+   */
+  adaptData?: AdaptData
+  /** Toggle a learned rule on/off (parent owns pair state). */
+  onAdaptToggle?: (id: string) => void
+  /** Queue a re-train over the pending edit pairs. */
+  onAdaptRetrain?: () => void
+  /**
    * Live DMTA loop data for the Optimise track. There is no WS1 read endpoint
    * for the loop in this wave, so the parent supplies it; when absent, the
    * Optimise track shows its honest empty state.
@@ -557,6 +692,9 @@ export function ModelsPanel({
   onTabChange,
   className,
   trainData,
+  adaptData,
+  onAdaptToggle,
+  onAdaptRetrain,
   optimiseData,
 }: ModelsPanelProps) {
   const [internalTab, setInternalTab] = useState(0)
@@ -629,15 +767,10 @@ export function ModelsPanel({
             </TabsContent>
 
             <TabsContent value="1">
-              <DescriptiveTrack
-                testid="track-adapt"
-                title="Adapt"
-                lead="Adaptation is a list of switchable things, not an opaque model change. When you correct BioMate's output, the before→after pair is queued; every learned rule is visible and can be switched off."
-                bullets={[
-                  "Cheapest first: a prompt rule is preferred over a few-shot index, and an index over a trained adapter.",
-                  "The level in use is visible, because it changes what \"forget this\" means.",
-                  "Re-training on your edits runs as a tracked training run with its own quality gate.",
-                ]}
+              <AdaptTrack
+                data={adaptData}
+                onToggleLearned={onAdaptToggle}
+                onRetrain={onAdaptRetrain}
               />
             </TabsContent>
 

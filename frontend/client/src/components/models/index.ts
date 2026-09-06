@@ -7,6 +7,8 @@ export type {
   ModelsPanelProps,
   TrainData,
   TrainRun,
+  AdaptData,
+  AdaptPair,
   OptimiseData,
   OptimiseSurrogate,
   OptimiseRound,
