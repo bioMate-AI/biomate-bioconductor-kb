@@ -18,7 +18,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
-import { ModelsPanel, type OptimiseData } from "./models-panel"
+import { ModelsPanel, type OptimiseData, type TrainData, type AdaptData } from "./models-panel"
 import { ModelObject } from "./model-object"
 import { RunPretrained } from "./run-pretrained"
 import { InferenceResultView } from "./inference-result"
@@ -114,6 +114,108 @@ describe("ModelsPanel", () => {
     // model object loads by id
     await waitFor(() => expect(screen.getByTestId("model-object")).toBeTruthy())
     expect(screen.getByTestId("model-object-id").textContent).toContain("bionemo:boltz2")
+  })
+})
+
+describe("ModelsPanel — Train track", () => {
+  it("shows the loop + families always, and an honest empty runs state with no data", async () => {
+    mockFetchByUrl({ "/api/models": CATALOG })
+    render(<ModelsPanel project="Test project" tab={0} />, { wrapper: wrapper() })
+    await waitFor(() => expect(screen.getByTestId("track-train")).toBeTruthy())
+    expect(screen.getByTestId("train-loop")).toBeTruthy()
+    expect(screen.getByTestId("train-families")).toBeTruthy()
+    expect(screen.getByTestId("train-runs-empty")).toBeTruthy()
+  })
+
+  it("renders training runs with status + gate and opens the experiment/model on click", async () => {
+    mockFetchByUrl({
+      "/api/models/custom:camp1/potency-gp": MODEL_DETAIL,
+      "/api/models": CATALOG,
+    })
+    const TRAIN: TrainData = {
+      runs: [
+        {
+          name: "potency-gp fit",
+          family: "tabular",
+          when: "2026-08",
+          status: "completed",
+          gate: "gate passed",
+          metric: "spearman 0.62",
+          dataset: "assay_2026_08.csv · v4",
+          version: "→ potency-gp v2",
+          modelId: "custom:camp1/potency-gp",
+        },
+        {
+          name: "herg refit",
+          family: "molecular property",
+          when: "now",
+          status: "running",
+          gate: "gate pending",
+          metric: "—",
+          dataset: "herg_panel.csv · v2",
+        },
+      ],
+    }
+    render(<ModelsPanel project="Test project" tab={0} trainData={TRAIN} />, { wrapper: wrapper() })
+
+    await waitFor(() => expect(screen.getByTestId("train-run-potency-gp fit")).toBeTruthy())
+    expect(screen.getByTestId("train-run-status-potency-gp fit").textContent).toContain("completed")
+    // Running run offers a live-watch link.
+    expect(screen.getByTestId("train-run-open-herg refit").textContent).toContain("watch live")
+
+    // Completed run with a modelId opens the model object.
+    fireEvent.click(screen.getByTestId("train-run-open-potency-gp fit"))
+    await waitFor(() => expect(screen.getByTestId("model-object")).toBeTruthy())
+  })
+})
+
+describe("ModelsPanel — Adapt track", () => {
+  it("shows the level ladder always, and an honest empty learned state with no data", async () => {
+    mockFetchByUrl({ "/api/models": CATALOG })
+    render(<ModelsPanel project="Test project" tab={1} />, { wrapper: wrapper() })
+    await waitFor(() => expect(screen.getByTestId("track-adapt")).toBeTruthy())
+    expect(screen.getByTestId("adapt-levels")).toBeTruthy()
+    expect(screen.getByTestId("adapt-learned-empty")).toBeTruthy()
+  })
+
+  it("renders learned before→after pairs and toggling fires the callback", async () => {
+    mockFetchByUrl({ "/api/models": CATALOG })
+    const onAdaptToggle = vi.fn()
+    const ADAPT: AdaptData = {
+      pendingCount: 3,
+      pairs: [
+        {
+          id: "p1",
+          learned: "prefer 'cohort' over 'group'",
+          scope: "organisation",
+          before: "each group",
+          after: "each cohort",
+          source: "Methods draft · 2026-08",
+          on: true,
+        },
+        {
+          id: "p2",
+          learned: "cite the accession inline",
+          scope: "project",
+          before: "the dataset",
+          after: "the dataset (GSE12345)",
+          source: "Results · 2026-08",
+          on: false,
+        },
+      ],
+    }
+    render(
+      <ModelsPanel project="Test project" tab={1} adaptData={ADAPT} onAdaptToggle={onAdaptToggle} />,
+      { wrapper: wrapper() },
+    )
+
+    await waitFor(() => expect(screen.getByTestId("adapt-pair-p1")).toBeTruthy())
+    // before→after diff shown
+    expect(screen.getByTestId("adapt-pair-before-p1").textContent).toContain("each group")
+    expect(screen.getByTestId("adapt-pair-after-p1").textContent).toContain("each cohort")
+    // toggle fires with the pair id
+    fireEvent.click(screen.getByTestId("adapt-pair-toggle-p2"))
+    expect(onAdaptToggle).toHaveBeenCalledWith("p2")
   })
 })
 
