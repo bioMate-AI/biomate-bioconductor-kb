@@ -1,0 +1,305 @@
+/**
+ * DatasetObject — a dataset presented as a first-class object, mirroring the
+ * proven ModelObject template (components/models/model-object.tsx): identity in
+ * the header, then a tabbed body. Tabs:
+ *
+ *   Preview / Quality / Lineage / Consumers / Versions / Origin
+ *
+ * Data arrives via the `dataset` prop (a DatasetRef built by the caller — the
+ * file tree already has every field). The Quality tab mounts the orphaned
+ * `DataPerception` panel, fed by the backend perception profiler
+ * (POST /api/perception/profile). Everything the backend cannot yet answer —
+ * lineage graph, consumer list, version history — is rendered as an honest
+ * "not available yet" state, NEVER a fabricated value. This mirrors how
+ * ModelObject shows `not_evaluated` for an unmeasured gate.
+ */
+
+import { useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Skeleton } from "@/components/ui/skeleton"
+import {
+  ChevronLeft,
+  Eye,
+  ShieldCheck,
+  GitBranch,
+  Boxes,
+  History,
+  MapPin,
+  Download,
+} from "lucide-react"
+import { DataPerception } from "@/components/data-perception"
+import { usePerceptionProfile } from "./datasets-api"
+
+// ── DatasetRef — the identity + provenance the caller already holds ──────────
+export interface DatasetRef {
+  /** Stable id (file id / dataset id). */
+  id: string
+  /** Display name (file name). */
+  name: string
+  /** Reference the profiler resolves — an S3 key or a local/absolute path. */
+  ref: string | null
+  /** Byte size, if known. */
+  size?: number | null
+  /** MIME / content type, if known. */
+  contentType?: string | null
+  /** "upload" | "run_output" | string. */
+  source?: string | null
+  /** The run that produced this dataset (run_output only). */
+  runId?: string | null
+  /** The workflow that produced it. */
+  workflowName?: string | null
+  /** The step that produced it. */
+  stepName?: string | null
+  /** ISO timestamp. */
+  createdAt?: string | null
+  /** Runs / campaigns that read this dataset (empty when unknown). */
+  consumers?: string[]
+  /** Prior versions of this dataset (empty when unknown). */
+  versions?: string[]
+}
+
+function formatBytes(n: number | null | undefined): string {
+  if (n === null || n === undefined) return "—"
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
+  if (n < 1024 * 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`
+  return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`
+}
+
+function fmt(v: string | number | null | undefined): string {
+  return v === null || v === undefined || v === "" ? "—" : String(v)
+}
+
+interface DatasetObjectProps {
+  dataset: DatasetRef
+  onBack?: () => void
+  onDownload?: () => void
+  className?: string
+}
+
+export function DatasetObject({
+  dataset,
+  onBack,
+  onDownload,
+  className,
+}: DatasetObjectProps) {
+  // The Quality tab lazily profiles the dataset when first opened.
+  const [qualityOpened, setQualityOpened] = useState(false)
+  const { data: profile, isLoading, isError } = usePerceptionProfile(
+    qualityOpened ? dataset.ref : null,
+    dataset.name,
+  )
+
+  const consumers = dataset.consumers ?? []
+  const versions = dataset.versions ?? []
+  const isRunOutput = dataset.source === "run_output"
+
+  return (
+    <Card className={className} data-testid="dataset-object">
+      <CardHeader className="pb-2 space-y-2">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {onBack && (
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 hover:text-foreground"
+              onClick={onBack}
+              data-testid="dataset-object-back"
+            >
+              <ChevronLeft className="h-3 w-3" />
+              Data
+            </button>
+          )}
+          <span>/</span>
+          <span>{isRunOutput ? "Outputs" : "Inputs"}</span>
+          <span>/</span>
+          <span className="font-mono truncate" data-testid="dataset-object-id">
+            {dataset.id}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <CardTitle className="text-base font-mono truncate" data-testid="dataset-object-name">
+            {dataset.name}
+          </CardTitle>
+          {dataset.contentType && (
+            <Badge variant="outline" className="text-[10px]">{dataset.contentType}</Badge>
+          )}
+          <Badge variant="outline" className="text-[10px]">{formatBytes(dataset.size)}</Badge>
+          {onDownload && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-auto h-7 text-xs gap-1"
+              onClick={onDownload}
+              data-testid="dataset-object-download"
+            >
+              <Download className="h-3 w-3" />
+              Download
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+
+      <CardContent>
+        <Tabs
+          defaultValue="preview"
+          onValueChange={(v) => {
+            if (v === "quality") setQualityOpened(true)
+          }}
+        >
+          <TabsList className="mb-3 flex-wrap h-auto">
+            <TabsTrigger value="preview" className="text-xs" data-testid="dataset-tab-preview">
+              <Eye className="h-3 w-3 mr-1" />Preview
+            </TabsTrigger>
+            <TabsTrigger value="quality" className="text-xs" data-testid="dataset-tab-quality">
+              <ShieldCheck className="h-3 w-3 mr-1" />Quality
+            </TabsTrigger>
+            <TabsTrigger value="lineage" className="text-xs" data-testid="dataset-tab-lineage">
+              <GitBranch className="h-3 w-3 mr-1" />Lineage
+            </TabsTrigger>
+            <TabsTrigger value="consumers" className="text-xs" data-testid="dataset-tab-consumers">
+              <Boxes className="h-3 w-3 mr-1" />Consumers
+            </TabsTrigger>
+            <TabsTrigger value="versions" className="text-xs" data-testid="dataset-tab-versions">
+              <History className="h-3 w-3 mr-1" />Versions
+            </TabsTrigger>
+            <TabsTrigger value="origin" className="text-xs" data-testid="dataset-tab-origin">
+              <MapPin className="h-3 w-3 mr-1" />Origin
+            </TabsTrigger>
+          </TabsList>
+
+          {/* ── Preview: identity + shape ── */}
+          <TabsContent value="preview" className="space-y-1 text-xs" data-testid="dataset-preview">
+            <Row k="Name" v={dataset.name} mono />
+            <Row k="Size" v={formatBytes(dataset.size)} mono />
+            <Row k="Type" v={fmt(dataset.contentType)} mono />
+            <Row k="Reference" v={fmt(dataset.ref)} mono last />
+            <p className="text-[10px] text-muted-foreground pt-1">
+              A dataset is an object, not a path in a chat message: it carries its own identity,
+              quality, lineage, and the list of runs that read it.
+            </p>
+          </TabsContent>
+
+          {/* ── Quality: the mounted perception panel ── */}
+          <TabsContent value="quality" className="space-y-2" data-testid="dataset-quality">
+            {!dataset.ref ? (
+              <p className="text-[11px] text-muted-foreground" data-testid="dataset-quality-noref">
+                No resolvable reference — quality profiling is not available for this dataset.
+              </p>
+            ) : isLoading ? (
+              <div className="space-y-2" data-testid="dataset-quality-loading">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-16 w-full" />
+              </div>
+            ) : isError || !profile ? (
+              <p className="text-[11px] text-muted-foreground" data-testid="dataset-quality-error">
+                Quality not available — the profiler could not read this dataset.
+              </p>
+            ) : (
+              <DataPerception
+                profile={profile}
+                planImpact={profile.planImpact}
+                datasetName={dataset.name}
+              />
+            )}
+          </TabsContent>
+
+          {/* ── Lineage: what produced it ── */}
+          <TabsContent value="lineage" className="space-y-1 text-xs" data-testid="dataset-lineage">
+            {isRunOutput ? (
+              <>
+                <Row k="Produced by run" v={fmt(dataset.runId)} mono />
+                <Row k="Workflow" v={fmt(dataset.workflowName)} mono />
+                <Row k="Step" v={fmt(dataset.stepName)} mono last />
+                <p className="text-[10px] text-muted-foreground pt-1">
+                  This dataset was written by a workflow step; the run and step are objects you can
+                  open, not strings in a description.
+                </p>
+              </>
+            ) : (
+              <p className="text-[11px] text-muted-foreground" data-testid="dataset-lineage-uploaded">
+                Uploaded input — no upstream workflow produced this dataset.
+                {" "}Full lineage graph is not available yet.
+              </p>
+            )}
+          </TabsContent>
+
+          {/* ── Consumers: what reads it ── */}
+          <TabsContent value="consumers" className="space-y-1" data-testid="dataset-consumers">
+            {consumers.length ? (
+              consumers.map((c) => (
+                <div
+                  key={c}
+                  className="flex items-center gap-2 rounded border px-2 py-1 text-xs"
+                  data-testid={`dataset-consumer-${c}`}
+                >
+                  <Badge variant="outline" className="text-[10px]">consumer</Badge>
+                  <span className="font-mono truncate">{c}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-[11px] text-muted-foreground" data-testid="dataset-no-consumers">
+                Consumer tracking is not available yet — no runs are recorded as reading this dataset.
+              </p>
+            )}
+            <p className="text-[10px] text-muted-foreground pt-1">
+              When consumers are recorded, replacing a dataset becomes a decision with a visible
+              blast radius rather than a silent change under a running analysis.
+            </p>
+          </TabsContent>
+
+          {/* ── Versions ── */}
+          <TabsContent value="versions" className="space-y-1" data-testid="dataset-versions">
+            {versions.length ? (
+              versions.map((v) => (
+                <div
+                  key={v}
+                  className="flex items-center gap-2 rounded border px-2 py-1 text-xs"
+                  data-testid={`dataset-version-${v}`}
+                >
+                  <span className="font-mono font-semibold">{v}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-[11px] text-muted-foreground" data-testid="dataset-no-versions">
+                Version history is not available yet — only the current dataset is recorded.
+              </p>
+            )}
+          </TabsContent>
+
+          {/* ── Origin: where it lives + when it arrived ── */}
+          <TabsContent value="origin" className="space-y-1 text-xs" data-testid="dataset-origin">
+            <Row k="Source" v={fmt(dataset.source)} />
+            <Row k="Storage ref" v={fmt(dataset.ref)} mono />
+            <Row
+              k="Added"
+              v={dataset.createdAt ? new Date(dataset.createdAt).toLocaleString() : "—"}
+              last
+            />
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
+  )
+}
+
+function Row({
+  k,
+  v,
+  mono,
+  last,
+}: {
+  k: string
+  v: string
+  mono?: boolean
+  last?: boolean
+}) {
+  return (
+    <div className={`grid grid-cols-[9rem_1fr] gap-1 py-1${last ? "" : " border-b"}`}>
+      <span className="text-muted-foreground">{k}</span>
+      <span className={mono ? "font-mono truncate" : "truncate"}>{v}</span>
+    </div>
+  )
+}

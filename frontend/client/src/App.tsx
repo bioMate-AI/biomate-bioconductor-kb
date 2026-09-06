@@ -56,6 +56,7 @@ import DebugViewerChain from "@/pages/DebugViewerChain";
 import WorkflowDeepLink from "@/pages/WorkflowDeepLink";
 import CapabilitiesPage from "@/pages/capabilities";
 import { ModelsPanel } from "@/components/models";
+import DataHubPage from "@/pages/data-hub";
 import { DesignGenerate } from "@/components/design-generate/DesignGenerate";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -665,6 +666,15 @@ function Router({
           <div className="max-w-5xl mx-auto p-4">
             <DesignGenerate />
           </div>
+        </AuthenticatedPageLayout>
+      </Route>
+
+      {/* Tier-1 data surface — the data hub. Datasets as first-class objects
+          (DatasetObject) with perception-at-ingest quality. Node proxy for
+          /api/perception lives in server/routes.ts. */}
+      <Route path="/files">
+        <AuthenticatedPageLayout>
+          <DataHubPage />
         </AuthenticatedPageLayout>
       </Route>
 

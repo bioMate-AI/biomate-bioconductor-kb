@@ -4858,6 +4858,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.all("/api/inference/*", optionalAuth, _dlProxyHandler);
   app.all("/api/generate", optionalAuth, _dlProxyHandler);
   app.all("/api/generate/*", optionalAuth, _dlProxyHandler);
+  // Tier-1 data surface — perception-at-ingest profiler.
+  //   POST /api/perception/profile  { datasetRef }  -> DataProfile (+ planImpact)
+  // Backend: backend/lib/galaxy/webapps/galaxy/api/perception.py. Consumed by
+  // components/datasets/* (DatasetObject Quality tab). Same proxy as /api/models.
+  app.all("/api/perception/*", optionalAuth, _dlProxyHandler);
 
   app.all("/api/qc-gates/*", async (req: any, res: any) => {
     try {
