@@ -37,6 +37,87 @@ export interface Parameter {
   };
   /** Whether this value was auto-filled by the AI from tool knowledge */
   autoFilled?: boolean;
+  /** Whether the user manually overrode the value (via inline edit / params panel) */
+  overridden?: boolean;
+  /** Whether the value came from project-level instructions/context (not schema, not AI) */
+  inherited?: boolean;
+  /** Whether the user explicitly accepted an AI recommendation as-is */
+  confirmed?: boolean;
+}
+
+/**
+ * §7.4 parameter-origin taxonomy. Every param row carries exactly one origin
+ * badge so the user can tell where each value came from. Derivation is honest:
+ * when a flavor can't be determined from the flags on the param, we fall back
+ * to "default" rather than guessing.
+ */
+export type ParamOrigin = 'default' | 'inherited' | 'recommended' | 'confirmed' | 'edited';
+
+export function deriveParamOrigin(param: Parameter): ParamOrigin {
+  // User-authored value always wins — an edit supersedes any prior origin.
+  if (param.overridden) return 'edited';
+  // A recommendation the user explicitly accepted.
+  if (param.confirmed) return 'confirmed';
+  // AI-filled from tool knowledge / parameter hints.
+  if (param.autoFilled) return 'recommended';
+  // Value derived from project instructions / context.
+  if (param.inherited) return 'inherited';
+  // Untouched schema default (or unknown provenance) — honest fallback.
+  return 'default';
+}
+
+const PARAM_ORIGIN_META: Record<ParamOrigin, { label: string; tooltip: string; className: string }> = {
+  default: {
+    label: 'Default',
+    tooltip: 'Schema default — this value was not changed.',
+    className: 'border-border bg-muted text-muted-foreground',
+  },
+  inherited: {
+    label: 'Inherited',
+    tooltip: 'Derived from your project instructions / context.',
+    className: 'border-purple-300/60 bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-300',
+  },
+  recommended: {
+    label: 'Recommended',
+    tooltip: 'AI-recommended from tool knowledge. Review before running.',
+    className: 'border-blue-300/60 bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300',
+  },
+  confirmed: {
+    label: 'Confirmed',
+    tooltip: 'You accepted the recommended value.',
+    className: 'border-green-300/60 bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-300',
+  },
+  edited: {
+    label: 'Edited',
+    tooltip: 'You changed this value from the recommended / default.',
+    className: 'border-amber-300/60 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300',
+  },
+};
+
+function ParamOriginBadge({ param }: { param: Parameter }) {
+  const origin = deriveParamOrigin(param);
+  const meta = PARAM_ORIGIN_META[origin];
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            data-testid={`param-origin-badge-${param.id}`}
+            data-origin={origin}
+            className={cn(
+              'inline-flex items-center rounded-sm border px-1 py-0 text-[10px] font-medium leading-tight align-middle ml-1 cursor-default',
+              meta.className,
+            )}
+          >
+            {meta.label}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="max-w-[220px] text-xs p-2">
+          {meta.tooltip}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }
 
 interface ParameterGroupProps {
@@ -185,6 +266,7 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
         <Label htmlFor={param.id}>{param.label}</Label>
         {param.required && <span className="text-destructive text-xs ml-0.5">*</span>}
         {hasKnowledge && <KnowledgeBadge param={param} />}
+        <ParamOriginBadge param={param} />
       </span>
     );
 
@@ -199,6 +281,7 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
             />
             <Label htmlFor={param.id} className="cursor-pointer">{param.label}</Label>
             {hasKnowledge && <KnowledgeBadge param={param} />}
+            <ParamOriginBadge param={param} />
           </div>
         );
       case 'select':
