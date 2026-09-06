@@ -4812,6 +4812,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   //   GET  /api/models/:id                   (model object)
   //   POST /api/models/:id/infer             (submit inference)
   //   GET  /api/inference/:runId/result      (poll inference result)
+  //   GET  /api/model-tracks/train           (Train track: training runs)
+  //   GET  /api/model-tracks/adapt           (Adapt track: learned edit pairs)
+  //   GET  /api/model-tracks/optimise        (Optimise track: DMTA loop)
   //   POST /api/generate                     (submit generation)
   //   GET  /api/generate/:runId              (poll generation run)
   // A single shared handler keeps behavior identical across all six.
@@ -4855,6 +4858,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // the collection roots are registered explicitly) plus their sub-paths.
   app.all("/api/models", optionalAuth, _dlProxyHandler);
   app.all("/api/models/*", optionalAuth, _dlProxyHandler);
+  // Project-scoped Models track reads (Train / Adapt / Optimise). Distinct
+  // prefix so they don't fall under the greedy /api/models/:id detail route.
+  app.all("/api/model-tracks/*", optionalAuth, _dlProxyHandler);
   app.all("/api/inference/*", optionalAuth, _dlProxyHandler);
   app.all("/api/generate", optionalAuth, _dlProxyHandler);
   app.all("/api/generate/*", optionalAuth, _dlProxyHandler);

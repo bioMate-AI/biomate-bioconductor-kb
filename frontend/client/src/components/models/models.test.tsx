@@ -219,6 +219,46 @@ describe("ModelsPanel — Adapt track", () => {
   })
 })
 
+describe("ModelsPanel — self-fetched track data (react-query hooks)", () => {
+  it("renders training runs fetched from /api/model-tracks/train with no props", async () => {
+    mockFetchByUrl({
+      "/api/model-tracks/train": {
+        runs: [
+          {
+            name: "potency-gp fit",
+            family: "tabular",
+            when: "2026-08",
+            status: "completed",
+            gate: "gate passed",
+            metric: "spearman 0.62",
+            dataset: "assay.csv · v4",
+          },
+        ],
+      },
+      "/api/models": CATALOG,
+    })
+    render(<ModelsPanel project="Real project" tab={0} />, { wrapper: wrapper() })
+    await waitFor(() => expect(screen.getByTestId("train-run-potency-gp fit")).toBeTruthy())
+  })
+
+  it("renders a fetched DMTA loop from /api/model-tracks/optimise, and honest-empty when active:false", async () => {
+    mockFetchByUrl({
+      "/api/model-tracks/optimise": {
+        active: true,
+        running: true,
+        round: 2,
+        surrogates: [{ id: "custom:c1/potency-gp", label: "potency-gp v2" }],
+        rounds: [{ round: "Round 2", status: "proposed", what: "8 candidates", when: "now" }],
+        proposal: [{ id: "c-1", score: "7.1", confidence: "medium", verdict: "accepted" }],
+      },
+      "/api/models": CATALOG,
+    })
+    render(<ModelsPanel project="Real project" tab={2} />, { wrapper: wrapper() })
+    await waitFor(() => expect(screen.getByTestId("optimise-loop")).toBeTruthy())
+    expect(screen.getByTestId("optimise-round-Round 2")).toBeTruthy()
+  })
+})
+
 describe("ModelsPanel — Optimise / DMTA track", () => {
   it("shows the honest empty state when no loop data is supplied", async () => {
     mockFetchByUrl({ "/api/models": CATALOG })

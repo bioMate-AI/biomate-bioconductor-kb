@@ -22,6 +22,9 @@ export {
   useModel,
   useInfer,
   useInferenceResult,
+  useTrainTrack,
+  useAdaptTrack,
+  useOptimiseTrack,
 } from "./models-api"
 export type { InferArgs } from "./models-api"
 export * from "./types"
