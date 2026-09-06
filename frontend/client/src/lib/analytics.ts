@@ -71,7 +71,9 @@ export type AnalyticsEvent =
   | 'import_workflow_opened'
   | 'personal_workflow_opened'
   | 'personal_workflow_deleted'
-  | 'workflow_imported';
+  | 'workflow_imported'
+  // Spec 02 §2.2 — redo an instant/compute answer as a validated Cloud run
+  | 'redo_as_validated_run';
 
 export interface AnalyticsProperties {
   userId?: string;

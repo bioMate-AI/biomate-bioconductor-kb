@@ -6,6 +6,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Send, Paperclip, X, FileText, Eye, Square, Database } from "lucide-react"
 import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser"
+import { LanePreview, type LaneKind } from "./lane-preview"
+import { useDebounce } from "@/hooks/useDebounce"
 
 interface AttachedFile {
   id: string
@@ -15,7 +17,7 @@ interface AttachedFile {
 }
 
 interface ChatInputProps {
-  onSend: (message: string, files?: File[]) => void
+  onSend: (message: string, files?: File[], contextOverride?: Record<string, unknown>) => void
   disabled?: boolean
   /** Number of messages queued behind the current AI response */
   pendingCount?: number
@@ -35,6 +37,11 @@ interface ChatInputProps {
    * frontend/server/dataset-cap.ts).
    */
   sessionDatasetCount?: number
+  /**
+   * Show the advisory Instant/Cloud lane preview above the input as the
+   * user types (spec 06 §6.2). Default true; set false to hide it.
+   */
+  showLanePreview?: boolean
 }
 
 /** Mirrors MAX_DATASET_REFS in frontend/server/dataset-cap.ts. */
@@ -51,8 +58,14 @@ export function ChatInput({
   onRegisterSetDraft,
   onRegisterAddFiles,
   sessionDatasetCount = 0,
+  showLanePreview = true,
 }: ChatInputProps) {
   const [message, setMessage] = useState("")
+  // Lane override captured from the LanePreview affordance. When the user
+  // clicks "run a validated pipeline instead" / "answer it instantly
+  // instead", the NEXT send is forced to that lane; it resets after send.
+  const [laneOverride, setLaneOverride] = useState<LaneKind | null>(null)
+  const debouncedMessage = useDebounce(message, 350)
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
   // Dataset references selected from the browser — shown as chips, injected into message on send
   const [selectedDatasets, setSelectedDatasets] = useState<Array<{ id: string; name: string; value: string }>>([])
@@ -107,7 +120,15 @@ export function ChatInput({
         .map(d => `[BioMate dataset: ${d.name} (id: ${d.value})]`)
         .join('\n')
       const fullMessage = [message.trim(), datasetRefs].filter(Boolean).join('\n')
-      onSend(fullMessage, files.length > 0 ? files : undefined)
+      // Lane override -> intentOverride the backend already understands.
+      // "cloud" forces workflow generation (skips ambiguity detection);
+      // "instant" forces a direct research/knowledge answer. Advisory only —
+      // the preview never blocks send, this just honours an explicit click.
+      const contextOverride = laneOverride
+        ? { intentOverride: laneOverride === "cloud" ? "workflow_generation" : "research_question" }
+        : undefined
+      onSend(fullMessage, files.length > 0 ? files : undefined, contextOverride)
+      setLaneOverride(null)
       setMessage("")
       setAttachedFiles([])
       setSelectedDatasets([])
@@ -356,6 +377,36 @@ export function ChatInput({
             Drop files to attach
           </span>
         </div>
+      )}
+
+      {/* Lane preview (spec 06 §6.2) — advisory Instant/Cloud verdict shown as
+          the user types. Debounced so it settles rather than flickering
+          mid-word. Never blocks send. Hidden while streaming or when a file/
+          dataset-only message (no typed intent) is queued. */}
+      {showLanePreview && !isStreaming && debouncedMessage.trim() && (
+        laneOverride ? (
+          <div
+            data-testid="lane-preview"
+            data-lane={laneOverride}
+            style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 4px 8px", fontSize: 12, flexWrap: "wrap", rowGap: 4 }}
+          >
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 600, color: "var(--bm-text, oklch(0.22 0.01 260))" }}>
+              <span aria-hidden style={{ width: 7, height: 7, borderRadius: 999, flexShrink: 0, background: laneOverride === "cloud" ? "var(--bm-primary, oklch(0.55 0.20 265))" : "var(--bm-ok, oklch(0.62 0.14 155))" }} />
+              {laneOverride === "cloud" ? "Cloud · validated workflow" : "Instant · cited answer"}
+            </span>
+            <span style={{ color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>· forced for this message</span>
+            <button
+              type="button"
+              data-testid="lane-preview-clear-override"
+              onClick={() => setLaneOverride(null)}
+              style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", color: "var(--bm-primary, oklch(0.55 0.20 265))", fontSize: 12, textDecoration: "underline", textUnderlineOffset: 2 }}
+            >
+              let BioMate decide
+            </button>
+          </div>
+        ) : (
+          <LanePreview text={debouncedMessage} onOverride={setLaneOverride} />
+        )
       )}
 
       {/* Reference design: pill input with attachment + textarea + send */}
