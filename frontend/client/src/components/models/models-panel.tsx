@@ -315,7 +315,186 @@ function OptimiseTrack({
   )
 }
 
-// ── Descriptive track (Train / Adapt) ────────────────────────────────────────
+// ── Train track ──────────────────────────────────────────────────────────────
+/**
+ * The Train track, ported from the prototype TrainTab: the training loop (same
+ * compute, same gates, same tracking as a workflow run), the training-runs list,
+ * and the model families available. Training reuses the run language — only the
+ * first and last steps are new decisions (which dataset, whether to register).
+ *
+ * The loop diagram and the model-family catalog are fixed design content (a
+ * description of the surface, not measured data). The training-runs list is the
+ * only data-bearing part; it arrives via `trainData.runs` and shows an honest
+ * empty state when the project has not trained anything yet (no WS1 read
+ * endpoint for training runs in this wave).
+ */
+export interface TrainRun {
+  name: string
+  family: string
+  when: string
+  /** "running" | "completed" | "failed" | anything else → queued/other. */
+  status: string
+  /** Gate label, e.g. "gate passed" / "gate blocked". */
+  gate: string
+  /** Metric label, e.g. "spearman 0.62". No number invented on the client. */
+  metric: string
+  /** Dataset version string. */
+  dataset: string
+  /** Resulting version note, e.g. "→ potency-gp v2". */
+  version?: string
+  /** Registry model id to open when the run is clicked (optional). */
+  modelId?: string
+}
+export interface TrainData {
+  runs: TrainRun[]
+}
+
+const TRAIN_LOOP: [string, string][] = [
+  ["Dataset", "pick a dataset version — the only decision before Start"],
+  ["Train", "runs on the run surface: phases, steps, tracking"],
+  ["Quality gate", "a held-out floor, not a leaderboard"],
+  ["Register", "a passing model is offered for registration, never silent"],
+]
+
+const MODEL_FAMILIES: [string, string][] = [
+  ["Language", "instruction / extraction fine-tunes over text"],
+  ["Tabular AutoML", "assay tables → property predictors"],
+  ["Diffusion", "generative design over structures / sequences"],
+  ["Molecular property", "ADMET-style scorers with confidence"],
+]
+
+function trainStatusColor(status: string): string {
+  if (status === "completed") return "#22c55e"
+  if (status === "failed") return "#ef4444"
+  if (status === "running") return "#3b82f6"
+  return "#94a3b8"
+}
+
+function TrainTrack({
+  data,
+  onOpenModel,
+}: {
+  data?: TrainData
+  onOpenModel: (id: string) => void
+}) {
+  const runs = data?.runs ?? []
+  return (
+    <div className="space-y-3" data-testid="track-train">
+      {/* The training loop */}
+      <Card data-testid="train-loop">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-sm">The training loop</CardTitle>
+            <span className="text-[10px] text-muted-foreground ml-auto">
+              same compute, same gates, same tracking as a workflow run
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-1">
+          {TRAIN_LOOP.map(([k, d], i) => (
+            <div key={k} className="flex items-center gap-2 text-xs" data-testid={`train-loop-step-${i}`}>
+              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-muted text-[10px] font-semibold shrink-0">
+                {i + 1}
+              </span>
+              <span className="font-semibold">{k}</span>
+              <span className="text-muted-foreground">{d}</span>
+            </div>
+          ))}
+          <p className="text-[10px] text-muted-foreground pt-1">
+            Only the first and last steps are new decisions: which dataset, and whether to register.
+            Everything between reuses the run experience — training should feel like running a
+            workflow.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Training runs */}
+      <Card data-testid="train-runs">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Training runs</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {runs.length ? (
+            runs.map((r) => (
+              <div
+                key={r.name}
+                className="rounded border px-2 py-1.5 text-xs space-y-1"
+                data-testid={`train-run-${r.name}`}
+              >
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold">{r.name}</span>
+                  <Badge variant="outline" className="text-[10px]">{r.family}</Badge>
+                  <span className="text-[10px] text-muted-foreground ml-auto">{r.when}</span>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] gap-1"
+                    style={{ color: trainStatusColor(r.status) }}
+                    data-testid={`train-run-status-${r.name}`}
+                  >
+                    <span
+                      className="inline-block h-1.5 w-1.5 rounded-full"
+                      style={{ background: trainStatusColor(r.status) }}
+                    />
+                    {r.status}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="outline" className="text-[10px]">{r.metric}</Badge>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] gap-1"
+                    style={{ color: trainStatusColor(r.status) }}
+                  >
+                    <span
+                      className="inline-block h-1.5 w-1.5 rounded-full"
+                      style={{ background: trainStatusColor(r.status) }}
+                    />
+                    {r.gate}
+                  </Badge>
+                  <span className="font-mono text-[10px] text-muted-foreground truncate">{r.dataset}</span>
+                  {(r.modelId || r.status === "running") && (
+                    <button
+                      type="button"
+                      className="ml-auto text-primary hover:underline"
+                      onClick={() => r.modelId && onOpenModel(r.modelId)}
+                      data-testid={`train-run-open-${r.name}`}
+                    >
+                      {r.status === "running" ? "watch live →" : "open experiment →"}
+                    </button>
+                  )}
+                </div>
+                {r.version && <p className="text-[10px] text-muted-foreground">{r.version}</p>}
+              </div>
+            ))
+          ) : (
+            <p className="text-[11px] text-muted-foreground" data-testid="train-runs-empty">
+              This project hasn't trained a model yet. Ask for model work — "train a potency
+              predictor on our assay data" — and the run appears here, configured like any workflow
+              run.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Model families available */}
+      <Card data-testid="train-families">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Model families available</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-2">
+          {MODEL_FAMILIES.map(([n, s]) => (
+            <div key={n} className="rounded border px-2 py-1.5 text-xs">
+              <p className="font-semibold">{n}</p>
+              <p className="text-[10px] text-muted-foreground">{s}</p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+// ── Descriptive track (Adapt) ─────────────────────────────────────────────────
 function DescriptiveTrack({
   title,
   lead,
@@ -356,6 +535,13 @@ export interface ModelsPanelProps {
   onTabChange?: (tab: number) => void
   className?: string
   /**
+   * Live training-runs data for the Train track. There is no WS1 read endpoint
+   * for training runs in this wave, so the parent supplies it; when absent, the
+   * Train track shows its honest empty state (the loop diagram and family
+   * catalog are fixed design content and always render).
+   */
+  trainData?: TrainData
+  /**
    * Live DMTA loop data for the Optimise track. There is no WS1 read endpoint
    * for the loop in this wave, so the parent supplies it; when absent, the
    * Optimise track shows its honest empty state.
@@ -370,6 +556,7 @@ export function ModelsPanel({
   tab,
   onTabChange,
   className,
+  trainData,
   optimiseData,
 }: ModelsPanelProps) {
   const [internalTab, setInternalTab] = useState(0)
@@ -438,16 +625,7 @@ export function ModelsPanel({
             </TabsList>
 
             <TabsContent value="0">
-              <DescriptiveTrack
-                testid="track-train"
-                title="Train"
-                lead="Training reuses the run language — same compute, same gates, same tracking as a workflow run. The only two new decisions are which dataset, and whether to register."
-                bullets={[
-                  "Dataset → Train → Quality gate (held-out floor, not a leaderboard) → Tracking → Register.",
-                  "A passing model is offered for registration, never registered silently.",
-                  "Model families: language, tabular AutoML, diffusion, molecular property.",
-                ]}
-              />
+              <TrainTrack data={trainData} onOpenModel={setOpenModelId} />
             </TabsContent>
 
             <TabsContent value="1">

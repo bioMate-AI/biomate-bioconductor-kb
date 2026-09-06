@@ -5,6 +5,8 @@
 export { ModelsPanel, MODELS_TRACKS } from "./models-panel"
 export type {
   ModelsPanelProps,
+  TrainData,
+  TrainRun,
   OptimiseData,
   OptimiseSurrogate,
   OptimiseRound,
