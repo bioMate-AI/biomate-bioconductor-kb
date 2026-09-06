@@ -1160,6 +1160,13 @@ class Citation:
     pmid: Optional[str] = None
     abstract: Optional[str] = None
     relevance_score: float = 0.0
+    # Search & evidence answer anatomy (Spec 01 §1.2 / §1.3.2).
+    # All optional and default None — populate ONLY when the retrieval path
+    # actually provides them. Never fabricate a locus or recency value; an
+    # absent field simply does not render in the citation panel.
+    locus: Optional[str] = None            # the specific figure/table/claim/section relied on, e.g. "Fig 3B", "Table 2"
+    retrieval_date: Optional[str] = None   # ISO date the source was retrieved (recency), e.g. "2026-09-01"
+    corpus_version: Optional[str] = None   # database/corpus version for record-shaped sources, e.g. "Ensembl 110"
 
 
 @dataclass
