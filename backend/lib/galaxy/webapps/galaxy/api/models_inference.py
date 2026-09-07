@@ -486,14 +486,24 @@ def _resolve_campaign_ids(project: Optional[str]) -> List[str]:
 )
 def train_track(project: Optional[str] = None) -> Dict[str, Any]:
     """
-    Each registered custom model is the artefact of a training run in its
-    campaign. We surface it as a completed run with its interface family and the
-    campaign as the (training-run) lineage. No metric is fabricated — when the
-    thin layer has no measured metric we report an em-dash, not a number.
+    The Train track lists two real training-run sources:
+
+    1. Adaptation training jobs (regulatory_training_jobs) — including the
+       retrains queued from the Adapt track. These carry a live status
+       (queued/running/succeeded/failed) so a just-triggered retrain shows up
+       here as it progresses.
+    2. Registered custom scorers per campaign — each is the artefact of a
+       training run that produced a scoring model.
+
+    No metric is fabricated — when the thin layer has no measured metric we
+    report an em-dash, not a number. Adaptation jobs come first (most recent
+    first) so a fresh retrain is at the top.
     """
+    runs: List[Dict[str, Any]] = []
+    runs.extend(_adaptation_training_runs(project))
+
     regs = _iter_custom_registrations()
     ids = set(_resolve_campaign_ids(project))
-    runs: List[Dict[str, Any]] = []
     for r in regs:
         if r["campaign_id"] not in ids:
             continue
@@ -512,6 +522,56 @@ def train_track(project: Optional[str] = None) -> Dict[str, Any]:
             }
         )
     return {"runs": runs}
+
+
+# Map the worker's job statuses to the Train track's status vocabulary.
+_JOB_STATUS_MAP = {
+    "queued": "queued",
+    "running": "running",
+    "succeeded": "completed",
+    "failed": "failed",
+    "cancelled": "failed",
+}
+
+
+def _adaptation_training_runs(project: Optional[str]) -> List[Dict[str, Any]]:
+    """
+    Adaptation training jobs from regulatory_training_jobs, most-recent first.
+    org_id = project when supplied (the retrain endpoint submits with that org).
+    Best-effort: a missing store yields [].
+    """
+    try:
+        from galaxy.ai.drug_discovery import regulatory_training_jobs as rj
+    except Exception as exc:  # noqa: BLE001
+        log.debug("train: regulatory_training_jobs unavailable: %s", exc)
+        return []
+
+    try:
+        # The store is keyed by user_id; the retrain endpoint uses project (or
+        # "models-track") as both user and org. Read that user's jobs.
+        user_id = project or "models-track"
+        jobs = rj.list_for_user(user_id)
+    except Exception as exc:  # noqa: BLE001
+        log.debug("train: list_for_user failed: %s", exc)
+        return []
+
+    out: List[Dict[str, Any]] = []
+    for j in jobs:
+        status = _JOB_STATUS_MAP.get(getattr(j, "status", ""), "queued")
+        out.append(
+            {
+                "name": f"adapt · {getattr(j, 'adaptation_mode', 'prompt_rules')}",
+                "family": "adaptation",
+                "when": _fmt_ts(getattr(j, "submitted_at", None)),
+                "status": status,
+                "gate": (getattr(j, "message", "") or status),
+                "metric": f"{getattr(j, 'edit_pair_count', 0)} edit pairs",
+                "dataset": getattr(j, "org_id", "") or "—",
+                "version": getattr(j, "adapter_path", "") and "→ adapter written" or "",
+                # No model object to open for an adaptation job in this layer.
+            }
+        )
+    return out
 
 
 @router.get(
@@ -651,24 +711,53 @@ def toggle_adapt_pair(pair_id: str, body: Optional[TogglePairRequest] = None) ->
 )
 def retrain_adapt(project: Optional[str] = None) -> Dict[str, Any]:
     """
-    Queues a real retrain job through regulatory_training_jobs.submit — the same
-    tracked-job store the Train track reads. org_id is the project when supplied.
+    Queues a real retrain job through regulatory_training_jobs.submit and advances
+    it one worker tick. The default adaptation mode (prompt_rules) is cheap — it
+    compiles the customer edit pairs into a per-org rule YAML in seconds with no
+    GPU (regulatory_training_worker._do_prompt_rules) — so it is safe to run
+    synchronously here; the job goes queued → running → succeeded and produces a
+    real artefact the serving path loads on the next inference call. The job is
+    then visible in the Train track (which reads the same jobs store).
+
+    GPU modes (post_train_lora) are NOT started here — the worker itself refuses
+    them without a harness witness, per CLAUDE.md "Review Code Before Testing".
     """
     org_id = project or "default"
     user_id = project or "models-track"  # per-user store; project stands in when no auth ctx
     try:
         from galaxy.ai.drug_discovery.regulatory_training_jobs import submit
 
+        # DEFAULT_ADAPTATION_MODE is prompt_rules (cheap, no GPU).
         job = submit(user_id=user_id, org_id=org_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:  # noqa: BLE001
         log.warning("adapt retrain submit failed: %s", exc)
         raise HTTPException(status_code=502, detail=f"retrain submit failed: {exc}")
+
+    # Advance the freshly-queued job one worker tick so the retrain actually runs
+    # (not left queued forever waiting for an out-of-band poller). Best-effort:
+    # if the worker is unavailable the job stays queued and a running worker /
+    # the `tick` CLI will pick it up later.
+    final_status = getattr(job, "status", "queued")
+    message = ""
+    try:
+        from galaxy.ai.drug_discovery.regulatory_training_worker import tick
+
+        done = tick(max_jobs=5)  # drain this + any other queued jobs
+        for j in done:
+            if getattr(j, "job_id", None) == getattr(job, "job_id", None):
+                final_status = getattr(j, "status", final_status)
+                message = getattr(j, "message", "")
+                break
+    except Exception as exc:  # noqa: BLE001 — the queued job persists regardless
+        log.debug("adapt retrain tick skipped: %s", exc)
+
     return {
         "job_id": getattr(job, "job_id", None),
-        "status": getattr(job, "status", "queued"),
+        "status": final_status,
         "edit_pair_count": getattr(job, "edit_pair_count", None),
+        "message": message,
     }
 
 
