@@ -335,7 +335,13 @@ class InferResponse(BaseModel):
 # strings (forward refs). Resolve them at load time so the models validate under
 # BOTH pydantic v1 (Galaxy runtime historically) and v2 (current), and under
 # tools/tests that don't build the full FastAPI app.
-for _m in (ModelSummary, InferRequest, InferResponse):
+class TogglePairRequest(BaseModel):
+    """Optional explicit desired state for a learned-pair toggle; omitted → flip."""
+
+    on: Optional[bool] = None
+
+
+for _m in (ModelSummary, InferRequest, InferResponse, TogglePairRequest):
     # pydantic v2: model_rebuild() resolves from the module globals directly.
     _v2_rebuild = getattr(_m, "model_rebuild", None)
     if _v2_rebuild is not None:
@@ -526,6 +532,7 @@ def adapt_track(project: Optional[str] = None) -> Dict[str, Any]:
     except Exception as exc:  # noqa: BLE001 — best-effort read
         log.debug("model-tracks/adapt: read failed: %s", exc)
         rows = []
+    disabled = _load_disabled_pairs()
     for i, row in enumerate(rows):
         meta = row.get("meta", {}) if isinstance(row, dict) else {}
         chosen = (row.get("chosen") or "").strip()
@@ -533,18 +540,138 @@ def adapt_track(project: Optional[str] = None) -> Dict[str, Any]:
         if not chosen and not rejected:
             continue
         section = meta.get("section_type") or meta.get("task") or "output"
+        pair_id = meta.get("row_id") or f"pair-{i+1}"
         pairs.append(
             {
-                "id": meta.get("row_id") or f"pair-{i+1}",
+                "id": pair_id,
                 "learned": f"prefer your edit in {section}",
                 "scope": meta.get("org_id") and "organisation" or "project",
                 "before": rejected or "(model output)",
                 "after": chosen or "(your edit)",
                 "source": f"{section} · {_fmt_ts(meta.get('recorded_at'))}",
-                "on": True,  # a recorded pair is active until switched off
+                # A recorded pair is active unless the persisted disabled-set
+                # (a sidecar override the worker/compiler can consult) turns it
+                # off. State round-trips: a toggle POST persists here.
+                "on": pair_id not in disabled,
             }
         )
-    return {"pendingCount": len(pairs), "pairs": pairs}
+    # pendingCount = active (not-disabled) pairs awaiting the next retrain.
+    active = sum(1 for p in pairs if p["on"])
+    return {"pendingCount": active, "pairs": pairs}
+
+
+# ── Adapt: persisted on/off override for learned pairs ───────────────────────
+# The DPO pair store is append-only (the worker reads it); we NEVER mutate a
+# recorded pair. A toggle is persisted as a separate append-only override log,
+# coalesced to a current on/off per row_id. This is a real persisted decision
+# the compiler can consult, not an in-memory flag.
+def _disabled_pairs_path() -> str:
+    import os
+    from pathlib import Path
+
+    try:
+        from galaxy.ai.drug_discovery.regulatory_pair_recorder import PAIRS_PATH
+
+        base = Path(PAIRS_PATH).parent
+    except Exception:  # noqa: BLE001
+        base = Path(
+            os.environ.get(
+                "BIOMATE_DPO_DIR",
+                str(Path(__file__).resolve().parents[5] / "data" / "regulatory_training" / "dpo"),
+            )
+        )
+    return str(base / "disabled_pairs.jsonl")
+
+
+def _load_disabled_pairs() -> set:
+    """Current disabled row_ids, coalesced from the append-only override log."""
+    import json as _json
+    import os
+
+    path = _disabled_pairs_path()
+    if not os.path.exists(path):
+        return set()
+    state: Dict[str, bool] = {}
+    try:
+        with open(path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = _json.loads(line)
+                except Exception:  # noqa: BLE001
+                    continue
+                rid = rec.get("row_id")
+                if rid:
+                    # disabled=True means "off"; the last write for a row wins.
+                    state[rid] = bool(rec.get("disabled", True))
+    except Exception as exc:  # noqa: BLE001
+        log.debug("adapt: read disabled-set failed: %s", exc)
+        return set()
+    return {rid for rid, off in state.items() if off}
+
+
+def _append_disabled_override(row_id: str, disabled: bool) -> None:
+    import json as _json
+    import os
+    import time as _time
+    from pathlib import Path
+
+    path = _disabled_pairs_path()
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    rec = {"row_id": row_id, "disabled": bool(disabled), "at": _time.time()}
+    with _disabled_lock:
+        with open(path, "a") as f:
+            f.write(_json.dumps(rec) + "\n")
+
+
+_disabled_lock = threading.Lock()
+
+
+@router.post(
+    "/api/model-tracks/adapt/{pair_id}/toggle",
+    summary="Persist a learned pair on/off (append-only override; never mutates the DPO store).",
+)
+def toggle_adapt_pair(pair_id: str, body: Optional[TogglePairRequest] = None) -> Dict[str, Any]:
+    if not pair_id:
+        raise HTTPException(status_code=400, detail="pair_id required")
+    currently_disabled = pair_id in _load_disabled_pairs()
+    # Explicit target if provided, else FLIP the current state: an enabled pair
+    # (not disabled) toggles off; a disabled pair toggles back on.
+    if body is not None and body.on is not None:
+        want_on = bool(body.on)
+    else:
+        want_on = currently_disabled  # flip: was-off → on, was-on → off
+    _append_disabled_override(pair_id, disabled=not want_on)
+    return {"id": pair_id, "on": want_on}
+
+
+@router.post(
+    "/api/model-tracks/adapt/retrain",
+    summary="Queue a retrain over the active edit pairs as a tracked training job.",
+)
+def retrain_adapt(project: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Queues a real retrain job through regulatory_training_jobs.submit — the same
+    tracked-job store the Train track reads. org_id is the project when supplied.
+    """
+    org_id = project or "default"
+    user_id = project or "models-track"  # per-user store; project stands in when no auth ctx
+    try:
+        from galaxy.ai.drug_discovery.regulatory_training_jobs import submit
+
+        job = submit(user_id=user_id, org_id=org_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("adapt retrain submit failed: %s", exc)
+        raise HTTPException(status_code=502, detail=f"retrain submit failed: {exc}")
+    return {
+        "job_id": getattr(job, "job_id", None),
+        "status": getattr(job, "status", "queued"),
+        "edit_pair_count": getattr(job, "edit_pair_count", None),
+    }
 
 
 @router.get(

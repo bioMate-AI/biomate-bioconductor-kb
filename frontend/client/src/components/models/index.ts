@@ -25,6 +25,8 @@ export {
   useTrainTrack,
   useAdaptTrack,
   useOptimiseTrack,
+  useAdaptToggle,
+  useAdaptRetrain,
 } from "./models-api"
-export type { InferArgs } from "./models-api"
+export type { InferArgs, ToggleAdaptPairArgs, RetrainAdaptArgs } from "./models-api"
 export * from "./types"

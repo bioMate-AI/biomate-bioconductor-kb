@@ -10,7 +10,12 @@
  * `custom:{campaign}/{name}`) so ids are always URL-encoded on the wire.
  */
 
-import { useQuery, useMutation, type UseQueryResult } from "@tanstack/react-query"
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  type UseQueryResult,
+} from "@tanstack/react-query"
 import { apiRequest } from "@/lib/queryClient"
 import type {
   ModelSummary,
@@ -163,6 +168,67 @@ export function useOptimiseTrack(project?: string): UseQueryResult<OptimiseData 
       // Backend returns {active: false} when no loop exists → honest empty state.
       if (!body || body.active === false || !Array.isArray(body.rounds)) return undefined
       return body as OptimiseData
+    },
+  })
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Adapt-track mutations — persist a learned-pair toggle and queue a retrain.
+//
+// The toggle is persisted server-side as an append-only override (it NEVER
+// mutates the append-only DPO pair store); the retrain queues a real tracked
+// training job. Both invalidate the adapt-track read so the UI reflects the new
+// persisted state. The panel defaults its onAdaptToggle / onAdaptRetrain
+// callbacks to these; a parent that passes its own still overrides.
+// ─────────────────────────────────────────────────────────────────────────────
+export interface ToggleAdaptPairArgs {
+  pairId: string
+  /** Explicit desired state; omit to flip the current one. */
+  on?: boolean
+  project?: string
+}
+
+export function useAdaptToggle() {
+  const qc = useQueryClient()
+  return useMutation<{ id: string; on: boolean }, Error, ToggleAdaptPairArgs>({
+    mutationFn: async ({ pairId, on }) => {
+      const res = await apiRequest(
+        "POST",
+        `/api/model-tracks/adapt/${encodeURIComponent(pairId)}/toggle`,
+        on === undefined ? {} : { on },
+      )
+      return (await res.json()) as { id: string; on: boolean }
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["/api/model-tracks/adapt", vars.project ?? null] })
+    },
+  })
+}
+
+export interface RetrainAdaptArgs {
+  project?: string
+}
+
+export function useAdaptRetrain() {
+  const qc = useQueryClient()
+  return useMutation<
+    { job_id: string | null; status: string; edit_pair_count: number | null },
+    Error,
+    RetrainAdaptArgs
+  >({
+    mutationFn: async ({ project }) => {
+      const qs = project ? `?project=${encodeURIComponent(project)}` : ""
+      const res = await apiRequest("POST", `/api/model-tracks/adapt/retrain${qs}`, {})
+      return (await res.json()) as {
+        job_id: string | null
+        status: string
+        edit_pair_count: number | null
+      }
+    },
+    onSuccess: (_data, vars) => {
+      // A queued retrain becomes a training run — refresh both tracks.
+      qc.invalidateQueries({ queryKey: ["/api/model-tracks/adapt", vars.project ?? null] })
+      qc.invalidateQueries({ queryKey: ["/api/model-tracks/train", vars.project ?? null] })
     },
   })
 }
