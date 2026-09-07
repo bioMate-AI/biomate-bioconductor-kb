@@ -21,7 +21,14 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { GraduationCap, Wand2, Repeat, Rocket, Library, ChevronRight } from "lucide-react"
-import { useModels, useTrainTrack, useAdaptTrack, useOptimiseTrack } from "./models-api"
+import {
+  useModels,
+  useTrainTrack,
+  useAdaptTrack,
+  useOptimiseTrack,
+  useAdaptToggle,
+  useAdaptRetrain,
+} from "./models-api"
 import { ModelObjectLoader } from "./model-object"
 import { RunPretrained } from "./run-pretrained"
 import type { ModelSummary } from "./types"
@@ -717,6 +724,15 @@ export function ModelsPanel({
   const effectiveAdaptData = adaptData ?? fetchedAdapt
   const effectiveOptimiseData = optimiseData ?? fetchedOptimise
 
+  // Adapt mutations: persist a learned-pair toggle / queue a retrain. A parent
+  // callback still wins; otherwise these fire the persisted server mutations.
+  const adaptToggle = useAdaptToggle()
+  const adaptRetrain = useAdaptRetrain()
+  const effectiveAdaptToggle =
+    onAdaptToggle ?? ((id: string) => adaptToggle.mutate({ pairId: id, project: projectArg }))
+  const effectiveAdaptRetrain =
+    onAdaptRetrain ?? (() => adaptRetrain.mutate({ project: projectArg }))
+
   // A model object takes over the whole surface, like the prototype.
   if (openModelId) {
     return (
@@ -779,8 +795,8 @@ export function ModelsPanel({
             <TabsContent value="1">
               <AdaptTrack
                 data={effectiveAdaptData}
-                onToggleLearned={onAdaptToggle}
-                onRetrain={onAdaptRetrain}
+                onToggleLearned={effectiveAdaptToggle}
+                onRetrain={effectiveAdaptRetrain}
               />
             </TabsContent>
 

@@ -217,6 +217,72 @@ describe("ModelsPanel — Adapt track", () => {
     fireEvent.click(screen.getByTestId("adapt-pair-toggle-p2"))
     expect(onAdaptToggle).toHaveBeenCalledWith("p2")
   })
+
+  it("with no onAdaptToggle prop, toggling POSTs the persisted override endpoint", async () => {
+    mockFetchByUrl({
+      "/api/model-tracks/adapt/p9/toggle": { id: "p9", on: false },
+      "/api/model-tracks/adapt": {
+        pendingCount: 1,
+        pairs: [
+          {
+            id: "p9",
+            learned: "prefer your edit",
+            scope: "project",
+            before: "old",
+            after: "new",
+            source: "Methods · 2026-08",
+            on: true,
+          },
+        ],
+      },
+      "/api/models": CATALOG,
+    })
+    render(<ModelsPanel project="Real project" tab={1} />, { wrapper: wrapper() })
+    await waitFor(() => expect(screen.getByTestId("adapt-pair-p9")).toBeTruthy())
+    fireEvent.click(screen.getByTestId("adapt-pair-toggle-p9"))
+    await waitFor(() => {
+      const calls = (global.fetch as any).mock.calls as any[]
+      const toggled = calls.find(
+        ([u, opts]: any[]) =>
+          String(u).includes("/api/model-tracks/adapt/p9/toggle") &&
+          (opts?.method || "").toUpperCase() === "POST",
+      )
+      expect(toggled).toBeTruthy()
+    })
+  })
+
+  it("with no onAdaptRetrain prop, Re-train POSTs the retrain endpoint", async () => {
+    mockFetchByUrl({
+      "/api/model-tracks/adapt/retrain": { job_id: "job-1", status: "queued", edit_pair_count: 3 },
+      "/api/model-tracks/adapt": {
+        pendingCount: 3,
+        pairs: [
+          {
+            id: "p1",
+            learned: "prefer your edit",
+            scope: "project",
+            before: "old",
+            after: "new",
+            source: "Methods · 2026-08",
+            on: true,
+          },
+        ],
+      },
+      "/api/models": CATALOG,
+    })
+    render(<ModelsPanel project="Real project" tab={1} />, { wrapper: wrapper() })
+    await waitFor(() => expect(screen.getByTestId("adapt-retrain")).toBeTruthy())
+    fireEvent.click(screen.getByTestId("adapt-retrain"))
+    await waitFor(() => {
+      const calls = (global.fetch as any).mock.calls as any[]
+      const retrained = calls.find(
+        ([u, opts]: any[]) =>
+          String(u).includes("/api/model-tracks/adapt/retrain") &&
+          (opts?.method || "").toUpperCase() === "POST",
+      )
+      expect(retrained).toBeTruthy()
+    })
+  })
 })
 
 describe("ModelsPanel — self-fetched track data (react-query hooks)", () => {
