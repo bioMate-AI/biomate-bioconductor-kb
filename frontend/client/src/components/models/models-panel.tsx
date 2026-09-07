@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { GraduationCap, Wand2, Repeat, Rocket, Library, ChevronRight } from "lucide-react"
-import { useModels } from "./models-api"
+import { useModels, useTrainTrack, useAdaptTrack, useOptimiseTrack } from "./models-api"
 import { ModelObjectLoader } from "./model-object"
 import { RunPretrained } from "./run-pretrained"
 import type { ModelSummary } from "./types"
@@ -707,6 +707,16 @@ export function ModelsPanel({
   const { data: models } = useModels()
   const [openModelId, setOpenModelId] = useState<string | null>(null)
 
+  // Self-fetch the project-scoped track data so the panel works standalone; an
+  // explicit prop always overrides the fetched default (parent stays in control).
+  const projectArg = project === "Project" ? undefined : project
+  const { data: fetchedTrain } = useTrainTrack(projectArg)
+  const { data: fetchedAdapt } = useAdaptTrack(projectArg)
+  const { data: fetchedOptimise } = useOptimiseTrack(projectArg)
+  const effectiveTrainData = trainData ?? fetchedTrain
+  const effectiveAdaptData = adaptData ?? fetchedAdapt
+  const effectiveOptimiseData = optimiseData ?? fetchedOptimise
+
   // A model object takes over the whole surface, like the prototype.
   if (openModelId) {
     return (
@@ -763,19 +773,19 @@ export function ModelsPanel({
             </TabsList>
 
             <TabsContent value="0">
-              <TrainTrack data={trainData} onOpenModel={setOpenModelId} />
+              <TrainTrack data={effectiveTrainData} onOpenModel={setOpenModelId} />
             </TabsContent>
 
             <TabsContent value="1">
               <AdaptTrack
-                data={adaptData}
+                data={effectiveAdaptData}
                 onToggleLearned={onAdaptToggle}
                 onRetrain={onAdaptRetrain}
               />
             </TabsContent>
 
             <TabsContent value="2">
-              <OptimiseTrack data={optimiseData} onOpenModel={setOpenModelId} />
+              <OptimiseTrack data={effectiveOptimiseData} onOpenModel={setOpenModelId} />
             </TabsContent>
 
             <TabsContent value="3">

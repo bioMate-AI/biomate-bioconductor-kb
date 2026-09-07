@@ -450,6 +450,310 @@ def _custom_consumers(model_name: str) -> List[str]:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Project-scoped track reads (Train / Adapt / Optimise)
+# ─────────────────────────────────────────────────────────────────────────────
+# These map three stores that ALREADY EXIST onto the frontend track contract:
+#
+#   Train    -> registered custom models per campaign are the "training runs"
+#               that produced a scorer (custom_model_registrations).
+#   Adapt    -> the customer before->after DPO pair recorder
+#               (regulatory_pair_recorder: data/regulatory_training/dpo/*.jsonl).
+#   Optimise -> the Bayesian-optimizer proposal rounds
+#               (auto_retrain.list_auto_proposals over a campaign DB).
+#
+# They live under the DISTINCT `/api/model-tracks/*` prefix so they never
+# collide with the greedy `/api/models/{model_id:path}` detail route. Same
+# honesty contract as inference: a project with no such work returns an
+# honest-empty payload, NEVER fabricated runs / pairs / rounds / scores.
+#
+# `project` maps to a campaign id where one applies; when it does not resolve to
+# a real campaign the read is account-scope (all campaigns) or honest-empty.
+def _resolve_campaign_ids(project: Optional[str]) -> List[str]:
+    """Campaign ids to read. A matching project id first, else all campaigns."""
+    all_ids = sorted({r["campaign_id"] for r in _iter_custom_registrations()})
+    if project and project in all_ids:
+        return [project]
+    return all_ids
+
+
+@router.get(
+    "/api/model-tracks/train",
+    summary="Training-runs list for the Train track (registered scorers per campaign).",
+)
+def train_track(project: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Each registered custom model is the artefact of a training run in its
+    campaign. We surface it as a completed run with its interface family and the
+    campaign as the (training-run) lineage. No metric is fabricated — when the
+    thin layer has no measured metric we report an em-dash, not a number.
+    """
+    regs = _iter_custom_registrations()
+    ids = set(_resolve_campaign_ids(project))
+    runs: List[Dict[str, Any]] = []
+    for r in regs:
+        if r["campaign_id"] not in ids:
+            continue
+        enabled = r.get("enabled", 1)
+        runs.append(
+            {
+                "name": r["model_name"],
+                "family": r.get("mode", "custom"),
+                "when": _fmt_ts(r.get("registered_at")),
+                "status": "completed" if enabled else "failed",
+                "gate": "registered" if enabled else "disabled",
+                "metric": "—",  # no measured metric in this thin layer
+                "dataset": r["campaign_id"],
+                "version": f"→ {r['model_name']} v1",
+                "modelId": _custom_model_id(r["campaign_id"], r["model_name"]),
+            }
+        )
+    return {"runs": runs}
+
+
+@router.get(
+    "/api/model-tracks/adapt",
+    summary="Learned before->after edit pairs for the Adapt track (DPO pair recorder).",
+)
+def adapt_track(project: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Reads the customer before->after DPO pairs the pair recorder appends. Each
+    row is a switchable learned rule (before = model's original text, after =
+    the customer's correction). Best-effort: a missing store is honest-empty.
+    """
+    pairs: List[Dict[str, Any]] = []
+    try:
+        rows = _read_dpo_pairs(project)
+    except Exception as exc:  # noqa: BLE001 — best-effort read
+        log.debug("model-tracks/adapt: read failed: %s", exc)
+        rows = []
+    for i, row in enumerate(rows):
+        meta = row.get("meta", {}) if isinstance(row, dict) else {}
+        chosen = (row.get("chosen") or "").strip()
+        rejected = (row.get("rejected") or "").strip()
+        if not chosen and not rejected:
+            continue
+        section = meta.get("section_type") or meta.get("task") or "output"
+        pairs.append(
+            {
+                "id": meta.get("row_id") or f"pair-{i+1}",
+                "learned": f"prefer your edit in {section}",
+                "scope": meta.get("org_id") and "organisation" or "project",
+                "before": rejected or "(model output)",
+                "after": chosen or "(your edit)",
+                "source": f"{section} · {_fmt_ts(meta.get('recorded_at'))}",
+                "on": True,  # a recorded pair is active until switched off
+            }
+        )
+    return {"pendingCount": len(pairs), "pairs": pairs}
+
+
+@router.get(
+    "/api/model-tracks/optimise",
+    summary="The DMTA loop for the Optimise track (Bayesian-optimizer proposal rounds).",
+)
+def optimise_track(project: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Reads the latest optimizer proposal round for a campaign and shapes it as the
+    DMTA loop. Returns {active: False} when there is no proposal round, so the
+    frontend renders its honest empty state. No score is fabricated — scores and
+    confidence come straight from the stored round.
+    """
+    campaign_ids = _resolve_campaign_ids(project)
+    for campaign_id in campaign_ids:
+        try:
+            loop = _optimise_for_campaign(campaign_id)
+        except Exception as exc:  # noqa: BLE001 — best-effort read
+            log.debug("model-tracks/optimise: %s failed: %s", campaign_id, exc)
+            continue
+        if loop is not None:
+            return loop
+    return {"active": False}
+
+
+def _optimise_for_campaign(campaign_id: str) -> Optional[Dict[str, Any]]:
+    from pathlib import Path
+
+    db_path = str(Path(_campaign_db_dir()) / f"{campaign_id}.db")
+    if not Path(db_path).exists():
+        return None
+    try:
+        from galaxy.ai.drug_discovery.auto_retrain import list_auto_proposals
+    except Exception as exc:  # noqa: BLE001
+        log.debug("optimise: auto_retrain unavailable: %s", exc)
+        return None
+
+    proposals = list_auto_proposals(db_path, campaign_id, limit=20)
+    if not proposals:
+        return None
+
+    # The AutoProposal carries: round_number, proposed_smiles (list), scores
+    # (dict keyed by objective → list, or by smiles), confidence_intervals, and
+    # ad_statuses (list[str] parallel to proposed_smiles: "in_domain" /
+    # "outside_domain"). We shape the LATEST round into the proposal table.
+    latest = max(proposals, key=lambda p: getattr(p, "round_number", 0))
+    round_no = getattr(latest, "round_number", 0)
+    smiles = list(getattr(latest, "proposed_smiles", []) or [])
+    scores = getattr(latest, "scores", {}) or {}
+    cis = getattr(latest, "confidence_intervals", {}) or {}
+    ad = list(getattr(latest, "ad_statuses", []) or [])
+
+    # scores may be {objective: [per-compound]} or {smiles: score}. Resolve a
+    # per-compound score list without fabricating a value when absent.
+    per_compound_scores = _resolve_score_list(scores, smiles)
+
+    proposal_rows: List[Dict[str, Any]] = []
+    for i, smi in enumerate(smiles[:24]):
+        sc = per_compound_scores[i] if i < len(per_compound_scores) else None
+        conf = _confidence_from_ci(_ci_at(cis, smi, i))
+        # Applicability-domain status → verdict. Outside the domain is a
+        # safety-gate rejection, shown (not dropped) so the loop's intent stays
+        # visible. Missing status defaults to in-domain (the optimizer default).
+        status = ad[i] if i < len(ad) else "in_domain"
+        verdict = (
+            "accepted"
+            if status == "in_domain"
+            else "rejected · out of applicability domain"
+        )
+        proposal_rows.append(
+            {
+                "id": f"cand-{i+1}",
+                "score": _fmt_num(sc),
+                "confidence": conf,
+                "verdict": verdict,
+            }
+        )
+
+    rounds = [
+        {
+            "round": f"Round {getattr(p, 'round_number', 0)}",
+            "status": "current" if getattr(p, "round_number", 0) == round_no else "closed",
+            "what": f"{len(getattr(p, 'proposed_smiles', []) or [])} candidates",
+            "when": _fmt_ts(getattr(p, "created_at", None)),
+        }
+        for p in sorted(proposals, key=lambda p: getattr(p, "round_number", 0))
+    ]
+
+    return {
+        "active": True,
+        "running": True,
+        "round": round_no,
+        "surrogates": [
+            {"id": _custom_model_id(campaign_id, "surrogate-gp"), "label": "surrogate GP"}
+        ],
+        "rounds": rounds,
+        "proposal": proposal_rows,
+    }
+
+
+def _resolve_score_list(scores: Any, smiles: List[str]) -> List[Any]:
+    """
+    Normalize the AutoProposal.scores field to a per-compound list aligned with
+    `smiles`. scores may be {objective: [per-compound]} or {smiles: score}.
+    Returns a list of length len(smiles) (None where unknown) — never fabricated.
+    """
+    if not isinstance(scores, dict) or not scores:
+        return [None] * len(smiles)
+    # {smiles: score}
+    if any(s in scores for s in smiles):
+        return [scores.get(s) for s in smiles]
+    # {objective: [per-compound]} — take the first objective's list.
+    for val in scores.values():
+        if isinstance(val, (list, tuple)):
+            out = list(val)
+            if len(out) < len(smiles):
+                out = out + [None] * (len(smiles) - len(out))
+            return out[: len(smiles)]
+    return [None] * len(smiles)
+
+
+def _ci_at(cis: Any, smi: str, idx: int) -> Any:
+    """Pull a (lo, hi) pair from confidence_intervals for a compound. None when absent."""
+    if isinstance(cis, dict):
+        if smi in cis:
+            return cis[smi]
+        lo = cis.get("lo") or cis.get("lower")
+        hi = cis.get("hi") or cis.get("upper")
+        if isinstance(lo, (list, tuple)) and isinstance(hi, (list, tuple)):
+            if idx < len(lo) and idx < len(hi):
+                return (lo[idx], hi[idx])
+    elif isinstance(cis, (list, tuple)) and idx < len(cis):
+        return cis[idx]
+    return None
+
+
+def _read_dpo_pairs(project: Optional[str]) -> List[Dict[str, Any]]:
+    """
+    Read the customer before->after DPO pairs from the recorder's JSONL store.
+    Filters by org/project when the meta carries a matching org_id. Best-effort:
+    a missing file returns [].
+    """
+    import json as _json
+
+    try:
+        from galaxy.ai.drug_discovery.regulatory_pair_recorder import PAIRS_PATH
+        path = str(PAIRS_PATH)
+    except Exception as exc:  # noqa: BLE001
+        log.debug("adapt: pair recorder unavailable: %s", exc)
+        return []
+
+    import os
+
+    if not os.path.exists(path):
+        return []
+    out: List[Dict[str, Any]] = []
+    with open(path, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = _json.loads(line)
+            except Exception:  # noqa: BLE001 — skip a corrupt line
+                continue
+            if project:
+                org = (row.get("meta", {}) or {}).get("org_id")
+                if org and org != project:
+                    continue
+            out.append(row)
+    return out
+
+
+def _confidence_from_ci(ci: Any) -> str:
+    """Map a confidence-interval width to a low/medium/high band. Neutral when unknown."""
+    try:
+        lo, hi = ci[0], ci[1]
+        width = abs(float(hi) - float(lo))
+    except Exception:  # noqa: BLE001
+        return "medium"
+    if width <= 0.1:
+        return "high"
+    if width <= 0.3:
+        return "medium"
+    return "low"
+
+
+def _fmt_num(v: Any) -> str:
+    try:
+        return f"{float(v):.3g}"
+    except Exception:  # noqa: BLE001
+        return "—"
+
+
+def _fmt_ts(ts: Any) -> str:
+    """Unix ts (or ISO string) -> a short date. Em-dash when unknown."""
+    if not ts:
+        return "—"
+    if isinstance(ts, str):
+        return ts[:10]
+    try:
+        import datetime as _dt
+
+        return _dt.datetime.utcfromtimestamp(float(ts)).strftime("%Y-%m-%d")
+    except Exception:  # noqa: BLE001
+        return "—"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # POST /api/models/{id}/infer
 # ─────────────────────────────────────────────────────────────────────────────
 @router.post(
