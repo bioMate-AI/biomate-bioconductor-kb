@@ -20,7 +20,10 @@ auto_update/mcp_servers/AlphaFold-MCP-Server
 backend/<*>
 backend/dependencies/
 backend/instrument_parsers/
-backend/nf-core-modules/
+backend/nf-core-modules/*
+# keep BioMate-authored license-clean workflow capabilities version-controlled
+# (the bulk vendored module tree stays ignored above; our capability dirs are tracked)
+!backend/nf-core-modules/proteomics_dda_search/
 backend/nf-core-workflows/
 backend/**/pkgs/cache/
 backend/tests/e2e_ui/test_videos/
