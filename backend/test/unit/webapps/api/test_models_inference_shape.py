@@ -256,6 +256,85 @@ def test_dispatch_stub_mode_uses_client_reason(mod):
     assert "no backend configured" in res["stub_reason"]
 
 
+# ── Model-tracks phase: pure shaping helpers (Train / Adapt / Optimise) ───────
+# These lock the contract the Train/Adapt/Optimise track UIs bind to, and the
+# math the Optimise proposal table depends on — all without a DB.
+def test_fmt_num_and_ts(mod):
+    assert mod._fmt_num(0.12345) == "0.123"
+    assert mod._fmt_num(None) == "—"
+    assert mod._fmt_num("not-a-number") == "—"
+    # ISO string is truncated to the date; falsy/None → em-dash.
+    assert mod._fmt_ts("2026-08-01T12:00:00") == "2026-08-01"
+    assert mod._fmt_ts(None) == "—"
+    assert mod._fmt_ts(0) == "—"  # unix-epoch-0 treated as unknown (falsy)
+
+
+def test_confidence_from_ci_bands(mod):
+    # Tight CI → high; medium width → medium; wide/None → low/medium fallback.
+    assert mod._confidence_from_ci((0.10, 0.15)) == "high"   # width 0.05
+    assert mod._confidence_from_ci((0.0, 0.25)) == "medium"  # width 0.25
+    assert mod._confidence_from_ci((0.0, 1.0)) == "low"      # width 1.0
+    assert mod._confidence_from_ci(None) == "medium"         # unknown → neutral
+
+
+def test_resolve_score_list_shapes(mod):
+    smiles = ["A", "B", "C"]
+    # {objective: [per-compound]} → first objective's list, padded to len(smiles).
+    assert mod._resolve_score_list({"obj": [0.5, 0.6]}, smiles) == [0.5, 0.6, None]
+    # {smiles: score} → aligned by smiles.
+    assert mod._resolve_score_list({"A": 1.0, "C": 3.0}, smiles) == [1.0, None, 3.0]
+    # empty / non-dict → all-None of the right length (never fabricated).
+    assert mod._resolve_score_list({}, smiles) == [None, None, None]
+    assert mod._resolve_score_list(None, smiles) == [None, None, None]
+
+
+def test_ci_at_shapes(mod):
+    # dict keyed by smiles
+    assert mod._ci_at({"X": (0.1, 0.2)}, "X", 0) == (0.1, 0.2)
+    # dict with parallel lo/hi arrays
+    assert mod._ci_at({"lo": [0.1], "hi": [0.2]}, "X", 0) == (0.1, 0.2)
+    # list-of-pairs indexed positionally
+    assert mod._ci_at([(0.1, 0.2)], "X", 0) == (0.1, 0.2)
+    # absent → None
+    assert mod._ci_at({}, "X", 5) is None
+
+
+def test_job_status_map(mod):
+    # Worker vocab → Train-track/dashboard vocab.
+    assert mod._JOB_STATUS_MAP["succeeded"] == "completed"
+    assert mod._JOB_STATUS_MAP["failed"] == "failed"
+    assert mod._JOB_STATUS_MAP["cancelled"] == "failed"
+    assert mod._JOB_STATUS_MAP["running"] == "running"
+    assert mod._JOB_STATUS_MAP["queued"] == "queued"
+
+
+# ── Adapt toggle: persisted on/off override round-trips (no DB, temp JSONL) ────
+def test_adapt_toggle_roundtrip(mod, tmp_path, monkeypatch):
+    # Point the disabled-set sidecar at a temp file.
+    disabled_path = str(tmp_path / "disabled_pairs.jsonl")
+    monkeypatch.setattr(mod, "_disabled_pairs_path", lambda: disabled_path)
+
+    assert mod._load_disabled_pairs() == set()  # nothing disabled initially
+    # Flip p1 on→off, then off→on.
+    assert mod.toggle_adapt_pair("p1", None) == {"id": "p1", "on": False}
+    assert mod._load_disabled_pairs() == {"p1"}
+    assert mod.toggle_adapt_pair("p1", None) == {"id": "p1", "on": True}
+    assert mod._load_disabled_pairs() == set()
+    # Explicit target (the TogglePairRequest carries on=…).
+    req_off = mod.TogglePairRequest(on=False)
+    assert mod.toggle_adapt_pair("p2", req_off) == {"id": "p2", "on": False}
+    assert "p2" in mod._load_disabled_pairs()
+    req_on = mod.TogglePairRequest(on=True)
+    assert mod.toggle_adapt_pair("p2", req_on) == {"id": "p2", "on": True}
+    assert "p2" not in mod._load_disabled_pairs()
+
+
+def test_toggle_requires_pair_id(mod):
+    import pytest as _pytest
+    with _pytest.raises(Exception):
+        mod.toggle_adapt_pair("", None)
+
+
 # ── B2 regression: run registry is the shared cross-worker store ──────────────
 def test_run_registry_uses_shared_store(mod):
     # A run written by _new_run/_finish_run must be readable via the same store
