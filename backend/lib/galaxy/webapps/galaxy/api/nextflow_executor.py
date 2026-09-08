@@ -1584,45 +1584,6 @@ def _resolve_nextflow_path(raw_path: str) -> Path:
     )
 
 
-# Regex: a real `container` process directive (not a comment / not `params.container`).
-# Matches `container "..."`, `container '...'`, or `container = ...` at directive column.
-_CONTAINER_DIRECTIVE_RE = re.compile(r"(?m)^\s*container\s*[=\"']")
-
-
-def _is_param_display_stub(nf_path: Path) -> bool:
-    """True if `nf_path` is a display-only parameter STUB that cannot actually execute.
-
-    The stubs under `biomni_workflows/nfcore/<name>/main.nf` exist so the workflow
-    panel can render each nf-core pipeline's parameter strip WITHOUT downloading the
-    real multi-GB pipeline. Their `process` blocks call tools by bare name
-    (`trim_galore`, `STAR`, `check_samplesheet.py`, …) and declare NO `container`
-    directive, so on Batch every task runs inside the single generic default container
-    (`process.container = <ECR default>`, injected by `_generate_executor_config`),
-    which does not carry those per-tool binaries. The run therefore dies almost
-    immediately with "<tool>: command not found" — a doomed launch.
-
-    The resolver (`_resolve_nextflow_path` / `_candidate_bases`) already searches the
-    REAL `nf-core-workflows/<name>/` pipelines BEFORE these stubs, so if resolution
-    still lands on a stub it means no real pipeline is provisioned on this target.
-
-    A stub is identified by BOTH conditions (so a genuinely runnable stub that DOES
-    declare its own container — e.g. the Bioconductor stubs differentialabundance /
-    geo_scrna_pseudobulk — is NOT treated as un-runnable):
-      1. resolved path lives under `biomni_workflows/nfcore/`, AND
-      2. the .nf text declares no real `container` directive.
-    """
-    p = str(nf_path).replace(os.sep, "/")
-    if "/biomni_workflows/nfcore/" not in p:
-        return False
-    try:
-        text = nf_path.read_text(errors="ignore")
-    except OSError:
-        # Can't read it → be conservative and don't block; the launch path will
-        # surface a normal read error rather than a false "not provisioned".
-        return False
-    return not _CONTAINER_DIRECTIVE_RE.search(text)
-
-
 def _detect_nextflow_entry(nf_path: Path) -> Optional[str]:
     """
     Detect entry workflow name for scripts that define only named workflows.
@@ -5240,35 +5201,6 @@ def _execute_nextflow_impl(
         raise HTTPException(
             status_code=404,
             detail=str(exc)
-        )
-
-    # Pre-flight guard: never launch a display-only param STUB as if it were a real
-    # pipeline. The resolver already prefers a real `nf-core-workflows/<name>/` pipeline
-    # over the `biomni_workflows/nfcore/<name>/` stub; if it still resolved to a
-    # container-less stub, no real pipeline is provisioned on this target and a launch
-    # would die within seconds with "<tool>: command not found" (the stub's processes
-    # call bare tool names inside the single generic default container). Surface an
-    # honest 422 instead of burning a doomed Batch run. (differentialabundance /
-    # geo_scrna_pseudobulk declare their own container, so _is_param_display_stub
-    # returns False for them and they run normally.)
-    if _is_param_display_stub(nf_path):
-        _pipe = Path(nf_path).parent.name
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "error": "Pipeline not provisioned on this target",
-                "reason": (
-                    f"'{_pipe}' resolved to a parameter-preview stub only — the real "
-                    f"nf-core/{_pipe} pipeline (with its per-tool containers) is not "
-                    f"downloaded on this deployment, so a run would fail immediately "
-                    f"with 'command not found'."
-                ),
-                "suggestion": (
-                    f"Provision the real pipeline (download nf-core/{_pipe} into "
-                    f"nf-core-workflows/{_pipe}/) or add its search root via "
-                    f"NEXTFLOW_SEARCH_ROOTS, then re-run."
-                ),
-            },
         )
 
     # Pre-flight: check if this pipeline can run on this host with these settings.
