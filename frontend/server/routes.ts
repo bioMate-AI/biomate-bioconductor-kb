@@ -4881,6 +4881,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // paths contain "/"); the backend catch-all + urldecode handles it.
   app.all("/api/datasets/*", optionalAuth, _dlProxyHandler);
 
+  // Server-side lane arbiter — the composer's LanePreview calls this on a
+  // debounce so its advisory Instant/Cloud verdict matches how the query will
+  // actually route (spec 00 §0.3, §2.2). Same proxy as /api/models.
+  //   POST /api/route/classify  { text }  -> { lane, domain, why, intent, confidence }
+  // Backend: backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py (route_classify),
+  // wrapping the real UnifiedIntentRouter. Advisory + non-blocking; the client
+  // falls back to its local heuristic on error/timeout.
+  app.all("/api/route/*", optionalAuth, _dlProxyHandler);
+
   app.all("/api/qc-gates/*", async (req: any, res: any) => {
     try {
       const path = req.path;
