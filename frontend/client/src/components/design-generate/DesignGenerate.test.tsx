@@ -12,8 +12,11 @@ import {
   DesignGenerate,
   reRank,
   classifyRejection,
+  buildOrderSheetCsv,
+  isContradiction,
   type GenerateClient,
   type GenerationRun,
+  type MeasuredResult,
 } from "./DesignGenerate"
 
 function makeClient(final: GenerationRun): GenerateClient {
@@ -268,5 +271,114 @@ describe("DesignGenerate", () => {
     expect(screen.getByTestId("why-confidence-BM-0001").textContent).toMatch(/high/i)
     // Honest: no nearest measured analogue in the backend contract, so it says so.
     expect(screen.getByTestId("why-analogue-BM-0001").textContent).toMatch(/not available/i)
+  })
+
+  // ---- §5.6 entry routes ("start from…") ----------------------------------
+  it("renders the entry-routes strip with all three routes and default no-ops (§5.6)", () => {
+    render(<DesignGenerate client={makeClient(COMPLETED)} />)
+    const strip = screen.getByTestId("entry-routes")
+    expect(within(strip).getByTestId("entry-dataset")).toBeTruthy()
+    expect(within(strip).getByTestId("entry-model")).toBeTruthy()
+    expect(within(strip).getByTestId("entry-search")).toBeTruthy()
+    // Default no-op: clicking a route with no callback wired must not throw.
+    expect(() => fireEvent.click(screen.getByTestId("entry-dataset"))).not.toThrow()
+  })
+
+  it("fires the entry-route callbacks when wired (§5.6)", () => {
+    const onStartFromDataset = vi.fn()
+    const onStartFromModel = vi.fn()
+    const onPromoteFromSearch = vi.fn()
+    render(
+      <DesignGenerate
+        client={makeClient(COMPLETED)}
+        onStartFromDataset={onStartFromDataset}
+        onStartFromModel={onStartFromModel}
+        onPromoteFromSearch={onPromoteFromSearch}
+      />,
+    )
+    fireEvent.click(screen.getByTestId("entry-dataset"))
+    fireEvent.click(screen.getByTestId("entry-model"))
+    fireEvent.click(screen.getByTestId("entry-search"))
+    expect(onStartFromDataset).toHaveBeenCalledTimes(1)
+    expect(onStartFromModel).toHaveBeenCalledTimes(1)
+    expect(onPromoteFromSearch).toHaveBeenCalledTimes(1)
+  })
+
+  // ---- §5.5/§5.7 export order sheet ---------------------------------------
+  it("offers an 'Export order sheet' control once candidates exist (§5.5)", async () => {
+    await runToCompletion(makeClient(COMPLETED))
+    expect(screen.getByTestId("dg-export-order")).toBeTruthy()
+  })
+
+  it("buildOrderSheetCsv pairs candidate + registry ids and carries objective values", () => {
+    const csv = buildOrderSheetCsv(COMPLETED.candidates!, COMPLETED.objectives!)
+    const lines = csv.split("\n")
+    // Header names both id columns and one column per objective with its unit.
+    expect(lines[0]).toContain("candidate_id")
+    expect(lines[0]).toContain("registry_id")
+    expect(lines[0]).toContain("drug_like (QED)")
+    // First data row pairs the platform id with a REG- registry id + its value.
+    expect(lines[1]).toContain("BM-0001")
+    expect(lines[1]).toContain("REG-BM-0001")
+    expect(lines[1]).toContain("0.91")
+    // Every candidate is exported, including the gate-rejected one (stays visible).
+    expect(csv).toContain("BM-0002")
+  })
+
+  it("clicking export triggers a client-side CSV blob download", async () => {
+    const client = makeClient(COMPLETED)
+    const createURL = vi.fn(() => "blob:order")
+    const revokeURL = vi.fn()
+    ;(URL as any).createObjectURL = createURL
+    ;(URL as any).revokeObjectURL = revokeURL
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {})
+    await runToCompletion(client)
+    fireEvent.click(screen.getByTestId("dg-export-order"))
+    expect(createURL).toHaveBeenCalledTimes(1)
+    expect(clickSpy).toHaveBeenCalledTimes(1)
+    expect(revokeURL).toHaveBeenCalledTimes(1)
+    clickSpy.mockRestore()
+  })
+
+  // ---- §5.7 predicted-vs-measured -----------------------------------------
+  it("shows an honest empty predicted-vs-measured state when no measurements (§5.7)", async () => {
+    await runToCompletion(makeClient(COMPLETED))
+    const pvm = screen.getByTestId("predicted-vs-measured")
+    expect(within(pvm).getByTestId("pvm-empty").textContent).toMatch(/no measured results yet/i)
+  })
+
+  it("shows predicted-vs-measured per candidate and flags contradictions (§5.7)", async () => {
+    const measured: MeasuredResult[] = [
+      {
+        id: "BM-0001",
+        registryId: "REG-BM-0001",
+        measured: [
+          // matches prediction (0.91) closely — no contradiction
+          { name: "drug_like", value: 0.9, unit: "QED" },
+          // predicted 1.0, measured 0.1 — a large divergence → contradiction
+          { name: "property_envelope", value: 0.1, unit: "fraction-in-window" },
+        ],
+      },
+    ]
+    render(<DesignGenerate client={makeClient(COMPLETED)} measuredResults={measured} />)
+    fireEvent.click(screen.getByTestId("dg-run"))
+    await screen.findByTestId("hit-grid")
+    const pvm = screen.getByTestId("predicted-vs-measured")
+    expect(within(pvm).getByTestId("pvm-row-BM-0001")).toBeTruthy()
+    // drug_like agrees → not flagged; property_envelope diverges → flagged.
+    expect(
+      within(pvm).getByTestId("pvm-cell-BM-0001-drug_like").getAttribute("data-contradiction"),
+    ).toBe("false")
+    expect(
+      within(pvm).getByTestId("pvm-cell-BM-0001-property_envelope").getAttribute("data-contradiction"),
+    ).toBe("true")
+    expect(within(pvm).getByTestId("pvm-flag-BM-0001-property_envelope")).toBeTruthy()
+    expect(within(pvm).getByTestId("pvm-contradiction-count").textContent).toMatch(/1 flagged/)
+  })
+
+  it("isContradiction flags only large relative divergences", () => {
+    expect(isContradiction(1.0, 0.9)).toBe(false) // 10% — within tolerance
+    expect(isContradiction(1.0, 0.1)).toBe(true) // 90% — a contradiction
+    expect(isContradiction(0, 0)).toBe(false) // near-zero, no divergence
   })
 })

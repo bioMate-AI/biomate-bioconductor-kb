@@ -43,7 +43,19 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { HitGrid, type ChemHit, type HitVerdict } from "@/components/viewers/hit-grid"
-import { Play, ChevronDown, ShieldAlert, Target, GitCompare, SlidersHorizontal, Info } from "lucide-react"
+import {
+  Play,
+  ChevronDown,
+  ShieldAlert,
+  Target,
+  GitCompare,
+  SlidersHorizontal,
+  Info,
+  Download,
+  Boxes,
+  Search as SearchIcon,
+  FlaskConical,
+} from "lucide-react"
 
 // ---------------------------------------------------------------------------
 // Backend data contract (mirrors backend/.../api/generation.py schemas)
@@ -93,6 +105,22 @@ export interface GenerationRun {
   n_scored?: number
   objectives?: GenObjectiveMeta[]
   notes?: string[]
+}
+
+/** A measured result returned from the bench for one candidate (§5.7). Supplied
+ *  as an optional prop — this component renders it against the run's predictions;
+ *  it does NOT run the wet-lab loop or the refit (that is Spec 03 §3.7). Values
+ *  are per-objective, in the objective's own units. */
+export interface MeasuredObjective {
+  name: string
+  value: number
+  unit: string
+}
+
+export interface MeasuredResult {
+  id: string // candidate id (must match a GenCandidate.id)
+  registryId?: string // the lab's own registry id, if paired back on return
+  measured: MeasuredObjective[]
 }
 
 export interface PropertyEnvelopeInput {
@@ -901,6 +929,297 @@ function RejectionProfile({
 }
 
 // ---------------------------------------------------------------------------
+// Export — order sheet (§5.5 "export" / §5.7) — pairs platform candidate ids
+// with the lab's registry ids and carries the per-objective values, so a
+// shortlist can leave the platform as an order in the format the lab registers
+// from. Pure client-side blob download; renders only on-screen candidate data —
+// nothing is fabricated. A `registryId` prefix is applied for pairing.
+// ---------------------------------------------------------------------------
+
+/** RFC-4180-ish CSV field quoting: wrap in quotes and double inner quotes when
+ *  the field carries a comma, quote or newline. */
+function csvField(v: string | number | null | undefined): string {
+  const s = v == null ? "" : String(v)
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+}
+
+/** Build an order-sheet CSV from the (already on-screen, re-ranked) candidates.
+ *  Columns: rank, candidate_id, registry_id, smiles, verdict, score, then one
+ *  column per objective ("<name> (<unit>)"). Registry ids are the platform id
+ *  prefixed with `registryPrefix` so the lab can pair both ways (§5.5). */
+export function buildOrderSheetCsv(
+  candidates: GenCandidate[],
+  objectiveMeta: GenObjectiveMeta[],
+  registryPrefix = "REG-",
+): string {
+  const objNames = objectiveMeta.map((m) => m.name)
+  const header = [
+    "rank",
+    "candidate_id",
+    "registry_id",
+    "smiles",
+    "verdict",
+    "score",
+    ...objectiveMeta.map((m) => `${m.name} (${m.unit})`),
+  ]
+  const lines = [header.map(csvField).join(",")]
+  candidates.forEach((c, i) => {
+    const byName = new Map(c.objectives.map((o) => [o.name, o]))
+    const row = [
+      i + 1,
+      c.id,
+      `${registryPrefix}${c.id}`,
+      c.smiles,
+      c.verdict,
+      c.score,
+      ...objNames.map((n) => {
+        const o = byName.get(n)
+        return o ? o.value : ""
+      }),
+    ]
+    lines.push(row.map(csvField).join(","))
+  })
+  return lines.join("\n")
+}
+
+function OrderSheetButton({
+  candidates,
+  objectiveMeta,
+  runId,
+}: {
+  candidates: GenCandidate[]
+  objectiveMeta: GenObjectiveMeta[]
+  runId?: string
+}) {
+  const onExport = useCallback(() => {
+    const csv = buildOrderSheetCsv(candidates, objectiveMeta)
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `order-sheet-${runId ?? "design"}.csv`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }, [candidates, objectiveMeta, runId])
+  return (
+    <div className="flex items-center justify-between gap-2 rounded border px-2 py-1.5" data-testid="order-sheet">
+      <span className="text-[10px] text-muted-foreground">
+        Leave the platform as an <strong>order</strong> — candidate ids paired with the lab&apos;s
+        registry ids, per-objective values in their own units (§5.7).
+      </span>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="h-7 text-xs gap-1 shrink-0"
+        data-testid="dg-export-order"
+        disabled={candidates.length === 0}
+        onClick={onExport}
+      >
+        <Download className="h-3 w-3" />
+        Export order sheet
+      </Button>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Entry routes (§5.6) — "start from…" strip. Three routes into the module beyond
+// a cold start: from a dataset (an assay table seeds the series), from Models
+// (a newly gated model re-scores the set), from Search (a patent answer is
+// promoted into an exclusion). These are callback props with default no-ops so
+// the surface always exists; the host wires them to real navigation.
+// ---------------------------------------------------------------------------
+
+function EntryRoutes({
+  onStartFromDataset,
+  onStartFromModel,
+  onPromoteFromSearch,
+}: {
+  onStartFromDataset?: () => void
+  onStartFromModel?: () => void
+  onPromoteFromSearch?: () => void
+}) {
+  const routes: { key: string; label: string; hint: string; icon: React.ReactNode; onClick?: () => void }[] = [
+    {
+      key: "dataset",
+      label: "From a dataset",
+      hint: "An assay table starts a design run directly — the measured compounds become the starting series.",
+      icon: <Boxes className="h-3 w-3" />,
+      onClick: onStartFromDataset,
+    },
+    {
+      key: "model",
+      label: "From Models",
+      hint: "A newly gated potency or safety model re-scores the current candidate set.",
+      icon: <Target className="h-3 w-3" />,
+      onClick: onStartFromModel,
+    },
+    {
+      key: "search",
+      label: "From Search",
+      hint: "A patent answer is promoted into an exclusion constraint on the next generation run.",
+      icon: <SearchIcon className="h-3 w-3" />,
+      onClick: onPromoteFromSearch,
+    },
+  ]
+  return (
+    <div className="flex items-center gap-2 flex-wrap" data-testid="entry-routes">
+      <span className="text-[10px] text-muted-foreground">Start from…</span>
+      {routes.map((r) => (
+        <Button
+          key={r.key}
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-7 text-xs gap-1"
+          data-testid={`entry-${r.key}`}
+          title={r.hint}
+          onClick={r.onClick ?? (() => {})}
+        >
+          {r.icon}
+          {r.label}
+        </Button>
+      ))}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Predicted-vs-measured (§5.7 / §5.8) — when the bench returns measurements they
+// are shown against the predictions that preceded them, per candidate. The
+// divergence is the only honest measure of whether the pipeline is working; a
+// large per-objective gap is FLAGGED as a contradiction (the surrogate is not
+// trusted silently after a bad round). No refit is run here — this is the
+// design-side record only. When no measurements are supplied it says so plainly.
+// ---------------------------------------------------------------------------
+
+/** A per-objective predicted-vs-measured delta is a CONTRADICTION when the
+ *  measured value diverges from the prediction by more than `tol` (relative to
+ *  the prediction's magnitude, with an absolute floor so near-zero predictions
+ *  don't over-flag). Pure + exported so it is directly testable. */
+export function isContradiction(predicted: number, measured: number, tol = 0.5): boolean {
+  const denom = Math.max(Math.abs(predicted), 1e-6)
+  return Math.abs(measured - predicted) / denom > tol
+}
+
+function PredictedVsMeasured({
+  candidates,
+  objectiveMeta,
+  measured,
+}: {
+  candidates: GenCandidate[]
+  objectiveMeta: GenObjectiveMeta[]
+  measured?: MeasuredResult[]
+}) {
+  const hasMeasured = (measured?.length ?? 0) > 0
+  const byId = new Map(candidates.map((c) => [c.id, c]))
+  // Rows are keyed off the measured results (only what came back from the bench).
+  const rows = (measured ?? [])
+    .map((m) => {
+      const cand = byId.get(m.id)
+      if (!cand) return null
+      const predByName = new Map(cand.objectives.map((o) => [o.name, o]))
+      const cells = objectiveMeta.map((meta) => {
+        const pred = predByName.get(meta.name)
+        const meas = m.measured.find((mm) => mm.name === meta.name)
+        const contradiction =
+          pred != null && meas != null ? isContradiction(pred.value, meas.value) : false
+        return { meta, pred, meas, contradiction }
+      })
+      return { id: m.id, registryId: m.registryId, cells, anyContradiction: cells.some((c) => c.contradiction) }
+    })
+    .filter((r): r is NonNullable<typeof r> => r !== null)
+
+  return (
+    <Card data-testid="predicted-vs-measured">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <FlaskConical className="h-4 w-4" />
+          Predicted vs measured
+          {hasMeasured && (
+            <Badge
+              variant="outline"
+              className="text-[10px]"
+              style={{ color: rows.some((r) => r.anyContradiction) ? "#ef4444" : "#22c55e" }}
+              data-testid="pvm-contradiction-count"
+            >
+              {rows.filter((r) => r.anyContradiction).length} flagged
+            </Badge>
+          )}
+        </CardTitle>
+        <p className="text-[10px] text-muted-foreground">
+          Measurements returned from the bench, shown against the predictions that preceded them —
+          the only honest measure of whether the design pipeline is working. A large divergence is
+          flagged; the surrogate is not trusted silently after a bad round (§5.7).
+        </p>
+      </CardHeader>
+      <CardContent>
+        {!hasMeasured || rows.length === 0 ? (
+          <p className="text-xs text-muted-foreground" data-testid="pvm-empty">
+            No measured results yet. When the bench returns measurements for these candidates they
+            will appear here against their predictions — nothing is shown until real data comes back.
+          </p>
+        ) : (
+          <div className="overflow-auto rounded border text-xs">
+            <table className="min-w-full">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="px-2 py-1 text-left font-semibold">Candidate</th>
+                  {objectiveMeta.map((m) => (
+                    <th key={m.name} className="px-2 py-1 text-left font-semibold whitespace-nowrap">
+                      {m.name}
+                      <span className="text-[10px] text-muted-foreground ml-1">/{m.unit}</span>
+                      <div className="text-[9px] font-normal text-muted-foreground">pred → meas</div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.id} data-testid={`pvm-row-${r.id}`} className="border-b last:border-0">
+                    <td className="px-2 py-1 font-mono font-semibold whitespace-nowrap">
+                      {r.id}
+                      {r.registryId && (
+                        <span className="text-[10px] text-muted-foreground ml-1">({r.registryId})</span>
+                      )}
+                    </td>
+                    {r.cells.map(({ meta, pred, meas, contradiction }) => (
+                      <td
+                        key={meta.name}
+                        className="px-2 py-1 font-mono whitespace-nowrap"
+                        data-testid={`pvm-cell-${r.id}-${meta.name}`}
+                        data-contradiction={contradiction ? "true" : "false"}
+                      >
+                        <span className="text-muted-foreground">{pred ? pred.value : "n/a"}</span>
+                        <span className="text-muted-foreground mx-1">→</span>
+                        <span style={{ color: contradiction ? "#ef4444" : "#22c55e" }}>
+                          {meas ? meas.value : "—"}
+                        </span>
+                        {contradiction && (
+                          <span
+                            className="text-[9px] text-red-500 ml-1"
+                            data-testid={`pvm-flag-${r.id}-${meta.name}`}
+                          >
+                            contradiction
+                          </span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
@@ -908,10 +1227,27 @@ export interface DesignGenerateProps {
   client?: GenerateClient
   /** Fired when a HitGrid model link is clicked. */
   onOpenModel?: (modelId: string) => void
+  /** Entry route (§5.6): an assay table seeds the starting series. Default no-op. */
+  onStartFromDataset?: () => void
+  /** Entry route (§5.6): a newly gated model re-scores the candidate set. Default no-op. */
+  onStartFromModel?: () => void
+  /** Entry route (§5.6): a patent answer is promoted into an exclusion. Default no-op. */
+  onPromoteFromSearch?: () => void
+  /** Measured results returned from the bench (§5.7). When supplied, the
+   *  predicted-vs-measured panel renders them against the predictions. */
+  measuredResults?: MeasuredResult[]
   className?: string
 }
 
-export function DesignGenerate({ client = defaultClient, onOpenModel, className }: DesignGenerateProps) {
+export function DesignGenerate({
+  client = defaultClient,
+  onOpenModel,
+  onStartFromDataset,
+  onStartFromModel,
+  onPromoteFromSearch,
+  measuredResults,
+  className,
+}: DesignGenerateProps) {
   // --- constraint state (the interface) ------------------------------------
   const [seedSmiles, setSeedSmiles] = useState("")
   const [scaffoldPolicy, setScaffoldPolicy] = useState<ScaffoldPolicy>("stay")
@@ -1042,6 +1378,13 @@ export function DesignGenerate({ client = defaultClient, onOpenModel, className 
 
   return (
     <div className={`space-y-3 ${className ?? ""}`} data-testid="design-generate">
+      {/* ---- entry routes (§5.6): start from a dataset / Models / Search ---- */}
+      <EntryRoutes
+        onStartFromDataset={onStartFromDataset}
+        onStartFromModel={onStartFromModel}
+        onPromoteFromSearch={onPromoteFromSearch}
+      />
+
       {/* ---- constraints composer (the interface, §5.2) ---- */}
       <Card data-testid="constraints-composer">
         <CardHeader className="pb-2">
@@ -1248,6 +1591,9 @@ export function DesignGenerate({ client = defaultClient, onOpenModel, className 
             onChange={updateCriterion}
           />
 
+          {/* Export order sheet (§5.5/§5.7) — leaves the platform as an order */}
+          <OrderSheetButton candidates={candidates} objectiveMeta={objectiveMeta} runId={run?.run_id} />
+
           {/* Ranked candidates via the wave-1 HitGrid (rejected stay visible) */}
           <HitGrid
             hits={hits}
@@ -1275,6 +1621,14 @@ export function DesignGenerate({ client = defaultClient, onOpenModel, className 
 
           {/* Safety-as-a-gate — rejected candidates kept with reason */}
           <RejectedSet rejected={rejected} />
+
+          {/* Predicted-vs-measured (§5.7) — the wet-lab return record; empty until
+              measurements come back. No refit is run here (Spec 03 §3.7). */}
+          <PredictedVsMeasured
+            candidates={candidates}
+            objectiveMeta={objectiveMeta}
+            measured={measuredResults}
+          />
         </>
       )}
     </div>
