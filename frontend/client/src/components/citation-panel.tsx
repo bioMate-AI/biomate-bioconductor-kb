@@ -23,7 +23,9 @@ import {
   Check,
   FileText,
   RefreshCw,
-  Loader2
+  Loader2,
+  Flag,
+  MapPin
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -33,11 +35,27 @@ import {
   copyToClipboard
 } from "@/lib/ai-assistant-api"
 import type { Citation, MethodsSection } from "@shared/schema"
+import { SourceReaderPane, type EvidenceCitation } from "@/components/source-reader-pane"
+
+// Spec 01 §1.3.2: a materially-disagreeing pair of findings, surfaced honestly.
+// Only rendered when the retrieval path marks a conflict — never fabricated.
+export interface CitationConflict {
+  /** Short label for the disagreement, e.g. "Effect at physiological dose". */
+  topic?: string
+  /** The two (or more) positions in tension, each with the source it rests on. */
+  positions: Array<{ claim: string; source?: string }>
+}
 
 interface CitationPanelProps {
   citations: Citation[]
   methodsSection?: MethodsSection
   workflow?: Record<string, any>  // Galaxy workflow for API calls
+  /**
+   * Spec 01 §1.3.2 conflict affordance. When the retrieval path detects that
+   * sources materially disagree, it passes the conflicting positions here and
+   * a "Sources disagree" row is shown. Omit / empty → row never renders.
+   */
+  conflicts?: CitationConflict[]
   isCollapsed?: boolean
   onCopy?: (text: string, format: 'apa' | 'bibtex' | 'short') => void
   onExportBibTeX?: () => void
@@ -49,6 +67,7 @@ export function CitationPanel({
   citations,
   methodsSection,
   workflow,
+  conflicts,
   isCollapsed = true,
   onCopy,
   onExportBibTeX,
@@ -61,11 +80,14 @@ export function CitationPanel({
   const [activeTab, setActiveTab] = useState<string>("citations")
   const [isExporting, setIsExporting] = useState(false)
   const [isRegenerating, setIsRegenerating] = useState(false)
+  const [conflictsExpanded, setConflictsExpanded] = useState(false)
+  const [readerIndex, setReaderIndex] = useState<number | null>(null)
   const [citationStyle, setCitationStyle] = useState<'short' | 'apa' | 'numbered'>('short')
   const [localMethodsSection, setLocalMethodsSection] = useState<MethodsSection | undefined>(methodsSection)
 
-  const toolsWithCitations = citations.filter(c => c.doi || c.pmid || c.title)
+  const toolsWithCitations = citations.filter(c => c.doi || c.pmid || c.title) as EvidenceCitation[]
   const totalTools = citations.length
+  const activeConflicts = (conflicts || []).filter(c => c.positions && c.positions.length > 0)
 
   const toggleCitationExpanded = (toolId: string) => {
     setExpandedCitations(prev => {
@@ -212,12 +234,22 @@ export function CitationPanel({
               </TabsList>
 
               <TabsContent value="citations" className="mt-3 space-y-2">
+                {/* Spec 01 §1.3.2 — conflict affordance. Never smooth
+                    disagreement into a single confident sentence. */}
+                {activeConflicts.length > 0 && (
+                  <ConflictRow
+                    conflicts={activeConflicts}
+                    isExpanded={conflictsExpanded}
+                    onToggle={() => setConflictsExpanded(prev => !prev)}
+                  />
+                )}
+
                 {toolsWithCitations.length === 0 ? (
                   <p className="text-xs text-muted-foreground text-center py-4">
                     No citations available for tools in this workflow
                   </p>
                 ) : (
-                  toolsWithCitations.map((citation) => (
+                  toolsWithCitations.map((citation, idx) => (
                     <CitationItem
                       key={citation.tool_id}
                       citation={citation}
@@ -225,6 +257,7 @@ export function CitationPanel({
                       onToggle={() => toggleCitationExpanded(citation.tool_id)}
                       onCopy={handleCopy}
                       copiedId={copiedId}
+                      onRead={() => setReaderIndex(idx)}
                     />
                   ))
                 )}
@@ -338,19 +371,91 @@ export function CitationPanel({
           </CardContent>
         </CollapsibleContent>
       </Collapsible>
+
+      {/* Spec 01 §1.3.3 — right-hand source reader with next/prev navigation. */}
+      <SourceReaderPane
+        sources={toolsWithCitations}
+        index={readerIndex}
+        onIndexChange={setReaderIndex}
+      />
     </Card>
   )
 }
 
+interface ConflictRowProps {
+  conflicts: CitationConflict[]
+  isExpanded: boolean
+  onToggle: () => void
+}
+
+/**
+ * Spec 01 §1.3.2 conflict row — "Sources disagree — N conflicting findings".
+ * Expands to show each position side by side with the source it rests on.
+ * Never resolved silently by preferring the newer or the more cited source.
+ */
+function ConflictRow({ conflicts, isExpanded, onToggle }: ConflictRowProps) {
+  const count = conflicts.length
+  return (
+    <div
+      className="border border-amber-500/40 rounded-md bg-amber-500/5"
+      data-testid="conflict-row"
+    >
+      <button
+        onClick={onToggle}
+        className="w-full p-2 flex items-center justify-between text-left hover:bg-amber-500/10 transition-colors rounded-md"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <Flag className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+          <span className="text-xs font-medium text-amber-700 dark:text-amber-300 truncate">
+            Sources disagree — {count} conflicting finding{count === 1 ? '' : 's'}
+          </span>
+        </div>
+        {isExpanded ? (
+          <ChevronDown className="h-3.5 w-3.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+        )}
+      </button>
+
+      {isExpanded && (
+        <div className="px-3 pb-3 pt-1 space-y-3">
+          {conflicts.map((conflict, ci) => (
+            <div key={ci} className="space-y-1.5">
+              {conflict.topic && (
+                <p className="text-xs font-medium text-muted-foreground">{conflict.topic}</p>
+              )}
+              <div className="grid gap-2">
+                {conflict.positions.map((pos, pi) => (
+                  <div
+                    key={pi}
+                    className="text-xs p-2 rounded border bg-background/60"
+                  >
+                    <p>{pos.claim}</p>
+                    {pos.source && (
+                      <p className="mt-1 text-[11px] text-muted-foreground">— {pos.source}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 interface CitationItemProps {
-  citation: Citation
+  citation: EvidenceCitation
   isExpanded: boolean
   onToggle: () => void
   onCopy: (text: string, id: string, format: 'apa' | 'bibtex' | 'short') => void
   copiedId: string | null
+  onRead?: () => void
 }
 
-function CitationItem({ citation, isExpanded, onToggle, onCopy, copiedId }: CitationItemProps) {
+function CitationItem({ citation, isExpanded, onToggle, onCopy, copiedId, onRead }: CitationItemProps) {
+  const hasRecency = Boolean(citation.retrieval_date || citation.corpus_version)
   return (
     <div className="border rounded-md">
       <button
@@ -366,6 +471,11 @@ function CitationItem({ citation, isExpanded, onToggle, onCopy, copiedId }: Cita
           <span className="text-sm font-medium truncate">{citation.tool_name}</span>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
+          {citation.locus && (
+            <Badge variant="outline" className="text-[10px] px-1 py-0 hidden sm:inline-flex">
+              {citation.locus}
+            </Badge>
+          )}
           {citation.doi && (
             <Badge variant="outline" className="text-[10px] px-1 py-0">DOI</Badge>
           )}
@@ -383,6 +493,29 @@ function CitationItem({ citation, isExpanded, onToggle, onCopy, copiedId }: Cita
 
           {citation.title && (
             <p className="text-xs mb-2 line-clamp-2">{citation.title}</p>
+          )}
+
+          {/* Spec 01 §1.3.2 — the locus relied on, not a bare DOI list. */}
+          {citation.locus && (
+            <p
+              className="text-xs mb-2 flex items-center gap-1 text-primary"
+              data-testid="citation-locus"
+            >
+              <MapPin className="h-3 w-3 flex-shrink-0" />
+              <span className="text-muted-foreground">cited for:</span> {citation.locus}
+            </p>
+          )}
+
+          {/* Spec 01 §1.4.2 — recency is stated, not implied. */}
+          {hasRecency && (
+            <p
+              className="text-[11px] mb-2 text-muted-foreground"
+              data-testid="citation-recency"
+            >
+              {citation.retrieval_date && <span>Retrieved {citation.retrieval_date}</span>}
+              {citation.retrieval_date && citation.corpus_version && <span> · </span>}
+              {citation.corpus_version && <span>{citation.corpus_version}</span>}
+            </p>
           )}
 
           <div className="flex flex-wrap gap-2 mb-2">
@@ -413,6 +546,18 @@ function CitationItem({ citation, isExpanded, onToggle, onCopy, copiedId }: Cita
           <Separator className="my-2" />
 
           <div className="flex gap-2">
+            {onRead && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 text-xs flex-1"
+                onClick={onRead}
+                data-testid={`read-${citation.tool_id}`}
+              >
+                <BookOpen className="h-3 w-3 mr-1" />
+                Read
+              </Button>
+            )}
             <Button
               size="sm"
               variant="ghost"

@@ -1,0 +1,2 @@
+# Never commit a real NGC key or resolved tags.
+.env.bionemo

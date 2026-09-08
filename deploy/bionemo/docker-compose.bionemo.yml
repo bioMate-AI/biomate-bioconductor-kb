@@ -1,0 +1,139 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# BioMate self-hosted NVIDIA BioNeMo NIM stack
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Runs the BioNeMo NIM containers BioMate's DL layer calls
+# (backend/lib/galaxy/ai/bionemo_client.py), on GPU hosts inside BioMate's /
+# the customer's AWS tenant. Data never leaves the tenant — this is the
+# data-governance posture locked in
+# docs/20260903_ARCH_DECISIONS_BIONEMO_AND_GALAXY_EXIT.md §1 (self-host, not
+# hosted API).
+#
+# BioMate points at this stack by setting on the *Galaxy backend* container:
+#     BIONEMO_MODE=self_host
+#     BIONEMO_SELF_HOST_URL=http://<this-host-or-gateway>:8000
+# (see docs/20260904_BIONEMO_SELFHOST_RUNBOOK.md).
+#
+# ⚠️  IMAGE TAGS ARE PLACEHOLDERS — DO NOT TREAT AS VERIFIED.
+#     Every `image:` below uses the NGC pattern `nvcr.io/nim/<vendor>/<model>`
+#     with a `${..._TAG}` placeholder. The EXACT repository path AND tag for
+#     each model MUST be confirmed from the NGC catalog (https://catalog.ngc.nvidia.com)
+#     at provision time — NVIDIA revises NIM image paths/tags between releases,
+#     and not every model here is guaranteed to be a published NIM on the day you
+#     provision (Boltz-2, DiffDock, GenMol, MolMIM, Evo2 were catalog-listed as
+#     of the 2026 web check; RE-VERIFY). Set the confirmed tags in
+#     .env.bionemo (copy from .env.bionemo.example).
+#
+# GPU: each service reserves 1 GPU via the NVIDIA device reservation. Adjust
+#      `count` / add a `device_ids` pin for multi-GPU hosts. VRAM sizing per
+#      model is in the runbook — a single 8×80GB (p5 / A100/H100) host does NOT
+#      fit all of these at once; provision per-model hosts or an autoscaling
+#      pool. This compose is the single-host reference; k8s notes below.
+#
+# Ports: each NIM listens on 8000 *inside* its container; we publish each on a
+#      distinct host port. A thin gateway/reverse-proxy (not included here —
+#      Caddy/nginx/ALB) is expected to fan BIONEMO_SELF_HOST_URL's per-model
+#      paths (see _SELF_HOST_PATHS in bionemo_client.py) to these ports. For a
+#      single-model-per-host layout you can instead point BIONEMO_SELF_HOST_URL
+#      straight at one service and override the path with
+#      BIONEMO_SELF_HOST_PATH_<MODEL>.
+#
+# Auth: NIM containers pull from nvcr.io using NGC_API_KEY (docker login) and
+#      validate a runtime NGC_API_KEY for weight download / license. Provided
+#      via env_file (.env.bionemo) — never hardcode the key here.
+# ─────────────────────────────────────────────────────────────────────────────
+
+x-nim-common: &nim-common
+  restart: unless-stopped
+  # env_file supplies NGC_API_KEY (+ any per-model NIM_* tuning) at runtime.
+  env_file:
+    - .env.bionemo
+  # Model weights are cached to a shared host volume so restarts don't re-pull
+  # multi-GB weights from NGC each time.
+  volumes:
+    - nim-cache:/opt/nim/.cache
+  # Standard NIM readiness probe (confirm the path against the image's /docs).
+  healthcheck:
+    test: ["CMD", "curl", "-sf", "http://localhost:8000/v1/health/ready"]
+    interval: 30s
+    timeout: 10s
+    retries: 10
+    start_period: 600s   # weight download + model load can take many minutes
+  # GPU reservation (Compose spec `deploy.resources.reservations.devices`).
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]
+
+services:
+  # ── Structure prediction: Boltz-2 (AF3-class) ──────────────────────────────
+  # client fn: bionemo_client.boltz2()   path: /biology/mit/boltz2/predict
+  boltz2:
+    <<: *nim-common
+    image: nvcr.io/nim/mit/boltz2:${BOLTZ2_TAG:-PLACEHOLDER_CONFIRM_ON_NGC}
+    container_name: biomate-nim-boltz2
+    ports:
+      - "8101:8000"
+    shm_size: "16gb"
+
+  # ── Small-molecule generation: GenMol ──────────────────────────────────────
+  # client fn: bionemo_client.genmol()   path: /biology/nvidia/genmol/generate
+  genmol:
+    <<: *nim-common
+    image: nvcr.io/nim/nvidia/genmol:${GENMOL_TAG:-PLACEHOLDER_CONFIRM_ON_NGC}
+    container_name: biomate-nim-genmol
+    ports:
+      - "8102:8000"
+
+  # ── Small-molecule generation: MolMIM ──────────────────────────────────────
+  # client fn: bionemo_client.molmim()   path: /biology/nvidia/molmim/generate
+  molmim:
+    <<: *nim-common
+    image: nvcr.io/nim/nvidia/molmim:${MOLMIM_TAG:-PLACEHOLDER_CONFIRM_ON_NGC}
+    container_name: biomate-nim-molmim
+    ports:
+      - "8103:8000"
+
+  # ── Genomics foundation model: Evo2 (Arc Institute) ────────────────────────
+  # client fn: bionemo_client.evo2_generate(model="evo2_7b"|"evo2_40b")
+  # path: /biology/arc/evo2-7b/generate  (40b served separately if provisioned)
+  # NOTE: Evo2-40B is very large — see runbook VRAM table; the 7B image is the
+  # practical default. Provision the 40B service on its own host if needed.
+  evo2:
+    <<: *nim-common
+    image: nvcr.io/nim/arc/evo2-7b:${EVO2_TAG:-PLACEHOLDER_CONFIRM_ON_NGC}
+    container_name: biomate-nim-evo2
+    ports:
+      - "8104:8000"
+    shm_size: "16gb"
+
+  # ── Molecular docking: DiffDock ────────────────────────────────────────────
+  # client fn: bionemo_client.diffdock()  path: /biology/mit/diffdock/generate
+  diffdock:
+    <<: *nim-common
+    image: nvcr.io/nim/mit/diffdock:${DIFFDOCK_TAG:-PLACEHOLDER_CONFIRM_ON_NGC}
+    container_name: biomate-nim-diffdock
+    ports:
+      - "8105:8000"
+
+  # ── (Optional) additional NIMs BioMate's client already supports ──────────
+  # Uncomment + confirm tags to bring these online. They map 1:1 to
+  # bionemo_client methods / _SELF_HOST_PATHS.
+  #
+  # esmfold:      nvcr.io/nim/nvidia/esmfold        -> client.esmfold()
+  # rfdiffusion:  nvcr.io/nim/ipd/rfdiffusion       -> client.rfdiffusion()
+  # proteinmpnn:  nvcr.io/nim/ipd/proteinmpnn       -> client.proteinmpnn()
+  # alphafold2:   nvcr.io/nim/deepmind/alphafold2   -> client.alphafold2()
+  # openfold2:    nvcr.io/nim/openfold/openfold2    -> client._call("openfold2")
+  #
+  # DrugCLIP is intentionally ABSENT — it is NOT a BioNeMo NIM (bespoke,
+  # MIT-licensed ultra-fast screen). It stays a separate BioMate service.
+
+volumes:
+  # Shared NGC weight cache so multi-GB model weights survive restarts and are
+  # reused across services where images share a base.
+  nim-cache:
+    driver: local

@@ -18,6 +18,7 @@
  */
 import React, { useEffect, useMemo, useState } from "react";
 import { FindingsCard } from "@/components/findings-card";
+import { TrajectoryView, type TrajectoryRow, type TrajectoryKind } from "@/components/trajectory-view";
 
 // Text-like file extensions we render inline as text (in a <pre>) rather than
 // in an <iframe>. Chrome blocks iframing a step-file response served with
@@ -111,7 +112,7 @@ interface AfterRunReportProps {
   onContinueAnalysis?: (suggestion: string) => void;
 }
 
-type TabId = "findings" | "outputs" | "methods" | "params" | "software" | "citations" | "qc";
+type TabId = "findings" | "outputs" | "methods" | "params" | "software" | "citations" | "qc" | "trajectory";
 
 interface OutputFile {
   step: string;
@@ -153,6 +154,8 @@ export function AfterRunReport({
   const idForBackend = invocationId || runId;
   const methods = useFetchMethods(idForBackend);
   const qcEvents = useFetchQcEvents(idForBackend);
+  // Agent trajectory (§7.7) — the decision/tool-call/answer log for this run.
+  const trajectoryRows = useFetchTrajectory(runId);
   const software = useFetchSoftware(idForBackend);
   const citations = useFetchCitations(workflowName);
   // Findings fetched here too (alongside FindingsCard's own fetch) so the
@@ -180,6 +183,9 @@ export function AfterRunReport({
     if (citations.length > 0) t.push(["citations", "Citations"]);
     t.push(["params", "Parameters"]);
     if (Object.keys(software).length > 0) t.push(["software", "Software"]);
+    // Trajectory (§7.7) — always visible; renders its own honest empty state
+    // ("No entries") until the backend agent-event log ships.
+    t.push(["trajectory", "Trajectory"]);
     return t;
   }, [methods.hasRealContent, software, citations.length]);
 
@@ -303,6 +309,11 @@ export function AfterRunReport({
         {tab === "software" && <SoftwareTab versions={software} />}
         {tab === "citations" && <CitationsTab citations={citations} />}
         {tab === "qc" && <QcAuditTab events={qcEvents} />}
+        {tab === "trajectory" && (
+          <div style={{ padding: "4px 2px" }}>
+            <TrajectoryView rows={trajectoryRows} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -672,6 +683,40 @@ interface QcEvent {
   message?: string;
   measured?: string | number;
   threshold?: string | number;
+}
+
+/**
+ * useFetchTrajectory — best-effort fetch of the agent/step decision log for the
+ * Trajectory tab. No backend agent-trajectory endpoint ships yet; this probes
+ * a forward-looking route and returns [] (honest empty) on any failure, so the
+ * TrajectoryView renders its own "No entries" empty state rather than fabricated
+ * rows. When the backend event log lands, this is the single wiring point.
+ */
+function useFetchTrajectory(runId: string): TrajectoryRow[] {
+  const [rows, setRows] = useState<TrajectoryRow[]>([]);
+  useEffect(() => {
+    if (!runId) return;
+    let cancelled = false;
+    fetch(`/api/workflows/runs/${encodeURIComponent(runId)}/trajectory`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        const arr: any[] = Array.isArray(data) ? data : data.rows || data.events || [];
+        const allowed: TrajectoryKind[] = ["route", "tool", "clarify", "note", "gate"];
+        const mapped: TrajectoryRow[] = arr
+          .map((e) => ({
+            t: String(e.t ?? e.ts ?? ""),
+            kind: (allowed.includes(e.kind) ? e.kind : "note") as TrajectoryKind,
+            k: String(e.k ?? e.title ?? e.kind ?? "Event"),
+            d: String(e.d ?? e.detail ?? e.message ?? ""),
+            meta: e.meta ? String(e.meta) : undefined,
+          }));
+        setRows(mapped);
+      })
+      .catch(() => { /* no agent-trajectory endpoint yet — honest empty state */ });
+    return () => { cancelled = true; };
+  }, [runId]);
+  return rows;
 }
 
 function useFetchQcEvents(invocationId: string): QcEvent[] {

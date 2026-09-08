@@ -57,6 +57,7 @@ import { WorkflowChainPlan } from "./workflow-chain-plan"
 import { WorkflowDisambiguationCard, type DisambigCandidate } from "./workflow-disambiguation-card"
 import { PipelineListView } from "./pipeline-list-view"
 import { WorkflowRationale } from "./workflow-rationale"
+import { IdeationRigorSection } from "./ideation-rigor-section"
 import { WhyAnchor } from "./why-anchor"
 import { ParamClarificationCard, type ParamClarification } from "./param-clarification-card"
 import { IntentClarificationCard, type IntentCandidate } from "./intent-clarification-card"
@@ -123,6 +124,13 @@ interface ChatMessageProps {
   isRunAnchorHighlighted?: boolean
   isInPanel?: boolean
   onOpenInPanel?: () => void
+  /**
+   * Re-send this answer's intent forced to the Cloud/validated-workflow lane
+   * (spec 02 §2.2). Shown as an unobtrusive action on instant/compute-style
+   * assistant answers. The parent looks up the user turn that produced this
+   * message and re-sends it with intentOverride='workflow_generation'.
+   */
+  onRedoAsValidatedRun?: (message: Message) => void
 }
 
 export function ChatMessage({
@@ -152,9 +160,20 @@ export function ChatMessage({
   isRunAnchorHighlighted = false,
   isInPanel = false,
   onOpenInPanel,
+  onRedoAsValidatedRun,
 }: ChatMessageProps) {
   const isUser = message.role === "user"
   const isWorkflowMessage = !isUser && message.metadata?.type === "workflow" && !!message.metadata?.workflow
+  // "Compute/analysis result" answer — an instant-lane reply that ran code or
+  // a tool (metadata.toolBlocks) or otherwise produced a numeric/analysis
+  // result, but is NOT already a validated (Cloud-lane) workflow message.
+  // These are the answers spec 02 §2.2 offers to "redo as a validated run".
+  const hasToolBlocks = Array.isArray((message.metadata as any)?.toolBlocks) && (message.metadata as any).toolBlocks.length > 0
+  const isComputeResultMessage =
+    !isUser &&
+    !isWorkflowMessage &&
+    message.metadata?.type !== "error" &&
+    hasToolBlocks
   // Workflow-progress messages: short, italic, friendly chat lines emitted by
   // the backend narrator (see backend/lib/galaxy/ai/workflow_ops/workflow_chat_narrator.py)
   // and delivered via the workflow SSE stream. Rendered as a single line, not
@@ -942,6 +961,14 @@ export function ChatMessage({
             <WorkflowRationale rationale={message.metadata.rationale} />
           )}
 
+          {/* Ideation rigor (gap 10) — expandable pre-run plan on the workflow
+              card. Renders <IdeationPlan> when the backend ideation gates have
+              produced a plan (metadata.ideationPlan); otherwise shows an honest
+              empty state. Shown before a run confirms (not once completed). */}
+          {isWorkflowMessage && !everInPanel && currentExecutionRun?.execution?.status !== "completed" && (
+            <IdeationRigorSection plan={(message.metadata as any)?.ideationPlan} />
+          )}
+
           {/* Output Attachments in chat — commented out per UX review 2026-06-19.
               Output files already surface in the workflow panel; rendering them
               again in the chat message was duplicative. Users open the panel to
@@ -1058,6 +1085,19 @@ export function ChatMessage({
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
+            {isComputeResultMessage && onRedoAsValidatedRun && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onRedoAsValidatedRun(message)}
+                data-testid="button-redo-as-validated-run"
+                title="Re-run this as a validated Cloud workflow with quality gates and an audit-ready report"
+                className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <FlaskConical className="h-3.5 w-3.5" />
+                Redo as a validated run
+              </Button>
+            )}
             {effectiveInvocationId && (
               <Button
                 variant="ghost"

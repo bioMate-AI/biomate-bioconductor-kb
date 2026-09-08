@@ -127,13 +127,6 @@ _BIONEMO_PREFIX = "bionemo:"
 _CUSTOM_PREFIX = "custom:"
 
 
-def _bionemo_available() -> bool:
-    """True if a NVIDIA_API_KEY is present (necessary, not sufficient)."""
-    import os
-
-    return bool(os.environ.get("NVIDIA_API_KEY", ""))
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Custom-model catalog — enumerated from the CustomModelRegistry SQLite.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -278,17 +271,25 @@ def _evidence_class_for(model_id: str) -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# In-process inference run registry
+# Inference run registry — cross-worker via the shared RunStateStore
 # ─────────────────────────────────────────────────────────────────────────────
-# run_id -> {status, evidence_class, model_id, result, error, created_at}
-_infer_runs: Dict[str, Dict[str, Any]] = {}
-_infer_lock = threading.Lock()
+# Dev gunicorn runs --workers=4 with no sticky routing, so a module-level dict
+# would 404 on ~75% of polls (POST lands on worker A, GET round-robins to B/C/D).
+# We reuse the exact store the Nextflow executor uses (RUN_STATE_STORE=redis on
+# dev). Our run_ids are uniquely prefixed ("inf-"), so they never collide with
+# nextflow run keys; and because we never call set_pid(), the CompletionPoller
+# skips them (it returns early when get_pid() is None) — no cross-contamination.
+def _store():
+    from galaxy.ai.runs.run_state_store import get_run_state_store
+
+    return get_run_state_store()
 
 
 def _new_run(model_id: str, evidence_class: str) -> str:
     run_id = f"inf-{uuid.uuid4().hex[:12]}"
-    with _infer_lock:
-        _infer_runs[run_id] = {
+    _store().set_run(
+        run_id,
+        {
             "run_id": run_id,
             "model_id": model_id,
             "evidence_class": evidence_class,
@@ -296,26 +297,17 @@ def _new_run(model_id: str, evidence_class: str) -> str:
             "result": None,
             "error": None,
             "created_at": time.time(),
-        }
+        },
+    )
     return run_id
 
 
 def _finish_run(run_id: str, result: Dict[str, Any]) -> None:
-    with _infer_lock:
-        rec = _infer_runs.get(run_id)
-        if rec is None:
-            return
-        rec["status"] = "completed"
-        rec["result"] = result
+    _store().update_run(run_id, status="completed", result=result)
 
 
 def _fail_run(run_id: str, error: str) -> None:
-    with _infer_lock:
-        rec = _infer_runs.get(run_id)
-        if rec is None:
-            return
-        rec["status"] = "failed"
-        rec["error"] = error
+    _store().update_run(run_id, status="failed", error=error)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -343,7 +335,13 @@ class InferResponse(BaseModel):
 # strings (forward refs). Resolve them at load time so the models validate under
 # BOTH pydantic v1 (Galaxy runtime historically) and v2 (current), and under
 # tools/tests that don't build the full FastAPI app.
-for _m in (ModelSummary, InferRequest, InferResponse):
+class TogglePairRequest(BaseModel):
+    """Optional explicit desired state for a learned-pair toggle; omitted → flip."""
+
+    on: Optional[bool] = None
+
+
+for _m in (ModelSummary, InferRequest, InferResponse, TogglePairRequest):
     # pydantic v2: model_rebuild() resolves from the module globals directly.
     _v2_rebuild = getattr(_m, "model_rebuild", None)
     if _v2_rebuild is not None:
@@ -368,7 +366,7 @@ for _m in (ModelSummary, InferRequest, InferResponse):
     "/api/models",
     summary="List catalog models (BioNeMo self-host + registered custom).",
 )
-async def list_models() -> List[Dict[str, Any]]:
+def list_models() -> List[Dict[str, Any]]:
     return _catalog()
 
 
@@ -379,7 +377,7 @@ async def list_models() -> List[Dict[str, Any]]:
     "/api/models/{model_id:path}",
     summary="Model detail: identity, evidence, lineage, consumers, interface, versions.",
 )
-async def get_model(model_id: str) -> Dict[str, Any]:
+def get_model(model_id: str) -> Dict[str, Any]:
     row = _find_catalog_row(model_id)
     if row is None:
         raise HTTPException(status_code=404, detail=f"Unknown model id: {model_id}")
@@ -458,13 +456,438 @@ def _custom_consumers(model_name: str) -> List[str]:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Project-scoped track reads (Train / Adapt / Optimise)
+# ─────────────────────────────────────────────────────────────────────────────
+# These map three stores that ALREADY EXIST onto the frontend track contract:
+#
+#   Train    -> registered custom models per campaign are the "training runs"
+#               that produced a scorer (custom_model_registrations).
+#   Adapt    -> the customer before->after DPO pair recorder
+#               (regulatory_pair_recorder: data/regulatory_training/dpo/*.jsonl).
+#   Optimise -> the Bayesian-optimizer proposal rounds
+#               (auto_retrain.list_auto_proposals over a campaign DB).
+#
+# They live under the DISTINCT `/api/model-tracks/*` prefix so they never
+# collide with the greedy `/api/models/{model_id:path}` detail route. Same
+# honesty contract as inference: a project with no such work returns an
+# honest-empty payload, NEVER fabricated runs / pairs / rounds / scores.
+#
+# `project` maps to a campaign id where one applies; when it does not resolve to
+# a real campaign the read is account-scope (all campaigns) or honest-empty.
+def _resolve_campaign_ids(project: Optional[str]) -> List[str]:
+    """Campaign ids to read. A matching project id first, else all campaigns."""
+    all_ids = sorted({r["campaign_id"] for r in _iter_custom_registrations()})
+    if project and project in all_ids:
+        return [project]
+    return all_ids
+
+
+@router.get(
+    "/api/model-tracks/train",
+    summary="Training-runs list for the Train track (registered scorers per campaign).",
+)
+def train_track(project: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Each registered custom model is the artefact of a training run in its
+    campaign. We surface it as a completed run with its interface family and the
+    campaign as the (training-run) lineage. No metric is fabricated — when the
+    thin layer has no measured metric we report an em-dash, not a number.
+    """
+    regs = _iter_custom_registrations()
+    ids = set(_resolve_campaign_ids(project))
+    runs: List[Dict[str, Any]] = []
+    for r in regs:
+        if r["campaign_id"] not in ids:
+            continue
+        enabled = r.get("enabled", 1)
+        runs.append(
+            {
+                "name": r["model_name"],
+                "family": r.get("mode", "custom"),
+                "when": _fmt_ts(r.get("registered_at")),
+                "status": "completed" if enabled else "failed",
+                "gate": "registered" if enabled else "disabled",
+                "metric": "—",  # no measured metric in this thin layer
+                "dataset": r["campaign_id"],
+                "version": f"→ {r['model_name']} v1",
+                "modelId": _custom_model_id(r["campaign_id"], r["model_name"]),
+            }
+        )
+    return {"runs": runs}
+
+
+@router.get(
+    "/api/model-tracks/adapt",
+    summary="Learned before->after edit pairs for the Adapt track (DPO pair recorder).",
+)
+def adapt_track(project: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Reads the customer before->after DPO pairs the pair recorder appends. Each
+    row is a switchable learned rule (before = model's original text, after =
+    the customer's correction). Best-effort: a missing store is honest-empty.
+    """
+    pairs: List[Dict[str, Any]] = []
+    try:
+        rows = _read_dpo_pairs(project)
+    except Exception as exc:  # noqa: BLE001 — best-effort read
+        log.debug("model-tracks/adapt: read failed: %s", exc)
+        rows = []
+    disabled = _load_disabled_pairs()
+    for i, row in enumerate(rows):
+        meta = row.get("meta", {}) if isinstance(row, dict) else {}
+        chosen = (row.get("chosen") or "").strip()
+        rejected = (row.get("rejected") or "").strip()
+        if not chosen and not rejected:
+            continue
+        section = meta.get("section_type") or meta.get("task") or "output"
+        pair_id = meta.get("row_id") or f"pair-{i+1}"
+        pairs.append(
+            {
+                "id": pair_id,
+                "learned": f"prefer your edit in {section}",
+                "scope": meta.get("org_id") and "organisation" or "project",
+                "before": rejected or "(model output)",
+                "after": chosen or "(your edit)",
+                "source": f"{section} · {_fmt_ts(meta.get('recorded_at'))}",
+                # A recorded pair is active unless the persisted disabled-set
+                # (a sidecar override the worker/compiler can consult) turns it
+                # off. State round-trips: a toggle POST persists here.
+                "on": pair_id not in disabled,
+            }
+        )
+    # pendingCount = active (not-disabled) pairs awaiting the next retrain.
+    active = sum(1 for p in pairs if p["on"])
+    return {"pendingCount": active, "pairs": pairs}
+
+
+# ── Adapt: persisted on/off override for learned pairs ───────────────────────
+# The DPO pair store is append-only (the worker reads it); we NEVER mutate a
+# recorded pair. A toggle is persisted as a separate append-only override log,
+# coalesced to a current on/off per row_id. This is a real persisted decision
+# the compiler can consult, not an in-memory flag.
+def _disabled_pairs_path() -> str:
+    import os
+    from pathlib import Path
+
+    try:
+        from galaxy.ai.drug_discovery.regulatory_pair_recorder import PAIRS_PATH
+
+        base = Path(PAIRS_PATH).parent
+    except Exception:  # noqa: BLE001
+        base = Path(
+            os.environ.get(
+                "BIOMATE_DPO_DIR",
+                str(Path(__file__).resolve().parents[5] / "data" / "regulatory_training" / "dpo"),
+            )
+        )
+    return str(base / "disabled_pairs.jsonl")
+
+
+def _load_disabled_pairs() -> set:
+    """Current disabled row_ids, coalesced from the append-only override log."""
+    import json as _json
+    import os
+
+    path = _disabled_pairs_path()
+    if not os.path.exists(path):
+        return set()
+    state: Dict[str, bool] = {}
+    try:
+        with open(path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = _json.loads(line)
+                except Exception:  # noqa: BLE001
+                    continue
+                rid = rec.get("row_id")
+                if rid:
+                    # disabled=True means "off"; the last write for a row wins.
+                    state[rid] = bool(rec.get("disabled", True))
+    except Exception as exc:  # noqa: BLE001
+        log.debug("adapt: read disabled-set failed: %s", exc)
+        return set()
+    return {rid for rid, off in state.items() if off}
+
+
+def _append_disabled_override(row_id: str, disabled: bool) -> None:
+    import json as _json
+    import os
+    import time as _time
+    from pathlib import Path
+
+    path = _disabled_pairs_path()
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    rec = {"row_id": row_id, "disabled": bool(disabled), "at": _time.time()}
+    with _disabled_lock:
+        with open(path, "a") as f:
+            f.write(_json.dumps(rec) + "\n")
+
+
+_disabled_lock = threading.Lock()
+
+
+@router.post(
+    "/api/model-tracks/adapt/{pair_id}/toggle",
+    summary="Persist a learned pair on/off (append-only override; never mutates the DPO store).",
+)
+def toggle_adapt_pair(pair_id: str, body: Optional[TogglePairRequest] = None) -> Dict[str, Any]:
+    if not pair_id:
+        raise HTTPException(status_code=400, detail="pair_id required")
+    currently_disabled = pair_id in _load_disabled_pairs()
+    # Explicit target if provided, else FLIP the current state: an enabled pair
+    # (not disabled) toggles off; a disabled pair toggles back on.
+    if body is not None and body.on is not None:
+        want_on = bool(body.on)
+    else:
+        want_on = currently_disabled  # flip: was-off → on, was-on → off
+    _append_disabled_override(pair_id, disabled=not want_on)
+    return {"id": pair_id, "on": want_on}
+
+
+@router.post(
+    "/api/model-tracks/adapt/retrain",
+    summary="Queue a retrain over the active edit pairs as a tracked training job.",
+)
+def retrain_adapt(project: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Queues a real retrain job through regulatory_training_jobs.submit — the same
+    tracked-job store the Train track reads. org_id is the project when supplied.
+    """
+    org_id = project or "default"
+    user_id = project or "models-track"  # per-user store; project stands in when no auth ctx
+    try:
+        from galaxy.ai.drug_discovery.regulatory_training_jobs import submit
+
+        job = submit(user_id=user_id, org_id=org_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("adapt retrain submit failed: %s", exc)
+        raise HTTPException(status_code=502, detail=f"retrain submit failed: {exc}")
+    return {
+        "job_id": getattr(job, "job_id", None),
+        "status": getattr(job, "status", "queued"),
+        "edit_pair_count": getattr(job, "edit_pair_count", None),
+    }
+
+
+@router.get(
+    "/api/model-tracks/optimise",
+    summary="The DMTA loop for the Optimise track (Bayesian-optimizer proposal rounds).",
+)
+def optimise_track(project: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Reads the latest optimizer proposal round for a campaign and shapes it as the
+    DMTA loop. Returns {active: False} when there is no proposal round, so the
+    frontend renders its honest empty state. No score is fabricated — scores and
+    confidence come straight from the stored round.
+    """
+    campaign_ids = _resolve_campaign_ids(project)
+    for campaign_id in campaign_ids:
+        try:
+            loop = _optimise_for_campaign(campaign_id)
+        except Exception as exc:  # noqa: BLE001 — best-effort read
+            log.debug("model-tracks/optimise: %s failed: %s", campaign_id, exc)
+            continue
+        if loop is not None:
+            return loop
+    return {"active": False}
+
+
+def _optimise_for_campaign(campaign_id: str) -> Optional[Dict[str, Any]]:
+    from pathlib import Path
+
+    db_path = str(Path(_campaign_db_dir()) / f"{campaign_id}.db")
+    if not Path(db_path).exists():
+        return None
+    try:
+        from galaxy.ai.drug_discovery.auto_retrain import list_auto_proposals
+    except Exception as exc:  # noqa: BLE001
+        log.debug("optimise: auto_retrain unavailable: %s", exc)
+        return None
+
+    proposals = list_auto_proposals(db_path, campaign_id, limit=20)
+    if not proposals:
+        return None
+
+    # The AutoProposal carries: round_number, proposed_smiles (list), scores
+    # (dict keyed by objective → list, or by smiles), confidence_intervals, and
+    # ad_statuses (list[str] parallel to proposed_smiles: "in_domain" /
+    # "outside_domain"). We shape the LATEST round into the proposal table.
+    latest = max(proposals, key=lambda p: getattr(p, "round_number", 0))
+    round_no = getattr(latest, "round_number", 0)
+    smiles = list(getattr(latest, "proposed_smiles", []) or [])
+    scores = getattr(latest, "scores", {}) or {}
+    cis = getattr(latest, "confidence_intervals", {}) or {}
+    ad = list(getattr(latest, "ad_statuses", []) or [])
+
+    # scores may be {objective: [per-compound]} or {smiles: score}. Resolve a
+    # per-compound score list without fabricating a value when absent.
+    per_compound_scores = _resolve_score_list(scores, smiles)
+
+    proposal_rows: List[Dict[str, Any]] = []
+    for i, smi in enumerate(smiles[:24]):
+        sc = per_compound_scores[i] if i < len(per_compound_scores) else None
+        conf = _confidence_from_ci(_ci_at(cis, smi, i))
+        # Applicability-domain status → verdict. Outside the domain is a
+        # safety-gate rejection, shown (not dropped) so the loop's intent stays
+        # visible. Missing status defaults to in-domain (the optimizer default).
+        status = ad[i] if i < len(ad) else "in_domain"
+        verdict = (
+            "accepted"
+            if status == "in_domain"
+            else "rejected · out of applicability domain"
+        )
+        proposal_rows.append(
+            {
+                "id": f"cand-{i+1}",
+                "score": _fmt_num(sc),
+                "confidence": conf,
+                "verdict": verdict,
+            }
+        )
+
+    rounds = [
+        {
+            "round": f"Round {getattr(p, 'round_number', 0)}",
+            "status": "current" if getattr(p, "round_number", 0) == round_no else "closed",
+            "what": f"{len(getattr(p, 'proposed_smiles', []) or [])} candidates",
+            "when": _fmt_ts(getattr(p, "created_at", None)),
+        }
+        for p in sorted(proposals, key=lambda p: getattr(p, "round_number", 0))
+    ]
+
+    return {
+        "active": True,
+        "running": True,
+        "round": round_no,
+        "surrogates": [
+            {"id": _custom_model_id(campaign_id, "surrogate-gp"), "label": "surrogate GP"}
+        ],
+        "rounds": rounds,
+        "proposal": proposal_rows,
+    }
+
+
+def _resolve_score_list(scores: Any, smiles: List[str]) -> List[Any]:
+    """
+    Normalize the AutoProposal.scores field to a per-compound list aligned with
+    `smiles`. scores may be {objective: [per-compound]} or {smiles: score}.
+    Returns a list of length len(smiles) (None where unknown) — never fabricated.
+    """
+    if not isinstance(scores, dict) or not scores:
+        return [None] * len(smiles)
+    # {smiles: score}
+    if any(s in scores for s in smiles):
+        return [scores.get(s) for s in smiles]
+    # {objective: [per-compound]} — take the first objective's list.
+    for val in scores.values():
+        if isinstance(val, (list, tuple)):
+            out = list(val)
+            if len(out) < len(smiles):
+                out = out + [None] * (len(smiles) - len(out))
+            return out[: len(smiles)]
+    return [None] * len(smiles)
+
+
+def _ci_at(cis: Any, smi: str, idx: int) -> Any:
+    """Pull a (lo, hi) pair from confidence_intervals for a compound. None when absent."""
+    if isinstance(cis, dict):
+        if smi in cis:
+            return cis[smi]
+        lo = cis.get("lo") or cis.get("lower")
+        hi = cis.get("hi") or cis.get("upper")
+        if isinstance(lo, (list, tuple)) and isinstance(hi, (list, tuple)):
+            if idx < len(lo) and idx < len(hi):
+                return (lo[idx], hi[idx])
+    elif isinstance(cis, (list, tuple)) and idx < len(cis):
+        return cis[idx]
+    return None
+
+
+def _read_dpo_pairs(project: Optional[str]) -> List[Dict[str, Any]]:
+    """
+    Read the customer before->after DPO pairs from the recorder's JSONL store.
+    Filters by org/project when the meta carries a matching org_id. Best-effort:
+    a missing file returns [].
+    """
+    import json as _json
+
+    try:
+        from galaxy.ai.drug_discovery.regulatory_pair_recorder import PAIRS_PATH
+        path = str(PAIRS_PATH)
+    except Exception as exc:  # noqa: BLE001
+        log.debug("adapt: pair recorder unavailable: %s", exc)
+        return []
+
+    import os
+
+    if not os.path.exists(path):
+        return []
+    out: List[Dict[str, Any]] = []
+    with open(path, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = _json.loads(line)
+            except Exception:  # noqa: BLE001 — skip a corrupt line
+                continue
+            if project:
+                org = (row.get("meta", {}) or {}).get("org_id")
+                if org and org != project:
+                    continue
+            out.append(row)
+    return out
+
+
+def _confidence_from_ci(ci: Any) -> str:
+    """Map a confidence-interval width to a low/medium/high band. Neutral when unknown."""
+    try:
+        lo, hi = ci[0], ci[1]
+        width = abs(float(hi) - float(lo))
+    except Exception:  # noqa: BLE001
+        return "medium"
+    if width <= 0.1:
+        return "high"
+    if width <= 0.3:
+        return "medium"
+    return "low"
+
+
+def _fmt_num(v: Any) -> str:
+    try:
+        return f"{float(v):.3g}"
+    except Exception:  # noqa: BLE001
+        return "—"
+
+
+def _fmt_ts(ts: Any) -> str:
+    """Unix ts (or ISO string) -> a short date. Em-dash when unknown."""
+    if not ts:
+        return "—"
+    if isinstance(ts, str):
+        return ts[:10]
+    try:
+        import datetime as _dt
+
+        return _dt.datetime.utcfromtimestamp(float(ts)).strftime("%Y-%m-%d")
+    except Exception:  # noqa: BLE001
+        return "—"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # POST /api/models/{id}/infer
 # ─────────────────────────────────────────────────────────────────────────────
 @router.post(
     "/api/models/{model_id:path}/infer",
     summary="Dispatch a pre-trained inference; returns a run_id to poll.",
 )
-async def infer(model_id: str, body: InferRequest) -> Dict[str, Any]:
+def infer(model_id: str, body: InferRequest) -> Dict[str, Any]:
     row = _find_catalog_row(model_id)
     if row is None:
         raise HTTPException(status_code=404, detail=f"Unknown model id: {model_id}")
@@ -504,23 +927,21 @@ async def infer(model_id: str, body: InferRequest) -> Dict[str, Any]:
     "/api/inference/{run_id}/result",
     summary="Inference result, shaped by evidence class.",
 )
-async def get_inference_result(run_id: str) -> Dict[str, Any]:
-    with _infer_lock:
-        rec = _infer_runs.get(run_id)
-        if rec is None:
-            raise HTTPException(status_code=404, detail=f"Unknown run_id: {run_id}")
-        rec = dict(rec)  # shallow copy for read outside the lock
+def get_inference_result(run_id: str) -> Dict[str, Any]:
+    rec = _store().get_run(run_id)
+    if rec is None:
+        raise HTTPException(status_code=404, detail=f"Unknown run_id: {run_id}")
 
-    if rec["status"] == "running":
+    if rec.get("status") == "running":
         return {"run_id": run_id, "status": "running"}
-    if rec["status"] == "failed":
-        return {"run_id": run_id, "status": "failed", "error": rec["error"]}
+    if rec.get("status") == "failed":
+        return {"run_id": run_id, "status": "failed", "error": rec.get("error")}
 
-    result = rec["result"] or {}
+    result = rec.get("result") or {}
     return {
         "run_id": run_id,
         "status": "completed",
-        "evidenceClass": rec["evidence_class"],
+        "evidenceClass": rec.get("evidence_class"),
         **result,
     }
 
@@ -537,18 +958,23 @@ def _dispatch_bionemo(
     """
     fn_name = model_id[len(_BIONEMO_PREFIX):]
 
-    if not _bionemo_available():
-        return _stub_result(
-            evidence_class,
-            reason="NVIDIA_API_KEY not set — BioNeMo NIM unreachable",
-        )
-
     try:
-        from galaxy.ai.bionemo_client import BioNeMoClient
+        from galaxy.ai.bionemo_client import BioNeMoClient, MODE_STUB
 
         client = BioNeMoClient()
     except Exception as exc:  # noqa: BLE001
         return _stub_result(evidence_class, reason=f"BioNeMo client init failed: {exc}")
+
+    # The client owns backend selection (self_host | hosted_api | stub) — do NOT
+    # re-gate on NVIDIA_API_KEY here: production mode is self_host (a URL, no key),
+    # so a key-only check would stub out every inference even with the NIM up.
+    # When nothing is configured the client's effective mode is stub; surface its
+    # own honest reason. Otherwise dispatch and let per-call stub handling (below)
+    # label an unreachable backend.
+    if client._effective_mode() == MODE_STUB:
+        return _stub_result(
+            evidence_class, reason=client._stub_reason(fn_name, MODE_STUB)
+        )
 
     if evidence_class == STRUCTURE:
         return _bionemo_structure(client, fn_name, inputs)
@@ -567,8 +993,12 @@ def _bionemo_structure(client, fn_name: str, inputs: Dict[str, Any]) -> Dict[str
 
     if fn_name == "esmfold":
         pdb = client.esmfold(sequence)
-        # ESMFold returns a PDB string; per-residue pLDDT lives in the B-factor
-        # column. We surface the file ref and parse pLDDT if present.
+        # ESMFold returns a PDB string ('' when the backend is unreachable —
+        # never a fabricated structure). Label the empty case as a stub so the
+        # UI shows "backend unreachable", not an empty-but-real prediction.
+        if not pdb:
+            return _stub_result(STRUCTURE, reason="ESMFold backend unreachable")
+        # per-residue pLDDT lives in the B-factor column.
         plddt = _plddt_from_pdb(pdb)
         return {
             "structureFileRef": _store_blob(pdb, suffix=".pdb"),
@@ -577,13 +1007,20 @@ def _bionemo_structure(client, fn_name: str, inputs: Dict[str, Any]) -> Dict[str
             "regions": [],
         }
 
-    # boltz2 / alphafold2 / openfold2 → dict payloads (CIF + confidence)
+    # boltz2 / alphafold2 / openfold2 → dict payloads (CIF + confidence).
+    # Route through the mode-aware entry points so self_host / stub are honoured
+    # (openfold2 must NOT call _nvcf_call directly — that bypasses self_host and
+    # leaks data to NVIDIA's hosted API contrary to the data-residency posture).
     if fn_name == "boltz2":
         raw = client.boltz2(sequence)
     elif fn_name == "alphafold2":
         raw = client.alphafold2(sequence)
     else:
-        raw = client._nvcf_call(fn_name, {"sequence": sequence})  # openfold2 etc.
+        raw = client._call(fn_name, {"sequence": sequence})  # openfold2 etc.
+
+    # An unreachable backend returns a labelled stub dict — surface it as such.
+    if client._is_stub(raw):
+        return _stub_result(STRUCTURE, reason=raw.get("reason", "backend unreachable"))
 
     structures = raw.get("structures") or raw.get("pdbs") or []
     struct_str = structures[0] if structures else ""
@@ -609,6 +1046,8 @@ def _bionemo_genomic(client, fn_name: str, inputs: Dict[str, Any]) -> Dict[str, 
     num_tokens = int(inputs.get("num_tokens", 100))
 
     raw = client.evo2_generate(sequence, num_tokens=num_tokens, model=fn_name)
+    if client._is_stub(raw):
+        return _stub_result(GENOMIC, reason=raw.get("reason", "backend unreachable"))
     generated = raw.get("sequence", "")
     # Evo2 emits a generated sequence; we expose it as a 'marks' track over the
     # generated region. No per-base scores are fabricated.

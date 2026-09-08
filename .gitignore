@@ -86,6 +86,10 @@ logs/
 MANIFEST
 *.mkv
 models/
+# The broad models/ rule above targets ML model *artifact* dirs; it must not
+# swallow the frontend Models module source (React/TS components).
+!frontend/client/src/components/models/
+!frontend/client/src/components/models/**
 *.mov
 *.mp4
 .next/

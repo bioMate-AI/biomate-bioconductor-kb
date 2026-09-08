@@ -4801,6 +4801,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // DL upgrade wave-1/wave-2 — Models + Design&Generate surfaces.
+  // Proxy the Galaxy-served WS1 endpoints to the browser, mirroring the
+  // /api/ind-report/* and /api/regulatory/* proxies above (optionalAuth,
+  // user's decrypted Galaxy API key with GALAXY_API_KEY fallback, JSON or
+  // binary passthrough). Consumed by frontend components/models/* and
+  // components/design-generate/*:
+  //   GET  /api/models                       (registry list)
+  //   GET  /api/models/:id                   (model object)
+  //   POST /api/models/:id/infer             (submit inference)
+  //   GET  /api/inference/:runId/result      (poll inference result)
+  //   GET  /api/model-tracks/train           (Train track: training runs)
+  //   GET  /api/model-tracks/adapt           (Adapt track: learned edit pairs)
+  //   GET  /api/model-tracks/optimise        (Optimise track: DMTA loop)
+  //   POST /api/generate                     (submit generation)
+  //   GET  /api/generate/:runId              (poll generation run)
+  // A single shared handler keeps behavior identical across all six.
+  const _dlProxyHandler = async (req: any, res: any) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      const fullPath = `${req.path}${queryStr}`;
+      const _rawKey = (req as any).user?.galaxyApiKey as string | undefined;
+      const apiKey = (_rawKey ? decryptField(_rawKey) : null) || process.env.GALAXY_API_KEY || '';
+      const headers: Record<string, string> = {
+        'Content-Type': req.headers['content-type'] || 'application/json',
+        'X-API-Key': apiKey,
+      };
+      const fetchOpts: RequestInit = {
+        method: req.method.toUpperCase(),
+        headers,
+        signal: AbortSignal.timeout(120000),
+      };
+      if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
+        fetchOpts.body = JSON.stringify(req.body);
+      }
+      const resp = await fetch(`${galaxyUrl}${fullPath}`, fetchOpts);
+      const contentType = resp.headers.get('content-type') || 'application/json';
+      res.setHeader('Content-Type', contentType);
+      const cd = resp.headers.get('content-disposition');
+      if (cd) res.setHeader('Content-Disposition', cd);
+      res.status(resp.status);
+      if (contentType.includes('application/json')) {
+        const data = await resp.json().catch(() => ({}));
+        return res.json(data);
+      }
+      const buf = Buffer.from(await resp.arrayBuffer());
+      return res.send(buf);
+    } catch (err: any) {
+      const status = err.response?.status || 502;
+      return res.status(status).json({ error: 'DL surface proxy error', detail: err.message });
+    }
+  };
+  // Bare-path matchers (Express "/*" wildcards require a following segment, so
+  // the collection roots are registered explicitly) plus their sub-paths.
+  app.all("/api/models", optionalAuth, _dlProxyHandler);
+  app.all("/api/models/*", optionalAuth, _dlProxyHandler);
+  // Project-scoped Models track reads (Train / Adapt / Optimise). Distinct
+  // prefix so they don't fall under the greedy /api/models/:id detail route.
+  app.all("/api/model-tracks/*", optionalAuth, _dlProxyHandler);
+  app.all("/api/inference/*", optionalAuth, _dlProxyHandler);
+  app.all("/api/generate", optionalAuth, _dlProxyHandler);
+  app.all("/api/generate/*", optionalAuth, _dlProxyHandler);
+  // Tier-1 data surface — perception-at-ingest profiler.
+  //   POST /api/perception/profile  { datasetRef }  -> DataProfile (+ planImpact)
+  // Backend: backend/lib/galaxy/webapps/galaxy/api/perception.py. Consumed by
+  // components/datasets/* (DatasetObject Quality tab). Same proxy as /api/models.
+  app.all("/api/perception/*", optionalAuth, _dlProxyHandler);
+  // Tier-1 data surface — dataset lineage / consumers / versions / RO-Crate.
+  //   GET  /api/datasets/:ref/lineage    -> producing run/workflow/step
+  //   GET  /api/datasets/:ref/consumers  -> runs that read it as input
+  //   GET  /api/datasets/:ref/versions   -> version history (v1 + append log)
+  //   POST /api/datasets/:ref/versions   -> append a version-log entry { note }
+  //   GET  /api/datasets/:ref/ro-crate   -> RO-Crate metadata (download)
+  // Backend: backend/lib/galaxy/webapps/galaxy/api/datasets_object.py. Derived
+  // from run-output provenance + input params BioMate already tracks + an
+  // append-only version log; honest empty lists / minimal crate where a source
+  // doesn't exist. Consumed by components/datasets/* (DatasetObject
+  // Lineage/Consumers/Versions tabs + Export RO-Crate). app.all forwards every
+  // method (incl. the POST body) — the single wildcard already covers the new
+  // versions-POST + ro-crate-GET routes, no extra registration needed.
+  // Same proxy as /api/models. :ref is URL-encoded by the client (S3 keys /
+  // paths contain "/"); the backend catch-all + urldecode handles it.
+  app.all("/api/datasets/*", optionalAuth, _dlProxyHandler);
+
+  // Server-side lane arbiter — the composer's LanePreview calls this on a
+  // debounce so its advisory Instant/Cloud verdict matches how the query will
+  // actually route (spec 00 §0.3, §2.2). Same proxy as /api/models.
+  //   POST /api/route/classify  { text }  -> { lane, domain, why, intent, confidence }
+  // Backend: backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py (route_classify),
+  // wrapping the real UnifiedIntentRouter. Advisory + non-blocking; the client
+  // falls back to its local heuristic on error/timeout.
+  app.all("/api/route/*", optionalAuth, _dlProxyHandler);
+
   app.all("/api/qc-gates/*", async (req: any, res: any) => {
     try {
       const path = req.path;
@@ -8682,6 +8776,23 @@ ${paramLines || '(none recorded)'}`;
       if (!nfPath) return res.status(400).json({ error: "nextflow_path required" });
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       const r = await fetch(`${galaxyUrl}/api/nextflow/steps?nextflow_path=${encodeURIComponent(nfPath)}`, {
+        headers: { 'x-api-key': process.env.GALAXY_API_KEY || '' },
+      });
+      const data = await r.json();
+      res.status(r.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Per-phase declared-skip + DAG-dependency analysis (spec 02 §2.5.1).
+  // Consumed by the SkipDependency panel in the workflow viewer.
+  app.get("/api/nextflow/skip-analysis", optionalAuth, async (req, res) => {
+    try {
+      const nfPath = String(req.query.nextflow_path || '');
+      if (!nfPath) return res.status(400).json({ error: "nextflow_path required" });
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const r = await fetch(`${galaxyUrl}/api/nextflow/skip-analysis?nextflow_path=${encodeURIComponent(nfPath)}`, {
         headers: { 'x-api-key': process.env.GALAXY_API_KEY || '' },
       });
       const data = await r.json();

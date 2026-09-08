@@ -6,6 +6,7 @@ import { groupProgressMessages, FoldedProgressGroup } from "./chat-progress-fold
 import { DataAnalysisCard, type FileAnalysisResult } from "./data-analysis-card"
 import { FindingsCard } from "./findings-card"
 import { ChatInput } from "./chat-input"
+import { ColdStartDashboard } from "./cold-start-dashboard"
 import { TaskList, type TaskItem, type TaskStatus } from "./task-list"
 import { TypingIndicator } from "./typing-indicator"
 // FileUpload moved into ChatInput component as a popover
@@ -1696,12 +1697,15 @@ export function ChatInterface({
    * pendingMessages and auto-submitted as soon as each response completes.
    * Messages with file attachments bypass the queue and go immediately.
    */
-  const handleSendOrQueue = useCallback((content: string, files?: File[]) => {
-    if (displayTyping && !files?.length && content.trim()) {
+  const handleSendOrQueue = useCallback((content: string, files?: File[], contextOverride?: Record<string, unknown>) => {
+    // Only text-only messages with NO lane override are soft-queued; a message
+    // carrying a lane override (from the composer's lane preview) must reach the
+    // send path with its override intact, so it bypasses the queue.
+    if (displayTyping && !files?.length && !contextOverride && content.trim()) {
       setPendingMessages(prev => [...prev, content.trim()])
       return
     }
-    handleSendMessage(content, files)
+    handleSendMessage(content, files, contextOverride)
   }, [displayTyping]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const stopStreaming = useCallback(() => {
@@ -1905,6 +1909,24 @@ export function ChatInterface({
     handleSendOrQueue(lastUser.content)
   }, [chatSession?.messages, handleSendOrQueue])
 
+  // "Redo as a validated run" (spec 02 §2.2). Given an instant/compute-style
+  // assistant answer, find the user turn that produced it and re-send that
+  // intent forced to the Cloud/validated-workflow lane via the existing
+  // intentOverride path (backend maps 'workflow_generation' ->
+  // needsWorkflowGeneration and skips ambiguity detection).
+  const handleRedoAsValidatedRun = useCallback((message: Message) => {
+    const msgs = chatSession?.messages ?? []
+    const idx = msgs.findIndex(m => m.id === message.id)
+    // Nearest preceding user turn (fall back to the last user message).
+    const priorUser = idx >= 0
+      ? [...msgs.slice(0, idx)].reverse().find(m => m.role === 'user' && m.content?.trim())
+      : undefined
+    const source = priorUser ?? [...msgs].reverse().find(m => m.role === 'user' && m.content?.trim())
+    if (!source?.content?.trim()) return
+    analytics.track('redo_as_validated_run', { sessionId: chatSession?.id })
+    handleSendMessage(source.content, undefined, { intentOverride: 'workflow_generation' })
+  }, [chatSession?.messages, chatSession?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!externalPromptRequest) return
     if (displayTyping) return
@@ -1951,7 +1973,20 @@ export function ChatInterface({
         padding: '28px clamp(20px, 8%, 120px) 20px',
       }}>
         {displayMessages.length === 0 && !isTyping && !isTypingLocal && (
-          <ReturningUserWelcome onSend={(q) => handleSendOrQueue(q)} />
+          <>
+            {/* ReturningUserWelcome still returns null (the old hardcoded
+                WELCOME_PROMPTS grid is intentionally not restored). The
+                cold-start module dashboard replaces it: it seeds the composer
+                (does not send) via the captured draft setter, so the user
+                still reviews and sends. Spec 00 §0.4/§0.5. */}
+            <ReturningUserWelcome onSend={(q) => handleSendOrQueue(q)} />
+            <ColdStartDashboard
+              onSeed={(text) => {
+                if (localSetDraftRef.current) localSetDraftRef.current(text);
+                else handleSendOrQueue(text);
+              }}
+            />
+          </>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
           {(() => {
@@ -1986,6 +2021,7 @@ export function ChatInterface({
                   onParameterChange={onParameterChange}
                   onRegenerate={handleRegenerate}
                   onSuggestionClick={handleSuggestionClick}
+                  onRedoAsValidatedRun={handleRedoAsValidatedRun}
                   onWorkflowProgress={handleWorkflowProgress}
                   isWorkflowRunning={isWorkflowRunning}
                   workflowProgress={workflowProgress}

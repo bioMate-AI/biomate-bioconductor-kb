@@ -34,7 +34,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-interface ProjectFile {
+export interface ProjectFile {
   id: string;
   name: string;
   s3_key: string;
@@ -124,6 +124,68 @@ function canPreview(file: ProjectFile): boolean {
   return PREVIEW_EXTS.has(ext) && file.size < 1024 * 1024; // < 1 MB
 }
 
+// Extensions the perception profiler (backend data_perception.py) can read.
+const PROFILABLE_EXTS = new Set([
+  "csv","tsv","txt","tab","vcf","fastq","fq","gz",
+]);
+
+function isProfilable(file: ProjectFile): boolean {
+  const parts = file.name.toLowerCase().split(".");
+  // handle .fastq.gz etc — check the last two extension tokens.
+  const last = parts[parts.length - 1] ?? "";
+  const prev = parts.length > 2 ? parts[parts.length - 2] : "";
+  return PROFILABLE_EXTS.has(last) || PROFILABLE_EXTS.has(prev);
+}
+
+// Map a perception quality verdict to a dot colour. "unknown" is honest grey —
+// no profile has been computed, NOT a claim of good.
+const QUALITY_DOT: Record<string, string> = {
+  good: "bg-emerald-500",
+  watch: "bg-amber-500",
+  blocked: "bg-red-500",
+  unknown: "bg-muted-foreground/40",
+};
+
+/**
+ * QualityDot — a per-row ingest-quality indicator. Lazily profiles the file via
+ * POST /api/perception/profile the first time the row is rendered, but only for
+ * file types the profiler can read. Everything else stays honest grey/unknown.
+ */
+function QualityDot({ file }: { file: ProjectFile }) {
+  const [quality, setQuality] = useState<string>("unknown");
+  const profilable = isProfilable(file);
+
+  useEffect(() => {
+    if (!profilable) return;
+    let cancelled = false;
+    fetch("/api/perception/profile", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ datasetRef: file.s3_key, name: file.name }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d && typeof d.quality === "string") setQuality(d.quality);
+      })
+      .catch(() => { /* stay unknown */ });
+    return () => { cancelled = true; };
+  }, [file.s3_key, file.name, profilable]);
+
+  const cls = QUALITY_DOT[quality] ?? QUALITY_DOT.unknown;
+  const title = profilable
+    ? `Ingest quality: ${quality}`
+    : "Ingest quality: not profiled (unsupported file type)";
+  return (
+    <span
+      className={cn("h-1.5 w-1.5 rounded-full shrink-0", cls)}
+      title={title}
+      data-testid={`file-quality-${file.id}`}
+      data-quality={quality}
+    />
+  );
+}
+
 function FilePreview({ url, name }: { url: string; name: string }) {
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
   const isImage = ["png","jpg","jpeg","gif","webp","svg"].includes(ext);
@@ -170,6 +232,7 @@ function FileRow({
   onDownload,
   copiedId,
   onCopy,
+  onOpenDataset,
   canEdit = true,
 }: {
   file: ProjectFile;
@@ -178,6 +241,8 @@ function FileRow({
   onDownload: (id: string) => void;
   copiedId: string | null;
   onCopy: (id: string, key: string) => void;
+  /** Open this file as a first-class DatasetObject (data hub). */
+  onOpenDataset?: (file: ProjectFile) => void;
   canEdit?: boolean;
 }) {
   const Icon = fileIcon(file.name, file.content_type);
@@ -204,7 +269,20 @@ function FileRow({
         title={file.s3_key}
       >
         <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <span className="flex-1 truncate text-xs text-foreground">{file.name}</span>
+        <QualityDot file={file} />
+        {onOpenDataset ? (
+          <button
+            type="button"
+            onClick={() => onOpenDataset(file)}
+            className="flex-1 min-w-0 truncate text-left text-xs text-foreground hover:underline cursor-pointer"
+            title="Open dataset"
+            data-testid={`file-open-${file.id}`}
+          >
+            {file.name}
+          </button>
+        ) : (
+          <span className="flex-1 truncate text-xs text-foreground">{file.name}</span>
+        )}
         {file.step_name && (
           <span className="text-[10px] px-1 py-0.5 rounded bg-blue-100 text-blue-700 shrink-0 font-mono" title={`Produced by step: ${file.step_name}`}>
             {file.step_name}
@@ -294,11 +372,15 @@ export interface ProjectFileTreeProps {
   onPickFile?: (s3Key: string, fileName: string) => void;
   /** Called whenever the file list changes (load, upload, delete) */
   onFilesChanged?: (files: { name: string; size?: number }[]) => void;
+  /** Open a file row as a first-class DatasetObject (data hub). When set, the
+   *  file name becomes a button that opens the dataset instead of only the
+   *  inline preview. */
+  onOpenDataset?: (file: ProjectFile) => void;
   /** When false, hide upload/delete controls (read-only viewers). Default true. */
   canEdit?: boolean;
 }
 
-export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, canEdit = true }: ProjectFileTreeProps) {
+export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenDataset, canEdit = true }: ProjectFileTreeProps) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -527,6 +609,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, canEdit
                           onDownload={handleDownload}
                           copiedId={copiedId}
                           onCopy={handleCopy}
+                          onOpenDataset={onOpenDataset}
                           canEdit={canEdit}
                         />
                       );

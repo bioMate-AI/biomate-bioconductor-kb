@@ -146,3 +146,83 @@ def test_plddt_from_pdb(mod):
     assert mod._plddt_from_pdb(line) == [87.65]
     assert mod._plddt_from_pdb("") == []
     assert mod._plddt_from_pdb("not a pdb") == []
+
+
+# ── B1 regression: dispatch must trust the client's mode, NOT NVIDIA_API_KEY ──
+# The production posture is self_host (a URL, no key). A key-only gate stubbed
+# out every inference even with the NIM up. These prove the gate is removed.
+def _install_fake_bionemo(effective_mode, boltz2_return):
+    """Register a fake galaxy.ai.bionemo_client so the lazy import in
+    _dispatch_bionemo resolves to a network-free stub client. We inject only the
+    leaf module — the real ``galaxy.ai`` package imports fine and other tests
+    (B2) need the real ``galaxy.ai.runs.run_state_store`` under it."""
+    import types as _types
+
+    class _FakeClient:
+        def _effective_mode(self):
+            return effective_mode
+
+        @staticmethod
+        def _is_stub(raw):
+            return isinstance(raw, dict) and raw.get("_stub") is True
+
+        @staticmethod
+        def _stub_reason(model, mode):
+            return f"no backend configured for {model!r} (mode {mode})"
+
+        def boltz2(self, sequence):
+            return boltz2_return
+
+    fake = _types.ModuleType("galaxy.ai.bionemo_client")
+    fake.BioNeMoClient = _FakeClient
+    fake.MODE_STUB = "stub"
+    sys.modules["galaxy.ai.bionemo_client"] = fake
+
+
+def test_dispatch_selfhost_not_gated_on_api_key(mod, monkeypatch):
+    # No NVIDIA_API_KEY, but the client reports self_host (URL configured) and the
+    # NIM is unreachable → we must DISPATCH (and get the self-host unreachable
+    # reason), NOT short-circuit with a "key not set" stub.
+    monkeypatch.delenv("NVIDIA_API_KEY", raising=False)
+    _install_fake_bionemo(
+        effective_mode="self_host",
+        boltz2_return={"_stub": True, "reason": "self-host unreachable at http://nim:8000"},
+    )
+    try:
+        res = mod._dispatch_bionemo("bionemo:boltz2", mod.STRUCTURE, {"sequence": "MKT"})
+    finally:
+        sys.modules.pop("galaxy.ai.bionemo_client", None)
+    assert res["stub"] is True
+    # Proof it went THROUGH dispatch (B5 labelling) rather than the deleted gate:
+    assert "self-host unreachable" in res["stub_reason"]
+    # And it's still a correctly-shaped structure stub (no fabricated numbers).
+    assert res["plddt"] == [] and res["pae"] == [] and res["structureFileRef"] is None
+
+
+def test_dispatch_stub_mode_uses_client_reason(mod):
+    # Nothing configured → client effective mode is stub → surface its own reason.
+    _install_fake_bionemo(effective_mode="stub", boltz2_return={})
+    try:
+        res = mod._dispatch_bionemo("bionemo:boltz2", mod.STRUCTURE, {"sequence": "MKT"})
+    finally:
+        sys.modules.pop("galaxy.ai.bionemo_client", None)
+    assert res["stub"] is True
+    assert "no backend configured" in res["stub_reason"]
+
+
+# ── B2 regression: run registry is the shared cross-worker store ──────────────
+def test_run_registry_uses_shared_store(mod):
+    # A run written by _new_run/_finish_run must be readable via the same store
+    # any worker resolves through get_run_state_store() (InMemory in this env).
+    run_id = mod._new_run("bionemo:boltz2", mod.STRUCTURE)
+    assert run_id.startswith("inf-")
+    store = mod._store()
+    assert store.get_run(run_id)["status"] == "running"
+    mod._finish_run(run_id, {"plddt": [], "pae": [], "regions": [], "structureFileRef": None})
+    out = mod.get_inference_result(run_id)
+    assert out["status"] == "completed"
+    assert out["evidenceClass"] == mod.STRUCTURE
+    # Unknown run → 404 (HTTPException), not a silent empty.
+    import pytest as _pytest
+    with _pytest.raises(Exception):
+        mod.get_inference_result("inf-does-not-exist")

@@ -38,9 +38,62 @@ interface FindingsCardProps {
   runId: string | null | undefined
   onContinueAnalysis?: (suggestion: string) => void
   executionStatus?: string
+  /**
+   * §7.8 — called when the user clicks a numeric claim in the findings prose
+   * that resolves to a known output. `ref` is the output reference (typically a
+   * source_file path) the number was read from, so the parent can open it.
+   */
+  onOpenOutput?: (ref: string) => void
 }
 
-export function FindingsCard({ runId, onContinueAnalysis, executionStatus }: FindingsCardProps) {
+/**
+ * §7.8 findings-as-links. Best-effort: split the summary prose on numbers and,
+ * for each number that appears (as a substring) in a KeyResult's value, turn it
+ * into a link that fires onOpenOutput with that result's source_file. Numbers
+ * with no resolvable output stay plain text — we never fabricate a link.
+ */
+export function linkifyFindings(
+  text: string,
+  keyResults: KeyResult[],
+  onOpenOutput?: (ref: string) => void,
+): React.ReactNode[] {
+  if (!text) return [text]
+  // Build a lookup from the numeric token inside each result value → source_file.
+  const numToRef = new Map<string, string>()
+  for (const r of keyResults) {
+    if (!r.source_file || !r.value) continue
+    const m = String(r.value).match(/-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?/g)
+    if (!m) continue
+    for (const tok of m) {
+      if (!numToRef.has(tok)) numToRef.set(tok, r.source_file)
+    }
+  }
+  // Split, keeping the numeric tokens as separate captured segments.
+  const parts = text.split(/(-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?%?)/g)
+  return parts.map((part, i) => {
+    if (i % 2 === 0) return part // non-numeric segment
+    const bareNum = part.replace(/%$/, '')
+    const ref = numToRef.get(bareNum)
+    if (ref && onOpenOutput) {
+      return (
+        <button
+          key={i}
+          type="button"
+          data-testid="finding-number-link"
+          data-output-ref={ref}
+          onClick={() => onOpenOutput(ref)}
+          className="underline decoration-dotted text-blue-700 dark:text-blue-400 hover:text-blue-900 hover:decoration-solid font-mono"
+          title={`Open source: ${ref}`}
+        >
+          {part}
+        </button>
+      )
+    }
+    return part
+  })
+}
+
+export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpenOutput }: FindingsCardProps) {
   const [data, setData] = useState<FindingsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [resultsExpanded, setResultsExpanded] = useState(false)
@@ -159,7 +212,11 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus }: Fin
         </CardTitle>
       </CardHeader>
       <CardContent className="px-3 pb-3 space-y-3">
-        {summary && <p className="text-sm text-foreground/90">{summary}</p>}
+        {summary && (
+          <p className="text-sm text-foreground/90">
+            {linkifyFindings(summary, kr || [], onOpenOutput)}
+          </p>
+        )}
 
         {kr && kr.length > 0 && (
           <div>
