@@ -8760,6 +8760,23 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
+  // Per-phase declared-skip + DAG-dependency analysis (spec 02 §2.5.1).
+  // Consumed by the SkipDependency panel in the workflow viewer.
+  app.get("/api/nextflow/skip-analysis", optionalAuth, async (req, res) => {
+    try {
+      const nfPath = String(req.query.nextflow_path || '');
+      if (!nfPath) return res.status(400).json({ error: "nextflow_path required" });
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const r = await fetch(`${galaxyUrl}/api/nextflow/skip-analysis?nextflow_path=${encodeURIComponent(nfPath)}`, {
+        headers: { 'x-api-key': process.env.GALAXY_API_KEY || '' },
+      });
+      const data = await r.json();
+      res.status(r.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/invocations/:id/nextflow/status", async (req, res) => {
     try {
       const invocation = await storage.getInvocation(req.params.id);

@@ -1059,6 +1059,21 @@ export function NextflowWorkflowViewer({
     }
   }, [workflowDefinition]);
 
+  // Per-phase declared-skip + DAG-dependency analysis (spec 02 §2.5.1). Feeds the
+  // SkipDependency panel with real skippable/param/blocks/warn state derived from
+  // the workflow's declared skip params + channel wiring. null until fetched.
+  const [skipAnalysis, setSkipAnalysis] = useState<PhaseSkipInfo[] | null>(null);
+  useEffect(() => {
+    const nfPath = workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath;
+    if (!nfPath) { setSkipAnalysis(null); return; }
+    let cancelled = false;
+    fetch(`/api/nextflow/skip-analysis?nextflow_path=${encodeURIComponent(nfPath)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (!cancelled) setSkipAnalysis(Array.isArray(data?.phases) ? data.phases : null); })
+      .catch(() => { if (!cancelled) setSkipAnalysis(null); });
+    return () => { cancelled = true; };
+  }, [workflowDefinition]);
+
   // Fetch session-uploaded datasets so the param browser can return real file paths to Nextflow
   useEffect(() => {
     fetch('/api/datasets/session')
@@ -3015,19 +3030,31 @@ export function NextflowWorkflowViewer({
             {/* ── Skip dependency map (§7.5 / §2.5.1) ────────────────────────────
                 Per-phase skippable state, DAG-aware. Skip is a declared workflow
                 capability — a phase is only skippable if the workflow declares a
-                skip parameter for it. No workflow in the catalog currently
-                declares skip params and no backend skip endpoint exists yet, so
-                every phase renders read-only as "not declared skippable" (honest
-                state) — visible, not hidden. When a skip endpoint + declared skip
-                params land, feed `skippable`/`param`/`blocks`/`warn` from the DAG
-                and pass an `onToggle` handler. Shown pre-run only. */}
+                skip parameter for it. Data comes from GET /api/nextflow/skip-analysis
+                (backend derives skippable/param/blocks/warn from the workflow's
+                declared skip params + DAG channel wiring). When the analysis hasn't
+                loaded (or the workflow has no nextflow_path), fall back to the honest
+                "not declared skippable" state per visible phase group. Read-only —
+                no onToggle handler yet (skipping is not wired into execution).
+                Shown pre-run only. */}
             {groupedPhases.some((g: any) => g.key !== 'all') && (status === 'idle' || status === 'pending_review') && (() => {
               const realGroups = groupedPhases.filter((g: any) => g.key !== 'all');
-              const skipPhases: PhaseSkipInfo[] = realGroups.map((g: any) => ({
-                id: g.key,
-                skippable: false,
-                why: `${g.label || `Phase ${g.key}`} — this workflow does not declare a skip parameter for this phase, so it always runs.`,
-              }));
+              if (realGroups.length === 0) return null;
+              // Index the backend analysis by phase id so we can align it to the
+              // phase groups the viewer is actually rendering.
+              const byId: Record<string, PhaseSkipInfo> =
+                (skipAnalysis || []).reduce((acc: Record<string, PhaseSkipInfo>, p) => {
+                  acc[p.id] = p; return acc;
+                }, {});
+              const skipPhases: PhaseSkipInfo[] = realGroups.map((g: any) => {
+                const real = byId[g.key];
+                if (real) return real;
+                return {
+                  id: g.key,
+                  skippable: false,
+                  why: `${g.label || `Phase ${g.key}`} — this workflow does not declare a skip parameter for this phase, so it always runs.`,
+                };
+              });
               if (skipPhases.length === 0) return null;
               return (
                 <div style={{ padding: '4px 18px 10px' }}>

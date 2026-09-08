@@ -6261,6 +6261,182 @@ def get_nextflow_steps(nextflow_path: str = "") -> Dict[str, Any]:
     return {"steps": steps, "count": len(steps)}
 
 
+# ── Skip-dependency analysis (spec 02 §2.5.1) ───────────────────────────────
+# Per-phase declared-skip state, DAG-aware. A phase is skippable ONLY when the
+# workflow declares a `skip_*` parameter for a process in that phase (real
+# declared capability — not a universal toggle). DAG dependency is derived from
+# the two honest signals in the workflow definition the executor already parses:
+#   (a) declared `params.skip_*` → maps to the phase(s) whose process bodies
+#       reference it, giving `skippable=true` + the param name.
+#   (b) channel wiring in the `workflow {}` body (`PROC.out` consumed by a later
+#       process) → real load-bearing edges between phases. When a phase feeds a
+#       NON-skippable downstream phase, skipping is BLOCKED (`blocks`); when it
+#       only feeds SKIPPABLE downstream phases, skipping is advisory (`warn`).
+# When the .nf has no channel wiring (param-extraction stubs), the fallback is
+# phase order: a non-skippable phase is load-bearing for later phases
+# (`blocks`); a skippable phase warns for its later phases (`warn`). No skip
+# params anywhere → every phase honestly renders not-skippable, blocking nothing.
+
+# params that look like a real skip toggle: skip_*, no_*, or *_skip
+_SKIP_PARAM_RE = re.compile(r'params\.((?:skip_|no_)[a-zA-Z0-9_]+|[a-zA-Z0-9_]+_skip)')
+
+
+def _analyze_skip_dependency(nextflow_path: str) -> List[Dict[str, Any]]:
+    """Return per-phase skip/DAG info as a list of PhaseSkipInfo-shaped dicts.
+
+    Shape per phase (matches the frontend SkipDependency `PhaseSkipInfo`):
+        {id, label, skippable, param?, why, blocks?, warn?}
+    """
+    # 1. Parse steps (gives phase_group / phase_label / tool_id per step).
+    from galaxy.webapps.galaxy.api.ai_assistant import _parse_nextflow_steps
+    steps = _parse_nextflow_steps(nextflow_path) or {}
+    db_steps = _steps_from_db_metadata(nextflow_path)
+    if db_steps and not (len(db_steps) <= 1 < len(steps)):
+        steps = db_steps
+    if not steps:
+        steps = _steps_synthetic_from_db(nextflow_path)
+
+    # Ordered list of phase keys, file order preserved, deduped.
+    phase_order: List[str] = []
+    phase_label: Dict[str, str] = {}
+    phase_tools: Dict[str, List[str]] = {}
+    for _k in sorted(steps.keys(), key=lambda s: int(s) if str(s).isdigit() else 0):
+        st = steps[_k]
+        pg = (st.get("phase_group") or "").strip()
+        if not pg:
+            # No phase annotation → single implicit phase; not phase-split.
+            continue
+        if pg not in phase_order:
+            phase_order.append(pg)
+            phase_label[pg] = (st.get("phase_label") or "").strip() or f"Phase {pg}"
+            phase_tools[pg] = []
+        tid = (st.get("tool_id") or "").upper()
+        if tid:
+            phase_tools[pg].append(tid)
+
+    if not phase_order:
+        return []
+
+    # 2. Read the raw .nf so we can map skip params → phases and parse wiring.
+    content = ""
+    try:
+        nf_file = _resolve_nextflow_path(nextflow_path)
+        content = nf_file.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        content = ""
+
+    # 2a. Per-process skip-param references, keyed by UPPER process name.
+    proc_skip_params: Dict[str, List[str]] = {}
+    if content:
+        proc_starts = list(re.finditer(r'^process\s+(\w+)\s*\{', content, re.MULTILINE))
+        for i, pm in enumerate(proc_starts):
+            pname = pm.group(1).upper()
+            start = pm.end()
+            end = proc_starts[i + 1].start() if i + 1 < len(proc_starts) else len(content)
+            body = content[start:end]
+            refs = [g.group(1) for g in _SKIP_PARAM_RE.finditer(body)]
+            if refs:
+                proc_skip_params[pname] = list(dict.fromkeys(refs))
+
+    # Phase → declared skip param: the first skip param referenced by any of the
+    # phase's processes (honest: only a phase that actually gates on the param).
+    phase_skip_param: Dict[str, Optional[str]] = {}
+    for pg in phase_order:
+        chosen: Optional[str] = None
+        for tid in phase_tools.get(pg, []):
+            for sp in proc_skip_params.get(tid, []):
+                chosen = sp
+                break
+            if chosen:
+                break
+        phase_skip_param[pg] = chosen
+
+    # 2b. Channel-wiring DAG edges: PROC_A.out consumed inside PROC_B(...).
+    tool_to_phase: Dict[str, str] = {}
+    for pg in phase_order:
+        for tid in phase_tools.get(pg, []):
+            tool_to_phase.setdefault(tid, pg)
+
+    # downstream[pg] = set of phases that consume pg's outputs.
+    downstream: Dict[str, set] = {pg: set() for pg in phase_order}
+    wiring_found = False
+    if content and ".out" in content:
+        for call in re.finditer(r'\b([A-Z][A-Z0-9_]+)\s*\(([^)]*)\)', content):
+            consumer = call.group(1)
+            args = call.group(2)
+            cons_phase = tool_to_phase.get(consumer)
+            if not cons_phase:
+                continue
+            for prod_m in re.finditer(r'\b([A-Z][A-Z0-9_]+)\.out\b', args):
+                producer = prod_m.group(1)
+                prod_phase = tool_to_phase.get(producer)
+                if prod_phase and prod_phase != cons_phase:
+                    downstream[prod_phase].add(cons_phase)
+                    wiring_found = True
+
+    if not wiring_found:
+        # Fallback: linear phase order — each phase feeds all later phases.
+        for i, pg in enumerate(phase_order):
+            for later in phase_order[i + 1:]:
+                downstream[pg].add(later)
+
+    # 3. Assemble PhaseSkipInfo per phase.
+    result: List[Dict[str, Any]] = []
+    for pg in phase_order:
+        param = phase_skip_param.get(pg)
+        skippable = param is not None
+        label = phase_label.get(pg, f"Phase {pg}")
+        deps = downstream.get(pg, set())
+        dep_ids = [d for d in phase_order if d in deps]  # stable file order
+
+        info: Dict[str, Any] = {"id": pg, "label": label, "skippable": skippable}
+        if skippable:
+            info["param"] = param
+            if dep_ids:
+                info["warn"] = dep_ids
+                info["why"] = (
+                    f"{label} — the workflow declares `{param}`, so this phase can be skipped. "
+                    f"Downstream phases still run but with reduced input."
+                )
+            else:
+                info["why"] = (
+                    f"{label} — the workflow declares `{param}`, so this phase can be skipped "
+                    f"without affecting downstream phases."
+                )
+        else:
+            if dep_ids:
+                info["blocks"] = dep_ids
+                info["why"] = (
+                    f"{label} — this workflow does not declare a skip parameter for this phase, "
+                    f"and its output feeds downstream phases, so it always runs."
+                )
+            else:
+                info["why"] = (
+                    f"{label} — this workflow does not declare a skip parameter for this phase, "
+                    f"so it always runs."
+                )
+        result.append(info)
+
+    return result
+
+
+@router.get("/api/nextflow/skip-analysis",
+            summary="Per-phase declared-skip + DAG-dependency analysis for a workflow")
+def get_nextflow_skip_analysis(nextflow_path: str = "") -> Dict[str, Any]:
+    """
+    Return per-phase skip/dependency info for a Nextflow workflow, derived from
+    the workflow definition the executor already parses (declared `skip_*` params
+    + DAG channel wiring / phase order). Consumed by the SkipDependency panel.
+
+    Response: {"phases": [PhaseSkipInfo...], "count": N}. Empty `phases` means the
+    workflow has no annotated phase groups (renders nothing, honestly).
+    """
+    if not nextflow_path:
+        raise HTTPException(status_code=400, detail="nextflow_path is required")
+    phases = _analyze_skip_dependency(nextflow_path)
+    return {"phases": phases, "count": len(phases)}
+
+
 @router.post("/api/nextflow/resume/{run_id}", summary="Resume a Nextflow run with -resume")
 def resume_nextflow_run(run_id: str, body: ResumeRunRequest = ResumeRunRequest()) -> Dict[str, Any]:
     """
