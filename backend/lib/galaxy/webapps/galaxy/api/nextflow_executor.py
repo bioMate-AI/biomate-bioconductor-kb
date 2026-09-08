@@ -5926,6 +5926,11 @@ def _execute_nextflow_impl(
         "billing_instance_type": _billing_instance_type,
         # Accession metadata (empty dict when not applicable)
         "accession_params": {k: v["label"] for k, v in accession_params.items()},
+        # Input parameters the run READ — persisted so the datasets_object
+        # API can list which runs consumed a given dataset (honest-empty when
+        # a run supplied no file/S3 params). See datasets_object.py.
+        "parameters": dict(request.parameters or {}),
+        "resume_from_run_id": request.resume_from_run_id,
     }
     with _runs_lock:
         _runs[run_id] = dict(_run_record_init)

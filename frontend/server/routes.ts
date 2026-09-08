@@ -4869,6 +4869,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Backend: backend/lib/galaxy/webapps/galaxy/api/perception.py. Consumed by
   // components/datasets/* (DatasetObject Quality tab). Same proxy as /api/models.
   app.all("/api/perception/*", optionalAuth, _dlProxyHandler);
+  // Tier-1 data surface — dataset lineage / consumers / versions.
+  //   GET /api/datasets/:ref/lineage    -> producing run/workflow/step
+  //   GET /api/datasets/:ref/consumers  -> runs that read it as input
+  //   GET /api/datasets/:ref/versions   -> version history (honest v1 · current)
+  // Backend: backend/lib/galaxy/webapps/galaxy/api/datasets_object.py. Derived
+  // from run-output provenance + input params BioMate already tracks; honest
+  // empty lists where a source doesn't exist. Consumed by
+  // components/datasets/* (DatasetObject Lineage/Consumers/Versions tabs).
+  // Same proxy as /api/models. :ref is URL-encoded by the client (S3 keys /
+  // paths contain "/"); the backend catch-all + urldecode handles it.
+  app.all("/api/datasets/*", optionalAuth, _dlProxyHandler);
 
   app.all("/api/qc-gates/*", async (req: any, res: any) => {
     try {
