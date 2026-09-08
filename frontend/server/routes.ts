@@ -5052,12 +5052,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(status).json({ error: 'DL surface proxy error', detail: err.message });
     }
   };
+
+  // Dedicated handler for the Adapt-track retrain: proxy to Galaxy (the job runs
+  // synchronously there — queued → running → succeeded via the worker tick),
+  // then register it as a FIRST-CLASS run so it appears in the Runs dashboard
+  // alongside Nextflow runs. It is tagged workflow_type:"training" and
+  // executionEngine:"pipeline" — never faked as a Nextflow subprocess. The run
+  // reflects the terminal status Galaxy returned (no long-poll needed).
+  const _adaptRetrainHandler = async (req: any, res: any) => {
+    // 1) proxy to Galaxy exactly like _dlProxyHandler, but capture the JSON.
+    let galaxyJson: any = {};
+    let galaxyStatus = 200;
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      const fullPath = `${req.path}${queryStr}`;
+      const _rawKey = (req as any).user?.galaxyApiKey as string | undefined;
+      const apiKey = (_rawKey ? decryptField(_rawKey) : null) || process.env.GALAXY_API_KEY || '';
+      const resp = await fetch(`${galaxyUrl}${fullPath}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+        body: JSON.stringify(req.body || {}),
+        signal: AbortSignal.timeout(120000),
+      });
+      galaxyStatus = resp.status;
+      galaxyJson = await resp.json().catch(() => ({}));
+    } catch (err: any) {
+      const status = err.response?.status || 502;
+      return res.status(status).json({ error: 'DL surface proxy error', detail: err.message });
+    }
+
+    // 2) Best-effort: register a first-class run reflecting the job outcome.
+    //    A failure to register must NOT change the API response the UI sees.
+    try {
+      const userId = (req as any).user?.id || undefined;
+      const projectId = (req.query?.project as string) || undefined;
+      // Galaxy job status → dashboard status vocabulary.
+      const jobStatus = String(galaxyJson?.status || 'queued');
+      const dashStatus: ExecutionRunStatus =
+        jobStatus === 'succeeded' ? 'completed'
+        : jobStatus === 'failed' || jobStatus === 'cancelled' ? 'failed'
+        : jobStatus === 'running' ? 'running'
+        : 'queued';
+      const pairCount = galaxyJson?.edit_pair_count;
+      const run = await storage.createExecutionRun(
+        {
+          workflowDefinition: {
+            name: 'Adaptation retrain',
+            workflow_type: 'training',
+            description:
+              typeof galaxyJson?.message === 'string' && galaxyJson.message
+                ? galaxyJson.message
+                : 'Retrain over the active edit pairs (prompt-rules compile).',
+            steps: {
+              '1': { label: 'Compile edit pairs', tool_id: 'adapt_compile' },
+            },
+          },
+          executionConfig: { mode: 'production', executionEngine: 'pipeline' },
+        } as any,
+        userId,
+        projectId,
+      );
+      // Reflect the terminal status the job already reached.
+      await storage.updateExecutionRunStatus(
+        run.id,
+        dashStatus,
+        dashStatus === 'failed' ? String(galaxyJson?.message || 'retrain failed') : undefined,
+      );
+      if (dashStatus === 'completed') {
+        await storage.updateExecutionRunProgress(run.id, 1, 0, 'Compile edit pairs');
+      }
+      // Surface the run id so the UI can deep-link to it.
+      galaxyJson = { ...galaxyJson, runId: run.id, edit_pair_count: pairCount };
+    } catch (e: any) {
+      console.warn('[model-tracks] retrain run registration failed:', e?.message);
+    }
+
+    return res.status(galaxyStatus).json(galaxyJson);
+  };
+
   // Bare-path matchers (Express "/*" wildcards require a following segment, so
   // the collection roots are registered explicitly) plus their sub-paths.
   app.all("/api/models", optionalAuth, _dlProxyHandler);
   app.all("/api/models/*", optionalAuth, _dlProxyHandler);
   // Project-scoped Models track reads (Train / Adapt / Optimise). Distinct
   // prefix so they don't fall under the greedy /api/models/:id detail route.
+  // The retrain POST is registered FIRST (more specific) so it can register a
+  // first-class run; everything else falls through to the shared proxy.
+  app.post("/api/model-tracks/adapt/retrain", optionalAuth, _adaptRetrainHandler);
   app.all("/api/model-tracks/*", optionalAuth, _dlProxyHandler);
   app.all("/api/inference/*", optionalAuth, _dlProxyHandler);
   app.all("/api/generate", optionalAuth, _dlProxyHandler);
