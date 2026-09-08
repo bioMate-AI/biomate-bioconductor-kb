@@ -22,6 +22,8 @@ import {
   PanelLeft,
   FlaskConical,
   Cable,
+  Database,
+  Layers,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { analytics } from "@/lib/analytics"
