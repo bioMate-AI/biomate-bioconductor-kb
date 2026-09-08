@@ -4869,14 +4869,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Backend: backend/lib/galaxy/webapps/galaxy/api/perception.py. Consumed by
   // components/datasets/* (DatasetObject Quality tab). Same proxy as /api/models.
   app.all("/api/perception/*", optionalAuth, _dlProxyHandler);
-  // Tier-1 data surface — dataset lineage / consumers / versions.
-  //   GET /api/datasets/:ref/lineage    -> producing run/workflow/step
-  //   GET /api/datasets/:ref/consumers  -> runs that read it as input
-  //   GET /api/datasets/:ref/versions   -> version history (honest v1 · current)
+  // Tier-1 data surface — dataset lineage / consumers / versions / RO-Crate.
+  //   GET  /api/datasets/:ref/lineage    -> producing run/workflow/step
+  //   GET  /api/datasets/:ref/consumers  -> runs that read it as input
+  //   GET  /api/datasets/:ref/versions   -> version history (v1 + append log)
+  //   POST /api/datasets/:ref/versions   -> append a version-log entry { note }
+  //   GET  /api/datasets/:ref/ro-crate   -> RO-Crate metadata (download)
   // Backend: backend/lib/galaxy/webapps/galaxy/api/datasets_object.py. Derived
-  // from run-output provenance + input params BioMate already tracks; honest
-  // empty lists where a source doesn't exist. Consumed by
-  // components/datasets/* (DatasetObject Lineage/Consumers/Versions tabs).
+  // from run-output provenance + input params BioMate already tracks + an
+  // append-only version log; honest empty lists / minimal crate where a source
+  // doesn't exist. Consumed by components/datasets/* (DatasetObject
+  // Lineage/Consumers/Versions tabs + Export RO-Crate). app.all forwards every
+  // method (incl. the POST body) — the single wildcard already covers the new
+  // versions-POST + ro-crate-GET routes, no extra registration needed.
   // Same proxy as /api/models. :ref is URL-encoded by the client (S3 keys /
   // paths contain "/"); the backend catch-all + urldecode handles it.
   app.all("/api/datasets/*", optionalAuth, _dlProxyHandler);
