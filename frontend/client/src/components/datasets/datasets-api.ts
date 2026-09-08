@@ -8,6 +8,8 @@
  *   GET  /api/datasets/:ref/lineage     -> producing run/workflow/step
  *   GET  /api/datasets/:ref/consumers   -> runs that read it as input
  *   GET  /api/datasets/:ref/versions    -> version history (honest v1 · current)
+ *   POST /api/datasets/:ref/versions    -> append a version-log entry { note }
+ *   GET  /api/datasets/:ref/ro-crate    -> RO-Crate metadata (download)
  *
  * Lineage / consumers / versions are derived from run-output provenance and the
  * input params BioMate already tracks (backend datasets_object.py). Each
@@ -17,7 +19,13 @@
  * Uses the app's react-query conventions (see lib/queryClient.ts).
  */
 
-import { useQuery, type UseQueryResult } from "@tanstack/react-query"
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseMutationResult,
+  type UseQueryResult,
+} from "@tanstack/react-query"
 import type { DataProfile } from "@/components/data-perception"
 
 /**
@@ -91,11 +99,22 @@ export interface DatasetVersion {
   ref: string
   createdAt?: string | number | null
   producedByRunId?: string | null
+  /** Operator note for a logged version (null for the implicit v1). */
+  note?: string | null
+  /** Author label recorded on the entry, when supplied. */
+  author?: string | null
 }
 
 export interface VersionsResponse {
   ref: string
   versions: DatasetVersion[]
+}
+
+export interface AppendVersionResponse extends VersionsResponse {
+  /** The entry just written (present only on success). */
+  appended?: { note: string; author?: string | null; createdAt?: string | null }
+  /** Present when the append was rejected (e.g. empty note). */
+  error?: string
 }
 
 /** Encode a datasetRef (S3 key / path, may contain "/") for a path segment. */
@@ -135,7 +154,7 @@ export function useDatasetConsumers(
   })
 }
 
-/** Versions — version history (a single honest "v1 · current" today). */
+/** Versions — version history (v1 · current + the append-only log). */
 export function useDatasetVersions(
   ref: string | null,
 ): UseQueryResult<VersionsResponse> {
@@ -146,4 +165,69 @@ export function useDatasetVersions(
     retry: false,
     queryFn: () => _getJson<VersionsResponse>(`/api/datasets/${encodeRef(ref!)}/versions`),
   })
+}
+
+/**
+ * Append a version-log entry (append-only; the backend never rewrites a prior
+ * entry). On success it invalidates the versions query so the tab re-renders
+ * with the new entry. The backend also returns the fresh list on the mutation
+ * response, which we seed into the cache to avoid a redundant refetch.
+ */
+export function useAppendDatasetVersion(
+  ref: string | null,
+): UseMutationResult<AppendVersionResponse, Error, { note: string; author?: string }> {
+  const qc = useQueryClient()
+  return useMutation<AppendVersionResponse, Error, { note: string; author?: string }>({
+    mutationFn: async (body) => {
+      if (!ref) throw new Error("no dataset reference")
+      const res = await fetch(`/api/datasets/${encodeRef(ref)}/versions`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) throw new Error(`${res.status}: failed to append version`)
+      const data = (await res.json()) as AppendVersionResponse
+      // The backend returns a 200 with an `error` field for a rejected note.
+      if (data.error) throw new Error(data.error)
+      return data
+    },
+    onSuccess: (data) => {
+      if (ref) {
+        qc.setQueryData<VersionsResponse>(["/api/datasets/versions", ref], {
+          ref: data.ref,
+          versions: data.versions,
+        })
+      }
+    },
+  })
+}
+
+/**
+ * Trigger a browser download of the dataset's RO-Crate metadata. Fetches
+ * through the same credentialed proxy, then saves the JSON as
+ * `<name>-ro-crate-metadata.json`. Returns the object so the caller can toast
+ * on failure. Not a hook — called from a click handler.
+ */
+export async function downloadDatasetRoCrate(
+  ref: string,
+  datasetName?: string,
+): Promise<void> {
+  const res = await fetch(`/api/datasets/${encodeRef(ref)}/ro-crate`, {
+    credentials: "include",
+  })
+  if (!res.ok) throw new Error(`${res.status}: failed to export RO-Crate`)
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  try {
+    const a = document.createElement("a")
+    a.href = url
+    const base = (datasetName || "dataset").replace(/[^\w.-]+/g, "_")
+    a.download = `${base}-ro-crate-metadata.json`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  } finally {
+    URL.revokeObjectURL(url)
+  }
 }

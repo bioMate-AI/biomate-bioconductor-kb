@@ -18,6 +18,7 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -29,6 +30,8 @@ import {
   History,
   MapPin,
   Download,
+  FileArchive,
+  Plus,
 } from "lucide-react"
 import { DataPerception } from "@/components/data-perception"
 import {
@@ -36,6 +39,8 @@ import {
   useDatasetLineage,
   useDatasetConsumers,
   useDatasetVersions,
+  useAppendDatasetVersion,
+  downloadDatasetRoCrate,
 } from "./datasets-api"
 
 // ── DatasetRef — the identity + provenance the caller already holds ──────────
@@ -104,6 +109,12 @@ export function DatasetObject({
   const lineageQ = useDatasetLineage(lineageOpened ? dataset.ref : null)
   const consumersQ = useDatasetConsumers(consumersOpened ? dataset.ref : null)
   const versionsQ = useDatasetVersions(versionsOpened ? dataset.ref : null)
+  const appendVersion = useAppendDatasetVersion(dataset.ref)
+
+  // Draft note for the "add version" input (append-only log).
+  const [note, setNote] = useState("")
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
 
   // Consumers: prefer live backend data; fall back to any refs the caller held.
   const consumers = consumersQ.data?.consumers ?? []
@@ -112,6 +123,28 @@ export function DatasetObject({
   const versions = versionsQ.data?.versions ?? []
   const propVersions = dataset.versions ?? []
   const isRunOutput = dataset.source === "run_output"
+
+  async function handleExportRoCrate() {
+    if (!dataset.ref) return
+    setExportError(null)
+    setExporting(true)
+    try {
+      await downloadDatasetRoCrate(dataset.ref, dataset.name)
+    } catch (e: any) {
+      setExportError(e?.message || "RO-Crate export failed")
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  function handleAddVersion() {
+    const trimmed = note.trim()
+    if (!trimmed || appendVersion.isPending) return
+    appendVersion.mutate(
+      { note: trimmed },
+      { onSuccess: () => setNote("") },
+    )
+  }
 
   return (
     <Card className={className} data-testid="dataset-object">
@@ -143,19 +176,40 @@ export function DatasetObject({
             <Badge variant="outline" className="text-[10px]">{dataset.contentType}</Badge>
           )}
           <Badge variant="outline" className="text-[10px]">{formatBytes(dataset.size)}</Badge>
-          {onDownload && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="ml-auto h-7 text-xs gap-1"
-              onClick={onDownload}
-              data-testid="dataset-object-download"
-            >
-              <Download className="h-3 w-3" />
-              Download
-            </Button>
-          )}
+          <div className="ml-auto flex items-center gap-2">
+            {dataset.ref && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs gap-1"
+                onClick={handleExportRoCrate}
+                disabled={exporting}
+                title="Export an RO-Crate metadata manifest for this dataset"
+                data-testid="dataset-object-rocrate"
+              >
+                <FileArchive className="h-3 w-3" />
+                {exporting ? "Exporting…" : "Export RO-Crate"}
+              </Button>
+            )}
+            {onDownload && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs gap-1"
+                onClick={onDownload}
+                data-testid="dataset-object-download"
+              >
+                <Download className="h-3 w-3" />
+                Download
+              </Button>
+            )}
+          </div>
         </div>
+        {exportError && (
+          <p className="text-[10px] text-destructive" data-testid="dataset-rocrate-error">
+            {exportError}
+          </p>
+        )}
       </CardHeader>
 
       <CardContent>
@@ -319,19 +373,29 @@ export function DatasetObject({
               versions.map((v) => (
                 <div
                   key={v.version}
-                  className="flex items-center gap-2 rounded border px-2 py-1 text-xs"
+                  className="rounded border px-2 py-1 text-xs"
                   data-testid={`dataset-version-${v.version}`}
                 >
-                  <span className="font-mono font-semibold">{v.label}</span>
-                  {v.current && (
-                    <Badge variant="outline" className="text-[10px]">current</Badge>
-                  )}
-                  {v.createdAt && (
-                    <span className="ml-auto text-[10px] text-muted-foreground">
-                      {new Date(
-                        typeof v.createdAt === "number" ? v.createdAt * 1000 : v.createdAt,
-                      ).toLocaleString()}
-                    </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-semibold">{v.label}</span>
+                    {v.current && (
+                      <Badge variant="outline" className="text-[10px]">current</Badge>
+                    )}
+                    {v.createdAt && (
+                      <span className="ml-auto text-[10px] text-muted-foreground">
+                        {new Date(
+                          typeof v.createdAt === "number" ? v.createdAt * 1000 : v.createdAt,
+                        ).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                  {v.note && (
+                    <p className="text-[11px] text-foreground pt-0.5">
+                      {v.note}
+                      {v.author && (
+                        <span className="text-muted-foreground"> — {v.author}</span>
+                      )}
+                    </p>
                   )}
                 </div>
               ))
@@ -349,6 +413,45 @@ export function DatasetObject({
               <p className="text-[11px] text-muted-foreground" data-testid="dataset-no-versions">
                 Version history is not available yet — only the current dataset is recorded.
               </p>
+            )}
+
+            {/* Append-only version note — never mutates a prior entry. */}
+            {dataset.ref && (
+              <div className="pt-2 space-y-1" data-testid="dataset-version-add">
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleAddVersion()
+                    }}
+                    placeholder="Add a version note (e.g. re-derived after QC fix)"
+                    className="h-7 text-xs"
+                    disabled={appendVersion.isPending}
+                    data-testid="dataset-version-note-input"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs gap-1 shrink-0"
+                    onClick={handleAddVersion}
+                    disabled={!note.trim() || appendVersion.isPending}
+                    data-testid="dataset-version-add-button"
+                  >
+                    <Plus className="h-3 w-3" />
+                    {appendVersion.isPending ? "Adding…" : "Add version"}
+                  </Button>
+                </div>
+                {appendVersion.isError && (
+                  <p className="text-[10px] text-destructive" data-testid="dataset-version-add-error">
+                    {(appendVersion.error as Error)?.message || "Could not add version"}
+                  </p>
+                )}
+                <p className="text-[10px] text-muted-foreground">
+                  Version entries are append-only — a note records a re-derivation or sign-off
+                  without ever rewriting a prior entry.
+                </p>
+              </div>
             )}
           </TabsContent>
 
