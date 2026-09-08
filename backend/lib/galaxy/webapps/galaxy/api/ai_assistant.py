@@ -3115,6 +3115,97 @@ def data_sources_catalog(
         return {"success": False, "error": str(e)}
 
 
+class RouteClassifyRequest(BaseModel):
+    text: str = Field(..., description="Composer text to classify into a routing lane")
+
+
+# Intent → two-lane map (spec 00 §0.3, §2.2). The front door only needs to
+# answer "seconds or minutes?": evidence / ad-hoc-compute intents are INSTANT
+# (a cited answer / a quick calculation), anything that produces a validated
+# artifact (a named method, a consequence verb, a batch of inputs) is CLOUD.
+# This mirrors the client heuristic in lane-preview.tsx and reuses the REAL
+# UnifiedIntentRouter decision — it does not re-implement classification.
+_CLOUD_INTENTS = {"workflow_generation"}
+
+
+def _lane_from_classification(intent: str, requires_workflow: bool) -> str:
+    """Map a UnifiedIntentRouter intent to the Instant/Cloud lane.
+
+    Honest: derived purely from the classifier's own decision. A query is Cloud
+    iff the router routes it to workflow generation (the only intent that runs a
+    validated pipeline); every other intent (research, tool search, benchmark,
+    comparison, conclusion, literature, parameter help, general) is Instant.
+    """
+    if requires_workflow or intent in _CLOUD_INTENTS:
+        return "cloud"
+    return "instant"
+
+
+def _domain_from_entities(entities: Dict[str, Any]) -> str:
+    """Coarse domain read from extracted entities (analysis type first)."""
+    if not isinstance(entities, dict):
+        return "general"
+    for key in ("analysis_types", "tools", "data_types"):
+        vals = entities.get(key) or []
+        if vals:
+            return str(vals[0])
+    return "general"
+
+
+@router.post(
+    "/api/route/classify",
+    summary="Server-side lane arbiter — classify composer text into Instant/Cloud"
+)
+def route_classify(
+    request: RouteClassifyRequest,
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """Return the routing lane the front door will actually take for `text`.
+
+    Wraps the existing UnifiedIntentRouter (keyword classifier — deterministic
+    and cheap, safe for a per-keystroke/debounced call; no LLM fallback) and
+    maps its real intent decision to the two-lane Instant/Cloud model
+    (spec 00 §0.3, §2.2). Backs the composer's LanePreview so the advisory lane
+    it shows matches how the query will route. Returns the classifier's honest
+    verdict; never fabricates a lane.
+
+    Response: {lane: "instant"|"cloud", domain, why, intent, confidence}.
+    """
+    text = (request.text or "").strip()
+    if not text:
+        return {"success": False, "error": "empty text"}
+
+    try:
+        from galaxy.ai.agents.unified_intent_router import create_intent_router
+    except Exception as e:  # classifier package unavailable in this deploy
+        log.warning(f"[route/classify] intent router unavailable: {e}")
+        return {"success": False, "error": f"intent router unavailable: {e}"}
+
+    try:
+        # No llm_client → keyword-only classification (fast, deterministic).
+        router_impl = create_intent_router(llm_client=None)
+        cls = router_impl.classify(text, use_llm_fallback=False)
+        intent = cls.primary_intent.value
+        lane = _lane_from_classification(intent, cls.requires_workflow)
+        domain = _domain_from_entities(cls.extracted_entities)
+        if lane == "cloud":
+            why = f"reads as a validated workflow request ({intent.replace('_', ' ')})"
+        else:
+            why = f"reads as {intent.replace('_', ' ')} — a cited answer, no pipeline"
+        return {
+            "success": True,
+            "lane": lane,
+            "domain": domain,
+            "why": why,
+            "intent": intent,
+            "confidence": round(float(cls.confidence), 3),
+        }
+    except Exception as e:
+        import traceback
+        log.warning(f"[route/classify] {text[:80]!r}: {e}")
+        return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
+
+
 @router.get(
     "/api/ai_assistant/test_init",
     summary="Test AI Assistant initialization only"

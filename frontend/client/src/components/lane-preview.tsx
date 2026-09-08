@@ -29,6 +29,8 @@
  * answer "seconds or minutes?", not "which of 20 domains".
  */
 
+import { useEffect, useRef, useState } from "react";
+
 export type LaneKind = "instant" | "cloud";
 
 export interface LaneVerdict {
@@ -102,11 +104,78 @@ export interface LanePreviewProps {
 }
 
 /**
+ * Server-side lane arbiter, preferred over the client heuristic when it answers
+ * in time. Backs the advisory verdict with the REAL router decision (spec 00
+ * §0.3, §2.2) so the lane the composer shows matches how the query will route.
+ *
+ * Contract: advisory + non-blocking. It NEVER delays send — the caller renders
+ * the local heuristic immediately; this hook only *upgrades* the displayed lane
+ * once the server responds. On error / timeout / non-ok it returns null and the
+ * component falls back to the local heuristic. A short debounce and per-request
+ * abort keep it to at most one in-flight call for the stable text.
+ */
+function useServerLane(text: string | undefined | null): LaneVerdict | null {
+  const [verdict, setVerdict] = useState<LaneVerdict | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    const t = (text || "").trim();
+    // Clear any stale verdict as soon as the text changes; the local heuristic
+    // shows through until (and unless) the server confirms.
+    setVerdict(null);
+    abortRef.current?.abort();
+    if (!t) return;
+
+    const ac = new AbortController();
+    abortRef.current = ac;
+    // Debounce so a per-keystroke composer doesn't fan out one call per key.
+    const timer = setTimeout(async () => {
+      // Hard timeout so a slow arbiter never leaves the strip stuck on stale.
+      const to = setTimeout(() => ac.abort(), 2500);
+      try {
+        const resp = await fetch("/api/route/classify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: t }),
+          signal: ac.signal,
+        });
+        if (!resp.ok) return;
+        const data = await resp.json().catch(() => null);
+        if (!data || data.success === false || (data.lane !== "instant" && data.lane !== "cloud")) return;
+        if (ac.signal.aborted) return;
+        const isCloud = data.lane === "cloud";
+        setVerdict({
+          lane: isCloud ? "cloud" : "instant",
+          label: isCloud ? CLOUD_LABEL : INSTANT_LABEL,
+          sentence: isCloud ? CLOUD_SENTENCE : INSTANT_SENTENCE,
+          read: typeof data.why === "string" && data.why ? data.why : (isCloud ? "a validated workflow request" : "a question I can answer directly"),
+        });
+      } catch {
+        // network error / abort / timeout -> stay on the local heuristic
+      } finally {
+        clearTimeout(to);
+      }
+    }, 350);
+
+    return () => {
+      clearTimeout(timer);
+      ac.abort();
+    };
+  }, [text]);
+
+  return verdict;
+}
+
+/**
  * The advisory verdict strip. Renders nothing for empty input. Purely
- * presentational -- it does not gate send.
+ * presentational -- it does not gate send. Shows the local heuristic
+ * immediately, then upgrades to the server arbiter's verdict once it answers.
  */
 export function LanePreview({ text, onOverride }: LanePreviewProps) {
-  const v = laneForText(text);
+  const local = laneForText(text);
+  const server = useServerLane(text);
+  // Prefer the server verdict (real router decision); fall back to local.
+  const v = server || local;
   if (!v) return null;
   const isCloud = v.lane === "cloud";
   const dot = isCloud ? "var(--bm-primary, oklch(0.55 0.20 265))" : "var(--bm-ok, oklch(0.62 0.14 155))";
