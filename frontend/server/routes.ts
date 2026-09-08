@@ -12493,7 +12493,7 @@ Rules:
   });
 
   // Rerun a Nextflow workflow from a specific step with parameter overrides
-  app.post("/api/workflows/runs/:id/rerun-from-step", async (req, res) => {
+  app.post("/api/workflows/runs/:id/rerun-from-step", optionalAuth, async (req, res) => {
     try {
       const run = await storage.getExecutionRun(req.params.id);
       if (!run) return res.status(404).json({ error: 'Run not found' });
@@ -12505,48 +12505,90 @@ Rules:
 
       if (!step_name) return res.status(400).json({ error: 'step_name required' });
 
-      const nfStatus = run.execution?.nextflowStatus as any;
-      const prevWorkDir = nfStatus?.work_dir as string | undefined;
+      // --- "Rerun from step X" is realized via Nextflow `-resume` + declared
+      // param overrides, NOT an arbitrary mid-DAG restart.
+      //
+      // The Nextflow executor (backend nextflow_executor.py) exposes exactly one
+      // supported re-run mechanism: POST /api/nextflow/resume/{run_id}, which
+      // re-launches with `-resume` reusing the prior run's work-dir cache.
+      // Nextflow's `-resume` semantics naturally scope the re-run to the affected
+      // step: any task whose inputs/params changed — and every task DOWNSTREAM of
+      // it — re-executes, while unchanged upstream tasks stay cached and skipped.
+      // Passing this step's overridden params through therefore re-runs *from*
+      // that step forward, which is what the user asked for.
+      //
+      // The previous implementation POSTed to /api/nextflow/execute with
+      // `resume_args` / `extra_flags` / `prev_run_id` / `rerun_from_step` fields
+      // that are NOT on the NextflowExecuteRequest pydantic model, so pydantic
+      // silently dropped all of them: no `-resume`, no work-dir reuse, no step
+      // scoping — a full fresh run that ignored the step. Dead wire. This now
+      // routes to the real, honored resume endpoint (mirrors the working
+      // /api/workflows/runs/:runId/rerun proxy above).
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
 
-      // Get the original workflow definition from run
+      // Resolve the Nextflow-assigned run_id from the frontend execution record.
+      // The backend _runs dict is keyed by the Nextflow run_id, not our UUID.
+      const nextflowRunId =
+        run.execution?.nextflowRunId ||
+        run.execution?.galaxyInvocationId ||
+        req.params.id;
+
+      // nextflow_path lets the backend reconstruct the work dir when the run is
+      // not in the receiving gunicorn worker's _runs dict (multi-worker).
       const workflowDef = (run.execution as any)?.workflowDefinition as any;
-      const nextflowPath = workflowDef?.nextflow_path || workflowDef?.workflow_path || '';
+      const nextflowPath =
+        workflowDef?.nextflow_path || workflowDef?.nextflowPath || workflowDef?.workflow_path || '';
 
-      // Build override flags: --key value for each param_override
-      const overrideFlags = Object.entries(param_overrides)
-        .map(([k, v]) => `--${k} ${String(v)}`)
-        .join(' ');
+      // user_id is needed to reconstruct the S3 work dir for AWS Batch resumes.
+      const userId = req.user?.id ? String(req.user.id) : undefined;
 
-      // Build resume args
-      const resumeArgs = prevWorkDir ? `-resume -w ${prevWorkDir}` : '-resume';
-
-      // Construct a new run request to the Galaxy backend
-      const rerunBody = {
-        nextflow_path: nextflowPath,
-        parameters: { ...(workflowDef?.parameters || {}), ...param_overrides },
-        resume_args: resumeArgs,
-        extra_flags: overrideFlags,
-        prev_run_id: req.params.id,
-        rerun_from_step: step_name,
-      };
-
-      const response = await fetch(`${galaxyUrl}/api/nextflow/execute`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(rerunBody),
-      });
+      const response = await fetch(
+        `${galaxyUrl}/api/nextflow/resume/${encodeURIComponent(nextflowRunId)}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': process.env.GALAXY_API_KEY || '',
+          },
+          body: JSON.stringify({
+            nextflow_path: nextflowPath,
+            parameters: param_overrides,
+            ...(userId ? { user_id: userId } : {}),
+          }),
+          signal: AbortSignal.timeout(30_000),
+        }
+      );
 
       if (!response.ok) {
-        const errText = await response.text();
+        const errText = await response.text().catch(() => response.statusText);
         return res.status(response.status).json({ error: errText });
       }
 
       const data = await response.json() as any;
-      const newRunId = data.run_id || data.id;
+      const newNextflowRunId = data.run_id || data.id;
 
+      // Update the execution record so the status endpoint polls the resumed run.
+      if (newNextflowRunId) {
+        await storage.updateExecutionRun(req.params.id, {
+          execution: {
+            ...run.execution,
+            nextflowRunId: newNextflowRunId,
+            galaxyInvocationId: newNextflowRunId,
+            status: 'running',
+            startedAt: new Date(),
+            completedAt: undefined,
+            errorMessage: undefined,
+            nextflowStatus: undefined,
+          },
+        }).catch((e: any) => console.warn('[rerun-from-step] Failed to update run record:', e?.message));
+      }
+
+      // The modal reads `new_run_id`; return our storage UUID (not the raw
+      // Nextflow UUID) so the status endpoint can resolve the record and proxy
+      // to the new Nextflow run.
       res.json({
-        new_run_id: newRunId,
+        new_run_id: req.params.id,
+        nextflow_run_id: newNextflowRunId,
         message: `Rerunning from step ${step_name} with ${Object.keys(param_overrides).length} overridden parameter(s)`,
         prev_run_id: req.params.id,
       });

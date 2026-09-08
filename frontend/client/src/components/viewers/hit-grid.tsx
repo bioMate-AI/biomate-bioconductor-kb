@@ -58,11 +58,14 @@ type SortKey = "id" | "score" | "confidence" | "verdict"
 // Verdict styling
 // ---------------------------------------------------------------------------
 
+// Colours source the ported reference design tokens (styles/reference-design.css
+// → --ok/--warn/--err/--text-dim) instead of hardcoded hex, so verdict styling
+// stays 1:1 with the reference and tracks the theme (incl. dark mode).
 const VERDICT_STYLE: Record<HitVerdict, { color: string; ring: string }> = {
-  accepted: { color: "#22c55e", ring: "border-l-green-500" },
-  flagged:  { color: "#f59e0b", ring: "border-l-amber-500" },
-  rejected: { color: "#ef4444", ring: "border-l-red-500" },
-  held:     { color: "#94a3b8", ring: "border-l-slate-400" },
+  accepted: { color: "var(--ok)",       ring: "border-l-green-500" },
+  flagged:  { color: "var(--warn)",     ring: "border-l-amber-500" },
+  rejected: { color: "var(--err)",      ring: "border-l-red-500" },
+  held:     { color: "var(--text-dim)", ring: "border-l-slate-400" },
 }
 
 /** A "held" hit is out-of-domain: no confident number is offered. */
@@ -224,7 +227,7 @@ export function HitGrid({ hits, modelName = "admet-herg v3", modelId = "admet-he
                   <div className="flex items-center gap-1 flex-wrap">
                     <VerdictChip verdict={h.verdict} />
                     {h.confidence === "out-of-domain" && (
-                      <Badge variant="outline" className="text-[10px]" style={{ color: "#f59e0b" }}>
+                      <Badge variant="outline" className="text-[10px]" style={{ color: "var(--warn)" }}>
                         out-of-domain
                       </Badge>
                     )}
