@@ -6,6 +6,7 @@ import { groupProgressMessages, FoldedProgressGroup } from "./chat-progress-fold
 import { DataAnalysisCard, type FileAnalysisResult } from "./data-analysis-card"
 import { FindingsCard } from "./findings-card"
 import { ChatInput } from "./chat-input"
+import { ColdStartDashboard } from "./cold-start-dashboard"
 import { TaskList, type TaskItem, type TaskStatus } from "./task-list"
 import { TypingIndicator } from "./typing-indicator"
 // FileUpload moved into ChatInput component as a popover
@@ -1972,7 +1973,20 @@ export function ChatInterface({
         padding: '28px clamp(20px, 8%, 120px) 20px',
       }}>
         {displayMessages.length === 0 && !isTyping && !isTypingLocal && (
-          <ReturningUserWelcome onSend={(q) => handleSendOrQueue(q)} />
+          <>
+            {/* ReturningUserWelcome still returns null (the old hardcoded
+                WELCOME_PROMPTS grid is intentionally not restored). The
+                cold-start module dashboard replaces it: it seeds the composer
+                (does not send) via the captured draft setter, so the user
+                still reviews and sends. Spec 00 §0.4/§0.5. */}
+            <ReturningUserWelcome onSend={(q) => handleSendOrQueue(q)} />
+            <ColdStartDashboard
+              onSeed={(text) => {
+                if (localSetDraftRef.current) localSetDraftRef.current(text);
+                else handleSendOrQueue(text);
+              }}
+            />
+          </>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
           {(() => {
