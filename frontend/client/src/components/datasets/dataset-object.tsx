@@ -31,7 +31,12 @@ import {
   Download,
 } from "lucide-react"
 import { DataPerception } from "@/components/data-perception"
-import { usePerceptionProfile } from "./datasets-api"
+import {
+  usePerceptionProfile,
+  useDatasetLineage,
+  useDatasetConsumers,
+  useDatasetVersions,
+} from "./datasets-api"
 
 // ── DatasetRef — the identity + provenance the caller already holds ──────────
 export interface DatasetRef {
@@ -86,15 +91,26 @@ export function DatasetObject({
   onDownload,
   className,
 }: DatasetObjectProps) {
-  // The Quality tab lazily profiles the dataset when first opened.
+  // Tabs lazily fetch their backing data when first opened (mirrors Quality).
   const [qualityOpened, setQualityOpened] = useState(false)
+  const [lineageOpened, setLineageOpened] = useState(false)
+  const [consumersOpened, setConsumersOpened] = useState(false)
+  const [versionsOpened, setVersionsOpened] = useState(false)
+
   const { data: profile, isLoading, isError } = usePerceptionProfile(
     qualityOpened ? dataset.ref : null,
     dataset.name,
   )
+  const lineageQ = useDatasetLineage(lineageOpened ? dataset.ref : null)
+  const consumersQ = useDatasetConsumers(consumersOpened ? dataset.ref : null)
+  const versionsQ = useDatasetVersions(versionsOpened ? dataset.ref : null)
 
-  const consumers = dataset.consumers ?? []
-  const versions = dataset.versions ?? []
+  // Consumers: prefer live backend data; fall back to any refs the caller held.
+  const consumers = consumersQ.data?.consumers ?? []
+  const propConsumers = dataset.consumers ?? []
+  // Versions: backend returns at least "v1 · current"; else the caller's list.
+  const versions = versionsQ.data?.versions ?? []
+  const propVersions = dataset.versions ?? []
   const isRunOutput = dataset.source === "run_output"
 
   return (
@@ -147,6 +163,9 @@ export function DatasetObject({
           defaultValue="preview"
           onValueChange={(v) => {
             if (v === "quality") setQualityOpened(true)
+            else if (v === "lineage") setLineageOpened(true)
+            else if (v === "consumers") setConsumersOpened(true)
+            else if (v === "versions") setVersionsOpened(true)
           }}
         >
           <TabsList className="mb-3 flex-wrap h-auto">
@@ -208,40 +227,80 @@ export function DatasetObject({
 
           {/* ── Lineage: what produced it ── */}
           <TabsContent value="lineage" className="space-y-1 text-xs" data-testid="dataset-lineage">
-            {isRunOutput ? (
+            {lineageQ.isLoading ? (
+              <div className="space-y-2" data-testid="dataset-lineage-loading">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : lineageQ.data?.available && lineageQ.data.producedBy ? (
+              <>
+                <Row k="Produced by run" v={fmt(lineageQ.data.producedBy.runId)} mono />
+                <Row
+                  k="Workflow"
+                  v={fmt(lineageQ.data.producedBy.workflow ?? dataset.workflowName)}
+                  mono
+                />
+                <Row k="Status" v={fmt(lineageQ.data.producedBy.status)} mono />
+                <Row k="Step" v={fmt(dataset.stepName)} mono last />
+                <p className="text-[10px] text-muted-foreground pt-1">
+                  This dataset was written by a workflow run; the run is an object you can open,
+                  not a string in a description.
+                </p>
+              </>
+            ) : isRunOutput ? (
+              // Prop says it's a run output but the backend has no surviving
+              // provenance record — show what the caller holds, honestly.
               <>
                 <Row k="Produced by run" v={fmt(dataset.runId)} mono />
                 <Row k="Workflow" v={fmt(dataset.workflowName)} mono />
                 <Row k="Step" v={fmt(dataset.stepName)} mono last />
                 <p className="text-[10px] text-muted-foreground pt-1">
-                  This dataset was written by a workflow step; the run and step are objects you can
-                  open, not strings in a description.
+                  This dataset was written by a workflow run; live provenance is no longer
+                  retained for this run.
                 </p>
               </>
             ) : (
               <p className="text-[11px] text-muted-foreground" data-testid="dataset-lineage-uploaded">
                 Uploaded input — no upstream workflow produced this dataset.
-                {" "}Full lineage graph is not available yet.
               </p>
             )}
           </TabsContent>
 
           {/* ── Consumers: what reads it ── */}
           <TabsContent value="consumers" className="space-y-1" data-testid="dataset-consumers">
-            {consumers.length ? (
+            {consumersQ.isLoading ? (
+              <div className="space-y-2" data-testid="dataset-consumers-loading">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+              </div>
+            ) : consumers.length ? (
               consumers.map((c) => (
+                <div
+                  key={c.runId}
+                  className="flex items-center gap-2 rounded border px-2 py-1 text-xs"
+                  data-testid={`dataset-consumer-${c.runId}`}
+                >
+                  <Badge variant="outline" className="text-[10px]">reads</Badge>
+                  <span className="font-mono truncate">{c.workflow ?? c.runId}</span>
+                  {c.status && (
+                    <Badge variant="outline" className="text-[10px] ml-auto">{c.status}</Badge>
+                  )}
+                </div>
+              ))
+            ) : propConsumers.length ? (
+              propConsumers.map((c) => (
                 <div
                   key={c}
                   className="flex items-center gap-2 rounded border px-2 py-1 text-xs"
                   data-testid={`dataset-consumer-${c}`}
                 >
-                  <Badge variant="outline" className="text-[10px]">consumer</Badge>
+                  <Badge variant="outline" className="text-[10px]">reads</Badge>
                   <span className="font-mono truncate">{c}</span>
                 </div>
               ))
             ) : (
               <p className="text-[11px] text-muted-foreground" data-testid="dataset-no-consumers">
-                Consumer tracking is not available yet — no runs are recorded as reading this dataset.
+                No runs are recorded as reading this dataset yet.
               </p>
             )}
             <p className="text-[10px] text-muted-foreground pt-1">
@@ -252,8 +311,32 @@ export function DatasetObject({
 
           {/* ── Versions ── */}
           <TabsContent value="versions" className="space-y-1" data-testid="dataset-versions">
-            {versions.length ? (
+            {versionsQ.isLoading ? (
+              <div className="space-y-2" data-testid="dataset-versions-loading">
+                <Skeleton className="h-8 w-full" />
+              </div>
+            ) : versions.length ? (
               versions.map((v) => (
+                <div
+                  key={v.version}
+                  className="flex items-center gap-2 rounded border px-2 py-1 text-xs"
+                  data-testid={`dataset-version-${v.version}`}
+                >
+                  <span className="font-mono font-semibold">{v.label}</span>
+                  {v.current && (
+                    <Badge variant="outline" className="text-[10px]">current</Badge>
+                  )}
+                  {v.createdAt && (
+                    <span className="ml-auto text-[10px] text-muted-foreground">
+                      {new Date(
+                        typeof v.createdAt === "number" ? v.createdAt * 1000 : v.createdAt,
+                      ).toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              ))
+            ) : propVersions.length ? (
+              propVersions.map((v) => (
                 <div
                   key={v}
                   className="flex items-center gap-2 rounded border px-2 py-1 text-xs"
