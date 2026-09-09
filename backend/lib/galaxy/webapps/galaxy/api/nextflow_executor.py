@@ -3356,6 +3356,26 @@ def _evaluate_qc_from_s3(
         if not metrics:
             return []
 
+        # Fire the auto-loop bridge so the AutoLoopPanel receives the
+        # autoloop_gate_results (+ autoloop_update remediation) SSE events at
+        # run completion — the live trace-poll monitor is the primary firer,
+        # but a fast Batch process can complete entirely between two 5 s polls
+        # (or the trace hash format can differ), leaving the panel empty even
+        # though the gate failed. This completion-time emit is the safety net
+        # (idempotent on the frontend: same event shape, keyed by invocation_id).
+        try:
+            from experiments.autoloop_bridge import evaluate_and_emit
+            evaluate_and_emit(
+                process_name="ADMET_PRED",
+                raw_metrics=metrics,
+                invocation_id=run_id,
+                sse_callback=_sse_emit,
+                qc_profile=(qc_overrides or {}).get("qc_profile"),
+                current_params=None,
+            )
+        except Exception as _al_exc:  # noqa: BLE001 — fail-open, never block QC
+            log.debug("[autoloop] completion-time emit failed for %s: %s", run_id, _al_exc)
+
         _, all_failures = handler._check_qc_thresholds(
             "PREDICT_ADMET_PROPERTIES", metrics
         )

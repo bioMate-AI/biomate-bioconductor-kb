@@ -1648,6 +1648,11 @@ class NextflowQCGateHandler:
         "BIOMARKER_PATIENT_ENRICHMENT": ("*", "qc_metrics.json"),  # prev 0.10-0.50 (SILVER, FDA 2019), EF≥1.5 (BRONZE)
         "IVIVE_HEPATIC_CLEARANCE":   ("*", "qc_metrics.json"),  # ivive_fold_error ≤ 2 (GOLD, Obach 1999)
         "PREDICT_ADMET_PROPERTIES":  ("*", "qc_metrics.json"),  # hERG ≥10μM (GOLD, Redfern 2003) / Ames neg (SILVER, Kazius 2005) / DILI
+        # ADMET_pred (process ADMET_PRED) emits toxicity_report.json, NOT
+        # qc_metrics.json. Register the real filename so the Batch/S3 gate
+        # path can find it (root cause: hERG gate never materialised on dev
+        # because the S3 reader only looked for qc_metrics.json — 2026-09-08).
+        "ADMET_PRED":                ("*", "toxicity_report.json"),  # hERG ≥10μM (Aronov 2008) / DILI (Lammert 2010) / Ames (Kazius 2005)
         "DDI_RISK_ASSESSMENT":       ("*", "qc_metrics.json"),  # FDA 2020 DDI R1/R2 INVESTIGATE/CLINICAL_STUDY (GOLD)
         "NCA_PKNCA_ANALYSIS":        ("*", "qc_metrics.json"),  # auc_extrap_pct_max ≤ 20% (GOLD, FDA 2003 BA/BE)
         "PBPK_SIMULATION":           ("*", "qc_metrics.json"),  # tmax_fraction ≤ 0.8 (SILVER, FDA 2018 PBPK)
@@ -1780,17 +1785,22 @@ class NextflowQCGateHandler:
                     "AWS_DEFAULT_REGION", "us-west-2"
                 ),
             )
+            # Report filenames to look for, in priority order. Most workflows
+            # emit qc_metrics.json; the ADMET_pred/PREDICT_ADMET workflows emit
+            # toxicity_report.json (nested {"toxicity": {...}} shape). Match
+            # either so the Batch/S3 gate path can find the hERG/DILI metrics.
+            _report_names = ("qc_metrics.json", "toxicity_report.json")
             paginator = s3.get_paginator("list_objects_v2")
             target_key: Optional[str] = None
             for page in paginator.paginate(Bucket=bucket, Prefix=list_prefix):
                 for obj in page.get("Contents", []) or []:
                     key = obj["Key"]
-                    # Match qc_metrics.json under any task dir whose name
+                    # Match a known report file under any task dir whose name
                     # starts with the abbreviated rest of the hash.
                     rel = key[len(list_prefix):]
                     if not rel.startswith(rest):
                         continue
-                    if rel.endswith("/qc_metrics.json"):
+                    if any(rel.endswith("/" + n) for n in _report_names):
                         target_key = key
                         break
                 if target_key:
@@ -1798,9 +1808,10 @@ class NextflowQCGateHandler:
 
             if not target_key:
                 log.info(
-                    "[QC-S3] No work-dir qc_metrics.json for %s at "
+                    "[QC-S3] No work-dir report (%s) for %s at "
                     "s3://%s/%s (hash=%s)",
-                    process_upper, bucket, list_prefix, process_hash,
+                    "|".join(_report_names), process_upper, bucket,
+                    list_prefix, process_hash,
                 )
                 return None
 
@@ -1897,6 +1908,46 @@ class NextflowQCGateHandler:
                         pct_str = line.split("(")[1].split("%")[0].strip()
                         metrics["mapped_pct"] = float(pct_str.lstrip("+").strip())
                     except (IndexError, ValueError):
+                        pass
+
+        # ADMET toxicity_report.json — the safety metrics live nested under
+        # "toxicity" (not top-level), so the generic scalar passthrough below
+        # would drop them. Extract them explicitly so the hERG/DILI/Ames gates
+        # fire on Batch/S3 runs (root cause of the "gate did not materialise on
+        # dev" report — 2026-09-08). Matches the local _parse_admet_toxicity
+        # extraction so both paths behave identically.
+        elif any(k in process_upper for k in ("PREDICT_ADMET", "ADMET_PRED",
+                                              "ADMET_SAFETY", "ADMET_TOXICITY")):
+            tox = data.get("toxicity", data) if isinstance(data, dict) else {}
+            if isinstance(tox, dict):
+                if "herg_ic50_uM" in tox:
+                    try:
+                        metrics["herg_ic50_uM"] = float(tox["herg_ic50_uM"])
+                    except (TypeError, ValueError):
+                        pass
+                if "herg_inhibition_prob" in tox:
+                    try:
+                        metrics["herg_inhibition_prob"] = float(tox["herg_inhibition_prob"])
+                    except (TypeError, ValueError):
+                        pass
+                if "dili_risk" in tox:
+                    metrics["dili_risk"] = str(tox["dili_risk"]).lower()
+                if "dili_probability" in tox:
+                    try:
+                        metrics["dili_probability"] = float(tox["dili_probability"])
+                    except (TypeError, ValueError):
+                        pass
+                if "ames_positive" in tox:
+                    metrics["ames_positive"] = bool(tox["ames_positive"])
+                if "ames_probability" in tox:
+                    try:
+                        metrics["ames_probability"] = float(tox["ames_probability"])
+                    except (TypeError, ValueError):
+                        pass
+                if "clintox_probability" in tox:
+                    try:
+                        metrics["clintox_probability"] = float(tox["clintox_probability"])
+                    except (TypeError, ValueError):
                         pass
 
         # Gate-only domains (HTS, ICH-S5/S7, BOIN, allometric, IVIVE, OpenFE,
