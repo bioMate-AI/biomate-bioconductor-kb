@@ -65,7 +65,7 @@ async function _isOwnerOrMember(projectId: string, uid: string): Promise<boolean
   if (!project) return false;
   if (project.userId === uid) return true;
   const r = await pool.query(
-    `SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2`,
+    `SELECT 1 FROM project_members WHERE project_id = $1 AND user_id::text = $2`,
     [projectId, uid]
   );
   return r.rows.length > 0;
@@ -81,7 +81,7 @@ async function _getUserRole(
   if (!project) return null;
   if (project.userId === uid) return 'owner';
   const r = await pool.query(
-    `SELECT role FROM project_members WHERE project_id = $1 AND user_id = $2`,
+    `SELECT role FROM project_members WHERE project_id = $1 AND user_id::text = $2`,
     [projectId, uid]
   );
   if (!r.rows.length) return null;
@@ -235,7 +235,7 @@ export function registerProjectRoutes(app: Express): void {
         role = 'owner';
       } else {
         const memberCheck = await pool.query(
-          `SELECT role FROM project_members WHERE project_id = $1 AND user_id = $2`,
+          `SELECT role FROM project_members WHERE project_id = $1 AND user_id::text = $2`,
           [id, uid]
         );
         if (!memberCheck.rows.length) return res.status(404).json({ error: "Project not found" });
@@ -356,7 +356,7 @@ export function registerProjectRoutes(app: Express): void {
   // Unified dataset catalog: search ALL of a user's datasets across every
   // project (uploads + run outputs), so the assistant can discover the
   // client's OWN data — not just external literature (RFC unified data plane).
-  // Scoped strictly to the caller (user_id = $1). Tokenized ILIKE match over
+  // Scoped strictly to the caller (user_id::text = $1). Tokenized ILIKE match over
   // filename, workflow, step, source, and captured input context.
   app.get("/api/data/search", authenticateToken, async (req: Request, res: Response) => {
     const uid = userId(req);
@@ -369,7 +369,7 @@ export function registerProjectRoutes(app: Express): void {
     if (limit > 100) limit = 100;
     try {
       const params: any[] = [uid];
-      const clauses: string[] = ["user_id = $1"];
+      const clauses: string[] = ["user_id::text = $1"];
       // Tokenize the query — every token must match somewhere (AND of ORs),
       // so "rnaseq counts" finds files matching both terms, not the literal phrase.
       const tokens = q.split(/\s+/).filter(Boolean).slice(0, 6);
@@ -422,7 +422,7 @@ export function registerProjectRoutes(app: Express): void {
         `SELECT session_id, title, status, created_at, last_activity,
                 jsonb_array_length(messages) AS message_count
          FROM chat_sessions
-         WHERE project_id = $1 AND user_id = $2
+         WHERE project_id = $1 AND user_id::text = $2
          ORDER BY last_activity DESC LIMIT 50`,
         [id, uid]
       );
@@ -599,7 +599,7 @@ export function registerProjectRoutes(app: Express): void {
       const proj = await memoryService.projects.getProject(id);
       if (proj?.userId === uid) return res.status(400).json({ error: "Owner cannot leave — transfer or delete the project" });
       const del = await pool.query(
-        `DELETE FROM project_members WHERE project_id = $1 AND user_id = $2`,
+        `DELETE FROM project_members WHERE project_id = $1 AND user_id::text = $2`,
         [id, uid]
       );
       if ((del.rowCount ?? 0) === 0) return res.status(404).json({ error: "Not a member of this project" });
@@ -623,7 +623,7 @@ export function registerProjectRoutes(app: Express): void {
       const existing = await memoryService.projects.getProject(id);
       if (!existing || existing.userId !== uid) return res.status(404).json({ error: "Project not found" });
       const upd = await pool.query(
-        `UPDATE project_members SET role = $1 WHERE project_id = $2 AND user_id = $3`,
+        `UPDATE project_members SET role = $1 WHERE project_id = $2 AND user_id::text = $3`,
         [role, id, memberId]
       );
       if ((upd.rowCount ?? 0) === 0) return res.status(404).json({ error: "Member not found" });
@@ -644,7 +644,7 @@ export function registerProjectRoutes(app: Express): void {
       const existing = await memoryService.projects.getProject(id);
       if (!existing || existing.userId !== uid) return res.status(404).json({ error: "Project not found" });
       const del = await pool.query(
-        `DELETE FROM project_members WHERE project_id = $1 AND user_id = $2`,
+        `DELETE FROM project_members WHERE project_id = $1 AND user_id::text = $2`,
         [id, memberId]
       );
       if ((del.rowCount ?? 0) === 0) return res.status(404).json({ error: "Member not found" });

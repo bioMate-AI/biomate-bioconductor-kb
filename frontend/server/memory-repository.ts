@@ -302,7 +302,7 @@ export class ProjectMemoryRepository {
        WHERE (p.user_id::text = $1
          OR EXISTS (
            SELECT 1 FROM project_members pm
-           WHERE pm.project_id = p.id AND pm.user_id = $1
+           WHERE pm.project_id = p.id AND pm.user_id::text = $1
          ))
        ${statusClause}
        ORDER BY "updatedAt" DESC`,
