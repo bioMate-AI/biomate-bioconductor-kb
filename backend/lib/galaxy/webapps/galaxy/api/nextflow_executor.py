@@ -3202,8 +3202,8 @@ def _evaluate_qc_from_s3(
         domain_upper = workflow_domain.upper()
         is_admet = any(k in domain_upper for k in ("ADMET", "PHARMACOL", "DRUG_DISC", "TOXICITY"))
         is_admet_files = any(
-            f.get("filename", "").endswith("toxicity_report.json") or
-            "predict_admet_properties" in f.get("filename", "")
+            (f.get("filename") or f.get("name") or "").endswith("toxicity_report.json") or
+            "predict_admet_properties" in (f.get("filename") or f.get("name") or "")
             for f in s3_output_files
         )
         is_cryo = any(k in domain_upper for k in ("CRYO", "CRYOSPARC", "CRYOEM", "CRYO_EM"))
@@ -3330,28 +3330,47 @@ def _evaluate_qc_from_s3(
             qc_overrides=qc_overrides,
         )
 
-        # Read toxicity_report.json from S3
+        # Read ADMET safety metrics from S3. Prefer toxicity_report.json
+        # (nested {"toxicity": {...}}); fall back to qc_metrics.json (flat)
+        # which the AI Chemprop workflow emits. Match on BOTH the "filename"
+        # and "name" keys — _list_s3_output_files stores the basename under
+        # "name", so the old filename-only match silently skipped every file
+        # (root cause of qc_gates=null on completed terfenadine runs where the
+        # metrics were present on S3 — 2026-09-08). The s3_uri suffix check is
+        # the belt-and-braces path.
+        def _basename(f: Dict[str, Any]) -> str:
+            return f.get("filename") or f.get("name") or ""
+
         metrics: Dict[str, Any] = {}
-        for f in s3_output_files:
-            s3_uri = f.get("s3_uri", "")
-            filename = f.get("filename", "")
-            if not (filename == "toxicity_report.json" or s3_uri.endswith("/toxicity_report.json")):
-                continue
-            try:
-                result = _sub.run(
-                    [_aws_cli_bin(), "s3", "cp", s3_uri, "-"],
-                    capture_output=True, timeout=15
-                )
-                if result.returncode == 0:
-                    data = _json.loads(result.stdout)
-                    tox = data.get("toxicity", data)
-                    for key in ("herg_ic50_uM", "dili_risk", "dili_probability",
-                                "ames_positive", "ames_probability", "clintox_probability"):
-                        if key in tox:
-                            metrics[key] = tox[key]
-                    break
-            except Exception as _e:
-                log.warning("[QC S3] Failed to read %s: %s", s3_uri, _e)
+
+        def _extract(data: Dict[str, Any]) -> Dict[str, Any]:
+            src = data.get("toxicity", data) if isinstance(data, dict) else {}
+            out: Dict[str, Any] = {}
+            for key in ("herg_ic50_uM", "dili_risk", "dili_probability",
+                        "ames_positive", "ames_probability", "clintox_probability"):
+                if isinstance(src, dict) and key in src:
+                    out[key] = src[key]
+            return out
+
+        # First pass: toxicity_report.json. Second pass: qc_metrics.json.
+        for _target in ("toxicity_report.json", "qc_metrics.json"):
+            for f in s3_output_files:
+                s3_uri = f.get("s3_uri", "")
+                if not (_basename(f) == _target or s3_uri.endswith("/" + _target)):
+                    continue
+                try:
+                    result = _sub.run(
+                        [_aws_cli_bin(), "s3", "cp", s3_uri, "-"],
+                        capture_output=True, timeout=15
+                    )
+                    if result.returncode == 0:
+                        metrics = _extract(_json.loads(result.stdout))
+                        if metrics:
+                            break
+                except Exception as _e:
+                    log.warning("[QC S3] Failed to read %s: %s", s3_uri, _e)
+            if metrics:
+                break
 
         if not metrics:
             return []
