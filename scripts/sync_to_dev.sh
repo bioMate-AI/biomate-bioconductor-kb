@@ -474,6 +474,13 @@ deploy_backend_python() {
   # Always include the workflow indexer
   echo "backend/scripts/index_all_workflows.py" >> "$tmp_list"
 
+  # Also sync backend/experiments/ — the executor imports `experiments.autoloop_bridge`
+  # (+ per-domain QC evaluators) for the completion-time auto-loop emit. This tree was
+  # previously omitted from the sync, so on dev the import raised ModuleNotFoundError and
+  # the auto-loop remediation SSE silently no-op'd. Ship the whole package.
+  git ls-files -- 'backend/experiments/**/*.py' 'backend/experiments/*.py' 2>/dev/null >> "$tmp_list" || true
+  git ls-files --others --exclude-standard -- 'backend/experiments/**/*.py' 2>/dev/null >> "$tmp_list" || true
+
   local count=$(sort -u "$tmp_list" | grep -c "\.py$" || true)
   log "[backend] $count Python files to sync"
 
@@ -538,7 +545,12 @@ deploy_backend_python() {
     # null-byte ValueError that crash-loops gunicorn (sync 8 root cause, 2026-07-03).
     find /tmp/backend_py_extract/backend -name "*.py" ! -name "._*" | while read src; do
       rel="${src#/tmp/backend_py_extract/backend/}"
-      dest="/app/lib/galaxy/${rel#lib/galaxy/}"
+      # experiments/ is a top-level package at /app/experiments (importable as `experiments`);
+      # everything else lands under /app/lib/galaxy/.
+      case "$rel" in
+        experiments/*) dest="/app/$rel" ;;
+        *)             dest="/app/lib/galaxy/${rel#lib/galaxy/}" ;;
+      esac
       dir=$(dirname "$dest")
       # Create directory in container if needed
       docker exec "$GC" mkdir -p "$dir" 2>/dev/null || true

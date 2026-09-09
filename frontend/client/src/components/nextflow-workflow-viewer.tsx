@@ -822,7 +822,9 @@ function PhaseGroupSection({
             </div>
           )}
 
-          {/* AutoLoopPanel — commented out until QC loop is stable (see project_future_work_pivot.md)
+          {/* AutoLoopPanel — renders the QC gate table + remediation card when the
+              auto-loop gate fires (autoloop_gate_results SSE). Re-enabled once the QC
+              loop was made to fire live end-to-end (executor SSE emit + experiments/ deploy). */}
           {autoloopEnabled && autoLoopPanelState?.gateResults &&
             autoloopPhaseMatches(group.key, autoLoopPanelState.gateResults.phase) && (
             <div style={{padding:'8px 14px 0 40px'}}>
@@ -834,7 +836,6 @@ function PhaseGroupSection({
               />
             </div>
           )}
-          */}
 
           {/* Phase actions */}
           <div className="phase-actions">

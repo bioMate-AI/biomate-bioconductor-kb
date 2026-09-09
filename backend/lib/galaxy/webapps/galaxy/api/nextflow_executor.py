@@ -3383,6 +3383,14 @@ def _evaluate_qc_from_s3(
         # though the gate failed. This completion-time emit is the safety net
         # (idempotent on the frontend: same event shape, keyed by invocation_id).
         try:
+            # `experiments` is a top-level package (repo backend/experiments →
+            # container /app/experiments). Ensure its root is importable — the
+            # deployed container has /app/experiments; local dev has backend/.
+            import sys as _sys, os as _os
+            for _root in ("/app", _os.path.abspath(_os.path.join(_os.path.dirname(__file__), *[".."] * 5))):
+                if _os.path.isdir(_os.path.join(_root, "experiments")) and _root not in _sys.path:
+                    _sys.path.insert(0, _root)
+                    break
             from experiments.autoloop_bridge import evaluate_and_emit
             evaluate_and_emit(
                 process_name="ADMET_PRED",
@@ -3393,7 +3401,10 @@ def _evaluate_qc_from_s3(
                 current_params=None,
             )
         except Exception as _al_exc:  # noqa: BLE001 — fail-open, never block QC
-            log.debug("[autoloop] completion-time emit failed for %s: %s", run_id, _al_exc)
+            # WARNING not DEBUG: a missing module for a shipped feature must be visible
+            # (this exact silent DEBUG hid autoloop_bridge being absent from the deploy).
+            log.warning("[autoloop] completion-time emit failed for %s: %s "
+                        "(auto-loop remediation SSE will be absent — check experiments/ deploy)", run_id, _al_exc)
 
         _, all_failures = handler._check_qc_thresholds(
             "PREDICT_ADMET_PROPERTIES", metrics
