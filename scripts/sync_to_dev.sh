@@ -1378,7 +1378,11 @@ try:
     d = json.load(sys.stdin)
     err = d.get(\"error\", \"\")
     success = d.get(\"success\", False)
-    wf = bool(d.get(\"workflow_ga\") or d.get(\"nextflow_path\"))
+    # A valid generation result is EITHER a single workflow (workflow_ga/nextflow_path)
+    # OR a curated multi-step chain (workflow_type=chain with real steps). Both prove the
+    # DB schema + AI stack are functional; a chain IS a runnable pipeline, not 'no workflow'.
+    is_chain = d.get(\"workflow_type\") == \"chain\" and bool(d.get(\"chain_steps\"))
+    wf = bool(d.get(\"workflow_ga\") or d.get(\"nextflow_path\") or is_chain)
     if err == \"db_unavailable\":
         print(\"FAIL db_unavailable\"); sys.exit(1)
     if err == \"clarification_needed\":
@@ -1387,7 +1391,8 @@ try:
         print(f\"FAIL error={err}\"); sys.exit(1)
     if not success or not wf:
         print(f\"FAIL success={success} wf={wf}\"); sys.exit(1)
-    print(\"PASS workflow=\" + str(d.get(\"workflow_ga\",{}).get(\"name\",\"?\"))); sys.exit(0)
+    name = (d.get(\"workflow_ga\") or {}).get(\"name\") or d.get(\"chain_name\") or \"?\"
+    print(\"PASS workflow=\" + str(name)); sys.exit(0)
 except Exception as e:
     print(f\"FAIL parse_error={e}\"); sys.exit(1)
 " 2>&1)
@@ -1402,12 +1407,14 @@ try:
     d = json.load(sys.stdin)
     err = d.get(\"error\", \"\")
     success = d.get(\"success\", False)
-    wf = bool(d.get(\"workflow_ga\") or d.get(\"nextflow_path\"))
+    is_chain = d.get(\"workflow_type\") == \"chain\" and bool(d.get(\"chain_steps\"))
+    wf = bool(d.get(\"workflow_ga\") or d.get(\"nextflow_path\") or is_chain)
     if err:
         print(f\"FAIL error={err}\"); sys.exit(1)
     if not success or not wf:
         print(f\"FAIL success={success} wf={wf}\"); sys.exit(1)
-    print(\"PASS workflow=\" + str(d.get(\"workflow_ga\",{}).get(\"name\",\"?\"))); sys.exit(0)
+    name = (d.get(\"workflow_ga\") or {}).get(\"name\") or d.get(\"chain_name\") or \"?\"
+    print(\"PASS workflow=\" + str(name)); sys.exit(0)
 except Exception as e:
     print(f\"FAIL parse_error={e}\"); sys.exit(1)
 " 2>&1)
