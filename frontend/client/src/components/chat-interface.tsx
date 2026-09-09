@@ -20,7 +20,7 @@ import { useMutation } from "@tanstack/react-query"
 import { apiRequest } from "@/lib/queryClient"
 import { chatHistoryService } from "@/lib/chat-history"
 import { emitUxEvent } from "@/lib/ux-telemetry"
-import { getChatAsyncGuidance } from "@/lib/async-guidance"
+import { getChatAsyncGuidance, isTransientChatError } from "@/lib/async-guidance"
 import { useNetworkStatus } from "@/lib/network-status"
 import type { ChatSession, ExecutionRun } from "@shared/schema"
 import { analytics } from "@/lib/analytics"
@@ -806,7 +806,30 @@ export function ChatInterface({
         .filter((m) => _DATASET_BLOCK_RE.test(m.content || ""))
       const previousMessages = [..._earlierAttachments, ..._recent]
         .map((m) => ({ role: m.role, content: m.content }))
+      // A fresh AbortController drives each attempt. It is aborted for two
+      // distinct reasons that we must tell apart:
+      //   - user pressed Stop  → timedOutRef stays false; treat as a clean
+      //     stop (return partial), no retry.
+      //   - per-attempt timeout → timedOutRef is set just before we abort;
+      //     treat as a TRANSIENT failure eligible for retry.
+      // LLM workflow generation can legitimately take 30–90s (see CLAUDE.md
+      // E2E timeout guidance), so the client timeout is generous (120s) — a
+      // too-short timeout firing at 15–45s was a likely cause of the "under
+      // maintenance" dead-end on the first attempt.
+      const ATTEMPT_TIMEOUT_MS = 120_000
+      const MAX_ATTEMPTS = 3 // 1 initial + 2 retries
+      const timedOutRef = { current: false }
+
+      // Single stream attempt. Throws on failure; the caller decides whether
+      // the failure is transient (retry) or deterministic (surface now).
+      const attemptStream = async (): Promise<any> => {
+      timedOutRef.current = false
       abortControllerRef.current = new AbortController()
+      const _timeoutId = setTimeout(() => {
+        timedOutRef.current = true
+        try { abortControllerRef.current?.abort() } catch { /* noop */ }
+      }, ATTEMPT_TIMEOUT_MS)
+      try {
       const response = await fetch('/api/chat/stream', {
         method: 'POST',
         credentials: 'include', // ensure auth cookie is sent on mobile browsers
@@ -835,10 +858,11 @@ export function ChatInterface({
         })
       })
       if (!response.ok) {
-        if (response.status === 429) {
-          throw new Error('Chat API error: The service is temporarily busy. Please wait a moment and try again.')
-        }
-        throw new Error(`Chat API error: ${response.statusText}`)
+        const httpErr: any = response.status === 429
+          ? new Error('Chat API error: The service is temporarily busy. Please wait a moment and try again.')
+          : new Error(`Chat API error: ${response.statusText || response.status}`)
+        httpErr.httpStatus = response.status
+        throw httpErr
       }
       if (!response.body) {
         throw new Error('Streaming response body unavailable')
@@ -930,7 +954,15 @@ export function ChatInterface({
             } else if (eventName === 'workflow_ready') {
               setWorkflowGeneratingPhase('workflow')
             } else if (eventName === 'error') {
-              throw new Error('__maintenance__')
+              // Preserve the server's real error message so the retry
+              // classifier (isTransientChatError) can decide whether this is a
+              // transient hiccup worth retrying vs a deterministic failure to
+              // surface immediately. The old opaque '__maintenance__' sentinel
+              // discarded that signal and always dead-ended.
+              const serverMsg =
+                (payload && typeof payload.message === 'string' && payload.message) ||
+                'Streaming chat failed'
+              throw new Error(serverMsg)
             }
           }
         }
@@ -938,8 +970,19 @@ export function ChatInterface({
       } catch (err: any) {
         console.error('[ChatInterface] SSE read error:', err?.name, err?.message)
         if (err?.name === 'AbortError') {
-          // Stream was stopped by user — not an error, just return what we have
-          return finalPayload ?? { message: accumulatedText, aborted: true }
+          if (timedOutRef.current) {
+            // Per-attempt timeout — transient, eligible for retry.
+            const toErr: any = new Error(
+              `Workflow generation timed out after ${Math.round(ATTEMPT_TIMEOUT_MS / 1000)}s`,
+            )
+            toErr.timedOut = true
+            throw toErr
+          }
+          // Stream was stopped by the user — clean stop, not an error.
+          const abortErr: any = new Error('aborted')
+          abortErr.userAborted = true
+          abortErr.partial = finalPayload ?? { message: accumulatedText, aborted: true }
+          throw abortErr
         }
         throw err
       }
@@ -949,6 +992,55 @@ export function ChatInterface({
         throw new Error('No final payload received from stream')
       }
       return finalPayload
+      } finally {
+        clearTimeout(_timeoutId)
+      }
+      } // end attemptStream
+
+      // Bounded retry: retry ONLY genuinely transient failures (network blip,
+      // 5xx, timeout, empty/incomplete stream, rate-limit). Deterministic
+      // failures (4xx, validation, clarification) are thrown immediately so
+      // the user sees the real message instead of retrying into a hang.
+      let lastError: any = null
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        try {
+          return await attemptStream()
+        } catch (err: any) {
+          // User pressed Stop — return the partial payload, do not retry.
+          if (err?.userAborted) {
+            return err.partial ?? { message: '', aborted: true }
+          }
+          lastError = err
+          const transient = isTransientChatError(err?.message, {
+            httpStatus: err?.httpStatus ?? null,
+            aborted: false,
+          }) || err?.timedOut === true
+          const hasAttemptsLeft = attempt < MAX_ATTEMPTS
+          if (!transient || !hasAttemptsLeft) {
+            throw err
+          }
+          // Short exponential backoff: 800ms, 1600ms. Keep the placeholder
+          // visible with a calm "retrying" cue so the user isn't staring at a
+          // frozen bubble.
+          const backoffMs = 800 * Math.pow(2, attempt - 1)
+          console.warn(
+            `[ChatInterface] Transient generation failure (attempt ${attempt}/${MAX_ATTEMPTS}), retrying in ${backoffMs}ms:`,
+            err?.message,
+          )
+          try {
+            updateMessageInSession(sessionId, placeholderId, {
+              metadata: { progressStatus: 'Reconnecting to the workflow service…' },
+            })
+          } catch { /* placeholder may not exist yet */ }
+          await new Promise((r) => setTimeout(r, backoffMs))
+          // If the user pressed Stop during the backoff window,
+          // stopStreaming() nulled the controller — honor it, don't re-fire.
+          if (abortControllerRef.current === null) {
+            return { message: '', aborted: true }
+          }
+        }
+      }
+      throw lastError ?? new Error('Workflow generation failed')
     },
     onSuccess: async (data, variables) => {
       console.log('[ChatInterface] API Response:', data)
@@ -1187,9 +1279,20 @@ export function ChatInterface({
 
       const errorMessage = error.message || 'Unknown error occurred';
       const guidance = getChatAsyncGuidance(errorMessage, { isOnline });
+      // By the time onError fires, the mutationFn has already exhausted its
+      // bounded auto-retry for transient failures. So this is either a
+      // persistent transient outage or a deterministic failure. Surface a
+      // calm, honest message — a temporary hiccup the user can retry — WITHOUT
+      // implying planned downtime (the old hardcoded "under maintenance"
+      // string was misleading for a transient blip) and WITHOUT leaking raw
+      // stack traces (guidance.reason is already sanitized).
+      const transient = isTransientChatError(errorMessage, { httpStatus: null, aborted: false });
+      const content = transient
+        ? `${guidance.reason} ${guidance.retry}`.trim()
+        : `${guidance.title}. ${guidance.reason} ${guidance.retry}`.trim();
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: 'The system is currently under maintenance. Please try again in a few moments.',
+        content,
         role: "assistant",
         timestamp: new Date(),
         suggestions: ["Try again"],
