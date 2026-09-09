@@ -3185,8 +3185,11 @@ def _looks_like_question(text: str) -> bool:
 # object so it doesn't swallow a real pipeline request ("summarise expression
 # across the cohort"). Mirrors lane-preview.tsx's INSTANT_RULES compute rule.
 _ADHOC_COMPUTE_RE = re.compile(
+    # NB: "correlat*" is deliberately NOT an ad-hoc trigger — it collides with
+    # real spatial-correlation pipelines ("spatially correlated genes across
+    # Visium spots"), which measured as a net cloud-recall loss.
     r"\b(plot|show me|first\s+\d+\s+rows|head of|value counts|reshape|pivot|"
-    r"correlat\w*|convert this\s+(file|csv|tsv|table)|"
+    r"convert this\s+(file|csv|tsv|table)|"
     r"summari[sz]e\s+(this|the)\s+(table|file|csv|data|readout)|"
     r"(mean|median)\s+(of|per)\s+(each|the)|quick look)\b",
     re.IGNORECASE,

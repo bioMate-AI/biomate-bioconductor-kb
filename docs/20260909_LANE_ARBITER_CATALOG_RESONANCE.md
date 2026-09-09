@@ -59,9 +59,14 @@ real DB, which only exist on dev).
 | Adversarial (question-guard) | 100% | 100% | **100%** |
 | Over-promise (instant→cloud) | 1 | 8 | **3** |
 
-(A follow-up one-char fix — `correlat` → `correlat\w*`, a `\b` word-boundary bug
-in the ad-hoc guard that let "Compute the correlation…" slip through — drops
-over-promise to 2; shipped in a later commit.)
+**Measurement caught a bad "fix":** broadening the ad-hoc guard to `correlat\w*`
+(to catch "Compute the correlation…") dropped over-promise 3→2 but **stole 2 real
+spatial-omics tasks** ("Lee's L cross-correlation across Visium spots"; "spatially
+correlated gene pairs") — cloud recall 98.0%→97.0%, overall 97.1%→96.7%. Net
+negative. Reverted: `correlat*` is deliberately NOT an ad-hoc trigger. Final
+operating point = the +Guards column above (97.1% / 98.0% cloud recall,
+over-promise 3). The lone ambiguous residual "Compute the correlation between
+these two columns" is left as an accepted over-promise (advisory lane).
 
 Baseline per-domain cloud recall exposed how systemic the under-promise was:
 drug_discovery 7.7%, immunology 0%, proteomics 15%, metagenomics 15%,
