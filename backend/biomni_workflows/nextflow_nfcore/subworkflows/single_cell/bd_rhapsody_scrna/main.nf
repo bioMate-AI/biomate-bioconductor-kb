@@ -68,7 +68,7 @@ process BD_RHAPSODY_SCRNA {
     export PARAM_ABSEQ='${params.abseq}'
 
     python3 << 'PYEOF'
-import json, os, csv, random
+import json, os, csv, sys
 
 def pf(v, d=None):
     if v in (None,'','null'): return d
@@ -88,16 +88,18 @@ min_g    = pf(os.environ.get('PARAM_MIN_GENES'), 100)
 max_mito = pf(os.environ.get('PARAM_MAX_MITO'), 20)
 do_abseq = pb(os.environ.get('PARAM_ABSEQ'), False)
 
-random.seed(42)
+# integrity: was an RNG stub fabricating results; honest-fail until wired to the BD Rhapsody pipeline / STARsolo.
+sys.stderr.write("ERROR: bd_rhapsody_scrna is a stub with no real implementation — it requires the BD Rhapsody pipeline (BD Seven Bridges / rhapsodiseR) or STARsolo for barcode correction, UMI dedup, and gene counting, plus real BD Rhapsody FASTQ input data. Refusing to emit fabricated results.\\n")
+sys.exit(1)
 
 # BD Rhapsody has lower doublet rate than 10x (~1% vs 4-5%)
-doublet_rate = 0.01
-n_raw_cells  = int(n_cells * random.uniform(0.88, 0.96))
-n_pass       = int(n_raw_cells * random.uniform(0.85, 0.95))
+doublet_rate = 0
+n_raw_cells  = 0
+n_pass       = 0
 
-median_umis  = random.gauss(1800 if panel=='WTA' else 800, 400)  # lower than 10x
-median_genes = random.gauss(850 if panel=='WTA' else 350, 200)
-median_mito  = random.gauss(3.5, 1.2)
+median_umis  = 0
+median_genes = 0
+median_mito  = 0
 
 qc = {
     'status': 'completed',
@@ -131,9 +133,9 @@ with open('cell_stats.csv', 'w', newline='') as f:
     w = csv.writer(f)
     w.writerow(['cell_id','rna_umis','genes_detected','mito_pct','pass_qc'])
     for i in range(min(n_pass, 100)):
-        u = max(min_umi, round(random.gauss(median_umis, 400)))
-        g = max(min_g, round(random.gauss(median_genes, 200)))
-        m = round(max(0.5, random.gauss(median_mito, 1.5)), 1)
+        u = 0
+        g = 0
+        m = 0
         w.writerow([f'Cell_{i+1}', u, g, m, m < max_mito])
 
 lines = [

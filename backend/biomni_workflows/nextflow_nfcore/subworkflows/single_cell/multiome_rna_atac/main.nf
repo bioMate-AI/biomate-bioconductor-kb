@@ -78,7 +78,7 @@ process MULTIOME_RNA_ATAC {
     export PARAM_TF='${params.tf_activity}'
 
     python3 << 'PYEOF'
-import json, os, csv, math, random
+import json, os, csv, math, sys
 
 def pf(v, d=None):
     if v in (None,'','null'): return d
@@ -99,22 +99,24 @@ do_peaks     = pb(os.environ.get('PARAM_PEAKS'), True)
 do_links     = pb(os.environ.get('PARAM_LINKS'), True)
 do_tf        = pb(os.environ.get('PARAM_TF'), True)
 
-random.seed(42)
+# integrity: was an RNG stub fabricating results; honest-fail until wired to Cell Ranger ARC / Signac / chromVAR.
+sys.stderr.write("ERROR: multiome_rna_atac is a stub with no real implementation — it requires Cell Ranger ARC (RNA+ATAC counting) plus Signac / chromVAR (WNN integration, peak-gene links, TF activity) and real 10x Multiome FASTQ input data. Refusing to emit fabricated results.\\n")
+sys.exit(1)
 
 # RNA QC
-median_rna_umis  = random.gauss(9000, 2500)
-median_genes     = random.gauss(2500, 500)
-median_mito_pct  = random.gauss(4.0, 1.5)
-n_rna_pass       = int(n_cells * random.uniform(0.82, 0.94))
+median_rna_umis  = 0
+median_genes     = 0
+median_mito_pct  = 0
+n_rna_pass       = 0
 
 # ATAC QC — stricter than RNA (TSS enrichment, fragment count)
-median_atac_frags   = random.gauss(15000, 4000)
-median_tss_enrich   = random.gauss(8.5, 1.5)
-pct_reads_in_peaks  = random.uniform(0.55, 0.75)
-n_peaks             = random.randint(85000, 120000)  # hg38 typical
-n_atac_pass         = int(n_cells * random.uniform(0.78, 0.92))
+median_atac_frags   = 0
+median_tss_enrich   = 0
+pct_reads_in_peaks  = 0
+n_peaks             = 0
+n_atac_pass         = 0
 
-n_joint_pass = int(min(n_rna_pass, n_atac_pass) * random.uniform(0.90, 0.97))
+n_joint_pass = 0
 
 # Cell types in joint analysis (immune/PBMC-like example)
 cell_type_data = [
@@ -146,9 +148,9 @@ if do_links:
     for gene, peak, corr, pval in gene_peaks:
         peak_gene_links_data.append({
             'gene': gene, 'peak': peak,
-            'correlation': round(corr + random.gauss(0, 0.05), 3),
+            'correlation': round(corr, 3),
             'p_value': f'{pval:.2e}',
-            'n_cells': int(n_joint_pass * random.uniform(0.1, 0.4)),
+            'n_cells': 0,
         })
 
 # TF activity scores
@@ -166,7 +168,7 @@ if do_tf:
     ]
     for tf, cluster, z, pval in tfs:
         tf_data.append({'tf': tf, 'cluster': cluster,
-                        'z_score': round(z + random.gauss(0, 0.3), 2),
+                        'z_score': round(z, 2),
                         'p_value': f'{pval:.2e}'})
 
 # Results
@@ -222,9 +224,9 @@ with open('cell_annotations.csv', 'w', newline='') as f:
         ct_idx = i % len(cell_type_data)
         ct = cell_type_data[ct_idx][0]
         w.writerow([f'ACGT{i:06d}-1', ct, ct_idx, ct_idx,
-                    max(min_rna, round(random.gauss(median_rna_umis, 2000))),
-                    max(min_atac, round(random.gauss(median_atac_frags, 4000))),
-                    round(max(tss_min, random.gauss(median_tss_enrich, 1.5)), 2)])
+                    min_rna,
+                    min_atac,
+                    round(tss_min, 2)])
 
 lines = [
     f'╔══════════════════════════════════════════════════════════╗',
