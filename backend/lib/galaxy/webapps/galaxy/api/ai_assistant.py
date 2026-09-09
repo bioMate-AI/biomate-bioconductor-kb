@@ -3152,6 +3152,64 @@ def _domain_from_entities(entities: Dict[str, Any]) -> str:
     return "general"
 
 
+# A query that reads as a "what is known" question stays Instant even when it
+# resonates with the workflow catalog (e.g. "what is hERG?" matches hERG
+# workflows but wants an answer, not a run). Interrogative lead-ins + a trailing
+# "?" are the honest signal; deliberately conservative so real task phrasings
+# ("screen these SMILES …", "run ADMET …") are NOT swallowed.
+_QUESTION_LEAD_RE = re.compile(
+    r"^\s*(what|why|how|when|where|which|who|whom|is|are|was|were|does|do|did|can|could|"
+    r"should|would|will|explain|describe|define|summari[sz]e|tell me|give me an overview|"
+    r"compare|difference between|pros and cons)\b",
+    re.IGNORECASE,
+)
+
+# Cosine floor above which a dense workflow-catalog match is treated as "this is
+# a runnable task" for the Instant/Cloud lane decision. The catalog prefilter's
+# own floor is 0.55 (_WF_DENSE_MIN_SIM); we sit a little above it so only a
+# confident resonance upgrades the lane. Advisory only — never blocks send.
+_CLOUD_RESONANCE_MIN: float = 0.60
+
+
+def _looks_like_question(text: str) -> bool:
+    """True when the text reads as a knowledge question, not a task request."""
+    t = (text or "").strip()
+    if not t:
+        return False
+    return bool(_QUESTION_LEAD_RE.match(t)) or t.endswith("?")
+
+
+def _catalog_resonance(text: str) -> "tuple[float, Optional[str]]":
+    """Domain-agnostic 'is this a runnable task?' signal.
+
+    Instead of hand-curating per-domain keyword lists in the intent router (which
+    left whole domains — e.g. drug-discovery/ADMET — mis-routed to Instant), the
+    lane arbiter asks the *workflow catalog itself*: the dense BGE-cosine
+    prefilter over all indexed workflows (every domain, self-updating as
+    workflows are added). Returns (best_cosine, matched_domain). (0.0, None) when
+    the embedding index is unavailable, so the caller keeps the keyword verdict.
+    """
+    if not (WORKFLOW_SEARCH_AVAILABLE and _workflow_search is not None):
+        return 0.0, None
+    try:
+        sim_map = _workflow_search._dense_workflow_prefilter(text, top_n=1)
+        if not sim_map:
+            return 0.0, None
+        top_id, top_sim = max(sim_map.items(), key=lambda kv: kv[1])
+        domain: Optional[str] = None
+        try:
+            conn = _workflow_search._get_connection()
+            row = conn.execute("SELECT domain FROM workflows WHERE id = ?", (top_id,)).fetchone()
+            if row and row[0]:
+                domain = str(row[0])
+        except Exception:
+            domain = None
+        return float(top_sim), domain
+    except Exception as exc:
+        log.debug("[route/classify] catalog resonance error: %s", exc)
+        return 0.0, None
+
+
 @router.post(
     "/api/route/classify",
     summary="Server-side lane arbiter — classify composer text into Instant/Cloud"
@@ -3188,8 +3246,32 @@ def route_classify(
         intent = cls.primary_intent.value
         lane = _lane_from_classification(intent, cls.requires_workflow)
         domain = _domain_from_entities(cls.extracted_entities)
+        confidence = round(float(cls.confidence), 3)
+        resonance: Optional[float] = None
+
+        # Domain-agnostic upgrade. The keyword router only knows a fixed
+        # (genomics-heavy) vocabulary, so a runnable request in a domain it
+        # doesn't have words for (drug-discovery/ADMET, proteomics, cryo-EM …)
+        # would fall through to Instant. Rather than growing the keyword lists
+        # per domain forever, we ask the workflow catalog: if the text isn't a
+        # question and it strongly resonates with an indexed workflow, it's a
+        # Cloud task. This generalizes to every domain and self-updates as the
+        # catalog grows. Advisory only — the composer always offers the other lane.
+        if lane != "cloud" and not _looks_like_question(text):
+            sim, wf_domain = _catalog_resonance(text)
+            if sim >= _CLOUD_RESONANCE_MIN:
+                lane = "cloud"
+                resonance = round(sim, 3)
+                if wf_domain:
+                    domain = wf_domain
+                confidence = max(confidence, resonance)
+
         if lane == "cloud":
-            why = f"reads as a validated workflow request ({intent.replace('_', ' ')})"
+            if resonance is not None:
+                dom_txt = domain if domain and domain != "general" else "validated"
+                why = f"reads as a {dom_txt} workflow request"
+            else:
+                why = f"reads as a validated workflow request ({intent.replace('_', ' ')})"
         else:
             why = f"reads as {intent.replace('_', ' ')} — a cited answer, no pipeline"
         return {
@@ -3198,7 +3280,8 @@ def route_classify(
             "domain": domain,
             "why": why,
             "intent": intent,
-            "confidence": round(float(cls.confidence), 3),
+            "confidence": confidence,
+            "resonance": resonance,
         }
     except Exception as e:
         import traceback

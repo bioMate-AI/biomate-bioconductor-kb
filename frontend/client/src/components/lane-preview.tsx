@@ -179,6 +179,14 @@ export function LanePreview({ text, onOverride }: LanePreviewProps) {
   if (!v) return null;
   const isCloud = v.lane === "cloud";
   const dot = isCloud ? "var(--bm-primary, oklch(0.55 0.20 265))" : "var(--bm-ok, oklch(0.62 0.14 155))";
+  // The server arbiter's `why` (spec §2.2) often already begins with "reads as …";
+  // the render prefixes "reads as " itself, so strip any leading copy to avoid the
+  // doubled "reads as reads as …" seen on dev. Also trim a trailing period so the
+  // sentence reads cleanly inline.
+  const displayRead = (v.read || "")
+    .replace(/^\s*reads?\s+as\s+/i, "")
+    .replace(/\.\s*$/, "")
+    .trim();
 
   return (
     <div
@@ -208,7 +216,7 @@ export function LanePreview({ text, onOverride }: LanePreviewProps) {
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", rowGap: 4, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>
         <span data-testid="lane-preview-read" style={{ fontStyle: "italic" }}>
-          reads as {v.read}
+          reads as {displayRead}
         </span>
         {onOverride && (
           <button
