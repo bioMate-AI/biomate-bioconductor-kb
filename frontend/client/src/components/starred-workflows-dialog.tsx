@@ -72,11 +72,12 @@ export function StarredWorkflowsDialog({
     const diffMs = now.getTime() - new Date(date).getTime()
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
     
+    const ago = (n: number, unit: string) => `${n} ${unit}${n === 1 ? '' : 's'} ago`
     if (diffDays === 0) return 'Today'
     if (diffDays === 1) return 'Yesterday'
-    if (diffDays < 7) return `${diffDays} days ago`
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
-    return `${Math.floor(diffDays / 30)} months ago`
+    if (diffDays < 7) return ago(diffDays, 'day')
+    if (diffDays < 30) return ago(Math.floor(diffDays / 7), 'week')
+    return ago(Math.floor(diffDays / 30), 'month')
   }
 
   // Filter workflows based on search and filters
