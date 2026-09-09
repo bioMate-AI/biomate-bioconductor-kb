@@ -3179,6 +3179,29 @@ def _looks_like_question(text: str) -> bool:
     return bool(_QUESTION_LEAD_RE.match(t)) or t.endswith("?")
 
 
+# An ad-hoc calculation on a file the user already has is the spec's
+# Instant·compute lane, not a validated pipeline — even though "plot / summarise
+# this table" resonates with plotting/QC workflows. Requires a file/table/data
+# object so it doesn't swallow a real pipeline request ("summarise expression
+# across the cohort"). Mirrors lane-preview.tsx's INSTANT_RULES compute rule.
+_ADHOC_COMPUTE_RE = re.compile(
+    r"\b(plot|show me|first\s+\d+\s+rows|head of|value counts|reshape|pivot|"
+    r"correlat|convert this\s+(file|csv|tsv|table)|"
+    r"summari[sz]e\s+(this|the)\s+(table|file|csv|data|readout)|"
+    r"(mean|median)\s+(of|per)\s+(each|the)|quick look)\b",
+    re.IGNORECASE,
+)
+
+# Intents that are ALWAYS a request for an answer, never "run a pipeline":
+# recommending/finding a tool, or surveying the literature. When the keyword
+# router lands one of these confidently, catalog resonance must not override it.
+_ANSWER_ONLY_INTENTS = frozenset({"tool_recommendation", "tool_search", "literature_survey"})
+
+
+def _looks_like_adhoc_compute(text: str) -> bool:
+    return bool(_ADHOC_COMPUTE_RE.search(text or ""))
+
+
 def _catalog_resonance(text: str) -> "tuple[float, Optional[str]]":
     """Domain-agnostic 'is this a runnable task?' signal.
 
@@ -3257,7 +3280,11 @@ def route_classify(
         # question and it strongly resonates with an indexed workflow, it's a
         # Cloud task. This generalizes to every domain and self-updates as the
         # catalog grows. Advisory only — the composer always offers the other lane.
-        if lane != "cloud" and not _looks_like_question(text):
+        _answer_locked = intent in _ANSWER_ONLY_INTENTS and cls.confidence >= 0.6
+        if (lane != "cloud"
+                and not _looks_like_question(text)
+                and not _looks_like_adhoc_compute(text)
+                and not _answer_locked):
             sim, wf_domain = _catalog_resonance(text)
             if sim >= _CLOUD_RESONANCE_MIN:
                 lane = "cloud"
