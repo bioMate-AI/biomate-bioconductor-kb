@@ -8,8 +8,11 @@
 - BioMate assembles and runs the right analysis on secure compute
 - Returns an auditable, report-grade result — fast, correct, traceable
 
+![Plain-language request → a validated RNA-seq pipeline → auditable findings, in one place](assets/china_deck/02_chat_workflow.png)
+
 ::: notes
 A senior analyst that never sleeps, shows its work, and follows the rules.
+The screenshot: a plain-language "differential expression, then GO enrichment, human GRCh38" becomes a validated pipeline with a findings report — the whole value proposition in one view.
 :::
 
 # The Problem (plainly)
@@ -39,6 +42,8 @@ The single most important framing: these are two different businesses. Never poo
 - **A general biomedical analysis platform** — one conversational front door over a broad library of validated analyses spanning **many domains**: genomics & variant interpretation, bulk & single-cell RNA-seq, epigenomics, proteomics, metagenomics & pathogen ID, imaging, and multi-omics integration
 - **Drug-molecule work is just one of many uses** — and the *molecule-design* part is Path B; the platform itself serves the full breadth of biomedical research below
 
+![One front door: describe the goal; the platform routes to the right analysis across domains](assets/china_deck/01_coldstart_dashboard.png)
+
 # Path A — The Platform (who it serves)
 
 - **Hospital research departments** — each department its own slice:
@@ -56,6 +61,8 @@ The single most important framing: these are two different businesses. Never poo
 - **Trust** — quality gates + auditability + "it says when it doesn't know"
 - **Breadth in one place** — a wide library of analyses under one interface
 - **Compliant & on-premise** — runs inside the hospital on a domestic stack
+
+![It shows its work: every phase, step, output, and quality gate is visible and traceable](assets/china_deck/03_run_surface.png)
 
 # Path B — Joint Drug Development (the co-development path)
 
@@ -156,6 +163,8 @@ Keep the two motions distinct even in go-to-market: the platform lands and expan
 - **Pilot 1 — Hospital department.** e.g. an **Oncology** or **Infectious-Disease** department: turn the department's own sequencing (tumor panels / pathogen samples) into interpreted, auditable research reports — on-premise, in Chinese, on real governed hospital data. Value moment: a report that took specialists weeks, produced and traceable in a day.
 - **Pilot 2 — Pharma / biotech R&D.** e.g. a bench-science team: a validated **RNA-seq or biomarker-discovery** pipeline the scientists self-serve — reproducible, quality-gated, documented — replacing a bioinformatics-team bottleneck.
 - **Both are Platform (Path A) pilots** — they show the same product serving two very different customers. Drug-molecule programs (Path B) are pursued separately.
+
+![Data is a first-class object — identity, quality, versions, lineage — ready for analysis or notebooks](assets/china_deck/04_dataset_object.png)
 
 ::: notes
 These are examples to make the platform's breadth concrete and to de-bias away from "it's a drug-discovery tool." Swap in whichever department/company the partner can bring data and a champion for — the point is one hospital-side and one pharma-side platform pilot, not drug development.

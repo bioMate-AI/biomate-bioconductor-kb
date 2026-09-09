@@ -12,6 +12,13 @@
 - **Full requirements/strategy (for the doc redesign):** `docs/20260908_CHINA_PARTNERSHIP_REQUIREMENTS.md`
 - **Multi-lens review (for the doc redesign):** `docs/20260908_CHINA_PARTNERSHIP_MULTILENS_REVIEW.md`
 - **Design system to match:** the BioMate public site design at `reference/claude_design/webpage_design_v2/` (`styles.css`, `shell.js`) — reuse its color system, typography, spacing, and component vocabulary so the deck looks like BioMate, not a generic template.
+- **Real product screenshots (USE THESE — captured from the data-centric prototype, genomics-forward to keep the platform message un-drug-biased):** `docs/assets/china_deck/`
+  - `02_chat_workflow.png` → **Title / opening** slide — plain-language RNA-seq request → validated pipeline → auditable findings (the whole value prop in one image).
+  - `01_coldstart_dashboard.png` → **Path A · what it does** — the one front door + general module cards (breadth).
+  - `03_run_surface.png` → **Path A · the value** — phase/step/output/quality-gate view ("it shows its work").
+  - `04_dataset_object.png` → **Two pilot examples** (or a data slide) — data as a first-class object (identity/quality/versions/lineage, notebook launch).
+  - Available but drug-mixed (use only if a chemistry visual is wanted): `05_models.png` (registry incl. ADMET/hERG), `07_workflows_history.png` (3 RNA-seq + 1 ADMET row), `06_findings_report.png` (RNA-seq QC audit — clean, optional).
+  - Frame these as browser/product mockups (device frame or subtle shadow); they are the actual UI, so lead with them rather than clip-art.
 
 ---
 
