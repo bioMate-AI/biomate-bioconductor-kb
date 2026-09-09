@@ -71,7 +71,7 @@ process MERFISH_SPATIAL_ANALYSIS {
     export PARAM_DECONV='${params.deconvolution}'
 
     python3 << 'PYEOF'
-import json, os, csv, math, random
+import json, os, csv, math, sys
 
 def pf(v, d=None):
     if v in (None,'','null'): return d
@@ -90,18 +90,20 @@ seg_method = os.environ.get('PARAM_SEG', 'cellpose')
 do_spatial = pb(os.environ.get('PARAM_SPATIAL'), True)
 do_deconv  = pb(os.environ.get('PARAM_DECONV'), False)
 
-random.seed(42)
+# integrity: was an RNG stub fabricating results; honest-fail until wired to Cellpose + SpatialDE.
+sys.stderr.write("ERROR: merfish_spatial_analysis is a stub with no real implementation — it requires Cellpose (cell segmentation on real microscopy images) and SpatialDE (spatially variable gene detection) plus real MERFISH/seqFISH images and decoded transcript data. Refusing to emit fabricated results.\\n")
+sys.exit(1)
 
 # Transcript detection metrics
-total_transcripts = int(n_cells * n_genes * random.uniform(4, 12))  # avg per cell
-pct_assigned      = random.uniform(0.72, 0.88)   # fraction assigned to cells
-n_assigned        = int(total_transcripts * pct_assigned)
+total_transcripts = 0
+pct_assigned      = 0
+n_assigned        = 0
 
 # Cell segmentation
-seg_quality = random.uniform(0.78, 0.94)   # Jaccard vs. ground truth
-n_cells_seg = int(n_cells * random.uniform(0.85, 0.98))
-median_transcripts_per_cell = round(n_assigned / max(n_cells_seg, 1))
-median_area_um2 = random.gauss(180, 45)  # typical cell area in tissue
+seg_quality = 0
+n_cells_seg = 0
+median_transcripts_per_cell = 0
+median_area_um2 = 0
 
 # Spatial domains (brain regions / tissue layers example)
 spatial_domains_ex = {
@@ -115,20 +117,20 @@ n_domains = len(domains)
 
 domain_data = []
 for d in domains:
-    n_in = int(n_cells_seg * random.uniform(0.05, 0.25))
+    n_in = 0
     domain_data.append({'domain': d, 'n_cells': n_in,
-                        'pct': round(n_in/n_cells_seg*100, 1),
-                        'mean_x': round(random.uniform(100,900), 1),
-                        'mean_y': round(random.uniform(100,900), 1)})
+                        'pct': 0,
+                        'mean_x': 0,
+                        'mean_y': 0})
 
 # Spatially variable genes (top SVGs from spatialDE)
 svg_genes = ['Pvalb','Rorb','Cux2','Tbr1','Foxp2','Ctgf','Scng','Cck',
              'Vip','Sst','Lamp5','Plch1','Sncg','Ndnf','Htr3a','Gad1'][:min(n_genes, 16)]
 svg_data = []
 for g in svg_genes[:10]:
-    svg_data.append({'gene': g, 'LLR_score': round(random.uniform(5, 45), 2),
-                     'qvalue': f'{10**(-random.uniform(3,12)):.2e}',
-                     'pattern': random.choice(['layer_specific','gradient','punctate','broad'])})
+    svg_data.append({'gene': g, 'LLR_score': 0,
+                     'qvalue': '0.00e+00',
+                     'pattern': 'unknown'})
 
 qc = {
     'status': 'completed',

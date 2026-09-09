@@ -95,8 +95,12 @@ def perform_crispr_cas9_genome_editing(guide_rna_sequences, target_genomic_loci,
 
     '''
     import os
-    import random
+    import sys
     from datetime import datetime
+
+    # integrity: was an RNG stub fabricating results; honest-fail until wired to a real CRISPR editing analysis tool (e.g. CRISPResso2).
+    sys.stderr.write("ERROR: perform_crispr_cas9_genome_editing is a stub with no real implementation — it requires a real CRISPR editing analysis tool (e.g. CRISPResso2) and real sequencing/amplicon input data. Refusing to emit fabricated results.\\n")
+    sys.exit(1)
 
     # Initialize research log
     log = "CRISPR-Cas9 Genome Editing Research Log\\n"
@@ -204,7 +208,7 @@ def perform_crispr_cas9_genome_editing(guide_rna_sequences, target_genomic_loci,
     log += f"  Predicted cut site: Between positions {cut_position} and {cut_position + 1}\\n"
 
     # Simulate editing outcomes
-    indel_size = random.randint(1, 5)  # Random indel size between 1-5 bp
+    indel_size = 0  # integrity: RNG removed; unreachable after honest-fail
 
     # Create modified sequence (simulate a deletion for simplicity)
     modified_sequence = target_seq[:cut_position] + target_seq[cut_position + indel_size :]

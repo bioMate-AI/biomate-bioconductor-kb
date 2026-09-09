@@ -139,38 +139,11 @@ def analyze_copy_number_purity_ploidy_and_focal_events(
     log = []
     ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Generate synthetic results if no input provided
+    # integrity: real CNVkit path kept; demo fallback was fabricating results -> honest-fail
     if tumor_bam is None or reference_genome is None:
-        import numpy as np
-        np.random.seed(42)
-
-        log.append(f"CNVKIT COPY NUMBER ANALYSIS WORKFLOW (DEMO MODE) - {ts}")
-        log.append("=" * 80)
-        log.append("Running with synthetic data for demonstration purposes.\\n")
-
-        # Simulated results
-        purity = np.random.uniform(0.4, 0.9)
-        ploidy = np.random.choice([2.0, 2.5, 3.0, 4.0], p=[0.5, 0.2, 0.2, 0.1])
-        hrd_score = np.random.randint(5, 45)
-
-        log.append("## Copy Number Analysis Results\\n")
-        log.append(f"- Estimated tumor purity: {purity:.2f}")
-        log.append(f"- Estimated ploidy: {ploidy:.1f}")
-        log.append(f"- HRD score (approximation): {hrd_score}\\n")
-
-        log.append("## Focal Events Detected\\n")
-        focal_events = [
-            ("MYC", "8q24", "Amplification", 2.3),
-            ("CDKN2A", "9p21", "Deletion", -1.5),
-            ("ERBB2", "17q12", "Neutral", 0.1),
-        ]
-        for gene, locus, event, log2 in focal_events:
-            log.append(f"- {gene} ({locus}): {event} (log2={log2:.2f})")
-
-        log.append("\\n## Summary\\n")
-        log.append("Synthetic demo analysis complete. Provide tumor_bam and reference_genome for actual analysis.")
-
-        return "\\n".join(log)
+        import sys
+        sys.stderr.write("ERROR: analyze_copy_number_purity_ploidy_and_focal_events requires real input/tool (CNVkit with tumor_bam and reference_genome); refusing to emit fabricated purity/ploidy/HRD results.\\n")
+        sys.exit(1)
 
     import math
     import shutil
