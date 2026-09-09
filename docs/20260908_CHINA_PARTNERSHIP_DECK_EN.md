@@ -36,11 +36,19 @@ The single most important framing: these are two different businesses. Never poo
 
 # Path A — The Platform (what it does)
 
-- **A general analysis platform** — one conversational front door over a broad library of validated bioinformatics analyses: genomics, RNA-seq, single-cell, proteomics, metagenomics, imaging, multi-omics
-- **For hospital research:** turn sequencing + patient data into research answers — infectious-disease / pathogen & drug-resistance analysis, immune profiling, cohort biomarkers & patient stratification, multi-omics integration (the clinician signs the clinical report; the platform does the analysis)
-- **For pharma research:** the same platform for R&D — omics analysis, target biology, biomarker discovery, reproducible validated pipelines, self-service for bench scientists
+- **A general biomedical analysis platform** — one conversational front door over a broad library of validated analyses spanning **many domains**: genomics & variant interpretation, bulk & single-cell RNA-seq, epigenomics, proteomics, metagenomics & pathogen ID, imaging, and multi-omics integration
+- **Drug-molecule work is just one of many uses** — and the *molecule-design* part is Path B; the platform itself serves the full breadth of biomedical research below
+
+# Path A — The Platform (who it serves)
+
+- **Hospital research departments** — each department its own slice:
+  - **Oncology** — tumor genomic profiling & variant interpretation, cohort biomarkers, patient stratification
+  - **Infectious disease / microbiology** — pathogen identification & antimicrobial-resistance (AMR) analysis from sequencing
+  - **Medical genetics / rare disease** — hereditary-variant analysis and interpretation
+  - **Immunology** — single-cell immune profiling and atlases
+  *(the clinician signs the clinical report; the platform does the research analysis)*
+- **Pharma & biotech R&D** — the same platform for bench-science self-service: omics analysis, target biology, biomarker discovery, reproducible validated pipelines
 - **The business:** license & deploy per hospital / department / capability pack — recurring
-- *(Drug-molecule discovery & optimization is Path B — a separate track, next.)*
 
 # Path A — The Platform (the value)
 
@@ -85,8 +93,8 @@ The strongest, most credible line — reframes the pitch: the bottleneck is trus
 
 # Where BioMate Fits — Differentiated, Not Uncontested
 
-- BioMate sits in the **seam** between those clusters: a conversational platform **+** built-in quality/safety gates **+** a closed optimize-and-improve loop **+** regulator-ready documentation
-- Our edge is **breadth + governance + regulatory output** — we *orchestrate* the best models rather than compete to build one
+- BioMate sits in the **seam** between those clusters: a conversational, broad-domain analysis platform **+** built-in quality/safety gates **+** auditable, regulator-ready documentation *(plus, for Path B, a closed optimize-and-improve loop)*
+- Our edge is **breadth + governance + auditable output** — one governed front door across many domains, orchestrating the best models rather than competing to build one
 - For China, the decisive advantage: **compliant, on-premise, domestic** — which most of these players can't offer
 
 ::: notes
@@ -113,9 +121,10 @@ Answers the partner's localization, internal-resource-integration, tuning, and c
 
 # Only What Each Department Needs
 
-- A department needs only its slice — e.g. an "Oncology Sequencing" pack, or a "Lead Optimization" pack
+- A department needs only its slice — e.g. an **"Oncology Sequencing"** pack, an **"Infectious Disease / AMR"** pack, a **"Single-Cell Immunology"** pack, or a **"Rare-Disease Genetics"** pack
 - We ship per-department capability packages — smaller, focused, separately licensed
 - Lower cost to start, simpler deployment, and stronger IP protection
+- *(Drug-molecule discovery is its own pack, and part of the separate Path B.)*
 
 # Protecting the Technology (IP)
 
@@ -133,22 +142,32 @@ Answers the partner's localization, internal-resource-integration, tuning, and c
 
 # How We Reach the Market
 
-- **Platform — land:** one paid pilot — a lighthouse hospital department, one capability pack, on-premise, aimed at a single clear value moment
-- **Platform — expand:** more packs and departments in that hospital, then adjacent hospitals through your relationships
-- **Drug programs — separately:** the lead-optimization capability + a chosen co-development target, pursued program-by-program with the hospital
+- **Platform — land:** one or two paid pilots — a lighthouse **hospital department** and/or a **pharma R&D team**, one capability pack each, on-premise, aimed at a single clear value moment
+- **Platform — expand:** more packs and departments, then adjacent hospitals / sites through your relationships
+- **Drug programs — separately:** the lead-optimization capability + a chosen co-development target, pursued program-by-program (Path B)
 - **Why it sells:** compliant + on-premise + Chinese + governed — a bundle foreign platforms can't offer and domestic point-tools don't have
 
 ::: notes
 Keep the two motions distinct even in go-to-market: the platform lands and expands via department packs; the drug programs are a separate, deliberate, program-by-program engagement.
 :::
 
+# Two Pilot Examples (illustrative — final choice depends on data & resources)
+
+- **Pilot 1 — Hospital department.** e.g. an **Oncology** or **Infectious-Disease** department: turn the department's own sequencing (tumor panels / pathogen samples) into interpreted, auditable research reports — on-premise, in Chinese, on real governed hospital data. Value moment: a report that took specialists weeks, produced and traceable in a day.
+- **Pilot 2 — Pharma / biotech R&D.** e.g. a bench-science team: a validated **RNA-seq or biomarker-discovery** pipeline the scientists self-serve — reproducible, quality-gated, documented — replacing a bioinformatics-team bottleneck.
+- **Both are Platform (Path A) pilots** — they show the same product serving two very different customers. Drug-molecule programs (Path B) are pursued separately.
+
+::: notes
+These are examples to make the platform's breadth concrete and to de-bias away from "it's a drug-discovery tool." Swap in whichever department/company the partner can bring data and a champion for — the point is one hospital-side and one pharma-side platform pilot, not drug development.
+:::
+
 # What We Need From You
 
-- A lighthouse hospital + department + first concrete use-case (with data)
+- A first pilot host — a **hospital department** and/or a **pharma R&D team** — with a concrete use-case and data
 - Access to the gene/reference databases needed, licensable on-premise
 - Regulatory & procurement navigation (国产化, ethics/IRB, hospital IT/security)
-- Governed hospital data for the pilot (stays on-site)
-- A co-development disease/target to pursue leads together
+- Governed data for the pilot (stays on-site)
+- *(Separately, for Path B:)* a co-development disease/target to pursue leads together
 - Localization review (medical Chinese, report formats)
 
 # Plan & Path — Two Tracks

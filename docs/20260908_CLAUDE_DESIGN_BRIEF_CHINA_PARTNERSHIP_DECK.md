@@ -42,7 +42,7 @@
 
 ---
 
-## 4. Deck structure — 5 acts, ~18–20 slides
+## 4. Deck structure — 5 acts, ~20–22 slides
 Group the slides into acts with a **section divider** before each. Per slide: the **headline** (the point), the **visual treatment** we want, and the **content** (from the source deck).
 
 ### Act I — What BioMate is (3 slides)
@@ -50,9 +50,9 @@ Group the slides into acts with a **section divider** before each. Per slide: th
 2. **BioMate is a general analysis platform** — headline + a **"front door" diagram**: plain-language question → the platform selects & runs the right validated analysis → auditable result. Small omics-breadth chip row (genomics · RNA-seq · single-cell · proteomics · metagenomics · imaging · multi-omics). *Not* drug-centric.
 3. **The problem** — data → decision is slow and expert-gated. Visual: a "months / teams of specialists" before-state vs BioMate's guided flow after-state (simple before/after).
 
-### Act II — The two paths (5 slides)
+### Act II — The two paths (6 slides)
 4. **Two separate paths (do not confuse them)** — the single most important structural slide. Visual: a **two-lane diagram** — *Path A · Platform* (recurring software business; nearer-term, lower-risk) and *Path B · Joint Drug Development* (asset business; longer-horizon, shared upside) — with a clear divider showing "different economics, timelines, agreements — priced separately."
-5. **Path A — The Platform (what it does)** — headline: one platform, two audiences. Visual: **two columns** — *Hospital research* (infectious-disease/pathogen & AMR, immune profiling, cohort biomarkers & stratification, multi-omics) and *Pharma research* (omics analysis, target biology, biomarker discovery, reproducible pipelines, self-service). A subtle footnote lane: "clinician signs the clinical report; the platform does the analysis."
+5. **Path A — The Platform (what it does + who it serves)** — now TWO slides in the source md. First, **broad-domain breadth is the hero** (genomics & variant interpretation · bulk & single-cell RNA-seq · epigenomics · proteomics · metagenomics & pathogen ID · imaging · multi-omics) with an explicit de-bias caption: "drug-molecule work is just one of many uses — and molecule *design* is Path B." Second, **who it serves** — a **hospital column broken out by department** (*Oncology*: tumor profiling / variant interpretation / biomarkers / stratification · *Infectious disease*: pathogen ID & AMR · *Medical genetics / rare disease*: hereditary variants · *Immunology*: single-cell profiling) and a **pharma/biotech R&D column** (omics analysis, target biology, biomarker discovery, reproducible self-service pipelines). Footnote lane: "clinician signs the clinical report; the platform does the analysis." IMPORTANT: department breadth is the point — this must NOT read drug-centric.
 6. **Path A — The value** — 4 value pillars as **icon tiles** (Speed · Trust/auditability · Breadth in one place · Compliant & on-premise). Not bullets — tiles.
 7. **Path B — Joint Drug Development (separate)** — headline: a separate co-development track. Visual: a **stage arrow** target → lead compound → candidate → IND-ready, with "co-development partner, not a drug from a button" as the honest caption. Visually distinct styling from Path A so the separation is obvious.
 8. **Path B — where we fit along drug development** — the 先导化合物 / 候选药 / 药物疗效验证 question answered as a **positioned bar** (strongest at lead discovery & optimization; supported toward candidate + efficacy/mechanism).
@@ -65,13 +65,14 @@ Group the slides into acts with a **section divider** before each. Per slide: th
 
 ### Act IV — Built for China + the model (4 slides)
 13. **Built for China — localization, integration, control** — 4 quadrants (Fully Chinese · Fits your systems/LIS-HIS-sequencers · Configurable without code · Compliant by design: PIPL/人类遗传资源/信创).
-14. **Only what each department needs** — Visual: **capability-pack cards** (e.g. "Oncology Sequencing pack," "Lead-Optimization pack") — smaller, focused, separately licensed; lower entry cost + stronger IP containment.
+14. **Only what each department needs** — Visual: **capability-pack cards** across departments (e.g. "Oncology Sequencing," "Infectious Disease / AMR," "Single-Cell Immunology," "Rare-Disease Genetics") — smaller, focused, separately licensed; lower entry cost + stronger IP containment. *(Drug-molecule discovery is its own pack, part of the separate Path B — not the lead example here.)*
 15. **Protecting the technology (IP)** — Visual: concentric protection (on-prem inside customer sites · license-controlled, node-locked delivery · department subsets so no site holds the whole system · clear ownership split defined in the term sheet). Keep it business-level (no "compiled non-readable" claim).
 16. **The partnership model — two separate tracks** — Visual: a **two-track economics diagram** — Track A (platform licensing revenue-share, recurring, per hospital/dept/pack) and Track B (drug-program milestones + royalties, per program) — explicitly *separate agreements*. Partner owns the China market (sales/deployment/maintenance, trained & certified by us).
 
-### Act V — The path forward (3 slides)
-17. **How we reach the market** — Visual: a **land-and-expand motion** (land: one paid pilot in a lighthouse department → expand: more packs/departments → adjacent hospitals), with the drug-programs track shown as a *separate* parallel motion.
-18. **What we need from you** — a clean checklist card (lighthouse hospital + department + use-case + data; reference DBs; regulatory/procurement navigation; governed pilot data; a co-development target; localization review).
+### Act V — The path forward (4 slides)
+17. **How we reach the market** — Visual: a **land-and-expand motion** (land: one or two paid platform pilots — a lighthouse **hospital department** and/or a **pharma R&D team** → expand: more packs/departments → adjacent hospitals/sites), with the drug-programs track shown as a *separate* parallel motion.
+17b. **Two pilot examples (illustrative)** — Visual: **two side-by-side pilot cards**, both labelled *Platform · Path A*. **Pilot 1 · Hospital department** (e.g. Oncology or Infectious Disease: department sequencing → interpreted, auditable Chinese research reports on real governed data; value moment = weeks→a day). **Pilot 2 · Pharma / biotech R&D** (e.g. a bench team self-serving a validated RNA-seq / biomarker pipeline — reproducible, quality-gated, documented). Caption: "same product, two very different customers; drug-molecule programs = Path B, separate." Note it's illustrative — swap per available data/champion.
+18. **What we need from you** — a clean checklist card (a first pilot host — hospital department and/or pharma R&D team — with use-case + data; reference DBs; regulatory/procurement navigation; governed pilot data; *separately for Path B* a co-development target; localization review).
 19. **Plan & path — two tracks** — Visual: a **phased timeline** (Phase 0 align/term-sheet → localized pilot → real-data validation → productize the China edition), with the drug-programs track as a separate lane on its own timeline.
 20. **The ask** — a single, calm closing slide: co-develop the China edition under a shared framework with the two tracks structured separately; nominate the first hospital/department/use-case. One clear next step (a Phase-0 workshop). No hype.
 
