@@ -3186,7 +3186,7 @@ def _looks_like_question(text: str) -> bool:
 # across the cohort"). Mirrors lane-preview.tsx's INSTANT_RULES compute rule.
 _ADHOC_COMPUTE_RE = re.compile(
     r"\b(plot|show me|first\s+\d+\s+rows|head of|value counts|reshape|pivot|"
-    r"correlat|convert this\s+(file|csv|tsv|table)|"
+    r"correlat\w*|convert this\s+(file|csv|tsv|table)|"
     r"summari[sz]e\s+(this|the)\s+(table|file|csv|data|readout)|"
     r"(mean|median)\s+(of|per)\s+(each|the)|quick look)\b",
     re.IGNORECASE,
