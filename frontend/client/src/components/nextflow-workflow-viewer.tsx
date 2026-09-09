@@ -7,6 +7,9 @@ import { PhaseCard } from "./phase-card";
 import { ParameterGroup } from "./parameter-group";
 import { StepOutputPreview } from "./step-output-preview";
 import { StepAdjustModal } from "./step-adjust-modal";
+import { StepDetail, type StepDetailStep } from "./steps/step-detail";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Loader2, CheckCircle2, XCircle, AlertTriangle, Download, RotateCcw, Square, ChevronRight, Settings2, ShieldCheck, Activity, Clock, SkipForward, FolderOpen } from "lucide-react";
 import { useLocation } from 'wouter';
 import { ReportConfusionButton } from "./feedback/report-confusion-button";
@@ -189,6 +192,56 @@ function prettifyParamLabel(raw: string): string {
     .replace(/\s+/g, " ")
     .trim()
     .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/**
+ * Map a viewer step (the objects in PhaseGroup.steps) onto StepDetailStep.
+ *
+ * The step objects the viewer already holds carry: id, name, processName,
+ * status, parameters, outputFiles ({name,path,extension}), workDir, taskFiles.
+ * Everything StepDetail renders is derived ONLY from those real fields — no
+ * value is invented. Fields the run does not report are omitted so StepDetail
+ * shows its honest empty state:
+ *   - tool / toolVersion / duration: NOT tracked per step in the viewer's data
+ *     → omitted (StepDetail renders "tool not reported" / "(version n/a)" /
+ *       "duration n/a").
+ *   - inputs: NOT tracked per step → omitted (→ "upstream step output").
+ *   - parameters: passed through as-is when present; object-typed metadata
+ *     placeholders ({type,label,default}) are dropped so the resolved-params
+ *     table shows the scalar runtime values, matching the inline step-meta rule.
+ *   - outputs: mapped straight from outputFiles (the same {name,path,extension}
+ *     the inline preview and download links already use).
+ */
+export function buildStepDetailStep(step: any): StepDetailStep {
+  const rawParams = (step?.parameters && typeof step.parameters === "object")
+    ? (step.parameters as Record<string, unknown>)
+    : undefined;
+  // Keep only scalar runtime values — object placeholders ({type,label,default})
+  // are schema metadata, not the value the step ran with. This mirrors the
+  // inline step-meta filter above so the two surfaces agree.
+  const parameters = rawParams
+    ? Object.fromEntries(
+        Object.entries(rawParams).filter(([, v]) => v === null || typeof v !== "object"),
+      )
+    : undefined;
+  const outputs = Array.isArray(step?.outputFiles)
+    ? (step.outputFiles as any[])
+        .filter((f) => f && typeof f.path === "string" && typeof f.name === "string")
+        .map((f) => ({
+          name: String(f.name),
+          path: String(f.path),
+          extension: String(f.extension ?? f.name?.split(".").pop() ?? ""),
+        }))
+    : [];
+  return {
+    id: String(step?.id ?? step?.name ?? "step"),
+    name: String(step?.name ?? step?.processName ?? "step"),
+    processName: step?.processName ? String(step.processName) : undefined,
+    // tool / toolVersion / duration / inputs are not reported per step by the
+    // viewer's data model — intentionally omitted (honest empty state).
+    parameters: parameters && Object.keys(parameters).length > 0 ? parameters : undefined,
+    outputs,
+  };
 }
 
 function buildViewerParameters(workflowDefinition: any, currentParams: Record<string, any>): ViewerParameter[] {
@@ -421,6 +474,7 @@ function PhaseGroupSection({
   onStopPhase,
   onPreviewFile,
   onAdjustAndRerun,
+  onOpenFullStepView,
   activeRunId,
   executionBlockedReason,
   isPrereqBlocked,
@@ -445,8 +499,10 @@ function PhaseGroupSection({
   onRun: (phase: any) => void;
   onSkip: (id: string) => void;
   onStopPhase?: () => void;
-  onPreviewFile: (file: any) => void;
+  onPreviewFile: (file: any, step?: any) => void;
   onAdjustAndRerun: (step: any) => void;
+  /** Open the full step-as-object view (StepDetail) for a given step. */
+  onOpenFullStepView: (step: any) => void;
   activeRunId: string | null | undefined;
   executionBlockedReason?: string;
   isPrereqBlocked: boolean;
@@ -679,6 +735,14 @@ function PhaseGroupSection({
                     {(isDone || isFailed) && (
                       <button
                         className="btn ghost sm"
+                        onClick={(e) => { e.stopPropagation(); onOpenFullStepView(step); }}
+                        data-testid={`button-full-step-view-${step.id}`}
+                        title="Open full step view — provenance, resolved parameters, rendered ⇄ raw outputs"
+                      >Details</button>
+                    )}
+                    {(isDone || isFailed) && (
+                      <button
+                        className="btn ghost sm"
                         onClick={(e) => { e.stopPropagation(); onRun(step); }}
                         data-testid={`button-run-step-${step.id}`}
                       >Rerun</button>
@@ -728,7 +792,7 @@ function PhaseGroupSection({
                         <span className="fn" title={f.name}>{f.name}</span>
                         <span
                           className="act"
-                          onClick={() => onPreviewFile(f)}
+                          onClick={() => onPreviewFile(f, step)}
                           data-testid={`phase-card-preview-btn-${f.name}`}
                         >view</span>
                         {activeRunId && (
@@ -1016,7 +1080,13 @@ export function NextflowWorkflowViewer({
   }, [workflowDefinition?.domain, (workflowDefinition as any)?.id]);
 
   const [previewFile, setPreviewFile] = useState<{ name: string; path: string; extension: string } | null>(null);
+  // The step that owns the currently-previewed file (if known), so the inline
+  // preview can offer an "open full step view" affordance for the right step.
+  const [previewStep, setPreviewStep] = useState<any | null>(null);
   const [adjustStep, setAdjustStep] = useState<{ id: string; name: string; processName?: string; parameters?: Record<string, any> } | null>(null);
+  // Full step view (spec-08 step-as-object surface). Holds the mapped
+  // StepDetailStep for the step the user chose to open; null → dialog closed.
+  const [fullViewStep, setFullViewStep] = useState<StepDetailStep | null>(null);
   // When user reruns from a step, track the new runId so the viewer polls the right run
   const [rerunRunId, setRerunRunId] = useState<string | null>(null);
   const activeRunId = rerunRunId ?? runId;
@@ -2975,7 +3045,8 @@ export function NextflowWorkflowViewer({
                     onRun={handleRunStep}
                     onSkip={(id) => setConfirmSkipPhaseId(id)}
                     onStopPhase={onCancel}
-                    onPreviewFile={(file) => setPreviewFile(file)}
+                    onPreviewFile={(file, step) => { setPreviewFile(file); setPreviewStep(step ?? null); }}
+                    onOpenFullStepView={(step) => setFullViewStep(buildStepDetailStep(step))}
                     qcThresholds={displayedQcThresholds}
                     qcOverrides={qcOverrides}
                     onQcChange={(key, val) => {
@@ -3225,7 +3296,14 @@ export function NextflowWorkflowViewer({
                 <StepOutputPreview
                   runId={activeRunId}
                   file={previewFile}
-                  onClose={() => setPreviewFile(null)}
+                  onClose={() => { setPreviewFile(null); setPreviewStep(null); }}
+                  projectId={projectId}
+                  // Offer the "open full step view" affordance only when we know
+                  // which step owns this file — otherwise there is no real step
+                  // object to map, and we refuse to fabricate one.
+                  onOpenFullStepView={previewStep
+                    ? () => setFullViewStep(buildStepDetailStep(previewStep))
+                    : undefined}
                 />
               )}
               {adjustStep && activeRunId && (
@@ -3241,6 +3319,34 @@ export function NextflowWorkflowViewer({
                     onAdjustViaChat?.(`Rerunning workflow from step ${adjustStep.name}. New run ID: ${newRunId}`);
                   }}
                 />
+              )}
+
+              {/* ── Full step view (spec-08 step-as-object surface) ─────────────
+                  Opened from a step's "Details" button or the inline preview's
+                  "Full step view" affordance. StepDetail receives ONLY the real
+                  mapped step data (see buildStepDetailStep) plus the workflow
+                  definition (for param defaults/origins) — nothing fabricated. */}
+              {fullViewStep && activeRunId && (
+                <Dialog
+                  open={!!fullViewStep}
+                  onOpenChange={(open) => { if (!open) setFullViewStep(null); }}
+                >
+                  <DialogContent
+                    className="max-w-3xl p-0 gap-0 border-0 bg-transparent shadow-none [&>button]:hidden"
+                    data-testid="full-step-view-dialog"
+                  >
+                    <VisuallyHidden>
+                      <DialogTitle>Full step view: {fullViewStep.name}</DialogTitle>
+                    </VisuallyHidden>
+                    <StepDetail
+                      runId={activeRunId}
+                      step={fullViewStep}
+                      workflowDefinition={workflowDefinition}
+                      projectId={projectId}
+                      onClose={() => setFullViewStep(null)}
+                    />
+                  </DialogContent>
+                </Dialog>
               )}
 
           {/* ── Error recovery card ───────────────────────────────────────────── */}

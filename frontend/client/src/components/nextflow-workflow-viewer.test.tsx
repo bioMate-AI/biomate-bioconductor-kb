@@ -1,7 +1,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer";
+import { NextflowWorkflowViewer, buildStepDetailStep } from "./nextflow-workflow-viewer";
 
 vi.mock("./chat-output-attachments", () => ({
   ChatOutputAttachments: () => <div data-testid="mock-chat-output-attachments" />,
@@ -366,5 +366,70 @@ describe("NextflowWorkflowViewer — run-button hard gate", () => {
     // sticky footer button. Verify the action-bar Run-again is enabled.
     await waitFor(() => expect(screen.getByTestId("panel-run-again-cta")).toBeInTheDocument());
     expect(screen.getByTestId("panel-run-again-cta")).not.toBeDisabled();
+  });
+});
+
+// Full step view wiring (spec-08). buildStepDetailStep maps the viewer's real
+// step objects onto StepDetailStep. The contract that matters: it passes real
+// data through and OMITS fields the run does not report (rather than inventing
+// them), so StepDetail can show its honest empty states.
+describe("buildStepDetailStep — real-data mapping, no fabrication", () => {
+  it("maps id/name/processName, scalar params, and outputFiles through unchanged", () => {
+    const step = {
+      id: "s1",
+      name: "salmon_quant",
+      processName: "NFCORE_RNASEQ:SALMON_QUANT",
+      status: "completed",
+      parameters: { libType: "A", numBootstraps: 100, threads: 4 },
+      outputFiles: [
+        { name: "quant.sf", path: "s1/quant.sf", extension: "tsv" },
+        { name: "logs.txt", path: "s1/logs.txt", extension: "txt" },
+      ],
+    };
+    const mapped = buildStepDetailStep(step);
+    expect(mapped.id).toBe("s1");
+    expect(mapped.name).toBe("salmon_quant");
+    expect(mapped.processName).toBe("NFCORE_RNASEQ:SALMON_QUANT");
+    expect(mapped.parameters).toEqual({ libType: "A", numBootstraps: 100, threads: 4 });
+    expect(mapped.outputs).toEqual([
+      { name: "quant.sf", path: "s1/quant.sf", extension: "tsv" },
+      { name: "logs.txt", path: "s1/logs.txt", extension: "txt" },
+    ]);
+  });
+
+  it("omits tool/toolVersion/duration/inputs — never fabricated (honest empty state)", () => {
+    const mapped = buildStepDetailStep({ id: "s2", name: "step2", status: "failed" });
+    expect(mapped.tool).toBeUndefined();
+    expect(mapped.toolVersion).toBeUndefined();
+    expect(mapped.duration).toBeUndefined();
+    expect(mapped.inputs).toBeUndefined();
+  });
+
+  it("drops object-typed param metadata placeholders, keeping scalar runtime values", () => {
+    const mapped = buildStepDetailStep({
+      id: "s3",
+      name: "step3",
+      parameters: {
+        threads: 8,                                   // scalar → kept
+        keep: true,                                   // scalar → kept
+        schemaMeta: { type: "integer", default: 30 }, // object placeholder → dropped
+      },
+    });
+    expect(mapped.parameters).toEqual({ threads: 8, keep: true });
+  });
+
+  it("yields empty outputs and undefined parameters when the step reported neither", () => {
+    const mapped = buildStepDetailStep({ id: "s4", name: "step4" });
+    expect(mapped.outputs).toEqual([]);
+    expect(mapped.parameters).toBeUndefined();
+  });
+
+  it("derives a missing extension from the file name rather than inventing one", () => {
+    const mapped = buildStepDetailStep({
+      id: "s5",
+      name: "step5",
+      outputFiles: [{ name: "report.html", path: "s5/report.html" }],
+    });
+    expect(mapped.outputs?.[0]?.extension).toBe("html");
   });
 });
