@@ -69,7 +69,7 @@ export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderP
               onClick={() => handleNavigation(isAuthenticated ? '/' : '/register')}
               className="flex items-center space-x-2"
             >
-              <img src="/logo.png" alt="BioMate AI" className="h-12 w-auto" />
+              <img src="/biomate-logo.png" alt="BioMate AI" className="h-9 w-auto object-contain" />
             </button>
           </div>
 
