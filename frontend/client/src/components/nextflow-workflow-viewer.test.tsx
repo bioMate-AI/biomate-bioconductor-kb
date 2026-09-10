@@ -1,4 +1,4 @@
-import React from "react";
+import React, { act } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { NextflowWorkflowViewer, buildStepDetailStep } from "./nextflow-workflow-viewer";
@@ -431,5 +431,153 @@ describe("buildStepDetailStep — real-data mapping, no fabrication", () => {
       outputFiles: [{ name: "report.html", path: "s5/report.html" }],
     });
     expect(mapped.outputs?.[0]?.extension).toBe("html");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Real-time SSE status tracking (CLAUDE.md CRITICAL; audit gap #2, 2026-09-09).
+//
+// The other suites above stub EventSource as an INERT object (addEventListener =
+// vi.fn()) and hand the component a static `status`/step-`status` prop, then
+// assert the final render. That cannot catch a stuck spinner or a missed
+// terminal transition — a broken step_state handler ships green.
+//
+// This suite installs a LIVE-DISPATCH MockEventSource that stores each
+// addEventListener handler by event type. A test then dispatches a real
+// "step_state" MessageEvent and asserts the phase card's data-status attribute
+// actually FLIPS pending → running (a real transition observed in the DOM, not
+// a final-state prop). The step never starts running — the SSE event is the
+// only thing that moves it — so if the step_state → setStepExecutionById →
+// phase.status wiring breaks, this test fails.
+// ─────────────────────────────────────────────────────────────────────────────
+describe("NextflowWorkflowViewer — real-time SSE status transitions (live dispatch)", () => {
+  // Captures the handlers registered on the EventSource the component opens.
+  let esHandlers: Record<string, (ev: MessageEvent) => void> = {};
+  let esInstances = 0;
+
+  // Dispatch an SSE event to the component exactly the way the browser would:
+  // the backend emits a named event, the browser invokes the matching
+  // addEventListener handler with a MessageEvent whose `data` is a JSON string.
+  const dispatchSSE = (type: string, payload: unknown) => {
+    const handler = esHandlers[type];
+    if (!handler) throw new Error(`No SSE handler registered for "${type}"`);
+    act(() => {
+      handler({ data: JSON.stringify(payload) } as MessageEvent);
+    });
+  };
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    esHandlers = {};
+    esInstances = 0;
+    (global as any).EventSource = class {
+      url: string;
+      onopen: (() => void) | null = null;
+      onmessage: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      readyState = 1;
+      constructor(url: string) {
+        this.url = url;
+        esInstances += 1;
+      }
+      // Store the real handler so the test can dispatch to it later.
+      addEventListener(type: string, cb: (ev: MessageEvent) => void) {
+        esHandlers[type] = cb;
+      }
+      removeEventListener = vi.fn();
+      close = vi.fn();
+    };
+    vi.spyOn(global, "fetch").mockImplementation(async () => ({
+      ok: true, status: 200, json: async () => ({}), text: async () => "",
+    } as Response));
+  });
+  afterEach(() => { vi.clearAllMocks(); });
+
+  // Two steps + progress=0. The viewer's progress heuristic (nextflow-workflow-
+  // viewer.tsx L1472-1477) makes the FIRST phase "running" and every later phase
+  // "pending" when status=running. So s2 starts genuinely pending — the ONLY
+  // thing that can move it to "running" is a step_state SSE event for s2. That
+  // makes the flip a real SSE-driven transition, not the status prop.
+  const runningProps = {
+    workflowId: "wf-sse-1",
+    workflowDefinition: {
+      id: "wf-sse-1",
+      name: "SSE Workflow",
+      // stepKeys become step ids (no explicit step.id) → step_state must
+      // reference step_id "s2" to move the second card.
+      steps: {
+        s1: { name: "Align reads", tool_id: "t1" },
+        s2: { name: "Quantify", tool_id: "t2" },
+      },
+      required_params: [],
+      optional_params: [],
+      inline_parameters: {},
+    },
+    invocationId: "inv-sse-1", // REQUIRED — SSE effect is gated on invocationId
+    runId: "run-sse-1",
+    progress: 0,
+    onExecute: vi.fn(),
+  };
+
+  it("opens the SSE stream and registers a step_state listener", async () => {
+    render(<NextflowWorkflowViewer {...(runningProps as any)} status="running" />);
+    await waitFor(() => {
+      expect(esInstances).toBeGreaterThan(0);
+      expect(typeof esHandlers["step_state"]).toBe("function");
+    });
+  });
+
+  it("flips a phase card data-status pending → running when a step_state SSE event arrives", async () => {
+    render(<NextflowWorkflowViewer {...(runningProps as any)} status="running" />);
+
+    // Phases tab is auto-selected for running status. s2 (the later phase) starts
+    // genuinely pending — nothing but an SSE event can move it.
+    const card = await screen.findByTestId("phase-card-s2");
+    expect(card).toHaveAttribute("data-status", "pending");
+
+    // Wait for the SSE listener to be wired before dispatching.
+    await waitFor(() => expect(typeof esHandlers["step_state"]).toBe("function"));
+
+    // Live event: backend reports step s2 has started running.
+    dispatchSSE("step_state", { step_id: "s2", step_state: "running" });
+
+    // The card must reflect the live transition — this is the assertion the
+    // static-prop tests could never make.
+    await waitFor(() => {
+      expect(screen.getByTestId("phase-card-s2")).toHaveAttribute("data-status", "running");
+    });
+  });
+
+  it("advances the same card running → completed on a terminal step_state event", async () => {
+    render(<NextflowWorkflowViewer {...(runningProps as any)} status="running" />);
+    const card = await screen.findByTestId("phase-card-s2");
+    expect(card).toHaveAttribute("data-status", "pending");
+    await waitFor(() => expect(typeof esHandlers["step_state"]).toBe("function"));
+
+    dispatchSSE("step_state", { step_id: "s2", step_state: "running" });
+    await waitFor(() =>
+      expect(screen.getByTestId("phase-card-s2")).toHaveAttribute("data-status", "running")
+    );
+
+    dispatchSSE("step_state", { step_id: "s2", step_state: "completed" });
+    await waitFor(() =>
+      expect(screen.getByTestId("phase-card-s2")).toHaveAttribute("data-status", "completed")
+    );
+  });
+
+  it("shows the Restart CTA and a failed overall badge when status=failed", async () => {
+    render(<NextflowWorkflowViewer {...(runningProps as any)} status="failed" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("workflow-overall-status-badge")).toHaveAttribute(
+        "data-status",
+        "failed"
+      );
+    });
+    // No cached-failure metadata → not resumable → footer CTA reads "Restart".
+    const cta = screen.getByTestId("button-run-workflow-panel");
+    expect(cta).toHaveTextContent("Restart");
+    // A failed run must NOT surface a "Run again" success CTA.
+    expect(screen.queryByTestId("panel-run-again-cta")).not.toBeInTheDocument();
   });
 });
