@@ -1,14 +1,13 @@
 /**
  * ColdStartDashboard — the cold-start function-module dashboard + intent router
- * (data-centric spec 00 §0.4 "the function-module dashboard" and §0.5 "the
- * intent router").
+ * (data-centric spec 00 §0.4 "the cold start" and §0.5 "the intent router").
  *
  * Shown when a fresh chat session has no messages yet, where the old
  * hardcoded suggested-query grid used to live (ReturningUserWelcome, which now
  * returns null). It answers the cold-start question — "what can I do here?" —
  * WITHOUT ever showing a browsable list of our inventory.
  *
- * Honesty contract (spec 00 §0.15.1 — the no-inventory rule):
+ * Honesty contract (spec 00 §0.9 — the no-inventory rule):
  *   - It shows FUNCTION CATEGORIES (Search & evidence, Data analysis, Design &
  *     generate, Models) and, under each, a few EXAMPLE INTENTS phrased as
  *     things you might say. That is all.
@@ -17,25 +16,135 @@
  *   - The intent bar routes a described goal to a LANE and a DOMAIN — it
  *     describes what it heard back to you; it does not return a list of names.
  *
- * The four modules and the router heuristic mirror the reference design at
- * reference/claude_design/data_centroid_design/dataui/data-part3.js
- * (window.MODULES + window.ROUTES) and ColdStart.jsx (ModuleDash / IntentBar).
- * The two-way Instant/Cloud read reuses `laneForText` from lane-preview.tsx so
- * the front door cannot contradict the composer's own lane preview; the
- * DOMAIN read is a light domain-aware pass layered on top (lane-preview only
- * resolves the coarse Instant/Cloud lane, not a domain).
+ * Expand / collapse (spec 00 §0.4.2 — .modcard / .modhd, .trackbar, .schip):
+ *   - A module card is collapsed by default. Clicking its header toggles it
+ *     open; only ONE card is open at a time (state is lifted to the dashboard).
+ *     A chevron rotates to indicate the open state (aria-expanded on the
+ *     header button).
+ *   - Inside an open card, .trackbar shows the module's tracks as tabs
+ *     (e.g. Search & evidence → Literature · Databases · Patents · Internal).
+ *     The first track is selected on open; switching a track clears any
+ *     selected domain.
+ *   - The Data analysis → "Validated workflows" track carries domain chips
+ *     (.schip): selecting one replaces the example list with that domain's
+ *     workflow SHAPES (title · what it needs · how long). Selecting again
+ *     clears it. Categories and shapes only — never a list of names, never a
+ *     count.
+ *   - Example intents (.exrow) and shapes (.shaperow) SEED the composer via
+ *     `onSeed` — they do not send. The user still reviews and sends.
  *
- * Clicking an example intent (or typing into the bar and sending) SEEDS the
- * composer via `onSeed` — it does not send. The user still reviews and sends
- * themselves.
+ * The four modules, their tracks, the domains and the router heuristic mirror
+ * the reference design at
+ * reference/claude_design/data_centroid_design/dataui/data-part3.js
+ * (window.MODULES + window.DOMAINS + window.ROUTES) and ColdStart.jsx
+ * (ModuleDash / ModuleCard / IntentBar). The two-way Instant/Cloud read reuses
+ * `laneForText` from lane-preview.tsx so the front door cannot contradict the
+ * composer's own lane preview; the DOMAIN read is a light domain-aware pass
+ * layered on top (lane-preview only resolves the coarse Instant/Cloud lane,
+ * not a domain).
  */
 
 import { useState } from "react";
-import { Search, FlaskConical, Dna, Sparkles, ChevronRight, Send } from "lucide-react";
+import { Search, FlaskConical, Dna, Sparkles, ChevronRight, ChevronDown, Send } from "lucide-react";
 import { laneForText, type LaneKind } from "./lane-preview";
 
-// ── Function modules. Categories + example intents only — no counts, no
-//    inventory. Copy adapted from the reference window.MODULES. ──────────────
+// ── A validated-workflow SHAPE. Title + what it needs + how long. No pipeline
+//    name, no count — a shape a scientist recognises, not a catalogue row.
+//    (reference window.DOMAINS[].shapes) ──────────────────────────────────────
+export interface ColdShape {
+  /** Human title of the shape, e.g. "Screen a compound set for ADMET liabilities". */
+  t: string;
+  /** What the shape needs, e.g. "SMILES or SDF". */
+  needs: string;
+  /** Rough time class, e.g. "~15 min". */
+  time: string;
+  /** The seed sentence the composer is filled with on click. */
+  seed: string;
+}
+
+// ── A domain inside the Data analysis → Validated workflows track. Chips that
+//    swap the example list for that domain's shapes. (reference window.DOMAINS)
+export interface ColdDomain {
+  id: string;
+  name: string;
+  shapes: ColdShape[];
+}
+
+/**
+ * The validated-workflow domains, with three editorial shapes each (reference
+ * window.DOMAINS — three by design, never a count of the real inventory).
+ */
+export const COLD_DOMAINS: ColdDomain[] = [
+  {
+    id: "dd",
+    name: "Drug discovery",
+    shapes: [
+      { t: "Screen a compound set for ADMET liabilities", needs: "needs SMILES or SDF", time: "~15 min", seed: "Screen these SMILES for ADMET liabilities and rank them by developability." },
+      { t: "Dock a series against a target and rank poses", needs: "needs ligands + target structure", time: "~1 h", seed: "Dock this series against my target and rank the poses." },
+      { t: "Explain why a hit series is failing on one property", needs: "needs nothing but the question", time: "seconds", seed: "Why might this hit series be failing on hERG? Cite the evidence." },
+    ],
+  },
+  {
+    id: "txn",
+    name: "Transcriptomics",
+    shapes: [
+      { t: "Differential expression between two conditions", needs: "needs a counts matrix + design", time: "~40 min", seed: "Differential expression between treated and control, then GO enrichment. Human GRCh38." },
+      { t: "Cell-type composition shift across samples", needs: "needs count matrices per sample", time: "~1.5 h", seed: "Compare cell-type composition across my single-cell samples." },
+      { t: "Batch-corrected integration of several datasets", needs: "needs 2+ matrices", time: "~2 h", seed: "Integrate these datasets with batch correction and show me what survives." },
+    ],
+  },
+  {
+    id: "gen",
+    name: "Genomics",
+    shapes: [
+      { t: "Call variants and flag the clinically relevant ones", needs: "needs reads + reference build", time: "~2 h", seed: "Call variants on these samples and flag the clinically relevant ones. Human GRCh38." },
+      { t: "Compare variant burden between two cohorts", needs: "needs two variant sets", time: "~50 min", seed: "Compare variant burden between my responder and non-responder cohorts." },
+      { t: "Check contamination and relatedness before analysis", needs: "needs reads", time: "~25 min", seed: "Check these samples for contamination and relatedness before I analyse them." },
+    ],
+  },
+  {
+    id: "str",
+    name: "Structural biology",
+    shapes: [
+      { t: "Process a cryo-EM set to a density map", needs: "needs micrographs", time: "~6 h", seed: "Process this cryo-EM dataset to a density map and report the resolution." },
+      { t: "Predict and assess a structure for a sequence", needs: "needs a sequence", time: "~30 min", seed: "Predict the structure for this sequence and tell me where to trust it." },
+      { t: "Compare a model against an experimental map", needs: "needs a model + map", time: "~20 min", seed: "Compare this model against my experimental map and list the discrepancies." },
+    ],
+  },
+  {
+    id: "prot",
+    name: "Proteomics",
+    shapes: [
+      { t: "Quantify differential protein abundance between groups", needs: "needs search output + design", time: "~45 min", seed: "Quantify differential protein abundance between my two groups." },
+      { t: "Reconcile a proteomic signal with a transcriptomic one", needs: "needs two result tables", time: "~35 min", seed: "Reconcile my proteomic signal with the transcriptomic result." },
+      { t: "Assess run-to-run quality across a batch", needs: "needs raw or search output", time: "~20 min", seed: "Assess run-to-run quality across this proteomics batch." },
+    ],
+  },
+  {
+    id: "clin",
+    name: "Clinical",
+    shapes: [
+      { t: "Stratify a cohort by response and test the endpoint", needs: "needs a cohort table", time: "~20 min", seed: "Stratify this cohort by response and test the primary endpoint." },
+      { t: "Check a dataset against a statistical analysis plan", needs: "needs a cohort table + SAP", time: "~15 min", seed: "Check this dataset against my statistical analysis plan." },
+      { t: "Assemble the analysis section of a submission", needs: "needs completed runs", time: "~1 h", seed: "Assemble the analysis section of my submission from these runs." },
+    ],
+  },
+];
+
+// ── A track inside a module (reference window.MODULES[].tracks). A track is a
+//    tab whose example intents (.exrow) seed the composer. The Data analysis →
+//    Validated workflows track sets `domains`, which swaps in the domain chips.
+export interface ColdTrack {
+  /** Short track key shown on the tab, e.g. "Literature". */
+  k: string;
+  /** A few example intents — click-to-seed the composer. */
+  ex: string[];
+  /** When true, this track shows the validated-workflow domain chips. */
+  domains?: boolean;
+}
+
+// ── Function modules. Categories + tracks + example intents only — no counts,
+//    no inventory. Copy adapted from the reference window.MODULES. ────────────
 export interface ColdModule {
   id: string;
   /** Short module key, e.g. "Search & evidence". */
@@ -43,59 +152,156 @@ export interface ColdModule {
   /** One-line description of what the module is for. */
   t: string;
   icon: "search" | "beaker" | "dna" | "sparkles";
-  /** A few example intents — click-to-seed the composer. */
+  /** The module's tracks (tabs shown when the card is open). */
+  tracks: ColdTrack[];
+  /**
+   * Every example intent across all tracks, flattened. Kept as the module's
+   * router self-test surface (spec 00 §0.5 — every example printed on a card
+   * must route to a lane) and for the no-inventory count assertion. Derived
+   * from `tracks`, so it can never drift from what the card actually renders.
+   */
   ex: string[];
 }
 
+function withEx(m: Omit<ColdModule, "ex">): ColdModule {
+  return { ...m, ex: m.tracks.flatMap((tr) => tr.ex) };
+}
+
 export const COLD_MODULES: ColdModule[] = [
-  {
+  withEx({
     id: "search",
     k: "Search & evidence",
     t: "A cited answer over literature, databases and patents",
     icon: "search",
-    ex: [
-      "What is the evidence linking this target to disease?",
-      "Pull every reported structure for this target.",
-      "Who holds composition-of-matter claims on this scaffold?",
-      "Have we assayed this scaffold before, and what did we conclude?",
+    tracks: [
+      {
+        k: "Literature",
+        ex: [
+          "What is the evidence linking this target to disease?",
+          "Known SAR for this chemotype — what drives potency?",
+          "Why do inhibitors of this target usually fail on selectivity?",
+        ],
+      },
+      {
+        k: "Databases",
+        ex: [
+          "Pull every reported structure for this target.",
+          "Known off-targets for this chemotype?",
+          "Which trials targeted this pathway, and what were their endpoints?",
+        ],
+      },
+      {
+        k: "Patents",
+        ex: [
+          "Who holds composition-of-matter claims on this scaffold?",
+          "Freedom-to-operate picture for this series.",
+          "Are my generated candidates inside anyone's claims?",
+        ],
+      },
+      {
+        k: "Internal",
+        ex: [
+          "Have we assayed this scaffold before, and what did we conclude?",
+          "Find the last ADMET baseline for this platform.",
+        ],
+      },
     ],
-  },
-  {
+  }),
+  withEx({
     id: "analysis",
     k: "Data analysis",
     t: "Work on your own data — ad-hoc or a validated workflow",
     icon: "beaker",
-    ex: [
-      "Summarise this assay table and plot potency against logP.",
-      "Screen these SMILES for ADMET liabilities, hERG first.",
-      "Differential expression between treated and control, then GO enrichment.",
-      "Call variants on these samples and flag the clinically relevant ones.",
+    tracks: [
+      {
+        k: "Ad-hoc compute",
+        ex: [
+          "Summarise this assay table and plot potency against logP.",
+          "Correlate predicted and measured IC50 for these compounds.",
+          "Reshape this plate readout into long format and save it.",
+        ],
+      },
+      {
+        k: "Validated workflows",
+        domains: true,
+        ex: [
+          "Screen these SMILES for ADMET liabilities, hERG first.",
+          "Differential expression between treated and control, then GO enrichment.",
+          "Call variants on these samples and flag the clinically relevant ones.",
+        ],
+      },
     ],
-  },
-  {
+  }),
+  withEx({
     id: "design",
     k: "Design & generate",
     t: "Propose molecules, then optimise and rank them",
     icon: "dna",
-    ex: [
-      "Generate candidates for this target with drug-like properties.",
-      "Optimise this series for potency without losing solubility.",
-      "Predict binding affinity for these candidates against my target.",
-      "Rank these candidates for developability and show me the top 20.",
+    tracks: [
+      {
+        k: "Generate",
+        ex: [
+          "Generate candidates for this target with drug-like properties.",
+          "Scaffold-hop away from this series but keep the binding pharmacophore.",
+          "Grow this fragment into a lead-like molecule.",
+        ],
+      },
+      {
+        k: "Predict activity",
+        ex: [
+          "Predict binding affinity for these candidates against my target.",
+          "Which of these would you expect to bind, and why?",
+          "Dock the top 50 and check the poses are plausible.",
+        ],
+      },
+      {
+        k: "Optimise properties",
+        ex: [
+          "Optimise this series for potency without losing solubility.",
+          "Improve druglikeness while keeping hERG above 30 µM.",
+          "Fix the metabolic liability on this scaffold and re-score.",
+        ],
+      },
+      {
+        k: "Rank candidates",
+        ex: [
+          "Rank these candidates for developability and show me the top 20.",
+          "Which candidates pass every safety gate?",
+          "Triage this library into synthesise-now and park.",
+        ],
+      },
     ],
-  },
-  {
+  }),
+  withEx({
     id: "models",
     k: "Models",
-    t: "Run a pre-trained model, or train one on your data",
+    t: "Train, adapt or optimise a model on your data",
     icon: "sparkles",
-    ex: [
-      "Predict the fold of this sequence and show me where the model is unsure.",
-      "Score this locus with the sequence model and mark what stands out.",
-      "Train a potency predictor on our in-house assay data.",
-      "Screen this library against my target and rank the predicted hits.",
+    tracks: [
+      {
+        k: "Train",
+        ex: [
+          "Train a potency predictor on our in-house assay data.",
+          "Train an hERG classifier and gate the design loop on it.",
+          "Train a solubility model from our historical plate data.",
+        ],
+      },
+      {
+        k: "Adapt",
+        ex: [
+          "Adapt the generative model to our chemical series.",
+          "Fine-tune this property predictor on our measured compounds.",
+        ],
+      },
+      {
+        k: "Optimise",
+        ex: [
+          "Run the design–make–test loop on this series under a 96-assay budget.",
+          "Propose the next round and refit on the results.",
+        ],
+      },
     ],
-  },
+  }),
 ];
 
 const ICONS = {
@@ -295,28 +501,123 @@ function IntentBar({ onSeed }: IntentBarProps) {
   );
 }
 
-interface ModuleCardProps {
-  m: ColdModule;
+interface ExampleRowProps {
+  text: string;
   onSeed: (text: string) => void;
 }
 
-function ModuleCard({ m, onSeed }: ModuleCardProps) {
-  const Icon = ICONS[m.icon];
+/** A single example-intent row (.exrow) — click seeds the composer, never sends. */
+function ExampleRow({ text, onSeed }: ExampleRowProps) {
   return (
-    <div
-      data-testid={`cold-module-${m.id}`}
+    <button
+      type="button"
+      data-testid="cold-example"
+      onClick={() => onSeed(text)}
       style={{
         display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        padding: 16,
-        border: "1px solid var(--bm-border, oklch(0.90 0.005 260))",
-        borderRadius: 12,
-        background: "var(--bm-surface, oklch(0.99 0.002 260))",
+        alignItems: "center",
+        gap: 6,
+        padding: "6px 8px",
+        border: "none",
+        borderRadius: 7,
+        background: "transparent",
+        cursor: "pointer",
+        textAlign: "left",
+        fontSize: 12.5,
+        color: "var(--bm-text, oklch(0.22 0.01 260))",
+      }}
+    >
+      <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>“{text}”</span>
+      <span style={{ flex: 1 }} />
+      <ChevronRight size={12} aria-hidden style={{ flexShrink: 0, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }} />
+    </button>
+  );
+}
+
+interface ShapeRowProps {
+  shape: ColdShape;
+  onSeed: (text: string) => void;
+}
+
+/** A validated-workflow shape row (.shaperow): title + what-it-needs · time. */
+function ShapeRow({ shape, onSeed }: ShapeRowProps) {
+  return (
+    <button
+      type="button"
+      data-testid="cold-shape"
+      onClick={() => onSeed(shape.seed)}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "8px 8px",
+        border: "none",
+        borderRadius: 7,
+        background: "transparent",
+        cursor: "pointer",
         textAlign: "left",
       }}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+      <span style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+        <span style={{ fontWeight: 600, fontSize: 12.5, color: "var(--bm-text, oklch(0.22 0.01 260))" }}>{shape.t}</span>
+        <span style={{ fontSize: 11.5, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>
+          {shape.needs} · {shape.time}
+        </span>
+      </span>
+      <span style={{ flex: 1 }} />
+      <ChevronRight size={13} aria-hidden style={{ flexShrink: 0, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }} />
+    </button>
+  );
+}
+
+interface ModuleCardProps {
+  m: ColdModule;
+  open: boolean;
+  onToggle: () => void;
+  onSeed: (text: string) => void;
+}
+
+function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
+  const Icon = ICONS[m.icon];
+  // Track / domain selection is local to the card and resets whenever the card
+  // is opened afresh (the tabs remount because they only render while open).
+  const [ti, setTi] = useState(0);
+  const [domId, setDomId] = useState<string | null>(null);
+  const track = m.tracks[Math.min(ti, m.tracks.length - 1)];
+  const selectedDomain = domId ? COLD_DOMAINS.find((d) => d.id === domId) ?? null : null;
+
+  return (
+    <div
+      data-testid="cold-module-card"
+      data-module-id={m.id}
+      data-open={open ? "true" : "false"}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        border: `1px solid ${open ? "var(--bm-border-strong, oklch(0.80 0.01 260))" : "var(--bm-border, oklch(0.90 0.005 260))"}`,
+        borderRadius: 12,
+        background: "var(--bm-surface, oklch(0.99 0.002 260))",
+        overflow: "hidden",
+        gridColumn: open ? "1 / -1" : "auto",
+      }}
+    >
+      <button
+        type="button"
+        data-testid="cold-module-expand"
+        aria-expanded={open}
+        onClick={onToggle}
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 10,
+          padding: 16,
+          border: "none",
+          background: "transparent",
+          cursor: "pointer",
+          textAlign: "left",
+          width: "100%",
+        }}
+      >
         <span
           aria-hidden
           style={{
@@ -333,38 +634,113 @@ function ModuleCard({ m, onSeed }: ModuleCardProps) {
         >
           <Icon size={16} />
         </span>
-        <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+        <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0, flex: 1 }}>
           <span style={{ fontWeight: 600, fontSize: 13.5, color: "var(--bm-text, oklch(0.22 0.01 260))" }}>{m.k}</span>
           <span style={{ fontSize: 12, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>{m.t}</span>
+        </span>
+        <span
+          aria-hidden
+          style={{
+            flexShrink: 0,
+            color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
+            display: "inline-flex",
+            paddingTop: 2,
+          }}
+        >
+          {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+        </span>
+      </button>
+
+      {open && (
+        <div
+          data-testid="cold-module-body"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+            padding: "0 16px 16px",
+          }}
+        >
+          {/* .trackbar — the module's tracks as tabs. */}
+          <div role="tablist" aria-label={`${m.k} tracks`} style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {m.tracks.map((tr, i) => {
+              const on = i === ti;
+              return (
+                <button
+                  key={tr.k}
+                  type="button"
+                  role="tab"
+                  aria-selected={on}
+                  data-testid={`cold-track-${tr.k.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`}
+                  onClick={() => {
+                    setTi(i);
+                    setDomId(null);
+                  }}
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: 999,
+                    border: `1px solid ${on ? "var(--bm-primary, oklch(0.55 0.20 265))" : "var(--bm-border, oklch(0.90 0.005 260))"}`,
+                    background: on ? "var(--bm-primary, oklch(0.55 0.20 265))" : "transparent",
+                    color: on ? "white" : "var(--bm-text, oklch(0.22 0.01 260))",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                  }}
+                >
+                  {tr.k}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* .schip — domain chips, only inside a domains-track. Selecting one
+              swaps the example list for that domain's shapes. */}
+          {track.domains && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {COLD_DOMAINS.map((d) => {
+                const on = domId === d.id;
+                return (
+                  <button
+                    key={d.id}
+                    type="button"
+                    data-testid={`cold-domain-${d.id}`}
+                    aria-pressed={on}
+                    onClick={() => setDomId(on ? null : d.id)}
+                    style={{
+                      padding: "3px 10px",
+                      borderRadius: 999,
+                      border: `1px solid ${on ? "var(--bm-primary, oklch(0.55 0.20 265))" : "var(--bm-border, oklch(0.90 0.005 260))"}`,
+                      background: on ? "var(--bm-chip, oklch(0.95 0.01 260))" : "transparent",
+                      color: "var(--bm-text, oklch(0.22 0.01 260))",
+                      fontSize: 11.5,
+                      fontWeight: 500,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {d.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* The body: a selected domain shows shapes; otherwise the track's
+              example intents. */}
+          {selectedDomain ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {selectedDomain.shapes.map((s) => (
+                <ShapeRow key={s.t} shape={s} onSeed={onSeed} />
+              ))}
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {track.ex.map((x) => (
+                <ExampleRow key={x} text={x} onSeed={onSeed} />
+              ))}
+            </div>
+          )}
         </div>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        {m.ex.map((x) => (
-          <button
-            key={x}
-            type="button"
-            data-testid="cold-example"
-            onClick={() => onSeed(x)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "6px 8px",
-              border: "none",
-              borderRadius: 7,
-              background: "transparent",
-              cursor: "pointer",
-              textAlign: "left",
-              fontSize: 12.5,
-              color: "var(--bm-text, oklch(0.22 0.01 260))",
-            }}
-          >
-            <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>“{x}”</span>
-            <span style={{ flex: 1 }} />
-            <ChevronRight size={12} aria-hidden style={{ flexShrink: 0, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }} />
-          </button>
-        ))}
-      </div>
+      )}
     </div>
   );
 }
@@ -376,10 +752,12 @@ export interface ColdStartDashboardProps {
 
 /**
  * The cold-start dashboard: a centred column with the intent bar on top and the
- * four function-module cards below. Purely presentational; all it does is seed
- * the composer.
+ * four function-module cards below. Cards expand/collapse with single-open
+ * logic; all the dashboard does is seed the composer.
  */
 export function ColdStartDashboard({ onSeed }: ColdStartDashboardProps) {
+  // Single-open: at most one module card open at a time (spec 00 §0.4.2).
+  const [openId, setOpenId] = useState<string | null>(null);
   return (
     <div
       data-testid="cold-start-dashboard"
@@ -404,10 +782,17 @@ export function ColdStartDashboard({ onSeed }: ColdStartDashboardProps) {
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
           gap: 12,
+          alignItems: "start",
         }}
       >
         {COLD_MODULES.map((m) => (
-          <ModuleCard key={m.id} m={m} onSeed={onSeed} />
+          <ModuleCard
+            key={m.id}
+            m={m}
+            open={openId === m.id}
+            onToggle={() => setOpenId((cur) => (cur === m.id ? null : m.id))}
+            onSeed={onSeed}
+          />
         ))}
       </div>
     </div>
