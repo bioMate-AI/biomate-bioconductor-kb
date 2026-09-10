@@ -243,8 +243,44 @@ export function DatasetObject({
             </TabsTrigger>
           </TabsList>
 
-          {/* ── Preview: identity + shape ── */}
-          <TabsContent value="preview" className="space-y-1 text-xs" data-testid="dataset-preview">
+          {/* ── Preview: the actual data (columns + first rows) then identity ── */}
+          <TabsContent value="preview" className="space-y-2 text-xs" data-testid="dataset-preview">
+            {profile?.columns?.length && profile.sampleRows?.length ? (
+              <div className="space-y-1" data-testid="dataset-preview-table">
+                <div className="overflow-x-auto rounded border">
+                  <table className="w-full border-collapse text-[11px]">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        {profile.columns.map((c, i) => (
+                          <th
+                            key={i}
+                            className="whitespace-nowrap px-2 py-1 text-left font-medium border-b"
+                          >
+                            {c}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {profile.sampleRows.map((r, ri) => (
+                        <tr key={ri} className="odd:bg-muted/20">
+                          {profile.columns!.map((_, ci) => (
+                            <td key={ci} className="whitespace-nowrap px-2 py-0.5 font-mono border-b">
+                              {r[ci] ?? ""}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  First {profile.sampleRows.length} rows{profile.shape?.rows
+                    ? ` of ${profile.shape.rows.toLocaleString()}`
+                    : ""}. Sorting, filtering and full paging use the table viewer.
+                </p>
+              </div>
+            ) : null}
             <Row k="Name" v={dataset.name} mono />
             <Row k="Size" v={formatBytes(dataset.size)} mono />
             <Row k="Type" v={fmt(dataset.contentType)} mono />

@@ -69,6 +69,10 @@ IMBALANCE_MINORITY_FRAC = 0.2
 
 # Cap on rows scanned for table profiling (keeps ingest cheap on huge files).
 MAX_TABLE_ROWS = 200_000
+# Small caps for the Preview-tab sample (columns + first rows) — kept tiny so the
+# profile response stays light; the full table lives behind the table viewer.
+MAX_PREVIEW_COLS = 12
+MAX_PREVIEW_ROWS = 8
 
 # Column-name tokens that mark a plausible classification LABEL column.
 _LABEL_NAME_TOKENS = (
@@ -103,6 +107,11 @@ class DataProfile:
     class_balance: Optional[List[Tuple[str, float]]] = None
     signal_summary: Optional[List[str]] = None
     plan_impact: List[Tuple[str, str]] = field(default_factory=list)
+    # A small tabular sample so the dataset object's Preview tab can show the
+    # actual data (columns + first rows), not just identity metadata. Populated
+    # only for table-like inputs; capped small (see MAX_PREVIEW_*).
+    columns: Optional[List[str]] = None
+    sample_rows: Optional[List[List[str]]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to the exact JSON shape the frontend consumes."""
@@ -125,6 +134,10 @@ class DataProfile:
         out["planImpact"] = [
             {"observed": obs, "effect": eff} for obs, eff in self.plan_impact
         ]
+        if self.columns:
+            out["columns"] = list(self.columns)
+        if self.sample_rows is not None:
+            out["sampleRows"] = [list(r) for r in self.sample_rows]
         return out
 
 
@@ -391,6 +404,12 @@ def _profile_table(path: str) -> DataProfile:
         p.quality = "blocked"
         p.notes.append("File parsed to 0 rows — header present but no data records.")
         return p
+
+    # Small tabular sample for the Preview tab (columns + first rows), capped.
+    p.columns = [str(c) for c in header[:MAX_PREVIEW_COLS]]
+    p.sample_rows = [
+        [str(c) for c in r[:MAX_PREVIEW_COLS]] for r in rows[:MAX_PREVIEW_ROWS]
+    ]
 
     signal: List[str] = []
     watch = False

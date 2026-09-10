@@ -56,6 +56,10 @@ export interface DataProfile {
   quality: PerceptionQuality;
   /** Free-text perception notes ("single-end detected", "12 outliers", …). */
   notes: string[];
+  /** Column headers of a table-like dataset (capped), for the Preview tab. */
+  columns?: string[];
+  /** First rows of a table-like dataset (capped), for the Preview tab. */
+  sampleRows?: string[][];
 }
 
 export interface DataPerceptionProps {
