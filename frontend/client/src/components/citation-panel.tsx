@@ -7,6 +7,12 @@ import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -25,7 +31,9 @@ import {
   RefreshCw,
   Loader2,
   Flag,
-  MapPin
+  MapPin,
+  StickyNote,
+  Pin
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -34,8 +42,11 @@ import {
   downloadAsFile,
   copyToClipboard
 } from "@/lib/ai-assistant-api"
+import { api } from "@/lib/api"
+import { useActiveProjectIdSafe } from "@/contexts/active-project-context"
+import { useToast } from "@/hooks/use-toast"
 import type { Citation, MethodsSection } from "@shared/schema"
-import { SourceReaderPane, type EvidenceCitation } from "@/components/source-reader-pane"
+import { SourceReaderPane, sourceUrl, type EvidenceCitation } from "@/components/source-reader-pane"
 
 // Spec 01 §1.3.2: a materially-disagreeing pair of findings, surfaced honestly.
 // Only rendered when the retrieval path marks a conflict — never fabricated.
@@ -56,6 +67,13 @@ interface CitationPanelProps {
    * a "Sources disagree" row is shown. Omit / empty → row never renders.
    */
   conflicts?: CitationConflict[]
+  /**
+   * Spec 01 §1.3.2 / §1.5 — the synthesised answer body this citation set
+   * backs. When present it is included verbatim in the "Save to project
+   * notes" payload so provenance (claim + its sources) travels together. If
+   * absent, only the source list is saved.
+   */
+  answerText?: string
   isCollapsed?: boolean
   onCopy?: (text: string, format: 'apa' | 'bibtex' | 'short') => void
   onExportBibTeX?: () => void
@@ -68,6 +86,7 @@ export function CitationPanel({
   methodsSection,
   workflow,
   conflicts,
+  answerText,
   isCollapsed = true,
   onCopy,
   onExportBibTeX,
@@ -84,6 +103,10 @@ export function CitationPanel({
   const [readerIndex, setReaderIndex] = useState<number | null>(null)
   const [citationStyle, setCitationStyle] = useState<'short' | 'apa' | 'numbered'>('short')
   const [localMethodsSection, setLocalMethodsSection] = useState<MethodsSection | undefined>(methodsSection)
+  const [isSavingNote, setIsSavingNote] = useState(false)
+
+  const activeProjectId = useActiveProjectIdSafe()
+  const { toast } = useToast()
 
   const toolsWithCitations = citations.filter(c => c.doi || c.pmid || c.title) as EvidenceCitation[]
   const totalTools = citations.length
@@ -147,6 +170,75 @@ export function CitationPanel({
     }
   }
 
+  /**
+   * Spec 01 §1.5 — "Save to project notes". Writes the answer, with its
+   * sources, into the active project so provenance travels. Backed by the
+   * real project-knowledge endpoint (POST /api/memory/projects/:id/knowledge)
+   * with knowledgeType='notes_synthesis', which the Project Notes page reads.
+   * Requires an active project — the button is disabled (with a tooltip)
+   * when none is selected, never a fake success.
+   */
+  const buildNoteMarkdown = (): string => {
+    const lines: string[] = []
+    if (answerText && answerText.trim()) {
+      lines.push(answerText.trim(), "")
+    }
+    if (toolsWithCitations.length > 0) {
+      lines.push("## Sources", "")
+      toolsWithCitations.forEach((c, i) => {
+        const parts: string[] = []
+        const label = c.title || c.tool_name || "Untitled source"
+        const venueYear = [c.journal, c.year ? String(c.year) : null]
+          .filter(Boolean)
+          .join(" · ")
+        parts.push(`${i + 1}. ${label}${venueYear ? ` — ${venueYear}` : ""}`)
+        if (c.locus) parts.push(`   cited for: ${c.locus}`)
+        const url = sourceUrl(c)
+        if (url) parts.push(`   ${url}`)
+        lines.push(parts.join("\n"))
+      })
+    }
+    return lines.join("\n").trim()
+  }
+
+  const handleSaveToNotes = async () => {
+    if (!activeProjectId || isSavingNote) return
+    const content = buildNoteMarkdown()
+    if (!content) {
+      toast({
+        title: "Nothing to save",
+        description: "This answer has no cited sources yet.",
+        variant: "destructive",
+      })
+      return
+    }
+    setIsSavingNote(true)
+    try {
+      await api.request(`/memory/projects/${activeProjectId}/knowledge`, {
+        method: "POST",
+        body: JSON.stringify({
+          knowledgeType: "notes_synthesis",
+          title: `Saved answer — ${new Date().toISOString().slice(0, 10)}`,
+          content,
+          source: "user_saved",
+        }),
+      })
+      toast({
+        title: "Saved to project notes",
+        description: "The answer and its sources were added to this project.",
+      })
+    } catch (e: any) {
+      console.error("[citations] save to notes failed:", e?.message ?? e)
+      toast({
+        title: "Could not save",
+        description: e?.message || "Saving to project notes failed.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSavingNote(false)
+    }
+  }
+
   const handleRegenerateMethodsSection = async (style: 'short' | 'apa' | 'numbered') => {
     if (!workflow) return
 
@@ -201,6 +293,67 @@ export function CitationPanel({
               <Badge variant="secondary" className="text-xs">
                 {toolsWithCitations.length}/{totalTools} tools
               </Badge>
+
+              {/* Spec 01 §1.5 — answer→project exits. Two sanctioned exits
+                  from the search module into the rest of the product. */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    {/* span wrapper: a disabled button does not fire pointer
+                        events, so the tooltip needs a live element to hover. */}
+                    <span tabIndex={activeProjectId ? -1 : 0}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={handleSaveToNotes}
+                        disabled={!activeProjectId || isSavingNote}
+                        data-testid="answer-save-notes"
+                      >
+                        {isSavingNote ? (
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        ) : (
+                          <StickyNote className="h-3 w-3 mr-1" />
+                        )}
+                        Save to notes
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {activeProjectId
+                      ? "Save this answer and its sources to the project's notes"
+                      : "Select a project to save this answer to its notes"}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {/* Spec 01 §1.5 — "Make a project instruction" promotes a finding
+                  to a standing instruction (inherited param origin, Spec 07
+                  §7.4). No backend endpoint writes the project instructions
+                  store yet, so this stays honestly disabled rather than
+                  fabricating a success. */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        disabled
+                        data-testid="answer-make-instruction"
+                      >
+                        <Pin className="h-3 w-3 mr-1" />
+                        Make instruction
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Promote to a standing project instruction — coming soon
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
               {toolsWithCitations.length > 0 && (
                 <Button
                   size="sm"
@@ -253,6 +406,7 @@ export function CitationPanel({
                     <CitationItem
                       key={citation.tool_id}
                       citation={citation}
+                      index={idx}
                       isExpanded={expandedCitations.has(citation.tool_id)}
                       onToggle={() => toggleCitationExpanded(citation.tool_id)}
                       onCopy={handleCopy}
@@ -447,6 +601,8 @@ function ConflictRow({ conflicts, isExpanded, onToggle }: ConflictRowProps) {
 
 interface CitationItemProps {
   citation: EvidenceCitation
+  /** Position in the answer's source list — backs the reader's next/prev. */
+  index: number
   isExpanded: boolean
   onToggle: () => void
   onCopy: (text: string, id: string, format: 'apa' | 'bibtex' | 'short') => void
@@ -454,22 +610,22 @@ interface CitationItemProps {
   onRead?: () => void
 }
 
-function CitationItem({ citation, isExpanded, onToggle, onCopy, copiedId, onRead }: CitationItemProps) {
+function CitationItem({ citation, index, isExpanded, onToggle, onCopy, copiedId, onRead }: CitationItemProps) {
   const hasRecency = Boolean(citation.retrieval_date || citation.corpus_version)
   return (
     <div className="border rounded-md">
-      <button
-        onClick={onToggle}
-        className="w-full p-2 flex items-center justify-between text-left hover:bg-muted/50 transition-colors"
-      >
-        <div className="flex items-center gap-2 flex-1 min-w-0">
+      <div className="w-full p-2 flex items-center justify-between hover:bg-muted/50 transition-colors">
+        <button
+          onClick={onToggle}
+          className="flex items-center gap-2 flex-1 min-w-0 text-left"
+        >
           {isExpanded ? (
             <ChevronDown className="h-3 w-3 flex-shrink-0" />
           ) : (
             <ChevronRight className="h-3 w-3 flex-shrink-0" />
           )}
           <span className="text-sm font-medium truncate">{citation.tool_name}</span>
-        </div>
+        </button>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {citation.locus && (
             <Badge variant="outline" className="text-[10px] px-1 py-0 hidden sm:inline-flex">
@@ -482,8 +638,23 @@ function CitationItem({ citation, isExpanded, onToggle, onCopy, copiedId, onRead
           {citation.pmid && (
             <Badge variant="outline" className="text-[10px] px-1 py-0">PMID</Badge>
           )}
+          {/* Spec 01 §1.3.2 answer anatomy — an inline "open ▸" per source
+              that opens the right-hand reader pane at this source. */}
+          {onRead && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-1.5 text-[11px]"
+              onClick={onRead}
+              data-testid={`source-open-${index}`}
+              aria-label={`Open source ${index + 1} in reader`}
+            >
+              open
+              <ChevronRight className="h-3 w-3 ml-0.5" />
+            </Button>
+          )}
         </div>
-      </button>
+      </div>
 
       {isExpanded && (
         <div className="px-3 pb-3 pt-1 border-t bg-muted/30">
