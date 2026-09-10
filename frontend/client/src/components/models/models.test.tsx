@@ -390,6 +390,58 @@ describe("ModelObject", () => {
     await waitFor(() => expect(screen.getByTestId("model-version-2.0")).toBeTruthy())
   })
 
+  it("renders a FAILING gate honestly \u2014 fail verdict, red, never a pass", () => {
+    // Same shape as MODEL_DETAIL but the held-out gate did not clear.
+    const FAILED: ModelDetail = {
+      ...MODEL_DETAIL,
+      evidence: {
+        gate: { measured: "0.61", threshold: "0.75", verdict: "fail" },
+        calibration: "0.12",
+        evalSetId: "assay_2026_08.csv",
+      },
+      versions: [{ v: "2.0", verdict: "fail" }],
+    }
+    render(<ModelObject detail={FAILED} modelId="bionemo:boltz2" />, { wrapper: wrapper() })
+
+    const verdict = screen.getByTestId("model-gate-verdict")
+    // The verdict text is the honest word, not "pass".
+    expect(verdict.textContent).toContain("fail")
+    expect(verdict.textContent).not.toContain("pass")
+    // Colour is the fail red (#ef4444 -> rgb), not the pass green (#22c55e).
+    expect(verdict.getAttribute("style") || "").toContain("rgb(239, 68, 68)")
+    expect(verdict.getAttribute("style") || "").not.toContain("rgb(34, 197, 94)")
+    // The measured value is below threshold \u2014 the numbers back the verdict.
+    expect(screen.getByTestId("model-gate-measured").textContent).toBe("0.61")
+    expect(screen.getByTestId("model-gate-threshold").textContent).toBe("0.75")
+  })
+
+  it("renders a not_evaluated gate honestly \u2014 neutral verdict, no fabricated pass", () => {
+    // WS1 thin layer reports not_evaluated when there is no measured gate.
+    const NOT_EVAL: ModelDetail = {
+      ...MODEL_DETAIL,
+      evidence: {
+        gate: { measured: null, threshold: null, verdict: "not_evaluated" },
+        calibration: null,
+        evalSetId: null,
+      },
+      versions: [{ v: "2.0", verdict: "not_evaluated" }],
+    }
+    render(<ModelObject detail={NOT_EVAL} modelId="bionemo:boltz2" />, { wrapper: wrapper() })
+
+    const verdict = screen.getByTestId("model-gate-verdict")
+    expect(verdict.textContent).toContain("not_evaluated")
+    // Crucially NOT presented as a pass.
+    expect(verdict.textContent).not.toContain("pass")
+    // Neutral slate colour (#94a3b8 -> rgb), neither pass green nor fail red.
+    const style = verdict.getAttribute("style") || ""
+    expect(style).toContain("rgb(148, 163, 184)")
+    expect(style).not.toContain("rgb(34, 197, 94)") // pass green
+    expect(style).not.toContain("rgb(239, 68, 68)") // fail red
+    // Un-measured gate shows the honest em-dash, not a fabricated number.
+    expect(screen.getByTestId("model-gate-measured").textContent).toBe("\u2014")
+    expect(screen.getByTestId("model-gate-threshold").textContent).toBe("\u2014")
+  })
+
   it("renders lineage/consumers/versions as objects: clickable links + interface signature + header actions", async () => {
     const onOpenData = vi.fn()
     const onOpenRun = vi.fn()
@@ -493,5 +545,40 @@ describe("RunPretrained — full infer→poll→viewer flow", () => {
     await waitFor(() => expect(screen.getByTestId("result-status-completed")).toBeTruthy())
     expect(screen.getByTestId("hit-grid")).toBeTruthy()
     expect(screen.getByTestId("inference-chemical")).toBeTruthy()
+  })
+
+  it("shows a failed status + error when the inference run fails \u2014 not a stuck spinner or fake success", async () => {
+    // The poll resolves to a terminal FAILED run carrying an error message.
+    mockFetchByUrl({
+      "/api/inference/inf-err/result": {
+        run_id: "inf-err",
+        status: "failed",
+        evidenceClass: "chemical",
+        error: "worker OOM: model process exited 137",
+      },
+      "/api/models/custom:camp1/potency-gp/infer": { run_id: "inf-err" },
+      "/api/models": CATALOG,
+    })
+
+    render(<RunPretrained />, { wrapper: wrapper() })
+
+    fireEvent.click(screen.getByTestId("domain-chemical"))
+    await waitFor(() =>
+      expect(screen.getByTestId("run-pretrained-model").textContent).toContain("potency-gp"),
+    )
+    fireEvent.change(screen.getByTestId("run-pretrained-input"), { target: { value: "CCO" } })
+    fireEvent.click(screen.getByTestId("run-pretrained-submit"))
+
+    // The failed badge appears \u2014 honest terminal state.
+    await waitFor(() => expect(screen.getByTestId("result-status-failed")).toBeTruthy())
+    expect(screen.getByTestId("result-status-failed").textContent).toContain("failed")
+    // The real backend error surfaces, not a generic placeholder.
+    expect(screen.getByTestId("result-error").textContent).toContain("worker OOM")
+
+    // A failed run must NOT fabricate a completed result or leave a spinner running.
+    expect(screen.queryByTestId("result-status-completed")).toBeNull()
+    expect(screen.queryByTestId("result-status-running")).toBeNull()
+    expect(screen.queryByTestId("result-pending")).toBeNull()
+    expect(screen.queryByTestId("hit-grid")).toBeNull()
   })
 })

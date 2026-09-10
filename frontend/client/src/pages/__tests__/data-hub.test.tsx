@@ -135,4 +135,108 @@ describe("DataHubPage — two-pane hub", () => {
     // Breadcrumb + change-project control reflect the active project.
     expect(screen.getByTestId("data-hub-change-project")).toBeInTheDocument()
   })
+
+  it("opens a file as a first-class DatasetObject showing real identity + quality", async () => {
+    ctx.projects = PROJECTS
+    ctx.activeProjectId = "proj-rna"
+    ctx.activeProject = PROJECTS[0]
+
+    // One real uploaded file in the project (source "upload" \u2192 the default-
+    // expanded "inputs" folder, so its open button is immediately clickable).
+    const FILE = {
+      id: "file-counts",
+      name: "counts.csv",
+      s3_key: "projects/proj-rna/inputs/counts.csv",
+      size: 20480,
+      content_type: "text/csv",
+      source: "upload",
+      run_id: null,
+      workflow_name: null,
+      step_name: null,
+      input_context: null,
+      created_at: "2026-08-02T09:00:00.000Z",
+    }
+    // A real perception profile so the DatasetObject renders actual quality
+    // (verdict + shape + preview table) \u2014 not a fabricated placeholder.
+    const PROFILE = {
+      shape: { rows: 12000, cols: 4 },
+      quality: "watch",
+      notes: ["3 columns are highly correlated"],
+      columns: ["gene", "sample_a", "sample_b", "sample_c"],
+      sampleRows: [
+        ["TP53", "104", "98", "110"],
+        ["EGFR", "12", "9", "15"],
+      ],
+      classBalance: [
+        { label: "control", frac: 0.5 },
+        { label: "treated", frac: 0.5 },
+      ],
+    }
+
+    // Route fetch by URL: the files list, and the perception profile POST that
+    // both the file-tree quality dot and DatasetObject's Preview/Quality tabs hit.
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString()
+      if (url.includes("/api/perception/profile")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => PROFILE,
+          text: async () => JSON.stringify(PROFILE),
+        } as unknown as Response
+      }
+      if (url.includes("/api/projects/proj-rna/files")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ files: [FILE] }),
+          text: async () => JSON.stringify({ files: [FILE] }),
+        } as unknown as Response
+      }
+      // Any other tab endpoint (lineage/consumers/versions) is not exercised here.
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({}),
+        text: async () => "{}",
+      } as unknown as Response
+    }) as unknown as typeof fetch
+
+    render(<DataHubPage />, { wrapper: wrapper() })
+
+    // The file row surfaces in the tree with an open affordance.
+    await waitFor(() =>
+      expect(screen.getByTestId("file-open-file-counts")).toBeInTheDocument(),
+    )
+    // Before selection there is no DatasetObject, only the honest empty prompt.
+    expect(screen.queryByTestId("dataset-object")).toBeNull()
+    expect(screen.getByTestId("data-hub-detail-empty")).toBeInTheDocument()
+
+    // Open the file \u2192 it becomes a first-class DatasetObject.
+    fireEvent.click(screen.getByTestId("file-open-file-counts"))
+    await waitFor(() =>
+      expect(screen.getByTestId("dataset-object")).toBeInTheDocument(),
+    )
+    // The empty prompt is gone \u2014 the detail pane now shows the object.
+    expect(screen.queryByTestId("data-hub-detail-empty")).toBeNull()
+
+    // Real identity: name + id + content-type carried straight from the file.
+    expect(screen.getByTestId("dataset-object-name").textContent).toContain("counts.csv")
+    expect(screen.getByTestId("dataset-object-id").textContent).toContain("file-counts")
+
+    // Real quality: the default Preview tab renders the actual profiled table
+    // (columns + a real sample row), not a placeholder.
+    await waitFor(() =>
+      expect(screen.getByTestId("dataset-preview-table")).toBeInTheDocument(),
+    )
+    expect(screen.getByTestId("dataset-preview-table").textContent).toContain("TP53")
+
+    // The Quality tab renders the honest verdict from the profile (watch),
+    // proving quality is real, not fabricated.
+    fireEvent.mouseDown(screen.getByTestId("dataset-tab-quality"))
+    await waitFor(() =>
+      expect(screen.getByTestId("data-perception")).toBeInTheDocument(),
+    )
+    expect(screen.getByTestId("data-perception").getAttribute("data-quality")).toBe("watch")
+  })
 })
