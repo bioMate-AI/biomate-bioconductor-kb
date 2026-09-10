@@ -97,13 +97,13 @@ export function DatasetObject({
   className,
 }: DatasetObjectProps) {
   // Tabs lazily fetch their backing data when first opened (mirrors Quality).
-  const [qualityOpened, setQualityOpened] = useState(false)
   const [lineageOpened, setLineageOpened] = useState(false)
   const [consumersOpened, setConsumersOpened] = useState(false)
   const [versionsOpened, setVersionsOpened] = useState(false)
-
+  // Preview is the default tab and needs the profile (columns + sample rows), so
+  // profiling runs when the object opens — not gated behind the Quality tab.
   const { data: profile, isLoading, isError } = usePerceptionProfile(
-    qualityOpened ? dataset.ref : null,
+    dataset.ref,
     dataset.name,
   )
   const lineageQ = useDatasetLineage(lineageOpened ? dataset.ref : null)
@@ -216,8 +216,7 @@ export function DatasetObject({
         <Tabs
           defaultValue="preview"
           onValueChange={(v) => {
-            if (v === "quality") setQualityOpened(true)
-            else if (v === "lineage") setLineageOpened(true)
+            if (v === "lineage") setLineageOpened(true)
             else if (v === "consumers") setConsumersOpened(true)
             else if (v === "versions") setVersionsOpened(true)
           }}
