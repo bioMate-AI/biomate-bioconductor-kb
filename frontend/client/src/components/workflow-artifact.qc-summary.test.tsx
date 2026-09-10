@@ -110,5 +110,102 @@ describe("WorkflowArtifact QC summary panel", () => {
       "QC was applied with rnaseq_ribodepleted profile."
     );
   });
+
+  // Audit gap #8 (2026-09-09): the happy-path test above never exercised the
+  // honest-hide branch (workflow-artifact.tsx ~L1454:
+  //   qcReport && (gates_triggered > 0 || warnings_emitted > 0)
+  // ). A qcReport that IS present but reports zero gates and zero warnings must
+  // NOT render a "QC Summary" panel — showing an empty QC panel would imply QC
+  // ran and found something. This test proves the gating condition, not a null
+  // report: the fetch returns a truthy object with zeros so setQCReport fires.
+  it("HIDES the QC Summary panel when no gates fired and no warnings were emitted", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/invocations/inv-empty/qc-events")) {
+        return {
+          ok: true,
+          json: async () => ({
+            gates_triggered: 0,
+            warnings_emitted: 0,
+            active_profile: "rnaseq_ribodepleted",
+            events: [],
+            methods_text: "",
+          }),
+        } as Response;
+      }
+      return { ok: true, json: async () => ({}) } as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+
+    render(
+      <WorkflowArtifact
+        workflow={{ name: "RNA workflow" }}
+        steps={[]}
+        isCompleted={true}
+        invocationId="inv-empty"
+      />
+    );
+
+    // Wait until the qc-events fetch has resolved (report is set), so the
+    // absence assertion isn't just racing the effect.
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(([u]) =>
+          String(u).includes("/api/invocations/inv-empty/qc-events")
+        )
+      ).toBe(true);
+    });
+    // qcReport is truthy but zero on both counters → panel stays hidden.
+    expect(screen.queryByText("QC Summary")).not.toBeInTheDocument();
+  });
+
+  // Plural-branch coverage: gates_triggered=2 must render "2 gates" (not
+  // "2 gate"). The single happy path only ever exercised the singular label.
+  it("pluralises the gate count when multiple gates fired", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/invocations/inv-plural/qc-events")) {
+        return {
+          ok: true,
+          json: async () => ({
+            gates_triggered: 2,
+            warnings_emitted: 0,
+            active_profile: "rnaseq_ribodepleted",
+            events: [
+              {
+                type: "gate",
+                process_name: "STAR_ALIGN",
+                failures: [{ metric: "alignment_rate", value: 8, message: "Fail A" }],
+              },
+              {
+                type: "gate",
+                process_name: "SALMON_QUANT",
+                failures: [{ metric: "mapping_rate", value: 12, message: "Fail B" }],
+              },
+            ],
+            methods_text: "Two gates fired.",
+          }),
+        } as Response;
+      }
+      return { ok: true, json: async () => ({}) } as Response;
+    }) as unknown as typeof fetch);
+
+    render(
+      <WorkflowArtifact
+        workflow={{ name: "RNA workflow" }}
+        steps={[]}
+        isCompleted={true}
+        invocationId="inv-plural"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("QC Summary")).toBeInTheDocument();
+    });
+    // Plural label (not "2 gate").
+    expect(screen.getByText("2 gates")).toBeInTheDocument();
+    // A zero-warning report must NOT render the warnings pill.
+    expect(screen.queryByText(/\bwarning\b/)).not.toBeInTheDocument();
+  });
 });
 
