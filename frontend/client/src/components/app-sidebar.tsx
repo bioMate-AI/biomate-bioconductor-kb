@@ -40,6 +40,7 @@ import {
   FlaskConical,
   BookOpen,
   Cable,
+  Server,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { analytics } from "@/lib/analytics"
@@ -484,6 +485,16 @@ export function AppSidebar({
             <Settings className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} />
             <span>Settings &amp; API Keys</span>
           </button>
+          {(user as any)?.subscriptionTier === 'admin' && (
+            <button
+              style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
+              onClick={() => setLocation('/admin')}
+              data-testid="button-admin-dashboard"
+            >
+              <Server className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} />
+              <span>系统管理</span>
+            </button>
+          )}
         </div>
 
         {/* Beta: Actions panel hidden — Starred Workflows, Recent Tools,

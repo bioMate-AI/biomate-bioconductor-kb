@@ -48,6 +48,7 @@ import TermsPage from "@/pages/terms";
 import DashboardPage from "@/pages/dashboard";
 import BillingPage from "@/pages/billing";
 import AdminFeedbackDashboardPage from "@/pages/admin/feedback-dashboard";
+import SystemDashboardPage from "@/pages/admin/system-dashboard";
 import PilotExitSurveyPage from "@/pages/pilot-exit-survey";
 import DrugDiscoveryCroDemoPage from "@/pages/drug-discovery-cro-demo";
 import IndReportPage from "@/pages/ind-report";
@@ -619,6 +620,12 @@ function Router({
       <Route path="/admin/feedback-dashboard">
         <AuthenticatedPageLayout>
           <AdminFeedbackDashboardPage />
+        </AuthenticatedPageLayout>
+      </Route>
+
+      <Route path="/admin">
+        <AuthenticatedPageLayout>
+          <SystemDashboardPage />
         </AuthenticatedPageLayout>
       </Route>
 
