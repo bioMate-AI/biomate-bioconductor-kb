@@ -181,7 +181,8 @@ describe("<ColdStartDashboard>", () => {
     expect(route).toBeInTheDocument();
     expect(route).toHaveAttribute("data-lane", "cloud");
     expect(screen.getByTestId("cold-intent-route-domain")).toHaveTextContent("Drug discovery");
-    expect(screen.getByTestId("cold-intent-route-lane").textContent).toBeTruthy();
+    // Lane label must match the lane (not merely be non-empty — a tautology).
+    expect(screen.getByTestId("cold-intent-route-lane")).toHaveTextContent(/cloud/i);
   });
 
   it("routes an evidence question to the Instant lane", async () => {

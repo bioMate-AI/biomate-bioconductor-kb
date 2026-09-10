@@ -81,7 +81,7 @@ const COMPLETED: GenerationRun = {
 async function runToCompletion(client: GenerateClient) {
   render(<DesignGenerate client={client} />)
   fireEvent.click(screen.getByTestId("dg-run"))
-  await waitFor(() => expect(screen.getByTestId("dg-status")).toHaveAttribute) // status appears
+  await waitFor(() => expect(screen.getByTestId("dg-status")).toBeInTheDocument()) // status appears
   await screen.findByTestId("hit-grid")
 }
 
