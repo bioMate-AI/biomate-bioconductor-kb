@@ -31,6 +31,7 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react"
+import { useLocation } from "wouter"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -1029,9 +1030,28 @@ function OrderSheetButton({
 // Entry routes (§5.6) — "start from…" strip. Three routes into the module beyond
 // a cold start: from a dataset (an assay table seeds the series), from Models
 // (a newly gated model re-scores the set), from Search (a patent answer is
-// promoted into an exclusion). These are callback props with default no-ops so
-// the surface always exists; the host wires them to real navigation.
+// promoted into an exclusion).
+//
+// Each chip performs a REAL, useful navigation using the app's router (wouter):
+//   - "From a dataset" → /files   (the DataHub / dataset browser, Spec 04)
+//   - "From Models"     → /models  (the model catalog / picker, Spec 03)
+//   - "From Search"     → /        (the composer / evidence surface, Spec 01)
+// The `?from=design` marker is carried so a future consumer on those surfaces
+// can hand a selection back to the design run. Today those surfaces do not yet
+// read the marker back, so this is navigate-only — no fake hand-off is
+// fabricated. A host may still override any chip with a callback prop (which
+// takes precedence over the default navigation), e.g. to open an in-place
+// picker instead of routing away.
 // ---------------------------------------------------------------------------
+
+/** The real, in-app destinations for the three §5.6 entry routes. Exported so a
+ *  test can assert against them without hard-coding strings twice. The
+ *  `?from=design` marker signals provenance for a future selection hand-off. */
+export const ENTRY_ROUTE_TARGETS = {
+  dataset: "/files?from=design",
+  model: "/models?from=design",
+  search: "/?from=design",
+} as const
 
 function EntryRoutes({
   onStartFromDataset,
@@ -1042,27 +1062,39 @@ function EntryRoutes({
   onStartFromModel?: () => void
   onPromoteFromSearch?: () => void
 }) {
-  const routes: { key: string; label: string; hint: string; icon: React.ReactNode; onClick?: () => void }[] = [
+  const [, navigate] = useLocation()
+  const routes: {
+    key: string
+    testId: string
+    label: string
+    hint: string
+    icon: React.ReactNode
+    onClick: () => void
+  }[] = [
     {
       key: "dataset",
+      testId: "design-entry-dataset",
       label: "From a dataset",
-      hint: "An assay table starts a design run directly — the measured compounds become the starting series.",
+      hint: "An assay table starts a design run directly — the measured compounds become the starting series. Opens the dataset browser.",
       icon: <Boxes className="h-3 w-3" />,
-      onClick: onStartFromDataset,
+      // Host override wins; otherwise navigate to the real DataHub surface.
+      onClick: onStartFromDataset ?? (() => navigate(ENTRY_ROUTE_TARGETS.dataset)),
     },
     {
       key: "model",
+      testId: "design-entry-models",
       label: "From Models",
-      hint: "A newly gated potency or safety model re-scores the current candidate set.",
+      hint: "A newly gated potency or safety model re-scores the current candidate set. Opens the model catalog.",
       icon: <Target className="h-3 w-3" />,
-      onClick: onStartFromModel,
+      onClick: onStartFromModel ?? (() => navigate(ENTRY_ROUTE_TARGETS.model)),
     },
     {
       key: "search",
+      testId: "design-entry-search",
       label: "From Search",
-      hint: "A patent answer is promoted into an exclusion constraint on the next generation run.",
+      hint: "A patent answer is promoted into an exclusion constraint on the next generation run. Opens the search / evidence surface.",
       icon: <SearchIcon className="h-3 w-3" />,
-      onClick: onPromoteFromSearch,
+      onClick: onPromoteFromSearch ?? (() => navigate(ENTRY_ROUTE_TARGETS.search)),
     },
   ]
   return (
@@ -1075,9 +1107,13 @@ function EntryRoutes({
           size="sm"
           variant="outline"
           className="h-7 text-xs gap-1"
-          data-testid={`entry-${r.key}`}
+          // Spec-05 §5.6 canonical testid (design-entry-<key>); the legacy
+          // `entry-<key>` alias is kept as a data attribute so older selectors
+          // still resolve the element.
+          data-testid={r.testId}
+          data-legacy-testid={`entry-${r.key}`}
           title={r.hint}
-          onClick={r.onClick ?? (() => {})}
+          onClick={r.onClick}
         >
           {r.icon}
           {r.label}

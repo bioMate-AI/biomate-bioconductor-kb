@@ -14,6 +14,7 @@ import {
   classifyRejection,
   buildOrderSheetCsv,
   isContradiction,
+  ENTRY_ROUTE_TARGETS,
   type GenerateClient,
   type GenerationRun,
   type MeasuredResult,
@@ -274,20 +275,46 @@ describe("DesignGenerate", () => {
   })
 
   // ---- §5.6 entry routes ("start from…") ----------------------------------
-  it("renders the entry-routes strip with all three routes and default no-ops (§5.6)", () => {
+  it("renders the entry-routes strip with all three routes (§5.6)", () => {
     render(<DesignGenerate client={makeClient(COMPLETED)} />)
     const strip = screen.getByTestId("entry-routes")
-    expect(within(strip).getByTestId("entry-dataset")).toBeTruthy()
-    expect(within(strip).getByTestId("entry-model")).toBeTruthy()
-    expect(within(strip).getByTestId("entry-search")).toBeTruthy()
-    // Default no-op: clicking a route with no callback wired must not throw.
-    expect(() => fireEvent.click(screen.getByTestId("entry-dataset"))).not.toThrow()
+    // Spec-05 §5.6 canonical testids.
+    expect(within(strip).getByTestId("design-entry-dataset")).toBeTruthy()
+    expect(within(strip).getByTestId("design-entry-models")).toBeTruthy()
+    expect(within(strip).getByTestId("design-entry-search")).toBeTruthy()
+    // Legacy aliases preserved as a data attribute so older selectors resolve.
+    expect(within(strip).getByTestId("design-entry-dataset").getAttribute("data-legacy-testid")).toBe(
+      "entry-dataset",
+    )
   })
 
-  it("fires the entry-route callbacks when wired (§5.6)", () => {
+  it("navigates to the real in-app surface for each entry route by default (§5.6)", () => {
+    // No callback props wired → the chips perform REAL router navigation (not
+    // no-ops). wouter's default navigation calls window.history.pushState; spy
+    // on it and assert the target path per chip.
+    const pushSpy = vi.spyOn(window.history, "pushState")
+    render(<DesignGenerate client={makeClient(COMPLETED)} />)
+
+    fireEvent.click(screen.getByTestId("design-entry-dataset"))
+    expect(pushSpy).toHaveBeenLastCalledWith(null, "", ENTRY_ROUTE_TARGETS.dataset)
+    expect(ENTRY_ROUTE_TARGETS.dataset).toMatch(/^\/files/)
+
+    fireEvent.click(screen.getByTestId("design-entry-models"))
+    expect(pushSpy).toHaveBeenLastCalledWith(null, "", ENTRY_ROUTE_TARGETS.model)
+    expect(ENTRY_ROUTE_TARGETS.model).toMatch(/^\/models/)
+
+    fireEvent.click(screen.getByTestId("design-entry-search"))
+    expect(pushSpy).toHaveBeenLastCalledWith(null, "", ENTRY_ROUTE_TARGETS.search)
+    expect(ENTRY_ROUTE_TARGETS.search).toMatch(/^\/\?from=design/)
+
+    pushSpy.mockRestore()
+  })
+
+  it("lets a host override an entry route with a callback instead of navigating (§5.6)", () => {
     const onStartFromDataset = vi.fn()
     const onStartFromModel = vi.fn()
     const onPromoteFromSearch = vi.fn()
+    const pushSpy = vi.spyOn(window.history, "pushState")
     render(
       <DesignGenerate
         client={makeClient(COMPLETED)}
@@ -296,12 +323,16 @@ describe("DesignGenerate", () => {
         onPromoteFromSearch={onPromoteFromSearch}
       />,
     )
-    fireEvent.click(screen.getByTestId("entry-dataset"))
-    fireEvent.click(screen.getByTestId("entry-model"))
-    fireEvent.click(screen.getByTestId("entry-search"))
+    const pushesBefore = pushSpy.mock.calls.length
+    fireEvent.click(screen.getByTestId("design-entry-dataset"))
+    fireEvent.click(screen.getByTestId("design-entry-models"))
+    fireEvent.click(screen.getByTestId("design-entry-search"))
     expect(onStartFromDataset).toHaveBeenCalledTimes(1)
     expect(onStartFromModel).toHaveBeenCalledTimes(1)
     expect(onPromoteFromSearch).toHaveBeenCalledTimes(1)
+    // The host callback takes precedence — no router navigation fired.
+    expect(pushSpy.mock.calls.length).toBe(pushesBefore)
+    pushSpy.mockRestore()
   })
 
   // ---- §5.5/§5.7 export order sheet ---------------------------------------
