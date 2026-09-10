@@ -267,7 +267,7 @@ describe("v2/AfterRunReport — QcAuditTab (rich panel)", () => {
     expect(screen.getByTestId("qc-row-0-result")).toHaveTextContent("✓ PASS");
   });
 
-  it("renders 'No QC gates fired' empty state when qcEvents is []", async () => {
+  it("shows the 'all quality gates passed' empty state when qcEvents is [] (QC tab always visible)", async () => {
     vi.restoreAllMocks();
     vi.spyOn(global, "fetch").mockImplementation(async (input) => {
       if (String(input).includes("qc-events")) {
@@ -277,9 +277,13 @@ describe("v2/AfterRunReport — QcAuditTab (rich panel)", () => {
       return { ok: false, status: 404, json: async () => ({}), text: async () => "" } as Response;
     });
     render(<AfterRunReport {...baseProps} />);
-    // qc tab is hidden entirely when there are no events (per hide-when-empty),
-    // so the audit tab testid never mounts. Verify absence:
-    await new Promise(r => setTimeout(r, 50)); // allow effects to settle
-    expect(screen.queryByTestId("qc-audit-tab")).toBeNull();
+    // The QC tab is ALWAYS visible (not hidden-when-empty). Open it and assert
+    // the real empty state — "all quality gates passed" — rather than asserting
+    // the tab is absent (which only passed because the default tab is Outputs).
+    await openQcTab();
+    const audit = await screen.findByTestId("qc-audit-tab");
+    expect(within(audit).getByTestId("qc-all-passed")).toHaveTextContent(/all quality gates passed/i);
+    // The audit-log table (which needs events) is NOT rendered in the empty state.
+    expect(within(audit).queryByTestId("qc-audit-log")).toBeNull();
   });
 });
