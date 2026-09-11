@@ -173,9 +173,27 @@ most — *which gene* and *which direction* — which is why it predicts approva
 ---
 
 ## 8 · Sources
-Inherits the ladder doc's sources (Nelson 2015 `10.1038/ng.3314`; Minikel 2024
-`10.1038/s41586-024-07316-0`; IL6R-MR 2012; IL23R R381Q 2011; PCSK9 Cohen 2006; ALCAM Stanley 2020).
-Methods referenced by standard name — fine-mapping/credible sets, locus-to-gene (Open Targets Genetics),
-colocalization (PP.H4), cis-Mendelian randomization (MR-Egger / weighted-median sensitivity), PheWAS —
-are field-standard; specific method-paper DOIs to be attached on the next verification pass rather than
-cited from memory.
+
+**Example / anchor targets** (inherited from the ladder doc): Nelson 2015, *Nat Genet* —
+[10.1038/ng.3314](https://doi.org/10.1038/ng.3314); Minikel 2024, *Nature* —
+[10.1038/s41586-024-07316-0](https://doi.org/10.1038/s41586-024-07316-0); IL6R-MR Consortium 2012,
+*Lancet* — [10.1016/S0140-6736(12)60110-X](https://doi.org/10.1016/S0140-6736(12)60110-X); IL23R R381Q,
+Di Meglio 2011 — [10.1371/journal.pone.0017160](https://doi.org/10.1371/journal.pone.0017160); PCSK9,
+Cohen 2006 — [10.1056/NEJMoa054013](https://doi.org/10.1056/NEJMoa054013); ALCAM, Stanley/Mohan 2020,
+*Nat Commun* 11:2197 — [10.1038/s41467-020-15986-3](https://doi.org/10.1038/s41467-020-15986-3).
+
+**Method papers (verified this pass):**
+- **Colocalization** (coloc / PP.H4) — Giambartolomei et al. 2014, *PLoS Genetics* 10(5):e1004383 —
+  [10.1371/journal.pgen.1004383](https://doi.org/10.1371/journal.pgen.1004383) (PMID 24830394).
+- **Locus-to-gene (L2G)** / Open Targets Genetics — Mountjoy et al. 2021, *Nature Genetics* 53:1527 —
+  [10.1038/s41588-021-00945-5](https://doi.org/10.1038/s41588-021-00945-5).
+- **MR-Egger** (pleiotropy-robust MR) — Bowden, Davey Smith & Burgess 2015, *Int J Epidemiol* 44(2):512 —
+  [10.1093/ije/dyv080](https://doi.org/10.1093/ije/dyv080) (PMID 26050253).
+- **Weighted-median MR** — Bowden, Davey Smith, Haycock & Burgess 2016, *Genetic Epidemiology* 40:304 —
+  [10.1002/gepi.21965](https://doi.org/10.1002/gepi.21965) (PMID 27061298).
+- **PheWAS** — Denny et al. 2010, *Bioinformatics* 26(9):1205 —
+  [10.1093/bioinformatics/btq126](https://doi.org/10.1093/bioinformatics/btq126) (PMID 20335276).
+
+*Fine-mapping / credible sets* is described by standard concept and is integrated within the L2G pipeline
+above; *cis-MR* foundational framing follows Davey Smith & Ebrahim — left un-DOI'd here rather than cite an
+unverified identifier.
