@@ -113,6 +113,24 @@ describe("DesignGenerate", () => {
     expect(body.objectives).toContain("drug_like")
   })
 
+  it("exposes a modality selector (v2 §11) that switches the seed + threads modality into the run", async () => {
+    const client = makeClient(COMPLETED)
+    render(<DesignGenerate client={client} />)
+    // default small molecule: SMILES seed, no non-SM note
+    expect(screen.getByTestId("dg-modality")).toBeTruthy()
+    expect(screen.getByTestId("dg-modality-small_molecule")).toBeTruthy()
+    expect(screen.queryByTestId("dg-modality-note")).toBeNull()
+    expect(screen.getByText("Target / seed (SMILES)")).toBeTruthy()
+    // switch to peptide: sequence seed + honest note
+    fireEvent.click(screen.getByTestId("dg-modality-peptide"))
+    expect(screen.getByText("Target / seed (sequence)")).toBeTruthy()
+    expect(screen.getByTestId("dg-modality-note")).toBeTruthy()
+    // run → payload carries modality=peptide
+    fireEvent.click(screen.getByTestId("dg-run"))
+    await waitFor(() => expect(client.start).toHaveBeenCalled())
+    expect((client.start as any).mock.calls[0][0].modality).toBe("peptide")
+  })
+
   it("ranks candidates via the wave-1 HitGrid", async () => {
     await runToCompletion(makeClient(COMPLETED))
     const grid = screen.getByTestId("hit-grid")

@@ -133,6 +133,8 @@ export interface PropertyEnvelopeInput {
 
 export interface GenerateRequestBody {
   generator: string
+  // v2 §11: chemical modality the design run targets.
+  modality?: string
   constraints: {
     seed_smiles?: string
     target_protein_pdb?: string
@@ -1286,6 +1288,7 @@ export function DesignGenerate({
 }: DesignGenerateProps) {
   // --- constraint state (the interface) ------------------------------------
   const [seedSmiles, setSeedSmiles] = useState("")
+  const [modality, setModality] = useState<"small_molecule" | "peptide" | "protein">("small_molecule")
   const [scaffoldPolicy, setScaffoldPolicy] = useState<ScaffoldPolicy>("stay")
   const [mwMax, setMwMax] = useState("500")
   const [logpMax, setLogpMax] = useState("5")
@@ -1341,6 +1344,7 @@ export function DesignGenerate({
     }
     return {
       generator: "brics",
+      modality,
       constraints: {
         seed_smiles: seedSmiles.trim() || undefined,
         scaffold_policy: scaffoldPolicy,
@@ -1356,7 +1360,7 @@ export function DesignGenerate({
       count: Math.max(1, parseInt(count, 10) || 20),
       n_generate: Math.max(1, parseInt(nGenerate, 10) || 200),
     }
-  }, [seedSmiles, scaffoldPolicy, mwMax, logpMax, tpsaMax, exclusionsText, seedSeriesText, count, nGenerate])
+  }, [seedSmiles, modality, scaffoldPolicy, mwMax, logpMax, tpsaMax, exclusionsText, seedSeriesText, count, nGenerate])
 
   const pollLoop = useCallback(
     async (runId: string) => {
@@ -1432,15 +1436,50 @@ export function DesignGenerate({
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-1">
+            <Label className="text-xs">Modality</Label>
+            <div className="flex gap-1" data-testid="dg-modality">
+              {([
+                { id: "small_molecule", label: "Small molecule" },
+                { id: "peptide", label: "Peptide" },
+                { id: "protein", label: "Protein / biologic" },
+              ] as const).map((m) => (
+                <Button
+                  key={m.id}
+                  type="button"
+                  size="sm"
+                  variant={modality === m.id ? "default" : "outline"}
+                  className="h-7 text-xs px-2"
+                  data-testid={`dg-modality-${m.id}`}
+                  onClick={() => setModality(m.id)}
+                >
+                  {m.label}
+                </Button>
+              ))}
+            </div>
+            {modality !== "small_molecule" && (
+              <p className="text-[10px] text-amber-600" data-testid="dg-modality-note">
+                {modality === "peptide" ? "Peptide" : "Protein / biologic"} design uses a sequence
+                seed; sequence-based property constraints are being added — the small-molecule
+                scaffold/envelope controls below apply to small molecules only.
+              </p>
+            )}
+          </div>
+          <div className="space-y-1">
             <Label htmlFor="dg-seed" className="text-xs">
-              Target / seed (SMILES)
+              {modality === "small_molecule"
+                ? "Target / seed (SMILES)"
+                : "Target / seed (sequence)"}
             </Label>
             <Input
               id="dg-seed"
               data-testid="dg-seed-smiles"
               value={seedSmiles}
               onChange={(e) => setSeedSmiles(e.target.value)}
-              placeholder="e.g. CC(=O)Oc1ccccc1C(=O)O"
+              placeholder={
+                modality === "small_molecule"
+                  ? "e.g. CC(=O)Oc1ccccc1C(=O)O"
+                  : "e.g. ACDEFGHIKLMNPQRSTVWY"
+              }
               className="font-mono text-xs"
             />
           </div>
