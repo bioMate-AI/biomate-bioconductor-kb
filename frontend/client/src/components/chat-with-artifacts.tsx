@@ -19,8 +19,7 @@ import { submitWorkflowFromArtifact, buildChainSubmitSteps, buildChainConnection
 import { fetchChainStatus, syncPipelineStepsFromChain } from "@/lib/chain-pipeline-sync"
 import { emitUxEvent } from "@/lib/ux-telemetry"
 import { useNetworkStatus } from "@/lib/network-status"
-import { getExecutionAsyncGuidance } from "@/lib/async-guidance"
-import { presentWorkflowExecutionError } from "@/lib/workflow-execution-error"
+import { WorkflowExecutionErrorNotice } from "./workflow-execution-error-notice"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { ToastAction } from "@/components/ui/toast"
@@ -1779,10 +1778,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     onWorkflowPanelOpenChange?.(true)
   }, [lastWorkflowMsgId, currentChatSession?.messages, onWorkflowPanelOpenChange])
 
-  const executionGuidance = getExecutionAsyncGuidance(executionError?.message, { isOnline })
-  const executionErrorPresentation = executionError
-    ? presentWorkflowExecutionError(executionError)
-    : null
   const autofixState = currentRun?.execution?.nextflowStatus?.autofix?.state as string | undefined
   const isAutofixActive =
     currentRun?.execution?.nextflowStatus?.autofix?.active === true ||
@@ -2079,19 +2074,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       {/* Execution error display */}
       {executionError && (
         <div className="border-b bg-red-50 dark:bg-red-950/20 px-4 py-2">
+          <WorkflowExecutionErrorNotice error={executionError} />
           <div className="space-y-2 text-sm text-red-700 dark:text-red-300">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="font-semibold" data-testid="execution-error-title">{executionErrorPresentation?.title}</span>
-            </div>
-            <p data-testid="execution-error-detail">{executionErrorPresentation?.detail}</p>
-            {executionErrorPresentation?.missingLabels.length ? (
-              <ul className="list-disc pl-5 text-xs" data-testid="execution-error-missing-params">
-                {executionErrorPresentation.missingLabels.map((label) => <li key={label}>{label}</li>)}
-              </ul>
-            ) : null}
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs" data-testid="execution-error-action">{executionErrorPresentation?.action || executionGuidance.retry}</p>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"

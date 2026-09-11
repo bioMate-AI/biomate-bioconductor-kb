@@ -34,4 +34,11 @@ describe("presentWorkflowExecutionError", () => {
     expect(result.detail).toMatch(/No compute was started/i);
     expect(result.action).not.toMatch(/^Try again$/i);
   });
+
+  it("maps invalid workflow bindings to re-selection rather than a generic failure", () => {
+    expect(presentWorkflowExecutionError({ code: "invalid_workflow_inputs", message: "invalid" })).toMatchObject({
+      title: "Re-select valid dataset bindings",
+      detail: expect.stringMatching(/No compute was started/),
+    });
+  });
 });
