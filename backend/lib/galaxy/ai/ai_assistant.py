@@ -1783,6 +1783,16 @@ class AIAssistant:
                 return "compound_peptidomimetic"
             if any(k in all_text for k in ("druglike", "drug-like", "ro5", "lipinski", "hts")):
                 return "compound_druglike"
+            # A generic ADMET / safety-screen workflow gets the standard ADMET QC
+            # profile (hERG IC50, DILI, Ames gates). Unlike cryo-EM/proteomics there
+            # is NO backend domain auto-default for drug-discovery, so returning None
+            # here left ADMET runs with no profile and no gate could ever fire.
+            # Other drug-discovery workflows (docking, generation) have no
+            # compound-safety gate and correctly stay None.
+            if any(k in all_text for k in ("admet", "adme", "herg", "cardiotox",
+                                           "hepatotox", "dili", "ames", "toxicit",
+                                           "safety", "liabilit")):
+                return "admet_standard"
             return None
 
         # --- RNA-seq specialisations ---
