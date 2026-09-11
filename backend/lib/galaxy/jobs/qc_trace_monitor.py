@@ -1066,9 +1066,21 @@ class NextflowQCGateHandler:
         def _has(*keywords: str) -> bool:
             return any(k in p for k in keywords)
 
-        # Drug discovery / compound
-        if _has("admet", "docking", "pharmacokinetics", "nca", "toxicity", "drug"):
+        # ADMET / tox safety screen → hERG · DILI · Ames gates (admet_standard).
+        # MUST precede the generic drug-like / docking branch: admet_standard is
+        # the ONLY profile carrying the cardiotox (hERG) gate an ADMET screen
+        # exists to trigger — compound_druglike is Lipinski Ro5 only and would
+        # silently disable it (root cause of "hERG gate never fires on ADMET").
+        # Match specific safety keywords, NOT the bare "drug" category dir, which
+        # every drug_discovery/* path contains (that misrouted PK/NCA here too).
+        if _has("admet", "adme", "herg", "cardiotox", "hepatotox", "dili", "ames", "toxicity"):
+            return "admet_standard"
+
+        # Docking / structure-based small-molecule library QC → Lipinski Ro5.
+        if _has("docking"):
             return "compound_druglike"
+        # PK / NCA and other drug_discovery paths have no single named profile →
+        # fall through to None (platform default / assay-specific sub-profile).
 
         # Cryo-EM — check BEFORE genomics to avoid 'em' false matches
         if _has("cryoem", "cryo_em", "cryosparc", "relion", "ctf"):
