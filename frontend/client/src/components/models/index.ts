@@ -1,6 +1,6 @@
 /**
  * Models module — the 5-track Models surface, the model object, and the
- * "Run a pre-trained model" inference→viewer routing.
+ * "Run a model" inference→viewer routing.
  */
 export { ModelsPanel, MODELS_TRACKS } from "./models-panel"
 export type {

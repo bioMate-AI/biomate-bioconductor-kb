@@ -14,6 +14,8 @@ import {
   classifyRejection,
   buildOrderSheetCsv,
   isContradiction,
+  modalityOf,
+  MODALITY_META,
   ENTRY_ROUTE_TARGETS,
   type GenerateClient,
   type GenerationRun,
@@ -111,24 +113,6 @@ describe("DesignGenerate", () => {
     expect(body.constraints.scaffold_policy).toBe("hop")
     expect(body.constraints.exclusions).toEqual(["[N+](=O)[O-]"])
     expect(body.objectives).toContain("drug_like")
-  })
-
-  it("exposes a modality selector (v2 §11) that switches the seed + threads modality into the run", async () => {
-    const client = makeClient(COMPLETED)
-    render(<DesignGenerate client={client} />)
-    // default small molecule: SMILES seed, no non-SM note
-    expect(screen.getByTestId("dg-modality")).toBeTruthy()
-    expect(screen.getByTestId("dg-modality-small_molecule")).toBeTruthy()
-    expect(screen.queryByTestId("dg-modality-note")).toBeNull()
-    expect(screen.getByText("Target / seed (SMILES)")).toBeTruthy()
-    // switch to peptide: sequence seed + honest note
-    fireEvent.click(screen.getByTestId("dg-modality-peptide"))
-    expect(screen.getByText("Target / seed (sequence)")).toBeTruthy()
-    expect(screen.getByTestId("dg-modality-note")).toBeTruthy()
-    // run → payload carries modality=peptide
-    fireEvent.click(screen.getByTestId("dg-run"))
-    await waitFor(() => expect(client.start).toHaveBeenCalled())
-    expect((client.start as any).mock.calls[0][0].modality).toBe("peptide")
   })
 
   it("ranks candidates via the wave-1 HitGrid", async () => {
@@ -429,5 +413,84 @@ describe("DesignGenerate", () => {
     expect(isContradiction(1.0, 0.9)).toBe(false) // 10% — within tolerance
     expect(isContradiction(1.0, 0.1)).toBe(true) // 90% — a contradiction
     expect(isContradiction(0, 0)).toBe(false) // near-zero, no divergence
+  })
+
+  // ---- §11 modality control (all-modalities design) -----------------------
+  it("renders the modality control with all three chips, small molecule default (§11.2)", () => {
+    render(<DesignGenerate client={makeClient(COMPLETED)} />)
+    const mod = screen.getByTestId("dg-modality")
+    expect(within(mod).getByTestId("dg-modality-small_molecule")).toBeTruthy()
+    expect(within(mod).getByTestId("dg-modality-peptide")).toBeTruthy()
+    expect(within(mod).getByTestId("dg-modality-protein")).toBeTruthy()
+    // Small molecule is the default (selected) and shows the chemistry constraints.
+    expect(screen.getByTestId("dg-modality-small_molecule").getAttribute("data-selected")).toBe("true")
+    expect(screen.getByTestId("dg-constraints-small_molecule")).toBeTruthy()
+    // The stay-on slot for small molecule is the scaffold.
+    expect(screen.getByTestId("dg-modality-blurb").textContent).toMatch(/scaffold/i)
+  })
+
+  it("switching to Peptide swaps the constraint set to sequence + cyclisation (§11.3)", () => {
+    render(<DesignGenerate client={makeClient(COMPLETED)} />)
+    fireEvent.click(screen.getByTestId("dg-modality-peptide"))
+    // Chemistry constraints hidden; peptide constraints shown.
+    expect(screen.queryByTestId("dg-constraints-small_molecule")).toBeNull()
+    expect(screen.getByTestId("dg-constraints-peptide")).toBeTruthy()
+    expect(screen.getByTestId("dg-sequence")).toBeTruthy()
+    expect(screen.getByTestId("dg-cyclization")).toBeTruthy()
+    // Stay-on slot is the sequence motif.
+    expect(screen.getByTestId("dg-modality-blurb").textContent).toMatch(/sequence motif/i)
+  })
+
+  it("switching to Protein shows the framework seed constraint (§11.3)", () => {
+    render(<DesignGenerate client={makeClient(COMPLETED)} />)
+    fireEvent.click(screen.getByTestId("dg-modality-protein"))
+    expect(screen.getByTestId("dg-constraints-protein")).toBeTruthy()
+    expect(screen.getByTestId("dg-framework")).toBeTruthy()
+    expect(screen.getByTestId("dg-modality-blurb").textContent).toMatch(/framework/i)
+  })
+
+  it("gates the run for non-chemistry modalities with an HONEST generatorcoming state (§11.6)", () => {
+    const client = makeClient(COMPLETED)
+    render(<DesignGenerate client={client} />)
+    fireEvent.click(screen.getByTestId("dg-modality-peptide"))
+    // The run is disabled and the honest note is shown — no fabricated result.
+    expect((screen.getByTestId("dg-run") as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByTestId("dg-modality-unrunnable").textContent).toMatch(/generator coming/i)
+    // Clicking the disabled run fires no backend call.
+    fireEvent.click(screen.getByTestId("dg-run"))
+    expect(client.start).not.toHaveBeenCalled()
+  })
+
+  it("carries the selected modality + its constraints into the run payload for small molecule (§11.4)", async () => {
+    const client = makeClient(COMPLETED)
+    render(<DesignGenerate client={client} />)
+    // Small molecule stays runnable; the modality travels with the request.
+    fireEvent.change(screen.getByTestId("dg-seed-smiles"), { target: { value: "CCO" } })
+    fireEvent.click(screen.getByTestId("dg-run"))
+    await waitFor(() => expect(client.start).toHaveBeenCalled())
+    const body = (client.start as any).mock.calls[0][0]
+    expect(body.modality).toBe("small_molecule")
+    expect(body.constraints.seed_smiles).toBe("CCO")
+    // Peptide/protein-only fields are NOT cross-fed on a small-molecule run.
+    expect(body.constraints.sequence).toBeUndefined()
+    expect(body.constraints.framework).toBeUndefined()
+  })
+
+  it("modalityOf infers the modality from free text (§11.4)", () => {
+    expect(modalityOf("cyclic peptide binders to an epitope")).toBe("peptide")
+    expect(modalityOf("staple this helix")).toBe("peptide")
+    expect(modalityOf("macrocyclise a linear binder")).toBe("peptide")
+    expect(modalityOf("nanobody candidates against the target")).toBe("protein")
+    expect(modalityOf("graft the CDRs onto a human framework")).toBe("protein")
+    expect(modalityOf("enzyme active-site redesign, keep thermostability")).toBe("protein")
+    expect(modalityOf("improve expression titre of the construct")).toBe("protein")
+    expect(modalityOf("scaffold-hop the aspirin core")).toBe("small_molecule")
+    expect(modalityOf("")).toBe("small_molecule")
+  })
+
+  it("exposes a stay-on slot per modality (§11.4)", () => {
+    expect(MODALITY_META.small_molecule.stayOn).toMatch(/scaffold/i)
+    expect(MODALITY_META.peptide.stayOn).toMatch(/sequence/i)
+    expect(MODALITY_META.protein.stayOn).toMatch(/framework/i)
   })
 })

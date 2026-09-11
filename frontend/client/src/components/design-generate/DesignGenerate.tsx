@@ -133,14 +133,27 @@ export interface PropertyEnvelopeInput {
 
 export interface GenerateRequestBody {
   generator: string
-  // v2 §11: chemical modality the design run targets.
-  modality?: string
+  /**
+   * The modality of the object being designed (Spec 11 §11.4). Modality is a
+   * property of the REQUEST, not the module: it decides which generator and
+   * scorers are callable, so it must reach the run card / payload — not stop at
+   * the example list. Small molecule is the default and the only modality the
+   * wave-1 chemistry generator can execute today; peptide / protein travel here
+   * so the request is honest about what was asked, and the backend can route
+   * them once their generators are wired (never fabricated in the meantime).
+   */
+  modality?: Modality
   constraints: {
     seed_smiles?: string
     target_protein_pdb?: string
     scaffold_policy: string
     property_envelope: PropertyEnvelopeInput
     exclusions: string[]
+    /** Peptide (§11.3): a linear sequence seed + a cyclisation policy. */
+    sequence?: string
+    cyclization?: string
+    /** Protein / biologic (§11.3): a sequence / framework seed. */
+    framework?: string
   }
   objectives: string[]
   seed_series: string[]
@@ -177,6 +190,77 @@ const defaultClient: GenerateClient = {
 
 const SCAFFOLD_POLICIES = ["stay", "hop", "grow"] as const
 type ScaffoldPolicy = (typeof SCAFFOLD_POLICIES)[number]
+
+// ---------------------------------------------------------------------------
+// Modality (Spec 11) — one design module carries every modality. Modality is a
+// property of the REQUEST: it selects the constraint set and the "… to stay on"
+// slot (scaffold / sequence motif / framework), and it travels into the payload.
+// ---------------------------------------------------------------------------
+
+export const MODALITIES = ["small_molecule", "peptide", "protein"] as const
+export type Modality = (typeof MODALITIES)[number]
+
+interface ModalityMeta {
+  key: Modality
+  label: string
+  /** The §11.4 "… to stay on" slot for this modality. */
+  stayOn: string
+  /** One-line orientation shown under the chips. */
+  blurb: string
+}
+
+export const MODALITY_META: Record<Modality, ModalityMeta> = {
+  small_molecule: {
+    key: "small_molecule",
+    label: "Small molecule",
+    stayOn: "scaffold",
+    blurb: "Propose molecules for a target; scaffold-hop or grow a fragment.",
+  },
+  peptide: {
+    key: "peptide",
+    label: "Peptide",
+    stayOn: "sequence motif",
+    blurb: "Cyclic binders to an epitope; stapled analogues; macrocyclise a linear peptide.",
+  },
+  protein: {
+    key: "protein",
+    label: "Protein / biologic",
+    stayOn: "framework",
+    blurb: "Nanobody candidates; graft CDRs onto a human framework; enzyme redesign.",
+  },
+}
+
+/**
+ * modalityOf(text) — infer the modality from free composer text (§11.4).
+ *   peptide / macrocycle / staple(d) / helicity            → peptide
+ *   antibody / nanobody / CDR / framework / enzyme /
+ *   thermostability / construct / expression (titre)       → protein
+ *   otherwise                                              → small molecule
+ * The clicked modality (held state) OUTRANKS this inference; this is only used
+ * when the user has typed and no explicit choice is held. Pure + exported so it
+ * is directly testable.
+ */
+export function modalityOf(text: string): Modality {
+  const t = text.toLowerCase()
+  const has = (...ws: string[]) => ws.some((w) => new RegExp(`\\b${w}`, "i").test(t))
+  if (has("peptide", "macrocycl", "stapl", "helicity")) return "peptide"
+  if (
+    has(
+      "antibod",
+      "nanobod",
+      "cdr",
+      "framework",
+      "enzyme",
+      "thermostab",
+      "construct",
+      "expression",
+      "titre",
+      "titer",
+    )
+  )
+    return "protein"
+  return "small_molecule"
+}
 
 // A crude, TRANSPARENT compute-cost hint — count is stated with cost shown
 // before the run (§5.2). This is a UI heuristic, not a billing figure.
@@ -1258,6 +1342,49 @@ function PredictedVsMeasured({
 }
 
 // ---------------------------------------------------------------------------
+// Modality control (§11.2) — three chips under the composer header. Sets which
+// constraint set is shown and the "… to stay on" slot; it is HELD in its own
+// state and travels into the payload. Selecting a chip is authoritative.
+// ---------------------------------------------------------------------------
+
+function ModalityChips({
+  modality,
+  onChange,
+}: {
+  modality: Modality
+  onChange: (m: Modality) => void
+}) {
+  return (
+    <div className="space-y-1" data-testid="dg-modality">
+      <Label className="text-xs">Modality</Label>
+      <div className="flex gap-1 flex-wrap">
+        {MODALITIES.map((m) => {
+          const meta = MODALITY_META[m]
+          return (
+            <Button
+              key={m}
+              type="button"
+              size="sm"
+              variant={modality === m ? "default" : "outline"}
+              className="h-7 text-xs px-2"
+              data-testid={`dg-modality-${m}`}
+              data-selected={modality === m ? "true" : "false"}
+              onClick={() => onChange(m)}
+            >
+              {meta.label}
+            </Button>
+          )
+        })}
+      </div>
+      <p className="text-[10px] text-muted-foreground" data-testid="dg-modality-blurb">
+        {MODALITY_META[modality].blurb} What the generation should stay on:{" "}
+        <span className="font-medium">{MODALITY_META[modality].stayOn}</span>.
+      </p>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
@@ -1286,9 +1413,16 @@ export function DesignGenerate({
   measuredResults,
   className,
 }: DesignGenerateProps) {
+  // --- modality (§11) — held in its own state; outranks text inference -------
+  const [modality, setModality] = useState<Modality>("small_molecule")
+  // Peptide / protein seeds live in their own fields so switching modality does
+  // not silently reinterpret a SMILES seed as a sequence (or vice-versa).
+  const [sequence, setSequence] = useState("")
+  const [cyclization, setCyclization] = useState<"none" | "head-to-tail" | "disulfide" | "staple">("none")
+  const [framework, setFramework] = useState("")
+
   // --- constraint state (the interface) ------------------------------------
   const [seedSmiles, setSeedSmiles] = useState("")
-  const [modality, setModality] = useState<"small_molecule" | "peptide" | "protein">("small_molecule")
   const [scaffoldPolicy, setScaffoldPolicy] = useState<ScaffoldPolicy>("stay")
   const [mwMax, setMwMax] = useState("500")
   const [logpMax, setLogpMax] = useState("5")
@@ -1344,6 +1478,8 @@ export function DesignGenerate({
     }
     return {
       generator: "brics",
+      // Modality travels with the request (§11.4) — the default small-molecule
+      // path is unchanged; peptide/protein carry their own seed constraints.
       modality,
       constraints: {
         seed_smiles: seedSmiles.trim() || undefined,
@@ -1354,13 +1490,17 @@ export function DesignGenerate({
           tpsa_max: num(tpsaMax),
         },
         exclusions: parseList(exclusionsText),
+        // Only attached for the modality they belong to — never cross-fed.
+        sequence: modality === "peptide" ? sequence.trim() || undefined : undefined,
+        cyclization: modality === "peptide" && cyclization !== "none" ? cyclization : undefined,
+        framework: modality === "protein" ? framework.trim() || undefined : undefined,
       },
       objectives: ["drug_like", "property_envelope"],
       seed_series: parseList(seedSeriesText),
       count: Math.max(1, parseInt(count, 10) || 20),
       n_generate: Math.max(1, parseInt(nGenerate, 10) || 200),
     }
-  }, [seedSmiles, modality, scaffoldPolicy, mwMax, logpMax, tpsaMax, exclusionsText, seedSeriesText, count, nGenerate])
+  }, [modality, sequence, cyclization, framework, seedSmiles, scaffoldPolicy, mwMax, logpMax, tpsaMax, exclusionsText, seedSeriesText, count, nGenerate])
 
   const pollLoop = useCallback(
     async (runId: string) => {
@@ -1378,6 +1518,9 @@ export function DesignGenerate({
   )
 
   const onRun = useCallback(async () => {
+    // Only the small-molecule generator can execute today; peptide/protein are
+    // captured + carried but not run (no fabricated result). §11.6.
+    if (modality !== "small_molecule") return
     setError(null)
     try {
       const { run_id } = await client.start(buildBody())
@@ -1386,9 +1529,14 @@ export function DesignGenerate({
     } catch (e) {
       setError(String(e))
     }
-  }, [client, buildBody, pollLoop])
+  }, [client, buildBody, pollLoop, modality])
 
   const running = run?.status === "running"
+  // The wave-1 generator is chemistry-only: it can execute small molecules
+  // today. Peptide / protein carry a real, adapted constraint set and travel
+  // into the payload, but there is no honest generator to run them yet — so the
+  // run is gated (never a fabricated peptide/protein result). §11.6 flags this.
+  const canRun = modality === "small_molecule"
   const rawCandidates = run?.candidates ?? []
   const rejected = run?.rejected ?? []
   const objectiveMeta = run?.objectives ?? []
@@ -1435,51 +1583,22 @@ export function DesignGenerate({
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="space-y-1">
-            <Label className="text-xs">Modality</Label>
-            <div className="flex gap-1" data-testid="dg-modality">
-              {([
-                { id: "small_molecule", label: "Small molecule" },
-                { id: "peptide", label: "Peptide" },
-                { id: "protein", label: "Protein / biologic" },
-              ] as const).map((m) => (
-                <Button
-                  key={m.id}
-                  type="button"
-                  size="sm"
-                  variant={modality === m.id ? "default" : "outline"}
-                  className="h-7 text-xs px-2"
-                  data-testid={`dg-modality-${m.id}`}
-                  onClick={() => setModality(m.id)}
-                >
-                  {m.label}
-                </Button>
-              ))}
-            </div>
-            {modality !== "small_molecule" && (
-              <p className="text-[10px] text-amber-600" data-testid="dg-modality-note">
-                {modality === "peptide" ? "Peptide" : "Protein / biologic"} design uses a sequence
-                seed; sequence-based property constraints are being added — the small-molecule
-                scaffold/envelope controls below apply to small molecules only.
-              </p>
-            )}
-          </div>
+          {/* Modality control (§11.2) — picks the constraint set + stay-on slot */}
+          <ModalityChips modality={modality} onChange={setModality} />
+
+          {/* ---- Small-molecule constraints (unchanged chemistry path) ---- */}
+          {modality === "small_molecule" && (
+          <div className="space-y-3" data-testid="dg-constraints-small_molecule">
           <div className="space-y-1">
             <Label htmlFor="dg-seed" className="text-xs">
-              {modality === "small_molecule"
-                ? "Target / seed (SMILES)"
-                : "Target / seed (sequence)"}
+              Target / seed (SMILES)
             </Label>
             <Input
               id="dg-seed"
               data-testid="dg-seed-smiles"
               value={seedSmiles}
               onChange={(e) => setSeedSmiles(e.target.value)}
-              placeholder={
-                modality === "small_molecule"
-                  ? "e.g. CC(=O)Oc1ccccc1C(=O)O"
-                  : "e.g. ACDEFGHIKLMNPQRSTVWY"
-              }
+              placeholder="e.g. CC(=O)Oc1ccccc1C(=O)O"
               className="font-mono text-xs"
             />
           </div>
@@ -1563,6 +1682,79 @@ export function DesignGenerate({
               className="font-mono text-xs h-16"
             />
           </div>
+          </div>
+          )}
+
+          {/* ---- Peptide constraints (§11.3): sequence + cyclisation ---- */}
+          {modality === "peptide" && (
+          <div className="space-y-3" data-testid="dg-constraints-peptide">
+            <div className="space-y-1">
+              <Label htmlFor="dg-sequence" className="text-xs">
+                Peptide sequence (one-letter, the motif to stay on)
+              </Label>
+              <Input
+                id="dg-sequence"
+                data-testid="dg-sequence"
+                value={sequence}
+                onChange={(e) => setSequence(e.target.value)}
+                placeholder="e.g. ACDEFGHIK"
+                className="font-mono text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Cyclisation</Label>
+              <div className="flex gap-1 flex-wrap" data-testid="dg-cyclization">
+                {(["none", "head-to-tail", "disulfide", "staple"] as const).map((c) => (
+                  <Button
+                    key={c}
+                    type="button"
+                    size="sm"
+                    variant={cyclization === c ? "default" : "outline"}
+                    className="h-7 text-xs px-2"
+                    data-testid={`dg-cyclization-${c}`}
+                    onClick={() => setCyclization(c)}
+                  >
+                    {c}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+          )}
+
+          {/* ---- Protein / biologic constraints (§11.3): framework seed ---- */}
+          {modality === "protein" && (
+          <div className="space-y-3" data-testid="dg-constraints-protein">
+            <div className="space-y-1">
+              <Label htmlFor="dg-framework" className="text-xs">
+                Sequence / framework to stay on
+              </Label>
+              <Textarea
+                id="dg-framework"
+                data-testid="dg-framework"
+                value={framework}
+                onChange={(e) => setFramework(e.target.value)}
+                placeholder="e.g. a human VHH framework, or a starting sequence to graft CDRs onto"
+                className="font-mono text-xs h-16"
+              />
+            </div>
+          </div>
+          )}
+
+          {/* Non-chemistry modalities: the constraints are real and reach the
+              payload, but there is no honest generator to run them yet — say so
+              rather than fabricate a peptide/protein shortlist (§11.6). */}
+          {!canRun && (
+            <div
+              className="rounded border border-amber-500/40 bg-amber-500/5 px-2 py-1.5 text-[11px] text-muted-foreground"
+              data-testid="dg-modality-unrunnable"
+            >
+              <span className="font-semibold text-amber-600">Generator coming.</span>{" "}
+              {MODALITY_META[modality].label} constraints are captured and travel with the request,
+              but the {MODALITY_META[modality].label.toLowerCase()} generator is not wired yet — no
+              result is fabricated. Small-molecule design runs today.
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-2">
             <div>
@@ -1601,7 +1793,7 @@ export function DesignGenerate({
               size="sm"
               className="h-7 text-xs gap-1"
               data-testid="dg-run"
-              disabled={running}
+              disabled={running || !canRun}
               onClick={onRun}
             >
               <Play className="h-3 w-3" />

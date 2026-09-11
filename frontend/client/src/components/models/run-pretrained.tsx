@@ -1,5 +1,5 @@
 /**
- * RunPretrained — the "Run a pre-trained model" track.
+ * RunPretrained — the "Run a model" track (a pre-trained model, run for inference).
  *
  * Distinct from Train: these models arrive already fitted. You pick a domain
  * (structure · genomic · chemical), supply an input, submit inference, and the
@@ -133,9 +133,9 @@ export function RunPretrained({ onOpenModel, className }: RunPretrainedProps) {
     <div className={className} data-testid="run-pretrained">
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Run a pre-trained model</CardTitle>
+          <CardTitle className="text-sm">Run a model</CardTitle>
           <p className="text-[10px] text-muted-foreground">
-            Integrated open-source models · nothing of yours is trained. You supply an input and get
+            A pre-trained, integrated open-source model · nothing of yours is trained. You supply an input and get
             an inference — so the questions are what it can speak to and how much of its answer to
             trust, not what it learned.
           </p>
