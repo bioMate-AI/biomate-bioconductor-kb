@@ -2320,10 +2320,14 @@ class UnifiedWorkflowSearch:
         def _format_inputs(c: "WorkflowChain") -> str:
             if not c.required_inputs:
                 return "unspecified"
-            return ", ".join(
-                f"{inp.get('name','')} ({inp.get('type','')})"
-                for inp in c.required_inputs[:3]
-            )
+            # required_inputs may be a list of dicts OR a list of plain strings
+            # (legacy bioc_*_v2 chains store strings) — guard both, mirroring
+            # the _inp_tokens helper used in the chain-embedding path.
+            def _fmt(inp):
+                if isinstance(inp, str):
+                    return inp
+                return f"{inp.get('name','')} ({inp.get('type','')})"
+            return ", ".join(_fmt(inp) for inp in c.required_inputs[:3])
 
         prompt = (
             f"You are a bioinformatics workflow router validating a chain match.\n\n"
@@ -2387,9 +2391,12 @@ class UnifiedWorkflowSearch:
                 s.get("workflow_name", "") or s.get("name", "")
                 for s in (c.steps or [])[:5]
             )
+            def _fmt_inp(inp):
+                if isinstance(inp, str):
+                    return inp
+                return f"{inp.get('name', '')} ({inp.get('type', '')})"
             inputs = ", ".join(
-                f"{inp.get('name', '')} ({inp.get('type', '')})"
-                for inp in (c.required_inputs or [])[:3]
+                _fmt_inp(inp) for inp in (c.required_inputs or [])[:3]
             ) or "unspecified"
             return (
                 f"  Name: {c.name}\n"
