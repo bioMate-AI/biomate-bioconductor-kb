@@ -1505,6 +1505,120 @@ def _format_audit_record(r) -> dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# De-novo generation — expose the existing closed generate->predict->select->rank
+# loop over HTTP. DeNovoPipeline + get_generator + BayesianOptimizer already
+# exist and are unit-tested (test_denovo_pipeline.py); only the endpoint was
+# missing. Built-in RDKit objectives (QED / SA) keep the BRICS path fully
+# self-contained (no external key, no retraining). The learned NIM generators
+# (bionemo_genmol/molmim) are selectable and degrade HONESTLY to an empty ranked
+# list + status note when NVIDIA_API_KEY is unset — never fabricated molecules.
+# ---------------------------------------------------------------------------
+
+class DeNovoRunRequest(BaseModel):
+    seed_smiles: list                      # labelled seeds the GP is fit on
+    generator: str = "brics"               # brics | bionemo_genmol | bionemo_molmim
+    objectives: list = ["qed", "sa"]       # built-in RDKit objectives
+    n_molecules: int = 50
+    max_candidates: int = 2000
+    n_propose: int = 10
+    campaign_id: Optional[str] = None
+
+
+def _builtin_objective(name: str):
+    """ObjectiveSpec for a built-in RDKit objective, or None if unknown.
+
+    'qed' -> drug-likeness (maximize) · 'sa' -> synthetic accessibility (minimize).
+    Predictors omit molecules RDKit cannot parse (honest partial scoring), and
+    return {} if RDKit is unavailable so the pipeline degrades rather than crashes.
+    """
+    from .denovo_pipeline import ObjectiveSpec
+    key = (name or "").strip().lower()
+    if key == "qed":
+        def _qed(smiles_list: list) -> dict:
+            try:
+                from rdkit import Chem
+                from rdkit.Chem import QED
+            except Exception:
+                return {}
+            out = {}
+            for smi in smiles_list:
+                mol = Chem.MolFromSmiles(smi)
+                if mol is not None:
+                    out[smi] = float(QED.qed(mol))
+            return out
+        return ObjectiveSpec("qed", _qed, direction="maximize")
+    if key in ("sa", "sa_score", "synthetic_accessibility"):
+        def _sa(smiles_list: list) -> dict:
+            from .cro_order_export import _sa_score
+            out = {}
+            for smi in smiles_list:
+                v = _sa_score(smi)
+                if v is not None:
+                    out[smi] = float(v)
+            return out
+        return ObjectiveSpec("sa", _sa, direction="minimize")
+    return None
+
+
+@router.post("/denovo/run-round")
+async def denovo_run_round(request: DeNovoRunRequest):
+    """Run one closed de-novo generate -> predict -> GP-select -> rank iteration.
+
+    Thin wiring over the existing DeNovoPipeline + get_generator + BayesianOptimizer.
+    Honest: BRICS is deterministic enumeration (is_learned=False); NIM generators
+    are learned but return an empty ranked list + status when no NVIDIA_API_KEY —
+    never fabricated molecules.
+    """
+    from .generators import get_generator, GenerationSpec
+    from .denovo_pipeline import DeNovoPipeline
+
+    objectives = []
+    for nm in (request.objectives or []):
+        spec_obj = _builtin_objective(nm)
+        if spec_obj is None:
+            raise HTTPException(status_code=400, detail=f"Unknown objective {nm!r}; available: qed, sa")
+        objectives.append(spec_obj)
+    if not objectives:
+        raise HTTPException(status_code=400, detail="At least one objective is required")
+    if not request.seed_smiles:
+        raise HTTPException(status_code=400, detail="seed_smiles must be a non-empty list")
+
+    try:
+        generator = get_generator(request.generator)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    pipeline = DeNovoPipeline(
+        campaign_id=request.campaign_id or "denovo-adhoc",
+        generator=generator,
+        objectives=objectives,
+        n_initial=min(8, max(1, len(request.seed_smiles))),
+    )
+    spec = GenerationSpec(
+        seed_smiles=request.seed_smiles[0],
+        n_molecules=request.n_molecules,
+        max_candidates=request.max_candidates,
+    )
+    try:
+        result = pipeline.run_round(spec, seed_smiles=request.seed_smiles, n_propose=request.n_propose)
+    except (ImportError, ValueError) as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    # Return only JSON-safe fields (ranked is a list of plain dicts); omit the
+    # RoundProposal object which may carry numpy arrays.
+    return {
+        "campaign_id": result.campaign_id,
+        "generator_name": result.generator_name,
+        "generator_is_learned": result.generator_is_learned,
+        "generator_status": result.generator_status,
+        "n_generated": result.n_generated,
+        "n_scored": result.n_scored,
+        "ranked": result.ranked,
+        "notes": result.notes,
+    }
+
+
 @router.get("/audit")
 async def query_audit_log(
     resource_id: Optional[str] = Query(None, description="campaign_id to filter by"),
