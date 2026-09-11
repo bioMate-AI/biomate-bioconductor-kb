@@ -63,6 +63,14 @@ class PerCompoundResult(BaseModel):
 
 class ValidationMetrics(BaseModel):
     n_compounds: int
+    # Endpoint coverage is reported separately so aggregate error/fold
+    # statistics cannot be mistaken for results over the whole reference set.
+    n_observed_Cmax: int
+    n_predicted_Cmax: int
+    n_evaluable_Cmax: int  # records with both positive observed and predicted Cmax
+    n_observed_AUC: int
+    n_predicted_AUC: int
+    n_evaluable_AUC: int   # records with both positive observed and predicted AUC
     AFE_Cmax: float             # average fold error (bias)
     AAFE_Cmax: float            # absolute average fold error
     RMSE_Cmax: float
@@ -258,11 +266,11 @@ class ModelValidationService:
             pct_err_auc = None
             fold_auc = None
 
-            if pred_cmax is not None and obs_cmax and obs_cmax > 0:
+            if pred_cmax is not None and pred_cmax > 0 and obs_cmax and obs_cmax > 0:
                 pct_err_cmax = (pred_cmax - obs_cmax) / obs_cmax * 100.0
                 fold_cmax = pred_cmax / obs_cmax
 
-            if pred_auc is not None and obs_auc and obs_auc > 0:
+            if pred_auc is not None and pred_auc > 0 and obs_auc and obs_auc > 0:
                 pct_err_auc = (pred_auc - obs_auc) / obs_auc * 100.0
                 fold_auc = pred_auc / obs_auc
 
@@ -292,7 +300,8 @@ class ModelValidationService:
         metrics = self._compute_metrics(per_compound)
 
         all_compounds_evaluable = all(
-            r.predicted_Cmax is not None and r.predicted_AUC is not None
+            r.predicted_Cmax is not None and r.predicted_Cmax > 0
+            and r.predicted_AUC is not None and r.predicted_AUC > 0
             and r.observed_Cmax > 0 and r.observed_AUC > 0
             for r in per_compound
         )
@@ -346,6 +355,10 @@ class ModelValidationService:
         """Compute aggregate validation metrics from per-compound results."""
         import numpy as np
 
+        observed_cmax = [r for r in results if r.observed_Cmax > 0]
+        predicted_cmax = [r for r in results if r.predicted_Cmax is not None and r.predicted_Cmax > 0]
+        observed_auc = [r for r in results if r.observed_AUC > 0]
+        predicted_auc = [r for r in results if r.predicted_AUC is not None and r.predicted_AUC > 0]
         fold_cmax = [r.fold_error_Cmax for r in results if r.fold_error_Cmax is not None]
         fold_auc  = [r.fold_error_AUC  for r in results if r.fold_error_AUC  is not None]
         obs_cmax  = [r.observed_Cmax   for r in results if r.fold_error_Cmax is not None]
@@ -384,6 +397,12 @@ class ModelValidationService:
 
         return ValidationMetrics(
             n_compounds=len(results),
+            n_observed_Cmax=len(observed_cmax),
+            n_predicted_Cmax=len(predicted_cmax),
+            n_evaluable_Cmax=len(fold_cmax),
+            n_observed_AUC=len(observed_auc),
+            n_predicted_AUC=len(predicted_auc),
+            n_evaluable_AUC=len(fold_auc),
             AFE_Cmax=round(_afe(fold_cmax), 3),
             AAFE_Cmax=round(_aafe(fold_cmax), 3),
             RMSE_Cmax=round(_rmse(obs_cmax, pred_cmax), 4),
@@ -407,9 +426,11 @@ class ModelValidationService:
         criterion = "MEETS" if m.ema_criterion_met else "DOES NOT MEET"
         return (
             f"BioMate's analytical one-compartment PK equations were exercised against {n} marketed drugs covering diverse "
-            f"chemical classes and metabolic pathways. For Cmax, {m.within_2fold_Cmax*100:.0f}% of predictions "
-            f"fell within 2-fold of observed (AAFE = {m.AAFE_Cmax:.2f}; R² = {m.R2_Cmax:.3f}). "
-            f"For AUC, {m.within_2fold_AUC*100:.0f}% were within 2-fold (AAFE = {m.AAFE_AUC:.2f}; "
+            f"chemical classes and metabolic pathways. Cmax had {m.n_evaluable_Cmax}/{n} evaluable records "
+            f"({m.n_observed_Cmax} observed, {m.n_predicted_Cmax} predicted); among those records, "
+            f"{m.within_2fold_Cmax*100:.0f}% fell within 2-fold of observed (AAFE = {m.AAFE_Cmax:.2f}; R² = {m.R2_Cmax:.3f}). "
+            f"AUC had {m.n_evaluable_AUC}/{n} evaluable records ({m.n_observed_AUC} observed, "
+            f"{m.n_predicted_AUC} predicted); among those records, {m.within_2fold_AUC*100:.0f}% were within 2-fold (AAFE = {m.AAFE_AUC:.2f}; "
             f"R² = {m.R2_AUC:.3f}). Descriptively, the result {criterion} the EMA PBPK guideline threshold of "
             f"≥67% of predictions within 2-fold of observed for both Cmax and AUC "
             f"(EMA/CHMP/EWP/37498/2011). Because observed CL, Vd, and F are model inputs here, "

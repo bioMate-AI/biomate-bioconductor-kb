@@ -335,6 +335,12 @@ class TestPKEquationInvariants:
         assert report.n_reference_compounds == 107
         assert report.metrics.dict() == {
             "n_compounds": 107,
+            "n_observed_Cmax": 107,
+            "n_predicted_Cmax": 107,
+            "n_evaluable_Cmax": 107,
+            "n_observed_AUC": 107,
+            "n_predicted_AUC": 107,
+            "n_evaluable_AUC": 107,
             "AFE_Cmax": 0.582,
             "AAFE_Cmax": 2.118,
             "RMSE_Cmax": 1.8525,
@@ -380,6 +386,40 @@ class TestPKEquationInvariants:
         assert metrics.AAFE_AUC == 2.52
         assert metrics.within_2fold_AUC == pytest.approx(1 / 3, rel=1e-3)
         assert metrics.within_3fold_AUC == pytest.approx(1 / 3, rel=1e-3)
+
+    def test_partial_endpoint_coverage_is_explicit_and_cannot_qualify(self, monkeypatch):
+        """Aggregate fold fractions must expose missing observations/predictions."""
+        from .model_validation import ModelValidationService
+
+        drugs = [
+            {"name": "Complete", "dose_mg": 10.0, "route": "oral", "Cmax_ug_mL": 1.0, "AUC_ugh_mL": 10.0},
+            {"name": "NoCmaxPrediction", "dose_mg": 10.0, "route": "oral", "Cmax_ug_mL": 1.0, "AUC_ugh_mL": 10.0},
+            {"name": "NoAucObservation", "dose_mg": 10.0, "route": "oral", "Cmax_ug_mL": 1.0, "AUC_ugh_mL": None},
+        ]
+
+        class PartialPredictor:
+            def predict(self, drug):
+                if drug["name"] == "NoCmaxPrediction":
+                    return {"predicted_Cmax": None, "predicted_AUC": 10.0}
+                return {"predicted_Cmax": 1.0, "predicted_AUC": 10.0}
+
+        svc = ModelValidationService()
+        svc._predictor = PartialPredictor()
+        monkeypatch.setattr(svc, "_load_reference_drugs", lambda names=None: drugs)
+        report = svc.run_pbpk_validation()
+
+        assert report.metrics.n_compounds == 3
+        assert report.metrics.n_observed_Cmax == 3
+        assert report.metrics.n_predicted_Cmax == 2
+        assert report.metrics.n_evaluable_Cmax == 2
+        assert report.metrics.n_observed_AUC == 2
+        assert report.metrics.n_predicted_AUC == 3
+        assert report.metrics.n_evaluable_AUC == 2
+        assert report.metrics.within_2fold_Cmax == 1.0
+        assert report.metrics.within_2fold_AUC == 1.0
+        assert report.ema_criterion_met is False
+        assert "2/3 evaluable records" in report.regulatory_summary
+        assert any("lacked an observed or predicted PK endpoint" in warning for warning in report.warnings)
 
 
 # ===========================================================================
