@@ -91,14 +91,13 @@ describe("composer instructions: UI → chat-stream → assistant context", () =
   });
 
   it("normalizes and bounds instructions before adding them to prompt context", () => {
-    expect(ROUTES).toMatch(/typeof context\?\.composerInstructions === 'string'/);
-    expect(ROUTES).toMatch(/composerInstructions\.trim\(\)\.slice\(0, 4_000\)/);
-    expect(ROUTES).toContain("Composer instructions for this chat:");
+    expect(ROUTES).toContain("appendComposerInstructions(");
+    expect(ROUTES).toContain("context?.composerInstructions");
   });
 
   it("carries the field in the assistant context type and enriched context", () => {
     expect(ASSISTANT).toMatch(/composerInstructions\?: string/);
-    expect(ROUTES).toContain("composerInstructions: _composerInstructions || undefined");
+    expect(ROUTES).toContain("composerInstructions: composerContext.composerInstructions");
   });
 });
 

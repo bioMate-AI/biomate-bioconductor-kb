@@ -17,6 +17,7 @@ import type { InsertInviteCode, ExecutionRunStatus, InstrumentType } from "../sh
 import { db, pool } from "./db";
 import { selectChatHistoryUnderBudget } from "./chat-history-selector";
 import { capDatasetReferences, MAX_DATASET_REFS } from "./dataset-cap";
+import { appendComposerInstructions } from "./chat-context";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { mockGalaxyAPI } from "./mock-galaxy-api";
 import { GalaxyAPIProxy } from "./galaxy-api-proxy";
@@ -6032,15 +6033,11 @@ ${paramLines || '(none recorded)'}`;
       // steer one chat without silently overwriting the project's standing
       // instructions. Keep a bounded, normalized value before it reaches an
       // LLM prompt. Non-string input is ignored rather than coerced.
-      const _composerInstructions = typeof context?.composerInstructions === 'string'
-        ? context.composerInstructions.trim().slice(0, 4_000)
-        : '';
-      if (_composerInstructions) {
-        _projectContext = [
-          _projectContext,
-          `Composer instructions for this chat:\n${_composerInstructions}`,
-        ].filter(Boolean).join('\n\n');
-      }
+      const composerContext = appendComposerInstructions(
+        _projectContext,
+        context?.composerInstructions,
+      );
+      _projectContext = composerContext.projectContext;
 
       // Load user's own LLM keys if stored; decrypt for this request only.
       let _userAnthropicApiKey: string | undefined;
@@ -6075,7 +6072,7 @@ ${paramLines || '(none recorded)'}`;
         sessionId: _resolvedSessionId,
         projectId: _resolvedProjectId,
         projectContext: _projectContext,
-        composerInstructions: _composerInstructions || undefined,
+        composerInstructions: composerContext.composerInstructions,
         userAnthropicApiKey: _userAnthropicApiKey,
         openrouterKey: _openrouterKey,
         selectedModel: _selectedModel,
