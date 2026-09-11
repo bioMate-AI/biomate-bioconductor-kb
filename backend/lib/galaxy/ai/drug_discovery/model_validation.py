@@ -85,6 +85,15 @@ class ValidationReport(BaseModel):
     ema_criterion_met: bool
     warnings: list[str]
 
+    # Galaxy's deployed Python 3.9 worker uses Pydantic v1, while API callers
+    # and regulatory-report assembly use the v2 ``model_dump`` spelling.
+    # Preserve one serialization contract across both supported runtimes.
+    def model_dump(self, *args, **kwargs) -> dict:
+        parent_model_dump = getattr(super(), "model_dump", None)
+        if parent_model_dump is not None:
+            return parent_model_dump(*args, **kwargs)
+        return self.dict(*args, **kwargs)
+
 
 # ---------------------------------------------------------------------------
 # PBPK prediction — uses BioMate's physiological parameter estimates
