@@ -853,15 +853,23 @@ class TestINDAssembly:
             assert "observed_Cmax_ug_mL" not in item
             assert "predicted_Cmax_ug_mL" not in item
 
-    def test_all_six_sections_present(self):
+    def test_all_six_required_sections_present(self):
         """
         IND §2.6.1 requires all 6 subsections: 2.6.1.1–2.6.1.6.
         ICH M4 §2.6.1 (CTD guidance).
         """
         result = self._run_assembly("test-sections")
-        assert result.sections == [
+        required = {
             "2.6.1.1", "2.6.1.2", "2.6.1.3", "2.6.1.4", "2.6.1.5", "2.6.1.6"
-        ], f"Got sections: {result.sections}"
+        }
+        # The assembler now produces an expanded CTD document (for example
+        # §2.4, §2.6.2 and §2.6.3) in addition to the six mandatory §2.6.1
+        # pharmacology subsections. Require the regulatory minimum without
+        # treating valid additional sections as a regression.
+        assert required.issubset(result.sections), f"Got sections: {result.sections}"
+        assert len(result.sections) == len(set(result.sections)), (
+            f"Duplicate section identifiers: {result.sections}"
+        )
 
     def test_markdown_file_created(self):
         """assemble() must always write a Markdown file."""
