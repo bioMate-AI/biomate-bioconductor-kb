@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { ClarifyCard, type ClarifyAnswer } from "./clarify-card"
+import { ClarifyCard, type ClarifyAnswer, type ClarifyQuestion } from "./clarify-card"
 import { CLARIFY_QUESTIONS } from "./gaps-fixtures"
 
 describe("<ClarifyCard>", () => {
@@ -163,5 +163,55 @@ describe("<ClarifyCard>", () => {
     // Inferred values are still handed back.
     expect(onDone.mock.calls[0][0]).toHaveLength(3)
     expect(onDone.mock.calls[0][0][2]).toMatchObject({ value: "tpl.memo.v3", source: "inferred" })
+  })
+
+  // Regression (2026-09-11): an enum_violation question has NO pre-selected
+  // option (adapter sets no `pick` — the user must choose deliberately). A bare
+  // skip/confirm must NOT emit a param-clarification-resolved event silently
+  // defaulting to opts[0], which the workflow-panel bridge would pre-fill as if
+  // the user had picked it. Nothing chosen → nothing resolved.
+  const ENUM_ONLY: ClarifyQuestion[] = [
+    {
+      id: "aligner",
+      q: "Which aligner?",
+      field: "aligner",
+      target: "param",
+      binds: "schema value",
+      why: 'You said "bowtie3", but only these are supported.',
+      opts: [
+        { label: "star", val: "star" },
+        { label: "hisat2", val: "hisat2" },
+        { label: "salmon", val: "salmon" },
+      ], // no `pick` on any option
+    },
+  ]
+
+  it("does NOT emit a resolved value for a skipped enum question with no pre-select", async () => {
+    const user = userEvent.setup()
+    const onDone = vi.fn<[ClarifyAnswer[]], void>()
+    render(<ClarifyCard questions={ENUM_ONLY} onDone={onDone} messageId="menum" />)
+    // No option is pre-highlighted.
+    expect(screen.getByTestId("clarify-opt-aligner-0")).toHaveAttribute("data-selected", "false")
+    // Skip without choosing.
+    await user.click(screen.getByTestId("clarify-skip"))
+    // The skip audit event fires…
+    expect(events.some((e) => e.type === "biomate:param-clarification-skipped")).toBe(true)
+    // …but NO resolved event applies a bogus first value.
+    expect(events.some((e) => e.type === "biomate:param-clarification-resolved")).toBe(false)
+    // onDone carries no answer for the un-chosen enum.
+    expect(onDone).toHaveBeenCalledTimes(1)
+    expect(onDone.mock.calls[0][0]).toHaveLength(0)
+  })
+
+  it("emits a user-sourced value once an enum option IS explicitly picked", async () => {
+    const user = userEvent.setup()
+    const onDone = vi.fn<[ClarifyAnswer[]], void>()
+    render(<ClarifyCard questions={ENUM_ONLY} onDone={onDone} messageId="menum2" />)
+    await user.click(screen.getByTestId("clarify-opt-aligner-1")) // hisat2
+    await user.click(screen.getByTestId("clarify-next")) // confirm (single question)
+    expect(onDone.mock.calls[0][0]).toHaveLength(1)
+    expect(onDone.mock.calls[0][0][0]).toMatchObject({ value: "hisat2", source: "user" })
+    const ev = events.find((e) => e.type === "biomate:param-clarification-resolved")
+    expect((ev!.detail as any)).toMatchObject({ paramName: "aligner", value: "hisat2" })
   })
 })

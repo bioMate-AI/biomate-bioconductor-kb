@@ -126,6 +126,12 @@ function dispatchSkip(questionId: string, field: string, messageId?: string) {
 // ---------------------------------------------------------------------------
 
 const FREETEXT = -1
+// No genuine selection: a question with no recommended `pick` (e.g. an
+// enum_violation, where the adapter intentionally pre-selects nothing so the
+// user chooses deliberately) starts here. A NONE pick is NEVER emitted as a
+// resolved answer — skipping/confirming it applies no value, rather than
+// silently defaulting to opts[0] (which the panel would pre-fill as if chosen).
+const NONE = -2
 
 export function ClarifyCard({
   questions,
@@ -140,7 +146,9 @@ export function ClarifyCard({
   const [picks, setPicks] = useState<number[]>(() =>
     questions.map((q) => {
       const idx = q.opts.findIndex((o) => o.pick)
-      return idx === -1 ? 0 : idx
+      // No recommended option → NONE (not 0). Prevents a never-chosen enum
+      // value from being emitted on skip/confirm.
+      return idx === -1 ? NONE : idx
     }),
   )
   // Free-text is keyed PER QUESTION — a single shared string would make a later
@@ -175,11 +183,18 @@ export function ClarifyCard({
     }
   }
 
-  const confirm = () => {
-    const answers = questions.map((qq, j) => answerFor(qq, picks[j], own))
+  // Emit answers for every question that has a genuine selection (a recommended
+  // pick, a user click, or free text). Questions still at NONE — an enum with no
+  // pre-select the user never chose — emit nothing: no resolved value is applied.
+  const emit = (pk: number[]) => {
+    const answers = questions
+      .map((qq, j) => (pk[j] === NONE ? null : answerFor(qq, pk[j], own)))
+      .filter((a): a is ClarifyAnswer => a !== null)
     answers.forEach((a) => dispatchAnswer(a, messageId))
     onDone?.(answers)
   }
+
+  const confirm = () => emit(picks)
 
   const advance = () => {
     if (i < N - 1) setI(i + 1)
@@ -196,8 +211,9 @@ export function ClarifyCard({
   const skipAll = () => {
     questions.forEach((qq) => dispatchSkip(qq.id, qq.field, messageId))
     onSkip?.(questions.map((qq) => qq.id))
-    // Skipping all still uses the inferred values (they are already the picks).
-    onDone?.(questions.map((qq, j) => answerFor(qq, picks[j], own)))
+    // Skip-all applies the inferred/recommended values that exist; questions
+    // with no recommended pick (NONE) apply nothing.
+    emit(picks)
   }
 
   return (
