@@ -18,6 +18,7 @@ import { db, pool } from "./db";
 import { selectChatHistoryUnderBudget } from "./chat-history-selector";
 import { capDatasetReferences, MAX_DATASET_REFS } from "./dataset-cap";
 import { appendComposerInstructions } from "./chat-context";
+import { validateWorkflowInputs } from "./workflow-input-gate";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { mockGalaxyAPI } from "./mock-galaxy-api";
 import { GalaxyAPIProxy } from "./galaxy-api-proxy";
@@ -9913,18 +9914,13 @@ ${paramLines || '(none recorded)'}`;
       }
 
       // Check if workflow has input steps that require data
-      const steps = request.workflowDefinition.steps || {};
-      const inputSteps = Object.values(steps).filter((step: any) =>
-        step.type === 'data_input' || step.type === 'data_collection_input'
-      );
-
-      // Validate inputs are provided if workflow has input steps
       const inputs = Array.isArray(request.inputs) ? request.inputs : [];
-      if (inputSteps.length > 0 && inputs.length === 0) {
+      const inputGate = validateWorkflowInputs(request.workflowDefinition, inputs);
+      if (inputGate.inputsRequired) {
         return res.status(400).json({
           error: "inputs_required",
-          message: `Workflow has ${inputSteps.length} input step(s) but no inputs were provided`,
-          inputStepsCount: inputSteps.length
+          message: `Workflow has ${inputGate.inputStepsCount} input step(s) but no inputs were provided`,
+          inputStepsCount: inputGate.inputStepsCount
         });
       }
 
@@ -9983,7 +9979,7 @@ ${paramLines || '(none recorded)'}`;
       // Scientific + technical confidence gate.
       // Technical confidence: required inputs are present and generation didn't report tool-install blockers.
       // Scientific confidence: generation stage must not require user feedback/domain correction.
-      const technicalReady = inputSteps.length === 0 || inputs.length > 0;
+      const technicalReady = !inputGate.inputsRequired;
       const toolInstallationReady = generationAssessment?.toolInstallationSuccess !== false;
       const scientificBlocked =
         generationAssessment?.needsUserFeedback === true ||
