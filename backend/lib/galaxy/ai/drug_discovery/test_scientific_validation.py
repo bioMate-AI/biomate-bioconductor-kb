@@ -1087,12 +1087,29 @@ class TestReferenceDataset:
         assert "Clopidogrel" in names
 
     def test_all_included_drugs_have_required_fields(self):
-        """Every included drug must have dose_mg, CL_L_h, Vd_L, route."""
+        """Every included record must retain endpoints and source traceability."""
         for d in self.included:
-            for field in ("dose_mg", "CL_L_h", "Vd_L", "route"):
+            for field in (
+                "dose_mg", "CL_L_h", "Vd_L", "route",
+                "Cmax_ug_mL", "AUC_ugh_mL", "reference",
+            ):
                 assert field in d and d[field] is not None, (
                     f"{d['name']} missing required field {field}"
                 )
+
+    def test_observed_endpoints_are_positive_and_records_are_unique(self):
+        """A record cannot silently disappear, duplicate, or lose its observed PK endpoints."""
+        names = [d["name"].strip().lower() for d in self.included]
+        cas_numbers = [d.get("cas") for d in self.included]
+        assert len(names) == len(set(names)), "Reference dataset contains duplicate drug names"
+        assert all(cas_numbers), "Every included reference drug must have a CAS number"
+        assert len(cas_numbers) == len(set(cas_numbers)), "Reference dataset contains duplicate CAS numbers"
+        for d in self.included:
+            assert d["Cmax_ug_mL"] > 0, f"{d['name']}: observed Cmax must be > 0"
+            assert d["AUC_ugh_mL"] > 0, f"{d['name']}: observed AUC must be > 0"
+            assert isinstance(d["reference"], str) and d["reference"].strip(), (
+                f"{d['name']}: reference provenance must be non-empty"
+            )
 
     def test_all_included_drugs_have_positive_pk_parameters(self):
         """CL_L_h and Vd_L must be positive for all included drugs."""
@@ -1123,8 +1140,8 @@ class TestReferenceDataset:
                 assert F is not None, f"{d['name']}: missing F_oral"
                 assert 0 < F <= 1.0, f"{d['name']}: F_oral={F} out of range (0,1]"
 
-    def test_at_least_20_included_drugs(self):
-        """Dataset must have ≥ 20 included drugs for EMA statistical validity."""
-        assert len(self.included) >= 20, (
-            f"Only {len(self.included)} drugs included — need ≥ 20 for EMA statistics"
+    def test_reference_set_does_not_silently_shrink(self):
+        """Pin the documented v2.0 scope; additions are allowed, silent losses are not."""
+        assert len(self.included) >= 107, (
+            f"Only {len(self.included)} drugs included — expected the documented 107-drug v2.0 set"
         )
