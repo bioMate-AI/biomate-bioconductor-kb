@@ -5,7 +5,7 @@ import { ChatMessage, type Message } from "./chat-message"
 import { groupProgressMessages, FoldedProgressGroup } from "./chat-progress-fold"
 import { DataAnalysisCard, type FileAnalysisResult } from "./data-analysis-card"
 import { FindingsCard } from "./findings-card"
-import { ChatInput } from "./chat-input"
+import { ChatInput, type ComposerProject } from "./chat-input"
 import { ColdStartDashboard } from "./cold-start-dashboard"
 import { TaskList, type TaskItem, type TaskStatus } from "./task-list"
 import { TypingIndicator } from "./typing-indicator"
@@ -513,6 +513,40 @@ export function ChatInterface({
   const deGenesPreloadedRef = useRef(false)
   const [focusedAnchorMessageId, setFocusedAnchorMessageId] = useState<string | null>(null)
   const [highlightedAnchorMessageId, setHighlightedAnchorMessageId] = useState<string | null>(null)
+
+  // Real projects for the composer's "project suggested" row (spec 06 §6.6)
+  // and instructions seeding (§6.5). Fetched from the SAME source the sidebar
+  // uses (GET /api/projects) so the composer proposes only projects the user
+  // actually has — never a fabricated one. Refreshed on the shared
+  // 'biomate:projects-updated' event so a newly-created project can be
+  // proposed without a reload.
+  const [composerProjects, setComposerProjects] = useState<ComposerProject[]>([])
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(() => {
+    try { return typeof window !== 'undefined' ? localStorage.getItem('biomate-active-project-id') : null }
+    catch { return null }
+  })
+  useEffect(() => {
+    let cancelled = false
+    const loadProjects = () => {
+      fetch('/api/projects', { credentials: 'include' })
+        .then((r) => (r.ok ? r.json() : { projects: [] }))
+        .then((d) => { if (!cancelled) setComposerProjects((d.projects ?? []) as ComposerProject[]) })
+        .catch(() => { /* honest-empty: no projects → no suggestion */ })
+    }
+    loadProjects()
+    const onUpdate = () => loadProjects()
+    if (typeof window !== 'undefined') window.addEventListener('biomate:projects-updated', onUpdate)
+    return () => { cancelled = true; if (typeof window !== 'undefined') window.removeEventListener('biomate:projects-updated', onUpdate) }
+  }, [])
+  // File the current chat into a project (spec 06 §6.6 "File it there"): set the
+  // active project the existing chat-stream context already threads
+  // (`biomate-active-project-id` → context.projectId, see chatMutation) and
+  // broadcast so the sidebar reflects the new home.
+  const handleFileToProject = useCallback((projectId: string) => {
+    try { localStorage.setItem('biomate-active-project-id', projectId) } catch { /* noop */ }
+    setActiveProjectId(projectId)
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('biomate:projects-updated'))
+  }, [])
 
   // Stop dialog state
   const [showStopDialog, setShowStopDialog] = useState(false)
@@ -2395,6 +2429,11 @@ export function ChatInterface({
              X / MAX_DATASET_REFS indicator in the input strip reflects
              the server-side cap (frontend/server/dataset-cap.ts). */
           sessionDatasetCount={chatSession?.datasets?.length ?? 0}
+          /* Real projects feed the "project suggested" row (§6.6) + seed the
+             instructions field (§6.5). No projects → row stays hidden. */
+          projects={composerProjects}
+          activeProjectId={activeProjectId}
+          onFileToProject={handleFileToProject}
         />
       </div>
       {/* chat-analysis-status kept for E2E selectors but visually hidden — TypingIndicator in message list handles the visual */}

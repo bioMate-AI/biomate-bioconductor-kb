@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { Send, Paperclip, X, FileText, Eye, Square, Database } from "lucide-react"
+import { Send, Paperclip, X, FileText, Eye, Square, Database, FolderInput, SlidersHorizontal, ChevronDown, ChevronRight } from "lucide-react"
 import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser"
 import { LanePreview, type LaneKind } from "./lane-preview"
 import { useDebounce } from "@/hooks/useDebounce"
@@ -14,6 +14,69 @@ interface AttachedFile {
   name: string
   size: number
   file: File
+}
+
+/**
+ * A real project as returned by GET /api/projects (or projectService).
+ * Only the fields the composer actually reads are typed here; the shape is
+ * a subset of @shared/schema `Project`. NO synthetic/fabricated projects are
+ * ever constructed — if the caller passes an empty list, the suggested-project
+ * row renders nothing (honest-empty).
+ */
+export interface ComposerProject {
+  id: string
+  name: string
+  category?: string
+  tags?: string[]
+  description?: string
+  /** Standing background context for the project (schema `Project.instructions`). */
+  instructions?: string
+}
+
+/**
+ * Score how well a project matches the typed goal, using ONLY real project
+ * fields (name / category / tags / description). Returns 0 when there is no
+ * lexical overlap — the caller treats 0 as "nothing to propose" so the row
+ * stays hidden (spec 06 §6.6.1: "Neither → Nothing is proposed").
+ */
+export function scoreProjectMatch(text: string, p: ComposerProject): number {
+  const q = text.toLowerCase()
+  if (!q.trim()) return 0
+  // Tokenise the goal into words of length ≥ 3 (drops "the", "a", "of"…).
+  const words = Array.from(new Set(q.split(/[^a-z0-9]+/i).filter((w) => w.length >= 3)))
+  if (words.length === 0) return 0
+  const haystacks: Array<{ text: string; weight: number }> = [
+    { text: (p.name || "").toLowerCase(), weight: 3 },
+    { text: (p.category || "").toLowerCase(), weight: 2 },
+    { text: (p.tags || []).join(" ").toLowerCase(), weight: 2 },
+    { text: (p.description || "").toLowerCase(), weight: 1 },
+  ]
+  let score = 0
+  for (const w of words) {
+    for (const h of haystacks) {
+      if (h.text && h.text.includes(w)) score += h.weight
+    }
+  }
+  return score
+}
+
+/** Pick the best-matching REAL project for a goal, or null when none clears the bar. */
+export function suggestProject(
+  text: string,
+  projects: ComposerProject[],
+  activeProjectId?: string | null,
+): ComposerProject | null {
+  if (!projects || projects.length === 0) return null
+  let best: ComposerProject | null = null
+  let bestScore = 0
+  for (const p of projects) {
+    // Never propose the project the chat is already filed into.
+    if (activeProjectId && p.id === activeProjectId) continue
+    const s = scoreProjectMatch(text, p)
+    if (s > bestScore) { bestScore = s; best = p }
+  }
+  // A single incidental token match is noise; require a real signal.
+  return bestScore >= 3 ? best : null
 }
 
 interface ChatInputProps {
@@ -42,6 +105,25 @@ interface ChatInputProps {
    * user types (spec 06 §6.2). Default true; set false to hide it.
    */
   showLanePreview?: boolean
+  /**
+   * The user's REAL projects (subset of @shared/schema `Project`), used to
+   * propose a home for the current chat (spec 06 §6.6 "Project suggested").
+   * The composer never invents projects — an empty/absent list means the
+   * suggested-project row simply doesn't render.
+   */
+  projects?: ComposerProject[]
+  /**
+   * The project this chat is already filed into, if any (read from
+   * `biomate-active-project-id`). When set, the suggested row is suppressed
+   * (spec 06 §6.6.1: a chat that already has a home isn't re-proposed one).
+   */
+  activeProjectId?: string | null
+  /**
+   * File the current chat into a project (spec 06 §6.6 "File it there").
+   * When absent, the suggested row still renders but "File it there" is a
+   * no-op — the caller opts in to the filing action.
+   */
+  onFileToProject?: (projectId: string) => void
 }
 
 /** Mirrors MAX_DATASET_REFS in frontend/server/dataset-cap.ts. */
@@ -59,8 +141,40 @@ export function ChatInput({
   onRegisterAddFiles,
   sessionDatasetCount = 0,
   showLanePreview = true,
+  projects = [],
+  activeProjectId = null,
+  onFileToProject,
 }: ChatInputProps) {
   const [message, setMessage] = useState("")
+  // Standing instructions the user adds for THIS composer/project (spec 06
+  // §6.5). These are a reading lens the assistant should apply to every
+  // request in this composer — they thread into the submit context so the
+  // backend can honour them. Seeded from the active project's own
+  // `instructions` (schema `Project.instructions`) so a filed chat inherits
+  // the project's standing context. NOTE (deferred): the §6.5 "experts"
+  // catalogue (six owned packs picked per request) is NOT built here — there
+  // is no real experts data source wired in the deployed app, so fabricating
+  // a pack list would violate the honest-empty rule. Only the instructions
+  // field ships; experts remain a documented follow-up.
+  const activeProject = activeProjectId
+    ? projects.find((p) => p.id === activeProjectId) ?? null
+    : null
+  const [instructions, setInstructions] = useState<string>(activeProject?.instructions ?? "")
+  const [instructionsOpen, setInstructionsOpen] = useState(false)
+  // If the chat becomes filed into a project that carries standing
+  // instructions and the user hasn't typed their own, adopt the project's.
+  const seededProjectIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    const seed = activeProject?.instructions ?? ""
+    if (activeProject && seededProjectIdRef.current !== activeProject.id) {
+      seededProjectIdRef.current = activeProject.id
+      setInstructions((prev) => (prev.trim() ? prev : seed))
+    }
+  }, [activeProject])
+  // The chat has no home yet AND a real project matches the goal → propose it
+  // (spec 06 §6.6). Debounced text keeps the proposal from flickering
+  // mid-word. Never shown while a project is already active.
+  const [suggestionDismissed, setSuggestionDismissed] = useState(false)
   // Lane override captured from the LanePreview affordance. When the user
   // clicks "run a validated pipeline instead" / "answer it instantly
   // instead", the NEXT send is forced to that lane; it resets after send.
@@ -124,9 +238,21 @@ export function ChatInput({
       // "cloud" forces workflow generation (skips ambiguity detection);
       // "instant" forces a direct research/knowledge answer. Advisory only —
       // the preview never blocks send, this just honours an explicit click.
-      const contextOverride = laneOverride
-        ? { intentOverride: laneOverride === "cloud" ? "workflow_generation" : "research_question" }
-        : undefined
+      //
+      // Standing composer instructions (spec 06 §6.5) thread into the SAME
+      // context path as every other override. They ride as
+      // `composerInstructions` so the backend can apply them as a reading
+      // lens; empty instructions add nothing (honest-empty).
+      const trimmedInstructions = instructions.trim()
+      const contextOverride: Record<string, unknown> | undefined =
+        laneOverride || trimmedInstructions
+          ? {
+              ...(laneOverride
+                ? { intentOverride: laneOverride === "cloud" ? "workflow_generation" : "research_question" }
+                : {}),
+              ...(trimmedInstructions ? { composerInstructions: trimmedInstructions } : {}),
+            }
+          : undefined
       onSend(fullMessage, files.length > 0 ? files : undefined, contextOverride)
       setLaneOverride(null)
       setMessage("")
@@ -255,6 +381,12 @@ export function ChatInput({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
+  // Real-data suggestion: only proposes an EXISTING project the goal matches
+  // (spec 06 §6.6). null when there's no home to propose → row hidden.
+  const suggested = (!activeProjectId && !suggestionDismissed)
+    ? suggestProject(debouncedMessage, projects, activeProjectId)
+    : null
+
   return (
     <div
       className="border-t bg-background p-4"
@@ -378,6 +510,115 @@ export function ChatInput({
           </span>
         </div>
       )}
+
+      {/* Project suggested row (spec 06 §6.6). A quiet row proposing an
+          EXISTING project as a home for this chat, driven purely by real
+          project data. Honest-empty: renders nothing when the chat is already
+          filed, when no project matches, or when the user has dismissed it.
+          "Filing follows intent" (§6.6.1) — the chat is never gated on a
+          project; this only PROPOSES one, and "Keep unfiled" is a legitimate
+          resting state. */}
+      {suggested && (
+        <div
+          data-testid="composer-project-suggested"
+          data-project-id={suggested.id}
+          style={{
+            display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", rowGap: 6,
+            padding: "8px 10px", marginBottom: 8,
+            border: "1px solid var(--bm-border, oklch(0.88 0.004 240))",
+            borderRadius: "var(--bm-r-md, 8px)",
+            background: "var(--bm-surface, oklch(0.97 0.002 240))",
+            fontSize: 12.5,
+          }}
+        >
+          <FolderInput className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }} />
+          <span style={{ color: "var(--bm-text, oklch(0.22 0.01 260))" }}>
+            This reads like{" "}
+            <strong style={{ fontWeight: 600 }}>{suggested.name}</strong>
+            {" "}· filing it there brings its files and instructions into context.{" "}
+            <span style={{ color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>Nothing runs either way.</span>
+          </span>
+          <span style={{ display: "inline-flex", gap: 8, marginLeft: "auto" }}>
+            <button
+              type="button"
+              data-testid="composer-project-file-it"
+              onClick={() => { onFileToProject?.(suggested.id); setSuggestionDismissed(true) }}
+              style={{
+                border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600,
+                padding: "3px 10px", borderRadius: 6, whiteSpace: "nowrap",
+                background: "var(--bm-primary, oklch(0.55 0.20 265))", color: "white",
+              }}
+            >
+              File it there
+            </button>
+            <button
+              type="button"
+              data-testid="composer-project-keep-unfiled"
+              onClick={() => setSuggestionDismissed(true)}
+              style={{
+                border: "none", cursor: "pointer", fontSize: 12,
+                padding: "3px 8px", borderRadius: 6, whiteSpace: "nowrap",
+                background: "transparent", color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
+                textDecoration: "underline", textUnderlineOffset: 2,
+              }}
+            >
+              Keep unfiled
+            </button>
+          </span>
+        </div>
+      )}
+
+      {/* Instructions affordance (spec 06 §6.5). A lightweight, collapsible
+          field for standing instructions the assistant applies to every
+          request in this composer. Its value threads into the submit context
+          as `composerInstructions`. Collapsed by default so it adds no noise;
+          shows a "on" dot when instructions are present. The §6.5 "experts"
+          catalogue is deliberately NOT built here — see the state comment
+          above: no real experts source exists, so only the honest instructions
+          field ships and experts stay a documented follow-up. */}
+      <div style={{ marginBottom: 8 }}>
+        <button
+          type="button"
+          data-testid="composer-instructions-toggle"
+          onClick={() => setInstructionsOpen((o) => !o)}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            border: "none", background: "transparent", cursor: "pointer",
+            fontSize: 12, color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
+            padding: "2px 2px",
+          }}
+        >
+          {instructionsOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+          <SlidersHorizontal className="w-3 h-3" />
+          <span>Instructions</span>
+          {instructions.trim() && (
+            <span
+              data-testid="composer-instructions-on"
+              aria-hidden
+              style={{ width: 6, height: 6, borderRadius: 999, background: "var(--bm-ok, oklch(0.62 0.14 155))" }}
+            />
+          )}
+        </button>
+        {instructionsOpen && (
+          <textarea
+            data-testid="composer-instructions"
+            value={instructions}
+            onChange={(e) => setInstructions(e.target.value)}
+            placeholder="Standing instructions for this composer — e.g. report FDR<0.05, use GRCh38, prefer conservative thresholds. Applied to every request here."
+            rows={2}
+            style={{
+              width: "100%", marginTop: 6, resize: "vertical",
+              minHeight: 44, maxHeight: 160,
+              border: "1px solid var(--bm-border, oklch(0.88 0.004 240))",
+              borderRadius: "var(--bm-r-md, 8px)",
+              background: "var(--bm-bg-elev, hsl(var(--background)))",
+              padding: "6px 8px", fontSize: 12.5, lineHeight: 1.45,
+              fontFamily: "var(--bm-font-ui)", color: "var(--bm-text, oklch(0.22 0.01 260))",
+              outline: "none",
+            }}
+          />
+        )}
+      </div>
 
       {/* Lane preview (spec 06 §6.2) — advisory Instant/Cloud verdict shown as
           the user types. Debounced so it settles rather than flickering
