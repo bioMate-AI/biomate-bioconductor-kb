@@ -49,6 +49,22 @@ import type { Citation, MethodsSection } from "@shared/schema"
 import { SourceReaderPane, sourceUrl, type EvidenceCitation } from "@/components/source-reader-pane"
 
 // Spec 01 §1.3.2: a materially-disagreeing pair of findings, surfaced honestly.
+/**
+ * Retrieval transparency (v2 Spec 09, "How this was searched").
+ * One row per source the retrieval path queried, carrying how many records
+ * were found vs. kept. ONLY rendered when the retrieval path supplies real
+ * counts — never fabricated, never inferred from the citation list. Absent →
+ * the section does not render (honest-empty).
+ */
+export interface RetrievalSource {
+  /** Source name, e.g. "PubMed", "Europe PMC", "bioRxiv". */
+  name: string
+  /** Records the source returned for the query. */
+  found: number
+  /** Records kept after filtering (years/species/relevance). */
+  kept: number
+}
+
 // Only rendered when the retrieval path marks a conflict — never fabricated.
 export interface CitationConflict {
   /** Short label for the disagreement, e.g. "Effect at physiological dose". */
@@ -68,6 +84,13 @@ interface CitationPanelProps {
    */
   conflicts?: CitationConflict[]
   /**
+   * Spec 09 — retrieval transparency. When the retrieval path reports how many
+   * records each source returned and how many survived filtering, a "How this
+   * was searched" section is shown (per-source found · kept + a "N of M kept"
+   * summary). Omit / empty → the section never renders (no fabrication).
+   */
+  retrieval?: RetrievalSource[]
+  /**
    * Spec 01 §1.3.2 / §1.5 — the synthesised answer body this citation set
    * backs. When present it is included verbatim in the "Save to project
    * notes" payload so provenance (claim + its sources) travels together. If
@@ -86,6 +109,7 @@ export function CitationPanel({
   methodsSection,
   workflow,
   conflicts,
+  retrieval,
   answerText,
   isCollapsed = true,
   onCopy,
@@ -111,6 +135,14 @@ export function CitationPanel({
   const toolsWithCitations = citations.filter(c => c.doi || c.pmid || c.title) as EvidenceCitation[]
   const totalTools = citations.length
   const activeConflicts = (conflicts || []).filter(c => c.positions && c.positions.length > 0)
+  // Spec 09 — only surfaces when the retrieval path supplied real per-source
+  // counts. We never derive these from the citation list (that would be a
+  // fabricated "kept"); absent → section omitted.
+  const retrievalSources = (retrieval || []).filter(
+    s => s && s.name && Number.isFinite(s.found) && Number.isFinite(s.kept),
+  )
+  const retrievalKept = retrievalSources.reduce((n, s) => n + s.kept, 0)
+  const retrievalFound = retrievalSources.reduce((n, s) => n + s.found, 0)
 
   const toggleCitationExpanded = (toolId: string) => {
     setExpandedCitations(prev => {
@@ -387,6 +419,51 @@ export function CitationPanel({
               </TabsList>
 
               <TabsContent value="citations" className="mt-3 space-y-2">
+                {/* Spec 09 — "How this was searched". Retrieval transparency:
+                    per-source found · kept. Only rendered when the retrieval
+                    path supplied real counts (honest-empty otherwise). */}
+                {retrievalSources.length > 0 && (
+                  <div
+                    className="rounded-md border bg-muted/30 p-2.5 space-y-1.5"
+                    data-testid="retrieval-transparency"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium">How this was searched</span>
+                      <span className="flex-1" />
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] font-normal"
+                        data-testid="retrieval-summary"
+                      >
+                        {retrievalKept} of {retrievalFound} kept
+                      </Badge>
+                    </div>
+                    <div className="space-y-1">
+                      {retrievalSources.map((s) => {
+                        const pct = s.found > 0 ? Math.round((s.kept / s.found) * 100) : 0
+                        return (
+                          <div
+                            key={s.name}
+                            className="flex items-center gap-2 text-[11px]"
+                            data-testid={`retrieval-source-${s.name}`}
+                          >
+                            <span className="w-28 truncate text-muted-foreground">{s.name}</span>
+                            <span className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                              <span
+                                className="block h-full bg-primary/60 rounded-full"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </span>
+                            <span className="font-mono text-muted-foreground tabular-nums">
+                              {s.found} found · <span className="text-foreground font-medium">{s.kept} kept</span>
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Spec 01 §1.3.2 — conflict affordance. Never smooth
                     disagreement into a single confident sentence. */}
                 {activeConflicts.length > 0 && (

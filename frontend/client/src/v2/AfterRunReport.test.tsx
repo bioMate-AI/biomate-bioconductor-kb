@@ -178,6 +178,139 @@ describe("v2/AfterRunReport — FindingsFiguresPanel (data-driven figures)", () 
   });
 });
 
+describe("v2/AfterRunReport — MethodsTab editable report (Spec 12 increment)", () => {
+  // A non-stub methods report: >200 chars and no "No QC events recorded".
+  const METHODS_MD = [
+    "## Methods",
+    "",
+    "Reads were quantified with salmon v1.10.1 against the GRCh38 transcriptome.",
+    "Differential expression was assessed with DESeq2 v1.42, applying an",
+    "apeglm log-fold-change shrinkage estimator. Multiple testing was controlled",
+    "at a 5% false discovery rate using the Benjamini-Hochberg procedure.",
+    "",
+    "### Tool versions",
+    "salmon 1.10.1 · DESeq2 1.42 · nf-core/rnaseq 3.14.0",
+  ].join("\n");
+
+  function mockMethodsPipeline() {
+    vi.restoreAllMocks();
+    vi.spyOn(global, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = (init?.method ?? "GET").toUpperCase();
+      // Methods report job pipeline.
+      if (url.endsWith("/api/jobs") && method === "POST") {
+        const body = JSON.parse(String(init?.body ?? "{}"));
+        if (body.kind === "methods_report") {
+          return { ok: true, status: 200,
+            json: async () => ({ jobId: "mjob-1", state: "ready" }),
+            text: async () => "" } as Response;
+        }
+        // Findings job (mounted by the Findings tab / download prep) — return a
+        // benign ready job with no methods content.
+        return { ok: true, status: 200,
+          json: async () => ({ jobId: "fjob-1", state: "ready" }),
+          text: async () => "" } as Response;
+      }
+      if (url === "/api/jobs/mjob-1/artifact") {
+        return { ok: true, status: 200, json: async () => ({}),
+          text: async () => METHODS_MD } as Response;
+      }
+      if (url.startsWith("/api/jobs/mjob-1")) {
+        return { ok: true, status: 200, json: async () => ({ state: "ready" }),
+          text: async () => "" } as Response;
+      }
+      if (url === "/api/jobs/fjob-1/artifact") {
+        return { ok: true, status: 200,
+          json: async () => ({ status: "ok", summary: "" }), text: async () => "" } as Response;
+      }
+      if (url.startsWith("/api/jobs/fjob-1")) {
+        return { ok: true, status: 200, json: async () => ({ state: "ready" }),
+          text: async () => "" } as Response;
+      }
+      if (url.includes("qc-events")) {
+        return { ok: true, status: 200, json: async () => ({ events: [] }),
+          text: async () => "" } as Response;
+      }
+      return { ok: false, status: 404, json: async () => ({}), text: async () => "" } as Response;
+    });
+  }
+
+  beforeEach(() => { mockMethodsPipeline(); });
+  afterEach(() => { vi.clearAllMocks(); });
+
+  async function openMethodsTab() {
+    const methodsTab = await screen.findByTestId("after-tab-methods", {}, { timeout: 5000 });
+    fireEvent.click(methodsTab);
+    return methodsTab;
+  }
+
+  it("shows the Methods tab (hide-when-empty) once a non-stub report loads", async () => {
+    render(<AfterRunReport {...baseProps} workflowName="nf-core/rnaseq" />);
+    // Tab only appears when methods.hasRealContent is true.
+    expect(await screen.findByTestId("after-tab-methods", {}, { timeout: 5000 })).toBeInTheDocument();
+  });
+
+  it("renders the report read-only by default with an Edit toggle (no editor yet)", async () => {
+    render(<AfterRunReport {...baseProps} workflowName="nf-core/rnaseq" />);
+    await openMethodsTab();
+    const ro = await screen.findByTestId("methods-readonly", {}, { timeout: 5000 });
+    expect(ro).toHaveTextContent(/salmon v1\.10\.1/);
+    expect(screen.getByTestId("methods-edit-toggle")).toBeInTheDocument();
+    // Editor must NOT be mounted until Edit is clicked.
+    expect(screen.queryByTestId("methods-editor")).toBeNull();
+    expect(screen.queryByTestId("methods-save-edited")).toBeNull();
+  });
+
+  it("clicking Edit opens the TipTap editor and swaps out the read-only view", async () => {
+    render(<AfterRunReport {...baseProps} workflowName="nf-core/rnaseq" />);
+    await openMethodsTab();
+    fireEvent.click(await screen.findByTestId("methods-edit-toggle", {}, { timeout: 5000 }));
+    // Editor mounts; read-only <pre> is gone; Save + Done controls appear.
+    expect(await screen.findByTestId("methods-editor", {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(screen.queryByTestId("methods-readonly")).toBeNull();
+    expect(screen.getByTestId("methods-save-edited")).toBeInTheDocument();
+    expect(screen.getByTestId("methods-done-editing")).toBeInTheDocument();
+  });
+
+  it("Save edited version triggers a markdown download and shows a confirmation toast", async () => {
+    // Stub the DOM download machinery so the click doesn't navigate jsdom.
+    const clickSpy = vi.fn();
+    const origCreate = document.createElement.bind(document);
+    vi.spyOn(document, "createElement").mockImplementation((tag: string) => {
+      const el = origCreate(tag) as HTMLElement;
+      if (tag === "a") (el as HTMLAnchorElement).click = clickSpy;
+      return el as any;
+    });
+    const createURL = vi.fn(() => "blob:mock");
+    const revokeURL = vi.fn();
+    (URL as any).createObjectURL = createURL;
+    (URL as any).revokeObjectURL = revokeURL;
+
+    render(<AfterRunReport {...baseProps} workflowName="nf-core/rnaseq" />);
+    await openMethodsTab();
+    fireEvent.click(await screen.findByTestId("methods-edit-toggle", {}, { timeout: 5000 }));
+    await screen.findByTestId("methods-editor", {}, { timeout: 5000 });
+    fireEvent.click(screen.getByTestId("methods-save-edited"));
+
+    expect(createURL).toHaveBeenCalledTimes(1);
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+    const toast = await screen.findByTestId("methods-save-toast", {}, { timeout: 5000 });
+    expect(toast).toHaveTextContent(/Edited methods report downloaded/i);
+
+    vi.mocked(document.createElement).mockRestore();
+  });
+
+  it("Done editing returns to the read-only report view", async () => {
+    render(<AfterRunReport {...baseProps} workflowName="nf-core/rnaseq" />);
+    await openMethodsTab();
+    fireEvent.click(await screen.findByTestId("methods-edit-toggle", {}, { timeout: 5000 }));
+    await screen.findByTestId("methods-editor", {}, { timeout: 5000 });
+    fireEvent.click(screen.getByTestId("methods-done-editing"));
+    expect(await screen.findByTestId("methods-readonly", {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(screen.queryByTestId("methods-editor")).toBeNull();
+  });
+});
+
 describe("v2/AfterRunReport — QcAuditTab (rich panel)", () => {
   it("renders 4-stat summary with correct counts", async () => {
     render(<AfterRunReport {...baseProps} />);
