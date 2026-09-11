@@ -153,3 +153,75 @@ describeLive("Live /api/workflows/execute required-parameter gate contract", () 
     expect(res.body.galaxyInvocationId.length).toBeGreaterThan(0);
   }, 90000);
 });
+
+describeLive("Live /api/workflows/execute dataset-binding safety contract", () => {
+  // A Galaxy-shaped definition with a data-input step.  It deliberately has no
+  // Nextflow path: production defaults unmarked executable definitions to the
+  // Nextflow launcher, which must reject accepted Galaxy bindings rather than
+  // silently dropping them.
+  const workflowWithGalaxyInput = {
+    name: "Dataset binding safety probe",
+    steps: {
+      "0": { type: "data_input", name: "reads" },
+      "1": { type: "tool", tool_id: "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy0" },
+    },
+  };
+
+  function expectNoLaunch(body: JsonRecord) {
+    expect(body.runId).toBeUndefined();
+    expect(body.nextflowRunId).toBeUndefined();
+    expect(body.galaxyInvocationId).toBeUndefined();
+  }
+
+  it("blocks missing and malformed Galaxy dataset bindings before compute", async () => {
+    const missing = await postJson("/api/workflows/execute", {
+      workflowDefinition: workflowWithGalaxyInput,
+      inputs: [],
+    }, 15000);
+
+    expect(missing.status).toBe(400);
+    expect(missing.body).toMatchObject({
+      error: "inputs_required",
+      inputStepsCount: 1,
+      missingInputStepIds: ["0"],
+    });
+    expect(typeof missing.body.message).toBe("string");
+    expect(typeof missing.body.guidance).toBe("string");
+    expectNoLaunch(missing.body);
+
+    const malformed = await postJson("/api/workflows/execute", {
+      workflowDefinition: workflowWithGalaxyInput,
+      // A dataset id without the required Galaxy source and step id cannot be
+      // passed to a launcher as a valid binding.
+      inputs: [{ id: "dataset-probe" }],
+    }, 15000);
+
+    expect(malformed.status).toBe(400);
+    expect(malformed.body).toMatchObject({
+      error: "invalid_workflow_inputs",
+      inputStepsCount: 1,
+      invalidInputCount: 1,
+    });
+    expect(typeof malformed.body.message).toBe("string");
+    expect(typeof malformed.body.guidance).toBe("string");
+    expectNoLaunch(malformed.body);
+  }, 45000);
+
+  it("rejects a well-formed Galaxy binding on the default Nextflow path instead of dropping it", async () => {
+    const res = await postJson("/api/workflows/execute", {
+      workflowDefinition: workflowWithGalaxyInput,
+      inputs: [{ id: "dataset-probe", src: "hda", step_id: "0" }],
+      // Intentionally omit executionConfig: this verifies the default engine
+      // follows the same no-silent-data-loss safety rule.
+    }, 15000);
+
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({
+      error: "nextflow_inputs_not_supported",
+      inputStepsCount: 1,
+    });
+    expect(typeof res.body.message).toBe("string");
+    expect(res.body.message).toContain("No compute was launched");
+    expectNoLaunch(res.body);
+  }, 30000);
+});
