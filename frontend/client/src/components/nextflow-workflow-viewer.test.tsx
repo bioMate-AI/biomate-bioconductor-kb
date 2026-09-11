@@ -26,7 +26,8 @@ vi.mock("./feedback/download-outcome-prompt", () => ({
 // call — real coverage, no skip.
 describe("NextflowWorkflowViewer — per-step execution controls (current affordance)", () => {
   let esHandlers: Record<string, (ev: MessageEvent) => void> = {};
-  let fetchSpy: ReturnType<typeof vi.spyOn>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let fetchSpy: any;
 
   const dispatchSSE = (type: string, payload: unknown) => {
     const handler = esHandlers[type];
@@ -110,7 +111,7 @@ describe("NextflowWorkflowViewer — per-step execution controls (current afford
     const rerun = await screen.findByTestId("button-run-step-s2");
     const RERUN_URL = "/api/workflows/runs/run-step-1/rerun";
     // Ignore SSE/other fetches the component made on mount; count only /rerun.
-    const before = fetchSpy.mock.calls.filter(([u]) => String(u) === RERUN_URL).length;
+    const before = fetchSpy.mock.calls.filter(([u]: any[]) => String(u) === RERUN_URL).length;
     fireEvent.click(rerun);
     await waitFor(() =>
       expect(fetchSpy).toHaveBeenCalledWith(
@@ -118,7 +119,7 @@ describe("NextflowWorkflowViewer — per-step execution controls (current afford
         expect.objectContaining({ method: "POST" })
       )
     );
-    const after = fetchSpy.mock.calls.filter(([u]) => String(u) === RERUN_URL).length;
+    const after = fetchSpy.mock.calls.filter(([u]: any[]) => String(u) === RERUN_URL).length;
     expect(after - before).toBe(1);
   });
 });
