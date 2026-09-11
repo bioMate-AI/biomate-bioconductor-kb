@@ -68,6 +68,16 @@ Object.defineProperty(window, 'scrollTo', {
   value: () => {},
 });
 
+// 3Dmol is imported transitively by the full chat surface. Its worker setup
+// creates a blob URL at module evaluation time, before individual component
+// tests can install their own browser stubs.
+if (typeof window.URL.createObjectURL !== 'function') {
+  Object.defineProperty(window.URL, 'createObjectURL', {
+    writable: true,
+    value: () => 'blob:vitest-stub',
+  });
+}
+
 // Mock fetch if needed
 if (typeof global.fetch === 'undefined') {
   global.fetch = async () => ({
