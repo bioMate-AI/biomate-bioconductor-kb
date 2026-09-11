@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 const RUN_LIVE = process.env.RUN_LIVE_EXECUTE_CONTRACT === "1";
 const BASE_URL = process.env.BIOMATE_URL || "http://127.0.0.1:5000";
-const REQUIRE_AWS_200 = process.env.REQUIRE_AWS_EXEC_200 === "1";
 
 type JsonRecord = Record<string, any>;
 
@@ -89,17 +88,17 @@ describeLive("Live /api/workflows/execute confidence gate contract", () => {
       },
     }, 60000);
 
-    // The core contract here is that AWS/default path is not confidence-gate blocked.
-    expect(awsAllowed.status).not.toBe(409);
-    expect(awsAllowed.body.error).not.toBe("confidence_gate_blocked");
-
-    if (REQUIRE_AWS_200) {
-      expect(awsAllowed.status).toBe(200);
-      expect(awsAllowed.body.executionEngine).toBe("nextflow");
-      expect(awsAllowed.body.status).toBe("running");
-      expect(typeof awsAllowed.body.runId).toBe("string");
-      expect(typeof awsAllowed.body.nextflowRunId).toBe("string");
-    }
+    // This is an explicit live test. A non-409 response (401/500/launch error)
+    // is not evidence that the AWS path is usable.
+    expect(awsAllowed.status).toBe(200);
+    expect(awsAllowed.body.executionEngine).toBe("nextflow");
+    expect(awsAllowed.body.status).toBe("running");
+    expect(typeof awsAllowed.body.runId).toBe("string");
+    expect(awsAllowed.body.runId.length).toBeGreaterThan(0);
+    expect(typeof awsAllowed.body.nextflowRunId).toBe("string");
+    expect(awsAllowed.body.nextflowRunId.length).toBeGreaterThan(0);
+    expect(typeof awsAllowed.body.galaxyInvocationId).toBe("string");
+    expect(awsAllowed.body.galaxyInvocationId.length).toBeGreaterThan(0);
   }, 120000);
 });
 
@@ -130,7 +129,7 @@ describeLive("Live /api/workflows/execute required-parameter gate contract", () 
     expect(res.body.runId).toBeUndefined();
   }, 30000);
 
-  it("does NOT block on missing_required_params when the value is supplied via the params map", async () => {
+  it("launches with IDs when a supplied SMILES satisfies the required parameter", async () => {
     const res = await postJson("/api/workflows/execute", {
       workflowDefinition: workflowWithRequiredParam,
       params: { smiles: "CC(=O)Oc1ccccc1C(=O)O" },
@@ -138,8 +137,19 @@ describeLive("Live /api/workflows/execute required-parameter gate contract", () 
       executionConfig: { executionEngine: "nextflow", computeConfig: { executor: "awsbatch" } },
     }, 60000);
 
-    // The required-param gate must be satisfied by the merged params value.
-    expect(res.body.error).not.toBe("missing_required_params");
+    // A gate pass alone is insufficient: this must be a successfully accepted
+    // Nextflow launch with both platform and executor tracking IDs. The
+    // companion non-live payload test asserts the exact `parameters.smiles`
+    // sent to the executor.
+    expect(res.status).toBe(200);
+    expect(res.body.error).toBeUndefined();
+    expect(res.body.executionEngine).toBe("nextflow");
+    expect(res.body.status).toBe("running");
+    expect(typeof res.body.runId).toBe("string");
+    expect(res.body.runId.length).toBeGreaterThan(0);
+    expect(typeof res.body.nextflowRunId).toBe("string");
+    expect(res.body.nextflowRunId.length).toBeGreaterThan(0);
+    expect(typeof res.body.galaxyInvocationId).toBe("string");
+    expect(res.body.galaxyInvocationId.length).toBeGreaterThan(0);
   }, 90000);
 });
-

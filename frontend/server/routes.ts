@@ -72,6 +72,7 @@ import {
   buildNextflowComputeConfig,
   evaluateHardwareGate,
 } from "./execution-env-policy";
+import { buildNextflowLaunchParameters } from "./nextflow-launch-params";
 import * as mfaService from "./mfa-service";
 import toolsManifest from "./tools_manifest.json";
 import { registerConnectorAdapters } from "./connector-adapters";
@@ -10395,7 +10396,14 @@ ${paramLines || '(none recorded)'}`;
           // Local paths (e.g. /frontend/data/uploads/...) are inaccessible from
           // Batch containers — this uploads them and replaces params with s3:// URIs.
           // Galaxy UUIDs are also staged: the session registry maps uuid → local path.
-          const rawParams = { ...(request.workflowDefinition.parameters || {}) };
+          // `request.params` is the documented API override map.  It was used
+          // by the required-param gate above but previously disappeared before
+          // the Nextflow launch, causing a green validation response followed
+          // by a run without the user's supplied inputs.
+          const rawParams = buildNextflowLaunchParameters(
+            request.workflowDefinition,
+            request.params,
+          );
           const paramProfile =
             rawParams.profile ??
             request.executionConfig?.nextflow_profile ??
