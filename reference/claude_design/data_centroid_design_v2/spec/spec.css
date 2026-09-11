@@ -1,0 +1,50 @@
+:root{--ff-ui:"IBM Plex Sans",system-ui,sans-serif;--ff-mono:"IBM Plex Mono",ui-monospace,monospace}
+body,doc-page{font-family:var(--ff-ui)}
+p,li,td,th,.lede,.note,.rule,figcaption,.deck li span,ul,ol,table{font-family:var(--ff-ui)}
+html{-webkit-text-size-adjust:100%}
+doc-page:not(:defined){visibility:hidden}
+h1,h2,h3,h4{font-family:var(--ff-ui);color:#101828;text-wrap:balance}
+h1{font-size:29px;line-height:1.18;letter-spacing:-0.02em;margin:0 0 6px;font-weight:650}
+.docmeta{font-family:var(--ff-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#5a6474;margin:0 0 26px;padding-bottom:14px;border-bottom:2px solid #101828;display:flex;flex-wrap:wrap;gap:14px}
+.lede{font-size:16.5px;line-height:1.6;color:#3d4757;margin:0 0 26px}
+h2{font-size:15px;line-height:1.3;letter-spacing:.02em;text-transform:uppercase;margin:34px 0 12px;padding-bottom:6px;border-bottom:1px solid #d5dae2;font-weight:650}
+h2 .num{font-family:var(--ff-mono);color:#5a6474;margin-right:9px;font-weight:500}
+h3{font-size:15.5px;line-height:1.35;margin:24px 0 8px;font-weight:650}
+h4{font-size:13px;line-height:1.4;margin:18px 0 6px;font-weight:650;letter-spacing:.03em;text-transform:uppercase;color:#5a6474}
+p,li{font-size:14.5px;line-height:1.62;color:#20293a;orphans:3;widows:3}
+p{margin:0 0 12px}
+ul,ol{margin:0 0 14px;padding-left:20px}
+li{margin-bottom:5px}
+li::marker{color:#5a6474}
+code,.mono{font-family:var(--ff-mono);font-size:12.5px;background:#f1f3f7;border:1px solid #e3e7ee;border-radius:3px;padding:0.5px 4px}
+strong{font-weight:650;color:#101828}
+em.t{font-style:normal;font-family:var(--ff-mono);font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#5a6474}
+table{width:100%;border-collapse:collapse;margin:6px 0 18px;font-size:13px}
+thead th{text-align:left;font-family:var(--ff-ui);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:#5a6474;font-weight:650;padding:0 10px 6px 0;border-bottom:1.5px solid #101828;vertical-align:bottom}
+tbody td{padding:8px 10px 8px 0;border-bottom:1px solid #e3e7ee;vertical-align:top;line-height:1.5;color:#20293a}
+tbody tr:last-child td{border-bottom:1px solid #d5dae2}
+td .mono,th .mono{font-size:11.5px}
+table.el td:first-child{font-family:var(--ff-mono);font-size:11.5px;color:#101828;white-space:nowrap;padding-right:14px}
+table.el th:first-child{white-space:nowrap}
+table.st td:first-child{font-weight:650;white-space:nowrap;padding-right:14px}
+table.st.prose td:first-child{white-space:normal;font-weight:400}
+table.el.prose td:first-child{white-space:normal}
+table.el.prose th:first-child{white-space:normal}
+.note,.rule{break-inside:avoid;orphans:3;widows:3;margin:0 0 16px;padding:11px 14px;font-size:13.5px;line-height:1.55;background:#f7f8fa;border-left:2px solid #101828}
+.rule{background:#fff8ec;border-left-color:#b5741a}
+.note p:last-child,.rule p:last-child{margin:0}
+.note .lbl,.rule .lbl{display:block;font-family:var(--ff-mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:#5a6474;margin-bottom:4px}
+.rule .lbl{color:#8a5a12}
+figure{break-inside:avoid;margin:0 0 18px}
+figcaption{font-size:11.5px;line-height:1.45;color:#5a6474;margin-top:6px}
+.wire{border:1px solid #c9cfd9;border-radius:4px;background:#fbfcfd;padding:12px;font-family:ui-monospace,"SF Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;font-size:11.5px;line-height:1.15;letter-spacing:0;font-variant-ligatures:none;color:#3d4757;white-space:pre;overflow-wrap:normal}
+.tag{display:inline-block;font-family:var(--ff-mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:#eceff4;color:#3d4757;vertical-align:1px}
+.tag.new{background:#e7f0ff;color:#1a4a9c}
+.tag.ship{background:#eaf6ee;color:#1c6b3a}
+.tag.open{background:#fdf0e3;color:#8a5a12}
+.deck{list-style:none;padding:0;margin:0 0 16px}
+.deck li{display:grid;grid-template-columns:132px 1fr;gap:14px;padding:8px 0;border-bottom:1px solid #e3e7ee;margin:0}
+.deck li b{font-family:var(--ff-mono);font-size:11.5px;font-weight:500;color:#101828}
+.docfoot{margin-top:32px;padding-top:12px;border-top:1px solid #d5dae2;font-family:var(--ff-mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:#5a6474;display:flex;gap:16px;flex-wrap:wrap}
+a{color:#1a4a9c}
+a:hover{color:#0f2f68}

@@ -1,0 +1,145 @@
+/* Part 5 — professional density and vivid data surfaces.
+   Two intents from the reference: type and spacing sized for an all-day
+   desktop tool rather than a compact web app, and tables that use colour to
+   structure themselves instead of one flat tint. */
+
+/* ── type scale ─────────────────────────────────────────────────────────── */
+.mainpane{font-size:14px}
+.objhead{padding:20px 22px 0}
+.objhead h2{font-size:22px;letter-spacing:-.015em;line-height:1.25}
+.objbody{padding:18px 22px 26px;gap:16px}
+.crumb{font-size:12px;letter-spacing:.01em}
+.k2{font-size:13.5px;letter-spacing:-.005em}
+.hint{font-size:12.5px;line-height:1.55}
+.hint.dim{font-size:12px}
+.chip{font-size:11px;padding:3px 9px}
+.card2{padding:16px 18px;border-radius:10px}
+.qline{padding:10px 0}
+.anchor{font-size:13px;line-height:1.6;max-width:80ch;padding:4px 0 6px}
+.tabs2{gap:2px;padding-top:14px}
+.tab2{font-size:13px;padding:9px 13px}
+.trackbar{gap:3px}
+.trackb{font-size:12.5px;padding:7px 12px}
+.btn.sm{font-size:12.5px;height:30px;padding:0 11px}
+.btn{font-size:13.5px}
+.exrow{font-size:13px;padding:10px 12px}
+.modk{font-size:15.5px}
+.slot{padding:12px 0}
+.slotk{font-size:12.5px}
+.evb{font-size:10.5px}
+.linkish{font-size:12.5px}
+
+/* ── vivid data surfaces ────────────────────────────────────────────────── */
+:root{
+  --band:oklch(0.975 0.012 245);
+  --band-2:oklch(0.962 0.020 245);
+  --head:oklch(0.935 0.035 245);
+  --head-ink:oklch(0.42 0.09 250);
+  --tint-ok:oklch(0.972 0.032 150);
+  --tint-warn:oklch(0.972 0.040 78);
+  --rail:oklch(0.72 0.11 250);
+}
+[data-theme="dark"]{
+  --band:oklch(0.255 0.014 250);
+  --band-2:oklch(0.285 0.020 250);
+  --head:oklch(0.325 0.038 250);
+  --head-ink:oklch(0.86 0.05 250);
+  --tint-ok:oklch(0.30 0.045 150);
+  --tint-warn:oklch(0.31 0.050 78);
+  --rail:oklch(0.62 0.10 250);
+}
+
+/* Header bands: a table's first row should read as a header without a rule. */
+.hitr.head,.regh{
+  background:var(--head);color:var(--head-ink);
+  font:650 10.5px/1.7 var(--font-ui);letter-spacing:.07em;text-transform:uppercase;
+  border-bottom:none;border-radius:6px 6px 0 0;padding:9px 10px;margin:0 -10px}
+
+/* Zebra banding on every row family, so a wide row is followable across. */
+.hitr:not(.head):nth-of-type(even),
+.connrow:nth-of-type(even),
+.evrow:nth-of-type(even),
+.linrow:nth-of-type(even),
+.wlrow:nth-of-type(even),
+.regr:nth-of-type(even),
+.rec:nth-of-type(even),
+.trow:nth-of-type(even),
+.meas:nth-of-type(even){background:var(--band)}
+.hitr,.connrow,.evrow,.linrow,.wlrow,.regr,.rec,.trow,.meas{
+  padding-left:10px;padding-right:10px;margin-left:-10px;margin-right:-10px;
+  border-bottom:1px solid transparent;transition:background .1s}
+.hitr:hover:not(.head),.connrow:hover,.regr:hover,.rec:hover,.wlrow:hover{background:var(--band-2)}
+
+/* Semantic tints are applied by class in the markup, not by :has() — a
+   :has() list over every row family stalls style invalidation on this page. */
+.vrow.cur{background:var(--tint-ok)}
+
+/* A left rail marks the row group a reader is inside. */
+.evrow:first-of-type,.connrow:first-of-type,.wlrow:first-of-type{box-shadow:inset 2px 0 0 var(--rail)}
+
+/* The dataset preview is a CSS grid (.dtable) with cell elements and no row
+   elements, so banding keys off a row-parity class the component emits. */
+.dtable .dth{background:var(--head)!important;color:var(--head-ink)!important;
+  font:650 10.5px/1.7 var(--font-ui)!important;letter-spacing:.06em;text-transform:uppercase;
+  padding:9px 12px;position:sticky;top:0;z-index:1;border-bottom:none}
+.dtable .dtd{padding:9px 12px;font-size:12.5px}
+.dtable .dtd.r1{background:var(--band)}
+.dtable .dtd.flag{background:var(--tint-warn);box-shadow:inset 0 0 0 1px var(--warn)}
+.dtable .dth:first-child,.dtable .dtd:nth-child(n):first-child{font-weight:600}
+
+/* Column stats read as a table too. */
+.profrow{padding:9px 10px;margin:0 -10px;border-bottom:1px solid transparent}
+.profrow:nth-of-type(even){background:var(--band)}
+.profrow:hover{background:var(--band-2)}
+.profrow .pname{font-weight:600}
+
+/* Numeric columns read as numbers. */
+.hitr .mono,.dtable .dtd,.evval{font-variant-numeric:tabular-nums}
+
+@media (max-width:1100px){
+  .objhead{padding:16px 16px 0}
+  .objbody{padding:14px 16px 22px}
+}
+
+/* ── resizable, collapsible panes ────────────────────────────────────────── */
+.app{grid-template-columns:var(--sidebar-w) 6px 1fr}
+/* Collapse the columns, but keep the items in flow. display:none removes a
+   grid item from placement, which shifts every later item back a column — the
+   stage then lands in the 0px first column and the whole app renders empty. */
+.app.sidehid{grid-template-columns:0 0 1fr}
+.app.sidehid .sidebar,.app.sidehid>.grip{width:0;min-width:0;overflow:hidden;border:none;pointer-events:none}
+.stage.withpanel{grid-template-columns:minmax(0,1fr) 6px var(--panel-w)}
+.hub{grid-template-columns:var(--hub-w,252px) 6px 1fr}
+.hub.listhid{grid-template-columns:0 0 1fr}
+.hub.listhid .hublist,.hub.listhid>.grip{width:0;min-width:0;overflow:hidden;border:none;pointer-events:none}
+
+.grip{position:relative;cursor:col-resize;background:var(--border);opacity:.55;transition:opacity .12s,background .12s;touch-action:none;z-index:5}
+.grip:hover,.grip.dragging{opacity:1;background:var(--accent)}
+.griphandle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:2px;height:26px;border-radius:2px;background:currentColor;opacity:.45;pointer-events:none}
+.grip:hover .griphandle,.grip.dragging .griphandle{opacity:0}
+.grip::after{content:"";position:absolute;inset:-3px -5px;cursor:col-resize}
+
+.reveal{position:absolute;top:10px;z-index:30;display:inline-flex;align-items:center;gap:5px;
+  border:1px solid var(--border-strong);border-radius:999px;background:var(--surface);color:var(--text-muted);
+  font:600 11px/1 var(--font-ui);padding:6px 11px 6px 8px;cursor:pointer;box-shadow:var(--shadow-sm)}
+.reveal:hover{color:var(--text);border-color:var(--accent);color:var(--accent)}
+.reveal.left{left:10px}
+.reveal.right{right:10px}
+/* A reveal for the right panel lives in the topbar's flow, not floated over
+   it: a chip at the stage's top-right necessarily lands on the topbar's own
+   right-hand controls, and did block one entirely. */
+.revealbtn{white-space:nowrap;border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.revealbtn:hover{background:var(--accent);color:#fff}
+.panehide{margin-left:2px}
+/* Narrow viewports get a NARROWER sidebar, never a zeroed one. Zeroing the
+   column here hid the sidebar unconditionally under 900px with no way to get
+   it back — a viewport width is not a request to hide navigation. */
+@media (max-width:900px){:root{--sidebar-w:184px}}
+@media (max-width:720px){:root{--sidebar-w:168px}}
+
+/* The lane is our internal taxonomy, not the user's vocabulary: the sentence
+   says what will happen and how long it takes, which is what they asked. A
+   dot carries the instant/cloud distinction without naming it. */
+.lanedot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--accent)}
+.lanedot.cloud{background:var(--ok)}
+.lanedot.instant{background:var(--accent)}

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>BioMate · Spec 01 — Search &amp; evidence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="spec.css"/>
+<style>doc-page:not(:defined){visibility:hidden}</style>
+</head>
+<body>
+<doc-page margin="0.85in">
+<h1>Search &amp; evidence</h1>
+<p class="docmeta"><span>BioMate · Function-module spec 01</span><span>Status: for review</span><span>Lane: Instant</span></p>
+
+<p class="lede">The module that answers "what is known" — over literature, curated databases, patents and your organisation's own record. It runs on <strong>nothing of yours</strong>: no file is read, no sandbox starts, no run object is created. Its single promise is that every claim it makes carries the reference it came from, so an answer can be checked rather than believed.</p>
+
+<h2><span class="num">1.1</span>Scope</h2>
+<table class="st">
+<thead><tr><th>In scope</th><th>Out of scope</th></tr></thead>
+<tbody>
+<tr><td>Retrieval and synthesis over external and internal corpora.</td><td>Any computation on user data — that is Spec 02.</td></tr>
+<tr><td>Claim-level citation, conflict surfacing, recency.</td><td>Training or fine-tuning on retrieved text — Spec 03.</td></tr>
+<tr><td>Handing a finding into a project as a note or an instruction.</td><td>Being a document manager. Sources are cited, not filed.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">1.2</span>The four tracks</h2>
+<p>Tracks are the module's internal division. They exist because the <em>shape of an answer</em> differs by corpus — a patent answer must be claim-level, a database answer must be a record, a literature answer must preserve disagreement. Tracks are tabs inside the opened module card (<code>.trackbar</code>), first one selected by default.</p>
+<table class="st">
+<thead><tr><th>Track</th><th>Corpus</th><th>Answer shape</th><th>Citation unit</th></tr></thead>
+<tbody>
+<tr><td>Literature</td><td>Peer-reviewed and preprint.</td><td>A synthesis that keeps the debate intact — competing findings are named as competing, not averaged.</td><td>Paper + the sentence or figure relied on.</td></tr>
+<tr><td>Databases</td><td>Curated sequence, structure, pathway, assay, clinical registries.</td><td>Records, with the query that produced them.</td><td>Accession + database version + retrieval date.</td></tr>
+<tr><td>Patents</td><td>Filings and grants.</td><td>Who holds what claim — claim-level, never "a filing exists".</td><td>Publication number + claim number + jurisdiction + status.</td></tr>
+<tr><td>Internal</td><td>Your organisation's reports and run history.</td><td>What we already did and concluded, under the same citation rules.</td><td>Run id or report section, plus who ran it and when.</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Track rule</span><p>Tracks are not filters the user must set before asking. A question asked without picking a track is answered across the corpora that fit it, and the answer says which it used. The tabs exist to show the range of the module and to seed examples — they are a way in, not a required setting.</p></div>
+
+<h2><span class="num">1.3</span>Views</h2>
+
+<h3>1.3.1 Cold-start card <span class="tag new">new</span></h3>
+<p>Closed: icon tile (magnifier), name, lane label <em>Instant · seconds</em>, one line — "A cited answer over literature, databases and patents". Open: the track bar, then three or four example goals as <code>.exrow</code> buttons, each in quotes. Clicking one seeds the composer; it does not fire a query. Examples per track are editorial and short — a phrasing a scientist would actually use, not a keyword string.</p>
+
+<h3>1.3.2 The answer <span class="tag ship">shipped, extended</span></h3>
+<p>An answer is a conversation message with a fixed anatomy. Every part is required; a part with nothing to say is omitted rather than filled.</p>
+<figure>
+<div class="wire">┌──────────────────────────────────────────────────────────                      ┐
+│ ● Instant · search   Literature + Databases              │  lane & corpora used 
+│                                                                                │
+│ Interferon signalling is the most consistently reported                        │
+│ axis in this model¹, though two 2024 cohorts report no                         │
+│ effect at physiological dose².                                                 │
+│                                                                                │
+│ ⚑ Sources disagree — see 2 conflicting findings           │  conflict affordance
+│                                                                                │
+│ ── Sources ─────────────────────────────────────────────                       │
+│ ¹ Author et al. 2023 · Cell Rep · fig 3b        [open ▸]                       │
+│ ² Author et al. 2024 · Nat Comms · table 2      [open ▸]                       │
+│                                                                                │
+│ [ Save to project notes ]  [ Make a project instruction ]                      │
+└──────────────────────────────────────────────────────────                      ┘</div>
+<figcaption>Answer anatomy. Superscripts are inline anchors; clicking one scrolls the source list and highlights the entry.</figcaption>
+</figure>
+<table class="el">
+<thead><tr><th>Element</th><th>Behaviour</th></tr></thead>
+<tbody>
+<tr><td>lane chip</td><td>States the lane and the corpora actually consulted. Clicking it explains why those corpora and offers to widen.</td></tr>
+<tr><td>body</td><td>Claims only. Every factual sentence carries at least one superscript anchor. An unanchored sentence is framing, and is written so it reads as framing.</td></tr>
+<tr><td>conflict row <span class="tag new">new</span></td><td>Appears when retrieved sources materially disagree. Expands to the two positions side by side with their evidence. Never resolved silently by preferring the newer or the more cited.</td></tr>
+<tr><td>source list</td><td>One row per source: authors, year, venue, and <strong>the locus relied on</strong> — figure, table, claim or section. Not a bare DOI list.</td></tr>
+<tr><td>open ▸</td><td>Opens the source in a reader pane with the relied-on locus scrolled to and marked.</td></tr>
+<tr><td>Save to project notes</td><td>Writes the answer, with its sources, into the project. Provenance travels; a copied answer never loses its citations.</td></tr>
+<tr><td>Make a project instruction <span class="tag new">new</span></td><td>Promotes a finding into a standing instruction — e.g. "use GRCh38, Ensembl 110". It then appears as an <em>inherited</em> parameter origin on future runs (Spec 07 §7.4).</td></tr>
+</tbody>
+</table>
+
+<h3>1.3.3 Source reader</h3>
+<p>A right-hand pane, not a new tab. Header: title, venue, year, and a <em>cited for</em> line naming the locus. Body: the document with the relied-on passage marked. Footer: <em>next source</em> / <em>previous source</em>, so a reader can audit a whole answer without leaving the thread.</p>
+
+<h3>1.3.4 Empty and failure states</h3>
+<table class="st">
+<thead><tr><th>Situation</th><th>What the UI says and does</th></tr></thead>
+<tbody>
+<tr><td>Nothing retrieved</td><td>States that nothing was found and what was searched. Never a synthesised answer without sources. Offers to widen the corpora or rephrase.</td></tr>
+<tr><td>Thin evidence</td><td>Answers, and says the base is thin — one source, or one lab. The claim is not upgraded by confident prose.</td></tr>
+<tr><td>Paywalled source</td><td>Cites it, marks it as not accessible under the account's entitlements, and does not paraphrase beyond the abstract.</td></tr>
+<tr><td>Question is not a search question</td><td>Says so and re-routes: "this needs your data — shall I run it?" with the Data analysis lane named. See Spec 06 §6.6 on cross-lane handoff.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">1.4</span>Interaction rules</h2>
+<ol>
+<li><strong>Citations are not decoration.</strong> A claim without a resolvable source is a defect, not a style choice. If the model cannot cite it, the answer says it is inference.</li>
+<li><strong>Recency is stated, not implied.</strong> Every answer carries the retrieval date and, for databases, the corpus version.</li>
+<li><strong>Disagreement survives.</strong> The module never smooths conflicting literature into a single confident sentence.</li>
+<li><strong>Internal sources obey the same rules as external ones.</strong> An internal report is cited with its run id and author; it does not get to be a bare assertion because it is ours.</li>
+<li><strong>An answer can become an input.</strong> Notes and instructions are the two sanctioned exits from this module into the rest of the product.</li>
+</ol>
+
+<h2><span class="num">1.5</span>What this module deliberately does not have</h2>
+<ul>
+<li><strong>A results count.</strong> "1,284 papers" is a database's self-regard, not an answer.</li>
+<li><strong>A corpus browser.</strong> Users do not pick from a list of databases we license; they ask a question and are told what was consulted.</li>
+<li><strong>Relevance scores.</strong> A number between 0 and 1 next to a paper is unfalsifiable to the reader. The locus relied on is the honest substitute.</li>
+</ul>
+
+<h2><span class="num">1.6</span>Open questions</h2>
+<ul>
+<li><span class="tag open">open</span> Whether the conflict affordance should ever offer a verdict, or always stop at presenting both positions.</li>
+<li><span class="tag open">open</span> Entitlement UX for paywalled corpora at organisation level: request access inline, or fail quietly with a citation?</li>
+<li><span class="tag open">open</span> Whether Internal should be on by default for every question, or opt-in per project.</li>
+</ul>
+
+<p class="docfoot"><span>Spec 01 · Search &amp; evidence</span><span>Next: 02 — Data analysis</span></p>
+</doc-page>
+<script src="doc-page.js"></script>
+</body>
+</html>

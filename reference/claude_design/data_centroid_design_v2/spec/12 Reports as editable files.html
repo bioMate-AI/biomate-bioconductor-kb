@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>BioMate · Spec 12 — Reports as editable files</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="spec.css"/>
+<style>doc-page:not(:defined){visibility:hidden}</style>
+</head>
+<body>
+<doc-page margin="0.85in">
+<h1>Reports as editable files</h1>
+<p class="docmeta"><span>BioMate · Spec 12 · addendum to Specs 04 &amp; 07</span><span>Status: built</span><span>Object: document</span></p>
+
+<p class="lede">A run produced a report and the report stayed on the run. You could read it; you could not take it, edit it, or find it again through Files. This addendum makes a report a <strong>file object</strong> — downloadable in the formats people actually hand over, editable by hand, editable by asking, versioned, and present in the project file list with everything else.</p>
+
+<h2><span class="num">12.1</span>What changed</h2>
+<table class="st prose">
+<thead><tr><th>Before</th><th>Now</th></tr></thead>
+<tbody>
+<tr><td>After-run opened on Outputs; the report was a "Download report" link that only toasted.</td><td>After-run opens on a <strong>Report</strong> tab holding the document itself, with a real download menu and "Open in Files".</td></tr>
+<tr><td>Reports were not in the file tree.</td><td>Six documents are file objects: the after-run report, a saved search answer, and one report per model case in <span class="mono">runs/models/</span>.</td></tr>
+<tr><td>No editing of any kind.</td><td>Hand editing in place, and chat-based editing that proposes a before/after diff you accept or reject.</td></tr>
+<tr><td>—</td><td>Data files get the same ask-and-diff affordance at cell level.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">12.2</span>Download</h2>
+<table class="st prose">
+<thead><tr><th>Format</th><th>What it is</th></tr></thead>
+<tbody>
+<tr><td>PDF</td><td>Typeset from the project memo template.</td></tr>
+<tr><td>Word (.docx)</td><td>Styles mapped, comments preserved.</td></tr>
+<tr><td>Markdown (.md)</td><td>The source the document is stored as.</td></tr>
+<tr><td>HTML</td><td>Self-contained, figures inlined.</td></tr>
+<tr><td>Report bundle (.zip)</td><td>Report + every output + run manifest + checksums.</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Rule</span><p>The bundle is the honest format: a report without its outputs and its manifest is not reproducible. Every format carries the run id and the version being viewed, so a downloaded copy can be traced back.</p></div>
+
+<h2><span class="num">12.3</span>Editing</h2>
+<h3>12.3.1 By hand</h3>
+<p>Edit turns the page into editable prose in place. Saving writes a <em>new version</em>; it never overwrites what the run produced. A "Revert to v1" control returns the document to the run's original.</p>
+
+<h3>12.3.2 By asking <span class="tag new">new</span></h3>
+<figure>
+<div class="wire">┌──────────────────────────────────────────────────────────┐
+│ ✦ ASK BIOMATE TO EDIT THIS      nothing changes until you │
+│ ┌──────────────────────────────────────────────┐  accept  │
+│ │ e.g. make the caveat harder to miss…      [▸]│          │
+│ └──────────────────────────────────────────────┘          │
+│ [Rewrite the summary for a regulatory reader]             │
+│ [Say plainly that batch values were imputed] [✓ done]     │
+├──────────────────────────────────────────────────────────┤
+│ proposed edit   "Shorten the methods to one paragraph"    │
+│ ─ NOW · Methods ────────────────────────────────────────  │
+│   Counts were read from GSE184880_counts.tsv (v2) …       │
+│ ─ PROPOSED ─────────────────────────────────────────────  │
+│   Counts (…v2) and design (…v3) were read from project …  │
+│ Why: two paragraphs repeat the file provenance that the   │
+│ Parameters tab already carries in full.                   │
+│ [Accept — save as a new version] [Reject] [Ask again]     │
+└──────────────────────────────────────────────────────────┘</div>
+<figcaption>Chat editing is a proposal with a diff, not an invisible rewrite.</figcaption>
+</figure>
+<table class="el">
+<thead><tr><th>Element</th><th>Behaviour</th></tr></thead>
+<tbody>
+<tr><td>ask field</td><td>Free text, plus the document's own suggested edits as chips. A used chip is marked done.</td></tr>
+<tr><td>proposal</td><td>The exact paragraph now, the exact paragraph proposed, and <strong>why</strong> — one sentence naming the reader problem it solves.</td></tr>
+<tr><td>accept</td><td>Applies and saves as a new version; the previous version stays, and the run keeps pointing at the one it produced.</td></tr>
+<tr><td>reject</td><td>Discards. Nothing was written.</td></tr>
+<tr><td>ask again</td><td>Re-drafts against the same paragraph with a correction ("shorter", "more cautious", "keep the number").</td></tr>
+<tr><td>data files</td><td>Same control, cell-level diff: row · field · now · proposed. Accepting writes a new file version; runs that read the old one keep pointing at it.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">12.4</span>Versions — one source of truth</h2>
+<p>Document edits and file history are the same history. <code>fileVersions(id)</code> merges any accepted document edits onto the file's stored versions, and <em>every</em> surface reads through it: the file row badge in the tree, the object header badge, the file's Versions tab, and the document header. A change event re-renders the tree and header on accept.</p>
+<div class="rule"><span class="lbl">Rule</span><p>Two surfaces may never state different current versions of one object. The failure this rule prevents was live: the file list read v1 while the open document read v2, in a product whose premise is that nothing is silently overwritten.</p></div>
+
+<h2><span class="num">12.5</span>One control per screen</h2>
+<p>The document component and its host both used to render a version chip, a download menu and an in-Files link, so every report screen showed each control twice. Ownership is now explicit: in <strong>Files</strong> the object header owns the version chip and Download (the document keeps only Edit / Save); on the <strong>run's Report tab</strong> the document owns them, and the After-run strip carries no duplicate.</p>
+
+<h2><span class="num">12.6</span>The documents</h2>
+<table class="st prose">
+<thead><tr><th>File</th><th>Origin</th><th>Where</th></tr></thead>
+<tbody>
+<tr><td><span class="mono">after-run_report.md</span></td><td>The differential-expression run</td><td><span class="mono">runs/2026-08-14_differential-expression/</span></td></tr>
+<tr><td><span class="mono">evidence_IL11-fibrosis.md</span></td><td>Saved from a literature search, with its retrieval record</td><td><span class="mono">notes/</span></td></tr>
+<tr><td><span class="mono">fold_report.md</span>, <span class="mono">train_report.md</span>, <span class="mono">adapt_report.md</span>, <span class="mono">loop_report.md</span></td><td>The four model use cases</td><td><span class="mono">runs/models/</span></td></tr>
+</tbody>
+</table>
+<p>Each carries a quality badge and quality notes — the tuned-model report is <em>watch</em>, because it inherits a novelty flag that constrains how the model may be used — plus an origin note stating that it keeps the model or run version that produced it, so an old report stays readable after that model is superseded.</p>
+
+<h2><span class="num">12.7</span>Open questions</h2>
+<ul>
+<li><span class="tag open">open</span> Should an accepted chat edit be attributed to BioMate or to the person who accepted it? Currently the latter.</li>
+<li><span class="tag open">open</span> Whether a report that has been hand-edited may still be cited as the run's output, or must be marked as amended.</li>
+<li><span class="tag open">open</span> Comment threads on a report paragraph — needed for counsel review of the patent answer.</li>
+</ul>
+
+<p class="docfoot"><span>Spec 12 · Reports as editable files</span><span>Amends: 04, 07</span><span>Next: 13 — Run cards by domain</span></p>
+</doc-page>
+<script src="doc-page.js"></script>
+</body>
+</html>
