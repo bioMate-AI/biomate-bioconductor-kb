@@ -60,4 +60,13 @@ describe("buildNextflowLaunchParameters", () => {
       ),
     ).toEqual({});
   });
+
+  it("does not let a blank API override erase a validated schema value", () => {
+    expect(
+      buildNextflowLaunchParameters(
+        { required_params: [{ name: "smiles", default: "CCO" }] },
+        { smiles: "   ", retries: 0, dry_run: false },
+      ),
+    ).toEqual({ smiles: "CCO", retries: 0, dry_run: false });
+  });
 });

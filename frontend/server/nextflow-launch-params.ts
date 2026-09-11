@@ -16,7 +16,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function hasValue(value: unknown): boolean {
-  return value !== undefined && value !== null && value !== "";
+  return value !== undefined && value !== null && (
+    typeof value !== "string" || value.trim() !== ""
+  );
 }
 
 /**
@@ -49,13 +51,18 @@ export function buildNextflowLaunchParameters(
     if (hasValue(resolved)) structuredValues[parameter.name] = resolved;
   }
 
+  const nonEmptyRequestParams = isRecord(requestParams)
+    ? Object.fromEntries(Object.entries(requestParams).filter(([, value]) => hasValue(value)))
+    : {};
+
   return {
     ...structuredValues,
     ...(isRecord(definition.inline_parameters) ? definition.inline_parameters : {}),
     ...(isRecord(definition.parameters) ? definition.parameters : {}),
-    // Public API overrides are intentionally last, including false/0/empty
-    // values. Required-value validation occurs before this launch payload is
-    // constructed, and callers must be able to explicitly override defaults.
-    ...(isRecord(requestParams) ? requestParams : {}),
+    // Public API overrides are intentionally last. Keep false and 0 (valid
+    // parameter values), but never replace a validated default with blank
+    // input: that would let the required-param gate pass then launch invalid
+    // Nextflow arguments.
+    ...nonEmptyRequestParams,
   };
 }
