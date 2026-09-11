@@ -92,3 +92,28 @@ the working "user supplies matrix" path (that hits CASE A / S3-path skip first).
   path (pseudobulk chain only covers pseudobulk-DE). Separate P0 item.
 - Non-GEO (NGDC/CNCB `HRA…`) fetch: `geo_data_connector` uses GEOquery (GEO-only) →
   Chinese-archive fetch is a separate gap.
+
+---
+
+## Verification progress (2026-09-11, live dev)
+
+**Root blocker found + fixed (shipped, commit `4b3b9fec6`):** `geo_data_connector` marked
+`local_series_matrix` **required**, blocking every accession-only run with
+`missing_required_params` ("needs 1 required parameter: local_series_matrix. No compute
+was launched"). Cause: the `.nf` param parser (`ai_assistant.py:2398`) treats any
+`null`-default param as required unless allowlisted in `_OPTIONAL_NULL_PARAMS`;
+`local_series_matrix` (null = auto-download from GEO) wasn't listed. **Fix: added it to
+`_OPTIONAL_NULL_PARAMS`.** This is ALSO the same `missing_required_params` that killed the
+earlier open-claw `run_workflow`.
+
+**Verified:** a live `/api/workflows/execute` of the connector (GSE108000) confirmed
+`required_params == ['local_series_matrix']` (sole blocker) and, once past it, the run
+**launched** (runId `8bfc12f8…`, status `running`). So the fix unblocks launch.
+
+**Inconclusive (needs deployed fix + real product flow):** the launched Nextflow run then
+failed at setup after 20 s — `GEO_FETCH` still `pending`, `processes: []`, empty log_tail,
+returncode 1. Likely a **test-rig artifact**: the verification request was hand-built
+(stripped required_param + `defer_param_prefill`), bypassing normal param-prefill, so the
+minimal workflowDefinition may lack config the executor needs. Confirm connector
+completion (emits `count_matrix.csv` / `sample_metadata.csv`) via the **deployed fix run
+through the real product flow**, or by reading the S3 `.nextflow.log` in the work dir.
