@@ -1589,10 +1589,17 @@ async def denovo_run_round(request: DeNovoRunRequest):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+    # Isolated ephemeral DB for the optimizer's persistence. A stateless one-shot
+    # round must NOT write bo_proposals into a shared/relative "galaxy_ai_tools.db"
+    # (default), which — resolved against the backend CWD — could collide with the
+    # real workflow DB. Use a per-request temp file and delete it afterward.
+    _fd, _tmp_db = tempfile.mkstemp(prefix="denovo_", suffix=".db")
+    os.close(_fd)
     pipeline = DeNovoPipeline(
         campaign_id=request.campaign_id or "denovo-adhoc",
         generator=generator,
         objectives=objectives,
+        db_path=_tmp_db,
         n_initial=min(8, max(1, len(request.seed_smiles))),
     )
     spec = GenerationSpec(
@@ -1604,6 +1611,11 @@ async def denovo_run_round(request: DeNovoRunRequest):
         result = pipeline.run_round(spec, seed_smiles=request.seed_smiles, n_propose=request.n_propose)
     except (ImportError, ValueError) as e:
         raise HTTPException(status_code=422, detail=str(e))
+    finally:
+        try:
+            os.remove(_tmp_db)
+        except OSError:
+            pass
 
     # Return only JSON-safe fields (ranked is a list of plain dicts); omit the
     # RoundProposal object which may carry numpy arrays.
