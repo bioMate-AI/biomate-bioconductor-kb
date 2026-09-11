@@ -837,6 +837,7 @@ async function executeOpenClaudeTool(
         }
         return await post("/api/workflows/execute", {
           workflowDefinition: workflowDef,
+          ...(input.params && typeof input.params === "object" ? { params: input.params } : {}),
           ...(input.message ? { message: input.message } : {}),
         });
       }
@@ -9915,12 +9916,27 @@ ${paramLines || '(none recorded)'}`;
 
       // Check if workflow has input steps that require data
       const inputs = Array.isArray(request.inputs) ? request.inputs : [];
-      const inputGate = validateWorkflowInputs(request.workflowDefinition, inputs);
+      // Resolve this before the input gate. The launcher defaults unmarked
+      // workflows to Nextflow; using only explicit Nextflow metadata here used
+      // to accept data that the direct Nextflow path silently discarded.
+      const executionEngine = getWorkflowExecutionEngine(request.workflowDefinition);
+      const inputGate = validateWorkflowInputs(request.workflowDefinition, inputs, executionEngine);
+      if (inputGate.inputsInvalid) {
+        return res.status(400).json({
+          error: "invalid_workflow_inputs",
+          message: "Each workflow input must include a non-empty dataset id, source, and matching workflow step id. No compute was launched.",
+          inputStepsCount: inputGate.inputStepsCount,
+          invalidInputCount: inputGate.invalidInputCount,
+          guidance: "Re-select the dataset for each input step and retry.",
+        });
+      }
       if (inputGate.inputsRequired) {
         return res.status(400).json({
           error: "inputs_required",
-          message: `Workflow has ${inputGate.inputStepsCount} input step(s) but no inputs were provided`,
-          inputStepsCount: inputGate.inputStepsCount
+          message: `Workflow needs datasets bound to ${inputGate.missingInputStepIds.length} data-input step(s) before it can run. No compute was launched.`,
+          inputStepsCount: inputGate.inputStepsCount,
+          missingInputStepIds: inputGate.missingInputStepIds,
+          guidance: "Attach a dataset to every listed input step and retry.",
         });
       }
       if (inputGate.inputsUnsupportedForNextflow) {
@@ -10075,8 +10091,6 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
-      // Determine execution engine using standardized helper
-      const executionEngine = getWorkflowExecutionEngine(request.workflowDefinition);
       const workflowTags = request.workflowDefinition?.tags || [];
       const {
         __generationAssessment: _dropGenerationAssessment,
@@ -10659,7 +10673,7 @@ ${paramLines || '(none recorded)'}`;
       // Build inputs object for Galaxy (mapping step inputs to dataset IDs)
       const galaxyInputs: Record<string, any> = {};
       for (const input of sampledInputs) {
-        const stepId = input.step_id ?? 0;
+        const stepId = input.step_id ?? input.stepId;
         galaxyInputs[stepId.toString()] = {
           src: input.src || 'hda',
           id: input.id
@@ -16441,7 +16455,10 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
             if (body.params && typeof body.params === "object") {
               wfDef.parameters = { ...(wfDef.parameters ?? {}), ...body.params };
             }
-            result = await selfPost("/api/workflows/execute", { workflowDefinition: wfDef });
+            result = await selfPost("/api/workflows/execute", {
+              workflowDefinition: wfDef,
+              ...(body.params && typeof body.params === "object" ? { params: body.params } : {}),
+            });
           }
           break;
         }
