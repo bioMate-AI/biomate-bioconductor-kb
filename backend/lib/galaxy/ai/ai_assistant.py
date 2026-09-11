@@ -2232,6 +2232,8 @@ Respond with a single JSON object — no other text:
         'intervals',                  # optional — targeted sequencing intervals
         'pon',                        # optional — Panel of Normals for somatic callers
         'germline_resource',          # optional — gnomAD for mutect2
+        # GEO accession fetch (geo_data_connector)
+        'local_series_matrix',        # optional local override — null means auto-download from GEO by accession
     })
 
     def _find_nf_file(self, filename: str) -> Optional[Any]:
