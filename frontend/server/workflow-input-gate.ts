@@ -18,12 +18,20 @@ export function requiredWorkflowInputCount(workflowDefinition: unknown): number 
 export function validateWorkflowInputs(
   workflowDefinition: unknown,
   inputs: unknown,
-): { inputStepsCount: number; inputsRequired: boolean } {
+): { inputStepsCount: number; inputsRequired: boolean; inputsUnsupportedForNextflow: boolean } {
   const inputStepsCount = requiredWorkflowInputCount(workflowDefinition);
+  const definition = workflowDefinition && typeof workflowDefinition === "object"
+    ? workflowDefinition as { workflow_type?: unknown; nextflow_path?: unknown }
+    : {};
+  const hasInputs = Array.isArray(inputs) && inputs.length > 0;
+  const isNextflowDirect = definition.workflow_type === "nextflow" || typeof definition.nextflow_path === "string";
   return {
     inputStepsCount,
     // Deliberately accept only the documented `inputs` array. `inputData` is
     // presentation state, not an execution input contract.
-    inputsRequired: inputStepsCount > 0 && (!Array.isArray(inputs) || inputs.length === 0),
+    inputsRequired: inputStepsCount > 0 && !hasInputs,
+    // Nextflow direct execution currently has no step-id → parameter binding.
+    // Rejecting is safer than accepting a dataset and silently dropping it.
+    inputsUnsupportedForNextflow: inputStepsCount > 0 && hasInputs && isNextflowDirect,
   };
 }

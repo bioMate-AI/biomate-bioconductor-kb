@@ -9923,6 +9923,13 @@ ${paramLines || '(none recorded)'}`;
           inputStepsCount: inputGate.inputStepsCount
         });
       }
+      if (inputGate.inputsUnsupportedForNextflow) {
+        return res.status(400).json({
+          error: "nextflow_inputs_not_supported",
+          message: "This Nextflow workflow declares data-input steps, but direct execution cannot yet bind supplied datasets to those steps. No compute was launched.",
+          inputStepsCount: inputGate.inputStepsCount,
+        });
+      }
 
       // Required-parameter gate. The frontend blocks a run when required params
       // are unfilled (hasUnfilledRequired in nextflow-workflow-viewer.tsx), but

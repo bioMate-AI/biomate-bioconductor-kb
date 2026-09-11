@@ -14,6 +14,7 @@ describe("workflow execution input gate", () => {
     expect(validateWorkflowInputs(workflowWithInputs, undefined)).toEqual({
       inputStepsCount: 2,
       inputsRequired: true,
+      inputsUnsupportedForNextflow: false,
     });
   });
 
@@ -21,6 +22,7 @@ describe("workflow execution input gate", () => {
     expect(validateWorkflowInputs(workflowWithInputs, { datasets: ["dataset-1"] })).toEqual({
       inputStepsCount: 2,
       inputsRequired: true,
+      inputsUnsupportedForNextflow: false,
     });
   });
 
@@ -28,10 +30,17 @@ describe("workflow execution input gate", () => {
     expect(validateWorkflowInputs(workflowWithInputs, [{ id: "dataset-1" }])).toEqual({
       inputStepsCount: 2,
       inputsRequired: false,
+      inputsUnsupportedForNextflow: false,
     });
     expect(validateWorkflowInputs({ steps: { 0: { type: "tool" } } }, [])).toEqual({
       inputStepsCount: 0,
       inputsRequired: false,
+      inputsUnsupportedForNextflow: false,
     });
+  });
+
+  it("blocks Nextflow direct execution rather than silently dropping accepted datasets", () => {
+    expect(validateWorkflowInputs({ ...workflowWithInputs, workflow_type: "nextflow" }, [{ id: "dataset-1" }]))
+      .toEqual({ inputStepsCount: 2, inputsRequired: false, inputsUnsupportedForNextflow: true });
   });
 });
