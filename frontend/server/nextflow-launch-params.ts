@@ -21,6 +21,11 @@ function hasValue(value: unknown): boolean {
   );
 }
 
+function nonEmptyRecord(value: unknown): Record<string, unknown> {
+  if (!isRecord(value)) return {};
+  return Object.fromEntries(Object.entries(value).filter(([, entry]) => hasValue(entry)));
+}
+
 /**
  * Produces the parameter map sent to Galaxy's Nextflow executor.
  *
@@ -51,14 +56,15 @@ export function buildNextflowLaunchParameters(
     if (hasValue(resolved)) structuredValues[parameter.name] = resolved;
   }
 
-  const nonEmptyRequestParams = isRecord(requestParams)
-    ? Object.fromEntries(Object.entries(requestParams).filter(([, value]) => hasValue(value)))
-    : {};
+  const nonEmptyRequestParams = nonEmptyRecord(requestParams);
 
   return {
+    // Generic parameter maps may supply defaults, but cannot erase structured
+    // values with blank/null entries. Structured rows are what the execution
+    // gate validates, so preserve their values at launch.
+    ...nonEmptyRecord(definition.inline_parameters),
+    ...nonEmptyRecord(definition.parameters),
     ...structuredValues,
-    ...(isRecord(definition.inline_parameters) ? definition.inline_parameters : {}),
-    ...(isRecord(definition.parameters) ? definition.parameters : {}),
     // Public API overrides are intentionally last. Keep false and 0 (valid
     // parameter values), but never replace a validated default with blank
     // input: that would let the required-param gate pass then launch invalid

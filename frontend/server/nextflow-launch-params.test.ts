@@ -69,4 +69,17 @@ describe("buildNextflowLaunchParameters", () => {
       ),
     ).toEqual({ smiles: "CCO", retries: 0, dry_run: false });
   });
+
+  it("does not let generic workflow maps erase a structured required value", () => {
+    expect(
+      buildNextflowLaunchParameters(
+        {
+          required_params: [{ name: "smiles", value: "CCO" }],
+          inline_parameters: { smiles: null, threads: 2 },
+          parameters: { smiles: "", threads: 4 },
+        },
+        undefined,
+      ),
+    ).toEqual({ smiles: "CCO", threads: 4 });
+  });
 });

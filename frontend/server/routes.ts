@@ -9960,7 +9960,9 @@ ${paramLines || '(none recorded)'}`;
         const missingParams = reqParams.filter(
           (p: any) => p && p.name && isEmptyVal(p.value) && isEmptyVal(p.default),
         );
-        if (missingParams.length > 0 && request.executionConfig?.allowLowConfidence !== true) {
+        // A low-confidence override may acknowledge scientific uncertainty; it
+        // must never turn missing deterministic inputs into a Batch launch.
+        if (missingParams.length > 0) {
           return res.status(400).json({
             error: "missing_required_params",
             message: `Workflow "${request.workflowDefinition?.name || 'this workflow'}" needs ${missingParams.length} required parameter(s) before it can run. No compute was launched.`,
