@@ -321,36 +321,65 @@ class TestPKEquationInvariants:
     # AFE < 1 → systematic underprediction; AFE > 1 → systematic overprediction
     # -----------------------------------------------------------------------
 
-    def test_afe_aafe_definitions(self):
-        """
-        Verify AFE/AAFE algebraic identity from Sheiner & Beal 1981.
+    def test_reference_set_metrics_match_pinned_baseline(self):
+        """Detect a changed predictor or reference set with fixed, reviewable values.
+
+        Recomputing the expected AFE/AAFE from the report's own fold errors only
+        verifies that two paths agree; it cannot catch a shared regression.  These
+        values are the reviewed v2.0, 107-drug equation-verification baseline.
+        Update them only alongside an intentional predictor or curated-data change.
         """
         from .model_validation import ModelValidationService
-        import numpy as np
 
-        svc = ModelValidationService()
-        report = svc.run_pbpk_validation()
-
-        fold_cmax = [r.fold_error_Cmax for r in report.per_compound
-                     if r.fold_error_Cmax is not None and r.fold_error_Cmax > 0]
-
-        expected_afe = math.exp(sum(math.log(f) for f in fold_cmax) / len(fold_cmax))
-        expected_aafe = math.exp(sum(abs(math.log(f)) for f in fold_cmax) / len(fold_cmax))
-
-        assert report.metrics.AFE_Cmax == pytest.approx(expected_afe, rel=1e-3)
-        assert report.metrics.AAFE_Cmax == pytest.approx(expected_aafe, rel=1e-3)
+        report = ModelValidationService().run_pbpk_validation()
+        assert report.n_reference_compounds == 107
+        assert report.metrics.dict() == {
+            "n_compounds": 107,
+            "AFE_Cmax": 0.582,
+            "AAFE_Cmax": 2.118,
+            "RMSE_Cmax": 1.8525,
+            "R2_Cmax": 0.908,
+            "within_2fold_Cmax": 0.589,
+            "within_3fold_Cmax": 0.738,
+            "AFE_AUC": 1.115,
+            "AAFE_AUC": 1.462,
+            "RMSE_AUC": 31.885,
+            "R2_AUC": 0.769,
+            "within_2fold_AUC": 0.813,
+            "within_3fold_AUC": 0.888,
+            "ema_criterion_met": False,
+        }
 
     # -----------------------------------------------------------------------
     # AAFE ≥ AFE always (Jensen's inequality; AAFE = 1.0 only if all errors = 0)
     # -----------------------------------------------------------------------
 
-    def test_aafe_geq_afe(self):
-        """AAFE ≥ |AFE| for any prediction set (Jensen's inequality)."""
+    def test_afe_aafe_and_fold_boundaries_for_known_errors(self):
+        """Use fixed fold errors to exercise AFE/AAFE and inclusive fold cutoffs."""
         from .model_validation import ModelValidationService
-        svc = ModelValidationService()
-        report = svc.run_pbpk_validation()
-        assert report.metrics.AAFE_Cmax >= abs(report.metrics.AFE_Cmax) - 1e-9
-        assert report.metrics.AAFE_AUC  >= abs(report.metrics.AFE_AUC)  - 1e-9
+        from types import SimpleNamespace
+
+        # Cmax includes the exact 2-fold boundaries; AUC includes values just
+        # outside them.  This catches accidental strict inequalities and loss of
+        # the absolute value in AAFE.
+        results = [
+            SimpleNamespace(
+                observed_Cmax=1.0, predicted_Cmax=fold_cmax,
+                observed_AUC=1.0, predicted_AUC=fold_auc,
+                fold_error_Cmax=fold_cmax, fold_error_AUC=fold_auc,
+            )
+            for fold_cmax, fold_auc in ((0.5, 0.25), (1.0, 1.0), (2.0, 4.0))
+        ]
+        metrics = ModelValidationService()._compute_metrics(results)
+
+        assert metrics.AFE_Cmax == 1.0
+        assert metrics.AAFE_Cmax == 1.587
+        assert metrics.within_2fold_Cmax == 1.0
+        assert metrics.within_3fold_Cmax == 1.0
+        assert metrics.AFE_AUC == 1.0
+        assert metrics.AAFE_AUC == 2.52
+        assert metrics.within_2fold_AUC == pytest.approx(1 / 3, rel=1e-3)
+        assert metrics.within_3fold_AUC == pytest.approx(1 / 3, rel=1e-3)
 
 
 # ===========================================================================
@@ -981,6 +1010,30 @@ class TestINDAssembly:
             f"Found {question_marks_in_data} '?' values in PBPK table. "
             "Check that ind_assembly uses observed_Cmax (not observed_Cmax_ug_mL)"
         )
+
+    def test_pbpk_section_renders_known_reference_row_values(self):
+        """Pin a real row so field-name or numeric-format regressions cannot hide."""
+        from .ind_assembly import INDSectionAssembler
+        from .model_validation import ModelValidationService
+
+        report = ModelValidationService().run_pbpk_validation()
+        db_path = _tmp_db()
+        assembler = INDSectionAssembler(db_path=db_path)
+        ctx = dict(
+            campaign_id="test-known-pbpk-row",
+            molecule_name="BM-001",
+            sponsor="S",
+            indication="O",
+            target_name="T",
+            generated_at="2026-01-01T00:00:00+00:00",
+            compounds=[],
+            validation_report=report.model_dump(),
+            audit_summary={},
+            auto_proposal=None,
+        )
+
+        pbpk_section = assembler._section_pbpk(ctx)
+        assert "| Aspirin | 15.000 | 13.548 | 0.903 | ✓ |" in pbpk_section
 
 
 # ===========================================================================
