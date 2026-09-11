@@ -19,6 +19,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { FindingsCard } from "@/components/findings-card";
 import { TrajectoryView, type TrajectoryRow, type TrajectoryKind } from "@/components/trajectory-view";
+import { RegulatoryDocumentEditor } from "@/components/regulatory-document-editor";
 
 // Text-like file extensions we render inline as text (in a <pre>) rather than
 // in an <iframe>. Chrome blocks iframing a step-file response served with
@@ -304,7 +305,7 @@ export function AfterRunReport({
           </>
         )}
         {tab === "outputs" && <OutputsTab outputs={outputs} runId={runId} invocationId={invocationId} executionStatus={executionStatus} projectId={projectId} />}
-        {tab === "methods" && <MethodsTab methods={methods} />}
+        {tab === "methods" && <MethodsTab methods={methods} workflowName={workflowName} runId={runId} />}
         {tab === "params" && <ParametersTab parameters={parameters} runId={runId} />}
         {tab === "software" && <SoftwareTab versions={software} />}
         {tab === "citations" && <CitationsTab citations={citations} />}
@@ -1200,12 +1201,126 @@ function OutputsTab({
   );
 }
 
-function MethodsTab({ methods }: { methods: MethodsData }) {
+/**
+ * MethodsTab — the methods report as an editable file object (v2 Spec 12,
+ * scoped increment). Default view is the read-only report; an "Edit" toggle
+ * opens the same content in the proven TipTap document editor
+ * (RegulatoryDocumentEditor) so the user can revise the AI-generated methods
+ * prose and save an edited version (downloaded as markdown).
+ *
+ * SCOPE / DEFERRED (per docs/20260909_V2GAP_SEARCH_FILES_REPORTS_CONNECTORS.md
+ * Surface A): the full Spec-12 report-as-file thesis — server-side
+ * `fileVersions(id)` versioning, chat-propose-diff (before/after accept/reject),
+ * the report appearing in the project file tree, and multi-format
+ * (PDF/DOCX/HTML/ZIP) export — is NOT built here. This increment delivers the
+ * edit-and-save affordance only; the edited version is saved as a local
+ * markdown download, not a persisted server-side new version. Versioning is
+ * deferred: there is no backend endpoint to append a report version, so
+ * fabricating a version chip would be dishonest.
+ */
+function MethodsTab({
+  methods,
+  workflowName,
+  runId,
+}: {
+  methods: MethodsData;
+  workflowName?: string;
+  runId?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  // Live plain-text mirror of the editor content, kept via onEdit so Save can
+  // export exactly what the user sees. Seeded from the report text.
+  const [editedText, setEditedText] = useState<string>(methods.text);
+  const [savedToast, setSavedToast] = useState<string | null>(null);
+
+  // Re-seed when the source report changes (a fresh run / cache fill).
+  useEffect(() => {
+    setEditedText(methods.text);
+  }, [methods.text]);
+
   if (!methods.hasRealContent) {
     return <p style={styles.empty}>Methods report not available for this workflow.</p>;
   }
+
+  const handleSaveEdited = () => {
+    const blob = new Blob([editedText], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const base = (workflowName || "methods").replace(/[^\w.-]+/g, "-").slice(0, 60);
+    const suffix = runId ? `-${runId}` : "";
+    a.download = `biomate-methods-${base}${suffix}-edited.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setSavedToast("Edited methods report downloaded");
+    setTimeout(() => setSavedToast(null), 4000);
+  };
+
   return (
-    <pre style={styles.methodsBody}>{methods.text}</pre>
+    <div data-testid="methods-tab">
+      <div style={styles.methodsToolbar}>
+        <span style={styles.methodsToolbarLabel}>
+          {editing ? "Editing methods report" : "Methods report"}
+        </span>
+        <span style={{ flex: 1 }} />
+        {savedToast && (
+          <span style={styles.toast} role="status" data-testid="methods-save-toast">
+            {savedToast}
+          </span>
+        )}
+        {editing ? (
+          <>
+            <button
+              type="button"
+              onClick={handleSaveEdited}
+              style={styles.methodsEditBtn}
+              data-testid="methods-save-edited"
+              title="Download your edited version of the methods report as markdown"
+            >
+              ↓ Save edited version
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              style={styles.methodsDoneBtn}
+              data-testid="methods-done-editing"
+            >
+              Done editing
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            style={styles.methodsEditBtn}
+            data-testid="methods-edit-toggle"
+            title="Edit the methods report in place"
+          >
+            ✎ Edit
+          </button>
+        )}
+      </div>
+
+      {editing ? (
+        <div style={styles.methodsEditor} data-testid="methods-editor">
+          <RegulatoryDocumentEditor
+            content={methods.text}
+            isLocked={false}
+            onEdit={(text) => setEditedText(text)}
+            molecule={workflowName || ""}
+            generatedAt={new Date().toISOString()}
+            // This is an after-run methods report, not IND §2.6 regulatory
+            // assembly — do NOT emit DPO feedback pairs to the regulatory
+            // training endpoint.
+            recordEditPairs={false}
+          />
+        </div>
+      ) : (
+        <pre style={styles.methodsBody} data-testid="methods-readonly">{methods.text}</pre>
+      )}
+    </div>
   );
 }
 
@@ -1936,6 +2051,11 @@ const styles: Record<string, React.CSSProperties> = {
   outputName: { fontFamily: "JetBrains Mono, ui-monospace, monospace", fontSize: 11.5, color: "oklch(0.22 0.01 260)" },
   outputExt: { fontSize: 10, color: "oklch(0.48 0.012 260)", textTransform: "uppercase" },
   methodsBody: { fontSize: 11.5, fontFamily: "ui-monospace, monospace", background: "oklch(0.97 0.003 240)", padding: 12, borderRadius: 6, whiteSpace: "pre-wrap", maxHeight: 480, overflowY: "auto" },
+  methodsToolbar: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 },
+  methodsToolbarLabel: { fontSize: 11, fontWeight: 600, color: "oklch(0.45 0.012 260)", textTransform: "uppercase", letterSpacing: "0.04em" },
+  methodsEditBtn: { fontSize: 11, fontWeight: 600, color: "oklch(0.45 0.15 260)", background: "none", border: "1px solid oklch(0.85 0.03 260)", borderRadius: 5, padding: "3px 9px", cursor: "pointer" },
+  methodsDoneBtn: { fontSize: 11, fontWeight: 500, color: "oklch(0.45 0.012 260)", background: "none", border: "1px solid oklch(0.88 0.01 260)", borderRadius: 5, padding: "3px 9px", cursor: "pointer" },
+  methodsEditor: { border: "1px solid oklch(0.9 0.008 260)", borderRadius: 6, height: 480, overflow: "hidden", display: "flex", flexDirection: "column" },
   kvTable: { width: "100%", borderCollapse: "collapse" as React.CSSProperties["borderCollapse"] },
   kvKey: { padding: "4px 8px", fontSize: 11.5, fontWeight: 500, color: "oklch(0.35 0.01 260)", verticalAlign: "top", whiteSpace: "nowrap" },
   kvVal: { padding: "4px 8px", fontSize: 11.5, fontFamily: "ui-monospace, monospace", color: "oklch(0.22 0.01 260)", wordBreak: "break-all" },
