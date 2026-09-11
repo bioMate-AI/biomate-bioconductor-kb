@@ -15,7 +15,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ColdStartDashboard, COLD_MODULES, COLD_DOMAINS, readIntent } from "./cold-start-dashboard";
+import { ColdStartDashboard, COLD_MODULES, COLD_DOMAINS, COLD_MODALITIES, readIntent, seedWithModality } from "./cold-start-dashboard";
 
 /** The card element for a given module id. */
 function cardFor(moduleId: string): HTMLElement {
@@ -212,6 +212,91 @@ describe("<ColdStartDashboard>", () => {
     }
     // No "N workflows" / "N tools" style claims anywhere in the dashboard.
     expect(container.textContent || "").not.toMatch(/\d+\s*(workflows?|tools?|pipelines?)\b/i);
+  });
+
+  describe("Design & generate — modality selector (spec ColdStart)", () => {
+    it("the design card is retitled away from 'Propose molecules'", () => {
+      const design = COLD_MODULES.find((m) => m.id === "design")!;
+      expect(design.t).not.toMatch(/propose molecules/i);
+      expect(design.t.toLowerCase()).toContain("molecules");
+      expect(design.t.toLowerCase()).toContain("peptides");
+      expect(design.t.toLowerCase()).toContain("proteins");
+    });
+
+    it("shows the modality chip row only on the design card", async () => {
+      const user = userEvent.setup();
+      render(<ColdStartDashboard onSeed={() => {}} />);
+      // Not present on a non-modality module.
+      await user.click(headerFor("search"));
+      expect(within(cardFor("search")).queryByTestId("cold-modality-pep")).toBeNull();
+      // Present on the design module, one chip per modality.
+      await user.click(headerFor("design"));
+      const body = within(cardFor("design")).getByTestId("cold-module-body");
+      for (const [k] of COLD_MODALITIES) {
+        expect(within(body).getByTestId(`cold-modality-${k}`)).toBeInTheDocument();
+      }
+    });
+
+    it("switching modality swaps the shown examples", async () => {
+      const user = userEvent.setup();
+      render(<ColdStartDashboard onSeed={() => {}} />);
+      await user.click(headerFor("design"));
+      const body = within(cardFor("design")).getByTestId("cold-module-body");
+      const design = COLD_MODULES.find((m) => m.id === "design")!;
+      const genTrack = design.tracks[0];
+      // Small molecule (default) shows the sm variant.
+      expect(within(body).getByText(`“${genTrack.exBy!.sm[0]}”`)).toBeInTheDocument();
+      // Switch to peptide → peptide examples show, sm ones gone.
+      await user.click(within(body).getByTestId("cold-modality-pep"));
+      expect(within(body).getByText(`“${genTrack.exBy!.pep[0]}”`)).toBeInTheDocument();
+      expect(within(body).queryByText(`“${genTrack.exBy!.sm[0]}”`)).toBeNull();
+    });
+
+    it("seeds carry the modality: peptide/protein goals name the modality, small-molecule left as-is", async () => {
+      const user = userEvent.setup();
+      const onSeed = vi.fn();
+      render(<ColdStartDashboard onSeed={onSeed} />);
+      await user.click(headerFor("design"));
+      const body = within(cardFor("design")).getByTestId("cold-module-body");
+      const genTrack = COLD_MODULES.find((m) => m.id === "design")!.tracks[0];
+
+      // Small molecule seed passes through unchanged.
+      await user.click(within(body).getByText(`“${genTrack.exBy!.sm[0]}”`));
+      expect(onSeed).toHaveBeenLastCalledWith(genTrack.exBy!.sm[0]);
+
+      // Peptide seed already names "peptide"/"macrocycle" so it is not double-qualified.
+      onSeed.mockClear();
+      await user.click(within(body).getByTestId("cold-modality-pep"));
+      await user.click(within(body).getByText(`“${genTrack.exBy!.pep[0]}”`));
+      const arg = onSeed.mock.calls.at(-1)![0] as string;
+      expect(arg).toMatch(/peptide|macrocyc/i);
+    });
+
+    it("seedWithModality is a no-op for small molecule and qualifies otherwise", () => {
+      expect(seedWithModality("Rank these candidates", "sm")).toBe("Rank these candidates");
+      // A goal with no modality word gets qualified.
+      expect(seedWithModality("Rank these candidates", "pep")).toBe(
+        "Rank these candidates (peptide design)",
+      );
+      expect(seedWithModality("Rank these candidates", "bio")).toBe(
+        "Rank these candidates (protein design)",
+      );
+      // Already naming the modality → left alone (no double-qualify).
+      expect(seedWithModality("Design nanobody candidates", "bio")).toBe(
+        "Design nanobody candidates",
+      );
+    });
+
+    it("router self-test covers every per-modality design example (all route to a lane)", () => {
+      const design = COLD_MODULES.find((m) => m.id === "design")!;
+      for (const ex of design.ex) {
+        const r = readIntent(ex);
+        expect(r, `design example did not route: ${ex}`).not.toBeNull();
+      }
+      // The peptide/protein design examples read as design (cloud), not instant.
+      const pepEx = design.tracks[0].exBy!.pep[0];
+      expect(readIntent(pepEx)!.lane).toBe("cloud");
+    });
   });
 
   describe("readIntent()", () => {

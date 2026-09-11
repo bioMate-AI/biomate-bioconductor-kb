@@ -59,8 +59,13 @@ import { PipelineListView } from "./pipeline-list-view"
 import { WorkflowRationale } from "./workflow-rationale"
 import { IdeationRigorSection } from "./ideation-rigor-section"
 import { WhyAnchor } from "./why-anchor"
-import { ParamClarificationCard, type ParamClarification } from "./param-clarification-card"
-import { IntentClarificationCard, type IntentCandidate } from "./intent-clarification-card"
+import { type ParamClarification } from "./param-clarification-card"
+import { ClarifyCard, type ClarifyAnswer } from "./clarify-card"
+import {
+  paramClarificationsToQuestions,
+  intentClarificationToQuestion,
+  type IntentClarificationMeta,
+} from "./clarify-adapter"
 import { BenchmarkEvidence, ResearchResponseDisplay } from "./benchmark-evidence"
 import { InlineFeedbackWidget } from "./feedback/inline-feedback-widget"
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt"
@@ -94,6 +99,62 @@ function deriveSpeaker(kind: string | undefined): string {
   if (kind.startsWith('plan.'))             return 'plan'
   if (kind.startsWith('findings.'))         return 'find'
   return 'wf'
+}
+
+/**
+ * IntentClarifyBridge — renders intent (cross-intent) clarification through the
+ * typed ClarifyCard (spec 06 §6.4) while preserving the existing intentOverride
+ * re-submit round-trip.
+ *
+ * A confirmed pick re-dispatches `biomate:intent-clarification-resolved` (the
+ * chat-with-artifacts bridge re-sends the original message with
+ * context.intentOverride). A skip must NOT re-submit — but ClarifyCard's skip
+ * paths call BOTH onSkip and onDone on a single-question card. We therefore set
+ * a skip flag in onSkip and guard onDone against it so a skip only dispatches
+ * `biomate:intent-clarification-skipped` (a no-op in the bridge), never a
+ * re-submit.
+ */
+function IntentClarifyBridge({
+  meta,
+  messageId,
+}: {
+  meta: IntentClarificationMeta
+  messageId: string
+}) {
+  const skippedRef = useRef(false)
+  const q = intentClarificationToQuestion(meta)
+  if (!q) return null
+  const originalMessage = meta.originalMessage || ""
+  return (
+    <ClarifyCard
+      questions={[q]}
+      messageId={messageId}
+      onSkip={() => {
+        skippedRef.current = true
+        window.dispatchEvent(
+          new CustomEvent("biomate:intent-clarification-skipped", {
+            detail: { messageId },
+          }),
+        )
+      }}
+      onDone={(answers: ClarifyAnswer[]) => {
+        // onSkip fires just before onDone on a skip path; bail so skip never
+        // re-submits.
+        if (skippedRef.current) {
+          skippedRef.current = false
+          return
+        }
+        const a = answers[0]
+        if (!a) return
+        window.dispatchEvent(
+          new CustomEvent("biomate:intent-clarification-resolved", {
+            detail: { messageId, intentType: a.value, originalMessage },
+          }),
+        )
+      }}
+      className="mt-2"
+    />
+  )
 }
 
 interface ChatMessageProps {
@@ -633,61 +694,35 @@ export function ChatMessage({
             })()
           }
 
-          {/* IntentClarificationCard — surfaces cross-intent ambiguity
-              (e.g. tool_search vs workflow_generation) from the backend's
-              _detectCrossIntentAmbiguity. User pick re-submits the query
-              with context.intentOverride set. */}
+          {/* Intent clarification (spec 06 §6.4, typed) — surfaces cross-intent
+              ambiguity (e.g. tool_search vs workflow_generation) from the
+              backend's _detectCrossIntentAmbiguity. Rendered by the typed
+              ClarifyCard as a single workflow-target question; picking an option
+              re-submits the query with context.intentOverride set. ClarifyCard
+              dispatches `biomate:clarify-workflow-resolved` (the value is the
+              intent type); we translate that here into the existing
+              `biomate:intent-clarification-resolved` re-submit so the
+              intentOverride round-trip in chat-with-artifacts is preserved. */}
           {!isUser && (message.metadata as any)?.intentClarification?.candidates?.length > 0 && (
-            <IntentClarificationCard
-              originalMessage={(message.metadata as any).intentClarification.originalMessage || ''}
-              originalIntent={(message.metadata as any).intentClarification.originalIntent || ''}
-              candidates={(message.metadata as any).intentClarification.candidates as IntentCandidate[]}
-              reason={(message.metadata as any).intentClarification.reason}
-              onPick={(intentType, originalMessage) => {
-                window.dispatchEvent(
-                  new CustomEvent('biomate:intent-clarification-resolved', {
-                    detail: { messageId: message.id, intentType, originalMessage },
-                  }),
-                )
-              }}
-              onSkip={() => {
-                window.dispatchEvent(
-                  new CustomEvent('biomate:intent-clarification-skipped', {
-                    detail: { messageId: message.id },
-                  }),
-                )
-              }}
-              className="mt-2"
+            <IntentClarifyBridge
+              meta={(message.metadata as any).intentClarification as IntentClarificationMeta}
+              messageId={message.id}
             />
           )}
 
-          {/* ParamClarificationCard — surfaces missing-required / enum-violation
-              issues from schema-grounded extraction. Hidden when none present. */}
+          {/* Param clarification (spec 06 §6.4, typed) — surfaces missing-required
+              / enum-violation issues from schema-grounded extraction. Rendered by
+              the typed ClarifyCard: each option carries the bound schema value,
+              so answering selects a value directly (never re-parsed). ClarifyCard
+              dispatches the same `biomate:param-clarification-resolved` /
+              `-skipped` events the workflow-panel bridge already listens for, so
+              the pre-fill round-trip is unchanged. Hidden when none present. */}
           {!isUser && (message.metadata as any)?.paramClarifications?.length > 0 && (
-            <ParamClarificationCard
-              workflowName={
-                message.metadata?.workflow?.name ||
-                message.metadata?.workflow?.display_name ||
-                'workflow'
-              }
-              clarifications={(message.metadata as any).paramClarifications as ParamClarification[]}
-              onSelect={(paramName, value) => {
-                // Dispatch a custom event the workflow panel can listen for; the
-                // panel patches the param value in place. The card itself does
-                // not own param state.
-                window.dispatchEvent(
-                  new CustomEvent('biomate:param-clarification-resolved', {
-                    detail: { messageId: message.id, paramName, value },
-                  }),
-                )
-              }}
-              onSkip={(paramName) => {
-                window.dispatchEvent(
-                  new CustomEvent('biomate:param-clarification-skipped', {
-                    detail: { messageId: message.id, paramName },
-                  }),
-                )
-              }}
+            <ClarifyCard
+              questions={paramClarificationsToQuestions(
+                (message.metadata as any).paramClarifications as ParamClarification[],
+              )}
+              messageId={message.id}
               className="mt-2"
             />
           )}
