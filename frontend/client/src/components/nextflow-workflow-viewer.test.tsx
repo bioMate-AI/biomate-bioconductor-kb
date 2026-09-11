@@ -15,124 +15,111 @@ vi.mock("./feedback/download-outcome-prompt", () => ({
   DownloadOutcomePrompt: () => null,
 }));
 
-// These three tests assert a step-level "Run Step / Rerun Step" affordance
-// per step that was removed from the viewer: today only a "Rerun" button
-// renders, and only when the step is in a terminal status (isDone || isFailed,
-// see nextflow-workflow-viewer.tsx:656). The tests still cover a meaningful
-// behavior — if/when per-step controls return, repair the fixtures to set
-// step status='completed' so the button renders, then refresh the assertions
-// against the current Rerun label + onRun handler shape. Skipped (not deleted)
-// to preserve the intent.
-describe.skip("NextflowWorkflowViewer step execution controls", () => {
+// Per-step execution controls — CURRENT behavior (rewritten 2026-09-11, was
+// describe.skip). The old suite asserted an always-visible "Run Step / Rerun
+// Step" affordance that was removed: today the per-step Rerun button
+// (button-run-step-<id>) + full-view button render ONLY when the step is in a
+// terminal status (isDone || isFailed, nextflow-workflow-viewer.tsx:768-781),
+// and clicking Rerun POSTs /api/workflows/runs/<runId>/rerun (handleRunStep,
+// L1389). These tests drive a step to terminal state via a live step_state SSE
+// event (the real product path) and assert the affordance matrix + the rerun
+// call — real coverage, no skip.
+describe("NextflowWorkflowViewer — per-step execution controls (current affordance)", () => {
+  let esHandlers: Record<string, (ev: MessageEvent) => void> = {};
+  let fetchSpy: ReturnType<typeof vi.spyOn>;
+
+  const dispatchSSE = (type: string, payload: unknown) => {
+    const handler = esHandlers[type];
+    if (!handler) throw new Error(`No SSE handler registered for "${type}"`);
+    act(() => {
+      handler({ data: JSON.stringify(payload) } as MessageEvent);
+    });
+  };
+
+  const runningProps = {
+    workflowId: "wf-step-1",
+    workflowDefinition: {
+      id: "wf-step-1",
+      name: "Stepwise Workflow",
+      // step keys become step ids; s2 is the later phase so it starts
+      // genuinely pending under the running-status progress heuristic.
+      steps: {
+        s1: { name: "Align reads", tool_id: "t1" },
+        s2: { name: "Quantify", tool_id: "t2", parameters: { threads: 4 } },
+      },
+      required_params: [],
+      optional_params: [],
+      inline_parameters: {},
+    },
+    invocationId: "inv-step-1", // SSE effect is gated on invocationId
+    runId: "run-step-1",
+    progress: 0,
+    onExecute: vi.fn(),
+  };
+
   beforeEach(() => {
     vi.restoreAllMocks();
+    esHandlers = {};
+    (global as any).EventSource = class {
+      url: string;
+      onopen: (() => void) | null = null;
+      onmessage: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      readyState = 1;
+      constructor(url: string) { this.url = url; }
+      addEventListener(type: string, cb: (ev: MessageEvent) => void) { esHandlers[type] = cb; }
+      removeEventListener = vi.fn();
+      close = vi.fn();
+    };
+    fetchSpy = vi.spyOn(global, "fetch").mockImplementation(async () => ({
+      ok: true, status: 200, json: async () => ({ run_id: "run-step-1" }), text: async () => "",
+    } as Response));
+  });
+  afterEach(() => { vi.clearAllMocks(); });
+
+  it("shows NO per-step Rerun/full-view button while a step is pending", async () => {
+    render(<NextflowWorkflowViewer {...(runningProps as any)} status="running" />);
+    // Phases tab auto-selected for running; s2 starts genuinely pending.
+    const card = await screen.findByTestId("phase-card-s2");
+    expect(card).toHaveAttribute("data-status", "pending");
+    // The terminal-only affordances must be absent on a pending step.
+    expect(screen.queryByTestId("button-run-step-s2")).toBeNull();
+    expect(screen.queryByTestId("button-full-step-view-s2")).toBeNull();
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
+  it("reveals the Rerun + full-view affordance once a step reaches a terminal state", async () => {
+    render(<NextflowWorkflowViewer {...(runningProps as any)} status="running" />);
+    await screen.findByTestId("phase-card-s2");
+    await waitFor(() => expect(typeof esHandlers["step_state"]).toBe("function"));
+
+    // Live event drives s2 to completed — the only thing that moves it.
+    dispatchSSE("step_state", { step_id: "s2", step_state: "completed" });
+
+    const rerun = await screen.findByTestId("button-run-step-s2");
+    expect(rerun).toHaveTextContent("Rerun");
+    expect(rerun).toBeEnabled();
+    expect(screen.getByTestId("button-full-step-view-s2")).toBeInTheDocument();
   });
 
-  it("runs and reruns a step while updating status metadata", async () => {
-    const RERUN_URL = "/api/workflows/runs/test-run-1/rerun";
-    const fetchSpy = vi.spyOn(global, "fetch").mockImplementation(async (input) => {
-      const url = String(input);
-      if (url === RERUN_URL) {
-        return {
-          ok: true,
-          json: async () => ({ run_id: "test-run-1" }),
-        } as Response;
-      }
-      throw new Error(`Unexpected fetch URL: ${url}`);
-    });
+  it("clicking Rerun on a terminal step POSTs /rerun exactly once", async () => {
+    render(<NextflowWorkflowViewer {...(runningProps as any)} status="running" />);
+    await screen.findByTestId("phase-card-s2");
+    await waitFor(() => expect(typeof esHandlers["step_state"]).toBe("function"));
+    dispatchSSE("step_state", { step_id: "s2", step_state: "completed" });
 
-    render(
-      <NextflowWorkflowViewer
-        workflowId="wf-1"
-        runId="test-run-1"
-        workflowDefinition={{
-          name: "Stepwise Workflow",
-          steps: {
-            "0": {
-              id: "s1",
-              name: "Trim reads",
-              tool_id: "toolshed.g2.bx.psu.edu/repos/devteam/trimmomatic/trimmomatic/0.38.0",
-              parameters: { quality: 20 },
-            },
-          },
-        }}
-        status="idle"
-        progress={0}
-      />
-    );
-
-    expect(screen.getByTestId("button-run-workflow-panel")).toBeInTheDocument();
-    const runStepButton = screen.getByTestId("button-run-step-s1");
-    expect(runStepButton).toHaveTextContent("Run Step");
-
-    fireEvent.click(runStepButton);
-
+    const rerun = await screen.findByTestId("button-run-step-s2");
+    const RERUN_URL = "/api/workflows/runs/run-step-1/rerun";
+    // Ignore SSE/other fetches the component made on mount; count only /rerun.
+    const before = fetchSpy.mock.calls.filter(([u]) => String(u) === RERUN_URL).length;
+    fireEvent.click(rerun);
     await waitFor(() =>
       expect(fetchSpy).toHaveBeenCalledWith(
         RERUN_URL,
-        expect.objectContaining({
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        })
+        expect.objectContaining({ method: "POST" })
       )
     );
-    // After fetch resolves, run count increments and label becomes "Rerun Step"
-    await waitFor(() => expect(screen.getByTestId("button-run-step-s1")).toHaveTextContent("Rerun Step"));
-    // Button is loading (isExecuting=true) until the global run reaches a terminal state
-    expect(screen.getByTestId("button-run-step-s1")).toBeDisabled();
-    // Exactly one rerun call was made
-    const rerunCalls = fetchSpy.mock.calls.filter(([url]) => String(url) === RERUN_URL);
-    expect(rerunCalls.length).toBe(1);
-  });
-
-  it("disables step run control when a step has no tool id", () => {
-    render(
-      <NextflowWorkflowViewer
-        workflowDefinition={{
-          name: "Missing Tool Workflow",
-          steps: {
-            "0": { id: "s-missing", name: "Untyped step" },
-          },
-        }}
-      />
-    );
-
-    const button = screen.getByTestId("button-run-step-s-missing");
-    expect(button).toBeDisabled();
-  });
-
-  it("keeps full workflow controls operational alongside step controls", () => {
-    const onExecute = vi.fn();
-    render(
-      <NextflowWorkflowViewer
-        workflowDefinition={{
-          name: "Workflow With Full Controls",
-          parameters: { threads: 4 },
-          steps: {
-            "0": {
-              id: "s1",
-              name: "QC step",
-              tool_id: "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.75",
-            },
-          },
-        }}
-        onExecute={onExecute}
-        status="idle"
-        runId="test-run-1"
-      />
-    );
-
-    fireEvent.click(screen.getByTestId("button-run-workflow-panel"));
-    expect(onExecute).toHaveBeenCalledWith(
-      expect.objectContaining({
-        threads: 4,
-      })
-    );
-    expect(screen.getByTestId("button-run-step-s1")).toBeEnabled();
+    const after = fetchSpy.mock.calls.filter(([u]) => String(u) === RERUN_URL).length;
+    expect(after - before).toBe(1);
   });
 });
 
