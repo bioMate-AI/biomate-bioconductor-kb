@@ -2978,6 +2978,41 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         # When smiles_list is the only required param, this causes _explicit_covers_required=True
         # which skips _infer_params_from_intent_llm — eliminating an LLM call that adds latency.
         import json as _json_smiles
+        # Robust path (runs first): when the query is about chemistry and the
+        # workflow takes a smiles_list, split the query and RDKit-validate every
+        # candidate token. This captures a LIST of molecules — including short ones
+        # like 'CCO' and natural phrasings ("screen these SMILES for hERG: CCO,
+        # c1ccccc1") that the narrow 'SMILES:'-prefixed regex below misses. RDKit
+        # rejects non-molecule words (hERG, rank, screen…), so it does not
+        # false-positive. Falls through to the regex path if RDKit is unavailable.
+        if 'smiles_list' in all_param_names and 'smiles_list' not in _already_set:
+            _mentions_chem = bool(_re.search(
+                r'\b(smiles|compound|molecul|ligand|screen|admet|dock|herg|scaffold)\b',
+                user_intent, _re.IGNORECASE))
+            if _mentions_chem:
+                try:
+                    from rdkit import Chem as _Chem
+                    from rdkit import RDLogger as _RDLogger
+                    _RDLogger.DisableLog('rdApp.*')  # quiet parse errors for non-SMILES tokens
+                    _valid_smiles: list = []
+                    for _tok in _re.split(r'[\s,;]+', user_intent or ""):
+                        _tok = (_tok or "").strip().strip('.').rstrip(')')
+                        if not _tok or not _re.fullmatch(r'[A-Za-z0-9@\[\]\(\)\+\-=#\/\\%.]{2,}', _tok):
+                            continue
+                        _mol = _Chem.MolFromSmiles(_tok)
+                        if _mol is not None and _mol.GetNumAtoms() >= 2:
+                            _canon = _Chem.MolToSmiles(_mol)
+                            if _canon not in _valid_smiles:
+                                _valid_smiles.append(_canon)
+                    if _valid_smiles:
+                        suggestions.append({
+                            "name": "smiles_list",
+                            "value": _json_smiles.dumps(_valid_smiles[:50]),
+                            "rationale": f"{len(_valid_smiles)} SMILES RDKit-validated from the query.",
+                        })
+                        _already_set.add('smiles_list')
+                except Exception as _rdkit_exc:  # RDKit missing → regex fallback below
+                    log.debug("[ParamExtract] RDKit SMILES extraction skipped: %s", _rdkit_exc)
         if 'smiles_list' in all_param_names and 'smiles_list' not in _already_set:
             _smiles_m = _re.search(
                 r'\bSMILES\s*[=:]\s*([A-Za-z0-9@\[\]\(\)\+\-=#\/\\\.%:]{8,})',
