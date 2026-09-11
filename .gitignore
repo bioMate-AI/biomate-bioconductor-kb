@@ -176,3 +176,7 @@ data/validation/gwas/*.gz
 research/OM-TPS/
 research/mdgen/
 research/string-method/
+
+# Nextflow run artifacts (regenerable; never commit)
+backend/biomni_workflows/**/work/
+backend/biomni_workflows/**/results/
