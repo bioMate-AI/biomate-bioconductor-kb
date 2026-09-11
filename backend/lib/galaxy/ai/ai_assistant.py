@@ -3940,6 +3940,11 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         }
         return {
             'success': True,
+            # Every sibling fast path (nf-core/ADMET/cryosparc via _return_nextflow_match,
+            # plus the template-confidence paths) sets 'source'; this one reuses a DB
+            # template (geo_scrna_pseudobulk), so it is 'template_reuse'. Omitting it made
+            # the endpoint's result['source'] subscript raise KeyError -> 500 for scRNA.
+            'source': 'template_reuse',
             'message': (
                 f"I'm fetching the raw data directly from GEO using GEOquery — "
                 f"this downloads and pseudobulk-aggregates the scRNA-seq data for {_geo_id} "
