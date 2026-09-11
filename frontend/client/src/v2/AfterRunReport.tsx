@@ -1218,7 +1218,7 @@ function OutputsTab({
  * deferred: there is no backend endpoint to append a report version, so
  * fabricating a version chip would be dishonest.
  */
-function MethodsTab({
+export function MethodsTab({
   methods,
   workflowName,
   runId,
@@ -1233,9 +1233,15 @@ function MethodsTab({
   const [editedText, setEditedText] = useState<string>(methods.text);
   const [savedToast, setSavedToast] = useState<string | null>(null);
 
-  // Re-seed when the source report changes (a fresh run / cache fill).
+  // Re-seed when the source report changes (a fresh run / cache fill) — but
+  // NOT while the user is mid-edit, or a report refresh would silently clobber
+  // their in-progress edits. `editing` is intentionally NOT a dependency:
+  // re-seeding is driven by a source-text change only, and reads the current
+  // editing flag at that moment; adding it would also fire on the exit-edit
+  // transition and reset unsaved edits.
   useEffect(() => {
-    setEditedText(methods.text);
+    if (!editing) setEditedText(methods.text);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [methods.text]);
 
   if (!methods.hasRealContent) {
