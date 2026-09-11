@@ -3904,6 +3904,27 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 return None
         # _platform == 'scrna', or unknown with no non-single-cell signal → proceed with pseudobulk
 
+        # Single-cell CLUSTERING / trajectory / cell-typing intent must NOT be collapsed
+        # to pseudobulk — pseudobulk aggregation destroys per-cell resolution and cannot
+        # reproduce Seurat/Scanpy clustering, UMAP, marker discovery, or trajectory work
+        # (the actual analysis in the source papers). Defer to normal routing so the
+        # router can select a real single-cell workflow (nf-core/scrnaseq,
+        # bioconductor_scrna_seq, Seurat/Scanpy clustering, cell-type annotation).
+        # Keep pseudobulk ONLY when the intent is explicit cross-condition DE.
+        _singlecell_analysis = any(kw in _q for kw in [
+            'cluster', 'umap', 't-sne', 'tsne', 'cell type', 'cell-type', 'celltype',
+            'annotat', 'marker gene', 'markers', 'subpopulation', 'sub-population',
+            'sub-cluster', 'trajectory', 'pseudotime', 'seurat', 'scanpy', 'cell atlas',
+        ])
+        _explicit_pseudobulk_de = any(kw in _q for kw in [
+            'pseudobulk', 'pseudo-bulk', 'deseq2', 'edger', 'differential expression',
+            'differential abundance',
+        ])
+        if _singlecell_analysis and not _explicit_pseudobulk_de:
+            log.info("[GeoFastPath] GEO %s single-cell clustering/trajectory intent — skipping "
+                     "pseudobulk fast path, deferring to normal routing (nf-core/scrnaseq / Seurat)", _geo_id)
+            return None
+
         # Look up geo_scrna_pseudobulk in the DB
         top = self.workflow_search.get_workflow_by_filename_pattern('%geo_scrna_pseudobulk%')
         if not top:
