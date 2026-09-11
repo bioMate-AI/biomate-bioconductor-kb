@@ -11,6 +11,7 @@
  * empty/held states honestly. No value is fabricated here.
  */
 
+import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { AlertTriangle, Boxes } from "lucide-react"
 import { PlddtChart } from "@/components/viewers/plddt-chart"
@@ -80,6 +81,13 @@ export function InferenceResultView({
 
 // ── structure ────────────────────────────────────────────────────────────────
 function StructureView({ r }: { r: StructureResult }) {
+  // pLDDT chart and structure selection are ONE selection (Spec 03 §3.8.1).
+  // The inference backend returns a file *ref* (a string), not a fetchable
+  // OutputDataset, so we cannot mount a live 3D viewer here — but we still wire
+  // the selection so the slot names the residue the 3D view would centre on,
+  // and it lands live once the structure file is opened in the full step view.
+  const [selected, setSelected] = useState<number | null>(null)
+
   return (
     <div className="space-y-3 mt-2" data-testid="inference-structure">
       {/* 3D-structure slot — the backend returns a file ref, not a fetchable
@@ -87,6 +95,7 @@ function StructureView({ r }: { r: StructureResult }) {
       <div
         className="rounded border bg-muted/40 flex flex-col items-center justify-center py-8 text-center"
         data-testid="inference-structure-slot"
+        data-selected-residue={selected ?? ''}
       >
         <Boxes className="h-6 w-6 text-muted-foreground mb-1" />
         <span className="text-xs text-muted-foreground">3D structure viewer</span>
@@ -97,8 +106,20 @@ function StructureView({ r }: { r: StructureResult }) {
         ) : (
           <span className="text-[10px] text-muted-foreground mt-1">no structure file returned</span>
         )}
+        {selected !== null && (
+          <span
+            className="text-[10px] text-muted-foreground mt-1"
+            data-testid="inference-structure-selection"
+          >
+            centred on residue {selected} — open the structure file to view
+          </span>
+        )}
       </div>
-      <PlddtChart plddt={r.plddt ?? []} regions={r.regions ?? []} />
+      <PlddtChart
+        plddt={r.plddt ?? []}
+        regions={r.regions ?? []}
+        onSelectResidue={setSelected}
+      />
       <PaeHeatmap pae={r.pae ?? []} />
     </div>
   )

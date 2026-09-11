@@ -244,6 +244,39 @@ export function buildStepDetailStep(step: any): StepDetailStep {
   };
 }
 
+/**
+ * Derive the run KIND word for the panel kicker (Spec 13 §13.4).
+ *
+ * "Domain and run kind — never 'Workflow' for a run that is not one." A design
+ * pipeline is a "Design run", an ad-hoc compute sandbox is "Ad-hoc · sandbox",
+ * a model-training harness is a "Training run". Everything else (RNA-seq,
+ * variant calling, ADMET, proteomics …) genuinely IS a workflow → "Workflow".
+ *
+ * The kind is read from an explicit definition field first (run_kind / kind /
+ * mode / lane, in that order), then inferred from the domain string. The
+ * honest default is "Workflow": a routed pipeline is a workflow unless the
+ * definition tells us otherwise.
+ */
+export function deriveRunKind(workflowDefinition: any): 'Design run' | 'Ad-hoc · sandbox' | 'Training run' | 'Workflow' {
+  const explicit = String(
+    workflowDefinition?.run_kind ?? workflowDefinition?.kind ?? workflowDefinition?.mode ?? workflowDefinition?.lane ?? ''
+  ).toLowerCase();
+  if (explicit) {
+    if (explicit.includes('design')) return 'Design run';
+    if (explicit.includes('sandbox') || explicit === 'adhoc' || explicit === 'ad-hoc' || explicit.includes('compute')) return 'Ad-hoc · sandbox';
+    if (explicit.includes('train')) return 'Training run';
+    if (explicit.includes('workflow')) return 'Workflow';
+  }
+  const domain = String(workflowDefinition?.domain ?? workflowDefinition?.category ?? '').toLowerCase();
+  // Design & generate (Spec 11 modalities) → design run.
+  if (/\bdesign\b|design_generate|generative|molecular_design|de_novo/.test(domain)) return 'Design run';
+  // Data-analysis ad-hoc compute → sandbox.
+  if (/data_analysis|sandbox|ad[_-]?hoc/.test(domain)) return 'Ad-hoc · sandbox';
+  // Model training harness (the four model domains under "Models & training").
+  if (/model[_ ]?training|models_and_training|\btraining\b/.test(domain)) return 'Training run';
+  return 'Workflow';
+}
+
 function buildViewerParameters(workflowDefinition: any, currentParams: Record<string, any>): ViewerParameter[] {
   // Prefer structured required_params / optional_params when the backend .nf parser populated them.
   const reqList: any[] = Array.isArray(workflowDefinition?.required_params) ? workflowDefinition.required_params : [];
@@ -2477,9 +2510,11 @@ export function NextflowWorkflowViewer({
       {(() => {
         const wfDomain = (workflowDefinition?.domain || workflowDefinition?.category || '') as string;
         const meaningfulDomain = wfDomain && wfDomain !== 'general' ? wfDomain : '';
+        // Run KIND overrides "Workflow" for design / sandbox / training runs (Spec 13 §13.4).
+        const runKind = deriveRunKind(workflowDefinition);
         const kickerLabel = meaningfulDomain
-          ? `${meaningfulDomain.replace(/_/g, ' ').toUpperCase()} · WORKFLOW`
-          : 'WORKFLOW';
+          ? `${meaningfulDomain.replace(/_/g, ' ').toUpperCase()} · ${runKind.toUpperCase()}`
+          : runKind.toUpperCase();
         const hasRealPhases = groupedPhases.some((g: any) => g.key !== 'all');
         const phaseCount = hasRealPhases ? groupedPhases.length : groupedPhases.length > 0 ? 1 : 0;
         const stepCount = updatedPhases.length;
@@ -2492,7 +2527,7 @@ export function NextflowWorkflowViewer({
           <div className="panel-head" data-tour="panel-header">
             <div className="top-row">
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="kicker">{kickerLabel}</div>
+                <div className="kicker" data-testid="panel-kicker" data-run-kind={runKind}>{kickerLabel}</div>
                 <div className="panel-name">{workflowDefinition?.name || 'Untitled'}</div>
                 {panelSub && <div className="panel-sub">{panelSub}</div>}
               </div>

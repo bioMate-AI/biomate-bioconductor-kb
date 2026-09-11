@@ -11,7 +11,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import { StepOutputPreview } from "./step-output-preview";
+import { StepOutputPreview, parsePlddtFromPdb } from "./step-output-preview";
 
 // Stub heavy viewers — we're testing routing + content rendering, not the
 // 3Dmol/density/chart internals.
@@ -156,5 +156,81 @@ describe("StepOutputPreview — viewer routing by extension", () => {
       expect(screen.getByText(/Failed to load file/)).toBeInTheDocument();
       expect(screen.getByText(/HTTP 404/)).toBeInTheDocument();
     });
+  });
+
+  // DL-domain JSON sidecars → the ported evidence viewers (Spec 08 §8.5).
+  it("routes a *_seqtracks.json output to SeqTracks with its flagged intervals", async () => {
+    mockFetch(
+      {
+        locus: "chr7:5,527,100–5,530,600",
+        bp: 3500,
+        tracks: [{ kind: "line", name: "conservation", values: [10, 40, 80, 60] }],
+        flagged: [{ start: 120, end: 145, context: "splice donor", why: "predicted loss-of-function" }],
+      },
+      "application/json",
+    );
+    render(<StepOutputPreview runId={runId} file={{ name: "variant_seqtracks.json", path: "/p", extension: "json" }} onClose={onClose} />);
+    await waitFor(() => {
+      // The DL preview wrapper mounts and the SeqTracks flagged output is the actionable payload.
+      expect(screen.getByTestId("dl-json-preview")).toBeInTheDocument();
+      expect(screen.getByText(/predicted loss-of-function/)).toBeInTheDocument();
+    });
+  });
+
+  it("routes a *_hits.json output to HitGrid and keeps a held hit unscored (null, not 0)", async () => {
+    mockFetch(
+      {
+        modelName: "admet-herg v3",
+        hits: [
+          { id: "cand-1", smiles: "CCO", score: 0.82, confidence: "in-domain", verdict: "accepted" },
+          { id: "cand-2", smiles: "c1ccccc1", verdict: "held", confidence: "out-of-domain" },
+        ],
+      },
+      "application/json",
+    );
+    render(<StepOutputPreview runId={runId} file={{ name: "triage_hits.json", path: "/p", extension: "json" }} onClose={onClose} />);
+    await waitFor(() => {
+      expect(screen.getByTestId("dl-json-preview")).toBeInTheDocument();
+      // HitGrid renders the ranked-hits card; the held candidate id must still appear.
+      expect(screen.getByText("cand-2")).toBeInTheDocument();
+    });
+  });
+
+  it("does NOT route a plain report.json to a DL viewer (unknown JSON → table)", async () => {
+    mockFetch({ summary: "ok", value: 42 }, "application/json");
+    render(<StepOutputPreview runId={runId} file={{ name: "report.json", path: "/p", extension: "json" }} onClose={onClose} />);
+    await waitFor(() => {
+      // No DL wrapper — falls through to the generic JSON table path.
+      expect(screen.queryByTestId("dl-json-preview")).not.toBeInTheDocument();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// pLDDT parser — the honest companion to a predicted-structure 3D view.
+// Spec 14 §14.2: "pLDDT in the B-factor column". Spec 08 §8.5: a predicted
+// structure opens the 3D view WITH its per-residue confidence chart.
+// ---------------------------------------------------------------------------
+describe("parsePlddtFromPdb", () => {
+  // Minimal PDB: one CA per residue with the B-factor (cols 61-66) as pLDDT.
+  // Columns are 1-based in the PDB spec; slice offsets in the parser are 0-based.
+  const pdbLine = (resSeq: number, bfac: number) =>
+    `ATOM  ${String(resSeq * 5).padStart(5)}  CA  ALA A${String(resSeq).padStart(4)}    ` +
+    `  10.000  10.000  10.000  1.00${bfac.toFixed(2).padStart(6)}           C`;
+
+  it("reads one per-residue confidence value per CA atom, in residue order", () => {
+    const pdb = [pdbLine(1, 95.2), pdbLine(2, 72.0), pdbLine(3, 40.5)].join("\n");
+    expect(parsePlddtFromPdb(pdb)).toEqual([95.2, 72.0, 40.5]);
+  });
+
+  it("returns [] when there are no CA atoms", () => {
+    const pdb = "ATOM      1  N   ALA A   1      10.0  10.0  10.0  1.00 88.00           N";
+    expect(parsePlddtFromPdb(pdb)).toEqual([]);
+  });
+
+  it("returns [] for a real crystal structure whose B-factors exceed the pLDDT 0–100 band", () => {
+    // Real temperature factors routinely run 120+ Å² — not a confidence column.
+    const pdb = [pdbLine(1, 145.0), pdbLine(2, 210.0)].join("\n");
+    expect(parsePlddtFromPdb(pdb)).toEqual([]);
   });
 });

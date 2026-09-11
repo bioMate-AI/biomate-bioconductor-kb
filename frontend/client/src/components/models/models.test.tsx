@@ -501,6 +501,21 @@ describe("InferenceResultView — routing by evidence class", () => {
     expect(screen.getByTestId("pae-heatmap")).toBeTruthy()
   })
 
+  it("structure → clicking a pLDDT residue centres the 3D selection (one selection, not two)", () => {
+    // Spec 03 §3.8.1: chart selection and structure selection are one. The
+    // inference backend returns a file ref (not a fetchable dataset) so the 3D
+    // slot names the residue it would centre on rather than faking a viewer.
+    render(<InferenceResultView result={STRUCTURE_RESULT} evidenceClass="structure" />, { wrapper: wrapper() })
+    const slot = screen.getByTestId("inference-structure-slot")
+    // Pre-selection: no residue chosen.
+    expect(slot.getAttribute("data-selected-residue")).toBe("")
+    expect(screen.queryByTestId("inference-structure-selection")).toBeNull()
+    // Click the 3rd bar → 1-based residue 3.
+    fireEvent.click(screen.getByTestId("plddt-bar-2"))
+    expect(slot.getAttribute("data-selected-residue")).toBe("3")
+    expect(screen.getByTestId("inference-structure-selection").textContent).toContain("residue 3")
+  })
+
   it("genomic → SeqTracks with the flagged intervals", () => {
     render(<InferenceResultView result={GENOMIC_RESULT} evidenceClass="genomic" />, { wrapper: wrapper() })
     expect(screen.getByTestId("seq-tracks")).toBeTruthy()
