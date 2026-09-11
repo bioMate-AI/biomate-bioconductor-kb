@@ -52,3 +52,7 @@ Acceptance: observed findings trace to exact result fields; external claims trac
 Out of scope: custom reasoning-model training, a new asthma study, changes to the Mohan pilot, or launching immune-model training. Future validated immune-model predictions enter as structured tools with uncertainty and applicability limits.
 
 Related immune-system plan: `/Users/kky/biomate-immune-llm/docs/program_control/20260911_IMMUNE_SYSTEM_EXTENDED_BUILD_AND_REASONING_PLAN.md` (revised to system reasoning).
+
+## Live baseline audit follow-up
+
+[Cross-domain plan and results](20260911_biomate_cross_domain_audit/RESULTS.md): twelve live chat cases plus a real ADMET execution. Compute completed, but output access and findings failed. Fix deployed output signing/readiness, interpretation routing, input binding and source relevance before claiming shared reasoning readiness. Raw payloads and reproduction scripts are retained. This establishes a baseline; the shared evidence-service implementation task remains TODO.

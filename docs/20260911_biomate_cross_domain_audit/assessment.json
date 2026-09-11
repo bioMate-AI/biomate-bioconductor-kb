@@ -1,0 +1,98 @@
+[
+  {
+    "id": "DD01",
+    "status": "PASS",
+    "reason": "Correct predicted margins 2 and 200; no clinical safety conclusion.",
+    "transport": "complete",
+    "scope": "single live request; manual grading",
+    "raw": "raw/DD01.json"
+  },
+  {
+    "id": "DD02",
+    "status": "PARTIAL",
+    "reason": "Core no-measured-potency conclusion passes; unsupported assay/scoring generalizations in elaboration.",
+    "transport": "complete",
+    "scope": "single live request; manual grading",
+    "raw": "raw/DD02.json"
+  },
+  {
+    "id": "DD03",
+    "status": "FAIL",
+    "reason": "Requested arithmetic was replaced by a request for SMILES to launch PBPK.",
+    "transport": "complete",
+    "scope": "single live request; manual grading",
+    "raw": "raw/DD03.json"
+  },
+  {
+    "id": "OM01",
+    "status": "PARTIAL",
+    "reason": "Correct gene selection; unsupported 10\u201320-gene enrichment threshold and malformed table.",
+    "transport": "complete",
+    "scope": "single live request; manual grading",
+    "raw": "raw/OM01.json"
+  },
+  {
+    "id": "OM02",
+    "status": "PARTIAL",
+    "reason": "Correct causal restraint; unsupported numerical heuristics added without sources.",
+    "transport": "complete",
+    "scope": "single live request; manual grading",
+    "raw": "raw/OM02.json"
+  },
+  {
+    "id": "OM03",
+    "status": "PARTIAL",
+    "reason": "No diagnosis/reclassification; additional rarity/segregation guidance lacks claim-linked support.",
+    "transport": "complete",
+    "scope": "single live request; manual grading",
+    "raw": "raw/OM03.json"
+  },
+  {
+    "id": "ST01",
+    "status": "PARTIAL",
+    "reason": "No mechanism conclusion; response explicitly reports irrelevant forestry/medical sources.",
+    "transport": "complete",
+    "scope": "single live request; manual grading",
+    "raw": "raw/ST01.json"
+  },
+  {
+    "id": "RG01",
+    "status": "FAIL",
+    "reason": "Did not deliver two relevant primary sources; explicitly abstained and exposed internal prompt language.",
+    "transport": "complete",
+    "scope": "single live request; manual grading",
+    "raw": "raw/RG01.json"
+  },
+  {
+    "id": "WF01",
+    "status": "FAIL_E2E",
+    "reason": "Compute completed 2/2 steps in 133 s; six listed outputs all return storage 403 InvalidAccessKeyId; findings ready with no key results. Prediction content unverified.",
+    "transport": "complete",
+    "scope": "single live request; manual grading",
+    "raw": "raw/WF01.json"
+  },
+  {
+    "id": "WF02",
+    "status": "BLOCKED",
+    "reason": "Correct bulk workflow; matrix/sample files unbound and prerequisites not fulfilled. No DESeq2 execution.",
+    "transport": "complete",
+    "scope": "single live request; manual grading",
+    "raw": "raw/WF02.json"
+  },
+  {
+    "id": "CN01",
+    "status": "PARTIAL",
+    "reason": "Core complete-confounding conclusion passes; unresolved [25]/[26] citation placeholders remain.",
+    "transport": "complete",
+    "scope": "single live request; manual grading",
+    "raw": "raw/CN01.json"
+  },
+  {
+    "id": "CN02",
+    "status": "PASS_CORE",
+    "reason": "Separates prediction, expression, presentation, recognition, efficacy and safety; no therapeutic validation claim. Additional methodological prose not independently validated.",
+    "transport": "complete",
+    "scope": "single live request; manual grading",
+    "raw": "raw/CN02.json"
+  }
+]
