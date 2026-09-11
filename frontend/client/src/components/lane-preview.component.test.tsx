@@ -19,7 +19,7 @@
 
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, act } from "@testing-library/react";
+import { render, screen, act, fireEvent } from "@testing-library/react";
 import { LanePreview } from "./lane-preview";
 
 // An input whose LOCAL heuristic is unambiguously Instant (a "what is known"
@@ -131,5 +131,61 @@ describe("LanePreview — useServerLane arbiter", () => {
     expect(read).not.toContain("reads as reads as");
     // Exactly one "reads as " occurrence.
     expect((read.match(/reads as/gi) || []).length).toBe(1);
+  });
+});
+
+describe("LanePreview — 'why this?' plain-language reason (spec 06 §6.2)", () => {
+  // Real timers + no server mock: the local heuristic drives the verdict and the
+  // server hook 404s and stays local, so the toggle test is deterministic.
+  beforeEach(() => {
+    vi.useRealTimers();
+    global.fetch = vi.fn(async () => ({ ok: false, status: 404, json: async () => ({}) })) as unknown as typeof fetch;
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    // Restore fake timers so the file-level afterEach (runOnlyPendingTimers)
+    // does not throw "Timers are not mocked".
+    vi.useFakeTimers();
+  });
+
+  it("renders a 'why this?' toggle (not 'why this lane?')", () => {
+    render(<LanePreview text="What is the evidence linking TNF to disease?" />);
+    const why = screen.getByTestId("lane-preview-why");
+    expect(why).toHaveTextContent(/^why this\?$/i);
+    expect(why.textContent || "").not.toMatch(/lane/i);
+  });
+
+  it("the reason is hidden until toggled, then shows plain-language copy", () => {
+    render(<LanePreview text="What is the evidence linking TNF to disease?" />);
+    expect(screen.queryByTestId("lane-preview-why-reason")).toBeNull();
+    fireEvent.click(screen.getByTestId("lane-preview-why"));
+    const reason = screen.getByTestId("lane-preview-why-reason");
+    expect(reason).toBeInTheDocument();
+    // Toggling again hides it.
+    fireEvent.click(screen.getByTestId("lane-preview-why"));
+    expect(screen.queryByTestId("lane-preview-why-reason")).toBeNull();
+  });
+
+  it("the reason contains NO mechanism / regex / confidence percentage", () => {
+    render(<LanePreview text="Run DESeq2 on these RNA-seq samples" />);
+    fireEvent.click(screen.getByTestId("lane-preview-why"));
+    const text = screen.getByTestId("lane-preview-why-reason").textContent || "";
+    expect(text.length).toBeGreaterThan(20);
+    // No percentage / confidence score.
+    expect(text).not.toMatch(/\d+\s*%/);
+    expect(text).not.toMatch(/confidence|score\b/i);
+    // No regex / keyword-matching mechanism talk.
+    expect(text).not.toMatch(/regex|keyword|matched|pattern|classif/i);
+  });
+
+  it("the cloud reason differs from the instant reason", () => {
+    const { unmount } = render(<LanePreview text="Run DESeq2 on these RNA-seq samples" />);
+    fireEvent.click(screen.getByTestId("lane-preview-why"));
+    const cloud = screen.getByTestId("lane-preview-why-reason").textContent || "";
+    unmount();
+    render(<LanePreview text="What is the evidence linking TNF to disease?" />);
+    fireEvent.click(screen.getByTestId("lane-preview-why"));
+    const instant = screen.getByTestId("lane-preview-why-reason").textContent || "";
+    expect(cloud).not.toBe(instant);
   });
 });

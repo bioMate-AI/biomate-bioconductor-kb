@@ -131,6 +131,26 @@ export const COLD_DOMAINS: ColdDomain[] = [
   },
 ];
 
+// ── Modality of a design candidate (reference window.MODALITIES). The Design &
+//    generate module's tracks switch their example list per modality, and the
+//    picked modality is threaded into the seeded goal so the downstream run
+//    opens in the right modality. ──────────────────────────────────────────────
+export type ColdModality = "sm" | "pep" | "bio";
+
+/** [key, chip label] pairs, in display order (reference window.MODALITIES). */
+export const COLD_MODALITIES: Array<[ColdModality, string]> = [
+  ["sm", "Small molecule"],
+  ["pep", "Peptide"],
+  ["bio", "Protein / biologic"],
+];
+
+/** Human word for a modality, used to phrase the seeded goal (reference MOD_WORD). */
+export const COLD_MOD_WORD: Record<ColdModality, string> = {
+  sm: "small molecule",
+  pep: "peptide",
+  bio: "protein",
+};
+
 // ── A track inside a module (reference window.MODULES[].tracks). A track is a
 //    tab whose example intents (.exrow) seed the composer. The Data analysis →
 //    Validated workflows track sets `domains`, which swaps in the domain chips.
@@ -141,6 +161,12 @@ export interface ColdTrack {
   ex: string[];
   /** When true, this track shows the validated-workflow domain chips. */
   domains?: boolean;
+  /**
+   * Per-modality example intents (reference tr.exBy). When present on a module
+   * flagged `modalities`, the shown examples switch with the modality chip;
+   * `ex` stays the small-molecule default (and the router self-test surface).
+   */
+  exBy?: Record<ColdModality, string[]>;
 }
 
 // ── Function modules. Categories + tracks + example intents only — no counts,
@@ -152,6 +178,9 @@ export interface ColdModule {
   /** One-line description of what the module is for. */
   t: string;
   icon: "search" | "beaker" | "dna" | "sparkles";
+  /** When true, the card shows a modality chip row (Small molecule / Peptide /
+   *  Protein), and its tracks' examples switch per modality via `exBy`. */
+  modalities?: boolean;
   /** The module's tracks (tabs shown when the card is open). */
   tracks: ColdTrack[];
   /**
@@ -164,7 +193,13 @@ export interface ColdModule {
 }
 
 function withEx(m: Omit<ColdModule, "ex">): ColdModule {
-  return { ...m, ex: m.tracks.flatMap((tr) => tr.ex) };
+  // The router self-test surface: every example printed on a card (across all
+  // tracks and, for a modality module, every per-modality variant) must route.
+  const ex = m.tracks.flatMap((tr) =>
+    tr.exBy ? [...tr.ex, ...Object.values(tr.exBy).flat()] : tr.ex,
+  );
+  // De-dupe: the small-molecule exBy usually repeats the default `ex`.
+  return { ...m, ex: Array.from(new Set(ex)) };
 }
 
 export const COLD_MODULES: ColdModule[] = [
@@ -235,8 +270,9 @@ export const COLD_MODULES: ColdModule[] = [
   withEx({
     id: "design",
     k: "Design & generate",
-    t: "Propose molecules, then optimise and rank them",
+    t: "Propose candidates — molecules, peptides, proteins — then optimise and rank them",
     icon: "dna",
+    modalities: true,
     tracks: [
       {
         k: "Generate",
@@ -245,22 +281,73 @@ export const COLD_MODULES: ColdModule[] = [
           "Scaffold-hop away from this series but keep the binding pharmacophore.",
           "Grow this fragment into a lead-like molecule.",
         ],
+        exBy: {
+          sm: [
+            "Generate 500 candidates for this target with drug-like properties.",
+            "Scaffold-hop away from this series but keep the binding pharmacophore.",
+            "Grow this fragment into a lead-like molecule.",
+          ],
+          pep: [
+            "Design cyclic peptides against this binding site.",
+            "Propose stapled-peptide analogues of this helix.",
+            "Generate macrocycle candidates with good permeability.",
+          ],
+          bio: [
+            "Design nanobody candidates against this epitope.",
+            "Graft these CDRs onto a stable human framework.",
+            "Propose enzyme variants with a redesigned active-site pocket.",
+          ],
+        },
       },
       {
-        k: "Predict activity",
+        k: "Predict & filter",
         ex: [
           "Predict binding affinity for these candidates against my target.",
           "Which of these would you expect to bind, and why?",
           "Dock the top 50 and check the poses are plausible.",
         ],
+        exBy: {
+          sm: [
+            "Predict binding affinity for these candidates against my target.",
+            "Which of these would you expect to bind, and why?",
+            "Dock the top 50 and check the poses are plausible.",
+          ],
+          pep: [
+            "Predict binding and serum stability for these peptides.",
+            "Which macrocycles are likely to be cell-permeable?",
+            "Screen these peptides for aggregation risk.",
+          ],
+          bio: [
+            "Predict developability liabilities for these antibody candidates.",
+            "Which variants keep affinity and lose aggregation risk?",
+            "Flag expression and stability risks across these designs.",
+          ],
+        },
       },
       {
-        k: "Optimise properties",
+        k: "Optimise properties · one pass",
         ex: [
           "Optimise this series for potency without losing solubility.",
           "Improve druglikeness while keeping hERG above 30 µM.",
           "Fix the metabolic liability on this scaffold and re-score.",
         ],
+        exBy: {
+          sm: [
+            "Optimise this series for potency without losing solubility.",
+            "Improve druglikeness while keeping hERG above 30 µM.",
+            "Fix the metabolic liability on this scaffold and re-score.",
+          ],
+          pep: [
+            "Improve serum stability without losing affinity.",
+            "Reduce charge while keeping cell permeability.",
+            "Optimise these macrocycles for both potency and solubility.",
+          ],
+          bio: [
+            "Optimise this antibody for developability — aggregation and viscosity.",
+            "Humanise this nanobody and keep affinity.",
+            "Raise thermostability without losing catalytic activity.",
+          ],
+        },
       },
       {
         k: "Rank candidates",
@@ -269,6 +356,23 @@ export const COLD_MODULES: ColdModule[] = [
           "Which candidates pass every safety gate?",
           "Triage this library into synthesise-now and park.",
         ],
+        exBy: {
+          sm: [
+            "Rank these 500 candidates for developability and show me the top 20.",
+            "Which candidates pass every safety gate?",
+            "Triage this library into synthesise-now and park.",
+          ],
+          pep: [
+            "Rank these peptides on affinity, stability and permeability together.",
+            "Which macrocycles pass every developability gate?",
+            "Shortlist the top 20 peptides to synthesise first.",
+          ],
+          bio: [
+            "Rank these designs on developability and expression risk.",
+            "Which variants pass every liability gate?",
+            "Triage this design set into express-now and park.",
+          ],
+        },
       },
     ],
   }),
@@ -334,6 +438,11 @@ const DOMAIN_RULES: Array<{ m: RegExp; dom: string; lane: LaneKind }> = [
   { m: /(train|fine-?tune|adapt (the |a )?model|re-?train)/i, dom: "Models & training", lane: "cloud" },
   // Design pipeline, most specific first.
   { m: /(optimis|optimiz|multi-?objective|trade-?off|without losing|re-?score|improve.*(while|but|without))/i, dom: "Property optimisation", lane: "cloud" },
+  // Peptide / protein-biologic design (reference INFER + design routes) —
+  // before the small-molecule design rule so a modality-specific goal reads as
+  // its own domain, not "Molecular design".
+  { m: /(nanobod|antibod|\bcdr\b|humanise|humanize|enzyme variant|biologic|developab|thermostab|framework)/i, dom: "Protein & biologic design", lane: "cloud" },
+  { m: /(peptide|macrocyc|stapled|helicit|serum stab|cell.?permeab|cyclic peptide)/i, dom: "Peptide design", lane: "cloud" },
   { m: /(generate|de novo|design (a |some )?molecul|scaffold.?hop|enumerat|analogue|grow this fragment)/i, dom: "Molecular design", lane: "cloud" },
   { m: /(affinity|binding|expect to bind|dock|pose|selectiv|predict.*potenc)/i, dom: "Activity prediction", lane: "cloud" },
   // Validated workflows by domain. ADMET before ranking.
@@ -570,6 +679,28 @@ function ShapeRow({ shape, onSeed }: ShapeRowProps) {
   );
 }
 
+/**
+ * Thread the picked modality into a seeded design goal (reference onSeed(x, mod)).
+ * The deployed onSeed is single-arg, so instead of a second argument we make the
+ * modality explicit in the seed text — the downstream router reads the words, so
+ * naming the modality in the goal is what actually opens the run in that
+ * modality. A no-op for small molecule (the default reading) and for seeds that
+ * already name the modality word, so we never double-qualify.
+ */
+export function seedWithModality(text: string, mod: ColdModality): string {
+  const t = (text || "").trim();
+  if (!t) return t;
+  // Small molecule is the default reading — the design examples are already
+  // phrased for it, so adding "(small molecule)" would be noise.
+  if (mod === "sm") return t;
+  const word = COLD_MOD_WORD[mod];
+  // Already names the modality? Leave it alone. Stem matches (no strict suffix)
+  // so "nanobody", "antibodies", "macrocycles" etc. all count.
+  const already = new RegExp(`(${word}|peptide|macrocyc|stapled|nanobod|antibod|biologic|\\bprotein)`, "i");
+  if (already.test(t)) return t;
+  return `${t} (${word} design)`;
+}
+
 interface ModuleCardProps {
   m: ColdModule;
   open: boolean;
@@ -583,8 +714,15 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
   // is opened afresh (the tabs remount because they only render while open).
   const [ti, setTi] = useState(0);
   const [domId, setDomId] = useState<string | null>(null);
+  // Modality selection (design module only). Resets to small molecule.
+  const [mod, setMod] = useState<ColdModality>("sm");
   const track = m.tracks[Math.min(ti, m.tracks.length - 1)];
   const selectedDomain = domId ? COLD_DOMAINS.find((d) => d.id === domId) ?? null : null;
+  // For a modality-flagged module, seeding threads the picked modality into the
+  // goal; otherwise onSeed is passed straight through.
+  const seedFn = m.modalities ? (text: string) => onSeed(seedWithModality(text, mod)) : onSeed;
+  // Examples switch per modality when the track carries exBy on a modality module.
+  const trackExamples = m.modalities && track.exBy ? track.exBy[mod] ?? track.ex : track.ex;
 
   return (
     <div
@@ -693,6 +831,39 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
             })}
           </div>
 
+          {/* Modality chip row — only on a modality-flagged module (Design &
+              generate). Selecting a modality swaps the track's examples and is
+              threaded into the seeded goal. (reference MODALITIES / tr.exBy) */}
+          {m.modalities && (
+            <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+              <span style={{ fontSize: 11.5, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>Modality</span>
+              {COLD_MODALITIES.map(([k, label]) => {
+                const on = mod === k;
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    data-testid={`cold-modality-${k}`}
+                    aria-pressed={on}
+                    onClick={() => setMod(k)}
+                    style={{
+                      padding: "3px 10px",
+                      borderRadius: 999,
+                      border: `1px solid ${on ? "var(--bm-primary, oklch(0.55 0.20 265))" : "var(--bm-border, oklch(0.90 0.005 260))"}`,
+                      background: on ? "var(--bm-chip, oklch(0.95 0.01 260))" : "transparent",
+                      color: "var(--bm-text, oklch(0.22 0.01 260))",
+                      fontSize: 11.5,
+                      fontWeight: 500,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* .schip — domain chips, only inside a domains-track. Selecting one
               swaps the example list for that domain's shapes. */}
           {track.domains && (
@@ -729,13 +900,13 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
           {selectedDomain ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               {selectedDomain.shapes.map((s) => (
-                <ShapeRow key={s.t} shape={s} onSeed={onSeed} />
+                <ShapeRow key={s.t} shape={s} onSeed={seedFn} />
               ))}
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              {track.ex.map((x) => (
-                <ExampleRow key={x} text={x} onSeed={onSeed} />
+              {trackExamples.map((x) => (
+                <ExampleRow key={x} text={x} onSeed={seedFn} />
               ))}
             </div>
           )}

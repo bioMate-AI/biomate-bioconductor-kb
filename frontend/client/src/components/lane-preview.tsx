@@ -70,6 +70,16 @@ const CLOUD_LABEL = "Cloud · validated workflow";
 const INSTANT_SENTENCE = "a cited answer in seconds";
 const CLOUD_SENTENCE = "a validated workflow (~minutes)";
 
+// Plain-language "why this?" reason per lane (spec 06 §6.2). Intentionally free
+// of any mechanism, regex, keyword list or confidence percentage — it names the
+// consequence in words a scientist reads, not how the router decided.
+const WHY_COPY: Record<LaneKind, string> = {
+  instant:
+    "This reads like a question I can answer directly — from literature, curated databases, or a quick look at data you already have — so I answer it here, with sources, rather than running a pipeline.",
+  cloud:
+    "This reads like standardised analysis that produces a result you'd want to trust and cite — so it runs as a validated workflow with quality gates and an audit-ready report, rather than an off-the-cuff answer.",
+};
+
 /**
  * Client-side lane heuristic. Instant rules are checked first (so evidence
  * questions win over topic keywords), then cloud rules; default is Instant --
@@ -174,6 +184,7 @@ function useServerLane(text: string | undefined | null): LaneVerdict | null {
 export function LanePreview({ text, onOverride }: LanePreviewProps) {
   const local = laneForText(text);
   const server = useServerLane(text);
+  const [whyOpen, setWhyOpen] = useState(false);
   // Prefer the server verdict (real router decision); fall back to local.
   const v = server || local;
   if (!v) return null;
@@ -237,7 +248,41 @@ export function LanePreview({ text, onOverride }: LanePreviewProps) {
             {isCloud ? "answer it instantly instead" : "run a validated pipeline instead"}
           </button>
         )}
+        {/* "why this?" — a plain-language reason toggle (spec 06 §6.2). No
+            mechanism, no keyword/regex, no confidence percentage. */}
+        <button
+          type="button"
+          data-testid="lane-preview-why"
+          aria-expanded={whyOpen}
+          onClick={() => setWhyOpen((o) => !o)}
+          style={{
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+            color: "var(--bm-primary, oklch(0.55 0.20 265))",
+            fontSize: 12,
+            textDecoration: "underline",
+            textUnderlineOffset: 2,
+          }}
+        >
+          why this?
+        </button>
       </div>
+      {whyOpen && (
+        <p
+          data-testid="lane-preview-why-reason"
+          style={{
+            margin: 0,
+            color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
+            fontSize: 11.5,
+            lineHeight: 1.45,
+            maxWidth: "62ch",
+          }}
+        >
+          {WHY_COPY[v.lane]}
+        </p>
+      )}
       <span style={{ color: "var(--bm-text-dim, oklch(0.62 0.010 260))", fontSize: 11 }}>
         Advisory -- BioMate will confirm before running anything cloud.
       </span>
