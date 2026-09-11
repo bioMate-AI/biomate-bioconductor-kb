@@ -20,6 +20,7 @@ import { fetchChainStatus, syncPipelineStepsFromChain } from "@/lib/chain-pipeli
 import { emitUxEvent } from "@/lib/ux-telemetry"
 import { useNetworkStatus } from "@/lib/network-status"
 import { getExecutionAsyncGuidance } from "@/lib/async-guidance"
+import { presentWorkflowExecutionError } from "@/lib/workflow-execution-error"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { ToastAction } from "@/components/ui/toast"
@@ -894,7 +895,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       emitUxEvent('workflow.error_shown', {
         sessionId: currentChatSession?.id,
         runId: currentRun?.id,
-        errorMessage: executionError,
+        errorMessage: executionError.message,
       })
       const runKey = currentRun?.id || "unknown"
       const now = Date.now()
@@ -915,7 +916,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
           count,
         })
       }
-      console.error('[ChatWithArtifacts] Workflow execution error:', executionError)
+      console.error('[ChatWithArtifacts] Workflow execution error:', executionError.message)
       setIsWorkflowRunning(false)
     }
   }, [executionError, currentChatSession?.id, currentRun?.id])
@@ -1778,7 +1779,10 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     onWorkflowPanelOpenChange?.(true)
   }, [lastWorkflowMsgId, currentChatSession?.messages, onWorkflowPanelOpenChange])
 
-  const executionGuidance = getExecutionAsyncGuidance(executionError, { isOnline })
+  const executionGuidance = getExecutionAsyncGuidance(executionError?.message, { isOnline })
+  const executionErrorPresentation = executionError
+    ? presentWorkflowExecutionError(executionError)
+    : null
   const autofixState = currentRun?.execution?.nextflowStatus?.autofix?.state as string | undefined
   const isAutofixActive =
     currentRun?.execution?.nextflowStatus?.autofix?.active === true ||
@@ -2078,11 +2082,16 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
           <div className="space-y-2 text-sm text-red-700 dark:text-red-300">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" />
-              <span className="font-semibold">The system is currently under maintenance.</span>
+              <span className="font-semibold" data-testid="execution-error-title">{executionErrorPresentation?.title}</span>
             </div>
-            <p>Please try again in a few moments.</p>
+            <p data-testid="execution-error-detail">{executionErrorPresentation?.detail}</p>
+            {executionErrorPresentation?.missingLabels.length ? (
+              <ul className="list-disc pl-5 text-xs" data-testid="execution-error-missing-params">
+                {executionErrorPresentation.missingLabels.map((label) => <li key={label}>{label}</li>)}
+              </ul>
+            ) : null}
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs" style={{ visibility: 'hidden' }}>{executionGuidance.escalation}</p>
+              <p className="text-xs" data-testid="execution-error-action">{executionErrorPresentation?.action || executionGuidance.retry}</p>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -2100,7 +2109,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   workflowId={currentRun?.execution?.galaxyWorkflowId}
                   context={{
                     executionStatus: currentRun?.execution?.status,
-                    errorMessage: executionError,
+                    errorMessage: executionError.message,
                     workflowName: currentRun?.workflowName,
                   }}
                   variant="outline"

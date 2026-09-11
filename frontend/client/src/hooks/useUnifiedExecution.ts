@@ -36,9 +36,44 @@ export interface UnifiedExecutionState {
   /** Loading state */
   isLoading: boolean;
   /** Error state */
-  error: string | null;
+  error: WorkflowExecutionErrorDetails | null;
   /** SSE connection state */
   isConnected: boolean;
+}
+
+/** A safe, actionable subset of a rejected /api/workflows/execute response. */
+export interface WorkflowExecutionErrorDetails {
+  message: string;
+  code?: string;
+  guidance?: string;
+  inputStepsCount?: number;
+  missing?: Array<{ name: string; label?: string; description?: string; type?: string }>;
+}
+
+export class WorkflowExecutionError extends Error {
+  readonly details: WorkflowExecutionErrorDetails;
+
+  constructor(details: WorkflowExecutionErrorDetails) {
+    super(details.message);
+    this.name = "WorkflowExecutionError";
+    this.details = details;
+  }
+}
+
+export function toWorkflowExecutionErrorDetails(
+  payload: unknown,
+  fallbackMessage: string,
+): WorkflowExecutionErrorDetails {
+  const error = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
+  return {
+    message: typeof error.message === 'string'
+      ? error.message
+      : typeof error.error === 'string' ? error.error : fallbackMessage,
+    code: typeof error.error === 'string' ? error.error : undefined,
+    guidance: typeof error.guidance === 'string' ? error.guidance : undefined,
+    inputStepsCount: typeof error.inputStepsCount === 'number' ? error.inputStepsCount : undefined,
+    missing: Array.isArray(error.missing) ? error.missing : undefined,
+  };
 }
 
 export interface ExecuteWorkflowParams {
@@ -94,8 +129,11 @@ async function apiExecuteWorkflow(params: ExecuteWorkflowParams): Promise<{
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: `HTTP ${response.status}: ${response.statusText}` }));
-    throw new Error(error.message || error.error || 'Failed to execute workflow');
+    const error = await response.json().catch(() => ({}));
+    throw new WorkflowExecutionError(toWorkflowExecutionErrorDetails(
+      error,
+      `HTTP ${response.status}: ${response.statusText}` || 'Failed to execute workflow',
+    ));
   }
 
   return response.json();
@@ -640,7 +678,9 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
       setState((prev) => ({
         ...prev,
         isLoading: false,
-        error: error.message,
+        error: error instanceof WorkflowExecutionError
+          ? error.details
+          : { message: error?.message || 'Failed to execute workflow' },
       }));
       throw error;
     }
@@ -687,7 +727,7 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
       setState((prev) => ({
         ...prev,
         isLoading: false,
-        ...(opts?.silent ? {} : { error: error.message }),
+        ...(opts?.silent ? {} : { error: { message: error?.message || 'Failed to load run' } }),
       }));
       throw error;
     }
