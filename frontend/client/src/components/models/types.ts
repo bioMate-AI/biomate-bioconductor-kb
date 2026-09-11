@@ -145,3 +145,114 @@ export function isCompleted(r: InferenceResult | undefined): boolean {
 export function isStub(r: InferenceResult | undefined): boolean {
   return !!r && r.stub === true
 }
+
+// ── Spec 10 — worked-case page (ModelCase) ───────────────────────────────────
+// One spine for all four tracks: what model → what it was given → what came back
+// → how much to trust (floor) → what it left behind → next steps.
+//
+// Every field here is data the caller supplies. This module renders the SHAPE
+// and honest-empty states; it never fabricates a metric, a verdict, or a
+// headline. Where a section's array is empty, the page shows a "No … yet"
+// empty state rather than an invented value (§10.4 honesty contract).
+
+/** Which of the four tracks this case belongs to (§10.3 / §10.5). */
+export type ModelCaseTrack =
+  | "run_a_model"
+  | "train"
+  | "tune_on_our_data"
+  | "propose_and_test_in_rounds"
+
+/** The model chip — only registry-existing names may appear here (§10.4). */
+export interface ModelCaseModel {
+  /** e.g. "potency-gp". */
+  name: string
+  /** e.g. "v3". */
+  version: string
+  /** e.g. "candidate" | "pre-trained, weights pinned". Optional qualifier. */
+  qualifier?: string | null
+  /** Registry id this chip links into (the model object). */
+  modelId?: string | null
+}
+
+/**
+ * A row under WHAT THIS WAS GIVEN — an input resolved to a version, plus the
+ * decision the row encodes and why (§10.4). `note` is the italic rationale
+ * ("a version, not a name" / "random split leaks" / "kept as inequalities").
+ */
+export interface ModelCaseGivenRow {
+  label: string
+  value: string
+  note?: string | null
+}
+
+/** A run stage chip (Featurise / Fit / Held-out evaluation / Gate / Offer). */
+export interface ModelCaseStage {
+  label: string
+  /** done stages are filled; a not-yet-reached stage reads "waiting" (§10.4). */
+  status: "done" | "waiting"
+}
+
+/**
+ * A labelled block under WHAT CAME BACK. Exactly one block should carry
+ * `honest: true` — the thing the model learned that you may not want, the
+ * flag, or the round still in flight (§10.4). The caller marks it; this module
+ * only styles it.
+ */
+export interface ModelCaseResultBlock {
+  label: string
+  body: string
+  honest?: boolean
+}
+
+/** A row in the MEASURED AGAINST A FLOOR table (a floor, not a ranking). */
+export interface ModelCaseFloorRow {
+  metric: string
+  value: string
+  threshold: string
+  /** "pass" | "flag" | "fail" | "not_evaluated". */
+  verdict: string
+}
+
+/** An artefact left behind — every artefact is a file in the project (§10.4). */
+export interface ModelCaseArtefact {
+  name: string
+  /** "report" gets Open & edit + download; other kinds get Open in Files. */
+  kind: "report" | "model" | "table" | string
+}
+
+/** A WHAT TO DO NEXT decision — never an automatic action (§10.4). */
+export interface ModelCaseNextStep {
+  label: string
+  /** "primary" renders the filled button (e.g. Register as v3). */
+  variant?: "primary" | "outline"
+}
+
+/** The full worked-case page contract (§10.4). */
+export interface ModelCase {
+  /** Stable id, e.g. "train_potency" (§10.5). */
+  id: string
+  track: ModelCaseTrack
+  /** The case question, verbatim (§10.3), e.g. "Train a potency predictor …". */
+  question: string
+  /** Breadcrumb: [project, "Models", track-label]. */
+  breadcrumb: string[]
+  /** Lane badge, e.g. "Cloud". */
+  lane?: string | null
+  /** One-line lane descriptor under the chip, e.g. "From scratch, on your data". */
+  origin?: string | null
+  model: ModelCaseModel
+  given: ModelCaseGivenRow[]
+  stages: ModelCaseStage[]
+  /** Headline sentence for WHAT CAME BACK; null until the eval stage finishes. */
+  headline: string | null
+  confidence?: string | null
+  flaggedCount?: number
+  resultBlocks: ModelCaseResultBlock[]
+  /** BOUNDARY — what the result is NOT evidence for. Present on all four cases. */
+  boundary?: string | null
+  floor: ModelCaseFloorRow[]
+  artefacts: ModelCaseArtefact[]
+  /** The report this case leaves in runs/models/ (§10.6). */
+  reportName?: string | null
+  nextSteps: ModelCaseNextStep[]
+}

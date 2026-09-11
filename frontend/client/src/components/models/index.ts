@@ -15,6 +15,7 @@ export type {
   OptimiseProposal,
 } from "./models-panel"
 export { ModelObject, ModelObjectLoader } from "./model-object"
+export { ModelCase, ModelCaseEmpty } from "./model-case"
 export { RunPretrained } from "./run-pretrained"
 export { InferenceResultView } from "./inference-result"
 export {
