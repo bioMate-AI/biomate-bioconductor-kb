@@ -15,7 +15,7 @@
 
 import React from "react"
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen, fireEvent, waitFor } from "@testing-library/react"
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 import { ModelsPanel, type OptimiseData, type TrainData, type AdaptData } from "./models-panel"
@@ -99,6 +99,22 @@ describe("ModelsPanel", () => {
     expect(screen.getByText("House style")).toBeTruthy()
     expect(screen.getByText("Rounds")).toBeTruthy()
     expect(screen.getByText("Run a model")).toBeTruthy()
+  })
+
+  // Regression (UX plan C4-b1): the track LABEL and the track BODY heading must
+  // use the same v2 §10.1 vocabulary — a "House style" tab must not open a card
+  // headed "Adaptation level", and "Rounds" must not open one headed "Optimise".
+  it("track body headings match the renamed track labels (no label↔body drift)", async () => {
+    mockFetchByUrl({ "/api/models": CATALOG })
+    const { rerender } = render(<ModelsPanel project="Test project" tab={1} />, { wrapper: wrapper() })
+    const adapt = await screen.findByTestId("adapt-levels")
+    expect(within(adapt).getByText("House style")).toBeTruthy()
+    expect(within(adapt).queryByText("Adaptation level")).toBeNull()
+
+    rerender(<ModelsPanel project="Test project" tab={2} />)
+    const rounds = await screen.findByTestId("track-optimise")
+    expect(within(rounds).getByText(/^Rounds/)).toBeTruthy()
+    expect(within(rounds).queryByText(/^Optimise/)).toBeNull()
   })
 
   it("lists catalog rows on the Registry track and opens a model object on click", async () => {

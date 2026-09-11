@@ -1,15 +1,19 @@
 /**
  * ModelsPanel — the 5-track Models surface:
  *
- *   Train · Adapt · Optimise · Run a pre-trained model · Registry
+ *   Train · House style · Rounds · Run a model · Registry
+ *
+ * (v2 §10.1 names a JOB, not a technique: "Adapt" → "House style", "Optimise" →
+ *  "Rounds", "Run a pre-trained model" → "Run a model". Track labels AND their
+ *  card headings use this vocabulary consistently.)
  *
  * A model is presented like a dataset (identity · evidence · lineage · used-by
  * · interface · versions), never a leaderboard. The Registry track lists the
  * live account catalog (GET /api/models) and opens a ModelObject on click. The
- * "Run a pre-trained model" track submits inference and renders the result with
+ * "Run a model" track submits inference and renders the result with
  * the wave-1 viewers by evidence class.
  *
- * Train / Adapt / Optimise are project-scoped surfaces with no WS1 read
+ * Train / House style / Rounds are project-scoped surfaces with no WS1 read
  * endpoint in this wave; they render descriptive track content (no fabricated
  * data). Any live data they receive arrives via props.
  */
@@ -166,7 +170,7 @@ function OptimiseTrack({
     return (
       <Card data-testid="track-optimise">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Optimise · design · make · test · analyse</CardTitle>
+          <CardTitle className="text-sm">Rounds · design · make · test · analyse</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <p className="text-xs text-muted-foreground" data-testid="optimise-empty">
@@ -556,7 +560,7 @@ function AdaptTrack({
       <Card data-testid="adapt-levels">
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <CardTitle className="text-sm">Adaptation level</CardTitle>
+            <CardTitle className="text-sm">House style</CardTitle>
             <Badge variant="outline" className="text-[10px]">scope: organisation</Badge>
             <Button
               size="sm"
