@@ -394,6 +394,12 @@ export interface ChatContext {
    */
   projectContext?: string;
   /**
+   * Per-composer instructions submitted with this turn. Routes normalizes and
+   * bounds this user-authored text before appending it to projectContext, so it
+   * is applied by every model path without being persisted as a project edit.
+   */
+  composerInstructions?: string;
+  /**
    * Per-user Anthropic API key decrypted from the users.llm_api_keys column.
    * When set, this request's LLM calls use the user's own key/quota instead
    * of the system key. Never logged or stored beyond the request lifecycle.

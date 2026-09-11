@@ -75,6 +75,33 @@ describe("client: chat-interface reads active project id and sends it in context
   });
 });
 
+describe("composer instructions: UI → chat-stream → assistant context", () => {
+  const INPUT = fs.readFileSync(path.join(CLIENT, "components", "chat-input.tsx"), "utf-8");
+  const CHAT = fs.readFileSync(path.join(CLIENT, "components", "chat-interface.tsx"), "utf-8");
+  const ROUTES = fs.readFileSync(path.join(__dirname, "routes.ts"), "utf-8");
+  const ASSISTANT = fs.readFileSync(path.join(__dirname, "galaxy-assistant.ts"), "utf-8");
+
+  it("sends non-empty composer instructions in the input's context override", () => {
+    expect(INPUT.includes("composerInstructions: trimmedInstructions")).toBe(true);
+    expect(INPUT.includes("const trimmedInstructions = instructions.trim()")).toBe(true);
+  });
+
+  it("keeps the caller context override in the chat-stream request", () => {
+    expect(CHAT.includes("...(contextOverride || {})")).toBe(true);
+  });
+
+  it("normalizes and bounds instructions before adding them to prompt context", () => {
+    expect(ROUTES).toMatch(/typeof context\?\.composerInstructions === 'string'/);
+    expect(ROUTES).toMatch(/composerInstructions\.trim\(\)\.slice\(0, 4_000\)/);
+    expect(ROUTES).toContain("Composer instructions for this chat:");
+  });
+
+  it("carries the field in the assistant context type and enriched context", () => {
+    expect(ASSISTANT).toMatch(/composerInstructions\?: string/);
+    expect(ROUTES).toContain("composerInstructions: _composerInstructions || undefined");
+  });
+});
+
 describe("UI: sidebar entry + workspaces route", () => {
   const SIDEBAR = fs.readFileSync(path.join(CLIENT, "components", "app-sidebar.tsx"), "utf-8");
   const APP = fs.readFileSync(path.join(CLIENT, "App.tsx"), "utf-8");

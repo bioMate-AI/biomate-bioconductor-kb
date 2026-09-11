@@ -6028,6 +6028,20 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
+      // Composer instructions are deliberately request-scoped: a user can
+      // steer one chat without silently overwriting the project's standing
+      // instructions. Keep a bounded, normalized value before it reaches an
+      // LLM prompt. Non-string input is ignored rather than coerced.
+      const _composerInstructions = typeof context?.composerInstructions === 'string'
+        ? context.composerInstructions.trim().slice(0, 4_000)
+        : '';
+      if (_composerInstructions) {
+        _projectContext = [
+          _projectContext,
+          `Composer instructions for this chat:\n${_composerInstructions}`,
+        ].filter(Boolean).join('\n\n');
+      }
+
       // Load user's own LLM keys if stored; decrypt for this request only.
       let _userAnthropicApiKey: string | undefined;
       let _openrouterKey: string | undefined;
@@ -6061,6 +6075,7 @@ ${paramLines || '(none recorded)'}`;
         sessionId: _resolvedSessionId,
         projectId: _resolvedProjectId,
         projectContext: _projectContext,
+        composerInstructions: _composerInstructions || undefined,
         userAnthropicApiKey: _userAnthropicApiKey,
         openrouterKey: _openrouterKey,
         selectedModel: _selectedModel,
@@ -17149,4 +17164,3 @@ function _buildExperimentNarrative(
 
   return lines.join('\n');
 }
-
