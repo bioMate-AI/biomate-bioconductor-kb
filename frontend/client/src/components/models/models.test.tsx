@@ -95,7 +95,10 @@ describe("ModelsPanel", () => {
     for (let i = 0; i < 5; i++) {
       expect(screen.getByTestId(`models-track-${i}`)).toBeTruthy()
     }
-    expect(screen.getByText("Run a pre-trained model")).toBeTruthy()
+    // v2 §10.1 track labels
+    expect(screen.getByText("House style")).toBeTruthy()
+    expect(screen.getByText("Rounds")).toBeTruthy()
+    expect(screen.getByText("Run a model")).toBeTruthy()
   })
 
   it("lists catalog rows on the Registry track and opens a model object on click", async () => {

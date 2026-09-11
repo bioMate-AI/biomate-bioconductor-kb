@@ -33,11 +33,12 @@ import { ModelObjectLoader } from "./model-object"
 import { RunPretrained } from "./run-pretrained"
 import type { ModelSummary } from "./types"
 
+// v2 §10.1 track labels (display-only; tab routing is index-based).
 export const MODELS_TRACKS = [
   "Train",
-  "Adapt",
-  "Optimise",
-  "Run a pre-trained model",
+  "House style",
+  "Rounds",
+  "Run a model",
   "Registry",
 ] as const
 
