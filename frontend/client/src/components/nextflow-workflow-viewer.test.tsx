@@ -1,7 +1,7 @@
 import React, { act } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { NextflowWorkflowViewer, buildStepDetailStep } from "./nextflow-workflow-viewer";
+import { NextflowWorkflowViewer, buildStepDetailStep, deriveRunKind } from "./nextflow-workflow-viewer";
 
 vi.mock("./chat-output-attachments", () => ({
   ChatOutputAttachments: () => <div data-testid="mock-chat-output-attachments" />,
@@ -579,5 +579,39 @@ describe("NextflowWorkflowViewer — real-time SSE status transitions (live disp
     expect(cta).toHaveTextContent("Restart");
     // A failed run must NOT surface a "Run again" success CTA.
     expect(screen.queryByTestId("panel-run-again-cta")).not.toBeInTheDocument();
+  });
+});
+
+// Spec 13 §13.4: the kicker's run KIND word must reflect what the run actually
+// is — "Design run" / "Ad-hoc · sandbox" / "Training run" — and never read
+// "Workflow" for a run that is not one. A genuine pipeline defaults to Workflow.
+describe("deriveRunKind — run card kind by domain / mode (Spec 13 §13.4)", () => {
+  it("defaults a routed pipeline to 'Workflow'", () => {
+    expect(deriveRunKind({ domain: "transcriptomics" })).toBe("Workflow");
+    expect(deriveRunKind({ domain: "genomics" })).toBe("Workflow");
+    expect(deriveRunKind({ domain: "drug_discovery" })).toBe("Workflow");
+    expect(deriveRunKind({})).toBe("Workflow");
+    expect(deriveRunKind(undefined)).toBe("Workflow");
+  });
+
+  it("labels a design domain as 'Design run', not 'Workflow'", () => {
+    expect(deriveRunKind({ domain: "design_generate" })).toBe("Design run");
+    expect(deriveRunKind({ domain: "molecular_design" })).toBe("Design run");
+  });
+
+  it("labels an ad-hoc / data-analysis sandbox as 'Ad-hoc · sandbox'", () => {
+    expect(deriveRunKind({ domain: "data_analysis" })).toBe("Ad-hoc · sandbox");
+    expect(deriveRunKind({ mode: "sandbox" })).toBe("Ad-hoc · sandbox");
+  });
+
+  it("labels a model-training harness as 'Training run'", () => {
+    expect(deriveRunKind({ domain: "model_training" })).toBe("Training run");
+    expect(deriveRunKind({ run_kind: "training" })).toBe("Training run");
+  });
+
+  it("honours an explicit run_kind / kind / mode field over the domain", () => {
+    // A design run filed under a chemistry domain must still read "Design run".
+    expect(deriveRunKind({ domain: "drug_discovery", run_kind: "design" })).toBe("Design run");
+    expect(deriveRunKind({ domain: "transcriptomics", kind: "sandbox" })).toBe("Ad-hoc · sandbox");
   });
 });

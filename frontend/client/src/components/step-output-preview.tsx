@@ -25,6 +25,9 @@ import { FscCurveChart } from "./viewers/fsc-curve-chart";
 import { MotionHistogramChart } from "./viewers/motion-histogram-chart";
 import { CtfQualityChart } from "./viewers/ctf-quality-chart";
 import { InteractiveLauncher } from "./interactive-launcher";
+import { PlddtChart } from "./viewers/plddt-chart";
+import { SeqTracks, type SeqTrack, type FlaggedInterval } from "./viewers/seq-tracks";
+import { HitGrid, type ChemHit, type HitVerdict } from "./viewers/hit-grid";
 // 3Dmol.js loaded dynamically inside InlineStructureViewer so the structure
 // path doesn't pull ~700 KB into the main bundle.
 
@@ -600,6 +603,99 @@ function CryoChartPreview({ runId, file, onClose, projectId, chartType }: StepOu
   );
 }
 
+/**
+ * Detect DL-model JSON sidecar outputs that carry a domain-specific evidence
+ * payload (genomic score tracks, ranked chemical hits). These follow the same
+ * convention as the CryoEM JSON reports: a well-known filename suffix names the
+ * viewer, and the JSON body IS the viewer's data contract (Spec 08 §8.5 —
+ * "domain-specific outputs use their own viewers within these classes").
+ */
+function resolveDlJsonViewer(fileName: string): 'seq-tracks' | 'hit-grid' | null {
+  const n = fileName.toLowerCase();
+  if (n.includes('seqtracks') || n.includes('seq_tracks') || n.includes('_tracks')) return 'seq-tracks';
+  if (n.includes('hitgrid') || n.includes('hit_grid') || n.includes('_hits')) return 'hit-grid';
+  return null;
+}
+
+// The WS1 hit verdicts are open strings; narrow to the viewer's union, default "held".
+const HIT_VERDICTS: HitVerdict[] = ['accepted', 'flagged', 'rejected', 'held'];
+function toHitVerdict(v: unknown): HitVerdict {
+  return typeof v === 'string' && (HIT_VERDICTS as string[]).includes(v) ? (v as HitVerdict) : 'held';
+}
+
+/**
+ * Fetches a DL-domain JSON output and renders the matching evidence viewer.
+ * The viewers own their honest empty states, so a malformed / empty body shows
+ * "no data" rather than a fabricated result.
+ */
+function DlJsonPreview({ runId, file, onClose, viewerKind }: StepOutputPreviewProps & {
+  viewerKind: 'seq-tracks' | 'hit-grid'
+}) {
+  const [data, setData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const stepFileUrl = `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(file.path)}&name=${encodeURIComponent(file.name)}`;
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(stepFileUrl)
+      .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+      .then(d => { if (!cancelled) setData(d); })
+      .catch(e => { if (!cancelled) setError(String(e)); });
+    return () => { cancelled = true; };
+  }, [stepFileUrl]);
+
+  // Normalise the JSON body to the viewer's prop contract. Missing arrays
+  // become empty — the viewer renders its own honest empty state.
+  const tracks: SeqTrack[] = viewerKind === 'seq-tracks'
+    ? (Array.isArray(data?.tracks) ? data.tracks : [])
+    : [];
+  const flagged: FlaggedInterval[] = viewerKind === 'seq-tracks'
+    ? (Array.isArray(data?.flagged) ? data.flagged : [])
+    : [];
+  const hits: ChemHit[] = viewerKind === 'hit-grid' && Array.isArray(data?.hits)
+    ? data.hits.map((h: any) => ({
+        id: String(h.id ?? ''),
+        smiles: h.smiles,
+        // A held/unscored hit has no measured score — keep it null (NOT 0) so
+        // HitGrid sorts it as unranked rather than as the worst real score.
+        score: typeof h.score === 'number' ? h.score : null,
+        confidence: h.confidence,
+        herg: h.herg ?? '—',
+        drugLike: h.drugLike ?? '—',
+        verdict: toHitVerdict(h.verdict),
+      }))
+    : [];
+
+  return (
+    <div className="mt-2" data-testid="dl-json-preview">
+      <div className="flex items-center justify-between mb-2 gap-2 px-1">
+        <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
+        <div className="flex items-center gap-1 shrink-0">
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+      {error && <p className="text-xs text-destructive">Failed to load file: {error}</p>}
+      {data && viewerKind === 'seq-tracks' && (
+        <SeqTracks
+          locus={typeof data.locus === 'string' ? data.locus : 'user-supplied'}
+          tracks={tracks}
+          flagged={flagged}
+          bp={typeof data.bp === 'number' ? data.bp : undefined}
+        />
+      )}
+      {data && viewerKind === 'hit-grid' && (
+        <HitGrid
+          hits={hits}
+          modelName={typeof data.modelName === 'string' ? data.modelName : undefined}
+          modelId={typeof data.modelId === 'string' ? data.modelId : undefined}
+        />
+      )}
+    </div>
+  );
+}
+
 export function StepOutputPreview({ runId, file, onClose, projectId, onOpenFullStepView }: StepOutputPreviewProps) {
   const ext = file.extension.toLowerCase().replace(/^\./, '');
   const viewer = resolveViewer(ext);
@@ -624,6 +720,11 @@ export function StepOutputPreview({ runId, file, onClose, projectId, onOpenFullS
     const chartType = resolveCryoChartViewer(file.name);
     if (chartType) {
       return <CryoChartPreview runId={runId} file={file} onClose={onClose} projectId={projectId} chartType={chartType} />;
+    }
+    // DL-model JSON sidecars (genomic tracks / ranked chemical hits).
+    const dlKind = resolveDlJsonViewer(file.name);
+    if (dlKind) {
+      return <DlJsonPreview runId={runId} file={file} onClose={onClose} projectId={projectId} viewerKind={dlKind} />;
     }
   }
 
@@ -850,20 +951,71 @@ function ViewerContent({
 
 
 /**
+ * Parse per-residue pLDDT from a PDB's B-factor column.
+ *
+ * Spec 14 §14.2: a predicted structure carries "pLDDT in the B-factor column".
+ * AlphaFold/ESMFold/Boltz write the per-residue confidence (0–100) into the
+ * temperature-factor field of every atom. We read the CA (alpha-carbon) atom of
+ * each residue — one representative value per residue, in residue order.
+ *
+ * PDB ATOM record fixed columns (0-based):
+ *   [12:16] atom name · [17:20] resName · [22:26] resSeq · [60:66] tempFactor
+ *
+ * Returns [] when the file is not a per-residue-confidence PDB (no CA B-factors,
+ * or values outside the 0–100 pLDDT range) — the caller then shows no chart
+ * rather than a fabricated one.
+ */
+export function parsePlddtFromPdb(text: string): number[] {
+  const out: number[] = [];
+  const seen = new Set<string>();
+  for (const line of text.split('\n')) {
+    if (!line.startsWith('ATOM') && !line.startsWith('HETATM')) continue;
+    const atomName = line.slice(12, 16).trim();
+    if (atomName !== 'CA') continue;
+    const chain = line.slice(21, 22);
+    const resSeq = line.slice(22, 27).trim(); // include insertion code column
+    const key = `${chain}:${resSeq}`;
+    if (seen.has(key)) continue; // one value per residue (skip altlocs)
+    const b = parseFloat(line.slice(60, 66));
+    if (!Number.isFinite(b)) continue;
+    seen.add(key);
+    out.push(b);
+  }
+  if (out.length === 0) return [];
+  // pLDDT is 0–100. If every value is outside that band (e.g. a crystal
+  // structure's real temperature factors), it is not a confidence column — do
+  // not present it as one.
+  const inBand = out.every((v) => v >= 0 && v <= 100);
+  return inBand ? out : [];
+}
+
+/**
  * InlineStructureViewer — 3Dmol.js rendering of PDB / mmCIF text content
  * fetched by the parent. Dynamic import keeps 3Dmol out of the main bundle.
  * Falls back to a text dump when WebGL or 3Dmol init fails.
+ *
+ * When the file is a predicted structure (per-residue pLDDT in the B-factor
+ * column) it renders the PlddtChart beside the 3D view (Spec 08 §8.5 — "a
+ * predicted structure opens the 3D view with its per-residue confidence
+ * chart"). Clicking a residue in the chart centres the 3D view on it: chart
+ * selection and structure selection are one selection, not two.
  */
 function InlineStructureViewer({ text, ext }: { text: string; ext: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // 3Dmol viewer instance, kept so the pLDDT chart's residue click can drive it.
+  const viewerRef = useRef<any>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'fallback'>('loading');
   const [style, setStyle] = useState<'cartoon' | 'stick' | 'sphere' | 'line'>('cartoon');
+
+  const format = ext === 'cif' || ext === 'mmcif' ? 'cif' : 'pdb';
+  // pLDDT only lives in the B-factor column of PDB-format predicted structures.
+  const plddt = format === 'pdb' ? parsePlddtFromPdb(text) : [];
+  const hasConfidence = plddt.length > 0;
 
   useEffect(() => {
     if (!containerRef.current || !text) return;
     let cancelled = false;
     const container = containerRef.current;
-    const format = ext === 'cif' || ext === 'mmcif' ? 'cif' : 'pdb';
 
     import('3dmol')
       .then((mod) => {
@@ -883,6 +1035,7 @@ function InlineStructureViewer({ text, ext }: { text: string; ext: string }) {
           viewer.setStyle({}, styleObj[style]);
           viewer.zoomTo();
           viewer.render();
+          viewerRef.current = viewer;
           (container as HTMLDivElement & { __viewer?: unknown }).__viewer = viewer;
           setStatus('ready');
         } catch (e) {
@@ -895,8 +1048,25 @@ function InlineStructureViewer({ text, ext }: { text: string; ext: string }) {
         if (!cancelled) setStatus('fallback');
       });
 
-    return () => { cancelled = true; };
-  }, [text, ext, style]);
+    return () => { cancelled = true; viewerRef.current = null; };
+  }, [text, ext, style, format]);
+
+  // Centre the 3D view on a residue when the pLDDT chart fires a selection.
+  const centreOnResidue = (residue: number) => {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    try {
+      const sel = { resi: residue };
+      // Highlight the selected residue as sticks over the base cartoon so the
+      // centred position is legible, then zoom the camera to it.
+      viewer.setStyle({}, { cartoon: { color: 'spectrum' } });
+      viewer.setStyle(sel, { cartoon: { color: 'spectrum' }, stick: { radius: 0.2, color: 'orange' } });
+      viewer.zoomTo(sel);
+      viewer.render();
+    } catch (e) {
+      console.warn('[InlineStructureViewer] centreOnResidue failed:', e);
+    }
+  };
 
   if (status === 'fallback') {
     return (
@@ -907,7 +1077,7 @@ function InlineStructureViewer({ text, ext }: { text: string; ext: string }) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-testid="inline-structure-viewer" data-has-confidence={hasConfidence ? 'true' : 'false'}>
       <div className="flex items-center gap-1">
         <span className="text-xs text-muted-foreground mr-1">Style:</span>
         {(['cartoon', 'stick', 'sphere', 'line'] as const).map((s) => (
@@ -930,6 +1100,9 @@ function InlineStructureViewer({ text, ext }: { text: string; ext: string }) {
         className="w-full bg-white rounded border"
         style={{ height: 320, position: 'relative' }}
       />
+      {hasConfidence && (
+        <PlddtChart plddt={plddt} onSelectResidue={centreOnResidue} />
+      )}
     </div>
   );
 }
