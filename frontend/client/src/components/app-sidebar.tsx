@@ -24,6 +24,8 @@ import {
   Cable,
   Database,
   Layers,
+  CreditCard,
+  Wrench,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { analytics } from "@/lib/analytics"
@@ -284,6 +286,20 @@ export function AppSidebar({
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>Design &amp; Generate</span>
             <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Generate candidates against property objectives</span>
+          </span>
+        </button>
+        <button className="side-link" data-testid="button-recent-tools" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowRecentToolsDialog(true)}>
+          <Wrench className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span>Recent Tools</span>
+            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Tools you have used recently</span>
+          </span>
+        </button>
+        <button className="side-link" data-testid="button-billing-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/billing')}>
+          <CreditCard className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span>Billing</span>
+            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Usage & subscription</span>
           </span>
         </button>
       </div>
