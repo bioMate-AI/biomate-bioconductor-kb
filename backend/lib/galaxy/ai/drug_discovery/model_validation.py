@@ -1,13 +1,16 @@
 """
 BioMate Model Validation Service — Phase 1 CRO Readiness
 
-Computes a regulatory-credible validation report for BioMate's PBPK and QSAR
-models against curated reference datasets, following ICH M&S guidelines for
-PBPK model qualification (EMA 2018 guideline).
+Computes an analytical PK equation-verification report against curated
+reference data.  This module intentionally supplies observed CL, Vd, and F
+to the analytical model, so its output is *not* external PBPK predictive-model
+qualification evidence.  Independent prediction validation requires a held-out
+dataset and independently estimated model inputs.
 
 Outputs:
   - ValidationReport (Pydantic) — per-compound errors + aggregate statistics
-  - Suitable for attachment to computational study reports in IND submissions
+  - Suitable as transparent equation-verification evidence in computational
+    study reports; not a stand-alone PBPK qualification claim
 
 Metrics computed:
   - %PE   — percent prediction error per compound
@@ -72,7 +75,9 @@ class ValidationMetrics(BaseModel):
     R2_AUC: float
     within_2fold_AUC: float
     within_3fold_AUC: float
-    ema_criterion_met: bool     # EMA 67% within 2-fold for both Cmax and AUC
+    # Descriptive 67%-within-2-fold threshold result.  It is not a PBPK
+    # qualification determination because this report uses observed inputs.
+    ema_criterion_met: bool
 
 
 class ValidationReport(BaseModel):
@@ -102,12 +107,13 @@ class ValidationReport(BaseModel):
 
 class _AnalyticalPKPredictor:
     """
-    One-compartment analytical PK model for PBPK structure validation.
+    One-compartment analytical PK model for PK equation-structure verification.
 
     Uses the reference drug's OBSERVED population PK parameters (CL, Vd, F)
     as model inputs to verify that the analytical PK equations correctly
-    reproduce Cmax and AUC.  This is EMA PBPK Model Qualification Step 1:
-    verify model structure (equations) before validating parameter predictions.
+    reproduce Cmax and AUC.  It verifies equations before any separate,
+    independently parameterized model is validated.  It does not itself meet
+    EMA PBPK qualification requirements.
 
     The ka (absorption rate constant) is estimated from logP since it is
     not available in the standard reference dataset.  The 10–20% Cmax error
@@ -173,23 +179,18 @@ class _AnalyticalPKPredictor:
             else:
                 ka_h = 1.5
 
-            # Guard: if ka ≈ ke, perturb slightly
-            if abs(ka_h - ke) < 1e-4:
-                ka_h += 1e-3
-
-            # tmax = ln(ka/ke) / (ka − ke); valid when ka > ke
-            if ka_h > ke:
-                tmax_h = math.log(ka_h / ke) / (ka_h - ke)
+            # The Bateman tmax expression is valid for positive ka and ke on
+            # either side of the flip-flop boundary.  At ka == ke, use its
+            # analytic limit C(t) = (F*D/Vd) * ka*t*exp(-ka*t), whose peak is
+            # at t=1/ka.  Do not replace the absorption-limited branch with an
+            # elimination half-life approximation: that changes the equation.
+            if math.isclose(ka_h, ke, rel_tol=0.0, abs_tol=1e-8):
+                Cmax_ug_L = (dose_absorbed_ug / Vd_L) * math.exp(-1.0)
             else:
-                tmax_h = 1.0 / ke  # flip absorption-limited: take Cmax at ~1 half-life
-
-            tmax_h = max(0.05, tmax_h)
-
-            # 1-compartment oral model:
-            # Cmax = (F × dose / Vd) × (ka / (ka − ke)) × (exp(−ke×tmax) − exp(−ka×tmax))
-            Cmax_ug_L = (dose_absorbed_ug / Vd_L) * (ka_h / (ka_h - ke)) * (
-                math.exp(-ke * tmax_h) - math.exp(-ka_h * tmax_h)
-            )
+                tmax_h = max(0.05, math.log(ka_h / ke) / (ka_h - ke))
+                Cmax_ug_L = (dose_absorbed_ug / Vd_L) * (ka_h / (ka_h - ke)) * (
+                    math.exp(-ke * tmax_h) - math.exp(-ka_h * tmax_h)
+                )
             Cmax_ug_mL = max(1e-9, Cmax_ug_L / 1000.0)
 
         t_half_h = 0.693 / ke if ke > 0 else 0.0
@@ -200,7 +201,7 @@ class _AnalyticalPKPredictor:
             "predicted_Vd_L": round(Vd_L, 2),
             "predicted_CL_L_h": round(CL_L_h, 4),
             "predicted_t_half_h": round(t_half_h, 2),
-            "notes": "Uses observed CL/Vd/F; tests 1-compartment model structure (EMA PBPK Step 1)",
+            "notes": "Uses observed CL/Vd/F; verifies 1-compartment PK equations, not independent PBPK prediction",
         }
 
 
@@ -290,7 +291,20 @@ class ModelValidationService:
 
         metrics = self._compute_metrics(per_compound)
 
+        all_compounds_evaluable = all(
+            r.predicted_Cmax is not None and r.predicted_AUC is not None
+            and r.observed_Cmax > 0 and r.observed_AUC > 0
+            for r in per_compound
+        )
+        if not all_compounds_evaluable:
+            warnings.append(
+                "One or more included compounds lacked an observed or predicted PK endpoint; "
+                "fold-threshold fractions must not be interpreted as complete-set results."
+            )
+
         ema_met = (
+            all_compounds_evaluable
+            and
             metrics.within_2fold_Cmax >= _EMA_MIN_FRACTION_IN_FOLD
             and metrics.within_2fold_AUC >= _EMA_MIN_FRACTION_IN_FOLD
         )
@@ -392,15 +406,15 @@ class ModelValidationService:
     ) -> str:
         criterion = "MEETS" if m.ema_criterion_met else "DOES NOT MEET"
         return (
-            f"BioMate PBPK model was validated against {n} marketed drugs covering diverse "
+            f"BioMate's analytical one-compartment PK equations were exercised against {n} marketed drugs covering diverse "
             f"chemical classes and metabolic pathways. For Cmax, {m.within_2fold_Cmax*100:.0f}% of predictions "
             f"fell within 2-fold of observed (AAFE = {m.AAFE_Cmax:.2f}; R² = {m.R2_Cmax:.3f}). "
             f"For AUC, {m.within_2fold_AUC*100:.0f}% were within 2-fold (AAFE = {m.AAFE_AUC:.2f}; "
-            f"R² = {m.R2_AUC:.3f}). The model {criterion} the EMA PBPK guideline criterion of "
+            f"R² = {m.R2_AUC:.3f}). Descriptively, the result {criterion} the EMA PBPK guideline threshold of "
             f"≥67% of predictions within 2-fold of observed for both Cmax and AUC "
-            f"(EMA/CHMP/EWP/37498/2011). "
+            f"(EMA/CHMP/EWP/37498/2011). Because observed CL, Vd, and F are model inputs here, "
+            f"this is equation-structure verification rather than independent predictive PBPK validation. "
             f"Average fold error (AFE) for Cmax is {m.AFE_Cmax:.2f} (values <1 indicate underprediction; "
-            f">1 indicate overprediction). These results support use of the BioMate PBPK model for "
-            f"qualitative and semi-quantitative PK predictions in the context of computational drug "
-            f"discovery."
+            f">1 indicate overprediction). No predictive qualification claim is made without an external, "
+            f"held-out validation study."
         )

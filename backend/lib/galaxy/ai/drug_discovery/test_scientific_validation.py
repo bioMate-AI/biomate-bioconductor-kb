@@ -225,6 +225,25 @@ class TestPKEquationInvariants:
             f"Bateman peak should be 30–100% of F·D/Vd={cmax_unit:.3f}; got {pred:.3f}"
         )
 
+    def test_oral_cmax_uses_bateman_equation_when_absorption_is_slower_than_elimination(self):
+        """The Bateman tmax expression also applies in the ka < ke flip-flop regime."""
+        drug = {
+            "name": "TestFlipFlop",
+            "dose_mg": 100,
+            "route": "oral",
+            "F_oral": 0.5,
+            "CL_L_h": 200.0,
+            "Vd_L": 50.0,
+            "logP": -1.0,  # ka = 0.8 /h; ke = CL*F/Vd = 2 /h
+        }
+        result = self.predictor.predict(drug)
+        ka, ke = 0.8, 2.0
+        tmax = math.log(ka / ke) / (ka - ke)
+        expected = ((0.5 * 100_000.0) / 50.0) * (ka / (ka - ke)) * (
+            math.exp(-ke * tmax) - math.exp(-ka * tmax)
+        ) / 1000.0
+        assert result["predicted_Cmax"] == pytest.approx(expected, rel=1e-5)
+
     # -----------------------------------------------------------------------
     # Linearity: doubling dose doubles Cmax and AUC
     # (linear PK assumption: Rowland & Tozer 2011 Chapter 2)
@@ -273,21 +292,27 @@ class TestPKEquationInvariants:
     # EMA criterion: ≥67% within 2-fold (EMA/CHMP/EWP/37498/2011 Rev1)
     # -----------------------------------------------------------------------
 
-    def test_ema_criterion_met_overall(self):
+    def test_descriptive_ema_threshold_is_not_presented_as_predictive_qualification(self):
         """
-        The EMA PBPK qualification guideline (2018) requires that at least 67%
-        of predictions fall within 2-fold of observed values for Cmax and AUC.
-        Reference: EMA/CHMP/EWP/37498/2011 Rev1, §4.2.2.
+        The 67% criterion is recorded as a descriptive threshold only.  This
+        analytical check feeds observed CL/Vd/F back into the equations, so it
+        cannot claim independent EMA PBPK predictive qualification.
         """
         from .model_validation import ModelValidationService
         svc = ModelValidationService()
         report = svc.run_pbpk_validation()
-        assert report.metrics.within_2fold_Cmax >= 0.67, (
-            f"EMA criterion: within_2fold_Cmax={report.metrics.within_2fold_Cmax:.2%} < 67%"
+        expected = (
+            report.metrics.within_2fold_Cmax >= 0.67
+            and report.metrics.within_2fold_AUC >= 0.67
+            and all(
+                r.predicted_Cmax is not None and r.predicted_AUC is not None
+                and r.observed_Cmax > 0 and r.observed_AUC > 0
+                for r in report.per_compound
+            )
         )
-        assert report.metrics.within_2fold_AUC >= 0.67, (
-            f"EMA criterion: within_2fold_AUC={report.metrics.within_2fold_AUC:.2%} < 67%"
-        )
+        assert report.ema_criterion_met is expected
+        assert "equation-structure verification" in report.regulatory_summary
+        assert "No predictive qualification claim" in report.regulatory_summary
 
     # -----------------------------------------------------------------------
     # AFE/AAFE definitions (Sheiner & Beal 1981)
@@ -911,8 +936,12 @@ class TestINDAssembly:
             auto_proposal=None,
         )
         pbpk_section = assembler._section_pbpk(ctx)
-        assert "MET" in pbpk_section or "NOT MET" in pbpk_section, (
-            "PBPK section must explicitly state whether EMA criterion is MET or NOT MET"
+        expected_status = "MET" if report.ema_criterion_met else "NOT MET"
+        expected_marker = "✓" if report.ema_criterion_met else "✗"
+        assert (
+            f"**EMA criterion (≥67% within 2-fold for both Cmax and AUC):** "
+            f"**{expected_status} {expected_marker}**"
+            in pbpk_section
         )
 
     def test_pbpk_section_no_question_marks_with_real_data(self):
