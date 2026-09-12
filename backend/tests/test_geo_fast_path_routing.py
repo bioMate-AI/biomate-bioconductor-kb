@@ -8,8 +8,10 @@ scientifically invalid workflow card before execution begins.
 """
 
 import os
+import re
 import sys
 from types import SimpleNamespace
+from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
 
@@ -105,3 +107,36 @@ def test_unknown_geo_is_not_guessed_to_be_single_cell():
 
     assert result is not None
     assert result["workflow_ga"]["name"] == "geo_data_connector"
+
+
+def test_geo_connector_does_not_default_to_a_fake_accession_or_first_platform():
+    """The executable connector must preserve the accession and require platform choice."""
+    root = Path(__file__).resolve().parents[1]
+    workflow_path = (
+        root / "biomni_workflows" / "nextflow_nfcore" / "subworkflows" /
+        "genomics" / "geo_data_connector" / "main.nf"
+    )
+    workflow = workflow_path.read_text()
+    config = workflow_path.with_name("nextflow.config").read_text()
+
+    assert "params.accession = null" in workflow
+    assert re.search(r"\baccession\s*=\s*null", config)
+    assert "params.accession = 'GSE999999'" not in workflow
+    assert "no platform was selected automatically" in workflow
+    assert "--platform_id" in workflow
+
+
+def test_geo_connector_local_input_and_output_contract_are_wired():
+    """Advertised local matrices and chain-facing sample_metadata must be real paths."""
+    root = Path(__file__).resolve().parents[1]
+    workflow = (
+        root / "biomni_workflows" / "nextflow_nfcore" / "subworkflows" /
+        "genomics" / "geo_data_connector" / "main.nf"
+    ).read_text()
+
+    assert "process GEO_LOAD_LOCAL" in workflow
+    assert "tuple val(meta), path(local_series_matrix)" in workflow
+    assert "GEO_LOAD_LOCAL(ch_local_input)" in workflow
+    assert "sample_metadata   = GEO_CLINICAL_METADATA.out.sample_metadata" in workflow
+    assert 'path("sample_metadata.csv"), emit: sample_metadata' in workflow
+    assert 'path("clinical_metadata_clean.csv")' not in workflow
