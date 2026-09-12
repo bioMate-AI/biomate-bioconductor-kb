@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "independent_ridge_fits": 120,
+  "maximum_prediction_absolute_error": 2.1094237467877974e-15,
+  "all_baseline_predictions_recomputed": true,
+  "all_inner_alpha_grids_recomputed": true,
+  "all_saved_final_ridge_predictions_verified": true,
+  "masks_and_all_direct_prediction_nans_checked": true,
+  "overall_and_condition_metrics_recomputed": true,
+  "equal_donor_summaries_recomputed": true,
+  "implementation": "Weighted centered ridge normal equations; no driver fit or score functions used",
+  "prediction_sha256": "06ce4ec377a8eea541111afe4f777d51c5c617864c2ebc9f62ad9a22123b40ea",
+  "results_sha256": "f20cc1779904b8b3629c8ef965feff5e79deb8fc8e03b19d0176638e66d1e02c"
+}
