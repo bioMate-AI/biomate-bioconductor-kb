@@ -1,0 +1,31 @@
+{
+  "assigned_guide_cells": 25094,
+  "excluded_cells": 27142,
+  "groups": 192,
+  "genes": 33694,
+  "logical_sparse_scan_bytes": 864128520,
+  "rule": "All cells with a single assigned guide annotation and consistent target; no efficacy/expression filtering. Missing guide labels excluded. nperts includes TCR stimulation and is not used as a guide-count filter",
+  "gene_index_field": "_index",
+  "nperts_by_sample": {
+    "D1_nostim": {
+      "0.0": 5535,
+      "1.0": 0,
+      "2.0": 0
+    },
+    "D1_stim": {
+      "0.0": 0,
+      "1.0": 6953,
+      "2.0": 0
+    },
+    "D2_nostim": {
+      "0.0": 5145,
+      "1.0": 0,
+      "2.0": 0
+    },
+    "D2_stim": {
+      "0.0": 0,
+      "1.0": 7461,
+      "2.0": 0
+    }
+  }
+}

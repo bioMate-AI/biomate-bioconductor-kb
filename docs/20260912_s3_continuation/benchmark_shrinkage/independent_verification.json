@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "coefficients_verified": 12,
+  "prediction_arrays_verified": 16,
+  "fold_metric_and_count_comparisons": 128,
+  "exact_label_equality": "All192x132 labels rebuilt from raw aggregated targets minus reference-only controls; bitwise match to current and prior saved labels",
+  "prior_baselines": "All12 prior baseline arrays exactly unchanged, including direct-output NaNs",
+  "control_aggregates": "All24 baseline groups exactly reconstructed from native controls, guide pools disjoint",
+  "mask": "Same per-row downstream masks as prior benchmark; all16 target genes excluded only for coefficient fitting",
+  "leakage_review": "Coefficient fitting uses training donors only; held-out target/reference values only used as truth. Reused development benchmark; no ridge rerun or independent confirmation.",
+  "prediction_sha256": "45778cca887db0d1d08bd808f1129de80b7c511c9ea7ad5b00a7d98206387211",
+  "results_sha256": "6cd639adc200f1d409f6e4962ed396a58728e04383f69274ae4d23fe1c12b409"
+}

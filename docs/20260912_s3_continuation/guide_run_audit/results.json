@@ -1,0 +1,751 @@
+{
+  "source_rows": 278684,
+  "duplicate_guide_donor_condition_rows": 0,
+  "source_donor_run_condition_counts": [
+    {
+      "donor": "CE0006864",
+      "run": "CD4i_R2",
+      "condition": "Rest",
+      "profiles": 24702
+    },
+    {
+      "donor": "CE0006864",
+      "run": "CD4i_R2",
+      "condition": "Stim48hr",
+      "profiles": 24794
+    },
+    {
+      "donor": "CE0006864",
+      "run": "CD4i_R2",
+      "condition": "Stim8hr",
+      "profiles": 24978
+    },
+    {
+      "donor": "CE0008162",
+      "run": "CD4i_R1",
+      "condition": "Rest",
+      "profiles": 23252
+    },
+    {
+      "donor": "CE0008162",
+      "run": "CD4i_R1",
+      "condition": "Stim8hr",
+      "profiles": 23844
+    },
+    {
+      "donor": "CE0008162",
+      "run": "CD4i_R2",
+      "condition": "Stim48hr",
+      "profiles": 23870
+    },
+    {
+      "donor": "CE0008678",
+      "run": "CD4i_R2",
+      "condition": "Rest",
+      "profiles": 21518
+    },
+    {
+      "donor": "CE0008678",
+      "run": "CD4i_R2",
+      "condition": "Stim48hr",
+      "profiles": 21174
+    },
+    {
+      "donor": "CE0008678",
+      "run": "CD4i_R2",
+      "condition": "Stim8hr",
+      "profiles": 21828
+    },
+    {
+      "donor": "CE0010866",
+      "run": "CD4i_R1",
+      "condition": "Rest",
+      "profiles": 22370
+    },
+    {
+      "donor": "CE0010866",
+      "run": "CD4i_R1",
+      "condition": "Stim8hr",
+      "profiles": 23499
+    },
+    {
+      "donor": "CE0010866",
+      "run": "CD4i_R2",
+      "condition": "Stim48hr",
+      "profiles": 22855
+    }
+  ],
+  "frozen_panel": [
+    {
+      "target": "ARPC2",
+      "guides": [
+        {
+          "guide": "ARPC2-1",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 9.0,
+          "median_cells": 20.0
+        },
+        {
+          "guide": "ARPC2-2",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 9.0,
+          "median_cells": 19.0
+        }
+      ],
+      "extra_guide_count": 0
+    },
+    {
+      "target": "CD7",
+      "guides": [
+        {
+          "guide": "CD7-1",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 5.0,
+          "median_cells": 20.5
+        },
+        {
+          "guide": "CD7-2",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 10.0,
+          "median_cells": 98.5
+        }
+      ],
+      "extra_guide_count": 0
+    },
+    {
+      "target": "CORO1A",
+      "guides": [
+        {
+          "guide": "CORO1A-1",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 16.0,
+          "median_cells": 125.5
+        },
+        {
+          "guide": "CORO1A-2",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 42.0,
+          "median_cells": 86.5
+        }
+      ],
+      "extra_guide_count": 0
+    },
+    {
+      "target": "CST7",
+      "guides": [
+        {
+          "guide": "CST7-1",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 9.0,
+          "median_cells": 44.0
+        },
+        {
+          "guide": "CST7-2",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 60.0,
+          "median_cells": 122.5
+        }
+      ],
+      "extra_guide_count": 0
+    },
+    {
+      "target": "DUSP1",
+      "guides": [
+        {
+          "guide": "DUSP1-1",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 78.0,
+          "median_cells": 92.5
+        },
+        {
+          "guide": "DUSP1-2",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 26.0,
+          "median_cells": 74.0
+        }
+      ],
+      "extra_guide_count": 0
+    },
+    {
+      "target": "FOS",
+      "guides": [
+        {
+          "guide": "FOS-1",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 25.0,
+          "median_cells": 55.5
+        },
+        {
+          "guide": "FOS-2",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 7.0,
+          "median_cells": 73.5
+        }
+      ],
+      "extra_guide_count": 0
+    },
+    {
+      "target": "FTH1",
+      "guides": [
+        {
+          "guide": "FTH1-1",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 21.0,
+          "median_cells": 96.5
+        },
+        {
+          "guide": "FTH1-2",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 14.0,
+          "median_cells": 43.0
+        }
+      ],
+      "extra_guide_count": 0
+    },
+    {
+      "target": "GBP4",
+      "guides": [
+        {
+          "guide": "GBP4-1",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 50.0,
+          "median_cells": 131.5
+        },
+        {
+          "guide": "GBP4-2",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 22.0,
+          "median_cells": 85.5
+        }
+      ],
+      "extra_guide_count": 0
+    },
+    {
+      "target": "GBP5",
+      "guides": [
+        {
+          "guide": "GBP5-1",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 19.0,
+          "median_cells": 62.0
+        },
+        {
+          "guide": "GBP5-2",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 88.0,
+          "median_cells": 140.5
+        }
+      ],
+      "extra_guide_count": 0
+    },
+    {
+      "target": "HINT1",
+      "guides": [
+        {
+          "guide": "HINT1-1",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 16.0,
+          "median_cells": 45.5
+        },
+        {
+          "guide": "HINT1-2",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 17.0,
+          "median_cells": 35.0
+        }
+      ],
+      "extra_guide_count": 0
+    },
+    {
+      "target": "IKZF1",
+      "guides": [
+        {
+          "guide": "IKZF1-1",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 15.0,
+          "median_cells": 52.5
+        },
+        {
+          "guide": "IKZF1-2",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 13.0,
+          "median_cells": 57.5
+        }
+      ],
+      "extra_guide_count": 0
+    },
+    {
+      "target": "IL32",
+      "guides": [
+        {
+          "guide": "IL32-1",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 69.0,
+          "median_cells": 112.5
+        },
+        {
+          "guide": "IL32-2",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 17.0,
+          "median_cells": 37.5
+        }
+      ],
+      "extra_guide_count": 0
+    },
+    {
+      "target": "KLF6",
+      "guides": [
+        {
+          "guide": "KLF6-1",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 5.0,
+          "median_cells": 70.5
+        },
+        {
+          "guide": "KLF6-2",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 17.0,
+          "median_cells": 64.5
+        }
+      ],
+      "extra_guide_count": 0
+    },
+    {
+      "target": "MSN",
+      "guides": [
+        {
+          "guide": "MSN-1",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 32.0,
+          "median_cells": 55.0
+        },
+        {
+          "guide": "MSN-2",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 19.0,
+          "median_cells": 33.5
+        }
+      ],
+      "extra_guide_count": 0
+    },
+    {
+      "target": "SMCHD1",
+      "guides": [
+        {
+          "guide": "SMCHD1-1",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 5.0,
+          "median_cells": 44.0
+        },
+        {
+          "guide": "SMCHD1-2",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 13.0,
+          "median_cells": 32.0
+        }
+      ],
+      "extra_guide_count": 0
+    },
+    {
+      "target": "VIM",
+      "guides": [
+        {
+          "guide": "VIM-1",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 23.0,
+          "median_cells": 130.0
+        },
+        {
+          "guide": "VIM-2",
+          "profiles": 12,
+          "basic_qc": 12,
+          "DE_eligible": 12,
+          "basic_qc_but_not_DE": 0,
+          "runs": [
+            "CD4i_R1",
+            "CD4i_R2"
+          ],
+          "min_cells": 32.0,
+          "median_cells": 54.5
+        }
+      ],
+      "extra_guide_count": 0
+    }
+  ],
+  "frozen_composition": {
+    "targets": [
+      {
+        "donor": "CE0006864",
+        "run": "CD4i_R2",
+        "condition": "Rest",
+        "profiles": 32
+      },
+      {
+        "donor": "CE0006864",
+        "run": "CD4i_R2",
+        "condition": "Stim48hr",
+        "profiles": 32
+      },
+      {
+        "donor": "CE0006864",
+        "run": "CD4i_R2",
+        "condition": "Stim8hr",
+        "profiles": 32
+      },
+      {
+        "donor": "CE0008162",
+        "run": "CD4i_R1",
+        "condition": "Rest",
+        "profiles": 32
+      },
+      {
+        "donor": "CE0008162",
+        "run": "CD4i_R1",
+        "condition": "Stim8hr",
+        "profiles": 32
+      },
+      {
+        "donor": "CE0008162",
+        "run": "CD4i_R2",
+        "condition": "Stim48hr",
+        "profiles": 32
+      },
+      {
+        "donor": "CE0008678",
+        "run": "CD4i_R2",
+        "condition": "Rest",
+        "profiles": 32
+      },
+      {
+        "donor": "CE0008678",
+        "run": "CD4i_R2",
+        "condition": "Stim48hr",
+        "profiles": 32
+      },
+      {
+        "donor": "CE0008678",
+        "run": "CD4i_R2",
+        "condition": "Stim8hr",
+        "profiles": 32
+      },
+      {
+        "donor": "CE0010866",
+        "run": "CD4i_R1",
+        "condition": "Rest",
+        "profiles": 32
+      },
+      {
+        "donor": "CE0010866",
+        "run": "CD4i_R1",
+        "condition": "Stim8hr",
+        "profiles": 32
+      },
+      {
+        "donor": "CE0010866",
+        "run": "CD4i_R2",
+        "condition": "Stim48hr",
+        "profiles": 32
+      }
+    ],
+    "controls": [
+      {
+        "donor": "CE0006864",
+        "run": "CD4i_R2",
+        "condition": "Rest",
+        "profiles": 32
+      },
+      {
+        "donor": "CE0006864",
+        "run": "CD4i_R2",
+        "condition": "Stim48hr",
+        "profiles": 32
+      },
+      {
+        "donor": "CE0006864",
+        "run": "CD4i_R2",
+        "condition": "Stim8hr",
+        "profiles": 32
+      },
+      {
+        "donor": "CE0008162",
+        "run": "CD4i_R1",
+        "condition": "Rest",
+        "profiles": 32
+      },
+      {
+        "donor": "CE0008162",
+        "run": "CD4i_R1",
+        "condition": "Stim8hr",
+        "profiles": 32
+      },
+      {
+        "donor": "CE0008162",
+        "run": "CD4i_R2",
+        "condition": "Stim48hr",
+        "profiles": 32
+      },
+      {
+        "donor": "CE0008678",
+        "run": "CD4i_R2",
+        "condition": "Rest",
+        "profiles": 25
+      },
+      {
+        "donor": "CE0008678",
+        "run": "CD4i_R2",
+        "condition": "Stim48hr",
+        "profiles": 23
+      },
+      {
+        "donor": "CE0008678",
+        "run": "CD4i_R2",
+        "condition": "Stim8hr",
+        "profiles": 23
+      },
+      {
+        "donor": "CE0010866",
+        "run": "CD4i_R1",
+        "condition": "Rest",
+        "profiles": 27
+      },
+      {
+        "donor": "CE0010866",
+        "run": "CD4i_R1",
+        "condition": "Stim8hr",
+        "profiles": 30
+      },
+      {
+        "donor": "CE0010866",
+        "run": "CD4i_R2",
+        "condition": "Stim48hr",
+        "profiles": 28
+      }
+    ]
+  },
+  "basic_QC_complete_targets_with_2_guides": 3322,
+  "basic_QC_complete_targets_with_3_guides": 1,
+  "source_guides_per_target_histogram": {
+    "1": 511,
+    "2": 12200,
+    "3": 17,
+    "4": 2
+  },
+  "metadata_sha256": "e7dfad21a295052d845cdae3d48159153a10704bb0acb5e6201dbc3ae4ae20bf"
+}
