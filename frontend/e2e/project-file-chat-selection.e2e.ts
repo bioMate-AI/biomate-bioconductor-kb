@@ -18,9 +18,11 @@ test('chat can select two exact files from the active project', async ({ page })
     expect(upload.ok(), `upload ${name} failed: ${await upload.text()}`).toBeTruthy();
   }
 
-  await page.goto(BASE_URL);
+  // Dev can keep deferred resources open after the app shell is available;
+  // do not wait for the browser's default full-load completion.
+  await page.goto(BASE_URL, { waitUntil: 'commit' });
   await page.evaluate((id) => localStorage.setItem('biomate-active-project-id', id), projectId);
-  await page.reload();
+  await page.reload({ waitUntil: 'commit' });
   const browse = page.getByTitle('Browse BioMate datasets');
   await browse.click();
   await page.getByRole('button', { name: 'Project files' }).click();
