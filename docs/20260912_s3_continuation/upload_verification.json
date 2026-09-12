@@ -1,0 +1,21 @@
+{
+  "commit": "68ad377eee7cba53dae8338bde8ea27842e8b481",
+  "objects": [
+    {
+      "s3_uri": "s3://knowledge-datasets-1759951976/immune_llm_baseline/releases/68ad377eee7cba53dae8338bde8ea27842e8b481/code.tar.gz",
+      "bytes": 574472,
+      "sha256": "1fc05a4374b8c6fc6d9b92fbdd856c01c526545f4dd758e86ec12d5515d712fa",
+      "readback": "pass",
+      "action": "created"
+    },
+    {
+      "s3_uri": "s3://knowledge-datasets-1759951976/immune_llm_baseline/releases/68ad377eee7cba53dae8338bde8ea27842e8b481/manifest.json",
+      "bytes": 34269,
+      "sha256": "192f093adc8217619932901665621d01a1743d7b7f89d2587bd4d22226797a5f",
+      "readback": "pass",
+      "action": "created"
+    }
+  ],
+  "legacy_code_prefix_modified": false,
+  "status": "uploaded_and_verified"
+}

@@ -1,0 +1,113 @@
+{
+  "pseudobulk_rows": 278684,
+  "matrix_shape": [
+    278684,
+    18129
+  ],
+  "control_coverage": [
+    {
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "non_targeting_pseudobulk_rows": 976,
+      "passes_keep_for_DE": 961
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "non_targeting_pseudobulk_rows": 980,
+      "passes_keep_for_DE": 970
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "non_targeting_pseudobulk_rows": 978,
+      "passes_keep_for_DE": 972
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "non_targeting_pseudobulk_rows": 951,
+      "passes_keep_for_DE": 907
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "non_targeting_pseudobulk_rows": 973,
+      "passes_keep_for_DE": 944
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "non_targeting_pseudobulk_rows": 967,
+      "passes_keep_for_DE": 931
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "non_targeting_pseudobulk_rows": 834,
+      "passes_keep_for_DE": 731
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "non_targeting_pseudobulk_rows": 827,
+      "passes_keep_for_DE": 720
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "non_targeting_pseudobulk_rows": 841,
+      "passes_keep_for_DE": 740
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "non_targeting_pseudobulk_rows": 874,
+      "passes_keep_for_DE": 788
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "non_targeting_pseudobulk_rows": 902,
+      "passes_keep_for_DE": 807
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "non_targeting_pseudobulk_rows": 915,
+      "passes_keep_for_DE": 832
+    }
+  ],
+  "counts_not_yet_extracted": true,
+  "readme_relevant_lines": [
+    "## Pseudobulk-level data",
+    "Filename: `GWCD4i.pseudobulk_merged.h5ad`",
+    "This AnnData object contains pseudobulk expression profiles. Each observation represents a pseudobulk (aggregated by guide, donor and culture condition). Each variable is a measured gene in the transcriptome (`n_vars = 18,129`).",
+    "Annotations for each pseudobulk sample:",
+    "- **`n_cells`**: Number of cells aggregated in this pseudobulk sample",
+    "- **`total_counts`**: Total UMI counts across all cells in this pseudobulk",
+    "Sum of UMI counts across cells for each gene in each pseudobulk sample",
+    "Filename: `GWCD4i.DE_stats.by_donors.h5mu`",
+    "Each modality is an AnnData with the same `.obs`, `.var`, and `.layers` schema as `GWCD4i.DE_stats.h5ad` (see \"Differential Expression Results\" above for column descriptions). The observation key is `{target_contrast}_{culture_condition}`. A target is missing from a given donor-pair modality if it did not pass DE-eligibility filters within the cells from those two donors."
+  ],
+  "legacy_code_comparison": [
+    {
+      "module": "train_czi_irm.py",
+      "s3_sha256": "8ab3162bc87d3b8438773f4a9c457faa9de0af2ac83b72f2eda2a5ee4a2eeb3c",
+      "local_committed_sha256": "b4175ef750942b1ac81903c6fdde174169a15d96f22e5b5d520cac2d6d37df55",
+      "same": false
+    },
+    {
+      "module": "load_czi_perturbseq.py",
+      "s3_sha256": "5d595fc0f3fcf83901aa297d1cf495a2ae9da118a542d268784a1ed1ecbe82dc",
+      "local_committed_sha256": "8898fa6bb3322945107dbe73c9384f23091351c498ea17cc1e18b75c044de81b",
+      "same": false
+    },
+    {
+      "module": "czi_irm_head.py",
+      "s3_sha256": "412f4881cdcbb0c15e254cbe5bc0b15ea25cfc596e39fe45d6effb6caf26a45d",
+      "local_committed_sha256": "714705fd0e973abf61a4578935a7359995e3ef0d2ec47bf92c18e8d830f53045",
+      "same": false
+    }
+  ]
+}

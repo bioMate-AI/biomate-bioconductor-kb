@@ -1,0 +1,13 @@
+{
+  "targeting_profiles": 267666,
+  "targeting_pass_counts": {
+    "keep_min_cells": 239206,
+    "keep_total_counts": 266289,
+    "keep_effective_guides": 254463,
+    "keep_test_genes": 252464,
+    "keep_for_DE": 224761
+  },
+  "targeting_basic_qc_pass": 239206,
+  "targeting_basic_qc_differs_keep_for_DE": 14445,
+  "targeting_all4flags_equal_keep_for_DE": true
+}
