@@ -1,3 +1,4 @@
+import { localOnly, localMessagesClient } from './local-llm.js';
 /**
  * Workflow Prerequisites Validator
  *
@@ -50,7 +51,7 @@ export class WorkflowPrerequisitesValidator {
   private readonly SCHEMA_TTL_MS = 60 * 60 * 1000; // 1 hour
 
   constructor(options: PrerequisitesValidatorOptions) {
-    this.claude = new Anthropic({ apiKey: options.anthropicApiKey || '' });
+    this.claude = (localOnly() ? localMessagesClient() as unknown as Anthropic : new Anthropic({ apiKey: options.anthropicApiKey || '' }));
     this.galaxyAPI = options.galaxyAPIProxy;
   }
 

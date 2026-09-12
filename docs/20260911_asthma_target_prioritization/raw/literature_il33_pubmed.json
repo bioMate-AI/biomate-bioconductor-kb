@@ -1,0 +1,36 @@
+{
+  "header": {
+    "type": "esearch",
+    "version": "0.3"
+  },
+  "esearchresult": {
+    "count": "709",
+    "retmax": "8",
+    "retstart": "0",
+    "idlist": [
+      "42661445",
+      "42497191",
+      "42324975",
+      "42304287",
+      "42259242",
+      "42226044",
+      "42100869",
+      "42097684"
+    ],
+    "translationset": [
+      {
+        "from": "IL33",
+        "to": "\"interleukin-33\"[Supplementary Concept] OR \"interleukin-33\"[All Fields] OR \"il33\"[All Fields] OR \"il33 protein, human\"[Supplementary Concept] OR \"il33 protein, human\"[All Fields] OR \"interleukin-33\"[MeSH Terms]"
+      },
+      {
+        "from": "asthma",
+        "to": "\"asthma\"[MeSH Terms] OR \"asthma\"[All Fields] OR \"asthmas\"[All Fields] OR \"asthma's\"[All Fields]"
+      },
+      {
+        "from": "humans[MeSH Terms]",
+        "to": "\"humans\"[MeSH Terms]"
+      }
+    ],
+    "querytranslation": "((\"interleukin 33\"[Supplementary Concept] OR \"interleukin 33\"[All Fields] OR \"il33\"[All Fields] OR \"il33 protein human\"[Supplementary Concept] OR \"il33 protein human\"[All Fields] OR \"interleukin 33\"[MeSH Terms] OR \"IL-33\"[All Fields]) AND (\"asthma\"[MeSH Terms] OR \"asthma\"[All Fields] OR \"asthmas\"[All Fields] OR \"asthma s\"[All Fields]) AND \"humans\"[MeSH Terms]) NOT \"review\"[Publication Type]"
+  }
+}

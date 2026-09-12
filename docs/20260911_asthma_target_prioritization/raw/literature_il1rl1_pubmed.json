@@ -1,0 +1,36 @@
+{
+  "header": {
+    "type": "esearch",
+    "version": "0.3"
+  },
+  "esearchresult": {
+    "count": "249",
+    "retmax": "8",
+    "retstart": "0",
+    "idlist": [
+      "42085217",
+      "41966515",
+      "41896900",
+      "41840531",
+      "41786057",
+      "41765683",
+      "41712271",
+      "41663637"
+    ],
+    "translationset": [
+      {
+        "from": "IL1RL1",
+        "to": "\"il1rl1 protein, human\"[Supplementary Concept] OR \"il1rl1 protein, human\"[All Fields] OR \"il1rl1\"[All Fields]"
+      },
+      {
+        "from": "asthma",
+        "to": "\"asthma\"[MeSH Terms] OR \"asthma\"[All Fields] OR \"asthmas\"[All Fields] OR \"asthma's\"[All Fields]"
+      },
+      {
+        "from": "humans[MeSH Terms]",
+        "to": "\"humans\"[MeSH Terms]"
+      }
+    ],
+    "querytranslation": "((\"il1rl1 protein human\"[Supplementary Concept] OR \"il1rl1 protein human\"[All Fields] OR \"il1rl1\"[All Fields] OR \"ST2\"[All Fields]) AND (\"asthma\"[MeSH Terms] OR \"asthma\"[All Fields] OR \"asthmas\"[All Fields] OR \"asthma s\"[All Fields]) AND \"humans\"[MeSH Terms]) NOT \"review\"[Publication Type]"
+  }
+}

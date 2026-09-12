@@ -1,0 +1,7 @@
+{
+  "cellxgene_header_policy.json": "6aaf5953b6dee30293fb9583fc7c0b839578894c28b9a5846a9ef20a5aad15e5",
+  "ingest_rna_queue.py": "a22f4c0f5510dd853ecbbc030350ab7a7956301e43095c4163171390f21ccbad",
+  "object_manifest.json": "72f84565a351bf069cbbe9073dede050b1d2a8fc8439397ccf0c0aee2b18b51e",
+  "paired_vocabulary.json": "2d180db0beb62fd32763246452dc9b583a70d81d9caf811717a6ba28a93d9766",
+  "preflight_all_source_headers.py": "e730274f1c13df70423086c952e59e4197d4215e83e580d19705cd57b02da850"
+}

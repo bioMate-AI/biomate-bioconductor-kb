@@ -1,3 +1,4 @@
+import { localOnly, localMessagesClient } from './local-llm.js';
 import type { Express } from "express";
 import express from "express";
 import { requestContextMiddleware } from "./request-context";
@@ -746,7 +747,7 @@ if (typeof parsedThinkingBudget === "number" && Number.isFinite(parsedThinkingBu
 // Start with whichever LLM key is available; Gemini (GOOGLE_API_KEY) is the
 // backbone and Anthropic is used for memory, embeddings, and fallback.
 // Neither key alone blocks startup — the assistant degrades gracefully.
-const _hasAnyLLMKey = !!(
+const _hasAnyLLMKey = localOnly() || !!(
   process.env.ANTHROPIC_API_KEY ||
   process.env.GOOGLE_API_KEY ||
   process.env.GEMINI_API_KEY
@@ -5399,7 +5400,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .join('\n');
 
         // If no AI key, produce a structured template without LLM synthesis
-        if (!apiKey) {
+        if (!apiKey && !localOnly()) {
           const fallback = [
             `BioMate AI — Report`,
             `${'='.repeat(60)}`,
@@ -6161,6 +6162,10 @@ ${paramLines || '(none recorded)'}`;
           if (requestedReferences?.length) {
             console.log(`[chat-stream] request dataset selection: ${selection.datasets.length}/${requestedReferences.length} resolved`);
           }
+          // A history-selected dataset may not be cached in this Express
+          // session yet. Keep its exact ID for on-demand resolution rather
+          // than falsely treating it as unavailable or substituting another
+          // session dataset with the same name.
           const byId = new Map(selection.datasets.map((dataset: any) => [dataset.id, dataset]));
           const exactSelection = requestedReferences?.map((reference: { id: string; name?: string }) =>
             byId.get(reference.id) ?? {
@@ -6566,7 +6571,7 @@ ${paramLines || '(none recorded)'}`;
         return res.status(400).json({ error: "messages array is required" });
       }
 
-      if (!process.env.ANTHROPIC_API_KEY) {
+      if (!process.env.ANTHROPIC_API_KEY && !localOnly()) {
         return res.status(503).json({
           error: "Context compression not available. ANTHROPIC_API_KEY is not configured."
         });
@@ -6579,7 +6584,7 @@ ${paramLines || '(none recorded)'}`;
       });
 
       // Get compressor instance
-      const compressor = getContextCompressor(process.env.ANTHROPIC_API_KEY);
+      const compressor = getContextCompressor(process.env.ANTHROPIC_API_KEY || '');
 
       // Compress messages
       const result = await compressor.compressMessages(messages, {
@@ -11696,7 +11701,7 @@ Rules:
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
 
-    if (!apiKey) {
+    if (!apiKey && !localOnly()) {
       return res.json(regexFallbackError(log));
     }
 
@@ -11725,7 +11730,7 @@ Rules:
     if (!text) return res.json({ title: 'New Chat' });
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
+    if (!apiKey && !localOnly()) {
       // Fallback: take first 6 words
       const fallback = text.trim().split(/\s+/).slice(0, 6).join(' ');
       return res.json({ title: fallback.length > 50 ? fallback.slice(0, 47) + '...' : fallback });
@@ -13124,7 +13129,7 @@ Rules:
       }
 
       const apiKey = process.env.ANTHROPIC_API_KEY;
-      if (!apiKey) {
+      if (!apiKey && !localOnly()) {
         return res.status(503).json({ error: "AI analysis unavailable — ANTHROPIC_API_KEY not set" });
       }
 
@@ -13810,7 +13815,7 @@ Rules:
           // Readable outputs found — clear the retry clock for this run.
           _findingsFirstAttempt.delete(runId);
 
-          if (!apiKey) {
+          if (!apiKey && !localOnly()) {
             // We have verified that real output content is available.  It is
             // safe to say so, but do not fabricate a scientific summary when
             // the analysis model is unavailable.
@@ -14018,7 +14023,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
                 .map(f => `### File: ${f.name}\n\`\`\`\n${f.content.slice(0, 3000)}\n\`\`\``)
                 .join('\n\n');
               const Anthropic = (await import('@anthropic-ai/sdk')).default;
-              const _anthropic = new Anthropic({ apiKey });
+              const _anthropic = (localOnly() ? localMessagesClient() as unknown as import('@anthropic-ai/sdk').default : new Anthropic({ apiKey }));
               const _msg = await _anthropic.messages.create({
                 model: 'claude-haiku-4-5-20251001',
                 max_tokens: 2048,
@@ -15380,7 +15385,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
   // POST /api/open-claw/stream — SSE: Claude API with BioMate tools, agentic loop
   // Body: { messages: Message[], system?: string }
   app.post("/api/open-claw/stream", optionalAuth, async (req, res) => {
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!process.env.ANTHROPIC_API_KEY && !localOnly()) {
       return res.status(503).json({ error: "ANTHROPIC_API_KEY not configured" });
     }
 
@@ -15403,7 +15408,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
 
     try {
       const Anthropic = (await import('@anthropic-ai/sdk')).default;
-      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      const client = (localOnly() ? localMessagesClient() as unknown as import('@anthropic-ai/sdk').default : new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }));
       const userId = req.user ? String((req.user as any).id) : null;
 
       const systemPrompt = system || `You are Claude, an AI assistant with access to BioMate's scientific workflow tools.

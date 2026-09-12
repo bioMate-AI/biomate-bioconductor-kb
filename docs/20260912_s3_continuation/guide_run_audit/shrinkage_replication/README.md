@@ -20,3 +20,5 @@ Unattenuated matched effects remain worse than no change in every dataset/panel 
 `results.json` retains every coefficient, numerator, denominator, selected gene list, per-target metric, per-donor summary, and input/code hash. Correlation summaries contain valid and total counts: zero-alpha predictions have undefined correlation. Means conditional on valid correlations are not directly comparable when counts differ.
 
 All **72 held-out mutation checks passed**: replacing every held-out aggregate effect, guide profile, control reference and control CPM with 1e9 left selection, attenuation coefficients and training target predictions exactly unchanged. This checks split isolation; it is not independent reconstruction of the full implementation.
+
+Independent reconstruction subsequently passed: all 72 attenuation coefficients and gene selections, 1,152 per-target rows, and 18,846 metric/summary/count comparisons. Reproducible evidence is saved in `independent_verify.py` and `independent_verification.json`.

@@ -1,0 +1,8 @@
+[Unit]
+Description=Back up BioMate trial worker progress to S3
+After=network-online.target
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/opt/biomate-trial
+ExecStart=/opt/biomate-trial/venv/bin/python /opt/biomate-trial/scripts/backup_status.py

@@ -1,0 +1,14 @@
+{
+  "data": {
+    "gene": {
+      "gene_id": "ENSG00000145777",
+      "symbol": "TSLP",
+      "gnomad_constraint": {
+        "pLI": 7.048325843013238e-05,
+        "oe_lof": 0.9668179885443776,
+        "oe_lof_lower": 0.6195352180557557,
+        "oe_lof_upper": 1.5664521476402535
+      }
+    }
+  }
+}

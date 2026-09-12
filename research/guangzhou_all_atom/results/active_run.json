@@ -1,0 +1,14 @@
+{
+  "directory": "/Users/kky/biomate-review/research/guangzhou_all_atom/results/pepglad-initial-20260912T215600Z",
+  "run_id": "pepglad-initial-20260912T215600Z",
+  "s3_prefix": "s3://knowledge-datasets-1759951976/cyclic_peptide/runs/pepglad-initial-20260912T215600Z",
+  "code_sha256": "03bfab6350ef5a891a2d2da81af3b872e09af927060d9054327726c1834c586e",
+  "replaces": "pepglad-initial-20260912T214443Z",
+  "fix": "Idempotent source checkout; verified all four PepBench files already in S3",
+  "deadline_utc": "2026-09-13T01:45:52Z",
+  "autoencoder_epochs": 5,
+  "ldm_epochs": 5,
+  "upstream_commit": "bad015ca50c312a89482adb5220c3d907f13df5c",
+  "instance_id": "i-00ee634b80c07800c",
+  "dataset_collection": "complete: 4 PepBench objects fully verified; CycPeptMPDB reused"
+}

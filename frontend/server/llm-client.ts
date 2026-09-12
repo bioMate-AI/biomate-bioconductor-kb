@@ -1,3 +1,4 @@
+import { localOnly, localCompletion } from './local-llm.js';
 /**
  * llmGenerate — the ONLY way the frontend should call an LLM.
  *
@@ -59,6 +60,19 @@ export async function llmGenerate(
 ): Promise<LlmGenerateResult> {
   if (typeof opts.prompt !== "string" || !opts.prompt.trim()) {
     throw new Error("llmGenerate: prompt is required (non-empty string)");
+  }
+  if (localOnly()) {
+    const result = await localCompletion({
+      messages: [...(opts.system ? [{ role: 'system', content: opts.system }] : []),
+        { role: 'user', content: opts.prompt }],
+      max_tokens: opts.maxTokens ?? 4096, temperature: opts.temperature ?? 0,
+      ...(opts.jsonMode ? { response_format: { type: 'json_object' } } : {}),
+    });
+    const choice = result.choices[0];
+    if (choice.finish_reason !== 'stop' || typeof choice.message.content !== 'string') {
+      throw new Error('Local generation did not produce a complete text answer');
+    }
+    return { text: choice.message.content, modelUsed: result.model || process.env.BIOMATE_LOCAL_LLM_MODEL!, fallbackDepth: 0 };
   }
   const body = {
     prompt: opts.prompt,

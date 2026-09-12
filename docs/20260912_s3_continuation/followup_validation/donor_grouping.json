@@ -1,0 +1,109 @@
+{
+  "status": "metadata_only_verified",
+  "screen_donor_ids": [
+    "CE0006864",
+    "CE0008162",
+    "CE0008678",
+    "CE0010866"
+  ],
+  "followup_metadata_unique_donors": 17,
+  "all_followup_metadata_overlap_screen": [],
+  "selected_files": 8,
+  "selected_unique_biological_donors": 7,
+  "selected_overlap_screen": [],
+  "donor_aliases": {
+    "DonorC2": "DonorC"
+  },
+  "files": [
+    {
+      "file": "GSE314342_IL10IL21_validation_Diff087_DonorA_bulkRNAseq.csv.gz",
+      "batch": "Diff087",
+      "source_donor_alias": "DonorA",
+      "canonical_donor_alias": "DonorA",
+      "biological_donor_id": "CE0011482",
+      "split_group": "CE0011482",
+      "control_reference_group": "CE0011482::Diff087"
+    },
+    {
+      "file": "GSE314342_IL10IL21_validation_Diff087_DonorC_bulkRNAseq.csv.gz",
+      "batch": "Diff087",
+      "source_donor_alias": "DonorC",
+      "canonical_donor_alias": "DonorC",
+      "biological_donor_id": "CE0011506",
+      "split_group": "CE0011506",
+      "control_reference_group": "CE0011506::Diff087"
+    },
+    {
+      "file": "GSE314342_IL10IL21_validation_Diff087_DonorF_bulkRNAseq.csv.gz",
+      "batch": "Diff087",
+      "source_donor_alias": "DonorF",
+      "canonical_donor_alias": "DonorF",
+      "biological_donor_id": "CE0011182",
+      "split_group": "CE0011182",
+      "control_reference_group": "CE0011182::Diff087"
+    },
+    {
+      "file": "GSE314342_IL10IL21_validation_Diff087_DonorG_bulkRNAseq.csv.gz",
+      "batch": "Diff087",
+      "source_donor_alias": "DonorG",
+      "canonical_donor_alias": "DonorG",
+      "biological_donor_id": "CE0011120",
+      "split_group": "CE0011120",
+      "control_reference_group": "CE0011120::Diff087"
+    },
+    {
+      "file": "GSE314342_IL10IL21_validation_Diff092_DonorB_bulkRNAseq.csv.gz",
+      "batch": "Diff092",
+      "source_donor_alias": "DonorB",
+      "canonical_donor_alias": "DonorB",
+      "biological_donor_id": "CE0010625",
+      "split_group": "CE0010625",
+      "control_reference_group": "CE0010625::Diff092"
+    },
+    {
+      "file": "GSE314342_IL10IL21_validation_Diff092_DonorC2_bulkRNAseq.csv.gz",
+      "batch": "Diff092",
+      "source_donor_alias": "DonorC2",
+      "canonical_donor_alias": "DonorC",
+      "biological_donor_id": "CE0011506",
+      "split_group": "CE0011506",
+      "control_reference_group": "CE0011506::Diff092"
+    },
+    {
+      "file": "GSE314342_IL10IL21_validation_Diff092_DonorD_bulkRNAseq.csv.gz",
+      "batch": "Diff092",
+      "source_donor_alias": "DonorD",
+      "canonical_donor_alias": "DonorD",
+      "biological_donor_id": "CE0009992",
+      "split_group": "CE0009992",
+      "control_reference_group": "CE0009992::Diff092"
+    },
+    {
+      "file": "GSE314342_IL10IL21_validation_Diff092_DonorH_bulkRNAseq.csv.gz",
+      "batch": "Diff092",
+      "source_donor_alias": "DonorH",
+      "canonical_donor_alias": "DonorH",
+      "biological_donor_id": "CE0011304",
+      "split_group": "CE0011304",
+      "control_reference_group": "CE0011304::Diff092"
+    }
+  ],
+  "split_policy": "Group all samples from the same biological donor across batches in one fold; do not split DonorC from DonorC2.",
+  "control_policy": "Match controls within donor, differentiation batch, verified culture condition and assay; retain batch-specific contrasts before donor-level aggregation.",
+  "unresolved": [
+    "Exact culture condition and guide/target parsing for rawcount columns must be verified before expression loading or scoring.",
+    "New donors within the same study are donor-independent follow-up, not an independent-study cohort.",
+    "Follow-up targets were selected by the study; prospective target generalization is not established."
+  ],
+  "expression_outcomes_inspected": false,
+  "source": "https://github.com/emdann/GWT_perturbseq_analysis_2025/blob/aa5c84a973c0e1a090b0072dc5b080bf7fbbed38/src/5_cytokine_regulators/cytokine_followup_regulator.ipynb",
+  "source_code_cells": [
+    22,
+    23
+  ],
+  "input_sha256": {
+    "validation_donor_metadata.csv": "a9ab7f1d83690b93433aa2ac8228c2b6dd58ea5002c0dcb3bc15db1e2c88ad66",
+    "sample_metadata.suppl_table.csv": "766134d11dabb5d63388e00b4d687a809c0254eb3c19d77f439a6bf9dad7abd4",
+    "geo_directory.html": "3e83606f9178ba73cd0846e015dacf8581931b6bfe11c2b46be3d05ecc48ced3"
+  }
+}

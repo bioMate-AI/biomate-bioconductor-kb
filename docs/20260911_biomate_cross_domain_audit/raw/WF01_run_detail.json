@@ -217,49 +217,37 @@
             "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/pk_summary.json",
             "name": "pk_summary.json",
             "size": 1686,
-            "extension": "json",
-            "download_url": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/pk_summary.json",
-            "download_endpoint": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/pk_summary.json"
+            "extension": "json"
           },
           {
             "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/predict_admet_properties_output.txt",
             "name": "predict_admet_properties_output.txt",
             "size": 1558,
-            "extension": "txt",
-            "download_url": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/predict_admet_properties_output.txt",
-            "download_endpoint": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/predict_admet_properties_output.txt"
+            "extension": "txt"
           },
           {
             "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/predict_admet_properties_results.json",
             "name": "predict_admet_properties_results.json",
             "size": 1608,
-            "extension": "json",
-            "download_url": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/predict_admet_properties_results.json",
-            "download_endpoint": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/predict_admet_properties_results.json"
+            "extension": "json"
           },
           {
             "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/qc_metrics.json",
             "name": "qc_metrics.json",
             "size": 562,
-            "extension": "json",
-            "download_url": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/qc_metrics.json",
-            "download_endpoint": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/qc_metrics.json"
+            "extension": "json"
           },
           {
             "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/toxicity_report.json",
             "name": "toxicity_report.json",
             "size": 3316,
-            "extension": "json",
-            "download_url": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/toxicity_report.json",
-            "download_endpoint": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/toxicity_report.json"
+            "extension": "json"
           },
           {
             "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/versions.yml",
             "name": "versions.yml",
             "size": 159,
-            "extension": "yml",
-            "download_url": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/versions.yml",
-            "download_endpoint": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/versions.yml"
+            "extension": "yml"
           }
         ],
         "qc_report": null,
@@ -307,15 +295,15 @@
             "process": "predict_admet_properties (admet-merge)"
           }
         ]
-      }
+      },
+      "galaxyWorkflowId": null,
+      "errorMessage": null
     },
     "progress": {
-      "totalSteps": 2,
-      "completedSteps": 2,
-      "currentStepIndex": 1,
+      "totalSteps": 0,
+      "completedSteps": 0,
       "currentStepName": "Complete",
-      "percentComplete": 100,
-      "milestone": 100
+      "percentComplete": 0
     },
     "steps": [
       {
@@ -364,49 +352,37 @@
         "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/pk_summary.json",
         "name": "pk_summary.json",
         "size": 1686,
-        "extension": "json",
-        "download_url": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/pk_summary.json",
-        "download_endpoint": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/pk_summary.json"
+        "extension": "json"
       },
       {
         "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/predict_admet_properties_output.txt",
         "name": "predict_admet_properties_output.txt",
         "size": 1558,
-        "extension": "txt",
-        "download_url": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/predict_admet_properties_output.txt",
-        "download_endpoint": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/predict_admet_properties_output.txt"
+        "extension": "txt"
       },
       {
         "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/predict_admet_properties_results.json",
         "name": "predict_admet_properties_results.json",
         "size": 1608,
-        "extension": "json",
-        "download_url": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/predict_admet_properties_results.json",
-        "download_endpoint": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/predict_admet_properties_results.json"
+        "extension": "json"
       },
       {
         "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/qc_metrics.json",
         "name": "qc_metrics.json",
         "size": 562,
-        "extension": "json",
-        "download_url": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/qc_metrics.json",
-        "download_endpoint": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/qc_metrics.json"
+        "extension": "json"
       },
       {
         "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/toxicity_report.json",
         "name": "toxicity_report.json",
         "size": 3316,
-        "extension": "json",
-        "download_url": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/toxicity_report.json",
-        "download_endpoint": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/toxicity_report.json"
+        "extension": "json"
       },
       {
         "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/versions.yml",
         "name": "versions.yml",
         "size": 159,
-        "extension": "yml",
-        "download_url": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/versions.yml",
-        "download_endpoint": "/api/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/output/versions.yml"
+        "extension": "yml"
       }
     ],
     "inline_findings": []

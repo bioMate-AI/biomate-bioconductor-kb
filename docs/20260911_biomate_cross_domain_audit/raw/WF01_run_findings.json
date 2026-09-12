@@ -1,16 +1,7 @@
 {
   "http_status": 200,
   "body": {
-    "summary": "Predict ADMET Properties (AI) completed. Output files are not yet readable \u2014 check the Outputs tab for results.",
-    "key_results": [],
-    "next_steps": [
-      "Open the Outputs tab to view and download result files."
-    ],
-    "caveats": [
-      "Findings analysis requires readable output files. Re-check when outputs are available."
-    ],
-    "status": "ready",
-    "reportUrl": "/api/workflows/runs/47381c6c-7a32-4d7c-b8a6-59f10a12912a/findings/report",
-    "runId": "47381c6c-7a32-4d7c-b8a6-59f10a12912a"
+    "status": "pending",
+    "message": "Analysis triggered \u2014 check back in a few seconds."
   }
 }

@@ -1,0 +1,350 @@
+{
+  "files": [
+    {
+      "file": "data/regulatory_training/combined_regulatory_training.jsonl",
+      "rows": 1724,
+      "invalid_json": 0,
+      "keys": {
+        "source": 1724,
+        "guideline": 1050,
+        "context": 1724,
+        "response": 1724,
+        "medicine": 165,
+        "section": 165,
+        "ich_section": 174,
+        "drug": 509,
+        "section_type": 500,
+        "section_name": 500,
+        "openfda_field": 500,
+        "nda": 9,
+        "heading": 9
+      },
+      "tasks": {
+        "unspecified": 1724
+      },
+      "distinct_content_hashes": 1652
+    },
+    {
+      "file": "data/regulatory_training/dpo/merged_pairs.jsonl",
+      "rows": 2659,
+      "invalid_json": 0,
+      "keys": {
+        "prompt": 2659,
+        "chosen": 2659,
+        "rejected": 2659,
+        "meta": 2659
+      },
+      "tasks": {
+        "mrsd_computation": 500,
+        "skeleton_completion": 1277,
+        "phase_gating": 282,
+        "tabulated_summary": 300,
+        "adversity_language": 300
+      },
+      "distinct_content_hashes": 2337
+    },
+    {
+      "file": "data/regulatory_training/dpo/rejection_pairs_phase_gating.jsonl",
+      "rows": 1,
+      "invalid_json": 0,
+      "keys": {
+        "prompt": 1,
+        "chosen": 1,
+        "rejected": 1,
+        "meta": 1
+      },
+      "tasks": {
+        "phase_gating": 1
+      },
+      "distinct_content_hashes": 1
+    },
+    {
+      "file": "data/regulatory_training/dpo/synthetic_pairs.jsonl",
+      "rows": 2658,
+      "invalid_json": 0,
+      "keys": {
+        "prompt": 2658,
+        "chosen": 2658,
+        "rejected": 2658,
+        "meta": 2658
+      },
+      "tasks": {
+        "mrsd_computation": 500,
+        "skeleton_completion": 1277,
+        "phase_gating": 281,
+        "tabulated_summary": 300,
+        "adversity_language": 300
+      },
+      "distinct_content_hashes": 2336
+    },
+    {
+      "file": "data/regulatory_training/tasks/combined_sft.jsonl",
+      "rows": 1197,
+      "invalid_json": 0,
+      "keys": {
+        "messages": 1197,
+        "meta": 1197
+      },
+      "tasks": {
+        "section_generation": 1161,
+        "regulatory_qa": 36
+      },
+      "distinct_content_hashes": 1055
+    },
+    {
+      "file": "data/regulatory_training/tasks/splits/dev.jsonl",
+      "rows": 212,
+      "invalid_json": 0,
+      "keys": {
+        "messages": 212,
+        "meta": 212
+      },
+      "tasks": {
+        "region_adaptation": 94,
+        "section_generation": 114,
+        "regulatory_qa": 3,
+        "table_generation": 1
+      },
+      "distinct_content_hashes": 208
+    },
+    {
+      "file": "data/regulatory_training/tasks/splits/test.jsonl",
+      "rows": 227,
+      "invalid_json": 0,
+      "keys": {
+        "messages": 227,
+        "meta": 227
+      },
+      "tasks": {
+        "section_generation": 120,
+        "region_adaptation": 100,
+        "table_generation": 2,
+        "regulatory_qa": 5
+      },
+      "distinct_content_hashes": 218
+    },
+    {
+      "file": "data/regulatory_training/tasks/splits/train.jsonl",
+      "rows": 1727,
+      "invalid_json": 0,
+      "keys": {
+        "messages": 1727,
+        "meta": 1727
+      },
+      "tasks": {
+        "region_adaptation": 763,
+        "section_generation": 927,
+        "regulatory_qa": 28,
+        "table_generation": 9
+      },
+      "distinct_content_hashes": 1471
+    },
+    {
+      "file": "data/regulatory_training/tasks/splits_v6/dev.jsonl",
+      "rows": 326,
+      "invalid_json": 0,
+      "keys": {
+        "messages": 326,
+        "meta": 326
+      },
+      "tasks": {
+        "region_adaptation": 64,
+        "mrsd_computation": 50,
+        "skeleton_completion": 96,
+        "tabulated_summary": 30,
+        "phase_gating": 30,
+        "adversity_language": 30,
+        "section_generation": 26
+      },
+      "distinct_content_hashes": 312
+    },
+    {
+      "file": "data/regulatory_training/tasks/splits_v6/test.jsonl",
+      "rows": 326,
+      "invalid_json": 0,
+      "keys": {
+        "messages": 326,
+        "meta": 326
+      },
+      "tasks": {
+        "region_adaptation": 64,
+        "skeleton_completion": 96,
+        "section_generation": 26,
+        "mrsd_computation": 50,
+        "adversity_language": 30,
+        "tabulated_summary": 30,
+        "phase_gating": 30
+      },
+      "distinct_content_hashes": 308
+    },
+    {
+      "file": "data/regulatory_training/tasks/splits_v6/train.jsonl",
+      "rows": 5892,
+      "invalid_json": 0,
+      "keys": {
+        "messages": 5892,
+        "meta": 5892
+      },
+      "tasks": {
+        "tabulated_summary": 540,
+        "skeleton_completion": 1740,
+        "adversity_language": 540,
+        "mrsd_computation": 900,
+        "region_adaptation": 1152,
+        "phase_gating": 540,
+        "section_generation": 480
+      },
+      "distinct_content_hashes": 3113
+    },
+    {
+      "file": "data/regulatory_training/tasks/task1_section_generation.jsonl",
+      "rows": 532,
+      "invalid_json": 0,
+      "keys": {
+        "messages": 532,
+        "meta": 532
+      },
+      "tasks": {
+        "section_generation": 532
+      },
+      "distinct_content_hashes": 499
+    },
+    {
+      "file": "data/regulatory_training/tasks/task2_regulatory_qa.jsonl",
+      "rows": 12,
+      "invalid_json": 0,
+      "keys": {
+        "messages": 12,
+        "meta": 12
+      },
+      "tasks": {
+        "regulatory_qa": 12
+      },
+      "distinct_content_hashes": 12
+    },
+    {
+      "file": "data/regulatory_training/tasks/task3_region_adaptation.jsonl",
+      "rows": 1280,
+      "invalid_json": 0,
+      "keys": {
+        "messages": 1280,
+        "meta": 1280
+      },
+      "tasks": {
+        "region_adaptation": 1280
+      },
+      "distinct_content_hashes": 1195
+    },
+    {
+      "file": "data/regulatory_training/tasks/task4_table_generation.jsonl",
+      "rows": 9,
+      "invalid_json": 0,
+      "keys": {
+        "messages": 9,
+        "meta": 9
+      },
+      "tasks": {
+        "table_generation": 9
+      },
+      "distinct_content_hashes": 9
+    },
+    {
+      "file": "data/regulatory_training/tasks/task5_mrsd_computation.jsonl",
+      "rows": 500,
+      "invalid_json": 0,
+      "keys": {
+        "messages": 500,
+        "meta": 500
+      },
+      "tasks": {
+        "mrsd_computation": 500
+      },
+      "distinct_content_hashes": 500
+    },
+    {
+      "file": "data/regulatory_training/tasks/task6_skeleton_completion.jsonl",
+      "rows": 1288,
+      "invalid_json": 0,
+      "keys": {
+        "messages": 1288,
+        "meta": 1288
+      },
+      "tasks": {
+        "skeleton_completion": 1288
+      },
+      "distinct_content_hashes": 536
+    },
+    {
+      "file": "data/regulatory_training/tasks/task7_phase_gating.jsonl",
+      "rows": 300,
+      "invalid_json": 0,
+      "keys": {
+        "messages": 300,
+        "meta": 300
+      },
+      "tasks": {
+        "phase_gating": 300
+      },
+      "distinct_content_hashes": 268
+    },
+    {
+      "file": "data/regulatory_training/tasks/task8_tabulated_summary.jsonl",
+      "rows": 300,
+      "invalid_json": 0,
+      "keys": {
+        "messages": 300,
+        "meta": 300
+      },
+      "tasks": {
+        "tabulated_summary": 300
+      },
+      "distinct_content_hashes": 242
+    },
+    {
+      "file": "data/regulatory_training/tasks/task9_adversity_language.jsonl",
+      "rows": 300,
+      "invalid_json": 0,
+      "keys": {
+        "messages": 300,
+        "meta": 300
+      },
+      "tasks": {
+        "adversity_language": 300
+      },
+      "distinct_content_hashes": 45
+    }
+  ],
+  "within_version_exact_split_overlaps": [
+    {
+      "a": "data/regulatory_training/tasks/splits/dev.jsonl",
+      "b": "data/regulatory_training/tasks/splits/test.jsonl",
+      "exact_content_overlap": 4
+    },
+    {
+      "a": "data/regulatory_training/tasks/splits/dev.jsonl",
+      "b": "data/regulatory_training/tasks/splits/train.jsonl",
+      "exact_content_overlap": 60
+    },
+    {
+      "a": "data/regulatory_training/tasks/splits/test.jsonl",
+      "b": "data/regulatory_training/tasks/splits/train.jsonl",
+      "exact_content_overlap": 68
+    },
+    {
+      "a": "data/regulatory_training/tasks/splits_v6/dev.jsonl",
+      "b": "data/regulatory_training/tasks/splits_v6/test.jsonl",
+      "exact_content_overlap": 34
+    },
+    {
+      "a": "data/regulatory_training/tasks/splits_v6/dev.jsonl",
+      "b": "data/regulatory_training/tasks/splits_v6/train.jsonl",
+      "exact_content_overlap": 224
+    },
+    {
+      "a": "data/regulatory_training/tasks/splits_v6/test.jsonl",
+      "b": "data/regulatory_training/tasks/splits_v6/train.jsonl",
+      "exact_content_overlap": 218
+    }
+  ],
+  "limitation": "Content equality only. Does not detect compound/study/source/template-family or semantic leakage. Combined files and split files overlap by design; do not sum as independent examples."
+}

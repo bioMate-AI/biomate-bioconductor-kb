@@ -1,0 +1,249 @@
+{
+  "status": "real_joint_integration_preflight_pass",
+  "full_training": false,
+  "optimizer_steps": 5,
+  "modality_ids_with_loss": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "knowledge_optimizer_exposure": {
+    "collectri": 245,
+    "reactome": 160,
+    "kegg": 160,
+    "go_bp": 160,
+    "genetics": 160,
+    "primekg": 160
+  },
+  "events": [
+    {
+      "source": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/multiomic_v1/citeseq/GSE261278_D534.paired.h5ad#preflight_rows_0_7",
+      "rows": 4,
+      "observed_input_tokens": 512,
+      "loss": 6.461755275726318,
+      "assay_losses": {
+        "0": 0.368671178817749,
+        "1": 11.468465805053711
+      },
+      "knowledge": {
+        "relation": 2.277029037475586,
+        "membership": 1.3109177350997925,
+        "prior": 1.1463463306427002,
+        "sign": 0.6975732445716858
+      },
+      "knowledge_exposure": {
+        "rows_presented": 224,
+        "shared_gene_endpoint_uses": 296,
+        "tasks_supervised": {
+          "relation": 64,
+          "membership": 96,
+          "prior": 32,
+          "sign": 17
+        },
+        "by_source": {
+          "collectri": 49,
+          "reactome": 32,
+          "kegg": 32,
+          "go_bp": 32,
+          "genetics": 32,
+          "primekg": 32
+        },
+        "by_source_presented": {
+          "collectri": 64,
+          "reactome": 32,
+          "kegg": 32,
+          "go_bp": 32,
+          "genetics": 32,
+          "primekg": 32
+        },
+        "inferred_sign_rows_skipped": 15
+      }
+    },
+    {
+      "source": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/multiomic_v1/multiome/GSE269540.h5ad#preflight_rows_0_7",
+      "rows": 4,
+      "observed_input_tokens": 512,
+      "loss": 1.2404463291168213,
+      "assay_losses": {
+        "0": 0.35648536682128906,
+        "2": 1.039610743522644
+      },
+      "knowledge": {
+        "relation": 2.2748961448669434,
+        "membership": 1.309822678565979,
+        "prior": 1.142440915107727,
+        "sign": 0.6968234777450562
+      },
+      "knowledge_exposure": {
+        "rows_presented": 224,
+        "shared_gene_endpoint_uses": 296,
+        "tasks_supervised": {
+          "relation": 64,
+          "membership": 96,
+          "prior": 32,
+          "sign": 17
+        },
+        "by_source": {
+          "collectri": 49,
+          "reactome": 32,
+          "kegg": 32,
+          "go_bp": 32,
+          "genetics": 32,
+          "primekg": 32
+        },
+        "by_source_presented": {
+          "collectri": 64,
+          "reactome": 32,
+          "kegg": 32,
+          "go_bp": 32,
+          "genetics": 32,
+          "primekg": 32
+        },
+        "inferred_sign_rows_skipped": 15
+      }
+    },
+    {
+      "source": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions/riboseq/GSE182371/GSE182371_counts_ribo_final.txt.gz",
+      "rows": 4,
+      "observed_input_tokens": 512,
+      "loss": 1.3435314893722534,
+      "assay_losses": {
+        "3": 0.8017727136611938
+      },
+      "knowledge": {
+        "relation": 2.273164749145508,
+        "membership": 1.3089324235916138,
+        "prior": 1.139275312423706,
+        "sign": 0.696215033531189
+      },
+      "knowledge_exposure": {
+        "rows_presented": 224,
+        "shared_gene_endpoint_uses": 296,
+        "tasks_supervised": {
+          "relation": 64,
+          "membership": 96,
+          "prior": 32,
+          "sign": 17
+        },
+        "by_source": {
+          "collectri": 49,
+          "reactome": 32,
+          "kegg": 32,
+          "go_bp": 32,
+          "genetics": 32,
+          "primekg": 32
+        },
+        "by_source_presented": {
+          "collectri": 64,
+          "reactome": 32,
+          "kegg": 32,
+          "go_bp": 32,
+          "genetics": 32,
+          "primekg": 32
+        },
+        "inferred_sign_rows_skipped": 15
+      }
+    },
+    {
+      "source": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/immune_llm_models/proteome_diann/out/report.unique_genes_matrix.tsv",
+      "rows": 4,
+      "observed_input_tokens": 426,
+      "loss": 412.8956298828125,
+      "assay_losses": {
+        "4": 412.3545227050781
+      },
+      "knowledge": {
+        "relation": 2.271369218826294,
+        "membership": 1.3080099821090698,
+        "prior": 1.1359986066818237,
+        "sign": 0.6955845355987549
+      },
+      "knowledge_exposure": {
+        "rows_presented": 224,
+        "shared_gene_endpoint_uses": 296,
+        "tasks_supervised": {
+          "relation": 64,
+          "membership": 96,
+          "prior": 32,
+          "sign": 17
+        },
+        "by_source": {
+          "collectri": 49,
+          "reactome": 32,
+          "kegg": 32,
+          "go_bp": 32,
+          "genetics": 32,
+          "primekg": 32
+        },
+        "by_source_presented": {
+          "collectri": 64,
+          "reactome": 32,
+          "kegg": 32,
+          "go_bp": 32,
+          "genetics": 32,
+          "primekg": 32
+        },
+        "inferred_sign_rows_skipped": 15
+      }
+    },
+    {
+      "source": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions/immunopeptidome/PXD056426/Search.zip",
+      "rows": 4,
+      "observed_input_tokens": 240,
+      "loss": 277.2652282714844,
+      "assay_losses": {
+        "5": 276.72467041015625
+      },
+      "knowledge": {
+        "relation": 2.2698891162872314,
+        "membership": 1.3072490692138672,
+        "prior": 1.133300542831421,
+        "sign": 0.6950649619102478
+      },
+      "knowledge_exposure": {
+        "rows_presented": 224,
+        "shared_gene_endpoint_uses": 296,
+        "tasks_supervised": {
+          "relation": 64,
+          "membership": 96,
+          "prior": 32,
+          "sign": 17
+        },
+        "by_source": {
+          "collectri": 49,
+          "reactome": 32,
+          "kegg": 32,
+          "go_bp": 32,
+          "genetics": 32,
+          "primekg": 32
+        },
+        "by_source_presented": {
+          "collectri": 64,
+          "reactome": 32,
+          "kegg": 32,
+          "go_bp": 32,
+          "genetics": 32,
+          "primekg": 32
+        },
+        "inferred_sign_rows_skipped": 15
+      }
+    }
+  ],
+  "source_artifact_sha256": {
+    "collectri_signed.parquet": "e45a4b32e546da78f33c2797ae9abd35375f3a19c65d158071dc275a194ea7ec",
+    "genetics_disease_specific.parquet": "2e0864ae8504933d58c51c5e74da68d1cb534ba80c77fcc093edaac94fbad1d0",
+    "go_bp_memberships.parquet": "d6731d8d64af865f5b50c23ec6a38e1f8732d21edf8eb92ab621849d53ab29c4",
+    "kegg_memberships.parquet": "6543c5894c15c24fab692eb38e7b7ecbab9b2782f037120a2aba6b2fef00c462",
+    "primekg_typed.parquet": "dc8f934bfc677bb03f74ec7a4d6fab83de611fd9deab91d72a5d2da78306a1cf",
+    "reactome_memberships.parquet": "186cc97af2fa8fe0c3598d48c1c29e5774ae18bfd58e11ff39231bdd90f89f8d"
+  },
+  "limits": [
+    "Explicit preflight cap: first paired feature window, four dense samples and 128 dense features",
+    "Knowledge sampled 32 rows per artifact solely for integration testing",
+    "No held-out scientific evaluation",
+    "No H1-H4 or text biological supervision claim; their interfaces have separate implementation tests"
+  ]
+}

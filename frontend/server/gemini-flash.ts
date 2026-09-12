@@ -1,3 +1,4 @@
+import { localOnly, localCompletion } from './local-llm.js';
 /**
  * Gemini 3 Flash — thin wrapper replacing Claude Haiku for lightweight inference tasks.
  *
@@ -37,6 +38,17 @@ interface CallGeminiFlashOpts {
  * Returns the response text.
  */
 export async function callGeminiFlash(opts: CallGeminiFlashOpts): Promise<string> {
+  if (localOnly()) {
+    if (!opts.messages.length) return '';
+    const result = await localCompletion({
+      messages: [...(opts.system ? [{ role: 'system', content: opts.system }] : []), ...opts.messages],
+      max_tokens: opts.maxTokens ?? 4096, temperature: opts.temperature ?? 0,
+      ...(opts.jsonMode ? { response_format: { type: 'json_object' } } : {}),
+    });
+    const choice = result.choices[0];
+    if (choice.finish_reason !== 'stop' || typeof choice.message.content !== 'string') throw new Error('Incomplete local completion');
+    return choice.message.content;
+  }
   const genAI = getClient();
 
   // Flash is the lightweight path — disable thinking so the entire token

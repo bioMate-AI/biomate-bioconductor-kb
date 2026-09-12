@@ -1,0 +1,9 @@
+{
+  "base_url": "https://www.proteinatlas.org",
+  "path": "ENSG00000145777.json",
+  "save_raw": true,
+  "raw_output_path": "/Users/kky/biomate-review/docs/20260911_asthma_target_prioritization/raw/expression_hpa_TSLP.json",
+  "max_items": 100,
+  "max_depth": 6,
+  "timeout_sec": 40
+}

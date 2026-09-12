@@ -12,6 +12,7 @@ import uuid
 import httpx
 from typing import Dict, Any, List, Optional
 from .config import AIConfig
+from .local_inference import local_only, generate_local
 from .llm_client_fallback_implementation import (
     FallbackChainManager,
     generate_with_fallback
@@ -190,6 +191,8 @@ class LLMClient:
         Priority order: Gemini 3.1 Pro → Gemini Flash → Claude → OpenAI → Local Qwen3
         Each provider gets 2 retry attempts before moving to next.
         """
+        if local_only():
+            return await generate_local(prompt, **kwargs)
         return await generate_with_fallback(
             llm_client=self,
             prompt=prompt,

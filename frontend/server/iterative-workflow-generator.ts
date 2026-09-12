@@ -1,3 +1,4 @@
+import { localOnly, localMessagesClient } from './local-llm.js';
 /**
  * Iterative Workflow Generator
  *
@@ -95,7 +96,7 @@ export class IterativeWorkflowGenerator {
   private sessions: Map<string, SessionContext> = new Map();
 
   constructor(apiKey: string) {
-    this.claude = new Anthropic({ apiKey });
+    this.claude = (localOnly() ? localMessagesClient() as unknown as Anthropic : new Anthropic({ apiKey }));
   }
 
   /**

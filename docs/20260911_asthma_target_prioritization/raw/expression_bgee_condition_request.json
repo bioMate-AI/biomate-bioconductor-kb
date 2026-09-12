@@ -1,0 +1,8 @@
+{
+  "query": "SELECT ?p ?o WHERE { <http://bgee.org/#EXPRESSION_CONDITION_198405> ?p ?o } LIMIT 30",
+  "save_raw": true,
+  "raw_output_path": "/Users/kky/biomate-review/docs/20260911_asthma_target_prioritization/raw/expression_bgee_condition.json",
+  "max_items": 30,
+  "max_depth": 6,
+  "timeout_sec": 40
+}

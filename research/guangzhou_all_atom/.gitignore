@@ -1,0 +1,6 @@
+data/raw/
+data/extracted/
+runtime/
+__pycache__/
+tests/__pycache__/
+*.tar.gz

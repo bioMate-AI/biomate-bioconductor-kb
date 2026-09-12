@@ -1,0 +1,46 @@
+[
+  {
+    "name": "train_valid.tar.gz",
+    "bytes": 192609821,
+    "sha256": "adf82bd2e987078101645c252271d15ce8ab71d6f17d3982d62631f079c6e550",
+    "upstream_md5": "d385c7163c283e222fa5a6ff43c2b530",
+    "acquired_from": "https://zenodo.org/api/records/13373108/files/train_valid.tar.gz/content",
+    "s3_uri": "s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/pepbench/v2/train_valid.tar.gz",
+    "reused": false,
+    "readback_verified": true,
+    "role": "train_validation"
+  },
+  {
+    "name": "LNR.tar.gz",
+    "bytes": 10894516,
+    "sha256": "3997e374fd2d46a4b086c400315ea6308eb3ee3784dc1e01cd4e5f7b7f8a34f2",
+    "upstream_md5": "6fb5d7fd47f96a02cb756f4e10f79286",
+    "acquired_from": "https://zenodo.org/api/records/13373108/files/LNR.tar.gz/content",
+    "s3_uri": "s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/pepbench/v2/LNR.tar.gz",
+    "reused": false,
+    "readback_verified": true,
+    "role": "held_out_test"
+  },
+  {
+    "name": "README.md",
+    "bytes": 3023,
+    "sha256": "86bcc0d5dda448ae574bc057683167f5ef059c43e532ed5f9de43e75afd6e495",
+    "upstream_md5": "8e68e690d6d9137c0df74eac93389e74",
+    "acquired_from": "https://zenodo.org/api/records/13373108/files/README.md/content",
+    "s3_uri": "s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/pepbench/v2/README.md",
+    "reused": false,
+    "readback_verified": true,
+    "role": "documentation"
+  },
+  {
+    "name": "ProtFrag.tar.gz",
+    "bytes": 1670340143,
+    "sha256": "61726669486be9b71b1026668befaad3a84cd57942f05e92aa11117709fb2bcb",
+    "upstream_md5": "8d7203a8610f26b26c95e02390879f1b",
+    "acquired_from": "https://zenodo.org/api/records/13373108/files/ProtFrag.tar.gz/content",
+    "s3_uri": "s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/pepbench/v2/ProtFrag.tar.gz",
+    "reused": false,
+    "readback_verified": true,
+    "role": "augmentation_reserved"
+  }
+]

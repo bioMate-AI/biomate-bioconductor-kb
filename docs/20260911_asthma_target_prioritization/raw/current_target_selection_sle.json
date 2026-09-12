@@ -1,0 +1,409 @@
+{
+  "engine": "multi-channel target selection v1 (substrate-swappable; audit-fixed 2026-09-08)",
+  "substrate": "sle_ln",
+  "channels_populated": [
+    "pathway",
+    "network",
+    "genetics"
+  ],
+  "real_channels_combined": [
+    "genetics",
+    "pathway"
+  ],
+  "null_channels_reported_not_combined": [
+    "network"
+  ],
+  "channel_provenance": {
+    "sig_source": "PRIMARY census 2023-12-15 SLE-vs-normal (single dataset 218acb0f-9f2f-4f76-b90b-15a4b7c7f629 (within-study)); 30000 SLE vs 30000 normal; 1455 genes |z|>=1.5",
+    "perturbation": "absent (no perturbation data for this substrate \u2014 expected for observational disease)",
+    "pathway": "772 TF candidates (N=6686, sig\u2229=734)",
+    "genetics": "populated (substrate)"
+  },
+  "channel_coverage": {
+    "pathway": {
+      "universe_size": 772,
+      "in_combined_union": 772
+    },
+    "network": {
+      "universe_size": 772,
+      "in_combined_union": 772
+    },
+    "genetics": {
+      "universe_size": 965,
+      "in_combined_union": 965
+    }
+  },
+  "combiner_weights_real": {
+    "genetics": 0.45,
+    "pathway": 0.2
+  },
+  "fix_note": "combiner uses REAL channels only w/ per-target weight renormalization; nulls reported not combined; per-channel AUROC on own universe + union",
+  "gold_sizes": {
+    "validated": 14,
+    "known": 112
+  },
+  "n_universe": 1658,
+  "VERDICT": {
+    "wet_lab_validated": {
+      "AUROC_combined": 0.7506,
+      "AUROC_best_single_real": 0.7647,
+      "best_single_real_channel": "genetics",
+      "AUROC_real_channels_union": {
+        "genetics": 0.7647,
+        "pathway": 0.6058
+      },
+      "AUROC_real_channels_own_universe": {
+        "genetics": 0.7752
+      },
+      "AUROC_nulls_union": {
+        "network": 0.6094
+      },
+      "combined_beats_best_single_real": false,
+      "combined_beats_nulls": true
+    },
+    "known_regulators": {
+      "AUROC_combined": 0.9736,
+      "AUROC_best_single_real": 0.9918,
+      "best_single_real_channel": "genetics",
+      "AUROC_real_channels_union": {
+        "genetics": 0.9918,
+        "pathway": 0.6022
+      },
+      "AUROC_real_channels_own_universe": {
+        "genetics": 0.993,
+        "pathway": 0.6492
+      },
+      "AUROC_nulls_union": {
+        "network": 0.5956
+      },
+      "combined_beats_best_single_real": false,
+      "combined_beats_nulls": true
+    }
+  },
+  "results": {
+    "known_regulators": {
+      "COMBINED": {
+        "name": "COMBINED",
+        "n_gold_in_universe": 102,
+        "n_universe": 1658,
+        "AUROC": 0.9736,
+        "AUPRC": 0.5933,
+        "AUPRC_baseline_prevalence": 0.0615,
+        "p@10": 0.1,
+        "p@20": 0.4,
+        "p@50": 0.6,
+        "p@100": 0.68,
+        "top20_ranked": [
+          "SPI1",
+          "CIITA",
+          "MYC",
+          "RFXAP",
+          "NFKB",
+          "RFXANK",
+          "RFX5",
+          "TREX1",
+          "IRF2",
+          "HIF1A",
+          "TYK2",
+          "ATRIP",
+          "WDFY4",
+          "JUN",
+          "NCF2",
+          "RELA",
+          "STAT1",
+          "TNFAIP3",
+          "DNASE1L3",
+          "BLK"
+        ]
+      },
+      "pathway": {
+        "AUROC_union": 0.6022,
+        "AUROC_own_universe": 0.6492
+      },
+      "network": {
+        "AUROC_union": 0.5956,
+        "AUROC_own_universe": 0.5717
+      },
+      "genetics": {
+        "AUROC_union": 0.9918,
+        "AUROC_own_universe": 0.993
+      }
+    },
+    "wet_lab_validated": {
+      "COMBINED": {
+        "name": "COMBINED",
+        "n_gold_in_universe": 4,
+        "n_universe": 1658,
+        "AUROC": 0.7506,
+        "AUPRC": 0.0324,
+        "AUPRC_baseline_prevalence": 0.0024,
+        "p@10": 0.0,
+        "p@20": 0.05,
+        "p@50": 0.02,
+        "p@100": 0.02,
+        "top20_ranked": [
+          "SPI1",
+          "CIITA",
+          "MYC",
+          "RFXAP",
+          "NFKB",
+          "RFXANK",
+          "RFX5",
+          "TREX1",
+          "IRF2",
+          "HIF1A",
+          "TYK2",
+          "ATRIP",
+          "WDFY4",
+          "JUN",
+          "NCF2",
+          "RELA",
+          "STAT1",
+          "TNFAIP3",
+          "DNASE1L3",
+          "BLK"
+        ]
+      },
+      "pathway": {
+        "AUROC_union": 0.6058,
+        "AUROC_own_universe": null
+      },
+      "network": {
+        "AUROC_union": 0.6094,
+        "AUROC_own_universe": null
+      },
+      "genetics": {
+        "AUROC_union": 0.7647,
+        "AUROC_own_universe": 0.7752
+      }
+    }
+  },
+  "evidence_breakdown_topk": [
+    {
+      "target": "SPI1",
+      "combined_z": 6.305,
+      "channels": {
+        "pathway": 6.305,
+        "network": 2.739,
+        "genetics": null
+      }
+    },
+    {
+      "target": "CIITA",
+      "combined_z": 6.199,
+      "channels": {
+        "pathway": 6.199,
+        "network": -0.214,
+        "genetics": null
+      }
+    },
+    {
+      "target": "MYC",
+      "combined_z": 4.622,
+      "channels": {
+        "pathway": 13.8,
+        "network": 7.827,
+        "genetics": 0.542
+      }
+    },
+    {
+      "target": "RFXAP",
+      "combined_z": 4.35,
+      "channels": {
+        "pathway": 4.35,
+        "network": -0.346,
+        "genetics": null
+      }
+    },
+    {
+      "target": "NFKB",
+      "combined_z": 3.991,
+      "channels": {
+        "pathway": 3.991,
+        "network": 7.009,
+        "genetics": null
+      }
+    },
+    {
+      "target": "RFXANK",
+      "combined_z": 3.864,
+      "channels": {
+        "pathway": 3.864,
+        "network": -0.327,
+        "genetics": null
+      }
+    },
+    {
+      "target": "RFX5",
+      "combined_z": 3.476,
+      "channels": {
+        "pathway": 3.476,
+        "network": -0.271,
+        "genetics": null
+      }
+    },
+    {
+      "target": "TREX1",
+      "combined_z": 3.316,
+      "channels": {
+        "pathway": null,
+        "network": null,
+        "genetics": 3.316
+      }
+    },
+    {
+      "target": "IRF2",
+      "combined_z": 3.251,
+      "channels": {
+        "pathway": 3.251,
+        "network": 0.068,
+        "genetics": null
+      }
+    },
+    {
+      "target": "HIF1A",
+      "combined_z": 3.243,
+      "channels": {
+        "pathway": 3.243,
+        "network": 3.82,
+        "genetics": null
+      }
+    },
+    {
+      "target": "TYK2",
+      "combined_z": 3.102,
+      "channels": {
+        "pathway": null,
+        "network": null,
+        "genetics": 3.102
+      }
+    },
+    {
+      "target": "ATRIP",
+      "combined_z": 3.039,
+      "channels": {
+        "pathway": null,
+        "network": null,
+        "genetics": 3.039
+      }
+    },
+    {
+      "target": "WDFY4",
+      "combined_z": 3.003,
+      "channels": {
+        "pathway": null,
+        "network": null,
+        "genetics": 3.003
+      }
+    },
+    {
+      "target": "JUN",
+      "combined_z": 2.976,
+      "channels": {
+        "pathway": 2.976,
+        "network": 5.936,
+        "genetics": null
+      }
+    },
+    {
+      "target": "NCF2",
+      "combined_z": 2.969,
+      "channels": {
+        "pathway": null,
+        "network": null,
+        "genetics": 2.969
+      }
+    },
+    {
+      "target": "RELA",
+      "combined_z": 2.944,
+      "channels": {
+        "pathway": 2.944,
+        "network": 4.78,
+        "genetics": null
+      }
+    },
+    {
+      "target": "STAT1",
+      "combined_z": 2.862,
+      "channels": {
+        "pathway": 10.667,
+        "network": 2.353,
+        "genetics": -0.607
+      }
+    },
+    {
+      "target": "TNFAIP3",
+      "combined_z": 2.828,
+      "channels": {
+        "pathway": null,
+        "network": null,
+        "genetics": 2.828
+      }
+    },
+    {
+      "target": "DNASE1L3",
+      "combined_z": 2.812,
+      "channels": {
+        "pathway": null,
+        "network": null,
+        "genetics": 2.812
+      }
+    },
+    {
+      "target": "BLK",
+      "combined_z": 2.784,
+      "channels": {
+        "pathway": null,
+        "network": null,
+        "genetics": 2.784
+      }
+    },
+    {
+      "target": "TNIP1",
+      "combined_z": 2.768,
+      "channels": {
+        "pathway": null,
+        "network": null,
+        "genetics": 2.768
+      }
+    },
+    {
+      "target": "IL10",
+      "combined_z": 2.743,
+      "channels": {
+        "pathway": null,
+        "network": null,
+        "genetics": 2.743
+      }
+    },
+    {
+      "target": "SLC15A4",
+      "combined_z": 2.727,
+      "channels": {
+        "pathway": null,
+        "network": null,
+        "genetics": 2.727
+      }
+    },
+    {
+      "target": "TNFSF4",
+      "combined_z": 2.691,
+      "channels": {
+        "pathway": null,
+        "network": null,
+        "genetics": 2.691
+      }
+    },
+    {
+      "target": "CCR1",
+      "combined_z": 2.69,
+      "channels": {
+        "pathway": null,
+        "network": null,
+        "genetics": 2.69
+      }
+    }
+  ],
+  "gold_note": "sle_ln: the 'known' gold = validated \u222a OpenTargets\u22650.5 \u2192 CIRCULAR with the genetics channel; the clean v1 gate is 'wet_lab_validated' (15 curated approved/trialed drug targets, independent of OpenTargets score)."
+}

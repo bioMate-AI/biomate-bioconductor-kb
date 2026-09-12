@@ -213,6 +213,9 @@ async def generate_with_fallback(
     Raises:
         Exception if all providers fail
     """
+    from .local_inference import local_only, generate_local
+    if local_only():
+        return await generate_local(prompt, **kwargs)
     if fallback_manager is None:
         fallback_manager = FallbackChainManager()
 

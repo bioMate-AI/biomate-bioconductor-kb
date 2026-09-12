@@ -118,6 +118,10 @@ async def generate(request: Request) -> Dict[str, Any]:
     except Exception:
         pass
 
+    if os.environ.get("BIOMATE_LOCAL_ONLY") == "1":
+        model_used = os.environ.get("BIOMATE_LOCAL_LLM_MODEL", "unknown")
+        fallback_depth = 0
+
     return {
         "text": text,
         "model_used": model_used,

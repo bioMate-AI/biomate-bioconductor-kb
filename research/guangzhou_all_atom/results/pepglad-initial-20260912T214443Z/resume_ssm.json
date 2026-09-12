@@ -1,0 +1,11 @@
+{
+  "commands": [
+    "set -eu",
+    "aws s3 cp s3://knowledge-datasets-1759951976/cyclic_peptide/runs/pepglad-initial-20260912T214443Z/code/code-v2.tar.gz /opt/guangzhou-peptide/code-v2.tar.gz --only-show-errors",
+    "echo '53ffb31cd3c19811924f19fb801eb3a0837d90e13043107919b5ecd95f998e8e  /opt/guangzhou-peptide/code-v2.tar.gz' | sha256sum -c -",
+    "systemctl kill --signal=SIGKILL cloud-final.service",
+    "tar xzf /opt/guangzhou-peptide/code-v2.tar.gz -C /opt/guangzhou-peptide/code",
+    "systemd-run --unit=guangzhou-peptide-training --setenv=RESUME_SETUP=1 --setenv=OUT_S3=s3://knowledge-datasets-1759951976/cyclic_peptide/runs/pepglad-initial-20260912T214443Z /bin/bash /opt/guangzhou-peptide/code/run_pepglad_ec2.sh",
+    "systemctl list-timers peptide-deadline.timer --no-pager"
+  ]
+}

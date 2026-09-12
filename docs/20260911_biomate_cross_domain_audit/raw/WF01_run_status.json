@@ -4,12 +4,10 @@
     "runId": "47381c6c-7a32-4d7c-b8a6-59f10a12912a",
     "status": "completed",
     "progress": {
-      "totalSteps": 2,
-      "completedSteps": 2,
-      "currentStepIndex": 1,
+      "totalSteps": 0,
+      "completedSteps": 0,
       "currentStepName": "Complete",
-      "percentComplete": 100,
-      "milestone": 100
+      "percentComplete": 0
     },
     "metrics": {
       "runtime": {
@@ -32,6 +30,7 @@
       },
       "perStepLlmCost": {}
     },
+    "errorMessage": null,
     "nextflowStatus": {
       "run_id": "a1422bd1-d864-45d3-9584-db1697f6acbe",
       "invocation_id": "279bde70-b3d4-45bd-8be7-1a8b9f36aa52",
@@ -39,36 +38,7 @@
       "returncode": 0,
       "outdir": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f",
       "work_dir": "s3://biomate-nextflow-work/nextflow/work/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/a1422bd1-d864-45d3-9584-db1697f6acbe",
-      "log_tail": [
-        "Sep-11 23:01:50.149 [TaskFinalizer-2] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=12; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false",
-        "Sep-11 23:01:50.167 [main] DEBUG nextflow.Session - Session await > all processes finished",
-        "Sep-11 23:01:50.350 [PublishDir-3] DEBUG nextflow.cloud.aws.nio.S3Client - Creating S3 transfer manager pool - max-treads=10;",
-        "Sep-11 23:01:50.352 [PublishDir-3] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'S3TransferManager' minSize=10; maxSize=10; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false",
-        "Sep-11 23:01:59.249 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: awsbatch) - terminating tasks monitor poll loop",
-        "Sep-11 23:01:59.249 [main] DEBUG nextflow.Session - Session await > all barriers passed",
-        "Sep-11 23:01:59.251 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)",
-        "Sep-11 23:01:59.252 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)",
-        "Sep-11 23:01:59.264 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=2; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=33.3s; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=6; peakMemory=36 GB; ]",
-        "Sep-11 23:02:00.063 [main] DEBUG n.cloud.aws.nio.S3FileSystemProvider - S3 upload file from=[path] to=[storage]",
-        "Sep-11 23:02:00.366 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.",
-        "Sep-11 23:02:00.367 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report",
-        "Sep-11 23:02:01.966 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline",
-        "Sep-11 23:02:02.407 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file",
-        "Sep-11 23:02:02.415 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done",
-        "Sep-11 23:02:02.430 [main] INFO  org.pf4j.AbstractPluginManager - Stop plugin 'nf-amazon@3.3.0'",
-        "Sep-11 23:02:02.430 [main] DEBUG nextflow.plugin.BasePlugin - Plugin stopped nf-amazon",
-        "Sep-11 23:02:02.431 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)",
-        "Sep-11 23:02:02.432 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'S3TransferManager' shutdown completed (hard=false)",
-        "Sep-11 23:02:02.432 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye",
-        "WARN: There's no process matching config selector: PRODUCTION_MD",
-        "WARN: There's no process matching config selector: PRODUCTION_MD",
-        "WARN: There's no process matching config selector: PRODUCTION_MD",
-        "WARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.",
-        "Sep-11 22:59:52.046 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config",
-        "Sep-11 22:59:56.964 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): [storage]",
-        "Sep-11 22:59:59.605 [main] WARN  nextflow.Session - There's no process matching config selector: PRODUCTION_MD",
-        "Sep-11 23:02:00.366 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info."
-      ],
+      "log_tail": [],
       "is_batch": true,
       "s3_output_files": [
         {
@@ -113,38 +83,36 @@
       "started_at": 1789167589.9144783,
       "completed_at": 1789167723.801233,
       "duration_s": 133,
-      "completedTasks": 2,
-      "failedTasks": 0,
-      "runningTasks": 0,
-      "totalTasks": 2,
-      "progressPercent": 100,
       "processes": [
         {
-          "id": "1",
-          "name": "PREDICT_ADMET_PROPERTIES_WORKFLOW:ADMET_INFER_SHARD (shard_0)",
-          "status": "COMPLETED",
-          "work_dir": "",
-          "task_files": [],
-          "outputs": [],
-          "process": "admet_infer_shard (shard_0)"
-        },
-        {
-          "id": "2",
-          "name": "PREDICT_ADMET_PROPERTIES_WORKFLOW:PREDICT_ADMET_PROPERTIES (admet-merge)",
-          "status": "COMPLETED",
-          "work_dir": "",
-          "task_files": [],
-          "outputs": [],
-          "process": "predict_admet_properties (admet-merge)"
+          "id": "run",
+          "name": "run",
+          "process": "run",
+          "step_dir": "run",
+          "status": "completed",
+          "task_files": [
+            "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/pk_summary.json",
+            "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/predict_admet_properties_output.txt",
+            "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/predict_admet_properties_results.json",
+            "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/qc_metrics.json",
+            "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/toxicity_report.json",
+            "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/versions.yml"
+          ]
         }
       ]
     },
     "artifactReadiness": {
       "hasOutputs": true,
       "visualizableCount": 0,
-      "downloadableCount": 4,
+      "downloadableCount": 1,
       "totalOutputs": 0,
-      "meetsContract": false
+      "meetsContract": false,
+      "completionContract": {
+        "mode": "artifacts_required",
+        "state": "artifact_unavailable",
+        "registeredOutputCount": 0,
+        "meetsContract": false
+      }
     }
   }
 }

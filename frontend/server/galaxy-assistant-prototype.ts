@@ -1,3 +1,4 @@
+import { localOnly, localMessagesClient } from './local-llm.js';
 /**
  * PROTOTYPE: Galaxy Assistant with Iterative Workflow Integration
  *
@@ -54,7 +55,7 @@ export class GalaxyAssistantPrototype {
   private sessions: Map<string, any> = new Map();
 
   constructor(anthropicApiKey: string, galaxyAPI: GalaxyAPIProxy) {
-    this.claude = new Anthropic({ apiKey: anthropicApiKey });
+    this.claude = (localOnly() ? localMessagesClient() as unknown as Anthropic : new Anthropic({ apiKey: anthropicApiKey }));
     this.galaxyAPI = galaxyAPI;
     this.workflowGenerator = new IterativeWorkflowGenerator(anthropicApiKey);
   }

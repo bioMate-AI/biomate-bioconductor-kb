@@ -1,0 +1,1 @@
+{"query": "{ __type(name:\"Target\") { fields { name args {name type {kind name ofType {name kind}}} } } }", "max_items": 3, "save_raw": true, "raw_output_path": "/Users/kky/biomate-review/docs/20260911_asthma_target_prioritization/raw/disease_schema.json"}

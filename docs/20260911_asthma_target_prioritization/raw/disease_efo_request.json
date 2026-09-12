@@ -1,0 +1,1 @@
+{"base_url": "https://www.ebi.ac.uk/ols4/api", "path": "search", "params": {"q": "asthma", "ontology": "efo", "rows": 30}, "record_path": "response.docs", "max_items": 10, "save_raw": true, "raw_output_path": "/Users/kky/biomate-review/docs/20260911_asthma_target_prioritization/raw/disease_efo.json"}

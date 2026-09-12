@@ -1,0 +1,1 @@
+{"query": "query { target(ensemblId: \"ENSG00000115602\") { id approvedSymbol evidences(efoIds: [\"MONDO_0004979\"], datasourceIds: [\"gwas_credible_sets\"], size: 3) { count rows { datasourceId disease { id name } } } } }", "max_items": 3, "save_raw": true, "raw_output_path": "/Users/kky/biomate-review/docs/20260911_asthma_target_prioritization/raw/genetics_ot_IL1RL1.json"}

@@ -1,3 +1,5 @@
+import { localOnly, localMessagesClient, localConfig } from './local-llm.js';
+import { localIntentPrompt } from './local-intent-prompt.js';
 /**
  * Galaxy Assistant Service
  *
@@ -2586,10 +2588,10 @@ export class GalaxyAssistant {
 
   constructor(options: GalaxyAssistantOptions) {
     // Anthropic is optional — Gemini can drive the assistant alone
-    this.claude = new Anthropic({ apiKey: options.anthropicApiKey || '' });
+    this.claude = localOnly() ? localMessagesClient() as unknown as Anthropic : new Anthropic({ apiKey: options.anthropicApiKey || '' });
     // Accept either GEMINI_API_KEY or GOOGLE_API_KEY (both mean the same credential)
     const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-    if (geminiKey) this.gemini = new GoogleGenerativeAI(geminiKey);
+    if (geminiKey && !localOnly()) this.gemini = new GoogleGenerativeAI(geminiKey);
     this.galaxyAPI = options.galaxyAPIProxy;
     // Auto-detect: if no Anthropic key but Gemini is available, switch response model to Gemini.
     // This prevents silent auth failures when ANTHROPIC_API_KEY is absent on a Gemini-only deployment.
@@ -2612,6 +2614,11 @@ export class GalaxyAssistant {
         computedModelConfig.intentModel = 'claude-haiku-4-5';
       }
       console.log('[GalaxyAssistant] No GEMINI_API_KEY — routing gemini models to Claude (response=sonnet-4-5, intent=haiku-4-5) so the agentic tool loop + run_code work');
+    }
+    if (localOnly()) {
+      computedModelConfig.intentModel = localConfig().model;
+      computedModelConfig.responseModel = localConfig().model;
+      computedModelConfig.toolRankingModel = localConfig().model;
     }
     this.modelConfig = computedModelConfig;
     this.sessionMemory = new SessionMemoryUpdater(this.claude);
@@ -2639,7 +2646,7 @@ export class GalaxyAssistant {
    *  Uses the per-user key stored in AsyncLocalStorage when set by processMessage();
    *  falls back to the singleton system key otherwise. */
   private _getClaude(): Anthropic {
-    return _anthropicOverride.getStore() ?? this.claude;
+    return localOnly() ? this.claude : (_anthropicOverride.getStore() ?? this.claude);
   }
 
   /** Returns the OpenRouter OpenAI client if set for this request, otherwise null. */
@@ -3733,7 +3740,7 @@ Rules:
 
   /** Update model configuration at runtime */
   setModelConfig(config: Partial<ModelConfig>): void {
-    this.modelConfig = { ...this.modelConfig, ...config };
+    this.modelConfig = { ...this.modelConfig, ...config, ...(localOnly() ? { intentModel: localConfig().model, responseModel: localConfig().model, toolRankingModel: localConfig().model } : {}) };
     console.log('[GalaxyAssistant] Model config updated:', this.modelConfig);
   }
 
@@ -3762,7 +3769,7 @@ Rules:
     // OpenRouter path: bypass the Anthropic pipeline entirely and stream directly
     // through OpenRouter's OpenAI-compatible API. Tool use / workflow generation
     // is not available on this path — users can switch back to default for that.
-    if (openrouterKey) {
+    if (openrouterKey && !localOnly()) {
       const orClient = new OpenAI({
         baseURL: 'https://openrouter.ai/api/v1',
         apiKey: openrouterKey,
@@ -3783,7 +3790,7 @@ Rules:
       return this._processMessageInner(message, context, onResponseDelta, onToolEvent);
     };
 
-    if (userAnthropicKey) {
+    if (userAnthropicKey && !localOnly()) {
       const userClaude = new Anthropic({ apiKey: userAnthropicKey });
       return _anthropicOverride.run(userClaude, runInner);
     }
@@ -5851,7 +5858,9 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     }
 
     const chainHintList = (await this._getChainHintNames()).join(', ');
-    const systemPrompt = `${sessionMemoryBlock}You are a bioinformatics intent analyzer. Classify user messages by their information need and declare which system agents should handle the request.
+    const systemPrompt = localOnly()
+      ? localIntentPrompt(sessionMemoryBlock, context.accumulatedFacts, chainHintList.split(', '), message)
+      : `${sessionMemoryBlock}You are a bioinformatics intent analyzer. Classify user messages by their information need and declare which system agents should handle the request.
 
 When a "[Prior conversation context]" block appears before the message, use it to understand the user's full intent. The current message may be a short confirmation, file path, or follow-up — synthesize the **complete** bioinformatics intent (goal + data + parameters) into the subQuery field rather than copying the literal current message. Example: if prior context says "run RNA-seq on mouse samples" and current message is "s3://bucket/R1.fastq.gz", produce subQuery: "RNA-seq alignment and quantification on mouse GRCm38 samples using paired-end FASTQ from s3://bucket/".
 
@@ -8102,14 +8111,14 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
         : [];
       if (!sd?.length && !unresolved.length) return '';
       const availableDatasets = sd ?? [];
+      const explicitSelection = Array.isArray((context as any)?.datasetReferences)
+        && (context as any).datasetReferences.length > 0;
 
       // Context-aware injection gate. The block is only useful when the
       // chat round actually needs to reason about the user's data — see
       // docs/20260613_DATASET_INJECTION_GATE_DESIGN.md. Default-on
       // (false-skip cost > false-inject cost), but suppress on pure
       // abstract-knowledge turns where no signal points at data.
-      const explicitSelection = Array.isArray((context as any)?.datasetReferences)
-        && (context as any).datasetReferences.length > 0;
       const _gate = shouldInjectDatasets({
         message,
         intentType: (intent as any)?.type,
@@ -8503,7 +8512,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
 
       // Log what we're sending to Claude
       const apiStartTime = Date.now();
-      const useThinking = this.modelConfig.enableThinking;
+      const useThinking = !localOnly() && this.modelConfig.enableThinking;
       console.log('[GalaxyAssistant] Response API request:', {
         model: this.modelConfig.responseModel,
         max_tokens: 4096,
@@ -8572,7 +8581,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       // Only the Claude backbone consumes agentMessages; other providers use a
       // text-only plainMessages path below, so skip the base64 work for them.
       const { blocks: imageBlocks, attached: attachedImages, skipped: skippedImages } =
-        this.modelConfig.responseModel.startsWith('claude-')
+        (localOnly() || this.modelConfig.responseModel.startsWith('claude-'))
           ? await _buildImageContentBlocks(message)
           : { blocks: [] as any[], attached: [] as string[], skipped: [] as Array<{ name: string; reason: string }> };
       let userContent: Anthropic.MessageParam['content'];
@@ -8606,7 +8615,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       // provides the full agentic tool loop; this chain handles non-Claude primaries
       // and serves as the fallback when Claude is unavailable.
       const responseModel = this.modelConfig.responseModel;
-      const isClaudeBackbone = responseModel.startsWith('claude-');
+      const isClaudeBackbone = localOnly() || responseModel.startsWith('claude-');
 
       if (!isClaudeBackbone) {
         const plainMessages = [
@@ -8856,7 +8865,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           rawResponse =
             '**Pocket detection + druggability** — the **pocket_detection_druggability** workflow (fpocket) is ready in the panel. Review pdb_input, min_druggability, and min_volume, then click **Confirm & Run**.';
         } else {
-          rawResponse = 'I processed your request using the available tools.';
+          rawResponse = localOnly() ? 'The local model did not produce a final answer. Completion has not been verified; review the tool results, if any.' : 'I processed your request using the available tools.';
         }
         if (onResponseDelta) onResponseDelta(rawResponse);
       }

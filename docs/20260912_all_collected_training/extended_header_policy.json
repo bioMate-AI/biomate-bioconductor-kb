@@ -1,0 +1,32 @@
+{
+  "gene_column": "__index__",
+  "donor_column": "donor_id",
+  "schema_policies": {
+    "7.1.0": {
+      "count_layer": "raw.X",
+      "provenance_reference": "CELLxGENE schema 7.1.0 raw-count layer contract, conditional on raw.X being present; https://github.com/chanzuckerberg/single-cell-curation/blob/main/schema/7.1.0/schema.md; numeric validation still mandatory downstream",
+      "feature_filter_semantics": "normalized_X_only",
+      "schema_file_sha256": "0534d167ebdce38b9fae514a6f17c001a9d6845201eabfeadab969a23a141292"
+    },
+    "5.2.0": {
+      "count_layer": "raw.X",
+      "provenance_reference": "Official CELLxGENE schema 5.2.0 raw-count contract, conditional on raw.X present; https://raw.githubusercontent.com/chanzuckerberg/single-cell-curation/main/schema/5.2.0/schema.md; numeric validation remains required",
+      "feature_filter_semantics": "normalized_X_only",
+      "schema_file_sha256": "431c6631fe96fbb06d21dd1f1d4ca14fe1b129295845355798747f3f0d23d4ca"
+    },
+    "6.0.0": {
+      "count_layer": "raw.X",
+      "provenance_reference": "Official CELLxGENE schema 6.0.0 raw-count contract, conditional on raw.X present; https://raw.githubusercontent.com/chanzuckerberg/single-cell-curation/main/schema/6.0.0/schema.md; numeric validation remains required",
+      "feature_filter_semantics": "normalized_X_only",
+      "schema_file_sha256": "3978f75a68121bdf17a6d0b458e924d932145dc530581ab92345425161cba849"
+    },
+    "7.0.0": {
+      "count_layer": "raw.X",
+      "provenance_reference": "Official CELLxGENE schema7.0.0 raw-count contract; https://raw.githubusercontent.com/chanzuckerberg/single-cell-curation/main/schema/7.0.0/schema.md; raw.X presence and numeric validation required",
+      "feature_filter_semantics": "normalized_X_only",
+      "schema_file_sha256": "75a7570c47519d96d4d688d595baca3378cac709073bae04a5492216f785a0d0"
+    }
+  },
+  "unknown_schema_behavior": "block and report; never guess X counts or donor/study identity",
+  "scope": "Verified raw.X-only schemas5.2.0,6.0.0,7.0.0,7.1.0;6.1.0 official path404 remains unrecognized"
+}

@@ -1,0 +1,5976 @@
+{
+  "accno": "E-GEOD-51392",
+  "attributes": [
+    {
+      "name": "Title",
+      "value": "Expression data from airway epithelial cells stimulated with Poly(I:C) from patients with asthma, rhinitis, and healthy controls"
+    },
+    {
+      "name": "ReleaseDate",
+      "value": "2013-10-18"
+    },
+    {
+      "name": "RootPath",
+      "value": "E-GEOD-51392"
+    },
+    {
+      "name": "AttachTo",
+      "value": "ArrayExpress"
+    }
+  ],
+  "section": {
+    "accno": "s-E-GEOD-51392",
+    "type": "Study",
+    "attributes": [
+      {
+        "name": "Title",
+        "value": "Expression data from airway epithelial cells stimulated with Poly(I:C) from patients with asthma, rhinitis, and healthy controls"
+      },
+      {
+        "name": "Study type",
+        "value": "transcription profiling by array",
+        "valqual": [
+          {
+            "name": "Ontology",
+            "value": "EFO"
+          },
+          {
+            "name": "TermId",
+            "value": "EFO_0002768"
+          }
+        ]
+      },
+      {
+        "name": "Organism",
+        "value": "Homo sapiens"
+      },
+      {
+        "name": "Description",
+        "value": "Rhinovirus infections are the most common cause of asthma exacerbations. The complex responses by the airway epithelium to rhinovirus can be captured by gene expression profiling. We hypothesized that the upper and lower airway epithelium exhibit differential responses to double-stranded RNA (dsRNA), and that this is modulated by the presence of asthma and allergic rhinitis. Identification of dsRNA-induced gene expression profiles by microarray of primary nasal and bronchial epithelial cells from the same individuals and examining the impact of allergic rhinitis with and without concomitant allergic asthma on expression profiles. 17 subjects were included in a cross-sectional study (6 allergic asthma and allergic rhinitis; 5 allergic rhinitis; 6 healthy controls). RNA was extracted from isolated and cultured epithelial cells that were stimulated with Poly(I:C) for 24 hours from bronchial brushes and nasal biopsies, and analyzed by microarray (Affymetrix U133+ PM Genechip Array)."
+      }
+    ],
+    "links": [
+      [
+        {
+          "url": "GSE51392",
+          "attributes": [
+            {
+              "name": "Type",
+              "value": "GEO"
+            }
+          ]
+        }
+      ]
+    ],
+    "subsections": [
+      [
+        {
+          "accno": "P-GSE51392-1",
+          "type": "Protocols",
+          "attributes": [
+            {
+              "name": "Name",
+              "value": "P-GSE51392-1"
+            },
+            {
+              "name": "Type",
+              "value": "normalization data transformation protocol"
+            },
+            {
+              "name": "Description",
+              "value": "Array images were analyzed by Affymetrix Expression Console using the robust multichip analysis (RMA) algorithm. The normalized data were further analysed using R (version 2.9) and the Bioconductor Limma package version 3.14.1. Probesets without a known geneID were excluded for further analyses. The data was further normalized in R by quantile normalization between the arrays ID_REF =  VALUE = normalized signal"
+            }
+          ]
+        },
+        {
+          "accno": "P-GSE51392-5",
+          "type": "Protocols",
+          "attributes": [
+            {
+              "name": "Name",
+              "value": "P-GSE51392-5"
+            },
+            {
+              "name": "Type",
+              "value": "labelling protocol"
+            },
+            {
+              "name": "Description",
+              "value": "Biotinylated cRNA were prepared according to the standard Affymetrix protocol."
+            }
+          ]
+        },
+        {
+          "accno": "P-GSE51392-6",
+          "type": "Protocols",
+          "attributes": [
+            {
+              "name": "Name",
+              "value": "P-GSE51392-6"
+            },
+            {
+              "name": "Type",
+              "value": "hybridization protocol"
+            },
+            {
+              "name": "Description",
+              "value": "According to standard Affymetrix protocol."
+            }
+          ]
+        },
+        {
+          "accno": "P-GSE51392-2",
+          "type": "Protocols",
+          "attributes": [
+            {
+              "name": "Name",
+              "value": "P-GSE51392-2"
+            },
+            {
+              "name": "Type",
+              "value": "sample treatment protocol"
+            },
+            {
+              "name": "Description",
+              "value": "Cells were cultured to 80% confluence and were pre-incubated with BEBM for 24 hours prior to the the stimulation with BEBM containing 20\u00b5g/ml of Poly(I:C) or BEBM alone (controls) for 24 hours. Next, removement of supernatant and RNA extraction."
+            }
+          ]
+        },
+        {
+          "accno": "P-GSE51392-3",
+          "type": "Protocols",
+          "attributes": [
+            {
+              "name": "Name",
+              "value": "P-GSE51392-3"
+            },
+            {
+              "name": "Type",
+              "value": "growth protocol"
+            },
+            {
+              "name": "Description",
+              "value": "Isolated airway epithelial cells were grown in fully humidified air containing 5% CO2 at 37\u00b0C, and culture medium was replaced every other day."
+            }
+          ]
+        },
+        {
+          "accno": "P-GSE51392-4",
+          "type": "Protocols",
+          "attributes": [
+            {
+              "name": "Name",
+              "value": "P-GSE51392-4"
+            },
+            {
+              "name": "Type",
+              "value": "nucleic acid extraction protocol"
+            },
+            {
+              "name": "Description",
+              "value": "Trizol extraction of total RNA was performed according to the manufacturer's instructions."
+            }
+          ]
+        },
+        {
+          "accno": "P-GSE51392-7",
+          "type": "Protocols",
+          "attributes": [
+            {
+              "name": "Name",
+              "value": "P-GSE51392-7"
+            },
+            {
+              "name": "Type",
+              "value": "array scanning protocol"
+            },
+            {
+              "name": "Description",
+              "value": "According to standard Affymetrix protocol."
+            }
+          ]
+        }
+      ],
+      {
+        "type": "Author",
+        "attributes": [
+          {
+            "name": "Name",
+            "value": "Ariane Wagener"
+          },
+          {
+            "name": "Email",
+            "value": "A.H.Wagener@amc.uva.nl"
+          },
+          {
+            "name": "Role",
+            "value": "submitter"
+          },
+          {
+            "name": "affiliation",
+            "value": "o1",
+            "reference": true
+          }
+        ]
+      },
+      {
+        "type": "Author",
+        "attributes": [
+          {
+            "name": "Name",
+            "value": "Silvia Luiten"
+          }
+        ]
+      },
+      {
+        "type": "Author",
+        "attributes": [
+          {
+            "name": "Name",
+            "value": "Aeilko Zwinderman"
+          }
+        ]
+      },
+      {
+        "type": "Author",
+        "attributes": [
+          {
+            "name": "Name",
+            "value": "Cornelis van Drunen"
+          }
+        ]
+      },
+      {
+        "type": "Author",
+        "attributes": [
+          {
+            "name": "Name",
+            "value": "Peter Sterk"
+          }
+        ]
+      },
+      {
+        "accno": "o1",
+        "type": "Organization",
+        "attributes": [
+          {
+            "name": "Name",
+            "value": "Academic Medical Center"
+          },
+          {
+            "name": "Address",
+            "value": "Academic Medical Center, Meibergdreef 9, Amsterdam, Netherlands"
+          }
+        ]
+      },
+      {
+        "accno": "s-samples-factors-E-GEOD-51392",
+        "type": "Samples",
+        "attributes": [
+          {
+            "name": "Sample count",
+            "value": "68"
+          },
+          {
+            "name": "Experimental Factors",
+            "value": "PAIRED SAMPLES",
+            "valqual": [
+              {
+                "name": "TermName",
+                "value": "paired samples"
+              }
+            ]
+          },
+          {
+            "name": "Experimental Factors",
+            "value": "DISEASE STATE CONDITION",
+            "valqual": [
+              {
+                "name": "TermName",
+                "value": "disease state condition"
+              }
+            ]
+          },
+          {
+            "name": "Experimental Factors",
+            "value": "COMPOUND",
+            "valqual": [
+              {
+                "name": "TermName",
+                "value": "compound"
+              }
+            ]
+          },
+          {
+            "name": "Experimental Factors",
+            "value": "SEX",
+            "valqual": [
+              {
+                "name": "TermName",
+                "value": "sex"
+              }
+            ]
+          },
+          {
+            "name": "Experimental Factors",
+            "value": "ORGANISM PART",
+            "valqual": [
+              {
+                "name": "TermName",
+                "value": "organism part"
+              }
+            ]
+          }
+        ],
+        "subsections": [
+          {
+            "accno": "exp_factor-E-GEOD-51392",
+            "type": "Experimental Factors",
+            "attributes": [
+              {
+                "name": "Compound",
+                "value": "Poly(I:C)"
+              },
+              {
+                "name": "Compound",
+                "value": "control"
+              },
+              {
+                "name": "Disease state condition",
+                "value": "healthy"
+              },
+              {
+                "name": "Disease state condition",
+                "value": "asthma"
+              },
+              {
+                "name": "Disease state condition",
+                "value": "rhinitis"
+              },
+              {
+                "name": "Organism part",
+                "value": "bronchial epithelium"
+              },
+              {
+                "name": "Organism part",
+                "value": "nasal_epithelium"
+              },
+              {
+                "name": "Paired samples",
+                "value": "1"
+              },
+              {
+                "name": "Paired samples",
+                "value": "8"
+              },
+              {
+                "name": "Paired samples",
+                "value": "10"
+              },
+              {
+                "name": "Paired samples",
+                "value": "5"
+              },
+              {
+                "name": "Paired samples",
+                "value": "15"
+              },
+              {
+                "name": "Paired samples",
+                "value": "12"
+              },
+              {
+                "name": "Paired samples",
+                "value": "9"
+              },
+              {
+                "name": "Paired samples",
+                "value": "14"
+              },
+              {
+                "name": "Paired samples",
+                "value": "7"
+              },
+              {
+                "name": "Paired samples",
+                "value": "6"
+              },
+              {
+                "name": "Paired samples",
+                "value": "17"
+              },
+              {
+                "name": "Paired samples",
+                "value": "16"
+              },
+              {
+                "name": "Paired samples",
+                "value": "13"
+              },
+              {
+                "name": "Paired samples",
+                "value": "11"
+              },
+              {
+                "name": "Paired samples",
+                "value": "2"
+              },
+              {
+                "name": "Paired samples",
+                "value": "... 2 other values"
+              },
+              {
+                "name": "Sex",
+                "value": "male"
+              },
+              {
+                "name": "Sex",
+                "value": "female"
+              }
+            ],
+            "subsections": [
+              [
+                {
+                  "accno": "factors_0",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "16"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "male"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244653_144_G07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_1",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "16"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "male"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244652_142_H07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_2",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "17"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244651_140_C07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_3",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "17"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244650_139_F05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_4",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "5"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244649_138_C05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_5",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "5"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244648_137_G07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_6",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "17"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244647_132_B09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_7",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "17"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244646_130_F09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_8",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "13"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244645_129_H07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_9",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "13"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244644_128_C05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_10",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "4"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244643_126_A09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_11",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "4"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244642_124_H07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_12",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "16"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "male"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244641_120_G05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_13",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "16"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "male"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244640_119_E07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_14",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "5"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244639_117_H05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_15",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "5"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244638_115_A07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_16",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "8"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244637_114_C05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_17",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "8"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244636_112_F05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_18",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "8"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244635_108_E09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_19",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "8"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244634_106_C09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_20",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "10"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "male"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244633_104_G07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_21",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "11"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "male"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244632_98_E07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_22",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "11"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "male"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244631_97_A05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_23",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "1"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244630_90_F05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_24",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "1"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244629_88_A05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_25",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "1"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244628_87_E05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_26",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "1"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244627_86_F07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_27",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "9"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244626_81_B07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_28",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "9"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244625_79_A07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_29",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "10"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "male"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244624_103_B07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_30",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "13"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244623_102_F05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_31",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "13"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244622_101_A05_2.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_32",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "6"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244621_69_E05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_33",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "6"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244620_68_C05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_34",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "7"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244619_62_D09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_35",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "7"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244618_61_A05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_36",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "6"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244617_59_C09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_37",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "6"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244616_58_G09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_38",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "4"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244615_57_G05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_39",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "4"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244614_55_H09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_40",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "7"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244613_50_G05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_41",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "7"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244612_49_G09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_42",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "14"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244611_48_D05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_43",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "14"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244610_47_G09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_44",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "14"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244609_44_B05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_45",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "14"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244608_43_B07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_46",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "11"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "male"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244607_36_F07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_47",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "11"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "male"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244606_34_E05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_48",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "15"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244605_30_H09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_49",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "15"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244604_28_B09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_50",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "3"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244603_26_E09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_51",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "3"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244602_25_A07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_52",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "3"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244601_24_E07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_53",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "3"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244600_22_A09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_54",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "2"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244599_21_D07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_55",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "2"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244598_20_F05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_56",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "10"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "male"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244597_9_H07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_57",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "10"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "male"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244596_8_E05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_58",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "12"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244595_6_D05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_59",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "12"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244594_5_D07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_60",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "9"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244593_3_H05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_61",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "9"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244592_1_G07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_62",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "15"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244591_18_H05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_63",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "15"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244590_16_D09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_64",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "2"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244589_15_A07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_65",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "2"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244588_13_F09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_66",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "Poly(I:C)"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "12"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244587_12_D07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_67",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "COMPOUND",
+                      "value": "control"
+                    },
+                    {
+                      "name": "DISEASE STATE CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "12"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244586_10_B05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            ]
+          },
+          {
+            "accno": "source_chars-E-GEOD-51392",
+            "type": "Source Characteristics",
+            "attributes": [
+              {
+                "name": "Organism",
+                "value": "Homo sapiens"
+              },
+              {
+                "name": "Disease state condition",
+                "value": "healthy"
+              },
+              {
+                "name": "Disease state condition",
+                "value": "asthma"
+              },
+              {
+                "name": "Disease state condition",
+                "value": "rhinitis"
+              },
+              {
+                "name": "Organism part",
+                "value": "bronchial epithelium"
+              },
+              {
+                "name": "Organism part",
+                "value": "nasal_epithelium"
+              },
+              {
+                "name": "Paired samples",
+                "value": "1"
+              },
+              {
+                "name": "Paired samples",
+                "value": "8"
+              },
+              {
+                "name": "Paired samples",
+                "value": "10"
+              },
+              {
+                "name": "Paired samples",
+                "value": "5"
+              },
+              {
+                "name": "Paired samples",
+                "value": "15"
+              },
+              {
+                "name": "Paired samples",
+                "value": "12"
+              },
+              {
+                "name": "Paired samples",
+                "value": "9"
+              },
+              {
+                "name": "Paired samples",
+                "value": "14"
+              },
+              {
+                "name": "Paired samples",
+                "value": "7"
+              },
+              {
+                "name": "Paired samples",
+                "value": "6"
+              },
+              {
+                "name": "Paired samples",
+                "value": "17"
+              },
+              {
+                "name": "Paired samples",
+                "value": "16"
+              },
+              {
+                "name": "Paired samples",
+                "value": "13"
+              },
+              {
+                "name": "Paired samples",
+                "value": "11"
+              },
+              {
+                "name": "Paired samples",
+                "value": "2"
+              },
+              {
+                "name": "Paired samples",
+                "value": "... 2 other values"
+              },
+              {
+                "name": "Sex",
+                "value": "male"
+              },
+              {
+                "name": "Sex",
+                "value": "female"
+              }
+            ],
+            "subsections": [
+              [
+                {
+                  "accno": "source_0",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "16"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "male"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244653_144_G07.CEL\" OR \"GSM1244652_142_H07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_1",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "17"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244651_140_C07.CEL\" OR \"GSM1244650_139_F05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_2",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "5"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244649_138_C05.CEL\" OR \"GSM1244648_137_G07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_3",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "17"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244647_132_B09.CEL\" OR \"GSM1244646_130_F09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_4",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "13"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244645_129_H07.CEL\" OR \"GSM1244644_128_C05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_5",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "4"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244643_126_A09.CEL\" OR \"GSM1244642_124_H07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_6",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "16"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "male"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244641_120_G05.CEL\" OR \"GSM1244640_119_E07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_7",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "5"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244639_117_H05.CEL\" OR \"GSM1244638_115_A07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_8",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "8"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244637_114_C05.CEL\" OR \"GSM1244636_112_F05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_9",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "8"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244635_108_E09.CEL\" OR \"GSM1244634_106_C09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_10",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "10"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "male"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244633_104_G07.CEL\" OR \"GSM1244624_103_B07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_11",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "11"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "male"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244632_98_E07.CEL\" OR \"GSM1244631_97_A05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_12",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "1"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244630_90_F05.CEL\" OR \"GSM1244629_88_A05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_13",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "1"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244628_87_E05.CEL\" OR \"GSM1244627_86_F07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_14",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "9"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244626_81_B07.CEL\" OR \"GSM1244625_79_A07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_15",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "13"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244623_102_F05.CEL\" OR \"GSM1244622_101_A05_2.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_16",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "6"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244621_69_E05.CEL\" OR \"GSM1244620_68_C05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_17",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "7"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244619_62_D09.CEL\" OR \"GSM1244618_61_A05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_18",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "6"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244617_59_C09.CEL\" OR \"GSM1244616_58_G09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_19",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "4"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244615_57_G05.CEL\" OR \"GSM1244614_55_H09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_20",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "7"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244613_50_G05.CEL\" OR \"GSM1244612_49_G09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_21",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "14"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244611_48_D05.CEL\" OR \"GSM1244610_47_G09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_22",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "14"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244609_44_B05.CEL\" OR \"GSM1244608_43_B07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_23",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "11"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "male"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244607_36_F07.CEL\" OR \"GSM1244606_34_E05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_24",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "15"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244605_30_H09.CEL\" OR \"GSM1244604_28_B09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_25",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "3"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244603_26_E09.CEL\" OR \"GSM1244602_25_A07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_26",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "3"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244601_24_E07.CEL\" OR \"GSM1244600_22_A09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_27",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "2"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244599_21_D07.CEL\" OR \"GSM1244598_20_F05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_28",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "10"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "male"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244597_9_H07.CEL\" OR \"GSM1244596_8_E05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_29",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "12"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244595_6_D05.CEL\" OR \"GSM1244594_5_D07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_30",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "9"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244593_3_H05.CEL\" OR \"GSM1244592_1_G07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_31",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "15"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244591_18_H05.CEL\" OR \"GSM1244590_16_D09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_32",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal_epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "2"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244589_15_A07.CEL\" OR \"GSM1244588_13_F09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_33",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "disease state condition",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "12"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "2",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1244587_12_D07.CEL\" OR \"GSM1244586_10_B05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "accno": "s-assays-data-E-GEOD-51392",
+        "type": "Assays and Data",
+        "attributes": [
+          {
+            "name": "Assay count",
+            "value": "68"
+          },
+          {
+            "name": "Technology",
+            "value": "Array assay"
+          },
+          {
+            "name": "Assay by Molecule",
+            "value": "RNA assay"
+          }
+        ],
+        "subsections": [
+          {
+            "accno": "raw-data",
+            "type": "Raw Data",
+            "files": [
+              [
+                {
+                  "path": "GSM1244653_144_G07.CEL",
+                  "size": 5557856,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244653 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244652_142_H07.CEL",
+                  "size": 5557856,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244652 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244651_140_C07.CEL",
+                  "size": 5557850,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244651 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244650_139_F05.CEL",
+                  "size": 5557850,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244650 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244649_138_C05.CEL",
+                  "size": 5557850,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244649 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244648_137_G07.CEL",
+                  "size": 5557850,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244648 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244647_132_B09.CEL",
+                  "size": 5557850,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244647 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244646_130_F09.CEL",
+                  "size": 5557850,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244646 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244645_129_H07.CEL",
+                  "size": 5557850,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244645 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244644_128_C05.CEL",
+                  "size": 5557850,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244644 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244643_126_A09.CEL",
+                  "size": 5557856,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244643 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244642_124_H07.CEL",
+                  "size": 5557856,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244642 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244641_120_G05.CEL",
+                  "size": 5557856,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244641 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244640_119_E07.CEL",
+                  "size": 5557856,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244640 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244639_117_H05.CEL",
+                  "size": 5557850,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244639 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244638_115_A07.CEL",
+                  "size": 5557850,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244638 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244637_114_C05.CEL",
+                  "size": 5557856,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244637 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244636_112_F05.CEL",
+                  "size": 5557856,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244636 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244635_108_E09.CEL",
+                  "size": 5557856,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244635 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244634_106_C09.CEL",
+                  "size": 5557856,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244634 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244633_104_G07.CEL",
+                  "size": 5557850,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244633 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244632_98_E07.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244632 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244631_97_A05.CEL",
+                  "size": 5557884,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244631 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244630_90_F05.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244630 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244629_88_A05.CEL",
+                  "size": 5557870,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244629 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244628_87_E05.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244628 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244627_86_F07.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244627 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244626_81_B07.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244626 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244625_79_A07.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244625 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244624_103_B07.CEL",
+                  "size": 5557850,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244624 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244623_102_F05.CEL",
+                  "size": 5557850,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244623 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244622_101_A05_2.CEL",
+                  "size": 5557848,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244622 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244621_69_E05.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244621 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244620_68_C05.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244620 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244619_62_D09.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244619 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244618_61_A05.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244618 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244617_59_C09.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244617 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244616_58_G09.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244616 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244615_57_G05.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244615 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244614_55_H09.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244614 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244613_50_G05.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244613 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244612_49_G09.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244612 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244611_48_D05.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244611 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244610_47_G09.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244610 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244609_44_B05.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244609 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244608_43_B07.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244608 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244607_36_F07.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244607 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244606_34_E05.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244606 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244605_30_H09.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244605 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244604_28_B09.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244604 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244603_26_E09.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244603 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244602_25_A07.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244602 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244601_24_E07.CEL",
+                  "size": 5557910,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244601 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244600_22_A09.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244600 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244599_21_D07.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244599 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244598_20_F05.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244598 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244597_9_H07.CEL",
+                  "size": 5557842,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244597 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244596_8_E05.CEL",
+                  "size": 5557842,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244596 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244595_6_D05.CEL",
+                  "size": 5557842,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244595 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244594_5_D07.CEL",
+                  "size": 5557842,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244594 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244593_3_H05.CEL",
+                  "size": 5557842,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244593 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244592_1_G07.CEL",
+                  "size": 5557842,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244592 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244591_18_H05.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244591 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244590_16_D09.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244590 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244589_15_A07.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244589 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244588_13_F09.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244588 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244587_12_D07.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244587 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244586_10_B05.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1244586 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                }
+              ]
+            ]
+          },
+          {
+            "accno": "processed-data",
+            "type": "Processed Data",
+            "files": [
+              [
+                {
+                  "path": "GSM1244609_sample_table.txt",
+                  "size": 1281337,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244608_sample_table.txt",
+                  "size": 1281118,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244589_sample_table.txt",
+                  "size": 1281295,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244636_sample_table.txt",
+                  "size": 1281481,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244630_sample_table.txt",
+                  "size": 1281160,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244604_sample_table.txt",
+                  "size": 1281679,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244596_sample_table.txt",
+                  "size": 1280855,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244612_sample_table.txt",
+                  "size": 1281286,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244644_sample_table.txt",
+                  "size": 1281060,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244643_sample_table.txt",
+                  "size": 1281415,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244606_sample_table.txt",
+                  "size": 1281312,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244627_sample_table.txt",
+                  "size": 1281186,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244649_sample_table.txt",
+                  "size": 1281697,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244614_sample_table.txt",
+                  "size": 1281697,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244629_sample_table.txt",
+                  "size": 1280964,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244650_sample_table.txt",
+                  "size": 1281326,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244600_sample_table.txt",
+                  "size": 1281542,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244599_sample_table.txt",
+                  "size": 1281062,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244616_sample_table.txt",
+                  "size": 1281518,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244648_sample_table.txt",
+                  "size": 1281506,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244622_sample_table.txt",
+                  "size": 1281415,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244617_sample_table.txt",
+                  "size": 1281680,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244591_sample_table.txt",
+                  "size": 1281576,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244652_sample_table.txt",
+                  "size": 1281356,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244628_sample_table.txt",
+                  "size": 1281378,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244625_sample_table.txt",
+                  "size": 1281465,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244624_sample_table.txt",
+                  "size": 1280740,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244621_sample_table.txt",
+                  "size": 1281345,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244613_sample_table.txt",
+                  "size": 1281452,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244639_sample_table.txt",
+                  "size": 1281606,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244638_sample_table.txt",
+                  "size": 1281065,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244651_sample_table.txt",
+                  "size": 1280702,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244642_sample_table.txt",
+                  "size": 1281041,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244602_sample_table.txt",
+                  "size": 1281344,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244595_sample_table.txt",
+                  "size": 1281079,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244633_sample_table.txt",
+                  "size": 1281346,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244592_sample_table.txt",
+                  "size": 1281017,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244588_sample_table.txt",
+                  "size": 1281144,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244586_sample_table.txt",
+                  "size": 1281219,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244587_sample_table.txt",
+                  "size": 1281459,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244640_sample_table.txt",
+                  "size": 1281593,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244598_sample_table.txt",
+                  "size": 1281288,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244623_sample_table.txt",
+                  "size": 1281349,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244605_sample_table.txt",
+                  "size": 1281625,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244646_sample_table.txt",
+                  "size": 1281475,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244637_sample_table.txt",
+                  "size": 1280835,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244634_sample_table.txt",
+                  "size": 1281159,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244620_sample_table.txt",
+                  "size": 1281077,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244597_sample_table.txt",
+                  "size": 1281359,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244619_sample_table.txt",
+                  "size": 1280893,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244610_sample_table.txt",
+                  "size": 1281600,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244593_sample_table.txt",
+                  "size": 1281557,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244647_sample_table.txt",
+                  "size": 1281590,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244653_sample_table.txt",
+                  "size": 1281100,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244618_sample_table.txt",
+                  "size": 1281499,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244626_sample_table.txt",
+                  "size": 1280928,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244641_sample_table.txt",
+                  "size": 1281556,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244601_sample_table.txt",
+                  "size": 1281726,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244611_sample_table.txt",
+                  "size": 1281108,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244594_sample_table.txt",
+                  "size": 1281476,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244645_sample_table.txt",
+                  "size": 1281342,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244635_sample_table.txt",
+                  "size": 1281422,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244615_sample_table.txt",
+                  "size": 1281339,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244590_sample_table.txt",
+                  "size": 1281454,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244631_sample_table.txt",
+                  "size": 1281202,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244603_sample_table.txt",
+                  "size": 1280728,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244607_sample_table.txt",
+                  "size": 1281157,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1244632_sample_table.txt",
+                  "size": 1281077,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                }
+              ]
+            ]
+          },
+          {
+            "accno": "mt-E-GEOD-51392",
+            "type": "MAGE-TAB Files",
+            "files": [
+              [
+                {
+                  "path": "E-GEOD-51392.idf.txt",
+                  "size": 3775,
+                  "attributes": [
+                    {
+                      "name": "Type",
+                      "value": "IDF File"
+                    },
+                    {
+                      "name": "Format",
+                      "value": "tab-delimited text"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Investigation Design Format (IDF)"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "E-GEOD-51392.sdrf.txt",
+                  "size": 65516,
+                  "attributes": [
+                    {
+                      "name": "Type",
+                      "value": "SDRF File"
+                    },
+                    {
+                      "name": "Format",
+                      "value": "tab-delimited text"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Sample and Data Relationship Format (SDRF)"
+                    }
+                  ],
+                  "type": "file"
+                }
+              ]
+            ]
+          },
+          {
+            "accno": "ad-E-GEOD-51392",
+            "type": "Array Designs",
+            "links": [
+              [
+                {
+                  "url": "A-GEOD-13158",
+                  "attributes": [
+                    {
+                      "name": "Type",
+                      "value": "Array Design"
+                    }
+                  ]
+                }
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "accno": "score-E-GEOD-51392",
+        "type": "MIAME Score",
+        "attributes": [
+          {
+            "name": "Platforms",
+            "value": "-"
+          },
+          {
+            "name": "Processed",
+            "value": "*"
+          },
+          {
+            "name": "Protocols",
+            "value": "-"
+          },
+          {
+            "name": "Raw",
+            "value": "*"
+          },
+          {
+            "name": "Variables",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  },
+  "type": "submission"
+}
