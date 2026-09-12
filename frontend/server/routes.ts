@@ -45,6 +45,7 @@ import { createHash, randomBytes } from "crypto";
 import { authService } from "./auth-service";
 import { emailService } from "./email-service";
 import { authenticateToken, authenticateStaticApiKey, optionalAuth } from "./auth-middleware";
+import { decideRunAccess } from "./run-access";
 import BetterSqlite3 from "better-sqlite3";
 import type { RegisterData, LoginData } from "./auth-service";
 import { s3Service } from "./s3-client";
@@ -1362,6 +1363,26 @@ ${auditLog.length > 0 ? `
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  /** Resolve either BioMate's run ID or the Galaxy invocation alias and apply
+   * the single owner/project-member policy used by every output surface. */
+  const resolveAuthorizedRun = async (req: any, res: any, anyRunId: string): Promise<any | null> => {
+    let run = await storage.getExecutionRun(anyRunId);
+    if (!run) run = await storage.getExecutionRunByGalaxyId(anyRunId);
+    if (!run) {
+      res.status(404).json({ error: "Run not found" });
+      return null;
+    }
+    const decision = await decideRunAccess(
+      run,
+      req.user?.id ? String(req.user.id) : null,
+      (storage as any).getUserProjects?.bind(storage),
+    );
+    if (!decision.allowed) {
+      res.status(decision.status).json({ error: decision.error });
+      return null;
+    }
+    return run;
+  };
   // Initialize repositories
   await parameterRepository.initialize();
   await workflowRepository.initialize();
@@ -11888,10 +11909,12 @@ Rules:
   // nextflowRunId), lists S3 once with the right region+creds, returns the
   // normalized shape with presigned downloadUrl on every item.
   // See docs/20260518_OUTPUTS_SERVICE_CONSOLIDATION_SPEC.md
-  app.get("/api/runs/:anyId/outputs", async (req, res) => {
+  app.get("/api/runs/:anyId/outputs", authenticateToken, async (req: any, res) => {
     try {
+      const run = await resolveAuthorizedRun(req, res, req.params.anyId);
+      if (!run) return;
       const { runsOutputsService } = await import("./services/runs-outputs-service");
-      const items = await runsOutputsService.list(req.params.anyId);
+      const items = await runsOutputsService.list(run.id);
       res.json({ outputs: items, count: items.length });
     } catch (e: any) {
       console.error("[runs-outputs] error:", e);
@@ -11900,10 +11923,12 @@ Rules:
   });
 
   // Resolution helper — exposes the canonical meta for debugging / future UI.
-  app.get("/api/runs/:anyId/meta", async (req, res) => {
+  app.get("/api/runs/:anyId/meta", authenticateToken, async (req: any, res) => {
     try {
+      const run = await resolveAuthorizedRun(req, res, req.params.anyId);
+      if (!run) return;
       const { runsOutputsService } = await import("./services/runs-outputs-service");
-      const meta = await runsOutputsService.resolve(req.params.anyId);
+      const meta = await runsOutputsService.resolve(run.id);
       if (!meta) return res.status(404).json({ error: "Run not found" });
       res.json(meta);
     } catch (e: any) {
@@ -11913,39 +11938,24 @@ Rules:
   });
 
   // Output files for a run
-  app.get("/api/workflows/runs/:id/output_files", async (req, res) => {
+  app.get("/api/workflows/runs/:id/output_files", authenticateToken, async (req: any, res) => {
     try {
       // Primary lookup by run ID; fallback by galaxy invocation ID (chain runs store their
       // invocation ID as the returned run ID but MemStorage keys by execution run UUID).
       let run = await storage.getExecutionRun(req.params.id);
       if (!run) run = await storage.getExecutionRunByGalaxyId(req.params.id);
       if (!run) {
-        // Try raw chain_run_id (may be passed directly)
-        const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-        try {
-          const chainResp = await fetch(
-            `${galaxyUrl}/api/workflows/chain/${encodeURIComponent(req.params.id)}/outputs`,
-            { signal: AbortSignal.timeout(12000) },
-          );
-          if (chainResp.ok) {
-            const chainData = await chainResp.json() as any;
-            return res.status(200).json({
-              output_files: chainData.output_files || [],
-              outputs: chainData.output_files || [],
-              outdir: null,
-              source: 'chain_aggregate',
-              chain_run_id: chainData.chain_run_id,
-              steps: chainData.steps,
-            });
-          }
-        } catch { /* fall through */ }
-        return res.status(200).json({
-          output_files: [],
-          outputs: [],
-          outdir: null,
-          source: 'chain_unregistered',
-        });
+        // A raw backend chain ID has no BioMate owner/project record.  Do not
+        // proxy it, because that would turn a guessable ID into output access.
+        return res.status(404).json({ error: "Run not found" });
       }
+
+      const decision = await decideRunAccess(
+        run,
+        req.user?.id ? String(req.user.id) : null,
+        (storage as any).getUserProjects?.bind(storage),
+      );
+      if (!decision.allowed) return res.status(decision.status).json({ error: decision.error });
 
       // Chain ExecutionRun — aggregate outputs from all steps
       if (
@@ -12214,7 +12224,7 @@ Rules:
   // Alias: same data as /output_files but returns the bare array (matches what
   // tool-callers and the CryoEM E2E tests expect — they iterate the response
   // as `outputs.map(o => o.filename)`).
-  app.get("/api/workflows/runs/:id/outputs", async (req, res) => {
+  app.get("/api/workflows/runs/:id/outputs", authenticateToken, async (req, res) => {
     try {
       const r = await fetch(
         `http://localhost:${process.env.PORT || 5000}/api/workflows/runs/${req.params.id}/output_files`,
@@ -13523,14 +13533,12 @@ Rules:
   //   Thin proxy to Galaxy backend /api/nextflow/analyze-outputs.
   // ──────────────────────────────────────────────────────────────────────────────
 
-  app.get("/api/workflows/runs/:id/findings", optionalAuth, async (req, res) => {
+  app.get("/api/workflows/runs/:id/findings", authenticateToken, async (req: any, res) => {
     const runId = req.params.id;
     try {
       // 1. Look up the run to get output dir
-      const run = await storage.getExecutionRun(runId);
-      if (!run) {
-        return res.status(404).json({ error: "Run not found" });
-      }
+      const run = await resolveAuthorizedRun(req, res, runId);
+      if (!run) return;
 
       // Determine local output dir (local runs only; S3 runs not supported for disk check)
       const nextflowRunId: string = (run as any).execution?.nextflowRunId || runId;
@@ -14027,11 +14035,11 @@ Respond ONLY with valid JSON (no markdown wrapper):
   });
 
   // Serve the raw findings_report.md for download
-  app.get("/api/workflows/runs/:id/findings/report", optionalAuth, async (req, res) => {
+  app.get("/api/workflows/runs/:id/findings/report", authenticateToken, async (req: any, res) => {
     const runId = req.params.id;
     try {
-      const run = await storage.getExecutionRun(runId);
-      if (!run) return res.status(404).json({ error: "Run not found" });
+      const run = await resolveAuthorizedRun(req, res, runId);
+      if (!run) return;
       const nextflowRunId: string = (run as any).execution?.nextflowRunId || runId;
       const reportPath = `/tmp/nextflow_runs/${nextflowRunId}/output/findings_report.md`;
       const { readFile } = await import('fs/promises');
