@@ -48,3 +48,9 @@ Original scope remains active and incomplete. GPU training has not started.
 Worker was running; latest log reported 142/805 sources, all blocked under the old policy. GPU training remains unstarted. Read-only AWS calls now succeed. Corrected package upload was again denied, now specifically requiring explicit user approval of the exact payload/destination (not an account-limit error). Do not bypass this denial via SSM or another transfer channel. Stop request was dispatched to the exact obsolete Python PID26539, relying on the original EXIT handler to save results and terminate. Verify command outcome/instance state before any restart.
 
 Approval needed: upload `/tmp/immune_launch_v1/header_release_v2.tar.gz` (SHA256 `4131dd7dd44746ab25f189ccd2ec49506a64efd013a6df862b2a38671942b692`) to `s3://knowledge-datasets-1759951976/immune_llm_baseline/releases/20260912_all_collected_4131dd7d/header_release.tar.gz`, then restart corrected screening.
+
+## Approved restart — 2026-09-12 22:05 UTC
+
+User explicitly approved correction upload and restart. Temporary archive had been cleared; rebuilt from saved source_sha256-verified correction files, saved extended policy and original frozen object/paired-vocabulary manifests. Deterministically rebuilt archive SHA256: a6107a31689467dd45627140a5cb53f3f63db55947e26dffe4e088112ff24f46. Uploaded to the approved 20260912_all_collected_4131dd7d release path. Four header/bridge tests passed.
+
+New worker: **i-04ef6092daf7b49b4**, c6i.2xlarge, us-west-2. Six-hour self-termination limit. Outputs now use `s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/immune_llm_models/all_collected_20260912/source_preflight_v2/` so the original run is preserved. Verify real processing and outcomes. Original worker i-0e4af1038523e12ea was confirmed terminated. No GPU training launch yet.
