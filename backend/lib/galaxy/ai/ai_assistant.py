@@ -3968,21 +3968,19 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             # interpretable comparison, both of which require a method/contrast choice.
             return self._return_geo_bulk_connector(_geo_id, _platform)
         if _platform is None:
-            # GEO metadata unavailable (network/parse) → conservative keyword FALLBACK only:
-            # skip pseudobulk on an explicit non-single-cell prose signal, else keep the
-            # scRNA default. Keywords are the fallback, not the primary signal.
-            _non_scrna = any(kw in _q for kw in [
-                'microarray', 'micro-array', 'micro array', 'affymetrix', 'agilent',
-                'beadchip', 'expression array', 'gene expression array', 'array express',
-            ])
+            # GEO metadata unavailable (network/parse) → do not guess that an
+            # accession is single-cell.  Pseudobulk irreversibly changes the unit of
+            # analysis, so it is allowed only with an explicit single-cell signal;
+            # every other unknown accession goes through retrieval/review.
             _scrna_signal = any(kw in _q for kw in [
                 'scrna', 'sc-rna', 'single cell', 'single-cell', 'pseudobulk', '10x', 'cellranger',
             ])
-            if _non_scrna and not _scrna_signal:
-                log.info("[GeoFastPath] GEO %s metadata unavailable; explicit non-single-cell signal "
+            if not _scrna_signal:
+                log.info("[GeoFastPath] GEO %s metadata unavailable; no explicit single-cell signal "
                          "— routing to connector for data review", _geo_id)
                 return self._return_geo_bulk_connector(_geo_id, 'unknown')
-        # _platform == 'scrna', or unknown with no non-single-cell signal → proceed with pseudobulk
+        # _platform == 'scrna', or metadata is unavailable but the user explicitly
+        # requested a single-cell/pseudobulk analysis → proceed with pseudobulk.
 
         # Single-cell CLUSTERING / trajectory / cell-typing intent must NOT be collapsed
         # to pseudobulk — pseudobulk aggregation destroys per-cell resolution and cannot

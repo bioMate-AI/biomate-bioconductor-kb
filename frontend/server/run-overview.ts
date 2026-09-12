@@ -116,19 +116,34 @@ function parseSort(
   return { field, direction };
 }
 
-function collectArtifacts(value: any, sink: string[]): void {
+/**
+ * Collect file references only.  Do not recursively collect arbitrary status
+ * strings: an S3 output *directory*, a log line, or an error message is not a
+ * downloadable artifact.  This overview is intentionally conservative; the
+ * run-status endpoint performs the richer visualisation/download checks.
+ */
+function collectOutputArtifacts(value: any, sink: string[]): void {
   if (!value) return;
   if (typeof value === "string") {
     const trimmed = value.trim();
-    if (trimmed) sink.push(trimmed);
+    // A bare directory (including `s3://…/outdir`) must never make a run look
+    // output-ready.  File-like paths are only an estimate, not proof of read.
+    if (trimmed && /\.[A-Za-z0-9]{1,12}(?:$|[?#])/.test(trimmed)) sink.push(trimmed);
     return;
   }
   if (Array.isArray(value)) {
-    value.forEach((item) => collectArtifacts(item, sink));
+    value.forEach((item) => collectOutputArtifacts(item, sink));
     return;
   }
   if (typeof value === "object") {
-    Object.values(value).forEach((item) => collectArtifacts(item, sink));
+    for (const key of [
+      "s3_uri", "s3Uri", "path", "file_path", "filepath",
+      "download_url", "downloadUrl", "download_endpoint",
+    ]) {
+      if (typeof value[key] === "string" && value[key].trim()) {
+        sink.push(value[key].trim());
+      }
+    }
   }
 }
 
@@ -170,10 +185,10 @@ function toArtifactReadiness(run: ExecutionRun): RunOverviewRow["artifactReadine
   const metricOutputs = Number(run.metrics?.outputs?.fileCount) || 0;
   const nextflowStatus = run.execution?.nextflowStatus;
   const inferredArtifacts: string[] = [];
-  collectArtifacts(nextflowStatus?.outputs, inferredArtifacts);
-  collectArtifacts(nextflowStatus?.results, inferredArtifacts);
-  collectArtifacts(nextflowStatus?.output_files, inferredArtifacts);
-  collectArtifacts(nextflowStatus?.outdir, inferredArtifacts);
+  collectOutputArtifacts(nextflowStatus?.outputs, inferredArtifacts);
+  collectOutputArtifacts(nextflowStatus?.results, inferredArtifacts);
+  collectOutputArtifacts(nextflowStatus?.output_files, inferredArtifacts);
+  collectOutputArtifacts(nextflowStatus?.s3_output_files, inferredArtifacts);
 
   const estimatedOutputCount = Math.max(metricOutputs, inferredArtifacts.length);
   const hasOutputs = estimatedOutputCount > 0;

@@ -93,3 +93,15 @@ def test_bulk_geo_without_connector_returns_actionable_block_not_empty_de_card()
     assert result["source"] == "geo_accession_preflight"
     assert "Differential expression was not created" in result["message"]
     assert result["validation"]["is_valid"] is False
+
+
+def test_unknown_geo_is_not_guessed_to_be_single_cell():
+    """A network/metadata miss must retrieve first unless the user explicitly says scRNA."""
+    assistant = _assistant_with_platform(None)
+
+    result = assistant._try_fast_path_geo_scrna_pseudobulk(
+        "Run differential expression on GSE108000"
+    )
+
+    assert result is not None
+    assert result["workflow_ga"]["name"] == "geo_data_connector"
