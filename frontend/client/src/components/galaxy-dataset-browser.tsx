@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ChevronRight, ChevronLeft, Search, Database, Clock, HardDrive, Link2, Upload, Info, FolderArchive, Lightbulb } from "lucide-react";
+import { Loader2, ChevronRight, ChevronLeft, Search, Database, Clock, HardDrive, Link2, Upload, Info, FolderArchive, Lightbulb, Folder } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SessionDataset {
@@ -46,6 +46,7 @@ interface GalaxyDatasetBrowserProps {
   sessionDatasets?: SessionDataset[];
   onSelect: (value: string, name: string) => void;
   paramLabel?: string;
+  projectId?: string | null;
 }
 
 function formatBytes(bytes: number): string {
@@ -523,14 +524,37 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
   );
 }
 
+function ProjectFilesTab({ projectId, search, onSelect }: { projectId: string; search: string; onSelect: (value: string, name: string) => void }) {
+  const [files, setFiles] = useState<Array<{ id: string; name: string; size?: number; s3Uri?: string; s3_uri?: string }>>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/projects/${projectId}/files`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => setFiles(data.files || []))
+      .catch(() => setFiles([]))
+      .finally(() => setLoading(false));
+  }, [projectId]);
+  const filtered = files.filter(file => file.name.toLowerCase().includes(search.toLowerCase()));
+  if (loading) return <div className="flex justify-center py-8"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>;
+  if (!filtered.length) return <p className="text-sm text-center text-muted-foreground py-6">{search ? `No project files match "${search}"` : 'No files in this project'}</p>;
+  return <div className="space-y-1">{filtered.map(file => (
+    <div key={file.id} className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-md hover:bg-accent/60">
+      <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{file.name}</p><span className="text-xs text-muted-foreground">{formatBytes(Number(file.size || 0))}</span></div>
+      <Button size="sm" variant="secondary" className="h-7 text-xs shrink-0" onClick={() => onSelect(file.s3Uri || file.s3_uri || file.id, file.name)}>Use</Button>
+    </div>
+  ))}</div>;
+}
+
 export function GalaxyDatasetBrowser({
   open,
   onClose,
   sessionDatasets = [],
   onSelect,
   paramLabel,
+  projectId,
 }: GalaxyDatasetBrowserProps) {
-  const [activeTab, setActiveTab] = useState<'session' | 'history' | 'url'>('session');
+  const [activeTab, setActiveTab] = useState<'session' | 'project' | 'history' | 'url'>('session');
   const [search, setSearch] = useState('');
   // Locally uploaded files in this dialog instance (appended to sessionDatasets)
   const [localUploads, setLocalUploads] = useState<SessionDataset[]>([]);
@@ -553,6 +577,7 @@ export function GalaxyDatasetBrowser({
 
   const tabs = [
     { id: 'session' as const, label: `This session${allSessionDatasets.length > 0 ? ` (${allSessionDatasets.length})` : ''}` },
+    ...(projectId ? [{ id: 'project' as const, label: 'Project files', icon: <Folder className="h-3 w-3 mr-1" /> }] : []),
     { id: 'history' as const, label: 'BioMate history' },
     { id: 'url' as const, label: 'From URL', icon: <Link2 className="h-3 w-3 mr-1" /> },
   ];
@@ -611,6 +636,9 @@ export function GalaxyDatasetBrowser({
           )}
           {activeTab === 'history' && (
             <HistoryTab search={search} onSelect={handleSelect} />
+          )}
+          {activeTab === 'project' && projectId && (
+            <ProjectFilesTab projectId={projectId} search={search} onSelect={handleSelect} />
           )}
           {activeTab === 'url' && (
             <UrlImportForm onImported={(id, name) => { handleSelect(id, name); }} />

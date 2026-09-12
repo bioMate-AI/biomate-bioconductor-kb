@@ -809,6 +809,7 @@ export function ChatInput({
       <GalaxyDatasetBrowser
         open={showDatasetBrowser}
         onClose={() => setShowDatasetBrowser(false)}
+        projectId={activeProjectId}
         onSelect={(datasetValue, datasetName) => {
           // Add as a chip — dataset reference is appended to message text on send,
           // so the user sees a clean chip rather than raw ID text in the textarea.
