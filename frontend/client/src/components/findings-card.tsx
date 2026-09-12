@@ -18,7 +18,7 @@ interface KeyResult {
 }
 
 interface FindingsData {
-  status?: 'pending' | 'ready'
+  status?: 'pending' | 'ready' | 'unavailable'
   summary?: string
   keyResults?: KeyResult[]
   /** snake_case alias from sidecar JSON */
@@ -192,6 +192,14 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
       <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
         <BookOpen className="h-3.5 w-3.5 animate-pulse" />
         Analysis in progress…
+      </div>
+    )
+  }
+
+  if (data.status === 'unavailable') {
+    return (
+      <div data-testid="findings-unavailable" className="text-sm text-amber-800 dark:text-amber-300 mt-2">
+        {data.message || 'Findings are unavailable because workflow outputs could not be read. Repair output access and try again.'}
       </div>
     )
   }

@@ -71,7 +71,7 @@ import { InlineFeedbackWidget } from "./feedback/inline-feedback-widget"
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt"
 import { ReportConfusionButton } from "./feedback/report-confusion-button"
 import { useToast } from "@/hooks/use-toast"
-import { normalizePrereqChecklist } from "@/lib/prereq-normalizer"
+import { hasInlineInputData, normalizePrereqChecklist } from "@/lib/prereq-normalizer"
 import userAvatar from "@assets/generated_images/User_avatar_placeholder_d2803d15.png"
 
 // Use the shared Message type for consistency
@@ -779,6 +779,7 @@ export function ChatMessage({
                 {
                   executionBlockedReason,
                   allowLowConfidenceOverride: !!executionBlockedReason,
+                  hasInlineData: hasInlineInputData(message.metadata?.workflow),
                 }
               );
               const effectiveBlockedReason = executionBlockedReason;

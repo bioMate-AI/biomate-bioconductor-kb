@@ -4,9 +4,9 @@
  * card fetches from the live API on mount and is covered elsewhere.
  */
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { linkifyFindings } from './findings-card'
+import { FindingsCard, linkifyFindings } from './findings-card'
 
 const KR = [
   { metric: 'DEGs', value: '1284', interpretation: 'up', source_file: 'results/degs.csv' },
@@ -42,5 +42,27 @@ describe('linkifyFindings', () => {
 
   it('handles empty text safely', () => {
     expect(linkifyFindings('', KR, vi.fn())).toEqual([''])
+  })
+})
+
+describe('FindingsCard output-readability state', () => {
+  it('does not render a ready-looking findings card when outputs are unreadable', async () => {
+    const fetchMock = vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: 'unavailable',
+        message: 'Workflow output files could not be read.',
+      }),
+    } as Response)
+
+    render(<FindingsCard runId="run-output-access-failed" executionStatus="completed" />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('findings-unavailable')).toHaveTextContent(
+        'Workflow output files could not be read.',
+      )
+    })
+    expect(screen.queryByTestId('findings-card')).toBeNull()
+    fetchMock.mockRestore()
   })
 })

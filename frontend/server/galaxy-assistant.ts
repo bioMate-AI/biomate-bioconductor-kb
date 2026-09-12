@@ -12,6 +12,7 @@
  */
 
 import { resolveChainHintNames } from './chain-hint-fallback';
+import { isInterpretationOnlyRequest, prohibitsWorkflowExecution } from './execution-intent-guard';
 import { jsonrepair } from 'jsonrepair';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
@@ -4298,6 +4299,22 @@ Rules:
         intent.type = 'clinical_genomics';
       }
 
+    }
+
+    // Explicit user controls must win over the classifier and every
+    // domain-specific workflow override above. In particular, a PK/PBPK prompt
+    // often contains units, model names, and numeric values that look like a
+    // runnable simulation even when the user asked only for interpretation.
+    // Do this immediately before prerequisite/generation gates so no workflow
+    // card, prerequisite clarification, or compute launch can be produced.
+    if (actions.needsWorkflowGeneration && prohibitsWorkflowExecution(message)) {
+      const interpretationOnly = isInterpretationOnlyRequest(message);
+      log(`Execution-prohibition guard: routing to ${interpretationOnly ? 'data_interpretation' : 'research_question'} without workflow generation`);
+      actions.needsWorkflowGeneration = false;
+      actions.needsWorkflowModification = false;
+      actions.needsResearchAgent = true;
+      actions.needsLLMReasoning = true;
+      intent.type = interpretationOnly ? 'data_interpretation' : 'research_question';
     }
 
     // Paper-question guard (FINAL gate):

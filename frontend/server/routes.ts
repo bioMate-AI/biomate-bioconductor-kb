@@ -13534,8 +13534,38 @@ Rules:
         if (cached._generating) {
           return res.json({ status: 'pending', message: 'Analysis in progress…' });
         }
-        const reportUrl = `/api/workflows/runs/${runId}/findings/report`;
-        return res.json({ ...cached, status: 'ready', reportUrl, runId });
+        // A completed workflow is not the same thing as a readable result.  Do
+        // not label the fallback narrative as `ready`: doing so made the UI and
+        // exported reports look scientifically complete even when every output
+        // download had failed (for example, an invalid S3 credential).
+        if (cached._notReadable) {
+          // Do not make an unreadable state permanent. A storage credential
+          // repair or delayed publication can make the same run readable
+          // later. After a short visible failure period, let the next request
+          // restart the bounded output-read check instead of serving stale
+          // "unavailable" forever.
+          const retryAfterMs = 30_000;
+          const unavailableAt = Number(cached._unreadableAt || 0);
+          const unreadableElapsedMs = unavailableAt ? Date.now() - unavailableAt : 0;
+          if (unavailableAt && unreadableElapsedMs >= retryAfterMs) {
+            _findingsCache.delete(runId);
+          } else {
+            return res.json({
+              status: 'unavailable',
+              runId,
+              message: cached.message || 'Workflow output files could not be read, so findings are unavailable.',
+              caveats: cached.caveats || ['Findings are withheld until at least one workflow output can be read.'],
+              retry_after_seconds: Math.max(1, Math.ceil((retryAfterMs - unreadableElapsedMs) / 1000)),
+            });
+          }
+        }
+        // `cached` may have been invalidated above; fall through to create a
+        // fresh analysis rather than emitting a ready response from it.
+        const stillCached = _findingsCache.get(runId);
+        if (stillCached) {
+          const reportUrl = `/api/workflows/runs/${runId}/findings/report`;
+          return res.json({ ...stillCached, status: 'ready', reportUrl, runId });
+        }
       }
 
       // 4. Mark as generating so concurrent polls don't double-fire
@@ -13637,17 +13667,6 @@ Rules:
             }
           }
 
-          if (!apiKey) {
-            // No AI key — return a minimal summary so the card appears
-            _findingsCache.set(runId, {
-              summary: `${workflowName} completed successfully.`,
-              key_results: [],
-              next_steps: ['Review the output files for detailed results.'],
-              caveats: [],
-            });
-            return;
-          }
-
           // Guardrail: if no output files were found, skip LLM entirely.
           // Generating key_results without real file content = hallucination.
           if (outputSamples.length === 0) {
@@ -13675,15 +13694,28 @@ Rules:
             console.warn(`[Findings] no readable outputs after ${RETRY_WINDOW_MS/1000}s for ${runId} — caching generic summary`);
             _findingsFirstAttempt.delete(runId);
             _findingsCache.set(runId, {
-              summary: `${workflowName} completed. Output files are not yet readable — check the Outputs tab for results.`,
-              key_results: [],
-              next_steps: ['Open the Outputs tab to view and download result files.'],
-              caveats: ['Findings analysis requires readable output files. Re-check when outputs are available.'],
+              _notReadable: true,
+              _unreadableAt: Date.now(),
+              message: `${workflowName} completed, but its output files could not be read. Findings are withheld until output access is repaired.`,
+              caveats: ['Findings analysis requires at least one readable output file; no scientific summary has been generated.'],
             });
             return;
           }
           // Readable outputs found — clear the retry clock for this run.
           _findingsFirstAttempt.delete(runId);
+
+          if (!apiKey) {
+            // We have verified that real output content is available.  It is
+            // safe to say so, but do not fabricate a scientific summary when
+            // the analysis model is unavailable.
+            _findingsCache.set(runId, {
+              summary: `${workflowName} completed and output files are available for review.`,
+              key_results: [],
+              next_steps: ['Review the output files for detailed results.'],
+              caveats: ['Automated findings synthesis is unavailable because the analysis service is not configured.'],
+            });
+            return;
+          }
 
           // Pre-process known workflow output formats into clean structured context.
           // This gives the LLM focused, low-noise input and makes guardrail matching reliable.
@@ -13942,6 +13974,14 @@ Respond ONLY with valid JSON (no markdown wrapper):
       // AWS Batch runs don't write findings_report.md locally. Render markdown from
       // cached structured findings (populated by background Claude analysis).
       const cached = _findingsCache.get(runId);
+      if (cached?._notReadable) {
+        // Never export a fallback sentence as if it were a findings report.
+        // The caller can retry after output-storage access is repaired.
+        return res.status(409).json({
+          error: 'Findings unavailable because workflow output files could not be read',
+          message: cached.message,
+        });
+      }
       if (cached && !cached._generating) {
         const workflowName: string = (run as any).workflowName || (run as any).name || "Workflow";
         const lines: string[] = [

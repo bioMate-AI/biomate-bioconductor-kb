@@ -2303,7 +2303,11 @@ Respond with a single JSON object — no other text:
         'input', 'reads', 'reads1', 'reads2', 'fastq', 'fastq1', 'fastq2',
         'bam', 'genome', 'fasta', 'genome_fasta', 'reference', 'reference_genome',
         'gtf', 'gff', 'bed', 'vcf', 'csv', 'samplesheet', 'sample_sheet',
-        'design', 'multiqc_config', 'star_index', 'hisat2_index', 'bwa_index',
+        # Differential-expression inputs are deliberately explicit here.  They are
+        # files even though their names do not end in "_file" or "_path"; without
+        # this they render as free text and cannot participate in dataset binding.
+        'design', 'matrix', 'counts', 'count_matrix', 'metadata', 'sample_metadata',
+        'coldata', 'contrasts', 'contrast', 'multiqc_config', 'star_index', 'hisat2_index', 'bwa_index',
         'bowtie2_index', 'transcript_fasta', 'additional_fasta', 'transcript',
         'probeset', 'annotation', 'blacklist', 'bait_intervals', 'target_intervals',
     ])
@@ -2658,6 +2662,71 @@ Respond with a single JSON object — no other text:
                 "inputMappings": [],
             },
         }
+
+    def _bind_uploaded_datasets_to_params(
+        self,
+        req: list,
+        opt: list,
+        uploaded_datasets: Optional[List[Dict[str, Any]]],
+    ) -> tuple:
+        """Bind session uploads to unfilled file parameters without an LLM.
+
+        This is intentionally conservative: it only fills an input when the
+        filename gives a clear semantic match (for example count matrix →
+        ``matrix`` and sample metadata → ``samplesheet``).  The former LLM-only
+        path made an otherwise runnable bulk-DE request randomly lose its count
+        matrix and metadata when the model was unavailable.
+        """
+        if not uploaded_datasets:
+            return req, opt
+
+        def _dataset_value(dataset: Dict[str, Any]) -> str:
+            for key in ("s3_uri", "file_path", "path", "uri", "source_url"):
+                value = dataset.get(key)
+                if isinstance(value, str) and value.strip():
+                    return value.strip()
+            return ""
+
+        files = [
+            {"name": str(d.get("name") or _dataset_value(d).rsplit("/", 1)[-1]).lower(), "value": _dataset_value(d)}
+            for d in uploaded_datasets
+            if isinstance(d, dict) and _dataset_value(d)
+        ]
+        if not files:
+            return req, opt
+
+        # High-confidence filename cues, ordered from most specific to least.
+        cues = {
+            "matrix": ("matrix", "count", "featurecount", "htseq", "expression"),
+            "counts": ("matrix", "count", "featurecount", "htseq", "expression"),
+            "count_matrix": ("matrix", "count", "featurecount", "htseq", "expression"),
+            "samplesheet": ("samplesheet", "sample", "metadata", "coldata", "design"),
+            "sample_sheet": ("samplesheet", "sample", "metadata", "coldata", "design"),
+            "metadata": ("metadata", "sample", "coldata", "design"),
+            "sample_metadata": ("metadata", "sample", "coldata", "design"),
+            "coldata": ("coldata", "metadata", "sample", "design"),
+            "design": ("design", "metadata", "sample", "coldata"),
+            "contrasts": ("contrast", "comparison"),
+            "contrast": ("contrast", "comparison"),
+        }
+        suggestions = []
+        used_values: set = set()
+        for param in req + opt:
+            name = str(param.get("name") or "")
+            if not name or param.get("default") not in (None, "") or param.get("value") not in (None, ""):
+                continue
+            terms = cues.get(name.lower())
+            if not terms:
+                continue
+            match = next((f for f in files if f["value"] not in used_values and any(term in f["name"] for term in terms)), None)
+            if match:
+                suggestions.append({
+                    "name": name,
+                    "value": match["value"],
+                    "rationale": f"Matched uploaded file '{match['name']}' to {name}.",
+                })
+                used_values.add(match["value"])
+        return self._apply_llm_suggestions(req, opt, suggestions)
 
     # ------------------------------------------------------------------
     # Parameter pre-filling — layer 2 AI knowledge
@@ -3252,6 +3321,10 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         if not _skip_param_llm:
             llm_suggestions = self._infer_params_from_intent_llm(user_intent, match.name, req, opt)
             req, opt = self._apply_llm_suggestions(req, opt, llm_suggestions)
+        # Session uploads are authoritative user inputs.  Bind clearly named
+        # files deterministically after best-effort LLM inference so a transient
+        # model failure cannot leave a bulk-DE matrix/samplesheet unbound.
+        req, opt = self._bind_uploaded_datasets_to_params(req, opt, uploaded_datasets)
         citations = self._build_workflow_citations(match.tools, match.domain, match.tags)
         warnings = [] if not needs_user_feedback else [
             'Medium confidence match — please verify tool selection is appropriate'
@@ -3343,8 +3416,9 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 'required_params': req,
                 'optional_params': opt,
                 **({'parameters': _exec_params} if _exec_params else {}),
+                **({'prerequisitesValidation': self._build_prereq_validation(req)} if req else {}),
             },
-            'datasets_assigned': False,
+            'datasets_assigned': any(p.get('type') == 'file' and p.get('value') not in (None, '') for p in req + opt),
             'required_params': req,
             'optional_params': opt,
             'generated_parameters': req + opt,

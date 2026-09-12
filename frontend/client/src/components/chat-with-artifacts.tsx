@@ -11,7 +11,7 @@ import { useUnifiedExecution } from "@/hooks/useUnifiedExecution"
 import { useActiveProject } from "@/contexts/active-project-context"
 import { applyWorkflowEdits, type WorkflowEdit } from "@/lib/workflow-edits"
 import { extractWorkflowEdits } from "@/lib/workflow-edits-extract"
-import { normalizePrereqChecklist } from "@/lib/prereq-normalizer"
+import { hasInlineInputData, normalizePrereqChecklist } from "@/lib/prereq-normalizer"
 import { buildRunCompletionSummary } from "@/lib/chat-completion-summary"
 // WorkflowHistoryPanel removed
 import { chatHistoryService } from "@/lib/chat-history"
@@ -2440,7 +2440,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
 
                   const prereqChecklist = normalizePrereqChecklist(
                     panelWorkflow?.prerequisitesValidation,
-                    {}
+                    { hasInlineData: hasInlineInputData(panelWorkflow) }
                   )
                   return (
                     <NextflowWorkflowViewer

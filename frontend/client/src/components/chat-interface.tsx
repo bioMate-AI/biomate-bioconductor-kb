@@ -1165,6 +1165,16 @@ export function ChatInterface({
           };
         }
       }
+      // The workflow panel reads validation from the workflow definition while
+      // the chat card reads it from message metadata. Keep one backend verdict
+      // on both surfaces so a selected workflow cannot change readiness merely
+      // because it moved from chat into the right panel.
+      if (workflowData && data.prerequisitesValidation) {
+        workflowData = {
+          ...workflowData,
+          prerequisitesValidation: data.prerequisitesValidation,
+        };
+      }
 
       console.log('[ChatInterface] Steps array:', stepsArray)
 
