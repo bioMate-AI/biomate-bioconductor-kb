@@ -4,6 +4,13 @@
 **Scope:** Deployed BioMate frontend vs. claude-design **v2** (`data_centroid_design_v2`), focused on four surfaces: Search-answer, Files/dataset object, Reports, Connectors. Includes the new v2 chapters (Spec 09, Spec 12) and the new dataui components (`SearchAnswer.jsx`, `DocEditor.jsx`, `Connectors.jsx`, `Gaps.jsx`).
 **Method:** READ-ONLY. Diff old-design → v2 to isolate what is *new in v2*; then map each v2 element to the deployed counterpart in `/Users/kky/biomate-review/frontend/client/src/` with file:line evidence.
 
+> **2026-09-12 interpretation update:** this is retained as point-in-time
+> implementation evidence. Rich server-backed report editing and a full-page
+> connector surface are Phase 2, not release blockers. The Phase-1 blocker is
+> an immutable report bundle with authenticated, traceable outputs. Read its
+> priorities with
+> [`20260912_V2_GAP_REBASE_AFTER_SIMPLIFICATION.md`](20260912_V2_GAP_REBASE_AFTER_SIMPLIFICATION.md).
+
 **Reference sets**
 - NEW v2: `/Users/kky/biomate-review/reference/claude_design/data_centroid_design_v2/`
 - OLD (diff base): `…/scratchpad/old_design/reference/claude_design/data_centroid_design/`

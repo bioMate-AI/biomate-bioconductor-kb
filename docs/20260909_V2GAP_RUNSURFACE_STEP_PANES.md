@@ -4,6 +4,12 @@
 **Scope:** Deployed BioMate run-surface family vs `claude_design/data_centroid_design_v2`, including the four brand-new v2 chapters (07, 08, 13, 14) and the revised chapters (02, RunSurface.jsx +190, StepDeep.jsx).
 **Mode:** READ-ONLY audit. No source edited or committed.
 
+> **2026-09-12 interpretation update:** this is retained as point-in-time
+> implementation evidence. The accepted product no longer targets the
+> split-stage/eight-tab result design; it targets Summary, Outputs, and a
+> Reproducibility record. Read its priorities with
+> [`20260912_V2_GAP_REBASE_AFTER_SIMPLIFICATION.md`](20260912_V2_GAP_REBASE_AFTER_SIMPLIFICATION.md).
+
 ## Reference sets
 
 | Set | Path |

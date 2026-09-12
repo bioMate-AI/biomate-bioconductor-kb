@@ -16,6 +16,12 @@ net-new/changed requirement, then compare each to the deployed code and grade
 requirements that already existed in the old design and were not changed are not
 re-litigated here.
 
+> **2026-09-12 interpretation update:** this is retained as point-in-time
+> implementation evidence. The accepted product scope now keeps four modules
+> but demotes dense modality controls, per-request add-on scope machinery, and
+> pane choreography. Read its priorities with
+> [`20260912_V2_GAP_REBASE_AFTER_SIMPLIFICATION.md`](20260912_V2_GAP_REBASE_AFTER_SIMPLIFICATION.md).
+
 ---
 
 ## Coverage checklist (net-new v2 requirements)
