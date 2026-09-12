@@ -365,6 +365,10 @@ export interface ChatContext {
   turnIndex?: number;
   /** User's actual session-uploaded datasets, forwarded to generateWorkflow() */
   sessionDatasets?: Array<{ id: string; name: string; type: string }>;
+  /** Exact dataset objects attached for this operation from the composer. */
+  datasetReferences?: Array<{ id: string; name?: string }>;
+  /** Explicit references absent from the session cache; never substitute another file. */
+  datasetReferenceUnresolvedIds?: string[];
   /**
    * Cross-session long-term memory block (built by MemoryIntegration from user prefs,
    * corrections, project context, and past episodes). Injected into the system prompt
@@ -8093,13 +8097,19 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
         id?: string; name?: string; type?: string; file_path?: string | null;
         s3_uri?: string | null; recovered?: boolean; sourceSessionId?: string;
       }> | undefined;
-      if (!sd?.length) return '';
+      const unresolved = Array.isArray((context as any)?.datasetReferenceUnresolvedIds)
+        ? (context as any).datasetReferenceUnresolvedIds.filter((id: unknown) => typeof id === 'string')
+        : [];
+      if (!sd?.length && !unresolved.length) return '';
+      const availableDatasets = sd ?? [];
 
       // Context-aware injection gate. The block is only useful when the
       // chat round actually needs to reason about the user's data — see
       // docs/20260613_DATASET_INJECTION_GATE_DESIGN.md. Default-on
       // (false-skip cost > false-inject cost), but suppress on pure
       // abstract-knowledge turns where no signal points at data.
+      const explicitSelection = Array.isArray((context as any)?.datasetReferences)
+        && (context as any).datasetReferences.length > 0;
       const _gate = shouldInjectDatasets({
         message,
         intentType: (intent as any)?.type,
@@ -8108,17 +8118,19 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
         runState: (context as any)?.runState,
       });
       if (!_gate.inject) {
-        // Audit log — counted in production traces for tuning.
-        console.log(`[sessionDatasetsBlock] gate=skip reason=${_gate.reason}`);
-        return '';
+        if (!explicitSelection) {
+          console.log(`[sessionDatasetsBlock] gate=skip reason=${_gate.reason}`);
+          return '';
+        }
+        console.log('[sessionDatasetsBlock] explicit dataset selection overrides injection gate');
       }
       // Log injects too so the per-reason mix is visible.
-      console.log(`[sessionDatasetsBlock] gate=inject reason=${_gate.reason}`);
+      console.log(`[sessionDatasetsBlock] gate=inject reason=${explicitSelection ? 'explicit_request_selection' : _gate.reason}`);
 
       // Split into direct (attached this conversation) vs recovered
       // (from a sister session in the same project — cold-refresh).
       // See docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
-      const valid = sd.filter(d => d && d.id);
+      const valid = availableDatasets.filter(d => d && d.id);
       const direct = valid.filter(d => !d.recovered).slice(0, 32);
       const recovered = valid.filter(d => d.recovered).slice(0, 20);
 
@@ -8130,6 +8142,12 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
       if (!directRows && !recoveredRows) return '';
 
       let body = '\n<session_datasets>\n';
+      if (explicitSelection) {
+        body += 'These are the exact dataset objects the user selected for this operation. Use only these IDs; do not substitute another session dataset or a later version.\n\n';
+      }
+      if (unresolved.length) {
+        body += `The following selected IDs are not in the current session cache and must be resolved by their exact IDs before use: ${unresolved.join(', ')}. If resolution fails, report that failure; do not substitute another dataset.\n\n`;
+      }
       if (directRows) {
         body += `Datasets attached to this conversation (Galaxy history is the source of truth — these IDs are stable across turns and runs):\n${directRows}\n\n`;
       }

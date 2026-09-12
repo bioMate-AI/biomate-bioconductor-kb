@@ -16,6 +16,11 @@ interface AttachedFile {
   file: File
 }
 
+export interface ComposerDatasetReference {
+  id: string;
+  name: string;
+}
+
 /**
  * A real project as returned by GET /api/projects (or projectService).
  * Only the fields the composer actually reads are typed here; the shape is
@@ -244,13 +249,21 @@ export function ChatInput({
       // `composerInstructions` so the backend can apply them as a reading
       // lens; empty instructions add nothing (honest-empty).
       const trimmedInstructions = instructions.trim()
+      const datasetReferences: ComposerDatasetReference[] = selectedDatasets.map((dataset) => ({
+        id: dataset.value,
+        name: dataset.name,
+      }))
       const contextOverride: Record<string, unknown> | undefined =
-        laneOverride || trimmedInstructions
+        laneOverride || trimmedInstructions || datasetReferences.length > 0
           ? {
               ...(laneOverride
                 ? { intentOverride: laneOverride === "cloud" ? "workflow_generation" : "research_question" }
                 : {}),
               ...(trimmedInstructions ? { composerInstructions: trimmedInstructions } : {}),
+              // Exact project objects selected for THIS operation. The server
+              // filters the broader session pool to this set and reports any
+              // missing reference instead of silently choosing another file.
+              ...(datasetReferences.length ? { datasetReferences } : {}),
             }
           : undefined
       onSend(fullMessage, files.length > 0 ? files : undefined, contextOverride)
@@ -439,7 +452,7 @@ export function ChatInput({
               className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-md text-sm"
             >
               <Database className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-              <span className="max-w-[150px] truncate">{ds.name}</span>
+              <span className="max-w-[150px] truncate" title={`Referenced project file · id ${ds.value}`}>{ds.name}</span>
               <button
                 onClick={() => setSelectedDatasets(prev => prev.filter(d => d.id !== ds.id))}
                 className="p-0.5 rounded hover:bg-background transition-colors"
@@ -801,7 +814,9 @@ export function ChatInput({
           // so the user sees a clean chip rather than raw ID text in the textarea.
           setSelectedDatasets(prev => {
             if (prev.some(d => d.value === datasetValue)) return prev
-            return [...prev, { id: `ds-${Date.now()}`, name: datasetName, value: datasetValue }]
+            // The stable dataset id is also the chip identity. A timestamp is
+            // not unique when a comparison preselects two files in one event.
+            return [...prev, { id: `ds-${datasetValue}`, name: datasetName, value: datasetValue }]
           })
           setTimeout(() => textareaRef.current?.focus(), 0)
         }}

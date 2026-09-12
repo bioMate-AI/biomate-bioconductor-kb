@@ -17,6 +17,7 @@ import type { InsertInviteCode, ExecutionRunStatus, InstrumentType } from "../sh
 import { db, pool } from "./db";
 import { selectChatHistoryUnderBudget } from "./chat-history-selector";
 import { capDatasetReferences, MAX_DATASET_REFS } from "./dataset-cap";
+import { selectReferencedDatasets, type DatasetReference } from "./dataset-reference-selection";
 import { appendComposerInstructions } from "./chat-context";
 import { validateWorkflowInputs } from "./workflow-input-gate";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -6149,8 +6150,34 @@ ${paramLines || '(none recorded)'}`;
               sourceSessionId: r.sourceSessionId,
             }));
           const combined = [...direct, ...recovered];
-          return combined.length > 0 ? combined : undefined;
+          const requestedReferences = Array.isArray(context?.datasetReferences)
+            ? context.datasetReferences
+                .filter((reference: any): reference is DatasetReference =>
+                  !!reference && typeof reference.id === 'string' && reference.id.trim().length > 0,
+                )
+                .slice(0, MAX_DATASET_REFS)
+            : undefined;
+          const selection = selectReferencedDatasets(combined, requestedReferences);
+          if (requestedReferences?.length) {
+            console.log(`[chat-stream] request dataset selection: ${selection.datasets.length}/${requestedReferences.length} resolved`);
+          }
+          const byId = new Map(selection.datasets.map((dataset: any) => [dataset.id, dataset]));
+          const exactSelection = requestedReferences?.map((reference: { id: string; name?: string }) =>
+            byId.get(reference.id) ?? {
+              id: reference.id,
+              name: reference.name || reference.id,
+              type: 'selected reference',
+              referenceUnresolved: true,
+            },
+          );
+          (context as any).datasetReferenceUnresolvedIds = selection.missingIds;
+          return exactSelection?.length
+            ? exactSelection
+            : (combined.length > 0 ? combined : undefined);
         })(),
+        datasetReferenceUnresolvedIds: (context as any)?.datasetReferenceUnresolvedIds?.length
+          ? (context as any).datasetReferenceUnresolvedIds
+          : undefined,
         // Per-tool credential map built from user's vault — forwarded to AI backend for routing
         credentialMap: credentialMap || undefined,
         // Per-request Galaxy proxy scoped to the authenticated user's own
