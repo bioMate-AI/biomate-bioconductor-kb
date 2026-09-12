@@ -1,0 +1,5169 @@
+{
+  "overall": {
+    "profiles": 384,
+    "both_references_measurable": 380,
+    "lower_than_both_references": 364,
+    "undefined_reference_ratios": 4,
+    "median_ratio": {
+      "feature": 0.14902064490751557,
+      "reference": 0.1469607743635611
+    }
+  },
+  "by_target": {
+    "ARPC2": {
+      "profiles": 24,
+      "both_references_measurable": 24,
+      "lower_than_both_references": 24,
+      "undefined_reference_ratios": 0,
+      "median_ratio": {
+        "feature": 0.12032148179109028,
+        "reference": 0.1222069812979608
+      }
+    },
+    "CD7": {
+      "profiles": 24,
+      "both_references_measurable": 24,
+      "lower_than_both_references": 24,
+      "undefined_reference_ratios": 0,
+      "median_ratio": {
+        "feature": 0.0519683766197513,
+        "reference": 0.05130209458737514
+      }
+    },
+    "CORO1A": {
+      "profiles": 24,
+      "both_references_measurable": 24,
+      "lower_than_both_references": 24,
+      "undefined_reference_ratios": 0,
+      "median_ratio": {
+        "feature": 0.25935756933723036,
+        "reference": 0.26523585684207107
+      }
+    },
+    "CST7": {
+      "profiles": 24,
+      "both_references_measurable": 24,
+      "lower_than_both_references": 24,
+      "undefined_reference_ratios": 0,
+      "median_ratio": {
+        "feature": 0.07858858328980983,
+        "reference": 0.0754197969974594
+      }
+    },
+    "DUSP1": {
+      "profiles": 24,
+      "both_references_measurable": 24,
+      "lower_than_both_references": 23,
+      "undefined_reference_ratios": 0,
+      "median_ratio": {
+        "feature": 0.04626624679547724,
+        "reference": 0.048959092865158885
+      }
+    },
+    "FOS": {
+      "profiles": 24,
+      "both_references_measurable": 20,
+      "lower_than_both_references": 20,
+      "undefined_reference_ratios": 4,
+      "median_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      }
+    },
+    "FTH1": {
+      "profiles": 24,
+      "both_references_measurable": 24,
+      "lower_than_both_references": 24,
+      "undefined_reference_ratios": 0,
+      "median_ratio": {
+        "feature": 0.07432942416507865,
+        "reference": 0.07738849521621978
+      }
+    },
+    "GBP4": {
+      "profiles": 24,
+      "both_references_measurable": 24,
+      "lower_than_both_references": 24,
+      "undefined_reference_ratios": 0,
+      "median_ratio": {
+        "feature": 0.09279188519268161,
+        "reference": 0.10159383988751254
+      }
+    },
+    "GBP5": {
+      "profiles": 24,
+      "both_references_measurable": 24,
+      "lower_than_both_references": 24,
+      "undefined_reference_ratios": 0,
+      "median_ratio": {
+        "feature": 0.06963342833749164,
+        "reference": 0.06513178689289026
+      }
+    },
+    "HINT1": {
+      "profiles": 24,
+      "both_references_measurable": 24,
+      "lower_than_both_references": 24,
+      "undefined_reference_ratios": 0,
+      "median_ratio": {
+        "feature": 0.09126764020555873,
+        "reference": 0.090251028332832
+      }
+    },
+    "IKZF1": {
+      "profiles": 24,
+      "both_references_measurable": 24,
+      "lower_than_both_references": 16,
+      "undefined_reference_ratios": 0,
+      "median_ratio": {
+        "feature": 0.8574613521642562,
+        "reference": 0.8955835201497027
+      }
+    },
+    "IL32": {
+      "profiles": 24,
+      "both_references_measurable": 24,
+      "lower_than_both_references": 24,
+      "undefined_reference_ratios": 0,
+      "median_ratio": {
+        "feature": 0.13438044521064146,
+        "reference": 0.13811473571656924
+      }
+    },
+    "KLF6": {
+      "profiles": 24,
+      "both_references_measurable": 24,
+      "lower_than_both_references": 18,
+      "undefined_reference_ratios": 0,
+      "median_ratio": {
+        "feature": 0.5442657246432582,
+        "reference": 0.5354078005033167
+      }
+    },
+    "MSN": {
+      "profiles": 24,
+      "both_references_measurable": 24,
+      "lower_than_both_references": 24,
+      "undefined_reference_ratios": 0,
+      "median_ratio": {
+        "feature": 0.48560246237865123,
+        "reference": 0.48599081779109554
+      }
+    },
+    "SMCHD1": {
+      "profiles": 24,
+      "both_references_measurable": 24,
+      "lower_than_both_references": 24,
+      "undefined_reference_ratios": 0,
+      "median_ratio": {
+        "feature": 0.5552570220056345,
+        "reference": 0.555941353042001
+      }
+    },
+    "VIM": {
+      "profiles": 24,
+      "both_references_measurable": 24,
+      "lower_than_both_references": 23,
+      "undefined_reference_ratios": 0,
+      "median_ratio": {
+        "feature": 0.36756538812749445,
+        "reference": 0.36122242764435397
+      }
+    }
+  },
+  "rows": [
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 232.42901230582493,
+      "target_to_control_ratio": {
+        "feature": 0.6710457985731046,
+        "reference": 0.6918925183217195
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-2",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 86.90949824249681,
+      "target_to_control_ratio": {
+        "feature": 0.25091641130835945,
+        "reference": 0.25871138464400384
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 8.235739816507717,
+      "target_to_control_ratio": {
+        "feature": 0.030071749043678615,
+        "reference": 0.027326942416456303
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-2",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 13.969894876541055,
+      "target_to_control_ratio": {
+        "feature": 0.051009281771124855,
+        "reference": 0.04635339645990231
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 736.1413391371143,
+      "target_to_control_ratio": {
+        "feature": 0.4203536948630834,
+        "reference": 0.43192092234659296
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-2",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 561.3583316616985,
+      "target_to_control_ratio": {
+        "feature": 0.3205485635853136,
+        "reference": 0.3293693690161098
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 154.43106858945603,
+      "target_to_control_ratio": {
+        "feature": 0.3527776711856752,
+        "reference": 0.3370110310046727
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-2",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 33.4466255797825,
+      "target_to_control_ratio": {
+        "feature": 0.07640446180180424,
+        "reference": 0.07298972851269489
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 1.9274228910379654,
+      "target_to_control_ratio": {
+        "feature": 0.12761103737361212,
+        "reference": 0.12969260856988404
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-2",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 3.700914310880503,
+      "target_to_control_ratio": {
+        "feature": 0.2450305621243165,
+        "reference": 0.2490274621638562
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 4.047509668488721,
+      "target_to_control_ratio": {
+        "feature": 0.10295691081656747,
+        "reference": 0.113345329834539
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-2",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 13.47731599252009,
+      "target_to_control_ratio": {
+        "feature": 0.3428238433848366,
+        "reference": 0.3774149913338876
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 30.9513911436539,
+      "target_to_control_ratio": {
+        "feature": 0.09728240361392018,
+        "reference": 0.09849478515955276
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-2",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 49.72094121741724,
+      "target_to_control_ratio": {
+        "feature": 0.15627642224955468,
+        "reference": 0.15822401650416182
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 6.586996938693173,
+      "target_to_control_ratio": {
+        "feature": 0.1415173603239567,
+        "reference": 0.16439460919393567
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-2",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 4.352481349617417,
+      "target_to_control_ratio": {
+        "feature": 0.09351024103850746,
+        "reference": 0.10862681084473154
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 27.03971642711936,
+      "target_to_control_ratio": {
+        "feature": 0.08275237984072377,
+        "reference": 0.08794271754994247
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-2",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 120.510603426719,
+      "target_to_control_ratio": {
+        "feature": 0.3688107919504942,
+        "reference": 0.3919430881419982
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 157.70319450060654,
+      "target_to_control_ratio": {
+        "feature": 0.22821309671605164,
+        "reference": 0.2232764172768502
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-2",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 55.79149157436894,
+      "target_to_control_ratio": {
+        "feature": 0.08073615187639886,
+        "reference": 0.0789896767323173
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 429.8668223920061,
+      "target_to_control_ratio": {
+        "feature": 0.7478563019503959,
+        "reference": 0.7557008734679143
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-2",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 594.1685234433024,
+      "target_to_control_ratio": {
+        "feature": 1.0336984655038557,
+        "reference": 1.0445413527257006
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": false
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 673.4804073464787,
+      "target_to_control_ratio": {
+        "feature": 0.18924958872951905,
+        "reference": 0.21225684548927592
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-2",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 1545.0590533975792,
+      "target_to_control_ratio": {
+        "feature": 0.43416525147387525,
+        "reference": 0.48694714380918885
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 153.5543770624336,
+      "target_to_control_ratio": {
+        "feature": 0.9694127868666583,
+        "reference": 0.9730661670025637
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-2",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 71.70617677006697,
+      "target_to_control_ratio": {
+        "feature": 0.4526923034565186,
+        "reference": 0.4543983435372059
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 437.5702969463307,
+      "target_to_control_ratio": {
+        "feature": 0.5415797887604645,
+        "reference": 0.5526227289235582
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-2",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 166.25850951492956,
+      "target_to_control_ratio": {
+        "feature": 0.20577778951428502,
+        "reference": 0.2099736473798469
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 236.45108418195986,
+      "target_to_control_ratio": {
+        "feature": 0.9726143060787131,
+        "reference": 0.9662289407870164
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-2",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 111.1028064568911,
+      "target_to_control_ratio": {
+        "feature": 0.4570086002325517,
+        "reference": 0.4540082671758675
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 986.890800532921,
+      "target_to_control_ratio": {
+        "feature": 0.6519509805143627,
+        "reference": 0.7022494553967402
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-2",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target_cpm": 553.8671694517863,
+      "target_to_control_ratio": {
+        "feature": 0.3658907794092476,
+        "reference": 0.39411950937187407
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 41.563839459670085,
+      "target_to_control_ratio": {
+        "feature": 0.18143085612874238,
+        "reference": 0.1835839941429387
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-2",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 9.810028792434505,
+      "target_to_control_ratio": {
+        "feature": 0.04282188425316213,
+        "reference": 0.043330074694371154
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 10.891687612537124,
+      "target_to_control_ratio": {
+        "feature": 0.03244778221345179,
+        "reference": 0.029361143626558416
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-2",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 4.749485020124246,
+      "target_to_control_ratio": {
+        "feature": 0.014149345908677287,
+        "reference": 0.01280337049582089
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 71.36318447137106,
+      "target_to_control_ratio": {
+        "feature": 0.1350871617099793,
+        "reference": 0.13307180768577703
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-2",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 101.74690180683997,
+      "target_to_control_ratio": {
+        "feature": 0.19260211381659925,
+        "reference": 0.1897286990506314
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 5.388931631867986,
+      "target_to_control_ratio": {
+        "feature": 0.029388791480029004,
+        "reference": 0.028671844471785495
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-2",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 14.14587223448198,
+      "target_to_control_ratio": {
+        "feature": 0.07714517789460557,
+        "reference": 0.07526320174973633
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-2",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 8.184588186599258,
+      "target_to_control_ratio": {
+        "feature": 0.5323826533305659,
+        "reference": 0.6426524568711303
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 2.0243365742961887,
+      "target_to_control_ratio": {
+        "feature": 0.23531160125547854,
+        "reference": 0.18349439610050858
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-2",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 2.327795507820229,
+      "target_to_control_ratio": {
+        "feature": 0.2705860751100293,
+        "reference": 0.21100119237901663
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 9.866441273297134,
+      "target_to_control_ratio": {
+        "feature": 0.05519783648112968,
+        "reference": 0.05726443959719129
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-2",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 7.7083915477486675,
+      "target_to_control_ratio": {
+        "feature": 0.04312462055966461,
+        "reference": 0.044739203320676366
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 12.10403364289838,
+      "target_to_control_ratio": {
+        "feature": 0.06897631643900728,
+        "reference": 0.06544466775817168
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-2",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 24.666589926164676,
+      "target_to_control_ratio": {
+        "feature": 0.14056558023668475,
+        "reference": 0.13336849764888453
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 104.8284223953926,
+      "target_to_control_ratio": {
+        "feature": 0.13781786874009994,
+        "reference": 0.1462356255166836
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-2",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 59.70392677094953,
+      "target_to_control_ratio": {
+        "feature": 0.07849271938818102,
+        "reference": 0.08328696433321324
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 39.41269027992105,
+      "target_to_control_ratio": {
+        "feature": 0.08159457051434649,
+        "reference": 0.08053445931704431
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-2",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 42.136774136814445,
+      "target_to_control_ratio": {
+        "feature": 0.08723413611541679,
+        "reference": 0.08610075329472194
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 747.9572300180168,
+      "target_to_control_ratio": {
+        "feature": 0.7862265496831728,
+        "reference": 0.7682492311459836
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-2",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 818.8593545085245,
+      "target_to_control_ratio": {
+        "feature": 0.8607563897143145,
+        "reference": 0.8410749228304363
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 176.0860198939737,
+      "target_to_control_ratio": {
+        "feature": 0.0757701915797854,
+        "reference": 0.07703052902637363
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-2",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 875.2105146503042,
+      "target_to_control_ratio": {
+        "feature": 0.3766049593694386,
+        "reference": 0.38286928737188713
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 108.3820320166381,
+      "target_to_control_ratio": {
+        "feature": 0.7053577370497438,
+        "reference": 0.7497709017142111
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-2",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 33.23222680088458,
+      "target_to_control_ratio": {
+        "feature": 0.21627762330380876,
+        "reference": 0.22989564036449675
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 442.6947703808094,
+      "target_to_control_ratio": {
+        "feature": 0.6762739014992402,
+        "reference": 0.6825978494532186
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-2",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 122.63803854607887,
+      "target_to_control_ratio": {
+        "feature": 0.187345571596493,
+        "reference": 0.18909747070358265
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 224.70567822715753,
+      "target_to_control_ratio": {
+        "feature": 0.9450484724733067,
+        "reference": 0.9252119706369152
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-2",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 118.12634332701406,
+      "target_to_control_ratio": {
+        "feature": 0.4968059605827976,
+        "reference": 0.48637803795609946
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 652.7997968185434,
+      "target_to_control_ratio": {
+        "feature": 0.3819402097798755,
+        "reference": 0.3803508489298437
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-2",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target_cpm": 620.2951594523439,
+      "target_to_control_ratio": {
+        "feature": 0.36292239133849513,
+        "reference": 0.36141216899053724
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 84.82627578718784,
+      "target_to_control_ratio": {
+        "feature": 0.20756731318000182,
+        "reference": 0.20996569854238292
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-2",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 18.642334047841064,
+      "target_to_control_ratio": {
+        "feature": 0.05292747146837775,
+        "reference": 0.050926368649393976
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-2",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 32.55143762915673,
+      "target_to_control_ratio": {
+        "feature": 0.09241682301961501,
+        "reference": 0.08892269114564917
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 199.87119411934532,
+      "target_to_control_ratio": {
+        "feature": 0.11447221102062324,
+        "reference": 0.11403257407413847
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-2",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 767.9408764333218,
+      "target_to_control_ratio": {
+        "feature": 0.4398227090490428,
+        "reference": 0.4381335452679209
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 27.61396596052715,
+      "target_to_control_ratio": {
+        "feature": 0.05577197000935341,
+        "reference": 0.05580836722716176
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-2",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 52.80533032091496,
+      "target_to_control_ratio": {
+        "feature": 0.10665100779807901,
+        "reference": 0.10672060906838837
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 0.6634286923621444,
+      "target_to_control_ratio": {
+        "feature": 0.05607458945373944,
+        "reference": 0.05413846324252862
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-2",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 8.02180004379903,
+      "target_to_control_ratio": {
+        "feature": 0.6780218421582493,
+        "reference": 0.6546113121273693
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 0.6472387178201,
+      "target_to_control_ratio": {
+        "feature": 0.17218992424389123,
+        "reference": 0.13791182810777963
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-2",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 2.2549439646424787,
+      "target_to_control_ratio": {
+        "feature": 0.5999001910048437,
+        "reference": 0.48047719625278423
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 18.713505010248568,
+      "target_to_control_ratio": {
+        "feature": 0.06881677108199113,
+        "reference": 0.06995476606360355
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-2",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 43.50396775960498,
+      "target_to_control_ratio": {
+        "feature": 0.15998085814664245,
+        "reference": 0.16262639659406564
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 1.6680383502033174,
+      "target_to_control_ratio": {
+        "feature": 0.048424740777605,
+        "reference": 0.04561552661665812
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-2",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 3.9380699125551577,
+      "target_to_control_ratio": {
+        "feature": 0.11432591742049855,
+        "reference": 0.1076936467872722
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 24.264987529529623,
+      "target_to_control_ratio": {
+        "feature": 0.0655207230707888,
+        "reference": 0.06315961351943171
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-2",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 30.30234161344818,
+      "target_to_control_ratio": {
+        "feature": 0.08182288702332852,
+        "reference": 0.0788743115037686
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 101.93038154940176,
+      "target_to_control_ratio": {
+        "feature": 0.13735423189893878,
+        "reference": 0.13627634547826056
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-2",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 83.92956329279252,
+      "target_to_control_ratio": {
+        "feature": 0.11309759194914486,
+        "reference": 0.11221005934903477
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 811.2493239588968,
+      "target_to_control_ratio": {
+        "feature": 1.5385297448288902,
+        "reference": 1.5327377067087256
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": false
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-2",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 521.3934905556214,
+      "target_to_control_ratio": {
+        "feature": 0.9888197996459942,
+        "reference": 0.9850972314000614
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 579.9550700092913,
+      "target_to_control_ratio": {
+        "feature": 0.10230871938671335,
+        "reference": 0.10672202835374527
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-2",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 2358.4487722051017,
+      "target_to_control_ratio": {
+        "feature": 0.41604925295265505,
+        "reference": 0.43399644171417656
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 165.69196717006457,
+      "target_to_control_ratio": {
+        "feature": 1.169086644439084,
+        "reference": 1.1222839981711152
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": false
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-2",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 58.870310845944964,
+      "target_to_control_ratio": {
+        "feature": 0.41537616662690013,
+        "reference": 0.3987471991442452
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 598.493475473277,
+      "target_to_control_ratio": {
+        "feature": 0.7183826083587228,
+        "reference": 0.70683784169221
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-2",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 218.6507493177139,
+      "target_to_control_ratio": {
+        "feature": 0.26245047281465644,
+        "reference": 0.25823276287164487
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 224.0104011103888,
+      "target_to_control_ratio": {
+        "feature": 0.9045305897886353,
+        "reference": 0.8764776866256303
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-2",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 114.22210824896389,
+      "target_to_control_ratio": {
+        "feature": 0.46121693648690654,
+        "reference": 0.44691286075694325
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 419.70415782978137,
+      "target_to_control_ratio": {
+        "feature": 0.25368117337395646,
+        "reference": 0.23968569533930395
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-2",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target_cpm": 446.73088718626906,
+      "target_to_control_ratio": {
+        "feature": 0.27001690007027096,
+        "reference": 0.2551201872253342
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 97.17228646390049,
+      "target_to_control_ratio": {
+        "feature": 0.4278203279654369,
+        "reference": 0.4424229074486149
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-2",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 10.05439427301702,
+      "target_to_control_ratio": {
+        "feature": 0.044266471562073924,
+        "reference": 0.04577739712397768
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 12.358495229620843,
+      "target_to_control_ratio": {
+        "feature": 0.029411765165060166,
+        "reference": 0.02744511315169753
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-2",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 73.93526839777174,
+      "target_to_control_ratio": {
+        "feature": 0.17595724326687884,
+        "reference": 0.16419165678152114
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 89.10823222976215,
+      "target_to_control_ratio": {
+        "feature": 0.1391399307172061,
+        "reference": 0.1554085161486734
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-2",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 196.93020561830292,
+      "target_to_control_ratio": {
+        "feature": 0.3075008277035927,
+        "reference": 0.34345458634035897
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-2",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 24.00885312500349,
+      "target_to_control_ratio": {
+        "feature": 0.08708247234136626,
+        "reference": 0.08854300555883034
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-2",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-2",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 7.0231932177023095,
+      "target_to_control_ratio": {
+        "feature": 0.05685903888443629,
+        "reference": 0.061646031097870584
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-2",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 5.817809478375202,
+      "target_to_control_ratio": {
+        "feature": 0.04710037800460796,
+        "reference": 0.05106578345608115
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 14.21942822930699,
+      "target_to_control_ratio": {
+        "feature": 0.06936352333162106,
+        "reference": 0.06631431748633551
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-2",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 24.80966500090001,
+      "target_to_control_ratio": {
+        "feature": 0.1210235566007355,
+        "reference": 0.1157033865966841
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 18.499582918494202,
+      "target_to_control_ratio": {
+        "feature": 0.022771407973823397,
+        "reference": 0.021226545972105552
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-2",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 84.54725390519316,
+      "target_to_control_ratio": {
+        "feature": 0.10407045500560377,
+        "reference": 0.09701008826743543
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 78.32097239838397,
+      "target_to_control_ratio": {
+        "feature": 0.15310786228474038,
+        "reference": 0.1476596599736127
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-2",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 22.177718932896877,
+      "target_to_control_ratio": {
+        "feature": 0.04335471116083483,
+        "reference": 0.04181197368138747
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 1055.6651804207515,
+      "target_to_control_ratio": {
+        "feature": 1.1280677043708691,
+        "reference": 1.1095365033639644
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": false
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-2",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 721.252854168367,
+      "target_to_control_ratio": {
+        "feature": 0.7707197950285387,
+        "reference": 0.7580588852388735
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 117.17549572972698,
+      "target_to_control_ratio": {
+        "feature": 0.07655314964631676,
+        "reference": 0.08630368844213253
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-2",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 956.5534866739686,
+      "target_to_control_ratio": {
+        "feature": 0.6249359710750593,
+        "reference": 0.7045337728509571
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 104.12167581909051,
+      "target_to_control_ratio": {
+        "feature": 0.6358391458299978,
+        "reference": 0.6373194514526594
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-2",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 13.867952133376416,
+      "target_to_control_ratio": {
+        "feature": 0.08468733113956117,
+        "reference": 0.08488449284826731
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 318.9723048099345,
+      "target_to_control_ratio": {
+        "feature": 0.42962513599683794,
+        "reference": 0.4350729327509552
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-2",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 188.08924834834127,
+      "target_to_control_ratio": {
+        "feature": 0.25333819796471047,
+        "reference": 0.2565506147833023
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 205.12852389825002,
+      "target_to_control_ratio": {
+        "feature": 0.8366414431411978,
+        "reference": 0.8485010421761392
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-2",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 106.30932196459628,
+      "target_to_control_ratio": {
+        "feature": 0.43359540086165876,
+        "reference": 0.4397417227296111
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 1313.0953440754918,
+      "target_to_control_ratio": {
+        "feature": 1.017882518135393,
+        "reference": 0.9984398852644611
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": false
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-2",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target_cpm": 426.12016588678006,
+      "target_to_control_ratio": {
+        "feature": 0.33031894404171364,
+        "reference": 0.32400950278018026
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 130.50741282104823,
+      "target_to_control_ratio": {
+        "feature": 0.3075838924739782,
+        "reference": 0.3079169674179852
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-2",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-2",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 22.909699217677826,
+      "target_to_control_ratio": {
+        "feature": 0.06457109692102968,
+        "reference": 0.0516778205253563
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 513.2372915321414,
+      "target_to_control_ratio": {
+        "feature": 0.266351983856867,
+        "reference": 0.2603547758041873
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-2",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 783.4364229136289,
+      "target_to_control_ratio": {
+        "feature": 0.4065757670216069,
+        "reference": 0.3974212661663901
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 36.678352013429915,
+      "target_to_control_ratio": {
+        "feature": 0.10078377100680105,
+        "reference": 0.10297284848423888
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-2",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 30.03237801029282,
+      "target_to_control_ratio": {
+        "feature": 0.08252214568066672,
+        "reference": 0.08431457087665586
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-2",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-2",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 22.30175275050304,
+      "target_to_control_ratio": {
+        "feature": 0.041667438331541094,
+        "reference": 0.05065150222736575
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-2",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 56.63342599191086,
+      "target_to_control_ratio": {
+        "feature": 0.10581095626973154,
+        "reference": 0.12862523115847577
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 2.7970079134982075,
+      "target_to_control_ratio": {
+        "feature": 0.0648064712493752,
+        "reference": 0.059087688821119505
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-2",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 3.574165041538499,
+      "target_to_control_ratio": {
+        "feature": 0.08281314575019887,
+        "reference": 0.07550538228746626
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 9.557853688375738,
+      "target_to_control_ratio": {
+        "feature": 0.026497985792640805,
+        "reference": 0.028694305853640335
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-2",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 28.167979906419006,
+      "target_to_control_ratio": {
+        "feature": 0.07809229516407515,
+        "reference": 0.0845650767490811
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 75.9683591784022,
+      "target_to_control_ratio": {
+        "feature": 0.09530114429570068,
+        "reference": 0.09866111139257024
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-2",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 14.284693950432112,
+      "target_to_control_ratio": {
+        "feature": 0.017919930009191044,
+        "reference": 0.01855172069391007
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 558.1973332798854,
+      "target_to_control_ratio": {
+        "feature": 1.146315039492557,
+        "reference": 1.114004098381204
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": false
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-2",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 643.8389339444882,
+      "target_to_control_ratio": {
+        "feature": 1.3221887834088961,
+        "reference": 1.2849205260389782
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": false
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 655.8220843151777,
+      "target_to_control_ratio": {
+        "feature": 0.11908220487284081,
+        "reference": 0.12556360412065412
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-2",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 763.9297821208601,
+      "target_to_control_ratio": {
+        "feature": 0.13871207603198363,
+        "reference": 0.14626188875350948
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 188.91680055817974,
+      "target_to_control_ratio": {
+        "feature": 1.0236334276047867,
+        "reference": 1.1191018960063561
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": false
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-2",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 70.96860946347732,
+      "target_to_control_ratio": {
+        "feature": 0.3845388061983001,
+        "reference": 0.4204025537847979
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 685.420134566157,
+      "target_to_control_ratio": {
+        "feature": 0.8130452911773882,
+        "reference": 0.8139487613704733
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-2",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 296.9816998445319,
+      "target_to_control_ratio": {
+        "feature": 0.35227966096631697,
+        "reference": 0.35267112030661063
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 230.10792879502876,
+      "target_to_control_ratio": {
+        "feature": 0.9109298201821253,
+        "reference": 0.9079273336482402
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-2",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 89.0420882331635,
+      "target_to_control_ratio": {
+        "feature": 0.3524915192953963,
+        "reference": 0.35132968331577985
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 1079.3063099250774,
+      "target_to_control_ratio": {
+        "feature": 0.5229143118364346,
+        "reference": 0.6430385820165602
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-2",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target_cpm": 422.29814248859697,
+      "target_to_control_ratio": {
+        "feature": 0.20459969569209546,
+        "reference": 0.25160049212808294
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 6.613472304431357,
+      "target_to_control_ratio": {
+        "feature": 0.026357771242676544,
+        "reference": 0.027014235560371143
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-2",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 26.852606045416707,
+      "target_to_control_ratio": {
+        "feature": 0.10702015746562699,
+        "reference": 0.10968559203531812
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 39.89637581322113,
+      "target_to_control_ratio": {
+        "feature": 0.056780356887195176,
+        "reference": 0.059435411144744224
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-2",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 35.03087095502912,
+      "target_to_control_ratio": {
+        "feature": 0.04985579051610707,
+        "reference": 0.052187051468486095
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 51.008739871121655,
+      "target_to_control_ratio": {
+        "feature": 0.0674838674158155,
+        "reference": 0.06477589161943485
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-2",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 275.95583360536295,
+      "target_to_control_ratio": {
+        "feature": 0.3650858055834512,
+        "reference": 0.3504357334553915
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 30.118848978067454,
+      "target_to_control_ratio": {
+        "feature": 0.10421685242818533,
+        "reference": 0.09665432362595185
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-2",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 20.485626406557742,
+      "target_to_control_ratio": {
+        "feature": 0.07088410004199808,
+        "reference": 0.06574037294126447
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 0.4164815926589288,
+      "target_to_control_ratio": {
+        "feature": 0.06866164350009078,
+        "reference": 0.05296752862053531
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-2",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 17.095682827215644,
+      "target_to_control_ratio": {
+        "feature": 2.8184143077703427,
+        "reference": 2.1742042995395887
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": false
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-2",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 1.034195680164644,
+      "target_to_control_ratio": {
+        "feature": 0.22022750294027577,
+        "reference": 0.22289395819331068
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 49.72897707494157,
+      "target_to_control_ratio": {
+        "feature": 0.38999954086545463,
+        "reference": 0.5088909156586274
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-2",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 5.941669778969884,
+      "target_to_control_ratio": {
+        "feature": 0.04659754980039724,
+        "reference": 0.060802814620628955
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 20.45180969298912,
+      "target_to_control_ratio": {
+        "feature": 0.08825470487587161,
+        "reference": 0.10014377943468007
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-2",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 7.008445176437607,
+      "target_to_control_ratio": {
+        "feature": 0.030243204389744465,
+        "reference": 0.034317363522593805
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 65.214672728048,
+      "target_to_control_ratio": {
+        "feature": 0.09550837390126132,
+        "reference": 0.12355707908478898
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-2",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 33.62312490068976,
+      "target_to_control_ratio": {
+        "feature": 0.04924183240381045,
+        "reference": 0.06370307368951218
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 16.023935180893062,
+      "target_to_control_ratio": {
+        "feature": 0.027949988660259783,
+        "reference": 0.029469386222034235
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-2",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 6.646137486430802,
+      "target_to_control_ratio": {
+        "feature": 0.011592624738133486,
+        "reference": 0.012222814824282969
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 852.9146988501246,
+      "target_to_control_ratio": {
+        "feature": 0.8217786760622326,
+        "reference": 0.9119475330622903
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-2",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 1007.8186901795044,
+      "target_to_control_ratio": {
+        "feature": 0.9710278296798585,
+        "reference": 1.077572903271971
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": false
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 239.93761621978285,
+      "target_to_control_ratio": {
+        "feature": 0.12956064261215589,
+        "reference": 0.12230208122057248
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-2",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 1522.088508673585,
+      "target_to_control_ratio": {
+        "feature": 0.8218918250637697,
+        "reference": 0.7758458025280173
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 155.71708800394484,
+      "target_to_control_ratio": {
+        "feature": 0.9268122096651065,
+        "reference": 1.0611779397904169
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": false
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-2",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 31.417101229309765,
+      "target_to_control_ratio": {
+        "feature": 0.18699137894789855,
+        "reference": 0.21410068210279734
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 581.7545102205435,
+      "target_to_control_ratio": {
+        "feature": 0.7960296231015423,
+        "reference": 0.7797316596222713
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-2",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 149.4706788351685,
+      "target_to_control_ratio": {
+        "feature": 0.20452456499698526,
+        "reference": 0.2003371154420967
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 224.35043538006366,
+      "target_to_control_ratio": {
+        "feature": 0.9066317455023418,
+        "reference": 0.9388216135117802
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-2",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 110.18617909874814,
+      "target_to_control_ratio": {
+        "feature": 0.44527788732523627,
+        "reference": 0.4610874334740743
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 802.6264211884062,
+      "target_to_control_ratio": {
+        "feature": 0.6529389145971312,
+        "reference": 0.6820486209276698
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-2",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target_cpm": 269.4990358014679,
+      "target_to_control_ratio": {
+        "feature": 0.21923824493671634,
+        "reference": 0.22901245318783314
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 70.43245527539091,
+      "target_to_control_ratio": {
+        "feature": 0.17768758486854538,
+        "reference": 0.18371955851593305
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-2",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 73.1879576534477,
+      "target_to_control_ratio": {
+        "feature": 0.18463918922114156,
+        "reference": 0.1909071494980563
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 21.87616217111534,
+      "target_to_control_ratio": {
+        "feature": 0.03729051845633398,
+        "reference": 0.04273480914317883
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-2",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 83.114772265524,
+      "target_to_control_ratio": {
+        "feature": 0.14167900772165,
+        "reference": 0.16236366790312792
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 177.47569868753703,
+      "target_to_control_ratio": {
+        "feature": 0.09998230384398106,
+        "reference": 0.0996008597983939
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-2",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 843.5160825876873,
+      "target_to_control_ratio": {
+        "feature": 0.47520129172754844,
+        "reference": 0.47338834387361967
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 22.33908043409301,
+      "target_to_control_ratio": {
+        "feature": 0.040597553339838346,
+        "reference": 0.041108188056805356
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-2",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 49.83254546360592,
+      "target_to_control_ratio": {
+        "feature": 0.09056234111727884,
+        "reference": 0.09170143132395177
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 0.2788132592433566,
+      "target_to_control_ratio": {
+        "feature": 0.025028624995103218,
+        "reference": 0.024092048338784134
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-2",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-2",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 1.2859139697835935,
+      "target_to_control_ratio": {
+        "feature": 0.08270819686239908,
+        "reference": 0.09058278166226297
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 73.32568651173997,
+      "target_to_control_ratio": {
+        "feature": 0.2418567233447143,
+        "reference": 0.25596627611999945
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-2",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 19.693090754851315,
+      "target_to_control_ratio": {
+        "feature": 0.06495549689447298,
+        "reference": 0.06874490162469078
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 6.272659984192897,
+      "target_to_control_ratio": {
+        "feature": 0.13088471484508693,
+        "reference": 0.13981494283093376
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-2",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 9.50550012000694,
+      "target_to_control_ratio": {
+        "feature": 0.19834084356592607,
+        "reference": 0.21187358460482664
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 21.09966426415172,
+      "target_to_control_ratio": {
+        "feature": 0.05148173675241983,
+        "reference": 0.05498762779670279
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-2",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 22.250462650691258,
+      "target_to_control_ratio": {
+        "feature": 0.05428960605542079,
+        "reference": 0.057986712168656245
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 84.7166144529933,
+      "target_to_control_ratio": {
+        "feature": 0.10794218513098175,
+        "reference": 0.11491837122413141
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-2",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 117.79648864032121,
+      "target_to_control_ratio": {
+        "feature": 0.1500911062923605,
+        "reference": 0.1597913313447963
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 864.5899080136093,
+      "target_to_control_ratio": {
+        "feature": 1.0374255793933354,
+        "reference": 1.1458370711179509
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": false
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-2",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 834.2265927203244,
+      "target_to_control_ratio": {
+        "feature": 1.0009924916733908,
+        "reference": 1.1055967075159499
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": false
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 636.28410085103,
+      "target_to_control_ratio": {
+        "feature": 0.12947752110177904,
+        "reference": 0.138434989488493
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-2",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 3725.0149401226595,
+      "target_to_control_ratio": {
+        "feature": 0.7580036965705885,
+        "reference": 0.8104436420627954
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 208.83188220906752,
+      "target_to_control_ratio": {
+        "feature": 1.0653166590953085,
+        "reference": 1.2244973378556183
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": false
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-2",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 78.77991861130376,
+      "target_to_control_ratio": {
+        "feature": 0.4018809714829567,
+        "reference": 0.46193042745958246
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 597.8204048623029,
+      "target_to_control_ratio": {
+        "feature": 0.7065917804295625,
+        "reference": 0.7202624203818555
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-2",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 459.1047154006829,
+      "target_to_control_ratio": {
+        "feature": 0.5426372462701331,
+        "reference": 0.5531358094064788
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 143.71552538289922,
+      "target_to_control_ratio": {
+        "feature": 0.6137080834284715,
+        "reference": 0.6255046681279025
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-2",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 108.90873448050534,
+      "target_to_control_ratio": {
+        "feature": 0.46507272285701384,
+        "reference": 0.4740122658005071
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 1385.239347935446,
+      "target_to_control_ratio": {
+        "feature": 0.47813978943464414,
+        "reference": 0.5184104273060385
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-2",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target_cpm": 594.9333568717451,
+      "target_to_control_ratio": {
+        "feature": 0.20535173968763012,
+        "reference": 0.22264719538480077
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-2",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 10.213565657906832,
+      "target_to_control_ratio": {
+        "feature": 0.032250356511994996,
+        "reference": 0.032389231082687965
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 10.828487585138983,
+      "target_to_control_ratio": {
+        "feature": 0.03779739167110065,
+        "reference": 0.03208736848166096
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-2",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 27.966943073287375,
+      "target_to_control_ratio": {
+        "feature": 0.09762005015687984,
+        "reference": 0.08287266348532178
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 280.3420739649997,
+      "target_to_control_ratio": {
+        "feature": 0.13478715956427906,
+        "reference": 0.13755599495051954
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-2",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 700.1604384114795,
+      "target_to_control_ratio": {
+        "feature": 0.3366338680384663,
+        "reference": 0.3435490947488222
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 11.362474292401913,
+      "target_to_control_ratio": {
+        "feature": 0.08505125039572688,
+        "reference": 0.08903200293452447
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-2",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 8.017516268667972,
+      "target_to_control_ratio": {
+        "feature": 0.0600133180652633,
+        "reference": 0.06282219115223636
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-2",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-2",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 10.090620499162815,
+      "target_to_control_ratio": {
+        "feature": 0.02760132177803649,
+        "reference": 0.025784007284182422
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-2",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 83.03596987105388,
+      "target_to_control_ratio": {
+        "feature": 0.2271319710965696,
+        "reference": 0.21217724442040378
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 10.244735659515934,
+      "target_to_control_ratio": {
+        "feature": 0.07375751321831286,
+        "reference": 0.05921108123645381
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-2",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 21.494877811953714,
+      "target_to_control_ratio": {
+        "feature": 0.1547535033633173,
+        "reference": 0.12423306941151245
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 17.8444764653661,
+      "target_to_control_ratio": {
+        "feature": 0.028601578280464984,
+        "reference": 0.024799540133133784
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-2",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 45.97062668499107,
+      "target_to_control_ratio": {
+        "feature": 0.07368288334402694,
+        "reference": 0.06388813948296226
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 14.465081293756871,
+      "target_to_control_ratio": {
+        "feature": 0.02188937232137908,
+        "reference": 0.022158275566625123
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-2",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 27.732904397745315,
+      "target_to_control_ratio": {
+        "feature": 0.04196698639899548,
+        "reference": 0.0424825360762635
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 786.7492231633996,
+      "target_to_control_ratio": {
+        "feature": 0.6788052210239603,
+        "reference": 0.6449338677452338
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-2",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 901.2433239421166,
+      "target_to_control_ratio": {
+        "feature": 0.7775904388504736,
+        "reference": 0.7387898526959739
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 420.8964299814397,
+      "target_to_control_ratio": {
+        "feature": 0.05017593991831479,
+        "reference": 0.050797127013514874
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-2",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 433.732784832767,
+      "target_to_control_ratio": {
+        "feature": 0.05170618851134459,
+        "reference": 0.05234632035735524
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 221.90440997403908,
+      "target_to_control_ratio": {
+        "feature": 0.9130951032951847,
+        "reference": 0.9275495615924206
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-2",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 7.955006483330283,
+      "target_to_control_ratio": {
+        "feature": 0.032733362385452894,
+        "reference": 0.03325153734863182
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 934.4165377351541,
+      "target_to_control_ratio": {
+        "feature": 0.7881026110989257,
+        "reference": 0.773302806756446
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-2",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 428.9436760873923,
+      "target_to_control_ratio": {
+        "feature": 0.36177830494975804,
+        "reference": 0.35498445849727084
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 284.6638516574669,
+      "target_to_control_ratio": {
+        "feature": 0.7930979379739427,
+        "reference": 0.7359394858316457
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-2",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 158.642736557273,
+      "target_to_control_ratio": {
+        "feature": 0.4419922884677104,
+        "reference": 0.41013796902239114
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 1646.5824266965897,
+      "target_to_control_ratio": {
+        "feature": 0.3942743942046218,
+        "reference": 0.43018427795324843
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-2",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target_cpm": 1353.8622421826126,
+      "target_to_control_ratio": {
+        "feature": 0.3241825047556036,
+        "reference": 0.3537085308689572
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 41.3156272917262,
+      "target_to_control_ratio": {
+        "feature": 0.12712922811978786,
+        "reference": 0.1247365307318774
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-2",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 29.849186982769556,
+      "target_to_control_ratio": {
+        "feature": 0.09184670183823239,
+        "reference": 0.09011805637387499
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 96.0873837265167,
+      "target_to_control_ratio": {
+        "feature": 0.33931621214434715,
+        "reference": 0.2787561679466961
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-2",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 8.036517937508036,
+      "target_to_control_ratio": {
+        "feature": 0.0283795928209126,
+        "reference": 0.023314496211810188
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 173.26921813689677,
+      "target_to_control_ratio": {
+        "feature": 0.08121048626973418,
+        "reference": 0.07955702865796713
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-2",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 617.2346772651584,
+      "target_to_control_ratio": {
+        "feature": 0.2892950566882711,
+        "reference": 0.2834049661901174
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 8.160201067354299,
+      "target_to_control_ratio": {
+        "feature": 0.09022827069999988,
+        "reference": 0.07557639224518246
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-2",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 1.8533826085989538,
+      "target_to_control_ratio": {
+        "feature": 0.020493062160974036,
+        "reference": 0.01716525975913093
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 0.2774722500002775,
+      "target_to_control_ratio": {
+        "feature": 0.03645790413721503,
+        "reference": 0.04495065710978245
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-2",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 4.454435578467852,
+      "target_to_control_ratio": {
+        "feature": 0.5852815382620011,
+        "reference": 0.7216210136513603
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": null,
+        "reference": 0.0
+      },
+      "both_references_measurable": false,
+      "lower_than_both_references": false
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-2",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": null,
+        "reference": 0.0
+      },
+      "both_references_measurable": false,
+      "lower_than_both_references": false
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 39.093958419665825,
+      "target_to_control_ratio": {
+        "feature": 0.19825749507117285,
+        "reference": 0.2234604915846984
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-2",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 18.871778476403616,
+      "target_to_control_ratio": {
+        "feature": 0.09570459681022594,
+        "reference": 0.10787080832657034
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 16.472157935050284,
+      "target_to_control_ratio": {
+        "feature": 0.09207352934685575,
+        "reference": 0.10063476977366476
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-2",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 25.137267435388242,
+      "target_to_control_ratio": {
+        "feature": 0.14050842276026998,
+        "reference": 0.15357326775725902
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 39.91512103451364,
+      "target_to_control_ratio": {
+        "feature": 0.053431015814041076,
+        "reference": 0.06068292698122573
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-2",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 69.78858499837267,
+      "target_to_control_ratio": {
+        "feature": 0.09342010977402103,
+        "reference": 0.10609953064948577
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 37.68727102503426,
+      "target_to_control_ratio": {
+        "feature": 0.05552524857484595,
+        "reference": 0.058555229866252695
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-2",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 88.14635006305855,
+      "target_to_control_ratio": {
+        "feature": 0.12986740257647147,
+        "reference": 0.13695419300551168
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 1315.3759114910738,
+      "target_to_control_ratio": {
+        "feature": 0.9199501437105122,
+        "reference": 0.9616047884400057
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-2",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 1202.6813662283535,
+      "target_to_control_ratio": {
+        "feature": 0.8411336151393686,
+        "reference": 0.8792195072371151
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 727.9411043114779,
+      "target_to_control_ratio": {
+        "feature": 0.14684602494497315,
+        "reference": 0.13153528012202462
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-2",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 3934.234729014654,
+      "target_to_control_ratio": {
+        "feature": 0.7936448810686513,
+        "reference": 0.7108963404892596
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 194.7420784363815,
+      "target_to_control_ratio": {
+        "feature": 0.8641473884820994,
+        "reference": 0.876748230148317
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-2",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 37.64339969293741,
+      "target_to_control_ratio": {
+        "feature": 0.16703860716402116,
+        "reference": 0.1694743340655588
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 890.1705314216556,
+      "target_to_control_ratio": {
+        "feature": 0.7757848066638408,
+        "reference": 0.7552799354963364
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-2",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 381.0903889944859,
+      "target_to_control_ratio": {
+        "feature": 0.3321207828295257,
+        "reference": 0.3233424543478736
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 252.2863450015768,
+      "target_to_control_ratio": {
+        "feature": 0.6713430548512119,
+        "reference": 0.6846940105723053
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-2",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 116.11745456464752,
+      "target_to_control_ratio": {
+        "feature": 0.30899273073415867,
+        "reference": 0.3151376490979686
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 3435.798712120784,
+      "target_to_control_ratio": {
+        "feature": 0.6406942298846634,
+        "reference": 0.5993499136434798
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-2",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target_cpm": 1211.739160888142,
+      "target_to_control_ratio": {
+        "feature": 0.22596035261539035,
+        "reference": 0.21137901905447812
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 40.557609186877876,
+      "target_to_control_ratio": {
+        "feature": 0.16071413614528549,
+        "reference": 0.16373661482717053
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-2",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-2",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 16.13593209399368,
+      "target_to_control_ratio": {
+        "feature": 0.04205146751017597,
+        "reference": 0.042202900034867076
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 127.86273596435385,
+      "target_to_control_ratio": {
+        "feature": 0.15290458904548862,
+        "reference": 0.16366144816430567
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-2",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 211.03253756480626,
+      "target_to_control_ratio": {
+        "feature": 0.25236315481759375,
+        "reference": 0.2701169378799548
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 3.588993275422933,
+      "target_to_control_ratio": {
+        "feature": 0.024647489178071365,
+        "reference": 0.028055733870895466
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-2",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 9.594488925561159,
+      "target_to_control_ratio": {
+        "feature": 0.06589036083775526,
+        "reference": 0.0750016529053198
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 0.8882020126657607,
+      "target_to_control_ratio": {
+        "feature": 0.0767396066692413,
+        "reference": 0.07354058292225085
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-2",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-2",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 11.210991841322546,
+      "target_to_control_ratio": {
+        "feature": 0.06045602976502431,
+        "reference": 0.05700298870419457
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-2",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 5.313242193518907,
+      "target_to_control_ratio": {
+        "feature": 0.02865201694431601,
+        "reference": 0.02701551201058398
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 8.125494784593133,
+      "target_to_control_ratio": {
+        "feature": 0.07725401044039118,
+        "reference": 0.056792078361784654
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-2",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 9.057741972859231,
+      "target_to_control_ratio": {
+        "feature": 0.08611745025846752,
+        "reference": 0.06330789761613333
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 10.103816716764758,
+      "target_to_control_ratio": {
+        "feature": 0.024450507338638367,
+        "reference": 0.02258824697775071
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-2",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 22.842860630472472,
+      "target_to_control_ratio": {
+        "feature": 0.05527807432948948,
+        "reference": 0.05106784812746162
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 8.21594797661741,
+      "target_to_control_ratio": {
+        "feature": 0.016276683887073973,
+        "reference": 0.016327712925377373
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-2",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 86.77849307539765,
+      "target_to_control_ratio": {
+        "feature": 0.17191760512661033,
+        "reference": 0.17245658408067122
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 626.7121436321144,
+      "target_to_control_ratio": {
+        "feature": 0.7454882809336127,
+        "reference": 0.7629550234553144
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-2",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 718.0748721895443,
+      "target_to_control_ratio": {
+        "feature": 0.854166314614198,
+        "reference": 0.8741793764820419
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 175.26707111830947,
+      "target_to_control_ratio": {
+        "feature": 0.07190852770838632,
+        "reference": 0.07636738962166989
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-2",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 174.26584925557202,
+      "target_to_control_ratio": {
+        "feature": 0.07149774666663378,
+        "reference": 0.07593113710942363
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 186.61358546902213,
+      "target_to_control_ratio": {
+        "feature": 1.222181850707649,
+        "reference": 1.1462822226557303
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": false
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-2",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 99.12588988014778,
+      "target_to_control_ratio": {
+        "feature": 0.6492017354592466,
+        "reference": 0.608885173547051
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 512.2917598843128,
+      "target_to_control_ratio": {
+        "feature": 0.7821484316376179,
+        "reference": 0.774789570384931
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-2",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 147.95383840241843,
+      "target_to_control_ratio": {
+        "feature": 0.22589054074840045,
+        "reference": 0.22376524447416068
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 210.6868434004599,
+      "target_to_control_ratio": {
+        "feature": 0.9222364432160225,
+        "reference": 0.9034879450319061
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-2",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 78.52857440653814,
+      "target_to_control_ratio": {
+        "feature": 0.34374198209356444,
+        "reference": 0.3367539195695853
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 747.6454962569428,
+      "target_to_control_ratio": {
+        "feature": 0.5673895464868006,
+        "reference": 0.5567341332447695
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-2",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target_cpm": 205.25902956463094,
+      "target_to_control_ratio": {
+        "feature": 0.15577145623167427,
+        "reference": 0.1528461128802876
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 84.70158978368518,
+      "target_to_control_ratio": {
+        "feature": 0.2560053123664704,
+        "reference": 0.25277321943899644
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-2",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 7.485366109256404,
+      "target_to_control_ratio": {
+        "feature": 0.02262405574525219,
+        "reference": 0.022338424756234546
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 35.51640858076431,
+      "target_to_control_ratio": {
+        "feature": 0.14795018352267064,
+        "reference": 0.14512488806278045
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-2",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 30.198454174684635,
+      "target_to_control_ratio": {
+        "feature": 0.12579725866948574,
+        "reference": 0.12339500126551929
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 361.95553816429845,
+      "target_to_control_ratio": {
+        "feature": 0.18545074906364678,
+        "reference": 0.17785933092595616
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-2",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 697.6119059098609,
+      "target_to_control_ratio": {
+        "feature": 0.35742691260598225,
+        "reference": 0.34279565788764954
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 39.51832803599555,
+      "target_to_control_ratio": {
+        "feature": 0.22323888010150345,
+        "reference": 0.2398281556895349
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-2",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 14.167471099968896,
+      "target_to_control_ratio": {
+        "feature": 0.0800319886850141,
+        "reference": 0.08597930716085594
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-2",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 1.2760668556947035,
+      "target_to_control_ratio": {
+        "feature": 0.17674679319491216,
+        "reference": 0.22070892441053916
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-2",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": 0.0,
+        "reference": 0.0
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 16.772171612859946,
+      "target_to_control_ratio": {
+        "feature": 0.07984207724816615,
+        "reference": 0.084822224368836
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-2",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 54.60681274595819,
+      "target_to_control_ratio": {
+        "feature": 0.2599497228013096,
+        "reference": 0.27616407879187355
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 12.930649400723176,
+      "target_to_control_ratio": {
+        "feature": 0.0732462559097339,
+        "reference": 0.07548420583352096
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-2",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 32.2674962266785,
+      "target_to_control_ratio": {
+        "feature": 0.18278071061562337,
+        "reference": 0.18836535207355784
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 52.71780564161625,
+      "target_to_control_ratio": {
+        "feature": 0.06558397333095635,
+        "reference": 0.06637543430281827
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-2",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 104.67613564583371,
+      "target_to_control_ratio": {
+        "feature": 0.13022311541671092,
+        "reference": 0.1317946352294324
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 140.89191511377598,
+      "target_to_control_ratio": {
+        "feature": 0.2203147615826136,
+        "reference": 0.22623470746520435
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-2",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 143.30167048804455,
+      "target_to_control_ratio": {
+        "feature": 0.22408293153278905,
+        "reference": 0.23010412965114105
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 958.0838323353294,
+      "target_to_control_ratio": {
+        "feature": 0.7679245559626351,
+        "reference": 0.7409603099772987
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-2",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 842.2009900508752,
+      "target_to_control_ratio": {
+        "feature": 0.6750419947486899,
+        "reference": 0.6513391475672781
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 720.9636568774783,
+      "target_to_control_ratio": {
+        "feature": 0.1300488143892993,
+        "reference": 0.1377944819446455
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-2",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 2096.4808157060997,
+      "target_to_control_ratio": {
+        "feature": 0.37816725138868273,
+        "reference": 0.4006907770611842
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 37.30577679953741,
+      "target_to_control_ratio": {
+        "feature": 0.14152949076922,
+        "reference": 0.13410609310999078
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-2",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 80.27829810008028,
+      "target_to_control_ratio": {
+        "feature": 0.3045572998245379,
+        "reference": 0.2885828909975802
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 631.1787763862741,
+      "target_to_control_ratio": {
+        "feature": 0.5434279124450239,
+        "reference": 0.5369087028312358
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-2",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 353.2827132112375,
+      "target_to_control_ratio": {
+        "feature": 0.3041668930037107,
+        "reference": 0.30051796793443303
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 258.7929894969861,
+      "target_to_control_ratio": {
+        "feature": 0.6317399569775826,
+        "reference": 0.6398334032843943
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-2",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 112.72921607268113,
+      "target_to_control_ratio": {
+        "feature": 0.2751834593753614,
+        "reference": 0.2787089329952866
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 3200.6923167476384,
+      "target_to_control_ratio": {
+        "feature": 0.669645768125528,
+        "reference": 0.6434025541277122
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-2",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target_cpm": 1650.4880454767033,
+      "target_to_control_ratio": {
+        "feature": 0.34531352145661187,
+        "reference": 0.33178078956868856
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 67.1346198315667,
+      "target_to_control_ratio": {
+        "feature": 0.18958019061667994,
+        "reference": 0.1998742289017257
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "ARPC2",
+      "guide": "ARPC2-2",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 40.197773043373395,
+      "target_to_control_ratio": {
+        "feature": 0.11351373546239273,
+        "reference": 0.1196774318640442
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 30.17670919477311,
+      "target_to_control_ratio": {
+        "feature": 0.11909280992621224,
+        "reference": 0.12125913188353524
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CD7",
+      "guide": "CD7-2",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 36.0809349107611,
+      "target_to_control_ratio": {
+        "feature": 0.14239392027648876,
+        "reference": 0.14498409407686663
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 170.94689656763052,
+      "target_to_control_ratio": {
+        "feature": 0.0792340561997602,
+        "reference": 0.07870484609624567
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CORO1A",
+      "guide": "CORO1A-2",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 865.5540475496971,
+      "target_to_control_ratio": {
+        "feature": 0.40118515997949256,
+        "reference": 0.3985056147154463
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 13.677285500709642,
+      "target_to_control_ratio": {
+        "feature": 0.1075462803864003,
+        "reference": 0.10041889283415195
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "CST7",
+      "guide": "CST7-2",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 1.393988563717823,
+      "target_to_control_ratio": {
+        "feature": 0.010961113952125512,
+        "reference": 0.01023469080796409
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 2.2867779641501818,
+      "target_to_control_ratio": {
+        "feature": 0.2810750708886124,
+        "reference": 0.3085329976343282
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "DUSP1",
+      "guide": "DUSP1-2",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 2.964429806748821,
+      "target_to_control_ratio": {
+        "feature": 0.3643673898991267,
+        "reference": 0.3999620552984737
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 1.1336120507495442,
+      "target_to_control_ratio": {
+        "feature": null,
+        "reference": 0.8125330164509781
+      },
+      "both_references_measurable": false,
+      "lower_than_both_references": false
+    },
+    {
+      "target": "FOS",
+      "guide": "FOS-2",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 0.0,
+      "target_to_control_ratio": {
+        "feature": null,
+        "reference": 0.0
+      },
+      "both_references_measurable": false,
+      "lower_than_both_references": false
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 34.39978115186848,
+      "target_to_control_ratio": {
+        "feature": 0.10067107808655484,
+        "reference": 0.10053637609541724
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "FTH1",
+      "guide": "FTH1-2",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 14.601924168557312,
+      "target_to_control_ratio": {
+        "feature": 0.04273258139919709,
+        "reference": 0.04267540346974279
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 13.449287540003626,
+      "target_to_control_ratio": {
+        "feature": 0.11547349372877053,
+        "reference": 0.10255291000136033
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP4",
+      "guide": "GBP4-2",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 16.933367200067735,
+      "target_to_control_ratio": {
+        "feature": 0.14538726050491318,
+        "reference": 0.12911955948025372
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 90.88714372949714,
+      "target_to_control_ratio": {
+        "feature": 0.15535463376899927,
+        "reference": 0.14440496423961013
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "GBP5",
+      "guide": "GBP5-2",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 36.23966845880455,
+      "target_to_control_ratio": {
+        "feature": 0.06194495932322203,
+        "reference": 0.05757896896203796
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 19.275064812405432,
+      "target_to_control_ratio": {
+        "feature": 0.031902209632094135,
+        "reference": 0.031336965357787294
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "HINT1",
+      "guide": "HINT1-2",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 58.065330196316644,
+      "target_to_control_ratio": {
+        "feature": 0.09610407821235685,
+        "reference": 0.09440130337094205
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 1145.497995378508,
+      "target_to_control_ratio": {
+        "feature": 0.9044504968752262,
+        "reference": 0.9396208466870503
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IKZF1",
+      "guide": "IKZF1-2",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 921.574048474795,
+      "target_to_control_ratio": {
+        "feature": 0.7276469355801202,
+        "reference": 0.7559421240423642
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 650.7691722305659,
+      "target_to_control_ratio": {
+        "feature": 0.07969656381532599,
+        "reference": 0.08906253382730207
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "IL32",
+      "guide": "IL32-2",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 2449.3367889867877,
+      "target_to_control_ratio": {
+        "feature": 0.2999584707426045,
+        "reference": 0.335209702506165
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 249.49997750410037,
+      "target_to_control_ratio": {
+        "feature": 1.1800905520794054,
+        "reference": 1.1809014135417908
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": false
+    },
+    {
+      "target": "KLF6",
+      "guide": "KLF6-2",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 92.6838212330575,
+      "target_to_control_ratio": {
+        "feature": 0.43837800252286685,
+        "reference": 0.43867921994010395
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 676.7171698184142,
+      "target_to_control_ratio": {
+        "feature": 0.5697598101329034,
+        "reference": 0.5837784606059359
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "MSN",
+      "guide": "MSN-2",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 261.4528522177447,
+      "target_to_control_ratio": {
+        "feature": 0.22012937469616836,
+        "reference": 0.22554554605088875
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 285.6348047251448,
+      "target_to_control_ratio": {
+        "feature": 0.8065987543000794,
+        "reference": 0.8528317571289422
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "SMCHD1",
+      "guide": "SMCHD1-2",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 151.60920296467503,
+      "target_to_control_ratio": {
+        "feature": 0.4281263775589517,
+        "reference": 0.4526659245385023
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 1871.9719616534378,
+      "target_to_control_ratio": {
+        "feature": 0.3692399968457413,
+        "reference": 0.34122023805837387
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    },
+    {
+      "target": "VIM",
+      "guide": "VIM-2",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target_cpm": 1980.665243762528,
+      "target_to_control_ratio": {
+        "feature": 0.3906793709203749,
+        "reference": 0.36103268629817076
+      },
+      "both_references_measurable": true,
+      "lower_than_both_references": true
+    }
+  ],
+  "caveat": "Descriptive relative abundance, not causal knockdown efficacy or significance; selected source guides, donor/condition controls, compositional normalization; no filtering or training selection"
+}

@@ -1,0 +1,18 @@
+{
+  "source": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/GWCD4i.pseudobulk_merged.h5ad",
+  "etag": "\"757ccc082f2a0ca99868bee4604c962c-84\"",
+  "size": 44566657140,
+  "genes": 18129,
+  "profiles": {
+    "targets": 384,
+    "controls": 348
+  },
+  "logical_sparse_bytes": 124938032,
+  "original_132_gene_counts_exactly_reproduced": true,
+  "full_library_sums_exact": true,
+  "selection": "Frozen original rows, all source genes; no new outcome selection",
+  "sha256": {
+    "targets": "5e0f8ae1a43950e5b82de419b13ca741c5eb5e2618a9307e34040612d46aca1b",
+    "controls": "80f1c5ebe5988d9e20915856d11cfec1f5eba98e674de5e7f66b429f90d8b195"
+  }
+}
