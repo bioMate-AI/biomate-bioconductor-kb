@@ -30,9 +30,9 @@ remain a retained capability whose delivery sequence needs product approval.
 | Eight/nine after-run tabs, split-stage fold, status legend | Replace with three tabs: Summary, Outputs, Reproducibility record. | Do not build the split-stage or old tab catalogue. |
 | Report as editable file, chat edit diff, local versioning, PDF/DOCX/HTML menu | Retained capability. The old prototype's local editor must not be presented as deployment. | Preserve the immutable-original + bundle contract now; schedule persistence/editing explicitly. |
 | Full-page Connectors with four tabs, request-level skill switching and complex add-on taxonomy | Settings & workspace connections; not a primary scientific flow. | Keep connection/residency correctness; sequence the richer surface explicitly. |
-| Chat/panel rail choreography, reveal swap, 880px collapse rules, dock/full step modes | Polish beyond the normal scientific path. | Defer unless usability testing identifies a real obstruction. |
+| Chat/panel rail choreography, reveal swap, 880px collapse rules, dock/full step modes | Polish beyond the normal scientific path. | Retain; sequence when usability testing identifies a real obstruction or product priority. |
 | Dense Design-card modality control, per-row action pills and card-status chips | The four-module dashboard stays; modality can be inferred from the goal or asked only when needed. | Do not add dashboard density just to match the old prototype. |
-| Per-output notes, exhaustive output-grid furniture, generic cell-level editing | Not required for the Phase-1 workbench. | Defer. |
+| Per-output notes, exhaustive output-grid furniture, generic cell-level editing | Not required for the Phase-1 default workbench. | Retain for explicit sequencing. |
 
 ## Gaps that remain release-relevant
 
@@ -79,7 +79,7 @@ the active backlog:
 | `ClarifyCard` built but not wired | `frontend/client/src/components/chat-message.tsx` imports/renders it; a dedicated `chat-message.clarify-wiring.test.tsx` exists. | Closed subject to dev E2E. |
 | Domain viewers built but unwired | `step-output-preview.tsx` imports and renders `PlddtChart`, `SeqTracks`, and `HitGrid`; dedicated preview tests exist. PAE still needs confirmation in the real structure-result path. | Partly reconciled: retain real-output acceptance testing and PAE integration verification. |
 | “Reports as editable files” is the biggest v2 P0 | The immutable report bundle is P0; editing/versioning remain retained capabilities. `AfterRunReport.tsx` documents that server-backed versions/diffs/file-tree export are not yet built. | Keep both: ship the bundle and explicitly sequence the persistence/editing work. |
-| Connectors must be a full primary page | The target changed: Settings & workspace owns connections. | Reclassify as P2 information architecture, while retaining residency/security correctness. |
+| Connectors must be a full primary page | The target changed: Settings & workspace owns connections. | Retain as an information-architecture capability; it is not the default primary navigation. |
 
 ## Documents to adjust
 
@@ -91,22 +91,41 @@ must be read through this rebase:
    identify the report bundle as P0 and place rich report editing in the
    retained-capability sequence for explicit product prioritisation.
 2. `20260909_V2GAP_RUNSURFACE_STEP_PANES.md`: replace the after-run tab target
-   with the three-tab record; demote split-stage/pane choreography; retain
+   with the three-tab record; keep split-stage/pane choreography as a retained
+   capability rather than the default; retain
    claim-to-artifact, domain-true run identity, QC evidence, and output
    resolver as P0/P1.
 3. `20260909_V2GAP_COLDSTART_COMPOSER_CHAT.md`: retain four modules and
-   goal-to-lane explanation, but demote visual modality controls, per-request
-   add-on scopes, and rail choreography. Keep typed clarification and truthful
+   goal-to-lane explanation, while keeping visual modality controls, per-request
+   add-on scopes, and rail choreography as retained capabilities. Keep typed clarification and truthful
    post-run narration only when they affect a decision or record.
 
-## Acceptance sequence
+## Delivery order and phase gates
 
-1. Exercise a real authenticated run on dev from input binding through output
-   retrieval and report-bundle download.
-2. Verify that one claim in Summary opens its exact source output/step and that
-   the record reproduces parameters, software, citations and QC decisions.
-3. Repeat for one model prediction and one Design & generate candidate list;
-   verify their labels and scientific viewers do not overstate validation.
-4. Decide, with the product owner, the delivery order for report editing,
-   workspace features, and advanced scientific views; none is cancelled by this
-   rebase.
+**Rule:** a phase is not complete when its code merges. It completes only after
+implementation, automated tests, an authenticated dev exercise, and a written
+audit all pass. The next phase does not begin until the previous phase receives
+an explicit go decision.
+
+| Phase | Build scope | Required exit evidence |
+|---|---|---|
+| **1 · execution truth** | Canonical authorized output retrieval; real project-input binding and validation; honest blocked/error states; no compute on unsupported/unbound requests. | Targeted unit/route tests; owner/non-owner output authorization test; authenticated dev run that binds a real dataset, completes or honestly blocks, and retrieves real output bytes; audit records run id, input identity/version, output evidence, and any blocker. |
+| **2 · reproducible result** | Actual report bundle; Summary/Outputs/Reproducibility-record surface; common output resolver; claim-to-artifact links; parameter/QC/software/citation record. | Unit/component tests for the three surfaces and resolver; bundle manifest/checksum inspection; dev exercise where a Summary claim opens the exact output/step and the bundle reproduces the run record; written integrity audit. |
+| **3 · scientific workbench fidelity** | Domain-true run names; model status/validation caveats; input→run→output lineage; required scientific viewers; minimal cited Search & evidence exits. | Domain acceptance cases: one data analysis, one model prediction, one Design & generate candidate list, and one evidence query; scientific-quality audit confirms neither labels nor viewers overstate evidence. |
+| **4 · retained collaboration capabilities** | Server-backed editable/versioned reports with accepted diffs; expanded workspace connections/MCP; advanced design views and user controls. | Persistence/version-concurrency tests; permission and audit-trail tests; dev E2E for edit/accept/reject/revert and connection onboarding; product/UX audit of the advanced-default boundary. |
+
+### Required audit artifact per phase
+
+Each phase writes one dated audit under `docs/` containing: exact commit(s),
+test commands/results, dev URL/environment, authenticated test identity (never
+secrets), fixture or real-data provenance, screenshots/response evidence where
+useful, failures found, fixes applied, remaining risks, and an explicit
+**GO / NO-GO** conclusion. A GO requires no unresolved P0 finding in that
+phase's scope.
+
+### Phase 1 starts here
+
+Phase 1 is the current active scope. Its first acceptance case is a real
+authenticated dev run from resolved input binding through authorized output
+retrieval. It must prove the product does not substitute a fixture, silently
+launch unsupported work, or expose another user's output.
