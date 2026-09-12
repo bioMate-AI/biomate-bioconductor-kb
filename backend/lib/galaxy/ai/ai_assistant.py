@@ -3960,9 +3960,13 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         # defer to normal routing (limma / differentialabundance); single-cell → pseudobulk.
         _platform = self._detect_geo_platform(_geo_id)  # 'microarray'|'scrna'|'bulk_rnaseq'|None
         if _platform in ('microarray', 'bulk_rnaseq'):
-            log.info("[GeoFastPath] GEO %s platform=%s (not single-cell) — skipping pseudobulk fast path, "
-                     "deferring to normal routing (limma/differentialabundance)", _geo_id, _platform)
-            return None
+            # A bare GEO accession is not a count matrix.  Falling through here used
+            # to let ordinary similarity routing emit an empty differentialabundance
+            # card (matrix/samplesheet unset) that looked runnable.  Fetch and inspect
+            # the series first instead.  We intentionally do *not* auto-chain this to
+            # DESeq2: a GEO series can be normalized microarray data or lack an
+            # interpretable comparison, both of which require a method/contrast choice.
+            return self._return_geo_bulk_connector(_geo_id, _platform)
         if _platform is None:
             # GEO metadata unavailable (network/parse) → conservative keyword FALLBACK only:
             # skip pseudobulk on an explicit non-single-cell prose signal, else keep the
@@ -3975,9 +3979,9 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 'scrna', 'sc-rna', 'single cell', 'single-cell', 'pseudobulk', '10x', 'cellranger',
             ])
             if _non_scrna and not _scrna_signal:
-                log.info("[GeoFastPath] GEO %s metadata unavailable; non-single-cell keyword signal "
-                         "— skipping pseudobulk fast path (fallback)", _geo_id)
-                return None
+                log.info("[GeoFastPath] GEO %s metadata unavailable; explicit non-single-cell signal "
+                         "— routing to connector for data review", _geo_id)
+                return self._return_geo_bulk_connector(_geo_id, 'unknown')
         # _platform == 'scrna', or unknown with no non-single-cell signal → proceed with pseudobulk
 
         # Single-cell CLUSTERING / trajectory / cell-typing intent must NOT be collapsed
@@ -4051,6 +4055,82 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             'workflow_type': 'workflow_generation',
             'workflow_ga': _wf_ga,
             'needsWorkflowGeneration': False,
+        }
+
+    def _return_geo_bulk_connector(self, accession: str, platform: str) -> Optional[Dict[str, Any]]:
+        """Return a non-empty, scientifically safe GEO retrieval card for bulk data.
+
+        This is deliberately a retrieval/review step rather than a pretend automatic
+        DE chain.  GEOquery can retrieve a series matrix and phenotype table, but it
+        cannot establish that matrix is raw counts or infer a defensible contrast.
+        """
+        top = self.workflow_search.get_workflow_by_filename_pattern('%geo_data_connector%')
+        if not top:
+            top = self.workflow_search.get_workflow_by_name('geo_data_connector')
+        if not top:
+            log.error("[GeoFastPath] geo_data_connector not found in DB; refusing empty DE card for %s", accession)
+            return {
+                'success': False,
+                'source': 'geo_accession_preflight',
+                'workflow_type': 'workflow_generation',
+                'needsWorkflowGeneration': False,
+                'message': (
+                    f"BioMate recognized {accession}, but the GEO retrieval workflow is not available in this "
+                    "environment. Differential expression was not created because no count matrix, sample "
+                    "metadata, or confirmed contrast is available."
+                ),
+                'validation': {
+                    'is_valid': False,
+                    'issues': ['GEO retrieval workflow is unavailable'],
+                    'warnings': [],
+                    'suggestions': ['Enable geo_data_connector, then retrieve and review the series before selecting a DE method.'],
+                },
+            }
+
+        platform_label = {
+            'bulk_rnaseq': 'bulk RNA-seq',
+            'microarray': 'microarray',
+        }.get(platform, 'an unconfirmed bulk or microarray assay')
+        log.info("[GeoFastPath] GEO %s platform=%s → geo_data_connector (id=%s)", accession, platform, top.id)
+        required = {
+            'name': 'accession',
+            'value': accession,
+            'default': accession,
+            'type': 'text',
+            'required': True,
+            'autoFilled': True,
+            'description': 'GEO series or sample accession to retrieve via GEOquery.',
+        }
+        return {
+            'success': True,
+            'source': 'geo_accession_preflight',
+            'message': (
+                f"I identified {accession} as {platform_label}. I will retrieve its GEO series matrix and "
+                "sample metadata first. Before differential expression, BioMate will need to verify whether "
+                "the matrix is raw counts and which phenotype column/contrast is scientifically appropriate."
+            ),
+            'workflow_type': 'workflow_generation',
+            'workflow_ga': {
+                'id': top.id,
+                'name': top.name,
+                'filename': top.filename,
+                'format': 'nextflow',
+                'domain': getattr(top, 'domain', 'transcriptomics'),
+                'description': (
+                    'Retrieve a GEO series matrix and sample metadata for assay, count-scale, and contrast review. '
+                    'This retrieval step does not automatically run differential expression.'
+                ),
+                'required_params': [required],
+                'optional_params': [],
+                'parameters': {'accession': accession},
+                'steps': {},
+                'nextflow_path': top.filename,
+            },
+            'required_params': [required],
+            'optional_params': [],
+            'generated_parameters': [required],
+            'needsWorkflowGeneration': False,
+            'validation': {'is_valid': True, 'issues': [], 'warnings': [], 'suggestions': []},
         }
 
     def _try_fast_path_nfcore_pipeline(  # noqa: deploy-trigger

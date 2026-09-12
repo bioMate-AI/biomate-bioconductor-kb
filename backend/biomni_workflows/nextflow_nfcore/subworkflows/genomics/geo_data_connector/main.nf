@@ -24,7 +24,10 @@ nextflow.enable.dsl = 2
 params.outdir    = './results'
 
 // GEO accession: either a series (GSE…) or a sample (GSM…)
-params.accession = 'GSE999999'
+// Required for a real run.  Do not provide a plausible-looking fallback here:
+// it used to make an accession-only card appear runnable while silently fetching
+// the placeholder GSE999999 rather than the accession the researcher supplied.
+params.accession = null
 
 // Optional: path to a local GSE series matrix file (skips download when set)
 params.local_series_matrix = null
@@ -346,7 +349,10 @@ workflow GEO_DATA_CONNECTOR {
 
 workflow {
     // Build meta from CLI params
-    def accession = params.accession ?: 'GSE999999'
+    if (!params.accession) {
+        error "GEO accession is required (for example, --accession GSE12345)."
+    }
+    def accession = params.accession
     ch_input = Channel.of([id: accession, accession: accession])
 
     GEO_DATA_CONNECTOR(ch_input)
