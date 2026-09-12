@@ -14,7 +14,7 @@
 <h1>Foundations &amp; the cold start</h1>
 <p class="docmeta"><span>BioMate · Function-module spec 00 of 09</span><span>Status: for review</span><span>Prototype: BioMate Data-Centric Prototype.html</span></p>
 
-<p class="lede">BioMate can do a great deal, and almost none of it is legible from a blank chat box. This spec set fixes that by naming <strong>three things a scientist can do</strong> — search for evidence, analyse data, train models — and specifying every view and element through which those three are offered, entered, watched and audited. This document covers what the three share: the lane model, the cold-start view, the composer, the evidence taxonomy, and the copy rules that keep the surface honest.</p>
+<p class="lede">BioMate can do a great deal, and almost none of it is legible from a blank chat box. This spec set fixes that by naming <strong>four things a scientist can do</strong> — search for evidence, analyse data, work with models, and design candidates — and specifying every view and element through which they are offered, entered, watched and audited. This document covers what the four share: the lane model, the cold-start view, the composer, the evidence taxonomy, and the copy rules that keep the surface honest.</p>
 
 <h2><span class="num">0.1</span>Reading order</h2>
 <ul class="deck">
@@ -32,7 +32,7 @@
 
 <h2><span class="num">0.2</span>Why four modules, and not two or nine</h2>
 <p>The old surface offered four peers — Ask, Compute, Skills &amp; experts, Workflows. Two problems. <em class="t">One</em>: Compute and Workflows are the same user intent ("do something with my data"); the difference between them is how much rigour the question deserves, which is a system judgement, not a menu choice. <em class="t">Two</em>: Skills &amp; experts is not a thing you do at all — it modifies how any of the others reason. Presenting it as a fourth card taught users to look for it in the wrong place.</p>
-<p>Collapsing those left three. A fourth was then <em>earned</em>, not invented: designing new molecules is neither analysing data you already have nor training a predictor, and for a lead-discovery programme it is the whole job. The test for a module is this — can a scientist say the sentence, and is the sentence a different job?</p>
+<p>Collapsing Compute and Workflows leaves three distinct scientific jobs. A fourth was then <em>earned</em>, not invented: designing new molecules is neither analysing data you already have nor training a predictor, and for a lead-discovery programme it is the whole job. The test for a module is this — can a scientist say the sentence, and is the sentence a different job?</p>
 <table class="st">
 <thead><tr><th>Module</th><th>The user's sentence</th><th>What comes back</th><th>Lane</th></tr></thead>
 <tbody>
@@ -58,7 +58,7 @@
 <ol>
 <li><strong>Rigour follows consequence.</strong> A look at a distribution is Instant. Anything a figure, a filing or a decision will rest on goes Cloud, because only Cloud produces the parameter record and the gates.</li>
 <li><strong>Scale forces the lane.</strong> Work that cannot finish in the conversation is Cloud regardless of intent.</li>
-<li><strong>The user can override, always.</strong> The stated lane is a chip in the composer; clicking it offers the other lane with its cost in time.</li>
+<li><strong>The system chooses by default.</strong> The stated lane explains the trade-off. A user who needs to change it can use <em>Advanced → switch lane</em>, where the time and rigour consequence is shown.</li>
 </ol>
 <div class="note"><span class="lbl">Why say the lane out loud</span><p>The failure we are designing against is a scientist pasting a table, getting a plausible number in four seconds, and putting it in a manuscript. Naming the lane makes the trade visible at the moment of asking: <em>this was the fast answer; the gated one takes eleven minutes.</em></p></div>
 
@@ -78,15 +78,18 @@
 │  │ [Cloud · workflow]  [Drug discovery]        [ Start ]    │      │
 │  └──────────────────────────────────────────────────────────┘      │
 │                                                                    │
-│  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐    │
-│  │ Search &amp;         │ │ Data             │ │ Models           │    │
-│  │ evidence         │ │ analysis         │ │                  │    │
-│  │ Instant · secs   │ │ Instant -> Cloud │ │ Cloud · hours    │    │
-│  └──────────────────┘ └──────────────────┘ └──────────────────┘    │
+│  ┌──────────────────┐ ┌──────────────────┐                          │
+│  │ Search &amp;         │ │ Data analysis    │                          │
+│  │ evidence         │ │ Instant -> Cloud │                          │
+│  └──────────────────┘ └──────────────────┘                          │
+│  ┌──────────────────┐ ┌──────────────────┐                          │
+│  │ Models           │ │ Design &amp;         │                          │
+│  │ Cloud · hours    │ │ generate         │                          │
+│  └──────────────────┘ └──────────────────┘                          │
 │                                                                    │
 │                                                    collapse        │
 └────────────────────────────────────────────────────────────────────┘</div>
-<figcaption>Cold-start view, nothing typed and nothing opened. Max width 840px, centred, 56px of top air. Three cards of equal width; the route box appears only on a match.</figcaption>
+<figcaption>Cold-start view, nothing typed and nothing opened. Max width 840px, centred, 56px of top air. Four equal cards in a two-by-two grid; the route box appears only on a match.</figcaption>
 </figure>
 
 <h3>0.4.2 Elements</h3>
@@ -98,7 +101,7 @@
 <tr><td>.barlab</td><td>Mono caps label over the composer: DESCRIBE THE GOAL.</td><td>Static. Hidden in the thin launcher.</td></tr>
 <tr><td>.intentbar</td><td>The composer. Sparkles glyph, text input, send button.</td><td>Send disabled while empty. Enter submits. Placeholder is a full example goal, not a noun list.</td></tr>
 <tr><td>.routebox</td><td>The route result: lane chip, domain chip, Start. <span class="tag new">new</span></td><td>Appears only once the text matches a route (&gt;6 chars). Never shown for unmatched text — silence beats a "no results" state here.</td></tr>
-<tr><td>.modgrid</td><td>Three-column grid of module cards.</td><td>Collapses to one column under 1100px. An opened card spans the full row.</td></tr>
+<tr><td>.modgrid</td><td>Two-by-two grid of four module cards.</td><td>Collapses to one column under 760px. An opened card spans the full row.</td></tr>
 <tr><td>.modcard / .modhd</td><td>A module. Icon tile, name, lane label, one-line description, chevron.</td><td>Click toggles open; only one open at a time. Open card gets a border-strong and a body.</td></tr>
 <tr><td>.trackbar / .trackb</td><td>Tabs for the module's tracks (e.g. Literature · Databases · Patents · Internal).</td><td>First track selected on open. Switching a track clears any selected domain.</td></tr>
 <tr><td>.schip</td><td>Domain chips — only inside Data analysis → Validated workflows.</td><td>Toggle. Selecting one replaces the example list with that domain's shapes.</td></tr>
@@ -109,7 +112,7 @@
 </table>
 
 <h3>0.4.3 The thin launcher</h3>
-<p>Returning users do not need the dashboard. <code>.thinlaunch</code> is the same view reduced to the composer plus three <code>.modpill</code> buttons and an <em>expand</em> link. Clicking a pill expands the dashboard with that module already open. The state persists for the session only — never across accounts, and never silently for a first-time user.</p>
+<p>Returning users do not need the dashboard. <code>.thinlaunch</code> is the same view reduced to the composer plus four <code>.modpill</code> buttons and an <em>expand</em> link. Clicking a pill expands the dashboard with that module already open. The state persists for the session only — never across accounts, and never silently for a first-time user.</p>
 
 <h3>0.4.4 Project scope</h3>
 <p>A chat started inside a project shows one extra line: <em>In Fibrosis Target ID · its files and instructions are in context.</em> Nothing else changes — the modules are identical. What differs is what the composer can resolve without asking: files, project instructions, the figure spec, prior runs. See Spec 06 §6.4 and Spec 07 §7.4.</p>
@@ -170,18 +173,18 @@
 
 <h2><span class="num">0.8</span>Navigation copy <span class="tag new">new</span></h2>
 <div class="rule"><span class="lbl">Anchor-text rule</span><p>A nav item carries <strong>a label and nothing else</strong>. What a surface holds is said <em>on that surface</em>, in a line of anchor text under its title, where there is room to be accurate. Subtitles in a rail are the worst place to explain anything: 190px forces a truncation that is always either incomplete or wrong, and five of them turn a rail into a paragraph nobody reads.</p></div>
-<p>The failure this replaces was concrete. Connectors read "Databases, LLMs &amp; integrations", which was too long; shortened to "Databases &amp; LLMs", it became <em>false</em> — the surface also holds skills and MCP servers. Workflows read "Run history", which omitted that pipelines are imported there. Both problems disappear when the explanation lives where there is space for it.</p>
+<p>Workspace connections used to be a primary rail item. That made setup look like a scientific job. Connections now live under <strong>Settings &amp; workspace</strong>; the surface can explain data sources, models, skills and MCP servers without competing with the four research modules. Workflows still needs anchor text because it also imports validated pipelines.</p>
 <table class="st">
 <thead><tr><th>Surface</th><th>Rail</th><th>Anchor text on the surface</th></tr></thead>
 <tbody>
 <tr><td>Workflows</td><td>Workflows</td><td>Every run this account has started, and where new pipelines come in — one record per run, project chips as a filter, import available to every project.</td></tr>
-<tr><td>Connectors</td><td>Connectors</td><td>Everything the workspace is attached to but does not own: data sources, models, skills, MCP servers.</td></tr>
+<tr><td>Workspace connections</td><td>Settings &amp; workspace</td><td>Everything the workspace is attached to but does not own: data sources, models, skills, MCP servers.</td></tr>
 <tr><td>Models</td><td>Models</td><td>Every model in the account and where each is used; training belongs to the project holding the data.</td></tr>
 </tbody>
 </table>
 
-<h2><span class="num">0.9</span>Connectors: four sections, one surface <span class="tag new">new</span></h2>
-<p>Data sources, models, skills, experts and MCP servers are five different things. They are one nav entry because <strong>the question a user brings is always the same</strong> — what is this workspace attached to, and is it working? They are <em>four</em> sections rather than five because skills and experts are browsed together; see below.</p>
+<h2><span class="num">0.9</span>Workspace connections: four sections, one settings surface <span class="tag new">new</span></h2>
+<p>Data sources, models, skills, experts and MCP servers are five different things. They belong in one settings surface because <strong>the question a user brings is always the same</strong> — what is this workspace attached to, and is it working? They are <em>four</em> sections rather than five because skills and experts are browsed together; see below.</p>
 <h3>0.9.1 We do not classify add-ons</h3>
 <p>This section went through two wrong answers before the right one, and both are worth recording because the pull toward each is strong.</p>
 <ol>
@@ -202,7 +205,7 @@
 <table class="st">
 <thead><tr><th>Scope</th><th>Where</th><th>Means</th></tr></thead>
 <tbody>
-<tr><td>Account</td><td>Connectors</td><td><strong>Connected.</strong> Available to the whole workspace. Connecting it does not switch it on anywhere.</td></tr>
+<tr><td>Account</td><td>Settings &amp; workspace</td><td><strong>Connected.</strong> Available to the whole workspace. Connecting it does not switch it on anywhere.</td></tr>
 <tr><td>Project</td><td>The project's Instructions page</td><td><strong>On here.</strong> A switch per item, so a project runs with the set that suits it — a chemistry project has different ones on than a clinical one.</td></tr>
 <tr><td>Request</td><td>The composer</td><td><strong>On for this question.</strong> The popover is headed <em>On in &lt;project&gt;</em>, lists the account library with the project’s choices checked and badged <span class="tag">project</span>, and a change is marked <em>changed</em> on the chip — so a deviation reads as a deviation and the project default is untouched.</td></tr>
 </tbody>

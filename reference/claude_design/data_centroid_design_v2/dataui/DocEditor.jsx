@@ -62,6 +62,7 @@ function ChatEdit({ proposals, onApply, onToast, placeholder, render }) {
 
 function DocEditor({ docId, project, onToast, onOpenFile, onOpenRun, framed, chrome = true }) {
   const base = DOCS[docId];
+  const immutable = !!framed;
   const key = 'bm-doc-' + docId;
   const [doc, setDoc] = React.useState(() => { try { const s = localStorage.getItem(key); if (s) return JSON.parse(s); } catch (e) {} return base; });
   const [vers, setVers] = React.useState(() => window.fileVersions(docId));
@@ -96,14 +97,16 @@ function DocEditor({ docId, project, onToast, onOpenFile, onOpenRun, framed, chr
         <span className="hint dim">{doc.kicker} · {doc.by}</span>
       </div>
       <span className="spacer"/>
-      {chrome && <span className="chip acc">v{vers[0].v}</span>}
-      {vers.length > 1 && <button className="btn sm ghost" onClick={revert}>Revert to v1</button>}
-      {editing
+      {chrome && <span className="chip acc">{immutable ? 'run original' : 'v' + vers[0].v}</span>}
+      {!immutable && vers.length > 1 && <button className="btn sm ghost" onClick={revert}>Revert to v1</button>}
+      {!immutable && (editing
         ? <><button className="btn sm accent" onClick={() => { setEditing(false); if (dirty) { persist(doc, 'edited by hand'); setDirty(false);
               onToast('Saved as v' + (vers[0].v + 1) + '. Earlier versions stay readable, and the run still points at the one it produced.'); } }}>Save as new version</button>
             <button className="btn sm ghost" onClick={() => { setEditing(false); setDirty(false); }}>Done</button></>
-        : <button className="btn sm" onClick={() => setEditing(true)}><Icon name="settings" size={11}/>Edit</button>}
-      {chrome && <DownloadMenu name={doc.name} onToast={onToast} primary/>}
+        : <button className="btn sm" onClick={() => setEditing(true)}><Icon name="settings" size={11}/>Edit</button>)}
+      {immutable
+        ? <button className="btn sm accent" onClick={() => onToast('Preparing the reproducibility bundle: original report, outputs, manifest and checksums.') }><Icon name="download" size={12}/>Download bundle</button>
+        : chrome && <DownloadMenu name={doc.name} onToast={onToast} primary/>}
       {chrome && onOpenFile && <button className="btn sm ghost" title="This document in the project file list" onClick={() => onOpenFile(docId)}><Icon name="file" size={11}/>In Files</button>}
     </div>
 
@@ -111,14 +114,18 @@ function DocEditor({ docId, project, onToast, onOpenFile, onOpenRun, framed, chr
       <div className={'docpage' + (editing ? ' editing' : '')} ref={bodyRef}>
         {doc.sections.map(s => <section key={s.id} className="docsec">
           <h3>{s.h}</h3>
-          {s.p.map((p, i) => <p key={i} contentEditable={editing} suppressContentEditableWarning
-            onBlur={e => editing && setPara(s.id, i, e.target.innerText)}>{p}</p>)}
+          {s.p.map((p, i) => <p key={i} contentEditable={!immutable && editing} suppressContentEditableWarning
+            onBlur={e => !immutable && editing && setPara(s.id, i, e.target.innerText)}>{p}</p>)}
         </section>)}
         {editing && <span className="hint dim">Saving writes a new version — it does not overwrite what the run produced.</span>}
       </div>
 
       <div className="docside">
-        <ChatEdit proposals={DOC_EDITS[docId] || []} onApply={apply} onToast={onToast}
+        {immutable ? <div className="card2 col" style={{ gap:'7px' }}>
+          <span className="k2">Run record</span>
+          <span className="hint">This is the immutable report produced by the run. Its bundle contains the manifest, resolved parameters, output checksums and cited artifacts.</span>
+          <span className="hint dim">Server-backed report editing and accepted AI diffs are a later project-file capability, not implied by this run view.</span>
+        </div> : <><ChatEdit proposals={DOC_EDITS[docId] || []} onApply={apply} onToast={onToast}
           placeholder="e.g. shorten the methods, make the caveat harder to miss…"
           render={p => { const before = (doc.sections.find(s => s.id === p.sec) || { p:[] }).p[p.pi] || '';
             return <div className="diff">
@@ -133,7 +140,7 @@ function DocEditor({ docId, project, onToast, onOpenFile, onOpenRun, framed, chr
               <span className="hint dim">{v.by} · {v.when}</span></span>
           </div>)}
           {onOpenRun && <button className="btn sm ghost" style={{ alignSelf:'flex-start' }} onClick={onOpenRun}>Open the run that produced it →</button>}
-        </div>
+        </div></>}
       </div>
     </div>
   </div>;

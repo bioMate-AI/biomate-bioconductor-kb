@@ -137,7 +137,6 @@ function App() {
     { id:'chat', icon:'plus', label:'New chat',
       on:() => newChat('Unfiled (scratch)') },
     { id:'run', icon:'beaker', label:'Workflows', on:() => { setRunScope(null); setView('run'); } },
-    { id:'conn', icon:'external', label:'Connectors', on:() => setView('conn') },
     { id:'models', icon:'cells', label:'Models', neu:true, on:() => { setMlScope(null); setMlTab(4); setView('models'); } },
     (showAll || anyInd) && { id:'ind', icon:'file', label:'IND Report', on:() => onToast(showAll && !anyInd ? 'Shown because the sidebar tweak is set to every surface — no project here is heading for a submission.' : 'Existing surface — reached from the project whose runs feed it.') }
   ].filter(Boolean);
@@ -199,7 +198,7 @@ function App() {
           <button className="projitem dim" onClick={() => onToast('Existing surface — unchanged by this proposal.')}><span className="pchev"/><Icon name="plus" size={13}/>New project</button>
         </div>
       </div>
-      <button className="sidesettings" onClick={() => onToast('Existing surface — unchanged by this proposal.')}><Icon name="gear" size={14}/>Settings &amp; API Keys</button>
+      <button className="sidesettings" onClick={() => onToast('Settings & workspace connections: data sources, API keys, skills and integrations live here. They support research work; they are not a separate research flow.')}><Icon name="gear" size={14}/>Settings &amp; workspace</button>
       <div className="sidefoot"><span className="av">AD</span><span>A. Dike<br/><span className="dim">early access</span></span>
         <span className="themetog" title="Light or dark">
           <button className={t.theme !== 'dark' ? 'on' : ''} onClick={() => setTweak('theme', 'light')} title="Light"><Icon name="sun" size={12}/></button>

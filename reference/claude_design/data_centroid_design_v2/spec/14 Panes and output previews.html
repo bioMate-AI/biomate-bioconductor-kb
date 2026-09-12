@@ -12,7 +12,7 @@
 <body>
 <doc-page margin="0.85in">
 <h1>Panes, previews and navigation</h1>
-<p class="docmeta"><span>BioMate · Spec 14 · addendum to Specs 00 &amp; 04</span><span>Status: built</span><span>Surface: shell</span></p>
+<p class="docmeta"><span>BioMate · Spec 14 · addendum to Specs 00 &amp; 04</span><span>Status: phased — invariant specified</span><span>Surface: shell</span></p>
 
 <p class="lede">Three shell-level changes that the new surfaces made necessary: either side of the chat/run split can be put away and comes back predictably; outputs and artefacts are previewed as file objects rather than as terminal images; and every new page is reachable and leaveable by breadcrumb, not only by Back.</p>
 
@@ -31,7 +31,7 @@
 <p>Because a pane is both user-resizable (to 320px) and auto-collapsing, the chat topbar must survive narrowness: crumb and title ellipsize on one line, buttons do not shrink, and their labels drop to icons under ~520px of pane width.</p>
 
 <h2><span class="num">14.2</span>Previewing outputs and artefacts</h2>
-<p>Every artefact a run or a case produces is presented the same way, whatever produced it.</p>
+<p>Every artefact a run or a case produces follows one resolver, whatever produced it. The user sees a short scientific label — Table, Figure, Structure, Report or Log — rather than the resolver's implementation taxonomy.</p>
 <table class="el">
 <thead><tr><th>Kind</th><th>Preview</th><th>Affordances</th></tr></thead>
 <tbody>
@@ -42,8 +42,8 @@
 <tr><td>structure / state file</td><td>Named with what it carries (e.g. pLDDT in the B-factor column).</td><td>Open in Files.</td></tr>
 </tbody>
 </table>
-<div class="rule"><span class="lbl">Rule</span><p>An artefact is a file object, not a picture of one. If it can be seen it can be opened, versioned and taken — a preview that dead-ends is a screenshot.</p></div>
-<p>On a case page, the artefacts block states that every artefact is a file in the project with its own versions; report artefacts additionally carry "Open &amp; edit" and the download menu, so the path from a result to a hand-editable document is one click.</p>
+<div class="rule"><span class="lbl">Rule</span><p>An artefact is a file object, not a picture of one. If it can be seen it can be opened and taken; versioning and editing appear only when the Phase-2 file contract exists. A preview that dead-ends is a screenshot.</p></div>
+<p>On a case page, the artefacts block states that every artifact can be opened and downloaded with its provenance. Report artifacts additionally expose the immutable original and reproducibility bundle in Phase 1; "Open &amp; edit" arrives only with the Phase-2 project-file contract.</p>
 
 <h2><span class="num">14.3</span>Navigation through the new pages</h2>
 <table class="st prose">

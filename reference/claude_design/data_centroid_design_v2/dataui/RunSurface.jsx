@@ -3,7 +3,7 @@
    · PhaseCard accordion with steps, outputs and QC gates · panel foot.
    Part-3 additions live inside that structure — skip toggles, a full-window
    step deep-view, evidence-typed outputs and number→source click-through. */
-const RTABS = [['report', 'Report'], ['outputs', 'Outputs'], ['findings', 'Findings'], ['imrad', 'Methods'], ['params', 'Parameters'], ['software', 'Software'], ['cite', 'Citations'], ['qc', 'QC audit'], ['traj', 'Trajectory']];
+const RTABS = [['summary', 'Summary'], ['outputs', 'Outputs'], ['record', 'Reproducibility record']];
 const stepsOf = phases => phases.flatMap(p => p.steps.map((s, j) => ({ sk:p.id + (j + 1), phase:p.id, phaseName:p.name, name:s })));
 const ALL_STEPS = stepsOf(RUN_PHASES);
 
@@ -307,7 +307,7 @@ function RunSurface({ project, onToast, onOpenData, onOpenModels, onBack, startA
       </div>
 
       {reportReady && <div className="wf-after">
-        <ReportTabs onToast={onToast} onOpenData={onOpenData} onOpenModels={onOpenModels} decision={decision} onOpenStep={openStep} onOpenFile={onOpenFile}/>
+        <ReportTabs onToast={onToast} onOpenData={onOpenData} onOpenModels={onOpenModels} decision={decision} onOpenStep={openStep} onOpenFile={onOpenFile} wf={wf}/>
       </div>}
     </div>
 
@@ -430,8 +430,8 @@ function OutputGrid({ onToast, onOpenData, onOpenStep }) {
   </div>;
 }
 
-function ReportTabs({ onToast, onOpenData, onOpenModels, decision, onOpenStep, onOpenFile }) {
-  const [at, setAt] = React.useState('report');
+function ReportTabs({ onToast, onOpenData, onOpenModels, decision, onOpenStep, onOpenFile, wf }) {
+  const [at, setAt] = React.useState('summary');
   const [claim, setClaim] = React.useState(null);
   return <div className="after-run-report">
     <div className="after-run-head">
@@ -439,28 +439,24 @@ function ReportTabs({ onToast, onOpenData, onOpenModels, decision, onOpenStep, o
     </div>
     <div className="after-run-tabs">{RTABS.map(([k, lbl]) => <button key={k} className={'after-run-tab' + (k === at ? ' active' : '')} onClick={() => setAt(k)}>{lbl}</button>)}</div>
     <div className="after-run-body">
-      {at === 'report' && <DocEditor docId="rep1" onToast={onToast} onOpenFile={onOpenFile} framed/>}
-      {at === 'outputs' && <OutputGrid onToast={onToast} onOpenData={onOpenData} onOpenStep={onOpenStep}/>}
-      {at === 'findings' && <div className="col" style={{ gap:'9px' }}>
+      {at === 'summary' && <div className="col" style={{ gap:'12px' }}>
+        <DocEditor docId="rep1" onToast={onToast} onOpenFile={onOpenFile} framed/>
         <div className="findings-card">
           <span className="hint"><Claim id="c1" onPick={setClaim}/> move at <Claim id="c2" onPick={setClaim}/> (DESeq2 Wald); the response is dominated by interferon signalling. <Claim id="c3" onPick={setClaim}/> were excluded at the phase-B gate, as instruction 3 requires, and the effect survives their removal (<Claim id="c4" onPick={setClaim}/>).</span>
         </div>
         {claim && <ClaimPop id={claim} onClose={() => setClaim(null)} onOpenStep={(sk, out) => { setClaim(null); onOpenStep(sk, out); }}/>}
-        <span className="hint dim">Every number is a link to the output it is findable in — the report is auditable by clicking, not just by reading.</span>
       </div>}
-      {at === 'params' && <div className="col" style={{ gap:'8px' }}>
-        <ParamRows onToast={onToast} wf={wf}/>
-        <span className="hint" style={{ padding:'0 18px' }}>The same surface as configuration, read-only — and each step's <i>resolved</i> values live in its full view.</span>
-      </div>}
-      {at === 'qc' && <div className="col" style={{ gap:'9px' }}>
-        <div className="qline"><span className="chip warn"><span className="dot"/>gate 2</span><span className="hint">Library-size floor halted the run; {decision === 'keep' ? 'your parameters were kept, and the gate is recorded as overridden' : 'the suggestion was applied — 2 samples excluded and listed'}. Evidence: {QC_GATE.evidence}.</span></div>
-        <div className="qline"><span className="chip ok"><span className="dot"/>gates 1, 3, 4</span><span className="hint">Contamination, design consistency and FDR calibration passed.</span></div>
-        <button className="btn sm ghost" style={{ alignSelf:'flex-start' }} onClick={onOpenModels}>These gates also run on model training →</button>
-      </div>}
-      {at === 'traj' && <Trajectory onToast={onToast}/>}
-      {['imrad', 'software', 'cite'].indexOf(at) >= 0 && <div className="col" style={{ gap:'7px' }}>
-        <span className="k2">{(RTABS.find(t => t[0] === at) || [])[1]}</span>
-        <span className="hint">Existing after-run tab — unchanged. Shown so the added surfaces can be judged against the real panel structure.</span>
+      {at === 'outputs' && <OutputGrid onToast={onToast} onOpenData={onOpenData} onOpenStep={onOpenStep}/>}
+      {at === 'record' && <div className="col" style={{ gap:'9px' }}>
+        <span className="hint">The complete audit trail is kept together. Expand the part you need; nothing is hidden or discarded.</span>
+        <details open><summary>Resolved parameters</summary><ParamRows onToast={onToast} wf={wf}/></details>
+        <details><summary>Quality checks and decisions</summary><div className="col" style={{ gap:'9px', padding:'10px 0' }}>
+          <div className="qline"><span className="chip warn"><span className="dot"/>gate 2</span><span className="hint">Library-size floor halted the run; {decision === 'keep' ? 'your parameters were kept, and the gate is recorded as overridden' : 'the suggestion was applied — 2 samples excluded and listed'}. Evidence: {QC_GATE.evidence}.</span></div>
+          <div className="qline"><span className="chip ok"><span className="dot"/>gates 1, 3, 4</span><span className="hint">Contamination, design consistency and FDR calibration passed.</span></div>
+          <button className="btn sm ghost" style={{ alignSelf:'flex-start' }} onClick={onOpenModels}>Open related model checks →</button>
+        </div></details>
+        <details><summary>Methods, software and citations</summary><span className="hint" style={{ display:'block', padding:'10px 0' }}>The run manifest records tool versions, method citation, and resolved software environment. It is exported with the report bundle.</span></details>
+        <details><summary>Trajectory</summary><Trajectory onToast={onToast}/></details>
       </div>}
     </div>
   </div>;
