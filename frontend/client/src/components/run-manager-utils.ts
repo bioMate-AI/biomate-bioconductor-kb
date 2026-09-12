@@ -13,6 +13,12 @@ export interface RunListItem {
       downloadableCount?: number
       totalOutputs?: number
       meetsContract?: boolean
+      completionContract?: {
+        mode: "artifacts_required" | "stdout_only"
+        state: "ready" | "artifact_unavailable" | "stdout_only"
+        registeredOutputCount: number
+        meetsContract: boolean
+      }
     }
     nextflowStatus?: {
       artifactReadiness?: {
@@ -21,6 +27,12 @@ export interface RunListItem {
         downloadableCount?: number
         totalOutputs?: number
         meetsContract?: boolean
+        completionContract?: {
+          mode: "artifacts_required" | "stdout_only"
+          state: "ready" | "artifact_unavailable" | "stdout_only"
+          registeredOutputCount: number
+          meetsContract: boolean
+        }
       }
       errorMessage?: string
       outputs?: unknown[]
@@ -73,6 +85,12 @@ export function mapRunBucket(status?: string): Exclude<RunBucket, "needs_attenti
 export function getOutputReadinessHint(run: RunListItem): string | null {
   const readiness = getReadiness(run)
   if (readiness) {
+    if (readiness.completionContract?.state === "stdout_only") {
+      return "completed via stdout/log output"
+    }
+    if (readiness.completionContract?.state === "artifact_unavailable") {
+      return "completed; result artifacts unavailable"
+    }
     if (readiness.meetsContract === true) {
       return `outputs ready (${readiness.visualizableCount ?? 0} viz / ${readiness.downloadableCount ?? 0} dl)`
     }
@@ -104,6 +122,7 @@ export function isRunNeedsAttention(run: RunListItem): boolean {
 
   if (status === "completed") {
     const readiness = getReadiness(run)
+    if (readiness?.completionContract?.state === "artifact_unavailable") return true
     if (readiness?.meetsContract === false) return true
     const hint = getOutputReadinessHint(run)
     if (hint === "outputs not ready" || hint === "completed; check artifacts") return true
@@ -120,6 +139,8 @@ export function getRunPrimaryCta(run: RunListItem): string {
 
   if (status === "completed") {
     const readiness = getReadiness(run)
+    if (readiness?.completionContract?.state === "stdout_only") return "Open Logs"
+    if (readiness?.completionContract?.state === "artifact_unavailable") return "Open Logs"
     const outputCount = getOutputCount(run)
     const outputsReady =
       readiness?.meetsContract === true ||

@@ -1178,6 +1178,17 @@ export const executionRunStatusResponseSchema = z.object({
       downloadableCount: z.number().optional(),
       totalOutputs: z.number().optional(),
       meetsContract: z.boolean().optional(),
+      // Completion is distinct from process exit status.  Generic workflows
+      // need registered artifacts; stdout-only is an explicit workflow
+      // metadata contract, never a heuristic based on domain or name.
+      completionContract: z
+        .object({
+          mode: z.enum(["artifacts_required", "stdout_only"]),
+          state: z.enum(["ready", "artifact_unavailable", "stdout_only"]),
+          registeredOutputCount: z.number().nonnegative(),
+          meetsContract: z.boolean(),
+        })
+        .optional(),
     })
     .optional(),
   nextflowStatus: z.any().optional(),
@@ -1570,4 +1581,3 @@ export type InsertDownloadJob = typeof downloadJobs.$inferInsert;
 export const DOWNLOAD_JOB_ACTIVE_STATES = ["queued", "running"] as const;
 export const DOWNLOAD_JOB_DEDUP_STATES = ["queued", "running", "ready"] as const;
 export const DOWNLOAD_JOB_TERMINAL_STATES = ["ready", "failed", "cancelled", "expired"] as const;
-

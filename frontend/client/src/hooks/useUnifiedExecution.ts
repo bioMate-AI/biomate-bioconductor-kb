@@ -172,6 +172,12 @@ async function apiGetRunStatus(runId: string): Promise<{
     downloadableCount?: number;
     totalOutputs?: number;
     meetsContract?: boolean;
+    completionContract?: {
+      mode: 'artifacts_required' | 'stdout_only';
+      state: 'ready' | 'artifact_unavailable' | 'stdout_only';
+      registeredOutputCount: number;
+      meetsContract: boolean;
+    };
   };
 }> {
   const response = await fetch(`/api/workflows/runs/${runId}/status?includeSteps=true`);

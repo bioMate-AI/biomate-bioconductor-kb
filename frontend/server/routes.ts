@@ -25,6 +25,7 @@ import { GalaxyAPIProxy } from "./galaxy-api-proxy";
 import { createPoller } from "./galaxy-state-poller";
 import { WorkflowSSEManager } from "./workflow-sse";
 import { createWorkflowNotificationService, type WorkflowNotificationService } from "./workflow-notification-service";
+import { assessOutputCompletion } from "./output-completion-contract";
 import { GalaxyAssistant, type ModelConfig, stripNarratedToolCalls, StreamToolCallFilter } from "./galaxy-assistant";
 import { parameterRepository } from "./parameter-repository";
 import { workflowRepository } from "./workflow-repository";
@@ -11243,6 +11244,7 @@ ${paramLines || '(none recorded)'}`;
         downloadableCount: number;
         totalOutputs: number;
         meetsContract: boolean;
+        completionContract: ReturnType<typeof assessOutputCompletion>;
       } | undefined = undefined;
       if (String(run.execution?.status || "").toLowerCase() === "completed") {
         const invocation = run.execution?.galaxyInvocationId
@@ -11354,6 +11356,11 @@ ${paramLines || '(none recorded)'}`;
           downloadableCount,
           totalOutputs: outputs.length,
           meetsContract,
+          // Do not infer a scientific result from a process exit or an S3
+          // outdir/log hint.  Only persisted invocation outputs satisfy the
+          // default completion contract.  stdout-only workflows must opt in
+          // through workflowDefinition.metadata.output_contract.
+          completionContract: assessOutputCompletion(run.workflowDefinition, outputs.length),
         };
       }
 
