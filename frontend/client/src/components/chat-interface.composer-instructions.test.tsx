@@ -13,6 +13,17 @@ import { ChatInterface } from "./chat-interface"
 
 const fetchMock = vi.fn()
 
+vi.mock("./galaxy-dataset-browser", () => ({
+  GalaxyDatasetBrowser: ({ onSelect }: { onSelect: (id: string, name: string) => void }) => (
+    <button type="button" data-testid="select-two-project-files" onClick={() => {
+      onSelect("result-a-v1", "result-A.csv")
+      onSelect("result-b-v2", "result-B.csv")
+    }}>
+      Select project files
+    </button>
+  ),
+}))
+
 function wrapper() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -89,5 +100,24 @@ describe("ChatInterface composer instructions request contract", () => {
     // but ensure both fields retain that one real session identity.
     expect(body.context.memorySessionId).toEqual(expect.any(String))
     expect(body.context.sessionId).toBe(body.context.memorySessionId)
+  })
+
+  it("serializes exact multi-file references into the real chat-stream request", async () => {
+    render(<ChatInterface />, { wrapper: wrapper() })
+    fireEvent.click(screen.getByTestId("select-two-project-files"))
+    fireEvent.input(screen.getByTestId("chat-input"), {
+      target: { value: "Compare these two result files." },
+    })
+    fireEvent.click(screen.getByTestId("chat-send-button"))
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/chat/stream", expect.objectContaining({ method: "POST" }),
+    ))
+    const [, request] = fetchMock.mock.calls.find(([url]) => url === "/api/chat/stream")!
+    const body = JSON.parse(request.body)
+    expect(body.context.datasetReferences).toEqual([
+      { id: "result-a-v1", name: "result-A.csv" },
+      { id: "result-b-v2", name: "result-B.csv" },
+    ])
   })
 })
