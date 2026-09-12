@@ -35,10 +35,23 @@ if ! systemctl is-active --quiet peptide-deadline.timer; then
   fi
 fi
 (while sleep 120; do sync_results; done) &
+# Best-effort checkpoint backup during the Spot interruption notice window.
+(while sleep 5; do
+  token=$(curl -fsS --max-time 2 -X PUT -H 'X-aws-ec2-metadata-token-ttl-seconds: 60' http://169.254.169.254/latest/api/token) || continue
+  if curl -fsS --max-time 2 -H "X-aws-ec2-metadata-token: $token" http://169.254.169.254/latest/meta-data/spot/instance-action > "$ROOT/status/spot-interruption.json"; then
+    stage spot_interruption
+    sync_results
+    break
+  fi
+done) >/dev/null 2>&1 &
 stage installing
 if [ "${RESUME_SETUP:-0}" != 1 ]; then
-apt-get update -qq
-apt-get install -y -qq python3-venv git
+for attempt in 1 2 3 4 5 6; do
+  if apt-get -o DPkg::Lock::Timeout=300 update -qq; then break; fi
+  if [ "$attempt" = 6 ]; then exit 1; fi
+  sleep 10
+done
+apt-get -o DPkg::Lock::Timeout=300 install -y -qq python3-venv git
 python3 -m venv "$ROOT/venv"
 source "$ROOT/venv/bin/activate"
 pip install --disable-pip-version-check 'pip==25.0.1'
@@ -95,6 +108,10 @@ PY
 # Fail visibly instead of upstream's zero-loss replacement on NaN/OOM.
 python "$ROOT/code/patch_training_integrity.py" --root "$ROOT/PepGLAD"
 python "$ROOT/code/configure_pepglad.py" --root "$ROOT/PepGLAD" --stage autoencoder
+if [ -n "${RESUME_TRAINING_S3:-}" ]; then
+  aws s3 sync "$RESUME_TRAINING_S3/training/" "$ROOT/PepGLAD/previous_outputs/" --only-show-errors
+  python "$ROOT/code/configure_warm_start.py" --root "$ROOT/PepGLAD" --stage autoencoder
+fi
 stage training_autoencoder
 python train.py --gpus 0 --seed 20260912 --config run_outputs/autoencoder.yaml
 sync_results

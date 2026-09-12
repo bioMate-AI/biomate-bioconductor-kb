@@ -40,3 +40,13 @@ All four PepBench files are now in S3 and publisher-MD5/full-readback-SHA256 ver
 The first instance failed when a service restart tried to clone into an existing directory. The source checkout is now idempotent. Replacement run: `pepglad-initial-20260912T215600Z`, instance `i-00ee634b80c07800c`, same original absolute deadline of 2026-09-13 01:45:52 UTC. The failed run did not reach verified optimizer updates. Current status is tracked under the replacement run prefix.
 
 Published-split inspection: 4,157 training IDs, 114 validation IDs, 6,105 total raw indexed complexes. Train/validation have zero exact complex-ID overlap but three shared PDB accessions. This run is a published-split baseline, not a demonstrated unseen-target evaluation.
+
+## Spot migration — 2026-09-12
+
+At the user’s request, replaced On-Demand `i-00ee634b80c07800c` with Spot `i-0592cc555c2b6a711` (`g5.xlarge`, request `sir-i6gzm74j`). Two completed autoencoder epochs were synchronized to S3 before terminating the paused source instance. The replacement is configured to load the latest completed checkpoint and train the remaining three AE epochs, followed by five LDM epochs. Model weights are preserved; optimizer state resets because upstream checkpoints contain only the model.
+
+Checkpoints and logs sync to S3 every 120 seconds, at stage completion, and best-effort upon an EC2 Spot interruption notice. Checkpoints are generated at each validation epoch; partial-epoch progress is not checkpointed. The original deadline of 2026-09-13 01:45:52 UTC remains in effect. Current run prefix: `s3://knowledge-datasets-1759951976/cyclic_peptide/runs/pepglad-spot-20260912T221107Z/`. Startup verification is pending.
+
+The first Spot startup failed because Ubuntu held the apt/dpkg lock. Its replacement, `i-07b9bd8f9e354f6d4` (Spot request `sir-w3i7npsk`, run `pepglad-spot-20260912T221500Z`), waits for package locks before installing. The checkpoint source and original deadline are unchanged.
+
+Verified replacement startup: status successfully uploaded to S3, package installation passed the previous lock failure, and the original termination timer is active. Training warm-start remains pending while dependencies and data are prepared. Validation: nine evaluator tests pass; warm-start configuration selects epoch 1 and requests the remaining three AE epochs; shell syntax and diff checks pass.
