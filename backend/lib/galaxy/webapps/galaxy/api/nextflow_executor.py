@@ -22,6 +22,7 @@ import time
 import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, Tuple
+from urllib.parse import quote
 
 from fastapi import HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
@@ -1247,7 +1248,12 @@ def _looks_like_false_failure(
     s3_output_files: Optional[list] = None,
     processes: Optional[list] = None,
 ) -> bool:
-    """Nextflow exited non-zero but Batch tasks succeeded and real outputs were published."""
+    """Recognize a wrapper-level false failure only with explicit Nextflow success proof.
+
+    Published S3 files and process-shaped paths are not proof: a failed workflow can
+    leave both behind.  A non-zero driver exit may be rescued only when Nextflow's own
+    final statistics say every task succeeded and it wrote its completion marker.
+    """
     if returncode == 0:
         return False
     has_outputs = bool(_non_pipeline_info_s3_outputs(s3_output_files))
@@ -1272,12 +1278,8 @@ def _looks_like_false_failure(
     stats = _parse_workflow_stats_from_log(log_full_text, log_tail)
     if stats:
         succeeded, failed = stats
-        if succeeded >= 1 and failed == 0:
+        if succeeded >= 1 and failed == 0 and "execution complete" in combined.lower():
             return True
-
-    proc_list = processes or []
-    if proc_list and all((p.get("status") or "").lower() == "completed" for p in proc_list):
-        return True
 
     return False
 
@@ -6943,71 +6945,10 @@ def _get_nextflow_status_impl(
                     "duration_s": _fb_duration_s,
                 }
 
-            # S3 completion heuristic: if ≥3 output files exist and the run has been going
-            # for >5 min without a Nextflow "Execution complete" log, treat as completed.
-            # This handles the race where Nextflow exits cleanly but its log line is read
-            # before the final write, leaving the executor stuck in "running" indefinitely.
-            if _s3_outdir and _fb_started_at:
-                import subprocess as _sp_h
-                # Defensive: if the aws CLI isn't installed in the Galaxy
-                # container (stale image without the Dockerfile's
-                # /opt/aws-cli install step), don't 500 the entire status
-                # endpoint — every poll would crash with
-                # FileNotFoundError: [Errno 2] No such file or directory:
-                # 'aws'. Prefer the self-contained absolute path Galaxy's
-                # Dockerfile installs to (/opt/aws-cli/bin/aws), then PATH
-                # lookup, then bail gracefully.
-                _h_files = []
-                try:
-                    _h_ls = _sp_h.run(
-                        [_aws_cli_bin(), "s3", "ls", _s3_outdir + "/", "--recursive"],
-                        capture_output=True, text=True, timeout=10,
-                    )
-                except FileNotFoundError:
-                    log.warning(
-                        "[Nextflow] aws CLI not available for S3 completion heuristic "
-                        "(neither /opt/aws-cli/bin/aws nor PATH lookup found). "
-                        "Status endpoint will continue without S3-based terminal detection."
-                    )
-                    _h_ls = None
-                except Exception as _h_ls_err:
-                    log.warning("[Nextflow] aws s3 ls failed for heuristic: %s", _h_ls_err)
-                    _h_ls = None
-                for _hl in (_h_ls.stdout.splitlines() if _h_ls else []):
-                    _hp = _hl.split()
-                    if len(_hp) >= 4:
-                        _hf = _hp[3].split("/")[-1]
-                        _he = _hf.rsplit(".", 1)[-1].lower() if "." in _hf else ""
-                        if _he in {"json", "csv", "html", "png", "pdf"}:
-                            _h_files.append({"s3_uri": f"s3://{_s3_outdir.split('s3://')[1].split('/')[0]}/{_hp[3]}", "filename": _hf, "size": int(_hp[2]) if _hp[2].isdigit() else 0})
-                _h_elapsed = time.time() - _fb_started_at
-                if len(_h_files) >= 3 and _h_elapsed > 300:
-                    if _looks_like_false_success(
-                        log_full_text=log_full_text,
-                        log_tail=log_tail_fallback,
-                        total_steps=0,
-                        duration_s=int(_h_elapsed),
-                        s3_output_files=_h_files,
-                        workflow_domain=_disk_timing.get("workflow_domain", ""),
-                        nextflow_path=_disk_timing.get("nextflow_path", ""),
-                    ):
-                        log.warning(
-                            "[Nextflow] S3 completion heuristic suppressed for %s (false success)",
-                            run_id,
-                        )
-                    else:
-                        log.info("[Nextflow] S3 completion heuristic: %d files, %.0fs elapsed — marking completed", len(_h_files), _h_elapsed)
-                        _fb_procs_h = _build_processes_from_s3_files(_h_files, _s3_outdir, "")
-                        return {
-                            "run_id": run_id, "invocation_id": run_id,
-                            "status": "completed", "returncode": 0,
-                            "outdir": _s3_outdir, "work_dir": str(log_dir / "work"),
-                            "log_tail": log_tail_fallback, "is_batch": True,
-                            "s3_output_files": _h_files, "completedSteps": len(_h_files),
-                            "totalSteps": len(_h_files), "progressPercent": 100,
-                            "processes": _fb_procs_h, "started_at": _fb_started_at,
-                            "completed_at": time.time(), "duration_s": int(_h_elapsed),
-                        }
+            # S3 files are surfaced below for observability, but are never a
+            # terminal signal. Nextflow may publish intermediate output before
+            # a subsequent process fails. A terminal state requires an explicit
+            # process exit result, timing record, or completed workflow trace.
 
             # Still running — list intermediate S3 outputs so the UI can show them
             _running_s3_files: list = []
@@ -7149,27 +7090,11 @@ def _get_nextflow_status_impl(
         end = completed_at if completed_at else now
         duration_s = int(end - started_at)
 
-    # S3 completion heuristic for Batch runs stuck in "running":
-    # EventBridge sometimes fails to update status after Nextflow exits.
-    # If ≥3 JSON/CSV output files exist AND >5 min elapsed → treat as completed.
+    # Presence of S3 files is not a terminal signal: those files can be
+    # intermediate artifacts from a workflow that is still running or later
+    # fails. Keep the executor's stored status until explicit completion
+    # evidence (process exit status or completed trace) is available.
     _info_status = info.get("status", "running")
-    if _info_status == "running" and s3_files and started_at:
-        _s3_data_files = [f for f in s3_files
-                          if str(f.get("filename", "")).rsplit(".", 1)[-1].lower() in {"json", "csv", "html", "png", "pdf"}]
-        _elapsed = now - started_at
-        if len(_s3_data_files) >= 3 and _elapsed > 300:
-            if not _looks_like_false_success(
-                log_full_text=log_full_text,
-                log_tail=log_tail,
-                total_steps=progress.get("totalTasks", progress.get("totalSteps", 0)),
-                duration_s=int(_elapsed),
-                s3_output_files=s3_files,
-                workflow_domain=workflow_domain,
-                nextflow_path=info.get("nextflow_path", ""),
-            ):
-                log.info("[Nextflow] S3 completion heuristic (normal path): %d files, %.0fs → completed", len(_s3_data_files), _elapsed)
-                _info_status = "completed"
-                completed_at = completed_at or now
 
     _nf_path_for_status = info.get("nextflow_path", "")
     _is_personal_nf_status = str(_nf_path_for_status).startswith("/tmp/biomate_user_nf/")
@@ -7240,18 +7165,26 @@ def _get_nextflow_status_impl(
 
 @router.get("/api/nextflow/outputs/download", summary="Generate presigned download URL for S3 output")
 def download_s3_output(
-    s3_uri: str,
     run_id: str,
+    s3_uri: Optional[str] = None,
+    local_path: Optional[str] = None,
     presigned_only: int = 0,
 ) -> Any:
     """
-    Generate a presigned S3 GET URL for a workflow output file.
+    Generate a presigned S3 GET URL for an S3 workflow output file, or stream
+    a local workflow output file.
 
     Security: the requested s3_uri must belong to the outdir of the given run_id.
     Returns a 302 redirect to the presigned URL (15-minute expiry).
     If presigned_only=1, returns JSON {"url": "..."} instead of redirecting.
     """
     from starlette.responses import RedirectResponse
+
+    if bool(s3_uri) == bool(local_path):
+        raise HTTPException(
+            status_code=400,
+            detail="Provide exactly one of s3_uri or local_path.",
+        )
 
     info = _run_lookup(run_id)
     if info is None:
@@ -7264,6 +7197,32 @@ def download_s3_output(
             raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
 
     outdir = str(info.get("outdir", ""))
+
+    # Local development runs are real workflow outputs too.  The listing
+    # endpoint used to advertise them through this S3-only handler, which
+    # always returned 400.  Keep the same run-root authorization boundary as
+    # the S3 branch; do not serve an arbitrary path supplied by a client.
+    if local_path:
+        from starlette.responses import FileResponse
+
+        if outdir.startswith("s3://"):
+            raise HTTPException(status_code=400, detail="This run does not have local outputs.")
+        try:
+            output_root = Path(outdir).resolve(strict=True)
+            requested = Path(local_path).resolve(strict=True)
+            requested.relative_to(output_root)
+        except (FileNotFoundError, RuntimeError, ValueError):
+            raise HTTPException(status_code=404, detail="Local output file is unavailable.")
+        if not requested.is_file():
+            raise HTTPException(status_code=404, detail="Local output file is unavailable.")
+        # Unlike an S3 URL, a local file cannot be returned as a presigned URL.
+        if presigned_only:
+            raise HTTPException(
+                status_code=400,
+                detail="Local outputs do not have presigned URLs.",
+            )
+        return FileResponse(requested, filename=requested.name)
+
     if not outdir.startswith("s3://"):
         raise HTTPException(status_code=400, detail="This run does not have S3 outputs.")
 
@@ -7299,30 +7258,47 @@ def list_run_output_files(run_id: str) -> Any:
     List all output files for a completed run, with presigned S3 download URLs.
     Returns [{name, s3_uri, size, extension, download_url}].
     """
+    def _local_files(output_dir: Path) -> list:
+        """List local outputs with links that the download handler can serve.
+
+        `local_path` is still validated by `download_s3_output` against this
+        run's output root before any bytes are sent.
+        """
+        files = []
+        for f in sorted(output_dir.rglob("*")):
+            if f.is_file():
+                name = f.name
+                ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+                files.append({
+                    "name": name,
+                    "s3_uri": None,
+                    "size": f.stat().st_size,
+                    "extension": ext,
+                    "download_url": (
+                        "/api/nextflow/outputs/download?local_path="
+                        f"{quote(str(f))}&run_id={quote(run_id)}"
+                    ),
+                })
+        return files
+
     info = _run_lookup(run_id)
     if info is None:
         work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
         output_dir = work_base / run_id / "output"
         if output_dir.exists():
-            # Local run — list files directly
-            files = []
-            for f in sorted(output_dir.rglob("*")):
-                if f.is_file():
-                    name = f.name
-                    ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
-                    files.append({
-                        "name": name,
-                        "s3_uri": None,
-                        "size": f.stat().st_size,
-                        "extension": ext,
-                        "download_url": f"/api/nextflow/outputs/download?s3_uri={str(f)}&run_id={run_id}",
-                    })
-            return {"run_id": run_id, "files": files}
+            return {"run_id": run_id, "files": _local_files(output_dir)}
         raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
 
     outdir = str(info.get("outdir", ""))
     if not outdir.startswith("s3://"):
-        return {"run_id": run_id, "files": [], "note": "Local run — no S3 outputs"}
+        output_dir = Path(outdir)
+        if output_dir.is_dir():
+            return {"run_id": run_id, "files": _local_files(output_dir)}
+        return {
+            "run_id": run_id,
+            "files": [],
+            "note": "Local output directory is unavailable.",
+        }
 
     raw_files = _list_s3_output_files(outdir)
     if not raw_files:
@@ -10393,4 +10369,3 @@ async def browse_s3(
     except Exception as exc:
         log.exception("[browse_s3] Failed for bucket=%s prefix=%s: %s", bucket, prefix, exc)
         raise HTTPException(status_code=500, detail=str(exc))
-

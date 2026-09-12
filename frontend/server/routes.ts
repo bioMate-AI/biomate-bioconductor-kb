@@ -12141,15 +12141,26 @@ Rules:
                   if (!ext || !dataExts.has(ext)) continue;
                   listed.push({
                     name, filename: name, extension: ext,
-                    size: obj.Size || 0,
-                    s3_uri: `s3://${bucket}/${obj.Key}`,
-                    s3_key: obj.Key,
-                    download_endpoint: `/api/runs/${runId}/output/${encodeURIComponent(name)}`,
-                  });
+                  size: obj.Size || 0,
+                  s3_uri: `s3://${bucket}/${obj.Key}`,
+                  s3_key: obj.Key,
+                });
                 }
                 continuationToken = lr.IsTruncated ? lr.NextContinuationToken : undefined;
               } while (continuationToken);
               if (listed.length > 0) {
+                // These are recovery artifacts: they are in the Nextflow work
+                // directory, not the run's registered publishDir list.  Do
+                // not advertise the normal `/api/runs/:id/output/:filename`
+                // endpoint for them: that endpoint deliberately authorizes
+                // against the registry and would return a misleading 404.
+                // A caller can still see that recovery found a file, but the
+                // UI must present it as unavailable until it is published.
+                for (const file of listed) {
+                  file.download_unavailable = true;
+                  file.download_unavailable_reason =
+                    'Recovered work-directory artifact is not yet published to the run output registry.';
+                }
                 outputFiles = listed;
                 console.log(`[output_files] workDir fallback: found ${listed.length} files under ${storedWorkDir}`);
               }
@@ -12169,6 +12180,7 @@ Rules:
       // the S3-listing fallback path above already sets download_endpoint + downloadUrl.
       // This ensures MCP clients and API consumers always get an authenticated HTTP URL.
       for (const f of outputFiles) {
+        if (f.download_unavailable) continue;
         if (!f.download_url && !f.download_endpoint && !f.downloadUrl) {
           const fname = encodeURIComponent(f.name || f.filename || '');
           if (fname) {
@@ -12335,9 +12347,61 @@ Rules:
       const s3Files: any[] = Array.isArray(nfStatus?.s3_output_files) ? nfStatus.s3_output_files : [];
       const localFiles: any[] = Array.isArray(nfStatus?.output_files) ? nfStatus.output_files : [];
       const allFiles = [...s3Files, ...localFiles];
-      const match = allFiles.find((f: any) =>
+      let match = allFiles.find((f: any) =>
         (f?.filename === filename || f?.name === filename) && (f?.s3_uri || f?.path)
       );
+
+      // `/output_files` also discovers outputs on local development runs by
+      // walking their outdir.  Those files are not necessarily copied into
+      // nextflowStatus, so the old lookup above returned 404 for a link we had
+      // just emitted.  Resolve only an exact basename inside the known output
+      // roots; reject ambiguous matches rather than serving an arbitrary file.
+      if (!match && !filename.includes('/') && !filename.includes('\\')) {
+        const candidateRoots = [
+          nfStatus?.outdir,
+          (run as any).execution?.nextflowOutputDir,
+          `/tmp/nextflow_runs/${(run as any).execution?.nextflowRunId || run.id}/output`,
+        ].filter((root, index, roots) =>
+          typeof root === 'string' &&
+          !root.startsWith('s3://') &&
+          roots.indexOf(root) === index,
+        ) as string[];
+        const fsLocal = await import('node:fs');
+        const pathLocal = await import('node:path');
+        const matches: Array<{ path: string; size: number }> = [];
+        const visit = (root: string) => {
+          let rootReal: string;
+          try { rootReal = fsLocal.realpathSync(root); } catch { return; }
+          const walk = (dir: string) => {
+            let entries: import('node:fs').Dirent[];
+            try { entries = fsLocal.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+            for (const entry of entries) {
+              const absolute = pathLocal.join(dir, entry.name);
+              if (entry.isDirectory()) {
+                walk(absolute);
+              } else if (entry.isFile() && entry.name === filename) {
+                try {
+                  const resolved = fsLocal.realpathSync(absolute);
+                  const relative = pathLocal.relative(rootReal, resolved);
+                  if (relative && !relative.startsWith('..') && !pathLocal.isAbsolute(relative)) {
+                    matches.push({ path: resolved, size: fsLocal.statSync(resolved).size });
+                  }
+                } catch { /* file disappeared during scan */ }
+              }
+            }
+          };
+          walk(rootReal);
+        };
+        candidateRoots.forEach(visit);
+        if (matches.length === 1) {
+          match = { path: matches[0].path, size: matches[0].size };
+        } else if (matches.length > 1) {
+          await writeAuditRow(409, null, runProjectId);
+          return res.status(409).json({
+            error: `Output filename ${filename} is ambiguous; select a published output instead.`,
+          });
+        }
+      }
       if (!match) {
         await writeAuditRow(404, null, runProjectId);
         return res.status(404).json({ error: `File ${filename} not found in run ${runId}` });

@@ -21,6 +21,7 @@ def _make_stub(name: str) -> types.ModuleType:
 for _sname in [
     "galaxy", "galaxy.managers", "galaxy.managers.context",
     "galaxy.webapps", "galaxy.webapps.galaxy",
+    "galaxy.ai", "galaxy.ai.runs", "galaxy.ai.runs.bootstrap",
     "a2wsgi", "a2wsgi.wsgi", "dotenv",
 ]:
     sys.modules.setdefault(_sname, _make_stub(_sname))
@@ -28,6 +29,13 @@ for _sname in [
 _ctx_stub = sys.modules["galaxy.managers.context"]
 if not hasattr(_ctx_stub, "ProvidesUserContext"):
     _ctx_stub.ProvidesUserContext = object
+
+_runs_stub = sys.modules["galaxy.ai.runs"]
+if not hasattr(_runs_stub, "get_run_state_store"):
+    _runs_stub.get_run_state_store = MagicMock()
+_runs_bootstrap_stub = sys.modules["galaxy.ai.runs.bootstrap"]
+if not hasattr(_runs_bootstrap_stub, "ensure_poller_started"):
+    _runs_bootstrap_stub.ensure_poller_started = MagicMock()
 
 _pydantic_stub = _make_stub("pydantic")
 _pydantic_stub.BaseModel = object
@@ -136,6 +144,33 @@ class TestNextflowFalseFailure(unittest.TestCase):
                 log_full_text=self._P0_OK_LOG,
                 returncode=1,
                 s3_output_files=outputs,
+            )
+        )
+
+    def test_s3_outputs_alone_never_salvage_a_failed_run(self):
+        """Partial publishDir output must not override a reported failure."""
+        outputs = [
+            {"s3_uri": "s3://b/out/intermediate.json", "filename": "intermediate.json"},
+            {"s3_uri": "s3://b/out/plot.png", "filename": "plot.png"},
+            {"s3_uri": "s3://b/out/table.csv", "filename": "table.csv"},
+        ]
+        self.assertFalse(
+            _nf._looks_like_false_failure(
+                log_full_text="Submitted process > SCORE\n",
+                returncode=1,
+                s3_output_files=outputs,
+                processes=[{"status": "completed"}],
+            )
+        )
+
+    def test_success_stats_without_completion_marker_do_not_salvage_failure(self):
+        """A partial/stale log statistic is not equivalent to terminal success."""
+        partial_log = "WorkflowStats[succeededCount=1; failedCount=0; pendingCount=1]"
+        self.assertFalse(
+            _nf._looks_like_false_failure(
+                log_full_text=partial_log,
+                returncode=1,
+                s3_output_files=[{"s3_uri": "s3://b/out/x.json", "filename": "x.json"}],
             )
         )
 

@@ -662,7 +662,9 @@ def _poll_run_until_done(chain_run_id: str, step_idx: int, run_id: str, poll_int
 
         status = _normalize_run_status(status_payload.get("status", "running"))
 
-        # Batch/driver mismatch: failed in memory but S3 outputs exist and pass QC heuristics.
+        # Batch/driver mismatch: permit rescue only when the executor has
+        # explicit Nextflow completion statistics. S3 artifacts by themselves
+        # can be partial output from a failed step and are never terminal proof.
         if status == "failed":
             s3_files = status_payload.get("s3_output_files") or []
             if s3_files and not _looks_like_false_success(
@@ -674,7 +676,7 @@ def _poll_run_until_done(chain_run_id: str, step_idx: int, run_id: str, poll_int
                 nextflow_path=status_payload.get("nextflow_path", ""),
             ):
                 log.info(
-                    "workflow_chain: run %s reported failed but has valid outputs — treating as succeeded",
+                    "workflow_chain: run %s reported failed but Nextflow completion is explicit — treating as succeeded",
                     run_id,
                 )
                 status = "succeeded"
