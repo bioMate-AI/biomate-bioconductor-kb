@@ -10,5 +10,14 @@
   "ldm_epochs": 5,
   "upstream_commit": "bad015ca50c312a89482adb5220c3d907f13df5c",
   "instance_id": "i-00ee634b80c07800c",
-  "dataset_collection": "complete: 4 PepBench objects fully verified; CycPeptMPDB reused"
+  "dataset_collection": "complete: 4 PepBench objects fully verified; CycPeptMPDB reused",
+  "purchase_type": "on-demand",
+  "verified_training_start": {
+    "stage": "training_autoencoder",
+    "observed_at_utc": "2026-09-12T22:06:15Z",
+    "step": 0,
+    "loss": 6.006996154785156,
+    "grad_norm": 251.62173461914062,
+    "evidence": "SSM bootstrap log UPDATE_EVIDENCE; subsequent progress reached batch 52/350"
+  }
 }
