@@ -42,6 +42,7 @@ remain a retained capability whose delivery sequence needs product approval.
 |---|---|---|
 | **Authenticated output truth** | Every output, finding, report, preview and download must use the same authorization and canonical run-output source. Dev must prove it with real output bytes, not fixture-only success. | A result that cannot be read, or can be read by the wrong user, invalidates the workbench. |
 | **Real inputs bound before compute** | A workflow must state the resolved project dataset/version, reject incompatible or missing inputs, and never report success for an unbound/default workflow. | This is the principal false-positive risk in scientific execution. |
+| **Chat-to-file coherence** | A user can reference multiple project files in chat; those exact object ids/versions become the operation inputs, appear in the run record, and remain the sources of derived results. Comparisons validate compatibility and request a typed mapping only when needed. | Scientists routinely compare result files. Separate chat attachments, run pickers and output provenance create silent substitution risk and destroy usability. |
 | **Report bundle** | Implement a real download containing immutable report/summary, resolved parameters, software/tool versions, citations, QC/approval decisions, output references or checksums, and run identifier. | This is the reproducibility artifact scientists need first; it complements, rather than replaces, retained report editing work. |
 | **One output resolver** | Resolve output type consistently across AfterRunReport, step preview, Files, and downloads; show plain labels (Table/Figure/Structure/Report/Log) while using one internal resolver. | Prevents one file receiving conflicting previews or provenance claims. |
 | **Claim-to-artifact navigation** | Summary findings must link a numeric/scientific claim to the source artifact and producing step. A lightweight linked artifact panel is sufficient; an elaborate separate card is not. | This is the core evidence promise, not UI decoration. |
@@ -109,7 +110,7 @@ an explicit go decision.
 
 | Phase | Build scope | Required exit evidence |
 |---|---|---|
-| **1 · execution truth** | Canonical authorized output retrieval; real project-input binding and validation; honest blocked/error states; no compute on unsupported/unbound requests. | Targeted unit/route tests; owner/non-owner output authorization test; authenticated dev run that binds a real dataset, completes or honestly blocks, and retrieves real output bytes; audit records run id, input identity/version, output evidence, and any blocker. |
+| **1 · execution and object coherence** | Canonical authorized output retrieval; real project-input binding and validation; multi-file chat reference/attach; compatibility validation for comparisons; honest blocked/error states; no compute on unsupported/unbound requests. | Targeted unit/route tests; owner/non-owner output authorization test; authenticated dev case that references two named project result files in chat, proves their exact ids/versions become the operation inputs, completes or honestly blocks, and retrieves real output bytes; audit records run id, input identity/version, output evidence, and any blocker. |
 | **2 · reproducible result** | Actual report bundle; Summary/Outputs/Reproducibility-record surface; common output resolver; claim-to-artifact links; parameter/QC/software/citation record. | Unit/component tests for the three surfaces and resolver; bundle manifest/checksum inspection; dev exercise where a Summary claim opens the exact output/step and the bundle reproduces the run record; written integrity audit. |
 | **3 · scientific workbench fidelity** | Domain-true run names; model status/validation caveats; input→run→output lineage; required scientific viewers; minimal cited Search & evidence exits. | Domain acceptance cases: one data analysis, one model prediction, one Design & generate candidate list, and one evidence query; scientific-quality audit confirms neither labels nor viewers overstate evidence. |
 | **4 · retained collaboration capabilities** | Server-backed editable/versioned reports with accepted diffs; expanded workspace connections/MCP; advanced design views and user controls. | Persistence/version-concurrency tests; permission and audit-trail tests; dev E2E for edit/accept/reject/revert and connection onboarding; product/UX audit of the advanced-default boundary. |
@@ -126,6 +127,8 @@ phase's scope.
 ### Phase 1 starts here
 
 Phase 1 is the current active scope. Its first acceptance case is a real
-authenticated dev run from resolved input binding through authorized output
-retrieval. It must prove the product does not substitute a fixture, silently
-launch unsupported work, or expose another user's output.
+authenticated dev comparison initiated with two named project-file references
+in chat, from resolved input binding through authorized output retrieval. It
+must prove the product does not substitute a fixture, silently switch to a
+different/latest file, launch unsupported work, or expose another user's
+output.

@@ -25,6 +25,29 @@ The default experience is: **state a goal → supply only missing inputs → run
 - Users see simple output names: **Table, Figure, Structure, Report, Log**. A single artifact resolver remains an internal invariant across all surfaces.
 - Pareto views, rejection reasons, model calibration detail, and scientific domain viewers remain available on demand, not as required first-view content.
 
+## One file object everywhere
+
+A file is a persistent scientific object, not an upload that disappears into a
+chat. The same object identity and version must be usable in Files, chat, run
+configuration, outputs, and reports.
+
+- In chat, a user can attach/reference one or more project files from the
+  composer (for example, **Compare @result-A.csv with @result-B.csv**). Each
+  chip displays a human name and retains the immutable object id/version.
+- The assistant must restate the selected inputs before an operation begins and
+  validate their roles and compatibility. For a comparison, it checks the
+  relevant schema/units/coordinate system and asks a typed mapping question
+  only when a safe comparison cannot be inferred.
+- A chat operation and an expensive run use the same selected file references;
+  no hidden re-upload, implicit “latest” substitution, or second file picker is
+  allowed.
+- A derived table, figure, claim, or report links back to every source object
+  and version. Reopening that link returns to the same Files object and its
+  provenance.
+
+Call this **reference/attach** in the product, not “citation,” so it is never
+confused with citing external literature.
+
 ## Put infrastructure where it belongs
 
 Workspace connectors, keys, data-source attachment, MCP configuration, and similar setup live in **Settings & workspace connections**. They are not a primary research navigation item.
