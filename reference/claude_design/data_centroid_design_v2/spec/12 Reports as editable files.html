@@ -12,22 +12,22 @@
 <body>
 <doc-page margin="0.85in">
 <h1>Reports as editable files</h1>
-<p class="docmeta"><span>BioMate · Spec 12 · addendum to Specs 04 &amp; 07</span><span>Status: phased — Phase 1 specified</span><span>Object: document</span></p>
+<p class="docmeta"><span>BioMate · Spec 12 · addendum to Specs 04 &amp; 07</span><span>Status: contract split — sequencing TBD</span><span>Object: document</span></p>
 
-<p class="lede">A run report must be traceable to its outputs and manifest before it becomes an editable project document. Phase 1 preserves the immutable original and supplies a reproducibility bundle. Phase 2 makes a report a server-backed <strong>file object</strong> — editable by hand or accepted diff, versioned, and present in Files — only after the persistence contract exists.</p>
-<div class="rule"><span class="lbl">Delivery boundary</span><p><strong>Phase 1:</strong> immutable original report, run manifest and output bundle/download. <strong>Phase 2:</strong> server-backed Files object, accepted edit diffs, version history and PDF/DOCX/HTML export. A local prototype editor is a design demonstration, not evidence that Phase 2 is deployed.</p></div>
+<p class="lede">A run report must be traceable to its outputs and manifest before it becomes an editable project document. The immutable original and reproducibility bundle are non-negotiable. The retained editable-report capability makes a report a server-backed <strong>file object</strong> — editable by hand or accepted diff, versioned, and present in Files — once its persistence contract exists.</p>
+<div class="rule"><span class="lbl">Capability boundary</span><p><strong>Always preserve:</strong> immutable original report, run manifest and output bundle/download. <strong>Retained editable capability:</strong> server-backed Files object, accepted edit diffs, version history and PDF/DOCX/HTML export. Product sequencing is intentionally undecided; a local prototype editor is not evidence that persistence is deployed.</p></div>
 
-<h2><span class="num">12.1</span>Phase 1: what ships first</h2>
+<h2><span class="num">12.1</span>Immutable run record</h2>
 <table class="st prose">
 <thead><tr><th>Before</th><th>Now</th></tr></thead>
 <tbody>
 <tr><td>After-run opened on Outputs; the report was a "Download report" link that only toasted.</td><td>After-run opens on <strong>Summary</strong>, holding the immutable run original and a real reproducibility-bundle download.</td></tr>
 <tr><td>Report and evidence could not be verified together.</td><td>The bundle contains the report, run manifest, outputs and checksums; every claim can be traced to an artifact.</td></tr>
-<tr><td>No durable editing contract.</td><td>Editing is intentionally absent from Phase 1. The original remains immutable while the project-file API is built.</td></tr>
+<tr><td>No durable editing contract.</td><td>The original remains immutable; an editable derived project copy is enabled when the project-file API is available.</td></tr>
 </tbody>
 </table>
 
-<h2><span class="num">12.2</span>Phase 1 download</h2>
+<h2><span class="num">12.2</span>Reproducibility download</h2>
 <table class="st prose">
 <thead><tr><th>Format</th><th>What it is</th></tr></thead>
 <tbody>
@@ -36,7 +36,7 @@
 </table>
 <div class="rule"><span class="lbl">Rule</span><p>The bundle is the honest format: a report without its outputs and its manifest is not reproducible. Every format carries the run id and the version being viewed, so a downloaded copy can be traced back.</p></div>
 
-<h2><span class="num">12.3</span>Phase 2: project-file editing</h2>
+<h2><span class="num">12.3</span>Editable project reports — retained capability</h2>
 <h3>12.3.1 By hand</h3>
 <p>Edit turns the page into editable prose in place. Saving writes a <em>new version</em>; it never overwrites what the run produced. A "Revert to v1" control returns the document to the run's original.</p>
 
@@ -73,14 +73,14 @@
 </tbody>
 </table>
 
-<h2><span class="num">12.4</span>Phase 2 versions — one source of truth</h2>
-<p>When Phase 2 is implemented, document edits and file history are the same history. <code>fileVersions(id)</code> merges accepted document edits onto the file's stored versions, and <em>every</em> surface reads through it: the file row badge in the tree, the object header badge, the file's Versions tab, and the document header. A change event re-renders the tree and header on accept.</p>
+<h2><span class="num">12.4</span>Versions — one source of truth</h2>
+<p>When editable project reports are enabled, document edits and file history are the same history. <code>fileVersions(id)</code> merges accepted document edits onto the file's stored versions, and <em>every</em> surface reads through it: the file row badge in the tree, the object header badge, the file's Versions tab, and the document header. A change event re-renders the tree and header on accept.</p>
 <div class="rule"><span class="lbl">Rule</span><p>Two surfaces may never state different current versions of one object. The failure this rule prevents was live: the file list read v1 while the open document read v2, in a product whose premise is that nothing is silently overwritten.</p></div>
 
 <h2><span class="num">12.5</span>One control per screen</h2>
-<p>In Phase 1 the run Summary owns the immutable-original badge and reproducibility-bundle download. In Phase 2, ownership remains explicit: in <strong>Files</strong> the object header owns the version chip and Download (the document keeps only Edit / Save); on the <strong>run's Summary</strong> the document owns them, and the After-run strip carries no duplicate.</p>
+<p>The run Summary owns the immutable-original badge and reproducibility-bundle download. When editable project reports are enabled, ownership remains explicit: in <strong>Files</strong> the object header owns the version chip and Download (the document keeps only Edit / Save); on the <strong>run's Summary</strong> the document owns them, and the After-run strip carries no duplicate.</p>
 
-<h2><span class="num">12.6</span>Phase 2 project documents</h2>
+<h2><span class="num">12.6</span>Project documents</h2>
 <table class="st prose">
 <thead><tr><th>File</th><th>Origin</th><th>Where</th></tr></thead>
 <tbody>

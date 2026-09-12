@@ -33,8 +33,8 @@ Workspace connectors, keys, data-source attachment, MCP configuration, and simil
 
 Ask for an explicit approval only before an external transfer or order, a material cost threshold, or publishing/overwriting a shared project record. Quality gates still halt a run when the evidence says they should; their override and rationale are recorded.
 
-## Make capability claims phased and testable
+## Make capability claims testable; retain capability choices
 
-Phase 1 reports preserve the immutable run original, link it to the run manifest and outputs, and support a reproducibility bundle/download. Generic server-backed report editing, accepted AI diffs, version history, and multi-format export are **Phase 2**, not shipped claims until the required API and persistence contract exist.
+Every report must preserve an immutable run original, linked to its manifest and outputs, and support a reproducibility bundle/download. Server-backed report editing, accepted AI diffs, version history, and multi-format export remain retained product capabilities. Their delivery sequence requires an explicit product decision; this document does not cancel or postpone them. Until their API and persistence contract exist, the interface must not claim they are already deployed.
 
 Models must visibly distinguish **validated predictive model**, **project-adapted model**, and **heuristic method**. A heuristic or unvalidated model must never appear to have held-out validation or to be a decision gate.

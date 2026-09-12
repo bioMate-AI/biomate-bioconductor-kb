@@ -19,16 +19,17 @@ Design & generate**. The normal flow is deliberately small:
 > Reproducibility record.
 
 The default system chooses a lane. Workspace connections are settings, not a
-research flow. A run report is immutable in Phase 1 and is distributed with its
-manifest and outputs; generic report editing/versioning is Phase 2.
+research flow. A run report always retains an immutable original and is
+distributed with its manifest and outputs; editable/versioned project reports
+remain a retained capability whose delivery sequence needs product approval.
 
 ## What the Sep 9 audits no longer require
 
 | Earlier gap | Rebased decision | Action |
 |---|---|---|
 | Eight/nine after-run tabs, split-stage fold, status legend | Replace with three tabs: Summary, Outputs, Reproducibility record. | Do not build the split-stage or old tab catalogue. |
-| Report as editable file, chat edit diff, local versioning, PDF/DOCX/HTML menu | Phase 2. The old prototype's local editor must not be presented as deployment. | Defer; preserve only the immutable-original + bundle contract now. |
-| Full-page Connectors with four tabs, request-level skill switching and complex add-on taxonomy | Settings & workspace connections; not a primary scientific flow. | Keep connection/residency correctness, defer the richer surface. |
+| Report as editable file, chat edit diff, local versioning, PDF/DOCX/HTML menu | Retained capability. The old prototype's local editor must not be presented as deployment. | Preserve the immutable-original + bundle contract now; schedule persistence/editing explicitly. |
+| Full-page Connectors with four tabs, request-level skill switching and complex add-on taxonomy | Settings & workspace connections; not a primary scientific flow. | Keep connection/residency correctness; sequence the richer surface explicitly. |
 | Chat/panel rail choreography, reveal swap, 880px collapse rules, dock/full step modes | Polish beyond the normal scientific path. | Defer unless usability testing identifies a real obstruction. |
 | Dense Design-card modality control, per-row action pills and card-status chips | The four-module dashboard stays; modality can be inferred from the goal or asked only when needed. | Do not add dashboard density just to match the old prototype. |
 | Per-output notes, exhaustive output-grid furniture, generic cell-level editing | Not required for the Phase-1 workbench. | Defer. |
@@ -41,7 +42,7 @@ manifest and outputs; generic report editing/versioning is Phase 2.
 |---|---|---|
 | **Authenticated output truth** | Every output, finding, report, preview and download must use the same authorization and canonical run-output source. Dev must prove it with real output bytes, not fixture-only success. | A result that cannot be read, or can be read by the wrong user, invalidates the workbench. |
 | **Real inputs bound before compute** | A workflow must state the resolved project dataset/version, reject incompatible or missing inputs, and never report success for an unbound/default workflow. | This is the principal false-positive risk in scientific execution. |
-| **Phase-1 report bundle** | Implement a real download containing immutable report/summary, resolved parameters, software/tool versions, citations, QC/approval decisions, output references or checksums, and run identifier. | This replaces the now-deferred report-editor target with the reproducibility artifact scientists actually need first. |
+| **Report bundle** | Implement a real download containing immutable report/summary, resolved parameters, software/tool versions, citations, QC/approval decisions, output references or checksums, and run identifier. | This is the reproducibility artifact scientists need first; it complements, rather than replaces, retained report editing work. |
 | **One output resolver** | Resolve output type consistently across AfterRunReport, step preview, Files, and downloads; show plain labels (Table/Figure/Structure/Report/Log) while using one internal resolver. | Prevents one file receiving conflicting previews or provenance claims. |
 | **Claim-to-artifact navigation** | Summary findings must link a numeric/scientific claim to the source artifact and producing step. A lightweight linked artifact panel is sufficient; an elaborate separate card is not. | This is the core evidence promise, not UI decoration. |
 | **Truthful model status** | Every model is visibly labelled **validated predictive**, **project-adapted**, or **heuristic**; show applicable validation/out-of-domain caveats. | Drug-development users must not mistake a heuristic score for validated prediction. |
@@ -57,7 +58,7 @@ manifest and outputs; generic report editing/versioning is Phase 2.
 | **Dataset/run binding lineage** | In Files and the run record, show which input version was used and which outputs arose from it. Full RO-Crate and universal history UI can follow. |
 | **Model/domain viewers where evidence needs them** | Keep confidence beside structural predictions, score tracks for sequence outputs, and ranked chemical candidates with held/rejected status. Current code already wires `ClarifyCard` and routes pLDDT/sequence/hit viewers; acceptance tests should prove them on real outputs. |
 
-### P2 — intentional later work
+### Retained capabilities requiring an explicit sequencing decision
 
 - Server-backed report/project-file editing, accepted AI diffs, version history,
   and formats beyond the reproducibility bundle.
@@ -65,9 +66,8 @@ manifest and outputs; generic report editing/versioning is Phase 2.
   controls.
 - Full responsive pane choreography, docked step view, output annotations, and
   cell-level dataset editing.
-- Advanced design views such as Pareto exploration and rejection detail as
-  default views. Keep them available under Advanced rather than removing the
-  scientific capability.
+- Advanced design views such as Pareto exploration and rejection detail. The
+  default can remain simple while the capability remains available.
 
 ## Corrections to the Sep 9 audit status
 
@@ -78,7 +78,7 @@ the active backlog:
 |---|---|---|
 | `ClarifyCard` built but not wired | `frontend/client/src/components/chat-message.tsx` imports/renders it; a dedicated `chat-message.clarify-wiring.test.tsx` exists. | Closed subject to dev E2E. |
 | Domain viewers built but unwired | `step-output-preview.tsx` imports and renders `PlddtChart`, `SeqTracks`, and `HitGrid`; dedicated preview tests exist. PAE still needs confirmation in the real structure-result path. | Partly reconciled: retain real-output acceptance testing and PAE integration verification. |
-| “Reports as editable files” is the biggest v2 P0 | The target changed: editing is Phase 2. `AfterRunReport.tsx` itself documents that server-backed versions/diffs/file-tree export are deferred. | Replace with the Phase-1 report bundle P0. |
+| “Reports as editable files” is the biggest v2 P0 | The immutable report bundle is P0; editing/versioning remain retained capabilities. `AfterRunReport.tsx` documents that server-backed versions/diffs/file-tree export are not yet built. | Keep both: ship the bundle and explicitly sequence the persistence/editing work. |
 | Connectors must be a full primary page | The target changed: Settings & workspace owns connections. | Reclassify as P2 information architecture, while retaining residency/security correctness. |
 
 ## Documents to adjust
@@ -88,7 +88,8 @@ must be read through this rebase:
 
 1. `20260909_V2GAP_SEARCH_FILES_REPORTS_CONNECTORS.md`: replace **Reports as
    editable files P0** with **report bundle + output authorization P0**;
-   demote full-page Connectors and rich report editing to P2.
+   identify the report bundle as P0 and place rich report editing in the
+   retained-capability sequence for explicit product prioritisation.
 2. `20260909_V2GAP_RUNSURFACE_STEP_PANES.md`: replace the after-run tab target
    with the three-tab record; demote split-stage/pane choreography; retain
    claim-to-artifact, domain-true run identity, QC evidence, and output
@@ -106,4 +107,6 @@ must be read through this rebase:
    the record reproduces parameters, software, citations and QC decisions.
 3. Repeat for one model prediction and one Design & generate candidate list;
    verify their labels and scientific viewers do not overstate validation.
-4. Only then schedule Phase-2 report editing or advanced workspace features.
+4. Decide, with the product owner, the delivery order for report editing,
+   workspace features, and advanced scientific views; none is cancelled by this
+   rebase.

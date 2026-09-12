@@ -6,9 +6,9 @@
 
 > **2026-09-12 interpretation update:** this is retained as point-in-time
 > implementation evidence. Rich server-backed report editing and a full-page
-> connector surface are Phase 2, not release blockers. The Phase-1 blocker is
-> an immutable report bundle with authenticated, traceable outputs. Read its
-> priorities with
+> connector surface remain retained capabilities; their sequencing needs a
+> product decision. The immediate blocker is an immutable report bundle with
+> authenticated, traceable outputs. Read its priorities with
 > [`20260912_V2_GAP_REBASE_AFTER_SIMPLIFICATION.md`](20260912_V2_GAP_REBASE_AFTER_SIMPLIFICATION.md).
 
 **Reference sets**
