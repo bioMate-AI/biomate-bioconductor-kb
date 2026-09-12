@@ -1,0 +1,283 @@
+{
+  "date": "2026-09-12",
+  "method": "Live paginated S3 ListObjectsV2 metadata; no large downloads. Local manifests used only for assay context, not current holdings counts.",
+  "bucket": "knowledge-datasets-1759951976",
+  "metadata_sha256": "dc7f3dae6a8699f919dcd2808643f57201703b42dff3c4198c44e10afef49334",
+  "groups": [
+    {
+      "name": "RNA source spine",
+      "prefixes": [
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/base_corpus/",
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/immune_expanded/"
+      ],
+      "objects": 810,
+      "bytes": 2422858551934,
+      "eligible_objectives": "RNA reconstruction; study-aware annotation and nuisance objectives where metadata permits",
+      "launch_requirements": "Deduplicate accession/cell identity across source mirrors and derived arms; species/tissue/count-layer QC; do not cap cells per study."
+    },
+    {
+      "name": "RNA derived arms",
+      "prefixes": [
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/full_v1/",
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/harmonized/"
+      ],
+      "objects": 306,
+      "bytes": 305086323504,
+      "eligible_objectives": "Optional canonical representatives after source reconciliation",
+      "launch_requirements": "curated and curated_annot are duplicate views, not extra subjects; avoid counting both."
+    },
+    {
+      "name": "Paired modalities",
+      "prefixes": [
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/modalities/neurips_bmmc/",
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/multiomic_v1/"
+      ],
+      "objects": 5,
+      "bytes": 4148467500,
+      "eligible_objectives": "RNA/ADT or RNA/ATAC reconstruction and same-cell modality losses",
+      "launch_requirements": "Do not invent triple-paired cells. BMMC CITE and multiome are different cells. Peak coordinate/genome reconciliation and donor grouping required."
+    },
+    {
+      "name": "Protein acquisition",
+      "prefixes": [
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/cite_protein/",
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/external/cite_seq_pbmc_ref/"
+      ],
+      "objects": 96,
+      "bytes": 11145398445,
+      "eligible_objectives": "Protein reconstruction on observed antibody entries; RNA/protein consistency on verified matched barcodes",
+      "launch_requirements": "GSE164378 and Hao reference may duplicate; panels differ and absent markers are unobserved, not zero. Raw formats require ingestion."
+    },
+    {
+      "name": "Chromatin acquisition",
+      "prefixes": [
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/atac_multiome/",
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/spatial/GSE312129/"
+      ],
+      "objects": 33,
+      "bytes": 147961560482,
+      "eligible_objectives": "ATAC reconstruction; cross-modal objective only for actual paired samples",
+      "launch_requirements": "GSE129785 is ATAC-only. GSE243917 requires raw RNA/peak barcode intersection restricted to truly paired subset. GSE312129 tar may contain mixed spatial/multiome assets. Common intervals must be re-counted from fragments, not zero-filled unmatched peaks."
+    },
+    {
+      "name": "Primary T-cell perturbation",
+      "prefixes": [
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/"
+      ],
+      "objects": 47,
+      "bytes": 107821118934,
+      "eligible_objectives": "H1/state-conditioned response on individual donor/condition/target guide pseudobulk and independent controls",
+      "launch_requirements": "44.567GB pseudobulk is aggregated data, not22M individual cells. DE stats missingness remains masked. by_donors contains overlapping donor pairs, not independent donors."
+    },
+    {
+      "name": "Other perturbation",
+      "prefixes": [
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/",
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/immune/",
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/reference/"
+      ],
+      "objects": 73,
+      "bytes": 54682525256,
+      "eligible_objectives": "Response objectives with controls and held-out perturbations/studies; paired protein response where demonstrated",
+      "launch_requirements": "Separate immune/primary from nonimmune cell-line auxiliary tasks; retain cell type/species context; RNA/protein filenames alone do not establish pairing."
+    },
+    {
+      "name": "Knowledge graph and pathways",
+      "prefixes": [
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/tracks/structured_knowledge/",
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/genetics/",
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/genetics_db/"
+      ],
+      "objects": 28,
+      "bytes": 894000110,
+      "eligible_objectives": "Graph priors, gene/drug embeddings, signed regulatory and pathway objectives",
+      "launch_requirements": "Gene graph alone omits drug-gene edges; full rebakeoff graph identified separately. Keep relation type/sign/confidence and source provenance; knowledge-derived labels are not independent experimental targets."
+    },
+    {
+      "name": "Literature",
+      "prefixes": [
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/tracks/text_knowledge/fulltext/"
+      ],
+      "objects": 26,
+      "bytes": 1588051039,
+      "eligible_objectives": "Evidence retrieval or separately audited text/biology alignment",
+      "launch_requirements": "24 compressed fulltext shards. Published722M token estimate is historical, not independently recounted. Text is not a count matrix or direct mechanistic ground truth."
+    },
+    {
+      "name": "Presentation",
+      "prefixes": [
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions/immunopeptidome/"
+      ],
+      "objects": 272,
+      "bytes": 71131255840,
+      "eligible_objectives": "H4 peptide presentation/abundance only with sample/HLA/perturbation mappings",
+      "launch_requirements": "PXD056426 HAP1 and PXD054491 held; processed peptides and search outputs require condition-aware ingestion. Missing detected peptide is not necessarily true biological absence; no generic immune-state/presentation pairing established."
+    },
+    {
+      "name": "Repertoire and spatial",
+      "prefixes": [
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/tcr_bcr/",
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/tracks/repertoire/"
+      ],
+      "objects": 29,
+      "bytes": 26798044210,
+      "eligible_objectives": "Optional receptor/sequence or spatial objectives only when actual chains/coordinates and linkage exist",
+      "launch_requirements": "RNA-derived mirrors may lack receptor chains; manifest-only files are not observations. Spatial is not interchangeable with per-cell RNA."
+    },
+    {
+      "name": "Clinical",
+      "prefixes": [
+        "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/clinical_corpus/"
+      ],
+      "objects": 38,
+      "bytes": 23319348743,
+      "eligible_objectives": "Response/stratification with independently curated patient labels",
+      "launch_requirements": "Group by patient, accession and treatment context. Unlabeled expression alone cannot supervise response."
+    }
+  ],
+  "critical_objects": [
+    {
+      "key": "immunology_sc_corpus_broad/multiomic_v1/citeseq/GSE261278_D534.paired.h5ad",
+      "bytes": 397775890,
+      "etag": "\"0b57ed6d6a0791d125909c779990e57f-48\"",
+      "last_modified": "2026-09-06T05:50:52+00:00"
+    },
+    {
+      "key": "immunology_sc_corpus_broad/multiomic_v1/multiome/GSE269540.h5ad",
+      "bytes": 217731702,
+      "etag": "\"e65d7ff478ecedf3c215d3764b2c9bf2-26\"",
+      "last_modified": "2026-09-06T05:33:09+00:00"
+    },
+    {
+      "key": "immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/GWCD4i.DE_stats.h5ad",
+      "bytes": 16786240107,
+      "etag": "\"767edf7df51625db7154167acaa7dc94-32\"",
+      "last_modified": "2026-09-02T08:34:54+00:00"
+    },
+    {
+      "key": "immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/GWCD4i.pseudobulk_merged.h5ad",
+      "bytes": 44566657140,
+      "etag": "\"757ccc082f2a0ca99868bee4604c962c-84\"",
+      "last_modified": "2026-09-02T08:45:42+00:00"
+    },
+    {
+      "key": "immunology_sc_corpus_broad/immune_llm_models/P4_linear_advantage/assembled_v7_capT100_capVT800.npz",
+      "bytes": 3488592958,
+      "etag": "\"b9b4dd42c50decceed7d7de072a8c104-416\"",
+      "last_modified": "2026-09-11T14:08:31+00:00"
+    },
+    {
+      "key": "immunology_sc_corpus_broad/immune_llm_models/rebakeoff_stage/A_mapkg_edges.parquet",
+      "bytes": 710270,
+      "etag": "\"38df4a0bfe4c9ec2d31bdfa7a44143ff\"",
+      "last_modified": "2026-08-31T03:29:16+00:00"
+    },
+    {
+      "key": "immunology_sc_corpus_broad/immune_llm_models/rebakeoff_stage/A_mapkg_full_edges.parquet",
+      "bytes": 2725405,
+      "etag": "\"8fba33d59da0718cfe55d4114822b356\"",
+      "last_modified": "2026-08-31T03:29:18+00:00"
+    }
+  ],
+  "prefix_totals": {
+    "immunology_sc_corpus_broad/base_corpus/": {
+      "objects": 537,
+      "bytes": 2152420598721
+    },
+    "immunology_sc_corpus_broad/immune_expanded/": {
+      "objects": 273,
+      "bytes": 270437953213
+    },
+    "immunology_sc_corpus_broad/full_v1/": {
+      "objects": 64,
+      "bytes": 136015503340
+    },
+    "immunology_sc_corpus_broad/harmonized/": {
+      "objects": 242,
+      "bytes": 169070820164
+    },
+    "immunology_sc_corpus_broad/modalities/": {
+      "objects": 6,
+      "bytes": 9530194894
+    },
+    "immunology_sc_corpus_broad/multiomic_v1/": {
+      "objects": 3,
+      "bytes": 615508206
+    },
+    "immunology_sc_corpus_broad/perturbation/": {
+      "objects": 123,
+      "bytes": 162504406873
+    },
+    "immunology_sc_corpus_broad/tracks/": {
+      "objects": 217,
+      "bytes": 4498032607
+    },
+    "immunology_sc_corpus_broad/genetics/": {
+      "objects": 1,
+      "bytes": 62133
+    },
+    "immunology_sc_corpus_broad/genetics_db/": {
+      "objects": 2,
+      "bytes": 72911831
+    },
+    "immunology_sc_corpus_broad/genetics_linked/": {
+      "objects": 1,
+      "bytes": 4434273970
+    },
+    "immunology_sc_corpus_broad/acquisitions_modalities/": {
+      "objects": 157,
+      "bytes": 180182649933
+    },
+    "immunology_sc_corpus_broad/clinical_corpus/": {
+      "objects": 38,
+      "bytes": 23319348743
+    },
+    "immunology_sc_corpus_broad/external/": {
+      "objects": 3406,
+      "bytes": 345671884566
+    },
+    "immunology_sc_corpus_broad/immune_llm/": {
+      "objects": 49,
+      "bytes": 944994631
+    },
+    "immune_llm_baseline/": {
+      "objects": 5591,
+      "bytes": 5813376099
+    },
+    "structured_knowledge/": {
+      "objects": 0,
+      "bytes": 0
+    },
+    "biomni_data_lake/": {
+      "objects": 76,
+      "bytes": 3798258477
+    },
+    "immunology_corpus/": {
+      "objects": 0,
+      "bytes": 0
+    },
+    "immunology_sc_corpus_broad/immune_llm_models/": {
+      "objects": 1106,
+      "bytes": 25629515796
+    },
+    "immunology_sc_corpus_broad/acquisitions/": {
+      "objects": 351,
+      "bytes": 98143329021
+    },
+    "replogle_nadig/": {
+      "objects": 10,
+      "bytes": 36265244263
+    },
+    "tahoe-100m/": {
+      "objects": 4426,
+      "bytes": 428806853223
+    }
+  },
+  "limitations": [
+    "Inventory is selected immune-relevant prefixes, not every bucket object.",
+    "Bytes include duplicate mirrors, processed/raw copies, code and metadata; they are not independent training examples.",
+    "Fresh metadata does not verify HDF5 schemas, exact cell counts, pairing, consent, or all label semantics.",
+    "No capped feature cache or pilot subset is an acceptable substitute for all-data training.",
+    "H2/H3 objective eligibility requires actual labels/features defined by architecture; RNA/graph data alone do not prove those objectives are supervised."
+  ]
+}
