@@ -17,6 +17,13 @@ const protectedRoutes = [
   "/api/workflows/runs/:id/findings",
   "/api/workflows/runs/:id/findings/report",
   "/api/runs/:runId/output/:filename",
+  // Legacy output/invocation surfaces — previously unauthenticated (IDOR).
+  "/api/outputs/:id",
+  "/api/outputs/:id/download",
+  "/api/outputs/:id/preview",
+  "/api/outputs/:id/parse",
+  "/api/invocations/:id/download-all",
+  "/api/invocations/:id/report",
 ];
 
 describe("run output/findings route authentication wiring", () => {

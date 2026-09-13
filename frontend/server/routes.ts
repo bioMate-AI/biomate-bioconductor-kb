@@ -50,6 +50,7 @@ import { authService } from "./auth-service";
 import { emailService } from "./email-service";
 import { authenticateToken, authenticateStaticApiKey, optionalAuth } from "./auth-middleware";
 import { decideRunAccess } from "./run-access";
+import { decideOutputAccess, decideInvocationAccess } from "./output-access";
 import BetterSqlite3 from "better-sqlite3";
 import type { RegisterData, LoginData } from "./auth-service";
 import { s3Service } from "./s3-client";
@@ -1386,6 +1387,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return null;
     }
     return run;
+  };
+  // Dependency bundle for the output/invocation authorization resolver — the
+  // same owner/project-member policy as resolveAuthorizedRun, applied to
+  // surfaces addressed by output/invocation id. See output-access.ts.
+  const outputAccessDeps = {
+    getOutput: (id: string) => storage.getOutput(id),
+    getInvocation: (id: string) => storage.getInvocation(id),
+    getRunByGalaxyId: (gid: string) => storage.getExecutionRunByGalaxyId(gid),
+    getUserProjects: (storage as any).getUserProjects?.bind(storage),
   };
   // Initialize repositories
   await parameterRepository.initialize();
@@ -9453,12 +9463,13 @@ ${paramLines || '(none recorded)'}`;
   // ============================================================================
 
   // Get a specific output by ID
-  app.get("/api/outputs/:id", async (req, res) => {
+  app.get("/api/outputs/:id", authenticateToken, async (req, res) => {
     try {
-      const output = await storage.getOutput(req.params.id);
-      if (!output) {
-        return res.status(404).json({ error: "Output not found" });
+      const access = await decideOutputAccess(req.params.id, req.user?.id ? String(req.user.id) : null, outputAccessDeps);
+      if (!access.allowed) {
+        return res.status(access.status).json({ error: access.error });
       }
+      const output = access.output;
       res.json(output);
     } catch (error: any) {
       console.error("Error fetching output:", error);
@@ -9467,12 +9478,13 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Download output file from Galaxy
-  app.get("/api/outputs/:id/download", async (req, res) => {
+  app.get("/api/outputs/:id/download", authenticateToken, async (req, res) => {
     try {
-      const output = await storage.getOutput(req.params.id);
-      if (!output) {
-        return res.status(404).json({ error: "Output not found" });
+      const access = await decideOutputAccess(req.params.id, req.user?.id ? String(req.user.id) : null, outputAccessDeps);
+      if (!access.allowed) {
+        return res.status(access.status).json({ error: access.error });
       }
+      const output = access.output;
 
       // Fetch file from Galaxy or local runtime artifact fallback.
       let fileStream: any;
@@ -9498,7 +9510,7 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Download all outputs for an invocation as ZIP
-  app.get("/api/invocations/:id/download-all", async (req, res) => {
+  app.get("/api/invocations/:id/download-all", authenticateToken, async (req, res) => {
     try {
       // Accept either a WorkflowInvocation ID or an ExecutionRun ID.
       let invocation = await storage.getInvocation(req.params.id);
@@ -9519,6 +9531,11 @@ ${paramLines || '(none recorded)'}`;
       }
       if (!invocation) {
         return res.status(404).json({ error: "Invocation not found" });
+      }
+
+      const invAccess = await decideInvocationAccess(invocation, req.user?.id ? String(req.user.id) : null, outputAccessDeps);
+      if (!invAccess.allowed) {
+        return res.status(invAccess.status).json({ error: invAccess.error });
       }
 
       const outputs = await storage.getInvocationOutputs(invocation.id);
@@ -9640,12 +9657,13 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Preview output (first N lines for tables/text files)
-  app.get("/api/outputs/:id/preview", async (req, res) => {
+  app.get("/api/outputs/:id/preview", authenticateToken, async (req, res) => {
     try {
-      const output = await storage.getOutput(req.params.id);
-      if (!output) {
-        return res.status(404).json({ error: "Output not found" });
+      const access = await decideOutputAccess(req.params.id, req.user?.id ? String(req.user.id) : null, outputAccessDeps);
+      if (!access.allowed) {
+        return res.status(access.status).json({ error: access.error });
       }
+      const output = access.output;
 
       if (output.fileType !== 'table' && output.fileType !== 'text') {
         return res.status(400).json({ error: "Preview not available for this file type" });
@@ -9703,12 +9721,13 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Parse bioinformatics file (VCF, FASTA, FASTQ, BED, GFF, GTF)
-  app.get("/api/outputs/:id/parse", async (req, res) => {
+  app.get("/api/outputs/:id/parse", authenticateToken, async (req, res) => {
     try {
-      const output = await storage.getOutput(req.params.id);
-      if (!output) {
-        return res.status(404).json({ error: "Output not found" });
+      const access = await decideOutputAccess(req.params.id, req.user?.id ? String(req.user.id) : null, outputAccessDeps);
+      if (!access.allowed) {
+        return res.status(access.status).json({ error: access.error });
       }
+      const output = access.output;
 
       const format = (req.query.format as string) || output.extension.toLowerCase();
       const limit = parseInt(req.query.limit as string) || 1000;
@@ -14484,13 +14503,18 @@ Respond ONLY with valid JSON (no markdown wrapper):
   // --- Workflow Reports ---
 
   // Get workflow report (auto-generated analysis summary)
-  app.get("/api/invocations/:id/report", async (req, res) => {
+  app.get("/api/invocations/:id/report", authenticateToken, async (req, res) => {
     try {
       const { format } = req.query;
       const invocation = await storage.getInvocation(req.params.id);
 
       if (!invocation) {
         return res.status(404).json({ error: "Invocation not found" });
+      }
+
+      const invAccess = await decideInvocationAccess(invocation, req.user?.id ? String(req.user.id) : null, outputAccessDeps);
+      if (!invAccess.allowed) {
+        return res.status(invAccess.status).json({ error: invAccess.error });
       }
 
       if (!invocation.galaxyWorkflowId || !invocation.galaxyInvocationId) {
