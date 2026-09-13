@@ -31,7 +31,7 @@ if ! systemctl is-active --quiet peptide-deadline.timer; then
   if [ -n "${DEADLINE_UTC:-}" ]; then
     systemd-run --unit=peptide-deadline --on-calendar="$DEADLINE_UTC" /sbin/shutdown -h now
   else
-    systemd-run --unit=peptide-deadline --on-active=4h /sbin/shutdown -h now
+    systemd-run --unit=peptide-deadline --on-active="${MAX_RUNTIME:-4h}" /sbin/shutdown -h now
   fi
 fi
 (while sleep 120; do sync_results; done) &
@@ -124,7 +124,39 @@ PY
 python "$ROOT/code/configure_pepglad.py" --root "$ROOT/PepGLAD" --stage ldm --checkpoint "$CKPT"
 stage training_latent_diffusion
 python train.py --gpus 0 --seed 20260912 --config run_outputs/ldm.yaml
-stage initial_training_complete
+stage training_complete
+sync_results
+# Held-out validation generation benchmark on the best LDM checkpoint. Best-effort:
+# training outputs are already synced, so an evaluation failure must not fail the run.
+stage evaluating
+LDM_CKPT=$(python - <<'PY'
+from pathlib import Path
+p=next(Path('run_outputs/ldm').glob('version_*/checkpoint/topk_map.txt'))
+print(p.read_text().splitlines()[0].split(': ',1)[1])
+PY
+)
+EVAL_DIR=run_outputs/validation_benchmark
+set +e
+( set -Eeuo pipefail
+  mkdir -p "$EVAL_DIR"
+  cp "$LDM_CKPT" "$EVAL_DIR/calibrated.ckpt"
+  # Latent-guidance calibration is required (uncalibrated smoke serialized 0/3, calibrated 3/3).
+  python - "$EVAL_DIR" <<'PY'
+import sys, yaml
+from pathlib import Path
+c = yaml.safe_load(Path('configs/pepbench/ldm/setup_latent_guidance.yaml').read_text())
+c['dataloader'].update(num_workers=0, batch_size=4)
+Path(sys.argv[1], 'calibration.yaml').write_text(yaml.safe_dump(c))
+PY
+  python setup_latent_guidance.py --config "$EVAL_DIR/calibration.yaml" --ckpt "$EVAL_DIR/calibrated.ckpt" --gpu 0
+  python "$ROOT/code/generate_validation.py" --checkpoint "$EVAL_DIR/calibrated.ckpt" \
+    --output "$EVAL_DIR" --attempts "${EVAL_ATTEMPTS:-4}"
+) > "$ROOT/status/evaluation.log" 2>&1
+EVAL_RC=$?
+set -Eeuo pipefail
+cp -f run_outputs/validation_benchmark/summary.json "$ROOT/status/validation_summary.json" 2>/dev/null || true
+sync_results
+if [ "$EVAL_RC" -eq 0 ]; then stage evaluation_complete; else stage evaluation_failed; fi
 sync_results
 stage waiting_for_augmentation_archive
 wait "$AUG_PID"
