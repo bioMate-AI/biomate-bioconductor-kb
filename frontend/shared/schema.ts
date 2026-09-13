@@ -1038,6 +1038,21 @@ export const executionRunStatusSchema = z.enum([
 export type ExecutionRunStatus = z.infer<typeof executionRunStatusSchema>;
 
 // Execution Run - the main unified workflow execution record
+// Resolved input binding — the exact dataset object bound to a data-input step
+// at launch. Recorded on the run so the record states which inputs produced its
+// results (provenance / reproducibility). `datasetId` is the immutable handle
+// (Galaxy dataset id, project file id, or s3 reference); s3Uri/projectFileId are
+// captured when known so a result can be traced to an exact project object.
+export const inputBindingSchema = z.object({
+  stepId: z.string(),
+  datasetId: z.string(),
+  src: z.string().optional(),
+  name: z.string().optional(),
+  s3Uri: z.string().optional(),
+  projectFileId: z.string().optional(),
+});
+export type InputBinding = z.infer<typeof inputBindingSchema>;
+
 export const executionRunSchema = z.object({
   // Identity
   id: z.string().default(() => crypto.randomUUID()),
@@ -1055,6 +1070,10 @@ export const executionRunSchema = z.object({
   // Workflow
   workflowName: z.string(),
   workflowDefinition: z.any().optional(), // Full .ga workflow object
+
+  // Resolved input bindings (provenance) — which exact dataset was bound to
+  // each data-input step. Empty for workflows with no data inputs.
+  inputBindings: z.array(inputBindingSchema).default([]),
 
   // Data Scope (TUNABLE)
   dataScope: dataScopeSchema,
@@ -1244,6 +1263,10 @@ export const executionRuns = pgTable("execution_runs", {
   mode: text("mode").default("sandbox"),
   workflowName: text("workflow_name").notNull(),
   workflowDefinition: text("workflow_definition"), // JSON stringified
+
+  // Resolved input bindings (JSON array) — provenance of which dataset was
+  // bound to each data-input step at launch.
+  inputBindings: text("input_bindings"), // JSON stringified InputBinding[]
 
   // Data Scope (JSON)
   dataScope: text("data_scope"), // JSON stringified DataScope

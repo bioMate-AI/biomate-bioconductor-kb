@@ -18,6 +18,7 @@ import {
   type RunComparisonResponse,
   executionRuns as executionRunsTable,
 } from "@shared/schema";
+import { extractInputBindings } from "./workflow-input-gate";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -323,6 +324,10 @@ export class MemStorage implements IStorage {
       workflowName,
       workflowDefinition: request.workflowDefinition,
 
+      // Provenance: record which exact dataset was bound to each data-input step
+      // at launch, so the run record can state its resolved inputs.
+      inputBindings: extractInputBindings((request as any).inputs),
+
       dataScope: {
         fraction: config.dataScope?.fraction ?? 1.0,
         absoluteCount: config.dataScope?.absoluteCount,
@@ -390,6 +395,7 @@ export class MemStorage implements IStorage {
       mode: executionRun.mode,
       workflowName: executionRun.workflowName,
       workflowDefinition: JSON.stringify(executionRun.workflowDefinition),
+      inputBindings: JSON.stringify(executionRun.inputBindings ?? []),
       dataScope: JSON.stringify(executionRun.dataScope),
       parameters: JSON.stringify(executionRun.parameters),
       galaxyInvocationId: executionRun.execution?.galaxyInvocationId,
@@ -414,6 +420,8 @@ export class MemStorage implements IStorage {
     try { execution = row.executionJson ? JSON.parse(row.executionJson) : {}; } catch {}
     let workflowDefinition: any = {};
     try { workflowDefinition = row.workflowDefinition ? JSON.parse(row.workflowDefinition) : {}; } catch {}
+    let inputBindings: any[] = [];
+    try { inputBindings = row.inputBindings ? JSON.parse(row.inputBindings) : []; } catch {}
     let dataScope: any = { fraction: 1, samplingStrategy: 'random', sampledIds: [] };
     try { dataScope = row.dataScope ? JSON.parse(row.dataScope) : dataScope; } catch {}
     let parameters: any = { version: 1, toolParameters: {} };
@@ -432,6 +440,7 @@ export class MemStorage implements IStorage {
       mode: (row.mode || 'sandbox') as 'sandbox' | 'production',
       workflowName: row.workflowName,
       workflowDefinition,
+      inputBindings,
       dataScope,
       parameters,
       execution: {

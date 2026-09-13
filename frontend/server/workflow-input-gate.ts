@@ -44,6 +44,45 @@ function inputBindingStepId(input: InputBinding): string | undefined {
   return nonEmptyString(stepId) ? stepId : undefined;
 }
 
+/** A well-formed input binding captured for the run record (provenance). */
+export type ResolvedInputBinding = {
+  stepId: string;
+  datasetId: string;
+  src?: string;
+  name?: string;
+  s3Uri?: string;
+  projectFileId?: string;
+};
+
+/**
+ * Extract the well-formed input bindings from an execution request's `inputs`.
+ * Only entries that pass the same id/src/stepId shape check the gate enforces
+ * are recorded — malformed entries are dropped (the gate rejects the run
+ * separately). This is the provenance the run record stores: which exact
+ * dataset was bound to each data-input step.
+ */
+export function extractInputBindings(inputs: unknown): ResolvedInputBinding[] {
+  const inputArray = Array.isArray(inputs) ? inputs : [];
+  const out: ResolvedInputBinding[] = [];
+  for (const candidate of inputArray) {
+    if (!candidate || typeof candidate !== "object") continue;
+    const input = candidate as InputBinding & {
+      name?: unknown; s3Uri?: unknown; s3_uri?: unknown; projectFileId?: unknown; project_file_id?: unknown;
+    };
+    const stepId = inputBindingStepId(input);
+    if (!nonEmptyString(input.id) || !stepId) continue;
+    const binding: ResolvedInputBinding = { stepId, datasetId: input.id };
+    if (nonEmptyString(input.src)) binding.src = input.src;
+    if (nonEmptyString(input.name)) binding.name = input.name;
+    const s3 = input.s3Uri ?? input.s3_uri;
+    if (nonEmptyString(s3)) binding.s3Uri = s3;
+    const pfid = input.projectFileId ?? input.project_file_id;
+    if (nonEmptyString(pfid)) binding.projectFileId = pfid;
+    out.push(binding);
+  }
+  return out;
+}
+
 export type WorkflowInputGateResult = {
   inputStepsCount: number;
   missingInputStepIds: string[];

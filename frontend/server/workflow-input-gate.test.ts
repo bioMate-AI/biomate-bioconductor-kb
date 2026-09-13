@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateWorkflowInputs } from "./workflow-input-gate";
+import { validateWorkflowInputs, extractInputBindings } from "./workflow-input-gate";
 
 const workflowWithInputs = {
   steps: {
@@ -76,5 +76,41 @@ describe("workflow execution input gate", () => {
       { id: "dataset-2", src: "hda", step_id: 1 },
     ], "nextflow"))
       .toMatchObject({ inputsRequired: false, inputsInvalid: false, inputsUnsupportedForNextflow: true });
+  });
+});
+
+describe("extractInputBindings (run provenance)", () => {
+  it("records stepId + datasetId + src + name for well-formed inputs", () => {
+    expect(extractInputBindings([
+      { id: "ds-a", src: "hda", stepId: "0", name: "a.csv" },
+      { id: "ds-b", src: "hda", step_id: 1 },
+    ])).toEqual([
+      { stepId: "0", datasetId: "ds-a", src: "hda", name: "a.csv" },
+      { stepId: "1", datasetId: "ds-b", src: "hda" },
+    ]);
+  });
+
+  it("captures s3Uri and projectFileId when supplied (snake or camel case)", () => {
+    expect(extractInputBindings([
+      { id: "pf-1", src: "project_file", stepId: "0", s3_uri: "s3://b/k.csv", project_file_id: "pf-1" },
+    ])).toEqual([
+      { stepId: "0", datasetId: "pf-1", src: "project_file", s3Uri: "s3://b/k.csv", projectFileId: "pf-1" },
+    ]);
+  });
+
+  it("drops malformed entries (missing id or stepId) rather than recording them", () => {
+    expect(extractInputBindings([
+      { id: "", src: "hda", stepId: "0" },
+      { src: "hda", stepId: "1" },
+      { id: "ds-c", src: "hda" },
+      null,
+      "nope",
+      { id: "ds-ok", src: "hda", stepId: "2" },
+    ])).toEqual([{ stepId: "2", datasetId: "ds-ok", src: "hda" }]);
+  });
+
+  it("returns [] for non-array input", () => {
+    expect(extractInputBindings(undefined)).toEqual([]);
+    expect(extractInputBindings({ datasets: ["x"] })).toEqual([]);
   });
 });
