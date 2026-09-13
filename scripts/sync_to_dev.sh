@@ -218,9 +218,19 @@ deploy_frontend() {
     frontend/Dockerfile frontend/Dockerfile.biotools 2>/dev/null
   log "[frontend] Archive: $(du -sh $tar_file | cut -f1)"
 
-  ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/frontend_sync.tar.gz"
+  # NOTE: deploy_frontend runs with set -e DISABLED — do_sync is invoked as
+  # `if do_sync ...` (bottom of file), which suppresses errexit for the entire
+  # call tree. So every remote step here MUST check its own exit code; a bare
+  # command that fails will otherwise be swallowed and the sync will falsely
+  # report "healthy" on the OLD container (2026-09-13 silent-fail incident:
+  # the archive scp dropped on a flaky SSM link, nothing deployed, yet
+  # [frontend] Done printed and the last-synced marker advanced).
+  if ! ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/frontend_sync.tar.gz"; then
+    log "[frontend] ERROR: archive upload (scp) failed — remote link down; aborting frontend deploy (old container still serving, marker NOT advanced)"
+    return 1
+  fi
 
-  ec2_ssh '
+  if ! ec2_ssh '
     set -e
     rm -rf /opt/biomate/frontend_sync && mkdir -p /opt/biomate/frontend_sync
     tar -xzf /tmp/frontend_sync.tar.gz -C /opt/biomate/frontend_sync
@@ -290,7 +300,24 @@ deploy_frontend() {
     # Restore logo (not baked into image — uploaded separately)
     docker cp /tmp/logo_sync.png biomate-dev-frontend:/app/dist/public/logo.png 2>/dev/null || true
     docker ps --format "  {{.Names}}: {{.Status}}" | grep biomate-dev-frontend
-  '
+  '; then
+    log "[frontend] ERROR: remote build/swap step failed or SSH connection dropped mid-deploy — aborting frontend deploy (marker NOT advanced)"
+    return 1
+  fi
+
+  # Post-swap freshness verification. The steps above can each fail; the
+  # rc checks catch a hard failure, but a dropped/re-established SSM tunnel
+  # can also leave the OLD container in place while every command appears to
+  # have "run". So independently confirm the container now serving was created
+  # by THIS deploy: its creation time must be recent. A stale image means the
+  # fresh code did NOT go live — fail loudly rather than record a false success.
+  local _age
+  _age=$(ec2_ssh 'c=$(docker inspect biomate-dev-frontend --format "{{.Created}}" 2>/dev/null); if [ -n "$c" ]; then echo $(( $(date +%s) - $(date -d "$c" +%s) )); else echo missing; fi' 2>/dev/null | tr -d "[:space:]")
+  if ! [[ "$_age" =~ ^[0-9]+$ ]] || [[ "$_age" -gt 900 ]]; then
+    log "[frontend] ERROR: post-deploy verification failed — running container image age='${_age:-?}'s (expected < 900s). Fresh code is NOT live; aborting (marker NOT advanced)."
+    return 1
+  fi
+  log "[frontend] verified fresh container (image age ${_age}s)"
   log "[frontend] Done"
 }
 
@@ -1742,7 +1769,17 @@ do_sync() {
   # Apply PostgreSQL migrations BEFORE deploying the frontend so the new bundle's
   # storage layer never hits a missing column on the new schema.
   $do_frontend  && apply_postgres_migrations
-  $do_frontend  && deploy_frontend
+  # A failed frontend deploy MUST abort the sync before the health gate and the
+  # marker write — otherwise the health gate passes on the still-running OLD
+  # container and the sync records a false success (2026-09-13 silent-fail).
+  # set -e is suppressed here (if do_sync ...), so check the rc explicitly.
+  if $do_frontend; then
+    if ! deploy_frontend; then
+      log "[frontend] deploy FAILED — aborting sync; dev NOT advanced to ${CURRENT_COMMIT:0:8} (marker unchanged, re-run when the link is stable)"
+      SYNC_RESULT=failed
+      return 1
+    fi
+  fi
   # remote_mcp runs AFTER the frontend (which now points MCP_UPSTREAM_URL at the
   # mcp container). Failure here never aborts the sync — it self-reports + logs;
   # the connector canary below also flags a down /mcp. Never fails the deploy.
