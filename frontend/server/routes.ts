@@ -19,6 +19,8 @@ import { db, pool } from "./db";
 import { selectChatHistoryUnderBudget } from "./chat-history-selector";
 import { capDatasetReferences, MAX_DATASET_REFS } from "./dataset-cap";
 import { selectReferencedDatasets, type DatasetReference } from "./dataset-reference-selection";
+import { resolveProjectFileReferences } from "./project-file-references";
+import { _isOwnerOrMember } from "./project-routes";
 import { appendComposerInstructions } from "./chat-context";
 import { validateWorkflowInputs } from "./workflow-input-gate";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -6092,6 +6094,108 @@ ${paramLines || '(none recorded)'}`;
         if (!_selectedModel) _selectedModel = process.env.OPENROUTER_DEFAULT_MODEL || 'deepseek/deepseek-chat';
       }
 
+      // Resolve chat dataset references BEFORE building enrichedContext.
+      // Session-cached datasets resolve synchronously, but a file the user
+      // picked from the "Project files" tab arrives as a project_files.id UUID
+      // that is NOT in this session cache — resolving it needs an authorized DB
+      // lookup + Batch staging (both async), so it can't live inside the object
+      // literal. Exact-id resolution only: never a same-named or newer file.
+      const _sessionDatasetsResolved = await (async () => {
+        const direct: Array<any> = req.session?.uploadedDatasets?.length
+          ? req.session.uploadedDatasets.map((d: any) => ({
+              id: d.galaxy_dataset_id || d.dataset_id,
+              name: d.name,
+              type: d.file_type || 'unknown',
+              file_path: d.file_path || null,
+              param_name: d.param_name || null,
+              // s3_uri: durable S3 reference for Nextflow/Batch params
+              // (use id for run_code/read_file; use s3_uri for workflow params)
+              s3_uri: d.s3_uri || null,
+            }))
+          : (_historyDatasets ?? []);
+        // Dedupe: a recovered entry whose id is already in direct is dropped.
+        const seen = new Set(direct.map((d: any) => d.id));
+        const recovered = _recoveredDatasets
+          .filter((r) => !seen.has(r.id))
+          .map((r) => ({
+            id: r.id,
+            name: r.name,
+            type: r.type,
+            file_path: null,
+            param_name: null,
+            recovered: true,
+            sourceSessionId: r.sourceSessionId,
+          }));
+        const combined = [...direct, ...recovered];
+        const requestedReferences = Array.isArray(context?.datasetReferences)
+          ? context.datasetReferences
+              .filter((reference: any): reference is DatasetReference =>
+                !!reference && typeof reference.id === 'string' && reference.id.trim().length > 0,
+              )
+              .slice(0, MAX_DATASET_REFS)
+          : undefined;
+        const selection = selectReferencedDatasets(combined, requestedReferences);
+        if (requestedReferences?.length) {
+          console.log(`[chat-stream] request dataset selection: ${selection.datasets.length}/${requestedReferences.length} resolved`);
+        }
+        const byId = new Map(selection.datasets.map((dataset: any) => [dataset.id, dataset]));
+
+        // Server-side project-file resolution. References not found in the
+        // session cache may be files the user picked from the "Project files"
+        // tab (project_files.id UUIDs). Resolve them against the AUTHORIZED
+        // project only — owner/member gate + exact id match, never by name —
+        // then stage the exact s3_key into the Batch-readable bucket so a
+        // selectable file is also runnable. Cross-project / deleted / unknown
+        // ids stay unresolved; we never substitute a same-named or newer file.
+        const _uid = req.user ? String((req.user as any).id) : undefined;
+        const _stagedCache = (req.session as any) ?? undefined;
+        if (_stagedCache && !_stagedCache.stagedProjectFileUris) _stagedCache.stagedProjectFileUris = {};
+        const projectFileResolved = await resolveProjectFileReferences(
+          (selection.missingIds ?? []).map((id) => ({ id })),
+          _resolvedProjectId,
+          _uid,
+          {
+            isOwnerOrMember: _isOwnerOrMember,
+            queryFilesByIds: async (pid, ids) =>
+              (await pool.query(
+                `SELECT id, name, s3_key FROM project_files WHERE project_id = $1 AND id = ANY($2::uuid[])`,
+                [pid, ids],
+              )).rows,
+            stageToBatch: (s3Key, pid, fileName) =>
+              _stageProjectFileToNextflow(process.env.S3_BUCKET_NAME || '', s3Key, pid, fileName),
+            cacheGet: (id) => _stagedCache?.stagedProjectFileUris?.[id],
+            cacheSet: (id, uri) => { if (_stagedCache?.stagedProjectFileUris) _stagedCache.stagedProjectFileUris[id] = uri; },
+          },
+        );
+        if (projectFileResolved.size) {
+          console.log(`[chat-stream] resolved ${projectFileResolved.size} project-file reference(s) to authorized S3 inputs`);
+        }
+
+        // A history-selected dataset may not be cached in this Express session
+        // yet. Keep its exact ID for on-demand resolution rather than falsely
+        // treating it as unavailable or substituting another session dataset
+        // with the same name.
+        const exactSelection = requestedReferences?.map((reference: { id: string; name?: string }) =>
+          byId.get(reference.id)
+          ?? projectFileResolved.get(reference.id)
+          ?? {
+            id: reference.id,
+            name: reference.name || reference.id,
+            type: 'selected reference',
+            referenceUnresolved: true,
+          },
+        );
+        // Unresolved = requested references resolved by neither the session
+        // cache nor the authorized project files. A file that resolved but
+        // failed to stage (s3_uri=null) is NOT unresolved — it degrades to
+        // execute-time by-name staging.
+        (context as any).datasetReferenceUnresolvedIds = (selection.missingIds ?? [])
+          .filter((id) => !projectFileResolved.has(id));
+        return exactSelection?.length
+          ? exactSelection
+          : (combined.length > 0 ? combined : undefined);
+      })();
+
       const enrichedContext = {
         ...(context || {}),
         // Normalise session identity: frontend sends memorySessionId; processMessage uses sessionId.
@@ -6124,62 +6228,7 @@ ${paramLines || '(none recorded)'}`;
         // direct ones. The sessionDatasetsBlock in galaxy-assistant.ts
         // labels recovered ones distinctly so the LLM doesn't claim the
         // user just attached them.
-        sessionDatasets: (() => {
-          const direct: Array<any> = req.session?.uploadedDatasets?.length
-            ? req.session.uploadedDatasets.map((d: any) => ({
-                id: d.galaxy_dataset_id || d.dataset_id,
-                name: d.name,
-                type: d.file_type || 'unknown',
-                file_path: d.file_path || null,
-                param_name: d.param_name || null,
-                // s3_uri: durable S3 reference for Nextflow/Batch params
-                // (use id for run_code/read_file; use s3_uri for workflow params)
-                s3_uri: d.s3_uri || null,
-              }))
-            : (_historyDatasets ?? []);
-          // Dedupe: a recovered entry whose id is already in direct is dropped.
-          const seen = new Set(direct.map((d: any) => d.id));
-          const recovered = _recoveredDatasets
-            .filter((r) => !seen.has(r.id))
-            .map((r) => ({
-              id: r.id,
-              name: r.name,
-              type: r.type,
-              file_path: null,
-              param_name: null,
-              recovered: true,
-              sourceSessionId: r.sourceSessionId,
-            }));
-          const combined = [...direct, ...recovered];
-          const requestedReferences = Array.isArray(context?.datasetReferences)
-            ? context.datasetReferences
-                .filter((reference: any): reference is DatasetReference =>
-                  !!reference && typeof reference.id === 'string' && reference.id.trim().length > 0,
-                )
-                .slice(0, MAX_DATASET_REFS)
-            : undefined;
-          const selection = selectReferencedDatasets(combined, requestedReferences);
-          if (requestedReferences?.length) {
-            console.log(`[chat-stream] request dataset selection: ${selection.datasets.length}/${requestedReferences.length} resolved`);
-          }
-          // A history-selected dataset may not be cached in this Express
-          // session yet. Keep its exact ID for on-demand resolution rather
-          // than falsely treating it as unavailable or substituting another
-          // session dataset with the same name.
-          const byId = new Map(selection.datasets.map((dataset: any) => [dataset.id, dataset]));
-          const exactSelection = requestedReferences?.map((reference: { id: string; name?: string }) =>
-            byId.get(reference.id) ?? {
-              id: reference.id,
-              name: reference.name || reference.id,
-              type: 'selected reference',
-              referenceUnresolved: true,
-            },
-          );
-          (context as any).datasetReferenceUnresolvedIds = selection.missingIds;
-          return exactSelection?.length
-            ? exactSelection
-            : (combined.length > 0 ? combined : undefined);
-        })(),
+        sessionDatasets: _sessionDatasetsResolved,
         datasetReferenceUnresolvedIds: (context as any)?.datasetReferenceUnresolvedIds?.length
           ? (context as any).datasetReferenceUnresolvedIds
           : undefined,

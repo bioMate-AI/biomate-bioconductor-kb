@@ -60,7 +60,7 @@ async function ensureProjectShareTokensTable(): Promise<void> {
 }
 ensureProjectShareTokensTable().catch(e => console.error("[project_share_tokens] table init failed:", e?.message ?? e));
 
-async function _isOwnerOrMember(projectId: string, uid: string): Promise<boolean> {
+export async function _isOwnerOrMember(projectId: string, uid: string): Promise<boolean> {
   const project = await memoryService.projects.getProject(projectId);
   if (!project) return false;
   if (project.userId === uid) return true;

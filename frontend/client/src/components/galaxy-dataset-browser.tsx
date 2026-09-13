@@ -525,7 +525,7 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
 }
 
 function ProjectFilesTab({ projectId, search, onSelect }: { projectId: string; search: string; onSelect: (value: string, name: string) => void }) {
-  const [files, setFiles] = useState<Array<{ id: string; name: string; size?: number; s3Uri?: string; s3_uri?: string }>>([]);
+  const [files, setFiles] = useState<Array<{ id: string; name: string; size?: number }>>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     setLoading(true);
@@ -541,7 +541,10 @@ function ProjectFilesTab({ projectId, search, onSelect }: { projectId: string; s
   return <div className="space-y-1">{filtered.map(file => (
     <div key={file.id} className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-md hover:bg-accent/60">
       <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{file.name}</p><span className="text-xs text-muted-foreground">{formatBytes(Number(file.size || 0))}</span></div>
-      <Button size="sm" variant="secondary" className="h-7 text-xs shrink-0" onClick={() => onSelect(file.s3Uri || file.s3_uri || file.id, file.name)}>Use</Button>
+      {/* Always send the project_files.id — the server authoritatively resolves
+          it to the exact, authorized s3_key at chat time. Never send a URI the
+          server would have to trust. */}
+      <Button size="sm" variant="secondary" className="h-7 text-xs shrink-0" onClick={() => onSelect(file.id, file.name)}>Use</Button>
     </div>
   ))}</div>;
 }
