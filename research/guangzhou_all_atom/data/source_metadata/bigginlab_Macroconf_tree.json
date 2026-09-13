@@ -1,0 +1,2943 @@
+{
+  "sha": "1fa6a74345334bae2235b3775180f209a1c923ed",
+  "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/1fa6a74345334bae2235b3775180f209a1c923ed",
+  "tree": [
+    {
+      "path": "LICENSE",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d159169d1050894d3ea3b98e1c965c4058208fe1",
+      "size": 18092,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/d159169d1050894d3ea3b98e1c965c4058208fe1"
+    },
+    {
+      "path": "README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b3dfd522d15556f51ead1df7b5c0a722c6e45822",
+      "size": 13185,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b3dfd522d15556f51ead1df7b5c0a722c6e45822"
+    },
+    {
+      "path": "data/dataset.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7d4c694bd99003ca6f3f563d9185b55ddf7afabf",
+      "size": 63627,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/7d4c694bd99003ca6f3f563d9185b55ddf7afabf"
+    },
+    {
+      "path": "data/inputs",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "a79968cdbc48c87454ad40228c0ca9d01fff7e52",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/a79968cdbc48c87454ad40228c0ca9d01fff7e52"
+    },
+    {
+      "path": "data/inputs/1_1_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c7807de833feb08349815565ffdd42b1c70ea1c6",
+      "size": 207,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/c7807de833feb08349815565ffdd42b1c70ea1c6"
+    },
+    {
+      "path": "data/inputs/22_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "94e423875f83ac347b28bada40c7006a9f12fc48",
+      "size": 197,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/94e423875f83ac347b28bada40c7006a9f12fc48"
+    },
+    {
+      "path": "data/inputs/24_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4c70472798ce796428bca6c159268acd5b418264",
+      "size": 265,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/4c70472798ce796428bca6c159268acd5b418264"
+    },
+    {
+      "path": "data/inputs/27_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e586a66608834c212da8e97e30f60a078c59cda8",
+      "size": 201,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e586a66608834c212da8e97e30f60a078c59cda8"
+    },
+    {
+      "path": "data/inputs/28_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "91da50eef24161c146e60ae3e6f0d814e024c190",
+      "size": 182,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/91da50eef24161c146e60ae3e6f0d814e024c190"
+    },
+    {
+      "path": "data/inputs/29_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "578433b732467628e238709f7e28f625ce1c0892",
+      "size": 182,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/578433b732467628e238709f7e28f625ce1c0892"
+    },
+    {
+      "path": "data/inputs/30_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7981e53da4a2cf2c155a543989c45df3f9d2a8dd",
+      "size": 182,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/7981e53da4a2cf2c155a543989c45df3f9d2a8dd"
+    },
+    {
+      "path": "data/inputs/31_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b9796ff557723032c26a5c9061a96760380be906",
+      "size": 182,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b9796ff557723032c26a5c9061a96760380be906"
+    },
+    {
+      "path": "data/inputs/32_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f69dc2633150fb218f39c11f12aede821ca232c7",
+      "size": 182,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/f69dc2633150fb218f39c11f12aede821ca232c7"
+    },
+    {
+      "path": "data/inputs/33_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e4b0155797dc45c74ad3f7dacc57bdd661c5ab3d",
+      "size": 187,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e4b0155797dc45c74ad3f7dacc57bdd661c5ab3d"
+    },
+    {
+      "path": "data/inputs/35_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "052ff468d5fedab4f96cee326b8f64d46b9089b7",
+      "size": 176,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/052ff468d5fedab4f96cee326b8f64d46b9089b7"
+    },
+    {
+      "path": "data/inputs/36_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9ce37920cc168d34cc75be5c43b9d208a9fb9159",
+      "size": 176,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/9ce37920cc168d34cc75be5c43b9d208a9fb9159"
+    },
+    {
+      "path": "data/inputs/38_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "def8ed2b6e9b2d13c0da2b8167e979e18f909606",
+      "size": 176,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/def8ed2b6e9b2d13c0da2b8167e979e18f909606"
+    },
+    {
+      "path": "data/inputs/39_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0f2592f121181d7d961324095e6f0fd3641a9c1d",
+      "size": 177,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/0f2592f121181d7d961324095e6f0fd3641a9c1d"
+    },
+    {
+      "path": "data/inputs/40_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c7a88ee619fc48081c9c8cfdbc1837a02ed9b565",
+      "size": 177,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/c7a88ee619fc48081c9c8cfdbc1837a02ed9b565"
+    },
+    {
+      "path": "data/inputs/41_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f6813fc359aea6e64ac7dbac4b96a5a51f7662a0",
+      "size": 177,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/f6813fc359aea6e64ac7dbac4b96a5a51f7662a0"
+    },
+    {
+      "path": "data/inputs/42_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ef55c7169d3a5e7212a0ffdbc0a40c073c7e1676",
+      "size": 176,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/ef55c7169d3a5e7212a0ffdbc0a40c073c7e1676"
+    },
+    {
+      "path": "data/inputs/49_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "23d5555717d96b74343c065ebfaed7b6bbadf4f4",
+      "size": 256,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/23d5555717d96b74343c065ebfaed7b6bbadf4f4"
+    },
+    {
+      "path": "data/inputs/50_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "281f6aa67d2dfc4669cbbdc24fa8640fe317d5ad",
+      "size": 256,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/281f6aa67d2dfc4669cbbdc24fa8640fe317d5ad"
+    },
+    {
+      "path": "data/inputs/51_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3fac6abda99a616330ee4c53735f6ff147fae3d8",
+      "size": 199,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/3fac6abda99a616330ee4c53735f6ff147fae3d8"
+    },
+    {
+      "path": "data/inputs/52_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a8c546a5358dd24040d51cea055ee699ab1efe43",
+      "size": 266,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/a8c546a5358dd24040d51cea055ee699ab1efe43"
+    },
+    {
+      "path": "data/inputs/54_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "04d02a4788fc03c884bbfc5e1f3fc9d51385662d",
+      "size": 199,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/04d02a4788fc03c884bbfc5e1f3fc9d51385662d"
+    },
+    {
+      "path": "data/inputs/55_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c5e81edfd0e47a727cbe8fd9b351632b98c5d36a",
+      "size": 220,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/c5e81edfd0e47a727cbe8fd9b351632b98c5d36a"
+    },
+    {
+      "path": "data/inputs/56_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2daa6c1fd47ef346d45e2cfc50aa2e64050b1a73",
+      "size": 217,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/2daa6c1fd47ef346d45e2cfc50aa2e64050b1a73"
+    },
+    {
+      "path": "data/inputs/57_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3bfc24dfd4b385494127adb3a8b3ccfb88baa7a6",
+      "size": 188,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/3bfc24dfd4b385494127adb3a8b3ccfb88baa7a6"
+    },
+    {
+      "path": "data/inputs/58_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "91c0df8b4437c60b3fbda92dd6a338b013fe2fc9",
+      "size": 196,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/91c0df8b4437c60b3fbda92dd6a338b013fe2fc9"
+    },
+    {
+      "path": "data/inputs/59_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ad8528762a0fec008c771f34ccaa6184a8cc138b",
+      "size": 190,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/ad8528762a0fec008c771f34ccaa6184a8cc138b"
+    },
+    {
+      "path": "data/inputs/60_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8b97a69b43ada980ea8f139557a7d23b25e4d829",
+      "size": 194,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/8b97a69b43ada980ea8f139557a7d23b25e4d829"
+    },
+    {
+      "path": "data/inputs/61_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1d4d87d5f000f8df15c6ba278abd959ef83d2b91",
+      "size": 192,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/1d4d87d5f000f8df15c6ba278abd959ef83d2b91"
+    },
+    {
+      "path": "data/inputs/62_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9b25e04049372587d936d02369519a7ce0df0972",
+      "size": 207,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/9b25e04049372587d936d02369519a7ce0df0972"
+    },
+    {
+      "path": "data/inputs/63_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "46a01b72201a6e800009cfcea2829a0cec2cfd20",
+      "size": 188,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/46a01b72201a6e800009cfcea2829a0cec2cfd20"
+    },
+    {
+      "path": "data/inputs/64_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e6df4c9c8740389ff4aa61360c8ae37e4734a3f3",
+      "size": 199,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e6df4c9c8740389ff4aa61360c8ae37e4734a3f3"
+    },
+    {
+      "path": "data/inputs/65_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "53d95e030f705f65444d59b2a339652341fb10bb",
+      "size": 534,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/53d95e030f705f65444d59b2a339652341fb10bb"
+    },
+    {
+      "path": "data/inputs/66_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8587c89f13d42a7b7b6668274688aab4167c6540",
+      "size": 188,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/8587c89f13d42a7b7b6668274688aab4167c6540"
+    },
+    {
+      "path": "data/inputs/67_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9119d55624cafad4bd2d1e3ba54801b64d181ce8",
+      "size": 515,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/9119d55624cafad4bd2d1e3ba54801b64d181ce8"
+    },
+    {
+      "path": "data/inputs/68_in.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "64f0cf7a1faeebd446bad46be3282b7ba9c2a168",
+      "size": 448,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/64f0cf7a1faeebd446bad46be3282b7ba9c2a168"
+    },
+    {
+      "path": "data/processed_NOEs",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "e42c46eecbe76c5661af6bb98a286242174b3942",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/e42c46eecbe76c5661af6bb98a286242174b3942"
+    },
+    {
+      "path": "data/processed_NOEs/1_1_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "592b88f95943eb87434e957d75217d7ceeb556a2",
+      "size": 1595,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/592b88f95943eb87434e957d75217d7ceeb556a2"
+    },
+    {
+      "path": "data/processed_NOEs/22_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "906e2b6ec96d36df74391c5e71013c1e2db9455a",
+      "size": 2398,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/906e2b6ec96d36df74391c5e71013c1e2db9455a"
+    },
+    {
+      "path": "data/processed_NOEs/24_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bebe61eb16e26c167c0b1c6f92e5ee443b60ad6e",
+      "size": 9418,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/bebe61eb16e26c167c0b1c6f92e5ee443b60ad6e"
+    },
+    {
+      "path": "data/processed_NOEs/27_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f20497242f3611f5ea2ecb07925425b347b3abba",
+      "size": 2776,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/f20497242f3611f5ea2ecb07925425b347b3abba"
+    },
+    {
+      "path": "data/processed_NOEs/28_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "07d594954319766843c1f8d7109175ae053f2d08",
+      "size": 3646,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/07d594954319766843c1f8d7109175ae053f2d08"
+    },
+    {
+      "path": "data/processed_NOEs/29_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "dced5a25a47a46dab862be954dc0ef01f3b0f20d",
+      "size": 3488,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/dced5a25a47a46dab862be954dc0ef01f3b0f20d"
+    },
+    {
+      "path": "data/processed_NOEs/30_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a84d5ef8f5e79e420a408ae658c40774d80db7f0",
+      "size": 3793,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/a84d5ef8f5e79e420a408ae658c40774d80db7f0"
+    },
+    {
+      "path": "data/processed_NOEs/31_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8955168bfcf12223110c9f6617952b5faf950e3a",
+      "size": 2953,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/8955168bfcf12223110c9f6617952b5faf950e3a"
+    },
+    {
+      "path": "data/processed_NOEs/32_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0c677459f544be7d452d4b3b5a9f249573d5847a",
+      "size": 3695,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/0c677459f544be7d452d4b3b5a9f249573d5847a"
+    },
+    {
+      "path": "data/processed_NOEs/33_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b044040958041d5172f254ee5cbc9187cb56cd4e",
+      "size": 2685,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b044040958041d5172f254ee5cbc9187cb56cd4e"
+    },
+    {
+      "path": "data/processed_NOEs/35_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "475818dc3efc2667e0d59a77f7a662fb99b3e4c0",
+      "size": 3240,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/475818dc3efc2667e0d59a77f7a662fb99b3e4c0"
+    },
+    {
+      "path": "data/processed_NOEs/36_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7c7630e0d52c190072b51bb08b3a8d71c788c044",
+      "size": 2609,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/7c7630e0d52c190072b51bb08b3a8d71c788c044"
+    },
+    {
+      "path": "data/processed_NOEs/38_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8c09544513e9f39854f2212256d47c9f35021946",
+      "size": 4684,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/8c09544513e9f39854f2212256d47c9f35021946"
+    },
+    {
+      "path": "data/processed_NOEs/39_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7929654ed84d62d46246b08b168a16a99a2457f2",
+      "size": 3696,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/7929654ed84d62d46246b08b168a16a99a2457f2"
+    },
+    {
+      "path": "data/processed_NOEs/40_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "024061af658ac9c309e9104f1025bf766159a462",
+      "size": 3342,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/024061af658ac9c309e9104f1025bf766159a462"
+    },
+    {
+      "path": "data/processed_NOEs/41_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "774cf25cf7875f651c459be48094abbc1795881d",
+      "size": 4354,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/774cf25cf7875f651c459be48094abbc1795881d"
+    },
+    {
+      "path": "data/processed_NOEs/42_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c4ce417978b8716b54da73de201642697c472396",
+      "size": 3367,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/c4ce417978b8716b54da73de201642697c472396"
+    },
+    {
+      "path": "data/processed_NOEs/49_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a542d9e2f5fab90edcec1bcf1867d7406dffa35a",
+      "size": 5056,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/a542d9e2f5fab90edcec1bcf1867d7406dffa35a"
+    },
+    {
+      "path": "data/processed_NOEs/50_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "90265e7554ab4e1265571c31e0c223052675ff43",
+      "size": 5176,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/90265e7554ab4e1265571c31e0c223052675ff43"
+    },
+    {
+      "path": "data/processed_NOEs/51_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a3f42b4ed54742a683c8ca0590e003c4b65217ba",
+      "size": 2080,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/a3f42b4ed54742a683c8ca0590e003c4b65217ba"
+    },
+    {
+      "path": "data/processed_NOEs/52_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c9453130b6d73eec7a2ea04caf46c4ad31d10a52",
+      "size": 2884,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/c9453130b6d73eec7a2ea04caf46c4ad31d10a52"
+    },
+    {
+      "path": "data/processed_NOEs/54_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "size": 0,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "data/processed_NOEs/55_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f9c424a8dee4fb3d9558c2955bd577f4a19cdbb0",
+      "size": 4292,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/f9c424a8dee4fb3d9558c2955bd577f4a19cdbb0"
+    },
+    {
+      "path": "data/processed_NOEs/56_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6e6d0bf0e753531a493cb79eb70b356de68469a3",
+      "size": 4826,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/6e6d0bf0e753531a493cb79eb70b356de68469a3"
+    },
+    {
+      "path": "data/processed_NOEs/57_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "00ccb800d59cd7a1bad5cf61fb889b66f3b8112e",
+      "size": 7581,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/00ccb800d59cd7a1bad5cf61fb889b66f3b8112e"
+    },
+    {
+      "path": "data/processed_NOEs/58_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ea910cb856283ec1c59c7140e0ffaed8bd18f2ca",
+      "size": 6699,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/ea910cb856283ec1c59c7140e0ffaed8bd18f2ca"
+    },
+    {
+      "path": "data/processed_NOEs/59_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7d5bbb4897ea6da3b63dfdc6e346612fdbb36929",
+      "size": 17985,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/7d5bbb4897ea6da3b63dfdc6e346612fdbb36929"
+    },
+    {
+      "path": "data/processed_NOEs/60_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0cddc3d9673adc001caa8b47e2e1514ffeea317d",
+      "size": 9283,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/0cddc3d9673adc001caa8b47e2e1514ffeea317d"
+    },
+    {
+      "path": "data/processed_NOEs/61_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "46ca0d878ed13243f48c73ca9f1bcdd5c024a5e5",
+      "size": 9714,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/46ca0d878ed13243f48c73ca9f1bcdd5c024a5e5"
+    },
+    {
+      "path": "data/processed_NOEs/62_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "adfe6e39bfecf344b8a3c32a978eb2b04a26e326",
+      "size": 21768,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/adfe6e39bfecf344b8a3c32a978eb2b04a26e326"
+    },
+    {
+      "path": "data/processed_NOEs/63_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1511908044a0d4704badcec079f573413af33c95",
+      "size": 6956,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/1511908044a0d4704badcec079f573413af33c95"
+    },
+    {
+      "path": "data/processed_NOEs/64_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ee84460008e3b814daf6b4f32177e7087efe8fad",
+      "size": 10753,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/ee84460008e3b814daf6b4f32177e7087efe8fad"
+    },
+    {
+      "path": "data/processed_NOEs/65_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "29d5e285e7433a42498667a81b9981c464867792",
+      "size": 11140,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/29d5e285e7433a42498667a81b9981c464867792"
+    },
+    {
+      "path": "data/processed_NOEs/66_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f2d2587e5399b25ba48fd229c5b20baa08007498",
+      "size": 4889,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/f2d2587e5399b25ba48fd229c5b20baa08007498"
+    },
+    {
+      "path": "data/processed_NOEs/67_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "09462f329f8051c176642548205580608bfb6b6f",
+      "size": 22915,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/09462f329f8051c176642548205580608bfb6b6f"
+    },
+    {
+      "path": "data/processed_NOEs/68_NOE.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5091b543ad31de30c40ac7880b1ab98939faf91a",
+      "size": 9105,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/5091b543ad31de30c40ac7880b1ab98939faf91a"
+    },
+    {
+      "path": "data/properties",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "8c7e92f805f967a55c9cc8f9ea57f302e07c9692",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/8c7e92f805f967a55c9cc8f9ea57f302e07c9692"
+    },
+    {
+      "path": "data/properties/1_1_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a255799e95644c6ba4b34e3faa99f459d20babd3",
+      "size": 373,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/a255799e95644c6ba4b34e3faa99f459d20babd3"
+    },
+    {
+      "path": "data/properties/1_2_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b30de8af8dcfd14e322b0ba60374faf0c72906f6",
+      "size": 367,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b30de8af8dcfd14e322b0ba60374faf0c72906f6"
+    },
+    {
+      "path": "data/properties/22_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c155494c6254055f1c36bedfd5801f78f6028c8a",
+      "size": 328,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/c155494c6254055f1c36bedfd5801f78f6028c8a"
+    },
+    {
+      "path": "data/properties/24_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "56201d5a5b0a2ad49dc11136d01806c3fe570910",
+      "size": 420,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/56201d5a5b0a2ad49dc11136d01806c3fe570910"
+    },
+    {
+      "path": "data/properties/27_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b96223c25a4835acd83024ebb600f07cc6fd523c",
+      "size": 322,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b96223c25a4835acd83024ebb600f07cc6fd523c"
+    },
+    {
+      "path": "data/properties/28_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f3b9f9c9ca3b2b235df91daeb8c3dcce3b550459",
+      "size": 303,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/f3b9f9c9ca3b2b235df91daeb8c3dcce3b550459"
+    },
+    {
+      "path": "data/properties/29_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "63fddd209eabe59585ce2067a928e7e43f764be5",
+      "size": 303,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/63fddd209eabe59585ce2067a928e7e43f764be5"
+    },
+    {
+      "path": "data/properties/30_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a085a520ca00784ff627aa89ce5335f6cdb2fdbe",
+      "size": 303,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/a085a520ca00784ff627aa89ce5335f6cdb2fdbe"
+    },
+    {
+      "path": "data/properties/31_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "54eb86fe2ae9b9f698a2744c42c9c63cc4b9639e",
+      "size": 302,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/54eb86fe2ae9b9f698a2744c42c9c63cc4b9639e"
+    },
+    {
+      "path": "data/properties/32_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c681129eea5e1e4ffa2c4458eeda32c33f34ee90",
+      "size": 305,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/c681129eea5e1e4ffa2c4458eeda32c33f34ee90"
+    },
+    {
+      "path": "data/properties/33_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "622db7cc83ea8fb4f9daa2c3273ed150558f8bec",
+      "size": 311,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/622db7cc83ea8fb4f9daa2c3273ed150558f8bec"
+    },
+    {
+      "path": "data/properties/35_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "602d71be85e2bc403e5ef96e584dd9bc8cc3ec79",
+      "size": 295,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/602d71be85e2bc403e5ef96e584dd9bc8cc3ec79"
+    },
+    {
+      "path": "data/properties/36_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "dcc057252004cf08a01a8e7cb225acc1f3df99a2",
+      "size": 295,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/dcc057252004cf08a01a8e7cb225acc1f3df99a2"
+    },
+    {
+      "path": "data/properties/38_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c6421f6ee6c15f1f43604264e026a1947ee3b667",
+      "size": 310,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/c6421f6ee6c15f1f43604264e026a1947ee3b667"
+    },
+    {
+      "path": "data/properties/39_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8d3e8b8f33b84d9eef105c8b1e1a02b07f635fb4",
+      "size": 300,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/8d3e8b8f33b84d9eef105c8b1e1a02b07f635fb4"
+    },
+    {
+      "path": "data/properties/40_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bf6ac30717902d52e59049c0f704e0bd9d131527",
+      "size": 296,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/bf6ac30717902d52e59049c0f704e0bd9d131527"
+    },
+    {
+      "path": "data/properties/41_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b4a2396423232649ffbfbdba6a716acafe56d9e9",
+      "size": 311,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b4a2396423232649ffbfbdba6a716acafe56d9e9"
+    },
+    {
+      "path": "data/properties/42_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d47948fdc057031a079233851d0d779a43bd0e63",
+      "size": 299,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/d47948fdc057031a079233851d0d779a43bd0e63"
+    },
+    {
+      "path": "data/properties/49_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a8d1dee6a2270cc3bdeea5ab14aa1ef2af0e2fd8",
+      "size": 388,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/a8d1dee6a2270cc3bdeea5ab14aa1ef2af0e2fd8"
+    },
+    {
+      "path": "data/properties/50_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e19a1d94115bdf8ac58124b94eef5fc7c6d8dc74",
+      "size": 400,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e19a1d94115bdf8ac58124b94eef5fc7c6d8dc74"
+    },
+    {
+      "path": "data/properties/51_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b51149469a384566e29b530d390410ac84377baf",
+      "size": 311,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b51149469a384566e29b530d390410ac84377baf"
+    },
+    {
+      "path": "data/properties/52_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c6f85b5f8c93e816906f687eb1e8dd733f3d075c",
+      "size": 396,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/c6f85b5f8c93e816906f687eb1e8dd733f3d075c"
+    },
+    {
+      "path": "data/properties/54_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9c3d995caca0cea19b3de4b455ba5b700ad2cb56",
+      "size": 400,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/9c3d995caca0cea19b3de4b455ba5b700ad2cb56"
+    },
+    {
+      "path": "data/properties/55_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d3ba8c1874e9f1b0384b043d7c81cf2143d54db9",
+      "size": 481,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/d3ba8c1874e9f1b0384b043d7c81cf2143d54db9"
+    },
+    {
+      "path": "data/properties/56_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e0de87f314f60641de934da953f2945c3b6e0480",
+      "size": 450,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e0de87f314f60641de934da953f2945c3b6e0480"
+    },
+    {
+      "path": "data/properties/57_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "aa258d881d4666d0d1b20e967d6c33b38f134bbb",
+      "size": 382,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/aa258d881d4666d0d1b20e967d6c33b38f134bbb"
+    },
+    {
+      "path": "data/properties/58_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "757cd8a6d015734c37c75a8a5fbea4f47e244fac",
+      "size": 377,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/757cd8a6d015734c37c75a8a5fbea4f47e244fac"
+    },
+    {
+      "path": "data/properties/59_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9022d957f5a679d9f06392218e39b805e1196441",
+      "size": 408,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/9022d957f5a679d9f06392218e39b805e1196441"
+    },
+    {
+      "path": "data/properties/60_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6d7b38fade97a4b56fd65b9553daec6874b096b9",
+      "size": 410,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/6d7b38fade97a4b56fd65b9553daec6874b096b9"
+    },
+    {
+      "path": "data/properties/61_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7a99460e76e691acb748a8a1cddf89c89a6efbd6",
+      "size": 429,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/7a99460e76e691acb748a8a1cddf89c89a6efbd6"
+    },
+    {
+      "path": "data/properties/62_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "61e00cfecbe953c0a1969556c1affb74a3ddd498",
+      "size": 457,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/61e00cfecbe953c0a1969556c1affb74a3ddd498"
+    },
+    {
+      "path": "data/properties/63_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "45105c42728446bb4a9ddd2a11233faefdcc6503",
+      "size": 375,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/45105c42728446bb4a9ddd2a11233faefdcc6503"
+    },
+    {
+      "path": "data/properties/64_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "38355f1814d380ce093954261b4a24f8c0cbc9dd",
+      "size": 454,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/38355f1814d380ce093954261b4a24f8c0cbc9dd"
+    },
+    {
+      "path": "data/properties/65_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3672a14afbae7320b3bca2679b925cb625e057e9",
+      "size": 837,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/3672a14afbae7320b3bca2679b925cb625e057e9"
+    },
+    {
+      "path": "data/properties/66_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e87e3ac0ba5130b873e98e8c973472a7bda6fe32",
+      "size": 376,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e87e3ac0ba5130b873e98e8c973472a7bda6fe32"
+    },
+    {
+      "path": "data/properties/67_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "92aff57dec9ffaf898ac9278e910ae4d300b70ee",
+      "size": 787,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/92aff57dec9ffaf898ac9278e910ae4d300b70ee"
+    },
+    {
+      "path": "data/properties/68_data.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f518106ac3f29a51b4577c535bc362296d14dcb4",
+      "size": 658,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/f518106ac3f29a51b4577c535bc362296d14dcb4"
+    },
+    {
+      "path": "data/raw_noes",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "d1ce4ce43a2546262a837e3b6b68a611e349ea6a",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/d1ce4ce43a2546262a837e3b6b68a611e349ea6a"
+    },
+    {
+      "path": "data/raw_noes/10_4_2.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "65899185a5418647a9ad2c7828d3dab09754a120",
+      "size": 575,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/65899185a5418647a9ad2c7828d3dab09754a120"
+    },
+    {
+      "path": "data/raw_noes/11_4_11.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "65e452590de31787f0e352527d21ddf9607ca1ec",
+      "size": 652,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/65e452590de31787f0e352527d21ddf9607ca1ec"
+    },
+    {
+      "path": "data/raw_noes/12_4_12.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8b26cd93f32aa126f49bdb5c274b93e663ef8bb7",
+      "size": 529,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/8b26cd93f32aa126f49bdb5c274b93e663ef8bb7"
+    },
+    {
+      "path": "data/raw_noes/13_5_4a.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "071bdff6c979d005d01f0c19769d7a525b763949",
+      "size": 322,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/071bdff6c979d005d01f0c19769d7a525b763949"
+    },
+    {
+      "path": "data/raw_noes/14_5_4b.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0bbe9baf5e0349c5123710d21dbd8e90082c056e",
+      "size": 181,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/0bbe9baf5e0349c5123710d21dbd8e90082c056e"
+    },
+    {
+      "path": "data/raw_noes/15_5_5.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b8b3556bf3d10f1503c04dfac8f1171c60abe49d",
+      "size": 390,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b8b3556bf3d10f1503c04dfac8f1171c60abe49d"
+    },
+    {
+      "path": "data/raw_noes/16_6_1_CDCL3.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fb9ff67aebd0b4aded0be4001ed620c3d26f9c5c",
+      "size": 1207,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/fb9ff67aebd0b4aded0be4001ed620c3d26f9c5c"
+    },
+    {
+      "path": "data/raw_noes/16_6_1_DMSO.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c9333ecfec35c02ec961c98598811cef94bcee6d",
+      "size": 1222,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/c9333ecfec35c02ec961c98598811cef94bcee6d"
+    },
+    {
+      "path": "data/raw_noes/17_6_2_CDCl3.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a58280ef0ec9d8f2c591c431972c77524ba04133",
+      "size": 1549,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/a58280ef0ec9d8f2c591c431972c77524ba04133"
+    },
+    {
+      "path": "data/raw_noes/17_6_2_DMSO.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9885b911f4c9296b54fdaf0c2b26917a74ef9123",
+      "size": 1542,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/9885b911f4c9296b54fdaf0c2b26917a74ef9123"
+    },
+    {
+      "path": "data/raw_noes/18_6_3_CDCl3.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "02f49fd5b9c8d8686b7c6d0a255e4461a02a4905",
+      "size": 703,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/02f49fd5b9c8d8686b7c6d0a255e4461a02a4905"
+    },
+    {
+      "path": "data/raw_noes/18_6_3_DMSO.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "eebfe5dbe6ed88e7231f471cb254e5fa68d508bc",
+      "size": 672,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/eebfe5dbe6ed88e7231f471cb254e5fa68d508bc"
+    },
+    {
+      "path": "data/raw_noes/19_7_1.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "48fe5a7b3cb7f9670776ef7aa25d76de32029f75",
+      "size": 348,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/48fe5a7b3cb7f9670776ef7aa25d76de32029f75"
+    },
+    {
+      "path": "data/raw_noes/1_1_1_phepropetin.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e478cb531d0fd444288f63dadb94b2dd49671fe5",
+      "size": 268,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e478cb531d0fd444288f63dadb94b2dd49671fe5"
+    },
+    {
+      "path": "data/raw_noes/1_2_1_phepropetin.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bc816b208ebcc9fd60053482607a03c4db81ca09",
+      "size": 185,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/bc816b208ebcc9fd60053482607a03c4db81ca09"
+    },
+    {
+      "path": "data/raw_noes/20_7_24.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4d35c1576c27cb5bd26ceec88f6a7d764fa08e43",
+      "size": 450,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/4d35c1576c27cb5bd26ceec88f6a7d764fa08e43"
+    },
+    {
+      "path": "data/raw_noes/21_8_1.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b7dba683e67a8bf32140b33f6b26047a9212b901",
+      "size": 819,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b7dba683e67a8bf32140b33f6b26047a9212b901"
+    },
+    {
+      "path": "data/raw_noes/22_8_2.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "82767356536d8485f39fc1d3240392fdb45edb26",
+      "size": 629,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/82767356536d8485f39fc1d3240392fdb45edb26"
+    },
+    {
+      "path": "data/raw_noes/23_8_3.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "428e09549784a0c3ad2efa786bd38d0aeefaa587",
+      "size": 919,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/428e09549784a0c3ad2efa786bd38d0aeefaa587"
+    },
+    {
+      "path": "data/raw_noes/24_8_4a.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0bcb155e00a6ddd2a4ad38553034140924a62127",
+      "size": 1318,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/0bcb155e00a6ddd2a4ad38553034140924a62127"
+    },
+    {
+      "path": "data/raw_noes/24_8_4b.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e01f3ec5d1232f36edb30dd0a4c5a30c3ad26114",
+      "size": 1128,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e01f3ec5d1232f36edb30dd0a4c5a30c3ad26114"
+    },
+    {
+      "path": "data/raw_noes/25_8_5.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e7c884d022d1bdd25a7734397b80ba66c1c24290",
+      "size": 1070,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e7c884d022d1bdd25a7734397b80ba66c1c24290"
+    },
+    {
+      "path": "data/raw_noes/26_8_6.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8c961bb076a7bfda801ea0d793cf450081833fab",
+      "size": 1109,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/8c961bb076a7bfda801ea0d793cf450081833fab"
+    },
+    {
+      "path": "data/raw_noes/27_9_RI1.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "40301c1631c7ac78181139cc0f167f195a375ea1",
+      "size": 780,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/40301c1631c7ac78181139cc0f167f195a375ea1"
+    },
+    {
+      "path": "data/raw_noes/28_9_RI2.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "163427c2f36c37459d85dfc746d0c237280fa239",
+      "size": 992,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/163427c2f36c37459d85dfc746d0c237280fa239"
+    },
+    {
+      "path": "data/raw_noes/29_9_RI3.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2a0ec9e5c8a410324a657637bf5946438b4b7e79",
+      "size": 956,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/2a0ec9e5c8a410324a657637bf5946438b4b7e79"
+    },
+    {
+      "path": "data/raw_noes/2_2_6R_DMSO.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8e70229eb8a05b1939c6cc0e6aa6f307912a7423",
+      "size": 598,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/8e70229eb8a05b1939c6cc0e6aa6f307912a7423"
+    },
+    {
+      "path": "data/raw_noes/2_2_6R_H2O.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b6fb5ea412c7990621a50caa7ed5984e40bf2934",
+      "size": 454,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b6fb5ea412c7990621a50caa7ed5984e40bf2934"
+    },
+    {
+      "path": "data/raw_noes/30_9_RI4.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8916dda8fcd2cf183dce7bc4b2b2bc65f08b1470",
+      "size": 1025,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/8916dda8fcd2cf183dce7bc4b2b2bc65f08b1470"
+    },
+    {
+      "path": "data/raw_noes/31_9_RI5.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9a87a35e3e4540cbd7931f65d5a77fe91a62e211",
+      "size": 760,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/9a87a35e3e4540cbd7931f65d5a77fe91a62e211"
+    },
+    {
+      "path": "data/raw_noes/32_9_P3.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9ab19958f3856d28d64aab2d2f4b0e4ec710baa7",
+      "size": 968,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/9ab19958f3856d28d64aab2d2f4b0e4ec710baa7"
+    },
+    {
+      "path": "data/raw_noes/33_9_p5.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7fff584d8fb8ab500e3c5d06996c5f3cb5850f92",
+      "size": 719,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/7fff584d8fb8ab500e3c5d06996c5f3cb5850f92"
+    },
+    {
+      "path": "data/raw_noes/34_10_1.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9a82495ac9755d44ecee2784cb373cb526dd9388",
+      "size": 644,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/9a82495ac9755d44ecee2784cb373cb526dd9388"
+    },
+    {
+      "path": "data/raw_noes/35_11_P2.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f35967d66a08e11e745e84c6f8ec3b7eca673af8",
+      "size": 839,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/f35967d66a08e11e745e84c6f8ec3b7eca673af8"
+    },
+    {
+      "path": "data/raw_noes/36_11_P3.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "67fdecdb154f260f0478d2acfc0ab1cc9a7f3675",
+      "size": 678,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/67fdecdb154f260f0478d2acfc0ab1cc9a7f3675"
+    },
+    {
+      "path": "data/raw_noes/37_11_P5.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "066fe69a7e055a7f415940e8bfd6ce481b753285",
+      "size": 884,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/066fe69a7e055a7f415940e8bfd6ce481b753285"
+    },
+    {
+      "path": "data/raw_noes/38_11_P6.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c64aa4908b2d41291090991d55f7538b2becea1e",
+      "size": 1242,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/c64aa4908b2d41291090991d55f7538b2becea1e"
+    },
+    {
+      "path": "data/raw_noes/39_11_P8.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "832b642a6c3281fa5d1a4ef3fcf86616a810d6c3",
+      "size": 945,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/832b642a6c3281fa5d1a4ef3fcf86616a810d6c3"
+    },
+    {
+      "path": "data/raw_noes/3_2_6S_DMSO.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ce53eddb4d16569a1e8084f0286a8a1f2a8230f6",
+      "size": 543,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/ce53eddb4d16569a1e8084f0286a8a1f2a8230f6"
+    },
+    {
+      "path": "data/raw_noes/40_11_P15.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2e2047261674549ddbab33a52d84f2404f2fd4d2",
+      "size": 863,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/2e2047261674549ddbab33a52d84f2404f2fd4d2"
+    },
+    {
+      "path": "data/raw_noes/41_11_P18.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f2d75561725435194991c9fea55319d596a911eb",
+      "size": 1125,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/f2d75561725435194991c9fea55319d596a911eb"
+    },
+    {
+      "path": "data/raw_noes/42_11_P20.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d8061b302a998057c30c00851f44833b376c17dc",
+      "size": 869,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/d8061b302a998057c30c00851f44833b376c17dc"
+    },
+    {
+      "path": "data/raw_noes/43_12_PA1.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b91fcb0415abc0f9ffee6805759d1524d1ef6f3d",
+      "size": 1601,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b91fcb0415abc0f9ffee6805759d1524d1ef6f3d"
+    },
+    {
+      "path": "data/raw_noes/44_12_PA2.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0ff8191a0f35b996809518096c64abd733ac5146",
+      "size": 1542,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/0ff8191a0f35b996809518096c64abd733ac5146"
+    },
+    {
+      "path": "data/raw_noes/45_12_PA3.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c83543696d013e25828e5b7f71f5581ff8c48b91",
+      "size": 1248,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/c83543696d013e25828e5b7f71f5581ff8c48b91"
+    },
+    {
+      "path": "data/raw_noes/46_12_PA4.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d4dc485e0e5583cc426eb681d9691129bae22504",
+      "size": 1242,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/d4dc485e0e5583cc426eb681d9691129bae22504"
+    },
+    {
+      "path": "data/raw_noes/47_12_PA5.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "18365e3efd1fd4222e659302883b7f8b175d54ac",
+      "size": 1744,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/18365e3efd1fd4222e659302883b7f8b175d54ac"
+    },
+    {
+      "path": "data/raw_noes/48_12_PA6.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3ca83bb96606dfb49b5c13d56e4384b02142cba8",
+      "size": 1502,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/3ca83bb96606dfb49b5c13d56e4384b02142cba8"
+    },
+    {
+      "path": "data/raw_noes/49_cis.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fc8ca518b7ead2e970f336db2be553be23c1c85b",
+      "size": 735,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/fc8ca518b7ead2e970f336db2be553be23c1c85b"
+    },
+    {
+      "path": "data/raw_noes/49_trans.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e3f2de07294c975687fd62c2344a91da30be4368",
+      "size": 741,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e3f2de07294c975687fd62c2344a91da30be4368"
+    },
+    {
+      "path": "data/raw_noes/4_3_3_tabula.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "69b0b171d1126e00d811c1cd4aae5f1b5f1655d0",
+      "size": 468,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/69b0b171d1126e00d811c1cd4aae5f1b5f1655d0"
+    },
+    {
+      "path": "data/raw_noes/50_cis.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c939c38ece04ab4857f55b98f79225713ecb5033",
+      "size": 801,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/c939c38ece04ab4857f55b98f79225713ecb5033"
+    },
+    {
+      "path": "data/raw_noes/50_trans.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b737ac386cfe1d07603fbb8412f7af61bfe0a7bb",
+      "size": 649,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b737ac386cfe1d07603fbb8412f7af61bfe0a7bb"
+    },
+    {
+      "path": "data/raw_noes/51_14.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7f6737c61b78226034814df328b23bb3c0fe577d",
+      "size": 642,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/7f6737c61b78226034814df328b23bb3c0fe577d"
+    },
+    {
+      "path": "data/raw_noes/52_15_1_CIS.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6bf7fbf545d130b5af6213da974c8b1adaa0b516",
+      "size": 484,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/6bf7fbf545d130b5af6213da974c8b1adaa0b516"
+    },
+    {
+      "path": "data/raw_noes/52_15_1_TRANS.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2a7a1b3a29121349bcd3ff6537363ec07a0df201",
+      "size": 268,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/2a7a1b3a29121349bcd3ff6537363ec07a0df201"
+    },
+    {
+      "path": "data/raw_noes/53_15_2.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5a2c817401b2688f1cdad92f1d2e2f13c1b6954f",
+      "size": 189,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/5a2c817401b2688f1cdad92f1d2e2f13c1b6954f"
+    },
+    {
+      "path": "data/raw_noes/55_16.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "221dd1a169162e744a0066a735598e25bce853a0",
+      "size": 1113,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/221dd1a169162e744a0066a735598e25bce853a0"
+    },
+    {
+      "path": "data/raw_noes/56_17.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "64fdceb7cbafd74784eae5a92c688b45aa8b71c1",
+      "size": 1314,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/64fdceb7cbafd74784eae5a92c688b45aa8b71c1"
+    },
+    {
+      "path": "data/raw_noes/57_6be9.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "126fea52f6099d1f5191058de891e908c4c4c6b0",
+      "size": 3834,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/126fea52f6099d1f5191058de891e908c4c4c6b0"
+    },
+    {
+      "path": "data/raw_noes/58_6bew.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "50d4446c8acfe2cd7e7bac7e314463a4a8b9c7c8",
+      "size": 3407,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/50d4446c8acfe2cd7e7bac7e314463a4a8b9c7c8"
+    },
+    {
+      "path": "data/raw_noes/59_6be7.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "688b6201d44c5cd89b5b103c198f0a3440c4fd77",
+      "size": 9033,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/688b6201d44c5cd89b5b103c198f0a3440c4fd77"
+    },
+    {
+      "path": "data/raw_noes/5_3_4_tabula.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f23600a479a2ec38dc794109974263586c78b8da",
+      "size": 495,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/f23600a479a2ec38dc794109974263586c78b8da"
+    },
+    {
+      "path": "data/raw_noes/60_6ben.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "954df1beace6f67b2e63c5b03c6a509a7ebe1323",
+      "size": 4678,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/954df1beace6f67b2e63c5b03c6a509a7ebe1323"
+    },
+    {
+      "path": "data/raw_noes/61_6beo.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "34711fb0e3ad6a9c06ebdd89e3d92bb4ca9a67dc",
+      "size": 4836,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/34711fb0e3ad6a9c06ebdd89e3d92bb4ca9a67dc"
+    },
+    {
+      "path": "data/raw_noes/62_6ber.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7173207a018c05eb83dfb3c889e1ac43a3d9ca86",
+      "size": 10727,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/7173207a018c05eb83dfb3c889e1ac43a3d9ca86"
+    },
+    {
+      "path": "data/raw_noes/63_6bf3.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cc0b0c307ca613e91f6f1ec4d0a7d794fef41aff",
+      "size": 3502,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/cc0b0c307ca613e91f6f1ec4d0a7d794fef41aff"
+    },
+    {
+      "path": "data/raw_noes/64_6beq.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "58fc4b2ebb7a75497db64e218e1fe89bb6310733",
+      "size": 5308,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/58fc4b2ebb7a75497db64e218e1fe89bb6310733"
+    },
+    {
+      "path": "data/raw_noes/65_6bet.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2ba897c1b9e0de6c87ad4eb5b7a031c95bae5324",
+      "size": 5517,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/2ba897c1b9e0de6c87ad4eb5b7a031c95bae5324"
+    },
+    {
+      "path": "data/raw_noes/66_6bf5.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "03df91ebb5d4e7adcfc5ea2945743d143f53f75e",
+      "size": 2485,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/03df91ebb5d4e7adcfc5ea2945743d143f53f75e"
+    },
+    {
+      "path": "data/raw_noes/67_6beu.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "53ebb286bc2d2675fd12600d804e748bf21cd214",
+      "size": 11119,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/53ebb286bc2d2675fd12600d804e748bf21cd214"
+    },
+    {
+      "path": "data/raw_noes/68_6bes.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "caf5ff41db562b06cfecec71787d268d1d33e53c",
+      "size": 4574,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/caf5ff41db562b06cfecec71787d268d1d33e53c"
+    },
+    {
+      "path": "data/raw_noes/6_3_5_tabula.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2ed74ca1c715f2f2bbfc9c994cac98e64fb4a364",
+      "size": 536,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/2ed74ca1c715f2f2bbfc9c994cac98e64fb4a364"
+    },
+    {
+      "path": "data/raw_noes/7_3_6_tabula.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "47d234d0f4f996aa2273860a60cdde7d8f6c6192",
+      "size": 388,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/47d234d0f4f996aa2273860a60cdde7d8f6c6192"
+    },
+    {
+      "path": "data/raw_noes/8_3_7_tabula.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b9c7613834b4ce1fdcbb3f8bffea0e1bc235ce3a",
+      "size": 539,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b9c7613834b4ce1fdcbb3f8bffea0e1bc235ce3a"
+    },
+    {
+      "path": "data/raw_noes/9_3_8_tabula.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "57ed7dd96b5ce973a0d507e2fe11dece5c2ce5b1",
+      "size": 461,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/57ed7dd96b5ce973a0d507e2fe11dece5c2ce5b1"
+    },
+    {
+      "path": "data/topologies",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "3c2da5c43e39c019197c5f4e14bed95747394f02",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/3c2da5c43e39c019197c5f4e14bed95747394f02"
+    },
+    {
+      "path": "data/topologies/1_1",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "01905392fa896ec0a2d2b33c146e30007e17b504",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/01905392fa896ec0a2d2b33c146e30007e17b504"
+    },
+    {
+      "path": "data/topologies/1_1/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "42ef7499a2c2920bc1fdf3a46466ca5a1b7c7b02",
+      "size": 10767,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/42ef7499a2c2920bc1fdf3a46466ca5a1b7c7b02"
+    },
+    {
+      "path": "data/topologies/1_1/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e0806a6c187d3c04d8b93f3bf7240747d4b7c361",
+      "size": 7384,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e0806a6c187d3c04d8b93f3bf7240747d4b7c361"
+    },
+    {
+      "path": "data/topologies/1_1/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1b2030b2b5a68f71c0038933240a76ca29417c76",
+      "size": 64459,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/1b2030b2b5a68f71c0038933240a76ca29417c76"
+    },
+    {
+      "path": "data/topologies/22",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "82d4a4e41d3a5fc03d13b83f9c07b21a4557a038",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/82d4a4e41d3a5fc03d13b83f9c07b21a4557a038"
+    },
+    {
+      "path": "data/topologies/22/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ea7f961eb2427d2d183506e52b3a02061d3dd3bd",
+      "size": 2575,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/ea7f961eb2427d2d183506e52b3a02061d3dd3bd"
+    },
+    {
+      "path": "data/topologies/22/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "39f921ce929a89ee5c8cdb248901ee477e49e3fb",
+      "size": 6966,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/39f921ce929a89ee5c8cdb248901ee477e49e3fb"
+    },
+    {
+      "path": "data/topologies/22/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "09d71328f9a69e296ad953398c2f3ecf311926c2",
+      "size": 4704,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/09d71328f9a69e296ad953398c2f3ecf311926c2"
+    },
+    {
+      "path": "data/topologies/22/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8cfc43d26f554a26f51febceea2d69734bf2780d",
+      "size": 48668,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/8cfc43d26f554a26f51febceea2d69734bf2780d"
+    },
+    {
+      "path": "data/topologies/24",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "fd6bdbcf6e8f185fdff93ad7aaae988e30f5c69e",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/fd6bdbcf6e8f185fdff93ad7aaae988e30f5c69e"
+    },
+    {
+      "path": "data/topologies/24/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "311e143c4fd62ab6c49161cdbf875445ab8a150d",
+      "size": 3159,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/311e143c4fd62ab6c49161cdbf875445ab8a150d"
+    },
+    {
+      "path": "data/topologies/24/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a23f0856e4648248eda93884b384a9c0be6a87ae",
+      "size": 8515,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/a23f0856e4648248eda93884b384a9c0be6a87ae"
+    },
+    {
+      "path": "data/topologies/24/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "571f36f0b36e118e0bed20b374ddbf633429961c",
+      "size": 5776,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/571f36f0b36e118e0bed20b374ddbf633429961c"
+    },
+    {
+      "path": "data/topologies/24/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6524a2cb26c960b8c2478a8579edc6aeedcfecb6",
+      "size": 56331,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/6524a2cb26c960b8c2478a8579edc6aeedcfecb6"
+    },
+    {
+      "path": "data/topologies/27",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "74b832903f1712fa46ba96c5f9af188c2548b406",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/74b832903f1712fa46ba96c5f9af188c2548b406"
+    },
+    {
+      "path": "data/topologies/27/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "46db38603ef1d8c53c18e1c3825e3d9c3f2dd6a5",
+      "size": 2940,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/46db38603ef1d8c53c18e1c3825e3d9c3f2dd6a5"
+    },
+    {
+      "path": "data/topologies/27/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b48e7c8eb61577a8c3a2105c21aea6454478146a",
+      "size": 7896,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b48e7c8eb61577a8c3a2105c21aea6454478146a"
+    },
+    {
+      "path": "data/topologies/27/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4502f7563be0f4585f9427304588267a003cd24e",
+      "size": 5374,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/4502f7563be0f4585f9427304588267a003cd24e"
+    },
+    {
+      "path": "data/topologies/27/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4e00c12c1163a01b03202f01d8f919f4bc1e5a22",
+      "size": 51641,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/4e00c12c1163a01b03202f01d8f919f4bc1e5a22"
+    },
+    {
+      "path": "data/topologies/28",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "0607385e0e73c08c7c5ffd8037ae9a54ac575504",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/0607385e0e73c08c7c5ffd8037ae9a54ac575504"
+    },
+    {
+      "path": "data/topologies/28/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "47656cf6f4f7e888409e16847490b1f15b44ffca",
+      "size": 2940,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/47656cf6f4f7e888409e16847490b1f15b44ffca"
+    },
+    {
+      "path": "data/topologies/28/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d787a47d66a944f2dc1320ff07e72949764a178b",
+      "size": 7896,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/d787a47d66a944f2dc1320ff07e72949764a178b"
+    },
+    {
+      "path": "data/topologies/28/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "148720420399a1c7411f9d267fb94a4c2e51ad97",
+      "size": 5374,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/148720420399a1c7411f9d267fb94a4c2e51ad97"
+    },
+    {
+      "path": "data/topologies/28/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c5e800cb8306c426ca1950aa834d610748db35a5",
+      "size": 51641,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/c5e800cb8306c426ca1950aa834d610748db35a5"
+    },
+    {
+      "path": "data/topologies/29",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "2faa6fa18b6a20246824a0ce43c1ba1f071d031d",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/2faa6fa18b6a20246824a0ce43c1ba1f071d031d"
+    },
+    {
+      "path": "data/topologies/29/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cae96631f6a6479760ec871de117cf6dc5b4bd7d",
+      "size": 2940,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/cae96631f6a6479760ec871de117cf6dc5b4bd7d"
+    },
+    {
+      "path": "data/topologies/29/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fe4d384c268ab64e9b8ca41d08ccaddc3225babe",
+      "size": 7896,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/fe4d384c268ab64e9b8ca41d08ccaddc3225babe"
+    },
+    {
+      "path": "data/topologies/29/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7d9cde4f50a5e285bcea98e26875e6319812fe73",
+      "size": 5374,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/7d9cde4f50a5e285bcea98e26875e6319812fe73"
+    },
+    {
+      "path": "data/topologies/29/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "45cbaaee979473df4635e6e645440b7528c903e4",
+      "size": 51641,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/45cbaaee979473df4635e6e645440b7528c903e4"
+    },
+    {
+      "path": "data/topologies/30",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "3ed6216a05b38a9aba50c6ba26d92a7feff2aa88",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/3ed6216a05b38a9aba50c6ba26d92a7feff2aa88"
+    },
+    {
+      "path": "data/topologies/30/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e963e7008f4656e2749342785f335b40e8265683",
+      "size": 2940,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e963e7008f4656e2749342785f335b40e8265683"
+    },
+    {
+      "path": "data/topologies/30/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b8417bdbb423fc3a4fbed16cc6e46ddecc3c0f19",
+      "size": 7896,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b8417bdbb423fc3a4fbed16cc6e46ddecc3c0f19"
+    },
+    {
+      "path": "data/topologies/30/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "42b9851b77ca94bc8001bf7fe42626ef5db00840",
+      "size": 5374,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/42b9851b77ca94bc8001bf7fe42626ef5db00840"
+    },
+    {
+      "path": "data/topologies/30/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "595ef94f5abc8b71856df41b224b179ec847f360",
+      "size": 51641,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/595ef94f5abc8b71856df41b224b179ec847f360"
+    },
+    {
+      "path": "data/topologies/31",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "d33e1f491373ba32ac426b58cb71b39859f5a8e4",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/d33e1f491373ba32ac426b58cb71b39859f5a8e4"
+    },
+    {
+      "path": "data/topologies/31/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "74d38bf659d8262d532dbfdcf40aeca328dd7760",
+      "size": 2940,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/74d38bf659d8262d532dbfdcf40aeca328dd7760"
+    },
+    {
+      "path": "data/topologies/31/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4ca121b0cf634511f9b7f0d9523813835ffe484e",
+      "size": 7896,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/4ca121b0cf634511f9b7f0d9523813835ffe484e"
+    },
+    {
+      "path": "data/topologies/31/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5b39cf6dbf8ec344849ecf45fa38146ee0ef428d",
+      "size": 5374,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/5b39cf6dbf8ec344849ecf45fa38146ee0ef428d"
+    },
+    {
+      "path": "data/topologies/31/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d45bcb176a7fb2e03b17de650d0b4822bae84d25",
+      "size": 51641,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/d45bcb176a7fb2e03b17de650d0b4822bae84d25"
+    },
+    {
+      "path": "data/topologies/32",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "8123623e539cb3526cf1d20641669e06b93c08b0",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/8123623e539cb3526cf1d20641669e06b93c08b0"
+    },
+    {
+      "path": "data/topologies/32/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "47d3a3ee086f30e677f9de515d53a36fcdb4f7e0",
+      "size": 2940,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/47d3a3ee086f30e677f9de515d53a36fcdb4f7e0"
+    },
+    {
+      "path": "data/topologies/32/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f31cba42a71f742137eb4528ef00398b32b61a19",
+      "size": 7896,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/f31cba42a71f742137eb4528ef00398b32b61a19"
+    },
+    {
+      "path": "data/topologies/32/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f591a3c53b163de1b57e7a176e4370b854f11cae",
+      "size": 5374,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/f591a3c53b163de1b57e7a176e4370b854f11cae"
+    },
+    {
+      "path": "data/topologies/32/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8975c675bba5efe7809400c5baa52a715ef8b764",
+      "size": 51641,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/8975c675bba5efe7809400c5baa52a715ef8b764"
+    },
+    {
+      "path": "data/topologies/33",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "6d7540023694add5acaae25cdffe6b98e9ebd53b",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/6d7540023694add5acaae25cdffe6b98e9ebd53b"
+    },
+    {
+      "path": "data/topologies/33/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "db110ac16972b6e939c7fb2c690c18001647693e",
+      "size": 2904,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/db110ac16972b6e939c7fb2c690c18001647693e"
+    },
+    {
+      "path": "data/topologies/33/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a50e5846cebbaa3d1e70644b3e043506026eb4ff",
+      "size": 7803,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/a50e5846cebbaa3d1e70644b3e043506026eb4ff"
+    },
+    {
+      "path": "data/topologies/33/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "008a0081895fb75014b580edeb778000387ab2f8",
+      "size": 5307,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/008a0081895fb75014b580edeb778000387ab2f8"
+    },
+    {
+      "path": "data/topologies/33/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3e51da60706062ee6d56038c1d4fcc701e60756b",
+      "size": 49497,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/3e51da60706062ee6d56038c1d4fcc701e60756b"
+    },
+    {
+      "path": "data/topologies/35",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "1e37f166cd1a947aed8e3733f9af9d861762d12e",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/1e37f166cd1a947aed8e3733f9af9d861762d12e"
+    },
+    {
+      "path": "data/topologies/35/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "32b1c857d7c28875ea1baef1adb503f7fd9165ee",
+      "size": 2977,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/32b1c857d7c28875ea1baef1adb503f7fd9165ee"
+    },
+    {
+      "path": "data/topologies/35/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "083e9d3892600ed64bb3932d829e3f351458f278",
+      "size": 7969,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/083e9d3892600ed64bb3932d829e3f351458f278"
+    },
+    {
+      "path": "data/topologies/35/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "277f4024fca85425821af299156cd06fc8603d21",
+      "size": 5441,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/277f4024fca85425821af299156cd06fc8603d21"
+    },
+    {
+      "path": "data/topologies/35/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "76cac19acb99f278a8f49ed80d8c7834dc62d443",
+      "size": 50860,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/76cac19acb99f278a8f49ed80d8c7834dc62d443"
+    },
+    {
+      "path": "data/topologies/36",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "1974069cc13509568399b55dbfb6cd095a688518",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/1974069cc13509568399b55dbfb6cd095a688518"
+    },
+    {
+      "path": "data/topologies/36/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1a28caf747e7c8d12dd195693d8b9917ae70828d",
+      "size": 2721,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/1a28caf747e7c8d12dd195693d8b9917ae70828d"
+    },
+    {
+      "path": "data/topologies/36/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fca784d1cc6a42e6d5eb18df3c64f3f2f66685bd",
+      "size": 7338,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/fca784d1cc6a42e6d5eb18df3c64f3f2f66685bd"
+    },
+    {
+      "path": "data/topologies/36/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "460350db9dbc11e0fa54b0138b9f954f13c7b726",
+      "size": 4972,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/460350db9dbc11e0fa54b0138b9f954f13c7b726"
+    },
+    {
+      "path": "data/topologies/36/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "dc493c5b911e4b673235787adffd12d8edfe8556",
+      "size": 48526,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/dc493c5b911e4b673235787adffd12d8edfe8556"
+    },
+    {
+      "path": "data/topologies/38",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "9fcb428138748f6d057808c02bbdecf3eefd46e2",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/9fcb428138748f6d057808c02bbdecf3eefd46e2"
+    },
+    {
+      "path": "data/topologies/38/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e0ce650e2106293fe79e97fc38ecd1f7298b891c",
+      "size": 3086,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e0ce650e2106293fe79e97fc38ecd1f7298b891c"
+    },
+    {
+      "path": "data/topologies/38/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7990e944bde7833913866b9ba134963f741b1839",
+      "size": 8288,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/7990e944bde7833913866b9ba134963f741b1839"
+    },
+    {
+      "path": "data/topologies/38/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e35e2be742daf73d20294fd29fb5b71541c94d53",
+      "size": 5642,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e35e2be742daf73d20294fd29fb5b71541c94d53"
+    },
+    {
+      "path": "data/topologies/38/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1f346bd174d6d2f8afe7be0366891ad2014d2d4f",
+      "size": 55564,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/1f346bd174d6d2f8afe7be0366891ad2014d2d4f"
+    },
+    {
+      "path": "data/topologies/39",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "d816d418f4e1cea7ef6a996ab2738c092a61100d",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/d816d418f4e1cea7ef6a996ab2738c092a61100d"
+    },
+    {
+      "path": "data/topologies/39/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0828a4003e43de36bb5d449a29ade1f1f6732f78",
+      "size": 3123,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/0828a4003e43de36bb5d449a29ade1f1f6732f78"
+    },
+    {
+      "path": "data/topologies/39/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c926064b1fdd69aa3f8d668d60f163728de2404f",
+      "size": 8361,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/c926064b1fdd69aa3f8d668d60f163728de2404f"
+    },
+    {
+      "path": "data/topologies/39/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b6a21ec1dcd2182d8be9a477db123dd89380bb30",
+      "size": 5709,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b6a21ec1dcd2182d8be9a477db123dd89380bb30"
+    },
+    {
+      "path": "data/topologies/39/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c4e3f5f3ac6cfc17b00f17642daf258834b4a16a",
+      "size": 53204,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/c4e3f5f3ac6cfc17b00f17642daf258834b4a16a"
+    },
+    {
+      "path": "data/topologies/40",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "d7e5edd2d77a924c58cfacfa666e7f0b378809dc",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/d7e5edd2d77a924c58cfacfa666e7f0b378809dc"
+    },
+    {
+      "path": "data/topologies/40/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "75bee4c130a853124d93f6317e9f8fc0248fc632",
+      "size": 2977,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/75bee4c130a853124d93f6317e9f8fc0248fc632"
+    },
+    {
+      "path": "data/topologies/40/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "79763001cf08e7458e89746d8c9257248ad91703",
+      "size": 7969,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/79763001cf08e7458e89746d8c9257248ad91703"
+    },
+    {
+      "path": "data/topologies/40/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "381c98bcadfe68f823ca538c6393c9823274fd9e",
+      "size": 5441,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/381c98bcadfe68f823ca538c6393c9823274fd9e"
+    },
+    {
+      "path": "data/topologies/40/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a57558da65b8d4158bb771fab89294e71682a6a4",
+      "size": 50860,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/a57558da65b8d4158bb771fab89294e71682a6a4"
+    },
+    {
+      "path": "data/topologies/41",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "e3928ff26962732d0cda6dec6c1a3bdf7399b0b4",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/e3928ff26962732d0cda6dec6c1a3bdf7399b0b4"
+    },
+    {
+      "path": "data/topologies/41/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f20db4fb16bd8a3c1c4927b19c87e1cf719e0d12",
+      "size": 3086,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/f20db4fb16bd8a3c1c4927b19c87e1cf719e0d12"
+    },
+    {
+      "path": "data/topologies/41/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c1fec65edc2ae2dabbb83215d18c7246357027d5",
+      "size": 8288,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/c1fec65edc2ae2dabbb83215d18c7246357027d5"
+    },
+    {
+      "path": "data/topologies/41/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4916bf63a82f4a0c31cb216d978f6ca398efae4a",
+      "size": 5642,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/4916bf63a82f4a0c31cb216d978f6ca398efae4a"
+    },
+    {
+      "path": "data/topologies/41/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "956e530a5e89a3357a83e7f8fb047210484d630b",
+      "size": 55564,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/956e530a5e89a3357a83e7f8fb047210484d630b"
+    },
+    {
+      "path": "data/topologies/42",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "b249024a3adcc85940ad5c5405e8c1f31adab59f",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/b249024a3adcc85940ad5c5405e8c1f31adab59f"
+    },
+    {
+      "path": "data/topologies/42/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "26b33d18e7397c19a2c489bc3c43a2033eb9385d",
+      "size": 3123,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/26b33d18e7397c19a2c489bc3c43a2033eb9385d"
+    },
+    {
+      "path": "data/topologies/42/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b283a6a1058621d223305c3aa3086440ccb6b2ad",
+      "size": 8361,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b283a6a1058621d223305c3aa3086440ccb6b2ad"
+    },
+    {
+      "path": "data/topologies/42/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "27deb97e8a92f53746bc0e10fd742b5dd44bb10e",
+      "size": 5709,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/27deb97e8a92f53746bc0e10fd742b5dd44bb10e"
+    },
+    {
+      "path": "data/topologies/42/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a52848aa77b32c39c28d37000edc5b5c72190c91",
+      "size": 53204,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/a52848aa77b32c39c28d37000edc5b5c72190c91"
+    },
+    {
+      "path": "data/topologies/49",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "ecead659b54afc10d18b6a919e39dcb4433f964c",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/ecead659b54afc10d18b6a919e39dcb4433f964c"
+    },
+    {
+      "path": "data/topologies/49/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8fe21d024bd95f4e6f9f7c4297c0ff3b81ee12ca",
+      "size": 3086,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/8fe21d024bd95f4e6f9f7c4297c0ff3b81ee12ca"
+    },
+    {
+      "path": "data/topologies/49/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e1a2fc08008aa3821a395e14628e632525f044a2",
+      "size": 8349,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e1a2fc08008aa3821a395e14628e632525f044a2"
+    },
+    {
+      "path": "data/topologies/49/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6216809fe8b301ce853e0fc91a9bfd2ad8e808a8",
+      "size": 5642,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/6216809fe8b301ce853e0fc91a9bfd2ad8e808a8"
+    },
+    {
+      "path": "data/topologies/49/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b71547a43361b6c9882f6887e74abc7c17c68d33",
+      "size": 51536,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b71547a43361b6c9882f6887e74abc7c17c68d33"
+    },
+    {
+      "path": "data/topologies/50",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "a5b665f8624dbd3cba666c8248a5c94a8f6f1e8e",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/a5b665f8624dbd3cba666c8248a5c94a8f6f1e8e"
+    },
+    {
+      "path": "data/topologies/50/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "830cbe0c091e1803693acd081032f66941cac020",
+      "size": 3196,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/830cbe0c091e1803693acd081032f66941cac020"
+    },
+    {
+      "path": "data/topologies/50/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0c0f51ee13a02c4d9e0dab5ce0aa36ed28221e63",
+      "size": 8628,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/0c0f51ee13a02c4d9e0dab5ce0aa36ed28221e63"
+    },
+    {
+      "path": "data/topologies/50/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ebe9e9d8a3aa9594feaa13e98e910c992e7ad905",
+      "size": 5843,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/ebe9e9d8a3aa9594feaa13e98e910c992e7ad905"
+    },
+    {
+      "path": "data/topologies/50/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d794cc04093a117c5b1ce343dd7b5003e6240f3d",
+      "size": 52827,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/d794cc04093a117c5b1ce343dd7b5003e6240f3d"
+    },
+    {
+      "path": "data/topologies/51",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "108302f42f099d9cba6a6cb8fc4d1320e09a3c98",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/108302f42f099d9cba6a6cb8fc4d1320e09a3c98"
+    },
+    {
+      "path": "data/topologies/51/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fb00ac503ae0e4264199ea9e49fa9240974cc014",
+      "size": 1991,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/fb00ac503ae0e4264199ea9e49fa9240974cc014"
+    },
+    {
+      "path": "data/topologies/51/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "88fe12403ba342cba05f9ddbf5b818d14284a0be",
+      "size": 5478,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/88fe12403ba342cba05f9ddbf5b818d14284a0be"
+    },
+    {
+      "path": "data/topologies/51/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ceee7dfc240d4bfa683b6ec287ed8b17e68d5ff9",
+      "size": 3632,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/ceee7dfc240d4bfa683b6ec287ed8b17e68d5ff9"
+    },
+    {
+      "path": "data/topologies/51/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b27b0b17f161e98db481e84d19848dc86661bc12",
+      "size": 35017,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b27b0b17f161e98db481e84d19848dc86661bc12"
+    },
+    {
+      "path": "data/topologies/52",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "74121b9eb5b92423c0fd7a6cd906090beba58c1f",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/74121b9eb5b92423c0fd7a6cd906090beba58c1f"
+    },
+    {
+      "path": "data/topologies/52/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5c19f5b574cbc297433262dfa35b94faebc7bd1a",
+      "size": 2648,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/5c19f5b574cbc297433262dfa35b94faebc7bd1a"
+    },
+    {
+      "path": "data/topologies/52/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4b65642bbf3550a144960b4ca7afdf78df5f9a97",
+      "size": 7152,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/4b65642bbf3550a144960b4ca7afdf78df5f9a97"
+    },
+    {
+      "path": "data/topologies/52/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e7e8fe5eed7df09899d78bbf4bcf8cfc247ed68c",
+      "size": 4838,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e7e8fe5eed7df09899d78bbf4bcf8cfc247ed68c"
+    },
+    {
+      "path": "data/topologies/52/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ba84df3bf0e985da430c597d9193220785092952",
+      "size": 49079,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/ba84df3bf0e985da430c597d9193220785092952"
+    },
+    {
+      "path": "data/topologies/54",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "720399f832cc88c26696011ab5b6d4970f43c090",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/720399f832cc88c26696011ab5b6d4970f43c090"
+    },
+    {
+      "path": "data/topologies/54/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "dc11885a0f5138351baaf17b58a4387eef1d624d",
+      "size": 5130,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/dc11885a0f5138351baaf17b58a4387eef1d624d"
+    },
+    {
+      "path": "data/topologies/54/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9a45c4a798861295ec5d54da203a5dc010b27ffa",
+      "size": 13617,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/9a45c4a798861295ec5d54da203a5dc010b27ffa"
+    },
+    {
+      "path": "data/topologies/54/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "86db3492f2a79bc6a7cfe83cdbca8d9bde9e02b6",
+      "size": 9394,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/86db3492f2a79bc6a7cfe83cdbca8d9bde9e02b6"
+    },
+    {
+      "path": "data/topologies/54/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b95af5d5f98e56adc176937eebbcf96de290386f",
+      "size": 75270,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b95af5d5f98e56adc176937eebbcf96de290386f"
+    },
+    {
+      "path": "data/topologies/55",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "dc10860606d3fc4bbd5a5c281bd9272b3ec6602c",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/dc10860606d3fc4bbd5a5c281bd9272b3ec6602c"
+    },
+    {
+      "path": "data/topologies/55/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fd0e07c78a9da82e1124eb6db7447e2c6842f082",
+      "size": 6116,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/fd0e07c78a9da82e1124eb6db7447e2c6842f082"
+    },
+    {
+      "path": "data/topologies/55/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9666bea5a0f365e601af145031e0c7db0dd151e0",
+      "size": 16372,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/9666bea5a0f365e601af145031e0c7db0dd151e0"
+    },
+    {
+      "path": "data/topologies/55/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5a7ee16518a86f06af0ca34a962697a2b72aee01",
+      "size": 11203,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/5a7ee16518a86f06af0ca34a962697a2b72aee01"
+    },
+    {
+      "path": "data/topologies/55/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "41c7113db7d58719def29876c9ceb6ff0977cbee",
+      "size": 96366,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/41c7113db7d58719def29876c9ceb6ff0977cbee"
+    },
+    {
+      "path": "data/topologies/56",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "204d32b1147c5b9684d172cdcd1d6e04213de58c",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/204d32b1147c5b9684d172cdcd1d6e04213de58c"
+    },
+    {
+      "path": "data/topologies/56/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3733c0841c076bc06c0c7a9c77c61f2cf8e88981",
+      "size": 5714,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/3733c0841c076bc06c0c7a9c77c61f2cf8e88981"
+    },
+    {
+      "path": "data/topologies/56/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6e76c36f4ab0d2eced775714ce02f5d192e5a489",
+      "size": 15280,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/6e76c36f4ab0d2eced775714ce02f5d192e5a489"
+    },
+    {
+      "path": "data/topologies/56/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "41a8b9cd396168b08a63cace8f56503ed2ad5412",
+      "size": 10466,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/41a8b9cd396168b08a63cace8f56503ed2ad5412"
+    },
+    {
+      "path": "data/topologies/56/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "574bfd1d8287b27461c5cf63ed9134e2bbe576a1",
+      "size": 87212,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/574bfd1d8287b27461c5cf63ed9134e2bbe576a1"
+    },
+    {
+      "path": "data/topologies/57",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "54b3965355524e29d69f74f232bb64a20b3888eb",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/54b3965355524e29d69f74f232bb64a20b3888eb"
+    },
+    {
+      "path": "data/topologies/57/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4df46b062c4a108b55cd9b1b36f1ea590686916a",
+      "size": 3816,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/4df46b062c4a108b55cd9b1b36f1ea590686916a"
+    },
+    {
+      "path": "data/topologies/57/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e3882d86b9f8a3c7ffa79c34019be842a344d7f0",
+      "size": 10250,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e3882d86b9f8a3c7ffa79c34019be842a344d7f0"
+    },
+    {
+      "path": "data/topologies/57/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a9d8fa02b020573e25cd4b89643050e70adceb1f",
+      "size": 6982,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/a9d8fa02b020573e25cd4b89643050e70adceb1f"
+    },
+    {
+      "path": "data/topologies/57/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c3b1072b09e504942b4ee099d07449b258b381fc",
+      "size": 64801,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/c3b1072b09e504942b4ee099d07449b258b381fc"
+    },
+    {
+      "path": "data/topologies/58",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "8c0d146b6ccc2b55efc2961aea276ad78c6513de",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/8c0d146b6ccc2b55efc2961aea276ad78c6513de"
+    },
+    {
+      "path": "data/topologies/58/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "efee652da543cefff75882a050381e0ecb00fb56",
+      "size": 3707,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/efee652da543cefff75882a050381e0ecb00fb56"
+    },
+    {
+      "path": "data/topologies/58/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9e6a069aca6605c06af779792fdb577ee5292117",
+      "size": 10011,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/9e6a069aca6605c06af779792fdb577ee5292117"
+    },
+    {
+      "path": "data/topologies/58/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0a4c9d8fd67bbcffb680f902aa505a71746f4e75",
+      "size": 6781,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/0a4c9d8fd67bbcffb680f902aa505a71746f4e75"
+    },
+    {
+      "path": "data/topologies/58/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1aaedf9e65e331bd0f987cca28704edd3c58c3f0",
+      "size": 65397,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/1aaedf9e65e331bd0f987cca28704edd3c58c3f0"
+    },
+    {
+      "path": "data/topologies/59",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "5cead19d1385464629513bd40f71062e2825d8d3",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/5cead19d1385464629513bd40f71062e2825d8d3"
+    },
+    {
+      "path": "data/topologies/59/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3756795dc9f3769ba9c8e018d336015ae5070383",
+      "size": 4546,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/3756795dc9f3769ba9c8e018d336015ae5070383"
+    },
+    {
+      "path": "data/topologies/59/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e266c5fdd3ea03635786e4d19d93ef8c53203a20",
+      "size": 12191,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e266c5fdd3ea03635786e4d19d93ef8c53203a20"
+    },
+    {
+      "path": "data/topologies/59/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4b052bbe61b4a3585829c65d43bd41d094c2925f",
+      "size": 8322,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/4b052bbe61b4a3585829c65d43bd41d094c2925f"
+    },
+    {
+      "path": "data/topologies/59/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b4053e03780d37b8cb13450e47908447c464cd94",
+      "size": 73796,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/b4053e03780d37b8cb13450e47908447c464cd94"
+    },
+    {
+      "path": "data/topologies/60",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "865f381e713f64f220b7d66d4c1e913ead9565ec",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/865f381e713f64f220b7d66d4c1e913ead9565ec"
+    },
+    {
+      "path": "data/topologies/60/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "effbf44ca8692ede9769001c46fd1cae79639d8a",
+      "size": 5203,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/effbf44ca8692ede9769001c46fd1cae79639d8a"
+    },
+    {
+      "path": "data/topologies/60/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "219c57e08797b48c54465606d6613d7d17409fd1",
+      "size": 13865,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/219c57e08797b48c54465606d6613d7d17409fd1"
+    },
+    {
+      "path": "data/topologies/60/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "164261ed893d1a804ba71a1611a6268ac2fa12ee",
+      "size": 9528,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/164261ed893d1a804ba71a1611a6268ac2fa12ee"
+    },
+    {
+      "path": "data/topologies/60/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8ebfe2f27921c22fb781fe0289b7d7409e2e1430",
+      "size": 76663,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/8ebfe2f27921c22fb781fe0289b7d7409e2e1430"
+    },
+    {
+      "path": "data/topologies/61",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "8fb9d29b8a71d7051d4c64be81176d8a831b18f5",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/8fb9d29b8a71d7051d4c64be81176d8a831b18f5"
+    },
+    {
+      "path": "data/topologies/61/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "571e177eb95a65008372a65d6433be2e534730d1",
+      "size": 5532,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/571e177eb95a65008372a65d6433be2e534730d1"
+    },
+    {
+      "path": "data/topologies/61/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ba9ecba483f943edac3cdb104faec2fae9f88efe",
+      "size": 14823,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/ba9ecba483f943edac3cdb104faec2fae9f88efe"
+    },
+    {
+      "path": "data/topologies/61/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9a692843073eb023d27411f1f8e335d2686c3686",
+      "size": 10131,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/9a692843073eb023d27411f1f8e335d2686c3686"
+    },
+    {
+      "path": "data/topologies/61/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7a4e266cc42ea6e3a568d6aa64e97818ca5c66de",
+      "size": 89275,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/7a4e266cc42ea6e3a568d6aa64e97818ca5c66de"
+    },
+    {
+      "path": "data/topologies/62",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "73eaa1f2242b382ac779f2ad5ae7573897aeaf02",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/73eaa1f2242b382ac779f2ad5ae7573897aeaf02"
+    },
+    {
+      "path": "data/topologies/62/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3d82b378908475e8b12a2f822216d83c8eb46aac",
+      "size": 5203,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/3d82b378908475e8b12a2f822216d83c8eb46aac"
+    },
+    {
+      "path": "data/topologies/62/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2466762aa33d17e642c7a5236e64360fde95fcba",
+      "size": 14027,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/2466762aa33d17e642c7a5236e64360fde95fcba"
+    },
+    {
+      "path": "data/topologies/62/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "66f1faf913c3b32dd2528c30be0919e0686368fa",
+      "size": 9528,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/66f1faf913c3b32dd2528c30be0919e0686368fa"
+    },
+    {
+      "path": "data/topologies/62/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "73aff50eadcb36704e9941a87fe4805579a36181",
+      "size": 82157,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/73aff50eadcb36704e9941a87fe4805579a36181"
+    },
+    {
+      "path": "data/topologies/63",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "9c25a5db9d753eb020846aa476fa001430413d22",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/9c25a5db9d753eb020846aa476fa001430413d22"
+    },
+    {
+      "path": "data/topologies/63/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "52ad17f05081e1d84342d924129a4016d7570030",
+      "size": 3853,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/52ad17f05081e1d84342d924129a4016d7570030"
+    },
+    {
+      "path": "data/topologies/63/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f9fed6e841edabf99e7ca550dee0c4a9be828170",
+      "size": 10363,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/f9fed6e841edabf99e7ca550dee0c4a9be828170"
+    },
+    {
+      "path": "data/topologies/63/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "616741e8166cc26907c805087c7c563497b7b4a0",
+      "size": 7049,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/616741e8166cc26907c805087c7c563497b7b4a0"
+    },
+    {
+      "path": "data/topologies/63/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6c9718d9947f3ca9f14947d0cba6241471f9c204",
+      "size": 65730,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/6c9718d9947f3ca9f14947d0cba6241471f9c204"
+    },
+    {
+      "path": "data/topologies/64",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "7a39cc7ab6b11e547857a55acee16e9c5765f2eb",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/7a39cc7ab6b11e547857a55acee16e9c5765f2eb"
+    },
+    {
+      "path": "data/topologies/64/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5e35be9438a89b8b93b26f292cd1ce80f292c2fa",
+      "size": 5860,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/5e35be9438a89b8b93b26f292cd1ce80f292c2fa"
+    },
+    {
+      "path": "data/topologies/64/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e6f8451007949fa8b1b4ec3d114cc065859775de",
+      "size": 15661,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e6f8451007949fa8b1b4ec3d114cc065859775de"
+    },
+    {
+      "path": "data/topologies/64/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f38e4dc6b8558d72219e6be45eca5c4ffe547831",
+      "size": 10734,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/f38e4dc6b8558d72219e6be45eca5c4ffe547831"
+    },
+    {
+      "path": "data/topologies/64/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e644484282367469dfd98c70c80ef62c337976ee",
+      "size": 87611,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/e644484282367469dfd98c70c80ef62c337976ee"
+    },
+    {
+      "path": "data/topologies/65",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "7ffb9a9a4aeac9b6404f69e1676d354fb3a8a4d8",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/7ffb9a9a4aeac9b6404f69e1676d354fb3a8a4d8"
+    },
+    {
+      "path": "data/topologies/65/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c3650da6bff95a8c1f8807b40e74a885d219e8ba",
+      "size": 6700,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/c3650da6bff95a8c1f8807b40e74a885d219e8ba"
+    },
+    {
+      "path": "data/topologies/65/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1552e912fcade5d21a89185c7857f86a22818a03",
+      "size": 17982,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/1552e912fcade5d21a89185c7857f86a22818a03"
+    },
+    {
+      "path": "data/topologies/65/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0ef49ebb2f30ffe3cf855aaf58ef21e9d0f72662",
+      "size": 12275,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/0ef49ebb2f30ffe3cf855aaf58ef21e9d0f72662"
+    },
+    {
+      "path": "data/topologies/65/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "80aef958fbe9da8ae2179a48729527ff6ad74fd7",
+      "size": 102819,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/80aef958fbe9da8ae2179a48729527ff6ad74fd7"
+    },
+    {
+      "path": "data/topologies/66",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "6b32b85503e4d3b6cf4ed77ca7c6b088dc2074bd",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/6b32b85503e4d3b6cf4ed77ca7c6b088dc2074bd"
+    },
+    {
+      "path": "data/topologies/66/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "69ad0119bd46a98f3d9c55942f45f1a9de391cca",
+      "size": 3853,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/69ad0119bd46a98f3d9c55942f45f1a9de391cca"
+    },
+    {
+      "path": "data/topologies/66/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a24ec4364c37bbe029b1e88178d3b0eb999c1a95",
+      "size": 10363,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/a24ec4364c37bbe029b1e88178d3b0eb999c1a95"
+    },
+    {
+      "path": "data/topologies/66/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "61a8348627e46af271fb605eb2898c23f02f850f",
+      "size": 7049,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/61a8348627e46af271fb605eb2898c23f02f850f"
+    },
+    {
+      "path": "data/topologies/66/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2f3e28f9046433dc99b5446ba1cbe6d1562db751",
+      "size": 65730,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/2f3e28f9046433dc99b5446ba1cbe6d1562db751"
+    },
+    {
+      "path": "data/topologies/67",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "01aa25675b4c686618fdbad1bfee669a18d737ae",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/01aa25675b4c686618fdbad1bfee669a18d737ae"
+    },
+    {
+      "path": "data/topologies/67/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "47724f8159ff81f895279f045ccd19e56a3cc938",
+      "size": 7831,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/47724f8159ff81f895279f045ccd19e56a3cc938"
+    },
+    {
+      "path": "data/topologies/67/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "efc3530a299e828dc5d889572965876ad02d554d",
+      "size": 21007,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/efc3530a299e828dc5d889572965876ad02d554d"
+    },
+    {
+      "path": "data/topologies/67/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "084df81bc5f4efa5988424036a6554a0b3db4145",
+      "size": 14352,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/084df81bc5f4efa5988424036a6554a0b3db4145"
+    },
+    {
+      "path": "data/topologies/67/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9d63a516b3fb0b007f602b545a70f670bb2f339d",
+      "size": 116107,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/9d63a516b3fb0b007f602b545a70f670bb2f339d"
+    },
+    {
+      "path": "data/topologies/68",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "fcaa18a978d6f9f5ab0fdee9892c2153d3cb8f38",
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/trees/fcaa18a978d6f9f5ab0fdee9892c2153d3cb8f38"
+    },
+    {
+      "path": "data/topologies/68/mc_gas.inpcrd",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8a4b40edbf1f10556fe592dd26d8ddd9dd3c8b93",
+      "size": 5568,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/8a4b40edbf1f10556fe592dd26d8ddd9dd3c8b93"
+    },
+    {
+      "path": "data/topologies/68/mc_gas.mol2",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0b08b13b4de2c4c705d625a5b46171d48d50440e",
+      "size": 15018,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/0b08b13b4de2c4c705d625a5b46171d48d50440e"
+    },
+    {
+      "path": "data/topologies/68/mc_gas.pdb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8399a2f71c05b145e4043ad90999ba0fe87a3403",
+      "size": 10198,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/8399a2f71c05b145e4043ad90999ba0fe87a3403"
+    },
+    {
+      "path": "data/topologies/68/mc_gas.prmtop",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "43875fcbcc101782e53e20efaa3ec93a0341db0c",
+      "size": 89443,
+      "url": "https://api.github.com/repos/bigginlab/Macroconf/git/blobs/43875fcbcc101782e53e20efaa3ec93a0341db0c"
+    }
+  ],
+  "truncated": false,
+  "source_commit": "1fa6a74345334bae2235b3775180f209a1c923ed"
+}

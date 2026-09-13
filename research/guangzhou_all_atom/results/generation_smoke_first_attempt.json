@@ -1,0 +1,8 @@
+{
+  "checkpoint": "/opt/guangzhou-peptide/PepGLAD/run_outputs/ldm/version_0/checkpoint/epoch0_step350.ckpt",
+  "checkpoint_sha256": "549c8d9329deda1c6237b690d9c4e502c237adaab934ad6ede0bf5590e255578",
+  "seed": 20260912,
+  "attempt_count": 3,
+  "serialized_count": 0,
+  "scope": "Development I/O smoke from first available LDM checkpoint; first three validation entries, one attempt each. No test-set performance or chemical-validity claim."
+}

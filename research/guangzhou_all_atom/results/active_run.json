@@ -7,12 +7,22 @@
   "deadline_utc": "2026-09-13T01:45:52Z",
   "instance_id": "i-07b9bd8f9e354f6d4",
   "spot_request_id": "sir-w3i7npsk",
-  "stage": "installing",
+  "stage": "initial_pipeline_complete",
+  "final_state": "Autoencoder 5/5 epochs and latent diffusion 5/5 epochs (max_epoch=5) completed; last LDM checkpoint epoch4_step1750. Spot interruption notice fired at the final checkpoint (status/spot-interruption.json) and the instance is now terminated. Calibrated generation smoke serialized 3/3 validation entries (development I/O only; no performance claim).",
+  "instance_terminated": true,
   "checkpoint_sync_seconds": 120,
   "checkpoint_source": "s3://knowledge-datasets-1759951976/cyclic_peptide/runs/pepglad-initial-20260912T215600Z/training/",
   "preserved_completed_autoencoder_epochs": 2,
   "optimizer_state": "reset on warm-start; source checkpoints contain model only",
   "dataset_collection": "complete: 4 PepBench objects fully verified; CycPeptMPDB reused",
   "replaces_failed_spot": "i-0592cc555c2b6a711",
-  "startup_verified": "S3 status published; package-lock failure resolved; original deadline timer active"
+  "startup_verified": "S3 status published; package-lock failure resolved; original deadline timer active",
+  "completed_autoencoder_epochs": 5,
+  "spot_warm_start_verified": true,
+  "experimental_replay": "complete; three source libraries, three seeds, random versus guided selection",
+  "experimental_datasets_added": [
+    "MacroConf NMR",
+    "PeptideCLM-2 PepMSND derivative"
+  ],
+  "stability_folds_rebuilt": "605 unique structures; supplied 10 clusters collapse to 1 component (unusable as leak-free CV folds), so fresh label-stratified 10-fold assigned with 0 structures/IDs crossing folds; 3 label-conflict structures flagged. Artifacts: data/processed/pepmsnd_stability_folds.csv and results/pepmsnd_fold_rebuild.json (S3: cyclic_peptide/derived/pepmsnd_stability_folds/, readback verified)."
 }
