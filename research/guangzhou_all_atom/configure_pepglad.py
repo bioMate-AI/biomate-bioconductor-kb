@@ -33,7 +33,9 @@ else:
         raise ValueError('LDM requires an actual trained autoencoder checkpoint')
     config['model']['autoencoder_ckpt'] = args.checkpoint
 config['dataloader']['num_workers'] = 0
-config['dataloader']['wrapper']['ubound_per_batch'] = 30000
+# Dynamic batch cap (n**2 complexity). Upstream default is 60000; the first bounded run used
+# 30000 (half batch), which under-trained the LDM. Env-overridable; default preserves 30000.
+config['dataloader']['wrapper']['ubound_per_batch'] = int(os.environ.get('UBOUND_PER_BATCH', 30000))
 config['trainer']['config'].update(max_epoch=max_epoch, patience=max(5, max_epoch // 4),
                                    save_topk=3, val_freq=1,
                                    save_dir=str(root / 'run_outputs' / args.stage), grad_clip=1.0)
