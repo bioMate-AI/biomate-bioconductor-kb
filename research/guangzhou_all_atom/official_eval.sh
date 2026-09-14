@@ -2,7 +2,7 @@
 # Faithful PepGLAD evaluation: run the repo's OWN generate.py + cal_metrics.py on the LNR test
 # set with our trained checkpoint, so results are comparable to the paper's Table 1 (minus dG/
 # Success, which need PyRosetta). Removes any doubt that our custom eval harness misgenerates.
-set -uo pipefail
+set -Eeuo pipefail  # fail loudly: a broken step must not blunder on to an empty results.jsonl
 export AWS_DEFAULT_REGION=us-west-2 DEBIAN_FRONTEND=noninteractive PYTHONUNBUFFERED=1 OMP_NUM_THREADS=4
 ROOT=/opt/guangzhou-peptide
 BUCKET=knowledge-datasets-1759951976
@@ -31,21 +31,26 @@ stage preparing_repo_and_data
 cd "$ROOT/PepGLAD"; git checkout bad015ca50c312a89482adb5220c3d907f13df5c
 python "$ROOT/code/patch_training_integrity.py" --root "$ROOT/PepGLAD" || true
 mkdir -p datasets
-# LNR test set (already staged in S3)
-aws s3 cp "s3://$BUCKET/cyclic_peptide/datasets/pepbench/v2/LNR.tar.gz" /tmp/LNR.tar.gz --only-show-errors
-python - <<'PY'
-import tarfile
+safe_extract() { python - "$1" <<'PY'
+import sys, tarfile
 from pathlib import Path
 out=Path('datasets').resolve()
-with tarfile.open('/tmp/LNR.tar.gz') as tf:
+with tarfile.open(sys.argv[1]) as tf:
     for m in tf.getmembers():
         p=(out/m.name).resolve()
         if not p.is_relative_to(out) or m.issym() or m.islnk() or not (m.isfile() or m.isdir()):
             raise ValueError('unsafe member '+m.name)
     tf.extractall(out)
 PY
-# process LNR + build index (README recipe)
-ls datasets/LNR
+}
+# train_valid — REQUIRED by setup_latent_guidance (calibration reads train_valid/processed/train_index.txt)
+aws s3 cp "s3://$BUCKET/cyclic_peptide/datasets/pepbench/v2/train_valid.tar.gz" /tmp/tv.tar.gz --only-show-errors
+safe_extract /tmp/tv.tar.gz
+python -m scripts.data_process.process --index datasets/train_valid/all.txt --out_dir datasets/train_valid/processed
+python -m scripts.data_process.split --train_index datasets/train_valid/train.txt --valid_index datasets/train_valid/valid.txt --processed_dir datasets/train_valid/processed/
+# LNR test set (for the official generation)
+aws s3 cp "s3://$BUCKET/cyclic_peptide/datasets/pepbench/v2/LNR.tar.gz" /tmp/LNR.tar.gz --only-show-errors
+safe_extract /tmp/LNR.tar.gz
 python -m scripts.data_process.process --index datasets/LNR/test.txt --out_dir datasets/LNR/processed
 
 stage fetch_checkpoint
