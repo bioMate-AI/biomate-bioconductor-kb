@@ -125,6 +125,13 @@ RUN groupadd -g 1000 galaxy && useradd -u 1000 -g 1000 -d /app -s /bin/bash gala
 COPY --chown=galaxy:galaxy requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# RDKit — required in-process by the Design & generate module
+# (backend/lib/galaxy/ai/drug_discovery/*, webapps/.../api/generation.py:
+# Chem/QED/BRICS/Descriptors/Crippen/FilterCatalog). Kept out of Galaxy's
+# pinned-requirements.txt so Galaxy's pins stay pristine. Without it the
+# generator returns "no candidates: rdkit_unavailable" (2026-09-13).
+RUN pip install --no-cache-dir rdkit==2023.9.6
+
 # Copy application code with correct ownership in one shot.
 COPY --chown=galaxy:galaxy . .
 
