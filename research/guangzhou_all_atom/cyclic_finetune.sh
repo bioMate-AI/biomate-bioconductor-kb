@@ -51,6 +51,35 @@ aws s3 cp "$PUBMATCH/training/ldm/version_0/checkpoint/epoch99_step17000.ckpt" l
 export LDM_CKPT="$PWD/ldm_warmstart.ckpt"
 echo "AE_CKPT=$AE_CKPT  LDM_CKPT=$LDM_CKPT"; test -f "$AE_CKPT"; test -f "$LDM_CKPT"
 
+stage filter_by_position
+# The base model's abs_position_encoding has only ~30 slots; cyclic peptides with a residue
+# position_id >= 29 overflow it (device-side assert). Restrict to peptides the encoding supports
+# (short macrocycles — appropriate for therapeutic cyclic peptides). Regenerate split indices.
+python - <<'PY'
+import torch
+from data.codesign import CoDesignDataset
+cap = torch.load('ldm_warmstart.ckpt', map_location='cpu').abs_position_encoding.weight.shape[0]
+P = 'datasets/pepbdb/processed'
+report = {'abs_pos_cap': cap}
+for split in ['train', 'valid', 'test']:
+    idx = f'{P}/{split}_index.txt'
+    lines = open(idx).read().splitlines(keepends=True)
+    ds = CoDesignDataset(mmap_dir=P, specify_index=idx, backbone_only=False, use_covariance_matrix=True)
+    kept = []
+    for i in range(len(ds)):
+        b = ds.collate_fn([ds[i]])
+        pep_max = int(b['position_ids'][b['mask']].max()) if b['mask'].any() else -1
+        if pep_max + 1 < cap:
+            kept.append(lines[i])
+    open(idx, 'w').writelines(kept)
+    report[split] = {'before': len(lines), 'after': len(kept)}
+import json
+json.dump(report, open('/opt/guangzhou-peptide/status/position_filter.json', 'w'), indent=2)
+print('POSITION_FILTER ' + json.dumps(report))
+PY
+cp /opt/guangzhou-peptide/status/position_filter.json "$ROOT/status/" 2>/dev/null || true
+aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true
+
 stage finetuning
 python - <<'PY'
 import os, yaml
