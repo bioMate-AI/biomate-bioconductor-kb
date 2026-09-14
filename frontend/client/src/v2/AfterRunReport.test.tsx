@@ -420,3 +420,52 @@ describe("v2/AfterRunReport — QcAuditTab (rich panel)", () => {
     expect(within(audit).queryByTestId("qc-audit-log")).toBeNull();
   });
 });
+
+describe("v2/AfterRunReport — Reproducibility tab (Phase 2)", () => {
+  const RECORD = {
+    recordVersion: "1.0",
+    runId: "run-repro",
+    workflowName: "bulk RNA-seq DE",
+    status: "ok",
+    createdAt: "2026-09-14T00:00:00.000Z",
+    completedAt: "2026-09-14T00:10:00.000Z",
+    parameters: { fdr: 0.05, contrast: "treated_vs_control" },
+    inputBindings: [{ stepId: "0", datasetId: "ds-a", name: "counts.csv" }],
+    outputs: [{ id: "o1", name: "results.csv", fileType: "csv", sizeBytes: 2048, sha256: "abc123def456ghij789zzz" }],
+    outputCount: 1,
+  };
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.spyOn(global, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes("reproducibility-record")) {
+        return { ok: true, status: 200, json: async () => RECORD, text: async () => "" } as Response;
+      }
+      return { ok: false, status: 404, json: async () => ({}), text: async () => "" } as Response;
+    });
+  });
+  afterEach(() => { vi.clearAllMocks(); });
+
+  it("renders the unified record: identity, parameters, input bindings, outputs", async () => {
+    render(<AfterRunReport {...baseProps} runId="run-repro" />);
+    fireEvent.click(await screen.findByTestId("after-tab-reproducibility", {}, { timeout: 5000 }));
+    const tab = await screen.findByTestId("repro-tab", {}, { timeout: 5000 });
+    expect(within(tab).getByText("bulk RNA-seq DE")).toBeTruthy();     // identity from record
+    expect(within(tab).getByText("fdr")).toBeTruthy();                 // parameter key
+    expect(within(tab).getByText(/Parameters \(2\)/)).toBeTruthy();
+    expect(within(tab).getByText("counts.csv")).toBeTruthy();          // input binding
+    expect(within(tab).getByText(/Outputs \(1\)/)).toBeTruthy();
+    expect(within(tab).getByText("results.csv")).toBeTruthy();         // output name
+    expect(within(tab).getByText(/abc123def456ghij/)).toBeTruthy();    // truncated sha256
+    expect(within(tab).getByTestId("repro-download-json")).toBeTruthy();
+  });
+
+  it("shows an honest error state when the record is unavailable", async () => {
+    vi.spyOn(global, "fetch").mockImplementation(async () =>
+      ({ ok: false, status: 404, json: async () => ({}), text: async () => "" } as Response));
+    render(<AfterRunReport {...baseProps} runId="run-missing" />);
+    fireEvent.click(await screen.findByTestId("after-tab-reproducibility", {}, { timeout: 5000 }));
+    expect(await screen.findByTestId("repro-error", {}, { timeout: 5000 })).toBeTruthy();
+  });
+});

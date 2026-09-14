@@ -113,7 +113,7 @@ interface AfterRunReportProps {
   onContinueAnalysis?: (suggestion: string) => void;
 }
 
-type TabId = "findings" | "outputs" | "methods" | "params" | "software" | "citations" | "qc" | "trajectory";
+type TabId = "findings" | "outputs" | "methods" | "params" | "software" | "citations" | "qc" | "trajectory" | "reproducibility";
 
 interface OutputFile {
   step: string;
@@ -184,6 +184,9 @@ export function AfterRunReport({
     if (citations.length > 0) t.push(["citations", "Citations"]);
     t.push(["params", "Parameters"]);
     if (Object.keys(software).length > 0) t.push(["software", "Software"]);
+    // Reproducibility — the unified provenance record (identity + params + bound
+    // inputs + outputs). Always visible; renders its own honest empty state.
+    t.push(["reproducibility", "Reproducibility"]);
     // Trajectory (§7.7) — always visible; renders its own honest empty state
     // ("No entries") until the backend agent-event log ships.
     t.push(["trajectory", "Trajectory"]);
@@ -315,6 +318,7 @@ export function AfterRunReport({
             <TrajectoryView rows={trajectoryRows} />
           </div>
         )}
+        {tab === "reproducibility" && <ReproducibilityTab runId={runId} />}
       </div>
     </div>
   );
@@ -1326,6 +1330,121 @@ export function MethodsTab({
       ) : (
         <pre style={styles.methodsBody} data-testid="methods-readonly">{methods.text}</pre>
       )}
+    </div>
+  );
+}
+
+interface ReproRecord {
+  recordVersion: string;
+  runId: string;
+  workflowName: string;
+  status: string;
+  createdAt: string | null;
+  completedAt: string | null;
+  parameters: Record<string, unknown>;
+  inputBindings: any[];
+  outputs: Array<{ id?: string; name: string; fileType?: string; sizeBytes?: number; sha256?: string | null }>;
+  outputCount: number;
+}
+
+const reproKey: React.CSSProperties = { padding: "3px 8px 3px 0", color: "#666", whiteSpace: "nowrap", verticalAlign: "top", width: "1%" };
+const reproH: React.CSSProperties = { fontWeight: 600, fontSize: 12, margin: "14px 0 6px" };
+const reproTable: React.CSSProperties = { width: "100%", borderCollapse: "collapse", fontSize: 12 };
+const reproTh: React.CSSProperties = { textAlign: "left", color: "#666", fontWeight: 600, padding: "2px 8px 4px 0", borderBottom: "1px solid #eee" };
+const reproEmpty: React.CSSProperties = { fontSize: 12, color: "#888", fontStyle: "italic" };
+
+function fmtBytes(n?: number): string {
+  if (typeof n !== "number" || !isFinite(n)) return "—";
+  if (n >= 1048576) return (n / 1048576).toFixed(1) + " MB";
+  if (n >= 1024) return (n / 1024).toFixed(1) + " KB";
+  return n + " B";
+}
+
+/**
+ * Reproducibility tab (Phase 2) — renders the unified reproducibility record
+ * (GET /api/runs/:id/reproducibility-record): workflow identity + resolved
+ * parameters + bound inputs + outputs. Fetched lazily when the tab is opened.
+ * SHA-256 shows a dash until the checksum increment populates it.
+ */
+function ReproducibilityTab({ runId }: { runId: string }) {
+  const [rec, setRec] = useState<ReproRecord | null>(null);
+  const [err, setErr] = useState(false);
+  useEffect(() => {
+    if (!runId) return;
+    let cancelled = false;
+    fetch(`/api/runs/${runId}/reproducibility-record`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((d) => { if (!cancelled) setRec(d); })
+      .catch(() => { if (!cancelled) setErr(true); });
+    return () => { cancelled = true; };
+  }, [runId]);
+
+  if (err) return <div style={styles.tabContent} data-testid="repro-error">Reproducibility record unavailable for this run.</div>;
+  if (!rec) return <div style={styles.tabContent} data-testid="repro-loading">Loading reproducibility record…</div>;
+
+  const paramEntries = Object.entries(rec.parameters || {});
+  const downloadJson = () => {
+    const blob = new Blob([JSON.stringify(rec, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `biomate-repro-${rec.runId}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div style={styles.tabContent} data-testid="repro-tab">
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <span style={{ fontSize: 11, opacity: 0.7 }}>Reproducibility record v{rec.recordVersion}</span>
+        <span style={{ flex: 1 }} />
+        <button type="button" onClick={downloadJson} style={styles.runAgainBtn} data-testid="repro-download-json">↓ Download record (JSON)</button>
+      </div>
+
+      <table style={{ ...reproTable, marginBottom: 4 }}><tbody>
+        <tr><td style={reproKey}>Workflow</td><td>{rec.workflowName}</td></tr>
+        <tr><td style={reproKey}>Run id</td><td style={{ fontFamily: "monospace" }}>{rec.runId}</td></tr>
+        <tr><td style={reproKey}>Status</td><td>{rec.status}</td></tr>
+        <tr><td style={reproKey}>Created</td><td>{rec.createdAt || "—"}</td></tr>
+        <tr><td style={reproKey}>Completed</td><td>{rec.completedAt || "—"}</td></tr>
+      </tbody></table>
+
+      <div style={reproH}>Parameters ({paramEntries.length})</div>
+      {paramEntries.length ? (
+        <table style={reproTable}><tbody>
+          {paramEntries.map(([k, v]) => (
+            <tr key={k}><td style={reproKey}>{k}</td><td style={{ fontFamily: "monospace", wordBreak: "break-word" }}>{typeof v === "object" ? JSON.stringify(v) : String(v)}</td></tr>
+          ))}
+        </tbody></table>
+      ) : <div style={reproEmpty}>No parameters recorded.</div>}
+
+      <div style={reproH}>Input bindings ({rec.inputBindings?.length || 0})</div>
+      {rec.inputBindings?.length ? (
+        <table style={reproTable}><tbody>
+          {rec.inputBindings.map((b: any, i: number) => (
+            <tr key={i}><td style={reproKey}>{b?.stepId ?? i}</td><td style={{ fontFamily: "monospace", wordBreak: "break-word" }}>{b?.name || b?.datasetId || JSON.stringify(b)}</td></tr>
+          ))}
+        </tbody></table>
+      ) : <div style={reproEmpty}>No bound inputs recorded (run predates input-binding capture, or has none).</div>}
+
+      <div style={reproH}>Outputs ({rec.outputCount})</div>
+      {rec.outputs?.length ? (
+        <table style={reproTable}>
+          <thead><tr><th style={reproTh}>Name</th><th style={reproTh}>Type</th><th style={reproTh}>Size</th><th style={reproTh}>SHA-256</th></tr></thead>
+          <tbody>
+            {rec.outputs.map((o, i) => (
+              <tr key={o.id || i}>
+                <td style={{ wordBreak: "break-word" }}>{o.name}</td>
+                <td>{o.fileType || "—"}</td>
+                <td>{fmtBytes(o.sizeBytes)}</td>
+                <td style={{ fontFamily: "monospace", fontSize: 10 }} title={o.sha256 || "not yet hashed"}>{o.sha256 ? o.sha256.slice(0, 16) + "…" : "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : <div style={reproEmpty}>No outputs resolved for this run.</div>}
     </div>
   );
 }
