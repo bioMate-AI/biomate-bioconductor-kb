@@ -69,16 +69,28 @@ PY
 
 stage process_mmap
 python -m scripts.data_process.pepbdb --index datasets/pepbdb/cyclic_list.txt --out_dir datasets/pepbdb/processed
-python -m scripts.data_process.split --train_index datasets/pepbdb/train.txt --valid_index datasets/pepbdb/valid.txt --test_index datasets/pepbdb/test.txt --processed_dir datasets/pepbdb/processed/
+# Build split index files directly (robust): intersect each split's ids with the entries that
+# pepbdb.py actually processed (some are dropped by interface/atom filters). Avoids split.py's
+# fragile newline parsing and its KeyError on dropped entries.
 python - <<'PY'
 import json, os
-d='datasets/pepbdb/processed'
-def n(f):
-    p=os.path.join(d,f); return sum(1 for _ in open(p)) if os.path.exists(p) else 0
-summ={'index_txt': n('index.txt'), 'train_index': n('train_index.txt'),
-      'valid_index': n('valid_index.txt'), 'test_index': n('test_index.txt')}
-json.dump(summ, open('/opt/cyclic-prep/status/processed_summary.json','w'), indent=2)
-print(json.dumps(summ))
+d = 'datasets/pepbdb/processed'
+idx = {}
+with open(os.path.join(d, 'index.txt')) as f:
+    for line in f:
+        if line.strip():
+            idx[line.strip().split('\t')[0]] = line if line.endswith('\n') else line + '\n'
+counts = {'index_txt': len(idx)}
+for split in ['train', 'valid', 'test']:
+    ids = [x.strip() for x in open(f'datasets/pepbdb/{split}.txt') if x.strip()]
+    present = [i for i in ids if i in idx]
+    with open(os.path.join(d, f'{split}_index.txt'), 'w') as out:
+        for i in present:
+            out.write(idx[i])
+    counts[f'{split}_requested'] = len(ids)
+    counts[f'{split}_index'] = len(present)
+json.dump(counts, open('/opt/cyclic-prep/status/processed_summary.json', 'w'), indent=2)
+print(json.dumps(counts))
 PY
 
 stage upload
