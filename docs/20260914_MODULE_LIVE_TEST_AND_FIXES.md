@@ -89,6 +89,18 @@ multi-minute algorithmic cost**; the fixed 2023.9.6 build crashed the probe
 scored, verdict-labeled candidate (`BM-0001, QED 1.00`, pareto=1) instead of
 hanging.
 
+**Root cause 3 — tiny virtual library (`d0d716654`).** Even with the ABI fixed,
+the generator returned ~1 molecule for any seed, so the "candidate list" had one
+item. `BRICS.BRICSBuild` only joins fragments whose dummy atoms carry compatible
+BRICS bond-type labels (`[16*]`, `[3*]`, …), but the code called
+`BRICSBuild([seed_mol])` on the intact molecule (no dummies) and paired seed
+fragments with a generically-dummied (`[*]`) medchem set — neither assembles.
+Fix: `BRICSDecompose` the seed (→ properly-labelled fragments) and recombine the
+whole pool in one `BRICSBuild` pass (sanitize + validity + dedup, capped).
+Verified on dev (imatinib, count=15): **n_generated=200 (was 1), 15 distinct
+ranked analogues with correct verdicts + pareto**. The scoring/verdict/pareto
+pipeline was already correct — it just had nothing to rank.
+
 **Deploy note:** gunicorn runs `--preload`, so `HUP` does not re-import the app
 — a module-level flag like `_RDKIT_AVAILABLE` (and a freshly-installed package)
 requires a full Galaxy restart to take effect. Dev was hot-patched (pip install
@@ -99,9 +111,10 @@ requires a full Galaxy restart to take effect. Dev was hot-patched (pip install
 - **`propose` ~5.4s fixed cost** — GP hyperparameter restarts over 2048-bit
   Morgan fingerprints per objective. Acceptable; tunable (fewer restarts / lower
   nBits) later.
-- **Single-seed BRICS → tiny library** — candidate-list size depends on the
-  seed's fragmentability; a larger seed / bigger medchem fragment set is needed
-  for a large list. Usage, not a bug.
+- **True scaffold-hopping needs an external building-block set** — the library
+  is now full (200 from the seed's own labelled fragments, `d0d716654`), but
+  introducing *novel* substructures beyond the seed's pieces needs a curated
+  BRICS-labelled fragment library. Enhancement, not a bug.
 - **`gen_` runs lack an orphan-finalizer** — they stick at `running` if Galaxy
   restarts mid-run (nextflow runs have `CompletionPoller`; generation runs do
   not). Reliability gap.
@@ -115,5 +128,5 @@ requires a full Galaxy restart to take effect. Dev was hot-patched (pip install
 ## 6. Commits this session (pushed)
 
 `57bdbacd7` client wiring · `a0b93dfa2` search grounding+boundary ·
-`3c0d0ba56` rdkit install · `21bab40b2` rdkit numpy-2 pin · plus the four
-Phase-1 audit docs (`20260913_PHASE1A..1D`).
+`3c0d0ba56` rdkit install · `21bab40b2` rdkit numpy-2 pin · `d0d716654` BRICS
+virtual-library fix · plus the four Phase-1 audit docs (`20260913_PHASE1A..1D`).
