@@ -474,6 +474,14 @@ def _finish_empty(run_id, generator, notes, reason, n_generated=0):
     )
 
 
+# A generate run executes in a daemon thread and completes in well under a
+# minute (n_generate is capped and the GP round is seconds). Any run still
+# "running" past this ceiling has certainly been orphaned — its worker thread
+# was killed (e.g. a Galaxy restart mid-run) — so it is finalized as failed on
+# read rather than sitting at "running" forever.
+_RUN_STALE_SECONDS = 300
+
+
 def _set_run(run_id: str, **fields) -> None:
     # Create-or-merge (matches the old setdefault semantics). The record is only
     # ever created in start_generation (before the worker thread starts), so the
@@ -515,4 +523,17 @@ def get_generation(run_id: str) -> Dict[str, Any]:
         raise HTTPException(status_code=404, detail=f"unknown run_id {run_id!r}")
     out = dict(rec)
     out["run_id"] = run_id
+    # Lazy orphan-finalizer: if a run has been "running" past any real runtime,
+    # its daemon worker thread is dead (a Galaxy restart mid-run kills it
+    # silently and the record would otherwise sit at "running" forever). Finalize
+    # it as failed on read — persisted — so callers stop polling a dead run.
+    if out.get("status") == "running":
+        started = out.get("created_at") or out.get("updated_at") or 0
+        if started and (time.time() - started) > _RUN_STALE_SECONDS:
+            notes = list(out.get("notes") or [])
+            notes.append("run did not complete — the generation worker was "
+                         "interrupted (likely a server restart mid-run); re-submit to retry")
+            _set_run(run_id, status="failed", notes=notes)
+            out = dict(_store().get_run(run_id) or out)
+            out["run_id"] = run_id
     return out
