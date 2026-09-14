@@ -22,7 +22,7 @@ import { selectReferencedDatasets, type DatasetReference } from "./dataset-refer
 import { resolveProjectFileReferences } from "./project-file-references";
 import { _isOwnerOrMember } from "./project-routes";
 import { appendComposerInstructions } from "./chat-context";
-import { validateWorkflowInputs } from "./workflow-input-gate";
+import { validateWorkflowInputs, detectGenerationFailure, findUnresolvedInputs } from "./workflow-input-gate";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { mockGalaxyAPI } from "./mock-galaxy-api";
 import { GalaxyAPIProxy } from "./galaxy-api-proxy";
@@ -9952,6 +9952,20 @@ ${paramLines || '(none recorded)'}`;
         return res.status(400).json({ error: "workflowDefinition is required" });
       }
 
+      // Honest blocked state: never launch compute on a workflow whose
+      // generation failed. A generatedWorkflow carrying an error / success:false
+      // is not runnable — report the failure instead of dispatching a Batch job
+      // that would fail at launch.
+      const genFailure = detectGenerationFailure(request.workflowDefinition);
+      if (genFailure.failed) {
+        return res.status(400).json({
+          error: "workflow_generation_failed",
+          message: "This workflow was not generated successfully, so it cannot be run. No compute was launched.",
+          detail: genFailure.detail,
+          guidance: "Refine the request and regenerate the workflow; retry once a runnable workflow is produced.",
+        });
+      }
+
       // Server-side de-dup guard:
       // if this request is an explicit manual retry, block it while AutoFix is active
       // for the referenced failed run/invocation.
@@ -10066,6 +10080,22 @@ ${paramLines || '(none recorded)'}`;
           error: "nextflow_inputs_not_supported",
           message: "This Nextflow workflow declares data-input steps, but direct execution cannot yet bind supplied datasets to those steps. No compute was launched.",
           inputStepsCount: inputGate.inputStepsCount,
+        });
+      }
+
+      // Honest blocked state: never launch with an input the client already
+      // knows is unresolved (chat could not bind it to a real, authorized
+      // dataset). We never substitute another/latest dataset for it.
+      const unresolvedInputIds = findUnresolvedInputs(
+        inputs,
+        request.datasetReferenceUnresolvedIds ?? request.executionConfig?.datasetReferenceUnresolvedIds,
+      );
+      if (unresolvedInputIds.length) {
+        return res.status(400).json({
+          error: "inputs_unresolved",
+          message: `${unresolvedInputIds.length} selected input(s) could not be resolved to a real dataset and were not substituted. No compute was launched.`,
+          unresolvedInputIds,
+          guidance: "Re-select the file(s) from your project and retry; do not run with an unresolved reference.",
         });
       }
 

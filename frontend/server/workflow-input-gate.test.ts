@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateWorkflowInputs, extractInputBindings } from "./workflow-input-gate";
+import { validateWorkflowInputs, extractInputBindings, detectGenerationFailure, findUnresolvedInputs } from "./workflow-input-gate";
 
 const workflowWithInputs = {
   steps: {
@@ -112,5 +112,43 @@ describe("extractInputBindings (run provenance)", () => {
   it("returns [] for non-array input", () => {
     expect(extractInputBindings(undefined)).toEqual([]);
     expect(extractInputBindings({ datasets: ["x"] })).toEqual([]);
+  });
+});
+
+describe("detectGenerationFailure (honest blocked state)", () => {
+  it("blocks a definition with an error", () => {
+    expect(detectGenerationFailure({ error: "no matching tool" })).toEqual({ failed: true, detail: "no matching tool" });
+  });
+  it("blocks a definition with success:false", () => {
+    expect(detectGenerationFailure({ success: false, message: "low confidence" }))
+      .toEqual({ failed: true, detail: "low confidence" });
+  });
+  it("blocks a missing/non-object definition", () => {
+    expect(detectGenerationFailure(undefined).failed).toBe(true);
+    expect(detectGenerationFailure("nope").failed).toBe(true);
+  });
+  it("passes a runnable definition (no explicit failure fields)", () => {
+    expect(detectGenerationFailure({ name: "WF", steps: { 0: { type: "tool" } } })).toEqual({ failed: false });
+    expect(detectGenerationFailure({ name: "WF", success: true })).toEqual({ failed: false });
+  });
+});
+
+describe("findUnresolvedInputs (honest blocked state)", () => {
+  it("returns input ids that are declared unresolved", () => {
+    expect(findUnresolvedInputs(
+      [{ id: "ds-a", src: "hda", stepId: "0" }, { id: "ds-b", src: "hda", stepId: "1" }],
+      ["ds-b"],
+    )).toEqual(["ds-b"]);
+  });
+  it("returns [] when nothing overlaps or the unresolved set is empty", () => {
+    expect(findUnresolvedInputs([{ id: "ds-a" }], ["ds-x"])).toEqual([]);
+    expect(findUnresolvedInputs([{ id: "ds-a" }], [])).toEqual([]);
+    expect(findUnresolvedInputs([{ id: "ds-a" }], undefined)).toEqual([]);
+  });
+  it("dedupes and ignores malformed entries", () => {
+    expect(findUnresolvedInputs(
+      [{ id: "ds-a" }, { id: "ds-a" }, null, { nope: 1 }],
+      ["ds-a", "ds-a"],
+    )).toEqual(["ds-a"]);
   });
 });

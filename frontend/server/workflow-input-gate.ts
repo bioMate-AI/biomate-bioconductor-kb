@@ -83,6 +83,52 @@ export function extractInputBindings(inputs: unknown): ResolvedInputBinding[] {
   return out;
 }
 
+/**
+ * Detect a workflow definition that is actually a generation FAILURE, so the
+ * execute path never launches compute on a non-runnable workflow. Conservative:
+ * only explicit failure signals (an `error`, or `success === false`) block — a
+ * definition that simply omits these fields is treated as runnable.
+ */
+export function detectGenerationFailure(
+  workflowDefinition: unknown,
+): { failed: boolean; detail?: string } {
+  if (!workflowDefinition || typeof workflowDefinition !== "object") {
+    return { failed: true, detail: "No workflow definition was provided." };
+  }
+  const wf = workflowDefinition as { error?: unknown; success?: unknown; message?: unknown };
+  if (wf.error) {
+    return { failed: true, detail: typeof wf.error === "string" ? wf.error : "Workflow generation reported an error." };
+  }
+  if (wf.success === false) {
+    return { failed: true, detail: typeof wf.message === "string" ? wf.message : "Workflow generation did not succeed." };
+  }
+  return { failed: false };
+}
+
+/**
+ * Return the input ids that the caller declared UNRESOLVED (chat could not bind
+ * them to a real, authorized dataset). Used to block a launch that would
+ * otherwise run against a reference we know does not resolve — never
+ * substituting another dataset.
+ */
+export function findUnresolvedInputs(inputs: unknown, unresolvedIds: unknown): string[] {
+  const unresolved = new Set(
+    (Array.isArray(unresolvedIds) ? unresolvedIds : []).filter(
+      (x): x is string => typeof x === "string" && x.trim().length > 0,
+    ),
+  );
+  if (!unresolved.size) return [];
+  const inputArray = Array.isArray(inputs) ? inputs : [];
+  const hits = new Set<string>();
+  for (const candidate of inputArray) {
+    if (candidate && typeof candidate === "object") {
+      const id = (candidate as { id?: unknown }).id;
+      if (typeof id === "string" && unresolved.has(id)) hits.add(id);
+    }
+  }
+  return [...hits];
+}
+
 export type WorkflowInputGateResult = {
   inputStepsCount: number;
   missingInputStepIds: string[];
