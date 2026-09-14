@@ -23,11 +23,17 @@ per-modality-plugin architecture valuable and lets the private-data moat compoun
 ## Components
 
 ### A. Cyclic-peptide plugin (Axis-1: chemistry/topology)
-The first plugin on the backbone. Adds what general PepBench lacks:
-- **Macrocyclization**: head-to-tail and disulfide closure as explicit edges + a closure loss;
-  validate requested-vs-observed topology (cyclic ≠ correct closure).
-- **Non-natural monomers**: map the HELM monomer library into the atom/block vocabulary
-  (stapled / N-methylated / D-amino-acid support).
+The first plugin on the backbone. **Correction after reading the code** (see
+`PHASE1_CYCLIC_SCOPING.md`): PepGLAD has **no explicit bond graph** — it generates residue types
++ atom coordinates, and topology is implicit in geometry. So closure is NOT an "edge + loss";
+it is a **terminal-distance guidance term** (same `energy_func` hook as the existing
+`latent_geometry_guidance`) plus **fine-tuning on cyclic data**:
+- **Macrocyclization**: add a closure energy pulling the first↔last residue latent points to the
+  head-to-tail target distance (and CYS-pair SG for disulfides), composed with the existing
+  consecutive-distance guidance; validate requested-vs-observed closure geometrically.
+- **Non-natural monomers**: **deferred to Phase 1b** — needs block-vocab + design-head extension
+  (the atom level already supports arbitrary elements, but the sequence head predicts over the
+  fixed AA set). Phase 1 covers head-to-tail + disulfide cyclics with natural residues.
 - **Train/eval data**: PepBDB cyclic subset (799 train / 91 test, leak-free), RCSB cyclic index
   for breadth; CycPeptMPDB structures for permeability-paired cyclics.
 
