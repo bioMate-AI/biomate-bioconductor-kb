@@ -1020,32 +1020,50 @@ def _bionemo_structure(client, fn_name: str, inputs: Dict[str, Any]) -> Dict[str
     if client._is_stub(raw):
         return _stub_result(STRUCTURE, reason=raw.get("reason", "backend unreachable"))
 
-    structures = raw.get("structures") or raw.get("pdbs") or []
-    # A structure entry is either the raw CIF/PDB string, or a dict wrapping it
-    # (boltz2 returns [{"structure": "<cif>", …}]). Handle both — treating the
-    # dict as the structure left struct_str non-string, so nothing was stored and
-    # no per-residue pLDDT could be parsed.
+    # Locate the structure list. Models disagree on the key AND the entry shape:
+    #   boltz2      → "structures": ["<cif str>"] or [{"structure": "<cif>"}]
+    #   openfold2   → "structures_in_ranked_order": [{"structure", "plddt":[…],
+    #                 "predicted_aligned_error":[…], …}]
+    #   (self-host) → "pdbs": ["<pdb str>"]
+    structures = (
+        raw.get("structures")
+        or raw.get("pdbs")
+        or raw.get("structures_in_ranked_order")
+        or []
+    )
     _first = structures[0] if structures else ""
-    if isinstance(_first, dict):
-        struct_str = _first.get("structure") or _first.get("cif") or _first.get("pdb") or ""
-    else:
-        struct_str = _first or ""
+    entry = _first if isinstance(_first, dict) else {}
+    struct_str = (
+        (entry.get("structure") or entry.get("cif") or entry.get("pdb") or "")
+        if entry else (_first or "")
+    )
     if not isinstance(struct_str, str):
         struct_str = ""
-    # Per-residue pLDDT. boltz2/AlphaFold2/OpenFold2 write per-residue pLDDT into
-    # the B-factor column of the returned CIF/PDB — parse that. Only fall back to
-    # an explicit per-residue array from the API. Do NOT use confidence_scores:
-    # it is a GLOBAL (pTM-like) metric, and using it produced a single-point
-    # "pLDDT" chart in the structure viewer.
-    plddt = _plddt_from_structure(struct_str)
-    if not plddt:
-        _p = raw.get("plddt")
-        if isinstance(_p, (list, tuple)) and len(_p) > 1:
-            plddt = list(_p)
-    pae = raw.get("pae") or raw.get("predicted_aligned_error") or []
+
+    def _perres(v):
+        # A usable per-residue array — a real list of >1 values, not a global scalar.
+        return list(v) if isinstance(v, (list, tuple)) and len(v) > 1 else None
+
+    # Per-residue pLDDT: prefer an explicit per-residue array on the structure
+    # entry (openfold2 gives plddt[]); else parse the CIF/PDB B-factor column
+    # (boltz2 writes it there). NEVER the global confidence scalar — that produced
+    # a single-point "pLDDT" chart.
+    plddt = (
+        _perres(entry.get("plddt"))
+        or _plddt_from_structure(struct_str)
+        or _perres(raw.get("plddt"))
+        or []
+    )
+    pae = (
+        entry.get("predicted_aligned_error")
+        or entry.get("pae")
+        or raw.get("pae")
+        or raw.get("predicted_aligned_error")
+        or []
+    )
     return {
         "structureFileRef": _store_blob(struct_str, suffix=".cif"),
-        "plddt": list(plddt) if plddt else [],
+        "plddt": plddt,
         "pae": pae,
         "regions": [],
     }
