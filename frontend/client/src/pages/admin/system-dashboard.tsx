@@ -436,7 +436,7 @@ export default function SystemDashboardPage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
-  if (user && (user as any).subscriptionTier !== "admin") {
+  if (user && user.subscriptionTier !== "admin") {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p className="text-muted-foreground text-sm">需要管理员权限</p>

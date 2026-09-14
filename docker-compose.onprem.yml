@@ -100,6 +100,12 @@ services:
       # ── Run-state persistence ──────────────────────────────────────────────
       RUN_STATE_STORE: redis
       REDIS_URL: redis://redis:6379
+
+      # ── On-premises license ────────────────────────────────────────────────
+      # BIOMATE_LICENSE_KEY:   由 BioMate 团队签发，格式 BMOP-XXXX-XXXX-XXXX-XXXX
+      # BIOMATE_LICENSE_SECRET: 由 BioMate 团队随部署包一并提供，勿自行修改
+      BIOMATE_LICENSE_KEY: ${BIOMATE_LICENSE_KEY:-}
+      BIOMATE_LICENSE_SECRET: ${BIOMATE_LICENSE_SECRET:-}
     volumes:
       - biomate-backend-db:/app/database      # workflow catalog SQLite
       - biomate-backend-logs:/app/logs
@@ -177,6 +183,10 @@ services:
 
       # ── Internal keys ──────────────────────────────────────────────────────
       BILLING_INTERNAL_KEY: ${BILLING_INTERNAL_KEY:-onprem-billing-disabled}
+
+      # ── On-premises mode ───────────────────────────────────────────────────
+      # Enables license gate UI and on-prem-specific branding
+      VITE_ONPREM: "true"
     depends_on:
       postgres:
         condition: service_healthy

@@ -15104,7 +15104,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
 
   // GET /api/admin/health-summary — aggregate health from all backend services
   app.get("/api/admin/health-summary", authenticateToken, requireAdmin, async (req, res) => {
-    const galaxyUrl = process.env.GALAXY_API_URL || 'http://localhost:8080';
+    const galaxyUrl = process.env.GALAXY_URL || process.env.GALAXY_API_URL || 'http://localhost:8080';
     const timeout = 8000;
 
     const fetchSafe = async (url: string, label: string) => {
@@ -15140,6 +15140,27 @@ Respond ONLY with valid JSON (no markdown wrapper):
       : services.some(s => s.status === 'down') ? 'down' : 'degraded';
 
     res.json({ overall, services, checkedAt: new Date().toISOString() });
+  });
+
+  // ============================================================================
+  // On-Premises License Status
+  // GET /api/license/status — proxies to Galaxy backend; no auth required so
+  // the gate page can show status before login.
+  // ============================================================================
+
+  app.get("/api/license/status", async (req, res) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const r = await fetch(`${galaxyUrl}/api/license/status`, { signal: AbortSignal.timeout(5000) });
+      if (!r.ok) {
+        return res.status(200).json({ valid: false, status: 'backend_error', message: 'Galaxy backend license check failed', tier: 'none' });
+      }
+      const data = await r.json();
+      res.json(data);
+    } catch {
+      // If Galaxy is unreachable, don't block startup — return unknown
+      res.json({ valid: true, status: 'unknown', message: 'Backend unreachable — license check skipped', tier: 'unknown' });
+    }
   });
 
   // ============================================================================

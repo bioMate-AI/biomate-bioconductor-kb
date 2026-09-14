@@ -8,6 +8,7 @@ interface User {
   email: string
   name: string
   role: 'free' | 'pro' | 'team' | 'enterprise'
+  subscriptionTier?: string
   subscription?: {
     plan: string
     status: 'active' | 'trialing' | 'canceled' | 'past_due'
@@ -33,6 +34,7 @@ function mapResponseToUser(data: any): User {
     id: data.user.id,
     email: data.user.email,
     name: data.user.fullName,
+    subscriptionTier: data.user.subscriptionTier,
     role: data.subscription?.subscriptionTier === 'enterprise' ? 'enterprise' :
           data.subscription?.subscriptionTier === 'professional' ? 'pro' :
           data.subscription?.subscriptionTier === 'team' ? 'team' : 'free',
