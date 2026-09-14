@@ -1,5 +1,39 @@
 # Baseline generation benchmark — first definitive numbers
 
+## RESOLVED (2026-09-14): the reproduction WORKS — official metrics on the LNR test set
+
+Running PepGLAD's **own** `generate.py` + `cal_metrics.py` (official pipeline, `official_eval.sh`)
+on the **LNR held-out test set** (93 targets × 10 samples) with our epoch-99 checkpoint:
+
+| Metric | PepGLAD paper (Table 1) | **Our reproduction** | Reading |
+|---|---:|---:|---|
+| DockQ (mean) | — | **0.512** | medium-quality interface (>0.49) |
+| Cα-RMSD (median) | — | **5.14 Å** | reasonable pose (best 1.73 Å) |
+| Consistency | 0.789 | **0.908** | high seq↔structure agreement |
+| Codesign Diversity | 0.506 | 0.851 | diverse |
+| Seq / Struct Diversity | — | 0.985 / 0.782 | |
+| Slide AAR (mean) | (rejected metric) | 0.285 | well above the ~0.16 random baseline |
+
+**Verdict: the model produces medium-quality de novo peptide binders on held-out targets, in
+the ballpark of the published model.** The earlier "near-random / not useful" conclusion was an
+artifact of (1) raw positional AAR instead of official `slide_aar`, (2) evaluating on the valid
+split with our custom harness instead of the official pipeline on the test split, and (3) using
+metrics (AAR, RMSD-to-native) the method deliberately does not optimize. The pipeline is sound
+and ready to build the cyclic-peptide / developability work on.
+
+**Caveats (do not overclaim "we beat PepGLAD"):**
+- We used **n_samples=10** vs the paper's 40 — fewer samples inflates diversity/consistency and
+  makes those *not* directly comparable; our higher-than-paper Consistency/Diversity is likely
+  partly this, not superiority.
+- **ΔG and Success (the Rosetta-based headline metrics) are still not computed** — needs PyRosetta.
+- Checkpoint was the OOM-truncated epoch-99 (LDM ~99 of a 300 target); it already performs
+  reasonably, but a clean full run could differ.
+- Metrics: `results/official_test_metrics.txt`, run `pepglad-officialeval-20260914T171238Z`.
+
+The AAR-based sections below are superseded and kept only for the investigation record.
+
+# (superseded) Baseline generation benchmark — first (mis-metric) numbers
+
 Calibrated full-sampling generation benchmark of the PepGLAD LDM on the held-out PebBench
 **validation** split (not LNR test), run via `generate_validation.py` (EVAL_ONLY mode) on the
 epoch-99 checkpoint from the publication-matched run (`pepglad-pubmatch-20260914T043137Z`).
