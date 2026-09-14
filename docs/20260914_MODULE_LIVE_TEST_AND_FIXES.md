@@ -128,9 +128,12 @@ requires a full Galaxy restart to take effect. Dev was hot-patched (pip install
 - ~~**Models real predictions blocked by NVCF**~~ — FIXED (`da212b231`): the key
   was fine; the client pinned stale NVCF *versions*. Now invokes by function id
   (latest active version); evo2_7b id refreshed; deprecated ESMFold dropped from
-  the hosted catalogue. boltz2 returns a real prediction on dev. Minor follow-up:
-  boltz2's result mapping populated a single `plddt` value (viewer expects
-  per-residue) — a result-shape refinement, separate from "does it predict".
+  the hosted catalogue. boltz2 returns a real prediction on dev.
+- ~~boltz2 single-point `plddt`~~ — FIXED (`1b1cf6fa7`): the structure entry
+  (a dict `{structure: <cif>}`) wasn't unwrapped, and the global confidence
+  scalar was used as the per-residue track. Added mmCIF B-factor extraction
+  (`_plddt_from_cif`/`_plddt_from_structure`, +unit tests). Verified: boltz2 on a
+  53-residue sequence now returns `plddt_len=53` with the structure stored.
 - **Durable-vs-dev drift** — backend Dockerfile changes reach dev only on an
   image rebuild; dev is currently hot-patched to match.
 
