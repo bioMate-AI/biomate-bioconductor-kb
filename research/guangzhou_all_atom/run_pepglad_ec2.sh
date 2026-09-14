@@ -107,6 +107,13 @@ Path('run_outputs/split_audit.json').write_text(json.dumps(r,indent=2))
 PY
 # Fail visibly instead of upstream's zero-loss replacement on NaN/OOM.
 python "$ROOT/code/patch_training_integrity.py" --root "$ROOT/PepGLAD"
+# EVAL_ONLY: skip training, benchmark a provided LDM checkpoint (EVAL_CKPT_S3) on the valid split.
+if [ "${EVAL_ONLY:-0}" = 1 ]; then
+  stage eval_only_fetch_checkpoint
+  mkdir -p run_outputs/ldm/version_0/checkpoint
+  aws s3 cp "${EVAL_CKPT_S3:?EVAL_CKPT_S3 required}" run_outputs/ldm/version_0/checkpoint/provided.ckpt --only-show-errors
+  printf 'best: %s\n' "$PWD/run_outputs/ldm/version_0/checkpoint/provided.ckpt" > run_outputs/ldm/version_0/checkpoint/topk_map.txt
+else
 python "$ROOT/code/configure_pepglad.py" --root "$ROOT/PepGLAD" --stage autoencoder
 if [ -n "${RESUME_TRAINING_S3:-}" ]; then
   aws s3 sync "$RESUME_TRAINING_S3/training/" "$ROOT/PepGLAD/previous_outputs/" --only-show-errors
@@ -126,6 +133,7 @@ stage training_latent_diffusion
 python train.py --gpus 0 --seed 20260912 --config run_outputs/ldm.yaml
 stage training_complete
 sync_results
+fi
 # Held-out validation generation benchmark on the best LDM checkpoint. Best-effort:
 # training outputs are already synced, so an evaluation failure must not fail the run.
 stage evaluating
