@@ -129,9 +129,11 @@ was $2.75/hr — *pricier* than on-demand — so no switch was made (switching w
 more and restarted the run). Load the base off instance-store NVMe (`/opt/dlami/nvme`), not
 EBS root (~10 MB/s vs ~260 MB/s).
 
-- **Next:** human-review the admitted episodes; **re-benchmark the merged adapter** against
-  the 660-item held-out test set (and the 9-checker regulatory suite vs the 0.883 base) to
-  quantify the SFT lift; then preference (DPO) from verified pairs if warranted.
+- **Next (in-scope eval):** the regulatory 9-checker suite is OUT OF SCOPE (IND/regulatory
+  excluded). Measure the SFT lift on the **in-scope 660-item RealBio holdout** — routing,
+  param_prefill, autofix/nextflow-debug, protocol_thresholds, workflow_generation — scored
+  directly against the gold labels (direct-adapter, no app stack), base-27B vs SFT-27B. Then
+  human-review admitted episodes and, if warranted, preference (DPO) from verified pairs.
 
 ## Required before any training (contract)
 
