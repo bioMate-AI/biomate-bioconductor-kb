@@ -34,7 +34,7 @@ Each module was exercised against https://dev-public.biomate.ai (fixture
 
 | Module | Flow | Real output | Finding |
 |---|---|---|---|
-| **Models** | ✅ catalogue + submit/poll | ❌ stub | Honest labeled stub (no fabricated scores). Real prediction blocked by BioNeMo **NVCF 404 "not found for account"** — provisioning/credentials, not code. |
+| **Models** | ✅ catalogue + submit/poll | ✅ after fix | Initially read as "stub only", but that was testing esmfold (deprecated). Root cause was **version pinning** (`…/versions/{ver}` 404s when NVIDIA rotates versions), not the key — fixed (§7). boltz2 now returns a real prediction. |
 | **Search & evidence** | ✅ cited answer | ✅ | Two bugs found + fixed (§3). |
 | **Design & generate** | ✅ submit/poll | ✅ after fix | Was **dead → hanging → working** (§4). |
 | **Data analysis** | — | — | Covered by Phase-1 1A–1D. |
@@ -121,8 +121,12 @@ requires a full Galaxy restart to take effect. Dev was hot-patched (pip install
   orphaned run.
 - **Search "Make instruction" exit** — disabled stub; needs a backend endpoint
   (`POST /api/memory/projects/:id/instructions`).
-- **Models real predictions** — blocked by BioNeMo NVCF provisioning
-  (credentials/account).
+- ~~**Models real predictions blocked by NVCF**~~ — FIXED (`da212b231`): the key
+  was fine; the client pinned stale NVCF *versions*. Now invokes by function id
+  (latest active version); evo2_7b id refreshed; deprecated ESMFold dropped from
+  the hosted catalogue. boltz2 returns a real prediction on dev. Minor follow-up:
+  boltz2's result mapping populated a single `plddt` value (viewer expects
+  per-residue) — a result-shape refinement, separate from "does it predict".
 - **Durable-vs-dev drift** — backend Dockerfile changes reach dev only on an
   image rebuild; dev is currently hot-patched to match.
 
@@ -130,4 +134,5 @@ requires a full Galaxy restart to take effect. Dev was hot-patched (pip install
 
 `57bdbacd7` client wiring · `a0b93dfa2` search grounding+boundary ·
 `3c0d0ba56` rdkit install · `21bab40b2` rdkit numpy-2 pin · `d0d716654` BRICS
-virtual-library fix · plus the four Phase-1 audit docs (`20260913_PHASE1A..1D`).
+virtual-library fix · `4733a689d` gen orphan-finalizer · `da212b231` BioNeMo
+version-pinning fix · plus the four Phase-1 audit docs (`20260913_PHASE1A..1D`).
