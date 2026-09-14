@@ -169,9 +169,10 @@ PYEOF
 ( set -e
   echo "-- BindingDB peptide subset --"
   D="$ROOT/bindingdb"; mkdir -p "$D"; cd "$D"
-  # Resolve the current All-TSV zip from the downloads page.
-  URL=$(curl -m 60 -fsS "https://www.bindingdb.org/rwd/bind/downloads.jsp" 2>/dev/null | grep -oiE "https?://[^\"']*BindingDB_All[_0-9A-Za-z]*_tsv\.zip" | head -1)
-  [ -z "$URL" ] && URL=$(curl -m 60 -fsS "https://www.bindingdb.org/bind/downloads.jsp" 2>/dev/null | grep -oiE "https?://[^\"']*BindingDB_All[_0-9A-Za-z]*_tsv\.zip" | head -1)
+  # Resolve the current All-TSV zip. The Download.jsp page links it via a download_file=
+  # param under /rwd/bind/downloads/ (that direct path serves the file; downloads.jsp does not).
+  REL_PATH=$(curl -m 60 -fsSL "https://www.bindingdb.org/rwd/bind/chemsearch/marvin/Download.jsp" 2>/dev/null | grep -oiE "/rwd/bind/downloads/BindingDB_All_[0-9]+_tsv\.zip" | head -1)
+  URL=""; [ -n "$REL_PATH" ] && URL="https://www.bindingdb.org${REL_PATH}"
   echo "BindingDB URL: ${URL:-<none found>}"
   [ -z "$URL" ] && { echo "could not resolve BindingDB URL"; exit 1; }
   curl -m 3600 -fsS -o bindingdb.zip "$URL"
