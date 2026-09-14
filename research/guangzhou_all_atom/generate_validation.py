@@ -49,12 +49,36 @@ def slide_aar(candidate, reference):
 
 import numpy as np
 import torch
+from functools import partial
 from data.codesign import CoDesignDataset
 from generate import generate_wrapper, to_device, overwrite_blocks
 from data.converter.pdb_to_list_blocks import pdb_to_list_blocks
 from data.converter.list_blocks_to_pdb import list_blocks_to_pdb
 from data.format import VOCAB
 from utils.random_seed import setup_seed
+from models.LDM.energies.dist import dist_energy
+from utils.nn_utils import graph_to_batch
+
+
+def cyclic_closure_energy(X, mask_generate, batch_ids, mean, std, tolerance=3, **kw):
+    """Base geometry guidance (consecutive-distance + clash, via dist_energy) PLUS a head-to-tail
+    closure term that pulls each generated peptide's first<->last latent point to the same
+    target distance as consecutive residues (a head-to-tail peptide bond ~ one residue step).
+    Differentiable in X; used as sample_opt['energy_func']."""
+    base = dist_energy(X, mask_generate, batch_ids, mean, std, tolerance=tolerance)
+    gen_X = X[mask_generate][:, 0]                       # latent channel 0, like dist_energy
+    gb, gmask = graph_to_batch(gen_X, batch_ids[mask_generate], mask_is_pad=False)  # [bs,L,3],[bs,L]
+    lengths = gmask.sum(-1)
+    valid = lengths >= 2
+    first = gb[:, 0]
+    last_idx = (lengths - 1).clamp(min=0).long()
+    last = gb[torch.arange(gb.size(0), device=gb.device), last_idx]
+    d = torch.norm(first - last, dim=-1)                 # [bs]
+    m, s = round(mean, 4), round(std, 4)
+    lb, ub = m - tolerance * s, m + tolerance * s
+    loss = torch.where((d < lb) & valid, lb - d, torch.zeros_like(d))
+    loss = torch.where((d > ub) & valid, d - ub, loss)
+    return base + torch.sum(loss)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--checkpoint', type=Path, required=True)
@@ -63,6 +87,11 @@ parser.add_argument('--attempts', type=int, default=4, help='stochastic samples 
 parser.add_argument('--limit', type=int, default=None, help='cap complexes (debug)')
 parser.add_argument('--seed', type=int, default=20260912)
 parser.add_argument('--energy-lambda', type=float, default=0.8)
+parser.add_argument('--guidance', choices=['default', 'cyclic'], default='default',
+                    help="'cyclic' adds a head-to-tail closure energy (first<->last residue "
+                         "latent point pulled to the consecutive-residue distance)")
+parser.add_argument('--closure-thresh', type=float, default=2.0,
+                    help='decoded N-term N to C-term C distance (A) counted as closed')
 parser.add_argument('--training-sequences', type=Path, default=None,
                     help='one peptide sequence per nonblank line; enables novelty rate')
 args = parser.parse_args()
@@ -74,6 +103,14 @@ model = torch.load(args.checkpoint, map_location='cpu').to('cuda:0').eval()
 dataset = CoDesignDataset(mmap_dir='datasets/train_valid/processed',
                           specify_index='datasets/train_valid/processed/valid_index.txt',
                           backbone_only=False, use_covariance_matrix=True)
+
+if args.guidance == 'cyclic':
+    assert getattr(model, 'consec_dist_mean', None) is not None, \
+        'checkpoint not calibrated: run setup_latent_guidance.py first (needs consec_dist stats)'
+    _energy = partial(cyclic_closure_energy, mean=model.consec_dist_mean, std=model.consec_dist_std)
+    sample_opt = {'energy_func': _energy, 'energy_lambda': args.energy_lambda}
+else:
+    sample_opt = {'energy_func': 'default', 'energy_lambda': args.energy_lambda}
 
 training_seqs = None
 if args.training_sequences is not None:
@@ -99,8 +136,7 @@ for index in range(n_complexes):
         try:
             batch = to_device(dataset.collate_fn([dataset[index]]), torch.device('cuda:0'))
             with torch.no_grad():
-                Xs, Ss, metrics = generate_wrapper(
-                    model, {'energy_func': 'default', 'energy_lambda': args.energy_lambda})(batch)
+                Xs, Ss, metrics = generate_wrapper(model, dict(sample_opt))(batch)
             X, S, metric = Xs[0], Ss[0], metrics[0]
             with (sample_pdbs / (sample_id + '_raw.pkl')).open('wb') as f:
                 pickle.dump({'X': X, 'S': S, 'metric': metric}, f)
@@ -117,8 +153,26 @@ for index in range(n_complexes):
             aar = slide_aar(seq, ref_seq) if ref_seq else None
             raw_aar = (sum(a == b for a, b in zip(seq, ref_seq)) / len(ref_seq)
                        if ref_seq else None)
+            # closure geometry on the DECODED atoms (not latent): head-to-tail N(term)<->C(term)
+            # distance, and the minimum CYS SG-SG distance (potential disulfide).
+            def _coord(block, name):
+                try:
+                    return np.asarray(block.get_unit_by_name(name).get_coord(), dtype=float)
+                except Exception:
+                    return None
+            term_nc = None
+            if len(generated) >= 2:
+                n0, cL = _coord(generated[0], 'N'), _coord(generated[-1], 'C')
+                if n0 is not None and cL is not None:
+                    term_nc = float(np.linalg.norm(n0 - cL))
+            sgs = [c for c in (_coord(b, 'SG') for b in generated) if c is not None]
+            min_ss = None
+            if len(sgs) >= 2:
+                min_ss = float(min(np.linalg.norm(sgs[i] - sgs[j])
+                                   for i in range(len(sgs)) for j in range(i + 1, len(sgs))))
             record.update(status='serialized', sequence=seq, residues=len(generated),
-                          pdb=str(pdb_path.relative_to(args.output)), aar=aar, raw_aar=raw_aar)
+                          pdb=str(pdb_path.relative_to(args.output)), aar=aar, raw_aar=raw_aar,
+                          term_nc_dist=term_nc, min_ss_dist=min_ss)
         except Exception as exc:
             record.update(status='failed', error=type(exc).__name__ + ': ' + str(exc))
         finally:
@@ -137,6 +191,13 @@ novel_rate = None
 if training_seqs is not None and seqs:
     novel_rate = sum(s not in training_seqs for s in seqs) / len(seqs)
 
+# closure stats (decoded atoms): head-to-tail N-C distance + disulfide SG-SG
+nc = [r['term_nc_dist'] for r in serialized if r.get('term_nc_dist') is not None]
+closure_rate = (sum(d <= args.closure_thresh for d in nc) / len(nc)) if nc else None
+mean_term_nc = (sum(nc) / len(nc)) if nc else None
+ss = [r['min_ss_dist'] for r in serialized if r.get('min_ss_dist') is not None]
+disulfide_rate = (sum(d <= 2.5 for d in ss) / len(ss)) if ss else None
+
 # Composition-matched random baseline for slide_aar (the metric's floor is NOT ~0.05).
 import random as _random
 _random.seed(args.seed)
@@ -154,7 +215,12 @@ summary = {
     'checkpoint': str(args.checkpoint),
     'checkpoint_sha256': hashlib.sha256(args.checkpoint.read_bytes()).hexdigest(),
     'seed': args.seed,
+    'guidance': args.guidance,
     'energy_lambda': args.energy_lambda,
+    'closure_thresh_A': args.closure_thresh,
+    'closure_rate': closure_rate,
+    'mean_term_nc_dist_A': mean_term_nc,
+    'disulfide_rate': disulfide_rate,
     'n_complexes': n_complexes,
     'attempts_per_complex': args.attempts,
     'n_attempts': len(records),
