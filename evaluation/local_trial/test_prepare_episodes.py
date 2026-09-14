@@ -1,5 +1,5 @@
 import unittest
-from prepare_episodes import prepare
+from prepare_episodes import prepare, digest
 
 def record(i, group, text, split=None):
     return {'task_id':'T12','record_id':i,'source_groups':[group],'training_rights':'approved','review_status':'accepted',
@@ -24,4 +24,23 @@ class Tests(unittest.TestCase):
             self.assertIn('IND excluded',rejected[0]['reason'])
     def test_deduplicates(self):
         pools,rejected=prepare([record('1','a','same'),record('2','b','same')]);self.assertEqual(sum(map(len,pools.values())),1)
+    def test_new_augmentation_inherits_frozen_family(self):
+        pools,_=prepare([record('2','held-out-incident','new wording')],{'source_splits':{'held-out-incident':'test'},'message_splits':{}})
+        self.assertEqual(len(pools['test']),1)
+    def test_new_batch_cannot_bridge_frozen_families(self):
+        row=record('2','a','new wording');row['source_groups']=['a','b']
+        with self.assertRaisesRegex(ValueError,'conflicting frozen'):
+            prepare([row],{'source_splits':{'a':'train','b':'test'},'message_splits':{}})
+    def test_previous_content_cannot_move_to_train(self):
+        row=record('2','new-family','same','train')
+        with self.assertRaisesRegex(ValueError,'leakage'):
+            prepare([row],{'source_splits':{},'message_splits':{digest(row['messages']):'test'}})
+    def test_previous_content_is_not_exported_twice(self):
+        row=record('2','new-family','same')
+        pools,rejected=prepare([row],{'source_splits':{},'message_splits':{digest(row['messages']):'train'}})
+        self.assertEqual(sum(map(len,pools.values())),0)
+        self.assertEqual(rejected[0]['reason'],'exact duplicate')
+    def test_source_group_string_is_not_treated_as_character_families(self):
+        row=record('2','incident-a','same');row['source_groups']='incident-a'
+        with self.assertRaisesRegex(ValueError,'source_groups'):prepare([row])
 if __name__=='__main__':unittest.main()

@@ -19,4 +19,16 @@ This is a first ingestion gate, not a general trace schema validator or semantic
 
 Offline checks: `python3 -m unittest discover -s evaluation/local_trial -p test_prepare_episodes.py`.
 
-No real episodes have been exported or used to train a model in this implementation session.
+No reviewed real episodes have been exported or used to train a model. The candidate inventory and draft acceptance cases are preparation artifacts, not admitted training data.
+
+## Continued collection
+
+Generate a read-only candidate index with `inventory_sources.py --database DATABASE --output NEW_DIRECTORY`. It records source hashes and observed status without promoting any row to training. `acceptance_draft_v1.json` contains 16 synthetic structured cases for independent review; exclude them from training and do not describe them as a frozen release benchmark yet.
+
+Each accepted export writes `split_assignments.json`. For every subsequent batch, run:
+
+```sh
+python3 evaluation/local_trial/prepare_episodes.py reviewed-next.jsonl new-output --frozen prior-output/split_assignments.json
+```
+
+This preserves prior source-family and exact-message assignments, rejects a batch that bridges train/test families, and rejects already-exported exact content. Keep the newest assignment file for the next batch. Human ancestry review and semantic deduplication remain required.

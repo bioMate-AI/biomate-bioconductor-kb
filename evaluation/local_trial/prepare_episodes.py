@@ -14,7 +14,8 @@ def digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest()
 
 
-def prepare(records):
+def prepare(records, frozen=None):
+    frozen = frozen or {'source_splits': {}, 'message_splits': {}}
     parent = {}
     def root(x):
         parent.setdefault(x, x)
@@ -26,12 +27,20 @@ def prepare(records):
     for r in records:
         if not isinstance(r.get('record_id'), str) or not r['record_id']:
             raise ValueError('Every record requires record_id')
-        if not r.get('source_groups') or not all(isinstance(g, str) and g for g in r['source_groups']):
+        if not isinstance(r.get('source_groups'), list) or not r['source_groups'] or not all(isinstance(g, str) and g for g in r['source_groups']):
             raise ValueError('Every record requires nonempty source_groups')
         keys = ['source:'+g for g in r['source_groups']] + ['content:'+digest(r.get('messages'))]
         for key in keys: join(keys[0], key)
-    pools = {'train': [], 'dev': [], 'test': []}; rejected = []; seen = set(); ids = set()
+    pools = {'train': [], 'dev': [], 'test': []}; rejected = []; seen = set(frozen.get('message_splits',{})); ids = set()
     components = {}
+    for field, prefix in [('source_splits','source:'), ('message_splits','content:')]:
+        for key, split in frozen.get(field, {}).items():
+            if split not in pools: raise ValueError('Invalid frozen split')
+            if prefix+key not in parent: continue
+            component = root(prefix+key)
+            if component in components and components[component] != split:
+                raise ValueError('New batch connects conflicting frozen splits')
+            components[component] = split
     for r in records:
         if r['record_id'] in ids: raise ValueError('Duplicate record_id')
         ids.add(r['record_id'])
@@ -64,13 +73,35 @@ def prepare(records):
 
 
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('input',type=Path);ap.add_argument('output',type=Path);args=ap.parse_args()
+    ap=argparse.ArgumentParser();ap.add_argument('input',type=Path);ap.add_argument('output',type=Path);ap.add_argument('--frozen',type=Path,help='Prior split_assignments.json; required for subsequent batches');args=ap.parse_args()
     records=[json.loads(line) for line in args.input.read_text().splitlines() if line.strip()]
-    pools,rejected=prepare(records)
+    frozen=json.loads(args.frozen.read_text()) if args.frozen else {'source_splits':{},'message_splits':{}}
+    pools,rejected=prepare(records,frozen)
     args.output.mkdir(parents=True,exist_ok=False)
     for split,rows in pools.items():
         (args.output/(split+'.jsonl')).write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in rows))
     (args.output/'rejected.json').write_text(json.dumps(rejected,indent=2))
+    assignments={key:dict(frozen.get(key,{})) for key in ('source_splits','message_splits')}
+    for split, rows in pools.items():
+        for row in rows:
+            for group in row['source_groups']:assignments['source_splits'][group]=split
+            assignments['message_splits'][row['messages_sha256']]=split
+    # Preserve newly declared ancestry even when its row was an exact duplicate.
+    # Admission remains separate: this reserves a split, not a training target.
+    changed=True
+    while changed:
+        changed=False
+        for row in records:
+            known={assignments['source_splits'][g] for g in row['source_groups'] if g in assignments['source_splits']}
+            message_split=assignments['message_splits'].get(digest(row.get('messages')))
+            if message_split:known.add(message_split)
+            if not known:continue
+            if len(known)>1:raise ValueError('Conflicting persisted ancestry')
+            split=next(iter(known))
+            for group in row['source_groups']:
+                if group not in assignments['source_splits']:
+                    assignments['source_splits'][group]=split;changed=True
+    (args.output/'split_assignments.json').write_text(json.dumps(assignments,indent=2,sort_keys=True))
     manifest={'input_sha256':hashlib.sha256(args.input.read_bytes()).hexdigest(),'counts':{k:len(v) for k,v in pools.items()},'rejected':len(rejected),'scope':'review/provenance and exact-duplicate/source-group gates; semantic leakage and scientific correctness require independent review'}
     (args.output/'manifest.json').write_text(json.dumps(manifest,indent=2));print(json.dumps(manifest,indent=2))
 if __name__=='__main__':main()
