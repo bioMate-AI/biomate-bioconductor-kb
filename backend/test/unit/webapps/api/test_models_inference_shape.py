@@ -148,6 +148,52 @@ def test_plddt_from_pdb(mod):
     assert mod._plddt_from_pdb("not a pdb") == []
 
 
+def test_plddt_from_cif(mod):
+    # boltz2 / AlphaFold2 / OpenFold2 return an mmCIF whose _atom_site.
+    # B_iso_or_equiv column holds per-residue pLDDT — extract it for CA atoms,
+    # reading column order from the loop header (order-independent).
+    cif = "\n".join([
+        "data_model",
+        "loop_",
+        "_atom_site.group_PDB",
+        "_atom_site.label_atom_id",
+        "_atom_site.label_comp_id",
+        "_atom_site.label_seq_id",
+        "_atom_site.B_iso_or_equiv",
+        "ATOM N MET 1 55.5",
+        "ATOM CA MET 1 60.2",
+        "ATOM C MET 1 58.0",
+        "ATOM CA LYS 2 72.8",
+        "ATOM CA THR 3 88.1",
+    ])
+    assert mod._plddt_from_cif(cif) == [60.2, 72.8, 88.1]
+    # Column order independence + quoted atom id + HETATM handling.
+    cif2 = "\n".join([
+        "loop_",
+        "_atom_site.group_PDB",
+        "_atom_site.B_iso_or_equiv",
+        "_atom_site.label_atom_id",
+        'ATOM 91.0 "CA"',
+        "ATOM 12.0 N",
+    ])
+    assert mod._plddt_from_cif(cif2) == [91.0]
+    assert mod._plddt_from_cif("") == []
+    assert mod._plddt_from_cif("no atom_site here") == []
+
+
+def test_plddt_from_structure_prefers_cif_then_pdb(mod):
+    cif = "\n".join([
+        "loop_", "_atom_site.group_PDB", "_atom_site.label_atom_id",
+        "_atom_site.B_iso_or_equiv", "ATOM CA 77.0",
+    ])
+    assert mod._plddt_from_structure(cif) == [77.0]
+    pdb = (
+        "ATOM      1  CA  MET A   1      "
+        "11.100  22.200  33.300  1.00 65.30           C  "
+    )
+    assert mod._plddt_from_structure(pdb) == [65.30]  # falls back to PDB
+
+
 # ── B1 regression: dispatch must trust the client's mode, NOT NVIDIA_API_KEY ──
 # The production posture is self_host (a URL, no key). A key-only gate stubbed
 # out every inference even with the NIM up. These prove the gate is removed.

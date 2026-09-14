@@ -1021,12 +1021,27 @@ def _bionemo_structure(client, fn_name: str, inputs: Dict[str, Any]) -> Dict[str
         return _stub_result(STRUCTURE, reason=raw.get("reason", "backend unreachable"))
 
     structures = raw.get("structures") or raw.get("pdbs") or []
-    struct_str = structures[0] if structures else ""
-    plddt = (
-        raw.get("plddt")
-        or raw.get("confidence_scores")
-        or _plddt_from_pdb(struct_str)
-    )
+    # A structure entry is either the raw CIF/PDB string, or a dict wrapping it
+    # (boltz2 returns [{"structure": "<cif>", …}]). Handle both — treating the
+    # dict as the structure left struct_str non-string, so nothing was stored and
+    # no per-residue pLDDT could be parsed.
+    _first = structures[0] if structures else ""
+    if isinstance(_first, dict):
+        struct_str = _first.get("structure") or _first.get("cif") or _first.get("pdb") or ""
+    else:
+        struct_str = _first or ""
+    if not isinstance(struct_str, str):
+        struct_str = ""
+    # Per-residue pLDDT. boltz2/AlphaFold2/OpenFold2 write per-residue pLDDT into
+    # the B-factor column of the returned CIF/PDB — parse that. Only fall back to
+    # an explicit per-residue array from the API. Do NOT use confidence_scores:
+    # it is a GLOBAL (pTM-like) metric, and using it produced a single-point
+    # "pLDDT" chart in the structure viewer.
+    plddt = _plddt_from_structure(struct_str)
+    if not plddt:
+        _p = raw.get("plddt")
+        if isinstance(_p, (list, tuple)) and len(_p) > 1:
+            plddt = list(_p)
     pae = raw.get("pae") or raw.get("predicted_aligned_error") or []
     return {
         "structureFileRef": _store_blob(struct_str, suffix=".cif"),
@@ -1199,6 +1214,42 @@ def _plddt_from_pdb(pdb_or_cif: str) -> List[float]:
             except (ValueError, IndexError):
                 continue
     return out
+
+
+def _plddt_from_cif(cif: str) -> List[float]:
+    """
+    Extract per-residue pLDDT from an mmCIF string (``_atom_site.B_iso_or_equiv``
+    of CA atoms). boltz2 / AlphaFold2 / OpenFold2 write per-residue pLDDT into the
+    B-factor column of the CIF they return. Returns [] for empty / non-CIF input.
+    Column order is read from the ``_atom_site.*`` loop header, so it is robust to
+    field-order differences between models. Real model output — never fabricated.
+    """
+    if not cif or "_atom_site." not in cif:
+        return []
+    cols: List[str] = []
+    out: List[float] = []
+    for line in cif.splitlines():
+        s = line.strip()
+        if s.startswith("_atom_site."):
+            cols.append(s.split(".", 1)[1])
+            continue
+        if cols and (s.startswith("ATOM") or s.startswith("HETATM")):
+            fields = s.split()
+            if len(fields) < len(cols):
+                continue
+            rec = dict(zip(cols, fields))
+            atom = (rec.get("label_atom_id") or rec.get("auth_atom_id") or "").strip('"\'')
+            if atom == "CA":
+                try:
+                    out.append(float(rec.get("B_iso_or_equiv", "")))
+                except (ValueError, TypeError):
+                    continue
+    return out
+
+
+def _plddt_from_structure(struct: str) -> List[float]:
+    """Per-residue pLDDT from a structure blob — tries mmCIF then PDB."""
+    return _plddt_from_cif(struct) or _plddt_from_pdb(struct)
 
 
 def _store_blob(content: str, suffix: str) -> Optional[str]:
