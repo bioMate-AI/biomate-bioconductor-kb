@@ -91,6 +91,27 @@ Each episode carries `verification_basis`, provenance `source_groups`, `prompt_s
 `eligible_for_training=False` until human review. Leakage guard: benchmark items are emitted
 only to `release_test_holdout.jsonl`.
 
+## QLoRA SFT pilot (executed 2026-09-14)
+
+`evaluation/local_trial/train_qlora_pilot.py` ran an assistant-token-only QLoRA SFT on the
+train split. **Pipeline proven end-to-end** — loss decreased monotonically and a resume-able
+checkpoint (adapter + optimizer) was saved (satisfies the plan's checkpoint/resume gate).
+
+| step | 1 | 5 | 10 | 15 | 20 | 25 | 30 |
+|---|---|---|---|---|---|---|---|
+| loss | 1.795 | 1.493 | 1.263 | 1.087 | 0.984 | 0.710 | 0.845 |
+
+- **Model:** Qwen3-8B, 4-bit NF4 (QLoRA r=16), on a g6.2xlarge **spot** L4 (24 GB). Fits at
+  ~11 GB. Adapter + config + trainer_state preserved to
+  `s3://…/biomate-core-local-trial/20260912/sft_pilot_20260914/checkpoint-30/`.
+- **Why 8B, not 27B:** the 4-bit 27B (16.8 GB) + peft's fp32 embedding upcast (+4.74 GB)
+  **OOMs on 24 GB**; 27B QLoRA needs a 40 GB+ GPU (L40S/A100), which had no spot capacity.
+  The pipeline is identical — the 27B run just needs the larger card.
+- **Infra note:** loading the 52 GB model off the EBS root read at ~10 MB/s; moving it to the
+  instance-store NVMe (`/opt/dlami/nvme`) fixed it (~260 MB/s). Put base models on NVMe.
+- **Next:** human-review the admitted episodes, run to convergence on a 40 GB+ GPU for the
+  27B, then re-benchmark the merged adapter against the 660-item held-out test set.
+
 ## Required before any training (contract)
 
 1. Human triage of git fix pairs (keyword selection has doc-commit noise) and dedup.
