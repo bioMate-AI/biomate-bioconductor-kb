@@ -26,8 +26,8 @@ python3 -m venv "$ROOT/venv"; source "$ROOT/venv/bin/activate"
 pip install -q --disable-pip-version-check 'pip==25.0.1'
 pip install -q 'torch==2.5.1' --index-url https://download.pytorch.org/whl/cu121
 pip install -q 'torch-scatter==2.1.2' --only-binary=:all: -f https://data.pyg.org/whl/torch-2.5.1+cu121.html
-pip install -q 'numpy==1.26.4' 'biopython==1.80' 'scipy==1.13.1' 'rdkit==2024.9.6' 'PyYAML==6.0.2' 'tqdm==4.67.1' 'sympy==1.13.1' 'requests==2.32.3' 'boto3>=1.36,<2'
-python -c 'import torch,torch_scatter; assert torch.cuda.is_available(); print(torch.__version__, torch.cuda.get_device_name(0))'
+pip install -q 'numpy==1.26.4' 'biopython==1.80' 'scipy==1.13.1' 'rdkit==2024.9.6' 'tensorboard==2.19.0' 'PyYAML==6.0.2' 'tqdm==4.67.1' 'sympy==1.13.1' 'requests==2.32.3' 'boto3>=1.36,<2'
+python -c 'import torch,torch_scatter; from torch.utils.tensorboard import SummaryWriter; assert torch.cuda.is_available(); print(torch.__version__, torch.cuda.get_device_name(0))'
 
 stage preparing
 aws s3 cp "s3://$BUCKET/cyclic_peptide/code/generate_validation.py" "$ROOT/code/generate_validation.py" --only-show-errors
