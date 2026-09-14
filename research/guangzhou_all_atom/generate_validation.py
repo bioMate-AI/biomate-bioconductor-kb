@@ -92,6 +92,10 @@ parser.add_argument('--guidance', choices=['default', 'cyclic'], default='defaul
                          "latent point pulled to the consecutive-residue distance)")
 parser.add_argument('--closure-thresh', type=float, default=2.0,
                     help='decoded N-term N to C-term C distance (A) counted as closed')
+parser.add_argument('--dataset-dir', default='datasets/train_valid/processed',
+                    help='processed mmap dir to evaluate on')
+parser.add_argument('--index', default='valid_index.txt',
+                    help='index file (within dataset-dir) selecting the eval split')
 parser.add_argument('--training-sequences', type=Path, default=None,
                     help='one peptide sequence per nonblank line; enables novelty rate')
 args = parser.parse_args()
@@ -100,8 +104,8 @@ setup_seed(args.seed)
 torch.set_num_threads(1)
 
 model = torch.load(args.checkpoint, map_location='cpu').to('cuda:0').eval()
-dataset = CoDesignDataset(mmap_dir='datasets/train_valid/processed',
-                          specify_index='datasets/train_valid/processed/valid_index.txt',
+dataset = CoDesignDataset(mmap_dir=args.dataset_dir,
+                          specify_index=os.path.join(args.dataset_dir, args.index),
                           backbone_only=False, use_covariance_matrix=True)
 
 if args.guidance == 'cyclic':
@@ -215,6 +219,8 @@ summary = {
     'checkpoint': str(args.checkpoint),
     'checkpoint_sha256': hashlib.sha256(args.checkpoint.read_bytes()).hexdigest(),
     'seed': args.seed,
+    'eval_dataset': args.dataset_dir,
+    'eval_index': args.index,
     'guidance': args.guidance,
     'energy_lambda': args.energy_lambda,
     'closure_thresh_A': args.closure_thresh,
