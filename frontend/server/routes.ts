@@ -6068,6 +6068,30 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
+      // Standing instructions the user explicitly promoted from a Search &
+      // evidence answer ("Make instruction"). Injected SELECTIVELY: discrete
+      // rows (not one ever-growing blob), project-scoped, and capped so a long
+      // list can never flood the prompt. Each line is length-bounded too.
+      if (_resolvedProjectId) {
+        try {
+          const _instr = await memoryService.projects.getProjectKnowledge(
+            _resolvedProjectId,
+            'project_instruction',
+          );
+          const _lines = (_instr || [])
+            .map((k: any) => String(k.content ?? '').trim())
+            .filter(Boolean)
+            .slice(0, 8)
+            .map((l: string) => `- ${l.slice(0, 300)}`);
+          if (_lines.length) {
+            const _block = `Standing instructions set by the user (apply when relevant):\n${_lines.join('\n')}`;
+            _projectContext = _projectContext ? `${_projectContext}\n${_block}` : _block;
+          }
+        } catch {
+          // Non-fatal — never break chat on an instruction lookup failure.
+        }
+      }
+
       // Composer instructions are deliberately request-scoped: a user can
       // steer one chat without silently overwriting the project's standing
       // instructions. Keep a bounded, normalized value before it reaches an

@@ -79,7 +79,9 @@ describe("<CitationPanel> — Spec 01 answer→project exits", () => {
     expect(screen.getByTestId("answer-save-notes")).toBeDisabled()
   })
 
-  it("keeps make-instruction disabled (no backend endpoint yet)", () => {
+  it("keeps make-instruction disabled when no project is active", () => {
+    // Like save-to-notes: the exit is honest — disabled without a project, and
+    // enabled (wired to POST a project_instruction) once one is active.
     render(<CitationPanel citations={[makeCitation()]} isCollapsed={false} />)
     expect(screen.getByTestId("answer-make-instruction")).toBeDisabled()
   })

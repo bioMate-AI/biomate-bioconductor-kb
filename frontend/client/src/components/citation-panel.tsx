@@ -128,6 +128,7 @@ export function CitationPanel({
   const [citationStyle, setCitationStyle] = useState<'short' | 'apa' | 'numbered'>('short')
   const [localMethodsSection, setLocalMethodsSection] = useState<MethodsSection | undefined>(methodsSection)
   const [isSavingNote, setIsSavingNote] = useState(false)
+  const [isSavingInstruction, setIsSavingInstruction] = useState(false)
 
   const activeProjectId = useActiveProjectIdSafe()
   const { toast } = useToast()
@@ -271,6 +272,55 @@ export function CitationPanel({
     }
   }
 
+  /**
+   * Spec 01 §1.5 — "Make a project instruction". Promotes this answer to a
+   * standing project instruction the assistant applies in future chats
+   * (consumed server-side into <project_context>). Saves a CONCISE, bounded
+   * directive (not the whole answer) as a discrete project_instruction row, so
+   * the injected instruction list stays selective and can't flood the prompt.
+   */
+  const handleMakeInstruction = async () => {
+    if (!activeProjectId || isSavingInstruction) return
+    const src = (answerText || "").replace(/\s+/g, " ").trim()
+    if (!src) {
+      toast({
+        title: "Nothing to promote",
+        description: "This answer is empty.",
+        variant: "destructive",
+      })
+      return
+    }
+    // A standing instruction is a short directive — bound to ~300 chars and
+    // avoid a mid-word cut.
+    let directive = src.slice(0, 300)
+    if (directive.length < src.length) directive = directive.replace(/\s+\S*$/, "") + "…"
+    setIsSavingInstruction(true)
+    try {
+      await api.request(`/memory/projects/${activeProjectId}/knowledge`, {
+        method: "POST",
+        body: JSON.stringify({
+          knowledgeType: "project_instruction",
+          title: `Instruction — ${new Date().toISOString().slice(0, 10)}`,
+          content: directive,
+          source: "user_saved",
+        }),
+      })
+      toast({
+        title: "Saved as a project instruction",
+        description: "The assistant will apply this in this project's chats when relevant.",
+      })
+    } catch (e: any) {
+      console.error("[citations] make instruction failed:", e?.message ?? e)
+      toast({
+        title: "Could not save",
+        description: e?.message || "Saving the instruction failed.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSavingInstruction(false)
+    }
+  }
+
   const handleRegenerateMethodsSection = async (style: 'short' | 'apa' | 'numbered') => {
     if (!workflow) return
 
@@ -360,28 +410,33 @@ export function CitationPanel({
               </TooltipProvider>
 
               {/* Spec 01 §1.5 — "Make a project instruction" promotes a finding
-                  to a standing instruction (inherited param origin, Spec 07
-                  §7.4). No backend endpoint writes the project instructions
-                  store yet, so this stays honestly disabled rather than
-                  fabricating a success. */}
+                  to a standing instruction the assistant applies in this
+                  project's future chats (consumed into <project_context>). */}
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <span tabIndex={0}>
+                    <span tabIndex={activeProjectId ? -1 : 0}>
                       <Button
                         size="sm"
                         variant="outline"
                         className="h-7 text-xs"
-                        disabled
+                        onClick={handleMakeInstruction}
+                        disabled={!activeProjectId || isSavingInstruction}
                         data-testid="answer-make-instruction"
                       >
-                        <Pin className="h-3 w-3 mr-1" />
+                        {isSavingInstruction ? (
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        ) : (
+                          <Pin className="h-3 w-3 mr-1" />
+                        )}
                         Make instruction
                       </Button>
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    Promote to a standing project instruction — coming soon
+                    {activeProjectId
+                      ? "Promote this answer to a standing instruction for this project"
+                      : "Select a project to save a standing instruction"}
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
