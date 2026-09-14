@@ -2157,27 +2157,39 @@ class ResearchAgent:
 
             # Parse the response
             parsed = self._parse_llm_response(response)
+            answer_text = parsed.get('answer', response)
 
-            # Build citations from literature search and benchmark evidence
+            # ── Citation-grounding guard ──────────────────────────────────────
+            # _build_synthesis_prompt numbers the FULL retrieved pool [1..N] and
+            # the model cites by those numbers. Returning only the first
+            # max_citations (relevance-ranked) leaves the answer's [N] markers
+            # pointing at papers we dropped, and surfaces uncited papers as
+            # "references". Instead keep EXACTLY the papers the answer cites and
+            # renumber them contiguously in both the text and the returned list,
+            # so every [N] maps to a real citation and nothing uncited is shown.
+            pool = list(evidence.get('citations') or [])
+            answer_text, grounded_pool = self._ground_citations(answer_text, pool)
+            if grounded_pool is not None:
+                lit_pool = grounded_pool
+            else:
+                # No numeric [N] markers (e.g. attached-paper answer) — fall back
+                # to the top relevance-ranked pool, capped.
+                _cite_cap = max(self.max_citations, 15) if _deep_synth else self.max_citations
+                lit_pool = pool[:_cite_cap]
+
+            # Build citations from the grounded literature pool.
             citations = []
-
-            # Add citations from literature search (LiteratureCitation -> Citation).
-            # For deep evidence-review queries surface more than max_citations (=5) —
-            # the downstream chat model builds the user-facing table from these, and 5
-            # relevance-ranked hits is too few for a real review.
-            _cite_cap = max(self.max_citations, 15) if _deep_synth else self.max_citations
-            if evidence.get('citations'):
-                for lit_citation in evidence['citations'][:_cite_cap]:
-                    citations.append(Citation(
-                        title=lit_citation.title,
-                        authors=lit_citation.authors,
-                        year=lit_citation.year or 2023,
-                        journal=lit_citation.journal or "Unknown",
-                        doi=lit_citation.doi,
-                        pmid=lit_citation.pmid,
-                        abstract=lit_citation.abstract,
-                        relevance_score=lit_citation.relevance_score
-                    ))
+            for lit_citation in lit_pool:
+                citations.append(Citation(
+                    title=lit_citation.title,
+                    authors=lit_citation.authors,
+                    year=lit_citation.year or 2023,
+                    journal=lit_citation.journal or "Unknown",
+                    doi=lit_citation.doi,
+                    pmid=lit_citation.pmid,
+                    abstract=lit_citation.abstract,
+                    relevance_score=lit_citation.relevance_score
+                ))
 
             # Add citations from benchmark evidence
             if evidence.get('benchmark_results'):
@@ -2194,10 +2206,16 @@ class ResearchAgent:
                                 doi=result.get('doi')
                             ))
 
+            confidence = parsed.get('confidence', 0.8)
+            # Evidence-boundary guarantee (Spec 01 §1.2): every answer states what
+            # the evidence does / does not establish. If the model didn't write a
+            # caveat, append an honest one derived from the grounding.
+            answer_text = self._ensure_evidence_boundary(answer_text, len(citations), confidence)
+
             return ResearchResponse(
-                answer=parsed.get('answer', response),
+                answer=answer_text,
                 citations=citations,
-                confidence=parsed.get('confidence', 0.8),
+                confidence=confidence,
                 follow_up_questions=parsed.get('follow_ups', []),
                 methods_used=list(analysis.keys()),
                 benchmark_evidence=evidence.get('benchmark_results')
@@ -2210,6 +2228,70 @@ class ResearchAgent:
                 error=str(e),
                 confidence=0.0
             )
+
+    def _ground_citations(self, answer: str, pool: list):
+        """Keep only the papers the answer actually cites via [N] markers and
+        renumber them contiguously in BOTH the answer text and the returned
+        list, so every [N] maps to a real, returned citation and no uncited
+        paper is surfaced.
+
+        Returns (rewritten_answer, grounded_pool). grounded_pool is None when
+        the answer has no numeric [N] markers (e.g. attached-paper answers),
+        signalling the caller to fall back to the relevance-ranked top-N.
+        """
+        import re
+        if not pool or not answer:
+            return answer, None
+        marker_re = re.compile(r'\[(\d+(?:\s*,\s*\d+)*)\]')
+        ordered: List[int] = []
+        seen = set()
+        for m in marker_re.finditer(answer):
+            for tok in m.group(1).split(','):
+                tok = tok.strip()
+                if tok.isdigit():
+                    n = int(tok)
+                    if 1 <= n <= len(pool) and n not in seen:
+                        seen.add(n)
+                        ordered.append(n)
+        if not ordered:
+            return answer, None
+        remap = {old: i + 1 for i, old in enumerate(ordered)}
+
+        def _repl(m):
+            out = []
+            for tok in m.group(1).split(','):
+                tok = tok.strip()
+                if tok.isdigit() and int(tok) in remap:
+                    out.append(str(remap[int(tok)]))
+            return '[' + ', '.join(out) + ']' if out else m.group(0)
+
+        new_answer = marker_re.sub(_repl, answer)
+        grounded = [pool[old - 1] for old in ordered]
+        return new_answer, grounded
+
+    def _ensure_evidence_boundary(self, answer: str, n_citations: int, confidence: float) -> str:
+        """Guarantee a one-line evidence boundary/caveat. If the model already
+        stated caveats/limitations/a boundary, leave it; otherwise append an
+        honest boundary derived from the grounding (citation count + confidence)."""
+        if not answer:
+            return answer
+        low = answer.lower()
+        if any(w in low for w in (
+            "caveat", "boundary", "limitation", "evidence does not", "not establish",
+            "outside the scope", "should be interpreted", "not a systematic",
+        )):
+            return answer
+        if n_citations == 0:
+            note = ("**Evidence boundary:** no primary papers were retrieved for this "
+                    "answer — treat it as background, not literature-grounded, and verify "
+                    "against sources before acting on it.")
+        else:
+            level = "limited" if confidence < 0.5 else ("moderate" if confidence < 0.8 else "reasonable")
+            note = (f"**Evidence boundary:** grounded in {n_citations} retrieved "
+                    f"paper{'s' if n_citations != 1 else ''} ({level} confidence); this is a "
+                    f"targeted synthesis, not a systematic review, and may miss relevant work "
+                    f"outside the search.")
+        return answer.rstrip() + "\n\n" + note
 
     def _build_synthesis_prompt(
         self,
@@ -2469,7 +2551,10 @@ class ResearchAgent:
             lit = ["## Retrieved Literature (your ONLY citation list)",
                    "Cite these with [N] using the numbers below. Use ONLY papers from "
                    "this list for [N] citations — never cite a paper that is not listed "
-                   "here, and never invent a DOI, PMID, or PDB ID."]
+                   "here, and never invent a DOI, PMID, or PDB ID. Cite only papers whose "
+                   "content actually supports the sentence; do not pad with irrelevant [N]. "
+                   "End your answer with a one-line '**Evidence boundary:**' stating what "
+                   "the evidence does and does not establish and any scope limits."]
             for i, c in enumerate(cites, 1):
                 authors = ", ".join((getattr(c, 'authors', None) or [])[:6])
                 meta = []
