@@ -115,9 +115,10 @@ requires a full Galaxy restart to take effect. Dev was hot-patched (pip install
   is now full (200 from the seed's own labelled fragments, `d0d716654`), but
   introducing *novel* substructures beyond the seed's pieces needs a curated
   BRICS-labelled fragment library. Enhancement, not a bug.
-- **`gen_` runs lack an orphan-finalizer** — they stick at `running` if Galaxy
-  restarts mid-run (nextflow runs have `CompletionPoller`; generation runs do
-  not). Reliability gap.
+- ~~**`gen_` runs lack an orphan-finalizer**~~ — FIXED (`4733a689d`): a lazy
+  on-read finalizer in `get_generation` marks a run failed if it has been
+  `running` past `_RUN_STALE_SECONDS` (300s). Verified on dev against a real
+  orphaned run.
 - **Search "Make instruction" exit** — disabled stub; needs a backend endpoint
   (`POST /api/memory/projects/:id/instructions`).
 - **Models real predictions** — blocked by BioNeMo NVCF provisioning
