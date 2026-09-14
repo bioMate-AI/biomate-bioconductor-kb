@@ -98,6 +98,29 @@ same backbone**, not a different program. They are deferred for **data-readiness
 exactly what lets us add them later without a new model. Sequence: cyclic peptide → small
 molecule → ternary/degrader (PLAN.md §6).
 
+### Plugin feasibility by modality — two axes
+A plugin varies on two independent axes, and conflating them is what makes "glues are just
+another plugin" oversell a hard problem:
+
+- **Axis 1 — chemistry / representation:** which atoms / bonds / topology the plugin emits.
+  Easy to unify; the all-atom backbone already provides the substrate.
+- **Axis 2 — biological conditioning / objective:** what the molecule is generated *against*.
+  This is the hard axis, and it is where glues/degraders diverge.
+
+| Modality | Axis 1 (chemistry) | Axis 2 (conditioning) | Verdict |
+|---|---|---|---|
+| **Cyclic peptide** (first plugin) | closure / disulfide, stereochemistry, non-natural monomers | single pocket | Focus; hardest Axis-1 case |
+| **Small molecule** | valence, drug-likeness, synthesizability, large chemical space | single pocket (same regime as cyclic peptide) | Cleanest add; single-pocket like the peptide plugin |
+| **Molecular glue** | *the glue is itself a small molecule → reuses the small-molecule plugin* | **ternary complex + cooperativity** (E3–glue–target); NOT single pocket | Molecule generator is a plugin; the ternary/cooperativity objective is a **backbone extension + data problem** |
+| **PROTAC** | bivalent: two ligands + linker | **ternary complex + linker geometry + cooperativity** | Same as glue, plus linker design |
+
+Key point: for glues and PROTACs the *molecule generator* is a cheap plugin (Axis 1), but the
+capability that actually matters — designing for a **productive protein–protein interface and
+cooperativity** — is a new conditioning regime (Axis 2) that requires extending the backbone to
+model **ternary geometry** and acquiring scarce **ternary-complex data**. Small molecule varies
+only on Axis 1; glue/PROTAC vary on both. That is why they are sequenced last, not because they
+are a different program.
+
 ## 5. Data sufficiency — honestly, not for the innovative version
 
 | Purpose | Have | Enough? |
