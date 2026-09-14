@@ -51,7 +51,9 @@ Ran on short-lived AWS instances (AutoimmuneCorpusProfile). All artifacts under
 | **HELM monomers** | ✅ | pinned commit `fecc972f…`; `helm_monomers/<commit>/helm_monomers.tgz` (224 KB) |
 | **PepBDB** | ✅ | raw 691 MB (SHA256 verified) + `pepbdb_cyclic_index.json`; **13,481 peptide entries → 890 cyclic** (446 unique-seq clusters); leak-free split **799 train / 91 test** |
 | **RCSB cyclic index** | ✅ | 28,662 "cyclic peptide" + Protein-entity candidate PDB IDs (text-based, cyclicity not structurally verified) |
-| **BindingDB peptide subset** | 🔁 re-run | first run failed URL resolution; corrected (release 202609) and re-run via `collect_bindingdb.sh` |
+| **BindingDB peptide subset** | ✅ | release 202609; scanned 3,237,052 rows → **171,006 peptidic** rows; `bindingdb_peptide/202609/bindingdb_peptide_subset.csv` (48 MB) |
+
+All four collected; both collector instances self-terminated (no lingering cost).
 
 Two environment fixes on the way: wrong IAM profile (403 on the datasets bucket → use
 `AutoimmuneCorpusProfile`); and Ubuntu 24.04 has no `awscli` apt package (→ install AWS CLI v2
