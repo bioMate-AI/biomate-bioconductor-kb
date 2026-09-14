@@ -21,6 +21,7 @@ import { memoryService } from "./memory-repository";
 import { pool } from "./db";
 import { canonicalTier, canCollaborate, FREE_PROJECT_LIMIT, tierEnforcementEnabled } from "./tier";
 import { s3Service } from "./s3-client";
+import { checkTabularCompatibility, parseHeaderColumns, formatFromName, isTabularFormat } from "./input-compatibility";
 import multer from "multer";
 import { randomUUID, randomBytes } from "crypto";
 import path from "path";
@@ -59,6 +60,23 @@ async function ensureProjectShareTokensTable(): Promise<void> {
   await pool.query(`CREATE INDEX IF NOT EXISTS pst_token_idx   ON project_share_tokens(token)`);
 }
 ensureProjectShareTokensTable().catch(e => console.error("[project_share_tokens] table init failed:", e?.message ?? e));
+
+// Read just enough of an S3 object to capture its header line (first newline).
+// Ranged GET avoids downloading large files to compare a schema.
+async function _readS3Header(bucket: string, key: string): Promise<string> {
+  const { S3Client, GetObjectCommand } = await import("@aws-sdk/client-s3");
+  const s3 = new S3Client({
+    region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || "us-east-1",
+    followRegionRedirects: true,
+  });
+  const obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key, Range: "bytes=0-65535" }));
+  const chunks: Buffer[] = [];
+  for await (const chunk of obj.Body as any) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    if (Buffer.concat(chunks).toString("utf8").includes("\n")) break;
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
 
 export async function _isOwnerOrMember(projectId: string, uid: string): Promise<boolean> {
   const project = await memoryService.projects.getProject(projectId);
@@ -349,6 +367,69 @@ export function registerProjectRoutes(app: Express): void {
     } catch (e: any) {
       console.error("[project_files] list failed:", e?.message ?? e);
       res.status(500).json({ error: "Failed to list files" });
+    }
+  });
+
+  // ─── POST /api/projects/:id/files/compatibility ───────────────────────
+  // Validate that 2+ project files can be compared (same schema). Reads each
+  // file's header from S3 (owner/member scoped, exact-id) and returns
+  // compatibility plus a suggested typed column mapping when names differ —
+  // "comparisons validate compatibility and request a typed mapping only when
+  // needed". No compute is launched.
+  app.post("/api/projects/:id/files/compatibility", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const id = req.params.id;
+    const rawIds = Array.isArray(req.body?.fileIds) ? req.body.fileIds : [];
+    const uniqueIds = Array.from(new Set(
+      rawIds.filter((x: any) => typeof x === "string" && x.trim()).map((x: string) => x.trim()),
+    )) as string[];
+    if (uniqueIds.length < 2) {
+      return res.status(400).json({
+        error: "at_least_two_files_required",
+        message: "Provide at least two distinct project file ids to compare.",
+      });
+    }
+    try {
+      if (!(await _isOwnerOrMember(id, uid))) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+      const rows = await pool.query(
+        `SELECT id, name, s3_key FROM project_files WHERE project_id = $1 AND id = ANY($2::uuid[])`,
+        [id, uniqueIds],
+      );
+      const byId = new Map(rows.rows.map((r: any) => [String(r.id), r]));
+      const missing = uniqueIds.filter((fid) => !byId.has(fid));
+      if (missing.length) {
+        return res.status(404).json({
+          error: "file_not_found",
+          message: "One or more files were not found in this project.",
+          missing,
+        });
+      }
+      const bucket = process.env.S3_BUCKET_NAME || "";
+      const schemas = [];
+      for (const fid of uniqueIds) {
+        const row = byId.get(fid)!;
+        const format = formatFromName(row.name);
+        let columns: string[] = [];
+        if (bucket && isTabularFormat(format)) {
+          try {
+            columns = parseHeaderColumns(await _readS3Header(bucket, row.s3_key), format);
+          } catch (e: any) {
+            console.warn(`[compatibility] header read failed for ${row.s3_key}: ${e?.message}`);
+          }
+        }
+        schemas.push({ id: fid, name: row.name, format, columns });
+      }
+      const result = checkTabularCompatibility(schemas);
+      res.json({
+        ...result,
+        files: schemas.map((s) => ({ id: s.id, name: s.name, format: s.format, columns: s.columns })),
+      });
+    } catch (e: any) {
+      console.error("[project_files] compatibility check failed:", e?.message ?? e);
+      res.status(500).json({ error: "Failed to check compatibility" });
     }
   });
 
