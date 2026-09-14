@@ -134,6 +134,18 @@ requires a full Galaxy restart to take effect. Dev was hot-patched (pip install
   scalar was used as the per-residue track. Added mmCIF B-factor extraction
   (`_plddt_from_cif`/`_plddt_from_structure`, +unit tests). Verified: boltz2 on a
   53-residue sequence now returns `plddt_len=53` with the structure stored.
+- **openfold2 result mapping** — FIXED (`07b640430`): it uses
+  `structures_in_ranked_order` with entry-level `plddt[]`/`predicted_aligned_error`,
+  a different shape than boltz2. Generalized `_bionemo_structure` to be
+  shape-robust. Verified: openfold2 now returns plddt_len=53 + PAE + structure.
+  evo2_7b/evo2_40b also confirmed real (version-pinning fix). Of the 5 catalogued
+  models, boltz2/openfold2/evo2_7b/evo2_40b are verified; AlphaFold2 (MSA-heavy)
+  not yet run.
+- **rdkit durability** — the Dockerfile pins rdkit (durable on image rebuild) and
+  it's pip-installed in the running dev container, but a container *recreation*
+  before a Galaxy backend image rebuild would drop it (the sync deploys backend
+  via `docker cp`, not an image build). Full durability needs a Galaxy backend
+  image rebuild — an infra/release step, tracked here.
 - **Durable-vs-dev drift** — backend Dockerfile changes reach dev only on an
   image rebuild; dev is currently hot-patched to match.
 
