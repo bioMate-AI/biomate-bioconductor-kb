@@ -63,13 +63,28 @@ function mapOutput(o: any): ReproOutput {
 }
 
 /**
+ * Normalize an input binding for the record: keep the identifiers needed to
+ * reproduce (which dataset was bound to which step) but drop the raw s3Uri so the
+ * record never exposes internal storage paths — inputs are addressed by
+ * datasetId / projectFileId, consistent with how outputs are addressed by id.
+ */
+function mapBinding(b: any): Record<string, unknown> {
+  if (!b || typeof b !== "object") return {};
+  const out: Record<string, unknown> = {};
+  for (const k of ["stepId", "datasetId", "src", "name", "projectFileId"]) {
+    if (b[k] !== undefined && b[k] !== null) out[k] = b[k];
+  }
+  return out;
+}
+
+/**
  * Assemble the reproducibility record from a run and its outputs. Defensive:
  * missing/absent fields degrade to empty rather than throwing, so a partially
  * complete run still yields a valid (if sparse) record.
  */
 export function assembleReproducibilityRecord(run: any, outputs: any[] = []): ReproducibilityRecord {
   const params = run?.parameters && typeof run.parameters === "object" ? run.parameters : {};
-  const bindings = Array.isArray(run?.inputBindings) ? run.inputBindings : [];
+  const bindings = (Array.isArray(run?.inputBindings) ? run.inputBindings : []).map(mapBinding);
   const outs = Array.isArray(outputs) ? outputs.map(mapOutput) : [];
   return {
     recordVersion: RECORD_VERSION,

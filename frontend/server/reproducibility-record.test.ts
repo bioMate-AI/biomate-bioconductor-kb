@@ -35,9 +35,15 @@ describe("assembleReproducibilityRecord", () => {
     expect(r.outputs[1]).toEqual({ id: "o2", name: "plot.png", fileType: "png", sizeBytes: 90000, sha256: null });
   });
 
-  it("does NOT expose raw s3 uris on outputs (addressed by opaque id)", () => {
-    const r = assembleReproducibilityRecord(run, [{ id: "o", name: "x", s3Uri: "s3://secret/x" }]);
-    expect(JSON.stringify(r.outputs)).not.toContain("s3://");
+  it("never exposes raw s3 uris anywhere in the record (inputs + outputs opaque)", () => {
+    const r = assembleReproducibilityRecord(
+      { ...run, inputBindings: [{ stepId: "0", datasetId: "ds-a", name: "counts.csv", projectFileId: "pf-1", s3Uri: "s3://in/a.csv" }] },
+      [{ id: "o", name: "x", s3Uri: "s3://secret/x" }],
+    );
+    // Whole-record check — not just outputs.
+    expect(JSON.stringify(r)).not.toContain("s3://");
+    // But the identifiers needed to reproduce the input are retained.
+    expect(r.inputBindings[0]).toEqual({ stepId: "0", datasetId: "ds-a", name: "counts.csv", projectFileId: "pf-1" });
   });
 
   it("degrades gracefully on a sparse/partial run", () => {
