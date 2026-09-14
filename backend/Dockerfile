@@ -130,7 +130,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Chem/QED/BRICS/Descriptors/Crippen/FilterCatalog). Kept out of Galaxy's
 # pinned-requirements.txt so Galaxy's pins stay pristine. Without it the
 # generator returns "no candidates: rdkit_unavailable" (2026-09-13).
-RUN pip install --no-cache-dir rdkit==2023.9.6
+# MUST be a numpy-2-compatible build: this image ships numpy 2.x, and older
+# rdkit (2023.9.x, built for numpy 1.x) SEGFAULTS in rdkit.ML.InfoTheory under
+# numpy 2 — which manifested as generation runs hanging forever. rdkit>=2024.3
+# supports numpy 2 (verified 2024.3.5 on py3.9 under numpy 2.0.2).
+RUN pip install --no-cache-dir rdkit==2024.3.5
 
 # Copy application code with correct ownership in one shot.
 COPY --chown=galaxy:galaxy . .
