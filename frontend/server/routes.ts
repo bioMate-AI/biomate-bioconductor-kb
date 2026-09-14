@@ -6433,6 +6433,10 @@ ${paramLines || '(none recorded)'}`;
         isMultiIntent: assistantResponse.isMultiIntent || false,
         researchResponse: assistantResponse.researchResponse,
         benchmarkEvidence: assistantResponse.benchmarkEvidence,
+        // Surface the ids this turn's selected references could NOT resolve to a
+        // real, authorized dataset, so the client can thread them into the
+        // execute request and the server-side gate (inputs_unresolved) engages.
+        datasetReferenceUnresolvedIds: (enrichedContext as any).datasetReferenceUnresolvedIds,
       };
 
       // Normalize slug-style workflow names to human-readable display names in the payload

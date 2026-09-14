@@ -1187,6 +1187,10 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
           allowLowConfidence: allowLowConfidenceOverride,
           retryOfRunId: retryContext?.runId,
           retryOfInvocationId: retryContext?.galaxyInvocationId,
+          // Forward this turn's unresolved references so the server's
+          // inputs_unresolved gate blocks a run against a reference that never
+          // resolved (never substituting another/latest dataset).
+          datasetReferenceUnresolvedIds: (workflow as any).__datasetReferenceUnresolvedIds,
         },
         inputs,
         generationAssessment: workflow.__generationAssessment

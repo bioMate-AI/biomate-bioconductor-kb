@@ -835,6 +835,9 @@ export const executionConfigSchema = z.object({
   pauseAtQcFailures: z.boolean().optional(),
   // Low-level compute override: executor, memory, GPU. Passed through to buildNextflowComputeConfig.
   computeConfig: z.record(z.string(), z.unknown()).optional(),
+  // Ids the chat turn could not resolve to a real, authorized dataset. Forwarded
+  // so the execute gate blocks a run against an unresolved reference.
+  datasetReferenceUnresolvedIds: z.array(z.string()).optional(),
 });
 
 export type ExecutionConfig = z.infer<typeof executionConfigSchema>;

@@ -1233,7 +1233,10 @@ export function ChatInterface({
           validation: data.workflow?.validation || { is_valid: true, issues: [], warnings: [] },
           tool_installation: data.workflow?.tool_installation || { success: true, failed_tools: [] },
           // Prerequisites validation (input data, parameters needed before execution)
-          prerequisitesValidation: data.prerequisitesValidation || null
+          prerequisitesValidation: data.prerequisitesValidation || null,
+          // Ids this turn's selected references could not resolve — threaded into
+          // the execute request so the server's inputs_unresolved gate engages.
+          datasetReferenceUnresolvedIds: data.datasetReferenceUnresolvedIds || undefined,
         }
       }
 

@@ -934,6 +934,7 @@ export function ChatMessage({
                             toolInstallationSuccess:
                               message.metadata?.tool_installation?.success !== false,
                           },
+                          __datasetReferenceUnresolvedIds: message.metadata?.datasetReferenceUnresolvedIds,
                           __executionOverrides: params?.__executionOverrides || undefined,
                           __qcConfig: params?.__qcConfig || undefined,
                         },
@@ -976,6 +977,7 @@ export function ChatMessage({
                           candidateWorkflows: [],
                           toolInstallationSuccess: true,
                         },
+                        __datasetReferenceUnresolvedIds: message.metadata?.datasetReferenceUnresolvedIds,
                         __executionOverrides: params?.__executionOverrides || undefined,
                         __qcConfig: params?.__qcConfig || undefined,
                       },
