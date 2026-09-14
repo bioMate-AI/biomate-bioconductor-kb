@@ -151,13 +151,6 @@ class BricsGenerator(Generator):
     name = "rdkit_brics_enumeration"
     is_learned = False
 
-    # Common bioisosteric / decoration fragments (same set as the .nf process).
-    _EXTRA_FRAGS = [
-        "c1ccccc1", "c1ccncc1", "c1ccnc(N)c1", "c1cnc(N)cn1",
-        "[*]C(=O)N", "[*]C(=O)O", "[*]S(=O)(=O)N", "[*]OC",
-        "[*]CC", "[*]CCC", "[*]CF", "[*]CC(F)(F)F",
-    ]
-
     def propose(self, spec: GenerationSpec) -> list[str]:
         if not _RDKIT_AVAILABLE:
             self.last_status = {"ok": False, "reason": "rdkit_unavailable",
@@ -179,39 +172,35 @@ class BricsGenerator(Generator):
         target_pool = max(1, spec.max_candidates)
         candidates: set[str] = {Chem.MolToSmiles(seed_mol)}
 
-        # 1) Combinatorial BRICS reassembly of the seed itself.
+        # Decompose the seed into BRICS fragments — these carry properly
+        # bond-type-LABELLED dummy atoms ([16*], [3*], …) — then recombine the
+        # whole fragment pool in a single BRICSBuild pass. This is the
+        # RDKit-idiomatic way to enumerate a virtual library and yields hundreds
+        # of analogues from a fragmentable seed.
+        #
+        # (The previous approach — BRICSBuild([seed_mol]) on the intact molecule,
+        # plus a pairwise base+extra loop over a generically-dummied medchem set
+        # — produced ~1 molecule, because BRICSBuild only joins fragments whose
+        # dummy atoms carry compatible BRICS bond-type labels, which neither the
+        # intact seed nor the unlabelled extras had.)
+        frag_mols = [m for m in (Chem.MolFromSmiles(f)
+                                 for f in BRICS.BRICSDecompose(seed_mol))
+                     if m is not None]
         try:
-            for mol in BRICS.BRICSBuild([seed_mol]):
-                smi = Chem.MolToSmiles(mol)
+            for i, mol in enumerate(BRICS.BRICSBuild(frag_mols)):
+                try:
+                    Chem.SanitizeMol(mol)
+                    smi = Chem.MolToSmiles(mol)
+                except Exception:
+                    continue
                 if smi and Chem.MolFromSmiles(smi):
                     candidates.add(smi)
-                if len(candidates) >= target_pool:
+                # Cap on both unique output and raw iterations — BRICSBuild is a
+                # lazy generator over a combinatorial space.
+                if len(candidates) >= target_pool or i >= 20000:
                     break
         except Exception:  # pragma: no cover - BRICS can raise on odd inputs
             pass
-
-        # 2) Pairwise assembly of seed fragments with the medchem fragment set.
-        seed_frags = list(BRICS.BRICSDecompose(seed_mol))
-        seed_frag_mols = [m for m in (Chem.MolFromSmiles(f) for f in seed_frags)
-                          if m is not None]
-        extra_mols = [m for m in (Chem.MolFromSmiles(f) for f in self._EXTRA_FRAGS)
-                      if m is not None]
-
-        for base_frag in seed_frag_mols[:5]:
-            if len(candidates) >= target_pool:
-                break
-            for extra_frag in extra_mols:
-                try:
-                    for mol in BRICS.BRICSBuild([base_frag, extra_frag]):
-                        smi = Chem.MolToSmiles(mol)
-                        if smi and Chem.MolFromSmiles(smi):
-                            candidates.add(smi)
-                        if len(candidates) >= target_pool:
-                            break
-                except Exception:
-                    pass
-                if len(candidates) >= target_pool:
-                    break
 
         result = self._canonicalize(candidates)
         self.last_status = {
