@@ -9,16 +9,32 @@ epoch-99 checkpoint from the publication-matched run (`pepglad-pubmatch-20260914
 |---|---:|---|
 | serialized_rate | **1.00** | pipeline produces valid, finite structures every time |
 | sequence_diversity | **1.00** | all 456 generated sequences unique |
-| **mean AAR** | **0.059** | random ≈ 0.05 (1/20) → **near random** |
-| mean best-of-4 AAR / complex | **0.135** | ~2–3× random — modest signal |
+| raw positional AAR | 0.059 | **mis-metric** — see below |
+| **slide AAR (official)** | **0.152** | PepGLAD's real metric (max over registration offsets) |
+| slide AAR random baseline (uniform / composition) | 0.14 / **0.16** | the metric's floor for short peptides |
+| best-of-4 slide AAR / complex | 0.214 | vs shuffled-reference (right composition) 0.318 |
+
+## Metric correction (important)
+We first reported raw positional AAR (0.059) — wrong. PepGLAD's official metric is
+`slide_aar` (max AAR over registration offsets; `evaluation/seq_metric.py`). Recomputed on the
+saved sequences: **0.152**. But `slide_aar` takes a max over ~2L offsets, so its **random
+baseline is 0.14–0.16, not 0.05**. Our model's 0.152 sits **at (slightly below) the
+composition-matched random baseline of 0.160**. So the metric fix explained the jump but did
+**not** rescue the model.
 
 Artifacts: `runs/pepglad-eval-20260914T154450Z/status/validation_summary.json`.
 
 ## Interpretation (honest)
 - **The pipeline is sound.** 100% serialized + 100% diverse: generation, calibration, and the
   eval harness all work end-to-end; outputs are valid structures.
-- **The model does not recover sequence above ~random on average.** Mean AAR 0.059 is at the
-  random floor; only best-of-4 (0.135) shows weak signal.
+- **The model does not recover sequence above the random baseline** — even by the official
+  slide_aar metric (0.152 vs 0.16 composition-random). Confirmed rigorously, not a metric bug.
+- **Caveat worth stating:** for *de novo* binder co-design, matching the native sequence is not
+  the objective, so AAR near the composition baseline is partly expected — the discriminative
+  metrics are structural/binding (Cα-RMSD, DockQ, interface dG), which we have not computed
+  (need Rosetta/OpenMM) and have not compared to PepGLAD's *published* numbers on this split.
+  Our own Cα-RMSD ~12 Å (during training) is the clearer weakness. So this establishes "we have
+  NOT demonstrated useful design," not necessarily "the model is fundamentally broken."
 - **This is not an undertraining/compute problem.** During-training val AAR was **flat at ~0.06
   from early epochs across both runs** (LDM 80 ep / batch 30k, and 300-ep-target / batch 60k) —
   so more epochs and the restored batch did not help. The autoencoder is healthy (72%

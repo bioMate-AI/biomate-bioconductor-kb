@@ -31,6 +31,22 @@ from pathlib import Path
 # path so `data`, `generate`, `utils` resolve without relying on PYTHONPATH being set.
 sys.path.insert(0, os.getcwd())
 
+
+def slide_aar(candidate, reference):
+    """PepGLAD's amino-acid recovery: max exact-match rate over all registration offsets.
+    Mirrors evaluation/seq_metric.py:slide_aar. Note the random baseline for this metric is
+    ~0.14-0.16 for short peptides (max over ~2L offsets), NOT ~0.05 -- report a baseline too."""
+    if not reference:
+        return None
+    L = len(reference)
+    padded = ' ' * (L - 1) + candidate + ' ' * (L - 1)
+    best = 0.0
+    for s in range(len(padded) - L + 1):
+        window = padded[s:s + L]
+        best = max(best, sum(a == b for a, b in zip(window, reference)) / L)
+    return best
+
+
 import numpy as np
 import torch
 from data.codesign import CoDesignDataset
@@ -96,11 +112,13 @@ for index in range(n_complexes):
             seq = ''.join(VOCAB.abrv_to_symbol(b.abrv) for b in generated)
             pdb_path = sample_pdbs / (sample_id + '_generated.pdb')
             list_blocks_to_pdb([receptor, generated], [receptor_chain, peptide_chain], str(pdb_path))
-            aar = None
-            if ref_seq is not None and len(seq) == len(ref_seq) and len(seq) > 0:
-                aar = sum(a == b for a, b in zip(seq, ref_seq)) / len(seq)
+            # PepGLAD's official recovery metric is slide_aar (max AAR over registration
+            # offsets), NOT raw positional match — raw reads near-random on frame-shifts.
+            aar = slide_aar(seq, ref_seq) if ref_seq else None
+            raw_aar = (sum(a == b for a, b in zip(seq, ref_seq)) / len(ref_seq)
+                       if ref_seq else None)
             record.update(status='serialized', sequence=seq, residues=len(generated),
-                          pdb=str(pdb_path.relative_to(args.output)), aar=aar)
+                          pdb=str(pdb_path.relative_to(args.output)), aar=aar, raw_aar=raw_aar)
         except Exception as exc:
             record.update(status='failed', error=type(exc).__name__ + ': ' + str(exc))
         finally:
@@ -119,6 +137,19 @@ novel_rate = None
 if training_seqs is not None and seqs:
     novel_rate = sum(s not in training_seqs for s in seqs) / len(seqs)
 
+# Composition-matched random baseline for slide_aar (the metric's floor is NOT ~0.05).
+import random as _random
+_random.seed(args.seed)
+_refs = [r['reference_sequence'] for r in serialized if r.get('reference_sequence')]
+_pool = ''.join(_refs) or 'ACDEFGHIKLMNPQRSTVWY'
+baseline_aar = None
+if _refs:
+    trials = []
+    for _ in range(5):
+        trials.append(sum(slide_aar(''.join(_random.choice(_pool) for _ in ref), ref)
+                          for ref in _refs) / len(_refs))
+    baseline_aar = sum(trials) / len(trials)
+
 summary = {
     'checkpoint': str(args.checkpoint),
     'checkpoint_sha256': hashlib.sha256(args.checkpoint.read_bytes()).hexdigest(),
@@ -129,7 +160,11 @@ summary = {
     'n_attempts': len(records),
     'n_serialized': len(serialized),
     'serialized_rate': len(serialized) / len(records) if records else None,
+    'aar_metric': 'slide_aar (PepGLAD official); compare against random_baseline_aar, not 0.05',
     'mean_aar': sum(aars) / len(aars) if aars else None,
+    'random_baseline_aar': baseline_aar,
+    'mean_aar_over_baseline': (sum(aars) / len(aars) - baseline_aar
+                               if (aars and baseline_aar is not None) else None),
     'mean_best_aar_per_complex': (sum(per_complex_best_aar.values()) / len(per_complex_best_aar)
                                   if per_complex_best_aar else None),
     'n_aar_scored': len(aars),
