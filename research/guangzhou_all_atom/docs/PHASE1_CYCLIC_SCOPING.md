@@ -70,6 +70,27 @@ already cover a large therapeutic class.
 - **PepBDB cyclic detection was heuristic** (head-to-tail <2 Å or disulfide) — the 890/799 set is
   a candidate set; spot-check a sample before trusting it as ground-truth cyclic.
 
+## Guidance-only closure smoke — RESULT (2026-09-14)
+
+Ran `closure_smoke.sh` on the existing (linear-trained) checkpoint: 20 valid complexes × 2
+attempts, default vs cyclic guidance, `energy_lambda=0.8`.
+
+| | default | cyclic guidance |
+|---|---:|---:|
+| serialized_rate | 1.00 | 1.00 |
+| **mean N-term↔C-term distance** | **19.9 Å** | **6.7 Å** |
+| closure_rate (≤ 2 Å) | 0.0 | 0.025 |
+| disulfide_rate | 0.0 | 0.0 |
+| slide AAR (quality check) | 0.146 | 0.150 |
+
+**Reading:** the closure guidance **works directionally and strongly** — it pulls the termini
+from ~20 Å to ~6.7 Å (3×) **with no quality loss** (AAR flat). But true closure (≤2 Å bond) is
+only 2.5%, because this checkpoint was trained on **linear** peptides and never learned closed
+conformations — exactly the risk noted below. So: **the guidance mechanism is validated; guidance
+alone cannot close a linear-trained model.** Greenlight the real Phase-1 step: **fine-tune on the
+PepBDB cyclic set** so the prior produces near-closed conformations, then guidance snaps them
+shut. Artifacts: `results/closure_smoke/summary_{default,cyclic}.json`.
+
 ## Immediate first task
 Add `set_cyclic_dist` + `cyclic_geometry_guidance` to a fork of `models/LDM/ldm.py`, extend
 `setup_latent_guidance.py`, build the cyclic processed split, and run a guided-generation smoke
