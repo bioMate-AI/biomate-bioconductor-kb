@@ -51,6 +51,7 @@ import { emailService } from "./email-service";
 import { authenticateToken, authenticateStaticApiKey, optionalAuth } from "./auth-middleware";
 import { decideRunAccess } from "./run-access";
 import { decideOutputAccess, decideInvocationAccess } from "./output-access";
+import { assembleReproducibilityRecord } from "./reproducibility-record";
 import BetterSqlite3 from "better-sqlite3";
 import type { RegisterData, LoginData } from "./auth-service";
 import { s3Service } from "./s3-client";
@@ -12091,6 +12092,30 @@ Rules:
       res.json(meta);
     } catch (e: any) {
       console.error("[runs-outputs] meta error:", e);
+      res.status(500).json({ error: e?.message || String(e) });
+    }
+  });
+
+  // Phase 2 — unified reproducibility record: one structured provenance object
+  // (workflow identity + resolved parameters + bound inputs + outputs) assembled
+  // from the run and the canonical output resolver. Owner/member scoped via
+  // resolveAuthorizedRun. Distinct from /reproducibility (the file export bundle).
+  app.get("/api/runs/:anyId/reproducibility-record", authenticateToken, async (req: any, res) => {
+    try {
+      const run = await resolveAuthorizedRun(req, res, req.params.anyId);
+      if (!run) return;
+      let outputs: any[] = [];
+      try {
+        const { runsOutputsService } = await import("./services/runs-outputs-service");
+        outputs = (await runsOutputsService.list(run.id)) || [];
+      } catch (e: any) {
+        // Outputs unavailable (run not finished / resolver hiccup) — the record
+        // still reports identity + params + input bindings.
+        console.warn("[reproducibility-record] outputs unavailable:", e?.message ?? e);
+      }
+      res.json(assembleReproducibilityRecord(run, outputs));
+    } catch (e: any) {
+      console.error("[reproducibility-record] error:", e?.message ?? e);
       res.status(500).json({ error: e?.message || String(e) });
     }
   });
