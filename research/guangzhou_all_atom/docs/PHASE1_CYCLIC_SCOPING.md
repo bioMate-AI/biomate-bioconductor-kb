@@ -91,6 +91,34 @@ alone cannot close a linear-trained model.** Greenlight the real Phase-1 step: *
 PepBDB cyclic set** so the prior produces near-closed conformations, then guidance snaps them
 shut. Artifacts: `results/closure_smoke/summary_{default,cyclic}.json`.
 
+## Fine-tune attempt (2026-09-14) — BLOCKED on a model↔data compatibility bug
+
+Cyclic data-prep succeeded (**697 train / 77 valid / 88 test** processed cyclic complexes in
+S3). The warm-start fine-tune (`cyclic_finetune.sh`) then wired up correctly — data synced,
+warm-start checkpoints resolved (AE epoch38 + LDM epoch99), config built (batch 40000, 60
+epochs) — but **`train.py` crashed in the LDM forward** on the cyclic data:
+
+```
+models/LDM/ldm.py:98  H_0[mask] = H
+RuntimeError: CUDA error: device-side assert triggered
+```
+
+A device-side assert is almost always an **out-of-range index** (embedding / position lookup),
+reported asynchronously. Root hypothesis: the pubmatch model was trained on **PepBench**, but
+**PepBDB cyclic** data differs — non-standard residues (`pepbdb.py` flagged `non_standard`) and/or
+larger receptors / longer peptides producing position indices the base model's encoding wasn't
+sized for. This is a genuine integration bug, not an env paper-cut — do NOT relaunch blindly.
+
+**Diagnostic next step:** rerun a single cyclic batch with `CUDA_LAUNCH_BLOCKING=1` (+ optionally
+`TORCH_USE_CUDA_DSA`) through `model.forward` to get the true failing op and the offending index;
+then either (a) filter cyclic entries whose residue/atom/position indices exceed the base model's
+tables, or (b) extend the model's embeddings/position range. Also worth checking: whether PepGLAD
+expects PepBDB processed via its own `pepbdb.py` path to match PepBench tensor conventions (block
+counts, position_ids), since the two datasets may not be drop-in interchangeable for a warm-start.
+
+Env fixes already applied along the way (all committed): py3.10 AMI (biopython 1.80), direct
+split-index build, `build-essential`+`python3-dev` (moot on py3.10), `tensorboard` for train.py.
+
 ## Immediate first task
 Add `set_cyclic_dist` + `cyclic_geometry_guidance` to a fork of `models/LDM/ldm.py`, extend
 `setup_latent_guidance.py`, build the cyclic processed split, and run a guided-generation smoke
