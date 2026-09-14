@@ -1,0 +1,327 @@
+{
+  "summary": {
+    "total_cxg_datasets": 2226,
+    "total_immune_disease_datasets_unique": 148,
+    "held_immune_unique": 138,
+    "missing_immune_unique": 10,
+    "held_uuids_total_in_s3": 1585
+  },
+  "per_disease": [
+    {
+      "disease": "COVID-19",
+      "available": 66,
+      "held": 66,
+      "missing": 0,
+      "cells_available": 9105087,
+      "cells_missing": 0
+    },
+    {
+      "disease": "Crohn disease",
+      "available": 21,
+      "held": 21,
+      "missing": 0,
+      "cells_available": 7097089,
+      "cells_missing": 0
+    },
+    {
+      "disease": "Sjogren syndrome",
+      "available": 12,
+      "held": 12,
+      "missing": 0,
+      "cells_available": 149139,
+      "cells_missing": 0
+    },
+    {
+      "disease": "atopic eczema",
+      "available": 1,
+      "held": 0,
+      "missing": 1,
+      "cells_available": 280518,
+      "cells_missing": 280518
+    },
+    {
+      "disease": "celiac disease",
+      "available": 2,
+      "held": 2,
+      "missing": 0,
+      "cells_available": 1818100,
+      "cells_missing": 0
+    },
+    {
+      "disease": "cytomegalovirus infection",
+      "available": 25,
+      "held": 20,
+      "missing": 5,
+      "cells_available": 21579373,
+      "cells_missing": 4059728
+    },
+    {
+      "disease": "immune system disorder",
+      "available": 4,
+      "held": 1,
+      "missing": 3,
+      "cells_available": 19968,
+      "cells_missing": 14976
+    },
+    {
+      "disease": "immune-mediated necrotizing myopathy",
+      "available": 1,
+      "held": 0,
+      "missing": 1,
+      "cells_available": 96822,
+      "cells_missing": 96822
+    },
+    {
+      "disease": "inflammatory bowel disease",
+      "available": 9,
+      "held": 9,
+      "missing": 0,
+      "cells_available": 3804619,
+      "cells_missing": 0
+    },
+    {
+      "disease": "influenza",
+      "available": 5,
+      "held": 5,
+      "missing": 0,
+      "cells_available": 1084183,
+      "cells_missing": 0
+    },
+    {
+      "disease": "juvenile idiopathic arthritis",
+      "available": 3,
+      "held": 3,
+      "missing": 0,
+      "cells_available": 306013,
+      "cells_missing": 0
+    },
+    {
+      "disease": "long COVID-19",
+      "available": 1,
+      "held": 1,
+      "missing": 0,
+      "cells_available": 32588,
+      "cells_missing": 0
+    },
+    {
+      "disease": "multiple sclerosis",
+      "available": 2,
+      "held": 2,
+      "missing": 0,
+      "cells_available": 4158252,
+      "cells_missing": 0
+    },
+    {
+      "disease": "post-COVID-19 disorder",
+      "available": 1,
+      "held": 1,
+      "missing": 0,
+      "cells_available": 422220,
+      "cells_missing": 0
+    },
+    {
+      "disease": "prediabetes syndrome",
+      "available": 4,
+      "held": 4,
+      "missing": 0,
+      "cells_available": 430489,
+      "cells_missing": 0
+    },
+    {
+      "disease": "psoriasis",
+      "available": 1,
+      "held": 1,
+      "missing": 0,
+      "cells_available": 24126,
+      "cells_missing": 0
+    },
+    {
+      "disease": "pulmonary sarcoidosis",
+      "available": 2,
+      "held": 2,
+      "missing": 0,
+      "cells_available": 2754352,
+      "cells_missing": 0
+    },
+    {
+      "disease": "rheumatoid arthritis",
+      "available": 3,
+      "held": 1,
+      "missing": 2,
+      "cells_available": 2288363,
+      "cells_missing": 2179646
+    },
+    {
+      "disease": "systemic lupus erythematosus",
+      "available": 1,
+      "held": 1,
+      "missing": 0,
+      "cells_available": 1263676,
+      "cells_missing": 0
+    },
+    {
+      "disease": "type 1 diabetes mellitus",
+      "available": 4,
+      "held": 4,
+      "missing": 0,
+      "cells_available": 3189920,
+      "cells_missing": 0
+    },
+    {
+      "disease": "ulcerative colitis",
+      "available": 11,
+      "held": 11,
+      "missing": 0,
+      "cells_available": 3875223,
+      "cells_missing": 0
+    }
+  ],
+  "missing_datasets": [
+    {
+      "dataset_id": "789ad837-9bf5-436c-9b60-9f1153546e4c",
+      "title": "altra all samples",
+      "disease": [
+        "cytomegalovirus infection",
+        "cytomegalovirus infection",
+        "rheumatoid arthritis",
+        "normal",
+        "rheumatoid arthritis"
+      ],
+      "cell_count": 2029864,
+      "collection_id": "3a518635-c062-4c66-a9bd-c4581a5e3c63",
+      "collection_name": "Progression to rheumatoid arthritis in at-risk individuals is defined by systemic inflammation and by T and B cell dysregulation",
+      "organism": [
+        "Homo sapiens"
+      ]
+    },
+    {
+      "dataset_id": "6d06c94d-25ff-4d7b-9a09-659289dd4621",
+      "title": "altra ARI-CONV subjects",
+      "disease": [
+        "cytomegalovirus infection",
+        "normal"
+      ],
+      "cell_count": 977608,
+      "collection_id": "3a518635-c062-4c66-a9bd-c4581a5e3c63",
+      "collection_name": "Progression to rheumatoid arthritis in at-risk individuals is defined by systemic inflammation and by T and B cell dysregulation",
+      "organism": [
+        "Homo sapiens"
+      ]
+    },
+    {
+      "dataset_id": "40cca468-a415-498e-b25c-77875760eaa0",
+      "title": "altra ARI-NONC subjects",
+      "disease": [
+        "cytomegalovirus infection",
+        "normal"
+      ],
+      "cell_count": 508300,
+      "collection_id": "3a518635-c062-4c66-a9bd-c4581a5e3c63",
+      "collection_name": "Progression to rheumatoid arthritis in at-risk individuals is defined by systemic inflammation and by T and B cell dysregulation",
+      "organism": [
+        "Homo sapiens"
+      ]
+    },
+    {
+      "dataset_id": "71dfd52f-106b-40f4-a66d-c7dab1142e95",
+      "title": "altra HC1 subjects",
+      "disease": [
+        "cytomegalovirus infection",
+        "normal"
+      ],
+      "cell_count": 394174,
+      "collection_id": "3a518635-c062-4c66-a9bd-c4581a5e3c63",
+      "collection_name": "Progression to rheumatoid arthritis in at-risk individuals is defined by systemic inflammation and by T and B cell dysregulation",
+      "organism": [
+        "Homo sapiens"
+      ]
+    },
+    {
+      "dataset_id": "b0ef440b-e303-4ad2-ada8-ce13336280ba",
+      "title": "Multi-modal skin atlas identifies a multicellular immune-stromal community associated with altered cornification and specific T cell expansion in atopic dermatitis (Atopic Dermatitis Atlas)",
+      "disease": [
+        "atopic eczema",
+        "normal"
+      ],
+      "cell_count": 280518,
+      "collection_id": "5e143645-177c-45b6-952d-48770e29a54b",
+      "collection_name": "Multi-modal skin atlas identifies a multicellular immune-stromal community associated with altered cornification and specific T cell expansion in atopic dermatitis",
+      "organism": [
+        "Homo sapiens"
+      ]
+    },
+    {
+      "dataset_id": "20fae564-230a-4998-8380-13d57784dd55",
+      "title": "altra ERA subjects",
+      "disease": [
+        "cytomegalovirus infection",
+        "rheumatoid arthritis",
+        "rheumatoid arthritis"
+      ],
+      "cell_count": 149782,
+      "collection_id": "3a518635-c062-4c66-a9bd-c4581a5e3c63",
+      "collection_name": "Progression to rheumatoid arthritis in at-risk individuals is defined by systemic inflammation and by T and B cell dysregulation",
+      "organism": [
+        "Homo sapiens"
+      ]
+    },
+    {
+      "dataset_id": "c7c1fff0-4c9f-4353-afbf-d6a6768d22c3",
+      "title": "FAPs in IIMs",
+      "disease": [
+        "antisynthetase syndrome",
+        "immune-mediated necrotizing myopathy",
+        "inclusion body myositis",
+        "normal"
+      ],
+      "cell_count": 96822,
+      "collection_id": "bec32fb0-9b52-423a-83c4-5e15053b84ad",
+      "collection_name": "Priming of tissue-resident stromal cells sustains chronic inflammation in myositis",
+      "organism": [
+        "Homo sapiens"
+      ]
+    },
+    {
+      "dataset_id": "e28f0c23-7922-4a18-85c5-b2201c06b681",
+      "title": "spRNA-seq for GZMK+CD8+ T cells Target A Specific Acinar Cell Type in Sj\u00f6gren\u2019s Disease - Block #25",
+      "disease": [
+        "immune system disorder",
+        "normal"
+      ],
+      "cell_count": 4992,
+      "collection_id": "21bbfaec-6958-46bc-b1cd-1535752f6304",
+      "collection_name": "Single cell and spatial transcriptomics in Sj\u00f6gren\u2019s Disease-affected Human Salivary Glands",
+      "organism": [
+        "Homo sapiens"
+      ]
+    },
+    {
+      "dataset_id": "1218b9f0-4f95-47a0-b69a-847c92087ded",
+      "title": "spRNA-seq for GZMK+CD8+ T cells Target A Specific Acinar Cell Type in Sj\u00f6gren\u2019s Disease - Block #26",
+      "disease": [
+        "immune system disorder",
+        "normal"
+      ],
+      "cell_count": 4992,
+      "collection_id": "21bbfaec-6958-46bc-b1cd-1535752f6304",
+      "collection_name": "Single cell and spatial transcriptomics in Sj\u00f6gren\u2019s Disease-affected Human Salivary Glands",
+      "organism": [
+        "Homo sapiens"
+      ]
+    },
+    {
+      "dataset_id": "344f27ab-428c-4a0e-a7e1-d4441f2f9b80",
+      "title": "spRNA-seq for GZMK+CD8+ T cells Target A Specific Acinar Cell Type in Sj\u00f6gren\u2019s Disease - Block #30",
+      "disease": [
+        "immune system disorder",
+        "normal"
+      ],
+      "cell_count": 4992,
+      "collection_id": "21bbfaec-6958-46bc-b1cd-1535752f6304",
+      "collection_name": "Single cell and spatial transcriptomics in Sj\u00f6gren\u2019s Disease-affected Human Salivary Glands",
+      "organism": [
+        "Homo sapiens"
+      ]
+    }
+  ]
+}

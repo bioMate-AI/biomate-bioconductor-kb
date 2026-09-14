@@ -1,86 +1,70 @@
 # Reply to Dr. Mohan — BioMate AI
 
-**2026-09-08 · prepared for Dr. Mohan's review (via Andrew).**
+**Prepared for Dr. Mohan's review (via Andrew) · September 2026**
 
-Thank you for the discussion. In response to the request for evidence of relevant prior work — and to the question
-on how targets are selected — this note sets out (1) demonstrated, peer-reviewed capabilities, (2) how those
-methods could transfer to SLE (stated honestly as a hypothesis), (3) what is proven versus still in development,
-(4) how target selection works across multiple evidence channels, and (5) a single low-risk feasibility study on
-already-published data. It proposes no new laboratory work, sample exchange, cost, or IP terms at this stage.
+Thank you for the discussion. This note responds to your request for evidence of relevant prior work and your question on target selection, and sketches how a collaboration could unfold. It proposes no new laboratory work, cost, or IP terms at this stage; any data the Lab shares would be existing published or on-request cohort data, under the Lab's terms and any required Data Use Agreement.
 
-## 1 · Demonstrated, peer-reviewed capabilities
-With Dr. Yaoyun Zhang (Founder & CEO; former faculty, UTHealth SBMI) as corresponding or co-first author:
-- **Generative therapeutic-molecule design** — *A Unified Conditional Diffusion Framework for Dual Protein
-  Targets-Based Bioactive Molecule Generation* (DiffDTM). **IEEE Transactions on AI, 2024** *(corresponding
-  author)* — de-novo design of molecules against defined targets.
-- **Multi-modal subtyping + genetics-anchored (Mendelian-randomization) causal analysis** — *Identifying underlying
-  patterns in Alzheimer's disease trajectory.* **eClinicalMedicine (The Lancet Discovery Science), 2023**
-  *(corresponding author)* — disease subtypes/trajectories with genetic evidence for causal drivers.
-- **Biomarker-panel discovery** — *Optimizing multi-domain hematologic biomarkers for unipolar vs. bipolar
-  depression.* **npj Mental Health Research, 2023** *(co-first author)* — ML optimization of a blood-biomarker panel
-  to separate clinically similar groups.
-- **Interpretable, cross-site reproducible clinical ML** — *Assisting schizophrenia diagnosis using clinical EEG
-  and interpretable graph neural networks.* **Neuropsychopharmacology, 2023** *(corresponding author)* — models
-  that hold up across independent sites.
+---
 
-*(Additional related work — an Alzheimer's-progression prognosis model, iScience 2024; and preprints in 3D
-molecular modeling and a large polysomnography model — available on request.)*
+## 1 · Demonstrated methods and their potential SLE relevance
 
-These establish that the underlying **methods** — molecular design, biomarker discovery, multi-modal subtyping,
-genetics-anchored causal analysis, cross-site reproducibility — are real and reduced to practice. They have **not**
-yet been applied to lupus; that is the subject of Sections 2 and 5.
+Peer-reviewed work with Dr. Yaoyun Zhang (Founder & CEO; former faculty, UTHealth SBMI) as corresponding or co-first author. These establish the **methods** — the team's academic record. They do **not** by themselves validate BioMate's platform in SLE, nor establish experimental or commercial validation; the candidate SLE applications are stated as hypotheses, and testing them is the subject of the pilot (Section 4).
 
-## 2 · Potential relevance to SLE / lupus nephritis (a hypothesis, not yet validated)
-| Demonstrated method | Candidate SLE / LN application (unvalidated) |
-|---|---|
-| Multi-modal subtyping + trajectory modeling | Molecular **endotyping** / disease-activity trajectory |
-| Genetics-anchored (MR) causal analysis | Integrating lupus genetics (HLA/GWAS) with proteomic + autoantibody data to prioritize **causal** targets |
-| Biomarker-panel discovery | Autoantibody / urine–serum **proteomic biomarker panels** for activity or response |
-| Generative molecular design | Designing candidate molecules against a **validated lupus target** |
-| Cross-site reproducible ML | Signatures that **transfer** across independent lupus cohorts |
+| Method (peer-reviewed) | Journal (year), role | Candidate SLE / LN application — *hypothesis* |
+|---|---|---|
+| Generative therapeutic-molecule design (DiffDTM) | IEEE Trans. AI (2024), corresponding | Candidate molecules against a **validated** lupus target |
+| Multi-modal subtyping + genetics-anchored (Mendelian-randomization) causal analysis | eClinicalMedicine — Lancet Discovery Science (2023), corresponding | Molecular **endotyping**; prioritizing **causal** targets over passengers |
+| Biomarker-panel discovery | npj Mental Health Research (2023), co-first | Autoantibody / urine–serum **biomarker panels** for activity or response |
+| Interpretable, cross-site reproducible ML | Neuropsychopharmacology (2023), corresponding | Signatures that **transfer** across independent lupus cohorts |
 
-None of these is yet directly validated in SLE — establishing whether they add measurable value on the Lab's data
-is exactly what the feasibility study (Section 5) would determine.
+*(Also available on request: an Alzheimer's-progression prognosis model, iScience 2024; preprints in 3D molecular modeling and a large polysomnography model.)*
 
-## 3 · Proven vs. in-development
-**Proven (peer-reviewed):** generative molecule design; biomarker-panel discovery; multi-modal subtyping;
-genetics-anchored causal analysis; interpretable cross-site models.
+**A note on domain and motivation.** These publications, though methodologically relevant, sit mainly in the **mental-health and clinical-neuroscience** domain — they establish the methods, not lupus-specific experience. My move into immunology is deliberate and personal: I live with chronic autoimmune disease myself, and building rigorous, reproducible tools for this field is a commitment I have a direct stake in.
 
-**In development (current programs, not offered as finished, not part of the near-term study):**
-- *Immune analysis system* — a system (an instruction-tuned foundation model with added knowledge and evidence
-  channels) that integrates transcriptomic, proteomic, and human-genetic evidence to stratify patients by
-  mechanism and to prioritize targets, with reproducibility built in (matched negative controls, leave-cohort-out
-  transfer). In its present maturity it is a rigorous, null-controlled screen over measured data; extending it to
-  SLE specifically is active work.
-- *Cyclic-peptide (macrocycle) therapeutic design* — a generative capability that turns a validated target into
-  candidate cyclic-peptide molecules, optimizing potency, selectivity, and cell permeability from the outset; the
-  computational front end of the target→molecule step (the step handed to an external partner in the ALCAM/CD6 →
-  itolizumab arc). Any design requires standard wet-lab and in-vivo validation before it is a development candidate.
+---
 
-## 4 · How targets are selected (in response to your question)
-Target selection does not rely on a single channel such as pathway analysis. It integrates **several complementary
-lines of evidence — anchored on human genetics** — under rigorous statistical controls, and returns an
-**interpretable rationale for each nominated target** rather than a black-box score. The detailed methodology is
-proprietary and can be shared under an appropriate confidentiality agreement.
+## 2 · Proven vs. in-development
 
-## 5 · A proposed feasibility study (one step, low-risk, published data only)
-- **Data:** one already-**published** Lab lupus-nephritis cohort with clinical annotations (e.g., a published
-  urine/serum proteomic or autoantibody dataset), used under the Lab's terms. **No new samples, no lab work, no
-  unpublished data.**
-- **Duration:** four to six weeks.
-- **Work:** reproduce the published primary analysis (parity/reproducibility), then apply the stratification and
-  target-selection methodology — with the per-target evidence breakdown — to test for additional structure.
-- **Deliverable:** a concise technical report, with any added-value signal characterized honestly (**including a
-  null result if that is the outcome**) and a clear go/no-go recommendation.
-- **Cost & commitment:** none beyond BioMate-borne compute; no lab cost, sample transfer, funding request, or IP
-  transfer.
+**Proven** (peer-reviewed on research datasets — not SLE platform validation): the four methods above.
 
-## 6 · Data, intellectual property, and next steps
-For this study, only **published** data is used, under the Lab's terms; no ownership split is proposed at this
-stage. Should it warrant continuation, protections would be built in stages **before any nonpublic data or
-materials move** — mutual NDA, a nonbinding term sheet, a Data Use Agreement, an MTA if samples are exchanged, and
-ultimately a research/sponsored-research agreement — distinguishing background from project-generated IP, consistent
-with University of Houston policy and any funding terms.
+**In development** (not offered as finished; not part of the pilot): an **immune analysis system** (an instruction-tuned foundation model with added knowledge and evidence channels — at present a rigorous, null-controlled screen over measured data), and a **cyclic-peptide (macrocycle) design** capability that turns a validated target into candidate molecules, optimizing potency, selectivity, and permeability from the outset — the computational front end of the target→molecule step (the step handled by an external partner in the ALCAM/CD6 → itolizumab arc). Any design still requires standard wet-lab and in-vivo validation.
 
-**Proposed next step:** your confirmation that the demonstrated work is credible and the direction is of interest,
-and identification of a suitable published dataset for the feasibility study.
+---
+
+## 3 · How targets are selected (your question)
+
+Not a single channel such as pathway analysis. Several complementary lines of evidence — **anchored on human genetics** — each scored against its own matched negative control, with druggability as a final filter, returning an **interpretable per-target evidence breakdown** rather than a black-box score. Proteomic and autoantibody evidence — the Lab's data type — is one of the channels. The detailed methodology is proprietary and can be shared under confidentiality.
+
+---
+
+## 4 · A complementary pilot (low-risk, on the Lab's own data)
+
+Scoped to **complement** the Lab's discovery and wet-lab program, not duplicate it. The Lab identifies markers and targets from patient cohorts; BioMate adds a reproducible computational layer on top — **causal target-confidence** (which markers are genetics-supported drivers vs. passengers) and **responder / mechanism stratification** (whether baseline profiles predict which of the ≥4 approved LN mechanisms — FcRn, BAFF/APRIL, type-I interferon, B-cell depletion — fits a patient): the "which therapy for which patient" gap.
+
+- **Data — the Lab's own cohorts:** the pilot runs directly on the Lab's lupus-nephritis data — a published cohort plus patient-level data available on **reasonable request**. Using **two or more** of the Lab's cohorts lets us validate **cross-cohort** (leave-cohort-out), so a finding is representative rather than single-cohort-biased. (Generic public datasets we can already access on our own; the pilot's value is specifically in the Lab's data, which is what a collaboration uniquely enables.)
+- **Work (4–6 weeks):** reproduce the Lab's published primary analysis (parity) → apply the confidence + stratification layer → test **cross-cohort transfer** across the Lab's cohorts.
+- **Success = go / refine / stop**, pre-registered: a signal counts only if it is significant against a matched null **and** replicates across cohorts. A null result is a valid, reported outcome.
+- **Cost:** BioMate-borne compute only; no lab cost or IP transfer.
+- **Data-request process — a question for the Lab:** does a brief email to the corresponding author suffice, or is a data request form / Data Use Agreement / IRB determination needed? We will complete whatever the Lab and the University of Houston require.
+
+---
+
+## 5 · How the collaboration could unfold
+
+Three stages, each gating the next — computational and low-commitment first, deepening only as value is shown:
+
+1. **Your data — validate and deepen.** Establish BioMate's added value, reproducibly, on the Lab's **published** cohorts, then deepen on the Lab's patient-level data available **on request** — used throughout as **held-out validation**, not as material to train a platform on.
+2. **New data — the Houston Omics Collaborative.** Where a gap is identified, generate new paired molecular data through the Houston Omics Collaborative (e.g., SOMAscan proteomic profiling) on purpose-built samples, to sharpen stratification and target confidence.
+3. **The dry–wet loop — toward therapy.** For a validated target, BioMate designs candidate molecules (the drug-side complement); wet-lab and in-vivo results feed back to refine both the target model and the designs — an iterative **design–build–test–learn** cycle toward therapy development.
+
+---
+
+## 6 · Data and intellectual property
+
+Only published and reasonable-request cohort data, under the Lab's terms and any required Data Use Agreement; no ownership split is proposed now. Should the work continue, staged protections (NDA, DUA, MTA if samples are exchanged, and a sponsored-research agreement distinguishing background from project-generated IP) would be put in place **before any nonpublic data or materials move**, consistent with University of Houston policy.
+
+---
+
+## 7 · Proposed next step
+
+If this direction aligns with your interests, we would welcome a short Zoom between the Mohan Lab and BioMate teams to select the Lab cohorts for the pilot — including the process for sharing the on-request data — and to agree the feasibility question, baseline analysis, success criteria, and deliverable.

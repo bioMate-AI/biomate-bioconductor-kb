@@ -1,0 +1,127 @@
+{
+  "meta": {
+    "subject": "Chandra Mohan, MD PhD — Cullen Endowed Professor of Biomedical Engineering, University of Houston (cmohan@central.uh.edu)",
+    "prepared": "2026-09-14",
+    "prior_affiliations": ["UT Southwestern Medical Center", "University of Florida (earliest PI)"],
+    "purpose": "Extend beyond ALCAM/LN urine-ELISA slice into transcriptomic, genomic/GWAS, IBD, spatial-omics cohorts + full grant list for a computational collaboration assessment",
+    "sources": ["NCBI E-utilities (pubmed, gds)", "NIH RePORTER API v2", "CPRIT (cprit.texas.gov)", "Lupus Research Alliance", "UH News / BME faculty page", "web search"],
+    "critical_caveat": "Repository accessions were NOT stated in most abstracts; 'Not stated' fields require full-text Data Availability confirmation. Pre-2018 DOIs anchored on PMID and marked verify."
+  },
+  "cohort_publications": {
+    "ibd_NEW": [
+      {"pmid":"34183667","year":2021,"journal":"Nat Commun","doi":"10.1038/s41467-021-24235-0","pmc":"PMC8239008","disease":"IBD (UC+CD) pediatric","modality":"aptamer 1129-plex stool proteomics -> ELISA","cohort":"discovery IBD + longitudinal 50 UC @ 4 timepoints","design":"both","tx_response_labels":"yes (wk-4 remission)","multiomic_paired":"no","data_avail":"not stated"},
+      {"pmid":"36549591","year":2023,"journal":"Mol Cell Proteomics","doi":"10.1016/j.mcpro.2022.100487","pmc":"PMC9918796","disease":"IBD (UC+CD) pediatric","modality":"aptamer 1322-plex plasma proteomics -> ELISA","cohort":"N=76 (30 CD, 30 UC, 16 HC)","design":"cross-sectional","tx_response_labels":"no","multiomic_paired":"no","data_avail":"not stated"},
+      {"pmid":"40252987","year":2025,"journal":"Clin Immunol","doi":"10.1016/j.clim.2025.110495","disease":"IBD (UC+CD) pediatric","modality":"1000-plex antibody array stool -> ELISA","cohort":"N=73 (24 ctrl, 39 CD, 10 UC) treatment-naive","design":"cross-sectional","tx_response_labels":"partial (tx-naive baseline)","multiomic_paired":"no","data_avail":"not stated"},
+      {"pmid":"42039204","year":2026,"journal":"Front Immunol","doi":"10.3389/fimmu.2026.1624045","pmc":"PMC13106603","disease":"IBD (Crohn's) pediatric","modality":"aptamer stool screen -> ELISA","cohort":"N=47 baseline (Pediatric RISK study)","design":"longitudinal/predictive","tx_response_labels":"yes (stricturing/penetrating progression)","multiomic_paired":"no","data_avail":"not stated (RISK cohort)"}
+    ],
+    "transcriptome_bulk_NEW": [
+      {"pmid":"36996699","year":2023,"journal":"J Autoimmun","doi":"10.1016/j.jaut.2023.103025","disease":"SLE","modality":"whole-blood bulk transcriptome + eQTL + serology","cohort":"350 SLE / 497 HC (PRECISESADS NCT02890121); ext val GSE88887","design":"cross-sectional","tx_response_labels":"partial","multiomic_paired":"yes (same pts)","data_avail":"PRECISESADS controlled access; GSE88887 public GEO"},
+      {"pmid":"38899167","year":2024,"journal":"Kidney Int Rep","doi":"10.1016/j.ekir.2024.03.014","pmc":"PMC11184261","disease":"LN + non-renal SLE","modality":"whole-blood bulk transcriptome (WGCNA)","cohort":"active LN 41, active non-renal 62, HC 497 (PRECISESADS)","design":"cross-sectional","tx_response_labels":"yes (in-silico predicted response)","multiomic_paired":"transcriptome+serology","data_avail":"PRECISESADS controlled access"},
+      {"pmid":"40672966","year":2025,"journal":"J Transl Autoimmun","doi":"10.1016/j.jtauto.2025.100296","pmc":"PMC12266536","disease":"NPSLE","modality":"whole-blood bulk transcriptome (WGCNA)","cohort":"CNS lupus 26, active SLE 38, HC 497 (PRECISESADS)","design":"cross-sectional","tx_response_labels":"yes (predicted response)","multiomic_paired":"transcriptome+serology","data_avail":"PRECISESADS controlled access"}
+    ],
+    "spatial_omics_kidney_NEW": [
+      {"pmid":"42138328","year":2026,"journal":"Arthritis Rheumatol","doi":"10.1002/art.70220","disease":"LN","modality":"spatial transcriptomics (10x Visium) + cyclic IF + urine ELISA","cohort":"LN biopsies + transplant controls (N not stated); indep Visium cohort","design":"cross-sectional","tx_response_labels":"no","multiomic_paired":"yes (overlapping pts)","data_avail":"not stated"},
+      {"pmid":"42656727","year":2026,"journal":"Front Immunol","doi":"10.3389/fimmu.2026.1802673","pmc":"PMC13506827","disease":"LN","modality":"34-plex spatial proteomics (renal)","cohort":"16 LN (induction) + RCC controls; 53 glom + 49 TI ROIs","design":"baseline->outcome","tx_response_labels":"yes (predicts non-response to induction)","multiomic_paired":"single modality","data_avail":"not stated"},
+      {"pmid":"37516396","year":2023,"journal":"Clin Immunol","doi":"10.1016/j.clim.2023.109713","disease":"LN","modality":"50-plex imaging mass cytometry (renal)","cohort":"proliferative LN + control kidneys (N not stated)","design":"cross-sectional","tx_response_labels":"no","multiomic_paired":"single modality","data_avail":"not stated"}
+    ],
+    "multiomic_urine_scRNAseq_LN": [
+      {"pmid":"32396533","year":2020,"journal":"JCI Insight","doi":"10.1172/jci.insight.138345 (verify)","disease":"LN","modality":"urine 1000-plex proteomics + renal scRNA-seq integrated","cohort":"30 active LN; paired kidney-biopsy scRNA-seq","design":"cross-sectional","tx_response_labels":"stratifies proliferative","multiomic_paired":"yes (standout)","data_avail":"not stated (verify AMP/GEO)"},
+      {"pmid":"34783463","year":2022,"journal":"Arthritis Rheumatol","doi":"10.1002/art.42023","pmc":"PMC9050800","disease":"LN","modality":"longitudinal urine 1000-plex proteomics + renal scRNA-seq","cohort":"30 LN biopsy + 3/6/12 mo","design":"longitudinal","tx_response_labels":"yes (IL-16 tracks activity)","multiomic_paired":"yes/unclear (scRNA may be separate donors)","data_avail":"not stated"},
+      {"pmid":"38194790","year":2024,"journal":"J Autoimmun","doi":"10.1016/j.jaut.2023.103165","disease":"LN","modality":"Olink PEA urine proteomics + renal scRNA-seq cross-ref","cohort":"urine N=117 + indep ELISA cohort","design":"cross-sectional","tx_response_labels":"partial","multiomic_paired":"yes/unclear","data_avail":"not stated"},
+      {"pmid":"41031884","year":2025,"journal":"J Clin Invest","doi":"10.1172/JCI186143","pmc":"PMC12483563","disease":"LN","modality":"aptamer 1317-plex urine proteomics at biopsy","cohort":"LN at renal biopsy (N not stated)","design":"cross-sectional biopsy-paired","tx_response_labels":"no (AI/CI pathology)","multiomic_paired":"urine + in-vitro","data_avail":"not stated"},
+      {"pmid":"32651195","year":2020,"journal":"Ann Rheum Dis","doi":"10.1136/annrheumdis-2019-216312 (verify)","disease":"LN","modality":"planar array 1000-plex urine + scRNA-seq cross-ref","cohort":"screen + val + concurrent-biopsy + longitudinal","design":"both","tx_response_labels":"some longitudinal","multiomic_paired":"yes/unclear","data_avail":"not stated"}
+    ],
+    "autoantibody_arrays_NEW": [
+      {"pmid":"31494269","year":2019,"journal":"Genomics Proteomics Bioinformatics","doi":"10.1016/j.gpb.2018.11.001 (verify)","disease":"SLE","modality":"ProtoArray 9400-antigen autoantigen array (IgG+IgM)","cohort":"SLE vs HC + ELISA/WB val (N not stated)","tx_response_labels":"no","multiomic_paired":"no","data_avail":"not stated"},
+      {"pmid":"27211902","year":2016,"journal":"J Proteome Res","doi":"10.1021/acs.jproteome.6b00183 (verify)","disease":"SLE/LN","modality":"274-plex serum antibody array -> ELISA","cohort":"22 SLE+HC disc; 28 SLE val; 45 LN@biopsy; 7 SLE longitudinal","tx_response_labels":"biopsy activity/chronicity; flare tracking","multiomic_paired":"serum+biopsy","data_avail":"not stated"},
+      {"pmid":"35419005","year":2022,"journal":"Front Immunol","doi":"10.3389/fimmu.2022.850015","disease":"LN","modality":"immunoproteomics of circulating immune complexes (LC-MS/MS) + scRNA ref","cohort":"62 LN / 21 HC val","tx_response_labels":"no","multiomic_paired":"no","data_avail":"not stated"}
+    ],
+    "other_omics_cohorts": [
+      {"pmid":"35099126","year":2022,"journal":"Arthritis Rheumatol","disease":"NPSLE","modality":"aptamer CSF proteomics + choroid-plexus transcriptome","cohort":"NPSLE 24 + HK cohort"},
+      {"pmid":"37163449","year":2023,"journal":"Arthritis Rheumatol","doi":"10.1002/art.42545","disease":"LN","modality":"protein microarray -> ELISA (VSIG4 serum)","cohort":"screen+val 81 then 155","tx_response_labels":"longitudinal AI-index"},
+      {"pmid":"38782493","year":2024,"journal":"Lupus Sci Med","doi":"10.1136/lupus-2022-000673","disease":"SLE","modality":"iTRAQ serum MS -> ELISA","cohort":"I=52, II=117"},
+      {"pmid":"36167482","year":2022,"journal":"Lupus Sci Med","doi":"10.1136/lupus-2022-000763","disease":"LN","modality":"1000-plex antibody microarray urine","cohort":"54 (BLISS-LN trial) wks 0/24/52","tx_response_labels":"yes responder/non-responder + belimumab (RCT-derived, high value)"},
+      {"pmid":"32540998","year":2020,"journal":"J Immunol","disease":"SLE/RA","modality":"LC-MS metabolomics (bradykinin peptides) + MRM","cohort":"screen+MRM val (N not stated)"},
+      {"pmid":"35651909","year":2022,"journal":"Front Cardiovasc Med","doi":"10.3389/fcvm.2022.861724","disease":"SLE-CVD","modality":"serum metabolomics","cohort":"9 SLE/8 SLE+plaque/8 ctrl longitudinal 8-9y"},
+      {"pmid":"31075396","year":2019,"journal":"Clin Immunol","disease":"SLE","modality":"anti-oxidized-lipid autoAb/immune-complex ELISA","cohort":"64 SLE + 9 HC"},
+      {"pmid":"39404817","year":2025,"journal":"Rheumatology","doi":"10.1093/rheumatology/keae559","disease":"LN","modality":"urine ALCAM/CD6 ELISA","cohort":"122 biopsy-proven LN longitudinal wk 0/12/26/52","tx_response_labels":"yes responder/non-responder"},
+      {"pmid":"30742665","year":2019,"journal":"PLoS One","disease":"LN","modality":"serum Axl ELISA","cohort":"52 class III/IV LN + 20 HC","tx_response_labels":"yes induction response + long-term outcome"},
+      {"pmid":"26568320","year":2015,"journal":"Arthritis Res Ther","disease":"discoid LE skin","modality":"microarray transcriptome + qRT-PCR/IHC","cohort":"DLE lesional vs control skin","data_avail":"GEO GSE72535 (N=17 human)"}
+    ],
+    "already_have_LN_urine_ALCAM_slice": ["32366845 (Nat Commun 2020 ALCAM)","34981775","37720233","36569940","37431809","38392017","32546742 (correction)","J Autoimmun 2024 panel"]
+  },
+  "geo_deposits_confirmed": [
+    {"accession":"GSE278051","type":"RNA-seq+ATAC-seq","N":70,"organism":"mouse","year":2024,"work":"KLF13/SLE (PMID 39506084)"},
+    {"accession":"GSE278050","type":"RNA-seq","N":42,"organism":"mouse","year":2024},
+    {"accession":"GSE278048","type":"ATAC-seq","N":28,"organism":"mouse","year":2024},
+    {"accession":"GSE72535","type":"expression array","N":17,"organism":"human","year":2015,"work":"CD163 discoid lupus skin (PMID 26568320)"},
+    {"accession":"GSE73112","type":"expression array","N":6,"organism":"mouse","year":2015,"work":"FAAH B-cell lupus"},
+    {"accession":"GSE50609","type":"protein array","N":3,"organism":"human/mouse/rat","year":2013,"work":"9G4 B-cell autoreactivity"},
+    {"accession":"GSE10325 / GDS4185","type":"expression array","N":67,"organism":"human","year":2008,"work":"SLE PBMC subsets (reusable human SLE transcriptome)"},
+    {"accession":"GSE88887","type":"external","organism":"human","work":"external validation used in PMID 36996699"}
+  ],
+  "verified_negatives": {
+    "human_SLE_GWAS_owned_by_mohan": "NONE FOUND. Targeted query returned murine congenic-strain genetics (Sle1/2/3/5, Ly108; e.g. 16778059 Science, 17728789, 15693014, 12687552) or human genetics where Mohan is collaborator not cohort owner (19329491 IRAK1 PNAS = USC/Tsao group). His genomic assets are murine-genetic + mouse ATAC/RNA (GSE278048-51).",
+    "human_IBD_cohort_pre_2020": "NONE (all pre-2020 IBD hits are murine imaging/nutraceutical). Human IBD proteomic cohorts are all 2021-2026 (see ibd_NEW)."
+  },
+  "usefulness_ratings": {
+    "axes": ["parity_blind_target_recovery","proteomic_evidence","causal_target_confidence","responder_mechanism_stratification","cross_cohort_validation"],
+    "clusters": [
+      {"cluster":"IBD stool/plasma proteomics","pmids":["34183667","36549591","40252987","42039204"],"parity":"High","proteomic":"High","causal":"Med","stratification":"High","xval":"Med","why":"untouched disease; two longitudinal outcome-predictive"},
+      {"cluster":"PRECISESADS whole-blood transcriptome","pmids":["36996699","38899167","40672966"],"parity":"High","proteomic":"Med","causal":"Med","stratification":"High","xval":"High","why":"large N, eQTL causal anchoring, in-silico drug response, external GEO validation"},
+      {"cluster":"Spatial trans/proteomics LN kidney","pmids":["42138328","42656727","37516396"],"parity":"Med","proteomic":"High","causal":"High","stratification":"High (42656727)","xval":"Low","why":"tissue-resolved causal localization; induction non-response labels"},
+      {"cluster":"Urine proteome + renal scRNA-seq LN","pmids":["32396533","34783463","38194790"],"parity":"High","proteomic":"High","causal":"High","stratification":"High","xval":"Med","why":"paired fluid-tissue multi-omic; longitudinal Tx response"},
+      {"cluster":"Autoantigen/autoantibody arrays","pmids":["31494269","27211902","35419005"],"parity":"Med","proteomic":"High","causal":"Med","stratification":"Med","xval":"Med","why":"9400-antigen breadth; some longitudinal"},
+      {"cluster":"RCT-derived urine proteome","pmids":["36167482","39404817"],"parity":"Med","proteomic":"High","causal":"Med","stratification":"High","xval":"High","why":"belimumab responder/non-responder labels"},
+      {"cluster":"CSF/metabolomics/skin","pmids":["35099126","35651909","26568320"],"parity":"Low","proteomic":"Med","causal":"Med","stratification":"Low","xval":"Low","why":"niche/small N supporting only"}
+    ]
+  },
+  "grants": {
+    "source": "NIH RePORTER API v2 (91 project-year records -> 20 distinct core projects); CPRIT/LRA/DOD via web",
+    "nih": [
+      {"core":"R01AR086872","title":"Gene-environment triggers & proteomic pathways mediating anti-nuclear autoimmunity & systemic rheumatic disease","ic":"NIAMS","org":"University of Houston","role":"Contact-PI (MPI Costenbader)","fy_span":"2026-2031","total_captured_usd":667276,"active":true},
+      {"core":"R01DK134055","title":"Objective Classification of Lupus Nephritis","ic":"NIDDK","org":"University of Houston","role":"Contact-PI (MPI Nguyen)","fy_span":"2023-2028","total_captured_usd":2455928,"active":true},
+      {"core":"R21AR082713","title":"Diagnostic utility of antibodies to post-translationally modified nucleosomes in LN","ic":"NIAMS","org":"University of Houston","role":"PI","fy_span":"2023-2025","total_captured_usd":333193,"active":false},
+      {"core":"R33AR078078","title":"Combined OCE+tomography for skin involvement in systemic sclerosis","ic":"NIAMS","org":"UTHSC-Houston","role":"co-I/MPI (Contact Assassi)","fy_span":"2023","total_captured_usd":388525,"active":false},
+      {"core":"R61AR078078","title":"Combined OCE+tomography for skin involvement in systemic sclerosis (R61)","ic":"NIAMS","org":"UTHSC-Houston","role":"co-I/MPI (Contact Assassi)","fy_span":"2020,2022","total_captured_usd":779734,"active":false},
+      {"core":"R56DK122036","title":"Lupus Nephritis Neural Network (LuNN)","ic":"NIDDK","org":"University of Houston","role":"Contact-PI (MPI Nguyen)","fy_span":"2020","total_captured_usd":100750,"active":false},
+      {"core":"R01AR074096","title":"Monitoring Disease in Lupus","ic":"NIAMS","org":"University of Houston","role":"PI","fy_span":"2019-2026","total_captured_usd":4512261,"active":true},
+      {"core":"R01AR072598","title":"A B-Cell Gene for Lupus","ic":"NIAMS","org":"University of Houston","role":"PI","fy_span":"2018-2022","total_captured_usd":2031550,"active":false},
+      {"core":"R01AR072742","title":"Novel Point-of-Care assays for Urinary Diagnostics of Nephritis","ic":"NIAMS","org":"University of Houston","role":"co-I/MPI (Contact Willson)","fy_span":"2017-2020","total_captured_usd":1338723,"active":false},
+      {"core":"R21AR072911","title":"Salivary biomarkers in SLE","ic":"NIAMS","org":"University of Houston","role":"PI","fy_span":"2017-2018","total_captured_usd":386599,"active":false},
+      {"core":"R01AR055600","title":"Lupus Genes and B-Cell Signaling","ic":"NIAMS","org":"UT Southwestern","role":"PI","fy_span":"2009-2013","total_captured_usd":1578759,"active":false},
+      {"core":"R01DK081872","title":"Foreboding Lupus Nephritis in Minority Women","ic":"NIDDK","org":"UT Southwestern","role":"PI","fy_span":"2009-2013","total_captured_usd":2353477,"active":false},
+      {"core":"R21AT004436","title":"Ayurvedic Alternatives in Autoimmunity","ic":"NCCIH","org":"UT Southwestern","role":"PI","fy_span":"2009-2010","total_captured_usd":429788,"active":false},
+      {"core":"P50AR055503","title":"Lupus SLE Center (Administrative Core)","ic":"NIAMS","org":"UT Southwestern","role":"PI (Core)","fy_span":"2007-2011","total_captured_usd":4211894,"active":false},
+      {"core":"P01AI039824","title":"Candidate Genes for BXSB Lupus","ic":"NIAID","org":"UT Southwestern","role":"PI","fy_span":"2007-2011","total_captured_usd":1264742,"active":false},
+      {"core":"R21AR051642","title":"Lupus locus Sle3 - innate and adaptive immunity","ic":"NIAMS","org":"UT Southwestern","role":"PI","fy_span":"2004-2005","total_captured_usd":312000,"active":false},
+      {"core":"R01AR050812","title":"Immunogenetics - target-organ damage in immune nephritis","ic":"NIAMS","org":"UT Southwestern","role":"PI","fy_span":"2003-2012","total_captured_usd":3120419,"active":false},
+      {"core":"R21AR048410","title":"Candidate gene analysis in murine lupus","ic":"NIAMS","org":"UT Southwestern","role":"PI","fy_span":"2001-2002","total_captured_usd":156000,"active":false},
+      {"core":"R01AI047460","title":"Immunogenetic and cellular origins of nephrophilic ANAs","ic":"NIAID","org":"UT Southwestern","role":"PI","fy_span":"1999-2003","total_captured_usd":908217,"active":false},
+      {"core":"R01AR044894","title":"Impact of lupus susceptibility loci on B-cell tolerance","ic":"NIAMS","org":"University of Florida","role":"PI","fy_span":"1998-2007","total_captured_usd":2345011,"active":false}
+    ],
+    "nih_total_captured_usd": 29774280,
+    "nih_active_count": 3,
+    "non_nih": [
+      {"id":"RP250585","title":"Cancer Immunotherapy Biomarker Core (CIBC)","agency":"CPRIT","role":"PI/Project Director (co-lead Weiyi Peng)","amount_usd":2999264,"years":"2025-","topic":"targeted proteomics core for cancer immunotherapy biomarkers","source":"cprit.texas.gov award data; UH News 2025-05-27"},
+      {"id":"LRA-TIL","title":"Target Identification in Lupus (ALCAM as LN therapeutic target)","agency":"Lupus Research Alliance","role":"PI","amount_usd":600000,"years":"2018-2021","topic":"ALCAM target validation","source":"lupusresearch.org (Jan 2018)"},
+      {"id":"LRA-BMS-Accelerant","title":"LRA-BMS Accelerant Award","agency":"Lupus Research Alliance + Bristol Myers Squibb","role":"awardee","amount_usd":null,"years":null,"topic":"lupus translational acceleration","source":"UH BME faculty page (unverified # and amount)"},
+      {"id":"DOD-unspecified","title":"DOD lupus/autoimmunity award(s) - likely CDMRP Lupus Research Program","agency":"DOD","role":"likely PI","amount_usd":null,"years":null,"topic":"lupus","source":"Mohan Lab site lists DOD as funder; specific grant NOT located. Note: a separate DOD Impact Award went to Tianfu Wu (different UH PI)."}
+    ],
+    "totals": {
+      "nih_captured_usd": 29774280,
+      "cprit_lra_til_usd": 3599264,
+      "grand_total_quantified_usd": 33373544,
+      "note": "Floor estimate; DOD, LRA-BMS Accelerant, foundation career awards, sub-awards, and full-cost years not fully exposed"
+    }
+  },
+  "could_not_verify": [
+    "Repository accessions for most cohort papers (need full-text Data Availability)",
+    "Exact cohort N for 42138328, 41031884, 37516396, 31494269, 32540998, several validation cohorts",
+    "Same-patient multiomic pairing for 34783463 / 38194790 (scRNA may be separate donors)",
+    "DOD grant number/amount/mechanism",
+    "LRA-BMS Accelerant number/amount",
+    "PMID 33206612 affiliation (likely same group, unconfirmed)",
+    "Some pre-2018 DOIs (anchored on PMID, marked verify)"
+  ]
+}
