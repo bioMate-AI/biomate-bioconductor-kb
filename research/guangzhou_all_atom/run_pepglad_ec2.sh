@@ -149,7 +149,9 @@ c['dataloader'].update(num_workers=0, batch_size=4)
 Path(sys.argv[1], 'calibration.yaml').write_text(yaml.safe_dump(c))
 PY
   python setup_latent_guidance.py --config "$EVAL_DIR/calibration.yaml" --ckpt "$EVAL_DIR/calibrated.ckpt" --gpu 0
-  python "$ROOT/code/generate_validation.py" --checkpoint "$EVAL_DIR/calibrated.ckpt" \
+  # generate_validation.py lives outside the repo; export the repo on PYTHONPATH so its
+  # `from data...` imports resolve (it also self-inserts cwd as a fallback).
+  PYTHONPATH="$PWD" python "$ROOT/code/generate_validation.py" --checkpoint "$EVAL_DIR/calibrated.ckpt" \
     --output "$EVAL_DIR" --attempts "${EVAL_ATTEMPTS:-4}"
 ) > "$ROOT/status/evaluation.log" 2>&1
 EVAL_RC=$?

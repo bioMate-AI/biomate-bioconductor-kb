@@ -20,9 +20,16 @@ No 3D geometry quality, potency, stability, synthesis or safety is evaluated her
 import argparse
 import hashlib
 import json
+import os
 import pickle
+import sys
 from collections import defaultdict
 from pathlib import Path
+
+# This script lives outside the PepGLAD checkout, so Python puts its own dir on sys.path
+# (not the repo). The run script invokes it with cwd = the PepGLAD checkout; put that on the
+# path so `data`, `generate`, `utils` resolve without relying on PYTHONPATH being set.
+sys.path.insert(0, os.getcwd())
 
 import numpy as np
 import torch
