@@ -22,6 +22,11 @@ trap 'rc=$?; echo "== collector exit rc=$rc =="; sync_status; shutdown -h now; e
 if [ "${SKIP_SETUP:-0}" != 1 ]; then
   for a in 1 2 3 4 5; do apt-get -o DPkg::Lock::Timeout=300 update -qq && break; sleep 10; done
   apt-get -o DPkg::Lock::Timeout=300 install -y -qq python3-venv python3-pip unzip curl
+  # AWS CLI: Ubuntu 24.04 has NO 'awscli' apt package, so install v2 from the official zip.
+  if ! command -v aws >/dev/null 2>&1; then
+    curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/awscliv2.zip
+    (cd /tmp && unzip -q -o awscliv2.zip && ./aws/install --update)
+  fi
   python3 -m venv "$ROOT/venv"
   "$ROOT/venv/bin/pip" install -q --disable-pip-version-check 'pip==25.0.1'
   "$ROOT/venv/bin/pip" install -q 'requests==2.32.3' 'boto3>=1.36,<2' 'rdkit==2024.9.6' \
