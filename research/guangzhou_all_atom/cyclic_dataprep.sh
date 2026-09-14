@@ -16,8 +16,9 @@ systemd-run --unit=prep-deadline --on-active="${MAX_RUNTIME:-2h}" /sbin/shutdown
 stage installing
 command -v aws >/dev/null 2>&1 || { apt-get update -qq && apt-get install -y -qq unzip curl && curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/a.zip && (cd /tmp && unzip -q -o a.zip && ./aws/install --update); }
 apt-get -o DPkg::Lock::Timeout=300 update -qq
-# build-essential: Ubuntu 24.04 is py3.12; biopython 1.80 has no cp312 wheel and compiles from source.
-apt-get -o DPkg::Lock::Timeout=300 install -y -qq python3-venv git build-essential
+# Ubuntu 24.04 is py3.12; biopython 1.80 has no cp312 wheel and compiles from source ->
+# needs build-essential (gcc) AND python3-dev (Python.h).
+apt-get -o DPkg::Lock::Timeout=300 install -y -qq python3-venv python3-dev git build-essential
 python3 -m venv "$ROOT/venv"; source "$ROOT/venv/bin/activate"
 pip install -q --disable-pip-version-check 'pip==25.0.1'
 pip install -q 'torch==2.5.1' --index-url https://download.pytorch.org/whl/cpu   # CPU torch: pepbdb.py imports data modules that need torch
