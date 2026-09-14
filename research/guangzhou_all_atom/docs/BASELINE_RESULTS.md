@@ -24,7 +24,33 @@ composition-matched random baseline of 0.160**. So the metric fix explained the 
 
 Artifacts: `runs/pepglad-eval-20260914T154450Z/status/validation_summary.json`.
 
-## Interpretation (honest)
+## CORRECTION (2026-09-14, after checking the paper) — AAR is the WRONG metric
+
+PepGLAD's paper (Kong et al., NeurIPS 2024) **explicitly rejects AAR** (appendix "Why not
+Amino Acid Recovery") because the task is *de novo* co-design, not native-sequence recovery.
+Their reported metrics on the benchmark are:
+
+| Metric | PepGLAD paper | Meaning |
+|---|---:|---|
+| Success | 55.97% | fraction of designs without severe clashes / invalid conformations |
+| Diversity | 0.506 | unique sequence–structure clusters (NOT % unique sequences) |
+| Consistency | 0.789 | sequence↔structure agreement (Cramér's V) |
+| ΔG | −21.94 kcal/mol | Rosetta interface binding energy |
+
+**Consequence:** our "near-random AAR / 12 Å RMSD-to-native ⇒ model doesn't work" verdict was
+measuring quantities the method deliberately does not optimize. For de novo design, AAR at the
+composition baseline and high RMSD-to-native are **expected, not failures**. We therefore
+**cannot conclude the model fails** — and we have **not** yet computed the metrics that actually
+matter (Success/clash, clustered Diversity, Consistency, ΔG). Our 100% "serialized" is only a
+finite-coordinate check, weaker than their clash-based Success; our diversity=1.0 is %-unique,
+not their clustered Diversity — so neither is directly comparable.
+
+Honest status: **working generation pipeline; NOT yet evaluated on the appropriate metrics.**
+Neither success nor failure is established. Next requires PepGLAD's `cal_metrics.py`
+(Consistency, clustered Diversity, RMSD, DockQ) plus PyRosetta for ΔG, compared to the table
+above.
+
+## Interpretation (SUPERSEDED — AAR-based, wrong metric; kept for the record)
 - **The pipeline is sound.** 100% serialized + 100% diverse: generation, calibration, and the
   eval harness all work end-to-end; outputs are valid structures.
 - **The model does not recover sequence above the random baseline** — even by the official
