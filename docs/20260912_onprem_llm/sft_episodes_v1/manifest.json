@@ -1,0 +1,23 @@
+{
+  "scope": "First-batch SFT episodes (input->target) + frozen release test holdout.",
+  "application_commit": "03e369101d2039e56d1f82c1b1bbecb532f4b951",
+  "assistant_token_only": true,
+  "counts": {
+    "train_dev_episodes": 1803,
+    "by_split_lane": {
+      "train/gen": 990,
+      "dev/gen": 102,
+      "train/fix": 385,
+      "dev/fix": 41,
+      "train/nf": 260,
+      "dev/nf": 25
+    },
+    "release_test_holdout": 660
+  },
+  "leakage_guard": "public benchmarks emitted ONLY to release_test_holdout.jsonl, never to sft_episodes.jsonl",
+  "review_gate": "episodes are eligible_for_training=False until human review of provenance/verification",
+  "files": {
+    "sft_episodes.jsonl": "98b2693d9d6ff852f14d72a8d5aef9125818fbe5b6a19effe13f36e96529ec3f",
+    "release_test_holdout.jsonl": "155635e88ce01895a4795f03e3d372a7c13b874bb2c05ae89b37de1adee47fa7"
+  }
+}

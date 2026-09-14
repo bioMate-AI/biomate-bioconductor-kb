@@ -1,0 +1,4 @@
+# Vendored upstream Nextflow docs/patterns (nextflow-io) — re-fetch, don't commit.
+# See TRAINING_DATA_SOURCES.md for the clone commands.
+*
+!.gitignore
