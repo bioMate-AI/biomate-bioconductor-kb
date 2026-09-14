@@ -14,6 +14,9 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
+# On-prem mode: pass VITE_ONPREM=true at build time to enable Chinese UI + license gate
+ARG VITE_ONPREM=false
+ENV VITE_ONPREM=$VITE_ONPREM
 RUN NODE_OPTIONS=--max-old-space-size=4096 npm run build
 
 # ─── Production stage ─────────────────────────────────────────────────────────

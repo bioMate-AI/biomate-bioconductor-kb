@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/auth-context";
 import { ActiveProjectProvider } from "@/contexts/active-project-context";
+import { OnPremLicenseGate } from "@/components/onprem-license-gate";
 import { useAuth } from "@/contexts/auth-context";
 import { ChatWithArtifacts } from "@/components/chat-with-artifacts";
 import ProjectsPage from "@/pages/projects";
@@ -48,6 +49,7 @@ import TermsPage from "@/pages/terms";
 import DashboardPage from "@/pages/dashboard";
 import BillingPage from "@/pages/billing";
 import AdminFeedbackDashboardPage from "@/pages/admin/feedback-dashboard";
+import SystemDashboardPage from "@/pages/admin/system-dashboard";
 import PilotExitSurveyPage from "@/pages/pilot-exit-survey";
 import DrugDiscoveryCroDemoPage from "@/pages/drug-discovery-cro-demo";
 import IndReportPage from "@/pages/ind-report";
@@ -622,6 +624,12 @@ function Router({
         </AuthenticatedPageLayout>
       </Route>
 
+      <Route path="/admin">
+        <AuthenticatedPageLayout>
+          <SystemDashboardPage />
+        </AuthenticatedPageLayout>
+      </Route>
+
       <Route path="/pilot-exit-survey">
         <AuthenticatedPageLayout>
           <PilotExitSurveyPage />
@@ -865,12 +873,21 @@ function AppWithAuthSync() {
 }
 
 export default function RootApp() {
+  // VITE_ONPREM=true activates the license gate for on-premises deployments.
+  // SaaS (default) never shows the gate.
+  const isOnPrem = import.meta.env.VITE_ONPREM === 'true';
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="biomate-ui-theme">
         <AuthProvider>
           <ActiveProjectProvider>
-            <AppWithAuthSync />
+            {isOnPrem ? (
+              <OnPremLicenseGate>
+                <AppWithAuthSync />
+              </OnPremLicenseGate>
+            ) : (
+              <AppWithAuthSync />
+            )}
           </ActiveProjectProvider>
         </AuthProvider>
       </ThemeProvider>

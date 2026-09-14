@@ -11,7 +11,7 @@ import { execSync as _execSync } from "node:child_process";
 import { WebSocket as _WSClient, WebSocketServer } from "ws";
 import { storage } from "./storage";
 import OpenAI from "openai";
-import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs, instrumentEvents, instruments, INSTRUMENT_TYPES, apiKeys } from "../shared/schema";
+import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs, instrumentEvents, instruments, INSTRUMENT_TYPES, apiKeys, featureFlags } from "../shared/schema";
 import { generateApiKey, listApiKeys } from "./api-key-service";
 import type { InsertInviteCode, ExecutionRunStatus, InstrumentType } from "../shared/schema";
 import { db, pool } from "./db";
@@ -15016,6 +15016,150 @@ Respond ONLY with valid JSON (no markdown wrapper):
       res.json({ since: since.toISOString(), rows });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ============================================================================
+  // Admin — System Config (LLM provider + health)
+  // ============================================================================
+
+  // GET /api/admin/system-config — effective runtime LLM config + saved pending config
+  app.get("/api/admin/system-config", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const provider = process.env.GALAXY_AI_LLM_PROVIDER || 'anthropic';
+      const model = process.env.GALAXY_AI_LLM_MODEL || (
+        provider === 'anthropic' ? 'claude-sonnet-4-5' :
+        provider === 'ollama' ? 'qwen3:32b' :
+        provider === 'zhipu' ? 'glm-4.7' :
+        provider === 'deepseek' ? 'deepseek-chat' :
+        'claude-sonnet-4-5'
+      );
+
+      const saved = await db.select().from(featureFlags)
+        .where(eq(featureFlags.flagName, 'system_llm_config'))
+        .limit(1);
+      const savedConfig = saved[0]?.description ? JSON.parse(saved[0].description) : null;
+
+      res.json({
+        effective: { provider, model },
+        env: {
+          hasAnthropicKey: !!process.env.ANTHROPIC_API_KEY,
+          hasOpenaiKey: !!process.env.OPENAI_API_KEY,
+          hasZhipuKey: !!process.env.ZHIPU_API_KEY,
+          hasDeepseekKey: !!process.env.DEEPSEEK_API_KEY,
+          hasGeminiKey: !!(process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY),
+          ollamaUrl: process.env.OLLAMA_BASE_URL || 'http://ollama:11434',
+        },
+        saved: savedConfig,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/admin/system-config — save pending LLM config (apply on next backend restart)
+  app.post("/api/admin/system-config", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const { provider, model, ollamaUrl } = req.body;
+      const validProviders = ['anthropic', 'openai', 'ollama', 'zhipu', 'deepseek', 'gemini', 'openrouter'];
+      if (!provider || !validProviders.includes(provider)) {
+        return res.status(400).json({ error: `provider must be one of: ${validProviders.join(', ')}` });
+      }
+
+      const config = {
+        provider,
+        model: model || '',
+        ollamaUrl: ollamaUrl || '',
+        updatedAt: new Date().toISOString(),
+        updatedBy: (req as any).user?.email || 'admin',
+      };
+
+      await db.insert(featureFlags).values({
+        flagName: 'system_llm_config',
+        enabled: true,
+        rolloutPct: 100,
+        description: JSON.stringify(config),
+      }).onConflictDoUpdate({
+        target: featureFlags.flagName,
+        set: { description: JSON.stringify(config), updatedAt: new Date() },
+      });
+
+      // Env vars the admin should set in .env to apply this config
+      const envVars: Record<string, string> = {
+        GALAXY_AI_LLM_PROVIDER: provider,
+        ...(model ? { GALAXY_AI_LLM_MODEL: model } : {}),
+        ...(provider === 'ollama' && ollamaUrl ? { OLLAMA_BASE_URL: ollamaUrl } : {}),
+      };
+
+      res.json({
+        ok: true,
+        config,
+        envVars,
+        note: 'Config saved. Set these env vars in your .env file and restart the Galaxy backend to apply.',
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/admin/health-summary — aggregate health from all backend services
+  app.get("/api/admin/health-summary", authenticateToken, requireAdmin, async (req, res) => {
+    const galaxyUrl = process.env.GALAXY_URL || process.env.GALAXY_API_URL || 'http://localhost:8080';
+    const timeout = 8000;
+
+    const fetchSafe = async (url: string, label: string) => {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), timeout);
+        const r = await fetch(url, { signal: ctrl.signal });
+        clearTimeout(t);
+        const body = await r.json().catch(() => ({}));
+        return { label, status: r.ok ? 'ok' : 'degraded', code: r.status, data: body };
+      } catch (e: any) {
+        return { label, status: 'down', error: e.message };
+      }
+    };
+
+    const [galaxyVersion, indexHealth, processHealth] = await Promise.all([
+      fetchSafe(`${galaxyUrl}/api/version`, 'galaxy_version'),
+      fetchSafe(`${galaxyUrl}/api/admin/index-health`, 'index_health'),
+      fetchSafe(`${galaxyUrl}/api/admin/process-health`, 'process_health'),
+    ]);
+
+    // DB ping
+    let dbStatus: any;
+    try {
+      await db.execute(sql`SELECT 1`);
+      dbStatus = { label: 'postgres', status: 'ok' };
+    } catch (e: any) {
+      dbStatus = { label: 'postgres', status: 'down', error: e.message };
+    }
+
+    const services = [galaxyVersion, indexHealth, processHealth, dbStatus];
+    const overall = services.every(s => s.status === 'ok') ? 'ok'
+      : services.some(s => s.status === 'down') ? 'down' : 'degraded';
+
+    res.json({ overall, services, checkedAt: new Date().toISOString() });
+  });
+
+  // ============================================================================
+  // On-Premises License Status
+  // GET /api/license/status — proxies to Galaxy backend; no auth required so
+  // the gate page can show status before login.
+  // ============================================================================
+
+  app.get("/api/license/status", async (req, res) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const r = await fetch(`${galaxyUrl}/api/license/status`, { signal: AbortSignal.timeout(5000) });
+      if (!r.ok) {
+        return res.status(200).json({ valid: false, status: 'backend_error', message: 'Galaxy backend license check failed', tier: 'none' });
+      }
+      const data = await r.json();
+      res.json(data);
+    } catch {
+      // If Galaxy is unreachable, don't block startup — return unknown
+      res.json({ valid: true, status: 'unknown', message: 'Backend unreachable — license check skipped', tier: 'unknown' });
     }
   });
 

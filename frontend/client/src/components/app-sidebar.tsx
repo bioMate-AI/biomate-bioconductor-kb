@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { useLocation } from "wouter"
+import { t } from "@/lib/i18n"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -40,6 +41,7 @@ import {
   FlaskConical,
   BookOpen,
   Cable,
+  Server,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { analytics } from "@/lib/analytics"
@@ -308,12 +310,12 @@ export function AppSidebar({
 
       {/* Workspace nav */}
       <div style={{ marginBottom: 8 }}>
-        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600 }}>Workspace</div>
+        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600 }}>{t('Workspace')}</div>
         <button className="side-link" onClick={onNewChat} data-testid="button-new-chat" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted, oklch(0.48 0.012 260))', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}>
           <Plus className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <span>New Chat</span>
-            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Start a fresh AI conversation</span>
+            <span>{t('New Chat')}</span>
+            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>{t('Start a fresh AI conversation')}</span>
           </span>
         </button>
         <button
@@ -325,10 +327,10 @@ export function AppSidebar({
           <FlaskConical className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              Workflows
+              {t('Workflows')}
               {runningCount > 0 && (<span data-testid="workflows-running-badge" style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 999, background: 'oklch(0.92 0.04 230)', color: 'oklch(0.40 0.13 230)' }}>{runningCount}</span>)}
             </span>
-            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Run history, browse & import pipelines</span>
+            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>{t('Run history, browse & import pipelines')}</span>
           </span>
         </button>
         <button
@@ -339,15 +341,15 @@ export function AppSidebar({
         >
           <Cable className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <span>Connectors</span>
-            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Databases, LLMs & platform integrations</span>
+            <span>{t('Connectors')}</span>
+            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>{t('Databases, LLMs & platform integrations')}</span>
           </span>
         </button>
         <button className="side-link" data-testid="button-ind-report" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/ind-report')}>
           <FileText className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <span>IND Report</span>
-            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Generate regulatory submission documents</span>
+            <span>{t('IND Report')}</span>
+            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>{t('Generate regulatory submission documents')}</span>
           </span>
         </button>
       </div>
@@ -361,7 +363,7 @@ export function AppSidebar({
           >
             {projectsExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
             <FolderOpen className="w-3 h-3" style={{ opacity: 0.7 }} />
-            Projects
+            {t('Projects')}
           </button>
           {projectsExpanded && apiProjects.map((proj) => {
             const isExpanded = expandedProjectIds.has(proj.id);
@@ -404,7 +406,7 @@ export function AppSidebar({
             data-testid="button-new-project"
           >
             <Plus className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
-            New project
+            {t('New project')}
           </button>
         </div>
 
@@ -445,7 +447,7 @@ export function AppSidebar({
             })}
             {recentChats.length > 6 && (
               <>
-                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600, marginTop: 14 }}>Recent</div>
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600, marginTop: 14 }}>{t('Recent')}</div>
                 {recentChats.slice(6, 12).map((chat) => (
                   <button
                     key={chat.id}
@@ -470,7 +472,7 @@ export function AppSidebar({
         )}
         {recentChats.length === 0 && (
           <div style={{ padding: '10px', fontSize: 12, color: 'var(--bm-text-dim)', textAlign: 'center' }}>
-            No chats yet
+            {t('No chats yet')}
           </div>
         )}
 
@@ -482,8 +484,18 @@ export function AppSidebar({
             data-testid="button-settings-sidebar"
           >
             <Settings className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} />
-            <span>Settings &amp; API Keys</span>
+            <span>{t('Settings & API Keys')}</span>
           </button>
+          {user?.subscriptionTier === 'admin' && (
+            <button
+              style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
+              onClick={() => setLocation('/admin')}
+              data-testid="button-admin-dashboard"
+            >
+              <Server className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} />
+              <span>系统管理</span>
+            </button>
+          )}
         </div>
 
         {/* Beta: Actions panel hidden — Starred Workflows, Recent Tools,
