@@ -119,8 +119,12 @@ requires a full Galaxy restart to take effect. Dev was hot-patched (pip install
   on-read finalizer in `get_generation` marks a run failed if it has been
   `running` past `_RUN_STALE_SECONDS` (300s). Verified on dev against a real
   orphaned run.
-- **Search "Make instruction" exit** — disabled stub; needs a backend endpoint
-  (`POST /api/memory/projects/:id/instructions`).
+- ~~**Search "Make instruction" exit**~~ — DONE (`b934c7eb3`): wired end-to-end.
+  Consumption already existed (`projects.instructions` → `<project_context>`), so
+  it now stores discrete `project_instruction` rows and the chat path injects a
+  bounded, project-scoped list (≤8, ≤300 chars each) — selective by design.
+  Verified on dev with a codeword instruction: the assistant's reply contained
+  the codeword, proving injection + application (not a hollow save).
 - ~~**Models real predictions blocked by NVCF**~~ — FIXED (`da212b231`): the key
   was fine; the client pinned stale NVCF *versions*. Now invokes by function id
   (latest active version); evo2_7b id refreshed; deprecated ESMFold dropped from
