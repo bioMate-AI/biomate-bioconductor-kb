@@ -139,8 +139,15 @@ requires a full Galaxy restart to take effect. Dev was hot-patched (pip install
   a different shape than boltz2. Generalized `_bionemo_structure` to be
   shape-robust. Verified: openfold2 now returns plddt_len=53 + PAE + structure.
   evo2_7b/evo2_40b also confirmed real (version-pinning fix). Of the 5 catalogued
-  models, boltz2/openfold2/evo2_7b/evo2_40b are verified; AlphaFold2 (MSA-heavy)
-  not yet run.
+  models, boltz2/openfold2/evo2_7b/evo2_40b are verified.
+- **AlphaFold2 timeout (open follow-up)** — AF2 consistently returns a stub with
+  an NVCF "Read timed out". Diagnosed: a direct AF2 call returns HTTP **202 at
+  exactly 60s** (the `NVCF-POLL-SECONDS: 60` window — AF2's MSA isn't done in
+  60s), i.e. AF2 is genuinely slow and NVCF hands back a 202-then-poll. The
+  client read-times-out before completing that handshake. Fix (later): lower
+  `NVCF-POLL-SECONDS` below the client request timeout so the POST returns 202
+  and `_poll()` drives the long MSA, and/or bump the AF2 request timeout.
+  Non-blocking — boltz2 / OpenFold2 cover hosted structure prediction.
 - **rdkit durability** — the Dockerfile pins rdkit (durable on image rebuild) and
   it's pip-installed in the running dev container, but a container *recreation*
   before a Galaxy backend image rebuild would drop it (the sync deploys backend
