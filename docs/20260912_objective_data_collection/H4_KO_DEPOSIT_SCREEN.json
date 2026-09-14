@@ -1,0 +1,108 @@
+{
+  "_meta": {
+    "generated": "2026-09-14",
+    "role": "SEARCH/metadata only; training_eligible=false",
+    "purpose": "Screen the ~212 NEW human-immune immunopeptidome deposits from BROADER_DATA_SWEEP.json for anything that could re-power the ORIGINAL H4 KO-COLLAPSE gate: a GENETIC HARD-ESSENTIAL antigen-processing perturbation (B2M / TAP1 / TAP2 / TAPBP KO/knockdown/disruption, or natural B2M-mutant / HLA-loss) with a WT/control contrast, on a NON-A*02 (allele-disjoint) HLA background, with a PROCESSED ligandome (not raw-only). This is the loss-of-machinery/collapse test that IFN-gamma (opposite-sign, gain-of-machinery) data structurally cannot feed.",
+    "distinct_from_prior_docs": "HARD_ESSENTIAL_KO_RESCAN.json already searched the held+312-project PRIDE pool (0 disjoint-allele KO found; PXD063813 = A*02 proteome-only). H4_MACHINERY_PERTURB_RESCAN.json already handled the IFN-gamma REFRAME (PXD014017 = 3 disjoint IFN-gamma backgrounds, WRONG SIGN for the KO-collapse gate). This screen covers ONLY the NEW sweep deposits against the ORIGINAL KO-collapse criteria; it does NOT re-report those.",
+    "gate_requirement_recap": "PASS-eligible for the KO-collapse gate needs >=3 DISJOINT-ALLELE (non-A*02) hard-essential-KO<->WT immunopeptidome backgrounds with processed ligandome. Held public hard-essential collapse = HAP1 only, and (post-renormalization) HAP1/A375/THP-1/HeLa are ALL HLA-A*02:01 => ZERO disjoint-allele hard-essential backgrounds held.",
+    "disk_note": "3.1 GB free (df-checked). Pure metadata screen; no bulk files pulled.",
+    "method": "ProteomeCentral PROXI per-accession metadata (title/keywords/species/instrument) for every priority candidate; federated ProteomeCentral keyword enumeration (immunopeptidome/ligandome/B2M/beta-2-microglobulin/TAP1/TAP2/TAPBP/tapasin/knockout) with KO-token regex scan; PRIDE v2 search API cross-check; paper lookups (Science 2025 cryptic-PDAC, JCI/Sci-Rep MCC MYCL/PRC1.1, ERAP/NKG2A) via WebSearch/WebFetch. Note: iProX/China-federated mirror throttled after ~6 queries (known BROADER_DATA_SWEEP blind spot); PRIDE-primary and per-accession routes were reliable."
+  },
+
+  "headline": {
+    "new_disjoint_allele_hard_essential_KO_backgrounds_found": 0,
+    "new_hard_essential_KO_deposits_of_any_allele_found": 0,
+    "combined_with_held_HAP1_A375_disjoint_hard_essential_backgrounds": 0,
+    "reaches_>=3_disjoint_hard_essential_backgrounds_to_re-power_collapse_gate_without_CRO": false,
+    "verdict": "CRO for the hard-essential collapse claim STILL STANDS. None of the priority candidates nor the machinery-token federated scan surfaced a GENETIC hard-essential (B2M/TAP1/TAP2/TAPBP) KO<->WT immunopeptidome on a non-A*02 background. The sweep's machinery-perturbation cluster is entirely trimmer/editor (ERAP), upstream-regulator/epigenetic (MYCL/PRC1.1/USP7), infection, or antigen-discovery -- none is a hard-essential loss-of-machinery collapse on a disjoint allele. The single natural-B2M line in the sweep (PXD024248 HCT15/b2m) is the B2M-RECONSTITUTED (rescue) arm on an A*02:01+ background, not a disjoint KO contrast."
+  },
+
+  "priority_candidates_triaged": [
+    {
+      "acc": "PXD052175", "repo": "MassIVE(PXD-federated)", "date": "2024-05",
+      "title": "Targeting ERAP enhances anti-tumor immunity by disrupting the NKG2A/HLA-E inhibitory checkpoint",
+      "lab": "Carr/Clauser, Broad", "instrument": "Orbitrap Exploris 480",
+      "perturbation_gene": "ERAP1/ERAP2 (ER aminopeptidase)",
+      "perturbation_class": "TRIMMER/EDITOR aminopeptidase disruption -- NOT hard-essential machinery",
+      "hard_essential": false, "hla_background": "A375/tumor cluster (A*02-associated); not disjoint",
+      "wt_control_present": true, "processed_ligandome_available": "likely (immunopeptidomics HLA-I keywords)",
+      "access": "OPEN",
+      "verdict": "REJECT. ERAP is a peptide-trimming aminopeptidase (editor), the exact class the KO-collapse gate excludes and that HARD_ESSENTIAL_KO_RESCAN/H4_MACHINERY_PERTURB_RESCAN already rejected (PXD066752/PXD060575/PXD054491). 'Disrupting the immunopeptidome' = repertoire re-shaping, not hard-essential presentation collapse. No B2M/TAP/TAPBP KO."
+    },
+    {
+      "acc": "PXD025501", "repo": "MassIVE(PXD-federated)", "date": "2021-04/2022",
+      "title": "Systematic evaluation and modulation of HLA class I downregulation in Merkel cell carcinoma",
+      "lab": "Carr/Clauser, Broad", "instrument": "Fusion Lumos / Q Exactive Plus",
+      "perturbation_gene": "MYCL + non-canonical PRC1.1 (USP7) -- HLA-I REPRESSORS identified by genome-scale gain/loss-of-function screen; loss-of-repressor RESTORES HLA-I",
+      "perturbation_class": "UPSTREAM TRANSCRIPTIONAL/EPIGENETIC regulator (repressor) -- not a hard-essential APM gene; direction is GAIN of HLA-I (opposite of collapse)",
+      "hard_essential": false, "hla_background": "11 MCPyV+ patient-derived MCC lines, mixed genotypes (some carry B2M defects, but the perturbation is MYCL/PRC1.1, not a B2M/TAP/TAPBP KO<->WT contrast)",
+      "wt_control_present": "modulation arms present (repressor KO / USP7 inhibitor vs parental)", "processed_ligandome_available": "likely (immunopeptidomics)",
+      "access": "OPEN",
+      "verdict": "REJECT. Most on-mission-looking candidate, but the genetic perturbation is of upstream HLA-I REPRESSORS (MYCL/PRC1.1/USP7) to RESTORE presentation (gain-of-machinery, wrong sign), not a hard-essential B2M/TAP/TAPBP KO causing collapse. Baseline HLA-I-low state is driven by viral/epigenetic repression, not a defined machinery-gene loss-of-function contrast. Does not feed the KO-collapse gate."
+    },
+    {
+      "acc": "PXD059832", "repo": "MassIVE(PXD-federated)", "date": "2025-01",
+      "title": "Cancer-restricted cryptic antigens are targets for T cell recognition (Science 2025, PDAC, adk3487)",
+      "perturbation_gene": "none", "perturbation_class": "non-canonical/cryptic ORF antigen DISCOVERY immunopeptidomics",
+      "hard_essential": false, "hla_background": "PDAC patient organoids (allele-diverse) but NO machinery perturbation",
+      "wt_control_present": false, "processed_ligandome_available": "yes (high-res immunopeptidomics)",
+      "access": "OPEN",
+      "verdict": "REJECT. Pure antigen-discovery (ncHLAp); no B2M/TAP/TAPBP KO or any machinery WT/KO contrast. Belongs to the cryptic-antigen (PXD013649) axis, not the KO gate."
+    },
+    {
+      "acc": "PXD057858", "repo": "MassIVE(PXD-federated)", "date": "2025-02",
+      "title": "HIF Regulates Multiple Translated Endogenous Retroviruses: Implications for Cancer Immunotherapy (ccRCC)",
+      "perturbation_gene": "HIF/hypoxia (ERV translation)", "perturbation_class": "hypoxia/translation regulation -- not APM machinery KO",
+      "hard_essential": false, "hla_background": "ccRCC (allele-diverse) but no machinery KO", "wt_control_present": "hypoxia vs normoxia (not a machinery-gene KO)",
+      "processed_ligandome_available": "yes", "access": "OPEN",
+      "verdict": "REJECT. Hypoxia/HIF-driven ERV translation->presentation; no hard-essential B2M/TAP/TAPBP KO<->WT. Spans H2/H4 source axis, not the KO-collapse gate."
+    },
+    {
+      "acc": "PXD045855", "repo": "MassIVE(PXD-federated)", "date": "2023-10",
+      "title": "Integrated Immunopeptidomic and Proteomic Analysis of COVID-19 lung biopsies",
+      "perturbation_gene": "none (SARS-CoV-2 infection, tissue)", "perturbation_class": "infection context; same-sample P+L",
+      "hard_essential": false, "hla_background": "patient lung biopsies (allele-diverse)", "wt_control_present": "infected vs control tissue (not a machinery-gene KO)",
+      "processed_ligandome_available": "yes (paired proteome+immunopeptidome)", "access": "OPEN",
+      "verdict": "REJECT for KO gate. Valuable as same-sample P+L infection data (H4 source-material axis) but NO genetic hard-essential machinery KO. Not a collapse contrast."
+    },
+    {
+      "acc": "PXD066040", "repo": "MassIVE(PXD-federated)", "date": "2025-07",
+      "title": "A transgenic mouse allows characterisation of the HLA-C*06:02 immunopeptidome in a model of psoriasis",
+      "lab": "Purcell, Monash",
+      "perturbation_gene": "none (transgenic HLA-C*06:02 mouse model)", "perturbation_class": "single-allele HLA-C transgenic model, autoimmune context",
+      "hard_essential": false, "hla_background": "HLA-C*06:02 (single allele; disjoint from A*02 on HLA-C) but NO machinery KO", "wt_control_present": false,
+      "processed_ligandome_available": "yes", "access": "OPEN",
+      "verdict": "REJECT for KO gate. Allele-controlled (C*06:02) but no B2M/TAP/TAPBP KO or WT/KO collapse contrast. Useful only as an allele-controlled reference, not a machinery-perturbation background."
+    },
+    {
+      "acc": "PXD024248", "repo": "jPOST(PXD-federated)", "date": "2022-11",
+      "title": "HLA class I ligandome of HCT15/b2m",
+      "perturbation_gene": "B2M (HCT15 is a natural MSI B2M-mutant CRC line)",
+      "perturbation_class": "NATURAL B2M-mutant line, but THIS deposit is the B2M-RECONSTITUTED (HCT15/b2m rescue) arm",
+      "hard_essential": "B2M IS hard-essential, BUT the deposited line is the B2M-POSITIVE reconstitution (rescue), not a KO<->WT collapse contrast",
+      "hla_background": "HCT15 = HLA-A*02:01 / A*24:02 -> A*02-POSITIVE, NOT disjoint from the A*02 cluster",
+      "wt_control_present": "the deposit is the reconstituted line; no paired B2M-null immunopeptidome ligandome deposited alongside",
+      "processed_ligandome_available": "jPOST-primary (MHC ligandome); processed table access via jPOST native (FTP-only) -- not verified fetchable this run",
+      "access": "OPEN (jPOST)",
+      "verdict": "REJECT. (1) A*02:01+ -> not disjoint (adds nothing to the saturated A*02 axis). (2) It is the B2M-RESCUE arm (gain), not a KO-collapse contrast. Even the natural-mutant parental would only add another A*02 fold. Does not re-power the disjoint-allele collapse gate."
+    }
+  ],
+
+  "machinery_token_federated_scan": {
+    "route": "ProteomeCentral PROXI keyword enumeration + KO-token regex (knock*/CRISPR/B2M/beta-2-microglobulin/TAP1/TAP2/TAPBP/tapasin/deficient/null/disrupt/HLA-loss/deleted/knockdown/LOH), immunopeptidome+ligandome slices",
+    "immunopeptidome_slice_N": 74,
+    "ligandome_slice_N": 3,
+    "KO_token_hits_in_immune_slices": ["PXD063813 (B2M, A*02, proteome-only -- ALREADY LOGGED in HARD_ESSENTIAL_KO_RESCAN)", "PXD024331 (abacavir groove-remodel, off-axis -- ALREADY LOGGED)", "PXD015489 (proteasome cis-splicing viral, not a KO)"],
+    "B2M_keyword_federated": "only PXD039275/PXD039274 (MOUSE synaptosome/brain B2M interactomes -- off-axis, not immunopeptidome)",
+    "new_hard_essential_KO_deposits_surfaced": 0,
+    "caveat": "China-federated (iProX) mirror throttled after ~6 queries -- the BROADER_DATA_SWEEP-documented iProX NATIVE blind spot persists. No hard-essential-KO deposit was surfaceable via the reachable routes; the untapped iProX/jPOST native pool (IPX/JPST accessions that never federate) remains the only place an unseen disjoint-allele KO could still hide, and is re-swept-from-unblocked-host territory, not resolvable this run."
+  },
+
+  "decisive_answer": {
+    "question": "Do the NEW sweep deposits add >=1 (ideally >=3) DISJOINT-ALLELE HARD-ESSENTIAL-KO immunopeptidome backgrounds to re-run the original collapse gate cross-allele without a CRO?",
+    "answer": "NO -- 0 added.",
+    "combined_disjoint_hard_essential_backgrounds": "0 (held HAP1/A375 are both A*02:01 post-renormalization, contributing 0 disjoint; the sweep adds 0). Still 0 of the required >=3.",
+    "cro_status": "The CRO for the hard-essential disjoint-allele collapse claim STILL STANDS. The sweep's machinery cluster is trimmer/editor (ERAP, PXD052175), upstream epigenetic-repressor with GAIN-of-HLA direction (MYCL/PRC1.1/USP7, PXD025501), infection/discovery/allele-model -- none is a loss-of-hard-essential-machinery collapse on a non-A*02 allele.",
+    "only_reframe_that_closes_it_on_public_data": "The IFN-gamma MACHINERY reframe (PXD014017, 3 disjoint backgrounds -- see H4_MACHINERY_PERTURB_RESCAN) is the ONLY public route to a cross-allele machinery test, but it is the OPPOSITE SIGN (gain, not collapse) and does NOT satisfy the KO-collapse gate. If the decision strictly needs a hard-essential loss-of-machinery collapse across disjoint alleles, the CRO is unavoidable."
+  }
+}

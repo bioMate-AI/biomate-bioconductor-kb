@@ -1,0 +1,1770 @@
+{
+  "summary": {
+    "SLE": {
+      "n_series": 60,
+      "cores": [
+        "GSE135779",
+        "GSE65391"
+      ]
+    },
+    "RA": {
+      "n_series": 24,
+      "cores": [
+        "AMP-RA-SLE"
+      ]
+    },
+    "IBD": {
+      "n_series": 60,
+      "cores": [
+        "IBDverse",
+        "GSE134809"
+      ]
+    },
+    "MS": {
+      "n_series": 30,
+      "cores": []
+    }
+  },
+  "series": [
+    {
+      "disease": "SLE",
+      "accession": "GSE322527",
+      "title": "Single-cell transcriptomes and T cell receptor sequences of CD4 or CD8 single positive T lymphocytes from peripheral blood or urine of lupus nephritis patients at flare.",
+      "n_samples": "26",
+      "date": "2026/07/01",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE278838",
+      "title": "Single-cell RNA transcriptomic profile from skin, blood and cerebral spinal fluid (CSF) from Degos disease patients.",
+      "n_samples": "70",
+      "date": "2026/06/12",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE279392",
+      "title": "Single-cell RNA and TCR sequencing from skin, blood and cerebral spinal fluid (CSF) samples from Degos disease patients",
+      "n_samples": "116",
+      "date": "2026/06/11",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Other"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE334588",
+      "title": "Single-cell transcriptomic atlas of adult dermatomyositis, cutaneous lupus erythematosus and healthy skin",
+      "n_samples": "48",
+      "date": "2026/06/08",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE307415",
+      "title": "Single-cell RNA and BCR sequencing of age-associated B cells in mouse and human lupus",
+      "n_samples": "8",
+      "date": "2026/06/03",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Other"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE314010",
+      "title": "Interleukin-36 upregulated type-I interferon responses in systemic lupus erythematosis by promoting the accumulation of self-nucleic acids",
+      "n_samples": "10",
+      "date": "2026/03/12",
+      "pmids": "41607774",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE270215",
+      "title": "Single cell transcriptome sequencing analysis of gene expression in blood PBMCs of patients with systemic lupus treated with belimumab",
+      "n_samples": "1",
+      "date": "2026/02/01",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE266852",
+      "title": "Comparison of differential gene expression in blood PBMCs from healthy controls, patients with rheumatoid arthritis,and patients with lupus using single-cell transcriptome sequencing analysis.",
+      "n_samples": "10",
+      "date": "2026/02/01",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE299258",
+      "title": "Molecular improvement of IL-23 inhibition revealed by single-cell RNA sequencing in concurrent psoriasis and systemic lupus erythematosus",
+      "n_samples": "3",
+      "date": "2026/01/20",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE306378",
+      "title": "Based on single-cell sequencing analysis of CD4+ T cells and B cells in patients with lupus nephritis, the heterogeneity of these cells was investigated.",
+      "n_samples": "6",
+      "date": "2026/01/01",
+      "pmids": "41540405",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE303609",
+      "title": "Dermatomyositis is characterized by JAK1-mediated monocyte-driven vasculopathy and inflammation",
+      "n_samples": "34",
+      "date": "2025/12/24",
+      "pmids": "41442501",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE294789",
+      "title": "Daratumumab in systemic lupus erythematosus: a phase 2 trial",
+      "n_samples": "56",
+      "date": "2025/12/13",
+      "pmids": "41629292",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE298578",
+      "title": "Single cell RNA profiling of blood CD4+ T cells identifies distinct helper and dysfunctional regulatory clusters in children with SLE (5' PBMC validation dataset)",
+      "n_samples": "14",
+      "date": "2025/09/05",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE285774",
+      "title": "Single cell RNA profiling of blood CD4+ T cells identifies distinct helper and dysfunctional regulatory clusters in children with SLE [PBMCs]",
+      "n_samples": "10",
+      "date": "2025/09/05",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE285773",
+      "title": "Single cell RNA profiling of blood CD4+ T cells identifies distinct helper and dysfunctional regulatory clusters in children with SLE [CD4+ T cells]",
+      "n_samples": "26",
+      "date": "2025/09/05",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE287690",
+      "title": "Implication of inflammatory cytotoxic IL-7 receptor alpha low effector memory CD8+ T cells that promote innate immunity in lupus.",
+      "n_samples": "6",
+      "date": "2025/09/03",
+      "pmids": "40857939",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE266415",
+      "title": "Cellular and molecular evolutionary mechanisms of retinal cells governing color vision perception",
+      "n_samples": "25",
+      "date": "2025/09/02",
+      "pmids": "40839430",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE240466",
+      "title": "Type I interferons dominate cutaneous lichen planus inflammatory landscape driving the interface dermatitis reaction [lupus_lichen]",
+      "n_samples": "5",
+      "date": "2025/09/01",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by array"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE304878",
+      "title": "Single-cell multi-omics profiling of PBMCs from SLE patients pre- and post-dual-target (BCMA/CD19) CAR-T therapy",
+      "n_samples": "30",
+      "date": "2025/08/08",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Other; Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE277909",
+      "title": "Epigenetic attenuation of interferon signaling drives aging-related improvements in systemic lupus",
+      "n_samples": "271",
+      "date": "2025/06/26",
+      "pmids": "40561001",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE284573",
+      "title": "Single-cell transcriptome conservation in a multispecies comparative analysis of fresh and cryopreserved insulinoma cell lines",
+      "n_samples": "6",
+      "date": "2025/06/04",
+      "pmids": "40438246",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE294296",
+      "title": "Cutaneous lupus features specialized stromal niches and altered retroelement expression",
+      "n_samples": "16",
+      "date": "2025/04/14",
+      "pmids": "42199555",
+      "has_supp": "yes",
+      "gdsType": "Other; Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE278546",
+      "title": "Transcriptomic profile of TLR7-induced DN2 B cell development with and without IL-4 Interference in vitro using B cells isolated from SLE patients.",
+      "n_samples": "15",
+      "date": "2025/04/13",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE282344",
+      "title": "Flow-cytometric quantification of urine kidney epithelial cells specifically reflects tubular damage in acute kidney diseases",
+      "n_samples": "8",
+      "date": "2025/02/18",
+      "pmids": "40303202",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Other"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE254176",
+      "title": "Dynamic changes of immune cells in systemic lupus erythematosus with nephritis using longitudinal peripheral blood single-cell RNA-seq",
+      "n_samples": "57",
+      "date": "2025/02/01",
+      "pmids": "40744996",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Other"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE287250",
+      "title": "Angiotensin receptor blockers and CD4 T cell transcriptional and epigenetic states in systemic lupus erythematosus [RNA-seq]",
+      "n_samples": "81",
+      "date": "2025/01/17",
+      "pmids": "39688922",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE287249",
+      "title": "Angiotensin receptor blockers and CD4 T cell transcriptional and epigenetic states in systemic lupus erythematosus [Multiomics]",
+      "n_samples": "18",
+      "date": "2025/01/17",
+      "pmids": "39688922",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Genome binding/occupancy profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE287248",
+      "title": "Angiotensin receptor blockers and CD4 T cell transcriptional and epigenetic states in systemic lupus erythematosus. RNAseq [ATAC-seq]",
+      "n_samples": "102",
+      "date": "2025/01/17",
+      "pmids": "39688922",
+      "has_supp": "yes",
+      "gdsType": "Genome binding/occupancy profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE249639",
+      "title": "Divergent Epigenetic and Transcriptomic Remodelling during Monocyte Subset Differentiation in Systemic Lupus Erythematosus\u00a0[methylation]",
+      "n_samples": "137",
+      "date": "2024/10/30",
+      "pmids": "38413168",
+      "has_supp": "yes",
+      "gdsType": "Methylation profiling by genome tiling array"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE249619",
+      "title": "Divergent Epigenetic and Transcriptomic Remodelling during Monocyte Subset Differentiation in Systemic Lupus Erythematosus [RNA-seq]",
+      "n_samples": "57",
+      "date": "2024/10/30",
+      "pmids": "38413168",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE239460",
+      "title": "Single-cell RNA and ATAC sequencing revealed distinct molecular characteristics of B cells in systemic lupus erythematosus and primary Sjogren's syndrome",
+      "n_samples": "6",
+      "date": "2024/07/05",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Genome binding/occupancy profiling by high throughput sequencing; Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE239458",
+      "title": "Single-cell RNA and ATAC sequencing revealed distinct molecular characteristics of B cells in systemic lupus erythematosus and primary Sjogren's syndrome (scATAC-Seq)",
+      "n_samples": "3",
+      "date": "2024/07/05",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Genome binding/occupancy profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE263909",
+      "title": "PIK3CA inhibition in models of proliferative glomerulonephritis and lupus nephritis",
+      "n_samples": "49",
+      "date": "2024/06/10",
+      "pmids": "38842935",
+      "has_supp": "yes",
+      "gdsType": "Other"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE224198",
+      "title": "Single-cell multi-omics analysis revealing immune features of inactivated SARS-CoV-2 vaccination in systemic lupus erythematosus patients",
+      "n_samples": "26",
+      "date": "2024/05/29",
+      "pmids": "38851910",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Genome binding/occupancy profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE263932",
+      "title": "Selective CAR-T cell mediated B cell depletion suppresses interferon signature in SLE [Bcells]",
+      "n_samples": "20",
+      "date": "2024/05/13",
+      "pmids": "38722688",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Other"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE263931",
+      "title": "Selective CAR-T cell mediated B cell depletion suppresses interferon signature in SLE [PBMC]",
+      "n_samples": "28",
+      "date": "2024/05/10",
+      "pmids": "38722688",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Other"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE250024",
+      "title": "Impaired innate and adaptive immune responses to BNT162b2 SARS-CoV-2 vaccination in systemic lupus erythematosus",
+      "n_samples": "9",
+      "date": "2024/03/01",
+      "pmids": "38456511",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE250023",
+      "title": "Impaired innate and adaptive immune responses to BNT162b2 SARS-CoV-2 vaccination in systemic lupus erythematosus",
+      "n_samples": "75",
+      "date": "2024/03/01",
+      "pmids": "38456511",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE242615",
+      "title": "Expression of transcriptional factors in age-associated B cells",
+      "n_samples": "1",
+      "date": "2023/12/31",
+      "pmids": "38271512",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE235508",
+      "title": "Single-cell resolution of longitudinal blood transcriptome profiles in rheumatoid arthritis, systemic lupus erythematosus and healthy control pregnancies",
+      "n_samples": "335",
+      "date": "2023/12/02",
+      "pmids": "38049980",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE242152",
+      "title": "Smith-specific regulatory T cells halt the progression of lupus nephritis",
+      "n_samples": "1",
+      "date": "2023/11/28",
+      "pmids": "38321013",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE189050",
+      "title": "Molecular Dissection of Disease Heterogeneity in SLE",
+      "n_samples": "30",
+      "date": "2023/10/11",
+      "pmids": "37606045",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE229457",
+      "title": "Comparative gene expression profile of canine and human invariant Natural Killer T (iNKT) cells at single cell level [scRNA-seq]",
+      "n_samples": "12",
+      "date": "2023/09/05",
+      "pmids": "37852175",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE224705",
+      "title": "Defining molecular and cellular landscape behind non-response to Lupus Nephritis drugs",
+      "n_samples": "448",
+      "date": "2023/05/01",
+      "pmids": "38260685",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by array"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE179633",
+      "title": "single cell RNA sequencing reveals cellular heterogeneity of DLE and SLE",
+      "n_samples": "30",
+      "date": "2022/10/17",
+      "pmids": "36470882",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE184338",
+      "title": "Systematic characterization of seed overlap microRNA cotargeting associated with lupus pathogenesis",
+      "n_samples": "26",
+      "date": "2022/10/14",
+      "pmids": "36357926",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Non-coding RNA profiling by array; Non-coding RNA profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE136035",
+      "title": "IL-4-induced quiescence of resting na\u00efve B cells is disrupted in systemic lupus erythematosus",
+      "n_samples": "16",
+      "date": "2022/08/12",
+      "pmids": "36165181",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE186476",
+      "title": "Non-lesional and Lesional Lupus Skin Share Inflammatory Phenotypes that Drive Activation of CD16+ Dendritic Cells",
+      "n_samples": "29",
+      "date": "2022/03/25",
+      "pmids": "35290245;35476593",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE183051",
+      "title": "Single cell Ig VDJ sequencing (10X Genomics) of human blood B cells from SLE pateints and healthy controls",
+      "n_samples": "6",
+      "date": "2022/01/26",
+      "pmids": "35185888",
+      "has_supp": "yes",
+      "gdsType": "Other"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE193867",
+      "title": "Two subsets of human marginal zone B cells resolved by global analysis of lymphoid tissues and blood [healthy and lupus human blood]",
+      "n_samples": "12",
+      "date": "2022/01/21",
+      "pmids": "35302862",
+      "has_supp": "",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE174188",
+      "title": "Multiplexed scRNA-seq reveals the cellular and genetic correlates of systemic lupus erythematosus",
+      "n_samples": "88",
+      "date": "2021/12/01",
+      "pmids": "35389781;36171194",
+      "has_supp": "",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE162577",
+      "title": "Single cell RNA sequencing reveals cellular heterogeneity of PBMC of systemic lupus erythematosus patients",
+      "n_samples": "3",
+      "date": "2021/08/11",
+      "pmids": "34284174",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE158263",
+      "title": "Gene-regulatory network analysis of systemic lupus erythermatosus with a single-cell chromatin accessible assay",
+      "n_samples": "2",
+      "date": "2021/05/28",
+      "pmids": "34084162",
+      "has_supp": "yes",
+      "gdsType": "Genome binding/occupancy profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE156989",
+      "title": "Multimodal Analysis for Human ex vivo Studies Shows Extensive Molecular Changes from Delays in Blood Processing",
+      "n_samples": "55",
+      "date": "2021/03/29",
+      "pmids": "34113805",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE165047",
+      "title": "CASB: A concanavalin A-based sample barcoding strategy for single-cell sequencing [scRNA-seq]",
+      "n_samples": "2",
+      "date": "2021/03/09",
+      "pmids": "33821571",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE153116",
+      "title": "CASB: A concanavalin A-based sample barcoding strategy for single-cell sequencing",
+      "n_samples": "197",
+      "date": "2021/03/09",
+      "pmids": "33821571",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Genome binding/occupancy profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE163121",
+      "title": "Single-cell RNA sequencing of B cells from healthy donors and SLE patients",
+      "n_samples": "5",
+      "date": "2020/12/14",
+      "pmids": "33658999",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE105119",
+      "title": "Benchmarking single-cell RNA sequencing methods for the Human Cell Atlas",
+      "n_samples": "768",
+      "date": "2020/10/01",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE153765",
+      "title": "Targeting CD38 with Daratumumab in refractory Systemic Lupus Erythematosus",
+      "n_samples": "4",
+      "date": "2020/09/11",
+      "pmids": "32937047",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "SLE",
+      "accession": "GSE135779",
+      "title": "A single cell approach to map cellular subsets involved in Systemic Lupus Erythematosus (SLE) heterogeneity",
+      "n_samples": "56",
+      "date": "2020/09/02",
+      "pmids": "32747814",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE309906",
+      "title": "Single-cell RNA sequencing of stem cell\u2013like memory T (Tscm) cells from rheumatoid arthritis patients and healthy controls",
+      "n_samples": "11",
+      "date": "2026/06/18",
+      "pmids": "42309459",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE313659",
+      "title": "Single-cell multi-omics analysis of TNFR1 and TNFR2 expression in human T-cells",
+      "n_samples": "2",
+      "date": "2026/05/05",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Other"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE307297",
+      "title": "Single cell RNAseq on rheumatoid arthritis-related interstitial lung disease",
+      "n_samples": "12",
+      "date": "2026/02/06",
+      "pmids": "41629202",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE266852",
+      "title": "Comparison of differential gene expression in blood PBMCs from healthy controls, patients with rheumatoid arthritis,and patients with lupus using single-cell transcriptome sequencing analysis.",
+      "n_samples": "10",
+      "date": "2026/02/01",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE234702",
+      "title": "Single-cell genomic profile of articular chondrocytes from rheumatoid arthritis and osteoarthritis patients",
+      "n_samples": "7",
+      "date": "2025/12/31",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE299518",
+      "title": "Single cell RNA sequencing on synovium, meniscus and cartilage of rheumatoid arthritis",
+      "n_samples": "3",
+      "date": "2025/06/17",
+      "pmids": "40721606",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE296117",
+      "title": "A single-cell RNA-seq dataset of synovial fluid from rheumatoid arthritis treated with TNF-\u03b1/JAK inhibitor",
+      "n_samples": "18",
+      "date": "2025/05/06",
+      "pmids": "40494845",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE289019",
+      "title": "Single-cell multi-omics reveals the TNF-\u03b1 activation threshold for Classical Monocytes by studying healthy donors and rheumatoid arthritis patients",
+      "n_samples": "2",
+      "date": "2025/04/01",
+      "pmids": "40453083;40649852",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Other"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE279838",
+      "title": "ScRNA-seq Analysis of peripheral blood Tfh cells from rheumatoid arthritis patients",
+      "n_samples": "6",
+      "date": "2025/02/24",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE260796",
+      "title": "single-cell transcriptomics in patients with anti-citrullinated peptide antibody-positive early rheumatoid arthritis",
+      "n_samples": "4",
+      "date": "2025/01/13",
+      "pmids": "39877346",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE246416",
+      "title": "Loss of synovial tissue macrophage homeostasis precedes Rheumatoid Arthritis clinical onset.",
+      "n_samples": "5",
+      "date": "2024/09/25",
+      "pmids": "39321281",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE246421",
+      "title": "Loss of synovial tissue macrophage homeostasis precedes Rheumatoid Arthritis clinical onset",
+      "n_samples": "26",
+      "date": "2024/09/10",
+      "pmids": "39321281",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE245403",
+      "title": "Single-cell insights into immune dysregulation in rheumatoid arthritis flare versus drug-free remission",
+      "n_samples": "24",
+      "date": "2023/12/21",
+      "pmids": "38316770",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE235508",
+      "title": "Single-cell resolution of longitudinal blood transcriptome profiles in rheumatoid arthritis, systemic lupus erythematosus and healthy control pregnancies",
+      "n_samples": "335",
+      "date": "2023/12/02",
+      "pmids": "38049980",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE183970",
+      "title": "Gene-regulatory network study of rheumatoid arthritis in single-cell chromatin landscapes of peripheral blood mononuclear cells",
+      "n_samples": "2",
+      "date": "2023/06/13",
+      "pmids": "35796437",
+      "has_supp": "yes",
+      "gdsType": "Genome binding/occupancy profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE216245",
+      "title": "Single-cell immunoprofiling of synovial helper T cell of rheumatoid arthritis patients.",
+      "n_samples": "8",
+      "date": "2023/05/18",
+      "pmids": "37184877",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE208161",
+      "title": "Randomized phase-1 trial of antigen-specific tolerizing immunotherapy with peptide/calcitriol liposomes in ACPA+ rheumatoid arthritis",
+      "n_samples": "12",
+      "date": "2022/12/05",
+      "pmids": "36278483",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Other"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE202375",
+      "title": "Pooled single-cell RNA-seq data from T cells from human synovial tissue",
+      "n_samples": "5",
+      "date": "2022/05/08",
+      "pmids": "35704599",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE202366",
+      "title": "Single-cell RNA-seq of CD8 T cells sorted from one sample of seropositive rheumatoid arthritis synovial fluid",
+      "n_samples": "1",
+      "date": "2022/05/08",
+      "pmids": "35704599",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE196150",
+      "title": "Single Cell RNA in RA Synovium",
+      "n_samples": "5",
+      "date": "2022/02/11",
+      "pmids": "35508128",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE159117",
+      "title": "Single cell RNA-seq for PBMC from rheumatoid arthritis patient",
+      "n_samples": "1",
+      "date": "2020/11/10",
+      "pmids": "35015026",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE118209",
+      "title": "Mixed-Effects Association of Single Cells Identifies an Expanded Effector CD4+ T Cell Subset in Rheumatoid Arthritis",
+      "n_samples": "96",
+      "date": "2018/09/13",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE109449",
+      "title": "Single cell RNA-seq analysis of freshly isolated synovial fibroblasts in patients with rheumatoid arthritis or osteoarthritis",
+      "n_samples": "384",
+      "date": "2018/01/19",
+      "pmids": "29476097",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "RA",
+      "accession": "GSE7669",
+      "title": "Synovial fibroblasts, RA versus OA",
+      "n_samples": "12",
+      "date": "2007/08/30",
+      "pmids": "17594488;21474483",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by array"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE314223",
+      "title": "Preserved magnitude and breadth of T cell immunity to SARS-CoV-2 mRNA vaccination in inflammatory bowel disease patients treated with anti-cytokine biologics",
+      "n_samples": "6",
+      "date": "2026/06/15",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Other"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE288517",
+      "title": "Paired transcriptomics reveals similarities between cytokine-stimulated organoids and ulcerative colitis epithelial responses",
+      "n_samples": "23",
+      "date": "2026/05/26",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE330123",
+      "title": "Single-cell transcriptomics and bulk T-cell receptor beta-chain sequencing of peripheral blood mononuclear cells from patients with inflammatory bowel disease II (Crohn's disease and ulcerative colitis) and healthy controls",
+      "n_samples": "4",
+      "date": "2026/05/24",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Other"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE330122",
+      "title": "Single-cell transcriptomics and bulk T-cell receptor beta-chain sequencing of peripheral blood mononuclear cells from patients with inflammatory bowel disease (Crohn's disease and ulcerative colitis) and healthy controls I",
+      "n_samples": "2",
+      "date": "2026/05/24",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE327665",
+      "title": "Ustekinumab Resistance in Individuals with Ulcerative Colitis is Associated with an Alteration of a Subset of Pro-inflammatory Mucosal Regulatory T cells",
+      "n_samples": "6",
+      "date": "2026/04/17",
+      "pmids": "41984825",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE230419",
+      "title": "Gene expression profile at single cell level of Lamina propria mononuclear cells from intestinal biopsies from IBD patients.",
+      "n_samples": "7",
+      "date": "2026/04/15",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE312420",
+      "title": "Performance differences in spatial transcriptomics platforms identify Treg biology in human inflammatory bowel disease [Xenium]",
+      "n_samples": "32",
+      "date": "2026/03/13",
+      "pmids": "42049732",
+      "has_supp": "yes",
+      "gdsType": "Other"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE312415",
+      "title": "Performance differences in spatial transcriptomics platforms identify Treg biology in human inflammatory bowel disease [CosMx]",
+      "n_samples": "60",
+      "date": "2026/03/13",
+      "pmids": "42049732",
+      "has_supp": "",
+      "gdsType": "Other"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE319270",
+      "title": "Multi-omics Reveal Vitamin D Regulation of Immune-Gut Microbiome Interactions and Tolerogenic Pathways in Inflammatory Bowel Disease",
+      "n_samples": "2",
+      "date": "2026/02/16",
+      "pmids": "41895287",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE319142",
+      "title": "Multi-omics Reveal Vitamin D Regulation of Immune-Gut Microbiome Interactions and Tolerogenic Pathways in Inflammatory Bowel Disease",
+      "n_samples": "192",
+      "date": "2026/02/16",
+      "pmids": "41895287",
+      "has_supp": "yes",
+      "gdsType": "Other"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE316069",
+      "title": "Single-cell Profiling Reveals Diverse \u03b3\u03b4 T Cell Subsets in Ulcerative Colitis",
+      "n_samples": "14",
+      "date": "2026/01/13",
+      "pmids": "41650251",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Other"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE310845",
+      "title": "Intestinal Stem and Progenitor Cells Exhibit Distinct Adaptive Responses to Inflammatory Stress in IBD",
+      "n_samples": "20",
+      "date": "2025/12/01",
+      "pmids": "41422054",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE298464",
+      "title": "Single-cell RNA sequencing reveals ulcerative colitis patients\u2019 response to anti-TNF-\u03b1 therapy",
+      "n_samples": "16",
+      "date": "2025/11/18",
+      "pmids": "41029683",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE302712",
+      "title": "Bioengineered Extracellular Vesicles Co-delivering PD-L1 and miR-27a-3p Synergistically Reprogram T cells To Treat Inflammatory Bowel Disease [miRNA-Seq]",
+      "n_samples": "6",
+      "date": "2025/11/12",
+      "pmids": "41444211",
+      "has_supp": "yes",
+      "gdsType": "Non-coding RNA profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE302709",
+      "title": "Bioengineered Extracellular Vesicles Co-delivering PD-L1 and miR-27a-3p Synergistically Reprogram T cells To Treat Inflammatory Bowel Disease [RNA-Seq]",
+      "n_samples": "12",
+      "date": "2025/11/12",
+      "pmids": "41444211",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE302696",
+      "title": "Bioengineered Extracellular Vesicles Co-delivering PD-L1 and miR-27a-3p Synergistically Reprogram T cells To Treat Inflammatory Bowel Disease [scRNA-Seq]",
+      "n_samples": "2",
+      "date": "2025/11/12",
+      "pmids": "41444211",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE306845",
+      "title": "Accute and repeated DSS exposure induce distinct immune responses with differential relevance to human Ulcerative Colitis",
+      "n_samples": "10",
+      "date": "2025/10/31",
+      "pmids": "41453640",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE290006",
+      "title": "Reduced vaccine-induced germinal center outputs in inflammatory bowel disease patients treated with anti-TNF biologics",
+      "n_samples": "6",
+      "date": "2025/07/16",
+      "pmids": "40728886",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Other"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE273276",
+      "title": "Quiescent fibroblast-like synovial cells alleviate inflammatory bowel disease by modulating the gut immune microenvironment [dataset 1]",
+      "n_samples": "2",
+      "date": "2025/07/01",
+      "pmids": "41270582",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE284775",
+      "title": "Single-cell transcriptomic profile of innate cell populations in mesenteric lymph nodes of inflammatory bowel disease patients",
+      "n_samples": "1",
+      "date": "2025/05/26",
+      "pmids": "39982469",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Other"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE253006",
+      "title": "Differential effects of tofacitinib on macrophage activation contribute to lack of response in ulcerative colitis patients",
+      "n_samples": "23",
+      "date": "2025/05/19",
+      "pmids": "40320713",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE296969",
+      "title": "Gene expression at single cell level of stromal cells from the distal colon of normal sites of colorectal cancer and inflamed sites of ulcerative colitis.",
+      "n_samples": "13",
+      "date": "2025/05/13",
+      "pmids": "40680146",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE283625",
+      "title": "Single-cell single-molecule spatial transcriptomics using CosMx on colectomy specimens collected during Pouch surgery in IBD patients.",
+      "n_samples": "8",
+      "date": "2025/02/26",
+      "pmids": "39974918",
+      "has_supp": "yes",
+      "gdsType": "Other"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE282122",
+      "title": "A longitudinal single-cell atlas of anti-tumour necrosis factor treatment in inflammatory bowel disease",
+      "n_samples": "216",
+      "date": "2024/11/19",
+      "pmids": "39438660",
+      "has_supp": "",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE243445",
+      "title": "TNFSF13 insuffiency causes epithelial and immune disruption in the human colon",
+      "n_samples": "18",
+      "date": "2024/11/05",
+      "pmids": "39386555;41919502",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE243444",
+      "title": "TNFSF13 insuffiency causes epithelial and immune disruption in the human colon II",
+      "n_samples": "4",
+      "date": "2024/11/05",
+      "pmids": "39386555;41919502",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE243443",
+      "title": "TNFSF13 insuffiency causes epithelial and immune disruption in the human colon I",
+      "n_samples": "14",
+      "date": "2024/11/05",
+      "pmids": "39386555;41919502",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE261334",
+      "title": "Dynamics and single-cell transcriptomics of circulating immune cell populations in inflammatory bowel disease upon anti-integrin treatment",
+      "n_samples": "29",
+      "date": "2024/09/24",
+      "pmids": "39343250",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE244981",
+      "title": "Establishment of an ulcerative colitis model using colon organoids derived from human induced pluripotent stem cells",
+      "n_samples": "2",
+      "date": "2024/09/22",
+      "pmids": "39435148",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE272890",
+      "title": "Myeloid Cell Adhesion Molecule 1 (CADM1) promotes pro-inflammatory signaling during Inflammatory Bowel Disease.",
+      "n_samples": "102",
+      "date": "2024/07/28",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Non-coding RNA profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE247264",
+      "title": "Single-cell analysis reveals clonal expansions of pro-inflammatory tissue-resident memory Th17 cells in Crohn's disease",
+      "n_samples": "22",
+      "date": "2024/05/31",
+      "pmids": "38554656",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE235665",
+      "title": "Stem-like T cells are associated with the pathogenesis of ulcerative colitis in humans",
+      "n_samples": "28",
+      "date": "2024/04/24",
+      "pmids": "38898157",
+      "has_supp": "",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE235663",
+      "title": "Stem-like T cells are associated with the pathogenesis of ulcerative colitis in humans [scRNAseq_Human]",
+      "n_samples": "18",
+      "date": "2024/04/24",
+      "pmids": "38898157",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE243625",
+      "title": "Inflammatory transcriptomic signatures and cell type compositions in inflamed and non-inflamed colonic mucosa of ulcerative colitis",
+      "n_samples": "45",
+      "date": "2024/03/19",
+      "pmids": "39926325",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE255720",
+      "title": "Dietary fiber is a critical determinant of pathologic ILC2 responses and intestinal inflammation - Bulk RNA-Seq",
+      "n_samples": "10",
+      "date": "2024/02/13",
+      "pmids": "38506708",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE255243",
+      "title": "Dietary fiber is a critical determinant of pathologic ILC2 responses and intestinal inflammation",
+      "n_samples": "2",
+      "date": "2024/02/12",
+      "pmids": "38506708",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE250498",
+      "title": "Single-cell and spatial multi-omics highlight effects of anti-integrin therapy across cellular compartments in ulcerative colitis",
+      "n_samples": "14",
+      "date": "2024/01/22",
+      "pmids": "38374043",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Other"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE250490",
+      "title": "Single-cell and spatial multi-omics highlight effects of anti-integrin therapy across cellular compartments in ulcerative colitis [biopsy CITE-seq]",
+      "n_samples": "2",
+      "date": "2024/01/22",
+      "pmids": "38374043",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Other"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE250488",
+      "title": "Single-cell and spatial multi-omics highlight effects of anti-integrin therapy across cellular compartments in ulcerative colitis [blood scRNA-seq]",
+      "n_samples": "4",
+      "date": "2024/01/22",
+      "pmids": "38374043",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE250487",
+      "title": "Single-cell and spatial multi-omics highlight effects of anti-integrin therapy across cellular compartments in ulcerative colitis [biopsy scRNA-seq]",
+      "n_samples": "8",
+      "date": "2024/01/22",
+      "pmids": "38374043",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE242087",
+      "title": "Multiomic analysis reveals cellular and epigenetic plasticity in intestinal pouches of ulcerative colitis patients",
+      "n_samples": "24",
+      "date": "2023/11/15",
+      "pmids": "38014192;39837850",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Genome binding/occupancy profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE242086",
+      "title": "Multiomic analysis reveals cellular and epigenetic plasticity in intestinal pouches of ulcerative colitis patients [scRNA-seq]",
+      "n_samples": "12",
+      "date": "2023/11/15",
+      "pmids": "38014192;39837850",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE242085",
+      "title": "Multiomic analysis reveals cellular and epigenetic plasticity in intestinal pouches of ulcerative colitis patients [scATAC-seq]",
+      "n_samples": "12",
+      "date": "2023/11/15",
+      "pmids": "38014192;39837850",
+      "has_supp": "yes",
+      "gdsType": "Genome binding/occupancy profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE215001",
+      "title": "Single-cell\u00a0RNAseq of mesenteric adipose tissue from Crohn's disease patients and healthy controls",
+      "n_samples": "11",
+      "date": "2023/07/30",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE235236",
+      "title": "Bulk RNAseq expression data of colon biopsies from intestinal mucosa of non-IBD controls and patients with Crohn's disease or ulcerative colitis",
+      "n_samples": "56",
+      "date": "2023/06/20",
+      "pmids": "37495570",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE234713",
+      "title": "IBD CosMx NanoString data from colonic mucosa",
+      "n_samples": "9",
+      "date": "2023/06/13",
+      "pmids": "37495570",
+      "has_supp": "yes",
+      "gdsType": "Other"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE214695",
+      "title": "IBD single cell data from colonic mucosa",
+      "n_samples": "18",
+      "date": "2023/06/07",
+      "pmids": "37495570",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE231993",
+      "title": "Selective oxidative protection leads to tissue topological changes orchestrated by macrophage during ulcerative colitis",
+      "n_samples": "12",
+      "date": "2023/05/11",
+      "pmids": "37344477",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE169136",
+      "title": "Single-cell\u00a0RNA\u00a0sequencing\u00a0of\u00a0ILCs\u00a0and\u00a0T\u00a0cells\u00a0reveals\u00a0enrichment\u00a0of\u00a0NK-like\u00a0T\u00a0cells\u00a0in\u00a0pediatric\u00a0and\u00a0adult\u00a0inflammatory\u00a0bowel\u00a0disease",
+      "n_samples": "11",
+      "date": "2023/05/11",
+      "pmids": "37160121;38409190",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE226875",
+      "title": "The chromatin and single-cell transcriptional landscapes of CD4 T cells in inflammatory bowel disease link risk loci with a proinflammatory Th17 cell population",
+      "n_samples": "6",
+      "date": "2023/03/20",
+      "pmids": "37600767",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE225199",
+      "title": "Persistent Inflammation of the Rectum in Perianal-Fisulizing Crohn's Disease Associates with Goblet Cell Function",
+      "n_samples": "13",
+      "date": "2023/02/20",
+      "pmids": "39132177",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE203380",
+      "title": "Geometric engineering of organoid culture for enhanced organogenesis in a dish",
+      "n_samples": "5",
+      "date": "2023/01/12",
+      "pmids": "36280722",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE218000",
+      "title": "Gene expression profile at single cell level of the intestinal T cells from patients with inflammatory bowel disease",
+      "n_samples": "12",
+      "date": "2022/12/27",
+      "pmids": "36574662",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE210955",
+      "title": "Single cell RNA-seq in small intestine",
+      "n_samples": "2",
+      "date": "2022/10/19",
+      "pmids": "36353619",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE134649",
+      "title": "Colonic CD8 T Cell Topography in IBD revealed by Single-Cell Profiling",
+      "n_samples": "12",
+      "date": "2022/07/01",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Other"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE183853",
+      "title": "Digital Spatial Profiling Reveals Functional Shift of Enterochromaffin Cell in Patients with Ulcerative Colitis",
+      "n_samples": "23",
+      "date": "2022/04/01",
+      "pmids": "35465329",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Other"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE191015",
+      "title": "GSDMB is increased in IBD and regulates epithelial restitution/repair independent of pyroptosis",
+      "n_samples": "12",
+      "date": "2022/01/30",
+      "pmids": "35021065",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE123088",
+      "title": "A validated single-cell-based strategy to identify diagnostic and therapeutic targets in complex diseases",
+      "n_samples": "204",
+      "date": "2021/11/23",
+      "pmids": "31358043",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by array"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE123086",
+      "title": "A validated single-cell-based strategy to identify diagnostic and therapeutic targets in complex diseases [study of 13 diseases]",
+      "n_samples": "166",
+      "date": "2021/11/23",
+      "pmids": "31358043",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by array"
+    },
+    {
+      "disease": "IBD",
+      "accession": "GSE182270",
+      "title": "Ulcerative Colitis is characterized by an intense and plasmablast skewed humoral response that associates with treatment resistance and disease complications",
+      "n_samples": "9",
+      "date": "2021/08/24",
+      "pmids": "35190725",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE328264",
+      "title": "A CSF Disease-Associated Macrophage Signature defines Progressive Multiple Sclerosis [Fresh]",
+      "n_samples": "6",
+      "date": "2026/05/17",
+      "pmids": "42129775",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE327243",
+      "title": "A CSF Disease-Associated Macrophage Signature defines Progressive Multiple Sclerosis [Frozen]",
+      "n_samples": "25",
+      "date": "2026/05/17",
+      "pmids": "42129775",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE291328",
+      "title": "Antigen specificity of clonally-enriched CD8+ T cells in multiple sclerosis",
+      "n_samples": "36",
+      "date": "2026/01/01",
+      "pmids": "41644766",
+      "has_supp": "yes",
+      "gdsType": "Other"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE301585",
+      "title": "Cerebrospinal fluid-driven ependymal motile cilia defects are implicated in multiple sclerosis",
+      "n_samples": "15",
+      "date": "2025/12/31",
+      "pmids": "41277219",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE292997",
+      "title": "Integrin \u03b21 demarks precursors of brain-residing antibody-secreting cells in multiple sclerosis",
+      "n_samples": "3",
+      "date": "2025/12/19",
+      "pmids": "41698162",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE301908",
+      "title": "Single-cell spatial transcriptomic profiling defines a pathogenic inflammatory niche in chronic active multiple sclerosis lesions - snRNA-seq",
+      "n_samples": "17",
+      "date": "2025/10/29",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE284005",
+      "title": "A single-cell resolution spatial transcriptomics atlas of human multiple sclerosis lesion (MERSCOPE)",
+      "n_samples": "17",
+      "date": "2025/10/29",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Other"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE297690",
+      "title": "Integrative single cell analysis of progressive multiple sclerosis induced neural stem cells reveals epigenetically dysregulated type-I-interferon signaling [scATAC-seq]",
+      "n_samples": "8",
+      "date": "2025/10/10",
+      "pmids": "41075785",
+      "has_supp": "yes",
+      "gdsType": "Genome binding/occupancy profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE297365",
+      "title": "Integrative single cell analysis of progressive multiple sclerosis induced neural stem cells reveals epigenetically dysregulated type-I-interferon signaling [scRNA-Seq]",
+      "n_samples": "4",
+      "date": "2025/10/10",
+      "pmids": "41075785",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE297192",
+      "title": "Integrative single cell analysis of progressive multiple sclerosis induced neural stem cells reveals epigenetically dysregulated type-I-interferon signaling",
+      "n_samples": "25",
+      "date": "2025/10/10",
+      "pmids": "41075785",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE189998",
+      "title": "Role of CD5 signalling for pro-inflammatory Th17 response in multiple sclerosis",
+      "n_samples": "6",
+      "date": "2025/09/17",
+      "pmids": "40853926",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE305477",
+      "title": "Single-nucleus RNA-seq of peripheral blood mononuclear cells from multiple sclerosis patients and healthy controls",
+      "n_samples": "8",
+      "date": "2025/08/21",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE280341",
+      "title": "INFLAMMATION-INDUCED SENESCENT-LIKE GLIA REWIRE CELLULAR NETWORKS IN MULTIPLE SCLEROSIS [scRNAseq_organoids]",
+      "n_samples": "8",
+      "date": "2025/07/31",
+      "pmids": "41006208",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE277435",
+      "title": "INFLAMMATION-INDUCED SENESCENT-LIKE GLIA REWIRE CELLULAR NETWORKS IN MULTIPLE SCLEROSIS [Spatial transcriptomic]",
+      "n_samples": "12",
+      "date": "2025/07/31",
+      "pmids": "41006208",
+      "has_supp": "yes",
+      "gdsType": "Other"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE277430",
+      "title": "INFLAMMATION-INDUCED SENESCENT-LIKE GLIA REWIRE CELLULAR NETWORKS IN MULTIPLE SCLEROSIS [snRNAseq Brain]",
+      "n_samples": "23",
+      "date": "2025/07/31",
+      "pmids": "41006208",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE267750",
+      "title": "TBX21+CD21loCXCR3+B cell expansion with an EBV-associated phenotype in clinically isolated syndrome conversion to multiple sclerosis",
+      "n_samples": "32",
+      "date": "2025/05/27",
+      "pmids": "40359016",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE286068",
+      "title": "CITEseq analysis of human CSF cells in Multiple sclerosis",
+      "n_samples": "26",
+      "date": "2025/02/01",
+      "pmids": "40000641",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Other"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE276167",
+      "title": "Twin study identifies early immunological and metabolic dysregulation of CD8+ T cells in multiple sclerosis",
+      "n_samples": "2",
+      "date": "2024/09/26",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE238221",
+      "title": "Patient iPSC models reveal glia-intrinsic phenotypes in multiple sclerosis",
+      "n_samples": "16",
+      "date": "2024/08/26",
+      "pmids": "39191254",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE233295",
+      "title": "Glial-enriched stem-cell 3D model resembling the cellular landscape of the human brain mimics the glial-immune neurodegenerative phenotypes of multiple sclerosis.",
+      "n_samples": "9",
+      "date": "2024/07/26",
+      "pmids": "39121861",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE239626",
+      "title": "CITE-seq reveals inhibition of NF-kB pathway in B cells from vitamin D-treated multiple sclerosis patients",
+      "n_samples": "40",
+      "date": "2023/10/05",
+      "pmids": "",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE227954",
+      "title": "Alemtuzumab treatment exemplifies discordant immune effects of blood and cerebrospinal fluid in multiple sclerosis",
+      "n_samples": "4",
+      "date": "2023/04/14",
+      "pmids": "37062182",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE179427",
+      "title": "Brain macrophages adopt distinct profiles prior to demyelination in multiple sclerosis",
+      "n_samples": "87",
+      "date": "2022/02/02",
+      "pmids": "35090578",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE193240",
+      "title": "A primed immune transcriptional programme is activated in oligodendroglia in multiple sclerosis [ATAC-Seq and RNA-Seq II]",
+      "n_samples": "4",
+      "date": "2022/01/28",
+      "pmids": "35093191",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Genome binding/occupancy profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE144744",
+      "title": "Identifying CNS-colonizing T cells as potential therapeutic targets to prevent progression of multiple sclerosis",
+      "n_samples": "204",
+      "date": "2021/02/16",
+      "pmids": "33748804",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Other"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE163005",
+      "title": "Characterizing cerebrospinal fluid immunity in neurological manifestations of COVID-19",
+      "n_samples": "38",
+      "date": "2020/12/11",
+      "pmids": "33382973",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing; Other"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE133028",
+      "title": "CSF B cells in relapsing multiple sclerosis are driven towards an antigen-experienced, inflammatory fate",
+      "n_samples": "98",
+      "date": "2020/08/31",
+      "pmids": "32859762",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE138266",
+      "title": "Integrated single cell analysis of blood and cerebrospinal fluid leukocytes in multiple sclerosis",
+      "n_samples": "22",
+      "date": "2019/12/10",
+      "pmids": "31937773",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE127969",
+      "title": "Single-cell RNA-seq in monozygotic twins discordant for multiple sclerosis",
+      "n_samples": "16",
+      "date": "2019/08/02",
+      "pmids": "31566584",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    },
+    {
+      "disease": "MS",
+      "accession": "GSE66763",
+      "title": "Functional Inflammatory Profiles Distinguish Myelin-Reactive T Cells from Patients with Multiple Sclerosis",
+      "n_samples": "16",
+      "date": "2015/05/18",
+      "pmids": "25972006",
+      "has_supp": "yes",
+      "gdsType": "Expression profiling by high throughput sequencing"
+    }
+  ]
+}

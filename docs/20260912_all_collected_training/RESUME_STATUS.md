@@ -54,3 +54,7 @@ Approval needed: upload `/tmp/immune_launch_v1/header_release_v2.tar.gz` (SHA256
 User explicitly approved correction upload and restart. Temporary archive had been cleared; rebuilt from saved source_sha256-verified correction files, saved extended policy and original frozen object/paired-vocabulary manifests. Deterministically rebuilt archive SHA256: a6107a31689467dd45627140a5cb53f3f63db55947e26dffe4e088112ff24f46. Uploaded to the approved 20260912_all_collected_4131dd7d release path. Four header/bridge tests passed.
 
 New worker: **i-04ef6092daf7b49b4**, c6i.2xlarge, us-west-2. Six-hour self-termination limit. Outputs now use `s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/immune_llm_models/all_collected_20260912/source_preflight_v2/` so the original run is preserved. Verify real processing and outcomes. Original worker i-0e4af1038523e12ea was confirmed terminated. No GPU training launch yet.
+
+## Spot capacity requirement
+
+User explicitly requested Spot instances for training. Future immune GPU launches must use Spot, with no automatic On-Demand fallback. Keep the currently running CPU screening worker intact. Local exact-resume tests exist, but durable S3 checkpoint publication and remote interruption/replacement recovery still require implementation and validation before launch. See `spot_training_policy.json`.

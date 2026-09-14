@@ -1,0 +1,456 @@
+[
+  {
+    "gene": "IL6R",
+    "intended_modality": "anti-IL6R mAb (tocilizumab/sarilumab)",
+    "chembl_id": "CHEMBL2364155",
+    "target_type": "SINGLE PROTEIN",
+    "pref_name": "Interleukin-6 receptor subunit alpha",
+    "n_bioactivities": 1,
+    "n_mechanisms": 4,
+    "action_types": [
+      "ANTAGONIST",
+      "INHIBITOR"
+    ],
+    "mechanism_molecule_ids": [
+      "CHEMBL1237022",
+      "CHEMBL2108730",
+      "CHEMBL3833343",
+      "CHEMBL4650406"
+    ],
+    "status": "ok"
+  },
+  {
+    "gene": "TNF",
+    "intended_modality": "anti-TNF (adalimumab etc.)",
+    "chembl_id": "CHEMBL3588728",
+    "target_type": "SINGLE PROTEIN",
+    "pref_name": "TNF receptor-associated factor 6",
+    "n_bioactivities": 20,
+    "n_mechanisms": 0,
+    "action_types": [],
+    "mechanism_molecule_ids": [],
+    "status": "ok"
+  },
+  {
+    "gene": "MS4A1",
+    "intended_modality": "anti-CD20 (rituximab)",
+    "chembl_id": "CHEMBL2058",
+    "target_type": "SINGLE PROTEIN",
+    "pref_name": "B-lymphocyte antigen CD20",
+    "n_bioactivities": 0,
+    "n_mechanisms": 19,
+    "action_types": [
+      "BINDING AGENT",
+      "CROSS-LINKING AGENT"
+    ],
+    "mechanism_molecule_ids": [
+      "CHEMBL1201576",
+      "CHEMBL1201604",
+      "CHEMBL1201836",
+      "CHEMBL1743048",
+      "CHEMBL1743088",
+      "CHEMBL2108041",
+      "CHEMBL2108354",
+      "CHEMBL2108667",
+      "CHEMBL2109348",
+      "CHEMBL2109351",
+      "CHEMBL2109665",
+      "CHEMBL3833304",
+      "CHEMBL4297788",
+      "CHEMBL4297789",
+      "CHEMBL4297845",
+      "CHEMBL4298084",
+      "CHEMBL4298092",
+      "CHEMBL4650393"
+    ],
+    "status": "ok"
+  },
+  {
+    "gene": "TNFSF13B",
+    "intended_modality": "anti-BAFF (belimumab)",
+    "chembl_id": "CHEMBL2364158",
+    "target_type": "SINGLE PROTEIN",
+    "pref_name": "Tumor necrosis factor ligand superfamily member 13B",
+    "n_bioactivities": 0,
+    "n_mechanisms": 7,
+    "action_types": [
+      "INHIBITOR"
+    ],
+    "mechanism_molecule_ids": [
+      "CHEMBL1742986",
+      "CHEMBL1743075",
+      "CHEMBL1789843",
+      "CHEMBL2107844",
+      "CHEMBL2107877",
+      "CHEMBL3990000",
+      "CHEMBL4650245"
+    ],
+    "status": "ok"
+  },
+  {
+    "gene": "JAK1",
+    "intended_modality": "JAK inhibitor",
+    "chembl_id": "CHEMBL2835",
+    "target_type": "SINGLE PROTEIN",
+    "pref_name": "Tyrosine-protein kinase JAK1",
+    "n_bioactivities": 47757,
+    "n_mechanisms": 17,
+    "action_types": [
+      "INHIBITOR"
+    ],
+    "mechanism_molecule_ids": [
+      "CHEMBL1078178",
+      "CHEMBL1795071",
+      "CHEMBL2105759",
+      "CHEMBL2106468",
+      "CHEMBL3301606",
+      "CHEMBL3301607",
+      "CHEMBL3545225",
+      "CHEMBL3545249",
+      "CHEMBL3622820",
+      "CHEMBL3655081",
+      "CHEMBL4116008",
+      "CHEMBL4297477",
+      "CHEMBL4298167",
+      "CHEMBL4577523",
+      "CHEMBL4594382",
+      "CHEMBL5315119",
+      "CHEMBL6068336"
+    ],
+    "status": "ok"
+  },
+  {
+    "gene": "JAK2",
+    "intended_modality": "JAK inhibitor",
+    "chembl_id": "CHEMBL2971",
+    "target_type": "SINGLE PROTEIN",
+    "pref_name": "Tyrosine-protein kinase JAK2",
+    "n_bioactivities": 56323,
+    "n_mechanisms": 25,
+    "action_types": [
+      "INHIBITOR"
+    ],
+    "mechanism_molecule_ids": [
+      "CHEMBL1078178",
+      "CHEMBL1231124",
+      "CHEMBL1287853",
+      "CHEMBL1795071",
+      "CHEMBL1944698",
+      "CHEMBL2035185",
+      "CHEMBL2035187",
+      "CHEMBL2105759",
+      "CHEMBL2107823",
+      "CHEMBL3301607",
+      "CHEMBL3545215",
+      "CHEMBL3545241",
+      "CHEMBL3545328",
+      "CHEMBL4297216",
+      "CHEMBL4298167",
+      "CHEMBL4303389",
+      "CHEMBL4594382",
+      "CHEMBL495727",
+      "CHEMBL5095023",
+      "CHEMBL5095049",
+      "CHEMBL5315119",
+      "CHEMBL603469",
+      "CHEMBL6068336"
+    ],
+    "status": "ok"
+  },
+  {
+    "gene": "JAK3",
+    "intended_modality": "JAK inhibitor",
+    "chembl_id": "CHEMBL2148",
+    "target_type": "SINGLE PROTEIN",
+    "pref_name": "Tyrosine-protein kinase JAK3",
+    "n_bioactivities": 34159,
+    "n_mechanisms": 13,
+    "action_types": [
+      "INHIBITOR"
+    ],
+    "mechanism_molecule_ids": [
+      "CHEMBL2106468",
+      "CHEMBL3039513",
+      "CHEMBL3301607",
+      "CHEMBL3545159",
+      "CHEMBL405130",
+      "CHEMBL4085457",
+      "CHEMBL4116008",
+      "CHEMBL4298167",
+      "CHEMBL4594382",
+      "CHEMBL495727",
+      "CHEMBL5314384",
+      "CHEMBL5314649",
+      "CHEMBL5315119"
+    ],
+    "status": "ok"
+  },
+  {
+    "gene": "BTK",
+    "intended_modality": "BTK inhibitor",
+    "chembl_id": "CHEMBL5251",
+    "target_type": "SINGLE PROTEIN",
+    "pref_name": "Tyrosine-protein kinase BTK",
+    "n_bioactivities": 61850,
+    "n_mechanisms": 22,
+    "action_types": [
+      "INHIBITOR"
+    ],
+    "mechanism_molecule_ids": [
+      "CHEMBL1873475",
+      "CHEMBL3301600",
+      "CHEMBL3545193",
+      "CHEMBL3702854",
+      "CHEMBL3707348",
+      "CHEMBL3900554",
+      "CHEMBL3936761",
+      "CHEMBL4065122",
+      "CHEMBL4071161",
+      "CHEMBL4072833",
+      "CHEMBL4163691",
+      "CHEMBL4297640",
+      "CHEMBL4297674",
+      "CHEMBL4297865",
+      "CHEMBL4297866",
+      "CHEMBL4594293",
+      "CHEMBL4594348",
+      "CHEMBL4650321",
+      "CHEMBL4650323",
+      "CHEMBL4650338",
+      "CHEMBL4650485"
+    ],
+    "status": "ok"
+  },
+  {
+    "gene": "IL17A",
+    "intended_modality": "anti-IL17",
+    "chembl_id": "CHEMBL3390822",
+    "target_type": "SINGLE PROTEIN",
+    "pref_name": "Interleukin-17A",
+    "n_bioactivities": 305,
+    "n_mechanisms": 11,
+    "action_types": [
+      "BINDING AGENT",
+      "INHIBITOR"
+    ],
+    "mechanism_molecule_ids": [
+      "CHEMBL1743034",
+      "CHEMBL1743068",
+      "CHEMBL2109469",
+      "CHEMBL2109470",
+      "CHEMBL3990000",
+      "CHEMBL4297686",
+      "CHEMBL4297700",
+      "CHEMBL4297863",
+      "CHEMBL4297926",
+      "CHEMBL4298023",
+      "CHEMBL4298102"
+    ],
+    "status": "ok"
+  },
+  {
+    "gene": "IL23A",
+    "intended_modality": "anti-IL23",
+    "chembl_id": "CHEMBL2364154",
+    "target_type": "PROTEIN COMPLEX",
+    "pref_name": "Interleukin-23",
+    "n_bioactivities": 0,
+    "n_mechanisms": 8,
+    "action_types": [
+      "INHIBITOR"
+    ],
+    "mechanism_molecule_ids": [
+      "CHEMBL1201835",
+      "CHEMBL1742995",
+      "CHEMBL2108681",
+      "CHEMBL2364648",
+      "CHEMBL3833372",
+      "CHEMBL3990014",
+      "CHEMBL3990029",
+      "CHEMBL4650437"
+    ],
+    "status": "ok"
+  },
+  {
+    "gene": "IL4R",
+    "intended_modality": "anti-IL4R (dupilumab)",
+    "chembl_id": "CHEMBL3580490",
+    "target_type": "SINGLE PROTEIN",
+    "pref_name": "Interleukin-4 receptor subunit alpha",
+    "n_bioactivities": 0,
+    "n_mechanisms": 1,
+    "action_types": [
+      "ANTAGONIST"
+    ],
+    "mechanism_molecule_ids": [
+      "CHEMBL2108675"
+    ],
+    "status": "ok"
+  },
+  {
+    "gene": "IL5",
+    "intended_modality": "anti-IL5 (mepolizumab)",
+    "chembl_id": "CHEMBL1169600",
+    "target_type": "SINGLE PROTEIN",
+    "pref_name": "Interleukin-5",
+    "n_bioactivities": 4,
+    "n_mechanisms": 3,
+    "action_types": [
+      "INHIBITOR"
+    ],
+    "mechanism_molecule_ids": [
+      "CHEMBL2107884",
+      "CHEMBL2108429",
+      "CHEMBL4650469"
+    ],
+    "status": "ok"
+  },
+  {
+    "gene": "TSLP",
+    "intended_modality": "anti-TSLP (tezepelumab)",
+    "chembl_id": "CHEMBL3712931",
+    "target_type": "SINGLE PROTEIN",
+    "pref_name": "Thymic stromal lymphopoietin",
+    "n_bioactivities": 114,
+    "n_mechanisms": 2,
+    "action_types": [
+      "INHIBITOR"
+    ],
+    "mechanism_molecule_ids": [
+      "CHEMBL3707229"
+    ],
+    "status": "ok"
+  },
+  {
+    "gene": "IL5RA",
+    "intended_modality": "anti-IL5R (benralizumab)",
+    "chembl_id": "CHEMBL3580483",
+    "target_type": "SINGLE PROTEIN",
+    "pref_name": "Interleukin-5 receptor subunit alpha",
+    "n_bioactivities": 0,
+    "n_mechanisms": 1,
+    "action_types": [
+      "INHIBITOR"
+    ],
+    "mechanism_molecule_ids": [
+      "CHEMBL1742991"
+    ],
+    "status": "ok"
+  },
+  {
+    "gene": "CTLA4",
+    "intended_modality": "CTLA4-Ig (abatacept)",
+    "chembl_id": "CHEMBL2364164",
+    "target_type": "SINGLE PROTEIN",
+    "pref_name": "Cytotoxic T-lymphocyte protein 4",
+    "n_bioactivities": 1,
+    "n_mechanisms": 6,
+    "action_types": [
+      "INHIBITOR"
+    ],
+    "mechanism_molecule_ids": [
+      "CHEMBL1789844",
+      "CHEMBL2108658",
+      "CHEMBL4297876",
+      "CHEMBL4594456",
+      "CHEMBL4650419",
+      "CHEMBL4650483"
+    ],
+    "status": "ok"
+  },
+  {
+    "gene": "IFNAR1",
+    "intended_modality": "anti-IFNAR (anifrolumab)",
+    "chembl_id": "CHEMBL1887",
+    "target_type": "SINGLE PROTEIN",
+    "pref_name": "Interferon alpha/beta receptor 1",
+    "n_bioactivities": 50,
+    "n_mechanisms": 1,
+    "action_types": [
+      "ANTAGONIST"
+    ],
+    "mechanism_molecule_ids": [
+      "CHEMBL2364653"
+    ],
+    "status": "ok"
+  },
+  {
+    "gene": "S1PR1",
+    "intended_modality": "S1P modulator",
+    "chembl_id": "CHEMBL4333",
+    "target_type": "SINGLE PROTEIN",
+    "pref_name": "Sphingosine 1-phosphate receptor 1",
+    "n_bioactivities": 11626,
+    "n_mechanisms": 8,
+    "action_types": [
+      "AGONIST",
+      "MODULATOR"
+    ],
+    "mechanism_molecule_ids": [
+      "CHEMBL1096146",
+      "CHEMBL2137148",
+      "CHEMBL2336071",
+      "CHEMBL3358920",
+      "CHEMBL3707246",
+      "CHEMBL3989933",
+      "CHEMBL4297505",
+      "CHEMBL4298150"
+    ],
+    "status": "ok"
+  },
+  {
+    "gene": "IL1B",
+    "intended_modality": "anti-IL1",
+    "chembl_id": "CHEMBL1909490",
+    "target_type": "SINGLE PROTEIN",
+    "pref_name": "Interleukin-1 beta",
+    "n_bioactivities": 1413,
+    "n_mechanisms": 5,
+    "action_types": [
+      "INHIBITOR",
+      "NEGATIVE ALLOSTERIC MODULATOR"
+    ],
+    "mechanism_molecule_ids": [
+      "CHEMBL1201830",
+      "CHEMBL1201834",
+      "CHEMBL1743026",
+      "CHEMBL2109459",
+      "CHEMBL4594518"
+    ],
+    "status": "ok"
+  },
+  {
+    "gene": "IL13",
+    "intended_modality": "anti-IL13",
+    "chembl_id": "CHEMBL3580486",
+    "target_type": "SINGLE PROTEIN",
+    "pref_name": "Interleukin-13",
+    "n_bioactivities": 0,
+    "n_mechanisms": 8,
+    "action_types": [
+      "INHIBITOR"
+    ],
+    "mechanism_molecule_ids": [
+      "CHEMBL1742985",
+      "CHEMBL1743035",
+      "CHEMBL1743081",
+      "CHEMBL2109464",
+      "CHEMBL2109465",
+      "CHEMBL4297864",
+      "CHEMBL4298097"
+    ],
+    "status": "ok"
+  },
+  {
+    "gene": "IL12B",
+    "intended_modality": "anti-IL12/23",
+    "chembl_id": "CHEMBL3580484",
+    "target_type": "SINGLE PROTEIN",
+    "pref_name": "Interleukin-12 subunit beta",
+    "n_bioactivities": 0,
+    "n_mechanisms": 0,
+    "action_types": [],
+    "mechanism_molecule_ids": [],
+    "status": "ok"
+  }
+]

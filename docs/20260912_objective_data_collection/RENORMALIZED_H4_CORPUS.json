@@ -1,0 +1,1349 @@
+{
+ "_meta": {
+  "artifact": "RENORMALIZED_H4_CORPUS",
+  "date": "2026-09-14",
+  "training_eligible": false,
+  "purpose": "Canonical renormalization of the H4 immunopeptidome corpus onto genuine-HLA-I-ligand space so antibody-IP and mild-acid-elution deposits are cross-comparable. Raw total-peptide counts are NOT comparable across deposits (enrichment method differs). All H4 scoring must be on ligand-filtered space.",
+  "method_ref": "RENORMALIZATION_SPEC.md ; A375_B2M_KO_DIAGNOSTIC.md",
+  "ligand_filter": "length 8-12 (9mer peak) AND exact-sequence match to the deposit's own HLA-I alleles' mono-allelic ligand reference (combined_monoallelic_hlaI_human.tsv.gz, 201 alleles / 642k peptides). Anchor-heuristic lower bound: NetMHCpan/MHCflurry NOT installed on host.",
+  "within_deposit_normalization": "quantile rank of the presentation measure (intensity, else spectral/PSM count) over all peptides in the condition, in [0,1] -> cross-lab absolute scales do not leak.",
+  "measures": {
+   "ligand_fraction": "n_genuine_ligands / n_raw_distinct_peptides",
+   "ligand_fraction_of_8to12": "n_ligands / n_(len8-12) = anchor-hit rate among plausible HLA-I lengths (the shape-robust cross-method comparable measure)",
+   "frac_9mer": "HLA-I signature check"
+  },
+  "s3_renorm_tables": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions/immunopeptidome/renormalized_v1/",
+  "hla_genotype_note": "Cell-line HLA-I genotypes reconciled from Cellosaurus/TRON/source papers. HAP1 CORRECTED to A*02:01/B*40:01/C*03:04 (expression-validated in HAP1 immunopeptidomics; the earlier A*03:01/B*51:01/C*01:02 was unsupported and depressed HAP1 ligand_fraction 20-fold)."
+ },
+ "deposits": {
+  "PXD022020": {
+   "method": "antibody-IP",
+   "n_conditions": 8,
+   "n_raw": 29651,
+   "n_ligands": 25441,
+   "ligand_fraction": 0.858,
+   "ligand_fraction_of_8to12": 0.8889,
+   "median_frac_9mer": 0.6568,
+   "alleles": [
+    "HLA-A*01:01",
+    "HLA-A*02:01",
+    "HLA-A*03:01",
+    "HLA-A*11:01",
+    "HLA-A*24:02",
+    "HLA-B*07:02",
+    "HLA-B*08:01",
+    "HLA-B*13:02",
+    "HLA-B*15:18",
+    "HLA-B*18:01",
+    "HLA-B*37:01",
+    "HLA-B*38:01",
+    "HLA-B*44:02",
+    "HLA-B*44:03",
+    "HLA-B*55:01",
+    "HLA-B*57:01",
+    "HLA-C*01:02",
+    "HLA-C*05:01",
+    "HLA-C*06:02",
+    "HLA-C*07:01",
+    "HLA-C*07:02",
+    "HLA-C*07:04",
+    "HLA-C*12:03",
+    "HLA-C*16:01"
+   ],
+   "renorm_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions/immunopeptidome/renormalized_v1/PXD022020_renorm_v1.tsv",
+   "n_ligand_rows": 25441,
+   "classification": "clean_HLA_ligand_space",
+   "conditions": [
+    {
+     "condition": "A375-ZUH0004",
+     "cell_line": "A375",
+     "n_raw": 5185,
+     "n_ligands": 4493,
+     "ligand_fraction": 0.8665,
+     "ligand_fraction_of_8to12": 0.8864,
+     "frac_9mer": 0.5905,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "PC3-ZUH0005",
+     "cell_line": "PC3",
+     "n_raw": 5265,
+     "n_ligands": 4346,
+     "ligand_fraction": 0.8255,
+     "ligand_fraction_of_8to12": 0.8575,
+     "frac_9mer": 0.6651,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "MCF7-ZUH0001",
+     "cell_line": "MCF7",
+     "n_raw": 3168,
+     "n_ligands": 2746,
+     "ligand_fraction": 0.8668,
+     "ligand_fraction_of_8to12": 0.9069,
+     "frac_9mer": 0.684,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "VMRC-LCD-ZUH0002",
+     "cell_line": "VMRC-LCD",
+     "n_raw": 2276,
+     "n_ligands": 2000,
+     "ligand_fraction": 0.8787,
+     "ligand_fraction_of_8to12": 0.9091,
+     "frac_9mer": 0.5874,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "LNCaP_clone_FGC-ZUH0003",
+     "cell_line": "LNCaP",
+     "n_raw": 1781,
+     "n_ligands": 1558,
+     "ligand_fraction": 0.8748,
+     "ligand_fraction_of_8to12": 0.9252,
+     "frac_9mer": 0.5716,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "PANC1-ZWJ0013",
+     "cell_line": "PANC1",
+     "n_raw": 4726,
+     "n_ligands": 4101,
+     "ligand_fraction": 0.8678,
+     "ligand_fraction_of_8to12": 0.8935,
+     "frac_9mer": 0.6727,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "CaSki_spike-ZWJ0002",
+     "cell_line": "CaSki",
+     "n_raw": 3865,
+     "n_ligands": 3280,
+     "ligand_fraction": 0.8486,
+     "ligand_fraction_of_8to12": 0.8827,
+     "frac_9mer": 0.6486,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "SW527-ZWJ0012",
+     "cell_line": "SW527",
+     "n_raw": 3385,
+     "n_ligands": 2917,
+     "ligand_fraction": 0.8617,
+     "ligand_fraction_of_8to12": 0.8929,
+     "frac_9mer": 0.6951,
+     "classification": "clean_HLA_ligand_space"
+    }
+   ]
+  },
+  "PXD054491": {
+   "method": "antibody-IP",
+   "n_conditions": 1,
+   "n_raw": 614,
+   "n_ligands": 426,
+   "ligand_fraction": 0.6938,
+   "ligand_fraction_of_8to12": 0.895,
+   "median_frac_9mer": 0.4919,
+   "alleles": [
+    "HLA-A*01:01",
+    "HLA-A*02:01",
+    "HLA-B*44:03",
+    "HLA-B*57:01",
+    "HLA-C*06:02",
+    "HLA-C*16:01"
+   ],
+   "renorm_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions/immunopeptidome/renormalized_v1/PXD054491_renorm_v1.tsv",
+   "n_ligand_rows": 426,
+   "classification": "clean_HLA_ligand_space",
+   "conditions": [
+    {
+     "condition": "PXD054491_PartI",
+     "cell_line": "A375",
+     "n_raw": 614,
+     "n_ligands": 426,
+     "ligand_fraction": 0.6938,
+     "ligand_fraction_of_8to12": 0.895,
+     "frac_9mer": 0.4919,
+     "classification": "clean_HLA_ligand_space"
+    }
+   ]
+  },
+  "PXD054494": {
+   "method": "antibody-IP",
+   "n_conditions": 1,
+   "n_raw": 441,
+   "n_ligands": 332,
+   "ligand_fraction": 0.7528,
+   "ligand_fraction_of_8to12": 0.9121,
+   "median_frac_9mer": 0.3923,
+   "alleles": [
+    "HLA-A*01:01",
+    "HLA-A*02:01",
+    "HLA-B*44:03",
+    "HLA-B*57:01",
+    "HLA-C*06:02",
+    "HLA-C*16:01"
+   ],
+   "renorm_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions/immunopeptidome/renormalized_v1/PXD054494_renorm_v1.tsv",
+   "n_ligand_rows": 332,
+   "classification": "clean_HLA_ligand_space",
+   "conditions": [
+    {
+     "condition": "PXD054494_PartII",
+     "cell_line": "A375",
+     "n_raw": 441,
+     "n_ligands": 332,
+     "ligand_fraction": 0.7528,
+     "ligand_fraction_of_8to12": 0.9121,
+     "frac_9mer": 0.3923,
+     "classification": "clean_HLA_ligand_space"
+    }
+   ]
+  },
+  "PXD060572": {
+   "method": "antibody-IP",
+   "n_conditions": 12,
+   "n_raw": 738744,
+   "n_ligands": 8483,
+   "ligand_fraction": 0.0115,
+   "ligand_fraction_of_8to12": 0.0266,
+   "median_frac_9mer": 0.0871,
+   "alleles": [
+    "HLA-A*01:01",
+    "HLA-A*02:01",
+    "HLA-B*44:03",
+    "HLA-B*57:01",
+    "HLA-C*06:02",
+    "HLA-C*16:01"
+   ],
+   "renorm_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions/immunopeptidome/renormalized_v1/PXD060572_renorm_v1.tsv",
+   "n_ligand_rows": 8483,
+   "classification": "method_confounded_or_proteome",
+   "conditions": [
+    {
+     "condition": "15477",
+     "cell_line": "A375",
+     "n_raw": 57765,
+     "n_ligands": 736,
+     "ligand_fraction": 0.0127,
+     "ligand_fraction_of_8to12": 0.0268,
+     "frac_9mer": 0.0996,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "15478",
+     "cell_line": "A375",
+     "n_raw": 38258,
+     "n_ligands": 698,
+     "ligand_fraction": 0.0182,
+     "ligand_fraction_of_8to12": 0.0343,
+     "frac_9mer": 0.1147,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "15479",
+     "cell_line": "A375",
+     "n_raw": 70811,
+     "n_ligands": 741,
+     "ligand_fraction": 0.0105,
+     "ligand_fraction_of_8to12": 0.0244,
+     "frac_9mer": 0.088,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "15480",
+     "cell_line": "A375",
+     "n_raw": 76905,
+     "n_ligands": 734,
+     "ligand_fraction": 0.0095,
+     "ligand_fraction_of_8to12": 0.0235,
+     "frac_9mer": 0.0829,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "15481",
+     "cell_line": "A375",
+     "n_raw": 77623,
+     "n_ligands": 728,
+     "ligand_fraction": 0.0094,
+     "ligand_fraction_of_8to12": 0.0232,
+     "frac_9mer": 0.0831,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "15483",
+     "cell_line": "A375",
+     "n_raw": 59866,
+     "n_ligands": 704,
+     "ligand_fraction": 0.0118,
+     "ligand_fraction_of_8to12": 0.0273,
+     "frac_9mer": 0.0882,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "15486",
+     "cell_line": "A375",
+     "n_raw": 60943,
+     "n_ligands": 690,
+     "ligand_fraction": 0.0113,
+     "ligand_fraction_of_8to12": 0.0269,
+     "frac_9mer": 0.0862,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "15476",
+     "cell_line": "A375",
+     "n_raw": 60898,
+     "n_ligands": 740,
+     "ligand_fraction": 0.0122,
+     "ligand_fraction_of_8to12": 0.026,
+     "frac_9mer": 0.0991,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "15484",
+     "cell_line": "A375",
+     "n_raw": 60537,
+     "n_ligands": 703,
+     "ligand_fraction": 0.0116,
+     "ligand_fraction_of_8to12": 0.0264,
+     "frac_9mer": 0.0904,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "15485",
+     "cell_line": "A375",
+     "n_raw": 63506,
+     "n_ligands": 675,
+     "ligand_fraction": 0.0106,
+     "ligand_fraction_of_8to12": 0.0263,
+     "frac_9mer": 0.0809,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "15487",
+     "cell_line": "A375",
+     "n_raw": 60696,
+     "n_ligands": 682,
+     "ligand_fraction": 0.0112,
+     "ligand_fraction_of_8to12": 0.0273,
+     "frac_9mer": 0.0835,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "15482",
+     "cell_line": "A375",
+     "n_raw": 50936,
+     "n_ligands": 652,
+     "ligand_fraction": 0.0128,
+     "ligand_fraction_of_8to12": 0.0308,
+     "frac_9mer": 0.0837,
+     "classification": "method_confounded_or_proteome"
+    }
+   ]
+  },
+  "PXD060575": {
+   "method": "antibody-IP",
+   "n_conditions": 9,
+   "n_raw": 328374,
+   "n_ligands": 5164,
+   "ligand_fraction": 0.0157,
+   "ligand_fraction_of_8to12": 0.0268,
+   "median_frac_9mer": 0.1351,
+   "alleles": [
+    "HLA-A*01:01",
+    "HLA-A*02:01",
+    "HLA-B*44:03",
+    "HLA-B*57:01",
+    "HLA-C*06:02",
+    "HLA-C*16:01"
+   ],
+   "renorm_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions/immunopeptidome/renormalized_v1/PXD060575_renorm_v1.tsv",
+   "n_ligand_rows": 5164,
+   "classification": "method_confounded_or_proteome",
+   "conditions": [
+    {
+     "condition": "18316",
+     "cell_line": "A375",
+     "n_raw": 42301,
+     "n_ligands": 575,
+     "ligand_fraction": 0.0136,
+     "ligand_fraction_of_8to12": 0.0236,
+     "frac_9mer": 0.1321,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "18317",
+     "cell_line": "A375",
+     "n_raw": 40306,
+     "n_ligands": 564,
+     "ligand_fraction": 0.014,
+     "ligand_fraction_of_8to12": 0.0247,
+     "frac_9mer": 0.1275,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "18325",
+     "cell_line": "A375",
+     "n_raw": 34371,
+     "n_ligands": 557,
+     "ligand_fraction": 0.0162,
+     "ligand_fraction_of_8to12": 0.0273,
+     "frac_9mer": 0.1357,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "18322",
+     "cell_line": "A375",
+     "n_raw": 31721,
+     "n_ligands": 558,
+     "ligand_fraction": 0.0176,
+     "ligand_fraction_of_8to12": 0.0292,
+     "frac_9mer": 0.1398,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "18318",
+     "cell_line": "A375",
+     "n_raw": 37393,
+     "n_ligands": 568,
+     "ligand_fraction": 0.0152,
+     "ligand_fraction_of_8to12": 0.0263,
+     "frac_9mer": 0.1323,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "18320",
+     "cell_line": "A375",
+     "n_raw": 35673,
+     "n_ligands": 583,
+     "ligand_fraction": 0.0163,
+     "ligand_fraction_of_8to12": 0.0277,
+     "frac_9mer": 0.1349,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "18321",
+     "cell_line": "A375",
+     "n_raw": 36845,
+     "n_ligands": 579,
+     "ligand_fraction": 0.0157,
+     "ligand_fraction_of_8to12": 0.0267,
+     "frac_9mer": 0.1351,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "18324",
+     "cell_line": "A375",
+     "n_raw": 35089,
+     "n_ligands": 593,
+     "ligand_fraction": 0.0169,
+     "ligand_fraction_of_8to12": 0.0284,
+     "frac_9mer": 0.1393,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "18326",
+     "cell_line": "A375",
+     "n_raw": 34675,
+     "n_ligands": 587,
+     "ligand_fraction": 0.0169,
+     "ligand_fraction_of_8to12": 0.0283,
+     "frac_9mer": 0.1381,
+     "classification": "method_confounded_or_proteome"
+    }
+   ]
+  },
+  "PXD065279": {
+   "method": "mild-acid-elution",
+   "n_conditions": 24,
+   "n_raw": 34033,
+   "n_ligands": 19257,
+   "ligand_fraction": 0.5658,
+   "ligand_fraction_of_8to12": 0.6975,
+   "median_frac_9mer": 0.1651,
+   "alleles": [
+    "HLA-A*01:01",
+    "HLA-A*02:01",
+    "HLA-B*07:02",
+    "HLA-B*44:03",
+    "HLA-B*57:01",
+    "HLA-C*06:02",
+    "HLA-C*07:02",
+    "HLA-C*16:01"
+   ],
+   "renorm_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions/immunopeptidome/renormalized_v1/PXD065279_renorm_v1.tsv",
+   "n_ligand_rows": 19257,
+   "classification": "mixed",
+   "conditions": [
+    {
+     "condition": "B2M_KO",
+     "cell_line": "A375",
+     "n_raw": 2441,
+     "n_ligands": 208,
+     "ligand_fraction": 0.0852,
+     "ligand_fraction_of_8to12": 0.1279,
+     "frac_9mer": 0.161,
+     "classification": "intermediate"
+    },
+    {
+     "condition": "WT",
+     "cell_line": "A375",
+     "n_raw": 2854,
+     "n_ligands": 837,
+     "ligand_fraction": 0.2933,
+     "ligand_fraction_of_8to12": 0.399,
+     "frac_9mer": 0.2694,
+     "classification": "intermediate"
+    },
+    {
+     "condition": "ifn_0",
+     "cell_line": "A375",
+     "n_raw": 2483,
+     "n_ligands": 2017,
+     "ligand_fraction": 0.8123,
+     "ligand_fraction_of_8to12": 0.8796,
+     "frac_9mer": 0.5916,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "ifn_100",
+     "cell_line": "A375",
+     "n_raw": 3505,
+     "n_ligands": 2977,
+     "ligand_fraction": 0.8494,
+     "ligand_fraction_of_8to12": 0.904,
+     "frac_9mer": 0.6217,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "ifn_25",
+     "cell_line": "A375",
+     "n_raw": 3026,
+     "n_ligands": 2548,
+     "ligand_fraction": 0.842,
+     "ligand_fraction_of_8to12": 0.9052,
+     "frac_9mer": 0.6054,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "ifn_5",
+     "cell_line": "A375",
+     "n_raw": 2795,
+     "n_ligands": 2351,
+     "ligand_fraction": 0.8411,
+     "ligand_fraction_of_8to12": 0.9008,
+     "frac_9mer": 0.6061,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "ifn_50",
+     "cell_line": "A375",
+     "n_raw": 3260,
+     "n_ligands": 2754,
+     "ligand_fraction": 0.8448,
+     "ligand_fraction_of_8to12": 0.9015,
+     "frac_9mer": 0.6181,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "ifn_75",
+     "cell_line": "A375",
+     "n_raw": 3211,
+     "n_ligands": 2729,
+     "ligand_fraction": 0.8499,
+     "ligand_fraction_of_8to12": 0.9039,
+     "frac_9mer": 0.6176,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "JY",
+     "cell_line": "JY",
+     "n_raw": 2614,
+     "n_ligands": 1767,
+     "ligand_fraction": 0.676,
+     "ligand_fraction_of_8to12": 0.8046,
+     "frac_9mer": 0.5172,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "8",
+     "cell_line": "A375",
+     "n_raw": 1187,
+     "n_ligands": 157,
+     "ligand_fraction": 0.1323,
+     "ligand_fraction_of_8to12": 0.2099,
+     "frac_9mer": 0.1727,
+     "classification": "intermediate"
+    },
+    {
+     "condition": "4",
+     "cell_line": "A375",
+     "n_raw": 763,
+     "n_ligands": 94,
+     "ligand_fraction": 0.1232,
+     "ligand_fraction_of_8to12": 0.1942,
+     "frac_9mer": 0.1691,
+     "classification": "intermediate"
+    },
+    {
+     "condition": "9",
+     "cell_line": "A375",
+     "n_raw": 1127,
+     "n_ligands": 136,
+     "ligand_fraction": 0.1207,
+     "ligand_fraction_of_8to12": 0.2166,
+     "frac_9mer": 0.1535,
+     "classification": "intermediate"
+    },
+    {
+     "condition": "3",
+     "cell_line": "A375",
+     "n_raw": 677,
+     "n_ligands": 86,
+     "ligand_fraction": 0.127,
+     "ligand_fraction_of_8to12": 0.1995,
+     "frac_9mer": 0.1581,
+     "classification": "intermediate"
+    },
+    {
+     "condition": "6",
+     "cell_line": "A375",
+     "n_raw": 494,
+     "n_ligands": 76,
+     "ligand_fraction": 0.1538,
+     "ligand_fraction_of_8to12": 0.2508,
+     "frac_9mer": 0.1377,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "10",
+     "cell_line": "A375",
+     "n_raw": 1044,
+     "n_ligands": 116,
+     "ligand_fraction": 0.1111,
+     "ligand_fraction_of_8to12": 0.1905,
+     "frac_9mer": 0.158,
+     "classification": "intermediate"
+    },
+    {
+     "condition": "12",
+     "cell_line": "A375",
+     "n_raw": 727,
+     "n_ligands": 78,
+     "ligand_fraction": 0.1073,
+     "ligand_fraction_of_8to12": 0.2301,
+     "frac_9mer": 0.0935,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "13",
+     "cell_line": "A375",
+     "n_raw": 241,
+     "n_ligands": 35,
+     "ligand_fraction": 0.1452,
+     "ligand_fraction_of_8to12": 0.3302,
+     "frac_9mer": 0.0788,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "5",
+     "cell_line": "A375",
+     "n_raw": 529,
+     "n_ligands": 75,
+     "ligand_fraction": 0.1418,
+     "ligand_fraction_of_8to12": 0.2708,
+     "frac_9mer": 0.1304,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "14",
+     "cell_line": "A375",
+     "n_raw": 376,
+     "n_ligands": 69,
+     "ligand_fraction": 0.1835,
+     "ligand_fraction_of_8to12": 0.2875,
+     "frac_9mer": 0.1489,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "7",
+     "cell_line": "A375",
+     "n_raw": 105,
+     "n_ligands": 25,
+     "ligand_fraction": 0.2381,
+     "ligand_fraction_of_8to12": 0.3521,
+     "frac_9mer": 0.2,
+     "classification": "intermediate"
+    },
+    {
+     "condition": "1",
+     "cell_line": "A375",
+     "n_raw": 144,
+     "n_ligands": 27,
+     "ligand_fraction": 0.1875,
+     "ligand_fraction_of_8to12": 0.27,
+     "frac_9mer": 0.1806,
+     "classification": "intermediate"
+    },
+    {
+     "condition": "2",
+     "cell_line": "A375",
+     "n_raw": 190,
+     "n_ligands": 39,
+     "ligand_fraction": 0.2053,
+     "ligand_fraction_of_8to12": 0.3391,
+     "frac_9mer": 0.1368,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "15",
+     "cell_line": "A375",
+     "n_raw": 117,
+     "n_ligands": 29,
+     "ligand_fraction": 0.2479,
+     "ligand_fraction_of_8to12": 0.3718,
+     "frac_9mer": 0.1282,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "11",
+     "cell_line": "A375",
+     "n_raw": 123,
+     "n_ligands": 27,
+     "ligand_fraction": 0.2195,
+     "ligand_fraction_of_8to12": 0.3699,
+     "frac_9mer": 0.1382,
+     "classification": "method_confounded_or_proteome"
+    }
+   ]
+  },
+  "PXD070471": {
+   "method": "antibody-IP",
+   "n_conditions": 14,
+   "n_raw": 155520,
+   "n_ligands": 10261,
+   "ligand_fraction": 0.066,
+   "ligand_fraction_of_8to12": 0.2257,
+   "median_frac_9mer": 0.0974,
+   "alleles": [
+    "HLA-A*02:01",
+    "HLA-B*15:01",
+    "HLA-B*15:11",
+    "HLA-C*03:03",
+    "HLA-C*04:01"
+   ],
+   "renorm_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions/immunopeptidome/renormalized_v1/PXD070471_renorm_v1.tsv",
+   "n_ligand_rows": 10261,
+   "classification": "method_confounded_or_proteome",
+   "conditions": [
+    {
+     "condition": "CaCo2_CVB3_1",
+     "cell_line": "CaCo2",
+     "n_raw": 11675,
+     "n_ligands": 348,
+     "ligand_fraction": 0.0298,
+     "ligand_fraction_of_8to12": 0.0832,
+     "frac_9mer": 0.0619,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "CaCo2_CVB3_2",
+     "cell_line": "CaCo2",
+     "n_raw": 11803,
+     "n_ligands": 339,
+     "ligand_fraction": 0.0287,
+     "ligand_fraction_of_8to12": 0.0806,
+     "frac_9mer": 0.0629,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "CaCo2_CVB3_3",
+     "cell_line": "CaCo2",
+     "n_raw": 12383,
+     "n_ligands": 347,
+     "ligand_fraction": 0.028,
+     "ligand_fraction_of_8to12": 0.0795,
+     "frac_9mer": 0.0623,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "CaCo2_CVB3_4",
+     "cell_line": "CaCo2",
+     "n_raw": 11812,
+     "n_ligands": 316,
+     "ligand_fraction": 0.0268,
+     "ligand_fraction_of_8to12": 0.0764,
+     "frac_9mer": 0.0626,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "CaCo2_CVB3_5",
+     "cell_line": "CaCo2",
+     "n_raw": 11835,
+     "n_ligands": 346,
+     "ligand_fraction": 0.0292,
+     "ligand_fraction_of_8to12": 0.083,
+     "frac_9mer": 0.0605,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "CaCo2_CVB3_6",
+     "cell_line": "CaCo2",
+     "n_raw": 11890,
+     "n_ligands": 338,
+     "ligand_fraction": 0.0284,
+     "ligand_fraction_of_8to12": 0.0805,
+     "frac_9mer": 0.0629,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "THP1_ECN90_CVB3_1",
+     "cell_line": "THP1",
+     "n_raw": 14326,
+     "n_ligands": 1158,
+     "ligand_fraction": 0.0808,
+     "ligand_fraction_of_8to12": 0.3752,
+     "frac_9mer": 0.102,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "THP1_ECN90_CVB3_3",
+     "cell_line": "THP1",
+     "n_raw": 15088,
+     "n_ligands": 1172,
+     "ligand_fraction": 0.0777,
+     "ligand_fraction_of_8to12": 0.3668,
+     "frac_9mer": 0.0994,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "THP1_ECN90_MOCK_3",
+     "cell_line": "THP1",
+     "n_raw": 8168,
+     "n_ligands": 847,
+     "ligand_fraction": 0.1037,
+     "ligand_fraction_of_8to12": 0.4265,
+     "frac_9mer": 0.1235,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "THP1_ECN90_CVB3_2",
+     "cell_line": "THP1",
+     "n_raw": 15205,
+     "n_ligands": 1129,
+     "ligand_fraction": 0.0743,
+     "ligand_fraction_of_8to12": 0.3686,
+     "frac_9mer": 0.0954,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "THP1_ECN90_CVB3_4",
+     "cell_line": "THP1",
+     "n_raw": 10594,
+     "n_ligands": 1164,
+     "ligand_fraction": 0.1099,
+     "ligand_fraction_of_8to12": 0.4074,
+     "frac_9mer": 0.1366,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "THP1_ECN90_MOCK_2",
+     "cell_line": "THP1",
+     "n_raw": 7274,
+     "n_ligands": 955,
+     "ligand_fraction": 0.1313,
+     "ligand_fraction_of_8to12": 0.4528,
+     "frac_9mer": 0.1569,
+     "classification": "intermediate"
+    },
+    {
+     "condition": "THP1_ECN90_MOCK_4",
+     "cell_line": "THP1",
+     "n_raw": 6217,
+     "n_ligands": 842,
+     "ligand_fraction": 0.1354,
+     "ligand_fraction_of_8to12": 0.468,
+     "frac_9mer": 0.1591,
+     "classification": "intermediate"
+    },
+    {
+     "condition": "THP1_ECN90_MOCK_1",
+     "cell_line": "THP1",
+     "n_raw": 7250,
+     "n_ligands": 960,
+     "ligand_fraction": 0.1324,
+     "ligand_fraction_of_8to12": 0.4541,
+     "frac_9mer": 0.159,
+     "classification": "intermediate"
+    }
+   ]
+  },
+  "PXD070607": {
+   "method": "antibody-IP",
+   "n_conditions": 6,
+   "n_raw": 30855,
+   "n_ligands": 3671,
+   "ligand_fraction": 0.119,
+   "ligand_fraction_of_8to12": 0.1341,
+   "median_frac_9mer": 0.4963,
+   "alleles": [
+    "HLA-A*24:02",
+    "HLA-B*14:02",
+    "HLA-C*08:02"
+   ],
+   "renorm_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions/immunopeptidome/renormalized_v1/PXD070607_renorm_v1.tsv",
+   "n_ligand_rows": 3671,
+   "classification": "mixed",
+   "conditions": [
+    {
+     "condition": "MIAPaCa2CHEMO_2_HLA_I",
+     "cell_line": "MIAPACA2",
+     "n_raw": 6647,
+     "n_ligands": 723,
+     "ligand_fraction": 0.1088,
+     "ligand_fraction_of_8to12": 0.1333,
+     "frac_9mer": 0.3979,
+     "classification": "intermediate"
+    },
+    {
+     "condition": "MIAPaCa2DMSO_1_HLA_I",
+     "cell_line": "MIAPACA2",
+     "n_raw": 4394,
+     "n_ligands": 509,
+     "ligand_fraction": 0.1158,
+     "ligand_fraction_of_8to12": 0.1258,
+     "frac_9mer": 0.5184,
+     "classification": "intermediate"
+    },
+    {
+     "condition": "MIAPaCa2DMSO_2_HLA_I",
+     "cell_line": "MIAPACA2",
+     "n_raw": 4169,
+     "n_ligands": 465,
+     "ligand_fraction": 0.1115,
+     "ligand_fraction_of_8to12": 0.1209,
+     "frac_9mer": 0.5241,
+     "classification": "intermediate"
+    },
+    {
+     "condition": "MIAPaCa2CHEMO_3_HLA_I",
+     "cell_line": "MIAPACA2",
+     "n_raw": 5433,
+     "n_ligands": 725,
+     "ligand_fraction": 0.1334,
+     "ligand_fraction_of_8to12": 0.1466,
+     "frac_9mer": 0.4951,
+     "classification": "intermediate"
+    },
+    {
+     "condition": "MIAPaCa2DMSO_3_HLA_I",
+     "cell_line": "MIAPACA2",
+     "n_raw": 5111,
+     "n_ligands": 622,
+     "ligand_fraction": 0.1217,
+     "ligand_fraction_of_8to12": 0.1395,
+     "frac_9mer": 0.4659,
+     "classification": "intermediate"
+    },
+    {
+     "condition": "MIAPaCa2CHEMO_1_HLA_I",
+     "cell_line": "MIAPACA2",
+     "n_raw": 5101,
+     "n_ligands": 627,
+     "ligand_fraction": 0.1229,
+     "ligand_fraction_of_8to12": 0.135,
+     "frac_9mer": 0.4975,
+     "classification": "intermediate"
+    }
+   ]
+  },
+  "PXD070941": {
+   "method": "antibody-IP",
+   "n_conditions": 2,
+   "n_raw": 9640,
+   "n_ligands": 9105,
+   "ligand_fraction": 0.9445,
+   "ligand_fraction_of_8to12": 0.9551,
+   "median_frac_9mer": 0.7109,
+   "alleles": [
+    "HLA-A*02:01",
+    "HLA-B*44:02",
+    "HLA-C*05:01"
+   ],
+   "renorm_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions/immunopeptidome/renormalized_v1/PXD070941_renorm_v1.tsv",
+   "n_ligand_rows": 9105,
+   "classification": "clean_HLA_ligand_space",
+   "conditions": [
+    {
+     "condition": "PXD070941_U87_vehicle",
+     "cell_line": "U87",
+     "n_raw": 4755,
+     "n_ligands": 4503,
+     "ligand_fraction": 0.947,
+     "ligand_fraction_of_8to12": 0.9556,
+     "frac_9mer": 0.7152,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "PXD070941_U87_M142depl",
+     "cell_line": "U87",
+     "n_raw": 4885,
+     "n_ligands": 4602,
+     "ligand_fraction": 0.9421,
+     "ligand_fraction_of_8to12": 0.9546,
+     "frac_9mer": 0.7067,
+     "classification": "clean_HLA_ligand_space"
+    }
+   ]
+  },
+  "PXD024109": {
+   "method": "antibody-IP",
+   "n_conditions": 4,
+   "n_raw": 704184,
+   "n_ligands": 61856,
+   "ligand_fraction": 0.0878,
+   "ligand_fraction_of_8to12": 0.1012,
+   "median_frac_9mer": 0.2582,
+   "alleles": [
+    "HLA-A*03:01",
+    "HLA-A*29:02",
+    "HLA-B*40:01",
+    "HLA-B*44:03",
+    "HLA-C*03:04",
+    "HLA-C*16:01"
+   ],
+   "renorm_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions/immunopeptidome/renormalized_v1/PXD024109_renorm_v1.tsv",
+   "n_ligand_rows": 61856,
+   "classification": "method_confounded_or_proteome",
+   "conditions": [
+    {
+     "condition": "PXD024109_set1_A29",
+     "cell_line": "A29LCL",
+     "n_raw": 123399,
+     "n_ligands": 6407,
+     "ligand_fraction": 0.0519,
+     "ligand_fraction_of_8to12": 0.0617,
+     "frac_9mer": 0.2516,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "PXD024109_set1_W632",
+     "cell_line": "A29LCL",
+     "n_raw": 229180,
+     "n_ligands": 24939,
+     "ligand_fraction": 0.1088,
+     "ligand_fraction_of_8to12": 0.1234,
+     "frac_9mer": 0.2648,
+     "classification": "intermediate"
+    },
+    {
+     "condition": "PXD024109_set2_A29",
+     "cell_line": "A29LCL",
+     "n_raw": 125158,
+     "n_ligands": 5735,
+     "ligand_fraction": 0.0458,
+     "ligand_fraction_of_8to12": 0.0543,
+     "frac_9mer": 0.247,
+     "classification": "method_confounded_or_proteome"
+    },
+    {
+     "condition": "PXD024109_set2_W632",
+     "cell_line": "A29LCL",
+     "n_raw": 226447,
+     "n_ligands": 24775,
+     "ligand_fraction": 0.1094,
+     "ligand_fraction_of_8to12": 0.1241,
+     "frac_9mer": 0.266,
+     "classification": "intermediate"
+    }
+   ]
+  },
+  "PXD013064": {
+   "method": "antibody-IP",
+   "n_conditions": 1,
+   "n_raw": 8098,
+   "n_ligands": 7225,
+   "ligand_fraction": 0.8922,
+   "ligand_fraction_of_8to12": 1.0,
+   "median_frac_9mer": 0.4776,
+   "alleles": [
+    "HLA-B*51:01"
+   ],
+   "renorm_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions/immunopeptidome/renormalized_v1/PXD013064_renorm_v1.tsv",
+   "n_ligand_rows": 7225,
+   "classification": "clean_HLA_ligand_space",
+   "conditions": [
+    {
+     "condition": "PXD013064",
+     "cell_line": "HeLaB51",
+     "n_raw": 8098,
+     "n_ligands": 7225,
+     "ligand_fraction": 0.8922,
+     "ligand_fraction_of_8to12": 1.0,
+     "frac_9mer": 0.4776,
+     "classification": "clean_HLA_ligand_space"
+    }
+   ]
+  },
+  "PXD056426": {
+   "method": "antibody-IP",
+   "n_conditions": 8,
+   "n_raw": 74455,
+   "n_ligands": 58737,
+   "ligand_fraction": 0.7889,
+   "ligand_fraction_of_8to12": 0.8026,
+   "median_frac_9mer": 0.6576,
+   "alleles": [
+    "HLA-A*02:01",
+    "HLA-B*40:01",
+    "HLA-C*03:04"
+   ],
+   "renorm_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions/immunopeptidome/renormalized_v1/PXD056426_renorm_v1.tsv",
+   "n_ligand_rows": 58737,
+   "classification": "clean_HLA_ligand_space",
+   "conditions": [
+    {
+     "condition": "B2M",
+     "cell_line": "HAP1",
+     "n_raw": 520,
+     "n_ligands": 186,
+     "ligand_fraction": 0.3577,
+     "ligand_fraction_of_8to12": 0.4356,
+     "frac_9mer": 0.2558,
+     "classification": "intermediate"
+    },
+    {
+     "condition": "WT",
+     "cell_line": "HAP1",
+     "n_raw": 19645,
+     "n_ligands": 15181,
+     "ligand_fraction": 0.7728,
+     "ligand_fraction_of_8to12": 0.7907,
+     "frac_9mer": 0.6148,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "SPPL3",
+     "cell_line": "HAP1",
+     "n_raw": 14906,
+     "n_ligands": 12404,
+     "ligand_fraction": 0.8321,
+     "ligand_fraction_of_8to12": 0.8416,
+     "frac_9mer": 0.6672,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "CALR",
+     "cell_line": "HAP1",
+     "n_raw": 17331,
+     "n_ligands": 13740,
+     "ligand_fraction": 0.7928,
+     "ligand_fraction_of_8to12": 0.8027,
+     "frac_9mer": 0.6479,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "TAP2",
+     "cell_line": "HAP1",
+     "n_raw": 3193,
+     "n_ligands": 2252,
+     "ligand_fraction": 0.7053,
+     "ligand_fraction_of_8to12": 0.7279,
+     "frac_9mer": 0.6239,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "TAP1",
+     "cell_line": "HAP1",
+     "n_raw": 9048,
+     "n_ligands": 6744,
+     "ligand_fraction": 0.7454,
+     "ligand_fraction_of_8to12": 0.7604,
+     "frac_9mer": 0.6806,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "TAPBP",
+     "cell_line": "HAP1",
+     "n_raw": 4498,
+     "n_ligands": 3581,
+     "ligand_fraction": 0.7961,
+     "ligand_fraction_of_8to12": 0.804,
+     "frac_9mer": 0.7279,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "IRF2",
+     "cell_line": "HAP1",
+     "n_raw": 5314,
+     "n_ligands": 4649,
+     "ligand_fraction": 0.8749,
+     "ligand_fraction_of_8to12": 0.8803,
+     "frac_9mer": 0.7318,
+     "classification": "clean_HLA_ligand_space"
+    }
+   ]
+  },
+  "PXD045265": {
+   "method": "antibody-IP",
+   "n_conditions": 2,
+   "n_raw": 34061,
+   "n_ligands": 20235,
+   "ligand_fraction": 0.5941,
+   "ligand_fraction_of_8to12": 0.7251,
+   "median_frac_9mer": 0.4484,
+   "alleles": [
+    "HLA-A*02:01",
+    "HLA-A*03:01",
+    "HLA-B*40:01",
+    "HLA-B*49:01",
+    "HLA-C*03:04",
+    "HLA-C*07:01"
+   ],
+   "renorm_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions/immunopeptidome/renormalized_v1/PXD045265_renorm_v1.tsv",
+   "n_ligand_rows": 20235,
+   "classification": "clean_HLA_ligand_space",
+   "conditions": [
+    {
+     "condition": "ECN90_basal",
+     "cell_line": "ECN90",
+     "n_raw": 14542,
+     "n_ligands": 6239,
+     "ligand_fraction": 0.429,
+     "ligand_fraction_of_8to12": 0.6103,
+     "frac_9mer": 0.344,
+     "classification": "clean_HLA_ligand_space"
+    },
+    {
+     "condition": "ECN90_IFNa",
+     "cell_line": "ECN90",
+     "n_raw": 19519,
+     "n_ligands": 13996,
+     "ligand_fraction": 0.717,
+     "ligand_fraction_of_8to12": 0.7914,
+     "frac_9mer": 0.5528,
+     "classification": "clean_HLA_ligand_space"
+    }
+   ]
+  },
+  "PXD055205": {
+   "method": "antibody-IP",
+   "n_conditions": 1,
+   "n_raw": 25850,
+   "n_ligands": 6511,
+   "ligand_fraction": 0.2519,
+   "ligand_fraction_of_8to12": 0.344,
+   "median_frac_9mer": 0.304,
+   "alleles": [
+    "HLA-A*01:01",
+    "HLA-A*02:01",
+    "HLA-A*24:03",
+    "HLA-B*18:01",
+    "HLA-B*35:01",
+    "HLA-B*44:03",
+    "HLA-B*45:01",
+    "HLA-C*04:01",
+    "HLA-C*05:01",
+    "HLA-C*07:01"
+   ],
+   "renorm_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions/immunopeptidome/renormalized_v1/PXD055205_renorm_v1.tsv",
+   "n_ligand_rows": 6511,
+   "classification": "clean_HLA_ligand_space",
+   "conditions": [
+    {
+     "condition": "HCT116_HT29_pooled",
+     "cell_line": "HCT116+HT29",
+     "n_raw": 25850,
+     "n_ligands": 6511,
+     "ligand_fraction": 0.2519,
+     "ligand_fraction_of_8to12": 0.344,
+     "frac_9mer": 0.304,
+     "classification": "clean_HLA_ligand_space"
+    }
+   ]
+  }
+ },
+ "deferred_usable_deposits": {
+  "_note": "Usable HLA-I deposits present on S3 but NOT yet renormalized in v1 (format/disk cost); add in v2. Genotypes known where noted.",
+  "PXD037837": {
+   "format": ".mzML + .mzid.gz per donor (primary MDM, Mtb vs mock, donors C/D/E/H/I/A)",
+   "reason": "multi-donor primary macrophages; per-donor HLA typing not recovered; large mzid set. Deferred.",
+   "hla": "multiple primary donors (recover per-donor)"
+  },
+  "PXD041578": {
+   "format": ".msf (Proteome Discoverer SQLite), Calu-3 DMSO/ATR002/H3N2 2x2",
+   "reason": ".msf needs PD/SQLite extraction; Calu-3 genotype needed. Deferred.",
+   "hla": "Calu-3 (recover)"
+  },
+  "PXD060684": {
+   "format": "large .mzid (CAMA1 700MB, MDA 800MB) + .mgf",
+   "reason": "very large mzid; CAMA1 A*02:01/32:01 B*15:01/40:02 C*02:02/03:03 and MDA-MB-231 known (agent), but download+parse cost high. Deferred.",
+   "hla": "CAMA1, MDA-MB-231 (known)"
+  },
+  "PXD063219": {
+   "format": ".msf + .raw, HeLaM B*44:02 / B*44:05 reconstituted, TAPBPR KD/WT",
+   "reason": ".msf extraction needed; allele-controlled (near-mono B44:02/B44:05). Deferred; high-value for allele axis.",
+   "hla": [
+    "HLA-B*44:02",
+    "HLA-B*44:05"
+   ]
+  },
+  "PXD071022": {
+   "format": "large .mzid (2 primary CRC tumors, ~240MB each)",
+   "reason": "per-tumor HLA (61 alleles across 26 tumors at source; 2 tumors held); large mzid. Deferred.",
+   "hla": "per-tumor (high diversity)"
+  },
+  "PXD078020": {
+   "format": ".msf (HeLa HBV, TAPBPR/TBP KO vs WT, ~1.7-1.9GB each)",
+   "reason": ".msf extraction needed + large; HeLa A2/B15/... Deferred.",
+   "hla": "HeLa (A*68:02/B*15:03/C*12:03 or allele subsets)"
+  },
+  "PXD013649": {
+   "format": "NewAnce PSM .txt in per-line search zips (9 melanoma lines: 0D5P/0MM745/0NVC/C3N02671/C3N02289/Me275/Me290/T1015A/T1185B)",
+   "reason": "parseable (prot-layer NewAnce PSM tables) but needs 9 tumor-line genotypes not yet recovered; non-canonical focus. Deferred; adds 9 HLA backgrounds in v2.",
+   "hla": "9 tumor lines (recover)"
+  },
+  "PXD013013_PXD072525": {
+   "acc": "PXD072525",
+   "format": "Results.zip 6.4GB",
+   "reason": "over disk budget (6.4GB single zip). Deferred to high-disk host.",
+   "hla": "multi-patient MM"
+  },
+  "PXD068488": {
+   "format": ".msf HLA-DR15",
+   "reason": "CLASS-II (HLA-DR) only; out of scope for HLA-I ligand renormalization. Would use SysteMHC HLA-II reference in a class-II variant.",
+   "class": "II"
+  },
+  "PXD074155": {
+   "format": "peptides.csv HLA-DR MAPPs",
+   "reason": "CLASS-II (HLA-DR) only; out of scope for HLA-I renormalization.",
+   "class": "II"
+  },
+  "PXD020079": {
+   "format": ".raw HLA-Ip + HLA-IIp (GBM HROG02/HROG17/RA + CIITA)",
+   "reason": ".raw only (no processed peptide table held); needs re-search. Deferred.",
+   "hla": "3 GBM lines (recover from paper)"
+  },
+  "PXD024109_note": "RENORMALIZED (A29 birdshot-LCL). Listed here only for genotype provenance."
+ },
+ "excluded": {
+  "stubs_no_data": [
+   "PXD000394 (viewer stub)",
+   "PXD022950 (README only)",
+   "PXD077352 (search-param stub)"
+  ],
+  "proteome_only": [
+   "PXD004352 (28-immune-cell proteome; no immunopeptidome/HLA)",
+   "PXD023038 (TNBC proteome .raw; ligandome half = PXD023044 not held)"
+  ],
+  "class_II_only_for_HLA_I_scoring": [
+   "PXD068488 (HLA-DR15)",
+   "PXD074155 (HLA-DR MAPPs)"
+  ],
+  "transport_blocked": [
+   "MSV000091285 (FTP-only, firewalled)",
+   "PXD014804 (raw-only 66GB, 51GB zip over threshold)"
+  ]
+ }
+}

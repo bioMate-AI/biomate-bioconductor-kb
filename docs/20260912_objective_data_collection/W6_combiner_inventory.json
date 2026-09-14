@@ -1,0 +1,200 @@
+{
+  "workstream": "W6",
+  "role": "COMBINER",
+  "title": "Target-selection combiner — channel data inventory + null-calibratability + build spec",
+  "date": "2026-09-13",
+  "canonical_framing": "The 'correct target' objective is NOT an FM head. It is produced by a null-calibrated, evidence-gated COMBINER that aggregates per-channel scores (each vs its own matched null) into a ranking with a per-target evidence breakdown. Druggability is a downstream GATE (W5), not a channel. See 20260908_TARGET_SELECTION_CHANNELS_DESIGN.md + 20260909_COMBINER_REDESIGN_evidence_gated_selector.md.",
+  "s3_bucket": "s3://knowledge-datasets-1759951976/",
+  "gold_sets": {
+    "gold_targets_immune.json": {
+      "location": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/gold/gold_targets_immune.json",
+      "content": "DisGeNET disease->gene gold lists per disease (target_id_gold_disgenet). Thin/surface-biased; used as the recall/precision reference for combiner eval.",
+      "caveat": "DisGeNET is CC-BY-NC (do not ship commercially); acceptable for research-stage eval. Surface-biased -> favors genetics/literature, starves other channels (small-N problem flagged in redesign doc)."
+    },
+    "gold_targets_broad.json": {
+      "location": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/gold/gold_targets_broad.json",
+      "content": "Broader disease->gene gold (5.6 MB)."
+    },
+    "target_id_baseline.json": {
+      "location": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/gold/target_id_baseline.json",
+      "content": "Genetics-baseline target-ID AUROC per autoimmune disease (CD 0.639, RA 0.635, MS 0.629, AS 0.589, IBD 0.570, SLE 0.543...); mean 0.585 over 8 diseases, gene_universe=7477. This is the observational-genetics channel demonstrated result."
+    }
+  },
+  "measured_combiner_artifacts": {
+    "P1b_target_id_ranking": {
+      "location": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/immune_llm_models/P1b_target_id_ranking/p1b_target_id_ranking.json",
+      "result": "Perturbation channel (virtual-KO signature projection on CZI CD4+T Perturb-seq, 7864 KOs) known-regulator AUROC=0.8492 vs degree/magnitude null 0.6841. THE demonstrated channel."
+    },
+    "P1c_priors_target_id": {
+      "location": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/immune_llm_models/P1c_priors_target_id/p1c_priors_target_id.json",
+      "result": "Pathway/regulon (TF-regulon enrichment, CollecTRI) channel: modest/underpowered (0.706 on TF universe, ~=null on surface-target gold)."
+    },
+    "P1d_target_selection": {
+      "location": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/immune_llm_models/P1d_target_selection/target_selection_fixed.json",
+      "result": "v1 multi-channel combiner (CZI substrate). wet-lab-validated gold: AUROC_combined=0.8542 vs AUROC_best_single_real=0.8572 (perturbation) -> combined does NOT beat best single. network AUROC=0.4645 (=null), effect_mag=0.6485 (=null), pathway=0.52 union/0.7058 own-universe. genetics UNPOPULATED for this substrate (honestly not faked). This is the clean-negative that motivated the redesign to OR-gate/AND-corroborate.",
+      "verdict": "combined_beats_best_single_real=false; combined_beats_nulls=true"
+    },
+    "W2_combiner_rebakeoff": {
+      "location": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/immune_llm_models/W2_combiner/",
+      "note": "Knowledge-combiner ladder (HVG 0.430 -> fused-linear 0.451 -> learned combiner 0.553; oracle-union headroom 0.741) — this is the FM-representation combiner, distinct from the target-selection combiner. Genetics-anchored combiner on SLE gold = 0.7647 vs null (design doc)."
+    }
+  },
+  "channels": [
+    {
+      "channel": "human_genetics",
+      "evidential_role": "causal_anchor",
+      "data_present": true,
+      "location": [
+        "s3://.../immunology_sc_corpus_broad/genetics/genetics_priors_long.parquet (9 dis x 1014 genes)",
+        "s3://.../tracks/structured_knowledge/dice/ (15 immune-cell eQTL/TPM, ~0.8 GB)",
+        "biomni_data_lake/txgnn_prediction.pkl.gz (disease->drug, compose to gene via PrimeKG)",
+        "gold/target_id_baseline.json (measured genetics-baseline AUROC per disease)",
+        "OneK1K / DICE eQTL referenced in KG_REGISTRY row 7"
+      ],
+      "missing": "No standalone pQTL layer; no coloc/MR pipeline wired (MR result is cited from published work, not a live channel here); OpenTargets genetic_association scores referenced but not staged as a file.",
+      "null_method": "matched genes by allele-frequency / LD / gene-length (design). Currently realized as: score vs disease-gold AUROC with a gene-universe baseline; formal AF/LD-matched null NOT yet implemented.",
+      "null_calibratable": true,
+      "status": "demonstrated",
+      "evidence": "genetics-anchored combiner 0.7647 vs null on SLE gold (design doc); target_id_baseline mean AUROC 0.585 over 8 autoimmune diseases; MR anchoring from published work."
+    },
+    {
+      "channel": "perturbation",
+      "evidential_role": "causal_anchor",
+      "data_present": true,
+      "location": [
+        "CZI genome-scale T-cell Perturb-seq atlas (18,129 genes, ~22M cells; virtualcellmodels.cziscience.com; also referenced as CZI substrate in P1b/P1d)",
+        "s3://.../perturbation/ (scPerturb + jiang2025 + immune, 54.68 GB)",
+        "s3://.../replogle_nadig (36.27 GB genome-scale Perturb-seq)",
+        "CAUSAL_PERTURBATION_IMMUNE_MANIFEST.md: ~29 verified perturbation->immune-readout datasets (Perturb-seq, FACS-MHC screens, immunopeptidome KO)"
+      ],
+      "missing": "Nothing for the demonstrated CZI substrate. For NON-CZI diseases without a matched KO screen, the channel is empty (substrate-dependent).",
+      "null_method": "degree/abundance null: global effect magnitude + expression level (discipline P1b already uses). NULL_global_magnitude AUROC=0.6841.",
+      "null_calibratable": true,
+      "status": "demonstrated",
+      "evidence": "P1b: signature-projection known-regulator AUROC=0.8492 (validated-gold 0.8572) vs degree null 0.684; carries CZI (0.857). The single strongest, most-validated channel."
+    },
+    {
+      "channel": "pathway_gene_set",
+      "evidential_role": "supporting",
+      "data_present": true,
+      "location": [
+        "s3://.../tracks/structured_knowledge/pathways/reactome.gmt (CC-BY/CC0)",
+        "s3://.../tracks/structured_knowledge/pathways/go_bp.gmt (CC-BY)",
+        "s3://.../tracks/structured_knowledge/pathways/kegg.gmt (paid commercial license - do not ship; swap to WikiPathways)",
+        "s3://.../tracks/structured_knowledge/msigdb_c7/c7.immunesigdb...gmt (1682 immune sets)"
+      ],
+      "missing": "WikiPathways (clean KEGG replacement) not yet staged; enrichment channel wired via TF-regulon proxy (P1c), not raw pathway enrichment vs gene-set-size null.",
+      "null_method": "gene-set-size-matched random sets (design). Currently: pathway AUROC on own universe 0.706 vs surface-gold ~= null.",
+      "null_calibratable": true,
+      "status": "under-test",
+      "evidence": "P1c 0.706 on TF universe; P1d pathway 0.52 union / 0.7058 own-universe = modest/underpowered on surface gold."
+    },
+    {
+      "channel": "regulatory_network",
+      "evidential_role": "supporting",
+      "data_present": true,
+      "location": [
+        "s3://.../tracks/structured_knowledge/tf/collectri_human.tsv (42,990 signed edges, 1185 TFs) - real CollecTRI, staged",
+        "DoRothEA collectable via decoupler",
+        "GTRD GMT currently mislabeled 'CollecTRI' in bakeoff_fm.py (REPLACE)"
+      ],
+      "missing": "DoRothEA confidence-weighted regulons not staged; regulon-activity inference (decoupler/AUCell) not wired as a live combiner channel.",
+      "null_method": "regulon-size null (design; = the P1c run).",
+      "null_calibratable": true,
+      "status": "under-test",
+      "evidence": "P1c TF-regulon enrichment 0.706 on TF universe; modest on surface-target gold. Real CollecTRI staged but combiner still uses it via pathway proxy."
+    },
+    {
+      "channel": "ppi_network",
+      "evidential_role": "supporting",
+      "data_present": true,
+      "location": [
+        "s3://.../tracks/structured_knowledge/ppi/string_ppi_hc.parquet (STRING v12 HC, 236,930 edges, 218,933/vocab, CC-BY)",
+        "BioGRID / IntAct / Reactome-FI collectable (all commercial-clean)",
+        "MAP-KG gene-gene 233,773 edges/vocab at .../rebakeoff_stage/A_mapkg_full_edges.parquet + .../mapkg/mapkg_genenet.parquet"
+      ],
+      "missing": "Degree-preserving rewired-null connectivity scoring not implemented as a channel; module-proximity (disease-module distance) not computed.",
+      "null_method": "degree-preserving rewired network (design).",
+      "null_calibratable": true,
+      "status": "available-not-fused",
+      "evidence": "P1d network AUROC=0.6091 ~= degree null 0.6091 (redesign table) / 0.4645 union in P1d_fixed -> currently at-null, contributes ~0 (which the OR-gate handles automatically). Data present; not yet a value-adding channel."
+    },
+    {
+      "channel": "differential_expression",
+      "evidential_role": "supporting_weak",
+      "data_present": true,
+      "location": [
+        "s3://.../full_v1/imid/curated/imid.h5ad (948,690 cells) + harmonized/immune_expanded arms",
+        "Perez-2022 SLE cohort (734 DE genes used in signature channel)"
+      ],
+      "missing": "Second independent SLE/LN cohort (disjoint from Perez-2022) for held-out DE calibration.",
+      "null_method": "label permutation (design).",
+      "null_calibratable": true,
+      "status": "available-not-fused",
+      "evidence": "signature/DE channel populates (734 genes on Perez-2022) but shows no independent rank lift; P1d effect_mag=0.6485 ~= null. Weakest alone (as the design predicts)."
+    },
+    {
+      "channel": "cell_type_state_specificity",
+      "evidential_role": "supporting",
+      "data_present": true,
+      "location": [
+        "s3://.../tracks/structured_knowledge/dice/ (15 sorted immune cell types)",
+        "single-cell arms (imid/io/infectious_control) provide per-state signatures; CZI Perturb-seq is CD4+T-state-resolved"
+      ],
+      "missing": "No explicit cell-state-specificity score channel implemented; specificity is implicit in the CZI signature (Th2 vs Th1) but not emitted as a standalone null-calibrated channel.",
+      "null_method": "specificity vs a cell-type-shuffled / bulk-average null (to design).",
+      "null_calibratable": true,
+      "status": "to-build",
+      "evidence": "Data deep (DICE + sc atlas) but no channel code; the design lists it, no measured run exists."
+    },
+    {
+      "channel": "proteomic_autoantibody",
+      "evidential_role": "supporting",
+      "data_present": true,
+      "location": [
+        "s3://.../immport (8.09 GB: Luminex/ELISA/autoantibody, flow/CyTOF, HLA typing - tabular)",
+        "s3://.../proteome_raw/PXD023038 (shotgun/DIA proteome, IFN+/-)",
+        "Mohan-Lab LN cohort proteomic/autoantibody = the collaborator channel (external; not on S3)"
+      ],
+      "missing": "No autoantigen->gene mapping pipeline; ImmPort is quarantined pending leakage sign-off (MASTER_PLAN discipline); Mohan cohort data not yet landed.",
+      "null_method": "differential-protein effect vs permutation / abundance-matched null (to design).",
+      "null_calibratable": true,
+      "status": "to-build",
+      "evidence": "Data present (ImmPort + PXD023038) but no proteomic channel wired; this is the Mohan-pilot channel to demonstrate first on his cohort."
+    },
+    {
+      "channel": "knowledge_priors",
+      "evidential_role": "soft_prior",
+      "data_present": true,
+      "location": [
+        "biomni_data_lake/DisGeNET.parquet.gz (CC-BY-NC)",
+        "gold_targets_immune.json (target_id_gold_disgenet)",
+        "OpenTargets genetic_association referenced (use instead of DisGeNET for commercial)",
+        "PrimeKG (biomni_data_lake/kg.csv.gz) + TxGNN + MAP-KG as KG-conditioning priors"
+      ],
+      "missing": "OpenTargets association scores not staged as a file; used as prior, not a null-controlled channel yet.",
+      "null_method": "used as a soft prior / shrinkage, not a hit-test; if scored, null = annotation-depth-matched genes (curation-bias control).",
+      "null_calibratable": true,
+      "status": "available-not-fused",
+      "evidence": "DisGeNET gold present and used as the eval reference; as a *channel* it risks circularity (it defines the gold) -> keep as soft prior only, de-circularize as in the genetics 0.7647 run."
+    }
+  ],
+  "druggability_gate": {
+    "channel": false,
+    "note": "Druggability/modality-fit is a GATE, not an evidence channel. Owned by W5 (BindingDB + ChEMBL + cyclic-peptide/PPI-interface fit). W6 consumes it as a final filter + down-rank on the ranked list; does NOT duplicate.",
+    "location_w5": "W5_druggability_gate.* (biomni_data_lake/BindingDB_All_202409.tsv.gz; druggability_chembl.json)"
+  },
+  "pair_nomination": {
+    "status": "to-build (v-next)",
+    "method": "anchor (validated existing target) + complementary partner by network separation score sAB = dAB - (dAA+dBB)/2 (Cheng/Barabasi) on the interactome (STRING/MAP-KG).",
+    "caveat": "sAB complementary-exposure is oncology/hypertension-validated, NOT autoimmune -> principled extrapolation to TEST, not a demonstrated result. Do NOT use topology-beats-potency / parallel>serial / BAFF+IL-17 (refuted in survey)."
+  },
+  "summary_status": {
+    "demonstrated": ["perturbation", "human_genetics"],
+    "under_test": ["pathway_gene_set", "regulatory_network"],
+    "available_not_fused": ["ppi_network", "differential_expression", "knowledge_priors"],
+    "to_build_channel": ["cell_type_state_specificity", "proteomic_autoantibody"],
+    "to_build_system": "the null-calibrated evidence-gated COMBINER itself (OR-gate nomination + AND-corroboration confidence tier + substrate-adaptive per-channel trust + per-target evidence breakdown). All channel DATA is present or collectable; the aggregation LOGIC producing 'the correct target' is the single missing piece.",
+    "honest_bottom_line": "Only 2 of 9 channels have real validated signal (perturbation AUROC 0.85; genetics-anchoring 0.76/0.585). The v1 averaged combiner is a clean negative (0.854 combined < 0.857 best-single). Data availability is NOT the blocker; the combiner logic is."
+  }
+}
