@@ -90,13 +90,11 @@ _BIONEMO_META: Dict[str, Dict[str, Any]] = {
         "version": "2.3",
         "interface": "rest",
     },
-    "esmfold": {
-        "name": "ESMFold",
-        "family": "structure",
-        "evidence_class": STRUCTURE,
-        "version": "1.0",
-        "interface": "rest",
-    },
+    # NOTE: ESMFold was removed from the hosted catalogue (2026-09-14) — NVIDIA
+    # deprecated the hosted ESMFold NVCF function (invocation 404s "not found for
+    # account"). Boltz-2 / AlphaFold2 / OpenFold2 cover structure prediction via
+    # hosted API. Re-add for a self-host deployment that runs an ESMFold NIM
+    # (BIONEMO_SELF_HOST_PATH_ESMFOLD is still wired in bionemo_client.py).
     "openfold2": {
         "name": "OpenFold2",
         "family": "structure",

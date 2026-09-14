@@ -76,7 +76,7 @@ _FUNCTIONS = {
     # Protein language models
     "esm2_650m":          ("9e8155ab-97fc-487d-b325-02186064a14c", "5b28b508-a85c-44e0-b2ee-614b76acb4b1"),
     # Genomics foundation models (Arc Institute Evo2)
-    "evo2_7b":            ("aae4817f-f496-4931-bf85-a55a951e9533", "9cf625df-f11c-4311-934b-01e941072041"),
+    "evo2_7b":            ("32343a76-6399-4b7f-964a-79e16d62ec32", "717d486e-6463-4264-b0e3-8ee1775895eb"),
     "evo2_7b_forward":    ("2a5ab2b3-a331-4544-847c-91f102feba64", "f58dea2e-92ef-4729-9d9f-1bbfcecb8ad0"),
     "evo2_40b":           ("de70b31d-cc9c-4b32-917f-e0d4cb49ce20", "87a3b98b-12c1-4597-a686-5831acce3713"),
     "evo2_40b_forward":   ("475da3a9-515e-417e-8c4d-f847c271d2be", "bb89e7fe-a8c0-4cf4-b6b8-e35518ef5c5f"),
@@ -284,8 +284,14 @@ class BioNeMoClient:
         POST to NVCF function; handle both sync (200) and async (202) responses.
         202 responses use NVCF-REQID + polling until 200/error.
         """
-        fn_id, ver_id = _FUNCTIONS[model]
-        url = f"{_NVCF_BASE}/{fn_id}/versions/{ver_id}"
+        # Invoke by function id only — NVCF then routes to the function's latest
+        # ACTIVE version. Pinning a specific version id (…/versions/{ver_id}) is
+        # brittle: NVIDIA rotates/deprecates versions, and a pinned-but-retired
+        # version 404s ("version … not found for account") even when the function
+        # is live. (The version ids in _FUNCTIONS are kept only as documentation
+        # of the last-known-good version.)
+        fn_id = _FUNCTIONS[model][0]
+        url = f"{_NVCF_BASE}/{fn_id}"
         headers = {"NVCF-POLL-SECONDS": str(poll_seconds)}
 
         resp = self._session.post(url, json=payload, headers=headers,
