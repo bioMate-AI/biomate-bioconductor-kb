@@ -1,6 +1,7 @@
 /** Local inference transport. No fallback and no redirects to other endpoints. */
 import { Agent } from 'undici';
 export const localOnly = () => process.env.BIOMATE_LOCAL_ONLY === '1';
+export const localOffline = () => localOnly() && process.env.BIOMATE_OFFLINE === '1';
 
 export function localConfig() {
   const raw = process.env.BIOMATE_LOCAL_LLM_URL;

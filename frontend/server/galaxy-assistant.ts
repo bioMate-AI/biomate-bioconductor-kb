@@ -1,5 +1,6 @@
-import { localOnly, localMessagesClient, localConfig } from './local-llm.js';
+import { localOnly, localOffline, localMessagesClient, localConfig } from './local-llm.js';
 import { localIntentPrompt } from './local-intent-prompt.js';
+import { localResponsePrompt } from './local-response-prompt.js';
 /**
  * Galaxy Assistant Service
  *
@@ -4538,7 +4539,7 @@ Rules:
       'experiment_design', 'teaching_explanation', 'general_question',
     ]);
     const _hasPaperContent = paperContentResult !== null;
-    const _skipResearchAgent = _hasPaperContent && _textReasoningIntents.has(intent.type);
+    const _skipResearchAgent = localOffline() || (_hasPaperContent && _textReasoningIntents.has(intent.type));
 
     if (actions.needsResearchAgent && !_skipResearchAgent) {
       log('Routing to research backend');
@@ -4581,7 +4582,9 @@ Rules:
         log('Research query failed: ' + (error.message ?? error.error ?? String(error)));
       }
     } else if (_skipResearchAgent) {
-      log(`Skipping research agent — paper content (${paperContentResult!.content.length} chars) already in context; LLM will reason directly`);
+      log(localOffline()
+        ? 'Offline mode: using local knowledge tools and supplied evidence'
+        : `Skipping research agent — paper content (${paperContentResult?.content.length ?? 0} chars) already in context; LLM will reason directly`);
     }
 
     // Benchmark agent
@@ -8225,7 +8228,9 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
     const isResearchIntent = !!researchResponse
       || RESEARCH_INTENT_TYPES_FOR_PROMPT.has((intent as any)?.type ?? '')
       || !isWorkflowTurn;
-    const systemPrompt = isResearchIntent
+    const systemPrompt = localOnly()
+      ? localResponsePrompt(`${sessionMemoryBlock}${ltmBlock}${projectContextBlock}${inlineDataBlock}${sessionDatasetsBlock}${domainProfileContext}`, localOffline())
+      : isResearchIntent
       ? `${sessionMemoryBlock}${ltmBlock}${projectContextBlock}${inlineDataBlock}${sessionDatasetsBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge.
 
 PROACTIVE-WORK RULE (highest priority):
@@ -8573,7 +8578,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       // ("list my files", "compute this"), which wrongly suppressed the whole agentic
       // tool layer and made the model hallucinate/deny tools it has. Tools are only
       // counter-productive when there is a real workflow to narrate (generatedWorkflow).
-      const agentTools = (!useThinking && onToolEvent && !hasRunnableWorkflow) ? BIOMATE_TOOLS : undefined;
+      const agentTools = (!useThinking && onToolEvent && !hasRunnableWorkflow)
+        ? BIOMATE_TOOLS.filter(tool => !localOffline() || !['search_literature', 'list_data_sources'].includes(tool.name))
+        : undefined;
 
       // Vision: when the user attached image(s), send them to the multimodal model
       // as real image content blocks so it can give a grounded biomedical read
