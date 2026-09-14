@@ -40,6 +40,23 @@ CSVs) are synced back for the repo.
 - Affinity (BindingDB subset): temporal + target-family split; record assay type, units, censoring.
 - Report every filter and any silent truncation.
 
+## Collection results (2026-09-14)
+
+Ran on short-lived AWS instances (AutoimmuneCorpusProfile). All artifacts under
+`s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/`; verification + manifests in
+`datasets/_collect_status/`.
+
+| Dataset | Status | Result |
+|---|---|---|
+| **HELM monomers** | ✅ | pinned commit `fecc972f…`; `helm_monomers/<commit>/helm_monomers.tgz` (224 KB) |
+| **PepBDB** | ✅ | raw 691 MB (SHA256 verified) + `pepbdb_cyclic_index.json`; **13,481 peptide entries → 890 cyclic** (446 unique-seq clusters); leak-free split **799 train / 91 test** |
+| **RCSB cyclic index** | ✅ | 28,662 "cyclic peptide" + Protein-entity candidate PDB IDs (text-based, cyclicity not structurally verified) |
+| **BindingDB peptide subset** | 🔁 re-run | first run failed URL resolution; corrected (release 202609) and re-run via `collect_bindingdb.sh` |
+
+Two environment fixes on the way: wrong IAM profile (403 on the datasets bucket → use
+`AutoimmuneCorpusProfile`); and Ubuntu 24.04 has no `awscli` apt package (→ install AWS CLI v2
+from the official zip; collector now self-installs it).
+
 ## Honest limits
 - "Cyclic" detection from PDB is heuristic (head-to-tail / disulfide / side-chain macrocycles);
   the extracted subset is a candidate set requiring review, not a curated gold standard.
