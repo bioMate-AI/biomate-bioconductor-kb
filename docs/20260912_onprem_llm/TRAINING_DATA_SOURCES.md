@@ -109,8 +109,29 @@ checkpoint (adapter + optimizer) was saved (satisfies the plan's checkpoint/resu
   The pipeline is identical — the 27B run just needs the larger card.
 - **Infra note:** loading the 52 GB model off the EBS root read at ~10 MB/s; moving it to the
   instance-store NVMe (`/opt/dlami/nvme`) fixed it (~260 MB/s). Put base models on NVMe.
-- **Next:** human-review the admitted episodes, run to convergence on a 40 GB+ GPU for the
-  27B, then re-benchmark the merged adapter against the 660-item held-out test set.
+### 27B run (on-demand L40S, 2026-09-14)
+
+Ran the full QLoRA on **Qwen3-27B** (4-bit, LoRA r=16) on an **on-demand g6e.xlarge L40S
+(48 GB)** — 200 steps over 1,635 episodes. **No OOM** (the fp32 embedding upcast that broke
+on 24 GB fits at ~28 GB on 48 GB). Loss curve:
+
+| step | 1 | 15 | 30 | 60 | 90 | 200 (final) |
+|---|---|---|---|---|---|---|
+| loss | 1.19 | 0.73 | 0.59 | 0.70 | 0.65 | 0.60 |
+| tok-acc | 0.74 | 0.84 | 0.87 | 0.84 | 0.84 | 0.85 |
+
+train_loss 0.589. Adapter (159 MB) + checkpoints + tokenizer preserved to
+`s3://…/biomate-core-local-trial/20260912/sft_27b_20260914/`.
+
+**Cost/spot note:** on-demand L40S = $1.86/hr. A cheaper same-hardware g6e.xlarge spot
+($1.21–1.55) never had capacity during the run; the only spot that freed (g6.12xlarge, 4×L4)
+was $2.75/hr — *pricier* than on-demand — so no switch was made (switching would have cost
+more and restarted the run). Load the base off instance-store NVMe (`/opt/dlami/nvme`), not
+EBS root (~10 MB/s vs ~260 MB/s).
+
+- **Next:** human-review the admitted episodes; **re-benchmark the merged adapter** against
+  the 660-item held-out test set (and the 9-checker regulatory suite vs the 0.883 base) to
+  quantify the SFT lift; then preference (DPO) from verified pairs if warranted.
 
 ## Required before any training (contract)
 
