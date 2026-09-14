@@ -45,28 +45,33 @@ ds = CoDesignDataset(mmap_dir='datasets/pepbdb/processed',
                      specify_index='datasets/pepbdb/processed/train_index.txt',
                      backbone_only=False, use_covariance_matrix=True)
 rep = {'dataset_len': len(ds), 'vocab_block': len(VOCAB.idx2block), 'vocab_atom': len(VOCAB.idx2atom)}
-ape = getattr(model, 'abs_position_encoding', None)
-rep['abs_pos_num_embeddings'] = getattr(ape, 'num_embeddings', str(type(ape)))
-# scan cyclic data for max residue index (S) and max position_id
-mS = mpos = -1; nblk_max = 0
-for i in range(min(len(ds), 300)):
+res_pos = model.autoencoder.aa_feature.aa_embedding.res_pos_embedding.weight.shape[0]
+abs_pos = model.abs_position_encoding.weight.shape[0]
+rep['res_pos_table'] = res_pos; rep['abs_pos_table'] = abs_pos
+# scan ALL entries: max indices + count entries exceeding each table + run forward per entry
+mS = mpos = nblk = -1
+over_respos = []; over_abspos = []; crashers = []; ok = 0
+for i in range(len(ds)):
     b = ds.collate_fn([ds[i]])
-    mS = max(mS, int(b['S'].max())); mpos = max(mpos, int(b['position_ids'].max()))
-    nblk_max = max(nblk_max, int(b['S'].shape[0]))
-rep['scan_max_S'] = mS; rep['scan_max_position_id'] = mpos; rep['scan_max_blocks'] = nblk_max
-# embedding param shapes
-for name, p in model.named_parameters():
-    if any(k in name.lower() for k in ('embed', 'position', 'aa_')):
-        rep.setdefault('embed_params', {})[name] = list(p.shape)
+    s_hi = int(b['S'].max()); p_hi = int(b['position_ids'].max())
+    mS = max(mS, s_hi); mpos = max(mpos, p_hi); nblk = max(nblk, int(b['S'].shape[0]))
+    if p_hi >= res_pos: over_respos.append((i, p_hi))
+    # abs_pos only sees masked (peptide) positions +1; check those
+    pep_pos = int((b['position_ids'][b['mask']].max().item()) if b['mask'].any() else -1)
+    if pep_pos + 1 >= abs_pos: over_abspos.append((i, pep_pos))
+    if len(crashers) < 3:
+        try:
+            model(**b); ok += 1
+        except Exception as e:
+            crashers.append((i, type(e).__name__, str(e)[:200], s_hi, p_hi, pep_pos))
+    else:
+        ok += 1
+rep.update(scan_max_S=mS, scan_max_position_id=mpos, scan_max_blocks=nblk,
+           n_over_res_pos_table=len(over_respos), n_peptide_pos_over_abs_table=len(over_abspos),
+           examples_over_abs=over_abspos[:5], forwards_ok=ok, n_crashers=len(crashers))
 print("PROBE_REPORT " + json.dumps(rep))
-# forward on CPU -> clean traceback if an index is out of range
-b = ds.collate_fn([ds[0]])
-try:
-    out = model(**b)
-    print("FORWARD_OK on CPU (crash may be GPU-specific / shape)")
-except Exception:
-    print("FORWARD_TRACEBACK:")
-    traceback.print_exc()
+for c in crashers:
+    print("CRASHER", c)
 PY
 cp /opt/cyclic-probe/status/probe_out.txt /opt/cyclic-probe/status/ 2>/dev/null || true
 stage probe_complete
