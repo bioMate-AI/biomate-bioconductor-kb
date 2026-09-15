@@ -9516,13 +9516,29 @@ ${paramLines || '(none recorded)'}`;
       }
       const output = access.output;
 
-      // Fetch file from Galaxy or local runtime artifact fallback.
+      // Fetch file from Galaxy, local runtime artifact, or S3. Nextflow outputs
+      // have neither a galaxyDatasetId nor a local path — their bytes live in S3
+      // (recorded at metadata.s3Uri). Without the S3 branch these outputs return
+      // "no downloadable source" even though they exist and are authorized.
       let fileStream: any;
       const localPath = String((output as any)?.metadata?.localPath || "");
+      const s3Uri = String((output as any)?.s3Uri || (output as any)?.metadata?.s3Uri || "");
       if (output.galaxyDatasetId) {
         fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
       } else if (localPath) {
         fileStream = createReadStream(localPath);
+      } else if (s3Uri) {
+        const m = s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
+        if (!m) {
+          return res.status(404).json({ error: "Output has no downloadable source" });
+        }
+        const { S3Client, GetObjectCommand } = await import("@aws-sdk/client-s3");
+        const s3 = new S3Client({
+          region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || "us-east-1",
+          followRegionRedirects: true,
+        });
+        const obj: any = await s3.send(new GetObjectCommand({ Bucket: m[1], Key: m[2] }));
+        fileStream = obj.Body;
       } else {
         return res.status(404).json({ error: "Output has no downloadable source" });
       }
