@@ -46,6 +46,23 @@ It makes the loop **non-circular** and answers the questions the ML surrogates c
 Learning from physics signal is a genuine improvement loop; learning from the ML predictor's own
 selections is not.
 
+## Reuse, don't rebuild — existing loop frameworks
+- **Ax / BoTorch** (Meta, MIT): reusable multi-objective, batch, uncertainty-aware Bayesian-
+  optimization engine → the acquisition / select rung. Do NOT hand-roll the optimizer.
+- **REINVENT4** (AstraZeneca, Apache-2.0): canonical generate→multi-component-score→RL loop; its
+  scoring-component API takes our stability/permeability/physics scorers, and it can be the
+  small-molecule-plugin generator. SMILES/LM-based → reuse the pattern, not our structure loop.
+- **TDC / PMO** (Practical Molecular Optimization): oracle-based optimize-loop harness + sample-
+  efficiency benchmark to evaluate our acquisition honestly.
+- **BioMate's own campaign optimizer + auto-loop QC/remediation** (this platform; PLAN §5):
+  platform-native closed loop — connect validated candidates here.
+
+**Boundary:** these are built for small molecules / SMILES + cheap oracles. Our novel part — a
+STRUCTURE-based cyclic-peptide generator with a PHYSICS/MD oracle in the loop — is not a drop-in.
+Architecture: reuse Ax/BoTorch (optimizer) + REINVENT/PMO (loop pattern) + BioMate campaign
+optimizer (orchestration); build only the thin glue wiring our generator + physics verify in. The
+plumbing is reuse; the structure+physics-in-the-loop is the research.
+
 ## Immediate build
 Orchestrator that runs ONE full cycle end-to-end (generate → auto-metrics → OpenMM relax/energy →
 select by energy/validity → fine-tune on winners), logs per-cycle metrics, then iterates. Start
