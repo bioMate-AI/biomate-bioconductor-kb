@@ -129,7 +129,32 @@ was $2.75/hr — *pricier* than on-demand — so no switch was made (switching w
 more and restarted the run). Load the base off instance-store NVMe (`/opt/dlami/nvme`), not
 EBS root (~10 MB/s vs ~260 MB/s).
 
-### In-scope holdout eval — blocked on a kernel/version issue (2026-09-15)
+### In-scope holdout eval — RESULT (vLLM, 2026-09-15)
+
+Served **base-27B + SFT LoRA on one vLLM endpoint** (spot L40S 48GB, fp8, `--enable-lora`,
+`enable_thinking=false`) and scored base vs SFT directly on the held-out RealBio benchmarks
+(40/benchmark). Result (`s3://…/sft_27b_20260914/holdout_eval.json`):
+
+| benchmark | base-27B | SFT-27B | delta |
+|---|---|---|---|
+| cross_domain_routing | 0.35 | 0.35 | **0.00** |
+| autofix_benchmark | 0.50 | 0.50 | **0.00** |
+| param_prefill | 0.03 | 0.03 | **0.00** |
+
+**Finding:** the first-batch SFT gave **no lift** on these in-scope benchmarks. The LoRA is
+genuinely applied (verified: on a workflow-generation prompt the base answers minimally while
+SFT produces a full DESeq2 workflow) — so delta≈0 is real, not a serving bug. The cause is a
+**train/eval task-format mismatch**: the SFT lanes (workflow generation, code-fix,
+nextflow-from-README) differ from the eval task formats (name-the-workflow, classify-error,
+extract-params), and the benchmarks were correctly held out of training. Base-27B in-scope
+baseline is routing 0.35 / autofix 0.50 / param 0.03 (param scorer is strict on format).
+
+**Actionable next:** to move these specific benchmarks, add SFT episodes in the *matching*
+task formats — e.g. routing decisions and param-extraction traces from the tool/workflow DB
+and (non-test) BioMate run outputs — while keeping the RealBio items held out. Then re-run
+this same vLLM eval. (torch.compile + kernel notes below remain relevant for setup.)
+
+### vLLM setup notes (kernel/version)
 
 Built `evaluation/local_trial/eval_holdout.py` (base-27B vs SFT-27B on the RealBio holdout,
 scoring each item both with the adapter and with `disable_adapter()`; direct-adapter, no app
