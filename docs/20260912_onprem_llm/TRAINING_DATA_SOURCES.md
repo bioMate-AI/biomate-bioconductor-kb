@@ -190,3 +190,14 @@ Training was unaffected (loss converged); only generation/eval is kernel-bound.
   Scoped read-only via SSM. Bulk export gated: it is production PII, and the dev instance
   role (`BioMateEc2DeployRole`) is denied S3 write, so any export needs a redact-in-place
   path + rights sign-off. Not exported.
+
+## Routing experiment — REAL data (2026-09-15)
+
+Replaced synthetic (description-paraphrase) queries — circular and unrealistic — with
+**real experiment descriptions from NCBI GEO** mapped to the correct nf-core pipeline via
+curated assay→pipeline search terms (`build_real_routing.py`): **1,244 real study→pipeline
+routing episodes** (1,058 train / 186 dev) across 15 assay-based pipelines, **0 near-duplicate
+to the RealBio test queries**. Corrected routing design: workflow LABELS overlap the test (as
+they should for a selection task); we split by QUERY and dedup near-duplicate queries; RealBio-200
+is the held-out test. Episodes carry candidate sets (correct always present). Eval = 2×2
+{base,SFT}×{starved,in-format} via vLLM with paired bootstrap CIs (`routing_eval.py`).
