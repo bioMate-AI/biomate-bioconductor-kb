@@ -143,6 +143,39 @@ step is an eval-only run that (a) syncs `attempts.json`, (b) adds a `--guidance 
 confirm the fine-tuned model samples fine without guidance, (c) then tunes/repairs calibration
 or lowers energy_lambda. The model is good; only the guided-eval tooling needs fixing.
 
+## Phase-1 generation result (2026-09-15) — held-out cyclic test (68 complexes × 4)
+
+The 0-serialized was a path bug (reference PDBs at `mmap_dir/../pdbs`, not `processed/pdbs`),
+not calibration. Fixed. Full eval of the fine-tuned cyclic model, 100% serialized all modes:
+
+| guidance | serialized | slide_aar (rand 0.17) | mean N-term↔C-term | closure ≤2Å | disulfide ≤2.5Å | diversity |
+|---|---:|---:|---:|---:|---:|---:|
+| none | 1.00 | **0.231** | 11.3 Å | 0.4% | 3.5% | 1.00 |
+| default | 1.00 | 0.228 | 12.2 Å | 0.0% | 1.3% | 1.00 |
+| cyclic | 1.00 | 0.229 | **6.97 Å** | 0.0% | 1.3% | 1.00 |
+
+**Honest read — partial success:**
+- **Sequence design improved and is real:** slide_aar 0.231 vs composition-random 0.170 — the
+  fine-tuned cyclic model beats baseline by ~0.06, whereas the general PepBench model sat *at*
+  baseline (~0.15/0.16). Combined with the during-training gains (AAR 0.06→0.19, Cα-RMSD 12→6.5 Å),
+  cyclic fine-tuning clearly helps. Outputs are 100% valid and fully diverse.
+- **Closure guidance works directionally but does NOT achieve true macrocyclization:** it pulls
+  the termini from 11.3 Å → **6.97 Å** (~40% closer) with no quality loss, but bond-distance
+  closure (≤2 Å) stays ~0%. So even with cyclic fine-tuning + guidance, we do not yet produce
+  genuinely closed head-to-tail macrocycles.
+
+**Why closure falls short (for the next iteration):**
+1. Our "cyclic" training set was heuristic (head-to-tail <2Å OR disulfide) — likely
+   disulfide-dominated, so the prior never strongly learned head-to-tail closure.
+2. The closure guidance acts in LATENT space (first↔last latent point); latent proximity does
+   not fully translate to ~2Å atom-space bond closure (the risk flagged in this doc).
+
+**Next-iteration fixes:** (a) build a head-to-tail-specific cyclic training set (verify actual
+N–C peptide bonds, separate from disulfide macrocycles); (b) add an atom-space closure term
+(guide the decoded N-term N ↔ C-term C directly, or a post-hoc closure/relax step), since latent
+guidance under-reaches; (c) longer fine-tune / more cyclic data. Artifacts:
+`results/cyclic_eval/summary_{none,default,cyclic}.json`.
+
 ## Immediate first task
 Add `set_cyclic_dist` + `cyclic_geometry_guidance` to a fork of `models/LDM/ldm.py`, extend
 `setup_latent_guidance.py`, build the cyclic processed split, and run a guided-generation smoke
