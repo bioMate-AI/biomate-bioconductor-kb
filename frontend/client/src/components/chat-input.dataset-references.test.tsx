@@ -37,6 +37,11 @@ describe('ChatInput — request-scoped dataset references', () => {
   });
 
   it('renders each dataset chip as a live reference that deep-links to the object', () => {
+    // Start from a clean URL so the post-click assertion proves THIS click
+    // navigated — not stale location state left by another test.
+    window.history.replaceState(null, '', '/');
+    expect(window.location.search).not.toContain('file=');
+
     render(<ChatInput onSend={vi.fn()} isStreaming={false} />);
     fireEvent.click(screen.getByTestId('select-two-project-files'));
 
@@ -48,8 +53,16 @@ describe('ChatInput — request-scoped dataset references', () => {
     expect(refs[0]).toHaveTextContent('result-A.csv');
     expect(refs[0].getAttribute('title')).toContain('result-a-v1');
 
+    // Guard: not already at the target before the click.
+    expect(window.location.search).not.toContain('file=result-a-v1');
     // Clicking navigates to the object deep-link (/files?file=<id>).
     fireEvent.click(refs[0]);
+    expect(window.location.pathname).toBe('/files');
     expect(window.location.search).toContain('file=result-a-v1');
+
+    // Distinct chip → distinct target (kills a hard-coded / first-match pass).
+    fireEvent.click(refs[1]);
+    expect(window.location.search).toContain('file=result-b-v2');
+    expect(window.location.search).not.toContain('file=result-a-v1');
   });
 });
