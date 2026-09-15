@@ -17,6 +17,7 @@ def max_sim(q):
     return best,how
 # sources to audit
 srcs={
+ "gen_merged_pass": f"{REPO}/docs/20260912_onprem_llm/routing_data_v1/audited_pass_merged.jsonl",
  "geo_train": f"{REPO}/docs/20260912_onprem_llm/routing_data_v1/real_studies_labeled.jsonl",
  "protocol_to_workflow": f"{REPO}/evaluation/datasets/protocol_to_workflow",
  "lane_arbitration": f"{REPO}/evaluation/datasets/lane_arbitration",
