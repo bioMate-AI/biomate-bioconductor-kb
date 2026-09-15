@@ -87,6 +87,19 @@ working, +0.17 lift) is the correct method for steering chemistry properties on 
 the sampler can gradient-steer geometry, not sequence. This is why selection, not guidance, is
 the right Bet-1 mechanism here today.
 
+### Step 5 — scaled selection budget (2026-09-15)
+Generated 1088 cyclic designs (16/target, `none` guidance, 100% serialized) and extended the
+best-of-k stability curve (`results/property_guided_selection_n16.json`):
+
+| k | 1 | 2 | 4 | 8 | 12 | 16 |
+|---|---:|---:|---:|---:|---:|---:|
+| best-of-k P(stable) | 0.473 | 0.563 | 0.647 | 0.711 | 0.746 | **0.769** |
+
+Random-pick baseline 0.471 throughout → **+0.30 lift at k=16**, monotonic with **diminishing
+returns** (0.75→0.77 from k=12→16). The generator's design distribution has enough developability
+spread that budget keeps extracting better designs, but with a knee around k≈8–12. Same proxy
+caveat (select-by-predictor; wet lab needed for ground truth).
+
 ### Bet-1 remaining levers (scoped)
 1. **Differentiable latent stability surrogate** → true sampler-guidance (bias sampling, not just
    select). The current predictor (fingerprint HistGBM) isn't differentiable through the latent.
