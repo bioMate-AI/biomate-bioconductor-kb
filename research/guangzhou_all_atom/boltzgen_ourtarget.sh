@@ -73,17 +73,19 @@ def hcoords(res):
     return np.array([[a.pos.x,a.pos.y,a.pos.z] for a in res if a.element.name!='H'], dtype=float)
 P=np.vstack([hcoords(r) for r in pres]) if pres else np.zeros((0,3))
 assert len(rres) and len(P), "empty chain coords"
-# BoltzGen indexes binding residues by label_seq_id (mmcif 1..N canonical sequential position,
-# bounded by chain length), NOT by PDB author residue number. Emit label_seq of contacting
-# receptor residues (correct even for Kabat-numbered/insertion-code chains like the 1u8p Fab).
+# BoltzGen indexes binding residues by 1-based position among the RESOLVED residues it builds
+# (bounded by that count), NOT by PDB author number NOR by label_seq. For chains with unresolved
+# gaps (e.g. trypsin 1g9i) label_seq overshoots the resolved count and is rejected, so we use the
+# enumeration index over resolved AA residues (in file order, matching BoltzGen's build order).
 pocket=[]
-for res in rres:
+for i,res in enumerate(rres):
     c=hcoords(res)
-    if len(c) and res.label_seq and np.sqrt(((c[:,None,:]-P[None,:,:])**2).sum(-1)).min() < 5.0:
-        pocket.append(int(res.label_seq))
+    if len(c) and np.sqrt(((c[:,None,:]-P[None,:,:])**2).sum(-1)).min() < 5.0:
+        pocket.append(i+1)
 pocket=sorted(set(pocket))
 assert pocket, "empty pocket"
-lo=max(7, L-2); hi=min(18, L+2); hi=max(hi, lo+1)
+# drug-like cyclic length range (8..16), anchored near the native length but capped both ends
+lo=max(7, min(L-2, 10)); hi=min(16, max(lo+1, L+2))
 binding=",".join(str(x) for x in pocket)
 yaml=f"""entities:
   - protein:
@@ -101,7 +103,7 @@ yaml=f"""entities:
             binding: {binding}
 """
 open(spec,'w').write(yaml)
-print(f"{os.environ['PDB']}: recep_chain={rc.name} ({len(rres)} res) pep_chain={pc.name} pocket_labelseq={len(pocket)} max_idx={max(pocket)} design_len={lo}..{hi}")
+print(f"{os.environ['PDB']}: recep_chain={rc.name} ({len(rres)} resolved) pep_chain={pc.name} pocket_n={len(pocket)} max_idx={max(pocket)} design_len={lo}..{hi}")
 PY
 }
 
