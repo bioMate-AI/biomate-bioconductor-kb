@@ -87,8 +87,9 @@ parser.add_argument('--attempts', type=int, default=4, help='stochastic samples 
 parser.add_argument('--limit', type=int, default=None, help='cap complexes (debug)')
 parser.add_argument('--seed', type=int, default=20260912)
 parser.add_argument('--energy-lambda', type=float, default=0.8)
-parser.add_argument('--guidance', choices=['default', 'cyclic'], default='default',
-                    help="'cyclic' adds a head-to-tail closure energy (first<->last residue "
+parser.add_argument('--guidance', choices=['none', 'default', 'cyclic'], default='default',
+                    help="'none' = unguided (control); 'default' = PepGLAD geometry guidance; "
+                         "'cyclic' adds a head-to-tail closure energy (first<->last residue "
                          "latent point pulled to the consecutive-residue distance)")
 parser.add_argument('--closure-thresh', type=float, default=2.0,
                     help='decoded N-term N to C-term C distance (A) counted as closed')
@@ -108,13 +109,17 @@ dataset = CoDesignDataset(mmap_dir=args.dataset_dir,
                           specify_index=os.path.join(args.dataset_dir, args.index),
                           backbone_only=False, use_covariance_matrix=True)
 
-if args.guidance == 'cyclic':
+if args.guidance == 'none':
+    sample_opt = {'energy_func': None, 'energy_lambda': 0.0}  # unguided control (no calibration needed)
+elif args.guidance == 'cyclic':
     assert getattr(model, 'consec_dist_mean', None) is not None, \
         'checkpoint not calibrated: run setup_latent_guidance.py first (needs consec_dist stats)'
     _energy = partial(cyclic_closure_energy, mean=model.consec_dist_mean, std=model.consec_dist_std)
     sample_opt = {'energy_func': _energy, 'energy_lambda': args.energy_lambda}
 else:
     sample_opt = {'energy_func': 'default', 'energy_lambda': args.energy_lambda}
+print('SAMPLE_OPT guidance=%s energy_lambda=%s consec_dist=%s' % (
+    args.guidance, sample_opt['energy_lambda'], getattr(model, 'consec_dist_mean', None)))
 
 training_seqs = None
 if args.training_sequences is not None:
