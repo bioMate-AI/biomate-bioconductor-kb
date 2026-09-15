@@ -1,0 +1,60 @@
+{
+  "n": 602,
+  "n_pos": 262,
+  "n_folds": 10,
+  "features": "ECFP4 Morgan (r=2, 2048 bits)",
+  "model": "HistGradientBoosting bootstrap-bagged ensemble (10 members); std = epistemic uncertainty",
+  "split": "structure-disjoint leak-free folds (rebuild_stability_folds.py)",
+  "oof_auroc": 0.8415469241131567,
+  "oof_brier": 0.16165046340087852,
+  "oof_ece": 0.05326094778134644,
+  "mean_epistemic_std": 0.1265670094989088,
+  "per_fold_auroc": {
+    "1": {
+      "n": 60,
+      "auroc": 0.831447963800905
+    },
+    "2": {
+      "n": 61,
+      "auroc": 0.8284313725490197
+    },
+    "3": {
+      "n": 61,
+      "auroc": 0.8028322440087146
+    },
+    "4": {
+      "n": 60,
+      "auroc": 0.8026018099547512
+    },
+    "5": {
+      "n": 61,
+      "auroc": 0.9003267973856208
+    },
+    "6": {
+      "n": 60,
+      "auroc": 0.8981900452488688
+    },
+    "7": {
+      "n": 60,
+      "auroc": 0.8263574660633484
+    },
+    "8": {
+      "n": 59,
+      "auroc": 0.7941176470588235
+    },
+    "9": {
+      "n": 60,
+      "auroc": 0.8535067873303167
+    },
+    "10": {
+      "n": 60,
+      "auroc": 0.8851809954751131
+    }
+  },
+  "baseline_auroc_majority": 0.5,
+  "limits": [
+    "ECFP-only features; no 3D/assay-condition modeling",
+    "leak-free folds remove structure leakage but are a modest set (~602 mols)",
+    "ranking-grade, not a calibrated clinical stability oracle"
+  ]
+}
