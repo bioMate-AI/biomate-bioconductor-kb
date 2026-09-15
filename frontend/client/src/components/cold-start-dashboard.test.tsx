@@ -140,6 +140,30 @@ describe("<ColdStartDashboard>", () => {
     expect(onSeed).toHaveBeenCalledWith(dd.shapes[0].seed);
   });
 
+  it("shows a 'sample' badge on examples that carry a provided sample dataset", async () => {
+    const user = userEvent.setup();
+    render(<ColdStartDashboard onSeed={() => {}} />);
+    await user.click(headerFor("analysis"));
+    const body = within(cardFor("analysis")).getByTestId("cold-module-body");
+    await user.click(within(body).getByTestId("cold-track-validated-workflows"));
+
+    // Drug discovery's ADMET shape carries an example-SMILES sample → badge shows.
+    await user.click(within(body).getByTestId("cold-domain-dd"));
+    expect(within(body).getByTestId("cold-shape-sample")).toHaveTextContent(/example SMILES/i);
+
+    // Data integrity: every attached sample has a real label + ref (no empty
+    // "sample provided" that can't run), and the seed asks to run on it.
+    for (const d of COLD_DOMAINS) {
+      for (const s of d.shapes) {
+        if (s.sampleDataset) {
+          expect(s.sampleDataset.label).toBeTruthy();
+          expect(s.sampleDataset.ref).toBeTruthy();
+          expect(s.needs).toMatch(/sample provided/i);
+        }
+      }
+    }
+  });
+
   it("seeds the composer (not send) when an example intent is clicked", async () => {
     const user = userEvent.setup();
     const onSeed = vi.fn();

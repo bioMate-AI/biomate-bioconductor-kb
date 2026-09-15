@@ -60,6 +60,14 @@ export interface ColdShape {
   time: string;
   /** The seed sentence the composer is filled with on click. */
   seed: string;
+  /**
+   * An optional real, staged sample dataset attached to this example so a
+   * first-time user can run it directly — or edit the seed to swap in their own.
+   * `ref` is a public accession or S3 path that BioMate can fetch/stage; the
+   * same accession is embedded in `seed`, so clicking pre-loads a runnable goal.
+   * Only set when the dataset genuinely exists (no fabricated demo data).
+   */
+  sampleDataset?: { label: string; ref: string };
 }
 
 // ── A domain inside the Data analysis → Validated workflows track. Chips that
@@ -79,7 +87,7 @@ export const COLD_DOMAINS: ColdDomain[] = [
     id: "dd",
     name: "Drug discovery",
     shapes: [
-      { t: "Screen a compound set for ADMET liabilities", needs: "needs SMILES or SDF", time: "~15 min", seed: "Screen these SMILES for ADMET liabilities and rank them by developability." },
+      { t: "Screen a compound set for ADMET liabilities", needs: "sample provided — or your own SMILES/SDF", time: "~15 min", seed: "Screen these SMILES for ADMET liabilities and rank them by developability: CC(=O)Oc1ccccc1C(=O)O, CN1C=NC2=C1C(=O)N(C(=O)N2C)C, CC(C)Cc1ccc(C(C)C(=O)O)cc1", sampleDataset: { label: "example SMILES", ref: "inline" } },
       { t: "Dock a series against a target and rank poses", needs: "needs ligands + target structure", time: "~1 h", seed: "Dock this series against my target and rank the poses." },
       { t: "Explain why a hit series is failing on one property", needs: "needs nothing but the question", time: "seconds", seed: "Why might this hit series be failing on hERG? Cite the evidence." },
     ],
@@ -88,9 +96,12 @@ export const COLD_DOMAINS: ColdDomain[] = [
     id: "txn",
     name: "Transcriptomics",
     shapes: [
-      { t: "Differential expression between two conditions", needs: "needs a counts matrix + design", time: "~40 min", seed: "Differential expression between treated and control, then GO enrichment. Human GRCh38." },
-      { t: "Cell-type composition shift across samples", needs: "needs count matrices per sample", time: "~1.5 h", seed: "Compare cell-type composition across my single-cell samples." },
-      { t: "Batch-corrected integration of several datasets", needs: "needs 2+ matrices", time: "~2 h", seed: "Integrate these datasets with batch correction and show me what survives." },
+      // Generic DE example with a NEUTRAL, standard public sample (airway,
+      // Himes et al. — a textbook DESeq2 dataset, not anyone's collaborator
+      // data). Run directly, or edit the goal to use your own counts matrix.
+      { t: "Differential expression between two conditions", needs: "sample provided — or your own counts matrix", time: "~40 min", seed: "Run DESeq2 differential expression on the airway dataset (treated vs control), then GO enrichment. Human GRCh38.", sampleDataset: { label: "airway (example)", ref: "GSE52778" } },
+      { t: "Subtype cells from single-cell RNA-seq", needs: "needs a single-cell matrix (10x / h5ad)", time: "~1.5 h", seed: "Cluster and annotate my single-cell RNA-seq and find the cell-type composition and markers." },
+      { t: "Integrate multi-omics across phenotypes", needs: "needs 2+ omics tables", time: "~2 h", seed: "Integrate my multi-omics layers across phenotypes and show the shared factors that survive." },
     ],
   },
   {
@@ -107,7 +118,7 @@ export const COLD_DOMAINS: ColdDomain[] = [
     name: "Structural biology",
     shapes: [
       { t: "Process a cryo-EM set to a density map", needs: "needs micrographs", time: "~6 h", seed: "Process this cryo-EM dataset to a density map and report the resolution." },
-      { t: "Predict and assess a structure for a sequence", needs: "needs a sequence", time: "~30 min", seed: "Predict the structure for this sequence and tell me where to trust it." },
+      { t: "Predict and assess a structure for a sequence", needs: "sample provided — or your own sequence", time: "~30 min", seed: "Predict the structure for this protein sequence and tell me where to trust it: MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEK", sampleDataset: { label: "example sequence", ref: "inline" } },
       { t: "Compare a model against an experimental map", needs: "needs a model + map", time: "~20 min", seed: "Compare this model against my experimental map and list the discrepancies." },
     ],
   },
@@ -674,6 +685,23 @@ function ShapeRow({ shape, onSeed }: ShapeRowProps) {
         </span>
       </span>
       <span style={{ flex: 1 }} />
+      {shape.sampleDataset && (
+        <span
+          data-testid="cold-shape-sample"
+          title={`Runs on a provided sample dataset (${shape.sampleDataset.ref}). Edit the goal to use your own.`}
+          style={{
+            flexShrink: 0,
+            fontSize: 10.5,
+            fontWeight: 600,
+            padding: "2px 6px",
+            borderRadius: 999,
+            background: "var(--bm-accent-weak, oklch(0.95 0.03 245))",
+            color: "var(--bm-accent, oklch(0.5 0.14 245))",
+          }}
+        >
+          ▶ sample: {shape.sampleDataset.label}
+        </span>
+      )}
       <ChevronRight size={13} aria-hidden style={{ flexShrink: 0, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }} />
     </button>
   );
