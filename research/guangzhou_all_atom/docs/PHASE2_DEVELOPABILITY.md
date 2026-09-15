@@ -100,6 +100,26 @@ returns** (0.75→0.77 from k=12→16). The generator's design distribution has 
 spread that budget keeps extracting better designs, but with a knee around k≈8–12. Same proxy
 caveat (select-by-predictor; wet lab needed for ground truth).
 
+### Step 6 — multi-property screen (2026-09-15): the KEY finding
+Scored all 1088 designs on both endpoints (`results/multi_property_selection.json`):
+- predicted-stable: **46%** (selectable spread, as before)
+- predicted-permeable (log Papp > −6): **0.2%**; mean log Papp **−6.89**, q90 −6.56
+- **dual-developable (stable AND permeable): 0 / 1088 (0.0%)**
+
+**The generator produces binders that are predicted non-permeable** — the classic peptide wall.
+Decisive implication: **selection cannot fix permeability** — best-of-N only picks from what's
+generated, and ~0 permeable candidates exist to pick. This is the strongest argument that
+permeability requires **changing what is generated** (property-guided/conditioned generation) or
+the right **chemistry**: real permeable cyclic peptides rely on N-methylation / backbone
+modification / true macrocyclization — i.e. **non-natural monomers (Phase-1b)**, which the current
+natural-AA generator cannot produce. Top designs are large, polar, CYS-rich (K/D/E/Q-heavy) —
+exactly the composition that kills permeability. (Caveat: permeability model R²~0.23 is noisy, but
+mean −6.89 well below −6 is directionally robust and matches domain knowledge.)
+
+This reframes Bet-1 priorities: the reliable win is **stability selection**; the permeability
+frontier needs generation-side changes + non-natural chemistry + a stronger predictor — not more
+selection. And, as always, wet lab is the gate on all of it.
+
 ### Bet-1 remaining levers (scoped)
 1. **Differentiable latent stability surrogate** → true sampler-guidance (bias sampling, not just
    select). The current predictor (fingerprint HistGBM) isn't differentiable through the latent.

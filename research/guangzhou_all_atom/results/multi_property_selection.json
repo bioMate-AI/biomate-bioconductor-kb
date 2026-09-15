@@ -1,0 +1,77 @@
+{
+  "n_designs": 1088,
+  "perm_cutoff_logPapp": -6.0,
+  "endpoints": {
+    "stability": "P(stable), AUROC~0.84 (reliable)",
+    "permeability": "log Papp, scaffold-R2~0.23 (ranking-grade / noisy)"
+  },
+  "frac_pred_stable": 0.463,
+  "frac_pred_permeable": 0.002,
+  "frac_dual_developable": 0.0,
+  "n_dual_developable": 0,
+  "pred_logPapp": {
+    "mean": -6.889,
+    "q90": -6.56
+  },
+  "pred_stability": {
+    "mean": 0.471,
+    "q90": 0.728
+  },
+  "top10_combined": [
+    {
+      "sequence": "PRNECQAAC",
+      "pred_stability": 0.753,
+      "pred_logPapp": -6.156
+    },
+    {
+      "sequence": "PSAACQSVS",
+      "pred_stability": 0.762,
+      "pred_logPapp": -6.459
+    },
+    {
+      "sequence": "PDVITQLACALSSQ",
+      "pred_stability": 0.796,
+      "pred_logPapp": -6.542
+    },
+    {
+      "sequence": "NIKKQTAKIDLN",
+      "pred_stability": 0.864,
+      "pred_logPapp": -6.58
+    },
+    {
+      "sequence": "QEYNCSYKSLCCC",
+      "pred_stability": 0.74,
+      "pred_logPapp": -6.481
+    },
+    {
+      "sequence": "GICEQVTCKCCLNQILLNCCL",
+      "pred_stability": 0.766,
+      "pred_logPapp": -6.574
+    },
+    {
+      "sequence": "GITTCTCCTILKLEQCECCNN",
+      "pred_stability": 0.757,
+      "pred_logPapp": -6.574
+    },
+    {
+      "sequence": "GKDELYKSKSLSSGEYACAYN",
+      "pred_stability": 0.722,
+      "pred_logPapp": -6.545
+    },
+    {
+      "sequence": "DKQVQNTCSIYECQQVLCCYV",
+      "pred_stability": 0.826,
+      "pred_logPapp": -6.687
+    },
+    {
+      "sequence": "LEVETTTCCICEINQLINVCN",
+      "pred_stability": 0.742,
+      "pred_logPapp": -6.612
+    }
+  ],
+  "limits": [
+    "permeability is ranking-grade (R2~0.23) \u2014 the joint screen is dominated by the reliable stability axis; permeability adds noisy signal",
+    "select-by-model proxy; wet lab is the missing ground truth",
+    "designs scored as linear peptide SMILES (macrocyclic closure not achieved)"
+  ]
+}
