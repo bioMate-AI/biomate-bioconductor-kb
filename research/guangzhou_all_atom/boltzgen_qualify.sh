@@ -23,7 +23,10 @@ apt-get -o DPkg::Lock::Timeout=300 install -y -qq git curl
 curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/mc.sh
 bash /tmp/mc.sh -b -p /opt/miniconda
 source /opt/miniconda/etc/profile.d/conda.sh
-conda create -y -n bg python=3.12
+# recent Miniconda gates conda create behind channel ToS acceptance
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main || true
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r || true
+conda create -y -n bg -c conda-forge python=3.12
 conda activate bg
 pip install -q boltzgen
 git clone https://github.com/HannesStark/boltzgen "$ROOT/boltzgen"
