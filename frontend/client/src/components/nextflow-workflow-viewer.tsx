@@ -5,6 +5,7 @@ import { analytics } from '@/lib/analytics';
 import { emitUxEvent } from "@/lib/ux-telemetry";
 import { PhaseCard } from "./phase-card";
 import { ParameterGroup } from "./parameter-group";
+import { deriveInputMappingRows, blockingInputRows } from "./input-mapping-status";
 import { StepOutputPreview } from "./step-output-preview";
 import { StepAdjustModal } from "./step-adjust-modal";
 import { StepDetail, type StepDetailStep } from "./steps/step-detail";
@@ -2914,25 +2915,10 @@ export function NextflowWorkflowViewer({
               ...(workflowDefinition?.required_params || []),
               ...(workflowDefinition?.optional_params || []),
             ];
-            const mismatchFor = (name: string) => paramDefs.find((d: any) => d?.name === name)?.format_mismatch_warning || null;
-            const dsFor = (val: any) => {
-              if (val === undefined || val === null || val === '') return null;
-              const s = String(val);
-              return sessionDatasets.find(d => d.file_path === s || d.source_url === s || d.id === s || d.name === s) || null;
-            };
-            const rows = fileParams.map(p => {
-              const val = p.value;
-              const empty = val === undefined || val === null || val === '';
-              const ds = dsFor(val);
-              const mismatch = mismatchFor(p.id || p.name || '');
-              const status: 'resolved' | 'unresolved' | 'needs-mapping' | 'optional-empty' =
-                (p.required && empty) ? 'unresolved'
-                : mismatch ? 'needs-mapping'
-                : empty ? 'optional-empty'
-                : 'resolved';
-              return { p, val, empty, ds, mismatch, status };
-            });
-            const blocking = rows.filter(r => r.status === 'unresolved' || r.status === 'needs-mapping');
+            // Pure derivation extracted to input-mapping-status.ts (unit-tested).
+            const derived = deriveInputMappingRows(fileParams as any, sessionDatasets as any, paramDefs);
+            const rows = derived.map(r => ({ p: r.param as any, val: r.value, empty: r.empty, ds: r.dataset, mismatch: r.mismatch, status: r.status }));
+            const blocking = blockingInputRows(derived);
             const basename = (v: any) => String(v).split('/').pop() || String(v);
             return (
               <div data-testid="prerun-inputs-mapped" className="card2" style={{ marginBottom: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
