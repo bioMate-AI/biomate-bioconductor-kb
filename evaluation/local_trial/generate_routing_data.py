@@ -20,20 +20,42 @@ def cands(r):
     cs=list(dict.fromkeys([r["name"]]+same[:5]+random.sample(allnames,3)))[:9]; random.shuffle(cs)
     if r["name"] not in cs: cs[0]=r["name"]
     return cs
-def gen(r):
-    persona=random.choice(PERSONAS)
-    prompt=(f"You are helping build a routing benchmark. Write ONE realistic request that {persona} "
-      f"would type, describing THEIR DATA and SCIENTIFIC GOAL — grounded in these real workflow "
-      f"characteristics. Do NOT mention or paraphrase the workflow name/description; describe the "
-      f"experiment/data/analysis goal in the user's own words.\n"
-      f"INPUT DATA TYPES: {(r['input_types'] or '')[:300]}\nOUTPUTS: {(r['output_types'] or '')[:150]}\n"
-      f"TOOLS USED: {(r['tools_used'] or '')[:200]}\nDOMAIN: {r['domain']}\n"
-      f"Reply with ONLY the request sentence(s).")
+STOP={"bioconductor","nf","core","workflow","pipeline","analysis","seq","data","the","and","for","with","tool","package","r"}
+def name_tokens(name):
+    # distinctive tokens of the workflow name (drop namespace + generic words)
+    base=re.split(r"[\/]", name.lower())[-1]
+    return [t for t in re.split(r"[^a-z0-9]+", base) if len(t)>=4 and t not in STOP] + [base]
+def scrub(text, name):
+    # redact the workflow name + its distinctive tokens from grounding so the answer can't leak
+    t=text or ""
+    for tok in sorted(set(name_tokens(name)+[name.lower()]), key=len, reverse=True):
+        t=re.sub(re.escape(tok), "", t, flags=re.I)
+    return t
+def leaks(q, name):
+    ql=q.lower()
+    return any(tok in ql for tok in name_tokens(name))
+def _call(prompt):
     body=json.dumps({"model":GEN_MODEL,"messages":[{"role":"user","content":prompt}],"max_completion_tokens":500,"reasoning_effort":"low"}).encode()
+    d=json.load(urllib.request.urlopen(urllib.request.Request("https://api.openai.com/v1/chat/completions",data=body,headers={"Authorization":f"Bearer {KEY}","Content-Type":"application/json"}),timeout=60))
+    return d["choices"][0]["message"]["content"].strip().strip('"')
+def gen(r):
+    persona=random.choice(PERSONAS); name=r["name"]
+    prompt=(f"You are helping build a routing benchmark. Write ONE realistic request that {persona} "
+      f"would type, describing THEIR biological EXPERIMENT, DATA FILES, and SCIENTIFIC GOAL — grounded "
+      f"in these real workflow characteristics. The assistant must INFER which tool to use, so you must "
+      f"NEVER name any software, R/Bioconductor package, algorithm, or method (no tool names at all); "
+      f"describe only the biology, the data, and what result you want, in the user's own words.\n"
+      f"INPUT DATA TYPES: {scrub(r['input_types'],name)[:300]}\nOUTPUTS: {scrub(r['output_types'],name)[:150]}\n"
+      f"TOOLS USED (context only — DO NOT name these): {scrub(r['tools_used'],name)[:200]}\nDOMAIN: {r['domain']}\n"
+      f"Reply with ONLY the request sentence(s).")
     try:
-        d=json.load(urllib.request.urlopen(urllib.request.Request("https://api.openai.com/v1/chat/completions",data=body,headers={"Authorization":f"Bearer {KEY}","Content-Type":"application/json"}),timeout=60))
-        q=d["choices"][0]["message"]["content"].strip().strip('"')
-        return {"query":q,"correct_workflow":r["name"],"candidates":cands(r),"intent":"workflow_generation","persona":persona,"domain":r["domain"]} if len(q)>20 else None
+        q=_call(prompt)
+        if leaks(q, name):  # one retry with an explicit callout of the leaked name
+            q=_call(prompt+f"\n\nIMPORTANT: your previous draft named the tool. Rewrite so the words "
+                    f"{name_tokens(name)} and '{name}' NEVER appear — describe only data and goal.")
+        if len(q)<=20 or leaks(q, name):  # deterministic guard: drop if it still leaks
+            return None
+        return {"query":q,"correct_workflow":name,"candidates":cands(r),"intent":"workflow_generation","persona":persona,"domain":r["domain"]}
     except Exception: return None
 import sys
 N=int(sys.argv[1]) if len(sys.argv)>1 else 40
