@@ -56,3 +56,36 @@ trained on, with a verified **no-overlap** guarantee.
 - Built: GEO real data (1,244), curated-seed audit, overlap checker, 2×2 eval harness,
   shared prompt, SFT formatter. Next: implement generator + auditor, run DB reverse-gen with
   auditing, then train→serve→eval on a GPU (spot).
+
+## CORRECTION: intent is ~25 categories, not just "workflow" (from galaxy-assistant.ts)
+
+BioMate routing is **two levels**, and I had been building only Level 2:
+- **Level 1 — Intent classification** into ~25 categories that determine the ACTION:
+  - **→ workflow generation:** `workflow_generation`, `data_format_conversion`,
+    `external_db_retrieval`, `visualization`, `multi_step_procedure`
+  - **→ tool search / modify:** `tool_search`, `workflow_modification`
+  - **→ research agent (live DB + literature):** `research_question`, `database_lookup`
+    (GWAS Catalog/Open Targets/OMIM/ClinVar/Ensembl/mygene), `genomics_knowledge`,
+    `clinical_genomics` (OMIM/ClinVar/Monarch, HPO), `troubleshooting`, `experiment_design`,
+    `data_interpretation`, `protocol_guidance`, `methods_writing`, `comparative_methodology`,
+    `regulatory_compliance`, `result_comparison`, `parameter_optimization`
+  - **→ benchmark / dataset:** `benchmark_query`, `dataset_inquiry`, `cost_estimation`
+  - **→ pure LLM reasoning:** `teaching_explanation`, `general_question`
+  - **→ chain proposal (v2):** propose downstream Bioconductor chain after a run
+- **Level 2 — Workflow selection** (only for the workflow-generating intents): the
+  select-from-candidates task the RealBio cross_domain_routing benchmark measures.
+
+Implication for data-gen: the training/eval set must cover the **full intent taxonomy**, not
+only `workflow_generation`. Per-category sources:
+- workflow-gen intents ← DB reverse-gen + real GEO (built).
+- database_lookup / genomics_knowledge / clinical_genomics ← DB `search urls` + live-DB
+  access records (GWAS/OMIM/Open Targets), grounded in real gene/variant tasks.
+- research_question / experiment_design / methods_writing / protocol_guidance ← literature +
+  BioMate research prompts.
+- troubleshooting ← the nextflow_debug / autofix corpus (real errors).
+- teaching_explanation / general_question ← compbiobench + knowledge DB.
+- The **intent labels + when-to-use rules + exemplars are in BioMate's own prompts**
+  (galaxy-assistant.ts intent classifier), which seed both generation and the auditor's rubric.
+
+Revised eval: (1) **intent-classification accuracy** over the ~25 categories (held-out), and
+(2) **workflow-selection** on held-out RealBio. Generator + independent auditor verify both.
