@@ -38,6 +38,19 @@ for exactly this).
    (~0.3 scaffold) limits guidance quality; a stronger predictor (or CycPeptMP-style model) is
    the real lever, but is its own effort.
 
+## Progress (2026-09-15)
+- **Step 1 — stability predictor ✅** ECFP4 + bootstrap-bagged HistGBM on the PepMSND leak-free
+  folds: OOF AUROC **0.842**, ECE 0.053, epistemic std 0.127. `results/stability_predictor_metrics.json`.
+- **Step 2 — developability-scored generation ✅** Scored all 272 cyclic designs (from the eval
+  `none` run) → predicted stability + uncertainty, ranked (`score_generation.py`,
+  `results/generation_developability.json`). Designs mean P(stable) 0.462 vs reference 0.438 —
+  **reference-level** (generation isn't yet guided toward stability); top-10 at 0.83–0.91,
+  uncertainty 0.06–0.15. The generate→verify→rank loop is demonstrated end-to-end, in silico.
+  - **Observation to watch:** many top-ranked designs are **cysteine-rich** — the generator (fine-
+    tuned partly on disulfide-cyclized peptides) produces CYS-heavy sequences, and the stability
+    model may score CYS-rich peptides high by association. Flag before trusting; a real synthesis/
+    assay would test it.
+
 ## Honest guardrails
 - Predictors are ranking-grade, not oracle-grade (scaffold R² 0.1–0.3); report uncertainty and
   applicability-domain, never imply calibrated potency.
