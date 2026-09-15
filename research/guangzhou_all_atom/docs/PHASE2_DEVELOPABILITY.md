@@ -120,6 +120,33 @@ This reframes Bet-1 priorities: the reliable win is **stability selection**; the
 frontier needs generation-side changes + non-natural chemistry + a stronger predictor — not more
 selection. And, as always, wet lab is the gate on all of it.
 
+### Step 7 — chemistry→permeability analysis (2026-09-15): Phase-1b validated by data
+Quantified permeability drivers on 8466 CycPeptMPDB peptides + compared to generated designs
+(`results/chemistry_permeability_analysis.json`):
+- **N-methylation drives permeability** (monotonic): mean log Papp by N-Me count 0→−6.30,
+  1-2→−6.05, 3-5→−5.78, 6+→−5.76 (r=+0.17, strongest positive); H-bond donors hurt (r=−0.10).
+- **Generated designs are in a non-permeable region of chemistry space:** MW 1994 vs 949
+  (permeable subset), **N-methyls 0 vs 2.9**, HBD 31 vs 3.7, TPSA 823 vs 209.
+
+**Conclusion (evidence-based):** the permeability failure is **representational, not training** —
+the natural-AA generator *cannot* produce N-methylated peptides and emits large, polar sequences.
+Permeable cyclic peptides require: **N-methylation (non-natural monomers → Phase-1b)**, true
+**macrocyclization** (the open Phase-1 closure gap — cyclization also cuts HBD/TPSA), and a bias
+toward **smaller / less-polar** designs. (Nuance: designs scored as LINEAR overstate HBD/TPSA;
+cyclization would lower them — but MW 2× and zero N-Me are real representational gaps.)
+
+This is the concrete spec for Phase-1b: extend the monomer vocab to N-methylated / non-natural
+residues so the generator can even enter permeable chemistry space. It also confirms selection is
+futile for permeability — the target region isn't in the natural-AA output distribution at all.
+
+### Phase-1b scope (non-natural monomers) — honest cost
+Requires: (a) extend the block vocab + per-monomer atom/geometry tables (aa_feature) beyond the 24
+natural blocks to HELM non-natural monomers; (b) extend the sequence-design head; (c) **3D
+structural training data of non-natural-monomer peptides in-pocket — which we do NOT have** (HELM
+gives monomer chemistry, CycPeptMPDB gives SMILES+permeability but not PepGLAD-format complexes).
+A multi-week research effort gated on structural data, not a quick build. The data-grounded case
+above justifies the investment; the data gap is the blocker to surface before committing.
+
 ### Bet-1 remaining levers (scoped)
 1. **Differentiable latent stability surrogate** → true sampler-guidance (bias sampling, not just
    select). The current predictor (fingerprint HistGBM) isn't differentiable through the latent.
