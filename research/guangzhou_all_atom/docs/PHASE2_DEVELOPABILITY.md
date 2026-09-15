@@ -51,6 +51,20 @@ for exactly this).
     model may score CYS-rich peptides high by association. Flag before trusting; a real synthesis/
     assay would test it.
 
+- **Step 3 — property-directed selection ✅** (`property_guided_selection.py`,
+  `results/property_guided_selection.json`) Best-of-k by predicted stability on the 272 designs
+  (4/target): k=1→0.461, k=2→0.553, k=3→0.605, k=4→**0.635** vs random pick 0.462 — a **+0.17
+  lift**, monotonic with budget. The generate→verify→**select** (acquisition) loop works end-to-end.
+  Proxy caveat: selecting by the same predictor we report; the lift shows a selectable spread, not
+  proven real stability (needs wet lab). Larger-N budget needs a GPU generation run.
+
+### Bet-1 remaining levers (scoped)
+1. **Differentiable latent stability surrogate** → true sampler-guidance (bias sampling, not just
+   select). The current predictor (fingerprint HistGBM) isn't differentiable through the latent.
+2. **Scale generation budget** (more attempts/target) → extend the best-of-N curve higher (GPU).
+3. **Fold in permeability** — match its CycPeptMPDB featurization; strengthen past scaffold-R² 0.1–0.3.
+4. **Close macrocyclization** (Phase-1 atom-space closure) so designs are scored as true cyclics.
+
 ## Honest guardrails
 - Predictors are ranking-grade, not oracle-grade (scaffold R² 0.1–0.3); report uncertainty and
   applicability-domain, never imply calibrated potency.
