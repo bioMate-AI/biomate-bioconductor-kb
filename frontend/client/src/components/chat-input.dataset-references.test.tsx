@@ -35,4 +35,21 @@ describe('ChatInput — request-scoped dataset references', () => {
       ],
     });
   });
+
+  it('renders each dataset chip as a live reference that deep-links to the object', () => {
+    render(<ChatInput onSend={vi.fn()} isStreaming={false} />);
+    fireEvent.click(screen.getByTestId('select-two-project-files'));
+
+    const refs = screen.getAllByTestId('composer-dataset-ref');
+    expect(refs).toHaveLength(2);
+    // The chip is a button (clickable handle), not inert text, and carries the
+    // object id so it resolves to the same DatasetObject in the data hub.
+    expect(refs[0].tagName).toBe('BUTTON');
+    expect(refs[0]).toHaveTextContent('result-A.csv');
+    expect(refs[0].getAttribute('title')).toContain('result-a-v1');
+
+    // Clicking navigates to the object deep-link (/files?file=<id>).
+    fireEvent.click(refs[0]);
+    expect(window.location.search).toContain('file=result-a-v1');
+  });
 });

@@ -10,7 +10,7 @@ import { StepAdjustModal } from "./step-adjust-modal";
 import { StepDetail, type StepDetailStep } from "./steps/step-detail";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { Loader2, CheckCircle2, XCircle, AlertTriangle, Download, RotateCcw, Square, ChevronRight, Settings2, ShieldCheck, Activity, Clock, SkipForward, FolderOpen } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, AlertTriangle, Download, RotateCcw, Square, ChevronRight, Settings2, ShieldCheck, Activity, Clock, SkipForward, FolderOpen, Database } from "lucide-react";
 import { useLocation } from 'wouter';
 import { ReportConfusionButton } from "./feedback/report-confusion-button";
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt";
@@ -2892,6 +2892,109 @@ export function NextflowWorkflowViewer({
 
           {/* ── Settings-tab-only: the existing Workflow-settings strip ─────── */}
           <div style={{ display: activeTab === 'settings' ? 'contents' : 'none' }}>
+          {/* ── Inputs mapped — restate resolved inputs + compatibility BEFORE run ─ */}
+          {/* L3 (one-object-everywhere): before anything runs, BioMate restates    */}
+          {/* which dataset is bound to each input and flags anything that isn't    */}
+          {/* safely resolved, so the user confirms the mapping — not a raw form.   */}
+          {(() => {
+            const fileParams = renderedParameters.filter(p => p.type === 'file');
+            if (fileParams.length === 0) {
+              return (
+                <div data-testid="prerun-inputs-mapped" className="card2" style={{ marginBottom: 12, padding: '10px 12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}>
+                    <Database className="h-3.5 w-3.5" /> Inputs mapped
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>
+                    This workflow takes parameters only — no data inputs to bind.
+                  </div>
+                </div>
+              );
+            }
+            const paramDefs: any[] = [
+              ...(workflowDefinition?.required_params || []),
+              ...(workflowDefinition?.optional_params || []),
+            ];
+            const mismatchFor = (name: string) => paramDefs.find((d: any) => d?.name === name)?.format_mismatch_warning || null;
+            const dsFor = (val: any) => {
+              if (val === undefined || val === null || val === '') return null;
+              const s = String(val);
+              return sessionDatasets.find(d => d.file_path === s || d.source_url === s || d.id === s || d.name === s) || null;
+            };
+            const rows = fileParams.map(p => {
+              const val = p.value;
+              const empty = val === undefined || val === null || val === '';
+              const ds = dsFor(val);
+              const mismatch = mismatchFor(p.id || p.name || '');
+              const status: 'resolved' | 'unresolved' | 'needs-mapping' | 'optional-empty' =
+                (p.required && empty) ? 'unresolved'
+                : mismatch ? 'needs-mapping'
+                : empty ? 'optional-empty'
+                : 'resolved';
+              return { p, val, empty, ds, mismatch, status };
+            });
+            const blocking = rows.filter(r => r.status === 'unresolved' || r.status === 'needs-mapping');
+            const basename = (v: any) => String(v).split('/').pop() || String(v);
+            return (
+              <div data-testid="prerun-inputs-mapped" className="card2" style={{ marginBottom: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}>
+                  <Database className="h-3.5 w-3.5" /> Inputs mapped
+                  <span className="hint" style={{ fontWeight: 400, fontSize: 11 }}>({rows.length} input{rows.length !== 1 ? 's' : ''})</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {rows.map((r, i) => (
+                    <div key={r.p.id || r.p.name || i} data-testid="prerun-input-row" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, flexWrap: 'wrap' }}>
+                      <span style={{ minWidth: 0, fontWeight: 500 }}>{r.p.label || r.p.name}</span>
+                      <span style={{ color: 'var(--text-dim)' }}>→</span>
+                      <span style={{ minWidth: 0, flex: 1 }}>
+                        {r.empty ? (
+                          <span style={{ color: 'var(--text-dim)' }}>not set</span>
+                        ) : (
+                          <>
+                            <span>{r.ds?.name || basename(r.val)}</span>
+                            <span className="mono" style={{ display: 'block', fontSize: 10, color: 'var(--text-dim)', wordBreak: 'break-all' }}>
+                              {r.ds?.id ? `id ${r.ds.id}` : String(r.val)}
+                            </span>
+                          </>
+                        )}
+                      </span>
+                      {r.status === 'resolved' && (
+                        <span className="chip ok" style={{ fontSize: 10, padding: '1px 5px' }} title="Bound to this dataset. Schema/units compatibility is not automatically checked for this input type.">
+                          resolved · format not checked
+                        </span>
+                      )}
+                      {r.status === 'unresolved' && (
+                        <span className="chip err" style={{ fontSize: 10, padding: '1px 5px' }}>required — not set</span>
+                      )}
+                      {r.status === 'needs-mapping' && (
+                        <span className="chip err" style={{ fontSize: 10, padding: '1px 5px' }}>needs mapping</span>
+                      )}
+                      {r.status === 'optional-empty' && (
+                        <span className="chip" style={{ fontSize: 10, padding: '1px 5px' }}>optional — empty</span>
+                      )}
+                      {(r.status === 'unresolved' || r.status === 'needs-mapping') && (
+                        <button
+                          type="button"
+                          className="btn sm ghost"
+                          style={{ fontSize: 10, padding: '1px 6px' }}
+                          onClick={() => setBrowsingForParam({ id: r.p.id, label: r.p.label || r.p.name || r.p.id })}
+                        >
+                          Choose file
+                        </button>
+                      )}
+                      {r.mismatch && (
+                        <div className="hint" style={{ flexBasis: '100%', color: 'var(--warn, #b45309)', fontSize: 11 }}>⚠️ {r.mismatch}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize: 11, color: blocking.length > 0 ? 'var(--warn, #b45309)' : 'var(--text-dim)' }}>
+                  {blocking.length > 0
+                    ? `Nothing will run until ${blocking.length} input${blocking.length !== 1 ? 's are' : ' is'} resolved — pick the file or fix the mapping above.`
+                    : 'These inputs will be used exactly as bound. Reopen a dataset from its chip to check its provenance.'}
+                </div>
+              </div>
+            );
+          })()}
           {/* ── Workflow settings strip — TOP of body, before phase list ────── */}
           {/* Design ref: WorkflowPanel.jsx lines 224-242 — "Workflow settings"   */}
           {/* collapsible strip sits at the top so global params frame the run    */}

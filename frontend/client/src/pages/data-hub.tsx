@@ -22,6 +22,7 @@
  */
 
 import { useEffect, useState } from "react"
+import { useSearch } from "wouter"
 import {
   Database,
   ChevronRight,
@@ -160,6 +161,12 @@ export default function DataHubPage() {
   // mirroring the reference which holds the selection in component state.
   const [selected, setSelected] = useState<ProjectFile | null>(null)
 
+  // Deep-link: `/files?file=<datasetId>` opens that dataset as an object. This
+  // is how a live reference chip elsewhere (composer, outputs, report) resolves
+  // to the same object here — the "one object everywhere" handle.
+  const search = useSearch()
+  const deepLinkFileId = new URLSearchParams(search).get("file") || undefined
+
   // Clear the selection when the active project changes — a file id from one
   // project is meaningless in another.
   useEffect(() => {
@@ -242,6 +249,7 @@ export default function DataHubPage() {
             <ProjectFileTree
               projectId={activeProjectId}
               onOpenDataset={(f) => setSelected(f)}
+              selectFileId={deepLinkFileId}
               canEdit
             />
           </div>

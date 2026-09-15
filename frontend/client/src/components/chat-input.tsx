@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, KeyboardEvent } from "react"
+import { useLocation } from "wouter"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -189,6 +190,7 @@ export function ChatInput({
   // Dataset references selected from the browser — shown as chips, injected into message on send
   const [selectedDatasets, setSelectedDatasets] = useState<Array<{ id: string; name: string; value: string }>>([])
   const [showDatasetBrowser, setShowDatasetBrowser] = useState(false)
+  const [, setLocation] = useLocation()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -452,7 +454,18 @@ export function ChatInput({
               className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-md text-sm"
             >
               <Database className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-              <span className="max-w-[150px] truncate" title={`Referenced project file · id ${ds.value}`}>{ds.name}</span>
+              {/* Live reference: the chip opens the SAME dataset object it points
+                  at (data hub), so a project file referenced in chat is one
+                  clickable handle, not just a name. */}
+              <button
+                type="button"
+                onClick={() => setLocation(`/files?file=${encodeURIComponent(ds.value)}`)}
+                className="max-w-[150px] truncate hover:underline text-left"
+                title={`Open referenced project file · id ${ds.value}`}
+                data-testid="composer-dataset-ref"
+              >
+                {ds.name}
+              </button>
               <button
                 onClick={() => setSelectedDatasets(prev => prev.filter(d => d.id !== ds.id))}
                 className="p-0.5 rounded hover:bg-background transition-colors"

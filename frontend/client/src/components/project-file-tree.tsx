@@ -378,10 +378,17 @@ export interface ProjectFileTreeProps {
   onOpenDataset?: (file: ProjectFile) => void;
   /** When false, hide upload/delete controls (read-only viewers). Default true. */
   canEdit?: boolean;
+  /** Deep-link target: when this file id is present in the loaded list, open it
+   *  as an object once (used by `/files?file=<id>` links from other surfaces). */
+  selectFileId?: string;
 }
 
-export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenDataset, canEdit = true }: ProjectFileTreeProps) {
+export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenDataset, canEdit = true, selectFileId }: ProjectFileTreeProps) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
+  // Fire onOpenDataset at most once per deep-link target, so a `?file=<id>`
+  // link (from a composer/output/report chip) opens the same object without
+  // re-opening it on every re-render.
+  const openedSelectRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(["inputs"]));
@@ -408,6 +415,19 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
   }, [projectId]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Deep-link: when a `selectFileId` is supplied and its file has loaded, open
+  // it as an object exactly once. This is what makes a dataset reference in the
+  // composer/outputs/report resolve to the same object here.
+  useEffect(() => {
+    if (!selectFileId || !onOpenDataset) return;
+    if (openedSelectRef.current === selectFileId) return;
+    const match = files.find(f => f.id === selectFileId);
+    if (match) {
+      openedSelectRef.current = selectFileId;
+      onOpenDataset(match);
+    }
+  }, [selectFileId, files, onOpenDataset]);
 
   // Refresh when another component saves run outputs to this project.
   useEffect(() => {
