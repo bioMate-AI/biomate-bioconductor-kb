@@ -38,3 +38,13 @@ Rung-1 metrics establish geometric quality → Rung-2 physics (relax → clash/e
 → MM-GBSA → conformational/NMR → permeability-MD) filters to physically-real, stable, plausibly-
 permeable designs → only those go to Rung-3 wet lab. Physics is where our permeability question is
 most honestly answered, and it costs GPU-hours, not months and CRO fees.
+
+
+## Physics-relaxer note (2026-09-15) — root cause + redirect
+Two physics runs failed: `evaluation/dG/openmm_relaxer.py:_minimize` HARD-CODES
+`getPlatformByName("CUDA")` (ignores the constructor `platform` arg), and pip-installed OpenMM
+lacks the CUDA platform plugin. Fix when we run it: `sed -i 's/getPlatformByName("CUDA")/
+getPlatformByName(self.platform)/' evaluation/dG/openmm_relaxer.py` and use `platform='CPU'` (or
+install a CUDA-enabled OpenMM). DECISION: do NOT re-run physics on the PepGLAD structures — they
+are superseded by BoltzGen. Apply the physics/MD verify (relax→MD stability→MM-GBSA) to
+**BoltzGen's** designs, where it is the non-circular oracle for BoltzGen's ML-predicted iptm/pae.
