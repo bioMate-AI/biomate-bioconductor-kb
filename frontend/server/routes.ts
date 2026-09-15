@@ -12119,8 +12119,17 @@ Rules:
       // reflect the outputs that actually exist.
       if (!outputs.length) {
         try {
-          const invId = (run as any).execution?.galaxyInvocationId || run.id;
-          outputs = (await storage.getInvocationOutputs(invId)) || [];
+          const gid = (run as any).execution?.galaxyInvocationId;
+          if (gid) {
+            outputs = (await storage.getInvocationOutputs(gid)) || [];
+            if (!outputs.length) {
+              // Outputs are stored against the WorkflowInvocation's internal id,
+              // not the galaxy invocation id — resolve it first, mirroring
+              // GET /api/invocations/:id/outputs.
+              const inv = await storage.getInvocationByGalaxyId(gid);
+              if (inv) outputs = (await storage.getInvocationOutputs(inv.id)) || [];
+            }
+          }
         } catch (e: any) {
           console.warn("[reproducibility-record] invocation-output fallback failed:", e?.message ?? e);
         }
