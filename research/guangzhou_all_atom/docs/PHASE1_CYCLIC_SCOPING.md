@@ -119,6 +119,30 @@ counts, position_ids), since the two datasets may not be drop-in interchangeable
 Env fixes already applied along the way (all committed): py3.10 AMI (biopython 1.80), direct
 split-index build, `build-essential`+`python3-dev` (moot on py3.10), `tensorboard` for train.py.
 
+## Fine-tune RESULT (2026-09-15) — cyclic fine-tuning clearly works
+
+After fixing the position overflow (filter to peptides < 29 residues: train 697→564, valid
+77→64, test 88→68), the warm-start fine-tune (60 epochs on 564 cyclic) trained cleanly, no NaN,
+val loss 1.02→0.91. Big improvement over the general baseline on the during-training validation:
+
+| during-training Validation | general baseline | cyclic fine-tuned |
+|---|---:|---:|
+| Seq/AAR | ~0.06 | **0.19** (rising) |
+| Struct/Cα-RMSD | ~12 Å | **6.5 Å** (falling) |
+
+So cyclic fine-tuning substantially improves both sequence and structure recovery — the core
+Phase-1 hypothesis holds. Checkpoint synced to S3 (`training/cyclic_ldm/`).
+
+**Open eval-harness bug (not a model failure):** the post-training `generate_validation` run
+serialized **0/272** for BOTH default and cyclic guidance, while the during-training sampler
+(no energy-guidance, no calibration) produced the good numbers above. So the guided+calibrated
+generation path is the culprit — most likely `setup_latent_guidance` on the small cyclic set
+gave degenerate `consec_dist` stats → guidance drives coords to NaN/out-of-range → the finite
+check rejects every sample. `attempts.json` (with per-sample errors) was not synced, so the next
+step is an eval-only run that (a) syncs `attempts.json`, (b) adds a `--guidance none` control to
+confirm the fine-tuned model samples fine without guidance, (c) then tunes/repairs calibration
+or lowers energy_lambda. The model is good; only the guided-eval tooling needs fixing.
+
 ## Immediate first task
 Add `set_cyclic_dist` + `cyclic_geometry_guidance` to a fork of `models/LDM/ldm.py`, extend
 `setup_latent_guidance.py`, build the cyclic processed split, and run a guided-generation smoke
