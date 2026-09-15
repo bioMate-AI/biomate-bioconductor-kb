@@ -58,6 +58,35 @@ for exactly this).
   Proxy caveat: selecting by the same predictor we report; the lift shows a selectable spread, not
   proven real stability (needs wet lab). Larger-N budget needs a GPU generation run.
 
+### Differentiable latent stability surrogate (step 4, in progress) — design
+
+Goal: true sampler-guidance (bias generation toward stability), not just best-of-N selection.
+Obstacle: the stability model is a fingerprint HistGBM (non-differentiable through the latent),
+and labels/structures don't bridge — PepMSND has SMILES+labels but no structures; PebBDB cyclics
+have structures but no stability labels.
+
+Solution — **distillation**: PebBDB cyclic peptides have BOTH a structure (encode → generator
+latent Z via the AE) AND a SMILES (score with the HistGBM → pseudo-label). Train a small
+differentiable MLP `g(pooled Z) → P(stable)` to match the HistGBM on these pairs. Then during
+LDM sampling, use `g` as an `energy_func` (like the closure guidance) to push the generated
+latent toward higher predicted stability — differentiable, in-latent property guidance.
+
+**BLOCKED — discovered obstacle (2026-09-15):** even with the distillation surrogate, PepGLAD's
+guidance hook cannot steer stability. Verified in `models/LDM/diffusion/dpm_full.py:sample`: the
+energy gradient is `grad(energy, X_t)` — taken w.r.t. the **structure coordinates** — and applied
+only to `X_next` (`trans_x.denoise(..., guidance=...)`); the feature/sequence latent `H_next` is
+denoised **without** guidance. Stability/permeability are **chemistry/sequence** properties
+(functions of `H`, not `X`-geometry), so a surrogate `g` plugged into this hook would only move
+coordinates, not steer stability. The closure guidance worked precisely because closure IS a
+geometric (X) property.
+
+**Conclusion:** true differentiable property-guidance needs (a) the distillation surrogate AND
+(b) a **diffusion-core modification to also guide `H_next`** (apply an H-space energy gradient in
+`trans_h.denoise`). That's a real research build. Until then, **generate-and-select (step 3,
+working, +0.17 lift) is the correct method for steering chemistry properties on this backbone** —
+the sampler can gradient-steer geometry, not sequence. This is why selection, not guidance, is
+the right Bet-1 mechanism here today.
+
 ### Bet-1 remaining levers (scoped)
 1. **Differentiable latent stability surrogate** → true sampler-guidance (bias sampling, not just
    select). The current predictor (fingerprint HistGBM) isn't differentiable through the latent.
