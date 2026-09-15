@@ -114,6 +114,15 @@ export const COLD_DOMAINS: ColdDomain[] = [
     ],
   },
   {
+    id: "fgen",
+    name: "Functional genomics",
+    shapes: [
+      { t: "Call hits from a pooled CRISPR screen", needs: "needs screen read counts", time: "~40 min", seed: "Analyze my pooled CRISPR screen: call enriched/depleted hits at an FDR cutoff and rank the candidate dependency genes." },
+      { t: "Compare screen hits across two conditions", needs: "needs two screen count tables", time: "~35 min", seed: "Compare my CRISPR screen hits between the two conditions and flag condition-specific dependencies." },
+      { t: "QC a screen before hit-calling", needs: "needs screen read counts", time: "~15 min", seed: "QC my CRISPR screen — guide representation, replicate correlation, and control separation — before hit-calling." },
+    ],
+  },
+  {
     id: "str",
     name: "Structural biology",
     shapes: [
@@ -136,7 +145,7 @@ export const COLD_DOMAINS: ColdDomain[] = [
     name: "Clinical",
     shapes: [
       { t: "Stratify a cohort by response and test the endpoint", needs: "needs a cohort table", time: "~20 min", seed: "Stratify this cohort by response and test the primary endpoint." },
-      { t: "Check a dataset against a statistical analysis plan", needs: "needs a cohort table + SAP", time: "~15 min", seed: "Check this dataset against my statistical analysis plan." },
+      { t: "Discover a biomarker panel and build a risk model", needs: "needs a cohort table + labels", time: "~30 min", seed: "From this cohort, discover a biomarker panel and build a cross-validated, reproducible risk-prediction model with an honest performance estimate." },
       { t: "Assemble the analysis section of a submission", needs: "needs completed runs", time: "~1 h", seed: "Assemble the analysis section of my submission from these runs." },
     ],
   },
