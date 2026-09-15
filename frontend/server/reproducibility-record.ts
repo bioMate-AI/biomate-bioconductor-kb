@@ -14,12 +14,57 @@
  * addressed by its opaque id (download via /api/outputs/:id/download).
  */
 
+import { createHash } from "crypto";
+
 export interface ReproOutput {
   id?: string;
   name: string;
   fileType?: string;
   sizeBytes?: number;
   sha256?: string | null;
+}
+
+/** SHA-256 of the given bytes/string as a lowercase hex digest. */
+export function sha256Hex(data: Buffer | string): string {
+  return createHash("sha256").update(data).digest("hex");
+}
+
+/**
+ * Populate per-output SHA-256 by fetching each output's bytes — the "verifiable"
+ * half of a reproducibility record. BOUNDED so a record read can never become an
+ * unbounded download: outputs over `maxBytes` are skipped, at most `maxFiles` are
+ * hashed, an already-hashed output is left as-is, and a fetch failure degrades to
+ * sha256=null rather than throwing. `fetchBytes` is injected so this is fully
+ * unit-testable without network/S3.
+ */
+export async function enrichOutputsWithChecksums(
+  outputs: ReproOutput[],
+  fetchBytes: (o: ReproOutput) => Promise<Buffer | null>,
+  opts: { maxBytes?: number; maxFiles?: number } = {},
+): Promise<ReproOutput[]> {
+  const maxBytes = opts.maxBytes ?? 25 * 1024 * 1024;
+  const maxFiles = opts.maxFiles ?? 25;
+  let hashed = 0;
+  const out: ReproOutput[] = [];
+  for (const o of outputs) {
+    const tooBig = typeof o.sizeBytes === "number" && o.sizeBytes > maxBytes;
+    if (o.sha256 || hashed >= maxFiles || tooBig) {
+      out.push(o);
+      continue;
+    }
+    try {
+      const buf = await fetchBytes(o);
+      if (buf) {
+        out.push({ ...o, sha256: sha256Hex(buf) });
+        hashed++;
+      } else {
+        out.push(o);
+      }
+    } catch {
+      out.push(o);
+    }
+  }
+  return out;
 }
 
 export interface ReproducibilityRecord {

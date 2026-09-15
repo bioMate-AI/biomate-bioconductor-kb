@@ -51,7 +51,7 @@ import { emailService } from "./email-service";
 import { authenticateToken, authenticateStaticApiKey, optionalAuth } from "./auth-middleware";
 import { decideRunAccess } from "./run-access";
 import { decideOutputAccess, decideInvocationAccess } from "./output-access";
-import { assembleReproducibilityRecord } from "./reproducibility-record";
+import { assembleReproducibilityRecord, enrichOutputsWithChecksums } from "./reproducibility-record";
 import BetterSqlite3 from "better-sqlite3";
 import type { RegisterData, LoginData } from "./auth-service";
 import { s3Service } from "./s3-client";
@@ -12113,7 +12113,25 @@ Rules:
         // still reports identity + params + input bindings.
         console.warn("[reproducibility-record] outputs unavailable:", e?.message ?? e);
       }
-      res.json(assembleReproducibilityRecord(run, outputs));
+      const record = assembleReproducibilityRecord(run, outputs);
+      // Opt-in per-output SHA-256 (?checksums=1) — the verifiable half of the
+      // record. Bounded (size + count caps in enrichOutputsWithChecksums) and
+      // off by default so the common read stays fast; fetches bytes from the
+      // resolver's presigned URLs.
+      if (req.query.checksums && record.outputs.length) {
+        const urlById = new Map<string, string>();
+        for (const o of outputs) {
+          if (o?.id && o?.downloadUrl) urlById.set(String(o.id), String(o.downloadUrl));
+        }
+        record.outputs = await enrichOutputsWithChecksums(record.outputs, async (ro) => {
+          const url = ro.id ? urlById.get(ro.id) : undefined;
+          if (!url) return null;
+          const resp = await fetch(url);
+          if (!resp.ok) return null;
+          return Buffer.from(await resp.arrayBuffer());
+        });
+      }
+      res.json(record);
     } catch (e: any) {
       console.error("[reproducibility-record] error:", e?.message ?? e);
       res.status(500).json({ error: e?.message || String(e) });

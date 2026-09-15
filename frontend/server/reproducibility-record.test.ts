@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { assembleReproducibilityRecord } from "./reproducibility-record";
+import { assembleReproducibilityRecord, sha256Hex, enrichOutputsWithChecksums, type ReproOutput } from "./reproducibility-record";
 
 describe("assembleReproducibilityRecord", () => {
   const run = {
@@ -61,5 +61,39 @@ describe("assembleReproducibilityRecord", () => {
   it("reads status from execution sub-object when top-level is absent", () => {
     const r = assembleReproducibilityRecord({ id: "r3", execution: { status: "running" } }, []);
     expect(r.status).toBe("running");
+  });
+});
+
+describe("sha256Hex + enrichOutputsWithChecksums", () => {
+  it("computes a known SHA-256 digest", () => {
+    // echo -n abc | sha256sum
+    expect(sha256Hex("abc")).toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    expect(sha256Hex(Buffer.from("abc"))).toBe(sha256Hex("abc"));
+  });
+
+  it("hashes small outputs and preserves everything else", async () => {
+    const outs: ReproOutput[] = [
+      { id: "a", name: "results.csv", sizeBytes: 3, sha256: null },
+      { id: "b", name: "already.txt", sizeBytes: 3, sha256: "preexisting" },
+    ];
+    const bytes: Record<string, Buffer> = { a: Buffer.from("abc") };
+    const r = await enrichOutputsWithChecksums(outs, async (o) => bytes[o.id!] ?? null);
+    expect(r[0].sha256).toBe(sha256Hex("abc"));   // computed
+    expect(r[1].sha256).toBe("preexisting");       // untouched
+  });
+
+  it("skips oversized files and caps the number hashed", async () => {
+    const big: ReproOutput = { id: "big", name: "huge.bam", sizeBytes: 999_999_999, sha256: null };
+    const small = (i: number): ReproOutput => ({ id: `s${i}`, name: `s${i}`, sizeBytes: 1, sha256: null });
+    const outs = [big, ...Array.from({ length: 5 }, (_, i) => small(i))];
+    const r = await enrichOutputsWithChecksums(outs, async () => Buffer.from("x"), { maxBytes: 1024, maxFiles: 2 });
+    expect(r[0].sha256).toBeNull();                          // oversized → skipped
+    expect(r.filter((o) => o.sha256).length).toBe(2);        // maxFiles honored
+  });
+
+  it("degrades to null on fetch failure (never throws)", async () => {
+    const outs: ReproOutput[] = [{ id: "x", name: "x", sizeBytes: 3, sha256: null }];
+    const r = await enrichOutputsWithChecksums(outs, async () => { throw new Error("s3 down"); });
+    expect(r[0].sha256).toBeNull();
   });
 });
