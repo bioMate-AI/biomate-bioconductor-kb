@@ -40,7 +40,9 @@ decided NOW:
   but is a bigger lift to stand up (larger model, newer code, more compute).
 - **Adopt UniMoMo** (our own PepGLAD lineage's successor; unified graph-of-blocks): most natural
   migration, joint-training gains, but less wet-lab validation than BoltzGen.
-Recommendation: evaluate the BoltzGen/UniMoMo fork **before** sinking effort into PepGLAD patches.
+**DECISION (2026-09-15): adopt BoltzGen.** MIT, native cyclic peptides (peptide-anything protocol +
+covalent-bond spec), wet-lab-validated, unified. Qualification smoke launched (boltzgen_qualify.sh).
+Recommendation was: evaluate the fork before PepGLAD patches.
 Physics/MD (below) is backbone-agnostic and worth doing regardless.
 
 ## The plan (survey-informed, ranked) — modeling first, wet lab last
