@@ -53,7 +53,8 @@ build_spec(){
   PDB="$pdb" CIF="$cif" RECEP="$recep" PEP="$pep" NLEN="$L" SPEC="$spec" python - <<'PY'
 import os, gemmi, numpy as np
 cif=os.environ['CIF']; recep=os.environ['RECEP']; pep=os.environ['PEP']; L=int(os.environ['NLEN']); spec=os.environ['SPEC']
-st=gemmi.read_structure(cif); st.setup_entities(); model=st[0]
+# use the ORIGINAL RCSB cif (it carries _entity_poly_seq, which BoltzGen's mmcif parser requires)
+st=gemmi.read_structure(cif); st.setup_entities(); st.assign_label_seq_id(); model=st[0]
 def is_aa(res):
     info=gemmi.find_tabulated_residue(res.name)
     return bool(info) and info.is_amino_acid()
@@ -66,29 +67,22 @@ rc=get_chain(recep); pc=get_chain(pep)
 if rc is None or pc is None:
     polys=sorted(model, key=lambda c: sum(is_aa(r) for r in c), reverse=True)
     rc = rc or polys[0]; pc = pc or (polys[1] if len(polys)>1 else polys[0])
-# receptor & peptide amino-acid residues, in file order
 rres=[r for r in rc if is_aa(r)]
 pres=[r for r in pc if is_aa(r)]
 def hcoords(res):
     return np.array([[a.pos.x,a.pos.y,a.pos.z] for a in res if a.element.name!='H'], dtype=float)
 P=np.vstack([hcoords(r) for r in pres]) if pres else np.zeros((0,3))
 assert len(rres) and len(P), "empty chain coords"
-# BoltzGen indexes binding residues by 1-based SEQUENTIAL position within the parsed chain (bounded
-# by chain length), NOT by PDB author number. So we write a CLEAN single-chain receptor CIF
-# (standard AAs only, chain 'A', renumbered 1..N contiguous) and emit binding as sequential
-# positions in that same ordered list — removing all auth/label ambiguity and chain-id mismatches.
-new=gemmi.Structure(); nm=gemmi.Model('1'); ch=gemmi.Chain('A')
+# BoltzGen indexes binding residues by label_seq_id (mmcif 1..N canonical sequential position,
+# bounded by chain length), NOT by PDB author residue number. Emit label_seq of contacting
+# receptor residues (correct even for Kabat-numbered/insertion-code chains like the 1u8p Fab).
 pocket=[]
-for i,res in enumerate(rres):
+for res in rres:
     c=hcoords(res)
-    if len(c) and np.sqrt(((c[:,None,:]-P[None,:,:])**2).sum(-1)).min() < 5.0:
-        pocket.append(i+1)              # 1-based sequential index
-    res.seqid=gemmi.SeqId(i+1,' ')      # renumber contiguously
-    ch.add_residue(res)
+    if len(c) and res.label_seq and np.sqrt(((c[:,None,:]-P[None,:,:])**2).sum(-1)).min() < 5.0:
+        pocket.append(int(res.label_seq))
+pocket=sorted(set(pocket))
 assert pocket, "empty pocket"
-nm.add_chain(ch); new.add_model(nm); new.setup_entities()
-recep_cif=cif.replace('.cif','_recep.cif')
-new.make_mmcif_document().write_file(recep_cif)
 lo=max(7, L-2); hi=min(18, L+2); hi=max(hi, lo+1)
 binding=",".join(str(x) for x in pocket)
 yaml=f"""entities:
@@ -97,17 +91,17 @@ yaml=f"""entities:
       sequence: {lo}..{hi}
       cyclic: true
   - file:
-      path: {recep_cif}
+      path: {cif}
       include:
         - chain:
-            id: A
+            id: {rc.name}
       binding_types:
         - chain:
-            id: A
+            id: {rc.name}
             binding: {binding}
 """
 open(spec,'w').write(yaml)
-print(f"{os.environ['PDB']}: recep_chain={rc.name}->A ({len(rres)} res) pep_chain={pc.name} pocket_seq_positions={len(pocket)} max_idx={max(pocket)} design_len={lo}..{hi}")
+print(f"{os.environ['PDB']}: recep_chain={rc.name} ({len(rres)} res) pep_chain={pc.name} pocket_labelseq={len(pocket)} max_idx={max(pocket)} design_len={lo}..{hi}")
 PY
 }
 
