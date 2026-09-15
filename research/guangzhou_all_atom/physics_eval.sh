@@ -77,7 +77,7 @@ stage relaxing_openmm
 python - <<'PY'
 import glob, json, statistics
 from evaluation.dG.openmm_relaxer import ForceFieldMinimizer
-mini = ForceFieldMinimizer(platform='CUDA')
+mini = ForceFieldMinimizer(platform='CPU')  # pip openmm lacks the CUDA platform plugin; CPU is fine for small complexes
 pdbs = sorted(glob.glob('results/cyclic/candidates/*/*.pdb'))
 energies, ok, fail = [], 0, 0
 per = []
