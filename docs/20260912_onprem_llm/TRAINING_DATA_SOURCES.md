@@ -129,6 +129,18 @@ was $2.75/hr — *pricier* than on-demand — so no switch was made (switching w
 more and restarted the run). Load the base off instance-store NVMe (`/opt/dlami/nvme`), not
 EBS root (~10 MB/s vs ~260 MB/s).
 
+### In-scope holdout eval — blocked on a kernel/version issue (2026-09-15)
+
+Built `evaluation/local_trial/eval_holdout.py` (base-27B vs SFT-27B on the RealBio holdout,
+scoring each item both with the adapter and with `disable_adapter()`; direct-adapter, no app
+stack). It runs, but **generation is impractically slow**: Qwen3.8-27B is a Qwen3-Next-style
+hybrid whose **gated-delta-rule linear-attention layers** fall back to a reference PyTorch
+kernel without `flash-linear-attention`. Installing `flash-linear-attention` then hit a
+**Triton-version wall** (`Autotuner … unexpected keyword 'do_bench'`) against torch 2.5.1's
+Triton 3.1. Fix for the eval run: pin a compatible `flash-linear-attention`/`triton`/`torch`
+set (or serve via vLLM which ships the optimized kernels), then run `eval_holdout.py`.
+Training was unaffected (loss converged); only generation/eval is kernel-bound.
+
 - **Next (in-scope eval):** the regulatory 9-checker suite is OUT OF SCOPE (IND/regulatory
   excluded). Measure the SFT lift on the **in-scope 660-item RealBio holdout** — routing,
   param_prefill, autofix/nextflow-debug, protocol_thresholds, workflow_generation — scored
