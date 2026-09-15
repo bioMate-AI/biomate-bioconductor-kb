@@ -66,21 +66,29 @@ rc=get_chain(recep); pc=get_chain(pep)
 if rc is None or pc is None:
     polys=sorted(model, key=lambda c: sum(is_aa(r) for r in c), reverse=True)
     rc = rc or polys[0]; pc = pc or (polys[1] if len(polys)>1 else polys[0])
-def coords(ch):
-    out=[]
-    for res in ch:
-        if not is_aa(res): continue
-        for a in res:
-            if a.element.name=='H': continue
-            out.append((res.seqid.num, a.pos.x, a.pos.y, a.pos.z))
-    return out
-rco=coords(rc); pco=coords(pc)
-R=np.array([[x,y,z] for _,x,y,z in rco]); P=np.array([[x,y,z] for _,x,y,z in pco])
-assert len(R) and len(P), "empty chain coords"
-# min distance receptor-atom -> any peptide-atom; residue in pocket if <5.0A
-d=np.sqrt(((R[:,None,:]-P[None,:,:])**2).sum(-1)).min(axis=1)
-pocket=sorted({rco[i][0] for i in range(len(R)) if d[i]<5.0})
+# receptor & peptide amino-acid residues, in file order
+rres=[r for r in rc if is_aa(r)]
+pres=[r for r in pc if is_aa(r)]
+def hcoords(res):
+    return np.array([[a.pos.x,a.pos.y,a.pos.z] for a in res if a.element.name!='H'], dtype=float)
+P=np.vstack([hcoords(r) for r in pres]) if pres else np.zeros((0,3))
+assert len(rres) and len(P), "empty chain coords"
+# BoltzGen indexes binding residues by 1-based SEQUENTIAL position within the parsed chain (bounded
+# by chain length), NOT by PDB author number. So we write a CLEAN single-chain receptor CIF
+# (standard AAs only, chain 'A', renumbered 1..N contiguous) and emit binding as sequential
+# positions in that same ordered list — removing all auth/label ambiguity and chain-id mismatches.
+new=gemmi.Structure(); nm=gemmi.Model('1'); ch=gemmi.Chain('A')
+pocket=[]
+for i,res in enumerate(rres):
+    c=hcoords(res)
+    if len(c) and np.sqrt(((c[:,None,:]-P[None,:,:])**2).sum(-1)).min() < 5.0:
+        pocket.append(i+1)              # 1-based sequential index
+    res.seqid=gemmi.SeqId(i+1,' ')      # renumber contiguously
+    ch.add_residue(res)
 assert pocket, "empty pocket"
+nm.add_chain(ch); new.add_model(nm); new.setup_entities()
+recep_cif=cif.replace('.cif','_recep.cif')
+new.make_mmcif_document().write_file(recep_cif)
 lo=max(7, L-2); hi=min(18, L+2); hi=max(hi, lo+1)
 binding=",".join(str(x) for x in pocket)
 yaml=f"""entities:
@@ -89,17 +97,17 @@ yaml=f"""entities:
       sequence: {lo}..{hi}
       cyclic: true
   - file:
-      path: {cif}
+      path: {recep_cif}
       include:
         - chain:
-            id: {rc.name}
+            id: A
       binding_types:
         - chain:
-            id: {rc.name}
+            id: A
             binding: {binding}
 """
 open(spec,'w').write(yaml)
-print(f"{os.environ['PDB']}: recep_chain={rc.name} pep_chain={pc.name} pocket_residues={len(pocket)} design_len={lo}..{hi}")
+print(f"{os.environ['PDB']}: recep_chain={rc.name}->A ({len(rres)} res) pep_chain={pc.name} pocket_seq_positions={len(pocket)} max_idx={max(pocket)} design_len={lo}..{hi}")
 PY
 }
 
