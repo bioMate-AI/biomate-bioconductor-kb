@@ -57,10 +57,15 @@ kept=[lines[i] for i in range(len(ds))
 open(idx,'w').writelines(kept); print('test kept', len(kept), 'of', len(lines), 'cap', cap)
 PY
 
-stage calibrating
+ATTEMPTS=${ATTEMPTS:-4}
+MODES=${MODES:-"none default cyclic"}
 mkdir -p run_outputs
-cp cyclic_model.ckpt cyclic_calibrated.ckpt
-python - <<'PY'
+
+# calibration only needed for default/cyclic guidance
+if echo "$MODES" | grep -qE "default|cyclic"; then
+  stage calibrating
+  cp cyclic_model.ckpt cyclic_calibrated.ckpt
+  python - <<'PY'
 import yaml
 from pathlib import Path
 c=yaml.safe_load(Path('configs/pepbench/ldm/setup_latent_guidance.yaml').read_text())
@@ -69,19 +74,20 @@ c['dataset']['test']['specify_index']='datasets/pepbdb/processed/train_index.txt
 c['dataloader'].update(num_workers=0, batch_size=4)
 Path('run_outputs/cyclic_calib.yaml').write_text(yaml.safe_dump(c))
 PY
-python setup_latent_guidance.py --config run_outputs/cyclic_calib.yaml --ckpt cyclic_calibrated.ckpt --gpu 0 2>&1 | tail -3
+  python setup_latent_guidance.py --config run_outputs/cyclic_calib.yaml --ckpt cyclic_calibrated.ckpt --gpu 0 2>&1 | tail -3
+fi
 
 stage evaluating
 run_one(){ # $1 guidance  $2 ckpt
   local g="$1" ck="$2"
   PYTHONPATH="$PWD" python "$ROOT/code/generate_validation.py" --checkpoint "$ck" \
-    --dataset-dir datasets/pepbdb/processed --index test_index.txt --guidance "$g" --attempts 4 \
+    --dataset-dir datasets/pepbdb/processed --index test_index.txt --guidance "$g" --attempts "$ATTEMPTS" \
     --output "run_outputs/ceval_$g" > "$ROOT/status/ceval_$g.log" 2>&1 || echo "eval $g nonzero exit"
   cp -f "run_outputs/ceval_$g/summary.json" "$ROOT/status/summary_$g.json" 2>/dev/null || true
   cp -f "run_outputs/ceval_$g/attempts.json" "$ROOT/status/attempts_$g.json" 2>/dev/null || true
   aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true
 }
-run_one none cyclic_model.ckpt          # unguided control (no calibration needed)
-run_one default cyclic_calibrated.ckpt  # PepGLAD geometry guidance
-run_one cyclic cyclic_calibrated.ckpt   # + head-to-tail closure
+for m in $MODES; do
+  if [ "$m" = "none" ]; then run_one none cyclic_model.ckpt; else run_one "$m" cyclic_calibrated.ckpt; fi
+done
 stage cyclic_eval_complete
