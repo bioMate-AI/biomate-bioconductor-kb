@@ -29,8 +29,11 @@ stage preparing
 aws s3 cp "s3://$BUCKET/cyclic_peptide/code/generate_validation.py" "$ROOT/code/generate_validation.py" --only-show-errors
 [ -d "$ROOT/PepGLAD/.git" ] || git clone https://github.com/THUNLP-MT/PepGLAD.git "$ROOT/PepGLAD"
 cd "$ROOT/PepGLAD"; git checkout bad015ca50c312a89482adb5220c3d907f13df5c
-mkdir -p datasets/pepbdb/processed
+mkdir -p datasets/pepbdb/processed datasets/pepbdb/pdbs
 aws s3 sync "$CYCLIC_DATA" datasets/pepbdb/processed --only-show-errors
+# get_summary reads reference PDBs from mmap_dir/../pdbs; pepbdb.py wrote them into processed/pdbs.
+mv datasets/pepbdb/processed/pdbs/* datasets/pepbdb/pdbs/ 2>/dev/null || cp -a datasets/pepbdb/processed/pdbs/. datasets/pepbdb/pdbs/
+echo "reference pdbs at datasets/pepbdb/pdbs: $(ls datasets/pepbdb/pdbs | wc -l)"
 # fetch best fine-tuned cyclic checkpoint
 aws s3 sync "$FT_RUN/training/cyclic_ldm/version_0/checkpoint/" ft_ckpt/ --only-show-errors
 BEST=$(python - <<'PY'
