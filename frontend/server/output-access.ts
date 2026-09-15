@@ -35,6 +35,10 @@ export interface OutputAccessDeps<TOut extends OutputLike = OutputLike> {
   getOutput: (id: string) => Promise<TOut | undefined>;
   getInvocation: (id: string) => Promise<InvocationLike | undefined>;
   getRunByGalaxyId: (galaxyInvocationId: string) => Promise<AccessControlledRun | undefined>;
+  // Resolve a WorkflowInvocation by its galaxyInvocationId. Optional so existing
+  // callers/tests keep working, but required to authorize nextflow outputs whose
+  // `invocationId` field carries a galaxyInvocationId rather than an invocation PK.
+  getInvocationByGalaxyId?: (galaxyInvocationId: string) => Promise<InvocationLike | undefined>;
   getUserProjects?: (userId: string) => Promise<Array<{ id?: string | null }> | undefined>;
 }
 
@@ -60,6 +64,45 @@ async function accessTargetForInvocation(
   return undefined;
 }
 
+/**
+ * Resolve the ExecutionRun-level access target that owns an output, given the
+ * value stored in `output.invocationId`. That field is overloaded across run
+ * types, so we try each meaning in turn and fail closed only if none resolves:
+ *
+ *   1. a WorkflowInvocation PK          → invocation → owning run/owner
+ *   2. a galaxyInvocationId directly    → owning ExecutionRun   (nextflow outputs
+ *                                          are keyed by galaxy id, often with no
+ *                                          WorkflowInvocation PK row at all)
+ *   3. a galaxyInvocationId             → WorkflowInvocation → owning run/owner
+ *
+ * Before this, only (1) was attempted — so a legitimate owner was denied (403)
+ * on their own nextflow outputs, whose invocationId is a galaxy id, not a PK.
+ */
+async function accessTargetForOutputInvocationId(
+  invId: string,
+  deps: OutputAccessDeps<any>,
+): Promise<AccessControlledRun | undefined> {
+  if (!invId) return undefined;
+  // (1) invId as a WorkflowInvocation PK.
+  const invByPk = await deps.getInvocation(invId);
+  if (invByPk) {
+    const t = await accessTargetForInvocation(invByPk, deps);
+    if (t) return t;
+  }
+  // (2) invId as a galaxyInvocationId pointing straight at the owning run.
+  const runByGalaxy = await deps.getRunByGalaxyId(invId);
+  if (runByGalaxy) return runByGalaxy;
+  // (3) invId as a galaxyInvocationId pointing at a WorkflowInvocation row.
+  if (deps.getInvocationByGalaxyId) {
+    const invByGalaxy = await deps.getInvocationByGalaxyId(invId);
+    if (invByGalaxy) {
+      const t = await accessTargetForInvocation(invByGalaxy, deps);
+      if (t) return t;
+    }
+  }
+  return undefined;
+}
+
 export type OutputAccessDecision<TOut extends OutputLike = OutputLike> =
   | { allowed: true; output: TOut; via: 'owner' | 'project_member' }
   | { allowed: false; status: 401 | 403 | 404; error: string };
@@ -74,8 +117,9 @@ export async function decideOutputAccess<TOut extends OutputLike>(
   const output = await deps.getOutput(outputId);
   if (!output) return { allowed: false, status: 404, error: 'Output not found' };
 
-  const inv = output.invocationId ? await deps.getInvocation(output.invocationId) : undefined;
-  const target = await accessTargetForInvocation(inv, deps);
+  const target = output.invocationId
+    ? await accessTargetForOutputInvocationId(output.invocationId, deps)
+    : undefined;
   if (!target) {
     // Cannot establish an owner → fail closed. Distinguish unauthenticated
     // (401) from authenticated-but-unauthorizable (403) to match run policy.

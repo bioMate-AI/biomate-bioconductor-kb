@@ -70,6 +70,39 @@ describe('decideOutputAccess', () => {
     // Never queried a run — there was no galaxyInvocationId to resolve.
     expect(deps.getRunByGalaxyId).not.toHaveBeenCalled();
   });
+
+  // REGRESSION (fixed): nextflow outputs carry a galaxyInvocationId in their
+  // `invocationId` field and often have NO WorkflowInvocation PK row. The
+  // original resolver only tried getInvocation(pk) → undefined → fail-closed,
+  // so the legitimate OWNER was denied 403 on their own outputs. The owning run
+  // must be resolved by treating invocationId as a galaxy id.
+  it('authorizes the owner of a nextflow output keyed by galaxyInvocationId (no PK invocation)', async () => {
+    const deps = makeDeps({
+      // invocationId is a galaxy id; getInvocation(pk) misses entirely.
+      getOutput: vi.fn(async () => ({ id: 'out-nf', invocationId: 'gx-nf' })),
+      getInvocation: vi.fn(async () => undefined),
+      getInvocationByGalaxyId: vi.fn(async () => undefined),
+      getRunByGalaxyId: vi.fn(async (gid) =>
+        gid === 'gx-nf' ? { userId: OWNER, projectId: PROJECT } : undefined),
+    });
+    const owner = await decideOutputAccess('out-nf', OWNER, deps);
+    expect(owner.allowed).toBe(true);
+    if (owner.allowed) expect(owner.via).toBe('owner');
+    // A stranger is still blocked (IDOR remains closed).
+    expect(await decideOutputAccess('out-nf', STRANGER, deps)).toMatchObject({ allowed: false, status: 403 });
+  });
+
+  it('authorizes via a WorkflowInvocation resolved by galaxy id (invocationId is a galaxy id with a PK row elsewhere)', async () => {
+    const deps = makeDeps({
+      getOutput: vi.fn(async () => ({ id: 'out-nf2', invocationId: 'gx-2' })),
+      getInvocation: vi.fn(async () => undefined),
+      getRunByGalaxyId: vi.fn(async () => undefined),
+      getInvocationByGalaxyId: vi.fn(async (gid) =>
+        gid === 'gx-2' ? { userId: OWNER, galaxyInvocationId: 'gx-2' } : undefined),
+    });
+    const owner = await decideOutputAccess('out-nf2', OWNER, deps);
+    expect(owner.allowed).toBe(true);
+  });
 });
 
 describe('decideInvocationAccess', () => {

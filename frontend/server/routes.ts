@@ -1396,6 +1396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     getOutput: (id: string) => storage.getOutput(id),
     getInvocation: (id: string) => storage.getInvocation(id),
     getRunByGalaxyId: (gid: string) => storage.getExecutionRunByGalaxyId(gid),
+    getInvocationByGalaxyId: (gid: string) => storage.getInvocationByGalaxyId(gid),
     getUserProjects: (storage as any).getUserProjects?.bind(storage),
   };
   // Initialize repositories
@@ -9541,7 +9542,10 @@ ${paramLines || '(none recorded)'}`;
   // Download all outputs for an invocation as ZIP
   app.get("/api/invocations/:id/download-all", authenticateToken, async (req, res) => {
     try {
-      // Accept either a WorkflowInvocation ID or an ExecutionRun ID.
+      // Accept a WorkflowInvocation ID, a galaxyInvocationId, or an ExecutionRun
+      // ID. Nextflow runs often have NO WorkflowInvocation PK row — their outputs
+      // are keyed by galaxyInvocationId and the owner lives on the ExecutionRun —
+      // so resolve the owning run by galaxy id / run id and authorize via that.
       let invocation = await storage.getInvocation(req.params.id);
       if (!invocation) {
         const byGalaxyId = await storage.getInvocationByGalaxyId(req.params.id);
@@ -9558,16 +9562,36 @@ ${paramLines || '(none recorded)'}`;
           }
         }
       }
+
+      // Fallback: no WorkflowInvocation row, but the id maps to an owning
+      // ExecutionRun (by galaxy id or run id). Authorize via the run and stream
+      // the outputs keyed by the galaxy id.
+      let ownerRun: any = undefined;
+      let outputKey = req.params.id;
+      let displayName = "workflow";
       if (!invocation) {
+        ownerRun =
+          (await storage.getExecutionRunByGalaxyId(req.params.id)) ||
+          (await storage.getExecutionRun(req.params.id));
+        if (ownerRun) {
+          outputKey = ownerRun.execution?.galaxyInvocationId || req.params.id;
+          displayName = ownerRun.workflowName || ownerRun.name || "workflow";
+        }
+      }
+
+      if (!invocation && !ownerRun) {
         return res.status(404).json({ error: "Invocation not found" });
       }
 
-      const invAccess = await decideInvocationAccess(invocation, req.user?.id ? String(req.user.id) : null, outputAccessDeps);
+      const accessInput = invocation
+        ? invocation
+        : { userId: ownerRun.userId ?? ownerRun.execution?.userId ?? null, projectId: ownerRun.projectId ?? null, galaxyInvocationId: outputKey };
+      const invAccess = await decideInvocationAccess(accessInput as any, req.user?.id ? String(req.user.id) : null, outputAccessDeps);
       if (!invAccess.allowed) {
         return res.status(invAccess.status).json({ error: invAccess.error });
       }
 
-      const outputs = await storage.getInvocationOutputs(invocation.id);
+      const outputs = await storage.getInvocationOutputs(invocation ? invocation.id : outputKey);
       if (!outputs || outputs.length === 0) {
         return res.status(404).json({ error: "No outputs found for this invocation" });
       }
@@ -9576,7 +9600,9 @@ ${paramLines || '(none recorded)'}`;
       const archive = archiver('zip', { zlib: { level: 9 } });
 
       // Set response headers
-      const zipFilename = `${invocation.workflowName || 'workflow'}_outputs_${invocation.id.slice(0, 8)}.zip`;
+      const zipBase = invocation ? (invocation.workflowName || 'workflow') : displayName;
+      const zipId = (invocation ? invocation.id : outputKey).slice(0, 8);
+      const zipFilename = `${zipBase}_outputs_${zipId}.zip`;
       res.setHeader('Content-Type', 'application/zip');
       res.setHeader('Content-Disposition', `attachment; filename="${zipFilename}"`);
 
@@ -14642,7 +14668,9 @@ Respond ONLY with valid JSON (no markdown wrapper):
   app.get("/api/invocations/:id/report", authenticateToken, async (req, res) => {
     try {
       const { format } = req.query;
-      const invocation = await storage.getInvocation(req.params.id);
+      const invocation =
+        (await storage.getInvocation(req.params.id)) ||
+        (await storage.getInvocationByGalaxyId(req.params.id));
 
       if (!invocation) {
         return res.status(404).json({ error: "Invocation not found" });
