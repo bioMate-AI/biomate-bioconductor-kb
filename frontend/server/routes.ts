@@ -12109,26 +12109,52 @@ Rules:
         const { runsOutputsService } = await import("./services/runs-outputs-service");
         outputs = (await runsOutputsService.list(run.id)) || [];
       } catch (e: any) {
-        // Outputs unavailable (run not finished / resolver hiccup) — the record
-        // still reports identity + params + input bindings.
-        console.warn("[reproducibility-record] outputs unavailable:", e?.message ?? e);
+        console.warn("[reproducibility-record] canonical resolver failed:", e?.message ?? e);
+      }
+      // Fallback: the canonical resolver derives the S3 outdir from the nextflow
+      // run id and misses runs whose outputs are staged under a different prefix
+      // (observed: completed runs with 0 canonical outputs but real files in the
+      // invocation-output store). The invocation store holds the real per-output
+      // s3Uri, so use it when the canonical list is empty — the record must
+      // reflect the outputs that actually exist.
+      if (!outputs.length) {
+        try {
+          const invId = (run as any).execution?.galaxyInvocationId || run.id;
+          outputs = (await storage.getInvocationOutputs(invId)) || [];
+        } catch (e: any) {
+          console.warn("[reproducibility-record] invocation-output fallback failed:", e?.message ?? e);
+        }
       }
       const record = assembleReproducibilityRecord(run, outputs);
       // Opt-in per-output SHA-256 (?checksums=1) — the verifiable half of the
-      // record. Bounded (size + count caps in enrichOutputsWithChecksums) and
-      // off by default so the common read stays fast; fetches bytes from the
-      // resolver's presigned URLs.
+      // record. Bounded (size + count caps) and off by default so the common
+      // read stays fast. Fetches bytes from a presigned downloadUrl (canonical
+      // resolver) or, for the invocation-output fallback, directly from S3.
       if (req.query.checksums && record.outputs.length) {
-        const urlById = new Map<string, string>();
-        for (const o of outputs) {
-          if (o?.id && o?.downloadUrl) urlById.set(String(o.id), String(o.downloadUrl));
-        }
+        const rawById = new Map<string, any>();
+        for (const o of outputs) if (o?.id) rawById.set(String(o.id), o);
         record.outputs = await enrichOutputsWithChecksums(record.outputs, async (ro) => {
-          const url = ro.id ? urlById.get(ro.id) : undefined;
-          if (!url) return null;
-          const resp = await fetch(url);
-          if (!resp.ok) return null;
-          return Buffer.from(await resp.arrayBuffer());
+          const raw = ro.id ? rawById.get(ro.id) : undefined;
+          if (!raw) return null;
+          if (raw.downloadUrl) {
+            const resp = await fetch(raw.downloadUrl);
+            return resp.ok ? Buffer.from(await resp.arrayBuffer()) : null;
+          }
+          const s3Uri: unknown = raw.s3Uri || raw.metadata?.s3Uri;
+          if (typeof s3Uri === "string") {
+            const m = s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
+            if (!m) return null;
+            const { S3Client, GetObjectCommand } = await import("@aws-sdk/client-s3");
+            const s3 = new S3Client({
+              region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || "us-east-1",
+              followRegionRedirects: true,
+            });
+            const obj: any = await s3.send(new GetObjectCommand({ Bucket: m[1], Key: m[2] }));
+            const chunks: Buffer[] = [];
+            for await (const c of obj.Body as any) chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c));
+            return Buffer.concat(chunks);
+          }
+          return null;
         });
       }
       res.json(record);
