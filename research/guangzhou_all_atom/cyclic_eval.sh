@@ -55,6 +55,7 @@ open(idx,'w').writelines(kept); print('test kept', len(kept), 'of', len(lines), 
 PY
 
 stage calibrating
+mkdir -p run_outputs
 cp cyclic_model.ckpt cyclic_calibrated.ckpt
 python - <<'PY'
 import yaml
@@ -65,7 +66,6 @@ c['dataset']['test']['specify_index']='datasets/pepbdb/processed/train_index.txt
 c['dataloader'].update(num_workers=0, batch_size=4)
 Path('run_outputs/cyclic_calib.yaml').write_text(yaml.safe_dump(c))
 PY
-mkdir -p run_outputs
 python setup_latent_guidance.py --config run_outputs/cyclic_calib.yaml --ckpt cyclic_calibrated.ckpt --gpu 0 2>&1 | tail -3
 
 stage evaluating
