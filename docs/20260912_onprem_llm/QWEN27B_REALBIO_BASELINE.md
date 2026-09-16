@@ -54,3 +54,28 @@ Lessons that reshape the fine-tuning plan:
 2. Single-task LoRAs cause negative transfer → must train JOINTLY across the task cluster with a
    balanced mixture (and keep base-format examples to preserve untuned tasks).
 3. The current routing LoRA is NOT shippable; rebuild data in the harness/production formats.
+
+## Multi-task LoRA (format-matched + joint) vs base — on the real harness
+
+| Task | Base | routing-LoRA | Multitask-LoRA | Δ vs base |
+|------|------|--------------|----------------|-----------|
+| routing bare | 0.18 | 0.17 | **0.285** | **+0.105** |
+| routing catalog | 0.815 | 0.795 | 0.805 | −0.01 |
+| autofix | 0.87 | 0.80 | 0.85 | −0.02 |
+| param F1 | 0.664 | 0.646 | 0.657 | −0.01 |
+| param precision | 0.77 | — | 0.823 | +0.05 |
+| param must_not_fill violations | 53 | 49 | **36** | **−32%** |
+| workflow_gen | 0.50 | 0.50 | 0.50 | 0 |
+| protocol | 0.43 | 0.43 | 0.43 | 0 |
+| boin / dd | 0.78 / 0.70 | 0.83 / 0.70 | 0.78 / 0.70 | 0 |
+
+### Read (honest)
+- **Method validated:** format-matched + JOINT training (a) produces real gains on the tasks it
+  targeted with matched data — routing-bare **+10.5pp**, param **restraint** (violations −32%,
+  precision +5pp) — and (b) shows **NO negative transfer** (autofix/boin/dd/protocol/workflow_gen
+  held), unlike the single-task routing LoRA which tanked autofix −7pp.
+- **Flat where expected:** autofix (already 0.87; training data category-skewed toward missing_input),
+  routing-catalog (near ceiling), and protocol/workflow_gen (NOT in this training mix).
+- **Path to hit the higher bar:** (1) add protocol + workflow_gen to the mixture; (2) balance param
+  up (was only 96 examples) and fix autofix category skew; (3) more volume per task. Gains are real
+  but data-limited, not method-limited.
