@@ -10,13 +10,16 @@ retrieval ceiling ~0.98).
 |-----------|----------|----------|-----------|-----------|-----------|-----|
 | Lexical (TF-IDF 1-2gram) | 0.48 | 0.80 | 0.86 | 0.92 | 0.96 | 0.62 |
 | Dense (MiniLM, general)  | 0.37 | 0.64 | 0.74 | 0.81 | 0.91 | 0.49 |
-| Hybrid (z-norm sum)      | 0.51 | 0.83 | 0.90 | 0.94 | 0.985 | 0.65 |
+| Dense (BGE-small, domain)| 0.44 | 0.78 | 0.83 | 0.89 | 0.954 | 0.60 |
+| Hybrid (TF-IDF+MiniLM)   | 0.51 | 0.83 | 0.90 | 0.94 | 0.985 | 0.65 |
+| **Hybrid (TF-IDF+BGE)**  | 0.52 | 0.83 | 0.89 | 0.949 | 0.98 | 0.66 |
 
 ## Findings
 1. Retrieval carries routing: hybrid recall@20=0.94, recall@50=0.985. The LLM ranker only needs to
    rerank a small retrieved set; that is where the 2×2 candidate effect came from.
-2. Lexical > general dense: domain routing depends on rare tokens (gene/assay/tool names) a generic
-   embedder blurs. Use a DOMAIN embedder (BGE) or lexical; a general dense model hurts. Hybrid best.
+2. Lexical > domain dense > general dense: TF-IDF (r@5 0.80) > BGE-small (0.78) > MiniLM (0.64). Domain
+   routing depends on rare tokens (gene/assay/tool names); even a domain embedder slightly trails lexical.
+   Best = hybrid TF-IDF+BGE (recall@20=0.95). A bigger/bio-specific embedder may add a little more.
 3. recall@1≈0.51: search alone cannot pick the winner — the rank step is essential (0.94→top-1).
 
 ## Implications
