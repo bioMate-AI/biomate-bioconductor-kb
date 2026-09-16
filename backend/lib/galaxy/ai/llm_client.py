@@ -180,6 +180,18 @@ class LLMClient:
             if self.api_key:
                 self.headers["Authorization"] = f"Bearer {self.api_key}"
 
+        elif self.provider == 'openai_compatible':
+            # Generic OpenAI-compatible API: vLLM / LMDeploy / customer 32B model
+            import os as _os
+            self.api_base = self.base_url or _os.environ.get("LLM_API_URL") or "http://localhost:8000/v1"
+            self.headers = {"Content-Type": "application/json"}
+            _key = self.api_key or _os.environ.get("LLM_API_KEY", "none")
+            if _key and _key != "none":
+                self.headers["Authorization"] = f"Bearer {_key}"
+            # Use LLM_MODEL as model name if not already set via config
+            if not self.model:
+                self.model = _os.environ.get("LLM_MODEL", "")
+
         else:
             raise ValueError(f"Unsupported LLM provider: {self.provider}")
     

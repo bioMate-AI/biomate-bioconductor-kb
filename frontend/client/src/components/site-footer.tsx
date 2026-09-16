@@ -18,7 +18,7 @@ export function SiteFooter() {
       { name: "Privacy Policy", href: "/privacy" },
       { name: "Terms of Service", href: "/terms" },
       { name: "Cookie Policy", href: "/privacy" },
-      { name: "Compliance", href: "/privacy" }
+      { name: "Trust Center", href: "https://app.vanta.com/biomate.ai/trust/srkhbffxfhjujk3n0ge9lq", external: true }
     ]
   }
 
@@ -122,12 +122,23 @@ export function SiteFooter() {
             <ul className="space-y-2">
               {footerLinks.legal.map((link) => (
                 <li key={link.name}>
-                  <button
-                    onClick={() => setLocation(link.href)}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {link.name}
-                  </button>
+                  {(link as any).external ? (
+                    <a
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {link.name}
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => setLocation(link.href)}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {link.name}
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -139,9 +150,20 @@ export function SiteFooter() {
         {/* Bottom Footer */}
         <div className="flex flex-col md:flex-row justify-between items-center text-sm text-muted-foreground">
           <p>© 2026 BioMate Inc. All rights reserved.</p>
-          <p className="mt-2 md:mt-0">
-            Made with ❤️ for researchers worldwide
-          </p>
+          <div className="flex items-center gap-4 mt-2 md:mt-0">
+            <p>Made with ❤️ for researchers worldwide</p>
+            <a
+              href="https://app.vanta.com/biomate.ai/trust/srkhbffxfhjujk3n0ge9lq"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs border border-border rounded-md px-2.5 py-1 hover:bg-muted transition-colors"
+            >
+              <svg className="h-3.5 w-3.5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clipRule="evenodd" />
+              </svg>
+              <span>Secured by Vanta</span>
+            </a>
+          </div>
         </div>
       </div>
     </footer>

@@ -69,7 +69,8 @@ _runs: Dict[str, Dict[str, Any]] = {}
 # reentrancy is safe. Incident 2026-06-30 (connector hERG, 5 consecutive fails).
 _runs_lock = threading.RLock()
 
-from galaxy.ai.runs import get_run_state_store  # noqa: E402
+from galaxy.ai.runs import get_run_state_store
+from galaxy.ai.s3_utils import make_s3_client  # noqa: E402
 
 # Start the orphan-completion poller on every gunicorn worker at module load,
 # not just when a run is submitted. Without this, workers that restart while
@@ -342,7 +343,7 @@ def _parse_deseq2_results_from_s3(s3_output_files: list) -> tuple:
         return 0, []
     try:
         import boto3
-        _s3 = boto3.client("s3")
+        _s3 = make_s3_client()
         _bucket, _key = results_file.replace("s3://", "").split("/", 1)
         _obj = _s3.get_object(Bucket=_bucket, Key=_key)
         content = _obj["Body"].read().decode("utf-8")
@@ -380,7 +381,7 @@ def _parse_enrichgo_results_from_s3(s3_output_files: list) -> tuple:
         return "", "", 0
     try:
         import boto3
-        _s3 = boto3.client("s3")
+        _s3 = make_s3_client()
         _bucket, _key = results_file.replace("s3://", "").split("/", 1)
         _obj = _s3.get_object(Bucket=_bucket, Key=_key)
         content = _obj["Body"].read().decode("utf-8")
@@ -1655,10 +1656,10 @@ def _stage_declared_input(src: str, dest: Path) -> None:
         # "must be addressed using the specified endpoint".
         import boto3
         _bucket, _key = src[len("s3://"):].split("/", 1)
-        _s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION") or "us-east-1")
+        _s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION") or "us-east-1")
         try:
             _loc = _s3.get_bucket_location(Bucket=_bucket).get("LocationConstraint") or "us-east-1"
-            _s3 = boto3.client("s3", region_name=_loc)
+            _s3 = make_s3_client(region_name=_loc)
         except Exception:
             pass
         _s3.download_file(_bucket, _key, str(dest))
@@ -2472,7 +2473,7 @@ def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
         # Trust known-good public buckets; validate object existence below if needed.
         pass
     else:
-        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
         try:
             s3.head_bucket(Bucket=bucket)
         except NoCredentialsError:
@@ -3232,7 +3233,7 @@ def _evaluate_qc_from_s3(
                 import boto3
                 _bucket, _key = _qc_uri[5:].split("/", 1)
                 _report = _json.loads(
-                    boto3.client("s3").get_object(Bucket=_bucket, Key=_key)["Body"].read()
+                    make_s3_client().get_object(Bucket=_bucket, Key=_key)["Body"].read()
                 )
             except Exception as _e:  # noqa: BLE001 — safe-fail, gate is best-effort
                 log.warning("[QC Gate] preproc qc_report.json read failed for %s: %s", run_id, _e)
@@ -3643,7 +3644,7 @@ def _list_s3_output_files(s3_uri: str) -> list:
         parts = s3_uri[len("s3://"):].split("/", 1)
         bucket = parts[0]
         prefix = (parts[1] if len(parts) > 1 else "").rstrip("/") + "/"
-        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
         paginator = s3.get_paginator("list_objects_v2")
         skip_prefixes = ("/work/", "/.nextflow/", "/trace.", "/timeline.", "/dag.", "/report.")
         results = []
@@ -3706,7 +3707,7 @@ def _list_s3_work_output_files(work_s3_uri: str) -> list:
         parts = work_s3_uri[len("s3://"):].split("/", 1)
         bucket = parts[0]
         prefix = (parts[1] if len(parts) > 1 else "").rstrip("/") + "/"
-        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
         paginator = s3.get_paginator("list_objects_v2")
         results = []
         for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
@@ -3857,7 +3858,7 @@ def _build_qc_report_from_s3_files(s3_files: List[Dict], outdir: str) -> Optiona
     try:
         import boto3 as _boto3
         import json as _json
-        s3_client = _boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        s3_client = _make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
     except ImportError:
         return None
 
@@ -4063,7 +4064,7 @@ def _tag_s3_outputs(run_meta: Dict[str, Any]) -> None:
         bucket = parts[0]
         prefix = parts[1] if len(parts) > 1 else ""
 
-        s3 = boto3.client("s3")
+        s3 = make_s3_client()
         paginator = s3.get_paginator("list_objects_v2")
         tag_set = [
             {"Key": "user_id", "Value": user_id},
@@ -7145,7 +7146,7 @@ def download_s3_output(
         import boto3
         parts = s3_uri[len("s3://"):].split("/", 1)
         bucket, key = parts[0], parts[1]
-        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
         url = s3.generate_presigned_url(
             "get_object",
             Params={"Bucket": bucket, "Key": key},
@@ -7188,7 +7189,7 @@ def list_run_output_files(run_id: str) -> Any:
     # Generate presigned URLs for each file
     try:
         import boto3
-        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
     except ImportError:
         return {"run_id": run_id, "files": raw_files, "note": "boto3 not available — no download URLs"}
 
@@ -10451,7 +10452,7 @@ async def fetch_public_data(body: FetchPublicDataRequest):
 
     try:
         import boto3
-        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-1"))
+        s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-1"))
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{filename}") as tmp:
             tmp_path = tmp.name
@@ -10533,7 +10534,7 @@ async def browse_s3(
 
     try:
         import boto3
-        s3 = boto3.client("s3", **boto_kwargs)
+        s3 = make_s3_client(**boto_kwargs)
 
         paginator = s3.get_paginator("list_objects_v2")
         page_iter = paginator.paginate(
