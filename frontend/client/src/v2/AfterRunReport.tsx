@@ -113,7 +113,12 @@ interface AfterRunReportProps {
   onContinueAnalysis?: (suggestion: string) => void;
 }
 
-type TabId = "findings" | "outputs" | "methods" | "params" | "software" | "citations" | "qc" | "trajectory" | "reproducibility";
+// Accepted design (RunSurface.jsx RTABS): the after-run surface is exactly
+// three top-level tabs — Summary (landing), Outputs, and Reproducibility
+// record. Methods / resolved parameters / software / citations / QC report /
+// trajectory are no longer top-level peers; they are collapsible sections
+// nested INSIDE the Reproducibility record tab.
+type TabId = "summary" | "outputs" | "record";
 
 interface OutputFile {
   step: string;
@@ -147,7 +152,8 @@ export function AfterRunReport({
   // directory toolbar work; intentionally unread in v0.
   void nextflowOutputDir;
   const isFailed = executionStatus === "failed" || executionStatus === "cancelled" || executionStatus === "error";
-  const [tab, setTab] = useState<TabId>("outputs");
+  // Landing tab is Summary (accepted design) — not Outputs.
+  const [tab, setTab] = useState<TabId>("summary");
 
   // Outputs come from the parent's executionRun state (no /steps endpoint exists).
   const outputs = outputsProp ?? [];
@@ -168,30 +174,15 @@ export function AfterRunReport({
   const [downloadState, setDownloadState] = useState<'idle' | 'preparing'>('idle');
   const [downloadToast, setDownloadToast] = useState<string | null>(null);
 
-  // Compute which optional tabs to show based on real data presence.
-  // Hide-when-empty discipline: no "Coming soon" placeholders, just absence.
-  // Tab order set by UX review 2026-06-19: outputs → findings → QC report →
-  // methods → citations come first (the five sections users actually read);
-  // parameters + software trail as forensic reference.
-  const visibleTabs = useMemo<Array<[TabId, string]>>(() => {
-    const t: Array<[TabId, string]> = [
-      ["outputs", "Outputs"],
-      ["findings", "Findings"],
-    ];
-    // QC tab always visible — shows "all passed" for good runs, blocked gate info for failed
-    t.push(["qc", "QC report"]);
-    if (methods.hasRealContent) t.push(["methods", "Methods"]);
-    if (citations.length > 0) t.push(["citations", "Citations"]);
-    t.push(["params", "Parameters"]);
-    if (Object.keys(software).length > 0) t.push(["software", "Software"]);
-    // Reproducibility — the unified provenance record (identity + params + bound
-    // inputs + outputs). Always visible; renders its own honest empty state.
-    t.push(["reproducibility", "Reproducibility"]);
-    // Trajectory (§7.7) — always visible; renders its own honest empty state
-    // ("No entries") until the backend agent-event log ships.
-    t.push(["trajectory", "Trajectory"]);
-    return t;
-  }, [methods.hasRealContent, software, citations.length]);
+  // Accepted design: exactly three top-level tabs, Summary first. Everything
+  // that used to be a peer tab (Methods, Parameters, Software, Citations, QC
+  // report, Trajectory) is now a collapsible section inside the record tab —
+  // still reachable, just re-nested (nothing is hidden or discarded).
+  const visibleTabs: Array<[TabId, string]> = [
+    ["summary", "Summary"],
+    ["outputs", "Outputs"],
+    ["record", "Reproducibility record"],
+  ];
 
   const handleDownload = () => {
     if (downloadState !== 'idle') return; // dedup double-click
@@ -281,8 +272,20 @@ export function AfterRunReport({
         ))}
       </div>
       <div style={styles.body}>
-        {tab === "findings" && (
-          <>
+        {/* Summary (landing tab) — the run's headline findings summary, marked
+            as the immutable "run original". Reuses the existing FindingsCard +
+            figures rendering. */}
+        {tab === "summary" && (
+          <div data-testid="after-summary-tab">
+            <div style={styles.runOriginalRow}>
+              <span style={styles.runOriginalBadge} data-testid="after-run-original-badge">
+                Run original
+              </span>
+              <span style={styles.runOriginalHint}>
+                The unedited record of what this run produced. Reports you edit
+                are saved alongside it; this original is never overwritten.
+              </span>
+            </div>
             <FindingsCard runId={runId} onContinueAnalysis={onContinueAnalysis} executionStatus={executionStatus} />
             {findings?.figures && findings.figures.length > 0 && (
               <FindingsFiguresPanel figures={findings.figures} />
@@ -305,20 +308,24 @@ export function AfterRunReport({
               Findings are generated directly from the run manifest. Numbers
               and figures in this section come from the workflow outputs.
             </div>
-          </>
-        )}
-        {tab === "outputs" && <OutputsTab outputs={outputs} runId={runId} invocationId={invocationId} executionStatus={executionStatus} projectId={projectId} />}
-        {tab === "methods" && <MethodsTab methods={methods} workflowName={workflowName} runId={runId} />}
-        {tab === "params" && <ParametersTab parameters={parameters} runId={runId} />}
-        {tab === "software" && <SoftwareTab versions={software} />}
-        {tab === "citations" && <CitationsTab citations={citations} />}
-        {tab === "qc" && <QcAuditTab events={qcEvents} />}
-        {tab === "trajectory" && (
-          <div style={{ padding: "4px 2px" }}>
-            <TrajectoryView rows={trajectoryRows} />
           </div>
         )}
-        {tab === "reproducibility" && <ReproducibilityTab runId={runId} />}
+        {tab === "outputs" && <OutputsTab outputs={outputs} runId={runId} invocationId={invocationId} executionStatus={executionStatus} projectId={projectId} />}
+        {/* Reproducibility record — the unified audit trail. Everything that
+            used to be a peer tab is folded here as an expandable section;
+            nothing is hidden or discarded. */}
+        {tab === "record" && (
+          <ReproducibilityRecordTab
+            runId={runId}
+            methods={methods}
+            workflowName={workflowName}
+            parameters={parameters}
+            software={software}
+            citations={citations}
+            qcEvents={qcEvents}
+            trajectoryRows={trajectoryRows}
+          />
+        )}
       </div>
     </div>
   );
@@ -1362,6 +1369,101 @@ function fmtBytes(n?: number): string {
 }
 
 /**
+ * Collapsible <details> section for the Reproducibility record tab. Matches the
+ * accepted design (RunSurface.jsx: <details><summary>…</summary></details>).
+ * The first section is opened by default (`defaultOpen`).
+ */
+function ReproSection({
+  title,
+  testId,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  testId?: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <details open={defaultOpen} style={styles.reproDetails} data-testid={testId}>
+      <summary style={styles.reproSummary}>{title}</summary>
+      <div style={styles.reproSectionBody}>{children}</div>
+    </details>
+  );
+}
+
+/**
+ * ReproducibilityRecordTab — the unified after-run audit trail (accepted
+ * design). It leads with the reproducibility record (identity + resolved
+ * parameters + bound inputs + outputs), then folds the former peer tabs
+ * (resolved Parameters, Methods, Software, Citations, QC report, Trajectory)
+ * as expandable <details> sections. Nothing is deleted — each section reuses
+ * its original tab body; they are simply re-nested here.
+ */
+function ReproducibilityRecordTab({
+  runId,
+  methods,
+  workflowName,
+  parameters,
+  software,
+  citations,
+  qcEvents,
+  trajectoryRows,
+}: {
+  runId: string;
+  methods: MethodsData;
+  workflowName?: string;
+  parameters?: Record<string, unknown>;
+  software: Record<string, string>;
+  citations: Citation[];
+  qcEvents: QcEvent[];
+  trajectoryRows: TrajectoryRow[];
+}) {
+  return (
+    <div style={styles.tabContent} data-testid="after-record-tab">
+      <span
+        style={{ fontSize: 11.5, color: "oklch(0.48 0.012 260)", fontStyle: "italic", display: "block", marginBottom: 10 }}
+        data-testid="record-intro"
+      >
+        The complete audit trail is kept together. Expand the part you need;
+        nothing is hidden or discarded.
+      </span>
+
+      {/* Identity + bound inputs/outputs — opened by default. */}
+      <ReproSection title="Reproducibility record" testId="record-section-record" defaultOpen>
+        <ReproducibilityTab runId={runId} />
+      </ReproSection>
+
+      <ReproSection title="Resolved parameters" testId="record-section-params">
+        <ParametersTab parameters={parameters} runId={runId} />
+      </ReproSection>
+
+      <ReproSection title="Methods" testId="record-section-methods">
+        <MethodsTab methods={methods} workflowName={workflowName} runId={runId} />
+      </ReproSection>
+
+      <ReproSection title="Software" testId="record-section-software">
+        <SoftwareTab versions={software} />
+      </ReproSection>
+
+      <ReproSection title="Citations" testId="record-section-citations">
+        <CitationsTab citations={citations} />
+      </ReproSection>
+
+      <ReproSection title="QC report" testId="record-section-qc">
+        <QcAuditTab events={qcEvents} outputs={[]} />
+      </ReproSection>
+
+      <ReproSection title="Trajectory" testId="record-section-trajectory">
+        <div style={{ padding: "4px 2px" }}>
+          <TrajectoryView rows={trajectoryRows} />
+        </div>
+      </ReproSection>
+    </div>
+  );
+}
+
+/**
  * Reproducibility tab (Phase 2) — renders the unified reproducibility record
  * (GET /api/runs/:id/reproducibility-record): workflow identity + resolved
  * parameters + bound inputs + outputs. Fetched lazily when the tab is opened.
@@ -1530,6 +1632,11 @@ function ParametersTab({
  */
 interface QcAuditTabProps {
   events: QcEvent[];
+  /** Outputs for the run (from the reproducibility record). Used ONLY to decide
+   *  whether the content-addressed / tamper-evident guarantee can be stated
+   *  honestly: it is claimed only for outputs that actually carry a sha256.
+   *  Optional — omitted callers get the honest "computed on demand" wording. */
+  outputs?: Array<{ sha256?: string | null }>;
   /** Optional reviewer record from the backend; omit to hide the e-sig block. */
   eSignature?: {
     reviewer?: string;
@@ -1557,7 +1664,14 @@ function deriveAction(e: QcEvent): string {
   return e.message ?? "manual intervention required";
 }
 
-function QcAuditTab({ events, eSignature }: QcAuditTabProps) {
+function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
+  // Honesty gate (#25): only claim content-addressed / tamper-evident storage
+  // for outputs that actually carry a sha256. Many runs leave sha256 empty, so
+  // asserting the guarantee unconditionally would be dishonest.
+  const hashedCount = (outputs ?? []).filter(o => !!o?.sha256).length;
+  const totalOutputs = (outputs ?? []).length;
+  const anyHashed = hashedCount > 0;
+  const allHashed = totalOutputs > 0 && hashedCount === totalOutputs;
   const passed = events.filter(e => isPassedStatus(e.status)).length;
   const autoCorrected = events.filter(e => !isPassedStatus(e.status) && isAutoCorrectedStatus(e.status)).length;
   const manualInterventions = events.length - passed - autoCorrected;
@@ -1695,9 +1809,23 @@ function QcAuditTab({ events, eSignature }: QcAuditTabProps) {
             <div style={{ fontWeight: 600, color: 'oklch(0.22 0.012 260)', marginBottom: 4 }}>
               Chain of custody
             </div>
-            All raw inputs, intermediate outputs, and parameter sets are versioned via
-            content-addressed storage (SHA-256). Each row above corresponds to a tamper-evident
-            manifest entry. No human override modified this run.
+            <span data-testid="qc-custody-copy">
+              {allHashed ? (
+                <>All {hashedCount} recorded output{hashedCount === 1 ? ' is' : 's are'} content-addressed
+                by SHA-256 checksum, so each corresponds to a tamper-evident manifest entry.
+                Parameter sets and gate decisions above are versioned alongside them.</>
+              ) : anyHashed ? (
+                <>{hashedCount} of {totalOutputs} recorded outputs carry a SHA-256 checksum and are
+                content-addressed (tamper-evident); the remaining outputs are not yet hashed —
+                their checksums are computed on demand. Parameter sets and gate decisions above
+                are versioned with the run manifest.</>
+              ) : (
+                <>Parameter sets and gate decisions above are versioned with the run manifest.
+                Output checksums are computed on demand and are not yet hashed for this run, so
+                content-addressed / tamper-evident storage is not asserted here.</>
+              )}
+              {' '}No human override modified this run.
+            </span>
           </div>
 
           {eSignature && (eSignature.reviewer || eSignature.reviewedAt) && (
@@ -2167,6 +2295,16 @@ const styles: Record<string, React.CSSProperties> = {
   tabActive: { color: "oklch(0.22 0.01 260)", borderBottomColor: "oklch(0.55 0.14 245)", fontWeight: 500 },
   body: { paddingTop: 8 },
   empty: { fontSize: 12, color: "oklch(0.48 0.012 260)", fontStyle: "italic", padding: "16px 4px" },
+
+  // Summary tab — "run original" badge marking the immutable record.
+  runOriginalRow: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" as React.CSSProperties["flexWrap"] },
+  runOriginalBadge: { fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "oklch(0.35 0.01 260)", background: "oklch(0.93 0.01 240)", border: "1px solid oklch(0.85 0.01 245)", borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" },
+  runOriginalHint: { fontSize: 11, color: "oklch(0.48 0.012 260)", lineHeight: 1.4 },
+
+  // Reproducibility record — collapsible <details> sections.
+  reproDetails: { border: "1px solid oklch(0.92 0.008 260)", borderRadius: 6, padding: "0 10px", background: "oklch(0.99 0.002 240)" },
+  reproSummary: { fontSize: 12.5, fontWeight: 600, color: "oklch(0.30 0.01 260)", cursor: "pointer", padding: "9px 2px", listStyle: "revert" },
+  reproSectionBody: { paddingBottom: 8 },
   tabContent: { fontSize: 12.5 },
   bulkActions: { display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" as React.CSSProperties["flexWrap"] },
   bulkBtn: { display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", fontSize: 12, color: "white", background: "oklch(0.55 0.14 245)", borderRadius: 6, textDecoration: "none", cursor: "pointer" },

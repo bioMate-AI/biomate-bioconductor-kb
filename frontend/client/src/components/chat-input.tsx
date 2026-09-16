@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Send, Paperclip, X, FileText, Eye, Square, Database, FolderInput, SlidersHorizontal, ChevronDown, ChevronRight } from "lucide-react"
 import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser"
+import { SkillsSelector, type SkillPack } from "./skills-selector"
 import { LanePreview, type LaneKind } from "./lane-preview"
 import { useDebounce } from "@/hooks/useDebounce"
 
@@ -130,6 +131,13 @@ interface ChatInputProps {
    * no-op — the caller opts in to the filing action.
    */
   onFileToProject?: (projectId: string) => void
+  /**
+   * Optional injected expert/skill packs for the composer's Experts selector
+   * (spec 06 §6.5 / §0.9.2). When omitted, SkillsSelector fetches the real
+   * GET /api/skills catalogue itself; injecting is for tests / a parent that
+   * already holds the list. An empty array renders the honest-empty state.
+   */
+  skillPacks?: SkillPack[]
 }
 
 /** Mirrors MAX_DATASET_REFS in frontend/server/dataset-cap.ts. */
@@ -150,6 +158,7 @@ export function ChatInput({
   projects = [],
   activeProjectId = null,
   onFileToProject,
+  skillPacks,
 }: ChatInputProps) {
   const [message, setMessage] = useState("")
   // Standing instructions the user adds for THIS composer/project (spec 06
@@ -157,16 +166,20 @@ export function ChatInput({
   // request in this composer — they thread into the submit context so the
   // backend can honour them. Seeded from the active project's own
   // `instructions` (schema `Project.instructions`) so a filed chat inherits
-  // the project's standing context. NOTE (deferred): the §6.5 "experts"
-  // catalogue (six owned packs picked per request) is NOT built here — there
-  // is no real experts data source wired in the deployed app, so fabricating
-  // a pack list would violate the honest-empty rule. Only the instructions
-  // field ships; experts remain a documented follow-up.
+  // the project's standing context. The §6.5 "experts" catalogue is now
+  // surfaced alongside via <SkillsSelector>, driven by the REAL GET /api/skills
+  // endpoint (frontend/server/routes.ts) — honest-empty when the catalogue is
+  // unpopulated. Selected pack ids thread into the same submit context path as
+  // instructions (as `skillPackIds`) so a run records which experts were on.
   const activeProject = activeProjectId
     ? projects.find((p) => p.id === activeProjectId) ?? null
     : null
   const [instructions, setInstructions] = useState<string>(activeProject?.instructions ?? "")
   const [instructionsOpen, setInstructionsOpen] = useState(false)
+  // Expert/skill packs toggled on for THIS composer (spec 06 §6.5). The ids
+  // thread into the submit context as `skillPackIds` so a run records which
+  // experts were applied — mirrors the dataset/instruction threading below.
+  const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([])
   // If the chat becomes filed into a project that carries standing
   // instructions and the user hasn't typed their own, adopt the project's.
   const seededProjectIdRef = useRef<string | null>(null)
@@ -255,8 +268,12 @@ export function ChatInput({
         id: dataset.value,
         name: dataset.name,
       }))
+      // Expert/skill packs toggled on for this request (spec 06 §6.5). Ride
+      // as `skillPackIds` on the SAME context path so a run records which
+      // experts were applied; empty selection adds nothing (honest-empty).
+      const skillPackIds = selectedSkillIds
       const contextOverride: Record<string, unknown> | undefined =
-        laneOverride || trimmedInstructions || datasetReferences.length > 0
+        laneOverride || trimmedInstructions || datasetReferences.length > 0 || skillPackIds.length > 0
           ? {
               ...(laneOverride
                 ? { intentOverride: laneOverride === "cloud" ? "workflow_generation" : "research_question" }
@@ -266,6 +283,7 @@ export function ChatInput({
               // filters the broader session pool to this set and reports any
               // missing reference instead of silently choosing another file.
               ...(datasetReferences.length ? { datasetReferences } : {}),
+              ...(skillPackIds.length ? { skillPackIds } : {}),
             }
           : undefined
       onSend(fullMessage, files.length > 0 ? files : undefined, contextOverride)
@@ -602,7 +620,8 @@ export function ChatInput({
           catalogue is deliberately NOT built here — see the state comment
           above: no real experts source exists, so only the honest instructions
           field ships and experts stay a documented follow-up. */}
-      <div style={{ marginBottom: 8 }}>
+      <div style={{ marginBottom: 8, display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ flex: "1 1 auto", minWidth: 0 }}>
         <button
           type="button"
           data-testid="composer-instructions-toggle"
@@ -644,6 +663,21 @@ export function ChatInput({
             }}
           />
         )}
+        </div>
+
+        {/* Experts affordance (spec 06 §6.5 / §0.9.2). Per-project skill/expert
+            packs toggled where the request is made, so the selected packs are
+            recorded on the answer/run. Backed by the REAL GET /api/skills
+            catalogue; honest-empty ("No expert packs available yet") when it's
+            unpopulated, never fake toggles. Selection threads into the submit
+            context as `skillPackIds`. */}
+        <div style={{ flexShrink: 0 }}>
+          <SkillsSelector
+            selectedIds={selectedSkillIds}
+            onChange={setSelectedSkillIds}
+            packs={skillPacks}
+          />
+        </div>
       </div>
 
       {/* Lane preview (spec 06 §6.2) — advisory Instant/Cloud verdict shown as

@@ -66,10 +66,12 @@ const baseProps = {
 };
 
 async function openQcTab() {
-  // Default tab is "findings"; the QC tab button only appears once the fetch
-  // returns at least one event (hide-when-empty). Wait for it, then click.
-  const qcTabBtn = await screen.findByTestId("after-tab-qc", {}, { timeout: 5000 });
-  fireEvent.click(qcTabBtn);
+  // QC report is now a collapsible section inside the "Reproducibility record"
+  // top-level tab. Open that tab; jsdom renders <details> children into the DOM
+  // regardless of the open state, so the QC panel is queryable once mounted.
+  const recordTabBtn = await screen.findByTestId("after-tab-record", {}, { timeout: 5000 });
+  fireEvent.click(recordTabBtn);
+  await screen.findByTestId("record-section-qc", {}, { timeout: 5000 });
 }
 
 describe("v2/AfterRunReport — FindingsFiguresPanel (data-driven figures)", () => {
@@ -115,9 +117,8 @@ describe("v2/AfterRunReport — FindingsFiguresPanel (data-driven figures)", () 
 
   it("renders all 3 figure kinds when findings.figures is populated", async () => {
     render(<AfterRunReport {...baseProps} />);
-    // Default tab is "outputs" (UX review 2026-06-19); must click Findings tab first.
-    const findingsTab = await screen.findByTestId("after-tab-findings", {}, { timeout: 5000 });
-    fireEvent.click(findingsTab);
+    // Findings now live on the Summary tab, which is the default landing tab —
+    // no click needed.
     const panel = await screen.findByTestId("findings-figures-panel", {}, { timeout: 5000 });
     expect(within(panel).getByTestId("finding-fig-bars")).toBeInTheDocument();
     expect(within(panel).getByTestId("finding-fig-composition")).toBeInTheDocument();
@@ -126,18 +127,14 @@ describe("v2/AfterRunReport — FindingsFiguresPanel (data-driven figures)", () 
 
   it("highlights the row matching figure.highlight in FigBars", async () => {
     render(<AfterRunReport {...baseProps} />);
-    const findingsTab = await screen.findByTestId("after-tab-findings", {}, { timeout: 5000 });
-    fireEvent.click(findingsTab);
     const hl = await screen.findByTestId("finding-fig-bars-row-highlight", {}, { timeout: 5000 });
     expect(hl).toHaveTextContent(/apoptotic process/);
   });
 
-  it("renders the manifest contract note at the Findings-tab footer (post-A1 hoist)", async () => {
+  it("renders the manifest contract note at the Summary-tab footer (post-A1 hoist)", async () => {
     // 2026-06-11 audit A1: the note was hoisted out of FindingsFiguresPanel
-    // so it always renders on the Findings tab, even when figures are absent.
+    // so it always renders on the Summary tab, even when figures are absent.
     render(<AfterRunReport {...baseProps} />);
-    const findingsTab = await screen.findByTestId("after-tab-findings", {}, { timeout: 5000 });
-    fireEvent.click(findingsTab);
     // Wait for the figures panel to mount so we know findings finished loading
     await screen.findByTestId("findings-figures-panel", {}, { timeout: 5000 });
     const note = screen.getByTestId("findings-manifest-note");
@@ -239,15 +236,20 @@ describe("v2/AfterRunReport — MethodsTab editable report (Spec 12 increment)",
   afterEach(() => { vi.clearAllMocks(); });
 
   async function openMethodsTab() {
-    const methodsTab = await screen.findByTestId("after-tab-methods", {}, { timeout: 5000 });
-    fireEvent.click(methodsTab);
-    return methodsTab;
+    // Methods is now a section inside the Reproducibility record tab.
+    const recordTab = await screen.findByTestId("after-tab-record", {}, { timeout: 5000 });
+    fireEvent.click(recordTab);
+    await screen.findByTestId("record-section-methods", {}, { timeout: 5000 });
+    return recordTab;
   }
 
-  it("shows the Methods tab (hide-when-empty) once a non-stub report loads", async () => {
+  it("renders the Methods section inside the record tab once a non-stub report loads", async () => {
     render(<AfterRunReport {...baseProps} workflowName="nf-core/rnaseq" />);
-    // Tab only appears when methods.hasRealContent is true.
-    expect(await screen.findByTestId("after-tab-methods", {}, { timeout: 5000 })).toBeInTheDocument();
+    fireEvent.click(await screen.findByTestId("after-tab-record", {}, { timeout: 5000 }));
+    // The Methods section is always present; its body renders the report when
+    // methods.hasRealContent is true.
+    expect(await screen.findByTestId("record-section-methods", {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(await screen.findByTestId("methods-tab", {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it("renders the report read-only by default with an Edit toggle (no editor yet)", async () => {
@@ -348,8 +350,20 @@ describe("v2/AfterRunReport — QcAuditTab (rich panel)", () => {
     await openQcTab();
     const chain = await screen.findByTestId("qc-chain-of-custody");
     expect(chain).toHaveTextContent(/Chain of custody/);
-    expect(chain).toHaveTextContent(/SHA-256/);
-    expect(chain).toHaveTextContent(/tamper-evident/);
+    expect(chain).toHaveTextContent(/No human override modified this run/);
+  });
+
+  it("honesty fix (#25): does NOT assert content-addressed/tamper-evident storage when no output carries a sha256", async () => {
+    // The record tab passes outputs={[]} to QcAuditTab, so no checksums are
+    // known. The copy must fall back to the honest "computed on demand / not
+    // yet hashed" wording and must NOT claim a guarantee the data can't back.
+    render(<AfterRunReport {...baseProps} />);
+    await openQcTab();
+    const copy = await screen.findByTestId("qc-custody-copy");
+    expect(copy).toHaveTextContent(/computed on demand/i);
+    expect(copy).toHaveTextContent(/not yet hashed/i);
+    // The blanket "content-addressed … tamper-evident" claim must be absent.
+    expect(copy).not.toHaveTextContent(/are content-addressed by SHA-256 checksum/i);
   });
 
   it("hides e-signature block when backend provides no signing record (hide-when-empty)", async () => {
@@ -449,7 +463,9 @@ describe("v2/AfterRunReport — Reproducibility tab (Phase 2)", () => {
 
   it("renders the unified record: identity, parameters, input bindings, outputs", async () => {
     render(<AfterRunReport {...baseProps} runId="run-repro" />);
-    fireEvent.click(await screen.findByTestId("after-tab-reproducibility", {}, { timeout: 5000 }));
+    // Reproducibility record is now the (default-open) first section inside the
+    // "Reproducibility record" top-level tab.
+    fireEvent.click(await screen.findByTestId("after-tab-record", {}, { timeout: 5000 }));
     const tab = await screen.findByTestId("repro-tab", {}, { timeout: 5000 });
     expect(within(tab).getByText("bulk RNA-seq DE")).toBeTruthy();     // identity from record
     expect(within(tab).getByText("fdr")).toBeTruthy();                 // parameter key
@@ -465,7 +481,67 @@ describe("v2/AfterRunReport — Reproducibility tab (Phase 2)", () => {
     vi.spyOn(global, "fetch").mockImplementation(async () =>
       ({ ok: false, status: 404, json: async () => ({}), text: async () => "" } as Response));
     render(<AfterRunReport {...baseProps} runId="run-missing" />);
-    fireEvent.click(await screen.findByTestId("after-tab-reproducibility", {}, { timeout: 5000 }));
+    fireEvent.click(await screen.findByTestId("after-tab-record", {}, { timeout: 5000 }));
     expect(await screen.findByTestId("repro-error", {}, { timeout: 5000 })).toBeTruthy();
+  });
+});
+
+describe("v2/AfterRunReport — three-tab consolidation (accepted design)", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    // Every fetch 404s so all tabs render their honest empty states; keeps the
+    // structural assertions independent of any tab's data pipeline.
+    vi.spyOn(global, "fetch").mockImplementation(async () =>
+      ({ ok: false, status: 404, json: async () => ({}), text: async () => "" } as Response));
+  });
+  afterEach(() => { vi.clearAllMocks(); });
+
+  it("renders exactly three top-level tabs — Summary, Outputs, Reproducibility record", () => {
+    render(<AfterRunReport {...baseProps} />);
+    const tablist = screen.getByRole("tablist");
+    const tabs = within(tablist).getAllByRole("tab");
+    expect(tabs.map(t => t.textContent)).toEqual([
+      "Summary", "Outputs", "Reproducibility record",
+    ]);
+    // The former peer tabs must NOT be top-level anymore.
+    expect(screen.queryByTestId("after-tab-findings")).toBeNull();
+    expect(screen.queryByTestId("after-tab-qc")).toBeNull();
+    expect(screen.queryByTestId("after-tab-methods")).toBeNull();
+    expect(screen.queryByTestId("after-tab-params")).toBeNull();
+    expect(screen.queryByTestId("after-tab-software")).toBeNull();
+    expect(screen.queryByTestId("after-tab-citations")).toBeNull();
+    expect(screen.queryByTestId("after-tab-trajectory")).toBeNull();
+    expect(screen.queryByTestId("after-tab-reproducibility")).toBeNull();
+  });
+
+  it("opens on the Summary tab and marks the run original", () => {
+    render(<AfterRunReport {...baseProps} />);
+    // Summary is selected by default.
+    expect(screen.getByTestId("after-tab-summary")).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByTestId("after-tab-outputs")).toHaveAttribute("aria-selected", "false");
+    expect(screen.getByTestId("after-tab-record")).toHaveAttribute("aria-selected", "false");
+    // Summary tab body + "run original" badge are visible without any click.
+    expect(screen.getByTestId("after-summary-tab")).toBeInTheDocument();
+    expect(screen.getByTestId("after-run-original-badge")).toHaveTextContent(/run original/i);
+  });
+
+  it("folds Methods, Parameters, Software, Citations, QC report and Trajectory as sections inside the record tab", () => {
+    render(<AfterRunReport {...baseProps} />);
+    fireEvent.click(screen.getByTestId("after-tab-record"));
+    const record = screen.getByTestId("after-record-tab");
+    // Intro line ("nothing is hidden or discarded").
+    expect(within(record).getByTestId("record-intro")).toHaveTextContent(/nothing is hidden or discarded/i);
+    // All former peer tabs are present as expandable sections.
+    for (const id of [
+      "record-section-record",
+      "record-section-params",
+      "record-section-methods",
+      "record-section-software",
+      "record-section-citations",
+      "record-section-qc",
+      "record-section-trajectory",
+    ]) {
+      expect(within(record).getByTestId(id)).toBeInTheDocument();
+    }
   });
 });

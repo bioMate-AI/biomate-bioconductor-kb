@@ -30,6 +30,34 @@ describe("<RolesCard>", () => {
       "you cannot",
     )
   })
+
+  it("a viewer sees an owner-only control disabled, naming the required role (not hidden)", () => {
+    // Minimal viewer-scoped RolesData: the owner-only capability is present,
+    // shown as "you cannot", and names the role it needs — disabled-not-hidden.
+    render(
+      <RolesCard
+        data={{
+          you: "Viewer",
+          project: "Fibrosis target triage",
+          caps: [
+            { capability: "Read & download files", needs: "Viewer", allowed: true },
+            { capability: "Run analyses & edit project content", needs: "Editor", allowed: false },
+            { capability: "Manage members & roles", needs: "Owner", allowed: false },
+          ],
+        }}
+      />,
+    )
+    expect(screen.getByTestId("roles-you")).toHaveTextContent("Viewer")
+    // Owner-only control is rendered (not hidden) and names its required role.
+    const manage = screen.getByTestId("role-cap-Manage members & roles")
+    expect(manage).toBeInTheDocument()
+    expect(manage).toHaveTextContent("needs Owner")
+    expect(screen.getByTestId("role-verdict-Manage members & roles")).toHaveTextContent(
+      "you cannot",
+    )
+    // The one capability a viewer DOES have shows "you can".
+    expect(screen.getByTestId("role-verdict-Read & download files")).toHaveTextContent("you can")
+  })
 })
 
 describe("<VerifyPattern>", () => {

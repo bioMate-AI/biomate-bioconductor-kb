@@ -65,8 +65,40 @@ import {
 import { projectService } from "@/lib/projects"
 import { ProjectFileTree } from "@/components/project-file-tree"
 import { NextflowWorkflowViewer } from "@/components/nextflow-workflow-viewer"
+import { RolesCard, type RolesData, type RoleCapability } from "@/components/roles-verify"
 import type { Project } from "@shared/schema"
 import { cn } from "@/lib/utils"
+
+/** The three concrete project roles the server assigns (owner|editor|viewer). */
+export type ProjectRole = "owner" | "editor" | "viewer"
+
+// Rank so a role satisfies any capability requiring an equal-or-lower role.
+// owner ⊃ editor ⊃ viewer (owner can do everything an editor can, etc.).
+const ROLE_RANK: Record<ProjectRole, number> = { viewer: 0, editor: 1, owner: 2 }
+
+/**
+ * The per-project capability map (spec §0.14) as {capability, needs} — the
+ * `allowed` flag is derived per-user from their real role below. This is the
+ * single source of truth fed to <RolesCard>; it never grants a capability the
+ * server wouldn't (every "needs" role matches the server's write/owner gates:
+ * editor+ writes via _canWrite; owner-only for members/status/external actions).
+ */
+const PROJECT_CAP_MAP: Array<{ capability: string; needs: ProjectRole; needsLabel: string }> = [
+  { capability: "Read & download files", needs: "viewer", needsLabel: "Viewer" },
+  { capability: "Run analyses & edit project content", needs: "editor", needsLabel: "Editor" },
+  { capability: "Edit & publish the report", needs: "owner", needsLabel: "Owner" },
+  { capability: "Approve external transfer / spend / publish", needs: "owner", needsLabel: "Owner" },
+  { capability: "Manage members & roles", needs: "owner", needsLabel: "Owner" },
+]
+
+/** Build the RolesCard capability list for a given real role (disabled-not-hidden). */
+export function buildRoleCapabilities(role: ProjectRole): RoleCapability[] {
+  return PROJECT_CAP_MAP.map((c) => ({
+    capability: c.capability,
+    needs: c.needsLabel,
+    allowed: ROLE_RANK[role] >= ROLE_RANK[c.needs],
+  }))
+}
 
 interface ProjectDetailPageProps {
   projectId: string
@@ -137,6 +169,10 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   const [isOwner, setIsOwner] = useState(false)
   // canEdit = owner OR editor member. Viewers are read-only; gates content controls.
   const [canEdit, setCanEdit] = useState(false)
+  // The current user's REAL role for this project (owner|editor|viewer), as
+  // returned by GET /api/projects/:id. Feeds RolesCard so the capability
+  // verdicts reflect actual server-side rights — never fabricated.
+  const [myRole, setMyRole] = useState<ProjectRole>("viewer")
   const [members, setMembers] = useState<Array<{ user_id: string; email: string; fullName?: string; role: string }>>([])
   const [shareEmail, setShareEmail] = useState("")
   const [shareRole, setShareRole] = useState<"viewer" | "editor">("viewer")
@@ -176,14 +212,18 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
           if (data.isOwner !== undefined) setIsOwner(data.isOwner)
           // canEdit from server (owner|editor); fall back to isOwner for older payloads.
           setCanEdit(data.canEdit ?? data.isOwner ?? false)
+          // Real role from server; derive from isOwner/canEdit for older payloads.
+          const serverRole: ProjectRole | undefined =
+            data.role === "owner" || data.role === "editor" || data.role === "viewer" ? data.role : undefined
+          setMyRole(serverRole ?? (data.isOwner ? "owner" : data.canEdit ? "editor" : "viewer"))
         } else {
           const loc = projectService.getProject(projectId)
-          if (loc) { setProject(loc); setInstructionsValue(loc.instructions || ""); setIsOwner(true); setCanEdit(true) }
+          if (loc) { setProject(loc); setInstructionsValue(loc.instructions || ""); setIsOwner(true); setCanEdit(true); setMyRole("owner") }
         }
       })
       .catch(() => {
         const loc = projectService.getProject(projectId)
-        if (loc) { setProject(loc); setInstructionsValue(loc.instructions || ""); setIsOwner(true) }
+        if (loc) { setProject(loc); setInstructionsValue(loc.instructions || ""); setIsOwner(true); setMyRole("owner") }
       })
       .finally(() => setLoadingProject(false))
   }, [projectId])
@@ -815,11 +855,19 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
             )}
           </div>
 
-          {/* Share section — owner-only invite UI + member list visible to all */}
-          <div className="border-t border-border p-4 shrink-0">
+          {/* Members & roles — owner-only invite UI + member list visible to all */}
+          <div className="border-t border-border p-4 shrink-0" data-testid="members-panel">
             <div className="flex items-center gap-1.5 mb-3">
               <Users className="w-3.5 h-3.5 text-muted-foreground" />
-              <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground">Shared with</h4>
+              <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground flex-1">Members & roles</h4>
+              {/* The current user's OWN role for this project (real, from the server). */}
+              <span
+                data-testid="my-role-badge"
+                className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary capitalize"
+                title="Your role in this project"
+              >
+                You: {myRole}
+              </span>
             </div>
 
             {/* Share link — owner only */}
@@ -965,6 +1013,18 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                 )}
               </div>
             )}
+
+            {/* Your permissions here — RolesCard fed by the REAL role, so a
+                viewer/editor sees owner-only controls DISABLED with the role
+                each needs (disabled-not-hidden), never a fabricated grant. */}
+            <RolesCard
+              className="mt-4"
+              data={{
+                you: myRole.charAt(0).toUpperCase() + myRole.slice(1),
+                project: project.name,
+                caps: buildRoleCapabilities(myRole),
+              } satisfies RolesData}
+            />
           </div>
 
           <div className="border-t border-border p-4 shrink-0">
