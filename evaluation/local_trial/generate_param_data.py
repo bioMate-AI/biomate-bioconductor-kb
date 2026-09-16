@@ -2,7 +2,7 @@
 values for a real workflow -> generate a query that IMPLIES them (without naming keys) ->
 emit {query, workflow, gold_params, schema_params}. Gold is schema-valid by construction;
 the auditor verifies the query faithfully implies exactly gold (+ restraint on distractors)."""
-import json, os, re, random, sqlite3, sys, urllib.request
+import json, os, re, random, sqlite3, sys, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 random.seed(41); REPO="/Users/kky/biomate-review"; KEY=os.environ["OPENAI_API_KEY"]; GEN="gpt-5-mini"
 PERSONAS=["a wet-lab biologist","a core-facility bioinformatician","a PhD student","a clinical geneticist","a PI"]
@@ -24,13 +24,27 @@ for r in c.execute("select name,domain,params_schema from workflows where params
     if len(params)>=2: rows.append((r["name"],r["domain"],params))
 def _call(prompt):
     body=json.dumps({"model":GEN,"messages":[{"role":"user","content":prompt}],"max_completion_tokens":400,"reasoning_effort":"low"}).encode()
-    d=json.load(urllib.request.urlopen(urllib.request.Request("https://api.openai.com/v1/chat/completions",data=body,headers={"Authorization":f"Bearer {KEY}","Content-Type":"application/json"}),timeout=60))
-    return d["choices"][0]["message"]["content"].strip().strip('"')
+    last=None
+    for attempt in range(3):  # retry-harden: swallow transient API drops
+        try:
+            d=json.load(urllib.request.urlopen(urllib.request.Request("https://api.openai.com/v1/chat/completions",data=body,headers={"Authorization":f"Bearer {KEY}","Content-Type":"application/json"}),timeout=90))
+            return d["choices"][0]["message"]["content"].strip().strip('"')
+        except Exception as e:
+            last=e; time.sleep(1.5*(attempt+1))
+    raise last
 def gen(item):
     name,dom,params=item; persona=random.choice(PERSONAS)
-    random.shuffle(params); k=min(random.randint(1,3),len(params))
-    chosen=params[:k]; distract=params[k:k+4]
-    gold={p["name"]:sample_val(p) for p in chosen}
+    # prioritize CLEANLY IMPLIABLE targets: enums + numerics first; booleans only set True
+    enums=[p for p in params if p.get("allowed_values")]
+    nums=[p for p in params if (p.get("type") or "").lower() in ("integer","int","number","float") and not p.get("allowed_values")]
+    bools=[p for p in params if (p.get("type") or "").lower() in ("boolean","bool")]
+    random.shuffle(enums); random.shuffle(nums); random.shuffle(bools)
+    pref=enums+nums+bools
+    if not pref: return None
+    k=min(random.randint(1,3),len(pref)); chosen=pref[:k]; distract=[p for p in params if p not in chosen][:4]
+    def val(p):
+        return True if (p.get("type") or "").lower() in ("boolean","bool") else sample_val(p)  # bool gold = True (impliable)
+    gold={p["name"]:val(p) for p in chosen}
     hints="\n".join(f"- {p.get('description') or p['name']}: intended setting = {gold[p['name']]}" for p in chosen)
     prompt=(f"Write ONE realistic request that {persona} would send to a bioinformatics assistant, "
             f"describing their experiment/data so that these settings are CLEARLY IMPLIED (but NEVER name "
@@ -44,7 +58,8 @@ def gen(item):
         return {"query":q,"workflow":name,"domain":dom,"gold_params":gold,"schema_params":schema_params}
     except Exception: return None
 N=int(sys.argv[1]) if len(sys.argv)>1 else 120
-sample=random.sample(rows,min(N,len(rows)))
+# with replacement when N>catalog so we get multiple (distinct param-subset) episodes per workflow
+sample=random.sample(rows,N) if N<=len(rows) else [random.choice(rows) for _ in range(N)]
 out=[]
 with ThreadPoolExecutor(max_workers=12) as ex:
     for e in ex.map(gen, sample):
