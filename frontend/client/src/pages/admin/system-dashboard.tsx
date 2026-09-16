@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,11 @@ import { Separator } from "@/components/ui/separator";
 import {
   CheckCircle2, XCircle, AlertCircle, Loader2, RefreshCw, ArrowLeft,
   Copy, Check, Server, Database, Cpu, Bot, Users, Activity, Wifi,
-  MemoryStick, Layers, Clock,
+  MemoryStick, Layers, Clock, ChevronDown, ChevronRight, Terminal,
+  List, AlertTriangle,
 } from "lucide-react";
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface ServiceStatus {
   label: string;
@@ -64,7 +65,24 @@ interface SystemConfig {
   saved: { provider: string; model: string; ollamaUrl: string; updatedAt: string; updatedBy: string } | null;
 }
 
-// ── Constants ────────────────────────────────────────────────────────────────
+interface LogLine {
+  ts: string;
+  level: string;
+  logger: string;
+  msg: string;
+}
+
+interface RunRow {
+  id: string;
+  workflow_name: string | null;
+  status: string;
+  started_at: string | null;
+  completed_at: string | null;
+  duration_s: number | null;
+  error_message: string | null;
+}
+
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 const PROVIDERS = [
   { value: "anthropic",  label: "Anthropic Claude",       defaultModel: "claude-sonnet-4-5",             needsKey: "ANTHROPIC_API_KEY" },
@@ -76,7 +94,7 @@ const PROVIDERS = [
   { value: "gemini",     label: "Google Gemini",           defaultModel: "gemini-2.0-flash",              needsKey: "GOOGLE_API_KEY" },
 ];
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: "ok" | "degraded" | "down" }) {
   if (status === "ok")
@@ -86,14 +104,13 @@ function StatusBadge({ status }: { status: "ok" | "degraded" | "down" }) {
   return <Badge className="bg-red-500/10 text-red-700 border-red-500/20 gap-1"><XCircle className="h-3 w-3" /> 离线</Badge>;
 }
 
-function StatCell({ label, value, sub }: { label: string; value: number | string; sub?: string }) {
-  return (
-    <div className="flex flex-col items-center gap-0.5">
-      <span className="text-lg font-semibold tabular-nums">{value}</span>
-      <span className="text-xs text-muted-foreground">{label}</span>
-      {sub && <span className="text-[10px] text-muted-foreground/70">{sub}</span>}
-    </div>
-  );
+function RunStatusBadge({ status }: { status: string }) {
+  const s = status?.toLowerCase() ?? "";
+  if (s === "completed") return <span className="text-green-600 font-medium text-xs">完成</span>;
+  if (s === "failed") return <span className="text-red-600 font-medium text-xs">失败</span>;
+  if (s === "running") return <span className="text-blue-600 font-medium text-xs">运行中</span>;
+  if (s === "cancelled") return <span className="text-muted-foreground text-xs">已取消</span>;
+  return <span className="text-muted-foreground text-xs">{status}</span>;
 }
 
 function CopyBlock({ text, label }: { text: string; label: string }) {
@@ -109,6 +126,146 @@ function CopyBlock({ text, label }: { text: string; label: string }) {
         >
           {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
         </button>
+      </div>
+    </div>
+  );
+}
+
+function fmtDuration(s: number | null): string {
+  if (s == null || s < 0) return "—";
+  if (s < 60) return `${s}s`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ${s % 60}s`;
+  return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
+}
+
+function fmtTime(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+// ── Log Viewer ────────────────────────────────────────────────────────────────
+
+function levelColor(level: string): string {
+  const l = level?.toUpperCase() ?? "";
+  if (l === "ERROR" || l === "CRITICAL") return "text-red-400";
+  if (l === "WARNING" || l === "WARN") return "text-yellow-400";
+  if (l === "INFO") return "text-slate-300";
+  return "text-slate-500";
+}
+
+function LogViewer({ lines, buffered, loading, error }: {
+  lines: LogLine[];
+  buffered: number;
+  loading: boolean;
+  error: string;
+}) {
+  const bottomRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { bottomRef.current?.scrollIntoView(); }, [lines]);
+
+  return (
+    <div className="mt-2 rounded-md border border-slate-700 bg-slate-900 overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-slate-800 border-b border-slate-700">
+        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+          <Terminal className="h-3 w-3" />
+          <span>Galaxy 后端日志</span>
+          {buffered > 0 && <span className="text-slate-500">（缓冲 {buffered} 条）</span>}
+        </div>
+        {loading && <Loader2 className="h-3 w-3 animate-spin text-slate-400" />}
+      </div>
+      <div className="h-64 overflow-y-auto p-2 font-mono text-[11px] leading-5 space-y-0.5">
+        {error && <div className="text-red-400 p-2">{error}</div>}
+        {!loading && lines.length === 0 && !error && (
+          <div className="text-slate-500 p-2 text-center">暂无日志记录（worker 刚启动或无新日志）</div>
+        )}
+        {lines.map((ln, i) => (
+          <div key={i} className="flex gap-2 hover:bg-slate-800/50 px-1 rounded">
+            <span className="text-slate-600 shrink-0 w-16 truncate">{ln.ts?.slice(11)}</span>
+            <span className={`shrink-0 w-12 ${levelColor(ln.level)}`}>{ln.level?.slice(0, 4)}</span>
+            <span className="text-slate-500 shrink-0 w-20 truncate">{ln.logger}</span>
+            <span className="text-slate-300 break-all">{ln.msg}</span>
+          </div>
+        ))}
+        <div ref={bottomRef} />
+      </div>
+    </div>
+  );
+}
+
+// ── Run List Drill-down ───────────────────────────────────────────────────────
+
+function RunListDrilldown({ statusFilter, days, label }: {
+  statusFilter: string;
+  days?: number;
+  label: string;
+}) {
+  const [runs, setRuns] = useState<RunRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true); setError("");
+    try {
+      const p = new URLSearchParams({ status: statusFilter, limit: "30" });
+      if (days) p.set("days", String(days));
+      const r = await fetch(`/api/admin/run-list?${p}`, { credentials: "include" });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const d = await r.json();
+      setRuns(d.runs || []);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  }, [statusFilter, days]);
+
+  useEffect(() => { load(); }, [load]);
+
+  return (
+    <div className="mt-3 rounded-md border bg-muted/30 overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b">
+        <div className="flex items-center gap-1.5 text-xs font-medium">
+          <List className="h-3 w-3" /> {label}
+        </div>
+        <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 px-2" onClick={load} disabled={loading}>
+          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+        </Button>
+      </div>
+      <div className="max-h-72 overflow-y-auto">
+        {error && <div className="text-xs text-destructive p-3">{error}</div>}
+        {loading && runs.length === 0 && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground p-3">
+            <Loader2 className="h-3 w-3 animate-spin" /> 加载中…
+          </div>
+        )}
+        {!loading && runs.length === 0 && !error && (
+          <div className="text-xs text-muted-foreground p-3 text-center">暂无记录</div>
+        )}
+        {runs.length > 0 && (
+          <table className="w-full text-xs">
+            <thead className="sticky top-0 bg-muted/80">
+              <tr className="border-b">
+                <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">状态</th>
+                <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">工作流</th>
+                <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">开始</th>
+                <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">时长</th>
+                <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">错误</th>
+              </tr>
+            </thead>
+            <tbody>
+              {runs.map((run) => (
+                <tr key={run.id} className="border-b last:border-0 hover:bg-muted/40">
+                  <td className="px-3 py-2"><RunStatusBadge status={run.status} /></td>
+                  <td className="px-3 py-2 max-w-[160px] truncate font-medium" title={run.workflow_name ?? undefined}>
+                    {run.workflow_name || <span className="text-muted-foreground italic">未知</span>}
+                  </td>
+                  <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{fmtTime(run.started_at)}</td>
+                  <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{fmtDuration(run.duration_s)}</td>
+                  <td className="px-3 py-2 max-w-[200px] truncate text-red-600/80" title={run.error_message ?? undefined}>
+                    {run.error_message || "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
@@ -140,9 +297,9 @@ function ProcessDetail({ data }: { data: any }) {
       {redis && (
         <div className="flex gap-2">
           <span>Redis:</span>
-          {redis.status === 'ok'
+          {redis.status === "ok"
             ? <span className="text-green-600">正常 {redis.latency_ms}ms</span>
-            : redis.status === 'not_configured'
+            : redis.status === "not_configured"
             ? <span className="text-muted-foreground/70">未配置（使用内存存储）</span>
             : <span className="text-red-600">{redis.error}</span>}
         </div>
@@ -158,9 +315,37 @@ function ProcessDetail({ data }: { data: any }) {
 }
 
 function ServiceCard({ svc }: { svc: ServiceStatus }) {
+  const [expanded, setExpanded] = useState(false);
+  const [logLines, setLogLines] = useState<LogLine[]>([]);
+  const [logBuffered, setLogBuffered] = useState(0);
+  const [logLoading, setLogLoading] = useState(false);
+  const [logError, setLogError] = useState("");
+  const canExpand = svc.label === "process_health" || svc.label === "galaxy_version";
   const Icon = SERVICE_ICONS[svc.label] || Server;
+
+  const loadLogs = useCallback(async () => {
+    setLogLoading(true); setLogError("");
+    try {
+      const r = await fetch("/api/admin/galaxy-logs?lines=100", { credentials: "include" });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      setLogLines(d.lines || []);
+      setLogBuffered(d.buffered || 0);
+    } catch (e: any) { setLogError(e.message); }
+    finally { setLogLoading(false); }
+  }, []);
+
+  const toggle = () => {
+    if (!canExpand) return;
+    const next = !expanded;
+    setExpanded(next);
+    if (next && logLines.length === 0) loadLogs();
+  };
+
   return (
-    <div className="rounded-lg border p-3">
+    <div className={`rounded-lg border p-3 ${canExpand ? "cursor-pointer hover:bg-muted/30 transition-colors" : ""}`}
+         onClick={toggle}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="rounded-md bg-muted p-2">
@@ -170,14 +355,44 @@ function ServiceCard({ svc }: { svc: ServiceStatus }) {
             <p className="text-sm font-medium">{SERVICE_LABELS[svc.label] || svc.label}</p>
             {svc.error && <p className="text-xs text-muted-foreground truncate max-w-[200px]">{svc.error}</p>}
             {svc.data?.version && <p className="text-xs text-muted-foreground">v{svc.data.version}</p>}
-            {svc.label === 'index_health' && svc.data?.total != null && (
+            {svc.label === "index_health" && svc.data?.total != null && (
               <p className="text-xs text-muted-foreground">{svc.data.total.toLocaleString()} 工作流</p>
             )}
           </div>
         </div>
-        <StatusBadge status={svc.status} />
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <StatusBadge status={svc.status} />
+          {canExpand && (
+            <button
+              onClick={(e) => { e.stopPropagation(); toggle(); }}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              title={expanded ? "收起日志" : "查看日志"}
+            >
+              {expanded
+                ? <ChevronDown className="h-4 w-4" />
+                : <ChevronRight className="h-4 w-4" />}
+            </button>
+          )}
+        </div>
       </div>
-      {svc.label === 'process_health' && <ProcessDetail data={svc.data} />}
+
+      {/* Process detail (always visible) */}
+      {svc.label === "process_health" && <ProcessDetail data={svc.data} />}
+
+      {/* Expandable log viewer */}
+      {canExpand && expanded && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mt-3 mb-1">
+            <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+              <Terminal className="h-3 w-3" /> 最近 100 条日志
+            </span>
+            <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 px-2" onClick={loadLogs} disabled={logLoading}>
+              {logLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />} 刷新
+            </Button>
+          </div>
+          <LogViewer lines={logLines} buffered={logBuffered} loading={logLoading} error={logError} />
+        </div>
+      )}
     </div>
   );
 }
@@ -215,6 +430,11 @@ function HealthPanel() {
         {error && <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 rounded p-2"><XCircle className="h-3.5 w-3.5 shrink-0" /> {error}</div>}
         {loading && !health && <div className="flex items-center gap-2 text-xs text-muted-foreground p-2"><Loader2 className="h-3.5 w-3.5 animate-spin" /> 检查中…</div>}
         {health?.services.map((svc) => <ServiceCard key={svc.label} svc={svc} />)}
+        {health && (
+          <p className="text-[10px] text-muted-foreground/60 pt-1">
+            点击「Galaxy 后端」或「进程监控」卡片可展开查看实时日志
+          </p>
+        )}
       </CardContent>
     </Card>
   );
@@ -222,10 +442,35 @@ function HealthPanel() {
 
 // ── Run Stats Panel ───────────────────────────────────────────────────────────
 
+interface DrillTarget { statusFilter: string; days?: number; label: string }
+
+function ClickableStatCell({ label, value, drill, active, onClick }: {
+  label: string;
+  value: number | string;
+  drill?: DrillTarget;
+  active?: boolean;
+  onClick?: () => void;
+}) {
+  const clickable = !!drill;
+  return (
+    <div
+      className={`flex flex-col items-center gap-0.5 rounded-lg p-2 transition-colors
+        ${clickable ? "cursor-pointer hover:bg-muted/60" : ""}
+        ${active ? "bg-muted ring-1 ring-primary/30" : ""}`}
+      onClick={onClick}
+    >
+      <span className={`text-lg font-semibold tabular-nums ${active ? "text-primary" : ""}`}>{value}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
+      {clickable && <span className="text-[10px] text-primary/60">{active ? "▲ 收起" : "点击查看"}</span>}
+    </div>
+  );
+}
+
 function RunStatsPanel() {
   const [stats, setStats] = useState<RunStats | null>(null);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(false);
+  const [drill, setDrill] = useState<DrillTarget | null>(null);
 
   const fetch_ = useCallback(async () => {
     setLoading(true);
@@ -240,6 +485,10 @@ function RunStatsPanel() {
     finally { setLoading(false); }
   }, []);
   useEffect(() => { fetch_(); }, [fetch_]);
+
+  const toggleDrill = (d: DrillTarget) => {
+    setDrill((prev) => (prev?.statusFilter === d.statusFilter && prev?.days === d.days ? null : d));
+  };
 
   return (
     <Card>
@@ -256,44 +505,68 @@ function RunStatsPanel() {
       <CardContent className="space-y-4">
         {loading && !stats && <div className="flex items-center gap-2 text-xs text-muted-foreground p-2"><Loader2 className="h-3.5 w-3.5 animate-spin" /> 加载中…</div>}
 
-        {/* Run stats */}
         {stats && (
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
+            <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
               <Layers className="h-3.5 w-3.5" /> 工作流执行
             </p>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <StatCell label="进行中" value={stats.active} />
-              <StatCell label="24h 完成" value={stats.completed_24h} />
-              <StatCell label="24h 失败" value={stats.failed_24h} />
+            <div className="grid grid-cols-3 gap-1 text-center">
+              {[
+                { label: "进行中", value: stats.active, d: { statusFilter: "active", label: "进行中的工作流" } },
+                { label: "24h 完成", value: stats.completed_24h, d: { statusFilter: "completed", days: 1, label: "近 24h 完成" } },
+                { label: "24h 失败", value: stats.failed_24h, d: { statusFilter: "failed", days: 1, label: "近 24h 失败" } },
+              ].map(({ label, value, d }) => (
+                <ClickableStatCell
+                  key={label} label={label} value={value} drill={d}
+                  active={drill?.statusFilter === d.statusFilter && drill?.days === d.days}
+                  onClick={() => toggleDrill(d)}
+                />
+              ))}
             </div>
             <Separator className="my-3" />
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <StatCell label="7d 完成" value={stats.completed_7d} />
-              <StatCell label="7d 失败" value={stats.failed_7d} />
-              <StatCell label="累计总数" value={stats.total} />
+            <div className="grid grid-cols-3 gap-1 text-center">
+              {[
+                { label: "7d 完成", value: stats.completed_7d, d: { statusFilter: "completed", days: 7, label: "近 7d 完成" } },
+                { label: "7d 失败", value: stats.failed_7d, d: { statusFilter: "failed", days: 7, label: "近 7d 失败" } },
+                { label: "累计总数", value: stats.total, d: null },
+              ].map(({ label, value, d }) => (
+                <ClickableStatCell
+                  key={label} label={label} value={value} drill={d ?? undefined}
+                  active={d ? drill?.statusFilter === d.statusFilter && drill?.days === d.days : false}
+                  onClick={d ? () => toggleDrill(d) : undefined}
+                />
+              ))}
             </div>
-            {stats.failed_24h > 0 && (
+
+            {/* Drill-down run list */}
+            {drill && (
+              <RunListDrilldown
+                statusFilter={drill.statusFilter}
+                days={drill.days}
+                label={drill.label}
+              />
+            )}
+
+            {stats.failed_24h > 0 && !drill && (
               <div className="mt-3 flex items-center gap-2 text-xs bg-yellow-500/10 text-yellow-800 rounded p-2">
-                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                过去 24h 有 {stats.failed_24h} 个任务失败
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                过去 24h 有 {stats.failed_24h} 个任务失败 — 点击「24h 失败」查看详情
               </div>
             )}
           </div>
         )}
 
-        {/* User stats */}
         {userStats && (
           <>
             <Separator />
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
+              <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
                 <Users className="h-3.5 w-3.5" /> 用户
               </p>
               <div className="grid grid-cols-3 gap-3 text-center">
-                <StatCell label="总用户" value={userStats.total} />
-                <StatCell label="24h 新增" value={userStats.new_24h} />
-                <StatCell label="7d 新增" value={userStats.new_7d} />
+                <ClickableStatCell label="总用户" value={userStats.total} />
+                <ClickableStatCell label="24h 新增" value={userStats.new_24h} />
+                <ClickableStatCell label="7d 新增" value={userStats.new_7d} />
               </div>
             </div>
           </>
@@ -318,13 +591,13 @@ function LLMProbePanel() {
     finally { setLoading(false); }
   }, []);
 
-  const statusColor = probe?.status === 'ok' ? 'text-green-600'
-    : probe?.status === 'no_key' ? 'text-yellow-600' : 'text-red-600';
+  const statusColor = probe?.status === "ok" ? "text-green-600"
+    : probe?.status === "no_key" ? "text-yellow-600" : "text-red-600";
 
-  const statusText = probe?.status === 'ok' ? '可达'
-    : probe?.status === 'no_key' ? '未配置 API Key'
-    : probe?.status === 'unknown_provider' ? '未知 provider'
-    : `连接失败${probe?.error ? '：' + probe.error : ''}`;
+  const statusText = probe?.status === "ok" ? "可达"
+    : probe?.status === "no_key" ? "未配置 API Key"
+    : probe?.status === "unknown_provider" ? "未知 provider"
+    : `连接失败${probe?.error ? "：" + probe.error : ""}`;
 
   return (
     <Card>
@@ -338,7 +611,7 @@ function LLMProbePanel() {
           </div>
           <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={run} disabled={loading}>
             {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Activity className="h-3 w-3" />}
-            {loading ? '探测中…' : '立即探测'}
+            {loading ? "探测中…" : "立即探测"}
           </Button>
         </div>
       </CardHeader>
@@ -347,21 +620,19 @@ function LLMProbePanel() {
           <p className="text-xs text-muted-foreground text-center py-4">点击「立即探测」发起探活</p>
         )}
         {probe && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div className="flex items-center gap-3">
-                <div className="rounded-md bg-muted p-2"><Bot className="h-4 w-4 text-muted-foreground" /></div>
-                <div>
-                  <p className="text-sm font-medium">{probe.provider}</p>
-                  <p className={`text-xs ${statusColor}`}>{statusText}</p>
-                </div>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="flex items-center gap-3">
+              <div className="rounded-md bg-muted p-2"><Bot className="h-4 w-4 text-muted-foreground" /></div>
+              <div>
+                <p className="text-sm font-medium">{probe.provider}</p>
+                <p className={`text-xs ${statusColor}`}>{statusText}</p>
               </div>
-              {probe.latency_ms != null && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3" /> {probe.latency_ms}ms
-                </div>
-              )}
             </div>
+            {probe.latency_ms != null && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" /> {probe.latency_ms}ms
+              </div>
+            )}
           </div>
         )}
       </CardContent>

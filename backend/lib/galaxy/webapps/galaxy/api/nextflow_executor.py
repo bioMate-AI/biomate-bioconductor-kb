@@ -9093,6 +9093,57 @@ def get_process_health() -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Admin log ring buffer — captures last 500 log records in memory
+# ---------------------------------------------------------------------------
+
+import logging as _logging_mod
+import collections as _deque_mod
+
+
+class _RingBufferHandler(_logging_mod.Handler):
+    """Captures recent log records for the admin log viewer."""
+
+    def __init__(self, maxlen: int = 500) -> None:
+        super().__init__()
+        self._buf: _deque_mod.deque = _deque_mod.deque(maxlen=maxlen)
+        self.setFormatter(_logging_mod.Formatter("%(asctime)s"))
+
+    def emit(self, record: _logging_mod.LogRecord) -> None:
+        try:
+            self._buf.append({
+                "ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
+                "level": record.levelname,
+                "logger": record.name.split(".")[-1][:20],
+                "msg": record.getMessage()[:400],
+            })
+        except Exception:
+            pass
+
+    def tail(self, n: int) -> list:
+        return list(self._buf)[-n:]
+
+    def __len__(self) -> int:
+        return len(self._buf)
+
+
+# Singleton — created once at module import time, survives across requests
+# within the same worker process.
+_LOG_RING: _RingBufferHandler = _RingBufferHandler(maxlen=500)
+_logging_mod.getLogger().addHandler(_LOG_RING)
+
+
+@router.get("/api/admin/logs", summary="Recent log lines (ring buffer)")
+def get_admin_logs(lines: int = 100) -> Dict[str, Any]:
+    """Returns the last N log lines captured since worker startup."""
+    n = min(max(1, lines), 200)
+    return {
+        "lines": _LOG_RING.tail(n),
+        "buffered": len(_LOG_RING),
+        "requested": n,
+    }
+
+
+# ---------------------------------------------------------------------------
 # C1 — Preflight with pilot_analysis detection
 # ---------------------------------------------------------------------------
 

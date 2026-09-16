@@ -15235,6 +15235,56 @@ Respond ONLY with valid JSON (no markdown wrapper):
     }
   });
 
+  // GET /api/admin/galaxy-logs — proxy to Galaxy ring-buffer log endpoint
+  app.get("/api/admin/galaxy-logs", authenticateToken, requireAdmin, async (req, res) => {
+    const lines = Math.min(parseInt(req.query.lines as string) || 100, 200);
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const r = await fetch(`${galaxyUrl}/api/admin/logs?lines=${lines}`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!r.ok) throw new Error(`Galaxy ${r.status}`);
+      res.json(await r.json());
+    } catch (err: any) {
+      res.status(502).json({ error: err.message?.slice(0, 120) });
+    }
+  });
+
+  // GET /api/admin/run-list — recent runs list with details for drill-down
+  app.get("/api/admin/run-list", authenticateToken, requireAdmin, async (req, res) => {
+    const status = (req.query.status as string) || "failed";
+    const days = Math.min(parseInt(req.query.days as string) || 7, 30);
+    const limit = Math.min(parseInt(req.query.limit as string) || 30, 100);
+    try {
+      let rows: any;
+      if (status === "active") {
+        rows = await db.execute(sql`
+          SELECT id, workflow_name, status, started_at, completed_at,
+                 EXTRACT(EPOCH FROM (NOW() - started_at))::int AS duration_s,
+                 error_message
+          FROM execution_runs
+          WHERE status NOT IN ('completed','failed','cancelled','interrupted')
+          ORDER BY started_at DESC
+          LIMIT ${limit}
+        `);
+      } else {
+        rows = await db.execute(sql`
+          SELECT id, workflow_name, status, started_at, completed_at,
+                 EXTRACT(EPOCH FROM (completed_at - started_at))::int AS duration_s,
+                 error_message
+          FROM execution_runs
+          WHERE status = ${status}
+            AND completed_at > NOW() - ${days} * INTERVAL '1 day'
+          ORDER BY completed_at DESC
+          LIMIT ${limit}
+        `);
+      }
+      res.json({ runs: rows.rows, status, days });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message?.slice(0, 120) });
+    }
+  });
+
   // ============================================================================
   // On-Premises License Status
   // GET /api/license/status — proxies to Galaxy backend; no auth required so
