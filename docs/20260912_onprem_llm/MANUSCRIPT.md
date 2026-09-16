@@ -169,6 +169,16 @@ prioritize enums and explicitly-stated booleans/numerics. Second, generation yie
 sampled) under concurrent teacher calls, indicating a need for retry-hardening before scale-up. A
 schema-checked base-vs-SFT extraction eval is planned once the set is scaled.
 
+**Log diagnosis (T18).** Grounding in real execution logs yields the highest data quality of any
+task: 253 generated → **244 audited PASS (96%)**. Because each item is anchored to a real error log
+that frequently states its own cause, the generated {category, root_cause, fix} is faithful and the
+independent auditor confirms it (e.g., `'newBiodb' is not an exported object` → `dependency_error`;
+`readRDS: unknown input format` → `wrong_format`). This supports a general principle: **the more the
+task is grounded in real execution artifacts, the higher the achievable label quality** (routing
+35% → param 57% → diagnosis 96% first-pass auditor rate). The category distribution is skewed toward
+`missing_input`/`dependency_error` (reflecting the fixture-run failure population), which balancing
+must account for at training time; production-log ingestion will broaden it.
+
 **Multi-task joint training.** [Planned: one LoRA over the structured cluster with a task-balanced
 mixture and per-task evaluation, including free-form examples to prevent the narrowing observed
 above.]
