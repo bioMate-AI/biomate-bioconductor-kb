@@ -26,3 +26,31 @@ This supersedes all earlier ad-hoc/local routing evals.
     even though F1 is decent.
   - **protocol_QC 0.43 / workflow_gen 0.50** → mid; candidate targets.
   - **pbpk 0.067** → a simulation task; belongs to a tool the agent calls, not the LLM.
+
+## Base vs SFT (routing-only LoRA) — on the real harness
+
+| Task | Base | SFT (routing LoRA) | Δ |
+|------|------|--------------------|---|
+| routing bare | 0.18 | 0.17 | −0.01 |
+| routing catalog | 0.815 | 0.795 | −0.02 |
+| autofix | 0.87 | 0.80 | **−0.07 (negative transfer)** |
+| param_prefill F1 | 0.664 | 0.646 | −0.02 (violations 53→49) |
+| workflow_gen | 0.50 | 0.50 | 0 |
+| protocol | 0.43 | 0.43 | 0 |
+| boin | 0.778 | 0.833 | +0.05 (n=20, noisy) |
+| dd | 0.70 | 0.70 | 0 |
+
+### Root cause (critical): train/eval PROMPT-FORMAT mismatch
+The routing LoRA was trained with our `routing_prompt.py` format (select-from-candidates, "reply with
+ONLY the name"). The RealBio harness uses a DIFFERENT prompt (its own `instr` + no candidates in bare
+mode). On its OWN matching format the LoRA showed +3pp (0.96→0.99, eval_routing_hf); on the harness's
+format it gives **nothing and slightly hurts**, and single-task tuning caused **negative transfer**
+(autofix −7pp). 
+
+Lessons that reshape the fine-tuning plan:
+1. To lift a task on the production/harness metric, TRAIN ON THAT EXACT PROMPT FORMAT (the harness
+   `instr` strings / real BioMate prompts) — not a bespoke format. "train==eval" must mean the eval we
+   actually report.
+2. Single-task LoRAs cause negative transfer → must train JOINTLY across the task cluster with a
+   balanced mixture (and keep base-format examples to preserve untuned tasks).
+3. The current routing LoRA is NOT shippable; rebuild data in the harness/production formats.
