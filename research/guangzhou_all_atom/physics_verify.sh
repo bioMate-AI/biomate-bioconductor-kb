@@ -33,7 +33,7 @@ python -c "import openmm; print('openmm', openmm.__version__, 'platforms:', [ope
 
 stage fetching_designs
 aws s3 sync "$DESIGNS_S3" "$ROOT/designs" --only-show-errors --exclude "*" --include "*.cif"
-find "$ROOT/designs" -name "*.cif" | head -20; echo "total cif: $(find "$ROOT/designs" -name '*.cif' | wc -l)"
+echo "total cif: $(find "$ROOT/designs" -name '*.cif' | wc -l)"; find "$ROOT/designs" -name "*.cif" | head -20 || true
 
 stage relaxing
 TOPN=$TOPN ROOT=$ROOT python - <<'PY'
