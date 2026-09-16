@@ -17,7 +17,7 @@ TOPN=${TOPN:-3}
 mkdir -p "$ROOT/status" "$ROOT/designs"
 exec > >(tee -a "$ROOT/status/physics.log") 2>&1
 stage(){ printf '{"stage":"%s","time":"%s"}\n' "$1" "$(date -u +%FT%TZ)" > "$ROOT/status/status.json"; aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true; }
-trap 'rc=$?; [ $rc -ne 0 ] && stage failed; aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true; shutdown -h now; exit $rc' EXIT
+trap 'rc=$?; [ $rc -ne 0 ] && stage failed; sync; sleep 8; aws s3 cp "$ROOT/status/physics.log" "$OUT_S3/status/physics.log" --only-show-errors || true; aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true; sleep 5; shutdown -h now; exit $rc' EXIT
 systemd-run --unit=phys-deadline --on-active=2h /sbin/shutdown -h now || true
 
 stage installing
@@ -37,12 +37,29 @@ find "$ROOT/designs" -name "*.cif" | head -20; echo "total cif: $(find "$ROOT/de
 
 stage relaxing
 TOPN=$TOPN ROOT=$ROOT python - <<'PY'
-import glob, json, os, numpy as np
+import sys, traceback, glob, json, os
+import numpy as np
 import openmm as mm
 from openmm import app, unit
 from pdbfixer import PDBFixer
 ROOT=os.environ['ROOT']; TOPN=int(os.environ['TOPN'])
+# capture ANY uncaught top-level error to a synced file (the last run's traceback was lost to shutdown)
+def _hook(t,v,tb):
+    with open(ROOT+'/status/relax_error.txt','w') as f: traceback.print_exception(t,v,tb,file=f)
+    traceback.print_exception(t,v,tb)
+sys.excepthook=_hook
+print('openmm', mm.__version__, 'platforms:', [mm.Platform.getPlatform(i).getName() for i in range(mm.Platform.getNumPlatforms())], flush=True)
 CPU=mm.Platform.getPlatformByName('CPU')
+# force-field fallback: gbn2 implicit -> obc2 implicit -> classic amber99+obc (whichever loads)
+FF_TRIES=[('amber14-all.xml','implicit/gbn2.xml'),('amber14-all.xml','implicit/obc2.xml'),('amber99sbildn.xml','amber99_obc.xml')]
+def make_ff():
+    last=None
+    for spec in FF_TRIES:
+        try: return app.ForceField(*spec), spec
+        except Exception as e: last=e
+    raise last
+FF,FF_SPEC=make_ff()
+print('forcefield:', FF_SPEC, flush=True)
 
 def clash_count(topology, positions, cutoff=2.0):
     pos=np.array(positions.value_in_unit(unit.angstrom))
@@ -78,8 +95,7 @@ for tgt,cifs in sorted(per_target.items()):
             fixer.removeHeterogens(keepWater=False)
             fixer.findMissingAtoms(); fixer.addMissingAtoms()
             fixer.addMissingHydrogens(7.0)
-            ff=app.ForceField('amber14-all.xml','implicit/gbn2.xml')
-            system=ff.createSystem(fixer.topology, nonbondedMethod=app.CutoffNonPeriodic,
+            system=FF.createSystem(fixer.topology, nonbondedMethod=app.CutoffNonPeriodic,
                                    nonbondedCutoff=1.0*unit.nanometer, constraints=app.HBonds)
             integ=mm.LangevinMiddleIntegrator(300*unit.kelvin,1/unit.picosecond,0.002*unit.picoseconds)
             sim=app.Simulation(fixer.topology, system, integ, CPU)

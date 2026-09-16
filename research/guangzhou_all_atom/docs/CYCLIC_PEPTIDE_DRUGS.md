@@ -1,9 +1,11 @@
 # Approved cyclic-peptide drugs — master reference + discovery-method analysis
 
 Compiled from 4 parallel cited surveys (anti-infectives, antifungals/antivirals, hormones/neuropeptides,
-oncology/immuno/recent), reconciled against enumerative reviews (Zorzi/Deyle/Heinis 2017; Zhang & Chen,
-*RSC Chem Biol* 2022; Muttenthaler et al., *Nat Rev Drug Discov* 2021). Structured data:
-`data/approved_cyclic_peptide_drugs.csv` (47 entries). This is the **positive-control set** the transfer
+oncology/immuno/recent) plus a dedicated antibacterial deep-dive, reconciled against enumerative reviews
+(Zorzi/Deyle/Heinis 2017; Zhang & Chen, *RSC Chem Biol* 2022; Muttenthaler et al., *Nat Rev Drug Discov*
+2021). Structured data: `data/approved_cyclic_peptide_drugs.csv` (54 entries incl. regional/veterinary).
+The dedicated antibacterial survey independently reproduced the discovery-method split (~67% natural-product
+isolation, ~33% semisynthetic, 0% de-novo for that class), corroborating the analysis below. This is the **positive-control set** the transfer
 survey called for — designs/predictors should rank these highly, and their chemistry is what we should generate.
 
 Scope: genuinely cyclic/macrocyclic peptides & depsipeptides (head-to-tail lactam, side-chain lactam,
