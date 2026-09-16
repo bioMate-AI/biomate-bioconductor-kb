@@ -1059,11 +1059,12 @@ function OutputsTab({
         {/* Save-to-Project affordance */}
         {savedProjectId ? (
           <a
-            href={`/project/${savedProjectId}`}
+            href="/files"
+            data-testid="afterrun-saved-open-datahub"
             style={{ ...styles.bulkBtn, background: 'oklch(0.93 0.07 145)', color: 'oklch(0.35 0.12 145)', border: '1px solid oklch(0.78 0.10 145)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-            title="Open project file browser"
+            title="Open in the data hub — the saved outputs are first-class dataset objects there (quality, lineage, versions)"
           >
-            ✓ Saved to {savedProjectName || "project"} ↗
+            ✓ Saved to {savedProjectName || "project"} — open in Files ↗
           </a>
         ) : (
           <div style={{ position: 'relative', display: 'inline-block' }}>

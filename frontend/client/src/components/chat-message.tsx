@@ -635,6 +635,10 @@ export function ChatMessage({
                   onToolClick({ tool: { tool_id: galaxyToolId, name: toolName }, relevanceScore: 1, reasoning: 'From research' })
                 }
               }}
+              // "Check against our data" reuses the redo-as-validated-run path: it
+              // re-runs the question that produced this answer as a validated
+              // workflow. Only wired when the handler exists → never a dead exit.
+              onCheckAgainstData={onRedoAsValidatedRun ? () => onRedoAsValidatedRun(message) : undefined}
               className="mt-3"
             />
           )}
