@@ -152,8 +152,9 @@ alone), plus 1,244 real GEO episodes. All sources passed the overlap gate (max 0
 - The SFT model *regressed* in the starved condition (0.13 → 0.06), emitting descriptive rather
   than canonical names — a specialization/narrowing effect from training to select-from-candidates.
 
-Manual inspection confirmed the scores are not substring-inflated (base outputs the exact canonical
-name). A prior naive evaluation reported a spurious 0.0 delta; the 2×2 design reveals why.
+Manual inspection confirmed the scores are not substring-inflated. A prior naive evaluation reported a spurious 0.0 delta; the 2×2 design reveals why.
+
+**Routing is retrieve-then-rank (not classification).** Reframing routing as a two-step search→rank problem, we measured the retriever directly over the full 4,200 catalog (196 in-catalog RealBio queries): hybrid **recall@20=0.94, recall@50=0.985**, but **recall@1 only 0.51**. Lexical TF-IDF (r@5=0.80) *beat* a general dense embedder (MiniLM, r@5=0.64) — domain routing hinges on rare tokens (gene/assay/tool names) a generic embedder blurs; a domain embedder or lexical is required. This shows the 2×2 candidate-context effect (+0.83) was the retrieval step, and that the ranker's real job is reranking a small set of *retrieved hard negatives* to lift recall@20→top-1. Consequently we model routing as learning-to-rank with graded relevance (not single-label), report recall@k separately from NDCG/top-1, and generate candidates from the real retriever rather than randomly.
 
 **Vision (T17).** With the vision tower enabled, the same on-prem model read a controlled figure
 exactly — recovering the title, axis label, all four values, and the correct highest/lowest
