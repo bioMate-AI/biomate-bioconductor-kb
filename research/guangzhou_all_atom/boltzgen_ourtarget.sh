@@ -121,9 +121,9 @@ for t in "${TARGETS[@]}"; do
   else
     RESULT[$pdb]="run_failed"
   fi
-  # collect this target's ranked metrics (aggregate step reads from out/ directly; sync CSVs to S3)
+  # sync this target's metrics AND design STRUCTURES (needed for downstream physics/MD verify)
   aws s3 sync "$ROOT/out/${pdb}" "$OUT_S3/boltzgen_targets/${pdb}/" --only-show-errors \
-    --exclude "*" --include "*.csv" --include "*.json" --include "*rank01*.cif" --include "*rank01*.pdb" || true
+    --exclude "*" --include "*.csv" --include "*.json" --include "*.cif" --include "*.pdb" || true
   stage "done_${pdb}"
 done
 
