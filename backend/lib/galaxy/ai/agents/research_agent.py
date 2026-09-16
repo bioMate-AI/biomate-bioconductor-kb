@@ -1979,8 +1979,21 @@ class ResearchAgent:
             return None
 
         try:
-            # Use semantic search on the question
-            results = self.benchmark_db.query_semantic(question, top_k=5)
+            # Use semantic search on the question.
+            results = self.benchmark_db.query_semantic(question, top_k=5, min_similarity=0.5)
+
+            # Relevance floor (defensive): the keyword-search fallback used when no
+            # embedding model is available returns low-similarity hits that ignore
+            # query_semantic's own threshold — e.g. a crop-pangenome tool (rrBLUP)
+            # surfacing for a cardiotoxicity question at similarity ~0.33. Never
+            # present a benchmark tool the query doesn't actually match: drop
+            # anything below the floor, and if nothing clears it, return no
+            # benchmark evidence rather than an off-domain distractor.
+            RELEVANCE_FLOOR = 0.5
+            results = [
+                r for r in (results or [])
+                if float(r.get('similarity', 0) or 0) >= RELEVANCE_FLOOR
+            ]
 
             if results:
                 return {
