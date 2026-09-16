@@ -15114,7 +15114,11 @@ Respond ONLY with valid JSON (no markdown wrapper):
         const r = await fetch(url, { signal: ctrl.signal });
         clearTimeout(t);
         const body = await r.json().catch(() => ({}));
-        return { label, status: r.ok ? 'ok' : 'degraded', code: r.status, data: body };
+        // process-health returns its own status field; use it when present
+        const derivedStatus = label === 'process_health'
+          ? (body?.status === 'ok' ? 'ok' : body?.status === 'degraded' ? 'degraded' : r.ok ? 'ok' : 'degraded')
+          : (r.ok ? 'ok' : 'degraded');
+        return { label, status: derivedStatus, code: r.status, data: body };
       } catch (e: any) {
         return { label, status: 'down', error: e.message };
       }
@@ -15140,6 +15144,95 @@ Respond ONLY with valid JSON (no markdown wrapper):
       : services.some(s => s.status === 'down') ? 'down' : 'degraded';
 
     res.json({ overall, services, checkedAt: new Date().toISOString() });
+  });
+
+  // GET /api/admin/run-stats — execution_runs stats from Postgres
+  app.get("/api/admin/run-stats", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const rows = await db.execute(sql`
+        SELECT
+          COUNT(*) FILTER (WHERE status NOT IN ('completed','failed','cancelled','interrupted')) AS active,
+          COUNT(*) FILTER (WHERE status = 'completed'
+            AND completed_at > NOW() - INTERVAL '24 hours') AS completed_24h,
+          COUNT(*) FILTER (WHERE status = 'failed'
+            AND completed_at > NOW() - INTERVAL '24 hours') AS failed_24h,
+          COUNT(*) FILTER (WHERE status = 'completed'
+            AND completed_at > NOW() - INTERVAL '7 days') AS completed_7d,
+          COUNT(*) FILTER (WHERE status = 'failed'
+            AND completed_at > NOW() - INTERVAL '7 days') AS failed_7d,
+          COUNT(*) AS total
+        FROM execution_runs
+      `);
+      const r = rows.rows[0] as any;
+      res.json({
+        active: Number(r.active ?? 0),
+        completed_24h: Number(r.completed_24h ?? 0),
+        failed_24h: Number(r.failed_24h ?? 0),
+        completed_7d: Number(r.completed_7d ?? 0),
+        failed_7d: Number(r.failed_7d ?? 0),
+        total: Number(r.total ?? 0),
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // GET /api/admin/user-stats — user registration stats
+  app.get("/api/admin/user-stats", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const rows = await db.execute(sql`
+        SELECT
+          COUNT(*) AS total,
+          COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '24 hours') AS new_24h,
+          COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '7 days') AS new_7d,
+          COUNT(*) FILTER (WHERE subscription_tier = 'admin') AS admins
+        FROM users
+      `);
+      const r = rows.rows[0] as any;
+      res.json({
+        total: Number(r.total ?? 0),
+        new_24h: Number(r.new_24h ?? 0),
+        new_7d: Number(r.new_7d ?? 0),
+        admins: Number(r.admins ?? 0),
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // GET /api/admin/llm-probe — test LLM API reachability with a minimal call
+  app.get("/api/admin/llm-probe", authenticateToken, requireAdmin, async (req, res) => {
+    const t0 = Date.now();
+    const provider = process.env.AI_PROVIDER || 'anthropic';
+    try {
+      if (provider === 'anthropic') {
+        const key = process.env.ANTHROPIC_API_KEY;
+        if (!key) return res.json({ status: 'no_key', provider, latency_ms: null });
+        const r = await fetch('https://api.anthropic.com/v1/models', {
+          headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+          signal: AbortSignal.timeout(8000),
+        });
+        return res.json({ status: r.ok ? 'ok' : 'error', provider, http: r.status, latency_ms: Date.now() - t0 });
+      }
+      if (provider === 'deepseek') {
+        const key = process.env.DEEPSEEK_API_KEY;
+        if (!key) return res.json({ status: 'no_key', provider, latency_ms: null });
+        const r = await fetch('https://api.deepseek.com/models', {
+          headers: { Authorization: `Bearer ${key}` },
+          signal: AbortSignal.timeout(8000),
+        });
+        return res.json({ status: r.ok ? 'ok' : 'error', provider, http: r.status, latency_ms: Date.now() - t0 });
+      }
+      if (provider === 'ollama') {
+        const url = process.env.OLLAMA_URL || 'http://ollama:11434';
+        const r = await fetch(`${url}/api/tags`, { signal: AbortSignal.timeout(5000) });
+        return res.json({ status: r.ok ? 'ok' : 'error', provider, latency_ms: Date.now() - t0 });
+      }
+      // generic openai-compatible
+      return res.json({ status: 'unknown_provider', provider, latency_ms: null });
+    } catch (e: any) {
+      return res.json({ status: 'error', provider, error: e.message?.slice(0, 80), latency_ms: Date.now() - t0 });
+    }
   });
 
   // ============================================================================

@@ -9024,6 +9024,74 @@ def get_index_health() -> Dict[str, Any]:
     }
 
 
+@router.get("/api/admin/process-health", summary="Process and runtime health")
+def get_process_health() -> Dict[str, Any]:
+    """Returns gunicorn worker count, active runs, Redis ping, and memory usage."""
+    import os as _os
+    import time as _time
+    from datetime import datetime as _dt2
+
+    checks: Dict[str, Any] = {}
+    overall = "ok"
+
+    # ── Active runs ────────────────────────────────────────────────────────────
+    try:
+        store = get_run_state_store()
+        active = store.list_active_runs()
+        checks["active_runs"] = {"count": len(active)}
+    except Exception as exc:
+        checks["active_runs"] = {"count": 0, "error": str(exc)[:120]}
+
+    # ── Redis ──────────────────────────────────────────────────────────────────
+    redis_url = _os.environ.get("REDIS_URL") or _os.environ.get("REDISCLOUD_URL")
+    if redis_url:
+        try:
+            import redis as _redis  # type: ignore
+            _t0 = _time.monotonic()
+            _r = _redis.from_url(redis_url, socket_timeout=2, socket_connect_timeout=2,
+                                  decode_responses=True)
+            _r.ping()
+            latency_ms = round((_time.monotonic() - _t0) * 1000, 1)
+            checks["redis"] = {"status": "ok", "latency_ms": latency_ms}
+        except Exception as exc:
+            checks["redis"] = {"status": "error", "error": str(exc)[:120]}
+            overall = "degraded"
+    else:
+        checks["redis"] = {"status": "not_configured"}
+
+    # ── Gunicorn workers ───────────────────────────────────────────────────────
+    try:
+        import psutil as _psutil  # type: ignore
+        workers = [
+            p for p in _psutil.process_iter(["name", "cmdline"])
+            if "gunicorn" in (p.info.get("name") or "")
+            or any("gunicorn" in str(c) for c in (p.info.get("cmdline") or []))
+        ]
+        checks["workers"] = {"count": len(workers)}
+    except Exception:
+        checks["workers"] = {"count": -1, "note": "psutil unavailable"}
+
+    # ── Memory ────────────────────────────────────────────────────────────────
+    try:
+        import psutil as _psutil  # type: ignore  # noqa: F811
+        vm = _psutil.virtual_memory()
+        checks["memory"] = {
+            "used_mb": vm.used // (1024 * 1024),
+            "total_mb": vm.total // (1024 * 1024),
+            "percent": round(vm.percent, 1),
+        }
+        if vm.percent > 90:
+            overall = "degraded"
+    except Exception:
+        pass
+
+    return {
+        "status": overall,
+        "checks": checks,
+        "checked_at": _dt2.utcnow().isoformat() + "Z",
+    }
+
+
 # ---------------------------------------------------------------------------
 # C1 — Preflight with pilot_analysis detection
 # ---------------------------------------------------------------------------
