@@ -13986,6 +13986,43 @@ Rules:
             }
           } catch { /* outputs fetch failed — proceed without file content */ }
 
+          // Fallback A: the canonical output store. `/output_files` sources from the
+          // in-memory nextflow status, which a container restart wipes — but
+          // getInvocationOutputs(galaxyInvocationId) persists each output's real S3
+          // location in metadata.s3Uri (the SAME resolver the download/record path
+          // uses, which keeps working after a restart). Read text samples straight
+          // from there so findings don't fail with "output files could not be read"
+          // on a completed run whose outputs are perfectly downloadable.
+          if (outputSamples.length === 0) {
+            try {
+              const gid = (run as any).execution?.galaxyInvocationId;
+              const invOutputs = gid ? await storage.getInvocationOutputs(gid) : [];
+              if (invOutputs.length) {
+                const { S3Client: _S3I, GetObjectCommand: _GI } = await import('@aws-sdk/client-s3');
+                const _s3i = new _S3I({ region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1', followRegionRedirects: true });
+                const TEXT_EXTS_I = /\.(txt|log|csv|tsv|json|vcf|md|bed|gff|gtf)$/i;
+                for (const o of invOutputs as any[]) {
+                  if (outputSamples.length >= 6) break;
+                  const s3Uri: string = o?.s3Uri || o?.metadata?.s3Uri || '';
+                  const fileName: string = o?.name || s3Uri.split('/').pop() || 'output';
+                  if (!s3Uri.startsWith('s3://') || !TEXT_EXTS_I.test(fileName)) continue;
+                  const _m = s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
+                  if (!_m) continue;
+                  try {
+                    const _obj = await _s3i.send(new _GI({ Bucket: _m[1], Key: _m[2] }));
+                    const chunks: Buffer[] = [];
+                    for await (const ch of _obj.Body as any) chunks.push(Buffer.from(ch));
+                    const content = Buffer.concat(chunks).slice(0, 8000).toString('utf8');
+                    if (content.trim()) outputSamples.push({ name: fileName, content });
+                  } catch { /* skip unreadable */ }
+                }
+                console.log(`[Findings] invocation-store fallback read ${outputSamples.length} outputs via metadata.s3Uri`);
+              }
+            } catch (invErr: any) {
+              console.warn('[Findings] invocation-store fallback failed:', invErr?.message);
+            }
+          }
+
           // Fallback: directly list S3 output directory using AWS SDK
           if (outputSamples.length === 0) {
             try {
