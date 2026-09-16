@@ -160,8 +160,14 @@ exactly — recovering the title, axis label, all four values, and the correct h
 samples — demonstrating on-prem figure interpretation with exact value reading, without a separate
 model.
 
-**Parameter extraction (T06).** [Pilot in progress: generation + independent-auditor pass rate and
-a schema-checked base-vs-SFT extraction eval to be reported.]
+**Parameter extraction (T06).** A pilot validated the APIGen-style pipeline: 47 generated episodes
+→ **27 audited PASS (57%)**, with gold extractions schema-valid by construction and samples
+faithfully grounded (e.g., "shotgun LC-MS/MS of trypsin-digested lysate" → `addCarbamidomethyl=true`).
+Two limitations surfaced. First, *enum* parameters are the cleanest extraction targets, whereas
+*boolean-false defaults* are weakly impliable (a query rarely states "not X") — scaling should
+prioritize enums and explicitly-stated booleans/numerics. Second, generation yield was low (47/200
+sampled) under concurrent teacher calls, indicating a need for retry-hardening before scale-up. A
+schema-checked base-vs-SFT extraction eval is planned once the set is scaled.
 
 **Multi-task joint training.** [Planned: one LoRA over the structured cluster with a task-balanced
 mixture and per-task evaluation, including free-form examples to prevent the narrowing observed
