@@ -306,6 +306,65 @@ export class RunsOutputsService {
     // This service must therefore never promote running/failed runs because
     // objects happen to be present in S3.
 
+    // Reliable-source fallback (R0 subsumes R3): the derived prefix can be wrong
+    // for a run, but the executor's REPORTED file list
+    // (execution.nextflowStatus.s3_output_files, persisted in executionJson) has
+    // each output's real s3_uri — possibly in a different bucket than the derived
+    // prefix. Seed outputs from it, then register the manifest so future reads are
+    // prefix-independent. This is what lets a run whose R0 prefix is wrong (the
+    // exact 0-outputs bug) still resolve.
+    if (items.length === 0) {
+      const reported: any[] =
+        (runForManifest as any)?.execution?.nextflowStatus?.s3_output_files ||
+        (runForManifest as any)?.execution?.nextflowStatus?.output_files ||
+        [];
+      if (reported.length) {
+        const seeded = (
+          await Promise.all(
+            reported.map(async (f: any): Promise<CanonicalOutput | null> => {
+              const s3Uri: string = f?.s3_uri || f?.s3Uri || "";
+              const mm = s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
+              if (!mm) return null;
+              const bucket = mm[1];
+              const key = mm[2];
+              const name = f?.name || key.split("/").pop() || key;
+              const extension = (name.includes(".") ? name.split(".").pop() || "" : "")
+                .toLowerCase()
+                .replace(/^\./, "");
+              let downloadUrl = "";
+              try {
+                downloadUrl = await getSignedUrl(
+                  client,
+                  new GetObjectCommand({ Bucket: bucket, Key: key }),
+                  { expiresIn: PRESIGN_TTL_SEC },
+                );
+              } catch (e: any) {
+                console.warn(`[runs-outputs] seed presign failed for ${key}: ${e?.message || e}`);
+              }
+              return {
+                id: `${meta.runId}:${key}`,
+                name,
+                extension,
+                size: f?.size || 0,
+                fileType: classifyFileType(extension),
+                downloadUrl,
+                s3Uri,
+                s3Bucket: bucket,
+                s3Key: key,
+                step: deriveStep(key),
+                previewable: VISUALIZABLE_EXTS.has(extension),
+                metadata: { s3Uri },
+              };
+            }),
+          )
+        ).filter((x): x is CanonicalOutput => x !== null);
+        if (seeded.length) {
+          if (isTerminalStatus(meta.status)) void this.registerOutputs(meta.runId, seeded);
+          return seeded;
+        }
+      }
+    }
+
     // Presign + normalize in parallel
     const outputs = await Promise.all(
       items.map(async (obj) => {
