@@ -77,6 +77,27 @@ Recommended: pursue (B) for an automatable BioMate workflow, validated by a psfg
 back to (A) manual CHARMM-GUI for non-natural chemistry until (B) is proven. Downstream MD + gmx_MMPBSA
 (igb=8, single-traj, entropy off) is unchanged either way.
 
+### EMPIRICAL OUTCOME (2026-09-17) — automated build BLOCKED by tooling; v1 = manual CHARMM-GUI
+Three cheap CPU smokes (~$0.15 total) settled it:
+- **tleap** (`build-smoke-…203824Z`): FAILS — `N3–C` charged-terminal typing (fundamental; tleap always
+  patches termini).
+- **psfgen iter1** (`psfgen-smoke-…`): PSF builds, charge sensible (+1 = Lys sidechain, correct), but
+  head-to-tail bond fails; root = conda-forge ships only **VMD 1.9.3 (2016)**, whose psfgen can't parse
+  modern CHARMM36m `AUTO ANGLES DIHE PATCH`.
+- **psfgen iter2**: autogenerate parse fixed (sed to old syntax), but the `LINK` patch **still** fails to
+  add the bond on VMD 1.9.3 — a persistent old-psfgen patch quirk. No modern headless psfgen is
+  conda/pip-installable (NAMD not on conda-forge; standalone psfgen = source build).
+
+**Conclusion:** `first none last none` is the right mechanism, but there is **no readily-available headless
+psfgen** to execute it — matching the survey's warning that this is why CHARMM-GUI (web) exists. So:
+- **v1 build = MANUAL CHARMM-GUI** (produces correctly-cyclized AMBER/GROMACS inputs), consumed by the
+  automated downstream. This is the pragmatic, correct path for near-term ΔG numbers.
+- **Automated build = deferred** to a future modern-psfgen container (build psfgen from NAMD source, or a
+  maintained psfgen image) — a separate infra task, not blocking.
+- **The valuable, well-defined, automatable piece = the DOWNSTREAM**: consume a CHARMM-GUI complex →
+  minimize → equilibrate → production MD → **gmx_MMPBSA** (peptide as chain group, igb=8, ST, entropy off).
+  This can be written now and smoke-tested as soon as one CHARMM-GUI bundle exists.
+
 ## Honest flags
 - rₚ correlation numbers are from a snippet — confirm before formal use.
 - OpenFE/perses peptide accuracy unverified — ATM/ATS is the better-validated open FEP for peptides.
