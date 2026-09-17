@@ -54,6 +54,29 @@ weak spots.
   validated cyclic-tleap step (standard-AA) with a documented CHARMM-GUI fallback for non-natural.
 - FEP tier (ATM open-source) is a separate, later workflow for finalists — not v1.
 
+## DECISION (2026-09-17) — build via CHARMM-GUI mechanism; smoke test confirmed the tleap trap
+Cheap CPU smoke test (`build-smoke-20260917T203824Z`, ~$0.05) on a real design (1yf4 `GSGLLKS`):
+the naive automated tleap recipe (`remove` OXT/terminal-H + `bond N.1 C.last`) **FAILED to build** —
+`Could not find bond parameter for atom types: N3 - C` (+ CX-N3-C, H-N3-C angles) for BOTH peptide
+and complex. `N3` = tleap's charged N-terminal ammonium type; tleap always applies terminal patches,
+so the head-to-tail `N3–C` bond is unparametrized in ff19SB. This empirically confirms the survey:
+**do not hand-roll tleap cyclization.**
+
+Chosen path = **CHARMM-GUI-mechanism build**. Two realizations:
+- **(A) Manual CHARMM-GUI pre-step** (robust, immediate): a human runs CHARMM-GUI Solution Builder on
+  the receptor–cyclic-peptide complex (it applies the head-to-tail patch + N-methyl/D-AA patches and
+  exports AMBER/GROMACS inputs), uploads the bundle to S3; the BioMate workflow consumes it and
+  automates minimize→equilibrate→production MD→gmx_MMPBSA. Not batch-friendly (manual per complex).
+- **(B) Headless psfgen equivalent** (automatable): CHARMM-GUI is a front-end to CHARMM/psfgen. psfgen
+  can build the peptide segment with **`first NONE last NONE`** (NO terminal patches → internal `N`/`C`
+  types, avoiding the `N3` trap) then apply a **head-to-tail patch** (delete terminal O/H, form the C–N
+  amide, `regenerate angles dihedrals`). This reproduces CHARMM-GUI's mechanism scriptably (CHARMM36m).
+  gmx_MMPBSA accepts CHARMM psf inputs. Needs its own cheap smoke test (like the tleap one) to validate.
+
+Recommended: pursue (B) for an automatable BioMate workflow, validated by a psfgen smoke test; fall
+back to (A) manual CHARMM-GUI for non-natural chemistry until (B) is proven. Downstream MD + gmx_MMPBSA
+(igb=8, single-traj, entropy off) is unchanged either way.
+
 ## Honest flags
 - rₚ correlation numbers are from a snippet — confirm before formal use.
 - OpenFE/perses peptide accuracy unverified — ATM/ATS is the better-validated open FEP for peptides.
