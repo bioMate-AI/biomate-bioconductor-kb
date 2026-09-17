@@ -120,3 +120,53 @@ competitive** — modest returns. The high-leverage, mostly-non-GPU work is: **(
 model the production path, and (2) turn on the inner loop over BioMate's already-built skills + memory
 + eval.** BioMate is ~70% of a ScienceBuddy-style system already; we mainly need to serve locally and
 close the loop.
+
+---
+
+# v3 — Reconciliation with colleague's `integration/next-phase` work
+
+Checked `origin/integration/next-phase` (the origin HEAD). A colleague has already built major
+pieces of the on-prem stack. This **composes with** our work and shrinks P0 further.
+
+## What the colleague already shipped (next-phase)
+- **On-prem deployment package** (`c087535e7`, `8513cfdf7`): `docker-compose.onprem.yml`,
+  `.env.onprem.example`, `scripts/onprem-update.sh`, `docs/ONPREM_IP_PROTECTION.md`.
+  - **Local-LLM path already wired:** a (commented) **Ollama** service + `GALAXY_AI_LLM_PROVIDER`
+    supporting `anthropic|deepseek|zhipu|openrouter|openai|ollama` + `OLLAMA_BASE_URL`. So the
+    "serve a local model, no internet" deployment path EXISTS.
+  - **Context confirmed:** config comments are in Chinese with a **fully-offline mode** and Chinese
+    providers (DeepSeek/Zhipu) — the target is a **data-sovereign / air-gapped (likely China)**
+    deployment where cloud (Anthropic) is unavailable → **a good local model is mandatory**, not optional.
+  - **Licensing/IP protection:** `license.py`, `onprem-license-gate.tsx`, `generate_license_key.py`.
+- **Models + Inference backend API** (`bbc00d5d6`): `api/models_inference.py` (790 lines) —
+  self-hosted **scientific foundation models** (BioNeMo structure/genomic) + **custom per-campaign
+  models**, with `/api/models`, `/api/models/{id}/infer`, `/api/inference/{run_id}/result`. This is
+  the **"tools the agent calls" layer** (bio-FMs), partly delivering P3 generalizability.
+- **Admin system dashboard** with an **LLM probe** + run/process health (`8f5960313`, `e057b0f71`).
+
+## Reconciled division of labor
+| Layer | Owner | Status |
+|---|---|---|
+| On-prem deploy shell (docker-compose, Ollama service, provider routing, licensing) | colleague | **done** |
+| Self-hosted bio-FM tool inference (BioNeMo + custom) | colleague | **done (extensible via Paper2MCP)** |
+| **Agentic-LLM quality on the local path** (tool loop, model choice, eval, hybrid routing) | **us** | **open** |
+| **Inner-loop harness evolution** (skills/instructions, model frozen) | **us** | scaffolded (`harness_evolve.py`) |
+| **Interaction+memory completion** (confirmation gating, dense episodes, synthesis) | **us** | open |
+| **Data-gen + grounded eval harness (RealBio) + baselines** | **us** | done/ongoing |
+
+## Adjusted P0 (no longer "build serving from scratch")
+The deployment path exists (Ollama + provider routing). Our P0 becomes **make the local agentic
+path actually good**:
+1. **Prepare the model for Ollama** (GGUF/quantized Qwen — we already have a CPU GGUF snapshot in S3;
+   a GPU vLLM path is the alternative for the 27B).
+2. **Verify/complete the agentic tool loop on the local provider** (TASK_CATALOG flagged the Ollama
+   path may lack the full tool loop) — this is the real gap.
+3. **Eval the local path with our RealBio harness** (base numbers already measured for the 27B).
+4. **Hybrid routing** (fast/simple → small local; hard → 27B), with the **data-sovereignty gate**
+   (sensitive data → local-only, never cloud) — extend `GALAXY_AI_LLM_PROVIDER` logic.
+
+## Net
+The colleague delivered the **shell + bio-FM tools + licensing**; we bring the **agentic-LLM quality,
+self-improvement (inner loop), interaction/memory, and grounded eval**. Together this is close to a
+complete private, self-improving local BioMate. Immediate high-leverage, mostly-non-GPU work stays:
+(P1) inner-loop skill evolution on the existing `skill_manager`, and completing the local tool loop.
