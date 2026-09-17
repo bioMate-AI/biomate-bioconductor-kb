@@ -1,9 +1,9 @@
 #!/bin/bash
-# CHEAP CPU smoke test #2: build the head-to-tail cyclic peptide + protein-peptide complex with the
-# CHARMM/psfgen mechanism (the automatable equivalent of CHARMM-GUI). Key: build the peptide segment
-# with `first none last none` (NO charged terminal patches -> internal N/C types, avoiding the tleap
-# N3-C trap) then apply a custom head-to-tail LINK patch. Reports whether the PSF builds, the C-N
-# head-to-tail bond is present, and the peptide net charge is integer/neutral. No MD, no GPU.
+# CPU smoke #3: build the head-to-tail cyclic peptide with a MODERN standalone psfgen (Eigenstate,
+# conda-forge `psfgen` Python API) instead of the ancient VMD-1.9.3 psfgen that failed the LINK patch.
+# `first none last none` -> internal N/C types (no N3 trap) + custom LINK patch for the head-to-tail
+# amide. Peptide-only (isolates the fragile cyclization; no receptor HIS-aliasing noise). Reports PSF
+# build, head-to-tail C-N bond present, net charge. No MD, no GPU.
 set -Eeuo pipefail
 export AWS_DEFAULT_REGION=us-west-2 DEBIAN_FRONTEND=noninteractive PYTHONUNBUFFERED=1 HOME=/root
 ROOT=/opt/psf; OUT_S3=${OUT_S3:?}; DESIGNS_S3=${DESIGNS_S3:?}
@@ -19,40 +19,26 @@ curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash /tmp/mc.sh -b -p /opt/miniconda; source /opt/miniconda/etc/profile.d/conda.sh
 conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main || true
 conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r || true
-# vmd provides the psfgen plugin (text mode); parmed/gemmi for split + verify
-conda create -y -n psf -c conda-forge vmd gemmi numpy parmed >/dev/null 2>&1 || conda create -y -n psf -c conda-forge gemmi numpy parmed >/dev/null 2>&1
+# modern standalone psfgen (Eigenstate) with Python API — NOT the VMD 1.9.3 plugin
+conda create -y -n psf -c conda-forge python=3.11 psfgen gemmi numpy parmed >/dev/null 2>&1 || \
+  { conda create -y -n psf -c conda-forge python=3.11 gemmi numpy parmed >/dev/null 2>&1; conda activate psf; pip install psfgen 2>&1 | tail -3; }
 conda activate psf
-echo "psfgen check:"; (echo 'package require psfgen; puts PSFGEN_OK; exit' | vmd -dispdev text 2>&1 | grep -E "PSFGEN_OK|can't find" | head -3) || echo "vmd/psfgen not available"
+python -c "import psfgen, inspect; from psfgen import PsfGen; print('psfgen OK ver', getattr(psfgen,'__version__','?')); print([m for m in dir(PsfGen) if not m.startswith('_')])"
 
 stage fetch_toppar
-# CHARMM36m protein topology + params. Try the MacKerell tarball (several real release dates), then
-# direct-file GitHub mirrors. Keep going until we have top_all36_prot.rtf.
 mkdir -p toppar
 for V in jul22 jul21 aug21 jul20 jul24; do
-  if curl -fsSL "http://mackerell.umaryland.edu/download.php?filename=CHARMM_ff_params_files/toppar_c36_${V}.tgz" -o toppar.tgz 2>/dev/null && tar tzf toppar.tgz >/dev/null 2>&1; then
-    tar xzf toppar.tgz; echo "got toppar_c36_${V}.tgz"; break
-  fi
+  if curl -fsSL "http://mackerell.umaryland.edu/download.php?filename=CHARMM_ff_params_files/toppar_c36_${V}.tgz" -o toppar.tgz 2>/dev/null && tar tzf toppar.tgz >/dev/null 2>&1; then tar xzf toppar.tgz; echo "got toppar_c36_${V}"; break; fi
 done
 if [ -z "$(find . -name 'top_all36_prot.rtf' | head -1)" ]; then
-  for BASE in \
-    "https://raw.githubusercontent.com/wmwv/charmm36-toppar/master" \
-    "https://raw.githubusercontent.com/intbio/charmm36/master" \
-    "https://raw.githubusercontent.com/gph82/charmm36-toppar/master"; do
-    curl -fsSL "$BASE/top_all36_prot.rtf" -o toppar/top_all36_prot.rtf 2>/dev/null || continue
-    curl -fsSL "$BASE/par_all36m_prot.prm" -o toppar/par_all36m_prot.prm 2>/dev/null || true
-    [ -s toppar/top_all36_prot.rtf ] && { echo "got toppar from $BASE"; break; }
+  for BASE in "https://raw.githubusercontent.com/wmwv/charmm36-toppar/master" "https://raw.githubusercontent.com/intbio/charmm36/master"; do
+    curl -fsSL "$BASE/top_all36_prot.rtf" -o toppar/top_all36_prot.rtf 2>/dev/null && [ -s toppar/top_all36_prot.rtf ] && { echo "got rtf from $BASE"; break; }
   done
 fi
 RTF=$(find . -name "top_all36_prot.rtf" | head -1)
-echo "topology rtf: ${RTF:-NOT FOUND}"
-[ -z "$RTF" ] && { echo "FATAL: could not fetch CHARMM36 protein topology from any source"; stage failed; exit 1; }
-# conda-forge VMD is 1.9.3 (2016); its psfgen can't parse the modern "AUTO ANGLES DIHE PATCH"
-# directive -> downgrade to the old autogenerate syntax it understands. We call `regenerate angles
-# dihedrals` explicitly after the LINK patch, so patch angle/dihedral generation is still covered.
-sed -i -E 's/^AUTO(GENERATE)?[[:space:]]+ANGLES[[:space:]]+DIHE(DRALS)?([[:space:]]+PATCH)?.*/AUTOGENERATE ANGLES DIHEDRALS/' "$RTF" || true
-echo "autogenerate line now: $(grep -i '^AUTO' "$RTF" | head -1)"
+echo "rtf: ${RTF:-NOTFOUND}"; [ -z "$RTF" ] && { echo "FATAL: no CHARMM36 rtf"; exit 1; }
 
-stage split_chains
+stage split_peptide
 aws s3 sync "$DESIGNS_S3/1yf4/" "$ROOT/w/1yf4/" --only-show-errors --exclude "*" --include "*.cif"
 CIF=$(find "$ROOT/w/1yf4" -name "*rank0*_1yf4_*.cif" ! -path "*before_refolding*" | head -1)
 [ -z "$CIF" ] && CIF=$(find "$ROOT/w/1yf4" -name "*.cif" ! -path "*before_refolding*" | head -1)
@@ -62,21 +48,18 @@ st=gemmi.read_structure(sys.argv[1]); st.setup_entities(); m=st[0]
 def is_aa(r):
     i=gemmi.find_tabulated_residue(r.name); return bool(i) and i.is_amino_acid()
 ch=[(c.name,sum(is_aa(r) for r in c)) for c in m]; ch=[c for c in ch if c[1]>0]; ch.sort(key=lambda x:x[1])
-pep,rec=ch[0][0],ch[-1][0]
-def w(name,path):
-    s=gemmi.Structure(); md=gemmi.Model('1'); c2=gemmi.Chain('P' if name==pep else 'R')
-    for c in m:
-        if c.name!=name: continue
-        for r in c:
-            if is_aa(r): c2.add_residue(r)
-    md.add_chain(c2); s.add_model(md); s.setup_entities(); s.write_pdb(path); return sum(1 for _ in c2)
-np_=w(pep,'peptide.pdb'); nr=w(rec,'receptor.pdb'); open('counts.env','w').write(f"NPEP={np_}\nNREC={nr}\n")
-print("peptide res:",np_,"receptor res:",nr)
+pep=ch[0][0]
+s=gemmi.Structure(); md=gemmi.Model('1'); c2=gemmi.Chain('P')
+for c in m:
+    if c.name!=pep: continue
+    for r in c:
+        if is_aa(r): c2.add_residue(r)
+md.add_chain(c2); s.add_model(md); s.setup_entities(); s.write_pdb('peptide.pdb')
+open('counts.env','w').write(f"NPEP={sum(1 for _ in c2)}\n"); print("peptide residues:", sum(1 for _ in c2))
 PY
 . ./counts.env
 
-stage psfgen_build
-# custom head-to-tail patch: bond C(res1 in patch) to N(res2 in patch); regenerate handles angles/dih
+stage build_cyclic
 cat > headtail.top <<'TOP'
 * head-to-tail cyclization patch
 *
@@ -84,79 +67,35 @@ cat > headtail.top <<'TOP'
 PRES LINK         0.00
 BOND 1C 2N
 TOP
-
-cat > build.tcl <<TCL
-package require psfgen
-topology ${RTF}
-topology headtail.top
-# standard name aliases so PDB residue/atom names match CHARMM rtf
-pdbalias residue HIS HSD
-pdbalias residue HID HSD
-pdbalias residue HIE HSE
-pdbalias residue HIP HSP
-pdbalias atom ILE CD1 CD
-pdbalias atom SER HG HG1
-pdbalias atom CYS HG HG1
-pdbalias residue HOH TIP3
-
-# receptor as normal protein chain
-segment REC { pdb receptor.pdb }
-coordpdb receptor.pdb REC
-
-# peptide: NO terminal patches -> internal N/C types (avoids the tleap N3-C trap)
-segment PEP {
-  pdb peptide.pdb
-  first none
-  last none
-}
-coordpdb peptide.pdb PEP
-
-# head-to-tail: bond peptide last-residue C to first-residue N
-patch LINK PEP:${NPEP} PEP:1
-regenerate angles dihedrals
-guesscoord
-
-writepsf complex.psf
-writepdb complex.pdb
-
-# peptide-only for charge/bond check
-resetpsf
-topology ${RTF}
-topology headtail.top
-segment PEP { pdb peptide.pdb; first none; last none }
-coordpdb peptide.pdb PEP
-patch LINK PEP:${NPEP} PEP:1
-regenerate angles dihedrals
-guesscoord
-writepsf peptide.psf
-writepdb peptide_cyc.pdb
-exit
-TCL
-vmd -dispdev text -e build.tcl 2>&1 | tee psfgen.out || true
-
-stage verify
-python - <<'PY'
-import json, os
-rep={}
-rep['complex_psf_built']=os.path.exists('complex.psf') and os.path.getsize('complex.psf')>0
-rep['peptide_psf_built']=os.path.exists('peptide.psf') and os.path.getsize('peptide.psf')>0
-out=open('psfgen.out').read() if os.path.exists('psfgen.out') else ''
-rep['psfgen_errors']=[l for l in out.splitlines() if ('ERROR' in l or "couldn't" in l.lower() or 'failed' in l.lower() or 'unknown' in l.lower())][:15]
-try:
-    import parmed as pmd
-    p=pmd.load_file('peptide.psf')
-    rep['peptide_nres']=len(p.residues); rep['peptide_natoms']=len(p.atoms)
-    rep['peptide_net_charge']=round(sum(a.charge for a in p.atoms),3)
-    def idx(res,nm):
-        for a in res.atoms:
-            if a.name==nm: return a.idx
-        return None
-    ni=idx(p.residues[0],'N'); ci=idx(p.residues[-1],'C')
-    rep['head_to_tail_bond_present']=any({b.atom1.idx,b.atom2.idx}=={ni,ci} for b in p.bonds) if (ni is not None and ci is not None) else False
-except Exception as e:
-    rep['parmed_error']=str(e)[:200]
+RTF="$RTF" NPEP="$NPEP" python - <<'PY'
+import os, json
+from psfgen import PsfGen
+NPEP=int(os.environ['NPEP']); rep={}
+g=PsfGen()
+g.read_topology(os.environ['RTF'])
+g.read_topology('headtail.top')
+# peptide segment WITHOUT terminal patches -> internal N/C types (avoids the N3 trap)
+g.add_segment(segid='PEP', pdbfile='peptide.pdb', first='none', last='none')
+g.read_coords(segid='PEP', filename='peptide.pdb')
+# head-to-tail: bond last-residue C -> first-residue N
+g.patch('LINK', [('PEP', str(NPEP)), ('PEP', '1')])
+g.regenerate_angles(); g.regenerate_dihedrals()
+try: g.guess_coords()
+except Exception as e: rep['guess_coords_warn']=str(e)[:150]
+g.write_psf(filename='peptide.psf'); g.write_pdb(filename='peptide_cyc.pdb')
+rep['psf_built']=os.path.exists('peptide.psf') and os.path.getsize('peptide.psf')>0
+import parmed as pmd
+p=pmd.load_file('peptide.psf')
+def idx(res,nm):
+    for a in res.atoms:
+        if a.name==nm: return a.idx
+    return None
+ni=idx(p.residues[0],'N'); ci=idx(p.residues[-1],'C')
+rep['peptide_nres']=len(p.residues); rep['peptide_natoms']=len(p.atoms)
+rep['net_charge']=round(sum(a.charge for a in p.atoms),3)
+rep['head_to_tail_bond_present']=any({b.atom1.idx,b.atom2.idx}=={ni,ci} for b in p.bonds) if (ni is not None and ci is not None) else False
 json.dump(rep, open('/opt/psf/status/psfgen_smoke.json','w'), indent=2)
 print(json.dumps(rep, indent=2))
 PY
-cp psfgen.out peptide_cyc.pdb /opt/psf/status/ 2>/dev/null || true
+cp peptide_cyc.pdb /opt/psf/status/ 2>/dev/null || true
 stage psfgen_complete
