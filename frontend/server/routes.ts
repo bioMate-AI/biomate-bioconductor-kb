@@ -15286,23 +15286,64 @@ Respond ONLY with valid JSON (no markdown wrapper):
   });
 
   // POST /api/admin/kill-run — force-terminate a workflow run
+  // Works for zombie runs (not in Galaxy state store) by updating Postgres directly.
   app.post("/api/admin/kill-run", authenticateToken, requireAdmin, async (req, res) => {
     const { run_id } = req.body || {};
     if (!run_id) return res.status(400).json({ error: "run_id required" });
+
+    const notes: string[] = [];
+
+    // Step 1: Try Galaxy for subprocess/Batch cancellation (best-effort, ignore 404)
+    let galaxyResult: any = null;
     try {
       const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
       const r = await fetch(`${galaxyUrl}/api/admin/kill-run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ run_id }),
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(10000),
       });
-      const d = await r.json();
-      if (!r.ok) return res.status(r.status).json(d);
-      res.json(d);
+      galaxyResult = await r.json();
+      if (r.ok) {
+        notes.push(`galaxy:ok batch_cancelled=${galaxyResult.batch_cancelled ?? 0}`);
+      } else {
+        notes.push(`galaxy:${r.status} (run not in state store — zombie)`);
+      }
     } catch (err: any) {
-      res.status(502).json({ error: err.message?.slice(0, 120) });
+      notes.push(`galaxy:unreachable (${err.message?.slice(0, 60)})`);
     }
+
+    // Step 2: Always update Postgres directly so zombie runs get cleaned up
+    try {
+      const result = await pool.query(
+        `UPDATE execution_runs
+         SET status = 'failed',
+             completed_at = COALESCE(completed_at, NOW()),
+             updated_at = NOW()
+         WHERE id = $1 AND status NOT IN ('failed', 'completed', 'cancelled', 'interrupted')
+         RETURNING id, status`,
+        [run_id]
+      );
+      if (result.rowCount && result.rowCount > 0) {
+        notes.push("db:updated");
+      } else {
+        // Try without the status guard (might already be terminal or have different id format)
+        const r2 = await pool.query(
+          `UPDATE execution_runs SET status = 'failed', completed_at = COALESCE(completed_at, NOW()), updated_at = NOW() WHERE id = $1 RETURNING id`,
+          [run_id]
+        );
+        notes.push(r2.rowCount && r2.rowCount > 0 ? "db:updated(force)" : "db:not_found");
+      }
+    } catch (dbErr: any) {
+      notes.push(`db:error(${dbErr.message?.slice(0, 80)})`);
+    }
+
+    res.json({
+      run_id,
+      status: "interrupted",
+      notes,
+      galaxy: galaxyResult,
+    });
   });
 
   // GET /api/admin/run-logs — fetch execution logs for a specific run
