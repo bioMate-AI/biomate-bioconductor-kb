@@ -8,9 +8,9 @@ PROTOCOLS=["bulk RNA-seq (Illumina, paired-end)","single-cell RNA-seq (10x)","WG
 QC=["per-base Phred drops below 20 in the last 20% of reads","duplication rate 65%","only 42% reads map to reference",
  "GC content bimodal / adapter contamination flagged","mean coverage 8x for a germline caller","rRNA fraction 45%",
  "ambient RNA / high mito% in 30% of cells","insert-size distribution shows adapter dimers","Q30 = 78% overall",
- "10% of samples fail library-complexity threshold"]
+ "10% of samples fail library-complexity threshold","Q30 = 94% and >90% reads map, all metrics within spec","duplication 12%, insert sizes clean, per-base quality >30 throughout","mean coverage 35x, uniform, no adapter contamination","all FastQC modules pass, GC unimodal, adapters trimmed cleanly","per-base quality dips slightly at read ends but trimming recovers it","3% mito in single-cell, doublet rate low, ambient RNA minimal"]
 def _call(p):
-    body=json.dumps({"model":GEN,"messages":[{"role":"user","content":p}],"max_completion_tokens":80,"reasoning_effort":"low"}).encode()
+    body=json.dumps({"model":GEN,"messages":[{"role":"user","content":p}],"max_completion_tokens":120,"reasoning_effort":"low"}).encode()
     for a in range(3):
         try:
             d=json.load(urllib.request.urlopen(urllib.request.Request("https://api.openai.com/v1/chat/completions",data=body,headers={"Authorization":f"Bearer {KEY}","Content-Type":"application/json"}),timeout=60))

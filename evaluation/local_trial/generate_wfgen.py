@@ -6,7 +6,7 @@ CATS=['admet','alphafold','atac_seq','bisulfite_seq','chip_seq','crispr_screen',
  'gwas','metagenomics','molecular_docking','molecular_dynamics','rna_seq','scrna_seq','spatial_transcriptomics',
  'variant_calling','wgs']  # 17 (from harness label set)
 def _call(p):
-    body=json.dumps({"model":GEN,"messages":[{"role":"user","content":p}],"max_completion_tokens":120,"reasoning_effort":"low"}).encode()
+    body=json.dumps({"model":GEN,"messages":[{"role":"user","content":p}],"max_completion_tokens":400,"reasoning_effort":"low"}).encode()
     for a in range(3):
         try:
             d=json.load(urllib.request.urlopen(urllib.request.Request("https://api.openai.com/v1/chat/completions",data=body,headers={"Authorization":f"Bearer {KEY}","Content-Type":"application/json"}),timeout=60))
