@@ -69,7 +69,7 @@ cat > headtail.top <<'TOP'
 * head-to-tail cyclization patch
 *
    36  1
-PRES LINK         0.00
+PRES CYCP         0.00
 BOND 1C 2N
 
 END
@@ -85,7 +85,7 @@ g.read_topology('headtail.top')
 g.add_segment(segid='PEP', pdbfile='peptide.pdb', first='none', last='none')
 g.read_coords(segid='PEP', filename='peptide.pdb')
 # head-to-tail: bond last-residue C -> first-residue N
-g.patch('LINK', [('PEP', str(NPEP)), ('PEP', '1')])
+g.patch('CYCP', [('PEP', str(NPEP)), ('PEP', '1')])
 g.regenerate_angles(); g.regenerate_dihedrals()
 try: g.guess_coords()
 except Exception as e: rep['guess_coords_warn']=str(e)[:150]
