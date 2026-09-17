@@ -314,10 +314,33 @@ export class RunsOutputsService {
     // prefix-independent. This is what lets a run whose R0 prefix is wrong (the
     // exact 0-outputs bug) still resolve.
     if (items.length === 0) {
-      const reported: any[] =
+      let reported: any[] =
         (runForManifest as any)?.execution?.nextflowStatus?.s3_output_files ||
         (runForManifest as any)?.execution?.nextflowStatus?.output_files ||
         [];
+      if (!reported.length) {
+        // Live recovery (R0 subsumes R3's Galaxy-status fallback): when nothing
+        // was persisted (no poll landed before a restart), ask the executor for
+        // the file list directly. This is the source R3 uses to recover 6
+        // outputs where R0's prefix listing sees none.
+        const nfRunId = meta.nextflowRunId || meta.galaxyInvocationId || meta.runId;
+        if (nfRunId) {
+          try {
+            const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+            const gResp: any = await fetch(`${galaxyUrl}/api/nextflow/status/${nfRunId}`, {
+              signal: AbortSignal.timeout(8000),
+            });
+            if (gResp.ok) {
+              const gData: any = await gResp.json();
+              if (Array.isArray(gData?.s3_output_files) && gData.s3_output_files.length) {
+                reported = gData.s3_output_files;
+              }
+            }
+          } catch (e: any) {
+            console.warn(`[runs-outputs] galaxy status recovery failed: ${e?.message || e}`);
+          }
+        }
+      }
       if (reported.length) {
         const seeded = (
           await Promise.all(
