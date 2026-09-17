@@ -222,35 +222,35 @@ export class RunsOutputsService {
       return this.fromManifest(meta.runId, manifest);
     }
 
-    if (!meta.s3Outdir) return [];
-
-    const parsed = parseS3Uri(meta.s3Outdir);
-    if (!parsed) return [];
-
     const client = s3();
     const items: S3Object[] = [];
-    let continuationToken: string | undefined = undefined;
-    try {
-      do {
-        const lr: any = await client.send(
-          new ListObjectsV2Command({
-            Bucket: parsed.bucket,
-            Prefix: `${parsed.prefix}/`,
-            ContinuationToken: continuationToken,
-            MaxKeys: 1000,
-          })
+    // Prefix listing (only when a prefix is derivable). NEVER early-return on an
+    // empty/absent prefix — the reliable-source recovery below must still run for
+    // runs whose s3Outdir can't be derived (the exact 0-outputs case).
+    const parsed = meta.s3Outdir ? parseS3Uri(meta.s3Outdir) : null;
+    if (parsed) {
+      let continuationToken: string | undefined = undefined;
+      try {
+        do {
+          const lr: any = await client.send(
+            new ListObjectsV2Command({
+              Bucket: parsed.bucket,
+              Prefix: `${parsed.prefix}/`,
+              ContinuationToken: continuationToken,
+              MaxKeys: 1000,
+            })
+          );
+          for (const obj of lr.Contents || []) {
+            if (!obj.Key || obj.Key.endsWith("/")) continue;
+            items.push(obj);
+          }
+          continuationToken = lr.IsTruncated ? lr.NextContinuationToken : undefined;
+        } while (continuationToken);
+      } catch (e: any) {
+        console.warn(
+          `[runs-outputs] S3 list failed for ${meta.s3Outdir}: ${e?.message || e}`
         );
-        for (const obj of lr.Contents || []) {
-          if (!obj.Key || obj.Key.endsWith("/")) continue;
-          items.push(obj);
-        }
-        continuationToken = lr.IsTruncated ? lr.NextContinuationToken : undefined;
-      } while (continuationToken);
-    } catch (e: any) {
-      console.warn(
-        `[runs-outputs] S3 list failed for ${meta.s3Outdir}: ${e?.message || e}`
-      );
-      return [];
+      }
     }
 
     // Task #16 fallback: when publishDir never ran (Nextflow JVM died mid-run
@@ -260,7 +260,7 @@ export class RunsOutputsService {
     // work prefix by translating ".../outputs/<domain>/<hash>" →
     // ".../work/<domain>/<nfRunId>/". Skip Nextflow control files (.command.*,
     // .exitcode, etc.) — they're not user outputs.
-    if (items.length === 0) {
+    if (items.length === 0 && parsed) {
       const m = parsed.prefix.match(/^(.*)\/outputs\/([^/]+)\/([^/]+)$/);
       const nfRunId = meta.nextflowRunId || meta.galaxyInvocationId || meta.runId;
       if (m && nfRunId) {
@@ -388,7 +388,9 @@ export class RunsOutputsService {
       }
     }
 
-    // Presign + normalize in parallel
+    // Presign + normalize in parallel. (items is only populated from the prefix
+    // listing, so parsed is non-null whenever items is non-empty.)
+    if (!parsed) return [];
     const outputs = await Promise.all(
       items.map(async (obj) => {
         const s3Key = obj.Key!;
