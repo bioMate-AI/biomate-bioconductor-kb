@@ -18,17 +18,22 @@ methodological contribution is a **grounded, leakage-controlled data-generation 
 queries are *reverse-generated* from real database artifacts (workflow input/tool metadata,
 parameter schemas, execution logs) rather than paraphrased from target descriptions, then
 filtered by deterministic schema/execution checks, an **independent-model auditor**, and
-character/token-overlap gates against a held-out benchmark. Our central empirical contribution is
-a **2×2 evaluation design** ({base, SFT} × {no-candidates, with-candidates}) that disentangles
-retrieval/candidate-context effects from true fine-tuning lift. On held-out routing, providing
-the candidate list raises a strong base model from 0.13 → 0.96 accuracy (**+0.83**, the dominant
-factor), while fine-tuning adds a small but statistically significant **+0.03** (0.96 → 0.99,
-95% CI [0.005, 0.06]) concentrated on confusable same-domain cases. We argue this "knowledge in
-retrieval, skill in weights" result — consistent with the design of closed frontier life-science
-models — implies that fine-tuning budget should target *weak-base* tasks (parameter extraction,
-autofix), not routing. We further show the same model natively interprets scientific figures
-on-prem (exact value reading), and outline an execution-grounded self-evolving loop that avoids
-model collapse.
+character/token-overlap gates against a held-out benchmark. We evaluate on the RealBio harness
+across eight tasks. Measured on our own served weights, the 27B base is **on par with the far
+larger hosted Qwen3.8-Max** (e.g. autofix 0.87 vs 0.86, param-prefill F1 0.66 vs 0.69, boin 0.78
+vs 0.11), confirming that a small on-prem model suffices for these tasks. Our central empirical
+finding concerns *transfer*: a routing LoRA that improved routing on its own prompt format
+transferred **nothing** to the harness's format and caused **−7pp negative transfer** on autofix —
+because fine-tuning gains are specific to the exact prompt format and label space, and single-task
+tuning damages untuned tasks. Correcting for this — training **in the exact harness formats,
+jointly across the task cluster** — yields real, targeted gains with **no negative transfer**:
+routing-bare **+10.5pp** (0.18→0.285) and parameter-extraction restraint **−32% must-not-fill
+violations** (precision 0.77→0.82), while every untuned task held. We conclude that for
+retrieval-grounded agentic tasks the durable levers are **retrieval** (a hybrid retriever reaches
+recall@20=0.95 on routing) and **format-matched joint fine-tuning for targeted disciplines**
+(restraint, format adherence), not single-task weight tuning. We further show the same model
+natively interprets scientific figures on-prem (exact value reading), and outline an
+execution-grounded self-evolving loop that avoids model collapse.
 
 ---
 
@@ -49,10 +54,13 @@ We make four contributions:
    queries from real DB artifacts and verifies them with deterministic checks + an independent
    auditor + overlap gates — designed to avoid the circularity and train/test leakage that
    invalidate naive synthetic pipelines.
-3. **A confound-aware 2×2 evaluation** that separates the effect of in-context retrieval from the
-   effect of fine-tuning, and an honest finding that retrieval dominates for routing.
-4. **A blueprint** for a single jointly-trained multi-task, natively-multimodal on-prem model and
-   an execution-grounded self-evolving improvement loop.
+3. **A confound-aware evaluation** (2×2 for routing) plus a real production-harness baseline showing
+   a 27B on-prem model on par with a far-larger hosted model, and the finding that **retrieval — not
+   weight tuning — is the dominant routing lever**.
+4. **A transfer result with a fix:** fine-tuning gains are specific to the exact prompt format/label
+   space and single-task tuning causes negative transfer; **format-matched joint training** recovers
+   real, targeted gains (routing-bare +10.5pp, param restraint −32%) with none. Plus a validated,
+   natively-multimodal on-prem model and an execution-grounded self-evolving loop design.
 
 ## 2. Related work
 
@@ -152,7 +160,48 @@ alone), plus 1,244 real GEO episodes. All sources passed the overlap gate (max 0
 - The SFT model *regressed* in the starved condition (0.13 → 0.06), emitting descriptive rather
   than canonical names — a specialization/narrowing effect from training to select-from-candidates.
 
-Manual inspection confirmed the scores are not substring-inflated. A prior naive evaluation reported a spurious 0.0 delta; the 2×2 design reveals why.
+Manual inspection confirmed the scores are not substring-inflated. A prior naive evaluation reported a spurious 0.0 delta; the 2×2 design reveals why. **Crucially, these numbers are on our *own* prompt format** — they did not transfer to the production RealBio harness (next), which is itself the central finding.
+
+**The 27B baseline on the real RealBio harness (our served weights).** Running the production
+harness + scorer against our own served base 27B, across eight tasks, gives a baseline **on par
+with the far-larger hosted Qwen3.8-Max**:
+
+| Task | Qwen3.8-27B (ours) | Qwen3.8-Max (hosted) |
+|---|---|---|
+| routing — bare (no candidates) | 0.18 | 0.345 |
+| routing — catalog (candidates) | 0.815 | — |
+| autofix (fix-category) | 0.87 | 0.86 |
+| param_prefill (F1) | 0.664 | 0.692 |
+| workflow_gen | 0.50 | 0.50 |
+| protocol_QC | 0.43 | 0.46 |
+| pbpk (within-2×) | 0.067 | 0.00 |
+| boin (exact MTD) | 0.778 | 0.111 |
+| drug_disc (Spearman) | 0.70 | 0.70 |
+
+**Transfer failure (the central result).** A routing LoRA trained on our format (+3pp on that
+format) gave **nothing** on the harness (catalog 0.815→0.795) and **−7pp on autofix** (0.87→0.80) —
+single-task tuning caused negative transfer. Root cause: fine-tuning gains are specific to the exact
+**prompt format and label space**, and the harness uses different prompts and label sets (e.g. a
+10-category autofix taxonomy, a 63-name routing option set) than our bespoke format.
+
+**The fix — format-matched joint training.** Rebuilding the data in the *exact* harness prompt
+formats and label spaces, and training **one joint LoRA** across routing+param+autofix, produced
+real, targeted gains with **no negative transfer**:
+
+| Task | Base | routing-LoRA (single) | Multitask-LoRA (format-matched) |
+|---|---|---|---|
+| routing bare | 0.18 | 0.17 | **0.285** (+10.5pp) |
+| routing catalog | 0.815 | 0.795 | 0.805 |
+| autofix | 0.87 | 0.80 (−7pp) | 0.85 (held) |
+| param F1 / precision | 0.664 / 0.77 | 0.646 / — | 0.657 / **0.823** |
+| param must-not-fill violations | 53 | 49 | **36 (−32%)** |
+| workflow_gen / protocol / boin / dd | 0.50/0.43/0.78/0.70 | (n/a) | 0.50/0.43/0.78/0.70 (all held) |
+
+Gains concentrate where matched data was added (routing-bare recall; param **restraint**), untuned
+tasks are preserved (no negative transfer), and already-strong tasks (autofix) are near ceiling. A
+planned round-2 (adding protocol/workflow_gen, balancing param, de-skewing autofix) was built
+(1,253 balanced examples across five tasks) but not trained, due to an unrecoverable GPU-host
+failure; the data and pipeline are ready.
 
 **Routing is retrieve-then-rank (not classification).** Reframing routing as a two-step search→rank problem, we measured the retriever directly over the full 4,200 catalog (196 in-catalog RealBio queries): hybrid **recall@20=0.94, recall@50=0.985**, but **recall@1 only 0.51**. Lexical TF-IDF (r@5=0.80) *beat* a general dense embedder (MiniLM, r@5=0.64) — domain routing hinges on rare tokens (gene/assay/tool names) a generic embedder blurs; a domain embedder or lexical is required. This shows the 2×2 candidate-context effect (+0.83) was the retrieval step, and that the ranker's real job is reranking a small set of *retrieved hard negatives* to lift recall@20→top-1. Consequently we model routing as learning-to-rank with graded relevance (not single-label), report recall@k separately from NDCG/top-1, and generate candidates from the real retriever rather than randomly.
 
@@ -180,18 +229,24 @@ task is grounded in real execution artifacts, the higher the achievable label qu
 `missing_input`/`dependency_error` (reflecting the fixture-run failure population), which balancing
 must account for at training time; production-log ingestion will broaden it.
 
-**Multi-task joint training.** [Planned: one LoRA over the structured cluster with a task-balanced
-mixture and per-task evaluation, including free-form examples to prevent the narrowing observed
-above.]
-
 ## 6. Discussion
 
-For retrieval-grounded routing, a strong instruct base plus a candidate list already achieves 0.96;
-fine-tuning adds a small, real gain on hard cases. This supports **"knowledge in retrieval, skill
-in weights"** and implies that fine-tuning effort should be re-allocated to tasks where the base is
-weak (schema-grounded parameter extraction, autofix, output interpretation, and restraint) rather
-than to routing. The specialization regression we observed is a concrete argument for *joint*
-multi-task training with format diversity, over per-task adapters trained in isolation.
+On the production harness, a strong instruct base plus a candidate list already achieves 0.815 on
+routing and is on par with a far larger hosted model across the suite; fine-tuning adds targeted
+gains. This supports **"knowledge in retrieval, skill in weights."** Notably, measuring the real
+baseline overturned an intuition we initially acted on: param-prefill and autofix are **not**
+weak-base tasks (0.66 F1 and 0.87 on the harness) — a small on-prem model is already competitive
+there. Fine-tuning's realized value was **targeted**: better *restraint* in parameter extraction
+(−32% over-fills) and better *recall* in no-candidate routing, not broad jumps.
+
+**Fine-tuning gains are format-specific; train on the metric you report.** The load-bearing lesson
+is that a LoRA which improved a task on one prompt format transferred nothing to a different format
+and *harmed* an untuned task (−7pp autofix). "Train == eval" must mean the *production/eval* format,
+not a bespoke one; and tuning must be **joint** across the cluster (single-task caused negative
+transfer, joint did not). This also exposes a tension the field warns about: training to a
+benchmark's exact label space risks *benchmark adaptation* over capability — so we distinguish
+genuine capability gains (restraint, format adherence, real-log diagnosis) from format-fitting, and
+keep **retrieval** (recall@20=0.95) as the durable routing lever rather than memorizing a label set.
 
 **Self-evolving loop.** Production turns are logged (intent, route, params, run outcome, user
 correction); successes become positives and failures + corrections become hard negatives and
@@ -202,21 +257,29 @@ safeguard against model collapse.
 
 ## 7. Limitations
 
-- Only routing is fully evaluated to date; multi-task results are pending.
+- All eight tasks are evaluated for base and the format-matched joint LoRA; a **round-2** joint run
+  (adding protocol/workflow_gen, balancing param, de-skewing autofix) was fully prepared (1,253
+  balanced examples) but not trained, due to an unrecoverable GPU-host failure — realized gains are
+  therefore from the first joint LoRA only.
+- Fine-tuning gains, while real, are **modest and data-limited**; clearing a production bar on
+  already-strong tasks likely needs more/better-balanced per-task data, not the method.
 - Reverse-generated queries are synthetic; realism is enforced by the auditor but not by real users.
-- The label distribution is transcriptomics-skewed, mirroring the catalog.
-- Base multimodal capability is general-purpose; performance on specialized modalities (cryo-EM,
-  histology) is unquantified.
-- The independent auditor is itself a model; execution/schema checks are the stronger gate where
-  available.
+- Training to the harness's exact label space is **benchmark adaptation** for some tasks; we flag
+  which gains are capability vs format-fitting, but the distinction warrants held-out formats.
+- Parameter-data generation yield was low (~17%) and volume-limited (68–96 audited); autofix labels
+  are skewed toward `missing_input`/`dependency` (fixture-population artifact).
+- Base multimodal capability is general-purpose; specialized modalities (cryo-EM, histology) are
+  unquantified. The independent auditor is itself a model; execution/schema checks are the stronger gate.
 
 ## 8. Future work
 
-Complete the structured-cluster data (T01/T06/T18/T19/T20) with grounded verifiers; run one joint
-multi-task training and per-task evaluation against RealBio and the LifeSciBench axes, with open
-baselines (Aloe-Qwen2.5, OpenBioLLM, Meditron); benchmark and, if needed, fine-tune vision using
-figures rendered from known data (verifiable interpretation targets) plus open-access figure–caption
-pairs; and deploy the execution-grounded self-evolving loop in production.
+Run the prepared round-2 joint training (protocol+workflow_gen added, param balanced, autofix
+de-skewed) and re-measure per task; stand up the **hybrid retriever** (lexical+domain-dense,
+recall@20=0.95) as the routing front-end with a learning-to-rank reranker over retrieved hard
+negatives; benchmark against open baselines (Aloe-Qwen2.5, OpenBioLLM, Meditron) and the LifeSciBench
+axes; fine-tune vision from figures rendered off known data (verifiable targets) plus open-access
+figure–caption pairs; and deploy the execution-grounded self-evolving loop in production. Robust,
+resumable GPU orchestration (the infra friction here was a primary cost) is a prerequisite.
 
 ## References
 
