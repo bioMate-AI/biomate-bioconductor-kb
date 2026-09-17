@@ -23,6 +23,13 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { storage } from "../storage";
 import { classifyFileType } from "../bioinformatics-parsers";
+import {
+  buildManifest,
+  readManifest,
+  entryToCanonical,
+  isTerminalStatus,
+  type OutputManifest,
+} from "./runs-outputs-manifest";
 
 const PRESIGN_TTL_SEC = 3600;
 const DEFAULT_NF_BUCKET =
@@ -157,9 +164,65 @@ export class RunsOutputsService {
   }
 
   /** List outputs for a run. Canonical, normalized, presigned. */
+  /**
+   * Persist a manifest of a terminal run's outputs into its (DB-backed)
+   * executionJson, so later reads never depend on re-deriving the S3 prefix or
+   * on a wiped in-memory store. The single writer for the output manifest (L1a).
+   */
+  async registerOutputs(anyId: string, outputs: CanonicalOutput[]): Promise<void> {
+    if (!outputs.length) return;
+    const run =
+      (await storage.getExecutionRun(anyId)) ||
+      (await storage.getExecutionRunByGalaxyId(anyId));
+    if (!run) return;
+    const exec: any = (run as any).execution || {};
+    const manifest = buildManifest(outputs, new Date().toISOString());
+    try {
+      await storage.updateExecutionRun(run.id, {
+        execution: { ...exec, outputManifest: manifest },
+      } as any);
+    } catch (e: any) {
+      console.warn(`[runs-outputs] registerOutputs persist failed for ${run.id}: ${e?.message || e}`);
+    }
+  }
+
+  /** Re-presign the stable manifest entries into full CanonicalOutputs. */
+  private async fromManifest(runId: string, manifest: OutputManifest): Promise<CanonicalOutput[]> {
+    const client = s3();
+    return Promise.all(
+      manifest.entries.map(async (entry) => {
+        let downloadUrl = "";
+        try {
+          downloadUrl = await getSignedUrl(
+            client,
+            new GetObjectCommand({ Bucket: entry.s3Bucket, Key: entry.s3Key }),
+            { expiresIn: PRESIGN_TTL_SEC },
+          );
+        } catch (e: any) {
+          console.warn(`[runs-outputs] manifest presign failed for ${entry.s3Key}: ${e?.message || e}`);
+        }
+        return entryToCanonical(entry, runId, downloadUrl);
+      }),
+    );
+  }
+
   async list(anyId: string): Promise<CanonicalOutput[]> {
     const meta = await this.resolve(anyId);
-    if (!meta || !meta.s3Outdir) return [];
+    if (!meta) return [];
+
+    // Manifest-first: a terminal run that was listed once has its stable output
+    // set persisted in executionJson — rebuild from there (survives restarts and
+    // never re-derives the S3 prefix). Falls through to a live listing when no
+    // manifest exists yet (in-flight runs, or runs registered before this shipped).
+    const runForManifest =
+      (await storage.getExecutionRun(meta.runId)) ||
+      (await storage.getExecutionRunByGalaxyId(meta.runId));
+    const manifest = readManifest((runForManifest as any)?.execution);
+    if (manifest) {
+      return this.fromManifest(meta.runId, manifest);
+    }
+
+    if (!meta.s3Outdir) return [];
 
     const parsed = parseS3Uri(meta.s3Outdir);
     if (!parsed) return [];
@@ -244,7 +307,7 @@ export class RunsOutputsService {
     // objects happen to be present in S3.
 
     // Presign + normalize in parallel
-    return Promise.all(
+    const outputs = await Promise.all(
       items.map(async (obj) => {
         const s3Key = obj.Key!;
         const name = s3Key.split("/").pop() || s3Key;
@@ -281,6 +344,16 @@ export class RunsOutputsService {
         } satisfies CanonicalOutput;
       })
     );
+
+    // Opportunistic manifest registration (L1a): once a TERMINAL run's outputs
+    // are successfully listed from S3, persist them so every future read — any
+    // surface, after any restart — rebuilds from the manifest instead of
+    // re-deriving the prefix. Fire-and-forget: never blocks or fails the read.
+    if (outputs.length && isTerminalStatus(meta.status)) {
+      void this.registerOutputs(meta.runId, outputs);
+    }
+
+    return outputs;
   }
 }
 
