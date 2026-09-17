@@ -88,15 +88,26 @@ Three cheap CPU smokes (~$0.15 total) settled it:
   add the bond on VMD 1.9.3 — a persistent old-psfgen patch quirk. No modern headless psfgen is
   conda/pip-installable (NAMD not on conda-forge; standalone psfgen = source build).
 
-**Conclusion:** `first none last none` is the right mechanism, but there is **no readily-available headless
-psfgen** to execute it — matching the survey's warning that this is why CHARMM-GUI (web) exists. So:
-- **v1 build = MANUAL CHARMM-GUI** (produces correctly-cyclized AMBER/GROMACS inputs), consumed by the
-  automated downstream. This is the pragmatic, correct path for near-term ΔG numbers.
-- **Automated build = deferred** to a future modern-psfgen container (build psfgen from NAMD source, or a
-  maintained psfgen image) — a separate infra task, not blocking.
-- **The valuable, well-defined, automatable piece = the DOWNSTREAM**: consume a CHARMM-GUI complex →
-  minimize → equilibrate → production MD → **gmx_MMPBSA** (peptide as chain group, igb=8, ST, entropy off).
-  This can be written now and smoke-tested as soon as one CHARMM-GUI bundle exists.
+**Interim conclusion (later SUPERSEDED — see SOLVED below):** VMD-1.9.3 psfgen couldn't apply the patch,
+so we briefly concluded automated build needed manual CHARMM-GUI. Then two more iterations solved it.
+
+## ✅ SOLVED (2026-09-17) — automated headless cyclic build works (no manual CHARMM-GUI needed)
+Smoke #5 (`psfgen-smoke-…`) on the real 1yf4 `GSGLLKS` design: **`nbonds=96` (ring closed), head-to-tail
+C–N bond present, net_charge +1.0 (Lys sidechain, neutral termini), resids [1..7]**. The working recipe:
+- **Modern standalone `psfgen`** (Eigenstate / Robin Betz, conda-forge `psfgen` Python API) — NOT the
+  ancient VMD-1.9.3 plugin. Parses CHARMM36m + applies patches correctly.
+- **`add_segment(..., first='none', last='none')`** → internal N/C residue types (avoids the tleap `N3` trap).
+- **A UNIQUELY-NAMED head-to-tail patch** — `PRES CYCP … BOND 1C 2N` (the last bug: `LINK` collides with a
+  built-in CHARMM36m patch → silently ignored → stock LINK applied → bond failed; renaming fixed it).
+- **Peptide residues renumbered 1..N** so patch resid refs (`'1'`, `'N'`) resolve; `regenerate angles
+  dihedrals`; `guess_coords`.
+Recipe lives in `research/guangzhou_all_atom/peptide_psfgen_smoke.sh`.
+
+### Remaining wiring to a full automated ΔG pipeline (build now proven)
+psfgen build (PSF + coords, CHARMM36m) → **solvate + neutralize** (VMD solvate/autoionize, or OpenMM
+Modeller) → **MD** (NAMD/OpenMM native CHARMM, or ParmEd `chamber`→AMBER prmtop to reuse the existing
+pmemd stages) → **gmx_MMPBSA / MMPBSA.py** (peptide chain-group / residue-range split, igb=8, ST, entropy
+off). The hard part (the covalent ring build) is done; this is standard MD-system assembly.
 
 ## Honest flags
 - rₚ correlation numbers are from a snippet — confirm before formal use.
