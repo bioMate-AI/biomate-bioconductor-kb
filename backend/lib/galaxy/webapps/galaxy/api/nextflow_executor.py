@@ -9143,6 +9143,217 @@ def get_admin_logs(lines: int = 100) -> Dict[str, Any]:
     }
 
 
+def _parse_batch_job_ids_from_log(nf_log_path: Path) -> list:
+    """Return list of AWS Batch job IDs found in a Nextflow log file."""
+    import re as _re2
+    pattern = _re2.compile(r"job=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})")
+    ids: list = []
+    seen: set = set()
+    try:
+        with open(nf_log_path) as fh:
+            for line in fh:
+                for m in pattern.finditer(line):
+                    jid = m.group(1)
+                    if jid not in seen:
+                        seen.add(jid)
+                        ids.append(jid)
+    except Exception:
+        pass
+    return ids
+
+
+def _get_run_record_by_id(run_id: str) -> Optional[Dict[str, Any]]:
+    """Look up run record from in-memory dict or Redis store."""
+    with _runs_lock:
+        rec = _runs.get(run_id)
+    if rec:
+        return dict(rec)
+    try:
+        return get_run_state_store().get_run(run_id)
+    except Exception:
+        return None
+
+
+@router.post("/api/admin/kill-run", summary="Force-terminate a run (admin)")
+def admin_kill_run(body: Dict[str, Any]) -> Dict[str, Any]:
+    """Kill a running workflow: terminates the local Nextflow subprocess and
+    cancels any submitted AWS Batch jobs, then marks the run as interrupted."""
+    import signal as _signal
+    import time as _time
+
+    run_id = (body.get("run_id") or "").strip()
+    if not run_id:
+        raise HTTPException(status_code=400, detail="run_id required")
+
+    rec = _get_run_record_by_id(run_id)
+    if not rec:
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found in state store")
+
+    actions: list = []
+
+    # 1. Terminate local Nextflow HEAD subprocess
+    proc = rec.get("process")
+    if proc is not None:
+        try:
+            proc.send_signal(_signal.SIGTERM)
+            actions.append("sigterm_sent")
+        except Exception as _e:
+            actions.append(f"sigterm_failed:{_e}")
+
+    # 2. Cancel AWS Batch jobs found in the Nextflow log
+    work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
+    batch_job_ids: list = []
+    for nf_log_rel in ("nextflow.log", "work/.nextflow.log"):
+        nf_log_path = work_base / run_id / nf_log_rel
+        if nf_log_path.exists():
+            batch_job_ids = _parse_batch_job_ids_from_log(nf_log_path)
+            if batch_job_ids:
+                break
+
+    batch_cancelled = []
+    batch_errors = []
+    if batch_job_ids:
+        try:
+            import boto3 as _boto3
+            _bc = _boto3.client("batch", region_name=os.environ.get("AWS_REGION", "us-west-2"))
+            for jid in batch_job_ids:
+                try:
+                    _bc.terminate_job(jobId=jid, reason="Admin force-terminated via dashboard")
+                    batch_cancelled.append(jid)
+                except Exception as _be:
+                    batch_errors.append(f"{jid[:8]}…:{_be}")
+        except Exception as _boto_err:
+            batch_errors.append(f"boto3_init:{_boto_err}")
+    actions.append(f"batch_cancelled:{len(batch_cancelled)}")
+    if batch_errors:
+        actions.append(f"batch_errors:{batch_errors}")
+
+    # 3. Mark run as interrupted in state store + frontend Postgres
+    completed_at = _time.time()
+    with _runs_lock:
+        if run_id in _runs:
+            _runs[run_id]["status"] = "interrupted"
+            _runs[run_id]["completed_at"] = completed_at
+    try:
+        get_run_state_store().update_run(run_id, status="interrupted", completed_at=completed_at)
+    except Exception:
+        pass
+
+    invocation_id = rec.get("invocation_id")
+    if invocation_id:
+        try:
+            from galaxy.ai.runs.orphan_finalizer import _post_frontend_status
+            _post_frontend_status(invocation_id, "failed", -1, completed_at, "admin_kill")
+            actions.append("frontend_status_updated")
+        except Exception as _fe:
+            actions.append(f"frontend_update_failed:{_fe}")
+
+    log.info("[admin_kill_run] %s terminated by admin: %s", run_id, actions)
+    return {
+        "run_id": run_id,
+        "status": "interrupted",
+        "batch_jobs_found": len(batch_job_ids),
+        "batch_cancelled": len(batch_cancelled),
+        "actions": actions,
+    }
+
+
+@router.get("/api/admin/run-logs", summary="Fetch execution logs for a run (admin)")
+def admin_run_logs(run_id: str, lines: int = 150) -> Dict[str, Any]:
+    """Return Nextflow execution log lines for a specific run.
+    Reads the local .nextflow.log file and (for Batch runs) the
+    last N lines from CloudWatch per submitted job."""
+    n = min(max(10, lines), 500)
+    run_id = run_id.strip()
+    if not run_id:
+        raise HTTPException(status_code=400, detail="run_id required")
+
+    rec = _get_run_record_by_id(run_id)
+    work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
+    result: Dict[str, Any] = {
+        "run_id": run_id,
+        "status": rec.get("status") if rec else "unknown",
+        "is_batch": rec.get("is_batch", False) if rec else False,
+        "nf_log": [],
+        "batch_jobs": [],
+        "cloudwatch_logs": [],
+    }
+
+    # Read local Nextflow log
+    for nf_log_rel in ("nextflow.log", "work/.nextflow.log"):
+        nf_log_path = work_base / run_id / nf_log_rel
+        if nf_log_path.exists():
+            try:
+                with open(nf_log_path) as fh:
+                    all_lines = fh.readlines()
+                result["nf_log"] = [l.rstrip("\n") for l in all_lines[-n:]]
+                result["nf_log_path"] = str(nf_log_path)
+                result["nf_log_total_lines"] = len(all_lines)
+            except Exception as _e:
+                result["nf_log_error"] = str(_e)
+            break
+
+    # Parse Batch job IDs and fetch CloudWatch logs
+    batch_job_ids: list = []
+    for nf_log_rel in ("nextflow.log", "work/.nextflow.log"):
+        nf_log_path = work_base / run_id / nf_log_rel
+        if nf_log_path.exists():
+            batch_job_ids = _parse_batch_job_ids_from_log(nf_log_path)
+            break
+
+    result["batch_jobs"] = batch_job_ids
+
+    if batch_job_ids:
+        try:
+            import boto3 as _boto3
+            _bc = _boto3.client("batch", region_name=os.environ.get("AWS_REGION", "us-west-2"))
+            _cw = _boto3.client("logs", region_name=os.environ.get("AWS_REGION", "us-west-2"))
+            cw_lines: list = []
+            for jid in batch_job_ids[:5]:  # cap at 5 jobs to avoid slow responses
+                try:
+                    job_resp = _bc.describe_jobs(jobs=[jid])
+                    jobs = job_resp.get("jobs", [])
+                    if not jobs:
+                        continue
+                    job = jobs[0]
+                    log_stream = job.get("container", {}).get("logStreamName")
+                    job_status = job.get("status", "UNKNOWN")
+                    if log_stream:
+                        try:
+                            cw_resp = _cw.get_log_events(
+                                logGroupName="/aws/batch/job",
+                                logStreamName=log_stream,
+                                limit=min(n, 200),
+                                startFromHead=False,
+                            )
+                            for ev in cw_resp.get("events", []):
+                                cw_lines.append({
+                                    "job_id": jid[:8] + "…",
+                                    "status": job_status,
+                                    "ts": ev.get("timestamp", 0),
+                                    "msg": ev.get("message", "")[:500],
+                                })
+                        except Exception as _cw_e:
+                            cw_lines.append({
+                                "job_id": jid[:8] + "…",
+                                "status": job_status,
+                                "msg": f"[CloudWatch fetch failed: {_cw_e}]",
+                            })
+                    else:
+                        cw_lines.append({
+                            "job_id": jid[:8] + "…",
+                            "status": job_status,
+                            "msg": "[No log stream yet — job may still be starting]",
+                        })
+                except Exception as _je:
+                    cw_lines.append({"job_id": jid[:8] + "…", "msg": f"[describe_jobs failed: {_je}]"})
+            result["cloudwatch_logs"] = cw_lines[-n:]
+        except Exception as _boto_err:
+            result["cloudwatch_error"] = str(_boto_err)
+
+    return result
+
+
 # ---------------------------------------------------------------------------
 # C1 — Preflight with pilot_analysis detection
 # ---------------------------------------------------------------------------

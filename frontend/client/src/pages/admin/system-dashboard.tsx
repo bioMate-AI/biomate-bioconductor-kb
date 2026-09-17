@@ -12,7 +12,7 @@ import {
   CheckCircle2, XCircle, AlertCircle, Loader2, RefreshCw, ArrowLeft,
   Copy, Check, Server, Database, Cpu, Bot, Users, Activity, Wifi,
   MemoryStick, Layers, Clock, ChevronDown, ChevronRight, Terminal,
-  List, AlertTriangle,
+  List, AlertTriangle, Square, FileText, X,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -192,6 +192,162 @@ function LogViewer({ lines, buffered, loading, error }: {
   );
 }
 
+// ── Run Log Drawer ────────────────────────────────────────────────────────────
+
+interface RunLogsData {
+  run_id: string;
+  status: string;
+  is_batch: boolean;
+  nf_log: string[];
+  nf_log_path?: string;
+  nf_log_total_lines?: number;
+  nf_log_error?: string;
+  batch_jobs: string[];
+  cloudwatch_logs: Array<{ job_id: string; status?: string; ts?: number; msg: string }>;
+  cloudwatch_error?: string;
+}
+
+function RunLogDrawer({ runId, runName, onClose }: {
+  runId: string;
+  runName: string;
+  onClose: () => void;
+}) {
+  const [data, setData] = useState<RunLogsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [tab, setTab] = useState<"nf"|"cw">("nf");
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true); setError("");
+    try {
+      const r = await fetch(`/api/admin/run-logs?run_id=${encodeURIComponent(runId)}&lines=200`, { credentials: "include" });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setData(await r.json());
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  }, [runId]);
+
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => { bottomRef.current?.scrollIntoView(); }, [data, tab]);
+
+  const cwFmtTime = (ts?: number) => ts ? new Date(ts).toLocaleTimeString("zh-CN") : "";
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center sm:items-center" onClick={onClose}>
+      <div className="w-full max-w-3xl bg-background rounded-t-xl sm:rounded-xl shadow-2xl flex flex-col max-h-[85vh]"
+           onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b">
+          <div>
+            <h3 className="text-sm font-semibold flex items-center gap-1.5">
+              <FileText className="h-4 w-4 text-muted-foreground" /> 执行日志
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5 font-mono truncate max-w-[450px]">
+              {runName} · {runId}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 px-2" onClick={load} disabled={loading}>
+              {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />} 刷新
+            </Button>
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground p-1">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Tab bar */}
+        {data && (
+          <div className="flex border-b px-4 gap-4">
+            <button
+              className={`text-xs py-2 border-b-2 transition-colors ${tab === "nf" ? "border-primary text-primary font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              onClick={() => setTab("nf")}
+            >
+              Nextflow 日志
+              {data.nf_log_total_lines ? ` (共 ${data.nf_log_total_lines} 行)` : ""}
+            </button>
+            <button
+              className={`text-xs py-2 border-b-2 transition-colors ${tab === "cw" ? "border-primary text-primary font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              onClick={() => setTab("cw")}
+            >
+              CloudWatch
+              {data.batch_jobs.length > 0 ? ` (${data.batch_jobs.length} 个 Job)` : ""}
+            </button>
+          </div>
+        )}
+
+        {/* Content */}
+        <div className="flex-1 overflow-hidden bg-slate-900 rounded-b-xl">
+          {loading && (
+            <div className="flex items-center justify-center h-40 text-slate-400 text-sm gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" /> 加载日志中…
+            </div>
+          )}
+          {error && (
+            <div className="p-4 text-red-400 text-xs">{error}</div>
+          )}
+          {data && tab === "nf" && (
+            <div className="h-full overflow-y-auto p-3 font-mono text-[11px] leading-5">
+              {data.nf_log_error && (
+                <div className="text-yellow-400 mb-2">[本地日志读取失败: {data.nf_log_error}]</div>
+              )}
+              {data.nf_log.length === 0 && !data.nf_log_error && (
+                <div className="text-slate-500 text-center py-8">
+                  暂无本地 Nextflow 日志<br/>
+                  <span className="text-xs">（Batch 任务日志请查看 CloudWatch 标签）</span>
+                </div>
+              )}
+              {data.nf_log.map((line, i) => {
+                const isErr = /ERROR|Exception|FAILED/.test(line);
+                const isWarn = /WARN/.test(line);
+                return (
+                  <div key={i} className={`hover:bg-slate-800/50 px-1 rounded ${isErr ? "text-red-400" : isWarn ? "text-yellow-400" : "text-slate-300"}`}>
+                    {line || " "}
+                  </div>
+                );
+              })}
+              <div ref={tab === "nf" ? bottomRef : undefined} />
+            </div>
+          )}
+          {data && tab === "cw" && (
+            <div className="h-full overflow-y-auto p-3 font-mono text-[11px] leading-5">
+              {data.cloudwatch_error && (
+                <div className="text-yellow-400 mb-2">[CloudWatch 错误: {data.cloudwatch_error}]</div>
+              )}
+              {data.batch_jobs.length === 0 && (
+                <div className="text-slate-500 text-center py-8">
+                  未找到 Batch Job ID<br/>
+                  <span className="text-xs">（该任务可能使用本地执行器）</span>
+                </div>
+              )}
+              {data.cloudwatch_logs.length === 0 && data.batch_jobs.length > 0 && !data.cloudwatch_error && (
+                <div className="text-slate-500 text-center py-8">
+                  CloudWatch 暂无日志<br/>
+                  <span className="text-xs">Job IDs: {data.batch_jobs.slice(0, 3).map(j => j.slice(0, 8)).join(", ")}</span>
+                </div>
+              )}
+              {data.cloudwatch_logs.map((ev, i) => (
+                <div key={i} className="flex gap-2 hover:bg-slate-800/50 px-1 rounded">
+                  <span className="text-slate-600 shrink-0 w-14">{cwFmtTime(ev.ts)}</span>
+                  <span className="text-slate-500 shrink-0 w-16 truncate">{ev.job_id}</span>
+                  <span className={`shrink-0 w-10 text-[10px] ${ev.status === "FAILED" ? "text-red-400" : ev.status === "SUCCEEDED" ? "text-green-400" : "text-slate-500"}`}>
+                    {ev.status?.slice(0, 7)}
+                  </span>
+                  <span className={`break-all ${/error|Error|ERROR|exception|Exception/.test(ev.msg) ? "text-red-400" : "text-slate-300"}`}>
+                    {ev.msg}
+                  </span>
+                </div>
+              ))}
+              <div ref={tab === "cw" ? bottomRef : undefined} />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Run List Drill-down ───────────────────────────────────────────────────────
 
 function RunListDrilldown({ statusFilter, days, label }: {
@@ -202,6 +358,9 @@ function RunListDrilldown({ statusFilter, days, label }: {
   const [runs, setRuns] = useState<RunRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [killing, setKilling] = useState<string | null>(null);
+  const [killResult, setKillResult] = useState<{ id: string; msg: string } | null>(null);
+  const [logTarget, setLogTarget] = useState<{ id: string; name: string } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
@@ -218,56 +377,122 @@ function RunListDrilldown({ statusFilter, days, label }: {
 
   useEffect(() => { load(); }, [load]);
 
+  const handleKill = async (run: RunRow) => {
+    if (!confirm(`确认强制终止「${run.workflow_name || run.id}」？\n\n此操作将取消 AWS Batch 任务并标记为失败，不可撤销。`)) return;
+    setKilling(run.id); setKillResult(null);
+    try {
+      const r = await fetch("/api/admin/kill-run", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ run_id: run.id }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+      setKillResult({ id: run.id, msg: `已终止 · 取消了 ${d.batch_cancelled} 个 Batch job` });
+      setTimeout(load, 1500);
+    } catch (e: any) {
+      setKillResult({ id: run.id, msg: `终止失败: ${e.message}` });
+    } finally {
+      setKilling(null);
+    }
+  };
+
+  const isActive = (status: string) => {
+    const s = status?.toLowerCase() ?? "";
+    return s === "running" || s === "active" || s === "queued" || s === "submitted";
+  };
+
   return (
-    <div className="mt-3 rounded-md border bg-muted/30 overflow-hidden">
-      <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b">
-        <div className="flex items-center gap-1.5 text-xs font-medium">
-          <List className="h-3 w-3" /> {label}
+    <>
+      {logTarget && (
+        <RunLogDrawer
+          runId={logTarget.id}
+          runName={logTarget.name}
+          onClose={() => setLogTarget(null)}
+        />
+      )}
+      <div className="mt-3 rounded-md border bg-muted/30 overflow-hidden">
+        <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b">
+          <div className="flex items-center gap-1.5 text-xs font-medium">
+            <List className="h-3 w-3" /> {label}
+          </div>
+          <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 px-2" onClick={load} disabled={loading}>
+            {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+          </Button>
         </div>
-        <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 px-2" onClick={load} disabled={loading}>
-          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-        </Button>
-      </div>
-      <div className="max-h-72 overflow-y-auto">
-        {error && <div className="text-xs text-destructive p-3">{error}</div>}
-        {loading && runs.length === 0 && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground p-3">
-            <Loader2 className="h-3 w-3 animate-spin" /> 加载中…
+
+        {killResult && (
+          <div className={`text-xs px-3 py-1.5 border-b flex items-center gap-1.5 ${killResult.msg.startsWith("终止失败") ? "bg-destructive/10 text-destructive" : "bg-green-500/10 text-green-700"}`}>
+            {killResult.msg.startsWith("终止失败") ? <XCircle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+            {killResult.msg}
           </div>
         )}
-        {!loading && runs.length === 0 && !error && (
-          <div className="text-xs text-muted-foreground p-3 text-center">暂无记录</div>
-        )}
-        {runs.length > 0 && (
-          <table className="w-full text-xs">
-            <thead className="sticky top-0 bg-muted/80">
-              <tr className="border-b">
-                <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">状态</th>
-                <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">工作流</th>
-                <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">开始</th>
-                <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">时长</th>
-                <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">错误</th>
-              </tr>
-            </thead>
-            <tbody>
-              {runs.map((run) => (
-                <tr key={run.id} className="border-b last:border-0 hover:bg-muted/40">
-                  <td className="px-3 py-2"><RunStatusBadge status={run.status} /></td>
-                  <td className="px-3 py-2 max-w-[160px] truncate font-medium" title={run.workflow_name ?? undefined}>
-                    {run.workflow_name || <span className="text-muted-foreground italic">未知</span>}
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{fmtTime(run.started_at)}</td>
-                  <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{fmtDuration(run.duration_s)}</td>
-                  <td className="px-3 py-2 max-w-[200px] truncate text-red-600/80" title={run.error_message ?? undefined}>
-                    {run.error_message || "—"}
-                  </td>
+
+        <div className="max-h-80 overflow-y-auto">
+          {error && <div className="text-xs text-destructive p-3">{error}</div>}
+          {loading && runs.length === 0 && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground p-3">
+              <Loader2 className="h-3 w-3 animate-spin" /> 加载中…
+            </div>
+          )}
+          {!loading && runs.length === 0 && !error && (
+            <div className="text-xs text-muted-foreground p-3 text-center">暂无记录</div>
+          )}
+          {runs.length > 0 && (
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-muted/80">
+                <tr className="border-b">
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">状态</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">工作流</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">开始</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">时长</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">错误</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">操作</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              </thead>
+              <tbody>
+                {runs.map((run) => (
+                  <tr key={run.id} className="border-b last:border-0 hover:bg-muted/40">
+                    <td className="px-3 py-2"><RunStatusBadge status={run.status} /></td>
+                    <td className="px-3 py-2 max-w-[140px] truncate font-medium" title={run.workflow_name ?? undefined}>
+                      {run.workflow_name || <span className="text-muted-foreground italic">未知</span>}
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{fmtTime(run.started_at)}</td>
+                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{fmtDuration(run.duration_s)}</td>
+                    <td className="px-3 py-2 max-w-[140px] truncate text-red-600/80" title={run.error_message ?? undefined}>
+                      {run.error_message || "—"}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setLogTarget({ id: run.id, name: run.workflow_name || run.id })}
+                          className="text-muted-foreground hover:text-foreground p-0.5 rounded"
+                          title="查看日志"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                        </button>
+                        {isActive(run.status) && (
+                          <button
+                            onClick={() => handleKill(run)}
+                            disabled={killing === run.id}
+                            className="text-red-500/70 hover:text-red-600 p-0.5 rounded disabled:opacity-40"
+                            title="强制终止"
+                          >
+                            {killing === run.id
+                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              : <Square className="h-3.5 w-3.5" />}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

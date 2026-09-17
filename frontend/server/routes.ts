@@ -15285,6 +15285,45 @@ Respond ONLY with valid JSON (no markdown wrapper):
     }
   });
 
+  // POST /api/admin/kill-run — force-terminate a workflow run
+  app.post("/api/admin/kill-run", authenticateToken, requireAdmin, async (req, res) => {
+    const { run_id } = req.body || {};
+    if (!run_id) return res.status(400).json({ error: "run_id required" });
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const r = await fetch(`${galaxyUrl}/api/admin/kill-run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ run_id }),
+        signal: AbortSignal.timeout(15000),
+      });
+      const d = await r.json();
+      if (!r.ok) return res.status(r.status).json(d);
+      res.json(d);
+    } catch (err: any) {
+      res.status(502).json({ error: err.message?.slice(0, 120) });
+    }
+  });
+
+  // GET /api/admin/run-logs — fetch execution logs for a specific run
+  app.get("/api/admin/run-logs", authenticateToken, requireAdmin, async (req, res) => {
+    const run_id = req.query.run_id as string;
+    const lines = Math.min(parseInt(req.query.lines as string) || 150, 500);
+    if (!run_id) return res.status(400).json({ error: "run_id required" });
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const r = await fetch(
+        `${galaxyUrl}/api/admin/run-logs?run_id=${encodeURIComponent(run_id)}&lines=${lines}`,
+        { signal: AbortSignal.timeout(20000) }
+      );
+      const d = await r.json();
+      if (!r.ok) return res.status(r.status).json(d);
+      res.json(d);
+    } catch (err: any) {
+      res.status(502).json({ error: err.message?.slice(0, 120) });
+    }
+  });
+
   // ============================================================================
   // On-Premises License Status
   // GET /api/license/status — proxies to Galaxy backend; no auth required so
