@@ -54,8 +54,13 @@ for c in m:
     if c.name!=pep: continue
     for r in c:
         if is_aa(r): c2.add_residue(r)
-md.add_chain(c2); s.add_model(md); s.setup_entities(); s.write_pdb('peptide.pdb')
-open('counts.env','w').write(f"NPEP={sum(1 for _ in c2)}\n"); print("peptide residues:", sum(1 for _ in c2))
+md.add_chain(c2); s.add_model(md); s.setup_entities()
+# renumber peptide residues 1..N so the LINK patch resid refs ('1'..'N') are valid
+n=0
+for r in s[0][0]:
+    n+=1; r.seqid=gemmi.SeqId(n,' ')
+s.write_pdb('peptide.pdb')
+open('counts.env','w').write(f"NPEP={n}\n"); print("peptide residues (renumbered 1..N):", n)
 PY
 . ./counts.env
 
@@ -66,6 +71,8 @@ cat > headtail.top <<'TOP'
    36  1
 PRES LINK         0.00
 BOND 1C 2N
+
+END
 TOP
 RTF="$RTF" NPEP="$NPEP" python - <<'PY'
 import os, json
@@ -92,6 +99,7 @@ def idx(res,nm):
     return None
 ni=idx(p.residues[0],'N'); ci=idx(p.residues[-1],'C')
 rep['peptide_nres']=len(p.residues); rep['peptide_natoms']=len(p.atoms)
+rep['resids']=[r.number for r in p.residues]; rep['nbonds']=len(p.bonds)
 rep['net_charge']=round(sum(a.charge for a in p.atoms),3)
 rep['head_to_tail_bond_present']=any({b.atom1.idx,b.atom2.idx}=={ni,ci} for b in p.bonds) if (ni is not None and ci is not None) else False
 json.dump(rep, open('/opt/psf/status/psfgen_smoke.json','w'), indent=2)
