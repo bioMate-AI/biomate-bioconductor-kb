@@ -46,6 +46,11 @@ fi
 RTF=$(find . -name "top_all36_prot.rtf" | head -1)
 echo "topology rtf: ${RTF:-NOT FOUND}"
 [ -z "$RTF" ] && { echo "FATAL: could not fetch CHARMM36 protein topology from any source"; stage failed; exit 1; }
+# conda-forge VMD is 1.9.3 (2016); its psfgen can't parse the modern "AUTO ANGLES DIHE PATCH"
+# directive -> downgrade to the old autogenerate syntax it understands. We call `regenerate angles
+# dihedrals` explicitly after the LINK patch, so patch angle/dihedral generation is still covered.
+sed -i -E 's/^AUTO(GENERATE)?[[:space:]]+ANGLES[[:space:]]+DIHE(DRALS)?([[:space:]]+PATCH)?.*/AUTOGENERATE ANGLES DIHEDRALS/' "$RTF" || true
+echo "autogenerate line now: $(grep -i '^AUTO' "$RTF" | head -1)"
 
 stage split_chains
 aws s3 sync "$DESIGNS_S3/1yf4/" "$ROOT/w/1yf4/" --only-show-errors --exclude "*" --include "*.cif"
