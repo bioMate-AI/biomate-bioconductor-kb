@@ -49,9 +49,13 @@ import parmed as pmd
 RTF=os.environ['RTF']; PRM=os.environ['PRM']; DES=os.environ['DESIGNS_S3']; NS=float(os.environ['NS'])
 TARGETS=['1yf4','1u8p','1kc4','1csb']            # 4 v5 targets (top ranked design each)
 CPU=mm.Platform.getPlatformByName('CPU')
-try: PLAT=mm.Platform.getPlatformByName('CUDA')
-except Exception: PLAT=CPU
-print('platform:', PLAT.getName())
+# Force CPU: conda-forge OpenMM's CUDA PTX is newer than the DL-AMI driver (CUDA_ERROR_UNSUPPORTED_PTX).
+# Implicit-solvent MM-GBSA on these small systems runs fine on CPU; short peptides are best via
+# minimized/short-MD MM-GBSA anyway (Sun PCCP 2019). No GPU needed.
+try: CPU.setPropertyDefaultValue('Threads', str(os.cpu_count() or 8))
+except Exception: pass
+PLAT=CPU
+print('platform:', PLAT.getName(), 'threads', os.cpu_count())
 
 def is_aa(r):
     i=gemmi.find_tabulated_residue(r.name); return bool(i) and i.is_amino_acid()
@@ -93,6 +97,10 @@ def build_psf(kind, tag, npep):
         except Exception:
             try: g.alias_residue(a,b)
             except Exception: pass
+    try: g.alias_atom(resname='ILE', top_atomname='CD', pdb_atomname='CD1')
+    except Exception:
+        try: g.alias_atom('ILE','CD','CD1')
+        except Exception: pass
     if kind in ('complex','receptor'):
         g.add_segment(segid='REC', pdbfile=f'{tag}_rec.pdb')
         g.read_coords(segid='REC', filename=f'{tag}_rec.pdb')
@@ -137,6 +145,7 @@ for tag in TARGETS:
         # verify peptide ring in the ligand psf
         lp=pmd.load_file(lpsf); nb=len(lp.bonds); na=len(lp.atoms)
         rec['ligand_ring_closed']=(nb==na)  # cyclic: bonds==atoms; linear: atoms-1
+        rec['pep_resnames']=[r.name for r in lp.residues]   # diagnose non-closing rings
         # complex system + coords
         cp, csys = make_system(cpsf)
         pos = app.PDBFile(cpdb).getPositions()
