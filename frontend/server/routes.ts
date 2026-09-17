@@ -12187,9 +12187,14 @@ Rules:
         record.outputs = await enrichOutputsWithChecksums(record.outputs, async (ro) => {
           const raw = ro.id ? rawById.get(ro.id) : undefined;
           if (!raw) return null;
+          // Prefer the presigned URL, but FALL THROUGH to a direct S3 GetObject on
+          // any failure — a failed/expired presign must not silently yield a null
+          // checksum when the bytes are reachable via s3Uri (the download path).
           if (raw.downloadUrl) {
-            const resp = await fetch(raw.downloadUrl);
-            return resp.ok ? Buffer.from(await resp.arrayBuffer()) : null;
+            try {
+              const resp = await fetch(raw.downloadUrl);
+              if (resp.ok) return Buffer.from(await resp.arrayBuffer());
+            } catch { /* fall through to s3Uri */ }
           }
           const s3Uri: unknown = raw.s3Uri || raw.metadata?.s3Uri;
           if (typeof s3Uri === "string") {
