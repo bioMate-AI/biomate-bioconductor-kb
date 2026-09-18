@@ -1,5 +1,5 @@
 """Expert committee review: brief frontier models on BioMate, then review the training-data prep.
-Members: gpt-5.6 (OpenAI) + gemini-3.1-pro-preview (Google). Claude's view added by the caller."""
+Members: gpt-5.6 (OpenAI) + gemini-3.8-flash (Google). Claude's view added by the caller."""
 import os, json, sys, urllib.request
 
 BRIEF = r"""You are a review COMMITTEE of two experts in ONE person: (A) a senior BIOINFORMATICS domain
@@ -67,4 +67,4 @@ def call_gemini(model):
 
 if __name__ == "__main__":
     who = sys.argv[1]
-    print(call_openai("gpt-5.6") if who == "openai" else call_gemini("gemini-3.1-pro-preview"))
+    print(call_openai("gpt-5.6") if who == "openai" else call_gemini("gemini-3.8-flash"))

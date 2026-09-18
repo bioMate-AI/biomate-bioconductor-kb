@@ -1,9 +1,9 @@
 # Expert-committee review of the local-LLM training-data preparation
 
-Committee: **Claude Opus 4.8** (me) + **gpt-5.6** (OpenAI API) + **gemini-3.1-pro-preview** (Google API),
+Committee: **Claude Opus 4.8** (me) + **gpt-5.6** (OpenAI API) + **gemini-3.8-flash** (Google API, latest),
 each acting as a bioinformatics domain expert + a deep-learning/LLM-training expert. Briefed on BioMate,
 then asked to review the prep (mix ratio, corpus, SFT, ROI, risks). Raw reviews: `/tmp/committee_openai.txt`,
-`/tmp/committee_gemini.txt`. Script: `evaluation/local_trial/committee.py`.
+`committee_reviews/gemini3.8flash_review.md`. Script: `evaluation/local_trial/committee.py`.
 
 ## Strong consensus (gpt-5.6 + gemini independently agreed)
 1. **25% domain / 75% general is NOT justified — do not adopt as default.**
@@ -32,6 +32,19 @@ then asked to review the prep (mix ratio, corpus, SFT, ROI, risks). Raw reviews:
 6. **Evaluation:** use **workflow-family / tool-family / domain / temporal holdouts** (not random) +
    **blinded human review** for semantic cases (verifiers have blind spots: schema-valid ≠ correct;
    auditor shares model bias). Decontaminate held-outs from ALL stages.
+
+## Concrete techniques the committee added (gemini-3.8-flash + gpt-5.6)
+- **Inverse Execution Mining (fixes param yield ~16%):** stop unstructured synthesis; parse the 4,200
+  VERIFIED workflows → extract the REAL parameter maps used → back-translate to the NL instruction that
+  would produce them → 100% schema-valid pairs, zero rejection waste. (Also yields real DAGs for decomposition.)
+- **Format Jittering (fixes format-overfit / the transfer finding):** train across 3 equivalent
+  production templates with varied delimiters/whitespace/system-verbosity/tool-order + partial-context
+  examples → robust context-reading, not memorized key sequences.
+- **CLI `--help` ingestion:** scrape `--help`/manpages for tools → exact flags/params (better than KG trivia).
+- **Schema-constrained RL/DPO reward:** R = α·I(valid JSON/schema) + β·tool-selection F1 + γ·I(Nextflow lint/preview passes)
+  → preference pairs on failing param/autofix cases; targets production tasks with zero forgetting risk.
+- **Mid-training, if kept:** ≤200–300M tokens, 60% bio-code/CLI/logs + 40% replay, targeting DSL syntax
+  (Nextflow DSL2/WDL/CWL) only — a "warmup adapter", not broad adaptation.
 
 ## My (Claude) synthesis
 The committee is right, and it materially revises our plan. We over-invested in mid-training + corpus
