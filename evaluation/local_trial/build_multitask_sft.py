@@ -50,6 +50,9 @@ for r in load("protocol_raw.jsonl"):
 # decomposition (already {messages:[user,assistant]} format)
 for r in load("decomposition_sft.jsonl"):
     if r.get("messages"): out.append({"messages":r["messages"]})
+# conditional/long-param SFT (full-schema RAG context, few-valid restraint)
+for r in load("conditional_param_sft.jsonl"):
+    if r.get("messages"): out.append({"messages":r["messages"]})
 random.shuffle(out)
 open(f"{D}/multitask_sft.jsonl","w").write("\n".join(json.dumps(e) for e in out))
 def task_of(u):
