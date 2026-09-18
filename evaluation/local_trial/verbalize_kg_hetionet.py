@@ -4,14 +4,13 @@ import gzip,json,csv,sys
 NODES=sys.argv[1] if len(sys.argv)>1 else "/tmp/het_nodes.tsv"
 EDGES=sys.argv[2] if len(sys.argv)>2 else "/tmp/het_edges.sif.gz"
 OUT="/Users/kky/biomate-review/docs/20260912_onprem_llm/midtrain_corpus/hetionet_corpus.jsonl"
-PER=14000  # per-metaedge cap for relation-type balance
+PER=4000  # focused: biomedically-central metaedges only
 name={}
 for r in csv.DictReader(open(NODES),delimiter="\t"): name[r["id"]]=(r["name"],r["kind"])
-VERB={  # metaedge -> readable relation
+VERB={  # biomedically-central metaedges only (drug/disease/gene/pathway); drop gene-gene+anatomy
  "CtD":"treats","CpD":"palliates","CbG":"binds","CuG":"upregulates","CdG":"downregulates",
  "CrC":"resembles","DaG":"is associated with gene","DuG":"upregulates","DdG":"downregulates",
- "DrD":"resembles","DlA":"localizes to","GiG":"interacts with","Gr>G":"regulates","GcG":"covaries with",
- "GpPW":"participates in pathway","PCiC":"includes compound"}
+ "DrD":"resembles","GpPW":"participates in pathway","PCiC":"includes compound"}
 import collections; per=collections.Counter(); n=0
 with open(OUT,"w") as fo:
     for line in gzip.open(EDGES,"rt"):
