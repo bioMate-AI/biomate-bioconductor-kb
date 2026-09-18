@@ -146,34 +146,23 @@ for tag in TARGETS:
         lp=pmd.load_file(lpsf); nb=len(lp.bonds); na=len(lp.atoms)
         rec['ligand_ring_closed']=(nb==na)  # cyclic: bonds==atoms; linear: atoms-1
         rec['pep_resnames']=[r.name for r in lp.residues]   # diagnose non-closing rings
-        # complex system + coords
+        # minimize complex, then single-point MM-GBSA (Sun PCCP 2019: minimized-structure MM-GBSA is
+        # the best protocol for short peptides — and fast/robust on CPU, no MD needed).
         cp, csys = make_system(cpsf)
         pos = app.PDBFile(cpdb).getPositions()
-        # minimize complex
         integ=mm.LangevinMiddleIntegrator(300*unit.kelvin,1/unit.picosecond,0.002*unit.picoseconds)
         sim=app.Simulation(cp.topology, csys, integ, PLAT)
         sim.context.setPositions(pos)
-        sim.minimizeEnergy(maxIterations=2000)
-        sim.context.setVelocitiesToTemperature(300*unit.kelvin)
-        nsteps=int(NS*1000/0.002); interval=max(1, nsteps//20)
+        sim.minimizeEnergy(maxIterations=5000)
         rp, rsys = make_system(rpsf); lp2, lsys = make_system(lpsf)
         natom_rec = rsys.getNumParticles()
-        dgs=[]
-        sim.step(2000)  # brief equilibration
-        for k in range(20):
-            sim.step(interval)
-            st=sim.context.getState(getPositions=True)
-            P=st.getPositions()
-            Ecom=energy(csys, P)
-            Erec=energy(rsys, P[:natom_rec])
-            Elig=energy(lsys, P[natom_rec:])
-            dgs.append(Ecom-Erec-Elig)
-        dgs=np.array(dgs)
-        rec['dG_bind_kcal_mol']=round(float(dgs.mean()),2)
-        rec['dG_std']=round(float(dgs.std()),2)
-        rec['n_frames']=len(dgs)
+        st=sim.context.getState(getPositions=True); P=st.getPositions()
+        Ecom=energy(csys, P); Erec=energy(rsys, P[:natom_rec]); Elig=energy(lsys, P[natom_rec:])
+        rec['dG_bind_kcal_mol']=round(float(Ecom-Erec-Elig),2)
+        rec['E_complex_kcal']=round(Ecom,1); rec['E_receptor_kcal']=round(Erec,1); rec['E_ligand_kcal']=round(Elig,1)
+        rec['protocol']='minimized single-point, implicit GBn2 (CHARMM36m)'
         rec['ok']=True
-        print(f"{tag}: dG = {rec['dG_bind_kcal_mol']} +/- {rec['dG_std']} kcal/mol (ring_closed={rec['ligand_ring_closed']})")
+        print(f"{tag}: dG = {rec['dG_bind_kcal_mol']} kcal/mol (ring_closed={rec['ligand_ring_closed']}, {rec['npep_res']}-mer)")
     except Exception as e:
         import traceback; rec['ok']=False; rec['error']=type(e).__name__+': '+str(e)[:200]
         print(f"{tag} FAILED:", rec['error']); traceback.print_exc()
@@ -182,7 +171,7 @@ for tag in TARGETS:
 ok=[r for r in results if r.get('ok')]
 ok.sort(key=lambda r: r['dG_bind_kcal_mol'])
 summary={'n_targets':len(results),'n_ok':len(ok),
-         'ranking_by_dG':[{ 't':r['target'],'dG':r['dG_bind_kcal_mol'],'std':r['dG_std'],'ring':r.get('ligand_ring_closed')} for r in ok],
+         'ranking_by_dG':[{ 't':r['target'],'dG':r['dG_bind_kcal_mol'],'ring':r.get('ligand_ring_closed'),'npep':r.get('npep_res')} for r in ok],
          'note':'Implicit-solvent (GBn2) single-trajectory MM-GBSA, CHARMM36m, cyclic peptide via psfgen '
                 'CYCP head-to-tail patch. RELATIVE ranking oracle, not absolute affinity; entropy omitted; '
                 'confirm finalists with FEP.','all':results}
