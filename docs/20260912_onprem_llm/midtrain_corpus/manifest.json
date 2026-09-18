@@ -19,8 +19,13 @@
     },
     "approx_tokens": 17249615
   },
-  "total_docs": 37490,
-  "total_approx_tokens": 26216462,
+  "total_docs": 38338,
+  "total_approx_tokens": 27840362,
   "license": "internal/BioMate + nf-core(MIT) + Bioconductor(Artistic-2.0) \u2014 verify per-package for strict commercial",
-  "use": "domain mid-training (bio tool/workflow knowledge + workflow CODE)"
+  "use": "domain mid-training (bio tool/workflow knowledge + workflow CODE)",
+  "gtn": {
+    "docs": 848,
+    "approx_tokens": 1623900,
+    "license": "CC-BY-4.0"
+  }
 }

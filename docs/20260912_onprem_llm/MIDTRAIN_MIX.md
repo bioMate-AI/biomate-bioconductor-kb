@@ -39,12 +39,22 @@ so this is a proxy for its distribution — its job is retention, not new knowle
 3. **RL / self-evolving loop** on proprietary signal (exec-verified outcomes + corrections) — our
    flywheel = Periodic's autonomous-lab loop.
 
-## Data hygiene (mandatory before training)
-- **Dedup** (MinHash/LSH) within + across sources.
-- **Decontaminate** against RealBio, LAB-Bench, BixBench, MedQA (n-gram overlap filter) — no test leak.
+## Data hygiene (before training)
+- **Dedup** (content-hash now; MinHash/LSH at scale) within + across sources. *(Always on.)*
 - **License filter** per-article/per-directory (PMC → `oa_comm` only; Bio-protocol → CC-BY only;
   drop bioRxiv redistribution, KEGG, non-OA PubMed full text).
-- **Quality filter**: length, language, boilerplate/dedupe headers, PII scrub.
+- **Quality filter**: length, language, boilerplate/header dedupe, PII scrub.
+- **NO RealBio decontamination of the mid-training corpus** — the corpus is documentation/code/
+  literature prose, a different distribution from RealBio's `query→workflow-name` items; overlap is
+  negligible, so decontam there is unnecessary overhead. Leakage-checking stays only on the **SFT
+  task data** (routing/param generated `query→answer`), via `overlap_check.py` vs the held-out set.
+
+## Staged so far (S3 `midtrain_corpus/`)
+- ✅ `internal_corpus.jsonl` (text ~9M tok) + `code_corpus.jsonl` (Nextflow/Bioconductor/workflow_json,
+  ~17M tok) + `gtn_corpus.jsonl` (Galaxy Training Network, 848 docs ~1.6M tok, CC-BY-4.0).
+- ⏳ External bulk via `fetch_external_corpora.sh` (run on a disk box): peS2o bio slice (ODC-BY),
+  PMC `oa_comm` (open bucket `s3://pmc-oa-opendata/oa_comm`, no-sign-request), nf-core upstream docs
+  (MIT), Biostars (CC-BY). Not fetchable on the 8GB dev mac.
 
 ## Realistic budget note
 For narrow **task** lift, SFT + the inner-loop harness evolution likely move the needle more per GPU-
