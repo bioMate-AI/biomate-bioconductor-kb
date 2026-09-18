@@ -180,3 +180,6 @@ research/string-method/
 # Nextflow run artifacts (regenerable; never commit)
 backend/biomni_workflows/**/work/
 backend/biomni_workflows/**/results/
+
+# on-prem LLM corpus data artifacts — staged in S3, not git
+docs/20260912_onprem_llm/midtrain_corpus/*.jsonl

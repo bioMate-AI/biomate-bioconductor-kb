@@ -1,0 +1,12 @@
+{
+  "InstanceId": "i-0c65bd635d94f674e",
+  "Type": "r5.4xlarge",
+  "Region": "us-west-2",
+  "PublicIp": "52.89.59.33",
+  "SpotMaxPriceUSDPerHour": "1.00",
+  "ShutdownScheduledAtUTC": "2026-09-13T01:10:18.799058+00:00",
+  "StateLastObserved": "running",
+  "KeyName": "biomate-trial-resume-20260912",
+  "Scope": "BioMate core assistant; replacement worker; IND excluded",
+  "BackupPrefix": "s3://biomate-models-399683337364/biomate-core-local-trial/20260912/"
+}

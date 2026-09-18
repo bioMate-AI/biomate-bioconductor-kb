@@ -1,0 +1,12 @@
+[Unit]
+Description=Isolated BioMate Galaxy trial backend
+After=network-online.target
+[Service]
+User=ubuntu
+WorkingDirectory=/opt/biomate-trial
+ExecStart=/usr/bin/python3 /opt/biomate-trial/start-worker-backend.py
+TimeoutStopSec=10
+Restart=on-failure
+RestartSec=10
+[Install]
+WantedBy=multi-user.target

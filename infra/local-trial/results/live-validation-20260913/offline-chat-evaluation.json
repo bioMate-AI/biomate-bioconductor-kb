@@ -1,0 +1,321 @@
+{
+  "scope": "Real BioMate HTTP chat + Galaxy catalogue + local model; no scientific execution yet",
+  "passed": true,
+  "galaxy_version": {
+    "version_major": "25.1",
+    "version_minor": "dev0"
+  },
+  "catalogue": {
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/estrain/sum_fastqc/sum_fastqc/0.23",
+        "name": "sum_fastqc",
+        "category": "Statistics",
+        "description": "<link href=\"/static/dist/base.css?v=1717170859000\" media=\"screen\" rel=\"stylesheet\" type=\"text/css\">",
+        "parameters": "[{\"name\": \"owner\", \"label\": \"Owner\", \"type\": \"text\", \"help\": \"estrain\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"category\", \"label\": \"Category\", \"type\": \"text\", \"help\": \"Statistics\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"select_input\", \"label\": \"Select Input\", \"type\": \"data\", \"help\": \"\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"raw_fastqc\", \"label\": \"Raw FASTQC\", \"type\": \"text\", \"help\": \" Single or multiple Q scores:\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"single_or_multiple_q_scores\", \"label\": \"Single or multiple Q scores\", \"type\": \"float\", \"help\": \" Q score threshold (i.e. reads >= Q score):\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"q_score_threshold_i.e._reads_>=_q_score\", \"label\": \"Q score threshold (i.e. reads >= Q score)\", \"type\": \"float\", \"help\": \"\", \"optional\": false, \"source\": \"rawText\"}]",
+        "inputs": "[\"fa\", \"fastq\"]",
+        "outputs": "[]",
+        "citations": "[]",
+        "availability_status": "installable",
+        "truncated_fields": []
+      },
+      {
+        "tool_id": "nfcore/fastqc",
+        "name": "Fastqc",
+        "category": "quality control, qc, adapters, fastq",
+        "description": "Run FastQC on sequenced reads",
+        "parameters": null,
+        "inputs": null,
+        "outputs": null,
+        "citations": null,
+        "availability_status": "available",
+        "truncated_fields": []
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nml/fastqc_stats/fastqc_summary/1.2",
+        "name": "FastQC Summary",
+        "category": "Sequence Analysis",
+        "description": "This script provides a one line summary of the FastQC report.",
+        "parameters": "[{\"name\": \"is_this_library_single_or_paired_end?\", \"label\": \"Is this library single or paired-end?\", \"type\": \"text\", \"help\": \"\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"single_end_fastq\", \"label\": \"Single end FASTQ\", \"type\": \"text\", \"help\": \"\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"fastqc_rawdata\", \"label\": \"FastQC RawData\", \"type\": \"data\", \"help\": \" Reference file or number of base pairs?:\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"reference_file_or_number_of_base_pairs?\", \"label\": \"Reference file or number of base pairs?\", \"type\": \"data\", \"help\": \"\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"reference_file\", \"label\": \"Reference file\", \"type\": \"data\", \"help\": \" To determine raw genome coverage.\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"fastq_input\", \"label\": \"Fastq input\", \"type\": \"data\", \"help\": \"- Fastqc file FastQC rawData input: - This is the txt file produced by the FastQC tool\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"fastqc_rawdata_input\", \"label\": \"FastQC rawData input\", \"type\": \"data\", \"help\": \"- This is the txt file produced by the FastQC tool\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"sample_name\", \"label\": \"Sample Name\", \"type\": \"select\", \"help\": \"Sample name that will appear in the output file Reference file or number of base pairs?: Choose between providing a reference file or providing a number of basepairs to determine the raw genome covera\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"output_csv_file\", \"label\": \"Output csv file\", \"type\": \"data\", \"help\": \"Summarizes the FastQC report in a csv format\", \"optional\": false, \"source\": \"rawText\"}]",
+        "inputs": "[\"csv\", \"fa\", \"fastq\", \"sam\", \"txt\"]",
+        "outputs": "[\"csv\", \"fa\", \"fastq\", \"sam\", \"txt\"]",
+        "citations": "[{\"type\": \"text\", \"value\": \"file or number of base pairs?:\\nReference file:\\nTo determine raw genome coverage.\\nWhat it does\", \"url\": null}]",
+        "availability_status": "installable",
+        "truncated_fields": []
+      }
+    ],
+    "workflows": [
+      {
+        "id": 1816,
+        "name": "nf-core/fastq_fastqc_umitools_fastp",
+        "filename": "nfcore/subworkflows/fastq_fastqc_umitools_fastp",
+        "description": "FASTQ quality control with FastQC, UMI extraction with UMI-tools, and adapter trimming with fastp",
+        "domain": "genomics",
+        "input_types": "[\"reads\", \"adapter_fasta\"]",
+        "output_types": "[\"fastq\", \"fastqc\", \"log\", \"fastp\"]",
+        "params_schema": null,
+        "executable": 1,
+        "real_exec_status": null,
+        "truncated_fields": []
+      },
+      {
+        "id": 1772,
+        "name": "nf-core/fastq_fastqc_umitools_trimgalore",
+        "filename": "nfcore/subworkflows/fastq_fastqc_umitools_trimgalore",
+        "description": "FASTQ quality control with FastQC, UMI extraction with UMI-tools, and adapter trimming with Trim Galore",
+        "domain": "genomics",
+        "input_types": "[\"reads\"]",
+        "output_types": "[\"fastq\", \"fastqc\", \"log\", \"unpaired\", \"report\"]",
+        "params_schema": null,
+        "executable": 1,
+        "real_exec_status": null,
+        "truncated_fields": []
+      },
+      {
+        "id": 1770,
+        "name": "nf-core/fastq_trim_fastp_fastqc",
+        "filename": "nfcore/subworkflows/fastq_trim_fastp_fastqc",
+        "description": "Trim adapters and low-quality bases from FASTQ reads using fastp and run FastQC quality control",
+        "domain": "genomics",
+        "input_types": "[\"ch_reads\", \"ch_adapter_fasta\"]",
+        "output_types": "[\"reads\", \"trim_json\", \"trim_html\", \"trim_log\", \"trim_reads_fail\", \"trim_reads_merged\", \"fastqc_raw_html\", \"fastqc_raw_zip\", \"fastqc_trim_html\", \"fastqc_trim_zip\"]",
+        "params_schema": null,
+        "executable": 1,
+        "real_exec_status": null,
+        "truncated_fields": []
+      }
+    ],
+    "source": "local_knowledge_database",
+    "execution_verified": false,
+    "note": "Catalogue records are retrieval evidence; availability and successful execution require separate checks.",
+    "query": "FastQC",
+    "domain": "general"
+  },
+  "seconds": 652.328,
+  "events": [
+    {
+      "event": "ready",
+      "data": {
+        "ok": true
+      }
+    },
+    {
+      "event": "tool_event",
+      "data": {
+        "type": "tool_call",
+        "tool_use_id": "X5iiigsv9FvSh0VzpG3NtnXclKWfyipj",
+        "name": "query_domain_knowledge",
+        "input": {
+          "query": "FastQC tool: required inputs, parameters, tool ID",
+          "domain": "general"
+        }
+      }
+    },
+    {
+      "event": "tool_event",
+      "data": {
+        "type": "tool_result",
+        "tool_use_id": "X5iiigsv9FvSh0VzpG3NtnXclKWfyipj",
+        "name": "query_domain_knowledge",
+        "output": {
+          "tools": [
+            {
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/iquasere/upimapi/uniprot_id_mapping_through_api/0.1.0",
+              "name": "UniProt Id Mapping through API",
+              "category": "Genome annotation",
+              "description": "Input filename - can be: 1. a file containing a list of IDs (comma-separated values, no spaces) 2. a BLAST TSV result file (requires to be specified with the --blast parameter 3. a protein FASTA file to be annotated (requires the -db parameter) 4. nothing! If so, will read input from command line, and parse as CSV (id1,id2,...)",
+              "parameters": "[{\"name\": \"input_ids_file\", \"label\": \"Input IDs file\", \"type\": \"data\", \"help\": \"\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"options\", \"label\": \"options\", \"type\": \"text\", \"help\": \"-h, --help show this help message and exit -i INPUT, --input INPUT\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"if_ids_in_database_are_in_'full'_format\", \"label\": \"If IDs in database are in 'full' format\", \"type\": \"data\", \"help\": \"tr|XXX|XXX [auto] --fasta\\tOutput will be generated in FASTA format [false]\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"diamond_arguments\", \"label\": \"DIAMOND arguments\", \"type\": \"text\", \"help\": \"-db DATABASE, --database DATABASE\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"special_functions\", \"label\": \"Special functions\", \"type\": \"text\", \"help\": \"--show-available-fields\", \"optional\": false, \"source\": \"rawText\"}]",
+              "inputs": "[\"csv\", \"fa\", \"fasta\", \"rds\", \"tab\", \"tsv\", \"txt\"]",
+              "outputs": "[\"fa\", \"fasta\", \"tab\", \"tsv\", \"txt\"]",
+              "citations": "[]",
+              "availability_status": "installable",
+              "truncated_fields": []
+            },
+            {
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/estrain/sum_fastqc/sum_fastqc/0.23",
+              "name": "sum_fastqc",
+              "category": "Statistics",
+              "description": "<link href=\"/static/dist/base.css?v=1717170859000\" media=\"screen\" rel=\"stylesheet\" type=\"text/css\">",
+              "parameters": "[{\"name\": \"owner\", \"label\": \"Owner\", \"type\": \"text\", \"help\": \"estrain\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"category\", \"label\": \"Category\", \"type\": \"text\", \"help\": \"Statistics\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"select_input\", \"label\": \"Select Input\", \"type\": \"data\", \"help\": \"\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"raw_fastqc\", \"label\": \"Raw FASTQC\", \"type\": \"text\", \"help\": \" Single or multiple Q scores:\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"single_or_multiple_q_scores\", \"label\": \"Single or multiple Q scores\", \"type\": \"float\", \"help\": \" Q score threshold (i.e. reads >= Q score):\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"q_score_threshold_i.e._reads_>=_q_score\", \"label\": \"Q score threshold (i.e. reads >= Q score)\", \"type\": \"float\", \"help\": \"\", \"optional\": false, \"source\": \"rawText\"}]",
+              "inputs": "[\"fa\", \"fastq\"]",
+              "outputs": "[]",
+              "citations": "[]",
+              "availability_status": "installable",
+              "truncated_fields": []
+            },
+            {
+              "tool_id": "nfcore/fastqc",
+              "name": "Fastqc",
+              "category": "quality control, qc, adapters, fastq",
+              "description": "Run FastQC on sequenced reads",
+              "parameters": null,
+              "inputs": null,
+              "outputs": null,
+              "citations": null,
+              "availability_status": "available",
+              "truncated_fields": []
+            },
+            {
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/nml/fastqc_stats/fastqc_summary/1.2",
+              "name": "FastQC Summary",
+              "category": "Sequence Analysis",
+              "description": "This script provides a one line summary of the FastQC report.",
+              "parameters": "[{\"name\": \"is_this_library_single_or_paired_end?\", \"label\": \"Is this library single or paired-end?\", \"type\": \"text\", \"help\": \"\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"single_end_fastq\", \"label\": \"Single end FASTQ\", \"type\": \"text\", \"help\": \"\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"fastqc_rawdata\", \"label\": \"FastQC RawData\", \"type\": \"data\", \"help\": \" Reference file or number of base pairs?:\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"reference_file_or_number_of_base_pairs?\", \"label\": \"Reference file or number of base pairs?\", \"type\": \"data\", \"help\": \"\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"reference_file\", \"label\": \"Reference file\", \"type\": \"data\", \"help\": \" To determine raw genome coverage.\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"fastq_input\", \"label\": \"Fastq input\", \"type\": \"data\", \"help\": \"- Fastqc file FastQC rawData input: - This is the txt file produced by the FastQC tool\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"fastqc_rawdata_input\", \"label\": \"FastQC rawData input\", \"type\": \"data\", \"help\": \"- This is the txt file produced by the FastQC tool\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"sample_name\", \"label\": \"Sample Name\", \"type\": \"select\", \"help\": \"Sample name that will appear in the output file Reference file or number of base pairs?: Choose between providing a reference file or providing a number of basepairs to determine the raw genome covera\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"output_csv_file\", \"label\": \"Output csv file\", \"type\": \"data\", \"help\": \"Summarizes the FastQC report in a csv format\", \"optional\": false, \"source\": \"rawText\"}]",
+              "inputs": "[\"csv\", \"fa\", \"fastq\", \"sam\", \"txt\"]",
+              "outputs": "[\"csv\", \"fa\", \"fastq\", \"sam\", \"txt\"]",
+              "citations": "[{\"type\": \"text\", \"value\": \"file or number of base pairs?:\\nReference file:\\nTo determine raw genome coverage.\\nWhat it does\", \"url\": null}]",
+              "availability_status": "installable",
+              "truncated_fields": []
+            },
+            {
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/duijker.d/naturalis_fastqc/runFastQC/0.11.7",
+              "name": "FastQC Sequence Analyzer:",
+              "category": "Fasta Manipulation",
+              "description": "The FastQC tool will do quality control checks on raw sequence data. These checks include summary graphs and tables.",
+              "parameters": "[{\"name\": \"fastqc_sequence_analyzer\", \"label\": \"FastQC Sequence Analyzer\", \"type\": \"text\", \"help\": \"(version 0.11.7)\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"fastq_or_zip?\", \"label\": \"FastQ or zip?\", \"type\": \"text\", \"help\": \"\", \"optional\": false, \"source\": \"rawText\"}, {\"name\": \"fastq_file.\", \"label\": \"FastQ file.\", \"type\": \"data\", \"help\": \"\", \"optional\": false, \"source\": \"rawText\"}]",
+              "inputs": "[\"fa\", \"fastq\"]",
+              "outputs": "[\"fa\", \"fastq\"]",
+              "citations": "[]",
+              "availability_status": "installable",
+              "truncated_fields": []
+            }
+          ],
+          "workflows": [
+            {
+              "id": 10746,
+              "name": "Get Refseq Id",
+              "filename": "nextflow_nfcore/subworkflows/molecular_biology/get_refseq_id/main.nf",
+              "description": "Get RefSeq ID from gene record using NCBI Entrez. 1-step pipeline: GET_REFSEQ_ID. Outputs: json, txt. Key parameters: email, gene_name, organism.",
+              "domain": "molecular_biology",
+              "input_types": "[\"gene_name\", \"organism\", \"email\"]",
+              "output_types": "[\"fasta\", \"bam\", \"tsv_results\"]",
+              "params_schema": null,
+              "executable": 1,
+              "real_exec_status": null,
+              "truncated_fields": []
+            },
+            {
+              "id": 10642,
+              "name": "Nca Pknca",
+              "filename": "nextflow_nfcore/subworkflows/drug_discovery/nca_pknca/main.nf",
+              "description": "drug_discovery/nca_pknca Non-Compartmental Analysis (NCA) pharmacokinetics pipeline using the PKNCA R package. Pipeline Steps: 1. NCA_INPUT_VALIDATION  \u2014 Validate concentration-time CSV format and required columns (time, conc, subject_id, dose, route); emit a validated, normalised CSV for downstream steps. 2. NCA_PKNCA_ANALYSIS    \u2014 R/PKNCA: compute standard NCA parameters per subject: AUClast, AUCinf, Cmax, Tmax, t\u00bd, CL/F, Vd/F.  Emits nca_results.csv (per-subject) and nca_summary.json (populat",
+              "domain": "drug_discovery",
+              "input_types": "[\"mock_mode\", \"input_csv\", \"dose\", \"route\", \"time_unit\", \"conc_unit\"]",
+              "output_types": "[\"csv\", \"json\", \"html\"]",
+              "params_schema": null,
+              "executable": 1,
+              "real_exec_status": null,
+              "truncated_fields": []
+            },
+            {
+              "id": 1816,
+              "name": "nf-core/fastq_fastqc_umitools_fastp",
+              "filename": "nfcore/subworkflows/fastq_fastqc_umitools_fastp",
+              "description": "FASTQ quality control with FastQC, UMI extraction with UMI-tools, and adapter trimming with fastp",
+              "domain": "genomics",
+              "input_types": "[\"reads\", \"adapter_fasta\"]",
+              "output_types": "[\"fastq\", \"fastqc\", \"log\", \"fastp\"]",
+              "params_schema": null,
+              "executable": 1,
+              "real_exec_status": null,
+              "truncated_fields": []
+            },
+            {
+              "id": 1772,
+              "name": "nf-core/fastq_fastqc_umitools_trimgalore",
+              "filename": "nfcore/subworkflows/fastq_fastqc_umitools_trimgalore",
+              "description": "FASTQ quality control with FastQC, UMI extraction with UMI-tools, and adapter trimming with Trim Galore",
+              "domain": "genomics",
+              "input_types": "[\"reads\"]",
+              "output_types": "[\"fastq\", \"fastqc\", \"log\", \"unpaired\", \"report\"]",
+              "params_schema": null,
+              "executable": 1,
+              "real_exec_status": null,
+              "truncated_fields": []
+            },
+            {
+              "id": 10793,
+              "name": "Analyze Fatty Acid Composition By Gc",
+              "filename": "nextflow_nfcore/subworkflows/physiology/analyze_fatty_acid_composition_by_gc/main.nf",
+              "description": "Analyzes fatty acid composition in tissue samples using gas chromatography data. 1-step pipeline: ANALYZE_FATTY_ACID_COMPOSITION_BY_GC. Inputs: csv, fa. Outputs: csv, json, txt. Key parameters: gc_data_file, output_directory, sample_id, tissue_type.",
+              "domain": "physiology",
+              "input_types": "[\"gc_data_file\", \"tissue_type\", \"sample_id\", \"output_directory\"]",
+              "output_types": "[\"csv_results\", \"pdf_report\"]",
+              "params_schema": null,
+              "executable": 1,
+              "real_exec_status": null,
+              "truncated_fields": []
+            }
+          ],
+          "source": "local_knowledge_database",
+          "execution_verified": false,
+          "note": "Catalogue records are retrieval evidence; availability and successful execution require separate checks.",
+          "query": "FastQC tool: required inputs, parameters, tool ID",
+          "domain": "general"
+        },
+        "duration_ms": 41
+      }
+    },
+    {
+      "event": "delta",
+      "data": {
+        "text": "Here's what the local BioMate catalogue returned for FastQC. No workflow was executed and no code was run.\n\n## FastQC tools in the catalogue\n\n**1. `nfcore/fastqc`** \u2014 \"Fastqc\" (category: quality control, qc, adapters, fastq)\n- Description: \"Run FastQC on sequenced reads.\"\n- Availability: **available**\n- Inputs/parameters: not specified in the catalogue record (fields returned as null).\n- This is the primary FastQC runner. It expects **sequenced reads (FASTQ)** as input \u2014 consistent with its description and the related nf-core subworkflows below.\n\n**2. `toolshed.g2.bx.psu.edu/repos/duijker.d/naturalis_fastqc/runFastQC/0.11.7`** \u2014 \"FastQC Sequence Analyzer\" (category: Fasta Manipulation)\n- Description: \"The FastQC tool will do quality control checks on raw sequence data. These checks include summary graphs and tables.\"\n- Availability: **installable**\n- Required input: a **FastQ file** (parameter `fastq_file.`, type `data`), with a \"FastQ or zip?\" option.\n- Accepted input types: `fa`, `fastq`.\n\n**3. `toolshed.g2.bx.psu.edu/repos/nml/fastqc_stats/fastqc_summary/1.2`** \u2014 \"FastQC Summary\" (category: Sequence Analysis)\n- Description: \"This script provides a one line summary of the FastQC report.\"\n- Availability: **installable**\n- Required inputs: a **FastQC rawData txt file** (the output of the FastQC tool), plus a sample name and either a reference file or a number of base pairs (for raw genome coverage).\n- Note: this is a *downstream summarizer* of FastQC output, not the FastQC runner itself.\n\n**4. `toolshed.g2.bx.psu.edu/repos/estrain/sum_fastqc/sum_fastqc/0.23`** \u2014 \"sum_fastqc\" (category: Statistics)\n- Availability: **installable**\n- Required inputs: a **Raw FASTQC** file and a **Q score threshold** (float).\n- Also a downstream summarizer, not the runner.\n\n## Related workflows (for context)\n- `nf-core/fastq_fastqc_umitools_fastp` (id 1816) \u2014 input: `reads`, `adapter_fasta`.\n- `nf-core/fastq_fastqc_umitools_trimgalore` (id 1772) \u2014 input: `reads`.\n\n## Summary of required inputs\n- **FastQC runner** (`nfcore/fastqc` or `runFastQC/0.11.7`): requires **raw sequenced reads in FASTQ format** (single- or paired-end). The `nfcore/fastqc` record does not list explicit parameters in the catalogue.\n- **FastQC summarizers** (`fastqc_summary/1.2`, `sum_fastqc/0.23`): require the **FastQC rawData txt output** (not raw reads), plus a sample name and, for `fastqc_summary`, a reference file or base-pair count.\n\n## Note on your situation\nYou mentioned you have **not uploaded reads**. The FastQC runner tools require FASTQ reads as input, so they cannot be run without them. The summarizer tools require a FastQC report, which in turn requires reads. If you'd like, I can help you locate or prepare reads, or point you to a specific tool once you have them.\n\n**Caveat:** Catalogue records are retrieval evidence only \u2014 availability and successful execution require separate checks. The `nfcore/fastqc` record returned null for parameters/inputs, so its exact input specification is not fully detailed in the catalogue."
+      }
+    },
+    {
+      "event": "final",
+      "data": {
+        "response": "Here's what the local BioMate catalogue returned for FastQC. No workflow was executed and no code was run.\n\n## FastQC tools in the catalogue\n\n**1. `nfcore/fastqc`** \u2014 \"Fastqc\" (category: quality control, qc, adapters, fastq)\n- Description: \"Run FastQC on sequenced reads.\"\n- Availability: **available**\n- Inputs/parameters: not specified in the catalogue record (fields returned as null).\n- This is the primary FastQC runner. It expects **sequenced reads (FASTQ)** as input \u2014 consistent with its description and the related nf-core subworkflows below.\n\n**2. `toolshed.g2.bx.psu.edu/repos/duijker.d/naturalis_fastqc/runFastQC/0.11.7`** \u2014 \"FastQC Sequence Analyzer\" (category: Fasta Manipulation)\n- Description: \"The FastQC tool will do quality control checks on raw sequence data. These checks include summary graphs and tables.\"\n- Availability: **installable**\n- Required input: a **FastQ file** (parameter `fastq_file.`, type `data`), with a \"FastQ or zip?\" option.\n- Accepted input types: `fa`, `fastq`.\n\n**3. `toolshed.g2.bx.psu.edu/repos/nml/fastqc_stats/fastqc_summary/1.2`** \u2014 \"FastQC Summary\" (category: Sequence Analysis)\n- Description: \"This script provides a one line summary of the FastQC report.\"\n- Availability: **installable**\n- Required inputs: a **FastQC rawData txt file** (the output of the FastQC tool), plus a sample name and either a reference file or a number of base pairs (for raw genome coverage).\n- Note: this is a *downstream summarizer* of FastQC output, not the FastQC runner itself.\n\n**4. `toolshed.g2.bx.psu.edu/repos/estrain/sum_fastqc/sum_fastqc/0.23`** \u2014 \"sum_fastqc\" (category: Statistics)\n- Availability: **installable**\n- Required inputs: a **Raw FASTQC** file and a **Q score threshold** (float).\n- Also a downstream summarizer, not the runner.\n\n## Related workflows (for context)\n- `nf-core/fastq_fastqc_umitools_fastp` (id 1816) \u2014 input: `reads`, `adapter_fasta`.\n- `nf-core/fastq_fastqc_umitools_trimgalore` (id 1772) \u2014 input: `reads`.\n\n## Summary of required inputs\n- **FastQC runner** (`nfcore/fastqc` or `runFastQC/0.11.7`): requires **raw sequenced reads in FASTQ format** (single- or paired-end). The `nfcore/fastqc` record does not list explicit parameters in the catalogue.\n- **FastQC summarizers** (`fastqc_summary/1.2`, `sum_fastqc/0.23`): require the **FastQC rawData txt output** (not raw reads), plus a sample name and, for `fastqc_summary`, a reference file or base-pair count.\n\n## Note on your situation\nYou mentioned you have **not uploaded reads**. The FastQC runner tools require FASTQ reads as input, so they cannot be run without them. The summarizer tools require a FastQC report, which in turn requires reads. If you'd like, I can help you locate or prepare reads, or point you to a specific tool once you have them.\n\n**Caveat:** Catalogue records are retrieval evidence only \u2014 availability and successful execution require separate checks. The `nfcore/fastqc` record returned null for parameters/inputs, so its exact input specification is not fully detailed in the catalogue.",
+        "state": "chat_only",
+        "suggestions": [
+          "Tell me more about the tools",
+          "Show me the workflow steps",
+          "What data formats do I need?",
+          "How long will this take?"
+        ],
+        "workflow": null,
+        "prerequisitesValidation": null,
+        "metadata": {
+          "intentType": "tool_search",
+          "workflowSuggestion": {
+            "shouldGenerate": false,
+            "userIntent": "Look up FastQC in the local BioMate catalogue. Summarize what inputs it requires and cite the returned tool IDs. I have not uploaded reads. Do not execute a workflow or run code.",
+            "confidence": 0,
+            "reasoning": "Intent type \"tool_search\" \u2014 workflow generation not flagged"
+          },
+          "sources": {
+            "toolSearchUsed": true,
+            "datasetRAGUsed": false,
+            "workflowGenerated": false,
+            "thinkingUsed": false,
+            "researchAgentUsed": false,
+            "benchmarkAgentUsed": false
+          },
+          "memoryUsed": false,
+          "workflowGenerationDiagnostics": null,
+          "llm_usage": {
+            "model": "Qwen/Qwen3.8-27B",
+            "input_tokens": 45,
+            "output_tokens": 760,
+            "cost_usd": 0.011535,
+            "duration_ms": 652259
+          }
+        },
+        "isMultiIntent": false
+      }
+    },
+    {
+      "event": "done",
+      "data": {
+        "ok": true
+      }
+    }
+  ],
+  "checks": {
+    "knowledge_tool_called": true,
+    "real_catalogue_observation": true,
+    "no_code_execution": true,
+    "final_mentions_fastqc": true,
+    "completed_without_error": true
+  }
+}

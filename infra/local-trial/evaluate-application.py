@@ -24,7 +24,7 @@ try:
     assert any(t['name'].lower() == 'fastqc' for t in catalogue['tools']), 'FastQC query did not return the actual FastQC tool record'
     report['catalogue']=catalogue;save()
     events=[];event='message';data=[]
-    prompt='Use query_knowledge to look up FastQC in the local BioMate catalogue. Summarize what inputs it requires and cite the returned tool IDs. I have not uploaded reads. Do not execute a workflow or run code.'
+    prompt='Look up FastQC in the local BioMate catalogue. Summarize what inputs it requires and cite the returned tool IDs. I have not uploaded reads. Do not execute a workflow or run code.'
     with post('http://127.0.0.1:5501/api/chat/stream',{'message':prompt,'context':{}}) as response, (root/'application-events.jsonl').open('w') as stream:
         for raw in response:
             line=raw.decode().rstrip('\r\n')
@@ -38,7 +38,7 @@ try:
     observations=[e['data'] for e in events if e['event']=='tool_event' and e['data'].get('type')=='tool_result']
     finals=[e['data'] for e in events if e['event']=='final']
     report['checks']={
-        'knowledge_tool_called':any(c.get('name')=='query_knowledge' for c in calls),
+        'knowledge_tool_called':any(c.get('name')=='query_domain_knowledge' for c in calls),
         'real_catalogue_observation':any('local_knowledge_database' in json.dumps(v) for v in observations),
         'no_code_execution':not any(c.get('name')=='run_code' for c in calls),
         'final_mentions_fastqc':bool(finals) and 'fastqc' in json.dumps(finals).lower(),

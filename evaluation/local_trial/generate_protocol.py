@@ -36,6 +36,11 @@ PMAP={
  "16S amplicon metagenomics":["GC content bimodal / adapter contamination flagged","per-base Phred drops below 20 in the last 20% of reads","all FastQC modules pass, GC unimodal, adapters trimmed cleanly"],
  "whole-genome bisulfite":["per-base Phred drops below 20 in the last 20% of reads","Q30 = 78% overall","mean coverage 35x, uniform, no adapter contamination"],
  "nanopore long-read WGS":["Q30 = 78% overall","mean coverage 8x for a germline caller","insert-size distribution shows adapter dimers"],
+ "CITE-seq (10x)":["ambient RNA / high mito% in 30% of cells","only 42% reads map to reference","3% mito in single-cell, doublet rate low, ambient RNA minimal"],
+ "spatial transcriptomics (Visium)":["only 42% reads map to reference","GC content bimodal / adapter contamination flagged","all FastQC modules pass, GC unimodal, adapters trimmed cleanly"],
+ "RRBS":["per-base Phred drops below 20 in the last 20% of reads","Q30 = 78% overall","duplication rate 65%"],
+ "Ribo-seq":["rRNA fraction 45%","duplication rate 65%","per-base quality dips slightly at read ends but trimming recovers it"],
+ "small RNA-seq":["insert-size distribution shows adapter dimers","duplication rate 65%","all FastQC modules pass, GC unimodal, adapters trimmed cleanly"],
  "cut&run":["duplication rate 65%","insert-size distribution shows adapter dimers","all FastQC modules pass, GC unimodal, adapters trimmed cleanly"],
 }
 jobs=[]
