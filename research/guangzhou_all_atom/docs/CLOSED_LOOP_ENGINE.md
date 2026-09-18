@@ -68,6 +68,22 @@ permeability-focused redesign step), not just a post-hoc filter. This is the con
   add to make selection 3-objective (bind × physics × permeability).
 - Selection here is post-hoc over one generated batch; a true *loop* iterates (below).
 
+## LEARN step — tested; the cheap-surrogate shortcut does NOT work (honest negative, 2026-09-18)
+Tested the survey's active-learning idea (train a cheap surrogate on design features → MM-GBSA ΔG to
+pre-screen large batches) on the 28 cross-target scored designs:
+- **Spearman(iptm, within-target ΔG_z) = −0.04** — the generator's confidence is **orthogonal to physics
+  binding**. Sharpest statement of the non-circular-oracle value: iptm carries ~zero within-target physics signal.
+- **Surrogate (BoltzGen features → ΔG_z), leave-one-target-out CV: R² ≈ 0.00, Spearman 0.03** — a cheap
+  surrogate on generator features **cannot predict/pre-screen physics ΔG**.
+- Feature importance: interface descriptors (plip_hbonds 0.33, hydrophobicity 0.17, ΔSASA 0.14) > iptm (0.07),
+  but none generalize across targets at this data size.
+
+**Two reasons the shortcut fails:** (1) BoltzGen features genuinely don't predict physics ΔG (⇒ the verify
+oracle is *non-circular* and non-optional), and (2) 28 designs / 4 receptors is far too few for a cross-target
+surrogate. **Conclusion:** don't pre-screen with a generator-feature surrogate — *run* MM-GBSA on all designs
+(affordable) ; a viable surrogate needs physics-informed cheap features (fast minimized interface energy) +
+hundreds of scored designs. This makes the "run physics on everything" design correct for now.
+
 ## Remaining wiring to a full iterating loop
 1. **Permeability as 3rd objective** — apply the GBM to the designs → 3-way Pareto/qNEHVI.
 2. **LEARN step (active learning)** — train a cheap surrogate on (design features → verified ΔG); next round
