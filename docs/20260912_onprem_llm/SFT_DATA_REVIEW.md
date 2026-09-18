@@ -42,3 +42,11 @@ be *derived from the same sources mid-training used*, shaped as verifier-gated t
 ## C. Sequence
 mid-train (knowledge) → **SFT (these tasks, grounded in the same corpus, production-format)** →
 inner-loop skill evolution + RL. SFT is where the mid-trained knowledge becomes correct task behavior.
+
+## D. Post-fix state (after volume + decomposition + de-noise passes)
+Joint SFT set = **1,834 ex, 6 tasks**: routing 529, **param 384** (was 68 — over-generated 5.6×,
+73% audit pass), **decompose 341** (NEW, from step_metadata ordered steps), wfgen 320, autofix 211
+(de-noised), protocol 49 (coherent per-assay + balanced WARN22/PASS12/FAIL15). In S3 `sft/multitask_sft.jsonl`.
+Remaining: param gen yield still ~16% (over-generate to scale); protocol small (curated coherent combos);
+decomposition is intra-workflow (add inter-workflow chains next). Real protocol collections (Bio-protocol/
+protocols.io CC-BY) will upgrade both protocol + decomposition when fetched on a disk box.
