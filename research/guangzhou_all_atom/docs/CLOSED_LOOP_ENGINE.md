@@ -1,0 +1,55 @@
+# The generate–verify–select engine — wired, with a worked example
+
+The "生成-验证-学习" engine, now assembled from the components built this session. This documents the
+architecture and demonstrates the **select** (decision) layer on real `1yf4` data — the step that turns
+disconnected tools into a loop.
+
+## Architecture (components that now exist)
+```
+GENERATE   BoltzGen (target-conditioned cyclic-peptide design)         -> designs + iptm/pTM/filters
+   |
+VERIFY     MM-GBSA (automated psfgen cyclic build -> OpenMM GBn2)       -> physics ΔG per design  [non-circular]
+   |       Permeability GBM (CycPeptMPDB, R²0.45/Spearman0.75)          -> predicted logPapp        [ranking]
+   |
+SELECT     multi-objective (Pareto / combined normalized score)        -> ranked "advance these"
+   |
+LEARN      (next) surrogate on (design -> verified ΔG) for AL triage; FEP on finalists; feed back
+```
+
+## Worked example — multi-objective SELECT over the 8 `1yf4` designs (iptm × MM-GBSA ΔG)
+Min-max-normalized combined score (iptm + normalized −ΔG); Pareto = non-dominated on (max iptm, min ΔG):
+
+| seq | iptm | ΔG (kcal/mol) | combined | Pareto |
+|---|---|---|---|---|
+| **FSRNVGDPY** | 0.739 | **−52.7** | **1.99** | ✅ |
+| GSGLLKS | **0.740** | −36.6 | 1.43 | ✅ |
+| SFEASGFAPM | 0.636 | −43.3 | 1.17 | – |
+| SPSINGPMI | 0.577 | −39.7 | 0.75 | – |
+| SSLLFVPG | 0.553 | −42.4 | 0.74 | – |
+| YVAGQPDPK | 0.579 | −35.7 | 0.62 | – |
+| SIYGTGLVPL | 0.533 | −40.2 | 0.56 | – |
+| YSGGGGV | 0.635 | −24.3 | 0.49 | – |
+
+## The concrete value of the loop (this is the point)
+- **Generation alone can't decide:** BoltzGen's top two, `GSGLLKS` (iptm 0.7405) and `FSRNVGDPY` (0.7393),
+  are **essentially tied** on iptm — the generator is indifferent between them.
+- **The physics oracle breaks the tie decisively:** ΔG −52.7 (`FSRNVGDPY`) vs −36.6 (`GSGLLKS`).
+- **Integrated recommendation: `FSRNVGDPY`** — near-best ML confidence *and* best physics, dominating the
+  combined score (1.99 vs 1.43). The Pareto front is {`FSRNVGDPY`, `GSGLLKS`}; everything else is dominated.
+- So the wired generate+verify+select engine advances a design that generation-alone would not have
+  singled out — exactly what a non-circular verify loop is for.
+
+## Honest caveats
+- Two axes only (iptm, ΔG); MM-GBSA is a relative oracle with residual size bias (designs 7–10-mer).
+- The **permeability axis is not yet applied to these designs** (the GBM is trained on CycPeptMPDB; scoring
+  our designs needs building their cyclic-peptide SMILES + the matching 216 descriptors) — the clear next
+  add to make selection 3-objective (bind × physics × permeability).
+- Selection here is post-hoc over one generated batch; a true *loop* iterates (below).
+
+## Remaining wiring to a full iterating loop
+1. **Permeability as 3rd objective** — apply the GBM to the designs → 3-way Pareto/qNEHVI.
+2. **LEARN step (active learning)** — train a cheap surrogate on (design features → verified ΔG); next round
+   BoltzGen generates a larger batch → surrogate pre-screens → only top candidates get MM-GBSA → select →
+   update surrogate → repeat (the sample-efficient regime from the optimization survey).
+3. **FEP finalist tier** — ATM/FEP+ on the Pareto set (`FSRNVGDPY`, `SFEASGFAPM`) as the length-controlled arbiter.
+4. **Productionize on BioMate** — the campaign engine per docs/BIOMATE_CLOSED_LOOP_INTEGRATION.md.
