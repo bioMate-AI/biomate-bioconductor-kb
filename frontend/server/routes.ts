@@ -9644,18 +9644,22 @@ ${paramLines || '(none recorded)'}`;
       // silent S3-skip. Names come from the resolver (already include extension).
       if (canonical.length) {
         const { S3Client: _S3Z, GetObjectCommand: _GZ } = await import("@aws-sdk/client-s3");
-        const _nfKeyZ = process.env.AWS_NF_ACCESS_KEY_ID;
-        const _nfSecZ = process.env.AWS_NF_SECRET_ACCESS_KEY;
+        // Default credential chain + region redirects — the same path the record
+        // checksum + single-file download use successfully for these buckets.
         const _s3z = new _S3Z({
-          region: "us-east-1", followRegionRedirects: true,
-          ...(_nfKeyZ && _nfSecZ ? { credentials: { accessKeyId: _nfKeyZ, secretAccessKey: _nfSecZ } } : {}),
+          region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || "us-east-1",
+          followRegionRedirects: true,
         });
         for (const o of canonical) {
           try {
             const m = (o.s3Uri || "").match(/^s3:\/\/([^/]+)\/(.+)$/);
             if (!m) continue;
             const obj: any = await _s3z.send(new _GZ({ Bucket: m[1], Key: m[2] }));
-            archive.append(obj.Body as any, { name: o.name });
+            // Buffer fully before appending — archiver drops lazily-piped S3
+            // streams, yielding an empty zip.
+            const chunks: Buffer[] = [];
+            for await (const c of obj.Body as any) chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c));
+            archive.append(Buffer.concat(chunks), { name: o.name });
           } catch (err) {
             console.error(`Failed to add ${o.name} to archive:`, err);
           }
