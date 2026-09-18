@@ -49,6 +49,20 @@ real chameleon signal needs (1) realistic **MD ensembles** (not ETKDG — even C
 membrane-like), not conformational spread in one condition. A proper test = MDML_PeptPerm-style
 two-environment MD (~400 ns/peptide) — expensive, uncertain payoff (<2%-variance caveat).
 
+## N-methylation lever test — 2D model can't see it (2026-09-18)
+Tested whether N-methylation (the established permeability lever — cyclosporine) improves predicted
+permeability for the 8 1yf4 designs (cyclized in RDKit, backbone amides methylated 50%/100%, re-predicted):
+mean Δ(full N-methyl) = **+0.06 log units** — essentially zero, highly variable (−0.96 .. +2.19), designs
+stay non-drug-like (< −6). Since N-methylation *is* a real permeability lever, this means **the 2D-descriptor
+model cannot capture the N-methylation→permeability mechanism** (it's conformational: removing backbone
+H-bond donors enables chameleon shielding — invisible to 2D descriptors, same root cause as the plateau).
+
+**Decision this informs:** permeability-driven *generation* built on a 2D oracle would be **futile** — the
+oracle can't see N-methylation, so it couldn't steer toward it. The full dependency chain:
+`permeability-driven generation → requires conformation-aware permeability oracle → requires 2-environment
+MD ensembles (expensive)`. **Every cheap 2D path is now exhausted** (baseline plateau, conformer-span fail,
+N-methylation invisible) → the differentiator is real but gated on the expensive conformation-aware build.
+
 ## Honest strategic conclusion
 - **Usable now:** the 2D-descriptor permeability ranker (R² 0.45 / Spearman 0.75 on full data) — good enough
   to rank designs in the loop.
