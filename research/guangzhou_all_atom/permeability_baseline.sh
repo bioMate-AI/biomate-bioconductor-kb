@@ -65,8 +65,10 @@ drop=set(['ID','Source','Year','Version','Original_Name_in_Source_Literature','S
           'EPSA','NULL'])
 feat_cols=[c for c in df.columns if c not in drop]
 Xdf=df[feat_cols].apply(pd.to_numeric, errors='coerce')
+Xdf=Xdf.replace([np.inf,-np.inf], np.nan)              # RDKit Ipc/BertzCT can overflow -> inf
 Xdf=Xdf.dropna(axis=1, how='all')                      # drop all-NaN cols
 Xdf=Xdf.fillna(Xdf.median(numeric_only=True))
+Xdf=Xdf.clip(lower=-1e30, upper=1e30)                  # keep within float32 range
 threeD=[c for c in Xdf.columns if 'PSA' in c or '3D' in c.upper()]
 print('rich feature count:', Xdf.shape[1], '| 3D/PSA features:', threeD)
 X=Xdf.values.astype(float); y=df[perm_col].values.astype(float)
