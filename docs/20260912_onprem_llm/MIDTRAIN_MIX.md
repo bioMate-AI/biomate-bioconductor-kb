@@ -61,3 +61,11 @@ For narrow **task** lift, SFT + the inner-loop harness evolution likely move the
 hour than mid-training (our earlier finding: base is already competitive; retrieval carries knowledge).
 Mid-training's payoff is **domain fluency + fewer hallucinations on unseen domain prose** — worth one
 run once the SFT/inner-loop cluster is in. Order of ROI: **inner-loop skills → SFT tasks → mid-training → RL**.
+
+## General replay (the bridge) — mix a % of general corpus
+Mid-training = **~25% domain / ~75% general** (distributional bridge, anti-forgetting). General =
+commercial-safe proxy for the base's pretrain distribution: **FineWeb-Edu (ODC-BY)** + **The Stack v2
+permissive (code)** + **Wikipedia (CC-BY-SA)**. Budget: domain ≈ internal(~37M ×3) + sampled external
+literature ≈ 0.5–1B tok; general ≈ 3× domain ≈ 1.5–3B tok; total ~2–4B tok (feasible single pass).
+Mechanics: `midtrain_run.py --data midtrain_all.jsonl --replay general_replay.jsonl --replay-frac 0.75`
+(concats general at the target ratio + shuffles). General corpus = disk-box fetch (large).
