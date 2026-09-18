@@ -1,13 +1,26 @@
 {
-  "docs": 16487,
-  "by_source": {
-    "tool": 12278,
-    "workflow": 4200,
-    "skill": 9
+  "internal_text": {
+    "docs": 16487,
+    "by_source": {
+      "tool": 12278,
+      "workflow": 4200,
+      "skill": 9
+    },
+    "approx_tokens": 8966847
   },
-  "approx_tokens": 8966847,
-  "chars": 35867391,
-  "sha": "4741bd07ef16bb69",
-  "license": "internal/BioMate-owned (license-clean)",
-  "use": "domain mid-training (bio tool/workflow knowledge)"
+  "code": {
+    "docs": 21003,
+    "by_source": {
+      "nextflow": 4866,
+      "bioconductor_r": 2207,
+      "nf_config": 1897,
+      "workflow_json": 4169,
+      "tool_wrapper": 7864
+    },
+    "approx_tokens": 17249615
+  },
+  "total_docs": 37490,
+  "total_approx_tokens": 26216462,
+  "license": "internal/BioMate + nf-core(MIT) + Bioconductor(Artistic-2.0) \u2014 verify per-package for strict commercial",
+  "use": "domain mid-training (bio tool/workflow knowledge + workflow CODE)"
 }

@@ -12,7 +12,7 @@ for task lift). Weights below are **shares of the DOMAIN portion**.
 
 | Source | License | Commercial? | Est. tokens (raw) | Weight (of domain) | Best use |
 |---|---|---|---|---|---|
-| **Internal DB corpus** (ours; in S3 `midtrain_corpus/`) | internal | ✅ | ~9M (repeat ×3–4) | **20%** | tool/workflow knowledge — *highest value, on-domain* |
+| **Internal corpus** (ours; S3 `midtrain_corpus/`): **text ~9M + CODE ~17M = ~26M tok** | internal + nf-core MIT + Bioconductor Artistic-2.0 | ✅ (verify per-pkg) | ~26M (repeat ×2–3) | **35%** | tool/workflow knowledge **+ Nextflow/Bioconductor/workflow_json CODE** — *highest value, on-domain; code drives param/workflow-gen/decomposition* |
 | **peS2o** (bio-relevant slice) | ODC-BY | ✅ | 2–3B | **40%** | literature domain knowledge |
 | **PMC OA — `oa_comm` only** (bio) | CC-BY family | ✅ | 1–2B | **20%** | full-text papers/methods |
 | **Biostars Q&A** | CC-BY-4.0 | ✅ | ~0.3B | **8%** | tool use + error diagnosis prose |
