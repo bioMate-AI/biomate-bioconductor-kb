@@ -25,7 +25,23 @@ def gen(args):
     act=next((x for x in ["FAIL","WARN","PASS"] if out and x in out.upper()), None)
     return {"protocol":proto,"universal_threshold_problem":qc,"expected_correct_action":act} if act else None
 N=int(sys.argv[1]) if len(sys.argv)>1 else 200
-jobs=[(random.choice(PROTOCOLS),random.choice(QC)) for _ in range(N)]
+# COHERENT: map each protocol to QC issues that actually apply to it
+PMAP={
+ "bulk RNA-seq (Illumina, paired-end)":["per-base Phred drops below 20 in the last 20% of reads","duplication rate 65%","only 42% reads map to reference","rRNA fraction 45%","Q30 = 94% and >90% reads map, all metrics within spec","per-base quality dips slightly at read ends but trimming recovers it"],
+ "single-cell RNA-seq (10x)":["ambient RNA / high mito% in 30% of cells","only 42% reads map to reference","3% mito in single-cell, doublet rate low, ambient RNA minimal","10% of samples fail library-complexity threshold"],
+ "WGS germline (30x)":["mean coverage 8x for a germline caller","GC content bimodal / adapter contamination flagged","mean coverage 35x, uniform, no adapter contamination","Q30 = 78% overall"],
+ "WES tumor/normal":["mean coverage 8x for a germline caller","only 42% reads map to reference","Q30 = 94% and >90% reads map, all metrics within spec"],
+ "ChIP-seq (TF)":["duplication rate 65%","only 42% reads map to reference","all FastQC modules pass, GC unimodal, adapters trimmed cleanly"],
+ "ATAC-seq":["duplication rate 65%","insert-size distribution shows adapter dimers","mean coverage 35x, uniform, no adapter contamination"],
+ "16S amplicon metagenomics":["GC content bimodal / adapter contamination flagged","per-base Phred drops below 20 in the last 20% of reads","all FastQC modules pass, GC unimodal, adapters trimmed cleanly"],
+ "whole-genome bisulfite":["per-base Phred drops below 20 in the last 20% of reads","Q30 = 78% overall","mean coverage 35x, uniform, no adapter contamination"],
+ "nanopore long-read WGS":["Q30 = 78% overall","mean coverage 8x for a germline caller","insert-size distribution shows adapter dimers"],
+ "cut&run":["duplication rate 65%","insert-size distribution shows adapter dimers","all FastQC modules pass, GC unimodal, adapters trimmed cleanly"],
+}
+jobs=[]
+for _ in range(N):
+    p=random.choice([k for k in PMAP]); jobs.append((p,random.choice(PMAP[p])))
+# COHERENT
 out=[]
 with ThreadPoolExecutor(max_workers=8) as ex:
     for e in ex.map(gen, jobs):
