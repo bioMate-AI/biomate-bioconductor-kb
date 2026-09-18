@@ -45,8 +45,11 @@ from scipy.stats import spearmanr
 df=pd.read_csv('cyc.csv')
 cols={c.lower():c for c in df.columns}
 # find SMILES + permeability columns robustly
-smi_col=next((cols[k] for k in cols if k in ('smiles','canonical_smiles','smiles_canonical')), None)
-perm_col=next((cols[k] for k in cols if 'perm' in k or k in ('pampa','logpapp','papp')), None)
+# CycPeptMPDB: 'Permeability' is the dense main log-Papp target (all rows); 'PAMPA' the largest assay.
+smi_col='SMILES' if 'SMILES' in df.columns else next((cols[k] for k in cols if 'smiles' in k), None)
+perm_col=('Permeability' if 'Permeability' in df.columns else
+          'PAMPA' if 'PAMPA' in df.columns else
+          next((cols[k] for k in cols if k in ('pampa','logpapp','papp')), None))
 print('smiles col:', smi_col, ' perm col:', perm_col)
 assert smi_col and perm_col, f"columns not found: {list(df.columns)[:30]}"
 df=df[[smi_col,perm_col]].dropna()
