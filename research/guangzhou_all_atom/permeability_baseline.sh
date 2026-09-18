@@ -22,12 +22,14 @@ conda activate perm
 python -c "import rdkit, sklearn, pandas; print('deps ok', sklearn.__version__)"
 
 stage fetch_data
-# locate CycPeptMPDB in S3 (staged under cyclic_peptide/datasets/)
-CSV=""
-for KEY in $(aws s3 ls "s3://$BUCKET/cyclic_peptide/datasets/" --recursive | grep -iE "cycpept.*\.csv" | awk '{print $4}'); do
-  aws s3 cp "s3://$BUCKET/$KEY" ./cyc.csv --only-show-errors && CSV=./cyc.csv && { echo "got $KEY"; break; }
-done
-[ -z "$CSV" ] && { echo "FATAL: CycPeptMPDB csv not found in S3"; exit 1; }
+# CycPeptMPDB is staged at cyclic_peptide/raw/ (not datasets/); direct cp, with a broad search fallback
+CSV=./cyc.csv
+aws s3 cp "s3://$BUCKET/cyclic_peptide/raw/CycPeptMPDB_Peptide_All.csv" "$CSV" --only-show-errors 2>/dev/null || true
+if [ ! -s "$CSV" ]; then
+  KEY=$(aws s3 ls "s3://$BUCKET/cyclic_peptide/" --recursive | grep -iE "cycpept.*peptide.*\.csv" | awk '{print $4}' | head -1)
+  [ -n "$KEY" ] && aws s3 cp "s3://$BUCKET/$KEY" "$CSV" --only-show-errors
+fi
+[ -s "$CSV" ] || { echo "FATAL: CycPeptMPDB csv not found in S3"; exit 1; }
 wc -l ./cyc.csv; head -1 ./cyc.csv | tr ',' '\n' | head -40
 
 stage train

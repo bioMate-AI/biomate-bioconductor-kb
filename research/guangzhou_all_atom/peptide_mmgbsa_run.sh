@@ -30,7 +30,12 @@ conda activate mmg
 python -c "import openmm; print('openmm', openmm.__version__, [openmm.Platform.getPlatform(i).getName() for i in range(openmm.Platform.getNumPlatforms())]); import psfgen, parmed; print('psfgen/parmed ok')"
 
 stage fetch_toppar
-# MacKerell tarball (retry across versions, curl retries for transient failures)
+# PRIMARY: our own S3 cache (reliable — no external dependency; MacKerell is intermittently down)
+mkdir -p toppar
+aws s3 cp "s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/charmm36_toppar/top_all36_prot.rtf" toppar/ --only-show-errors 2>/dev/null || true
+aws s3 cp "s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/charmm36_toppar/par_all36m_prot.prm" toppar/ --only-show-errors 2>/dev/null || true
+# FALLBACK: MacKerell tarball (retry across versions) only if the S3 cache missed
+if [ -z "$(find . -name 'top_all36_prot.rtf' | head -1)" ] || [ -z "$(find . -name 'par_all36m_prot.prm' | head -1)" ]; then
 for V in jul22 jul21 aug21 jul20 jul24; do
   if curl -fsSL --retry 4 --retry-delay 5 "http://mackerell.umaryland.edu/download.php?filename=CHARMM_ff_params_files/toppar_c36_${V}.tgz" -o toppar.tgz 2>/dev/null && tar tzf toppar.tgz >/dev/null 2>&1; then tar xzf toppar.tgz; echo "toppar_c36_${V}"; break; fi
 done
@@ -43,6 +48,7 @@ if [ -z "$(find . -name 'top_all36_prot.rtf' | head -1)" ] || [ -z "$(find . -na
     [ -s toppar/top_all36_prot.rtf ] && [ -s toppar/par_all36m_prot.prm ] && { echo "toppar from $BASE"; break; }
   done
 fi
+fi   # close S3-cache-miss fallback block
 RTF=$(find . -name "top_all36_prot.rtf" | head -1); PRM=$(find . -name "par_all36m_prot.prm" | head -1)
 [ -z "$PRM" ] && PRM=$(find . -name "par_all36_prot.prm" | head -1)
 echo "rtf=$RTF prm=$PRM"; [ -z "$RTF" -o -z "$PRM" ] && { echo "FATAL: no CHARMM36 toppar"; exit 1; }
