@@ -1244,6 +1244,16 @@ export function MethodsTab({
   // export exactly what the user sees. Seeded from the report text.
   const [editedText, setEditedText] = useState<string>(methods.text);
   const [savedToast, setSavedToast] = useState<string | null>(null);
+  // The report is a versioned object (#22): v0 is the immutable run original,
+  // edits are appended server-side. Loaded from GET /api/runs/:id/report/versions.
+  const [versions, setVersions] = useState<Array<{ version: number; immutable?: boolean; note?: string; createdAt?: string | null }>>([]);
+  const loadVersions = async () => {
+    if (!runId) return;
+    try {
+      const r = await fetch(`/api/runs/${encodeURIComponent(runId)}/report/versions`, { credentials: "include" });
+      if (r.ok) { const d = await r.json(); if (Array.isArray(d?.versions)) setVersions(d.versions); }
+    } catch { /* offline — leave list empty */ }
+  };
 
   // Re-seed when the source report changes (a fresh run / cache fill) — but
   // NOT while the user is mid-edit, or a report refresh would silently clobber
@@ -1256,11 +1266,18 @@ export function MethodsTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [methods.text]);
 
+  // Load persisted report versions on mount / run change.
+  useEffect(() => {
+    loadVersions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runId]);
+
   if (!methods.hasRealContent) {
     return <p style={styles.empty}>Methods report not available for this workflow.</p>;
   }
 
-  const handleSaveEdited = () => {
+  // Offline / no-run fallback: download the edit locally.
+  const handleSaveEditedLocal = (labelPrefix = "Edited methods report downloaded") => {
     const blob = new Blob([editedText], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -1272,8 +1289,32 @@ export function MethodsTab({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    setSavedToast("Edited methods report downloaded");
+    setSavedToast(labelPrefix);
     setTimeout(() => setSavedToast(null), 4000);
+  };
+
+  // Server-first: persist a REAL version (#22). The immutable run-original (v0)
+  // is seeded from the current report; this edit is appended and keeps the runId
+  // back-link. Falls back to a local download when offline / no runId.
+  const handleSaveVersion = async () => {
+    if (runId) {
+      try {
+        const r = await fetch(`/api/runs/${encodeURIComponent(runId)}/report/versions`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: editedText, note: "edited in report viewer", currentMarkdown: methods.text }),
+        });
+        if (r.ok) {
+          const d = await r.json();
+          await loadVersions();
+          setSavedToast(`Saved as version v${d?.version?.version ?? "?"} (persisted)`);
+          setTimeout(() => setSavedToast(null), 4000);
+          return;
+        }
+      } catch { /* fall through to local download */ }
+    }
+    handleSaveEditedLocal(runId ? "Server unavailable — downloaded locally" : "Edited methods report downloaded");
   };
 
   return (
@@ -1292,12 +1333,12 @@ export function MethodsTab({
           <>
             <button
               type="button"
-              onClick={handleSaveEdited}
+              onClick={handleSaveVersion}
               style={styles.methodsEditBtn}
               data-testid="methods-save-edited"
-              title="Download your edited version of the methods report as markdown"
+              title="Save a new persisted version of the report (immutable run-original kept). Falls back to a local download offline."
             >
-              ↓ Save edited version
+              ⤴ Save version
             </button>
             <button
               type="button"
@@ -1320,6 +1361,21 @@ export function MethodsTab({
           </button>
         )}
       </div>
+
+      {versions.length > 0 && (
+        <div data-testid="report-versions" style={{ margin: "6px 0 10px", fontSize: 12 }}>
+          <div style={{ color: "var(--text-muted)", marginBottom: 4 }}>Report versions</div>
+          {versions.slice().sort((a, b) => a.version - b.version).map((v) => (
+            <div key={v.version} data-testid={`report-version-${v.version}`} style={{ display: "flex", gap: 8, alignItems: "center", padding: "1px 0" }}>
+              <span className="mono" style={{ fontWeight: 600 }}>v{v.version}</span>
+              {v.immutable
+                ? <span style={{ fontSize: 10, padding: "0 5px", borderRadius: 4, background: "oklch(0.93 0.03 260)", color: "oklch(0.35 0.05 260)" }}>immutable run original</span>
+                : <span style={{ color: "var(--text-muted)" }}>{v.note || "edit"}</span>}
+              {v.createdAt && <span style={{ color: "var(--text-muted)" }}>· {String(v.createdAt).slice(0, 10)}</span>}
+            </div>
+          ))}
+        </div>
+      )}
 
       {editing ? (
         <div style={styles.methodsEditor} data-testid="methods-editor">
