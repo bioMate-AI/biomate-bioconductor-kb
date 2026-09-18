@@ -86,6 +86,27 @@ def main() -> int:
     model = PeftModel.from_pretrained(model, args.adapter)
     model.eval()
 
+    # SANITY GUARD (root-cause of the 20260914 "0.0 delta everywhere" run): verify the adapter
+    # actually changes the logits. If enabled==disabled the whole eval is meaningless — a silent
+    # no-op adapter reports base==sft and looks like "training didn't help" when it's really a load
+    # artifact (wrong adapter path, quantization mismatch, or disable_adapter not toggling). Fail LOUD.
+    with torch.no_grad():
+        probe = tok("BioMate workflow for RNA-seq differential expression:", return_tensors="pt")
+        probe = {k: v.to(model.device) for k, v in probe.items()}
+        l_sft = model(**probe).logits[0, -1].float()
+        with model.disable_adapter():
+            l_base = model(**probe).logits[0, -1].float()
+    dmax = (l_sft - l_base).abs().max().item()
+    if dmax < 1e-4:
+        raise SystemExit(
+            f"FATAL: adapter has NO effect on logits (max|Δ|={dmax:.2e}, enabled==disabled).\n"
+            "The reported 0.0 delta is an EVAL ARTIFACT, not a real result. Fix before trusting:\n"
+            "  - confirm --adapter points at a trained adapter (adapter_model.safetensors non-zero)\n"
+            "  - confirm --base matches the base the adapter was trained on (same quantization)\n"
+            "  - or use the canonical two-server eval: merge_lora.py + eval_holdout_vllm.py")
+    print(f"[sanity] adapter changes logits: max|Δ|={dmax:.4f}  (>1e-4 required) OK")
+    identical = 0  # per-item guard: count where base_out==sft_out (should be a minority)
+
     def gen(prompt: str) -> str:
         msgs = [{"role": "user", "content": prompt}]
         enc = tok.apply_chat_template(msgs, add_generation_prompt=True,
@@ -111,6 +132,8 @@ def main() -> int:
             # base (adapter disabled)
             with model.disable_adapter():
                 base_out = gen(prompt)
+            if norm(base_out) == norm(sft_out):
+                identical += 1
             bs = score_item(b, it, gold, base_out)
             ss = score_item(b, it, gold, sft_out)
             if bs is None or ss is None:
@@ -120,8 +143,14 @@ def main() -> int:
             report["per_benchmark"][b] = {"n": n, "base": round(base_s/n, 4),
                                           "sft": round(sft_s/n, 4), "delta": round((sft_s-base_s)/n, 4)}
             print(f"{b}: n={n} base={base_s/n:.3f} sft={sft_s/n:.3f} delta={(sft_s-base_s)/n:+.3f}")
+    total = sum(v["n"] for v in report["per_benchmark"].values()) or 1
+    frac_identical = identical / total
+    report["identical_output_frac"] = round(frac_identical, 3)
+    if frac_identical > 0.9:
+        print(f"WARNING: {frac_identical:.0%} of items had IDENTICAL base/sft output — the adapter "
+              "is barely moving greedy predictions; treat deltas as unreliable and inspect training.")
     Path(args.out).write_text(json.dumps(report, indent=2))
-    print("WROTE", args.out)
+    print("WROTE", args.out, "| identical_output_frac=", round(frac_identical, 3))
     return 0
 
 
