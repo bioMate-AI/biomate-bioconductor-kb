@@ -13991,78 +13991,43 @@ Rules:
             }
           } catch { /* outputs fetch failed — proceed without file content */ }
 
-          // Fallback A: the canonical output store. `/output_files` sources from the
-          // in-memory nextflow status, which a container restart wipes — but
-          // getInvocationOutputs(galaxyInvocationId) persists each output's real S3
-          // location in metadata.s3Uri (the SAME resolver the download/record path
-          // uses, which keeps working after a restart). Read text samples straight
-          // from there so findings don't fail with "output files could not be read"
-          // on a completed run whose outputs are perfectly downloadable.
+          // Canonical-resolver fallback (L1b): /output_files sources from the
+          // in-memory nextflow status, which a restart wipes. runsOutputsService.list()
+          // is the SINGLE reliable resolver — it internally tries prefix → work-dir →
+          // persisted nextflowStatus.s3_output_files → live Galaxy recovery, then
+          // persists a manifest — so it subsumes the old getInvocationOutputs and
+          // raw-S3-prefix fallbacks that used to live here (both deleted). Read text
+          // samples straight from its outputs' s3Uri.
           if (outputSamples.length === 0) {
             try {
-              const gid = (run as any).execution?.galaxyInvocationId;
-              const invOutputs = gid ? await storage.getInvocationOutputs(gid) : [];
-              if (invOutputs.length) {
-                const { S3Client: _S3I, GetObjectCommand: _GI } = await import('@aws-sdk/client-s3');
-                const _s3i = new _S3I({ region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1', followRegionRedirects: true });
-                const TEXT_EXTS_I = /\.(txt|log|csv|tsv|json|vcf|md|bed|gff|gtf)$/i;
-                for (const o of invOutputs as any[]) {
-                  if (outputSamples.length >= 6) break;
-                  const s3Uri: string = o?.s3Uri || o?.metadata?.s3Uri || '';
-                  const fileName: string = o?.name || s3Uri.split('/').pop() || 'output';
-                  if (!s3Uri.startsWith('s3://') || !TEXT_EXTS_I.test(fileName)) continue;
-                  const _m = s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
-                  if (!_m) continue;
-                  try {
-                    const _obj = await _s3i.send(new _GI({ Bucket: _m[1], Key: _m[2] }));
-                    const chunks: Buffer[] = [];
-                    for await (const ch of _obj.Body as any) chunks.push(Buffer.from(ch));
-                    const content = Buffer.concat(chunks).slice(0, 8000).toString('utf8');
-                    if (content.trim()) outputSamples.push({ name: fileName, content });
-                  } catch { /* skip unreadable */ }
-                }
-                console.log(`[Findings] invocation-store fallback read ${outputSamples.length} outputs via metadata.s3Uri`);
-              }
-            } catch (invErr: any) {
-              console.warn('[Findings] invocation-store fallback failed:', invErr?.message);
-            }
-          }
-
-          // Fallback: directly list S3 output directory using AWS SDK
-          if (outputSamples.length === 0) {
-            try {
-              const { S3Client: _S3F, GetObjectCommand: _GF, ListObjectsV2Command: _LF } = await import('@aws-sdk/client-s3');
-              const _nfKeyF = process.env.AWS_NF_ACCESS_KEY_ID;
-              const _nfSecF = process.env.AWS_NF_SECRET_ACCESS_KEY;
-              const _s3f = new _S3F({
+              const { runsOutputsService } = await import('./services/runs-outputs-service');
+              const canonical = await runsOutputsService.list(runId);
+              const { S3Client: _S3I, GetObjectCommand: _GI } = await import('@aws-sdk/client-s3');
+              const _nfKeyI = process.env.AWS_NF_ACCESS_KEY_ID;
+              const _nfSecI = process.env.AWS_NF_SECRET_ACCESS_KEY;
+              const _s3i = new _S3I({
                 region: 'us-east-1', followRegionRedirects: true,
-                ...(_nfKeyF && _nfSecF ? { credentials: { accessKeyId: _nfKeyF, secretAccessKey: _nfSecF } } : {}),
+                ...(_nfKeyI && _nfSecI ? { credentials: { accessKeyId: _nfKeyI, secretAccessKey: _nfSecI } } : {}),
               });
-              const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
-              const storedOutdir: string = (run as any).execution?.nextflowOutputDir ||
-                (run as any).nextflowOutputDir || '';
-              const s3Prefix = storedOutdir
-                ? storedOutdir.replace(`s3://${s3Bucket}/`, '').replace(/\/?$/, '/')
-                : `nextflow/outputs/${runId}/`;
-              const TEXT_EXTS = /\.(txt|log|json|csv|tsv|md)$/i;
-              const listed = await _s3f.send(new _LF({ Bucket: s3Bucket, Prefix: s3Prefix, MaxKeys: 200 }));
-              const textKeys = (listed.Contents || [])
-                .filter(o => o.Key && TEXT_EXTS.test(o.Key) && (o.Size || 0) < 64000)
-                .slice(0, 10);
-              for (const obj of textKeys) {
-                const fileName = obj.Key!.split('/').pop() || obj.Key!;
+              const TEXT_EXTS_I = /\.(txt|log|csv|tsv|json|vcf|md|bed|gff|gtf)$/i;
+              for (const o of canonical) {
+                if (outputSamples.length >= 6) break;
+                const s3Uri: string = (o as any).s3Uri || '';
+                const fileName: string = (o as any).name || s3Uri.split('/').pop() || 'output';
+                if (!s3Uri.startsWith('s3://') || !TEXT_EXTS_I.test(fileName)) continue;
+                const _m = s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
+                if (!_m) continue;
                 try {
-                  const _r = await _s3f.send(new _GF({ Bucket: s3Bucket, Key: obj.Key! }));
+                  const _obj = await _s3i.send(new _GI({ Bucket: _m[1], Key: _m[2] }));
                   const chunks: Buffer[] = [];
-                  for await (const ch of _r.Body as any) chunks.push(Buffer.from(ch));
+                  for await (const ch of _obj.Body as any) chunks.push(Buffer.from(ch));
                   const content = Buffer.concat(chunks).slice(0, 8000).toString('utf8');
                   if (content.trim()) outputSamples.push({ name: fileName, content });
                 } catch { /* skip unreadable */ }
-                if (outputSamples.length >= 6) break;
               }
-              console.log(`[Findings] S3 SDK list found ${outputSamples.length} files from ${s3Prefix}`);
-            } catch (s3Err: any) {
-              console.warn('[Findings] S3 SDK list failed:', s3Err.message);
+              console.log(`[Findings] canonical resolver provided ${outputSamples.length} readable outputs for ${runId}`);
+            } catch (invErr: any) {
+              console.warn('[Findings] canonical resolver read failed:', invErr?.message);
             }
           }
 
