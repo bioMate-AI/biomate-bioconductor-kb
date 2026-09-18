@@ -30,9 +30,19 @@ conda activate mmg
 python -c "import openmm; print('openmm', openmm.__version__, [openmm.Platform.getPlatform(i).getName() for i in range(openmm.Platform.getNumPlatforms())]); import psfgen, parmed; print('psfgen/parmed ok')"
 
 stage fetch_toppar
-for V in jul22 jul21 aug21 jul20; do
-  if curl -fsSL "http://mackerell.umaryland.edu/download.php?filename=CHARMM_ff_params_files/toppar_c36_${V}.tgz" -o toppar.tgz 2>/dev/null && tar tzf toppar.tgz >/dev/null 2>&1; then tar xzf toppar.tgz; break; fi
+# MacKerell tarball (retry across versions, curl retries for transient failures)
+for V in jul22 jul21 aug21 jul20 jul24; do
+  if curl -fsSL --retry 4 --retry-delay 5 "http://mackerell.umaryland.edu/download.php?filename=CHARMM_ff_params_files/toppar_c36_${V}.tgz" -o toppar.tgz 2>/dev/null && tar tzf toppar.tgz >/dev/null 2>&1; then tar xzf toppar.tgz; echo "toppar_c36_${V}"; break; fi
 done
+# GitHub mirror fallback for BOTH rtf + prm (OpenMM CharmmParameterSet needs both)
+if [ -z "$(find . -name 'top_all36_prot.rtf' | head -1)" ] || [ -z "$(find . -name 'par_all36m_prot.prm' -o -name 'par_all36_prot.prm' 2>/dev/null | head -1)" ]; then
+  mkdir -p toppar
+  for BASE in "https://raw.githubusercontent.com/intbio/charmm36/master" "https://raw.githubusercontent.com/wmwv/charmm36-toppar/master" "https://raw.githubusercontent.com/openmm/openmmforcefields/main/charmm/ffxml/../../.."; do
+    curl -fsSL --retry 3 "$BASE/top_all36_prot.rtf" -o toppar/top_all36_prot.rtf 2>/dev/null || true
+    curl -fsSL --retry 3 "$BASE/par_all36m_prot.prm" -o toppar/par_all36m_prot.prm 2>/dev/null || true
+    [ -s toppar/top_all36_prot.rtf ] && [ -s toppar/par_all36m_prot.prm ] && { echo "toppar from $BASE"; break; }
+  done
+fi
 RTF=$(find . -name "top_all36_prot.rtf" | head -1); PRM=$(find . -name "par_all36m_prot.prm" | head -1)
 [ -z "$PRM" ] && PRM=$(find . -name "par_all36_prot.prm" | head -1)
 echo "rtf=$RTF prm=$PRM"; [ -z "$RTF" -o -z "$PRM" ] && { echo "FATAL: no CHARMM36 toppar"; exit 1; }
