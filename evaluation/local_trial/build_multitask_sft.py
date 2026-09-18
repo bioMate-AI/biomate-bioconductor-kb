@@ -32,7 +32,7 @@ for r in load("param_pass.jsonl"):
     cand=sorted(set(gold.keys())|set(mnf)); inp=f"Candidate parameters (fill only those explicitly specified in the request; leave out the rest): {cand}\nRequest: {r['query']}"
     out.append(ex(gp(INSTR_PARAM,inp),json.dumps(gold)))
 # autofix (cap per category to fix skew)
-af=load("autofix_harness_raw.jsonl"); random.shuffle(af); cap=collections.Counter(); afn=0
+af=load("autofix_harness_clean.jsonl"); random.shuffle(af); cap=collections.Counter(); afn=0
 for r in af:
     c=r["category"]
     if cap[c]>=60: continue
@@ -47,6 +47,9 @@ for r in load("wfgen_raw.jsonl"):
 pr=0
 for r in load("protocol_raw.jsonl"):
     inp=f"Protocol: {r['protocol']}\nQC situation: {r['universal_threshold_problem']}"; out.append(ex(cls(INSTR_PROTO,['PASS','FAIL','WARN'],inp),r["expected_correct_action"])); pr+=1
+# decomposition (already {messages:[user,assistant]} format)
+for r in load("decomposition_sft.jsonl"):
+    if r.get("messages"): out.append({"messages":r["messages"]})
 random.shuffle(out)
 open(f"{D}/multitask_sft.jsonl","w").write("\n".join(json.dumps(e) for e in out))
 def task_of(u):
