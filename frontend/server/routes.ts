@@ -52,6 +52,7 @@ import { authenticateToken, authenticateStaticApiKey, optionalAuth } from "./aut
 import { decideRunAccess } from "./run-access";
 import { decideOutputAccess, decideInvocationAccess } from "./output-access";
 import { assembleReproducibilityRecord, enrichOutputsWithChecksums } from "./reproducibility-record";
+import { reportVersionStore } from "./report-version-store";
 import BetterSqlite3 from "better-sqlite3";
 import type { RegisterData, LoginData } from "./auth-service";
 import { s3Service } from "./s3-client";
@@ -12264,6 +12265,43 @@ Rules:
     } catch (e: any) {
       console.error("[reproducibility-record] error:", e?.message ?? e);
       res.status(500).json({ error: e?.message || String(e) });
+    }
+  });
+
+  // ─── Task #22 (L5): the run report as a persisted, versioned object ─────────
+  // A run report is a versioned object, not a transient view whose edits are a
+  // local .md download. Versions live in execution.reportVersions (DB-backed,
+  // survives restart — same executionJson persistence as runs-outputs), fronted
+  // by a single-writer store (report-version-store.ts) over the pure model
+  // (report-version.ts). v0 is the immutable run original, seeded on first save
+  // from the report markdown the client currently shows; later versions are
+  // append-only and keep the runId back-link.
+  app.get("/api/runs/:anyId/report/versions", authenticateToken, async (req: any, res) => {
+    try {
+      const run = await resolveAuthorizedRun(req, res, req.params.anyId);
+      if (!run) return; // response already sent
+      const versions = await reportVersionStore.list(run.id);
+      return res.json({ runId: run.id, versions: versions ?? [] });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/runs/:anyId/report/versions", authenticateToken, express.json({ limit: "4mb" }), async (req: any, res) => {
+    try {
+      const run = await resolveAuthorizedRun(req, res, req.params.anyId);
+      if (!run) return; // response already sent
+      const content = typeof req.body?.content === "string" ? req.body.content : "";
+      if (!content.trim()) {
+        return res.status(400).json({ error: "content is required (the edited report body)" });
+      }
+      const note = typeof req.body?.note === "string" ? req.body.note : undefined;
+      const currentMarkdown = typeof req.body?.currentMarkdown === "string" ? req.body.currentMarkdown : "";
+      const version = await reportVersionStore.append(run.id, content, { note, currentMarkdown });
+      if (!version) return res.status(404).json({ error: "Run not found" });
+      return res.status(201).json({ runId: run.id, version });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 
