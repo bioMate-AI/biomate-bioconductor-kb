@@ -124,3 +124,26 @@ Same base (vision tower already staged: 333 vision tensors + processor). Serve f
 model + this LoRA (LoRA touches text layers only). Data: render figures from data we already have
 (DE tables → volcano, QC metrics → plots) so the gold interpretation is **computable/verifiable**,
 plus PMC open-access figures+captions. Benchmark base vision first; fine-tune only the gaps.
+
+---
+
+## ADDENDUM — Intent decomposition (T01/T09) is a first-class task (was missing)
+
+**Gap:** the task cluster above trained the *second* level (given a query → one workflow/param/etc.)
+but omitted the *first* level — **decomposing a multi-intent request into ordered sub-tasks**. Real
+BioMate queries are often multi-step ("align RNA-seq → DE → pathway enrichment") or parallel ("ADMET
++ literature"). Catalog refs: **T01** (multi-intent analysis/decomposition, `galaxy-assistant.ts`
+intent analyzer + `intent_parser.py`/`task_decomposer.py`) and **T09** (chain composition,
+`chain_composer.py`, `chain_planner.py`).
+
+**Add as a task:**
+- Output: `[{sub_task, intent, order, depends_on}]` (a small DAG).
+- Grounding: existing `chain_composer` retrieved chain patterns + real multi-step DB workflows +
+  **multi-step protocols/GTN tutorials** (a protocol IS a gold decomposition) — see the domain-text survey.
+- Verifier (grounded): each sub-task routes to a valid workflow (routing verifier); DAG acyclic with
+  satisfiable I/O deps (`chain_planner` compatibility); coverage of every requested step (T09 coverage).
+- Eval: decomposition F1 + ordering/dependency correctness + end-to-end chain runnability.
+- Train: include in the joint multi-task mix (shares reasoning with routing).
+
+This is a first-stage prerequisite to routing/param and belongs at the front of the pipeline; it is
+also a natural target for inner-loop skill evolution (decompose-multi-omics skill).
