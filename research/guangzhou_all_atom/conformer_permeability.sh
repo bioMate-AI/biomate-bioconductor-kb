@@ -106,11 +106,14 @@ Xe=ens.values.astype(float)
 json.dump({'stage':'ml','n':len(y),'n2d':X2.shape[1],'nens':Xe.shape[1]}, open('/opt/cperm/status/status.json','w'))
 
 from sklearn.ensemble import HistGradientBoostingRegressor
-from sklearn.model_selection import cross_val_predict
+from sklearn.model_selection import cross_val_predict, KFold
 from sklearn.metrics import r2_score
 from scipy.stats import spearmanr
+# SHUFFLED KFold — the subsample is ordered by permeability quartile (stratified groupby), so unshuffled
+# folds are contiguous target blocks -> model extrapolates -> spurious negative R2. Shuffle fixes it.
+KF=KFold(n_splits=5, shuffle=True, random_state=42)
 def cv(X):
-    p=cross_val_predict(HistGradientBoostingRegressor(max_iter=400,learning_rate=0.05), X, y, cv=5)
+    p=cross_val_predict(HistGradientBoostingRegressor(max_iter=400,learning_rate=0.05), X, y, cv=KF)
     return {'R2':round(float(r2_score(y,p)),3),'Spearman':round(float(spearmanr(y,p).correlation),3)}
 import numpy as np
 res={'n':len(y),'nconf_target':NCONF,
