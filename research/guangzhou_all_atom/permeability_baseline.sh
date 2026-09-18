@@ -52,27 +52,30 @@ perm_col=('Permeability' if 'Permeability' in df.columns else
           next((cols[k] for k in cols if k in ('pampa','logpapp','papp')), None))
 print('smiles col:', smi_col, ' perm col:', perm_col)
 assert smi_col and perm_col, f"columns not found: {list(df.columns)[:30]}"
-df=df[[smi_col,perm_col]].dropna()
-df=df[pd.to_numeric(df[perm_col],errors='coerce').notna()]; df[perm_col]=df[perm_col].astype(float)
-print('rows with SMILES+perm:', len(df))
+df=df[pd.to_numeric(df[perm_col],errors='coerce').notna()].copy(); df[perm_col]=df[perm_col].astype(float)
+print('rows with numeric perm:', len(df))
 
-def feats(smi):
-    m=Chem.MolFromSmiles(smi)
-    if m is None: return None
-    fp=np.zeros((1024,),dtype=np.int8)
-    AllChem.DataStructs.ConvertToNumpyArray(AllChem.GetMorganFingerprintAsBitVect(m,2,nBits=1024), fp)
-    d=[Descriptors.MolWt(m),Descriptors.MolLogP(m),Descriptors.TPSA(m),Descriptors.NumHDonors(m),
-       Descriptors.NumHAcceptors(m),Descriptors.NumRotatableBonds(m),rdMolDescriptors.CalcNumRings(m),
-       rdMolDescriptors.CalcFractionCSP3(m),Descriptors.NumAromaticRings(m),m.GetNumHeavyAtoms()]
-    return np.concatenate([fp, np.array(d,dtype=float)]), MurckoScaffold.MurckoScaffoldSmiles(mol=m)
-
-X=[];y=[];scaf=[]
-for smi,val in zip(df[smi_col],df[perm_col]):
-    r=feats(smi)
-    if r is None: continue
-    X.append(r[0]); y.append(val); scaf.append(r[1])
-X=np.array(X); y=np.array(y); scaf=np.array(scaf)
-print('featurized:', X.shape, ' target range', round(float(y.min()),2), round(float(y.max()),2))
+# RICH features: CycPeptMPDB ships ~150 precomputed RDKit descriptors incl computed 3D-PSA variants
+# (_3DPSA, CHCl3_3DPSA, H2O_3DPSA) — a proper baseline vs the thin Morgan+10 that only reached ~0.29.
+# Drop IDs/labels/assays and EPSA (experimental/sparse) to avoid leakage; keep computed descriptors.
+drop=set(['ID','Source','Year','Version','Original_Name_in_Source_Literature','Structurally_Unique_ID',
+          'Same_Peptides_ID','Same_Peptides_Source','Same_Peptides_Permeability','Same_Peptides_Assay',
+          'SMILES','HELM','HELM_URL','Sequence','Molecule_Shape','Permeability','PAMPA','Caco2','MDCK',
+          'RRCK','Detection_Limit_1','Detection_Limit_2','R_PAMAP','R_Caco2','R_MDCK','R_RRCK','T_PAMPA',
+          'EPSA','NULL'])
+feat_cols=[c for c in df.columns if c not in drop]
+Xdf=df[feat_cols].apply(pd.to_numeric, errors='coerce')
+Xdf=Xdf.dropna(axis=1, how='all')                      # drop all-NaN cols
+Xdf=Xdf.fillna(Xdf.median(numeric_only=True))
+threeD=[c for c in Xdf.columns if 'PSA' in c or '3D' in c.upper()]
+print('rich feature count:', Xdf.shape[1], '| 3D/PSA features:', threeD)
+X=Xdf.values.astype(float); y=df[perm_col].values.astype(float)
+from rdkit.Chem.Scaffolds import MurckoScaffold
+def _scaf(smi):
+    m=Chem.MolFromSmiles(str(smi));
+    return MurckoScaffold.MurckoScaffoldSmiles(mol=m) if m else 'NA'
+scaf=np.array([_scaf(s) for s in df[smi_col]])
+print('featurized (rich):', X.shape, ' target range', round(float(y.min()),2), round(float(y.max()),2))
 
 def evaluate(tr,te,name):
     res={}
