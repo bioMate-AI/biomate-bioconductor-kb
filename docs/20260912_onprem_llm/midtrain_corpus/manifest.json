@@ -1,0 +1,13 @@
+{
+  "docs": 16487,
+  "by_source": {
+    "tool": 12278,
+    "workflow": 4200,
+    "skill": 9
+  },
+  "approx_tokens": 8966847,
+  "chars": 35867391,
+  "sha": "4741bd07ef16bb69",
+  "license": "internal/BioMate-owned (license-clean)",
+  "use": "domain mid-training (bio tool/workflow knowledge)"
+}
