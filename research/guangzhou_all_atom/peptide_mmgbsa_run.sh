@@ -46,8 +46,8 @@ import openmm as mm
 from openmm import app, unit
 import parmed as pmd
 
-RTF=os.environ['RTF']; PRM=os.environ['PRM']; DES=os.environ['DESIGNS_S3']; NS=float(os.environ['NS'])
-TARGETS=['1yf4','1u8p','1kc4','1csb']            # 4 v5 targets (top ranked design each)
+RTF=os.environ['RTF']; PRM=os.environ['PRM']; DES=os.environ['DESIGNS_S3']
+TARGET=os.environ.get('TARGET','1yf4')           # score ALL designs of ONE target (valid within-target ranking)
 CPU=mm.Platform.getPlatformByName('CPU')
 # Force CPU: conda-forge OpenMM's CUDA PTX is newer than the DL-AMI driver (CUDA_ERROR_UNSUPPORTED_PTX).
 # Implicit-solvent MM-GBSA on these small systems runs fine on CPU; short peptides are best via
@@ -130,22 +130,40 @@ def energy(system, positions):
     del ctx, integ
     return e
 
+def ring_closed(lp):
+    # proper head-to-tail test: bond between N of residue-1 and C of the last residue (Pro-safe,
+    # unlike bonds==atoms which miscounts due to proline side-chain rings)
+    def idx(res,nm):
+        for a in res.atoms:
+            if a.name==nm: return a.idx
+        return None
+    ni=idx(lp.residues[0],'N'); ci=idx(lp.residues[-1],'C')
+    return bool(any({b.atom1.idx,b.atom2.idx}=={ni,ci} for b in lp.bonds)) if (ni is not None and ci is not None) else False
+
+subprocess.run(['aws','s3','sync',f'{DES}/{TARGET}/',f'./{TARGET}/','--only-show-errors','--exclude','*','--include','*.cif'],check=True)
+allc=[c for c in glob.glob(f'{TARGET}/**/*.cif',recursive=True) if 'before_refolding' not in c and 'final_ranked' in c]
+if not allc: allc=[c for c in glob.glob(f'{TARGET}/**/*.cif',recursive=True) if 'before_refolding' not in c]
+seen=set(); designs=[]
+for c in sorted(allc):
+    d=os.path.basename(c).replace('.cif','').split('_')[-1]   # design index (rankNN_1yf4_<D>.cif)
+    if d in seen: continue
+    seen.add(d); designs.append(c)
+print(f"{TARGET}: scoring {len(designs)} designs (within-target MM-GBSA ranking)")
 results=[]
-for tag in TARGETS:
-    rec={'target':tag}
+for cif in designs:
+    did=os.path.basename(cif).replace('.cif','')
+    tag=f"{TARGET}_{did}".replace('/','_')
+    rec={'target':TARGET,'design':did}
     try:
-        subprocess.run(['aws','s3','sync',f'{DES}/{tag}/',f'./{tag}/','--only-show-errors','--exclude','*','--include','*.cif'],check=True)
-        cifs=[c for c in glob.glob(f'{tag}/**/*.cif',recursive=True) if 'before_refolding' not in c]
-        cif=sorted([c for c in cifs if 'rank0' in os.path.basename(c)]) or sorted(cifs)
-        cif=cif[0]
         nrec,npep=split_design(cif, tag); rec['nrec_res']=nrec; rec['npep_res']=npep
         cpsf,cpdb=build_psf('complex',tag,npep)
         rpsf,_=build_psf('receptor',tag,npep)
         lpsf,_=build_psf('ligand',tag,npep)
-        # verify peptide ring in the ligand psf
-        lp=pmd.load_file(lpsf); nb=len(lp.bonds); na=len(lp.atoms)
-        rec['ligand_ring_closed']=(nb==na)  # cyclic: bonds==atoms; linear: atoms-1
-        rec['pep_resnames']=[r.name for r in lp.residues]   # diagnose non-closing rings
+        lp=pmd.load_file(lpsf)
+        rec['ligand_ring_closed']=ring_closed(lp)
+        def _olc(r):
+            t=gemmi.find_tabulated_residue(r.name); return (t.one_letter_code.upper() if t else 'X')
+        rec['seq']=''.join(_olc(r) for r in lp.residues)
         # minimize complex, then single-point MM-GBSA (Sun PCCP 2019: minimized-structure MM-GBSA is
         # the best protocol for short peptides — and fast/robust on CPU, no MD needed).
         cp, csys = make_system(cpsf)
@@ -170,11 +188,12 @@ for tag in TARGETS:
 
 ok=[r for r in results if r.get('ok')]
 ok.sort(key=lambda r: r['dG_bind_kcal_mol'])
-summary={'n_targets':len(results),'n_ok':len(ok),
-         'ranking_by_dG':[{ 't':r['target'],'dG':r['dG_bind_kcal_mol'],'ring':r.get('ligand_ring_closed'),'npep':r.get('npep_res')} for r in ok],
-         'note':'Implicit-solvent (GBn2) single-trajectory MM-GBSA, CHARMM36m, cyclic peptide via psfgen '
-                'CYCP head-to-tail patch. RELATIVE ranking oracle, not absolute affinity; entropy omitted; '
-                'confirm finalists with FEP.','all':results}
+summary={'target':TARGET,'n_designs':len(results),'n_ok':len(ok),
+         'within_target_ranking':[{ 'design':r['design'],'seq':r.get('seq'),'dG':r['dG_bind_kcal_mol'],'ring':r.get('ligand_ring_closed')} for r in ok],
+         'note':'Within-TARGET MM-GBSA ranking of designs for one receptor (the valid use). Implicit '
+                'GBn2 minimized single-point, CHARMM36m, cyclic via psfgen CYCP patch. RELATIVE ranking, '
+                'not absolute affinity; entropy omitted; confirm finalists with FEP. Trust only ring=true rows.',
+         'all':results}
 json.dump(summary, open('/opt/mmg/status/mmgbsa_results.json','w'), indent=2)
 print(json.dumps(summary['ranking_by_dG'], indent=2))
 PY
