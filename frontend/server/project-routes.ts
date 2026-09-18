@@ -755,6 +755,41 @@ export function registerProjectRoutes(app: Express): void {
     }
   });
 
+  // ─── PATCH /api/projects/:id/owner ────────────────────────────────────────
+  // Transfer ownership (#31 gap). Only the current owner can transfer, and only
+  // to a current project member. The old owner is demoted to editor; the new
+  // owner is removed from the members list (they are now the owner).
+  app.patch("/api/projects/:id/owner", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const { id } = req.params;
+    const newOwnerId = typeof req.body?.newOwnerId === "string" ? req.body.newOwnerId : "";
+    if (!newOwnerId) return res.status(400).json({ error: "newOwnerId is required" });
+    if (blockedByCollaborationTier(req, res)) return;
+    try {
+      const existing = await memoryService.projects.getProject(id);
+      if (!existing || existing.userId !== uid) return res.status(404).json({ error: "Project not found" });
+      if (newOwnerId === uid) return res.status(400).json({ error: "Already the owner" });
+      const m = await pool.query(
+        `SELECT 1 FROM project_members WHERE project_id = $1 AND user_id::text = $2`,
+        [id, newOwnerId]
+      );
+      if (!m.rows.length) return res.status(400).json({ error: "New owner must be a current project member" });
+      // Transfer: set new owner, demote old owner to editor, drop new owner from members.
+      await memoryService.projects.updateProject(id, { userId: newOwnerId } as any);
+      await pool.query(`DELETE FROM project_members WHERE project_id = $1 AND user_id::text = $2`, [id, newOwnerId]);
+      await pool.query(
+        `INSERT INTO project_members (project_id, user_id, role, invited_by) VALUES ($1, $2, 'editor', $3)
+         ON CONFLICT (project_id, user_id) DO UPDATE SET role = 'editor'`,
+        [id, uid, newOwnerId]
+      );
+      res.json({ ok: true, newOwnerId });
+    } catch (e: any) {
+      console.error("[project_members] ownership transfer failed:", e?.message ?? e);
+      res.status(500).json({ error: "Failed to transfer ownership" });
+    }
+  });
+
   // ─── GET /api/projects/:id/share-link ────────────────────────────────────────
   // Owner only — returns the existing share token, or { token: null } if none.
   app.get("/api/projects/:id/share-link", authenticateToken, async (req: Request, res: Response) => {
