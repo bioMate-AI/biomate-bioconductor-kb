@@ -53,6 +53,10 @@ for r in load("decomposition_sft.jsonl"):
 # conditional/long-param SFT (full-schema RAG context, few-valid restraint)
 for r in load("conditional_param_sft.jsonl"):
     if r.get("messages"): out.append({"messages":r["messages"]})
+for r in load("interworkflow_decomp_sft.jsonl"):
+    if r.get("messages"): out.append({"messages":r["messages"]})
+for r in load("clarification_sft.jsonl"):
+    if r.get("messages"): out.append({"messages":r["messages"]})
 random.shuffle(out)
 open(f"{D}/multitask_sft.jsonl","w").write("\n".join(json.dumps(e) for e in out))
 def task_of(u):
