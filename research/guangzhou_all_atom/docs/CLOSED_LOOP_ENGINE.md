@@ -39,6 +39,28 @@ Min-max-normalized combined score (iptm + normalized −ΔG); Pareto = non-domin
 - So the wired generate+verify+select engine advances a design that generation-alone would not have
   singled out — exactly what a non-circular verify loop is for.
 
+## 3-objective SELECT (bind × physics × permeability) — added 2026-09-18
+Applied the permeability GBM (retrained on RDKit-computed descriptors for feature consistency; designs
+head-to-tail cyclized in RDKit) to all 8 designs. Combined₃ = normalized(iptm) + normalized(−ΔG) +
+normalized(predicted logPapp):
+
+| seq | iptm | ΔG | pred logPapp | combined₃ | Pareto₃ |
+|---|---|---|---|---|---|
+| GSGLLKS | 0.740 | −36.6 | −7.77 | 2.16 | ✅ |
+| FSRNVGDPY | 0.739 | −52.7 | −8.28 | 2.12 | ✅ |
+| YSGGGGV | 0.635 | −24.3 | −7.54 | 1.49 | ✅ |
+| SIYGTGLVPL | 0.533 | −40.2 | −7.69 | 1.39 | ✅ |
+| SSLLFVPG | 0.553 | −42.4 | −8.08 | 1.10 | ✅ |
+
+**The permeability axis changes the decision:** in 2-objective, `FSRNVGDPY` dominated (1.99 vs 1.43);
+adding permeability (it's predicted *less* permeable, −8.28 vs −7.77) offsets its binding edge → `GSGLLKS`
+and `FSRNVGDPY` are **near-tied and both Pareto-optimal** — a real bind-vs-permeability tradeoff.
+
+**Important finding the loop exposed:** all 8 designs are predicted poorly permeable (logPapp −7.5 to −8.4).
+Partly OOD/coarse model (R²0.24 on RDKit features — relative ranking only), but mainly because **BoltzGen
+optimized binding, not permeability**. → Permeability must become a **generation objective** (or a
+permeability-focused redesign step), not just a post-hoc filter. This is the concrete gap the engine surfaces.
+
 ## Honest caveats
 - Two axes only (iptm, ΔG); MM-GBSA is a relative oracle with residual size bias (designs 7–10-mer).
 - The **permeability axis is not yet applied to these designs** (the GBM is trained on CycPeptMPDB; scoring
