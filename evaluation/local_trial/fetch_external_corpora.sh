@@ -33,3 +33,10 @@ aws s3 sync s3://pmc-oa-opendata/oa_comm/txt/ "$OUT/pmc_oa_comm/" --no-sign-requ
 
 aws s3 sync "$OUT/" "$S3/" --exclude "*" --include "*.jsonl"
 echo "external corpora staged -> $S3"
+
+# 5) PROTOCOL COLLECTIONS (train-safe = CC-BY only). Real protocols = gold decomposition + QC data.
+#    Bio-protocol: OA since 2023; keep CC-BY (drop CC-BY-NC). protocols.io: API, per-protocol license,
+#    keep CC-BY. STAR Protocols (Cell Press, CC-BY). Protocol Exchange (Nature OPEN repo, CC-BY).
+#    DO NOT train on: Nature Protocols (Springer, copyrighted), Current Protocols (Wiley), JoVE.
+#    protocols.io API: GET https://www.protocols.io/api/v3/protocols?filter=public  (check license field)
+#    -> verbalize steps -> jsonl {text,source=protocol,id}; also emit decomposition SFT (ordered steps).

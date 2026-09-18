@@ -64,3 +64,10 @@ interpretation-fidelity.
 1. **Internal-KG verbalizer** — `tool_compatibility` + EDAM + step-DAG → text (distinctive, ours).
 2. **Workflow-order verbalizer** — `workflow_json`/`step_metadata` → ordered natural-language procedures.
 3. Extend `fetch_external_corpora.sh` with KGs/ontologies + textbooks + Stack Exchange + CWL/WDL.
+
+## 6. Protocol collections (added) — real protocols > synthetic
+Train-safe (CC-BY only): **Bio-protocol** (CC-BY subset), **protocols.io** (CC-BY, via API), **STAR
+Protocols** (CC-BY), **Protocol Exchange** (Nature's OPEN repo, CC-BY). **Exclude from training
+(copyrighted):** Nature Protocols (Springer), Current Protocols (Wiley), JoVE — RAG/abstracts only.
+Use for: (a) **decomposition SFT** — a real protocol is a gold ordered multi-step procedure (replaces
+synthetic); (b) **protocol-QC/troubleshooting SFT** from real QC/notes; (c) mid-training procedural text.
