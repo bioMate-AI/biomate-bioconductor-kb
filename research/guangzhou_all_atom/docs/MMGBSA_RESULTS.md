@@ -39,7 +39,33 @@ wrong design forward.
 - It produced the **first independent physics ranking** of our designs, and it **materially disagrees**
   with the generator — the loop now has a real, non-circular selection signal.
 
+## Cross-target coverage (all 4 targets, 2026-09-18)
+Ran the validated pipeline on all 4 v5 targets (8 designs each = 32 scored). **All 32 rings closed**
+(incl. Pro-containing 1u8p/1csb — confirming psfgen cyclization is robust; earlier "ring open" flags were
+the crude bonds==atoms artifact, not real).
+
+**Robust finding — physics reorders the generator on EVERY target:** BoltzGen's #1 (top-iptm) design
+lands 5th–7th of 8 by MM-GBSA ΔG on all four:
+| target | receptor | BoltzGen #1 | its MM-GBSA rank | MM-GBSA #1 |
+|---|---|---|---|---|
+| 1yf4 | kallikrein | GSGLLKS | 6 | FSRNVGDPY |
+| 1u8p | antibody Fab | GRYSPSG | 6 | SSSFGPG |
+| 1kc4 | toxin-scaffold | SGGVVVATSGIVGV | 7 | SALGVVANGPII |
+| 1csb | cathepsin B | TIRVPRTFQVPG | 5 | SRYTTMGSGWSIAFG |
+
+The single-target observation is now a **consistent pattern across 4 diverse receptors** — relying on
+iptm alone would systematically advance physics-suboptimal designs.
+
+**Honest caveat (still holds, now cross-target):** MM-GBSA has a size bias — the physics-#1 designs tend
+to be the *longer* ones (more contacts → more negative ΔG; e.g. 1csb's 15-mer at −65.9). So within-target
+ranking is still length-confounded, and neither iptm-alone NOR MM-GBSA-alone is sufficient → the
+multi-objective + length-aware + FEP funnel is the right call, exactly as designed.
+
+**Enables the LEARN step:** 32 MM-GBSA-scored designs is now a usable dataset to train an active-learning
+surrogate (design features → ΔG) for the iterating loop.
+
 ## Next
-1. **FEP finalist tier** on the top-3 physics candidates (length-controlled arbiter).
-2. **Register the workflow in BioMate** (productionize, per docs/BIOMATE_CLOSED_LOOP_INTEGRATION.md).
-3. **Wire the loop**: BoltzGen generate → MM-GBSA rank (this) → select → iterate.
+1. **LEARN step** — active-learning surrogate on the 32-design dataset (design features → MM-GBSA ΔG) to
+   pre-screen larger batches cheaply before expensive MM-GBSA.
+2. **FEP finalist tier** on the top physics candidates (length-controlled arbiter).
+3. **Register the workflow in BioMate** (productionize, per docs/BIOMATE_CLOSED_LOOP_INTEGRATION.md).
