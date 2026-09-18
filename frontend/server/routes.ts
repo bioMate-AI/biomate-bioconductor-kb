@@ -1398,6 +1398,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     getRunByGalaxyId: (gid: string) => storage.getExecutionRunByGalaxyId(gid),
     getInvocationByGalaxyId: (gid: string) => storage.getInvocationByGalaxyId(gid),
     getUserProjects: (storage as any).getUserProjects?.bind(storage),
+    // Canonical-id path (L1c): resolve a `${runId}:${s3Key}` output at the RUN
+    // level (owner persisted on the ExecutionRun → durable across restarts) and
+    // serve the matching output from the canonical resolver.
+    getExecutionRun: (id: string) => storage.getExecutionRun(id) as any,
+    getExecutionRunByGalaxyId: (gid: string) => storage.getExecutionRunByGalaxyId(gid) as any,
+    listRunOutputs: async (runId: string) => {
+      const { runsOutputsService } = await import("./services/runs-outputs-service");
+      return runsOutputsService.list(runId);
+    },
   };
   // Initialize repositories
   await parameterRepository.initialize();
@@ -8990,6 +8999,13 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Get outputs for a specific invocation (also accepts ExecutionRun IDs)
+  // @deprecated (L1d) — SUPERSEDED by the canonical `GET /api/runs/:anyId/outputs`
+  //   (routes.ts, backed by runsOutputsService.list). That resolver is
+  //   restart-durable (persisted ExecutionRun + manifest) and returns canonical
+  //   `${runId}:${s3Key}` ids; this endpoint reads the in-memory invocation/
+  //   OutputDataset maps that die on a container recycle. Kept for one release
+  //   for any UI still calling it. Do NOT delete/redirect yet (see plan L1d —
+  //   MemStorage map demotion is deferred as too risky without the full migration).
   app.get("/api/invocations/:id/outputs", async (req, res) => {
     try {
       const resolveInvocation = async (identifier: string) => {
@@ -9691,12 +9707,16 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Display output file (for images, HTML, etc.)
-  app.get("/api/outputs/:id/display", async (req, res) => {
+  // Auth (L1c): this endpoint previously had NO authorization — any caller could
+  // enumerate ids and stream another user's artifacts (IDOR). Gate it with the
+  // same run-level policy as the other single-file surfaces.
+  app.get("/api/outputs/:id/display", authenticateToken, async (req, res) => {
     try {
-      const output = await storage.getOutput(req.params.id);
-      if (!output) {
-        return res.status(404).json({ error: "Output not found" });
+      const access = await decideOutputAccess(req.params.id, req.user?.id ? String(req.user.id) : null, outputAccessDeps);
+      if (!access.allowed) {
+        return res.status(access.status).json({ error: access.error });
       }
+      const output = access.output;
 
       // Content type map (used in both stream and S3-proxy paths below)
       const contentTypeMap: Record<string, string> = {
@@ -12248,6 +12268,12 @@ Rules:
   });
 
   // Output files for a run
+  // @deprecated (L1d) — SUPERSEDED by the canonical `GET /api/runs/:anyId/outputs`.
+  //   This endpoint carries its own prefix-derivation + in-memory nextflowStatus
+  //   cascade (the exact fragmentation the canonical resolver consolidates). It
+  //   still has live callers (findings reader, the `/outputs` bare-array alias
+  //   below, benchmark orchestrator), so it is NOT removed this round — documented
+  //   only. Prefer runsOutputsService.list(runId) for any new consumer.
   app.get("/api/workflows/runs/:id/output_files", authenticateToken, async (req: any, res) => {
     try {
       // Primary lookup by run ID; fallback by galaxy invocation ID (chain runs store their
@@ -12534,6 +12560,8 @@ Rules:
   // Alias: same data as /output_files but returns the bare array (matches what
   // tool-callers and the CryoEM E2E tests expect — they iterate the response
   // as `outputs.map(o => o.filename)`).
+  // @deprecated (L1d) — bare-array alias of `/output_files`, itself superseded by
+  //   the canonical `GET /api/runs/:anyId/outputs`. Documented only this round.
   app.get("/api/workflows/runs/:id/outputs", authenticateToken, async (req, res) => {
     try {
       const r = await fetch(

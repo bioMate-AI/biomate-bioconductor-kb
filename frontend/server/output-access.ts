@@ -23,6 +23,18 @@ export interface OutputLike {
   invocationId?: string | null;
 }
 
+/**
+ * A canonical output as returned by `runsOutputsService.list(runId)`
+ * (`CanonicalOutput`). Only the fields this module needs to match and serve
+ * one output are modelled; callers keep the full object through the decision.
+ */
+export interface CanonicalOutputLike {
+  /** `${runId}:${s3Key}`. */
+  id: string;
+  name?: string;
+  s3Uri?: string;
+}
+
 export interface InvocationLike {
   userId?: string | null;
   projectId?: string | null;
@@ -40,6 +52,16 @@ export interface OutputAccessDeps<TOut extends OutputLike = OutputLike> {
   // `invocationId` field carries a galaxyInvocationId rather than an invocation PK.
   getInvocationByGalaxyId?: (galaxyInvocationId: string) => Promise<InvocationLike | undefined>;
   getUserProjects?: (userId: string) => Promise<Array<{ id?: string | null }> | undefined>;
+  // ── Canonical-id resolution (L1c) ──────────────────────────────────────────
+  // These let single-file surfaces authorize a canonical `${runId}:${s3Key}` id
+  // at the RUN level (owner lives on the ExecutionRun, so it survives restart)
+  // and serve the matching output from the canonical resolver. Optional so
+  // existing callers/tests that only exercise the legacy OutputDataset-PK path
+  // keep working.
+  getExecutionRun?: (runId: string) => Promise<AccessControlledRun | undefined>;
+  getExecutionRunByGalaxyId?: (galaxyInvocationId: string) => Promise<AccessControlledRun | undefined>;
+  /** Canonical outputs for a run — `runsOutputsService.list(runId)`. */
+  listRunOutputs?: (runId: string) => Promise<CanonicalOutputLike[]>;
 }
 
 /**
@@ -107,13 +129,85 @@ export type OutputAccessDecision<TOut extends OutputLike = OutputLike> =
   | { allowed: true; output: TOut; via: 'owner' | 'project_member' }
   | { allowed: false; status: 401 | 403 | 404; error: string };
 
+/**
+ * A canonical output id is `${runId}:${s3Key}`. The runId is an ExecutionRun
+ * UUID (no colon), so the run id is everything before the FIRST colon and the
+ * s3 key is the remainder. Returns null when the id has no ':' (a legacy
+ * OutputDataset PK, which is opaque and must go through the PK path instead).
+ */
+function splitCanonicalOutputId(id: string): { runId: string; s3Key: string } | null {
+  const idx = id.indexOf(':');
+  if (idx <= 0 || idx >= id.length - 1) return null;
+  return { runId: id.slice(0, idx), s3Key: id.slice(idx + 1) };
+}
+
+/**
+ * Canonical-id path (L1c). Authorize a `${runId}:${s3Key}` output at the RUN
+ * level and return the matching canonical output.
+ *
+ * Owner + s3Uri both come from the persisted ExecutionRun, so this survives a
+ * container restart — unlike the OutputDataset-PK path, whose map is in-memory
+ * and 404s after a recycle. Returns undefined (not a decision) when the deps
+ * needed for this path aren't wired or the run can't be resolved, so the caller
+ * can fall back to the legacy PK path.
+ */
+async function decideCanonicalOutputAccess<TOut extends OutputLike>(
+  runId: string,
+  s3Key: string,
+  userId: string | null | undefined,
+  deps: OutputAccessDeps<TOut>,
+): Promise<OutputAccessDecision<TOut> | undefined> {
+  if (!deps.getExecutionRun && !deps.getExecutionRunByGalaxyId) return undefined;
+  const run =
+    (deps.getExecutionRun ? await deps.getExecutionRun(runId) : undefined) ||
+    (deps.getExecutionRunByGalaxyId ? await deps.getExecutionRunByGalaxyId(runId) : undefined);
+  if (!run) return undefined; // Not a resolvable run — let the legacy path try.
+
+  const decision = await decideRunAccess(run, userId, deps.getUserProjects);
+  if (!decision.allowed) return decision;
+
+  // Authorized at the run level. Find the matching output so callers can stream
+  // from its s3Uri. Match by the full canonical id first, then by s3Key suffix.
+  const wantId = `${runId}:${s3Key}`;
+  const outputs = deps.listRunOutputs ? await deps.listRunOutputs(runId) : [];
+  const match =
+    outputs.find((o) => o.id === wantId) ||
+    outputs.find((o) => typeof o.s3Uri === 'string' && o.s3Uri.endsWith(`/${s3Key}`)) ||
+    outputs.find((o) => o.id.endsWith(`:${s3Key}`));
+  if (!match) {
+    // Run is authorized but the file isn't in its output set → 404 (not 403):
+    // the caller is allowed to see this run, the artifact just isn't there.
+    return { allowed: false, status: 404, error: 'Output not found' };
+  }
+  return { allowed: true, output: match as unknown as TOut, via: decision.via };
+}
+
 /** Authorize access to an output addressed by its id. Returns the fetched
- *  output on success so callers need not re-read it. */
+ *  output on success so callers need not re-read it.
+ *
+ *  Two id shapes are supported (L1c):
+ *   - Canonical `${runId}:${s3Key}` (what the reproducibility record + findings
+ *     now emit): resolved by ExecutionRun and authorized at the run level, so it
+ *     is durable across restarts. Tried first when the id contains ':', and as a
+ *     fallback when the legacy PK lookup misses.
+ *   - Legacy OutputDataset PK: fetched via `getOutput(id)` and authorized by
+ *     walking output → invocation → run. Kept as a shim for one release. */
 export async function decideOutputAccess<TOut extends OutputLike>(
   outputId: string,
   userId: string | null | undefined,
   deps: OutputAccessDeps<TOut>,
 ): Promise<OutputAccessDecision<TOut>> {
+  const canonical = splitCanonicalOutputId(outputId);
+
+  // Canonical-id form (contains ':') → try the run-level path first.
+  if (canonical) {
+    const viaCanonical = await decideCanonicalOutputAccess(
+      canonical.runId, canonical.s3Key, userId, deps,
+    );
+    if (viaCanonical) return viaCanonical;
+    // Fell through (run not resolvable / deps not wired) → legacy PK path below.
+  }
+
   const output = await deps.getOutput(outputId);
   if (!output) return { allowed: false, status: 404, error: 'Output not found' };
 
