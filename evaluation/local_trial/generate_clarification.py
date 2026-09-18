@@ -22,7 +22,7 @@ INSTR=("You are BioMate. Extract the specified parameters as JSON {name: value}.
        'params plus {"clarify_needed": ["<missing required param>", ...]} if required info is missing.')
 
 def _call(p):
-    body=json.dumps({"model":GEN,"messages":[{"role":"user","content":p}],"max_completion_tokens":300,"reasoning_effort":"low"}).encode()
+    body=json.dumps({"model":GEN,"messages":[{"role":"user","content":p}],"max_completion_tokens":700,"reasoning_effort":"low"}).encode()
     for a in range(3):
         try:
             d=json.load(urllib.request.urlopen(urllib.request.Request("https://api.openai.com/v1/chat/completions",data=body,headers={"Authorization":f"Bearer {KEY}","Content-Type":"application/json"}),timeout=60))
