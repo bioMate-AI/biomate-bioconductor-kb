@@ -162,6 +162,25 @@ function blockedByCollaborationTier(req: Request, res: Response): boolean {
   return true;
 }
 
+// #24 (L2): a proposal/plan is a first-class object a run can cite (basedOnPlanId),
+// not just chat metadata. Lazy migration mirrors the project_members pattern.
+async function ensureProjectPlansTable(): Promise<void> {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS project_plans (
+      id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      project_id    UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      goal          TEXT NOT NULL,
+      hypothesis    TEXT,
+      referenced_dataset_ids  JSONB NOT NULL DEFAULT '[]',
+      referenced_evidence_ids JSONB NOT NULL DEFAULT '[]',
+      created_by    TEXT REFERENCES users(id) ON DELETE SET NULL,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS project_plans_project_idx ON project_plans(project_id)`);
+}
+ensureProjectPlansTable().catch(e => console.error("[project_plans] table init failed:", e?.message ?? e));
+
 export function registerProjectRoutes(app: Express): void {
   // ─── GET /api/projects ────────────────────────────────────────────────
   // List the authenticated user's projects. Optional ?status=active|archived|completed.
@@ -802,6 +821,49 @@ export function registerProjectRoutes(app: Express): void {
     } catch (e: any) {
       console.error("[project_share] revoke failed:", e?.message ?? e);
       res.status(500).json({ error: "Failed to revoke share link" });
+    }
+  });
+
+  // ─── #24 (L2): plan/proposal objects ─────────────────────────────────────────
+  // Persist a plan so a run can cite the hypothesis that motivated it (execution
+  // .basedOnPlanId), instead of the plan living only in chat metadata.
+  app.post("/api/projects/:id/plans", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const uid = (req as any).user?.id ? String((req as any).user.id) : "";
+      if (!(await _isOwnerOrEditor(id, uid))) return res.status(403).json({ error: "Editor or owner role required" });
+      const goal = typeof req.body?.goal === "string" ? req.body.goal.trim() : "";
+      if (!goal) return res.status(400).json({ error: "goal is required" });
+      const hypothesis = typeof req.body?.hypothesis === "string" ? req.body.hypothesis : null;
+      const dsIds = Array.isArray(req.body?.referencedDatasetIds) ? req.body.referencedDatasetIds : [];
+      const evIds = Array.isArray(req.body?.referencedEvidenceIds) ? req.body.referencedEvidenceIds : [];
+      const r = await pool.query(
+        `INSERT INTO project_plans (project_id, goal, hypothesis, referenced_dataset_ids, referenced_evidence_ids, created_by)
+         VALUES ($1,$2,$3,$4::jsonb,$5::jsonb,$6) RETURNING id, project_id, goal, hypothesis, referenced_dataset_ids, referenced_evidence_ids, created_at`,
+        [id, goal, hypothesis, JSON.stringify(dsIds), JSON.stringify(evIds), uid || null]
+      );
+      res.status(201).json({ plan: r.rows[0] });
+    } catch (e: any) {
+      console.error("[project_plans] create failed:", e?.message ?? e);
+      res.status(500).json({ error: "Failed to create plan" });
+    }
+  });
+
+  app.get("/api/projects/:id/plans/:planId", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      const { id, planId } = req.params;
+      const uid = (req as any).user?.id ? String((req as any).user.id) : "";
+      if (!(await _isOwnerOrMember(id, uid))) return res.status(404).json({ error: "Not found" });
+      const r = await pool.query(
+        `SELECT id, project_id, goal, hypothesis, referenced_dataset_ids, referenced_evidence_ids, created_at
+         FROM project_plans WHERE id = $1 AND project_id = $2`,
+        [planId, id]
+      );
+      if (!r.rows.length) return res.status(404).json({ error: "Plan not found" });
+      res.json({ plan: r.rows[0] });
+    } catch (e: any) {
+      console.error("[project_plans] get failed:", e?.message ?? e);
+      res.status(500).json({ error: "Failed to fetch plan" });
     }
   });
 
