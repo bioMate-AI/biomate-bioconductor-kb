@@ -9607,8 +9607,15 @@ ${paramLines || '(none recorded)'}`;
         return res.status(invAccess.status).json({ error: invAccess.error });
       }
 
-      const outputs = await storage.getInvocationOutputs(invocation ? invocation.id : outputKey);
-      if (!outputs || outputs.length === 0) {
+      // Outputs via the canonical resolver (L1b): it streams S3-backed nextflow
+      // outputs, which the old getInvocationOutputs path silently skipped (only
+      // galaxyDatasetId/localPath were archived). Fall back to the legacy store
+      // only when the resolver is empty (pure Galaxy invocations).
+      const { runsOutputsService: _rosZip } = await import("./services/runs-outputs-service");
+      const runResolverId = (ownerRun as any)?.id || (invocation as any)?.galaxyInvocationId || outputKey || req.params.id;
+      const canonical = await _rosZip.list(runResolverId);
+      const legacy = canonical.length ? [] : await storage.getInvocationOutputs(invocation ? invocation.id : outputKey);
+      if (canonical.length === 0 && legacy.length === 0) {
         return res.status(404).json({ error: "No outputs found for this invocation" });
       }
 
@@ -9633,23 +9640,39 @@ ${paramLines || '(none recorded)'}`;
         }
       });
 
-      // Add each output to the archive
-      for (const output of outputs) {
+      // Stream canonical (S3) outputs directly from their s3Uri — the fix for the
+      // silent S3-skip. Names come from the resolver (already include extension).
+      if (canonical.length) {
+        const { S3Client: _S3Z, GetObjectCommand: _GZ } = await import("@aws-sdk/client-s3");
+        const _nfKeyZ = process.env.AWS_NF_ACCESS_KEY_ID;
+        const _nfSecZ = process.env.AWS_NF_SECRET_ACCESS_KEY;
+        const _s3z = new _S3Z({
+          region: "us-east-1", followRegionRedirects: true,
+          ...(_nfKeyZ && _nfSecZ ? { credentials: { accessKeyId: _nfKeyZ, secretAccessKey: _nfSecZ } } : {}),
+        });
+        for (const o of canonical) {
+          try {
+            const m = (o.s3Uri || "").match(/^s3:\/\/([^/]+)\/(.+)$/);
+            if (!m) continue;
+            const obj: any = await _s3z.send(new _GZ({ Bucket: m[1], Key: m[2] }));
+            archive.append(obj.Body as any, { name: o.name });
+          } catch (err) {
+            console.error(`Failed to add ${o.name} to archive:`, err);
+          }
+        }
+      }
+      // Legacy Galaxy outputs (galaxyDatasetId / localPath), only when the
+      // canonical resolver had nothing.
+      for (const output of legacy) {
         try {
           const localPath = String((output as any)?.metadata?.localPath || "");
           const fileStream = output.galaxyDatasetId
             ? await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId)
-            : localPath
-            ? createReadStream(localPath)
-            : null;
-          if (!fileStream) {
-            continue;
-          }
-          const filename = `${output.name}.${output.extension}`;
-          archive.append(fileStream, { name: filename });
+            : localPath ? createReadStream(localPath) : null;
+          if (!fileStream) continue;
+          archive.append(fileStream, { name: `${output.name}.${output.extension}` });
         } catch (err) {
           console.error(`Failed to add ${output.name} to archive:`, err);
-          // Continue with other files
         }
       }
 
