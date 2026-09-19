@@ -77,19 +77,22 @@ for cif in sorted(glob.glob(CIF_GLOB)):
 if not rows:
     print('no designs parsed; check RUN_DIR/cif and METRICS'); raise SystemExit(1)
 
-# permeability-aware score: reward binding (iptm) AND headroom (dHBD), light MW penalty. z-scored.
+# permeability-aware score: reward binding (iptm) and target the END STATE permeability after N-methyl redesign
+# -- LOW remaining donors (HBD_redesign) and LOW MW. (Rewarding raw dHBD is wrong: it favors big donor-rich
+# peptides. What matters post-redesign is the achievable donor count and size.) z-scored.
 def z(vals):
     v=np.array(vals,float); mu,sd=np.nanmean(v), (np.nanstd(v) or 1.0); return mu,sd
-mI,sI=z([r['iptm'] for r in rows]); mH,sH=z([r['dHBD'] for r in rows]); mW,sW=z([r['MW'] for r in rows])
+mI,sI=z([r['iptm'] for r in rows]); mR,sR=z([r['HBD_redesign'] for r in rows]); mW,sW=z([r['MW'] for r in rows])
 for r in rows:
     zi=0 if np.isnan(r['iptm']) else (r['iptm']-mI)/sI
-    r['perm_score']=round(0.5*zi + 0.5*((r['dHBD']-mH)/sH) - 0.1*((r['MW']-mW)/sW),3)
+    r['perm_score']=round(0.5*zi - 0.4*((r['HBD_redesign']-mR)/sR) - 0.3*((r['MW']-mW)/sW),3)
 
 K=min(8,len(rows))
 bg_top=sorted(rows, key=lambda r:r['bg_rank'])[:K]           # BoltzGen default (permeability-blind)
-pa_top=sorted(rows, key=lambda r:-r['perm_score'])[:K]       # permeability-aware
+pa_top=sorted(rows, key=lambda r:-r['perm_score'])[:K]       # permeability-aware (end-state)
 def summ(s):
     return dict(mean_iptm=round(float(np.nanmean([r['iptm'] for r in s])),3),
+                mean_HBD_redesign=round(float(np.mean([r['HBD_redesign'] for r in s])),2),
                 mean_dHBD=round(float(np.mean([r['dHBD'] for r in s])),2),
                 mean_MW=round(float(np.mean([r['MW'] for r in s])),0))
 out=dict(run_dir=RUN_DIR, n_designs=len(rows), K=K,

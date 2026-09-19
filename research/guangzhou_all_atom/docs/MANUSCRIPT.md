@@ -139,6 +139,21 @@ sampling). The binding-safe claim thus rests primarily on the structural argumen
 do not H-bond the receptor), with FEP as the required arbiter. This is also independent motivation for the FEP
 finalist tier (§6).
 
+**3.8 Permeability-driven generation (oversample + select) surfaces permeable binders the default ranking
+buries.** As a first permeability-driven *generation* step, we oversampled BoltzGen on 1yf4 (32 designs vs the
+default 8) and selected on binding (iptm) plus end-state permeability after the §3.6 redesign — low remaining
+donor count (HBD-after-N-methylation) and low MW. (An initial objective that rewarded the *change* ΔHBD was
+mis-specified — it favors large donor-rich peptides; the correct target is the post-redesign end state.)
+Against BoltzGen's own top-8 (ranked by iptm, permeability-blind), the permeability-aware top-8 had
+36% fewer post-redesign donors (5.8 vs 9.0) and 30% lower MW (694 vs 997 Da) for a small binding-confidence
+cost (mean iptm 0.65 vs 0.675). It surfaces small, low-donor cyclic binders (e.g. `GGPLLGR`, `YSGGGPG`) that
+the default ranking buried at ranks 12–26. This is the generate→select permeability loop working end-to-end.
+Honest limits: (i) "binding" here is BoltzGen's iptm confidence, which §3.2 showed is orthogonal to physics
+ΔG, so the permeability-aware picks still require MM-GBSA/FEP verification; (ii) this is oversampling +
+selection, a simple form of permeability-driven generation, not sampling-time guidance; (iii) one target, 32
+designs; (iv) the small iptm dip may reflect genuinely weaker binding by the smaller peptides, not just
+selection pressure.
+
 ## 4. Discussion
 Two conclusions follow. First, for cyclic-peptide binder design an independent physics verify step is
 essential and not shortcut-able: ML interface confidence is orthogonal to physics binding

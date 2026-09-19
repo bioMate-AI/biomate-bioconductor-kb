@@ -89,5 +89,12 @@ but not yet built — that's the frontier. Wet lab remains the ultimate gate.
   sign/magnitude untrustworthy; single-traj MM-GBSA is the wrong tool → needs FEP.** Binding-safe claim rests
   on v1 structure; v2 also gives independent motivation for the FEP finalist tier. Corrected an initially
   over-optimistic "binding preserved" framing after reading the decomposition.
-- **Remaining:** FEP (proper energetic arbiter for N-methyl ΔΔG — now doubly motivated); v3 = wire
-  `binding×ΔHBD×MW` objective into oversampled BoltzGen generation.
+- **v3 STARTED (oversample + perm-aware select) — first result POSITIVE** — `launch_boltzgen_oversample.sh`
+  (GPU spot, AZ-fallback), `perm_generation_v3.py`, `results/perm_generation_v3_1yf4.json`. Oversampled
+  BoltzGen 1yf4 to 32 designs; selected on iptm + END-STATE permeability (low HBD-after-redesign + low MW;
+  NOT ΔHBD — that favors big peptides). Perm-aware top-8 vs BoltzGen default top-8: iptm 0.65 vs 0.675 (small
+  cost), HBD-after-redesign 5.75 vs 9.0 (−36%), MW 694 vs 997 (−30%). Surfaces small low-donor binders
+  (GGPLLGR, YSGGGPG) the permeability-blind ranking buried. Loop works end-to-end. Caveats: iptm ⟂ physics
+  (picks need MM-GBSA/FEP); selection not sampling-guidance; 1 target; iptm dip may be real.
+- **Remaining:** physics-verify the v3 perm-aware picks (MM-GBSA/FEP); FEP finalist tier (doubly motivated);
+  v3b = scale oversampling to 4 targets, then true guided generation.

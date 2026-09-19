@@ -88,10 +88,31 @@ argument (non-interface backbone Ns), with FEP required for the energetic verdic
 approximate (relative ΔΔG only). **What v2 solidly delivered: a working N-methyl parametrization + the
 empirical finding that MM-GBSA can't score this — which is exactly why the finalist tier is FEP.**
 
+## v3 — oversample + permeability-aware selection (BUILT, first result)
+Tools: `launch_boltzgen_oversample.sh` (GPU spot, AZ-fallback), `perm_generation_v3.py` (scorer).
+Result: `results/perm_generation_v3_1yf4.json`.
+
+Oversampled BoltzGen on 1yf4 to 32 designs (vs default 8), scored each by binding (iptm) + **end-state**
+permeability after N-methyl redesign (low HBD-after-redesign, low MW). Objective-design lesson: rewarding the
+*change* ΔHBD is wrong (favors big donor-rich peptides); reward the **post-redesign end state**.
+
+**Perm-aware top-8 vs BoltzGen default top-8:** iptm 0.65 vs 0.675 (small cost), HBD-after-redesign
+**5.75 vs 9.0 (−36%)**, MW **694 vs 997 (−30%)**. Oversampling + selection surfaces small low-donor cyclic
+binders (`GGPLLGR` MW669, `YSGGGPG` MW594) that BoltzGen's permeability-blind ranking buried at ranks 12–26.
+The generate→select permeability loop works end-to-end.
+
+*Honest limits:* "binding" = BoltzGen iptm (⟂ physics ΔG per the rerank finding) → perm-aware picks still need
+MM-GBSA/FEP; this is oversampling+selection, not sampling-time guidance; one target; the iptm dip may be real
+(smaller peptides bind weaker). Next: MM-GBSA-verify the perm-aware picks; scale to 4 targets; then true
+guided generation (steer sampling, not just select).
+
 ## Staged roadmap (remaining)
-- **v2b — scale the ΔΔG across designs/targets**: `peptide_nmethyl_mmgbsa.sh` takes `CIF_S3` + `METH_POS`,
-  so the other v1 candidates are just re-runs of the proven script (not launched yet — one spot job each).
-- **v3 — wire the objective into oversampled generation**: oversample BoltzGen designs, score each by
+- **Physics-verify the v3 perm-aware picks** (MM-GBSA ΔG on the small low-donor binders — is their binding real
+  or just high iptm?). FEP for the finalists.
+- **v2b — scale the ΔΔG across designs/targets**: `peptide_nmethyl_mmgbsa.sh` takes `CIF_S3` + `METH_POS`.
+- **v3b — scale oversampling to 4 targets** (`launch_boltzgen_oversample.sh` TARGET_ONLY=…), then true guided
+  generation. Superseded framing of the original v3 bullet:
+- **(orig) v3 — wire the objective into oversampled generation**: oversample BoltzGen designs, score each by
   `binding × ΔHBD-headroom × MW`, and/or apply the N-methylation redesign, then re-verify (v2). This is the
   actual "permeability-driven generation" loop; v1 supplies its objective function and proves headroom exists.
 - **v4 (optional) — conformation-aware permeability oracle** (2-env MD ensembles) to replace the mechanistic
