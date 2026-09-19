@@ -17,17 +17,21 @@ for r in c.execute("select name,domain,step_metadata from workflows where step_m
     if 3<=len(steps)<=12: rows.append((r["name"], r["domain"], steps))
 
 def build_dag(steps):
-    """Hierarchical phase->step DAG: {sub_task,phase,order,depends_on}."""
-    gold=[]; cur_phase=None; prev_idx=None; last_of_prev_phase=None
+    """Hierarchical phase->step DAG: {sub_task,phase,order,depends_on}. Each step depends on its true
+    immediate predecessor: intra-phase -> previous step; first-of-phase -> last step of the phase that
+    just ended (committee-audit fix: old code updated last-of-prev-phase AFTER computing deps -> first
+    step of a new phase wrongly got deps=[] and later steps pointed at the wrong phase's step)."""
+    gold=[]; prev_order=None; prev_phase=None; last_order_prev_phase=None
     for i,(name,phase) in enumerate(steps):
-        if phase!=cur_phase:                         # phase boundary
-            deps=[last_of_prev_phase+1] if last_of_prev_phase is not None else []
-            if cur_phase is not None: last_of_prev_phase=prev_idx  # close prior phase
-            cur_phase=phase
+        order=i+1
+        if phase!=prev_phase and prev_phase is not None:
+            last_order_prev_phase=prev_order          # close the phase that just ended, BEFORE using it
+        if phase!=prev_phase:
+            deps=[last_order_prev_phase] if last_order_prev_phase is not None else []
         else:
-            deps=[prev_idx+1]                         # intra-phase sequential
-        gold.append({"sub_task":name,"phase":phase,"order":i+1,"depends_on":deps})
-        prev_idx=i
+            deps=[prev_order]                          # intra-phase sequential
+        gold.append({"sub_task":name,"phase":phase,"order":order,"depends_on":deps})
+        prev_order=order; prev_phase=phase
     return gold
 
 def _call(p):

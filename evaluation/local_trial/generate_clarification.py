@@ -12,7 +12,10 @@ for r in c.execute("select name,domain,params_schema from workflows where params
     except: continue
     params=[x for x in (p.get("parameters") or []) if x.get("name")]
     req=[x for x in params if not x.get("optional", True) and x.get("default") is None]  # truly-required, no default
-    if req and len(params)>=3: rows.append((r["name"], r["domain"], params, req))
+    # committee fix: only workflows with a SMALL required-no-default set (1-4) -> the clarify gold is the
+    # FULL missing set and stays realistic (avoids the unrealistic 'ask for 13 low-level knobs' case,
+    # which usually means the schema's required flag is unreliable for that workflow).
+    if 1<=len(req)<=4 and len(params)>=3: rows.append((r["name"], r["domain"], params, req))
 
 def render(params):
     return "\n".join(f"- {p['name']} ({p.get('type')}, {'required' if not p.get('optional',True) else 'optional'})" for p in params)
@@ -32,12 +35,15 @@ def _call(p):
 
 def gen(item):
     name,dom,params,req=item
-    missing=random.choice(req)
-    # a query that describes the analysis but deliberately omits the required param's value
-    q=_call(f"Write ONE realistic {dom} analysis request that describes the goal/data but does NOT specify "
-            f"'{missing.get('description') or missing['name']}'. Keep it natural, in a researcher's words. Reply with only the request.")
+    # committee fix: the gold must list the FULL set of missing required params, not one. Generate a
+    # request that describes the goal/data but specifies NONE of the required params -> gold = all of req.
+    missing_names=[p["name"] for p in req]
+    missing_desc="; ".join(p.get("description") or p["name"] for p in req)
+    q=_call(f"Write ONE realistic {dom} analysis request that describes the goal/data at a high level but "
+            f"does NOT specify any of these required inputs: {missing_desc}. Natural, in a researcher's words. "
+            f"Reply with only the request.")
     if not q or len(q)<20: return None
-    gold={"clarify_needed":[missing["name"]]}
+    gold={"clarify_needed": missing_names}
     prompt=f"{INSTR}\n\nParameter schema:\n{render(params)[:1200]}\n\nRequest: {q}"
     return {"messages":[{"role":"user","content":prompt},{"role":"assistant","content":json.dumps(gold)}],"workflow":name}
 
