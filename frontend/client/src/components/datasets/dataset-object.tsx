@@ -33,7 +33,7 @@ import {
   FileArchive,
   Plus,
 } from "lucide-react"
-import { DataPerception } from "@/components/data-perception"
+import { DataPerception, type PerceptionQuality } from "@/components/data-perception"
 import {
   usePerceptionProfile,
   useDatasetLineage,
@@ -88,6 +88,15 @@ interface DatasetObjectProps {
   onBack?: () => void
   onDownload?: () => void
   className?: string
+}
+
+// Header quality pill — reinforces the file-tree row's dot on the object itself
+// (Good/Watch/Blocked), so identity (quality + version) reads at a glance rather
+// than hiding behind the Quality/Versions tabs.
+const HEADER_QUALITY: Record<PerceptionQuality, { dot: string; label: string }> = {
+  good: { dot: "bg-emerald-500", label: "Good" },
+  watch: { dot: "bg-amber-500", label: "Watch" },
+  blocked: { dot: "bg-red-500", label: "Blocked" },
 }
 
 export function DatasetObject({
@@ -176,6 +185,32 @@ export function DatasetObject({
             <Badge variant="outline" className="text-[10px]">{dataset.contentType}</Badge>
           )}
           <Badge variant="outline" className="text-[10px]">{formatBytes(dataset.size)}</Badge>
+          {/* Quality pill (from the already-fetched perception profile) — object
+              identity on the header, not buried in the Quality tab. */}
+          {profile?.quality && HEADER_QUALITY[profile.quality] && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px]"
+              data-testid="dataset-header-quality"
+              data-quality={profile.quality}
+              title={`Ingest quality: ${profile.quality}`}
+            >
+              <span className={`h-2 w-2 rounded-full ${HEADER_QUALITY[profile.quality].dot}`} />
+              {HEADER_QUALITY[profile.quality].label}
+            </span>
+          )}
+          {/* Version count chip — surfaces that the object has history without
+              opening the Versions tab. Honest count; details live in the tab. */}
+          {propVersions.length > 0 && (
+            <Badge
+              variant="outline"
+              className="text-[10px] gap-1"
+              data-testid="dataset-header-versions"
+              title={`${propVersions.length} version${propVersions.length > 1 ? "s" : ""} recorded — see the Versions tab`}
+            >
+              <History className="h-3 w-3" />
+              {propVersions.length} ver{propVersions.length > 1 ? "s" : ""}
+            </Badge>
+          )}
           <div className="ml-auto flex items-center gap-2">
             {dataset.ref && (
               <Button
