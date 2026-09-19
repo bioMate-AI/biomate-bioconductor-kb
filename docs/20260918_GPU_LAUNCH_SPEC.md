@@ -100,6 +100,24 @@ labeled pool before training and stage it beside the SFT set in S3.
 - **Produces:** `models_20260918/{small,large}/sft_adapter/`, `eval_{small,large}.json`, and
   (optionally) merged `final/` models for serving.
 
+## 6b. Spot instances (cost-optimized, self-healing)
+
+Training runs on **spot** to cut cost ~60–70%, made safe by checkpoint→S3 + resume:
+- `spot_train.sh` (the instance entrypoint): pulls the latest checkpoint for `MODEL_SIZE/STAGE` from
+  `.../spot_ckpt/<size>/<stage>` and **resumes**; a background loop mirrors checkpoints to S3 every
+  120s (≤120s lost on reclaim); a metadata watcher does a **final sync on the 2-min interruption
+  notice**. Idempotent — safe to re-run after a restart.
+- `spot_launch.sh`: a **persistent** spot request (`--type persistent --instance-interruption-behavior
+  stop`). Persistent + resume-from-S3 = self-healing: on reclaim AWS relaunches and training continues
+  from the last checkpoint. Set `REGION/AMI/KEY/SUBNET/SG` (+ `INSTANCE_TYPE`) for your account.
+- Prereq: upload a code tarball to `REPO_TARBALL_S3` (`tar czf evaluation_local_trial.tgz -C
+  evaluation/local_trial . && aws s3 cp …`). `--resume` is now wired in **both** `midtrain_run.py` and
+  `train_qlora_pilot.py`.
+- Run order: `MODEL_SIZE=small STAGE=midtrain bash spot_launch.sh` → merge → `STAGE=sft` → merge → eval.
+- **Caveat:** spot capacity for single 80GB A100/H100 is scarce; for the large model prefer a
+  capacity-flexible type or fall back to on-demand for that stage. The small (4B) model runs on
+  `g6e.xlarge` spot comfortably.
+
 ## 7. Open dependencies (need the box's disk/bandwidth)
 
 - `general_replay.jsonl` for the mid-train sweep.

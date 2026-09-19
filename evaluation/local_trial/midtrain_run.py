@@ -8,6 +8,7 @@ def main():
     ap.add_argument("--replay",default=None); ap.add_argument("--replay-frac",type=float,default=0.75)
     ap.add_argument("--out",required=True); ap.add_argument("--max-steps",type=int,default=1000)
     ap.add_argument("--seq-len",type=int,default=2048); ap.add_argument("--lora-r",type=int,default=32)
+    ap.add_argument("--resume",default=None,help="checkpoint dir to resume from (spot-interruption safe)")
     a=ap.parse_args()
     import torch
     from datasets import load_dataset, concatenate_datasets
@@ -33,7 +34,7 @@ def main():
         gradient_checkpointing_kwargs={"use_reentrant":False},optim="paged_adamw_8bit",max_length=a.seq_len,
         packing=True, dataset_text_field="text", report_to=[], seed=13)  # packing + text field = pretraining
     tr=SFTTrainer(model=model,args=cfg,train_dataset=ds,peft_config=lora,processing_class=tok)
-    r=tr.train(); tr.save_model(a.out); tok.save_pretrained(a.out)
+    r=tr.train(resume_from_checkpoint=a.resume); tr.save_model(a.out); tok.save_pretrained(a.out)
     import json as J; J.dump({"train_loss":r.metrics.get("train_loss"),"steps":a.max_steps,"n_docs":ds.num_rows},open(a.out+"/midtrain_result.json","w"))
     print("MIDTRAIN_DONE loss=",r.metrics.get("train_loss"))
 if __name__=="__main__": raise SystemExit(main())
