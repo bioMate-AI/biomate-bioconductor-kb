@@ -7,6 +7,7 @@
 # whatever completes before the internal budget.
 set -Eeuo pipefail
 export AWS_DEFAULT_REGION=us-west-2 DEBIAN_FRONTEND=noninteractive PYTHONUNBUFFERED=1 HOME=/root
+export OPENMM_CPU_THREADS=1 OMP_NUM_THREADS=1   # 1 thread/worker (we parallelize over peptides via Pool)
 ROOT=/opt/p2e; OUT_S3=${OUT_S3:?}; BUCKET=knowledge-datasets-1759951976
 NSUB=${NSUB:-200}; BUDGET_S=${BUDGET_S:-12600}
 mkdir -p "$ROOT/status" "$ROOT/w"; cd "$ROOT/w"
@@ -81,17 +82,24 @@ def feat2d(smi):
         except: v.append(np.nan)
     return np.array(v,float)
 
-rows=[]
-for i,(smi,perm) in enumerate(zip(df['SMILES'],df['Permeability'])):
+def worker(args):
+    smi,perm=args
     try:
         te=two_env(smi); f2=feat2d(smi)
-        if te and f2 is not None: rows.append({'perm':perm,'f2':f2,**te})
-    except Exception: pass
-    if i%25==0:
-        stage=f'{i}/{len(df)} kept={len(rows)} el={int(time.time()-t0)}s'
-        open('/opt/p2e/status/status.json','w').write(json.dumps({'stage':'run','detail':stage}))
-        os.system(f'aws s3 cp /opt/p2e/status/status.json {os.environ["OUT_S3"]}/status/status.json --only-show-errors 2>/dev/null')
-        if time.time()-t0>BUDGET: print('budget hit at',i); break
+        if te and f2 is not None: return {'perm':float(perm),'f2':f2.tolist(),**te}
+    except Exception: return None
+    return None
+from multiprocessing import Pool
+items=list(zip(df['SMILES'],df['Permeability']))
+rows=[]
+with Pool(processes=max(1, (os.cpu_count() or 8)-1)) as pool:
+    for i,r in enumerate(pool.imap_unordered(worker, items, chunksize=2)):
+        if r: rows.append(r)
+        if i%25==0:
+            det=f'{i}/{len(items)} kept={len(rows)} el={int(time.time()-t0)}s'
+            open('/opt/p2e/status/status.json','w').write(json.dumps({'stage':'run','detail':det}))
+            os.system(f'aws s3 cp /opt/p2e/status/status.json {os.environ["OUT_S3"]}/status/status.json --only-show-errors 2>/dev/null')
+            if time.time()-t0>BUDGET: print('budget hit at',i); pool.terminate(); break
 print('kept', len(rows))
 X2=np.nan_to_num(np.clip(np.array([r['f2'] for r in rows]),-1e30,1e30))
 env=np.array([[r['apolar_3dpsa'],r['polar_3dpsa'],r['delta']] for r in rows])
