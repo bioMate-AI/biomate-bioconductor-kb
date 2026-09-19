@@ -135,6 +135,11 @@ export function CitationPanel({
 
   const toolsWithCitations = citations.filter(c => c.doi || c.pmid || c.title) as EvidenceCitation[]
   const totalTools = citations.length
+  // The top-level "Export BibTeX" can only produce a file when either a workflow
+  // is present (server-side export) or at least one citation carries a
+  // formatted_bibtex (local export). Literature answers have neither, so hide the
+  // button rather than show one that silently emits nothing (a dead button).
+  const canExportBibTeX = Boolean(workflow) || citations.some(c => c.formatted_bibtex)
   const activeConflicts = (conflicts || []).filter(c => c.positions && c.positions.length > 0)
   // Spec 09 — only surfaces when the retrieval path supplied real per-source
   // counts. We never derive these from the citation list (that would be a
@@ -441,7 +446,7 @@ export function CitationPanel({
                 </Tooltip>
               </TooltipProvider>
 
-              {toolsWithCitations.length > 0 && (
+              {toolsWithCitations.length > 0 && canExportBibTeX && (
                 <Button
                   size="sm"
                   variant="outline"
