@@ -1,49 +1,45 @@
 #!/bin/bash
-# Launch a PERSISTENT spot request for one training stage. Persistent + spot_train's resume-from-S3 =
-# self-healing: if the instance is reclaimed, AWS re-launches it and spot_train resumes from the last
-# S3 checkpoint. Set the region/AMI/subnet/key/profile for your account before running.
-#
-#   MODEL_SIZE=small STAGE=midtrain bash spot_launch.sh
+# Launch a spot GPU instance for one training stage (headless; logs + checkpoints stream to S3).
+# Defaults are the discovered account params (us-west-2). 27B QLoRA (4-bit) fits on a single L40S 48GB,
+# so both sizes run on the cheap g6e family (no expensive P-family). Reclaim-safe: spot_train resumes
+# from S3, so re-running this after a reclaim continues from the last checkpoint.
+#   MODEL_SIZE=small STAGE=sft bash spot_launch.sh
 set -euo pipefail
-: "${MODEL_SIZE:?set small|large}"; : "${STAGE:?set midtrain|sft}"
+: "${MODEL_SIZE:?small|large}"; STAGE=${STAGE:-sft}
 REGION=${REGION:-us-west-2}
-PROFILE_NAME=${PROFILE_NAME:-AutoimmuneCorpusProfile}     # S3 read/write instance profile
-AMI=${AMI:?set AMI to the Deep Learning Base GPU AMI id in your region}
-KEY=${KEY:?set your EC2 key pair name}
-SUBNET=${SUBNET:?set a subnet id}; SG=${SG:?set a security group id}
-# spot for 80GB A100/H100 is scarce -> for large, prefer a capacity-flexible type or fall back to on-demand
-INSTANCE_TYPE=${INSTANCE_TYPE:-$( [ "$MODEL_SIZE" = small ] && echo g6e.xlarge || echo g6e.12xlarge )}
+AMI=${AMI:-ami-04f7da1c787a89267}                         # DL Base GPU AMI (us-west-2)
+PROFILE=${PROFILE:-AutoimmuneCorpusProfile}
+SUBNET=${SUBNET:-subnet-0254e4c3634b41bfc}
+SG=${SG:-sg-0de9af2d4437a8c90}
+INSTANCE_TYPE=${INSTANCE_TYPE:-$( [ "$MODEL_SIZE" = small ] && echo g6e.xlarge || echo g6e.4xlarge )}
 REPO_TARBALL_S3=${REPO_TARBALL_S3:-s3://biomate-models-399683337364/biomate-core-local-trial/code/evaluation_local_trial.tgz}
 
-# user-data: bootstrap deps+data, then run the resume-aware spot trainer for this stage
 USERDATA=$(cat <<EOF | base64
 #!/bin/bash
-set -e
+exec > /var/log/spot_train.log 2>&1
+set -x
 export SCRATCH=/opt/dlami/nvme MODEL_SIZE=$MODEL_SIZE STAGE=$STAGE
 mkdir -p \$SCRATCH/code && cd \$SCRATCH/code
-aws s3 cp $REPO_TARBALL_S3 code.tgz && tar xzf code.tgz
-bash gpu_bootstrap.sh
-bash spot_train.sh >> /var/log/spot_train.log 2>&1
+for i in 1 2 3; do aws s3 cp $REPO_TARBALL_S3 code.tgz && break || sleep 10; done
+tar xzf code.tgz
+bash gpu_bootstrap.sh || true
+bash spot_train.sh
+shutdown -h now
 EOF
 )
 
-echo "Requesting PERSISTENT spot: $INSTANCE_TYPE ($MODEL_SIZE/$STAGE) in $REGION"
-aws ec2 request-spot-instances --region "$REGION" \
-  --instance-count 1 --type persistent \
-  --instance-interruption-behavior stop \
-  --launch-specification "$(cat <<JSON
-{
-  "ImageId": "$AMI",
-  "InstanceType": "$INSTANCE_TYPE",
-  "KeyName": "$KEY",
-  "SubnetId": "$SUBNET",
-  "SecurityGroupIds": ["$SG"],
-  "IamInstanceProfile": {"Name": "$PROFILE_NAME"},
-  "BlockDeviceMappings": [{"DeviceName":"/dev/sda1","Ebs":{"VolumeSize":300,"VolumeType":"gp3"}}],
-  "UserData": "$USERDATA"
-}
-JSON
-)"
-echo "Requested. Checkpoints stream to .../spot_ckpt/$MODEL_SIZE/$STAGE ; final adapter to .../models_*/$MODEL_SIZE/."
-echo "On reclaim, AWS relaunches and spot_train.sh resumes from the last S3 checkpoint. Cancel with:"
-echo "  aws ec2 cancel-spot-instance-requests --region $REGION --spot-instance-request-ids <id>  (then terminate the instance)"
+echo "Launching $INSTANCE_TYPE spot for $MODEL_SIZE/$STAGE in $REGION"
+IID=$(aws ec2 run-instances --region "$REGION" \
+  --image-id "$AMI" --instance-type "$INSTANCE_TYPE" \
+  --subnet-id "$SUBNET" --security-group-ids "$SG" \
+  --iam-instance-profile "Name=$PROFILE" \
+  --instance-market-options 'MarketType=spot,SpotOptions={SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}' \
+  --block-device-mappings 'DeviceName=/dev/sda1,Ebs={VolumeSize=400,VolumeType=gp3}' \
+  --instance-initiated-shutdown-behavior terminate \
+  --user-data "$USERDATA" \
+  --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=biomate-onprem-$MODEL_SIZE-$STAGE}]" \
+  --query 'Instances[0].InstanceId' --output text)
+echo "INSTANCE=$IID  ($MODEL_SIZE/$STAGE)"
+echo "logs:  s3://biomate-models-399683337364/biomate-core-local-trial/20260912/spot_logs/$MODEL_SIZE/$STAGE/train.log"
+echo "ckpts: s3://biomate-models-399683337364/biomate-core-local-trial/20260912/spot_ckpt/$MODEL_SIZE/$STAGE/"
+echo "final: s3://biomate-models-399683337364/biomate-core-local-trial/20260912/models_20260919/$MODEL_SIZE/"

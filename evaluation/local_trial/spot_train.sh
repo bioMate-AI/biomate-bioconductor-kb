@@ -1,51 +1,51 @@
 #!/bin/bash
-# Spot-instance-resilient training wrapper. Survives spot reclamation:
-#  - RESUME: on (re)start, pulls the latest checkpoint for this stage/model from S3 and resumes.
-#  - SYNC:   a background loop mirrors local checkpoints -> S3 every 120s (so a reclaim loses <=120s).
-#  - INTERRUPT: a watcher polls the spot instance-action metadata; on the 2-min notice it does a final
-#    checkpoint sync before the instance dies.
-# Designed to be the spot instance's user-data entrypoint OR re-run after a restart — it is idempotent.
-#
-#   MODEL_SIZE=small STAGE=midtrain bash spot_train.sh
-#   MODEL_SIZE=small STAGE=sft      bash spot_train.sh
+# Spot-resilient trainer for ONE model size. Self-sufficient: downloads base model, pulls data,
+# resumes from S3 checkpoints, mirrors checkpoints to S3, handles the spot interruption notice.
+# SFT-first path (mid-train optional): STAGE=sft trains the SFT adapter directly on the base.
+#   MODEL_SIZE=small STAGE=sft bash spot_train.sh
 set -uo pipefail
-SIZE=${MODEL_SIZE:-large}; STAGE=${STAGE:-midtrain}
+SIZE=${MODEL_SIZE:-small}; STAGE=${STAGE:-sft}
 SCRATCH=${SCRATCH:-/opt/dlami/nvme}; HERE=$(cd "$(dirname "$0")" && pwd)
 S3=s3://biomate-models-399683337364/biomate-core-local-trial/20260912
-CKPT_S3="$S3/spot_ckpt/$SIZE/$STAGE"
-OUT="$SCRATCH/out/$SIZE/$STAGE"; mkdir -p "$OUT"
+CKPT_S3="$S3/spot_ckpt/$SIZE/$STAGE"; LOG_S3="$S3/spot_logs/$SIZE/$STAGE"
+OUT="$SCRATCH/out/$SIZE/$STAGE"; mkdir -p "$OUT" "$SCRATCH/data" "$SCRATCH/models"
 case "$SIZE" in
-  small) BASE="$SCRATCH/models/base_small"; MID=400; SFT=400; SEQ=2048; R=16 ;;
-  large) BASE="$SCRATCH/models/base_large"; MID=800; SFT=600; SEQ=2048; R=32 ;;
+  small) HF=Qwen/Qwen3-4B    ; SFT=500; MID=400; SEQ=2048; R=16 ;;
+  large) HF=Qwen/Qwen3.8-27B ; SFT=700; MID=800; SEQ=2048; R=32 ;;
+  *) echo "MODEL_SIZE must be small|large"; exit 1 ;;
 esac
+BASE="$SCRATCH/models/base_$SIZE"
 
-echo "[spot] pull any existing checkpoints for $SIZE/$STAGE from S3 (resume)…"
-aws s3 sync "$CKPT_S3/" "$OUT/" --quiet || true
-RESUME=""
-LAST=$(ls -d "$OUT"/checkpoint-* 2>/dev/null | sort -t- -k2 -n | tail -1)
+# stream this log to S3 every 30s so progress/errors are observable without SSH
+( while true; do aws s3 cp /var/log/spot_train.log "$LOG_S3/train.log" --quiet 2>/dev/null; sleep 30; done ) &
+LOGPID=$!
+
+echo "[spot] $(date) size=$SIZE stage=$STAGE — pull data + base"
+aws s3 cp "$S3/sft/multitask_sft_enriched.jsonl" "$SCRATCH/data/sft_enriched.jsonl" --quiet
+[ "$STAGE" = midtrain ] && aws s3 cp "$S3/midtrain_corpus/midtrain_all.jsonl" "$SCRATCH/data/midtrain_all.jsonl" --quiet
+if [ ! -d "$BASE" ]; then
+  echo "[spot] downloading base $HF"
+  python3 -c "from huggingface_hub import snapshot_download; snapshot_download('$HF', local_dir='$BASE')"
+fi
+
+echo "[spot] resume check"; aws s3 sync "$CKPT_S3/" "$OUT/" --quiet || true
+RESUME=""; LAST=$(ls -d "$OUT"/checkpoint-* 2>/dev/null | sort -t- -k2 -n | tail -1)
 [ -n "$LAST" ] && RESUME="--resume $LAST" && echo "[spot] resuming from $LAST"
 
-# background: mirror checkpoints to S3 every 120s (bounded data loss on reclaim)
-( while true; do aws s3 sync "$OUT/" "$CKPT_S3/" --exclude "*" --include "checkpoint-*" --quiet; sleep 120; done ) &
-SYNC_PID=$!
-# background: spot interruption watcher -> final sync on the 2-min notice
-( while true; do
-    if curl -s -m 2 http://169.254.169.254/latest/meta-data/spot/instance-action | grep -q action; then
-      echo "[spot] interruption notice — final checkpoint sync"; aws s3 sync "$OUT/" "$CKPT_S3/" --quiet; break
-    fi; sleep 5; done ) &
-WATCH_PID=$!
-trap 'kill $SYNC_PID $WATCH_PID 2>/dev/null; aws s3 sync "$OUT/" "$CKPT_S3/" --quiet' EXIT
+( while true; do aws s3 sync "$OUT/" "$CKPT_S3/" --exclude "*" --include "checkpoint-*" --quiet; sleep 120; done ) & SYNCPID=$!
+( while true; do curl -s -m 2 http://169.254.169.254/latest/meta-data/spot/instance-action | grep -q action \
+    && { echo "[spot] interruption notice — final sync"; aws s3 sync "$OUT/" "$CKPT_S3/" --quiet; break; }; sleep 5; done ) & WATCHPID=$!
+trap 'kill $SYNCPID $WATCHPID $LOGPID 2>/dev/null; aws s3 sync "$OUT/" "$CKPT_S3/" --quiet; aws s3 cp /var/log/spot_train.log "$LOG_S3/train.log" --quiet' EXIT
 
-echo "[spot] STAGE=$STAGE SIZE=$SIZE start"
-if [ "$STAGE" = "midtrain" ]; then
+echo "[spot] START training stage=$STAGE"
+if [ "$STAGE" = midtrain ]; then
   python3 "$HERE/midtrain_run.py" --base "$BASE" --data "$SCRATCH/data/midtrain_all.jsonl" \
-     --out "$OUT" --max-steps $MID --seq-len $SEQ --lora-r $R $RESUME \
-     ${REPLAY:+--replay "$REPLAY" --replay-frac ${REPLAY_FRAC:-0.5}}
-elif [ "$STAGE" = "sft" ]; then
+     --out "$OUT" --max-steps $MID --seq-len $SEQ --lora-r $R $RESUME ${REPLAY:+--replay "$REPLAY" --replay-frac ${REPLAY_FRAC:-0.5}}
+else
   python3 "$HERE/train_qlora_pilot.py" --base "${BASE_DOMAIN:-$BASE}" --data "$SCRATCH/data/sft_enriched.jsonl" \
      --out "$OUT" --max-steps $SFT --seq-len $SEQ --lora-r $R $RESUME
-else echo "STAGE must be midtrain|sft"; exit 1; fi
-
-echo "[spot] $STAGE done — upload final adapter"
-aws s3 cp "$OUT/" "$S3/models_$(date +%Y%m%d 2>/dev/null || echo 20260919)/$SIZE/${STAGE}_adapter/" --recursive --quiet
-echo "SPOT_${STAGE}_DONE size=$SIZE"
+fi
+RC=$?
+echo "[spot] training exit=$RC — upload final adapter"
+aws s3 cp "$OUT/" "$S3/models_20260919/$SIZE/${STAGE}_adapter/" --recursive --quiet
+echo "SPOT_${STAGE}_DONE size=$SIZE rc=$RC"
