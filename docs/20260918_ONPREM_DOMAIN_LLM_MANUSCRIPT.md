@@ -231,18 +231,19 @@ mined from nf-core schemas, the mid-train ratio sweep, and grounded RL/DPO.
 
 ## 7. Two-model plan (small + ~27B) and dual deployment
 
-We will train and compare two models from the same family (shared tokenizer and chat template):
+We will train and compare two models from the same family (shared tokenizer and chat template) —
+a small (~4B) and a large (~27B) — under a **controlled design: identical data, identical task
+mix (all 11 tasks), identical prompts, holdout, and evaluation; the only variable is model
+capacity.** We deliberately do *not* pre-assign tasks to a model; both are trained on the full 17k
+enriched set and evaluated on every task.
 
-- **Small (~4B):** target for high-volume, latency-sensitive, well-structured tasks — routing
-  (easy given the contrastive retriever's candidates), parameter extraction, clarification,
-  protocol QC. Runs on a modest GPU; cheap per call.
-- **Large (~27B):** target for hard reasoning — hierarchical and cross-workflow decomposition,
-  execution-trace diagnosis, ambiguous generation.
-
-Both are trained with the identical pipeline (mid-train → merge → SFT on the 17k enriched set →
-merge → eval → grounded RL) so the only variable is capacity. Beyond a straight quality/cost
-comparison, the endpoint is a **cascade**: the small model attempts each request and escalates to
-the large model on low confidence or hard task types. The contrastive retriever is shared by both.
+The purpose is to measure, per task, how far the small model closes the gap to the large one. Any
+deployment specialization is a **post-hoc conclusion from those per-task deltas**, not a design
+input — for example, whether a **cascade** (the small model attempts each request and escalates to
+the large model on low confidence or hard cases) is justified, or whether a single model suffices.
+Both are trained with the identical pipeline (mid-train → merge → SFT → merge → eval → grounded RL)
+and share the contrastive retriever. The two runs differ only in base checkpoint and
+size-appropriate capacity knobs (LoRA rank and step budget).
 
 ---
 

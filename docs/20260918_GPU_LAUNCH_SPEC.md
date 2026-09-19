@@ -3,22 +3,26 @@
 **2026-09-18.** Everything runnable on the laptop is done (data, paraphrase diversity, contrastive
 retriever, eval hardening). This spec is what to fire on a GPU box to produce trained models.
 
-## 0. Why two models
+## 0. Why two models — controlled capacity comparison
 
-Train the *same pipeline* on two capacities so the only variable is size:
+Train the *identical pipeline on the identical data and all 11 tasks* at two capacities, so the
+**only variable is model size**. We do NOT pre-assign tasks to a model — both models see the full
+enriched SFT set and are evaluated on every task.
 
 | | Small | Large |
 |---|---|---|
 | Base (same family → shared tokenizer/chat template) | `Qwen/Qwen3.8-4B` | `Qwen/Qwen3.8-27B` |
-| Intended role | high-volume, latency-sensitive, structured tasks | hard reasoning |
-| Example tasks | routing (retriever gives candidates), param extraction, clarify, protocol QC | phase/step + cross-workflow decomposition, execution-trace diagnosis, ambiguous generation |
+| Training data | **the full 17k enriched set, all 11 tasks** | **the same full 17k enriched set, all 11 tasks** |
 | Fits on | 1× L40S 48GB (QLoRA) | 1× A100/H100 80GB (QLoRA) |
 
-**Endpoint: a cascade.** The small model attempts each request and escalates to the large model on
-low confidence or hard task type. Both share the contrastive retriever. This gives most of the
-latency/cost benefit of the small model with the large model's quality where it matters. The
-comparison run tells us *where* the small model is already sufficient (so the cascade escalates
-rarely).
+**What the comparison answers (post-hoc, not pre-decided):** for each task, how far does the small
+model close the gap to the large one? Only *after* seeing per-task deltas do we decide any
+deployment split — e.g. whether a **cascade** (small attempts, escalates to large on low confidence
+/ hard cases) is worthwhile, or whether one model suffices. Both share the contrastive retriever.
+
+The two models differ only in base checkpoint and size-appropriate capacity knobs (LoRA rank; the
+large model gets a larger step budget to reach convergence). The *dataset, task mix, prompts,
+holdout, and eval are identical*.
 
 ## 1. Instance & AMI
 
