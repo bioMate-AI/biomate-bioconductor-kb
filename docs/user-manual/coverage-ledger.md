@@ -156,6 +156,50 @@ Page: `modules/I06-running-an-analysis.md`. Tier C.
 | Completed/failed → AfterRunReport (Summary/Outputs/Reproducibility record) in the panel; re-run via `/api/workflows/runs/:id/rerun` | C | ✅ | `chat-with-artifacts.tsx:2371,447`; `nextflow-workflow-viewer.tsx:1663` |
 | A run belongs to its chat session (no standalone run page) | C | ✅ | `chat-with-artifacts.tsx:152,181` (panelWorkflowMessageId); `App.tsx:608` |
 
+## I.5 Files & the dataset object
+Page: `modules/I05-files-and-dataset-object.md`. Tier C (no mismatches).
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| Data hub at `/files`; `?file=<id>` deep-links one object; project-scoped | C | ✅ | `App.tsx:673-677`; `data-hub.tsx:167-168`; `project-file-tree.tsx:388-430` |
+| File tree groups inputs/ + one folder per run; per-row QualityDot (lazy POST /api/perception/profile; green/amber/red/grey) only for profilable exts | C | ✅ | `project-file-tree.tsx:64-101,128-147,154-187` |
+| Dataset header = name+type+size + quality pill + version-count chip; 6 tabs (Preview/Quality/Lineage/Consumers/Versions/Origin) + RO-Crate + Download | C | ✅ | `dataset-object.tsx:180-278` |
+| Quality verdict backend-computed (FASTQ Phred<20→watch, unreadable→blocked); versions append-only | C | ✅ | `data_perception.py:160-190,288-293`; `dataset-object.tsx:437-525` |
+| GAP: lineage/consumers runs are static text (no clickable "Open run"); no cross-project browser | C | 🗺️ | `dataset-object.tsx:361-367,408,544-561`; `data-hub.tsx:242-278` |
+
+## I.7 The full step view & provenance
+Page: `modules/I07-full-step-view-provenance.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| StepDetail = step-as-object: provenance row + param-origin badges + rendered⇄raw + claim→output hook; honest "n/a" empty states (never fabricated) | C | ✅ | `steps/step-detail.tsx:6-18,104-138,158-182,188-242,312-337`; `nextflow-workflow-viewer.tsx:198-215` (+tests) |
+| Reachable from the LIVE phase view (step "Details" button + preview "Full step view") | C | ✅ | `nextflow-workflow-viewer.tsx:769-776,3162-3173,3453-3474`; `step-output-preview.tsx:863-874` |
+| GAP: after-run report Outputs tab reaches StepOutputPreview but NOT the full step view (no onOpenFullStepView) — needs per-step param data the report lacks | C | 🗺️ | `AfterRunReport.tsx:1211-1216` |
+| GAP: "Re-run from here" inside StepDetail not wired on run panel (mounted without onAdjustAndRerun); re-run via step-row/report instead | C | 🗺️ | `nextflow-workflow-viewer.tsx:3465-3471` vs `:777-790` |
+
+## I.8 Outputs, viewers & interactive panels
+Page: `modules/I08-outputs-viewers-interactive.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| In-app viewer taxonomy (image/pdf/table/sequence/vcf/annotation/structure+pLDDT/density/r-object/html/text) + cryo & DL JSON-sidecar charts, honest empty states | C | ✅ | `step-output-preview.tsx:67-106,209-1167,629-731` |
+| Single-cell in-app UMAP/cluster/marker panel from `<h5ad>.summary.json` (graceful fallback) | C(FE)/L | ⏳ | `viewers/single-cell-summary.tsx`; needs pipeline sidecar on a real run |
+| After-run Outputs mounts StepOutputPreview; findings numbers link to their output | C | ✅ | `AfterRunReport.tsx:875,1211,958-972` |
+| Interactive honesty gate: per-viewer buttons + launcher + Outputs "Explore in" row all hide when unprovisioned | C | ✅ | `use-interactive-tools.ts`; `step-output-preview.tsx:535-623`; `interactive-launcher.tsx:399-413`; **AfterRunReport InteractiveToolsRow gated this session** |
+| Interactive tools do not auto-load your data (empty session) | C | ✅ | `interactive-launcher.tsx:261-273` |
+
+## I.9 Reports & reproducibility
+Page: `modules/I09-reports-and-reproducibility.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| 3-tab after-run report; Summary=FindingsCard (headline chips + findings→output links) + immutable "Run original" badge | C | ✅ | `AfterRunReport.tsx:148-152,224-282`; `findings-card.tsx:77-96,229-249` |
+| Reproducibility record: params + input bindings + outputs (name/type/size/SHA-256) + JSON download; software/citations/QC hide-when-empty | C | ✅ | `AfterRunReport.tsx:1470,1500-1618`; `routes.ts:12193-12269` |
+| Per-output SHA-256 real + bounded (≤25 files/≤25MB); chain-of-custody wording honesty-gated on hashedCount | C | ✅ | `reproducibility-record.ts:28,40-68`; `AfterRunReport.tsx:1740-1743,1882-1896` |
+| Methods report = versioned object: server-first POST /report/versions + local fallback; v0 immutable "run original" | C | ✅ | `AfterRunReport.tsx:1310-1388`; `routes.ts:12290`; `report-version-store.ts:159-167` |
+| GAP: checksums opt-in (`?checksums=1`) but default UI fetch omits it → column shows "—" until hashed on demand | C | 🗺️ | `routes.ts:12228-12263`; `AfterRunReport.tsx:1545` |
+| GAP: report chat-edit (propose-diff) not built (hand-edit + Save version only); no manuscript Stage 6; no cross-run report | C | 🗺️ | `AfterRunReport.tsx:1234-1242` |
+
 ## Known coverage gaps (→ Appendix E, do NOT document as present)
 | Item | Note | Source |
 |---|---|---|

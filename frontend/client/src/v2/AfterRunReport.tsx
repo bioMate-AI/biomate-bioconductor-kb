@@ -19,6 +19,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { FindingsCard } from "@/components/findings-card";
 import { StepOutputPreview } from "@/components/step-output-preview";
+import { useInteractiveToolsAvailable } from "@/hooks/use-interactive-tools";
 import { TrajectoryView, type TrajectoryRow, type TrajectoryKind } from "@/components/trajectory-view";
 import { RegulatoryDocumentEditor } from "@/components/regulatory-document-editor";
 
@@ -798,7 +799,19 @@ function InteractiveToolsRow({ outputs }: { outputs: OutputFile[] }) {
     return m;
   }, [outputs]);
 
-  if (toolMap.size === 0) return null;
+  // Only offer tools actually provisioned in this environment (optimistic until
+  // the probe resolves; hidden once known-unavailable) — consistent with the
+  // per-viewer buttons in StepOutputPreview so we never show a dead 400 launch.
+  const { data: itAvail } = useInteractiveToolsAvailable();
+  // Tool ordering: CellxGene first (most specific), then RStudio, then Jupyter.
+  const orderedTools: Array<'cellxgene' | 'rstudio' | 'jupyter'> = ['cellxgene', 'rstudio', 'jupyter'];
+  const availableTools = orderedTools.filter(
+    (t) => toolMap.has(t) && (!itAvail || itAvail.tools[t]),
+  );
+
+  // Hide the whole row when there are no applicable tools, or when availability
+  // is known and none are provisioned.
+  if (toolMap.size === 0 || (itAvail && availableTools.length === 0)) return null;
 
   const openWith = (tool: 'jupyter' | 'rstudio' | 'cellxgene') => {
     setSelectedTool(tool);
@@ -807,9 +820,6 @@ function InteractiveToolsRow({ outputs }: { outputs: OutputFile[] }) {
 
   // Files for the currently selected tool.
   const currentFiles = toolMap.get(selectedTool)?.files ?? [];
-
-  // Tool ordering: CellxGene first (most specific), then RStudio, then Jupyter.
-  const orderedTools: Array<'cellxgene' | 'rstudio' | 'jupyter'> = ['cellxgene', 'rstudio', 'jupyter'];
 
   return (
     <div
@@ -829,7 +839,7 @@ function InteractiveToolsRow({ outputs }: { outputs: OutputFile[] }) {
       <span style={{ fontSize: 11, color: 'oklch(0.48 0.012 260)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: 4 }}>
         Explore in
       </span>
-      {orderedTools.filter(t => toolMap.has(t)).map(tool => {
+      {availableTools.map(tool => {
         const { label } = toolMap.get(tool)!;
         const icons: Record<string, string> = {
           cellxgene: '◉',
