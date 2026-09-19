@@ -6,7 +6,7 @@ BUCKET=knowledge-datasets-1759951976
 AMI=ami-04678417fc39d7171            # Ubuntu 24.04 noble amd64
 TYPE=${TYPE:-c6i.4xlarge}
 SUBNET=subnet-09e4dce46682a6c60; SG=sg-011121fdf81073ec8; KEY=biomate-trial-resume-20260912
-RUNID=nmethyl-mmgbsa-$(date -u +%Y%m%dT%H%M%SZ)
+RUNID=nmethyl-mmgbsa-${TAG:+$TAG-}$(date -u +%Y%m%dT%H%M%SZ)
 S3RUN=s3://$BUCKET/cyclic_peptide/runs/$RUNID
 HERE=$(cd "$(dirname "$0")" && pwd)
 
@@ -23,7 +23,7 @@ cd /tmp && unzip -q -o a.zip && ./aws/install
 mkdir -p /opt/nm
 /usr/local/bin/aws s3 cp $S3RUN/code/peptide_nmethyl_mmgbsa.sh /opt/nm/run.sh --region us-west-2
 chmod +x /opt/nm/run.sh
-OUT_S3=$S3RUN bash /opt/nm/run.sh
+OUT_S3=$S3RUN CIF_S3='$CIF_S3' METH_POS='$METH_POS' bash /opt/nm/run.sh
 EOF
 )
 
