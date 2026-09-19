@@ -8,11 +8,11 @@ set -euo pipefail
 : "${MODEL_SIZE:?small|large}"; STAGE=${STAGE:-sft}
 REGION=${REGION:-us-west-2}
 AMI=${AMI:-ami-04f7da1c787a89267}                         # DL Base GPU AMI (us-west-2)
-PROFILE=${PROFILE:-AutoimmuneCorpusProfile}
+PROFILE=${PROFILE:-biomate-core-trial-20260912}
 SUBNET=${SUBNET:-subnet-0254e4c3634b41bfc}
 SG=${SG:-sg-0de9af2d4437a8c90}
 INSTANCE_TYPE=${INSTANCE_TYPE:-$( [ "$MODEL_SIZE" = small ] && echo g6e.xlarge || echo g6e.4xlarge )}
-REPO_TARBALL_S3=${REPO_TARBALL_S3:-s3://biomate-models-399683337364/biomate-core-local-trial/code/evaluation_local_trial.tgz}
+REPO_TARBALL_S3=${REPO_TARBALL_S3:-s3://biomate-models-399683337364/biomate-core-local-trial/20260912/code/evaluation_local_trial.tgz}
 
 LOG_S3="s3://biomate-models-399683337364/biomate-core-local-trial/20260912/spot_logs/$MODEL_SIZE/$STAGE"
 USERDATA=$(cat <<EOF | base64
