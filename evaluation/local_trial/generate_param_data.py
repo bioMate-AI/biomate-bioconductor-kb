@@ -4,6 +4,7 @@ emit {query, workflow, gold_params, schema_params}. Gold is schema-valid by cons
 the auditor verifies the query faithfully implies exactly gold (+ restraint on distractors)."""
 import json, os, re, random, sqlite3, sys, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import schema_guard
 random.seed(41); REPO="/Users/kky/biomate-review"; KEY=os.environ["OPENAI_API_KEY"]; GEN="gpt-5-mini"
 PERSONAS=["a wet-lab biologist","a core-facility bioinformatician","a PhD student","a clinical geneticist","a PI"]
 c=sqlite3.connect(f"file:{REPO}/backend/database/galaxy_ai_tools.db?mode=ro",uri=True); c.row_factory=sqlite3.Row
@@ -11,11 +12,8 @@ def extractable(p):
     t=(p.get("type") or "").lower(); av=p.get("allowed_values") or []
     return bool(av) or t in ("boolean","bool","integer","int","number","float")
 def sample_val(p):
-    t=(p.get("type") or "").lower(); av=p.get("allowed_values") or []
-    if av: return random.choice(av)
-    if t in ("boolean","bool"): return random.choice([True,False])
-    if t in ("integer","int"): return random.choice([10,20,30,50,100])
-    return round(random.choice([0.01,0.05,0.1,0.5]),2)
+    # schema+name-aware (fixes 'number'-typed count params sampled as fractions, e.g. nPerm=0.01)
+    return schema_guard.sample_valid_value(p)
 rows=[]
 for r in c.execute("select name,domain,params_schema from workflows where params_schema is not null and length(params_schema)>60"):
     try: p=json.loads(r["params_schema"])

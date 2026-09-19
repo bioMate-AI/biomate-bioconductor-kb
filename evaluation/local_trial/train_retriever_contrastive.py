@@ -28,6 +28,9 @@ def main():
     ap.add_argument("--epochs",type=int,default=2); ap.add_argument("--batch",type=int,default=32)
     ap.add_argument("--n-hard",type=int,default=4); ap.add_argument("--device",default=None)
     ap.add_argument("--holdout-frac",type=float,default=0.15)
+    ap.add_argument("--holdout-mode",choices=["random","family"],default="family",
+                    help="family = hold out WHOLE workflows (no test workflow seen in training pairs); "
+                         "the honest generalization test. random = leaks (same workflow in train & test).")
     a=ap.parse_args()
     import torch, torch.nn.functional as F
     torch.set_num_threads(4)  # cap CPU threads (frugal on small-RAM local box)
@@ -41,7 +44,17 @@ def main():
     if os.path.exists(p): src+=[json.loads(l) for l in open(p)]
     src=[r for r in src if r.get("correct_workflow") in idx and r.get("query")]
     random.shuffle(src)
-    ncut=int(len(src)*(1-a.holdout_frac)); train_q, held_q = src[:ncut], src[ncut:]
+    if a.holdout_mode=="family":
+        # hold out WHOLE workflows: no held-out workflow appears in any training pair (honest number).
+        wfs=sorted({r["correct_workflow"] for r in src}); random.shuffle(wfs)
+        held_wf=set(wfs[:int(len(wfs)*a.holdout_frac)])
+        train_q=[r for r in src if r["correct_workflow"] not in held_wf]
+        held_q =[r for r in src if r["correct_workflow"] in held_wf]
+        print(f"FAMILY holdout: {len(held_wf)}/{len(wfs)} workflows held out "
+              f"(their {len(held_q)} queries never seen in training).")
+    else:
+        ncut=int(len(src)*(1-a.holdout_frac)); train_q, held_q = src[:ncut], src[ncut:]
+        print("RANDOM holdout (WARNING: same workflow can appear in train & test -> optimistic).")
     print(f"labeled queries: {len(src)} -> train {len(train_q)} / heldout {len(held_q)}")
 
     QPREFIX="Represent this sentence for searching relevant passages: "

@@ -7,6 +7,7 @@ This is RAG-SFT-shaped (full schema in the prompt) with conditional restraint. V
 are schema-valid + are a subset of the presented params + exclude unchanged-default params."""
 import sqlite3, json, os, sys, time, random, urllib.request
 from concurrent.futures import ThreadPoolExecutor
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import schema_guard
 random.seed(71); REPO="/Users/kky/biomate-review"; KEY=os.environ["OPENAI_API_KEY"]; GEN="gpt-5-mini"
 c=sqlite3.connect(f"file:{REPO}/backend/database/galaxy_ai_tools.db?mode=ro",uri=True); c.row_factory=sqlite3.Row
 rows=[]
@@ -17,12 +18,9 @@ for r in c.execute("select name,domain,params_schema from workflows where params
     if len(params)>=4: rows.append((r["name"], r["domain"], params))  # only workflows with enough params to be 'long'
 
 def sample_value(p):
-    t=(p.get("type") or "").lower(); av=p.get("allowed_values") or []
-    if av: return random.choice(av)
-    if t in ("boolean","bool"): return True          # bool set = positive (impliable)
-    if t in ("integer","int"): return random.choice([10,20,50,100])
-    if t in ("number","float"): return random.choice([0.01,0.05,0.1])
-    return None
+    # schema+name-aware (fixes 'number'-typed count params sampled as fractions, e.g. nPerm=0.01)
+    v=schema_guard.sample_valid_value(p)
+    return True if (p.get("type") or "").lower() in ("boolean","bool") else v  # bool set = positive (impliable)
 
 def render_schema(params):
     """RAG-style: show the FULL param list with default/required so the model must pick the few."""
