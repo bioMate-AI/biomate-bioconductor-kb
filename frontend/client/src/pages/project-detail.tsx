@@ -125,6 +125,20 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   const [saveOutputsMsg, setSaveOutputsMsg] = useState<string | null>(null)
   const [projectFiles, setProjectFiles] = useState<{ name: string; size?: number }[]>([])
 
+  // Plan / hypothesis objects (project_plans). Listed + created here.
+  const [plans, setPlans] = useState<any[]>([])
+  const [plansLoading, setPlansLoading] = useState(false)
+  const [newPlanGoal, setNewPlanGoal] = useState("")
+  const [newPlanHypothesis, setNewPlanHypothesis] = useState("")
+  const [creatingPlan, setCreatingPlan] = useState(false)
+
+  // Human-only notes (project_knowledge / knowledgeType='user_notes').
+  // NOT read by the assistant — distinct from Standing instructions (researchGoal).
+  const [notes, setNotes] = useState<any[]>([])
+  const [notesLoading, setNotesLoading] = useState(false)
+  const [newNote, setNewNote] = useState("")
+  const [savingNote, setSavingNote] = useState(false)
+
   // Inline tag editing
   const [editingTags, setEditingTags] = useState<string[]>([])
   const [addingTag, setAddingTag] = useState(false)
@@ -363,6 +377,87 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
         setIsEditingInstructions(false)
       }
     } catch { /* keep editing open */ }
+  }
+
+  const loadPlans = useCallback(async () => {
+    setPlansLoading(true)
+    try {
+      const r = await fetch(`/api/projects/${projectId}/plans`, { credentials: "include" })
+      if (r.ok) setPlans((await r.json()).plans ?? [])
+    } catch { /* ignore */ }
+    finally { setPlansLoading(false) }
+  }, [projectId])
+
+  useEffect(() => { loadPlans() }, [loadPlans])
+
+  const handleCreatePlan = async () => {
+    const goal = newPlanGoal.trim()
+    if (!goal) return
+    setCreatingPlan(true)
+    try {
+      const r = await fetch(`/api/projects/${projectId}/plans`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ goal, hypothesis: newPlanHypothesis.trim() || null }),
+      })
+      if (r.ok) {
+        setNewPlanGoal("")
+        setNewPlanHypothesis("")
+        loadPlans()
+      }
+    } catch { /* keep form open */ }
+    finally { setCreatingPlan(false) }
+  }
+
+  const loadNotes = useCallback(async () => {
+    setNotesLoading(true)
+    try {
+      const r = await fetch(`/api/projects/${projectId}/notes-list`, { credentials: "include" })
+      if (r.ok) setNotes((await r.json()).notes ?? [])
+    } catch { /* ignore */ }
+    finally { setNotesLoading(false) }
+  }, [projectId])
+
+  useEffect(() => { loadNotes() }, [loadNotes])
+
+  const handleSaveNote = async () => {
+    const content = newNote.trim()
+    if (!content) return
+    setSavingNote(true)
+    try {
+      const r = await fetch(`/api/projects/${projectId}/notes-list`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ content }),
+      })
+      if (r.ok) { setNewNote(""); loadNotes() }
+    } catch { /* keep text */ }
+    finally { setSavingNote(false) }
+  }
+
+  // Append a note's text into the Standing instructions (researchGoal), then
+  // persist via the same PATCH the instructions save uses. Trust boundary:
+  // Notes are human-only until explicitly promoted.
+  const handlePromoteNote = async (text: string) => {
+    if (!project) return
+    const line = (text || "").trim()
+    if (!line) return
+    const current = (instructionsValue || "").trim()
+    const next = current ? `${current}\n${line}` : line
+    try {
+      const r = await fetch(`/api/projects/${project.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ researchGoal: next }),
+      })
+      if (r.ok) {
+        setInstructionsValue(next)
+        setProject(prev => prev ? { ...prev, instructions: next } as any : prev)
+      }
+    } catch { /* ignore */ }
   }
 
   const openChatWithProject = (sessionId?: string, prefilledMessage?: string) => {
@@ -808,51 +903,176 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
 
         {/* Right sidebar */}
         <div className="w-72 border-l border-border bg-muted/20 shrink-0 flex flex-col overflow-hidden">
-          <div className="p-4 flex-1 overflow-y-auto">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-medium text-sm">Instructions</h3>
-              {canEdit && !isEditingInstructions && (
-                <Button
-                  variant="ghost" size="sm" className="h-7 w-7 p-0"
-                  onClick={() => setIsEditingInstructions(true)}
-                  data-testid="button-edit-instructions"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                </Button>
+          <div className="p-4 flex-1 overflow-y-auto space-y-6">
+            {/* Standing instructions — the agent-read directives (persist to researchGoal). */}
+            <div data-testid="standing-instructions-card">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="font-medium text-sm">Standing instructions</h3>
+                {canEdit && !isEditingInstructions && (
+                  <Button
+                    variant="ghost" size="sm" className="h-7 w-7 p-0"
+                    onClick={() => setIsEditingInstructions(true)}
+                    data-testid="button-edit-instructions"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground mb-3">Read by the assistant on every chat in this project.</p>
+
+              {isEditingInstructions ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={instructionsValue}
+                    onChange={e => setInstructionsValue(e.target.value)}
+                    placeholder="Add context, guidelines, or background the assistant should follow…"
+                    className="min-h-[140px] resize-none text-sm"
+                    data-testid="textarea-edit-instructions"
+                  />
+                  <div className="flex gap-1.5">
+                    <Button size="sm" className="h-7 text-xs" onClick={handleSaveInstructions} data-testid="button-save-instructions">
+                      <Save className="w-3 h-3 mr-1" />Save
+                    </Button>
+                    <Button
+                      variant="outline" size="sm" className="h-7 text-xs"
+                      onClick={() => { setInstructionsValue(project.instructions || ""); setIsEditingInstructions(false) }}
+                      data-testid="button-cancel-instructions"
+                    >
+                      <X className="w-3 h-3 mr-1" />Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : project.instructions ? (
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{project.instructions}</p>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  <FileText className="w-7 h-7 mx-auto mb-2 opacity-30" />
+                  <p className="text-xs">No instructions yet</p>
+                  <p className="text-xs opacity-70 mt-0.5">Add context to help BioMate</p>
+                </div>
               )}
             </div>
 
-            {isEditingInstructions ? (
-              <div className="space-y-2">
-                <Textarea
-                  value={instructionsValue}
-                  onChange={e => setInstructionsValue(e.target.value)}
-                  placeholder="Add context, guidelines, or background for this project…"
-                  className="min-h-[160px] resize-none text-sm"
-                  data-testid="textarea-edit-instructions"
-                />
-                <div className="flex gap-1.5">
-                  <Button size="sm" className="h-7 text-xs" onClick={handleSaveInstructions} data-testid="button-save-instructions">
-                    <Save className="w-3 h-3 mr-1" />Save
-                  </Button>
+            {/* Notes — human-only free text, NOT read by the assistant. */}
+            <div className="border-t border-border pt-4" data-testid="notes-card">
+              <h3 className="font-medium text-sm">Notes</h3>
+              <p className="text-[11px] text-muted-foreground mb-3">
+                Private to you — <span className="font-medium">not read by the assistant</span>. Promote a note to make it a standing instruction.
+              </p>
+
+              {canEdit && (
+                <div className="space-y-1.5 mb-3">
+                  <Textarea
+                    value={newNote}
+                    onChange={e => setNewNote(e.target.value)}
+                    placeholder="Jot a note for yourself…"
+                    className="min-h-[64px] resize-none text-sm"
+                    data-testid="textarea-new-note"
+                  />
+                  <div className="flex gap-1.5">
+                    <Button
+                      size="sm" className="h-7 text-xs"
+                      onClick={handleSaveNote}
+                      disabled={savingNote || !newNote.trim()}
+                      data-testid="button-save-note"
+                    >
+                      {savingNote ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}Add note
+                    </Button>
+                    {canEdit && newNote.trim() && (
+                      <Button
+                        variant="outline" size="sm" className="h-7 text-xs"
+                        onClick={() => handlePromoteNote(newNote)}
+                        title="Append this text to Standing instructions"
+                        data-testid="button-promote-new-note"
+                      >
+                        Promote to instruction ↑
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {notesLoading ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />Loading notes…
+                </div>
+              ) : notes.length === 0 ? (
+                <p className="text-xs text-muted-foreground" data-testid="notes-empty">No notes yet</p>
+              ) : (
+                <div className="space-y-2" data-testid="notes-list">
+                  {notes.map((n: any) => (
+                    <div key={n.id} className="rounded-md border border-border bg-background p-2.5" data-testid={`note-row-${n.id}`}>
+                      <p className="text-sm whitespace-pre-wrap">{n.content}</p>
+                      <div className="flex items-center justify-between mt-1.5">
+                        <span className="text-[10px] text-muted-foreground">{relTime(n.createdAt)}</span>
+                        {canEdit && (
+                          <button
+                            onClick={() => handlePromoteNote(n.content)}
+                            className="text-[11px] text-muted-foreground hover:text-primary"
+                            title="Append this note to Standing instructions"
+                            data-testid={`button-promote-note-${n.id}`}
+                          >
+                            Promote to instruction ↑
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Plan / hypothesis — first-class objects a run can cite (project_plans). */}
+            <div className="border-t border-border pt-4" data-testid="plans-card">
+              <h3 className="font-medium text-sm mb-3">Plan / hypothesis</h3>
+
+              {canEdit && (
+                <div className="space-y-1.5 mb-3" data-testid="new-plan-form">
+                  <Input
+                    value={newPlanGoal}
+                    onChange={e => setNewPlanGoal(e.target.value)}
+                    placeholder="Goal (required)"
+                    className="h-8 text-sm"
+                    data-testid="input-plan-goal"
+                  />
+                  <Textarea
+                    value={newPlanHypothesis}
+                    onChange={e => setNewPlanHypothesis(e.target.value)}
+                    placeholder="Hypothesis (optional)"
+                    className="min-h-[56px] resize-none text-sm"
+                    data-testid="textarea-plan-hypothesis"
+                  />
                   <Button
-                    variant="outline" size="sm" className="h-7 text-xs"
-                    onClick={() => { setInstructionsValue(project.instructions || ""); setIsEditingInstructions(false) }}
-                    data-testid="button-cancel-instructions"
+                    size="sm" className="h-7 text-xs"
+                    onClick={handleCreatePlan}
+                    disabled={creatingPlan || !newPlanGoal.trim()}
+                    data-testid="button-create-plan"
                   >
-                    <X className="w-3 h-3 mr-1" />Cancel
+                    {creatingPlan ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Plus className="w-3 h-3 mr-1" />}New plan
                   </Button>
                 </div>
-              </div>
-            ) : project.instructions ? (
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{project.instructions}</p>
-            ) : (
-              <div className="text-center py-6 text-muted-foreground">
-                <FileText className="w-7 h-7 mx-auto mb-2 opacity-30" />
-                <p className="text-xs">No instructions yet</p>
-                <p className="text-xs opacity-70 mt-0.5">Add context to help BioMate</p>
-              </div>
-            )}
+              )}
+
+              {plansLoading ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />Loading plans…
+                </div>
+              ) : plans.length === 0 ? (
+                <p className="text-xs text-muted-foreground" data-testid="plans-empty">No plans yet</p>
+              ) : (
+                <div className="space-y-2" data-testid="plans-list">
+                  {plans.map((p: any) => (
+                    <div key={p.id} className="rounded-md border border-border bg-background p-2.5" data-testid={`plan-row-${p.id}`}>
+                      <p className="text-sm font-medium whitespace-pre-wrap">{p.goal}</p>
+                      {p.hypothesis && (
+                        <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{p.hypothesis}</p>
+                      )}
+                      <span className="text-[10px] text-muted-foreground block mt-1.5">{relTime(p.created_at)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Members & roles — owner-only invite UI + member list visible to all */}
