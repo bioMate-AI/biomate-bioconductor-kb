@@ -14,7 +14,10 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 vec=TfidfVectorizer(ngram_range=(1,2),min_df=2,max_features=50000); Dm=vec.fit_transform(docs)
 from sentence_transformers import SentenceTransformer
-m=SentenceTransformer("BAAI/bge-small-en-v1.5"); de=m.encode(docs,batch_size=128,normalize_embeddings=True,show_progress_bar=False)
+# RETRIEVER_MODEL env lets us mine candidates with the CONTRASTIVE retriever (recall@5 0.38->0.92),
+# so the top-k candidate blocks contain genuinely-hard, gold-usually-present negatives.
+RET=os.environ.get("RETRIEVER_MODEL","BAAI/bge-small-en-v1.5")
+m=SentenceTransformer(RET); print("[rag] retriever:",RET); de=m.encode(docs,batch_size=128,normalize_embeddings=True,show_progress_bar=False)
 def z(x): return (x-x.mean(1,keepdims=True))/(x.std(1,keepdims=True)+1e-9)
 def retrieve(query,k=10):
     lex=cosine_similarity(vec.transform([query]),Dm)
