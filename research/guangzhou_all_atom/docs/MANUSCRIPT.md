@@ -107,6 +107,20 @@ Murcko scaffolds for macrocycles (scaffold-splitting is a weak generalization te
   — i.e., a 2D-descriptor model **cannot see** the established N-methylation permeability lever, because the
   mechanism is conformational.
 
+**3.6 Permeability headroom exists and is binding-safe (redesign v1).** Building on finding 3.3/3.5, we
+asked whether the permeability gap can be closed *without* sacrificing binding. Using the actual bound-complex
+structures, each peptide backbone amide was classified by whether its backbone N makes an interface H-bond
+(H-bond distance to a receptor O/N acceptor). Backbone Ns that do **not** H-bond the receptor can be
+N-methylated — the dominant cyclic-peptide permeability lever (Lokey/Kihlberg) — with binding preserved by
+construction. All 32 designs carried substantial such headroom (ΔHBD = 2–14 removable backbone donors), and
+strong binders retained it: the 1yf4 MM-GBSA #1 binder `FSRNVGDPY` (ΔG −52.7) drops HBD 16→11 while keeping
+all four of its interface-H-bonding backbone donors. Notably, the good binders make few backbone H-bonds to
+the receptor (0–4) — binding is side-chain-driven — so backbone N-methylation is broadly compatible with
+their binding modes. This supplies the mechanistic objective a permeability-driven design step would maximize
+(`binding × ΔHBD-headroom × MW`); it is deliberately mechanistic because the 2D GBM is blind to the lever
+(§3.5). Caveat: ΔHBD is a necessary-not-sufficient permeability proxy, and energetic re-verification of the
+N-methylated variants (MM-GBSA with an N-methyl backbone patch) is the required next step, not yet built.
+
 ## 4. Discussion
 Two conclusions follow. First, for cyclic-peptide binder design an independent physics verify step is
 essential and not shortcut-able: ML interface confidence is orthogonal to physics binding

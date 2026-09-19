@@ -72,3 +72,10 @@ but not yet built — that's the frontier. Wet lab remains the ultimate gate.
   `worker_errors.txt` to see the exact `sqm` failure without re-deriving it. Launcher saved as
   `launch_perm_2env.sh` (CPU spot).
 - **Spot lesson applied** — all these CPU runs used spot; `peptide-aws-launch-infra` memory updated.
+- **Permeability-driven redesign STARTED (v1, the differentiator)** — `perm_redesign_v1.py`,
+  `docs/PERMEABILITY_DRIVEN_GENERATION.md`, `results/perm_redesign_v1_result.json`. Structure-grounded,
+  mechanistic (backbone-NHD lever, NOT the GBM which is blind to N-methylation), local/no-GPU. Finding: all
+  32 designs carry binding-safe permeability headroom (ΔHBD 2–14 backbone donors N-methylatable without
+  touching interface H-bonds); strong binders keep it (1yf4 FSRNVGDPY ΔG−52.7, HBD16→11). Supplies the
+  `binding × ΔHBD × MW` objective for generation. Next: v2 = MM-GBSA re-verify of N-methyl variants (needs an
+  N-methyl backbone CHARMM patch — the hard part); v3 = wire objective into oversampled generation.
