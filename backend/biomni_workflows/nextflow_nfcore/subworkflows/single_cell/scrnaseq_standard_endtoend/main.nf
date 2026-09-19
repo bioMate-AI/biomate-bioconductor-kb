@@ -63,6 +63,10 @@ process SCRNASEQ_STANDARD_ENDTOEND {
     tuple val(meta), path("qc_metrics.csv"),                  emit: qc
     tuple val(meta), path("methods_report.html"),             emit: report
     tuple val(meta), path("umap_celltypes.png"),              emit: viz
+    // Compact JSON sidecar for the in-app single-cell viewer (UMAP + clusters +
+    // markers). Optional + fail-soft: if it can't be produced the run is
+    // unaffected and the UI simply falls back to the PNG plots / download.
+    tuple val(meta), path("annotated.h5ad.summary.json"),     emit: summary, optional: true
     path "versions.yml",                                       emit: versions
 
     script:
@@ -124,6 +128,48 @@ process SCRNASEQ_STANDARD_ENDTOEND {
         --assignments celltype_assignments.csv \\
         --markers marker_genes_per_cluster.csv \\
         --plots umap_celltypes.png,marker_heatmap.png
+
+    # ---------------------------------------------------------------
+    # STAGE 6.5 — Compact single-cell summary sidecar (for the in-app viewer)
+    # Fail-soft: wrapped so a failure NEVER breaks the run (the output is
+    # declared optional). Reads what STAGE 5/6 already produced — no extra
+    # compute beyond a subsample — and emits UMAP points + cluster counts +
+    # top markers as a small JSON the frontend renders without any external tool.
+    # ---------------------------------------------------------------
+    python - <<'PY' || echo "[summary] skipped (non-fatal)"
+    import json, random
+    try:
+        import scanpy as sc, numpy as np
+        from collections import Counter
+        a = sc.read_h5ad("annotated.h5ad")
+        obs = a.obs
+        label_col = next((c for c in ["cell_type","celltype","cell_type_celltypist",
+                                       "majority_voting","predicted_labels","leiden",
+                                       "clusters","cluster"] if c in obs.columns), None)
+        labels = obs[label_col].astype(str).tolist() if label_col else ["all"] * a.n_obs
+        cnt = Counter(labels)
+        clusters = [{"label": k, "n": int(v)} for k, v in sorted(cnt.items(), key=lambda kv: -kv[1])]
+        out = {"n_cells": int(a.n_obs), "n_genes": int(a.n_vars), "clusters": clusters}
+        if "X_umap" in a.obsm:
+            xy = np.asarray(a.obsm["X_umap"])[:, :2]
+            idx = list(range(a.n_obs))
+            if a.n_obs > 2000:
+                random.seed(0); idx = sorted(random.sample(idx, 2000))
+            out["umap"] = {"points": [[float(xy[i, 0]), float(xy[i, 1]), str(labels[i])] for i in idx]}
+        try:
+            import pandas as pd
+            mdf = pd.read_csv("marker_genes_per_cluster.csv")
+            gcol = next((c for c in ["gene","names","gene_name","marker"] if c in mdf.columns), mdf.columns[-1])
+            ccol = next((c for c in ["cluster","group","cell_type","celltype"] if c in mdf.columns), mdf.columns[0])
+            out["markers"] = [{"cluster": str(cl), "genes": [str(g) for g in grp[gcol].head(8).tolist()]}
+                              for cl, grp in mdf.groupby(ccol)]
+        except Exception as e:
+            print("[summary] markers skipped:", e)
+        json.dump(out, open("annotated.h5ad.summary.json", "w"))
+        print("[summary] wrote annotated.h5ad.summary.json")
+    except Exception as e:
+        print("[summary] skipped:", e)
+    PY
 
     # ---------------------------------------------------------------
     # STAGE 7 — Methods Report (HTML)

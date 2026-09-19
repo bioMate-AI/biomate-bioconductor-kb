@@ -29,6 +29,7 @@ import { useInteractiveToolsAvailable } from "@/hooks/use-interactive-tools";
 import { PlddtChart } from "./viewers/plddt-chart";
 import { SeqTracks, type SeqTrack, type FlaggedInterval } from "./viewers/seq-tracks";
 import { HitGrid, type ChemHit, type HitVerdict } from "./viewers/hit-grid";
+import { SingleCellSummaryPanel } from "./viewers/single-cell-summary";
 // 3Dmol.js loaded dynamically inside InlineStructureViewer so the structure
 // path doesn't pull ~700 KB into the main bundle.
 
@@ -556,6 +557,9 @@ function RObjectPreview({ runId, file, onClose, projectId }: StepOutputPreviewPr
 function SingleCellPreview({ runId, file, onClose }: StepOutputPreviewProps) {
   const [launcherOpen, setLauncherOpen] = useState(false);
   const [launcherTool, setLauncherTool] = useState<'cellxgene' | 'jupyter'>('cellxgene');
+  // Whether the in-app summary sidecar is missing (→ interactive/download is the
+  // primary path); starts false so we don't flash a fallback before it loads.
+  const [summaryAbsent, setSummaryAbsent] = useState(false);
   const { data: itAvail } = useInteractiveToolsAvailable();
   // Optimistic until availability is known; hide a tool once known-unavailable.
   const cellxgeneAvailable = !itAvail || itAvail.tools.cellxgene;
@@ -579,11 +583,17 @@ function SingleCellPreview({ runId, file, onClose }: StepOutputPreviewProps) {
           <X className="h-3.5 w-3.5" />
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground mb-3">
-        Single-cell AnnData / Loom object — open interactively to explore.
-      </p>
+
+      {/* In-app summary (UMAP + clusters + markers) from the pipeline's sidecar,
+          when present. Self-hides and calls onAbsent when there's no sidecar. */}
+      <SingleCellSummaryPanel runId={runId} file={file} onAbsent={() => setSummaryAbsent(true)} />
+
+      {/* Deeper exploration (secondary when the summary is shown) / fallback. */}
       {anyAvailable ? (
-        <>
+        <div className="mt-3">
+          <p className="text-[11px] text-muted-foreground mb-1">
+            {summaryAbsent ? 'Single-cell object — open interactively to explore.' : 'Explore interactively:'}
+          </p>
           <div className="flex flex-wrap gap-2">
             {cellxgeneAvailable && (
               <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs" onClick={() => openWith('cellxgene')}>
@@ -604,10 +614,13 @@ function SingleCellPreview({ runId, file, onClose }: StepOutputPreviewProps) {
             outputs={[output]}
             initialTool={launcherTool}
           />
-        </>
-      ) : (
-        <InteractiveUnavailableNote runId={runId} file={file} toolLabel="Interactive viewers (CellxGene/Jupyter)" />
-      )}
+        </div>
+      ) : summaryAbsent ? (
+        // No in-app summary AND no interactive tool → offer the download.
+        <div className="mt-3">
+          <InteractiveUnavailableNote runId={runId} file={file} toolLabel="Interactive viewers (CellxGene/Jupyter)" />
+        </div>
+      ) : null}
     </div>
   );
 }
