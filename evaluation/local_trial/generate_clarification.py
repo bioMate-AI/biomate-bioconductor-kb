@@ -6,16 +6,27 @@ import sqlite3, json, os, sys, time, random, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 random.seed(91); REPO="/Users/kky/biomate-review"; KEY=os.environ["OPENAI_API_KEY"]; GEN="gpt-5-mini"
 c=sqlite3.connect(f"file:{REPO}/backend/database/galaxy_ai_tools.db?mode=ro",uri=True); c.row_factory=sqlite3.Row
+import re as _re
+# The workflow PANEL provides full parameter configuration/override, and defaults cover most knobs, so
+# the model should clarify ONLY genuine BLOCKING inputs the user must supply (data/reference/genome),
+# NOT every schema-required hyperparameter. Essential-input heuristic (name/type):
+ESSENTIAL=_re.compile(r"(?i)(file|path|input|data|reference|ref_|genome|fasta|fastq|\bbam\b|\bvcf\b|"
+                      r"matrix|counts|table|dir|dataset|samplesheet|annotation|gtf|gff|bed|index)")
+def essential_inputs(params):
+    ess=[]
+    for p in params:
+        if p.get("optional", True) or p.get("default") is not None: continue   # not truly required
+        t=(p.get("type") or "").lower()
+        if ESSENTIAL.search(p["name"]) or ESSENTIAL.search(p.get("description") or "") or t in ("file","data","dataset"):
+            ess.append(p)
+    return ess
 rows=[]
 for r in c.execute("select name,domain,params_schema from workflows where params_schema is not null and length(params_schema)>80"):
     try: p=json.loads(r["params_schema"])
     except: continue
     params=[x for x in (p.get("parameters") or []) if x.get("name")]
-    req=[x for x in params if not x.get("optional", True) and x.get("default") is None]  # truly-required, no default
-    # committee fix: only workflows with a SMALL required-no-default set (1-4) -> the clarify gold is the
-    # FULL missing set and stays realistic (avoids the unrealistic 'ask for 13 low-level knobs' case,
-    # which usually means the schema's required flag is unreliable for that workflow).
-    if 1<=len(req)<=4 and len(params)>=3: rows.append((r["name"], r["domain"], params, req))
+    req=essential_inputs(params)   # clarify essential blocking inputs only (panel/defaults handle the rest)
+    if 1<=len(req)<=3 and len(params)>=3: rows.append((r["name"], r["domain"], params, req))
 
 def render(params):
     return "\n".join(f"- {p['name']} ({p.get('type')}, {'required' if not p.get('optional',True) else 'optional'})" for p in params)
