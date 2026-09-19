@@ -15,9 +15,13 @@ INSTR=("You are BioMate. No single existing workflow may exactly fit this reques
        "write \"GENERATE\" if no candidate fits, or \"RUN_CODE\" for a small ad-hoc step. "
        "Reply ONLY a JSON list of {\"step\": ..., \"workflow_or_action\": ...}.")
 
-def call(url, model, prompt, mx=600):
-    body=json.dumps({"model":model,"messages":[{"role":"user","content":prompt}],
-                     "max_completion_tokens":mx,"temperature":0}).encode()
+def call(url, model, prompt, mx=1600):
+    # gpt-5.x are reasoning models: NO temperature (only default supported) and reasoning eats the
+    # token budget -> set reasoning_effort=low + a generous max_completion_tokens (else empty content).
+    payload={"model":model,"messages":[{"role":"user","content":prompt}],"max_completion_tokens":mx}
+    if model.startswith("gpt-5"): payload["reasoning_effort"]="low"
+    else: payload["temperature"]=0
+    body=json.dumps(payload).encode()
     h={"Content-Type":"application/json"}
     if "openai.com" in url or (KEY and "127.0.0.1" not in url): h["Authorization"]=f"Bearer {KEY}"
     for a in range(3):
