@@ -173,8 +173,21 @@ vs after training:
 
 | Metric | Before | After | Δ |
 |---|--:|--:|--:|
-| recall@1 | 0.233 | **0.767** | +0.534 (3.3×) |
-| recall@5 | 0.377 | **0.915** | +0.538 (2.4×) |
+| recall@1 (random split) | 0.233 | **0.767** | +0.534 (3.3×) |
+| recall@5 (random split) | 0.377 | **0.915** | +0.538 (2.4×) |
+
+The random split leaks (the same workflow appears in train and test). On an honest **family holdout**
+(562 queries for 169 workflows held out entirely, never seen in training) the numbers are lower but the
+gain still generalizes:
+
+| Metric (family holdout) | Before | After | Δ |
+|---|--:|--:|--:|
+| recall@1 | 0.244 | **0.399** | +0.155 |
+| recall@5 | 0.374 | **0.694** | +0.320 |
+
+So the contrastive lift is real and generalizes to unseen workflows (not memorization); absolute
+unseen-workflow recall (0.40@1 / 0.69@5) is the honest floor, with production sitting between the two
+splits since most catalog workflows do accrue training queries.
 
 Training set: 2,206 queries → 4,412 (query, +gold, −hard) triplets. This was a *frugal proof* on
 an 8.6 GB CPU box (batch 8, 2 hard negatives, 1 epoch); the GPU configuration (batch 32, 4 hard

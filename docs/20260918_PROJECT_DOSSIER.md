@@ -72,8 +72,9 @@ BGE fine-tuned with InfoNCE on (query, +gold, −hard negatives). Random-split r
 ## 4. Current metrics
 - Corpus: 44.5M deduped tokens (11 shards).
 - SFT: 15,254 validated / 11 tasks.
-- Retriever: random-split recall@1 0.233→0.767, @5 0.377→0.915 (leaky); **family-holdout: BEFORE
-  0.244/0.374, AFTER = _pending_** (honest generalization number).
+- Retriever: random-split recall@1 0.233→0.767, @5 0.377→0.915 (leaky); **family-holdout (honest,
+  169 unseen workflows / 562 queries): @1 0.244→0.399, @5 0.374→0.694** — real generalizing gain
+  (+0.155/+0.32), unseen-workflow floor 0.40@1/0.69@5; production between the two splits.
 - Prior 27B QLoRA SFT (old data): trained fine (loss 1.19→0.60); eval was a 0.0-delta ARTIFACT (fixed).
 
 ---
