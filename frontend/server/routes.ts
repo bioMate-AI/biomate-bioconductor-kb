@@ -15100,6 +15100,27 @@ Respond ONLY with valid JSON (no markdown wrapper):
     }
   });
 
+  // Report which interactive tools are actually launchable in this environment,
+  // so the UI can hide "Open in RStudio/Jupyter/CellxGene" buttons that would
+  // otherwise 400 (the tool isn't installed in the Galaxy toolbox). Keyed by the
+  // short viewer names the client uses. Fails closed (all false) on any error —
+  // an honest "not available" beats a dead button.
+  app.get("/api/interactive/available", optionalAuth, async (_req, res) => {
+    const map: Record<string, string> = {
+      jupyter: "interactive_tool_jupyter_notebook",
+      rstudio: "interactive_tool_rstudio",
+      cellxgene: "interactive_tool_cellxgene",
+    };
+    try {
+      const byGalaxyId = await galaxyAPIProxy.getInteractiveToolAvailability(Object.values(map));
+      const tools: Record<string, boolean> = {};
+      for (const [short, gid] of Object.entries(map)) tools[short] = !!byGalaxyId[gid];
+      res.json({ available: Object.values(tools).some(Boolean), tools });
+    } catch {
+      res.json({ available: false, tools: { jupyter: false, rstudio: false, cellxgene: false } });
+    }
+  });
+
   // Get active interactive sessions
   app.get("/api/interactive/sessions", authenticateToken, async (req, res) => {
     try {

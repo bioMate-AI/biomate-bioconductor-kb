@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { recommendViewers, VIEWER_META, VIEWER_TOOL_ID, type ViewerKey } from "@/lib/interactive-viewers"
+import { useInteractiveToolsAvailable } from "@/hooks/use-interactive-tools"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -84,6 +85,11 @@ export function InteractiveLauncher({
     state: string
   } | null>(null)
   const [copied, setCopied] = useState(false)
+  const { data: itAvail } = useInteractiveToolsAvailable()
+  // Known-unavailable only for the tools we actually probe (jupyter/rstudio/
+  // cellxgene); other tools stay optimistic and rely on the launch error path.
+  const probedTools = itAvail ? (itAvail.tools as Record<string, boolean>) : null
+  const selectedToolAvailable = !probedTools || !(selectedTool in probedTools) || probedTools[selectedTool]
   // The launch API returns the session URL as soon as the entry-point row exists (~1-2s),
   // but the container needs ~10-30s more to actually serve — the URL 503s until then.
   // Poll it to readiness so we don't hand the user a dead link. 'timeout' still lets them
@@ -390,11 +396,21 @@ export function InteractiveLauncher({
               </Alert>
             )}
 
+            {!selectedToolAvailable && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {toolInfo.name} isn’t enabled in this environment yet. Download the file(s) and
+                  analyze them locally, or ask an admin to provision interactive tools.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <DialogFooter>
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleLaunch} disabled={isLaunching}>
+              <Button onClick={handleLaunch} disabled={isLaunching || !selectedToolAvailable}>
                 {isLaunching ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />

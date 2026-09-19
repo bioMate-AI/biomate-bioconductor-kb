@@ -1322,6 +1322,39 @@ export class GalaxyAPIProxy {
     return response.data;
   }
 
+  // Cache the (static-per-environment) interactive-tool availability so the
+  // per-render UI probe is one cheap Galaxy round-trip at most every 5 min.
+  private _itAvailabilityCache: { at: number; data: Record<string, boolean> } | null = null;
+
+  /**
+   * Whether each given interactive tool id is actually installed in this
+   * Galaxy's toolbox. A launch hits POST /api/tools with the tool_id; when the
+   * tool isn't registered Galaxy 400s the launch. We probe GET /api/tools/{id}
+   * so the UI can hide "Open in RStudio/Jupyter/…" buttons that would fail,
+   * rather than offering a dead affordance. Fails closed (false) on any error.
+   */
+  async getInteractiveToolAvailability(toolIds: string[]): Promise<Record<string, boolean>> {
+    const now = Date.now();
+    if (this._itAvailabilityCache && now - this._itAvailabilityCache.at < 300_000) {
+      return this._itAvailabilityCache.data;
+    }
+    const out: Record<string, boolean> = {};
+    await Promise.all(
+      toolIds.map(async (id) => {
+        try {
+          const r = await this.client.get(`/api/tools/${encodeURIComponent(id)}`, {
+            params: { io_details: false },
+          });
+          out[id] = r.status === 200;
+        } catch {
+          out[id] = false;
+        }
+      }),
+    );
+    this._itAvailabilityCache = { at: now, data: out };
+    return out;
+  }
+
   // --- Workflow Subworkflows ---
 
   /**

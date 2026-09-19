@@ -25,6 +25,7 @@ import { FscCurveChart } from "./viewers/fsc-curve-chart";
 import { MotionHistogramChart } from "./viewers/motion-histogram-chart";
 import { CtfQualityChart } from "./viewers/ctf-quality-chart";
 import { InteractiveLauncher } from "./interactive-launcher";
+import { useInteractiveToolsAvailable } from "@/hooks/use-interactive-tools";
 import { PlddtChart } from "./viewers/plddt-chart";
 import { SeqTracks, type SeqTrack, type FlaggedInterval } from "./viewers/seq-tracks";
 import { HitGrid, type ChemHit, type HitVerdict } from "./viewers/hit-grid";
@@ -120,6 +121,33 @@ function pickInteractiveTool(ext: string): {
     return { tool: 'rstudio', label: 'Analyze in RStudio' };
   // sequences, annotations, VCF, text — Jupyter is the universal fallback
   return { tool: 'jupyter', label: 'Open in Jupyter' };
+}
+
+/** Download URL for a step output — the honest fallback when the matching
+ *  interactive tool isn't provisioned in this environment. */
+function stepFileDownloadUrl(runId: string, file: { name: string; path: string }): string {
+  return `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(file.path)}&name=${encodeURIComponent(file.name)}`;
+}
+
+/** Shown in place of an "Open in <tool>" button when that interactive tool
+ *  isn't launchable here (it would 400). Offers the download instead of a dead
+ *  button, so the user can analyze the file locally. */
+function InteractiveUnavailableNote({
+  runId, file, toolLabel,
+}: { runId: string; file: { name: string; path: string }; toolLabel: string }) {
+  return (
+    <div className="flex flex-col gap-2" data-testid="interactive-unavailable">
+      <p className="text-xs text-muted-foreground">
+        {toolLabel} isn’t enabled in this environment. Download the file to analyze it locally.
+      </p>
+      <a href={stepFileDownloadUrl(runId, file)} download={file.name}>
+        <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs">
+          <Download className="h-3.5 w-3.5" />
+          Download {file.name}
+        </Button>
+      </a>
+    </div>
+  );
 }
 
 /** Viewers that need text content (not a blob URL). */
@@ -433,6 +461,8 @@ function RObjectPreview({ runId, file, onClose, projectId }: StepOutputPreviewPr
   const [launcherOpen, setLauncherOpen] = useState(false);
   const [summary, setSummary] = useState<RdsSummary | null>(null);
   const [sidecarTried, setSidecarTried] = useState(false);
+  const { data: itAvail } = useInteractiveToolsAvailable();
+  const rstudioAvailable = !itAvail || itAvail.tools.rstudio; // optimistic until known
   const output = { id: file.path, name: file.name, size: 0, type: file.extension };
 
   // Try to fetch the sidecar produced alongside the .rds (best-effort, graceful).
@@ -501,25 +531,36 @@ function RObjectPreview({ runId, file, onClose, projectId }: StepOutputPreviewPr
         </p>
       )}
 
-      <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs" onClick={() => setLauncherOpen(true)}>
-        <Laptop className="h-3.5 w-3.5" />
-        Open in RStudio
-      </Button>
-      <InteractiveLauncher
-        open={launcherOpen}
-        onOpenChange={setLauncherOpen}
-        outputs={[output]}
-        initialTool="rstudio"
-      />
+      {rstudioAvailable ? (
+        <>
+          <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs" onClick={() => setLauncherOpen(true)}>
+            <Laptop className="h-3.5 w-3.5" />
+            Open in RStudio
+          </Button>
+          <InteractiveLauncher
+            open={launcherOpen}
+            onOpenChange={setLauncherOpen}
+            outputs={[output]}
+            initialTool="rstudio"
+          />
+        </>
+      ) : (
+        <InteractiveUnavailableNote runId={runId} file={file} toolLabel="RStudio" />
+      )}
     </div>
   );
 }
 
 /** Single-cell AnnData / Loom preview — binary format; cannot be read inline.
  *  Offers CellxGene (ideal for .h5ad / .loom) and Jupyter as fallback. */
-function SingleCellPreview({ runId: _runId, file, onClose }: StepOutputPreviewProps) {
+function SingleCellPreview({ runId, file, onClose }: StepOutputPreviewProps) {
   const [launcherOpen, setLauncherOpen] = useState(false);
   const [launcherTool, setLauncherTool] = useState<'cellxgene' | 'jupyter'>('cellxgene');
+  const { data: itAvail } = useInteractiveToolsAvailable();
+  // Optimistic until availability is known; hide a tool once known-unavailable.
+  const cellxgeneAvailable = !itAvail || itAvail.tools.cellxgene;
+  const jupyterAvailable = !itAvail || itAvail.tools.jupyter;
+  const anyAvailable = cellxgeneAvailable || jupyterAvailable;
   const output = { id: file.path, name: file.name, size: 0, type: file.extension };
 
   const openWith = (tool: 'cellxgene' | 'jupyter') => {
@@ -541,22 +582,32 @@ function SingleCellPreview({ runId: _runId, file, onClose }: StepOutputPreviewPr
       <p className="text-xs text-muted-foreground mb-3">
         Single-cell AnnData / Loom object — open interactively to explore.
       </p>
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs" onClick={() => openWith('cellxgene')}>
-          <Laptop className="h-3.5 w-3.5" />
-          Explore in CellxGene
-        </Button>
-        <Button size="sm" variant="ghost" className="gap-1.5 h-7 text-xs" onClick={() => openWith('jupyter')}>
-          <Laptop className="h-3.5 w-3.5" />
-          Open in Jupyter
-        </Button>
-      </div>
-      <InteractiveLauncher
-        open={launcherOpen}
-        onOpenChange={setLauncherOpen}
-        outputs={[output]}
-        initialTool={launcherTool}
-      />
+      {anyAvailable ? (
+        <>
+          <div className="flex flex-wrap gap-2">
+            {cellxgeneAvailable && (
+              <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs" onClick={() => openWith('cellxgene')}>
+                <Laptop className="h-3.5 w-3.5" />
+                Explore in CellxGene
+              </Button>
+            )}
+            {jupyterAvailable && (
+              <Button size="sm" variant="ghost" className="gap-1.5 h-7 text-xs" onClick={() => openWith('jupyter')}>
+                <Laptop className="h-3.5 w-3.5" />
+                Open in Jupyter
+              </Button>
+            )}
+          </div>
+          <InteractiveLauncher
+            open={launcherOpen}
+            onOpenChange={setLauncherOpen}
+            outputs={[output]}
+            initialTool={launcherTool}
+          />
+        </>
+      ) : (
+        <InteractiveUnavailableNote runId={runId} file={file} toolLabel="Interactive viewers (CellxGene/Jupyter)" />
+      )}
     </div>
   );
 }
