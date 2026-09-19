@@ -45,6 +45,18 @@ blocks. Same hierarchical shape as v2 decompose, opposite direction (compose, no
 - Metrics: no-match detection rate; plan validity (type-flow valid); functional coverage vs the removed
   workflow's steps; over-generation (hallucinated blocks) rate.
 
+## Baseline measured (2026-09-19) — reference bar
+`eval_removal.py` on 80 removal cases (target workflow removed from candidates), model = gpt-5-mini:
+- **composed_rate 1.00** (always builds a multi-step plan, never forces one workflow)
+- **validity_rate 1.00** (named blocks real / available / ≠ removed target — no hallucination)
+- **mean_step_coverage 0.54** (reconstructs ~54% of the removed workflow's true steps; buckets: 16 ≥0.8,
+  33 @0.5–0.79, 22 <0.5, 9 @0)
+
+Interpretation: composition/abstention comes naturally to a strong model; **reconstruction FIDELITY is
+the gap** (~54%). v3's WKG-grounded compositional training targets coverage >0.54; the trained on-prem
+model runs the same harness (`--url` vLLM) to measure it. Artifacts: `removal_eval.jsonl` (150 cases) +
+`removal_eval_result.json` in S3 `.../eval/`.
+
 ## Sequence
 1. Extend WKG to multi-granularity (tool functions + submodules + workflows).  *(needs nf-core
    subworkflow fetch on the box for full submodule coverage.)*
