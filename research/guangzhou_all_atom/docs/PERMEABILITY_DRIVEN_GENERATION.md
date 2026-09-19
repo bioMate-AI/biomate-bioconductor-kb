@@ -55,10 +55,32 @@ structure-grounded), and needed no GPU.
 - Full methylation of a design with 0 interface backbone donors (e.g. 1u8p `SSDLRRSAF`) is an *upper bound*,
   not a recommendation — extreme methylation changes conformation/solubility; a real pick methylates a subset.
 
-## Staged roadmap (each a dedicated build)
-- **v2 — MM-GBSA re-verify of the N-methyl variants** (the honest binding check). *Hard part:* psfgen needs a
-  custom CHARMM patch for backbone N-methylation (analogous to the CYCP cyclization-patch saga). Until then,
-  v1's "binding preserved by construction" is a structural argument, not an energetic measurement.
+## v2 — MM-GBSA re-verification of the N-methyl variants (BUILT, first result)
+Tools: `peptide_nmethyl_smoke.sh` (build test), `peptide_nmethyl_mmgbsa.sh` (ΔΔG), `launch_nmethyl_*.sh`.
+Result: `results/nmethyl_mmgbsa_1yf4_FSRNVGDPY.json`.
+
+The hard part — correct backbone N-methyl parametrization — is **solved** inside the same validated
+CHARMM/psfgen pipeline that built 32/32 rings: an `NMET` patch (delete amide HN, add N–CH3; neutral
+tertiary-amide-like charges) + a supplementary `.prm` that mirrors every amide-H (`H–NH1–*`) angle/dihedral
+onto the methyl (`CT3`) with **real borrowed CHARMM36 values** (+ `HA3–CT3–NH1` from `HA3–CT3–CT1`; the
+`NH1–CT3` bond, `CT3–NH1–C` angle and `HA3–CT3–NH1–C` dihedral already existed). It builds, parametrizes
+(GBn2), and minimizes cleanly. Converged like the CYCP saga: the build smoke named each missing term, fixed
+with analogue values, re-smoked.
+
+**First ΔΔG (1yf4 `FSRNVGDPY`, methylate the 5 v1-selected non-interface positions {1,2,6,7,9}):**
+baseline ΔG_bind = −52.4 kcal/mol (reproduces the −52.7 full run), N-methylated ΔG_bind = −57.1 →
+**ΔΔG = −4.6 kcal/mol → binding PRESERVED (not degraded)** while removing 5 backbone H-bond donors
+(HBD 16→11). This turns v1's structural "preserved by construction" claim into an energetic measurement.
+
+*Honest caveat on the sign:* the nominal −4.6 (slight improvement) is partly a single-trajectory MM-GBSA
+artifact (the methylated ligand is more strained in the bound pose — E_ligand −386→−231 — which inflates
+apparent binding) plus a real reduced-desolvation effect (a less-polar peptide pays a smaller desolvation
+penalty to bind). The **robust** conclusion is "binding not degraded"; the exact sign/magnitude needs FEP.
+The charges are approximate (for relative ΔΔG); absolute N-methyl energetics would need CGenFF/QM charges.
+
+## Staged roadmap (remaining)
+- **v2b — scale the ΔΔG across designs/targets**: `peptide_nmethyl_mmgbsa.sh` takes `CIF_S3` + `METH_POS`,
+  so the other v1 candidates are just re-runs of the proven script (not launched yet — one spot job each).
 - **v3 — wire the objective into oversampled generation**: oversample BoltzGen designs, score each by
   `binding × ΔHBD-headroom × MW`, and/or apply the N-methylation redesign, then re-verify (v2). This is the
   actual "permeability-driven generation" loop; v1 supplies its objective function and proves headroom exists.

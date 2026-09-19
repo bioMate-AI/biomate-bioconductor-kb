@@ -77,5 +77,13 @@ but not yet built — that's the frontier. Wet lab remains the ultimate gate.
   mechanistic (backbone-NHD lever, NOT the GBM which is blind to N-methylation), local/no-GPU. Finding: all
   32 designs carry binding-safe permeability headroom (ΔHBD 2–14 backbone donors N-methylatable without
   touching interface H-bonds); strong binders keep it (1yf4 FSRNVGDPY ΔG−52.7, HBD16→11). Supplies the
-  `binding × ΔHBD × MW` objective for generation. Next: v2 = MM-GBSA re-verify of N-methyl variants (needs an
-  N-methyl backbone CHARMM patch — the hard part); v3 = wire objective into oversampled generation.
+  `binding × ΔHBD × MW` objective for generation.
+- **v2 DONE (energetic re-verification)** — `peptide_nmethyl_smoke.sh`/`peptide_nmethyl_mmgbsa.sh`,
+  `results/nmethyl_mmgbsa_1yf4_FSRNVGDPY.json`. The hard part (backbone N-methyl parametrization) is solved:
+  NMET psfgen patch + supplementary CHARMM36 params (mirror amide-H terms onto CT3 methyl) — builds,
+  parametrizes (GBn2), minimizes. First ΔΔG: 1yf4 FSRNVGDPY, methylate 5 v1-selected non-interface positions
+  → baseline −52.4, methylated −57.1 → **ΔΔG −4.6 kcal/mol = binding PRESERVED** while removing 5 backbone
+  donors (HBD 16→11). Caveat: nominal improvement partly single-traj strain + desolvation; robust claim =
+  "not degraded"; sign needs FEP; charges approximate. v1→v2 chain now energetically supported.
+- **Remaining:** v2b = scale ΔΔG to other designs/targets (re-run `peptide_nmethyl_mmgbsa.sh` with CIF_S3 +
+  METH_POS, one spot job each); v3 = wire `binding×ΔHBD×MW` objective into oversampled BoltzGen generation.
