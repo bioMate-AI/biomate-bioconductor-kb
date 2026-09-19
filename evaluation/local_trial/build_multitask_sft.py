@@ -59,6 +59,8 @@ for r in load("clarification_sft.jsonl"):
     if r.get("messages"): out.append({"messages":r["messages"]})
 for r in load("diagnosis_fix_sft.jsonl"):
     if r.get("messages"): out.append({"messages":r["messages"]})
+for r in load("chaining_sft.jsonl"):
+    if r.get("messages"): out.append({"messages":r["messages"]})
 for r in load("rag_routing_sft.jsonl"):
     if r.get("messages"): out.append({"messages":r["messages"]})
 random.shuffle(out)
