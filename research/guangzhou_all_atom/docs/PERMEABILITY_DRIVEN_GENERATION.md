@@ -67,16 +67,26 @@ onto the methyl (`CT3`) with **real borrowed CHARMM36 values** (+ `HA3–CT3–N
 (GBn2), and minimizes cleanly. Converged like the CYCP saga: the build smoke named each missing term, fixed
 with analogue values, re-smoked.
 
-**First ΔΔG (1yf4 `FSRNVGDPY`, methylate the 5 v1-selected non-interface positions {1,2,6,7,9}):**
-baseline ΔG_bind = −52.4 kcal/mol (reproduces the −52.7 full run), N-methylated ΔG_bind = −57.1 →
-**ΔΔG = −4.6 kcal/mol → binding PRESERVED (not degraded)** while removing 5 backbone H-bond donors
-(HBD 16→11). This turns v1's structural "preserved by construction" claim into an energetic measurement.
+**ΔΔG across all 4 targets' top candidates** (methylate the v1-selected non-interface positions):
 
-*Honest caveat on the sign:* the nominal −4.6 (slight improvement) is partly a single-trajectory MM-GBSA
-artifact (the methylated ligand is more strained in the bound pose — E_ligand −386→−231 — which inflates
-apparent binding) plus a real reduced-desolvation effect (a less-polar peptide pays a smaller desolvation
-penalty to bind). The **robust** conclusion is "binding not degraded"; the exact sign/magnitude needs FEP.
-The charges are approximate (for relative ΔΔG); absolute N-methyl energetics would need CGenFF/QM charges.
+| target | design | nMe | baseline ΔG | methyl ΔG | ΔΔG | Δcomplex | Δligand | \|ΔΔG\|/max\|ΔE\| |
+|---|---|---|---|---|---|---|---|---|
+| 1yf4 | FSRNVGDPY | 5 | −52.4 | −57.1 | −4.6 | +148 | +155 | 0.03 |
+| 1csb | SRYTTMGSGWSIAFG | 12 | −66.4 | −79.0 | −12.6 | +315 | +321 | 0.04 |
+| 1kc4 | TGVGGVAGVDGDGTV | 14 | −20.5 | −26.6 | −6.1 | +313 | +327 | 0.02 |
+| 1u8p | SSDLRRSAF | 9 | −21.3 | −23.9 | −2.6 | +242 | +268 | 0.01 |
+
+**Honest reading — single-trajectory MM-GBSA is inadequate for scoring N-methylation, so these ΔΔG are NOT
+reliable.** All four are mildly favorable, but each ΔΔG is the small residual of two large, near-cancelling
+intramolecular energy changes: N-methylation raises *both* the complex and the free-ligand (bound-geometry)
+energy by +150 to +320 kcal/mol, and ΔΔG is only 1–4% of that — and it tracks the *number* of methylations,
+not the binding mode. Single-trajectory MM-GBSA never relaxes the free ligand, so heavy methylation inflates
+apparent binding via ligand strain. Defensible conclusions: (i) **no evidence of binding degradation**;
+(ii) the favorable sign/magnitude **cannot be trusted**; (iii) the right energetic arbiter is **FEP** (or
+≥3-trajectory MM-GBSA with free-ligand sampling). The binding-safe claim rests primarily on v1's structural
+argument (non-interface backbone Ns), with FEP required for the energetic verdict. Charges are also
+approximate (relative ΔΔG only). **What v2 solidly delivered: a working N-methyl parametrization + the
+empirical finding that MM-GBSA can't score this — which is exactly why the finalist tier is FEP.**
 
 ## Staged roadmap (remaining)
 - **v2b — scale the ΔΔG across designs/targets**: `peptide_nmethyl_mmgbsa.sh` takes `CIF_S3` + `METH_POS`,

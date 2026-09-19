@@ -78,12 +78,16 @@ but not yet built — that's the frontier. Wet lab remains the ultimate gate.
   32 designs carry binding-safe permeability headroom (ΔHBD 2–14 backbone donors N-methylatable without
   touching interface H-bonds); strong binders keep it (1yf4 FSRNVGDPY ΔG−52.7, HBD16→11). Supplies the
   `binding × ΔHBD × MW` objective for generation.
-- **v2 DONE (energetic re-verification)** — `peptide_nmethyl_smoke.sh`/`peptide_nmethyl_mmgbsa.sh`,
-  `results/nmethyl_mmgbsa_1yf4_FSRNVGDPY.json`. The hard part (backbone N-methyl parametrization) is solved:
-  NMET psfgen patch + supplementary CHARMM36 params (mirror amide-H terms onto CT3 methyl) — builds,
-  parametrizes (GBn2), minimizes. First ΔΔG: 1yf4 FSRNVGDPY, methylate 5 v1-selected non-interface positions
-  → baseline −52.4, methylated −57.1 → **ΔΔG −4.6 kcal/mol = binding PRESERVED** while removing 5 backbone
-  donors (HBD 16→11). Caveat: nominal improvement partly single-traj strain + desolvation; robust claim =
-  "not degraded"; sign needs FEP; charges approximate. v1→v2 chain now energetically supported.
-- **Remaining:** v2b = scale ΔΔG to other designs/targets (re-run `peptide_nmethyl_mmgbsa.sh` with CIF_S3 +
-  METH_POS, one spot job each); v3 = wire `binding×ΔHBD×MW` objective into oversampled BoltzGen generation.
+- **v2 capability BUILT; v2b done across 4 targets; honest result = MM-GBSA can't score this** —
+  `peptide_nmethyl_smoke.sh`/`peptide_nmethyl_mmgbsa.sh`, `results/nmethyl_mmgbsa_{1yf4_FSRNVGDPY,1csb,1kc4,1u8p}.json`.
+  The hard part (backbone N-methyl parametrization) is SOLVED: NMET psfgen patch + supplementary CHARMM36
+  params (mirror amide-H terms onto CT3) — builds, parametrizes (GBn2), minimizes. ΔΔG for each target's top
+  candidate (methylate v1 non-interface positions): 1yf4 −4.6, 1csb −12.6, 1kc4 −6.1, 1u8p −2.6 kcal/mol —
+  all nominally "preserved", BUT **not reliable**: each ΔΔG is a 1–4% residual of large (+150..+320 kcal/mol)
+  near-cancelling complex/ligand intramolecular changes and tracks methyl COUNT, not binding mode (single-traj
+  never relaxes the free ligand → strain inflates apparent binding). **Defensible: no binding degradation;
+  sign/magnitude untrustworthy; single-traj MM-GBSA is the wrong tool → needs FEP.** Binding-safe claim rests
+  on v1 structure; v2 also gives independent motivation for the FEP finalist tier. Corrected an initially
+  over-optimistic "binding preserved" framing after reading the decomposition.
+- **Remaining:** FEP (proper energetic arbiter for N-methyl ΔΔG — now doubly motivated); v3 = wire
+  `binding×ΔHBD×MW` objective into oversampled BoltzGen generation.

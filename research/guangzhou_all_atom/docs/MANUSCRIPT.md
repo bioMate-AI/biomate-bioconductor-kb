@@ -120,16 +120,24 @@ their binding modes. This supplies the mechanistic objective a permeability-driv
 (`binding × ΔHBD-headroom × MW`); it is deliberately mechanistic because the 2D GBM is blind to the lever
 (§3.5). Caveat: ΔHBD is a necessary-not-sufficient permeability proxy.
 
-**3.7 Energetic re-verification confirms the redesign is binding-safe.** We implemented backbone
-N-methylation in the same CHARMM/psfgen MM-GBSA pipeline (an `NMET` patch plus a supplementary parameter set
-that mirrors the amide-hydrogen bonded terms onto the methyl carbon with borrowed CHARMM36 values) and
-computed the binding ΔΔG of N-methylating the five v1-selected non-interface positions of the 1yf4 top binder
-`FSRNVGDPY`. Baseline ΔG_bind = −52.4 kcal/mol (reproducing the −52.7 of §3.2) and the N-methylated variant
-= −57.1, i.e. ΔΔG = −4.6 kcal/mol: **binding is preserved (not degraded)** while five backbone H-bond donors
-are removed (HBD 16→11). The nominal slight improvement is partly a single-trajectory strain artifact and a
-real reduced-desolvation effect; the robust conclusion is that methylating non-interface backbone positions
-does not break binding, and the exact sign would require FEP. This converts §3.6's structural argument into an
-energetic measurement for one design; scaling to the remaining designs is a re-run of the same tool.
+**3.7 Energetic re-verification: capability built, but single-trajectory MM-GBSA is inadequate for scoring
+N-methylation.** We implemented backbone N-methylation in the same CHARMM/psfgen MM-GBSA pipeline (an `NMET`
+patch plus a supplementary parameter set mirroring the amide-hydrogen bonded terms onto the methyl carbon with
+borrowed CHARMM36 values); it builds, parametrizes, and minimizes cleanly — a working capability. We then
+computed the binding ΔΔG of N-methylating the v1-selected non-interface positions of each target's top
+candidate. The raw ΔΔG were all mildly favorable (1yf4 −4.6, 1csb −12.6, 1kc4 −6.1, 1u8p −2.6 kcal/mol),
+which would naively read as "binding preserved on all four targets." **However, the energy decomposition shows
+these numbers are not physically reliable.** N-methylation raises *both* the complex and the free-ligand
+(single-trajectory, bound-geometry) intramolecular energies by large, near-equal amounts (+150 to +320
+kcal/mol), and each ΔΔG is the small residual of that cancellation — only 1–4% of the component changes
+(|ΔΔG|/max|ΔE| = 0.01–0.04), and its magnitude tracks the *number* of methylations rather than the binding
+mode. In single-trajectory MM-GBSA the free ligand is never relaxed, so heavy N-methylation inflates apparent
+binding via ligand strain. The honest conclusions are therefore: (i) we find no evidence of binding
+*degradation*; (ii) the favorable sign/magnitude cannot be trusted; (iii) single-trajectory MM-GBSA is the
+wrong tool for this perturbation — an energetic verdict needs FEP (or ≥3-trajectory MM-GBSA with free-ligand
+sampling). The binding-safe claim thus rests primarily on the structural argument of §3.6 (these backbone Ns
+do not H-bond the receptor), with FEP as the required arbiter. This is also independent motivation for the FEP
+finalist tier (§6).
 
 ## 4. Discussion
 Two conclusions follow. First, for cyclic-peptide binder design an independent physics verify step is
