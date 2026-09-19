@@ -94,21 +94,29 @@ def worker(args):
         te=two_env(smi); f2=feat2d(smi)
         signal.alarm(0)
         if te and f2 is not None: return {'perm':float(perm),'f2':f2.tolist(),**te}
-    except Exception:
-        signal.alarm(0); return None
-    return None
+        return {'_err':'two_env or feat2d returned None (no exception)'}
+    except Exception as e:                                  # DIAGNOSTIC: surface the swallowed error (2026-09-19: kept=0 with sqm/AM1-BCC failing silently)
+        signal.alarm(0)
+        import traceback
+        return {'_err':f'{type(e).__name__}: {e}','_tb':traceback.format_exc()[-600:]}
 from multiprocessing import Pool
 def sync_status(det):
     open('/opt/p2e/status/status.json','w').write(json.dumps({'stage':'run','detail':det}))
     os.system(f'aws s3 cp /opt/p2e/status/status.json {os.environ["OUT_S3"]}/status/status.json --only-show-errors 2>/dev/null')
 items=list(zip(df['SMILES'],df['Permeability']))
-rows=[]
+rows=[]; nerr=0
 ckpt=open('/opt/p2e/status/rows.jsonl','w')            # FIX: checkpoint kept rows to disk so a hard-deadline shutdown can't erase progress
 with Pool(processes=max(1, (os.cpu_count() or 8)-1)) as pool:
     it=pool.imap_unordered(worker, items, chunksize=1)
     for i in range(len(items)):
         try: r=next(it)
         except StopIteration: break
+        if r and '_err' in r:                          # DIAGNOSTIC: log first 15 worker failures so kept=0 is never a mystery again
+            nerr+=1
+            if nerr<=15:
+                open('/opt/p2e/status/worker_errors.txt','a').write(f"[{i}] {r['_err']} || {r.get('_tb','')}\n")
+                os.system(f'aws s3 cp /opt/p2e/status/worker_errors.txt {os.environ["OUT_S3"]}/status/worker_errors.txt --only-show-errors 2>/dev/null')
+            r=None
         if r: rows.append(r); ckpt.write(json.dumps(r)+'\n'); ckpt.flush()
         if time.time()-t0>BUDGET:                       # FIX: budget checked EVERY iteration (was gated behind i%25 -> stalls evaded it)
             print('budget hit at',i); pool.terminate(); break

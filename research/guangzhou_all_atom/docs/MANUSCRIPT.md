@@ -121,10 +121,15 @@ models. The genuine, still-unrealized advantage therefore lies in **conformation
 MM-GBSA is a relative ranking oracle with a size bias (longer designs score more negative; cross-target ΔG
 is not comparable) and omits entropy; the physics rankings therefore nominate FEP candidates rather than
 decide winners. The permeability model is a coarse ranking signal (R² ~0.3–0.45) applied out-of-distribution
-to designs. The 2-environment permeability experiment used a tractable proxy (per-peptide GAFF/AM1-BCC
-parametrization proved a scaling bottleneck; the rigorous GBn2-MD version was not completed). One generator
-and four targets were studied. No experimental (wet-lab) validation was performed; all results are
-computational.
+to designs. The 2-environment permeability proxy (the intended conformation-aware differentiator) did **not**
+yield a result: an initial run was lost to a runner bug (budget check gated behind a modulo, letting a hard
+deadline kill the box before the ML step), and after that plus the per-item-timeout, checkpointing, and
+OpenMP-runtime fixes, the per-peptide GAFF/AM1-BCC (`sqm`) parametrization failed inside the worker
+environment on ephemeral spot instances — so this experiment is **attempted but toolchain-blocked**, not a
+reported number. Its expected payoff is anyway bounded by the cheap conformer-span and N-methylation
+negatives above and a literature caution that ensemble variance carries <2% of permeability signal. The
+rigorous GBn2-MD version was not attempted. One generator and four targets were studied. No experimental
+(wet-lab) validation was performed; all results are computational.
 
 ## 6. Conclusion and future directions
 We contribute an automated headless cyclic-peptide MM-GBSA capability and a demonstrated non-circular

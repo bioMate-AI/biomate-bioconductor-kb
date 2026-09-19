@@ -57,3 +57,18 @@ BIOMATE_CLOSED_LOOP_INTEGRATION · BOLTZGEN_OURTARGETS_RESULTS · CYCLIC_PEPTIDE
 A disciplined, demonstrated, non-circular generate–verify–select engine exists and every layer produced a
 real finding. The differentiating *science* (permeability-aware generation) is scoped and evidence-backed
 but not yet built — that's the frontier. Wet lab remains the ultimate gate.
+
+## 2026-09-19 addendum
+- **Manuscript written** — `docs/MANUSCRIPT.md` consolidates the engine + findings in publication form
+  (honest, computational-only, no wet-lab).
+- **Track A (2-env permeability proxy): attempted but toolchain-blocked, NOT a result.** Root-caused and
+  hardened the runner (`perm_2env.sh`): per-item SIGALRM timeout, per-iteration budget check (the original
+  run died to an `i%25`-gated budget check + hard deadline), row checkpointing, `libgomp.so.1` OpenMP-runtime
+  fix (system `libgomp1` + conda `libgomp/llvm-openmp` + `LD_LIBRARY_PATH` + fail-fast preflight), and
+  worker-level error capture (`worker_errors.txt`). After all fixes the per-peptide GAFF/AM1-BCC (`sqm`)
+  parametrization still fails inside the worker on ephemeral spot instances (`kept=0`). **Stopped after 3
+  attempts** — expected payoff is low (cheap conformer-span + N-methylation already negative; survey <2%
+  variance) so it doesn't justify a 4th diagnostic launch this session. The next session can read
+  `worker_errors.txt` to see the exact `sqm` failure without re-deriving it. Launcher saved as
+  `launch_perm_2env.sh` (CPU spot).
+- **Spot lesson applied** — all these CPU runs used spot; `peptide-aws-launch-infra` memory updated.
