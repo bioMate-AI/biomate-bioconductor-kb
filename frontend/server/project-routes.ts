@@ -828,7 +828,12 @@ export function registerProjectRoutes(app: Express): void {
         `SELECT token, role FROM project_share_tokens WHERE project_id = $1 LIMIT 1`, [id]
       );
       if (existing.rows.length) {
-        return res.json({ token: existing.rows[0].token, role: existing.rows[0].role });
+        // Idempotent on the token, but allow CHANGING the role of the existing
+        // link without revoke+regenerate (closes the create-time-only gap).
+        if (existing.rows[0].role !== role) {
+          await pool.query(`UPDATE project_share_tokens SET role = $1 WHERE project_id = $2`, [role, id]);
+        }
+        return res.json({ token: existing.rows[0].token, role });
       }
       const token = randomBytes(18).toString('base64url'); // 24-char URL-safe token
       await pool.query(
