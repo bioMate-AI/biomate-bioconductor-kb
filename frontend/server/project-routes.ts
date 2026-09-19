@@ -889,6 +889,27 @@ export function registerProjectRoutes(app: Express): void {
     }
   });
 
+  // ─── GET /api/projects/:id/plans ──────────────────────────────────────────────
+  // List all plans for a project, newest-first. Same ownership/auth contract as
+  // the sibling plan endpoints: authenticateToken + _isOwnerOrMember, 404 on
+  // cross-user access (never leak existence).
+  app.get("/api/projects/:id/plans", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const uid = (req as any).user?.id ? String((req as any).user.id) : "";
+      if (!(await _isOwnerOrMember(id, uid))) return res.status(404).json({ error: "Not found" });
+      const r = await pool.query(
+        `SELECT id, project_id, goal, hypothesis, referenced_dataset_ids, referenced_evidence_ids, created_at
+         FROM project_plans WHERE project_id = $1 ORDER BY created_at DESC`,
+        [id]
+      );
+      res.json({ plans: r.rows });
+    } catch (e: any) {
+      console.error("[project_plans] list failed:", e?.message ?? e);
+      res.status(500).json({ error: "Failed to list plans" });
+    }
+  });
+
   app.get("/api/projects/:id/plans/:planId", authenticateToken, async (req: Request, res: Response) => {
     try {
       const { id, planId } = req.params;
@@ -904,6 +925,60 @@ export function registerProjectRoutes(app: Express): void {
     } catch (e: any) {
       console.error("[project_plans] get failed:", e?.message ?? e);
       res.status(500).json({ error: "Failed to fetch plan" });
+    }
+  });
+
+  // ─── Human-only project notes ─────────────────────────────────────────────────
+  // "Notes" (spec Tier 2 B) are free text the human keeps — explicitly NOT read
+  // by the assistant. They persist as project_knowledge rows with
+  // knowledgeType='user_notes' / source='user_provided' (distinct from the
+  // LLM-generated 'notes_synthesis' rows in notes-routes.ts). This reuses the
+  // existing project-scoped, ownership-cascading table rather than adding a
+  // schema. The assistant's directives live in projects.researchGoal
+  // ("Standing instructions"); these rows are never injected into prompts.
+  const USER_NOTES_TYPE = "user_notes";
+
+  // GET /api/projects/:id/notes-list — list human notes, newest-first.
+  app.get("/api/projects/:id/notes-list", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const id = req.params.id;
+    try {
+      if (!(await _isOwnerOrMember(id, uid))) return res.status(404).json({ error: "Project not found" });
+      const rows = await memoryService.projects.getProjectKnowledge(id, USER_NOTES_TYPE);
+      const notes = [...rows].sort((a, b) => {
+        const at = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bt - at;
+      });
+      res.json({ notes });
+    } catch (e: any) {
+      console.error("[user_notes] list failed:", e?.message ?? e);
+      res.status(500).json({ error: "Failed to list notes" });
+    }
+  });
+
+  // POST /api/projects/:id/notes-list — add a human note. Owner or editor.
+  app.post("/api/projects/:id/notes-list", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const id = req.params.id;
+    const content = typeof req.body?.content === "string" ? req.body.content.trim() : "";
+    if (!content) return res.status(400).json({ error: "content is required" });
+    try {
+      if (!(await _isOwnerOrEditor(id, uid))) return res.status(404).json({ error: "Project not found" });
+      const saved = await memoryService.projects.addProjectKnowledge({
+        projectId: id,
+        knowledgeType: USER_NOTES_TYPE,
+        title: null,
+        content,
+        source: "user_provided",
+        relevanceScore: 1.0,
+      } as any);
+      res.status(201).json({ note: saved });
+    } catch (e: any) {
+      console.error("[user_notes] create failed:", e?.message ?? e);
+      res.status(500).json({ error: "Failed to save note" });
     }
   });
 
