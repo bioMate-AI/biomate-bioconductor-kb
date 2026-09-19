@@ -617,9 +617,8 @@ export function ChatInput({
           request in this composer. Its value threads into the submit context
           as `composerInstructions`. Collapsed by default so it adds no noise;
           shows a "on" dot when instructions are present. The §6.5 "experts"
-          catalogue is deliberately NOT built here — see the state comment
-          above: no real experts source exists, so only the honest instructions
-          field ships and experts stay a documented follow-up. */}
+          catalogue ships alongside it — see the Experts affordance
+          (SkillsSelector) below, backed by the real GET /api/skills catalogue. */}
       <div style={{ marginBottom: 8, display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
         <div style={{ flex: "1 1 auto", minWidth: 0 }}>
         <button

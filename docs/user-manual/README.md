@@ -13,18 +13,18 @@ against the live system (dev) before anything is marked "supported" — see `cov
 ## Index (table of contents)
 
 ### Part 0 — Overview & orientation
-- [ ] `overview/00-what-is-biomate.md`
+- [~] `overview/00-what-is-biomate.md`
 - [ ] `overview/01-object-model.md`
 - [ ] `overview/02-personas.md`
 - [ ] `overview/03-first-analysis-5min.md`
 
 ### Part I — General function modules
-- [ ] `modules/I01-getting-started-cold-start.md`   (design v2 §00)
-- [ ] `modules/I02-composer-talking-to-biomate.md`   (§06)
-- [ ] `modules/I03-search-and-evidence.md`           (§01, §09)
+- [~] `modules/I01-getting-started-cold-start.md`   (design v2 §00)
+- [~] `modules/I02-composer-talking-to-biomate.md`   (§06)
+- [~] `modules/I03-search-and-evidence.md`           (§01, §09)
 - [ ] `modules/I04-projects-instructions-collaboration.md` (§00 ProjectSetup)
 - [ ] `modules/I05-files-and-dataset-object.md`      (§04)
-- [ ] `modules/I06-running-an-analysis.md`           (§07)
+- [~] `modules/I06-running-an-analysis.md`           (§07)
 - [ ] `modules/I07-full-step-view-provenance.md`     (§08)
 - [ ] `modules/I08-outputs-viewers-interactive.md`   (§14)
 - [ ] `modules/I09-reports-and-reproducibility.md`   (§12)
@@ -41,8 +41,8 @@ against the live system (dev) before anything is marked "supported" — see `cov
 - [ ] `data/II05-memory-and-project-knowledge.md`
 
 ### Part III — Function areas by domain
-- [ ] `domains/drug-discovery-ind.md`   ← **flagship, D1 (in progress)**
-- [ ] `domains/transcriptomics.md`
+- [~] `domains/drug-discovery-ind.md`   ← **flagship, D1 (drafted + code-verified)**
+- [~] `domains/transcriptomics.md`
 - [ ] `domains/cryo-em.md`
 - [ ] `domains/single-cell.md`
 - [ ] `domains/variant-calling.md`

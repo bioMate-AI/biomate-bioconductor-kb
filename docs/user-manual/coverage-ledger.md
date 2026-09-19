@@ -70,6 +70,92 @@ code-verified (C) by reading source; expensive live Batch re-runs are marked L /
 | Reports: versioning + reproducibility record (checksums/software/citations) | I09 | ✅ C | report-version-store.ts; AfterRunReport ReproducibilityRecordTab |
 | Re-run from after-run report (handler wired) | I06/I09 | ✅ C | chat-with-artifacts.tsx:447 biomate:run-again-with-edits |
 
+## Transcriptomics (bulk RNA-seq)
+Chapter: `docs/user-manual/domains/transcriptomics.md` (P1, D3). All claims below are code-verified (C)
+by reading source; live AWS Batch numeric re-runs are marked L / ⏳ and were NOT fired.
+
+| Chapter / claim | Tier | Status | Evidence / bug ref |
+|---|---|---|---|
+| Chain `bulk_rnaseq_de_analysis` (transcriptomics): nf-core/rnaseq → nf-core/differentialabundance → clusterProfiler GSEA, with real step→step file hand-off (counts_matrix→counts, de_results→gene_list) | C | ✅ | `backend/scripts/index_all_workflows.py:474-507` (steps + connections); DB `workflow_chains` |
+| Step 1 = `nf-core/rnaseq` id **1491**; defaults `aligner=star_salmon`, `genome=GRCh38` | C | ✅ | DB `workflows` id 1491; `backend/biomni_workflows/nfcore/rnaseq/main.nf:12,14`; params_template `index_all_workflows.py:482` |
+| Step 2 = `nf-core/differentialabundance` id **1497**; DESeq2 (`method=deseq2`); accepts a `matrix` (count-matrix entry point) | C | ✅ | DB id 1497; `backend/biomni_workflows/nfcore/differentialabundance/main.nf:9 (matrix),16 (normalisation_method='deseq2')`; params_template `index_all_workflows.py:483` |
+| Step 3 = `clusterprofiler_gene_set_enrichment_analysis` id **12956**; GO/KEGG/Reactome; clusterProfiler + `org.Hs.eg.db` | C | ✅ | DB id 12956; `backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/clusterprofiler/gene_set_enrichment_analysis.nf`; params_template `index_all_workflows.py:484` |
+| Count-matrix DE (freemium fast lane) is a real entry point — differentialabundance takes counts directly; downstream-only chain `bioc_bulk_rnaseq_de_v2` documented | C | ✅ | `differentialabundance/main.nf:9`; `differentiate_ambiguous_chains.py:62-75` |
+| Routing keywords for bulk DE chain (DE-intent / processed-input / downstream terms) | C | ✅ | `backend/lib/galaxy/ai/unified_workflow_search.py:2602-2619` |
+| Bulk-vs-single-cell guard: single-cell prompts must NOT route to bulk chain; enforced by `_chain_multimodal_context_compatible()` requiring scRNA context terms | C | ✅ | `unified_workflow_search.py:2620-2657` (in-code comment: "share vocabulary but describe completely different assays") |
+| FASTQ-alone → nf-core/rnaseq (not the DE chain) is a guarded regression | C | ✅ | `backend/tests/test_workflow_retrieval_semantic.py:356-366` |
+| Three bulk-DE chains differentiated by entry point/shape: `bulk_rnaseq_de_analysis` (nf-core prod), `bulk_rnaseq_consensus_de_bioc` (bare-R), `bioc_bulk_rnaseq_de_v2` (count-matrix downstream) | C | ✅ | `backend/scripts/differentiate_ambiguous_chains.py:31-75` |
+| Microarray/continuous → limma (not DESeq2/edgeR count model) is the correct disambiguation | C | ✅ | `reference/claude_design/tutorials-work/Bioconductor Tutorial Scenarios.md:24,58,108-112` (design ref); count-model requirement inherent to DESeq2 |
+| QC gate: STAR uniquely-mapped **≥70%** (70 pass / 50-70 advisory / <50 fail) — CODE-ENFORCED | C | ✅ | `backend/lib/galaxy/jobs/qc_trace_monitor.py:4589` (default 70.0 STAR_ALIGN); `backend/config/qc_evidence.yaml:1665-1669` (ENCODE-anchored) |
+| QC gate: Salmon mapping rate — tutorial says ≥70% but CODE DEFAULT IS **50%** (mismatch; chapter states code truth) | C | 🔧 | `qc_trace_monitor.py:4625` (default 50.0 SALMON_QUANT) vs `Tutorial Demo Scenarios 7-domain.md:77` (70%) — doc-vs-code mismatch, documented honestly |
+| DESeq2 sample-distance "clear clusters" is VISUAL/ADVISORY (diagnostic plot produced, no automated 2-cluster pass check) | C | ✅ | no gate in `qc_trace_monitor.py`; plot noted `qc_evidence.yaml:1715-1725`; tutorial `Tutorial Demo Scenarios 7-domain.md:78` |
+| No bulk-RNA auto-loop/auto-remediation (unlike ADMET) — QC fails surfaced for manual metadata/reference fix + re-run | C | ✅ | absence confirmed; only ADMET autoloop wired (`autoloop_bridge.py`) |
+| Output viewers: MultiQC html→HTML iframe; volcano/heatmap png/pdf→image/PDF; DE table csv/tsv→table (200-row preview+download); enrichment csv→table | C | ✅ | `frontend/client/src/components/step-output-preview.tsx:66-105,209-280,966-976` |
+| Worked example GSE49712 (SEQC/MAQC-III): ERCC spike-in ground truth; ~8,400 DEGs, ~92% ERCC recovery, AUC-ROC≥0.95, cell-cycle KEGG top | C (spec) | ✅ (L ⏳: live Batch numeric re-run) | `evaluation/tutorial_demos/gold_standards.yaml:5-15`; `Tutorial Demo Scenarios 7-domain.md:39-96`; validator `evaluation/tutorial_demos/transcriptomics.py` |
+| Other bulk-RNA workflows exist (catalog only, not end-to-end documented): rnafusion 12771, rnasplice 12772, dexseq 11259, sgseq 13246/13247, circrna 12681, rnavar 12773 | C | ✅ (existence) 🗺️ (deep coverage) | DB `workflows` |
+
+### Transcriptomics — mismatches found (drafts vs. real system) & roadmap gaps (→ Appendix E)
+| Item | Tier | Status | Note / evidence |
+|---|---|---|---|
+| Salmon mapping-rate gate: tutorial spec says ≥70%, code default is **50%** | C | 🔧 | `qc_trace_monitor.py:4625` vs `Tutorial Demo Scenarios 7-domain.md:77` — chapter states the enforced 50% and treats 70% as an interpretive target only |
+| DESeq2 sample-distance "2 clear clusters" presented as a gate in tutorial; real system produces the plot but has no automated pass check | C | 🔧 | chapter labels it visual/advisory, not an enforced gate |
+| Old tutorial (20260422 §7) shows STAR+featureCounts + `mapping_rate>80%` gate for the RNA-seq DE tutorial; production chain uses STAR+Salmon (star_salmon) via nf-core/rnaseq | C | 🔧 | `docs/20260422_BIOMATE_USER_TUTORIALS.md:408-416` vs `nfcore/rnaseq/main.nf:14`; chapter follows the real star_salmon path and the code-enforced 70% STAR gate |
+| Fusion / splicing / RNA-variant end-to-end worked examples + gold-standard validation | — | 🗺️ | workflows exist and route; deep per-workflow documentation is roadmap (Appendix E) |
+| Bulk-RNA auto-loop remediation | — | 🗺️ | not built — QC fixes are manual; Appendix E |
+| Interactive tools (RStudio/Jupyter) launch for re-analysis | L | 🗺️ | not provisioned on dev (`/api/interactive/available` → available:false); buttons hidden — shared gap row below |
+
+## Overview / navigation (Part 0)
+Pages: `overview/00-what-is-biomate.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| 4 function modules (Search&evidence, Data analysis, Design&generate, Models) + intent router | C | ✅ | `cold-start-dashboard.tsx:225-429` (COLD_MODULES) |
+| Two lanes: Instant (in-chat, seconds) vs Cloud (Batch pipeline, min–hrs) | C | ✅ | `lane-preview.tsx` laneForText |
+| Platform = chat at `/`; focused surfaces /files,/models,/design,/ind-report,/workflow/:id; NO /dashboard, no runs page | C | ✅ | `App.tsx:673-684`, `:608` (dashboard commented) |
+
+## I.1 Cold start
+Page: `modules/I01-getting-started-cold-start.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| Cold start renders in the empty-chat state | C | ✅ | `chat-interface.tsx:2126-2139` |
+| Intent bar restates lane+domain; module cards seed the composer (do not send) | C | ✅ | `cold-start-dashboard.tsx:542-560, 639-646`; onSeed→setDraft `chat-interface.tsx:2136-2137` |
+| Router returns no counts / no workflow-name list | C | ✅ | `cold-start-dashboard.tsx` header §0.5; DOMAIN_RULES `:448+` |
+| GAP: no "Start"/normalized-seed button (seeds raw text); no thin launcher; no project-scope line | C | 🗺️ | `cold-start-dashboard.tsx:542` seeds q.trim(); no thin/scope UI |
+
+## I.2 Composer
+Page: `modules/I02-composer-talking-to-biomate.md`. Tier C (full row set in the agent report / chapter footer).
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| Paperclip → OS picker + drag-drop; Database icon → GalaxyDatasetBrowser (This session/Project/History/URL; 50GB chunked; URL import) | C | ✅ | `chat-input.tsx:729-757`; `galaxy-dataset-browser.tsx:428-525, 70-235` |
+| Dataset chip name deep-links `/files?file=<id>` (locked by test) | C | ✅ | `chat-input.tsx:479-486`; `chat-input.dataset-references.test.tsx:39-67` |
+| Instructions collapsible → `composerInstructions` (project-inherited); Experts (SkillsSelector) → `skillPackIds` from GET /api/skills (honest-empty) | C | ✅ | `chat-input.tsx:623-680`; `skills-selector.tsx:83-103,204-209` |
+| Lane override chip forces Instant/Cloud → `intentOverride` | C | ✅ | `lane-preview.tsx:232-250`; `chat-input.tsx:688-707` |
+| FIXED: stale comment claiming experts "NOT built here" (they are) | C | ✅ | `chat-input.tsx:615-622` corrected this session |
+| GAP: chip has no quality dot/id@version/kind; no @-mention typeahead; no URL-paste/public-repo/pre-attach quality card on composer surface; no project-inherited-vs-deviated experts distinction | C | 🗺️ | `chat-input.tsx:469-494,744-757`; `skills-selector.tsx:210-264` |
+
+## I.3 Search & evidence
+Page: `modules/I03-search-and-evidence.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| Knowledge/literature/comparison → Instant lane; 4 tracks are cold-start seeds | C | ✅ | `ai_assistant.py:3131-3141`; `cold-start-dashboard.tsx:225-263` |
+| Sources queried = PubMed + arXiv + Semantic Scholar (+PMC/EuropePMC full-text); live DB lookups (Ensembl/GTEx/ClinVar/OpenTargets/…) before synthesis | C | ✅ | `literature_clients.py:581-615`; `research_agent.py:106-335,463-1153` |
+| Live answer mounts rich CitationPanel: retrieval transparency (real found/kept, honest-empty), conflicts (opt-in, ≥2 positions), source reader, boundary always shown, 3 exits | C | ✅ | `benchmark-evidence.tsx:479-604`; `citation-panel.tsx:485-535,687-737`; `research_agent.py:2319-2415`; `ai_assistant.py:5276-5316` |
+| Citations emit abstract + relevance_score when present | C | ✅ | `ai_assistant.py:5276-5292` |
+| GAP: formatted APA/BibTeX empty for literature (only workflow-tool citations); locus/recency never populated on live answers; "Save to project" = knowledge note (not versioned Files doc); Patents track has no patent corpus (returns literature); source reader is link-out only | C | 🗺️ | `benchmark-evidence.tsx:463-477,499`; `research_agent.py:1187-1193`; `literature_clients.py:581-615` |
+
+## I.6 Running an analysis
+Page: `modules/I06-running-an-analysis.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| Proposal in chat → run panel opens; Confirm & Run → executeWorkflow (AWS Batch) | C | ✅ | `chat-with-artifacts.tsx:181-184,1074,1179`; `nextflow-workflow-viewer.tsx:3011` |
+| Live status via SSE `/api/workflows/:invocationId/events`; phase cards data-status | C | ✅ | `nextflow-workflow-viewer.tsx:2100,608,744` |
+| Completed/failed → AfterRunReport (Summary/Outputs/Reproducibility record) in the panel; re-run via `/api/workflows/runs/:id/rerun` | C | ✅ | `chat-with-artifacts.tsx:2371,447`; `nextflow-workflow-viewer.tsx:1663` |
+| A run belongs to its chat session (no standalone run page) | C | ✅ | `chat-with-artifacts.tsx:152,181` (panelWorkflowMessageId); `App.tsx:608` |
+
 ## Known coverage gaps (→ Appendix E, do NOT document as present)
 | Item | Note | Source |
 |---|---|---|
