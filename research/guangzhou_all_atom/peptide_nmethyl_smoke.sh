@@ -75,6 +75,48 @@ END
 '''
 open('headtail.top','w').write(HEADTAIL)
 
+# Supplementary N-methyl bonded params: the methyl (CT3) replaces the amide H, so mirror the amide-H
+# (H-NH1-*) angles/dihedrals onto CT3 with identical borrowed CHARMM36 values + HA3-CT3-NH1 (from HA3-CT3-CT1).
+# NH1-CT3 bond, CT3-NH1-C angle, CT3-NH1-C-CT1 and HA3-CT3-NH1-C dihedrals already exist in par_all36m_prot.prm.
+NMET_SUPP='''* Supplementary N-methyl backbone params (mirror amide-H terms to CT3; borrowed CHARMM36 values)
+*
+
+ATOMS
+
+ANGLES
+CT3  NH1  CT1  50.000   120.0000
+CT3  NH1  CT2  50.000   120.0000
+CT3  NH1  CT3  50.000   120.0000
+HA3  CT3  NH1   33.430    110.10   22.53   2.17900
+
+DIHEDRALS
+CT3  NH1  C    CT2  2.5000 2 180.00
+CT3  NH1  C    CT3  2.5000 2 180.00
+CT3  NH1  CT1  C    0.0000 1 0.00
+CT3  NH1  CT1  CC   0.0000 1 0.00
+CT3  NH1  CT1  CD   0.0000 1 0.00
+CT3  NH1  CT1  CT1  0.0000 1 0.00
+CT3  NH1  CT1  CT2  0.0000 1 0.00
+CT3  NH1  CT1  CT3  0.0000 1 0.00
+CT3  NH1  CT2  C    0.0000 1 0.00
+CT3  NH1  CT2  CC   0.0000 1 0.00
+CT3  NH1  CT2  CD   0.0000 1 0.00
+CT3  NH1  CT2  CT2  0.0000 1 0.00
+CT3  NH1  CT2  CT3  0.0000 1 0.00
+HA2  CT2  NH1  CT3  0.0000 3 0.00
+HA3  CT3  NH1  CT3  0.0000 3 0.00
+HB1  CT1  NH1  CT3  0.0000 1 0.00
+HB2  CT2  NH1  CT3  0.0000 1 0.00
+CT3  NH1  CT1  CT2A 0.0000 1 0.00
+CT3  NH1  CT2A CC   0.0000 1 0.00
+CT3  NH1  CT1  CS   0.0000 1 0.00
+HA3  CT3  NH1  CT1  0.0000 3 0.00
+HA3  CT3  NH1  CT2  0.0000 3 0.00
+
+END
+'''
+open('nmet_supp.prm','w').write(NMET_SUPP)
+
 def is_aa(r):
     i=gemmi.find_tabulated_residue(r.name); return bool(i) and i.is_amino_acid()
 def split(cif):
@@ -106,7 +148,7 @@ def build(kind, methyl_pos=None):
     try: g.alias_atom(resname='ILE', top_atomname='CD', pdb_atomname='CD1')
     except Exception: pass
     if kind in ('complex','ligand'):
-        g.add_segment(segid='PEP', pdbfile='pep.pdb', first='none', last='none'); g.read_coords('PEP','pep.pdb')
+        g.add_segment(segid='PEP', pdbfile='pep.pdb', first='none', last='none'); g.read_coords(segid='PEP', filename='pep.pdb')
         g.patch('CYCP', [('PEP',str(npep)),('PEP','1')])
         if methyl_pos: g.patch('NMET', [('PEP',str(methyl_pos))])
     g.regenerate_angles(); g.regenerate_dihedrals()
@@ -115,7 +157,7 @@ def build(kind, methyl_pos=None):
     psf=f'{kind}_{"m" if methyl_pos else "b"}.psf'; g.write_psf(filename=psf); g.write_pdb(filename=psf.replace(".psf",".pdb"))
     return psf
 
-params=app.CharmmParameterSet('top.rtf','par.prm')
+params=app.CharmmParameterSet('top.rtf','par.prm','nmet_supp.prm')
 def energy(psf):
     p=app.CharmmPsfFile(psf)
     sysm=p.createSystem(params, nonbondedMethod=app.CutoffNonPeriodic, nonbondedCutoff=2.0*unit.nanometer,
