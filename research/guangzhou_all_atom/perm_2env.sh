@@ -9,7 +9,7 @@ set -Eeuo pipefail
 export AWS_DEFAULT_REGION=us-west-2 DEBIAN_FRONTEND=noninteractive PYTHONUNBUFFERED=1 HOME=/root
 export OPENMM_CPU_THREADS=1 OMP_NUM_THREADS=1   # 1 thread/worker (we parallelize over peptides via Pool)
 ROOT=/opt/p2e; OUT_S3=${OUT_S3:?}; BUCKET=knowledge-datasets-1759951976
-NSUB=${NSUB:-200}; BUDGET_S=${BUDGET_S:-12600}
+NSUB=${NSUB:-200}; BUDGET_S=${BUDGET_S:-9000}   # 2.5h featurization budget; systemd 4h hard deadline leaves >=1.5h for ML+sync
 mkdir -p "$ROOT/status" "$ROOT/w"; cd "$ROOT/w"
 exec > >(tee -a "$ROOT/status/p2e.log") 2>&1
 stage(){ printf '{"stage":"%s","time":"%s","detail":"%s"}\n' "$1" "$(date -u +%FT%TZ)" "${2:-}" > "$ROOT/status/status.json"; aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true; }
@@ -82,44 +82,61 @@ def feat2d(smi):
         except: v.append(np.nan)
     return np.array(v,float)
 
+import signal
+ITEM_TIMEOUT=int(os.environ.get('ITEM_TIMEOUT','180'))   # FIX: hard cap per peptide; some macrocycles hang AM1-BCC/sqm forever
+def _timeout(signum, frame): raise TimeoutError('item timeout')
 def worker(args):
     smi,perm=args
     try:
+        signal.signal(signal.SIGALRM,_timeout); signal.alarm(ITEM_TIMEOUT)  # SIGALRM fires in this child's main thread
         te=two_env(smi); f2=feat2d(smi)
+        signal.alarm(0)
         if te and f2 is not None: return {'perm':float(perm),'f2':f2.tolist(),**te}
-    except Exception: return None
+    except Exception:
+        signal.alarm(0); return None
     return None
 from multiprocessing import Pool
+def sync_status(det):
+    open('/opt/p2e/status/status.json','w').write(json.dumps({'stage':'run','detail':det}))
+    os.system(f'aws s3 cp /opt/p2e/status/status.json {os.environ["OUT_S3"]}/status/status.json --only-show-errors 2>/dev/null')
 items=list(zip(df['SMILES'],df['Permeability']))
 rows=[]
+ckpt=open('/opt/p2e/status/rows.jsonl','w')            # FIX: checkpoint kept rows to disk so a hard-deadline shutdown can't erase progress
 with Pool(processes=max(1, (os.cpu_count() or 8)-1)) as pool:
-    for i,r in enumerate(pool.imap_unordered(worker, items, chunksize=2)):
-        if r: rows.append(r)
-        if i%25==0:
-            det=f'{i}/{len(items)} kept={len(rows)} el={int(time.time()-t0)}s'
-            open('/opt/p2e/status/status.json','w').write(json.dumps({'stage':'run','detail':det}))
-            os.system(f'aws s3 cp /opt/p2e/status/status.json {os.environ["OUT_S3"]}/status/status.json --only-show-errors 2>/dev/null')
-            if time.time()-t0>BUDGET: print('budget hit at',i); pool.terminate(); break
+    it=pool.imap_unordered(worker, items, chunksize=1)
+    for i in range(len(items)):
+        try: r=next(it)
+        except StopIteration: break
+        if r: rows.append(r); ckpt.write(json.dumps(r)+'\n'); ckpt.flush()
+        if time.time()-t0>BUDGET:                       # FIX: budget checked EVERY iteration (was gated behind i%25 -> stalls evaded it)
+            print('budget hit at',i); pool.terminate(); break
+        if i%10==0: sync_status(f'{i}/{len(items)} kept={len(rows)} el={int(time.time()-t0)}s')
+ckpt.close(); sync_status(f'featurization done kept={len(rows)} el={int(time.time()-t0)}s')
 print('kept', len(rows))
-X2=np.nan_to_num(np.clip(np.array([r['f2'] for r in rows]),-1e30,1e30))
-env=np.array([[r['apolar_3dpsa'],r['polar_3dpsa'],r['delta']] for r in rows])
-y=np.array([r['perm'] for r in rows])
-from sklearn.ensemble import HistGradientBoostingRegressor
-from sklearn.model_selection import cross_val_predict, KFold
-from sklearn.metrics import r2_score
-from scipy.stats import spearmanr
-KF=KFold(5,shuffle=True,random_state=0)
-def cv(X):
-    p=cross_val_predict(HistGradientBoostingRegressor(max_iter=400,learning_rate=0.05),X,y,cv=KF)
-    return {'R2':round(float(r2_score(y,p)),3),'Spearman':round(float(spearmanr(y,p).correlation),3)}
-res={'n':len(y),
-     '2D_only':cv(X2),
-     '2D_plus_2env':cv(np.hstack([X2,env])),
-     '2env_only':cv(env),
-     'note':'2-environment 3D-PSA: apolar=vacuum-minimized (IMHB-shielded), polar=embedded/extended proxy, '
-            'delta=chameleon term. Does apolar/delta 3D-PSA add over 2D? (proper polar state = GBn2 MD is the '
-            'expensive full version; this is the tractable proxy.)'}
+os.system(f'aws s3 cp /opt/p2e/status/rows.jsonl {os.environ["OUT_S3"]}/status/rows.jsonl --only-show-errors 2>/dev/null')
+try:
+    X2=np.nan_to_num(np.clip(np.array([r['f2'] for r in rows]),-1e30,1e30))
+    env=np.array([[r['apolar_3dpsa'],r['polar_3dpsa'],r['delta']] for r in rows])
+    y=np.array([r['perm'] for r in rows])
+    from sklearn.ensemble import HistGradientBoostingRegressor
+    from sklearn.model_selection import cross_val_predict, KFold
+    from sklearn.metrics import r2_score
+    from scipy.stats import spearmanr
+    KF=KFold(5,shuffle=True,random_state=0)
+    def cv(X):
+        p=cross_val_predict(HistGradientBoostingRegressor(max_iter=400,learning_rate=0.05),X,y,cv=KF)
+        return {'R2':round(float(r2_score(y,p)),3),'Spearman':round(float(spearmanr(y,p).correlation),3)}
+    res={'n':len(y),
+         '2D_only':cv(X2),
+         '2D_plus_2env':cv(np.hstack([X2,env])),
+         '2env_only':cv(env),
+         'note':'2-environment 3D-PSA: apolar=vacuum-minimized (IMHB-shielded), polar=embedded/extended proxy, '
+                'delta=chameleon term. Does apolar/delta 3D-PSA add over 2D? (proper polar state = GBn2 MD is the '
+                'expensive full version; this is the tractable proxy.)'}
+except Exception as e:
+    res={'error':str(e),'n_kept':len(rows)}
 json.dump(res, open('/opt/p2e/status/perm_2env.json','w'), indent=2)
+os.system(f'aws s3 cp /opt/p2e/status/perm_2env.json {os.environ["OUT_S3"]}/status/perm_2env.json --only-show-errors 2>/dev/null')
 print(json.dumps(res, indent=2))
 PY
 stage p2e_complete
