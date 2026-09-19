@@ -14,26 +14,33 @@ SG=${SG:-sg-0de9af2d4437a8c90}
 INSTANCE_TYPE=${INSTANCE_TYPE:-$( [ "$MODEL_SIZE" = small ] && echo g6e.xlarge || echo g6e.4xlarge )}
 REPO_TARBALL_S3=${REPO_TARBALL_S3:-s3://biomate-models-399683337364/biomate-core-local-trial/code/evaluation_local_trial.tgz}
 
+LOG_S3="s3://biomate-models-399683337364/biomate-core-local-trial/20260912/spot_logs/$MODEL_SIZE/$STAGE"
 USERDATA=$(cat <<EOF | base64
 #!/bin/bash
-exec > /var/log/spot_train.log 2>&1
+exec > /var/log/ud.log 2>&1
 set -x
 export SCRATCH=/opt/dlami/nvme MODEL_SIZE=$MODEL_SIZE STAGE=$STAGE
+# stream the boot log to S3 from the START so bootstrap failures are visible (EBS is gone on terminate)
+( while true; do aws s3 cp /var/log/ud.log $LOG_S3/boot.log --quiet 2>/dev/null; sleep 20; done ) &
 mkdir -p \$SCRATCH/code && cd \$SCRATCH/code
 for i in 1 2 3; do aws s3 cp $REPO_TARBALL_S3 code.tgz && break || sleep 10; done
 tar xzf code.tgz
-bash gpu_bootstrap.sh || true
+bash gpu_bootstrap.sh
 bash spot_train.sh
+aws s3 cp /var/log/ud.log $LOG_S3/boot.log --quiet
+sleep 30
 shutdown -h now
 EOF
 )
 
-echo "Launching $INSTANCE_TYPE spot for $MODEL_SIZE/$STAGE in $REGION"
+MARKET="--instance-market-options MarketType=spot,SpotOptions={SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}"
+[ "${ONDEMAND:-0}" = "1" ] && MARKET="" && echo "(on-demand mode)"
+echo "Launching $INSTANCE_TYPE ${ONDEMAND:+on-demand}${ONDEMAND:-spot} for $MODEL_SIZE/$STAGE in $REGION"
 IID=$(aws ec2 run-instances --region "$REGION" \
   --image-id "$AMI" --instance-type "$INSTANCE_TYPE" \
   --subnet-id "$SUBNET" --security-group-ids "$SG" \
   --iam-instance-profile "Name=$PROFILE" \
-  --instance-market-options 'MarketType=spot,SpotOptions={SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}' \
+  $MARKET \
   --block-device-mappings 'DeviceName=/dev/sda1,Ebs={VolumeSize=400,VolumeType=gp3}' \
   --instance-initiated-shutdown-behavior terminate \
   --user-data "$USERDATA" \
