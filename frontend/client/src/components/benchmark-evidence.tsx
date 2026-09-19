@@ -31,6 +31,8 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { useActiveProjectIdSafe } from "@/contexts/active-project-context";
+import { CitationPanel } from "@/components/citation-panel";
+import type { EvidenceCitation } from "@/components/source-reader-pane";
 
 // Types for benchmark evidence data
 export interface BenchmarkToolResult {
@@ -404,6 +406,18 @@ export interface ResearchResponseData {
   benchmark_evidence?: BenchmarkComparison;
   /** What this answer is NOT evidence for (spec 01: boundary is always present). */
   boundary?: string;
+  /**
+   * Retrieval transparency ("How this was searched"), keyed per source that was
+   * genuinely queried. Emitted by the backend ONLY when real per-source counts
+   * exist; absent → the rich panel renders no transparency section (honest-empty).
+   */
+  retrieval?: Array<{ name: string; found: number; kept: number }>;
+  /**
+   * Source disagreements ("Sources disagree"). Emitted by the backend ONLY when
+   * the synthesis step reported genuinely conflicting sources; absent → no
+   * conflict row renders. Never fabricated client-side.
+   */
+  conflicts?: Array<{ topic?: string; positions: Array<{ claim: string; source?: string }> }>;
 }
 
 interface ResearchResponseDisplayProps {
@@ -435,6 +449,31 @@ function buildAnswerMarkdown(response: ResearchResponseData): string {
   }
   if (response.boundary) lines.push("", `_Boundary: ${response.boundary}_`);
   return lines.join("\n").trim();
+}
+
+/**
+ * Map a research-agent literature citation to the EvidenceCitation shape the rich
+ * CitationPanel expects. Literature answers don't produce formatted_apa/bibtex, so
+ * those are left empty — the per-item BibTeX button is already disabled when
+ * formatted_bibtex is empty, and CitationPanel's top-level Export button is guarded
+ * to only appear when at least one citation carries a formatted_bibtex.
+ * tool_name := title (the panel's primary label); tool_id := a stable key
+ * (doi > pmid > index) so React keys and the reader pane stay stable.
+ */
+function toEvidenceCitations(citations: ResearchCitation[]): EvidenceCitation[] {
+  return (citations || []).map((c, i) => ({
+    tool_id: c.doi || c.pmid || `cite-${i}`,
+    tool_name: c.title || `Source ${i + 1}`,
+    title: c.title || `Source ${i + 1}`,
+    authors: c.authors || [],
+    year: c.year,
+    journal: c.journal,
+    doi: c.doi,
+    pmid: c.pmid,
+    formatted_apa: "",
+    formatted_short: "",
+    formatted_bibtex: "",
+  }));
 }
 
 export function ResearchResponseDisplay({
@@ -489,74 +528,21 @@ export function ResearchResponseDisplay({
         />
       )}
 
-      {/* Citations section */}
+      {/* Citations — rich panel. Renders the source list PLUS retrieval
+          transparency ("How this was searched") and conflict rows ("Sources
+          disagree") when the backend supplied real data. Both sections are
+          honest-empty otherwise (CitationPanel filters on Number.isFinite /
+          non-empty positions), so an ordinary literature answer degrades to a
+          plain source list. answerText travels so the panel's Save-to-notes
+          payload carries the claim with its sources. */}
       {response.citations && response.citations.length > 0 && (
-        <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4" />
-                References ({response.citations.length})
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setShowCitations(!showCitations)}
-                className="h-6 px-2"
-              >
-                {showCitations ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </Button>
-            </CardTitle>
-          </CardHeader>
-
-          {showCitations && (
-            <CardContent className="space-y-2 pt-0">
-              {response.citations.map((citation, index) => (
-                <div
-                  key={index}
-                  className="p-2 bg-background rounded-lg border text-xs"
-                >
-                  <p className="font-medium">{citation.title}</p>
-                  {citation.authors && citation.authors.length > 0 && (
-                    <p className="text-muted-foreground">
-                      {citation.authors.slice(0, 3).join(", ")}
-                      {citation.authors.length > 3 && " et al."}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 mt-1">
-                    {citation.journal && (
-                      <span className="italic">{citation.journal}</span>
-                    )}
-                    {citation.year && <span>({citation.year})</span>}
-                    {typeof citation.relevance_score === "number" && (
-                      <Badge variant="secondary" className="text-[10px] px-1 py-0" title="Retrieval relevance score">
-                        relevance {citation.relevance_score.toFixed(2)}
-                      </Badge>
-                    )}
-                  </div>
-                  {citation.abstract && (
-                    <p className="text-muted-foreground mt-1 line-clamp-3">{citation.abstract}</p>
-                  )}
-                  {citation.doi && (
-                    <a
-                      href={`https://doi.org/${citation.doi}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 mt-1"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      DOI: {citation.doi}
-                    </a>
-                  )}
-                </div>
-              ))}
-            </CardContent>
-          )}
-        </Card>
+        <CitationPanel
+          citations={toEvidenceCitations(response.citations)}
+          retrieval={response.retrieval}
+          conflicts={response.conflicts}
+          answerText={response.answer}
+          isCollapsed={!showCitations}
+        />
       )}
 
       {/* Boundary — always present (spec 01): what this answer is NOT evidence for. */}

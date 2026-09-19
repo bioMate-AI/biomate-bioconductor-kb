@@ -27,6 +27,30 @@ import json
 log = logging.getLogger(__name__)
 
 
+# Appended to the synthesis instructions so the model can OPTIONALLY report
+# genuine source disagreements. This is the only reliable, non-fabricated signal
+# for conflicts: the same model that reads the numbered literature is asked to
+# flag, in a machine-parseable block, only pairs of retrieved sources whose
+# findings materially disagree on the same point — and to emit NOTHING when it
+# found none. We parse this block out of the answer (and strip it from the
+# displayed text) in _synthesize_response. If the model omits the block, or emits
+# an empty one, response.conflicts stays empty (honest-empty, never invented).
+_CONFLICT_MARKER = "<<<CONFLICTS_JSON>>>"
+_CONFLICT_INSTRUCTION = (
+    "\n## Source disagreements (only if REAL)\n"
+    "If — and ONLY if — two or more of the numbered Retrieved Literature sources "
+    "materially disagree on the SAME point (opposite conclusions, incompatible "
+    "magnitudes/directions, or contradictory claims), append AFTER your answer a "
+    "single line beginning with the exact marker " + _CONFLICT_MARKER + " followed "
+    "by a JSON array. Each element: {\"topic\": short label, \"positions\": "
+    "[{\"claim\": what this source found, \"source\": the source's short label or "
+    "[N]}, ...]}. Include at least two positions per conflict, each resting on a "
+    "different real source from the list. If there is NO genuine disagreement, do "
+    "NOT emit the marker or any JSON at all — silence means no conflict. Never "
+    "manufacture a disagreement to fill the section."
+)
+
+
 # ── Biomedical DB live lookups ─────────────────────────────────────────────────
 # All APIs below are free REST services, no API key required.
 # Called BEFORE the LLM synthesis so Claude receives real facts, not guesses.
@@ -1179,6 +1203,18 @@ class ResearchResponse:
     methods_used: List[str] = field(default_factory=list)
     benchmark_evidence: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
+    # Retrieval transparency ("How this was searched"). One entry per source that
+    # was GENUINELY queried, with REAL counts: `found` = records that source
+    # contributed to the retrieved candidate pool, `kept` = how many of those
+    # survived into the papers the answer actually cites. NEVER fabricated and
+    # NEVER derived from the citation list alone — computed in _synthesize_response
+    # from the source-tagged pool. Empty when no source-tagged retrieval occurred.
+    retrieval: List[Dict[str, Any]] = field(default_factory=list)
+    # Source conflicts ("Sources disagree"). Only populated when the LLM synthesis
+    # step, given the numbered literature, explicitly reports two or more retrieved
+    # sources that materially disagree on the same point. Empty when none were
+    # reported — we never invent a disagreement. Shape: [{topic, positions:[{claim, source}]}].
+    conflicts: List[Dict[str, Any]] = field(default_factory=list)
 
 
 class ResearchAgent:
@@ -2172,6 +2208,13 @@ class ResearchAgent:
             parsed = self._parse_llm_response(response)
             answer_text = parsed.get('answer', response)
 
+            # ── Conflict extraction ───────────────────────────────────────────
+            # Pull the optional machine-parseable conflicts block BEFORE citation
+            # grounding, so its embedded [N] tokens don't pollute the grounding
+            # marker scan, and strip it from the displayed answer. Empty unless the
+            # model genuinely reported disagreeing sources (never fabricated here).
+            answer_text, conflicts = self._parse_conflicts_block(answer_text)
+
             # ── Citation-grounding guard ──────────────────────────────────────
             # _build_synthesis_prompt numbers the FULL retrieved pool [1..N] and
             # the model cites by those numbers. Returning only the first
@@ -2189,6 +2232,13 @@ class ResearchAgent:
                 # to the top relevance-ranked pool, capped.
                 _cite_cap = max(self.max_citations, 15) if _deep_synth else self.max_citations
                 lit_pool = pool[:_cite_cap]
+
+            # ── Retrieval transparency ────────────────────────────────────────
+            # Per-source found/kept from the REAL source-tagged pool: `found` =
+            # candidates that source contributed to the retrieved pool, `kept` =
+            # how many of those the answer actually cites. Honest-empty when the
+            # pool carries no source tags.
+            retrieval_stats = self._compute_retrieval_stats(pool, lit_pool)
 
             # Build citations from the grounded literature pool.
             citations = []
@@ -2231,7 +2281,9 @@ class ResearchAgent:
                 confidence=confidence,
                 follow_up_questions=parsed.get('follow_ups', []),
                 methods_used=list(analysis.keys()),
-                benchmark_evidence=evidence.get('benchmark_results')
+                benchmark_evidence=evidence.get('benchmark_results'),
+                retrieval=retrieval_stats,
+                conflicts=conflicts,
             )
 
         except Exception as e:
@@ -2241,6 +2293,126 @@ class ResearchAgent:
                 error=str(e),
                 confidence=0.0
             )
+
+    @staticmethod
+    def _source_display_name(raw: Optional[str]) -> str:
+        """Map an internal source id (e.g. 'semantic_scholar') to a human label
+        for the 'How this was searched' panel. Unknown ids are title-cased."""
+        if not raw:
+            return "Other"
+        key = str(raw).strip().lower()
+        names = {
+            "pubmed": "PubMed",
+            "europepmc": "Europe PMC",
+            "europe_pmc": "Europe PMC",
+            "semantic_scholar": "Semantic Scholar",
+            "semanticscholar": "Semantic Scholar",
+            "openalex": "OpenAlex",
+            "arxiv": "arXiv",
+            "biorxiv": "bioRxiv",
+            "federated": "Federated",
+        }
+        if key in names:
+            return names[key]
+        return raw.replace("_", " ").title()
+
+    def _compute_retrieval_stats(self, pool: list, kept_pool: list) -> List[Dict[str, Any]]:
+        """Build per-source found/kept counts from the ACTUAL retrieved pool.
+
+        `pool` is the merged, source-tagged candidate list that was injected into
+        the synthesis prompt (each item carries a real `.source`). `kept_pool` is
+        the subset the answer actually cites (grounded pool) — same objects, so we
+        match by identity. `found` = per-source count in `pool`; `kept` = per-source
+        count in `kept_pool`. Both are real; nothing is estimated. Sources without a
+        genuine `.source` tag are grouped under 'Other' only if they carry one at
+        all — items with no source attribute are skipped so we never invent a name.
+
+        Returns [] when the pool has no source-tagged items (honest-empty).
+        """
+        found: Dict[str, int] = {}
+        kept: Dict[str, int] = {}
+        kept_ids = {id(c) for c in (kept_pool or [])}
+        any_source = False
+        for c in (pool or []):
+            raw = getattr(c, "source", None)
+            if not raw:
+                continue  # do not fabricate a source label
+            any_source = True
+            name = self._source_display_name(raw)
+            found[name] = found.get(name, 0) + 1
+            if id(c) in kept_ids:
+                kept[name] = kept.get(name, 0) + 1
+        if not any_source:
+            return []
+        # Stable order: most-found first, then name.
+        rows = [
+            {"name": name, "found": found[name], "kept": kept.get(name, 0)}
+            for name in found
+        ]
+        rows.sort(key=lambda r: (-r["found"], r["name"]))
+        return rows
+
+    def _parse_conflicts_block(self, answer: str):
+        """Extract the optional machine-parseable conflicts block the synthesis
+        prompt asks for. Returns (clean_answer, conflicts_list).
+
+        - clean_answer: the answer with the marker + JSON stripped (so the raw
+          block never shows in the UI).
+        - conflicts_list: validated [{topic, positions:[{claim, source}]}] with at
+          least two positions each; [] when the model emitted no marker, an empty
+          block, or malformed JSON. We NEVER synthesize a conflict here.
+        """
+        if not answer or _CONFLICT_MARKER not in answer:
+            return answer, []
+        idx = answer.find(_CONFLICT_MARKER)
+        clean = answer[:idx].rstrip()
+        tail = answer[idx + len(_CONFLICT_MARKER):].strip()
+        # The JSON array may be fenced or bare; grab from first '[' to its match.
+        start = tail.find("[")
+        if start == -1:
+            return clean, []
+        raw_json = tail[start:]
+        # Trim trailing prose after the closing bracket by decoding incrementally.
+        parsed = None
+        for end in range(len(raw_json), start, -1):
+            candidate = raw_json[:end]
+            if not candidate.rstrip().endswith("]"):
+                continue
+            try:
+                parsed = json.loads(candidate)
+                break
+            except Exception:
+                continue
+        if not isinstance(parsed, list):
+            return clean, []
+        conflicts: List[Dict[str, Any]] = []
+        for item in parsed:
+            if not isinstance(item, dict):
+                continue
+            positions_in = item.get("positions")
+            if not isinstance(positions_in, list):
+                continue
+            positions: List[Dict[str, Any]] = []
+            for p in positions_in:
+                if not isinstance(p, dict):
+                    continue
+                claim = (p.get("claim") or "").strip()
+                if not claim:
+                    continue
+                entry = {"claim": claim}
+                src = (p.get("source") or "").strip()
+                if src:
+                    entry["source"] = src
+                positions.append(entry)
+            # A real conflict needs at least two distinct positions.
+            if len(positions) < 2:
+                continue
+            conflict: Dict[str, Any] = {"positions": positions}
+            topic = (item.get("topic") or "").strip()
+            if topic:
+                conflict["topic"] = topic
+            conflicts.append(conflict)
+        return clean, conflicts
 
     def _ground_citations(self, answer: str, pool: list):
         """Keep only the papers the answer actually cites via [N] markers and
@@ -2610,7 +2782,8 @@ Produce a rigorous, structured, evidence-graded answer.
 2. Distinguish what is DIRECTLY demonstrated experimentally from what remains a proposed model. If the retrieved evidence does not support a claim, write exactly: "Not directly demonstrated."
 3. Where the question asks for a table, produce a markdown evidence table with one row per study and the requested columns (e.g. method, organism/constructs, and per-claim yes/no).
 4. Do NOT infer a mechanism (e.g. "handover"/transfer) from separate binding measurements — label it directly demonstrated only if the transfer itself was observed.
-5. End with a concise synthesis of what is established vs unknown. Prefer completeness and honesty over brevity."""
+5. End with a concise synthesis of what is established vs unknown. Prefer completeness and honesty over brevity.
+""" + _CONFLICT_INSTRUCTION
         else:
             instructions = """## Instructions
 Provide a concise, evidence-based answer to the research question.
@@ -2621,7 +2794,8 @@ Provide a concise, evidence-based answer to the research question.
 4. If tool recommendations are relevant, name them specifically (1–2 max)
 5. Cite sources inline with [N] using ONLY the numbered Retrieved Literature list above; never invent a DOI/PMID/paper. If the evidence does not support a claim, say "Not directly demonstrated."
 
-Format: plain prose or a short bulleted list. No lengthy introductions, no "In summary" footers."""
+Format: plain prose or a short bulleted list. No lengthy introductions, no "In summary" footers.
+""" + _CONFLICT_INSTRUCTION
 
         prompt_parts.append(f"""
 ## Research Question

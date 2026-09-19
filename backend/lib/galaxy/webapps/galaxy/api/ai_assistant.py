@@ -5291,7 +5291,7 @@ def answer_research_query(
                 entry["relevance_score"] = relevance
             citations_json.append(entry)
 
-        return {
+        result = {
             "success": True,
             "query": request.query,
             "answer": response.answer,
@@ -5302,6 +5302,20 @@ def answer_research_query(
             "methods_used": response.methods_used,
             "source": "research_agent"
         }
+
+        # Retrieval transparency + source conflicts. These come from REAL
+        # retrieval/synthesis state (per-source found/kept computed from the
+        # source-tagged pool; conflicts parsed from the synthesis output). Emit
+        # ONLY when non-empty so the client renders honest-empty (never a
+        # fabricated "How this was searched" or "Sources disagree" section).
+        retrieval = getattr(response, "retrieval", None)
+        if retrieval:
+            result["retrieval"] = retrieval
+        conflicts = getattr(response, "conflicts", None)
+        if conflicts:
+            result["conflicts"] = conflicts
+
+        return result
 
     except Exception as e:
         log.error(f"Error answering research query: {e}")
