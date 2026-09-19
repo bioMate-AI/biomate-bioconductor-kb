@@ -28,6 +28,13 @@ TARGETS=(
   "1kc4 A B 19"   # toxin-scaffold receptor
   "1u8p B C 7"    # antibody Fab (paratope target)
 )
+# v3 oversampling: TARGET_ONLY=<pdbid> restricts to one target (scoped POC); NUM_DESIGNS bumps the pool.
+if [ -n "${TARGET_ONLY:-}" ]; then
+  filtered=()
+  for t in "${TARGETS[@]}"; do [ "${t%% *}" = "$TARGET_ONLY" ] && filtered+=("$t"); done
+  TARGETS=("${filtered[@]}")
+  echo "TARGET_ONLY=$TARGET_ONLY -> ${#TARGETS[@]} target(s)"
+fi
 
 stage installing
 command -v aws >/dev/null 2>&1 || { apt-get update -qq && apt-get install -y -qq unzip curl git && curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/a.zip && (cd /tmp && unzip -q -o a.zip && ./aws/install --update); }
