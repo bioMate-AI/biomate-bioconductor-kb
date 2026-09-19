@@ -103,10 +103,11 @@ def main():
     tool_rel=0
     for n,d in tools.items():
         if tool_rel>=4000: break
-        if not d["function"] or (not d["in"] and not d["out"]): continue
+        if not d["in"] and not d["out"]: continue
         succ=sorted(blk_pre.get(n,[]))[:4]
         if not succ: continue
-        txt=(f"Tool {n} ({d['function']}) consumes {', '.join(d['in']) or '?'} and produces "
+        fn=d["function"] or d["domain"] or "tool"
+        txt=(f"Tool {n} ({fn}) consumes {', '.join(d['in']) or '?'} and produces "
              f"{', '.join(d['out']) or '?'}; its output can feed {', '.join(succ)}.")
         docs.append({"text":txt,"source":"wkg","kind":"tool_function"}); tool_rel+=1
     with open(OUTCORP,"w") as f:
