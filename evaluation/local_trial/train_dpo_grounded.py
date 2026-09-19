@@ -78,14 +78,32 @@ def train(args):
     tr=DPOTrainer(model=model, args=cfg, train_dataset=ds, processing_class=tok, peft_config=lora)
     tr.train(); tr.save_model(args.out); print("DPO_DONE ->", args.out)
 
+def mine_routing_pairs(args):
+    """Direct contrastive pairs from rag_routing hard_negatives (near-ties): chosen = verified gold,
+    rejected = the near-tie the retriever nearly ranked first. No sampling needed — these ARE the
+    hardest cases, exactly what the model must learn to discriminate (user's contrastive point)."""
+    import random as _r; _r.seed(13)
+    rows=[json.loads(l) for l in open(args.prompts) if l.strip()]
+    pairs=[]
+    for rr in rows:
+        hn=rr.get("hard_negatives") or []
+        if not hn: continue
+        prompt=rr["messages"][0]["content"]; gold=rr["messages"][1]["content"]
+        for neg in hn[:3]:
+            if neg and neg!=gold:
+                pairs.append({"prompt":prompt,"chosen":gold,"rejected":neg,"task":"routing"})
+    Path(args.pairs_out).write_text("\n".join(json.dumps(p) for p in pairs))
+    print(f"ROUTING DPO PAIRS (near-tie hard negatives): {len(pairs)} -> {args.pairs_out}")
+
 def main():
     ap=argparse.ArgumentParser()
-    ap.add_argument("--phase", choices=["pairs","train"], required=True)
+    ap.add_argument("--phase", choices=["pairs","mine","train"], required=True)
     ap.add_argument("--model", required=True, help="merged SFT model")
     ap.add_argument("--prompts", help="jsonl {task,prompt,ground_truth} (phase pairs)")
     ap.add_argument("--pairs-out", default="dpo_pairs.jsonl")
     ap.add_argument("--out", default="dpo_out"); ap.add_argument("--k", type=int, default=6)
     a=ap.parse_args()
+    if a.phase=="mine": return mine_routing_pairs(a)   # cheap: direct near-tie hard-negative pairs
     return build_pairs(a) if a.phase=="pairs" else train(a)
 
 if __name__=="__main__": raise SystemExit(main())

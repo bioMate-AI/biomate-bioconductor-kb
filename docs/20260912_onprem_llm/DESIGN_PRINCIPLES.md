@@ -29,10 +29,15 @@ The workflow panel provides full configuration/override and defaults cover most 
 - **clarifies only genuine blocking inputs** (data/reference/genome), not every schema-required knob,
 - **presents/defers** on ambiguity rather than forcing false confidence (harness owns the presentation).
 
-## 4. Near-ties: credit, don't force
-When retriever scores are within 0.15, the harness surfaces the alternative. In the data we record
-`acceptable_alts` as **eval metadata** (so scoring credits a defensible near-tie) — never as a training
-target that would teach the model to reproduce a score threshold.
+## 4. Near-ties: CONTRASTIVE signal, not a free pass (corrected)
+Near-tie candidates are the **hardest, most informative** cases — so we make the model *learn to
+discriminate* them, not excuse it. They are recorded as `hard_negatives` and used as **contrastive
+signal at both levels**: retriever InfoNCE (already) and generator **DPO** (chosen = verified gold,
+rejected = near-tie). We *have* the verified-correct answer from real runs, so this teaches the exact
+discrimination the retriever's score alone can't make; eval holds the model to the verified gold (no
+free pass). The harness 0.15 gate + disambiguation card are the **GUARDRAIL for the residual cases the
+model genuinely cannot resolve** — a fallback, not the primary resolver. (Mechanism — the threshold
+value and card format — still stays in the harness, not the weights.)
 
 ## 5. Anti-overfitting checklist (applies to every generator)
 - Diverse surface forms (paraphrase layer), not one template.

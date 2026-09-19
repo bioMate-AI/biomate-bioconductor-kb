@@ -33,10 +33,11 @@ def build_prompt(query,cands):
 src=[json.loads(l) for l in open(f"{D}/audited_pass_fullcatalog.jsonl")]+([json.loads(l) for l in open(f"{D}/real_studies_labeled.jsonl")] if os.path.exists(f"{D}/real_studies_labeled.jsonl") else [])
 import random; random.seed(11); random.shuffle(src); src=src[:900]
 out=[]; kept=0
-# DESIGN NOTE: the 0.15 near-tie threshold + disambiguation-card presentation are HARNESS engineering
-# (they change and are tunable) — we do NOT bake them into the weights. The model learns the SEMANTIC
-# skill: pick the best-fitting workflow from candidates. Near-tie candidates are recorded as
-# `acceptable_alts` (EVAL metadata, so scoring credits a defensible near-tie) — NOT as a training target.
+# DESIGN NOTE: the 0.15 threshold + disambiguation card are HARNESS engineering (tunable) and are the
+# GUARDRAIL for when the model can't resolve an ambiguity. We still push the model to resolve it:
+# near-tie candidates are the HARDEST, most informative negatives, so we record them as
+# `hard_negatives` -> used as DPO REJECTED samples (chosen = verified gold) for contrastive learning at
+# the generation level. We do NOT excuse near-tie picks; eval holds the model to the verified gold.
 MARGIN=0.15
 for r in src:
     q=r["query"]; gold=r["correct_workflow"]
@@ -44,8 +45,8 @@ for r in src:
     scored=retrieve(q,10); nm=[n for n,_ in scored]
     if gold not in nm: scored=[(gold,1.0)]+scored[:9]; nm=[n for n,_ in scored]
     disp=[n for n,_ in scored]; random.shuffle(disp)
-    alts=[n for n,s in scored if n!=gold and s>=1.0-MARGIN]   # near-tie alts = eval metadata only
+    hard=[n for n,s in scored if n!=gold and s>=1.0-MARGIN]   # near-tie hard negatives -> DPO rejected
     out.append({"messages":[{"role":"user","content":build_prompt(q,disp)},{"role":"assistant","content":gold}],
-                "gold_in_retrieved":True,"acceptable_alts":alts}); kept+=1
+                "gold_in_retrieved":True,"hard_negatives":hard}); kept+=1
 open(f"{D}/rag_routing_sft.jsonl","w").write("\n".join(json.dumps(e) for e in out))
 print(f"RAG-ROUTING SFT: {kept} ex (retrieved hard-negative candidates from hybrid TF-IDF+BGE)")
