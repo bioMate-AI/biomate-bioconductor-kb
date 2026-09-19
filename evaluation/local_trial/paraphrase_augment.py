@@ -38,7 +38,8 @@ def split_request(u):
         i=u.rfind(m)
         if i!=-1:
             start=i+len(m); req=u[start:]
-            # a trailing structured block after the request is rare; treat rest as request
+            # our task formats put ALL structured blocks (schema, candidates) BEFORE the request marker,
+            # so everything after the LAST marker is the free-text request; suffix is intentionally "".
             if 8<=len(req)<=1200: return u[:start], req, ""
     return None
 
