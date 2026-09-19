@@ -10,7 +10,7 @@
  */
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, within, fireEvent } from "@testing-library/react";
+import { render, screen, within, fireEvent, waitFor } from "@testing-library/react";
 
 // QcAuditTab isn't exported; test it through the wrapper that ARR uses.
 // To keep the test surface focused, expose QcAuditTab via a tiny stub that
@@ -189,11 +189,24 @@ describe("v2/AfterRunReport — MethodsTab editable report (Spec 12 increment)",
     "salmon 1.10.1 · DESeq2 1.42 · nf-core/rnaseq 3.14.0",
   ].join("\n");
 
-  function mockMethodsPipeline() {
+  function mockMethodsPipeline(opts: { acceptVersionPost?: boolean } = {}) {
     vi.restoreAllMocks();
     vi.spyOn(global, "fetch").mockImplementation(async (input, init) => {
       const url = String(input);
       const method = (init?.method ?? "GET").toUpperCase();
+      // Report versions (#22). Default: reject so Save falls back to a local
+      // download. With acceptVersionPost, the POST succeeds (server-first path).
+      if (url.includes("/report/versions")) {
+        if (method === "POST" && opts.acceptVersionPost) {
+          return { ok: true, status: 200,
+            json: async () => ({ version: { version: 1 } }), text: async () => "" } as Response;
+        }
+        if (method === "GET" && opts.acceptVersionPost) {
+          return { ok: true, status: 200,
+            json: async () => ({ versions: [] }), text: async () => "" } as Response;
+        }
+        return { ok: false, status: 404, json: async () => ({}), text: async () => "" } as Response;
+      }
       // Methods report job pipeline.
       if (url.endsWith("/api/jobs") && method === "POST") {
         const body = JSON.parse(String(init?.body ?? "{}"));
@@ -274,8 +287,11 @@ describe("v2/AfterRunReport — MethodsTab editable report (Spec 12 increment)",
     expect(screen.getByTestId("methods-done-editing")).toBeInTheDocument();
   });
 
-  it("Save edited version triggers a markdown download and shows a confirmation toast", async () => {
-    // Stub the DOM download machinery so the click doesn't navigate jsdom.
+  it("Save falls back to a local markdown download when the server is unavailable", async () => {
+    // Save is now server-first (#22): it POSTs the edit to /report/versions and
+    // only downloads locally if that fails. The default fetch mock returns 404
+    // for /report/versions, so this exercises the fallback path. Because the
+    // download happens AFTER the awaited fetch, assertions use waitFor.
     const clickSpy = vi.fn();
     const origCreate = document.createElement.bind(document);
     vi.spyOn(document, "createElement").mockImplementation((tag: string) => {
@@ -294,10 +310,40 @@ describe("v2/AfterRunReport — MethodsTab editable report (Spec 12 increment)",
     await screen.findByTestId("methods-editor", {}, { timeout: 5000 });
     fireEvent.click(screen.getByTestId("methods-save-edited"));
 
-    expect(createURL).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(createURL).toHaveBeenCalledTimes(1));
     expect(clickSpy).toHaveBeenCalledTimes(1);
     const toast = await screen.findByTestId("methods-save-toast", {}, { timeout: 5000 });
-    expect(toast).toHaveTextContent(/Edited methods report downloaded/i);
+    expect(toast).toHaveTextContent(/Server unavailable.*downloaded locally/i);
+
+    vi.mocked(document.createElement).mockRestore();
+  });
+
+  it("Save persists a server version (no local download) when the endpoint accepts it", async () => {
+    // Server-success path: POST /report/versions returns a version → MethodsTab
+    // shows a "Saved as version" toast and does NOT fall back to a download.
+    // Re-arm the pipeline mock to accept the version POST (keeps the methods
+    // pipeline handlers the tab needs to render).
+    mockMethodsPipeline({ acceptVersionPost: true });
+    const clickSpy = vi.fn();
+    const origCreate = document.createElement.bind(document);
+    vi.spyOn(document, "createElement").mockImplementation((tag: string) => {
+      const el = origCreate(tag) as HTMLElement;
+      if (tag === "a") (el as HTMLAnchorElement).click = clickSpy;
+      return el as any;
+    });
+    const createURL = vi.fn(() => "blob:mock");
+    (URL as any).createObjectURL = createURL;
+    (URL as any).revokeObjectURL = vi.fn();
+
+    render(<AfterRunReport {...baseProps} workflowName="nf-core/rnaseq" />);
+    await openMethodsTab();
+    fireEvent.click(await screen.findByTestId("methods-edit-toggle", {}, { timeout: 5000 }));
+    await screen.findByTestId("methods-editor", {}, { timeout: 5000 });
+    fireEvent.click(screen.getByTestId("methods-save-edited"));
+
+    const toast = await screen.findByTestId("methods-save-toast", {}, { timeout: 5000 });
+    expect(toast).toHaveTextContent(/Saved as version v1/i);
+    expect(clickSpy).not.toHaveBeenCalled(); // no local download on the success path
 
     vi.mocked(document.createElement).mockRestore();
   });

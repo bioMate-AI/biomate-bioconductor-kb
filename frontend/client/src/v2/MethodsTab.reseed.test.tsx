@@ -12,7 +12,7 @@
  */
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 // Mock the heavy TipTap editor with a textarea that surfaces content + onEdit,
 // so the test can simulate a user edit deterministically.
@@ -42,6 +42,12 @@ beforeEach(() => {
   };
   (URL as any).createObjectURL = vi.fn(() => "blob:mock");
   (URL as any).revokeObjectURL = vi.fn();
+  // Save is server-first (#22): it POSTs to /report/versions and only downloads
+  // locally on failure. Force the fallback deterministically so these tests can
+  // assert the downloaded blob's content (the edited-text-survives behavior).
+  vi.spyOn(global, "fetch").mockResolvedValue({
+    ok: false, status: 404, json: async () => ({}), text: async () => "",
+  } as Response);
   // Stop the anchor click from navigating jsdom.
   const origCreate = document.createElement.bind(document);
   vi.spyOn(document, "createElement").mockImplementation((tag: string) => {
@@ -59,7 +65,7 @@ afterEach(() => {
 const methods = (text: string) => ({ text, toolVersions: {}, hasRealContent: true });
 
 describe("MethodsTab — edited text survives a source refresh mid-edit", () => {
-  it("Save exports the user's in-progress edit, not a source-text refresh", () => {
+  it("Save exports the user's in-progress edit, not a source-text refresh", async () => {
     const { rerender } = render(
       <MethodsTab methods={methods("ORIGINAL methods prose")} workflowName="wf" runId="r1" />,
     );
@@ -79,14 +85,15 @@ describe("MethodsTab — edited text survives a source refresh mid-edit", () => 
       <MethodsTab methods={methods("REFRESHED source that should be ignored")} workflowName="wf" runId="r1" />,
     );
 
-    // Save → the downloaded blob must contain the user's edit, not the refresh.
+    // Save is server-first; the local download (blob) fires after the awaited
+    // POST fails over, so wait for the blob before asserting its content.
     fireEvent.click(screen.getByTestId("methods-save-edited"));
-    expect(lastBlobParts).not.toBeNull();
+    await waitFor(() => expect(lastBlobParts).not.toBeNull());
     expect(String(lastBlobParts![0])).toContain("USER-EDITED prose the user must keep");
     expect(String(lastBlobParts![0])).not.toContain("REFRESHED source");
   });
 
-  it("re-seeds from the source when NOT editing (normal fresh-run behavior)", () => {
+  it("re-seeds from the source when NOT editing (normal fresh-run behavior)", async () => {
     const { rerender } = render(
       <MethodsTab methods={methods("FIRST run methods")} workflowName="wf" runId="r1" />,
     );
@@ -96,6 +103,7 @@ describe("MethodsTab — edited text survives a source refresh mid-edit", () => 
     // Now the user edits (starts from the refreshed source) and saves.
     fireEvent.click(screen.getByTestId("methods-edit-toggle"));
     fireEvent.click(screen.getByTestId("methods-save-edited"));
+    await waitFor(() => expect(lastBlobParts).not.toBeNull());
     expect(String(lastBlobParts![0])).toContain("SECOND run methods");
   });
 });

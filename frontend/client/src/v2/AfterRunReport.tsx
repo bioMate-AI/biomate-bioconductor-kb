@@ -18,46 +18,9 @@
  */
 import React, { useEffect, useMemo, useState } from "react";
 import { FindingsCard } from "@/components/findings-card";
+import { StepOutputPreview } from "@/components/step-output-preview";
 import { TrajectoryView, type TrajectoryRow, type TrajectoryKind } from "@/components/trajectory-view";
 import { RegulatoryDocumentEditor } from "@/components/regulatory-document-editor";
-
-// Text-like file extensions we render inline as text (in a <pre>) rather than
-// in an <iframe>. Chrome blocks iframing a step-file response served with
-// `X-Content-Type-Options: nosniff` for non-HTML MIME types (application/json,
-// text/plain, …) → "该内容被屏蔽了 / This content is blocked". Fetching the body
-// and rendering it as text sidesteps the frame-navigation block entirely.
-const TEXT_PREVIEW_EXTS = new Set([
-  'json', 'txt', 'text', 'log', 'csv', 'tsv', 'tab', 'yml', 'yaml', 'md',
-  'out', 'err', 'txt', 'nf', 'config', 'sh', 'py', 'r', 'vcf', 'bed', 'gff',
-  'gtf', 'sam', 'fasta', 'fa', 'fastq', 'fq', 'xml', 'ini', 'cfg', 'tsv',
-]);
-
-// Inline text preview: fetch the file body and render in a <pre>. Truncates
-// very large files so the modal stays responsive (a Download link is always
-// offered by the surrounding chrome for the full file).
-function TextFilePreview({ url, name }: { url: string; name: string }) {
-  const [text, setText] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    setText(null); setErr(null);
-    fetch(url, { credentials: 'include' })
-      .then(async r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const body = await r.text();
-        if (!cancelled) setText(body.length > 200_000 ? body.slice(0, 200_000) + '\n\n… (truncated — download for the full file)' : body);
-      })
-      .catch(e => { if (!cancelled) setErr((e as Error).message); });
-    return () => { cancelled = true; };
-  }, [url]);
-  if (err) return <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 12 }}>Preview unavailable ({err}). Use Download below.</div>;
-  if (text === null) return <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 12 }}>Loading {name}…</div>;
-  return (
-    <pre style={{ width: '100%', maxHeight: 400, overflow: 'auto', margin: 0, padding: 12, border: '1px solid var(--border)', borderRadius: 4, fontFamily: 'ui-monospace, monospace', fontSize: 12, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-      {text}
-    </pre>
-  );
-}
 
 // Strip raw Nextflow debug log lines down to a readable one-liner.
 // Input:  "Jul-22 07:56:33.018 [Task monitor] DEBUG ... name: STEP (DESeq2); ... exit: 1; error: Essential container...; workDir: s3://..."
@@ -154,6 +117,10 @@ export function AfterRunReport({
   const isFailed = executionStatus === "failed" || executionStatus === "cancelled" || executionStatus === "error";
   // Landing tab is Summary (accepted design) — not Outputs.
   const [tab, setTab] = useState<TabId>("summary");
+  // §7.8 findings-as-links — when a numeric claim in the Summary is clicked,
+  // FindingsCard reports the output ref it was read from; we jump to the
+  // Outputs tab and ask it to open that file's preview. Cleared once opened.
+  const [outputToOpen, setOutputToOpen] = useState<string | null>(null);
 
   // Outputs come from the parent's executionRun state (no /steps endpoint exists).
   const outputs = outputsProp ?? [];
@@ -286,7 +253,12 @@ export function AfterRunReport({
                 are saved alongside it; this original is never overwritten.
               </span>
             </div>
-            <FindingsCard runId={runId} onContinueAnalysis={onContinueAnalysis} executionStatus={executionStatus} />
+            <FindingsCard
+              runId={runId}
+              onContinueAnalysis={onContinueAnalysis}
+              executionStatus={executionStatus}
+              onOpenOutput={(ref) => { setOutputToOpen(ref); setTab("outputs"); }}
+            />
             {findings?.figures && findings.figures.length > 0 && (
               <FindingsFiguresPanel figures={findings.figures} />
             )}
@@ -310,7 +282,7 @@ export function AfterRunReport({
             </div>
           </div>
         )}
-        {tab === "outputs" && <OutputsTab outputs={outputs} runId={runId} invocationId={invocationId} executionStatus={executionStatus} projectId={projectId} />}
+        {tab === "outputs" && <OutputsTab outputs={outputs} runId={runId} invocationId={invocationId} executionStatus={executionStatus} projectId={projectId} openOutputRef={outputToOpen} onOpenedOutput={() => setOutputToOpen(null)} />}
         {/* Reproducibility record — the unified audit trail. Everything that
             used to be a peer tab is folded here as an expandable section;
             nothing is hidden or discarded. */}
@@ -399,9 +371,9 @@ function FailedRunSection({
   const [ctaToast, setCtaToast] = useState<string | null>(null);
 
   const handleRunAgain = () => {
-    // PM must-fix #3 — explicit CTA. Wire-up to the existing run-again-with-
-    // edits flow is a follow-up; for now we surface a CustomEvent that
-    // chat-with-artifacts can listen for, plus a temporary visible signal.
+    // PM must-fix #3 — explicit CTA. Handled by chat-with-artifacts'
+    // 'biomate:run-again-with-edits' listener, which re-opens the workflow
+    // panel and launches the run with the prior (or edited) parameters.
     window.dispatchEvent(
       new CustomEvent('biomate:run-again-with-edits', {
         detail: { runId, parameters },
@@ -409,7 +381,7 @@ function FailedRunSection({
     );
     // eslint-disable-next-line no-console
     console.info('[AfterRunReport] run-again-with-edits dispatched for run', runId);
-    setCtaToast('Run-again signal dispatched (parent wire-up pending)');
+    setCtaToast('Re-running with your parameters — see the run panel.');
     setTimeout(() => setCtaToast(null), 4000);
   };
 
@@ -906,7 +878,20 @@ function OutputsTab({
   invocationId,
   executionStatus,
   projectId: initialProjectId,
-}: { outputs: OutputFile[]; runId: string; invocationId?: string; executionStatus?: string; projectId?: string }) {
+  openOutputRef,
+  onOpenedOutput,
+}: {
+  outputs: OutputFile[];
+  runId: string;
+  invocationId?: string;
+  executionStatus?: string;
+  projectId?: string;
+  /** §7.8 — a source-file ref (path or name) the parent wants opened, set when
+   *  a finding number was clicked in the Summary. Matched against this run's
+   *  outputs and opened in the inline preview; unresolved refs are ignored. */
+  openOutputRef?: string | null;
+  onOpenedOutput?: () => void;
+}) {
   // Audit 2026-06-17: the parent's outputs prop is derived from the DB-stored
   // nextflowStatus.s3_output_files snapshot. That snapshot is often empty
   // for completed runs because the Galaxy /api/nextflow/status endpoint is
@@ -964,6 +949,27 @@ function OutputsTab({
 
   // Must be declared before any early return — Rules of Hooks.
   const [previewFile, setPreviewFile] = useState<OutputFile | null>(null);
+
+  // §7.8 — when the Summary reports an output ref (a finding number was
+  // clicked), find the matching output and open its preview. Match, in order:
+  // exact name, exact path, path/name ending in the ref's basename. An
+  // unresolvable ref is ignored (we never open the wrong file). Clears the
+  // request either way so a dismissed preview isn't reopened.
+  useEffect(() => {
+    if (!openOutputRef) return;
+    // Outputs may still be resolving (the empty-prop → fetch fallback above).
+    // Wait for a non-empty set before attempting — otherwise we'd clear the
+    // ref and never reopen once the fetch lands.
+    if (effectiveOutputs.length === 0) return;
+    const ref = openOutputRef;
+    const base = ref.split("/").filter(Boolean).pop() || ref;
+    const match =
+      effectiveOutputs.find((o) => o.name === ref || o.path === ref) ||
+      effectiveOutputs.find((o) => o.path?.endsWith(`/${base}`) || o.name === base) ||
+      effectiveOutputs.find((o) => (o.path || o.name || "").includes(base));
+    if (match) setPreviewFile(match);
+    onOpenedOutput?.(); // matched or genuinely absent — request is consumed
+  }, [openOutputRef, effectiveOutputs, onOpenedOutput]);
 
   // Save-to-Project state — declared before any early return (Rules of Hooks).
   const [savedProjectId, setSavedProjectId] = useState<string | undefined>(initialProjectId);
@@ -1038,8 +1044,19 @@ function OutputsTab({
     return '📁';
   };
 
+  // Mirrors the file types StepOutputPreview can render a viewer for: images,
+  // tables, text/logs, pdf/html, structures, density maps, single-cell + R
+  // objects (launchers), sequences/annotations, and JSON chart sidecars.
   const canPreview = (ext: string) =>
-    ['png','jpg','jpeg','gif','svg','webp','csv','tsv','html','htm','txt','log','json','yaml','yml','md'].includes(ext);
+    [
+      'png','jpg','jpeg','gif','svg','webp',
+      'csv','tsv','tab','html','htm','txt','text','log','json','yaml','yml','md','pdf',
+      'pdb','mmcif','cif','ent',
+      'mrc','map','mrcs','rec',
+      'h5ad','loom','h5',
+      'rds','rdata','rda',
+      'fasta','fa','faa','fna','vcf','bed','gff','gtf','sam',
+    ].includes(ext);
 
   return (
     <div style={styles.tabContent}>
@@ -1183,26 +1200,20 @@ function OutputsTab({
             onClick={e => e.stopPropagation()}
             style={{ background: 'var(--bg, #fff)', borderRadius: 8, padding: 20, maxWidth: 720, width: '90vw', maxHeight: '80vh', overflow: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div>
-                <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, fontWeight: 600 }}>{previewFile.name}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{previewFile.step}</div>
-              </div>
-              <button onClick={() => setPreviewFile(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
-            </div>
-            {['png','jpg','jpeg','gif','svg','webp'].includes(previewFile.ext) ? (
-              <img src={fileUrl(previewFile)} alt={previewFile.name} style={{ maxWidth: '100%', borderRadius: 4 }} />
-            ) : ['html','htm'].includes(previewFile.ext) ? (
-              <iframe src={fileUrl(previewFile)} title={previewFile.name} style={{ width: '100%', height: 480, border: '1px solid var(--border)', borderRadius: 4 }} />
-            ) : ['pdf'].includes(previewFile.ext) ? (
-              <iframe src={fileUrl(previewFile)} title={previewFile.name} style={{ width: '100%', height: 480, border: '1px solid var(--border)', borderRadius: 4 }} />
-            ) : TEXT_PREVIEW_EXTS.has(previewFile.ext) ? (
-              <TextFilePreview url={fileUrl(previewFile)} name={previewFile.name} />
-            ) : (
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 12, textAlign: 'center' }}>
-                Inline preview not available for .{previewFile.ext} files. Use Download below.
-              </div>
+            {previewFile.step && (
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>{previewFile.step}</div>
             )}
+            {/* Rich evidence viewer — StepOutputPreview resolves the right viewer
+                by file type (image/pdf/html/text plus structure pLDDT·PAE,
+                sequence tracks, hit grids, density maps, cryo charts, single-cell
+                / R-object launchers). Fetches the same step-file endpoint the
+                Outputs table already uses, so no new backend surface. */}
+            <StepOutputPreview
+              runId={runId}
+              file={{ name: previewFile.name, path: previewFile.path || previewFile.name, extension: previewFile.ext }}
+              onClose={() => setPreviewFile(null)}
+              projectId={savedProjectId}
+            />
             <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
               <a href={fileUrl(previewFile, true)} download style={{ fontSize: 12, color: 'var(--accent, oklch(0.55 0.18 260))' }}>↓ Download</a>
             </div>
@@ -1621,6 +1632,8 @@ function ParametersTab({
   // of a blocking alert().
   const handleRunAgain = () => {
     if (!runId) return;
+    // Handled by chat-with-artifacts' 'biomate:run-again-with-edits' listener,
+    // which re-opens the workflow panel and launches with these parameters.
     window.dispatchEvent(
       new CustomEvent('biomate:run-again-with-edits', {
         detail: { runId, parameters },
@@ -1628,7 +1641,7 @@ function ParametersTab({
     );
     // eslint-disable-next-line no-console
     console.info('[AfterRunReport] run-again-with-edits dispatched (params tab) for run', runId);
-    setCtaToast('Run-again signal dispatched (parent wire-up pending)');
+    setCtaToast('Re-running with your parameters — see the run panel.');
     setTimeout(() => setCtaToast(null), 4000);
   };
 

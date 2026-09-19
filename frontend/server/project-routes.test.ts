@@ -30,8 +30,13 @@ describe("project-routes — contract", () => {
   });
 
   it("every endpoint goes through authenticateToken", () => {
-    const handlerLines = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects[^"]*",\s*authenticateToken/g) ?? [];
-    expect(handlerLines.length).toBe(19);
+    // The regex only matches handlers whose path is immediately followed by
+    // authenticateToken, so this count IS the authed-endpoint count. It must
+    // equal the total number of project endpoints — i.e. no endpoint skips auth.
+    const authed = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects[^"]*",\s*authenticateToken/g) ?? [];
+    const total = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects/g) ?? [];
+    expect(authed.length).toBe(total.length);
+    expect(authed.length).toBe(22); // grows as endpoints are added (plans, owner-transfer, …)
   });
 
   it("404 on cross-user access (does not leak existence)", () => {

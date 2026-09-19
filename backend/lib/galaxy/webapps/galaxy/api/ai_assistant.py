@@ -5269,17 +5269,27 @@ def answer_research_query(
             paper_content=request.paper_content or None
         )
 
-        # Format citations for JSON
+        # Format citations for JSON. abstract + relevance_score ARE populated by
+        # the research agent (research_agent.py) — surface them so the client can
+        # show why a source was cited and how relevant it is. Optional fields are
+        # emitted only when present (never fabricated).
         citations_json = []
         for citation in response.citations:
-            citations_json.append({
+            entry = {
                 "title": citation.title,
                 "authors": citation.authors,
                 "year": citation.year,
                 "journal": citation.journal,
                 "doi": citation.doi,
                 "pmid": citation.pmid
-            })
+            }
+            abstract = getattr(citation, "abstract", None)
+            if abstract:
+                entry["abstract"] = abstract
+            relevance = getattr(citation, "relevance_score", None)
+            if relevance is not None:
+                entry["relevance_score"] = relevance
+            citations_json.append(entry)
 
         return {
             "success": True,

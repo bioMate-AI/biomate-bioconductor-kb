@@ -532,7 +532,15 @@ export function ResearchResponseDisplay({
                       <span className="italic">{citation.journal}</span>
                     )}
                     {citation.year && <span>({citation.year})</span>}
+                    {typeof citation.relevance_score === "number" && (
+                      <Badge variant="secondary" className="text-[10px] px-1 py-0" title="Retrieval relevance score">
+                        relevance {citation.relevance_score.toFixed(2)}
+                      </Badge>
+                    )}
                   </div>
+                  {citation.abstract && (
+                    <p className="text-muted-foreground mt-1 line-clamp-3">{citation.abstract}</p>
+                  )}
                   {citation.doi && (
                     <a
                       href={`https://doi.org/${citation.doi}`}

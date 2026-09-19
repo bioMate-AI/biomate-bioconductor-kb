@@ -37,9 +37,9 @@ describe('tier ↔ billing reconciliation', () => {
 // the enforcement flag (so they can't silently drop or become always-on).
 describe('tier gate wiring (project-routes.ts)', () => {
   const src = readFileSync(join(__dirname, 'project-routes.ts'), 'utf8');
-  it('collaboration gate is called on all 3 collaboration endpoints', () => {
+  it('collaboration gate is called on every collaboration endpoint', () => {
     const calls = src.match(/blockedByCollaborationTier\(req, res\)\) return/g) ?? [];
-    expect(calls.length).toBe(3); // share-link, members invite, role change
+    expect(calls.length).toBe(4); // share-link, members invite, role change, owner transfer
   });
   it('collaboration gate no-ops when enforcement is off', () => {
     expect(src).toMatch(/if \(!tierEnforcementEnabled\(\)\) return false/);

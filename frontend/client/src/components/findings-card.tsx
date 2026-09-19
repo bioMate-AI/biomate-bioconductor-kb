@@ -226,6 +226,34 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
           </p>
         )}
 
+        {/* §7.8 headline metrics — the top results as scannable chips so the
+            answer is legible at a glance without expanding the table. Each chip
+            with a known source opens that output (same path as the prose links). */}
+        {kr && kr.length > 0 && (
+          <div className="flex flex-wrap gap-1.5" data-testid="findings-headline-metrics">
+            {kr.slice(0, 3).map((r, i) => {
+              const clickable = Boolean(r.source_file && onOpenOutput)
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  disabled={!clickable}
+                  onClick={clickable ? () => onOpenOutput!(r.source_file!) : undefined}
+                  data-testid="findings-headline-metric"
+                  className={
+                    "flex items-baseline gap-1.5 rounded-md border border-blue-200/70 dark:border-blue-900/50 bg-white/60 dark:bg-blue-950/20 px-2 py-1 text-left " +
+                    (clickable ? "hover:border-blue-400 cursor-pointer" : "cursor-default")
+                  }
+                  title={r.source_file ? `Read from ${r.source_file}` : r.interpretation}
+                >
+                  <span className="text-[11px] text-muted-foreground">{r.metric}</span>
+                  <span className="text-xs font-mono font-semibold text-blue-800 dark:text-blue-300">{r.value}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
         {kr && kr.length > 0 && (
           <div>
             <button
