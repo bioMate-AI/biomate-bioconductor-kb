@@ -22,16 +22,16 @@ against the live system (dev) before anything is marked "supported" — see `cov
 - [~] `modules/I01-getting-started-cold-start.md`   (design v2 §00)
 - [~] `modules/I02-composer-talking-to-biomate.md`   (§06)
 - [~] `modules/I03-search-and-evidence.md`           (§01, §09)
-- [ ] `modules/I04-projects-instructions-collaboration.md` (§00 ProjectSetup)
+- [~] `modules/I04-projects-instructions-collaboration.md` (§00 ProjectSetup)
 - [~] `modules/I05-files-and-dataset-object.md`      (§04)
 - [~] `modules/I06-running-an-analysis.md`           (§07)
 - [~] `modules/I07-full-step-view-provenance.md`     (§08)
 - [~] `modules/I08-outputs-viewers-interactive.md`   (§14)
 - [~] `modules/I09-reports-and-reproducibility.md`   (§12)
-- [ ] `modules/I10-models.md`                        (§03, §10)
-- [ ] `modules/I11-design-and-generate.md`           (§05, §11)
-- [ ] `modules/I12-connectors-and-skills.md`
-- [ ] `modules/I13-billing-quotas-two-lane-cost.md`
+- [~] `modules/I10-models.md`                        (§03, §10)
+- [~] `modules/I11-design-and-generate.md`           (§05, §11)
+- [~] `modules/I12-connectors-and-skills.md`
+- [~] `modules/I13-billing-quotas-two-lane-cost.md`
 
 ### Part II — Databases & retrieval supports
 - [ ] `data/II01-workflow-catalog-and-routing.md`

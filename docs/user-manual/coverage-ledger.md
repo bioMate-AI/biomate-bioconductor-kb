@@ -200,6 +200,62 @@ Page: `modules/I09-reports-and-reproducibility.md`. Tier C.
 | GAP: checksums opt-in (`?checksums=1`) but default UI fetch omits it → column shows "—" until hashed on demand | C | 🗺️ | `routes.ts:12228-12263`; `AfterRunReport.tsx:1545` |
 | GAP: report chat-edit (propose-diff) not built (hand-edit + Save version only); no manuscript Stage 6; no cross-run report | C | 🗺️ | `AfterRunReport.tsx:1234-1242` |
 
+## I.4 Projects, instructions & collaboration
+Page: `modules/I04-projects-instructions-collaboration.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| Projects user-owned; cross-user → 404 (existence not leaked); ensureLtmUser bootstrap | C | ✅ | `project-routes.ts:11-13,278,304,195,222` |
+| Standing instructions → `researchGoal` (agent-read, injected as "Research goal"); Notes = human-only `user_notes` NEVER injected; "Promote ↑" appends | C | ✅ | `project-detail.tsx:907-921,956-961,443-461`; `routes.ts:6061-6099` |
+| Plans: GET-list + POST(owner/editor, 403 viewer) + GET-by-id; card on project-detail | C | ✅ | `project-routes.ts:870-929`; `project-detail.tsx:1025-1075` |
+| Roles = owner/editor/viewer (no "member"); collaboration tier-gated (402 TEAM_REQUIRED) | C | ✅ | `project-detail.tsx:73-77`; `project-routes.ts:151-163` |
+| GAP: owner-transfer has backend (PATCH /owner) but NO UI; share-link expiry honored but no create-UI | C | 🗺️ | `project-routes.ts:762-791`; `project-detail.tsx` (no control) |
+
+## I.10 Models
+Page: `modules/I10-models.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| `/models` → ModelsPanel (focused panel, not the chat run-panel); 5 tracks (Train·House style·Rounds·Run a model·Registry) | C | ✅ | `App.tsx:654-660`; `models-panel.tsx:41-47` |
+| Registry lists BioNeMo (Boltz-2/AF2/OpenFold2/Evo2) + custom scorers, honest-empty; Run a model = live inference (labelled stub when NIM unreachable) | C | ✅ | `models_inference.py:201-247,888-944,972-998` |
+| House style: read DPO pairs + "Re-train on my edits" queues a real tracked job | C | ✅ | `models_inference.py:521-672` |
+| GAP: 3 of 5 tracks read-only — no "start training"/"launch loop" control on the panel; cold-start advertises Train/Adapt/Optimise | C | 🗺️ | `models_inference.py:487-514`; `models-panel.tsx:16-19` |
+
+## I.11 Design & generate
+Page: `modules/I11-design-and-generate.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| `/design` → DesignGenerate; small-molecule generate→predict→optimise→rank in one round (RDKit BRICS); objectives molecule-derived; safety gate real; affinity/hERG NOT fabricated | C | ✅ | `App.tsx:662-668`; `generation.py:156-262,269-414` |
+| Results in-panel (HitGrid, Pareto, re-rank, order-sheet); NOT a chat/I.6 run (no SSE/after-run/files object) | C | ✅ | `DesignGenerate.tsx:1852-1900` |
+| GAP: peptide/biologic modalities gated (forms render, generators not wired); entry chips navigate-only; reinvent4_lead_design is a separate chat-routed workflow | C | 🗺️ | `DesignGenerate.tsx:1523,1539,1747-1757`; `generation.py:96-111` |
+
+## I.12 Connectors & skills
+Page: `modules/I12-connectors-and-skills.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| Connectors = primary nav item opening ConnectorsDialog; 2 tabs (Scientific Databases ~64, AI & Platforms); declared-facts model + per-connector scope (localStorage) | C | ✅ | `app-sidebar.tsx:251-262,482`; `connectors-dialog.tsx:75-217,279-284` |
+| Skills/experts via SkillsSelector → GET /api/skills → thread `skillPackIds`; honest-empty | C | ✅ | `skills-selector.tsx:83-103,204-209`; `chat-input.tsx:271-287`; `ai_assistant.py:6291-6319` |
+| GAP: Skills tab in the dialog commented out (0 entries); Connectors in nav not Settings (spec) | C | 🗺️ | `connectors-dialog.tsx:65,524-526` |
+
+## I.13 Billing & quotas
+Page: `modules/I13-billing-quotas-two-lane-cost.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| `/billing` reads /api/billing/usage (LLM/compute/storage/total, zeros-on-Redis-fail) + /quota (quota_usd/used/pct/over) | C | ✅ | `App.tsx:614-618`; `billing_router.py:187-290` |
+| Flat-tier + internal quota (DEFAULT_PLAN_LIMITS free/premium/team/enterprise); Stripe + Redis ledger; Lago off | C | ✅ | `quota_enforcer.py:40-49`; CLAUDE.md billing |
+| Two-lane cost model (Instant light / Cloud billed); pre-run panel shows NO per-run estimate (CostEstimateBadge off) | C | ✅ | `nextflow-workflow-viewer.tsx:445-476` |
+
+## Screenshots captured (live from dev)
+| Asset | Surface | Status |
+|---|---|---|
+| i01-1-cold-start.png | cold start (4 modules + intent bar + composer) | ✅ wired overview/I.1 |
+| i05-0-data-hub.png · i05-1-file-tree.png · i05-2-dataset-header.png · i05-3-quality-tab.png | data hub picker · file tree · dataset object · quality tab | ✅ wired I.5 |
+| i10-1-models.png · i11-1-design.png · capabilities.png | models · design · capabilities | ✅ wired I.10/I.11 |
+| Run-dependent shots (after-run report, outputs, full step view) | need a completed run | ⏳ placeholders kept (not faked) |
+
 ## Known coverage gaps (→ Appendix E, do NOT document as present)
 | Item | Note | Source |
 |---|---|---|
