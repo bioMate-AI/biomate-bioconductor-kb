@@ -61,7 +61,7 @@ def paraphrase(req, k):
          "change any technical detail). Each rewrite uses a distinct voice:\n"
          +"\n".join(f"{i+1}. {s}" for i,s in enumerate(styles))
          +f'\n\nREQUEST:\n{req}\n\nReply ONLY a JSON list of {len(styles)} strings, one per voice, in order.')
-    out=_call(ask, n=250+90*len(styles))
+    out=_call(ask, n=500+240*len(styles))  # generous: 5 long paraphrases overflowed the old 700-cap -> truncated JSON -> 0 variants
     if not out: return []
     m=re.search(r"\[.*\]", out, re.S)
     if not m: return []

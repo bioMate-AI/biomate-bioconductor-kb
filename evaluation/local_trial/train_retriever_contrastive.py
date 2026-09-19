@@ -29,8 +29,9 @@ def main():
     ap.add_argument("--n-hard",type=int,default=4); ap.add_argument("--device",default=None)
     ap.add_argument("--holdout-frac",type=float,default=0.15)
     a=ap.parse_args()
-    from sentence_transformers import SentenceTransformer, InputExample, losses, models
-    from torch.utils.data import DataLoader
+    import torch, torch.nn.functional as F
+    torch.set_num_threads(4)  # cap CPU threads (frugal on small-RAM local box)
+    from sentence_transformers import SentenceTransformer
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.metrics.pairwise import cosine_similarity
 
@@ -57,7 +58,7 @@ def main():
                 if gold in order[:k]: hits[k]+=1
         return {k: round(hits[k]/max(len(qs),1),3) for k in ks}
 
-    before=recall(m, held_q); print("recall BEFORE:", before)
+    before=recall(m, held_q); print("recall BEFORE:", before, flush=True)
 
     # mine hard negatives with a hybrid TF-IDF+dense retriever (same signal as production front-end)
     vec=TfidfVectorizer(ngram_range=(1,2),min_df=2,max_features=50000); Dm=vec.fit_transform(docs)
@@ -69,27 +70,47 @@ def main():
         sc=(z(lex)+z(den))[0]
         return [i for i in np.argsort(-sc) if i!=gold_i][:k]
 
-    examples=[]
+    # each training row = (anchor query, positive gold doc, list of hard-negative docs)
+    triplets=[]
     for r in train_q:
         gi=idx[r["correct_workflow"]]
         negs=hard_negs(r["query"], gi, a.n_hard)
-        # one triplet per hard negative: [anchor query, positive doc, hard-negative doc]
-        for ni in negs:
-            examples.append(InputExample(texts=[QPREFIX+r["query"], docs[gi], docs[ni]]))
-    random.shuffle(examples)
-    print(f"contrastive triplets: {len(examples)} (query, +gold, -hard)")
+        if negs: triplets.append((QPREFIX+r["query"], docs[gi], [docs[ni] for ni in negs]))
+    random.shuffle(triplets)
+    print(f"contrastive rows: {len(triplets)} (query, +gold, {a.n_hard} hard negs each)")
 
-    loader=DataLoader(examples, shuffle=True, batch_size=a.batch, drop_last=True)
-    loss=losses.MultipleNegativesRankingLoss(m)  # InfoNCE: in-batch + explicit hard negatives
-    warmup=int(len(loader)*a.epochs*0.1)
-    m.fit(train_objectives=[(loader, loss)], epochs=a.epochs, warmup_steps=warmup,
-          show_progress_bar=True, output_path=a.out)
+    # --- InfoNCE / MultipleNegativesRankingLoss implemented directly (no `datasets` dep) ---
+    dev=a.device or ("cuda" if torch.cuda.is_available() else "cpu")  # cpu default: stable, MPS is flaky here
+    m=m.to(dev); m.train()
+    def embed(texts):  # low-level forward WITH grad; features must live on model device
+        f=m.tokenize(texts); f={k:(v.to(dev) if hasattr(v,"to") else v) for k,v in f.items()}
+        return F.normalize(m(f)["sentence_embedding"], p=2, dim=1)
+    opt=torch.optim.AdamW(m.parameters(), lr=2e-5)
+    scale=20.0  # temperature (1/0.05), the ST MNRL default
+    steps=0; total=len(triplets)*a.epochs
+    warmup=max(int(0.1*total/a.batch),5)
+    for ep in range(a.epochs):
+        random.shuffle(triplets)
+        for i in range(0, len(triplets)-a.batch+1, a.batch):
+            batch=triplets[i:i+a.batch]
+            anchors=[t[0] for t in batch]; pos=[t[1] for t in batch]
+            hard=[d for t in batch for d in t[2]]           # flattened hard negatives
+            A=embed(anchors); P=embed(pos); H=embed(hard)   # [b,d],[b,d],[b*n,d]
+            cand=torch.cat([P,H],0)                          # in-batch positives+negs + hard negs
+            logits=scale*(A@cand.T)                          # [b, b + b*n]
+            labels=torch.arange(A.size(0), device=dev)       # positive of row i is column i
+            loss=F.cross_entropy(logits, labels)
+            for g in opt.param_groups: g["lr"]=2e-5*min(1.0,(steps+1)/warmup)
+            opt.zero_grad(); loss.backward(); opt.step(); steps+=1
+            if steps%20==0: print(f"ep{ep} step{steps}/{total//a.batch} loss={loss.item():.4f}", flush=True)
+    m.eval()
+    import os as _os; _os.makedirs(a.out, exist_ok=True); m.save(a.out)
 
-    after=recall(m, held_q); print("recall AFTER: ", after)
-    res={"model":a.model,"n_train":len(train_q),"n_heldout":len(held_q),"n_triplets":len(examples),
+    after=recall(m, held_q); print("recall AFTER: ", after, flush=True)
+    res={"model":a.model,"n_train":len(train_q),"n_heldout":len(held_q),"n_triplets":len(triplets),
          "n_hard":a.n_hard,"epochs":a.epochs,"recall_before":before,"recall_after":after,
          "delta":{k: round(after[k]-before[k],3) for k in after}}
     os.makedirs(a.out, exist_ok=True); json.dump(res, open(f"{a.out}/contrastive_result.json","w"), indent=2)
-    print("CONTRASTIVE_DONE delta:", res["delta"], "-> saved", a.out)
+    print("CONTRASTIVE_DONE delta:", res["delta"], "-> saved", a.out, flush=True)
 
 if __name__=="__main__": raise SystemExit(main())
