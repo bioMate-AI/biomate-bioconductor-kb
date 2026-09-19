@@ -38,6 +38,10 @@ before you commit.
 
 Source: `COLD_MODULES` in `cold-start-dashboard.tsx:225-429`.
 
+![The BioMate cold start: the intent bar ("What are you trying to do?") and the four function-module cards, with the composer (Instructions · Experts) at the foot.](../assets/i01-1-cold-start.png)
+<!-- CAPTURE route=/ ; state=new/empty chat ; focus=full viewport ; note=4 module cards + intent bar + composer (captured live from dev) -->
+*The cold start — the four function modules and the intent router. (Live capture from dev.)*
+
 ### What each module leads to
 - **Search & evidence** → an evidence answer with retrieval transparency + citations you can read and
   save (see I.3). Instant.

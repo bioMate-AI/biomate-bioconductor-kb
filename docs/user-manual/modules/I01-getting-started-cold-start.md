@@ -17,6 +17,10 @@ The cold start renders in the **empty state of a new chat** — when a session h
 (`chat-interface.tsx:2126-2139`). Start a new chat (sidebar → New chat) to see it again. It is the
 `ColdStartDashboard` component (`cold-start-dashboard.tsx`).
 
+![The cold start: intent bar, the four module cards (Search & evidence · Data analysis · Design & generate · Models), and the composer at the foot with Instructions and Experts.](../assets/i01-1-cold-start.png)
+<!-- CAPTURE route=/ ; state=new/empty chat ; focus=full viewport ; note=intent bar + 4 module cards + composer (captured live from dev) -->
+*The cold start, captured live from dev — the doorway to everything.*
+
 ## How to use it
 
 **Two ways in — both seed the composer; neither sends on its own** (you always review and send):
