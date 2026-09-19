@@ -17,14 +17,16 @@ trap 'rc=$?; [ $rc -ne 0 ] && stage failed; sync; sleep 5; aws s3 sync "$ROOT/st
 systemd-run --unit=p2e-deadline --on-active=4h /sbin/shutdown -h now || true
 
 stage installing
-command -v aws >/dev/null 2>&1 || { apt-get update -qq && apt-get install -y -qq unzip curl && curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/a.zip && (cd /tmp && unzip -q -o a.zip && ./aws/install --update); }
+apt-get update -qq && apt-get install -y -qq unzip curl libgomp1 || true   # libgomp1: GNU OpenMP runtime (libgomp.so.1) needed by openmm+sklearn; rolling conda-forge dropped it off the loader path
+command -v aws >/dev/null 2>&1 || { curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/a.zip && (cd /tmp && unzip -q -o a.zip && ./aws/install --update); }
 curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/mc.sh
 bash /tmp/mc.sh -b -p /opt/miniconda; source /opt/miniconda/etc/profile.d/conda.sh
 conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main || true
 conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r || true
-conda create -y -n p2e -c conda-forge python=3.11 rdkit openmm openmmforcefields openff-toolkit ambertools scikit-learn pandas numpy scipy >/dev/null 2>&1
+conda create -y -n p2e -c conda-forge python=3.11 rdkit openmm openmmforcefields openff-toolkit ambertools scikit-learn pandas numpy scipy libgomp llvm-openmp >/dev/null 2>&1
 conda activate p2e
-python -c "import openmm, openff.toolkit, openmmforcefields, rdkit; print('deps ok')"
+export LD_LIBRARY_PATH=/opt/miniconda/envs/p2e/lib:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}   # ensure libgomp.so.1 resolvable in workers (Pool inherits env)
+python -c "import ctypes; ctypes.CDLL('libgomp.so.1'); import openmm, openff.toolkit, openmmforcefields, rdkit, sklearn; print('deps ok')"
 
 stage fetch_data
 aws s3 cp "s3://$BUCKET/cyclic_peptide/raw/CycPeptMPDB_Peptide_All.csv" ./cyc.csv --only-show-errors
