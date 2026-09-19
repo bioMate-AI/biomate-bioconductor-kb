@@ -31,8 +31,20 @@ def norm_line(l): return re.sub(r"[^a-z0-9]+"," ", l.lower()).strip()
 def toks(s): return int(len(re.findall(r"\S+", s or ""))*1.33)
 
 BOILER=re.compile(r"(?i)^(license|copyright|table of contents|download|edit on github|\[!\[|badge)")
+GALAXY_LEAK=re.compile(r"(base\.mako|Content-Type|text/html|/static/dist/|<head>|rel=\"index\"|charset=)")
+def strip_noise(s):
+    """strip HTML tags + drop leaked Galaxy page lines + drop JSON-ish lines (audit: rawText/examples
+    carried HTML + Galaxy page markup + raw JSON that verbalization didn't cover)."""
+    s=strip_html(s or "")
+    out=[]
+    for l in s.split("\n"):
+        if GALAXY_LEAK.search(l): continue
+        t=l.strip()
+        if len(t)>=8 and sum(c in '{}[]":,' for c in t)/len(t) > 0.35: continue  # JSON-ish line
+        out.append(l)
+    return "\n".join(out)
 def clean_prose(s):
-    s=norm_ws(s); out=[]
+    s=norm_ws(strip_noise(s)); out=[]
     for l in s.split("\n"):
         if BOILER.match(l.strip()): continue
         out.append(l)
@@ -63,6 +75,26 @@ def verbalize_sci(raw):
         if rv and len(rv)>2: lines.append(f"{_humanize(k)}: {rv}.")
     text=" ".join(lines)
     return text if len(text)>=60 else None                      # thin -> drop
+
+def verbalize_help(raw):
+    """help_text is often JSON {what_it_does, how_to_use, input_description, output_description,
+    examples, full_text}. Extract the meaningful values (audit: raw JSON was leaking into 97% of docs).
+    Non-JSON -> plain text (noise-stripped)."""
+    raw=(raw or "").strip()
+    if not raw: return ""
+    if raw.startswith("{"):
+        try: d=json.loads(raw)
+        except Exception: return strip_noise(raw)
+        if isinstance(d, dict):
+            order=["what_it_does","how_to_use","input_description","output_description","examples","full_text"]
+            segs=[]
+            for k in order:
+                v=d.get(k)
+                if isinstance(v,str) and v.strip(): segs.append(strip_noise(v.strip()))
+            for k,v in d.items():  # any other populated string keys
+                if k not in order and isinstance(v,str) and v.strip(): segs.append(strip_noise(v.strip()))
+            return "\n".join(segs).strip()
+    return strip_noise(raw)
 
 def verbalize_params(raw):
     try: p=json.loads(raw)
@@ -116,16 +148,16 @@ def main():
         if base:
             kept=dedup_append(seen_lines, base); parts.append(kept); kept_tok["rawText"]+=toks(kept)
 
-        # 2) help_text: preserve CLI structure, dedup vs base
+        # 2) help_text: JSON-structured (what_it_does/full_text/...) -> extract values, dedup vs base
         if r.get("help_text"):
-            ht=norm_ws(r["help_text"]); kept=dedup_append(seen_lines, ht)
+            ht=norm_ws(verbalize_help(r["help_text"])); kept=dedup_append(seen_lines, ht)
             if kept: parts.append("## Usage / help\n"+kept); kept_tok["help_text"]+=toks(kept); drop_tok["help_text(dup)"]+=toks(ht)-toks(kept)
 
-        # 3) code: examples preferred, usage_guide only if not dup of examples
+        # 3) code: examples preferred, usage_guide only if not dup of examples (strip HTML/Galaxy leak)
         code=""
-        if r.get("examples"): code=norm_ws(r["examples"])
+        if r.get("examples"): code=norm_ws(strip_noise(r["examples"]))
         if r.get("usage_guide"):
-            ug=norm_ws(r["usage_guide"])
+            ug=norm_ws(strip_noise(r["usage_guide"]))
             if not code or norm_line(ug)[:200] not in norm_line(code): code=(code+"\n\n"+ug).strip() if code else ug
             else: drop_tok["usage_guide(dup_of_examples)"]+=toks(ug)
         if code:
