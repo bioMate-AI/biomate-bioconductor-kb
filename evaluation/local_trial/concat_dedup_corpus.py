@@ -1,10 +1,14 @@
-"""Concat all mid-training corpus shards (internal + code + gtn + external) -> one deduped text file."""
+"""Concat all mid-training corpus shards (tools + code + gtn + ontologies + external) -> one deduped
+text file. Pass extra basenames to exclude as argv[2:] (default excludes internal_corpus.jsonl, which
+is the OLD raw-JSON extraction of the same tools now superseded by the verbalized tools_corpus.jsonl)."""
 import json, glob, hashlib, sys, os
 D=sys.argv[1] if len(sys.argv)>1 else "/opt/dlami/nvme/midtrain_corpus"
+EXCLUDE=set(sys.argv[2:]) or {"internal_corpus.jsonl"}  # superseded by tools_corpus.jsonl
 out=os.path.join(D,"midtrain_all.jsonl"); seen=set(); n=0; toks=0
 with open(out,"w") as f:
     for p in sorted(glob.glob(os.path.join(D,"*.jsonl"))):
         if p.endswith("midtrain_all.jsonl"): continue
+        if os.path.basename(p) in EXCLUDE: continue
         for l in open(p):
             try: r=json.loads(l)
             except: continue
