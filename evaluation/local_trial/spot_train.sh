@@ -14,6 +14,7 @@ case "$SIZE" in
   large) HF=Qwen/Qwen3.8-27B ; SFT=700; MID=800; SEQ=2048; R=32 ;;
   *) echo "MODEL_SIZE must be small|large"; exit 1 ;;
 esac
+SEQ=${SEQ_OVERRIDE:-$SEQ}; R=${R_OVERRIDE:-$R}   # shrink to fit a 24GB GPU when 48GB capacity is unavailable
 BASE="$SCRATCH/models/base_$SIZE"
 
 # stream this log to S3 every 30s so progress/errors are observable without SSH

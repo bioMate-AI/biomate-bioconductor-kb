@@ -19,7 +19,7 @@ USERDATA=$(cat <<EOF | base64
 #!/bin/bash
 exec > /var/log/ud.log 2>&1
 set -x
-export SCRATCH=/opt/dlami/nvme MODEL_SIZE=$MODEL_SIZE STAGE=$STAGE
+export SCRATCH=/opt/dlami/nvme MODEL_SIZE=$MODEL_SIZE STAGE=$STAGE SEQ_OVERRIDE=${SEQ_OVERRIDE:-} R_OVERRIDE=${R_OVERRIDE:-}
 # stream the boot log to S3 from the START so bootstrap failures are visible (EBS is gone on terminate)
 ( while true; do aws s3 cp /var/log/ud.log $LOG_S3/boot.log --quiet 2>/dev/null; sleep 20; done ) &
 mkdir -p \$SCRATCH/code && cd \$SCRATCH/code
