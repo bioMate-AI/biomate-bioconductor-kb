@@ -5213,6 +5213,17 @@ def _execute_nextflow_impl(
     if _param_executor and not compute.get("executor"):
         compute["executor"] = str(_param_executor)
 
+    # On-premises deployments: NEXTFLOW_EXECUTOR=local overrides everything —
+    # NEXTFLOW_USE_AWS, the frontend's default executor="awsbatch", and any
+    # compute_config from the request.  Strip S3 output dirs too since the
+    # local Docker executor cannot read/write s3://.
+    _onprem_local = os.environ.get("NEXTFLOW_EXECUTOR", "").lower() == "local"
+    if _onprem_local:
+        compute["executor"] = "local"
+        if str(params.get("outdir", "")).startswith("s3://"):
+            params.pop("outdir", None)
+        log.info("[Nextflow] On-premises mode (NEXTFLOW_EXECUTOR=local) — forced local executor")
+
     # Default to AWS Batch when NEXTFLOW_USE_AWS=true and no explicit executor is set.
     # This is the platform default: all workflows run on Batch unless explicitly overridden.
     _use_aws_env = os.environ.get("NEXTFLOW_USE_AWS", "false").lower() in ("true", "1", "yes")
@@ -5220,8 +5231,9 @@ def _execute_nextflow_impl(
     _uid_for_path = (request.user_id or "unknown").replace("/", "_").replace("..", "_")
     # Route to AWS Batch when NEXTFLOW_USE_AWS=true OR when executor is already "awsbatch"
     # (the frontend sends executor="awsbatch" by default as the platform standard).
+    # Skip this block entirely in on-prem local mode.
     _executor_requested = compute.get("executor", "")
-    if _use_aws_env or _executor_requested == "awsbatch":
+    if not _onprem_local and (_use_aws_env or _executor_requested == "awsbatch"):
         s3_bucket_default = os.environ.get("AWS_S3_BUCKET", "biomate-nextflow-work")
         # Use _pre_outdir from the fast-path if available — ensures the S3 path the
         # frontend stored at run-creation time matches where Nextflow actually writes.
@@ -5262,10 +5274,11 @@ def _execute_nextflow_impl(
     # Auto-detect S3 outdir → route to AWS Batch automatically.
     # If the caller passes outdir=s3://..., we treat that as an implicit request
     # for cloud execution — no separate compute_config.executor needed.
+    # Skip in on-prem local mode (S3 was already stripped above).
     effective_outdir = params.get("outdir", "")
     is_s3 = str(effective_outdir).startswith("s3://")
 
-    if is_s3:
+    if is_s3 and not _onprem_local:
         # Validate the bucket is reachable before launching anything.
         _validate_s3_url(effective_outdir)
 
@@ -7007,6 +7020,91 @@ def _get_nextflow_status_impl(
     }
 
 
+def _list_local_output_files(outdir: str, run_id: str) -> list:
+    """List output files from a local filesystem directory.
+
+    Returns the same shape as _list_s3_output_files:
+      [{name, size, extension, download_url}]
+    where download_url points to /api/nextflow/outputs/local-download.
+    """
+    skip_names = {
+        ".command.run", ".command.sh", ".command.out", ".command.err",
+        ".command.log", ".command.begin", ".exitcode",
+        "trace.txt", "timeline.html", "dag.svg", "dag.html", "report.html",
+        "execution_report.html", "execution_timeline.html", "execution_trace.txt",
+    }
+    skip_dirs = {".nextflow", "work", "pipeline_info"}
+    out_path = Path(outdir)
+    if not out_path.exists():
+        return []
+    results = []
+    for f in sorted(out_path.rglob("*")):
+        if not f.is_file():
+            continue
+        # Skip Nextflow internals
+        if f.name in skip_names or f.name.startswith("."):
+            continue
+        if any(part in skip_dirs for part in f.parts):
+            continue
+        rel = f.relative_to(out_path)
+        ext = f.name.rsplit(".", 1)[-1].lower() if "." in f.name else ""
+        try:
+            size = f.stat().st_size
+        except OSError:
+            continue
+        import urllib.parse as _urlparse
+        dl_url = (
+            f"/api/nextflow/outputs/local-download"
+            f"?run_id={_urlparse.quote(run_id)}"
+            f"&rel_path={_urlparse.quote(str(rel))}"
+        )
+        results.append({
+            "name": f.name,
+            "local_path": str(f),
+            "size": size,
+            "extension": ext,
+            "download_url": dl_url,
+        })
+    log.info("[Nextflow] Listed %d local output files from %s", len(results), outdir)
+    return results
+
+
+@router.get("/api/nextflow/outputs/local-download", summary="Download a local on-prem output file")
+def download_local_output(run_id: str, rel_path: str) -> Any:
+    """Stream a local filesystem output file for on-prem deployments.
+
+    Security: `rel_path` is resolved relative to the run's recorded outdir;
+    any path that escapes the outdir is rejected.
+    """
+    from starlette.responses import FileResponse
+
+    info = _run_lookup(run_id)
+    if info is None:
+        work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
+        output_dir = work_base / run_id / "output"
+        if not output_dir.exists():
+            raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+        outdir = str(output_dir)
+    else:
+        outdir = str(info.get("outdir", ""))
+
+    if outdir.startswith("s3://"):
+        raise HTTPException(status_code=400, detail="Use /api/nextflow/outputs/download for S3 runs.")
+
+    base = Path(outdir).resolve()
+    try:
+        target = (base / rel_path).resolve()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid path.")
+
+    if not str(target).startswith(str(base)):
+        raise HTTPException(status_code=403, detail="Path escapes run output directory.")
+    if not target.is_file():
+        raise HTTPException(status_code=404, detail=f"File not found: {rel_path}")
+
+    return FileResponse(str(target), filename=target.name)
+
+
 @router.get("/api/nextflow/outputs/download", summary="Generate presigned download URL for S3 output")
 def download_s3_output(
     s3_uri: str,
@@ -7034,7 +7132,7 @@ def download_s3_output(
 
     outdir = str(info.get("outdir", ""))
     if not outdir.startswith("s3://"):
-        raise HTTPException(status_code=400, detail="This run does not have S3 outputs.")
+        raise HTTPException(status_code=400, detail="This run does not have S3 outputs. Use /api/nextflow/outputs/local-download for local runs.")
 
     # Auth guard: requested key must be within this run's outdir.
     if not s3_uri.startswith(outdir.rstrip("/") + "/"):
@@ -7073,25 +7171,15 @@ def list_run_output_files(run_id: str) -> Any:
         work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
         output_dir = work_base / run_id / "output"
         if output_dir.exists():
-            # Local run — list files directly
-            files = []
-            for f in sorted(output_dir.rglob("*")):
-                if f.is_file():
-                    name = f.name
-                    ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
-                    files.append({
-                        "name": name,
-                        "s3_uri": None,
-                        "size": f.stat().st_size,
-                        "extension": ext,
-                        "download_url": f"/api/nextflow/outputs/download?s3_uri={str(f)}&run_id={run_id}",
-                    })
-            return {"run_id": run_id, "files": files}
+            local_files = _list_local_output_files(str(output_dir), run_id)
+            return {"run_id": run_id, "files": local_files}
         raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
 
     outdir = str(info.get("outdir", ""))
     if not outdir.startswith("s3://"):
-        return {"run_id": run_id, "files": [], "note": "Local run — no S3 outputs"}
+        # Local executor (on-prem or personal workflow) — list filesystem outputs
+        local_files = _list_local_output_files(outdir, run_id)
+        return {"run_id": run_id, "files": local_files}
 
     raw_files = _list_s3_output_files(outdir)
     if not raw_files:

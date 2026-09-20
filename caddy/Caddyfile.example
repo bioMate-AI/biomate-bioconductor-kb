@@ -1,0 +1,59 @@
+# BioMate On-Premises — Caddy Reverse Proxy Configuration
+#
+# Caddy automatically obtains and renews TLS certificates via Let's Encrypt.
+# Replace `biomate.yourdomain.com` with your actual domain.
+#
+# Quick start:
+#   1. Point your domain's A record to this server's IP.
+#   2. Copy this file to `caddy/Caddyfile` (no `.example` suffix).
+#   3. Set DOMAIN=biomate.yourdomain.com in your .env.
+#   4. Uncomment the caddy service in docker-compose.onprem.yml.
+#   5. Set FORCE_HTTPS=1 and ENABLE_HSTS=1 in .env.
+#   6. docker compose -f docker-compose.onprem.yml up -d caddy
+#
+# For internal-only deployments without a public domain, use a self-signed cert:
+#   Replace the domain block below with `localhost` and Caddy will issue a
+#   locally-trusted cert (useful for intranet/VPN-only installs).
+
+{biomate.yourdomain.com} {
+    # Forward all requests to the Node.js frontend
+    reverse_proxy frontend:3000
+
+    # Let's Encrypt TLS (automatic)
+    tls {
+        # Optional: use staging CA for testing (avoids rate limits)
+        # ca https://acme-staging-v02.api.letsencrypt.org/directory
+    }
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Frame-Options DENY
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
+
+    # Increase upload size limit (workflow file uploads can be large)
+    request_body {
+        max_size 512MB
+    }
+
+    # SSE / streaming: disable buffering for real-time workflow status
+    @sse path /api/stream* /api/workflow-status*
+    flush_interval -1
+}
+
+# ── Alternative: internal-only with self-signed cert ───────────────────────
+# Use this if you don't have a public domain (intranet / VPN deployments).
+# Uncomment and comment out the block above.
+#
+# localhost {
+#     tls internal
+#     reverse_proxy frontend:3000
+#     request_body {
+#         max_size 512MB
+#     }
+#     @sse path /api/stream* /api/workflow-status*
+#     flush_interval -1
+# }

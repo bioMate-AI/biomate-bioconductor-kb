@@ -39,6 +39,7 @@ on:
 permissions:
   id-token: write    # OIDC for assume-role
   contents: read
+  packages: write    # push to GHCR for on-prem distribution
 
 concurrency:
   # Allow at most one in-flight backend-image build per ref. Cancel older runs.
@@ -50,6 +51,7 @@ env:
   ECR_REGISTRY: 399683337364.dkr.ecr.us-west-2.amazonaws.com
   ECR_REPO: biomate/dev-backend
   ROLE_ARN: arn:aws:iam::399683337364:role/GitHubActionsECRPush
+  GHCR_IMAGE: ghcr.io/biomate-ai/biomate-backend
 
 jobs:
   build-and-push:
@@ -116,6 +118,13 @@ jobs:
 
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Login to GHCR (on-prem image distribution)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       # The backend image is ~4.7GB and requirements.txt pulls torch + the
       # nvidia-cuda-* stack + transformers (many GB). On a stock ubuntu-latest
@@ -226,6 +235,26 @@ jobs:
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.release_tag }}
           docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.release_tag }}
 
+      # ── GHCR push (on-prem distribution) ──────────────────────────────────────
+      # We push `latest` + version tag to GHCR so on-prem customers can
+      # docker pull without AWS credentials.
+      # `latest` always tracks the most recent release-v* build.
+      - name: Push GHCR latest (on-prem)
+        if: steps.tags.outputs.release_tag != ''
+        run: |
+          docker tag \
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+            ${{ env.GHCR_IMAGE }}:latest
+          docker push ${{ env.GHCR_IMAGE }}:latest
+
+      - name: Push GHCR version tag (on-prem)
+        if: steps.tags.outputs.release_tag != ''
+        run: |
+          docker tag \
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+            ${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.release_tag }}
+          docker push ${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.release_tag }}
+
       - name: Summary
         run: |
           {
@@ -234,4 +263,5 @@ jobs:
             [[ -n "${{ steps.tags.outputs.branch_tag }}" ]]  && echo "- branch tag: \`${{ steps.tags.outputs.branch_tag }}\`"
             [[ -n "${{ steps.tags.outputs.release_tag }}" ]] && echo "- release tag: \`${{ steps.tags.outputs.release_tag }}\`"
             echo "- ECR: \`${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}\`"
+            [[ -n "${{ steps.tags.outputs.release_tag }}" ]] && echo "- GHCR: \`${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.release_tag }}\`"
           } >> "$GITHUB_STEP_SUMMARY"

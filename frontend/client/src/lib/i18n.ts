@@ -60,6 +60,16 @@ const ZH: Record<string, string> = {
   'Password': '密码',
   'Remember me': '记住我',
   'Forgot password?': '忘记密码？',
+  // ── Chat main area ───────────────────────────────────────────────────────
+  'New thread': '新对话',
+  'Run Manager': '运行管理器',
+  'What would you like to analyze?': '您想分析什么？',
+  'Select your research areas — BioMate will prioritise relevant workflows.': '选择您的研究方向 — BioMate 将优先推荐相关工作流。',
+  'Input your use case here': '在此输入您的使用场景',
+  'MG patient stratification → ADMET': 'MG 患者分层 → ADMET',
+  'ADMET screen from SMILES': '基于 SMILES 的 ADMET 筛选',
+  'RNA-seq differential expression': 'RNA-seq 差异表达分析',
+  'Variant calling on WGS sample': 'WGS 样本变异检测',
   // ── Admin panel ──────────────────────────────────────────────────────────
   'System Dashboard': '系统管理面板',
   'Health': '服务状态',

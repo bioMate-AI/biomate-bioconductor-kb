@@ -1,15 +1,24 @@
 # BioMate On-Premises Deployment
 #
-# Usage:
+# Quick start:
 #   1. cp .env.onprem.example .env
-#   2. Edit .env — set secrets, choose LLM provider
+#   2. Edit .env — set POSTGRES_PASSWORD, JWT_SECRET, SESSION_SECRET, LLM provider key
 #   3. docker compose -f docker-compose.onprem.yml up -d
+#   4. Wait ~2 min for workflow DB download + services to start
+#   5. Create first admin: bash scripts/create-first-admin.sh admin@company.com MyPassword
+#   6. Open http://localhost:5000
+#
+# Images are pulled from GHCR (ghcr.io/biomate-ai/) — no build from source needed.
+# Override with BIOMATE_BACKEND_IMAGE / BIOMATE_FRONTEND_IMAGE in .env.
+#
+# Workflow catalog (~280MB) is downloaded once by the db-init container on first start.
+# Air-gapped deployments: set BIOMATE_DB_URL to a local file server URL.
+#
+# To enable HTTPS (recommended):
+#   Uncomment the `caddy` service; see caddy/Caddyfile.example for domain config.
 #
 # To enable Ollama (local LLM, no internet required):
-#   Uncomment the `ollama` service and set LLM_PROVIDER=ollama in .env
-#
-# To disable AWS S3 (use local storage):
-#   Leave AWS_* env vars empty — the system falls back to local disk
+#   Uncomment the `ollama` service and set GALAXY_AI_LLM_PROVIDER=ollama in .env.
 #
 # Billing (Stripe) is disabled by default for on-prem.
 # Set STRIPE_SECRET_KEY to enable subscription gating.
@@ -55,17 +64,52 @@ services:
     networks:
       - biomate-network
 
+  # ── Workflow DB initializer ────────────────────────────────────────────────
+  # Downloads galaxy_ai_tools.db (the 2,455-workflow catalog) into the
+  # biomate-backend-db volume on first boot.  On subsequent starts the file
+  # already exists and the container exits immediately.
+  # Set BIOMATE_DB_URL to override the download source (useful for air-gapped
+  # deployments where you pre-download and supply the file via a local HTTP
+  # server or file:// mount).
+  db-init:
+    image: curlimages/curl:latest
+    container_name: biomate-db-init
+    volumes:
+      - biomate-backend-db:/app/database
+    environment:
+      BIOMATE_DB_URL: ${BIOMATE_DB_URL:-https://biomate-onprem-assets.s3.us-west-2.amazonaws.com/onprem/galaxy_ai_tools.db}
+    command: >
+      sh -c '
+        DB=/app/database/galaxy_ai_tools.db;
+        MIN_SIZE=50000000;
+        ACTUAL=$$(stat -c%s "$$DB" 2>/dev/null || echo 0);
+        if [ "$$ACTUAL" -lt "$$MIN_SIZE" ]; then
+          echo "[db-init] Downloading workflow catalog from $$BIOMATE_DB_URL ...";
+          curl -fL --retry 3 --retry-delay 5 --progress-bar "$$BIOMATE_DB_URL" -o "$$DB"
+          echo "[db-init] Done.";
+        else
+          echo "[db-init] Workflow catalog already present ($$(du -sh $$DB | cut -f1)). Skipping.";
+        fi
+      '
+    restart: "no"
+    networks:
+      - biomate-network
+
   # ── Galaxy AI Backend ───────────────────────────────────────────────────────
   galaxy-backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ${BIOMATE_BACKEND_IMAGE:-ghcr.io/biomate-ai/biomate-backend:latest}
     container_name: biomate-galaxy
+    # Clear the image's ENTRYPOINT so `command` below runs as the process directly.
+    # Without this, ENTRYPOINT=["/bin/sh"] + command=[gunicorn...] → /bin/sh gunicorn...,
+    # which makes sh treat "gunicorn" as a script file and fails.
+    entrypoint: []
     ports:
       - "127.0.0.1:8081:8080"   # internal only; Caddy/nginx proxies externally
     environment:
       PYTHONUNBUFFERED: "1"
-      GALAXY_CONFIG_FILE: /app/config/galaxy.yml
+      # galaxy.yml is .gitignore'd (per-install copy). Use the committed template
+      # instead — it reads all secrets from env vars via GALAXY_CONFIG_OVERRIDE_*.
+      GALAXY_CONFIG_FILE: /app/config/galaxy.yml.template
 
       # ── LLM Provider (choose one) ──────────────────────────────────────────
       # Option A: Anthropic Claude (requires internet + VPN in China)
@@ -91,6 +135,9 @@ services:
       # LOCAL mode: Nextflow runs tasks in Docker containers on this host.
       # AWS mode: tasks run on AWS Batch (requires AWS credentials below).
       NEXTFLOW_EXECUTOR: ${NEXTFLOW_EXECUTOR:-local}
+      # Explicit disable — prevents the frontend default (executor="awsbatch")
+      # from overriding local mode. Set to "true" only when using AWS Batch.
+      NEXTFLOW_USE_AWS: ${NEXTFLOW_USE_AWS:-false}
 
       # ── AWS (optional, only needed for AWS Batch + S3 storage) ────────────
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
@@ -101,6 +148,17 @@ services:
       RUN_STATE_STORE: redis
       REDIS_URL: redis://redis:6379
 
+      # ── Local Nextflow work + output directory ─────────────────────────────
+      # Must be on a persistent volume so outputs survive container restarts.
+      # Change the left side of the volume mount below if you use a different path.
+      NEXTFLOW_WORK_DIR: /app/nf-work
+
+      # ── Galaxy bootstrap API key ───────────────────────────────────────────
+      # Overrides the placeholder in galaxy.yml.template so every deployment
+      # uses a unique key.  Must match GALAXY_API_KEY set in the frontend service.
+      # Generate with: openssl rand -hex 32
+      GALAXY_CONFIG_OVERRIDE_BOOTSTRAP_ADMIN_API_KEY: ${GALAXY_API_KEY}
+
       # ── On-premises license ────────────────────────────────────────────────
       # BIOMATE_LICENSE_KEY:   由 BioMate 团队签发，格式 BMOP-XXXX-XXXX-XXXX-XXXX
       # BIOMATE_LICENSE_SECRET: 由 BioMate 团队随部署包一并提供，勿自行修改
@@ -109,9 +167,11 @@ services:
     volumes:
       - biomate-backend-db:/app/database      # workflow catalog SQLite
       - biomate-backend-logs:/app/logs
+      - biomate-nf-work:/app/nf-work          # Nextflow work + output files (persistent)
       - ./backend/config:/app/config
-      # Mount Docker socket only if using local Nextflow executor:
-      # - /var/run/docker.sock:/var/run/docker.sock
+      # Docker socket required for local Nextflow executor (NEXTFLOW_EXECUTOR=local).
+      # Comment out if you use AWS Batch instead.
+      - /var/run/docker.sock:/var/run/docker.sock
     command: [
       "gunicorn",
       "galaxy.webapps.galaxy.fast_factory:factory()",
@@ -133,14 +193,14 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
     networks:
       - biomate-network
 
   # ── Frontend (Node.js + React) ──────────────────────────────────────────────
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ${BIOMATE_FRONTEND_IMAGE:-ghcr.io/biomate-ai/biomate-frontend:latest}
     container_name: biomate-frontend
     ports:
       - "5000:3000"             # change left side to 80/443 behind a reverse proxy
@@ -162,6 +222,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       ZHIPU_API_KEY: ${ZHIPU_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       GALAXY_AI_LLM_PROVIDER: ${GALAXY_AI_LLM_PROVIDER:-anthropic}
       GALAXY_AI_LLM_MODEL: ${GALAXY_AI_LLM_MODEL:-}
 
@@ -181,12 +242,30 @@ services:
       ENABLE_HSTS: ${ENABLE_HSTS:-0}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
 
+      # ── Workflow notifications ─────────────────────────────────────────────
+      # Send email when a workflow finishes. Requires SMTP config above.
+      # Values: never / always / on_failure
+      WORKFLOW_NOTIFY: ${WORKFLOW_NOTIFY:-on_failure}
+
       # ── Internal keys ──────────────────────────────────────────────────────
       BILLING_INTERNAL_KEY: ${BILLING_INTERNAL_KEY:-onprem-billing-disabled}
 
+      # ── Email / SMTP (optional) ───────────────────────────────────────────
+      # For registration verification and workflow notifications.
+      # Leave empty to skip email (verification token returned in API response).
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_SECURE: ${EMAIL_SECURE:-false}
+      EMAIL_USER: ${EMAIL_USER:-}
+      EMAIL_PASS: ${EMAIL_PASS:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      APP_URL: ${APP_URL:-http://localhost:5000}
+
       # ── On-premises mode ───────────────────────────────────────────────────
-      # Enables license gate UI and on-prem-specific branding
-      VITE_ONPREM: "true"
+      # NOTE: VITE_ONPREM is a Vite build-time flag baked into the JS bundle
+      # at Docker image build time (--build-arg VITE_ONPREM=true). It is NOT a
+      # runtime env var — setting it here has no effect. The GHCR image
+      # (ghcr.io/biomate-ai/biomate-frontend) is always built with VITE_ONPREM=true.
     depends_on:
       postgres:
         condition: service_healthy
@@ -201,6 +280,31 @@ services:
       start_period: 30s
     networks:
       - biomate-network
+
+  # ── Caddy (HTTPS / TLS termination — optional but recommended) ────────────
+  # Uncomment to enable automatic HTTPS via Let's Encrypt.
+  # Requirements:
+  #   1. Copy caddy/Caddyfile.example → caddy/Caddyfile and set your domain.
+  #   2. Point your DNS A record to this server.
+  #   3. Set FORCE_HTTPS=1 and ENABLE_HSTS=1 in .env.
+  #   4. Change the frontend port from "5000:3000" to internal-only: "127.0.0.1:5000:3000"
+  #
+  # caddy:
+  #   image: caddy:2-alpine
+  #   container_name: biomate-caddy
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #     - "443:443/udp"    # HTTP/3
+  #   volumes:
+  #     - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - biomate-caddy-data:/data
+  #     - biomate-caddy-config:/config
+  #   depends_on:
+  #     - frontend
+  #   restart: unless-stopped
+  #   networks:
+  #     - biomate-network
 
   # ── Ollama (local LLM — optional, uncomment to enable) ─────────────────────
   # Requires a machine with ≥32 GB RAM. GPU strongly recommended.
@@ -233,5 +337,8 @@ volumes:
   biomate-postgres-data:
   biomate-backend-db:
   biomate-backend-logs:
+  biomate-nf-work:            # Nextflow work dir + outputs (survives container restarts)
   biomate-redis-data:
+  # biomate-caddy-data:       # uncomment when using Caddy
+  # biomate-caddy-config:     # uncomment when using Caddy
   # biomate-ollama-models:    # uncomment when using Ollama

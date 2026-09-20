@@ -36,8 +36,7 @@ gravity:
     # Bind to all interfaces so the container is reachable from other containers
     # via the Docker network (0.0.0.0:8080 maps to host port 8081 via Docker).
     bind: 0.0.0.0:8080
-    # Reduce workers to prevent OOM on macOS
-    workers: 1
+    workers: 4
     # Increase timeout for AI operations
     timeout: 300
     # Limit memory per worker

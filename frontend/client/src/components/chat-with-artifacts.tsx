@@ -1,5 +1,6 @@
 // chat-with-artifacts: main chat UI component
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
+import { t } from "@/lib/i18n"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { useWorkflowTour } from "./workflow-tour"
 import { ChatInterface } from "./chat-interface"
@@ -1873,7 +1874,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             fontFamily: 'var(--bm-font-ui)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
-            {currentChatSession?.title || 'New thread'}
+            {currentChatSession?.title || t('New thread')}
           </span>
           {isConnected && (
             <span style={{ fontSize: 11, color: 'var(--bm-ok, oklch(0.62 0.13 150))', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -1891,7 +1892,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             style={{ fontSize: 12, height: 28, gap: 5 }}
           >
             <Layers className="h-3 w-3" style={{ flexShrink: 0 }} />
-            Run Manager
+            {t('Run Manager')}
             {runningCount > 0 ? (
               <span style={{
                 background: 'var(--bm-blue, oklch(0.55 0.18 240))',

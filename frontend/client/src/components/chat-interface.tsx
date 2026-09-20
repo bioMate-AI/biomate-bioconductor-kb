@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { t } from "@/lib/i18n"
 import { uploadFile as uploadFileShared } from "@/lib/upload"
 import { CodeExecutionBlock, type ToolBlock, type AgentToolEvent } from "./code-execution-block"
 import { ChatMessage, type Message } from "./chat-message"
@@ -227,9 +228,9 @@ function OnboardingWelcome({
       <div data-testid="onboarding-welcome" className="flex flex-col items-center justify-center min-h-[60vh] px-4 py-8">
         <div className="w-full max-w-2xl">
           <div className="mb-6 text-center">
-            <h2 className="text-2xl font-semibold mb-1">What would you like to analyze?</h2>
+            <h2 className="text-2xl font-semibold mb-1">{t('What would you like to analyze?')}</h2>
             <p className="text-sm text-muted-foreground">
-              Select your research areas — BioMate will prioritise relevant workflows.
+              {t('Select your research areas — BioMate will prioritise relevant workflows.')}
             </p>
           </div>
 
@@ -2187,7 +2188,7 @@ export function ChatInterface({
               marginBottom: 10,
               textAlign: 'center',
             }}>
-              Input your use case here
+              {t('Input your use case here')}
             </p>
             <div style={{
               display: 'flex',
@@ -2235,7 +2236,7 @@ export function ChatInterface({
                     ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--bm-text-dim, oklch(0.45 0.012 240))'
                   }}
                 >
-                  {q.label}
+                  {t(q.label)}
                 </button>
               ))}
             </div>
