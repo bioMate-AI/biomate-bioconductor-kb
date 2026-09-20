@@ -362,7 +362,7 @@ export interface TrainData {
 }
 
 const TRAIN_LOOP: [string, string][] = [
-  ["Dataset", "pick a dataset version — the only decision before Start"],
+  ["Dataset", "pick a dataset version — the first thing you choose when you ask BioMate to train"],
   ["Train", "runs on the run surface: phases, steps, tracking"],
   ["Quality gate", "a held-out floor, not a leaderboard"],
   ["Register", "a passing model is offered for registration, never silent"],

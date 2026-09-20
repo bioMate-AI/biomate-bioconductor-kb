@@ -34,8 +34,8 @@ against the live system (dev) before anything is marked "supported" — see `cov
 - [~] `modules/I13-billing-quotas-two-lane-cost.md`
 
 ### Part II — Databases & retrieval supports
-- [ ] `data/II01-workflow-catalog-and-routing.md`
-- [ ] `data/II02-public-datasets-accession-resolver.md`
+- [~] `data/II01-workflow-catalog-and-routing.md`
+- [~] `data/II02-public-datasets-accession-resolver.md`
 - [ ] `data/II03-literature-and-evidence-retrieval.md`
 - [ ] `data/II04-reference-data-and-indexes.md`
 - [ ] `data/II05-memory-and-project-knowledge.md`
@@ -43,9 +43,9 @@ against the live system (dev) before anything is marked "supported" — see `cov
 ### Part III — Function areas by domain
 - [~] `domains/drug-discovery-ind.md`   ← **flagship, D1 (drafted + code-verified)**
 - [~] `domains/transcriptomics.md`
-- [ ] `domains/cryo-em.md`
-- [ ] `domains/single-cell.md`
-- [ ] `domains/variant-calling.md`
+- [~] `domains/cryo-em.md`
+- [~] `domains/single-cell.md`
+- [~] `domains/variant-calling.md`
 - [ ] `domains/structural-biology.md`
 - [ ] `domains/pharmacology-clinical.md`
 - [ ] `domains/multi-omics.md`

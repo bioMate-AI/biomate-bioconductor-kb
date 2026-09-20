@@ -256,6 +256,62 @@ Page: `modules/I13-billing-quotas-two-lane-cost.md`. Tier C.
 | i10-1-models.png · i11-1-design.png · capabilities.png | models · design · capabilities | ✅ wired I.10/I.11 |
 | Run-dependent shots (after-run report, outputs, full step view) | need a completed run | ⏳ placeholders kept (not faked) |
 
+## Domain: Cryo-EM
+Page: `domains/cryo-em.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| Live pipeline `cryosparc_standard_spa` (23 steps): patch motion/CTF → blob+template pick → 2D×2 → ab-initio → homo→local-CTF→NU refine → FSC → local-res → sharpen | C | ✅ | `.../cryo_em/cryosparc_standard_spa/main.nf:7-31,680,841,978,2162,1420,1505,2654,2725,2476,2907` |
+| FSC 0.143 gate ≤4Å pass / 4–8 advisory / >15 FAIL (metric GOLD, cutoffs SILVER); CTF fit-quality ≥0.70 + 0.5 red-line | C | ✅ | `main.nf:2631-2640`; `qc_evaluator.py:77`; `qc_trace_monitor.py:41-45`; `qc_evidence.yaml:740-758` |
+| MISMATCH: tutorial "MotionCor2/Topaz/DeepEMhancer, CTF>0.2, GSFSC<3.5Å, hetero-refine" ≠ code (CryoSPARC-native, ≥0.70, ≤4Å, no hetero) — chapter uses code truth | C | 🔧 | narrative vs code |
+| GAP: EMPIAR-10025 gold missing from gold_standards.yaml; cryo autoloop not wired to live executor; cryo-ET + cryptic-pocket mega-chain excluded | C | 🗺️ | `gold_standards.yaml`; `backend/experiments/cryo_em_autoloop/` |
+
+## Domain: Single-cell RNA-seq
+Page: `domains/single-cell.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| `scrnaseq_standard_endtoend` 7 stages + outputs (annotated.h5ad, celltypes/markers/qc csv, umap png); STAGE 6.5 fail-soft summary.json sidecar powers the in-app panel | C | ✅ | `.../single_cell/scrnaseq_standard_endtoend/main.nf:47-193,66-69,132-172` |
+| Bulk-vs-single-cell routing guard; pseudobulk DE is the correct cross-condition path | C | ✅ | `unified_workflow_search.py:2620-2657` |
+| MISMATCH: `.nf` max_pct_mito=20% vs evidence 10% for most tissues — chapter documents code truth + tip | C | 🔧 | `main.nf:39` vs `qc_evidence.yaml:1460` |
+| In-app single-cell panel on real runs needs the sidecar (data-gated) | C(FE)/L | ⏳ | `single-cell-summary.tsx`; no live scRNA run fired |
+
+## Domain: Variant calling / genomics
+Page: `domains/variant-calling.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| Germline: gold chain `bioc_variant_annotation_workflow` (sarek id 1493 → VariantAnnotation → filter → maftools); full `Wgs Germline Gatk` id 10685 (14 steps); DeepVariant id 1805 | C | ✅ | DB ids; `nfcore/sarek/main.nf:12-15,47-112`; `wgs_germline_gatk/main.nf:10-25` |
+| QC gates CODE-ENFORCED: mapped ≥70%, dup ≤40% (profile-overridable), coverage ≥30× WGS/50× WES | C | ✅ | `qc_trace_monitor.py:4640,4649,4773-4790,147-151` |
+| MISMATCH: Ts/Tv 1.8–2.2 is in-pipeline ADVISORY not a gate; hard-filter (not VQSR) is single-sample default | C | 🔧 | `wgs_germline_gatk/main.nf` MULTIQC; `qc_evidence.yaml` |
+| GAP: SOMATIC (Mutect2 tumor-normal) = coverage gap — workflows exist+route (1771/1779/1744/10608) but NO chain, NO gold demo | C | 🗺️ | no somatic `workflow_chains`/`gold_standards` entry; TESTER_GUIDE Q16 |
+
+## II.1 Workflow catalog & routing
+Page: `data/II01-workflow-catalog-and-routing.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| Catalog = galaxy_ai_tools.db (workflows + workflow_chains w/ connections); routing = hybrid LLM-browse + BGE dense + FTS; bulk-vs-single-cell guard; disambiguation card; indexed-preferred + generated fallback | C | ✅ | `index_all_workflows.py:845-883,473-507`; `unified_workflow_search.py:825,2638`; `ai_assistant.py:4600-4613,5032-5134` |
+| MISMATCH: live catalog = **4,200 workflows / 42 domains / 70 chains**, NOT "2,455/34" (CLAUDE.md, tools_manifest.py:118) nor "4,017/36" (MCP blurb) | C | 🔧 | direct DB count; stale strings → Appendix E |
+
+## II.2 Public datasets & accession resolver
+Page: `data/II02-public-datasets-accession-resolver.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| `resolve_accession` supports GEO (→ id 10672) + SRA/ENA/DDBJ/BioProject/ArrayExpress (→ nf-core/fetchngs id 12704); unmatched→422; fetch runs in-workflow on Batch; From-URL import registers hosted data | C | ✅ | `routes.ts:8552-8595,8610-8621`; `galaxy-dataset-browser.tsx:585`; `routes.ts:3599` |
+| GAP: PDB/EMDB/PRIDE/MassIVE + UniProt/Ensembl/ChEMBL/dbSNP/ClinVar detected for VALIDATION only, NOT resolvable (422); dbGaP absent | C | 🗺️ | `nextflow_executor.py:576-709` |
+| MISMATCH: a 2nd `/api/accession/resolve` (with PDB/EMDB) is shadowed DEAD CODE (Express serves the first handler) | C | 🔧 | `routes.ts:16771-16835` vs `:8532` |
+
+## Screenshot-audit fixes (from live dev screenshots, 2026-09-19)
+| Fix | Where | Status | Evidence |
+|---|---|---|---|
+| Reproducibility record: "Compute checksums" control (SHA-256 was "—" — UI never sent ?checksums=1) | I.9 | ✅ | `AfterRunReport.tsx` ReproducibilityTab (computeChecksums) |
+| Record: workflow-name + completed-timestamp fallbacks (was "Untitled Workflow"/"—") | I.9 | ✅ | `reproducibility-record.ts:137-150` |
+| Perception panel: FASTQ → Reads/Read length (bp), FASTA → Sequences/Length (bp) (was Rows/Columns) | I.5 | ✅ | `data-perception.tsx` (rowLabel/colLabel) |
+| Dataset header quality pill verified rendering live (amber "Watch") | I.5 | ✅ L | dev capture i05-2 post-sync |
+| Models Train copy no longer implies a missing "Start" button (train via chat) | I.10 | ✅ | `models-panel.tsx:365` |
+
 ## Known coverage gaps (→ Appendix E, do NOT document as present)
 | Item | Note | Source |
 |---|---|---|
