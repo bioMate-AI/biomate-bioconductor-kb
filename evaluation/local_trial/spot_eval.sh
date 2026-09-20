@@ -20,7 +20,7 @@ aws s3 cp "$S3/eval/removal_eval.jsonl" "$EVAL_DIR/removal_eval.jsonl" --quiet
 ( while true; do aws s3 cp /var/log/ud.log "$LOGS3/eval.log" --quiet 2>/dev/null; sleep 30; done ) &
 
 echo "[eval] run removal eval (direct load, base 4bit + adapter)"
-python3 "$HERE/eval_removal.py" --direct --base "$BASE" --adapter "$ADAPTER" --limit 80 \
+python3 "$HERE/eval_removal.py" --direct --base "$BASE" --adapter "$ADAPTER" --model "qwen-$SIZE-sft" --limit 80 \
   --out "$EVAL_DIR/removal_eval_${SIZE}.json"
 aws s3 cp "$EVAL_DIR/removal_eval_${SIZE}.json" "$S3/eval/removal_eval_${SIZE}_trained.json" --quiet
 aws s3 cp /var/log/ud.log "$LOGS3/eval.log" --quiet
