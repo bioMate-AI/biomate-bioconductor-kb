@@ -348,6 +348,72 @@ knowledge rows unfiltered, so a `user_notes` (or `notes_synthesis`) title/snippe
 "[Memory: Project knowledge …]" hint. Fixed: extracted `filterModelVisibleKnowledge`
 (`memory-knowledge-filter.ts`), applied it in the hint path, and locked it with a unit test.
 
+## Domain: Structural biology
+Page: `domains/structural-biology.md`. Tier C. (IDs verified by direct DB query.)
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| Structure prediction (Boltz-2 id 12853 / AF2 / OpenFold2 via BioNeMo) + AF3 predict→dock chain (Structure Prediction Docking id 10644 → DiffDock‖Vina); docking Vina id 12824 — all SUPPORTED | C | ✅ (L ⏳) | `bionemo_client.py:65-116`; `boltz_structure_prediction/main.nf`; `structure_prediction_docking/main.nf`; DB ids |
+| QC: pLDDT ≥70 (GOLD, Jumper 2021) / confident-frac ≥0.70 / max-PAE ≤8Å (SILVER); Vina >−7 kcal/mol (BRONZE); in-app 3Dmol + pLDDT chart | C | ✅ | `qc_evidence.yaml:330-412`; `step-output-preview.tsx:1032-1167` |
+| GAP: Foldseek(14456)/MMseqs2(14462)/GROMACS-MD/AF-Multimer wired but E2E-UNVERIFIED (do NOT claim MD works); PaeHeatmap built but not routed; no MolProbity; no auto-loop | C | 🗺️/🔧 | `run_phase1.py:76-88`; `viewers/pae-heatmap.tsx` (unrouted) |
+
+## Domain: Pharmacology & clinical
+Page: `domains/pharmacology-clinical.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| NCA (nca_pknca id 10642), PopPK (nonmem_poppk id 12918, nlmixr2 fallback + VPC), BOIN (clinical_trial_simulation id 14511), PGx (id 12876) — SUPPORTED | C | ✅ (L ⏳) | respective `main.nf`; `qc_gate_reader.py:113-139` |
+| PGx maps PRE-CALLED diplotypes → CPIC (NOT star-allele calling from VCF) | C | 🔧 | `pharmacogenomics_pgx_report/main.nf:8-19` |
+| FAERS (id 11363) WIRED + indexed but demo-shaped (2004Q1 + insulin, needs pre-standardized RDS), E2E-unverified | C | 🔧 | `bioconductor/faers/main.nf:74-135` (id confirmed via DB query) |
+| GAP: star-allele-from-VCF, general FAERS service, mechanistic DDI, one-click PopPK→MTD; no pharm gold dataset | C | 🗺️ | Appendix E; `gold_standards.yaml` (absent) |
+
+## Domain: Multi-omics & systems biology
+Page: `domains/multi-omics.md`. Tier C (+ recorded live run).
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| MOFA2 (id 11853) + SNF (id 14639) + omics_normalize real; universal `omics` input contract; method-selection from data shape | C | ✅ | `bioconductor/mofa2/main.nf`; `snf_multiomics/main.nf`; `integration_planner.py:27-38` |
+| Worked example: Dietrich CLL normalize→MOFA2 (runs af1f0a1f/7e8979d1 SUCCEEDED); Factor-1 vs IGHV AUC 0.962; MOFA2>SNF (ARI 0.526 vs 0.375) | C + L | ✅ | `docs/20260811_MULTIOMICS_PIPELINE_LIVE_RUN.md` |
+| GAP: GWAS→scRNA→eQTL chain "runs but capability-incomplete" (no coloc/PP4 — binary gate; hardcoded demo scRNA; not DB-registered) → NOT supported; one-click MULTIOMICS_ROUTING default-OFF; curated MOFA+ 4-step chain not live-verified | C | 🔧/🗺️ | `gwas_scrna_eqtl_target_chain/main.nf`; `ai_assistant.py:4234` |
+
+## Domain: Epigenomics (ChIP-seq / ATAC-seq)
+Page: `domains/epigenomics.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| Chain `bioc_chipseq_annotation_v2` = ChIPseeker(11090)→clusterProfiler(11122); nf-core/chipseq(1492)/atacseq(12673) are pre-steps; DiffBind(11262), HOMER(10667) | C | ✅ | `bioc_chain_templates.py:184-228`; DB ids |
+| ATAC gates code-enforced HALT: TSS≥5, FRiP≥0.2, NRF≥0.9, peaks≥1000; ChIP FRiP is advisory-only (tutorial "FRiP≥0.20 gate" is wrong for ChIP) | C | ✅/🔧 | `qc_trace_monitor.py:4832-4872,4810-4827` |
+| GAP: narrowPeak/broadPeak → download (not table viewer); NSC/peak-range spec-only; validator `epigenomics.py` absent from repo | C | 🗺️ | `step-output-preview.tsx:66-105`; `evaluation/tutorial_demos/` (only transcriptomics.py) |
+
+## Domain: Proteomics (DIA / label-free)
+Page: `domains/proteomics.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| Gold chain `bioc_proteomics_de_v2` = MSnbase(11894)→limma(11697); front-ends diaproteomics(1495)/proteomicslfq(1496); DEqMS(11248); msqrob2 DIA | C | ✅ | `bioc_chain_templates.py:318-358`; DB ids |
+| Code-enforced QC: PSM+protein FDR<1% (GOLD/HALT), CV≤20/15% DDA/DIA, missed-cleavage≤20%, missing-value≤30%; 4 profiles | C | ✅ | `qc_trace_monitor.py:4915-5061` |
+| MISMATCH: prompt "DIA-NN→MaxLFQ→DEqMS/limma" ≠ real chain; DIA-NN/MaxLFQ NOT standalone workflows (surface via diaproteomics/msqrob2); validator `proteomics.py` absent | C | 🔧/🗺️ | DB; `evaluation/tutorial_demos/` |
+
+## Domain: Metabolomics (untargeted LC-MS)
+Page: `domains/metabolomics.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| Chain `lcms_metabolomics_consensus` = xcms(12631)→CAMERA(11032)→biosigner(10990); NMR path ASICS(10905); HMDB via separate biodbHmdb(10977) | C | ✅ | `chain_composer/proposed_chains/lcms_metabolomics_consensus.json`; DB ids |
+| GAP: metabolomics has ZERO code-enforced QC gates (no parser/verdict/qc_evidence entry) — all QC advisory/spec; validator `metabolomics.py` absent | C | 🔧/🗺️ | absence in `qc_trace_monitor.py` + `qc_evidence.yaml` |
+
+## Domain: Metagenomics (profiling / MAG)
+Page: `domains/metagenomics.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| Chain `shotgun_metagenomics_to_mag` = CONCOCT(10499)→MMseqs2(10541)→PathoStat(12019), starts from assembled contigs; profiling Kraken2/Bracken(1807)/MetaPhlAn(1811) separate | C | ✅ | `chain_composer/proposed_chains/shotgun_metagenomics_to_mag.json`; DB ids |
+| Read-classification % gate <30 HALT/<60 warn (profiling only, Wood 2019) | C | ✅ | `qc_trace_monitor.py:4874-4909` |
+| GAP: CheckM2/MetaSPAdes/MEGAHIT/MetaBAT/MaxBin/AMBER NOT catalog workflows; bin completeness/CAMI recovery spec-only; assembly is a prerequisite; validator `metagenomics.py` absent | C | 🗺️ | DB; `evaluation/tutorial_demos/` |
+
+## Appendices A–F
+Pages: `appendix/A-glossary.md … F-api-cli-quickref.md`. Compiled from this ledger + cited source (step-output-preview taxonomy, qc_evidence.yaml, tools_manifest.py). Appendix E is the 1:1 sweep of every 🗺️/🔧 row (the honest "not yet supported" counterweight). Cross-cutting: domain validator scripts (epi/prot/metab/metag).py absent from repo — only transcriptomics.py exists → all P2 gold numbers are C-spec, L ⏳.
+
 ## Known coverage gaps (→ Appendix E, do NOT document as present)
 | Item | Note | Source |
 |---|---|---|

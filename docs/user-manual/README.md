@@ -46,21 +46,21 @@ against the live system (dev) before anything is marked "supported" — see `cov
 - [~] `domains/cryo-em.md`
 - [~] `domains/single-cell.md`
 - [~] `domains/variant-calling.md`
-- [ ] `domains/structural-biology.md`
-- [ ] `domains/pharmacology-clinical.md`
-- [ ] `domains/multi-omics.md`
-- [ ] `domains/epigenomics.md`      (P2)
-- [ ] `domains/proteomics.md`       (P2)
-- [ ] `domains/metabolomics.md`     (P2)
-- [ ] `domains/metagenomics.md`     (P2)
+- [~] `domains/structural-biology.md`
+- [~] `domains/pharmacology-clinical.md`
+- [~] `domains/multi-omics.md`
+- [~] `domains/epigenomics.md`      (P2)
+- [~] `domains/proteomics.md`       (P2)
+- [~] `domains/metabolomics.md`     (P2)
+- [~] `domains/metagenomics.md`     (P2)
 - [ ] `domains/cro-regulatory.md`   (cross-domain)
 
 ### Appendices
-- [ ] `appendix/A-glossary.md`
-- [ ] `appendix/B-file-formats.md`
-- [ ] `appendix/C-qc-gate-reference.md`
-- [ ] `appendix/D-troubleshooting-routing.md`
-- [ ] `appendix/E-coverage-and-roadmap.md`   (honest "not yet supported")
-- [ ] `appendix/F-api-cli-quickref.md`
+- [~] `appendix/A-glossary.md`
+- [~] `appendix/B-file-formats.md`
+- [~] `appendix/C-qc-gate-reference.md`
+- [~] `appendix/D-troubleshooting-routing.md`
+- [~] `appendix/E-coverage-and-roadmap.md`   (honest "not yet supported")
+- [~] `appendix/F-api-cli-quickref.md`
 
 (`[ ]` = not started · `[~]` = drafted, verifying · `[x]` = verified + polished)
