@@ -84,16 +84,20 @@ def cyclic_mol(seq):
             os_ = [nb for nb in a.GetNeighbors() if nb.GetSymbol()=='O']
             if len(os_)>=2:
                 c_term = a.GetIdx()
-    if n_term is None or c_term is None: return m
+    if n_term is None or c_term is None: return None
     try:
         rw.AddBond(c_term, n_term, Chem.BondType.SINGLE)
-        # drop one terminal O (the OH) to make an amide
+        # drop the SINGLE-bonded (hydroxyl) O to form an amide — NOT the carbonyl (=O). Both terminal O are
+        # degree-1, so the old degree-only test stripped the carbonyl ~always, leaving a spurious -OH donor
+        # (+1 HBD, +2 Da on every design). Committee-flagged; verified. Fail explicitly if no single-bonded O.
+        removed=False
         for nb in rw.GetAtomWithIdx(c_term).GetNeighbors():
-            if nb.GetSymbol()=='O' and nb.GetDegree()==1:
-                rw.RemoveAtom(nb.GetIdx()); break
+            if nb.GetSymbol()=='O' and rw.GetBondBetweenAtoms(c_term, nb.GetIdx()).GetBondType()==Chem.BondType.SINGLE:
+                rw.RemoveAtom(nb.GetIdx()); removed=True; break
+        if not removed: return None
         mm = rw.GetMol(); Chem.SanitizeMol(mm); return mm
     except Exception:
-        return m
+        return None   # do NOT silently return the linear peptide as if cyclic
 
 # side-chain H-bond donor residues (backbone handled separately)
 SIDE_DONOR = set('RKNQHWYST')  # approx: guanidinium/amine/amide/OH/indole/imidazole

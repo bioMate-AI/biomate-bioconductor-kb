@@ -53,6 +53,18 @@ BIOMATE_CLOSED_LOOP_INTEGRATION · BOLTZGEN_OURTARGETS_RESULTS · CYCLIC_PEPTIDE
 4. **Real LEARN loop** — only after physics-informed cheap features + hundreds of scored designs (finding #3).
 5. **Conformation-aware permeability** — 2-environment MD ensembles on CREMP; do only if a milestone justifies the cost.
 
+## 2026-09-20 — committee review (3 flagship models) + fixes
+`docs/COMMITTEE_REVIEW.md`: independent review by claude-opus-5 + gpt-6-astra-pro + gemini-3.1-pro-preview
+(all MAJOR REVISION). Strong cross-model consensus. **P0 fixes applied + numbers recomputed:** (1) `cyclic_mol`
+deleted the carbonyl O not the hydroxyl → spurious +1 donor/+2 Da on EVERY design (verified constant offset;
+ΔHBD headroom & relative rankings unaffected; absolutes corrected — GPFVPGL now 0 donors after redesign);
+(2) v3 scored the LINEAR peptide → now cyclized; (3) removed the auto "binding PRESERVED" verdict.
+**P1 OPEN (qualify current claims):** cross-sequence MM-GBSA is size-biased → the §3.9 "9 kcal/mol lost" and
+the iptm⟂physics −0.04 may be size artifacts (need ligand-efficiency/size correction); the 1u8p receptor was
+built from only the longest chain → a Fab was likely truncated, so §3.10 generalization must be re-run with the
+full receptor; add CIs/replicates; N-methyl FF lacks CMAP. **P2:** proper N-methyl params, full-pool scoring +
+matched baselines, reproducibility artifacts. Engineering + honest-negatives praised by all three reviewers.
+
 ## Honest bottom line
 A disciplined, demonstrated, non-circular generate–verify–select engine exists and every layer produced a
 real finding. The differentiating *science* (permeability-aware generation) is scoped and evidence-backed

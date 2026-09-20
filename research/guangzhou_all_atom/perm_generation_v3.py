@@ -21,6 +21,30 @@ IFACE_CUT, HB_CUT = 4.5, 3.5
 AA3to1 = {'ALA':'A','ARG':'R','ASN':'N','ASP':'D','CYS':'C','GLN':'Q','GLU':'E','GLY':'G','HIS':'H','ILE':'I',
           'LEU':'L','LYS':'K','MET':'M','PHE':'F','PRO':'P','SER':'S','THR':'T','TRP':'W','TYR':'Y','VAL':'V'}
 
+def cyclic_mol(seq):
+    """Head-to-tail cyclize (committee fix: v3 previously scored the LINEAR peptide, off by ~+18 Da / +1-2
+    donors). Removes the SINGLE-bonded (hydroxyl) O to form the amide, not the carbonyl. Returns None on failure."""
+    m=Chem.MolFromSequence(seq)
+    if m is None: return None
+    rw=Chem.RWMol(m)
+    n_term=next((a.GetIdx() for a in rw.GetAtoms() if a.GetSymbol()=='N'
+                 and a.GetPDBResidueInfo() and a.GetPDBResidueInfo().GetResidueNumber()==1), None)
+    c_term=None
+    for a in rw.GetAtoms():
+        if a.GetSymbol()=='C' and len([nb for nb in a.GetNeighbors() if nb.GetSymbol()=='O'])>=2:
+            c_term=a.GetIdx()
+    if n_term is None or c_term is None: return None
+    try:
+        rw.AddBond(c_term,n_term,Chem.BondType.SINGLE)
+        removed=False
+        for nb in rw.GetAtomWithIdx(c_term).GetNeighbors():
+            if nb.GetSymbol()=='O' and rw.GetBondBetweenAtoms(c_term,nb.GetIdx()).GetBondType()==Chem.BondType.SINGLE:
+                rw.RemoveAtom(nb.GetIdx()); removed=True; break
+        if not removed: return None
+        mm=rw.GetMol(); Chem.SanitizeMol(mm); return mm
+    except Exception:
+        return None
+
 def parse_cif(path):
     atoms=[]
     for ln in open(path):
@@ -51,7 +75,7 @@ def analyze(cif):
             dN=np.sqrt(((np.array(bbN[r])[None,:]-rec_acc)**2).sum(-1)).min()
             if dN>HB_CUT and resn[r]!='PRO': methylatable.append(r)
     seq=''.join(AA3to1.get(resn[r],'X') for r in sorted(resn))
-    m=Chem.MolFromSequence(seq)
+    m=cyclic_mol(seq)                       # committee fix: score the CYCLIC macrocycle, not the linear peptide
     if m is None: return None
     hbd=Lipinski.NumHDonors(m); mw=Descriptors.MolWt(m); tpsa=rdMolDescriptors.CalcTPSA(m)
     return dict(seq=seq, n=len(seq), MW=round(mw,1), TPSA=round(tpsa,1),

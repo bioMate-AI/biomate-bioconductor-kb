@@ -183,6 +183,22 @@ physics), so **physics-verifying the permeability-aware picks is the universal s
 catches a real binding loss, on 1u8p it confirms the picks are sound. Genuine dual-optimal designs appear on
 both targets (1yf4 `FVVGNPIA` ΔG −42.4/MW 816; 1u8p `GPFVPGL` ΔG −27.6/MW 686/**1 donor after redesign**).
 
+**3.11 Post-committee corrections and open confounds (2026-09-20).** An independent 3-model review board
+(claude-opus-5, gpt-6-astra-pro, gemini-3.1-pro-preview; see `COMMITTEE_REVIEW.md`) audited this work. Fixes
+applied: (a) a cheminformatics bug in `cyclic_mol()` deleted the carbonyl (not hydroxyl) oxygen, adding a
+spurious donor — a *constant +1 HBD / +2 Da offset* on every design (verified); relative rankings and the
+ΔHBD headroom are unaffected, but absolute numbers are corrected (e.g. v3-1yf4 permeability-aware
+HBD-after-redesign 4.75 vs default 8.0; `GPFVPGL` reaches **0** donors after redesign, not 1); (b) §3.8/§3.10
+descriptors were computed on the *linear* peptide — now cyclized; (c) the automated "binding PRESERVED"
+verdict is removed. **Open confounds the board raised that are NOT yet resolved and qualify the claims above:**
+(i) cross-sequence MM-GBSA is size-biased, so the §3.9 "~9 kcal/mol binding lost" gap coincides with the MW
+gap (694 vs 997) and may be a size artifact — the ΔG comparisons and the iptm⟂physics −0.04 must be
+re-examined with ligand-efficiency / size correction before the orthogonality and "dual-optimal" claims are
+asserted; (ii) the §3.10 1u8p receptor was built from only the single longest chain, so a Fab (heavy+light)
+was likely truncated — 1u8p must be re-run with the full receptor before its generalization conclusion
+stands; (iii) all small-n comparisons need CIs/replicates; (iv) the N-methyl force field lacks an updated
+CMAP, compounding the §3.7 unreliability. These are tracked as P1 items in `COMMITTEE_REVIEW.md`.
+
 ## 4. Discussion
 Two conclusions follow. First, for cyclic-peptide binder design an independent physics verify step is
 essential and not shortcut-able: ML interface confidence is orthogonal to physics binding

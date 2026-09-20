@@ -181,11 +181,13 @@ res={'design':os.path.basename(os.environ.get('CIF_S3','design')), 'methylate_po
 try:
     base=mmgbsa('base', ()); res['baseline']=base; print('baseline dG', base['dG'])
     meth=mmgbsa('meth', tuple(POS)); res['methylated']=meth; print('methylated dG', meth['dG'])
-    res['ddG_bind']=round(meth['dG']-base['dG'],2)
-    res['verdict']=('binding PRESERVED (ddG<=+3)' if res['ddG_bind']<=3 else 'binding HURT (ddG>+3)')
-    res['note']=('ddG_bind = dG(methyl)-dG(baseline); single-trajectory minimized GBn2 MM-GBSA, CHARMM36m + '
-                 'N-methyl NMET patch (approx tertiary-amide charges). RELATIVE, entropy omitted. Positions '
-                 'were v1-selected as NON-interface-H-bonding, so ddG~0 confirms binding-safe permeability redesign.')
+    res['ddG_bind_score']=round(meth['dG']-base['dG'],2)
+    # NO biological verdict (committee fix): single-traj MM-GBSA with an unvalidated N-methyl FF (missing CMAP,
+    # approximate charges) and no free-ligand relaxation CANNOT determine binding preservation. Emit the raw
+    # score difference flagged UNRELIABLE; FEP with validated params is required for any binding claim.
+    res['reliability']='UNRELIABLE — single-traj MM-GBSA, unvalidated N-methyl FF (no CMAP), no free-ligand relax; not a binding verdict'
+    res['note']=('dG_score difference only. dEcomplex and dEligand each change by ~10x this residual, so the '
+                 'sign/magnitude is not determinable here. Report raw components; use FEP to arbitrate.')
 except Exception as e:
     res['error']=f'{type(e).__name__}: {e}'; traceback.print_exc()
 json.dump(res, open('/opt/nm/status/nmethyl_mmgbsa.json','w'), indent=2)
