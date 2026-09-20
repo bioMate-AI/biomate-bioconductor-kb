@@ -127,6 +127,15 @@ export function DataPerception({
   const hasSignal = !!profile.signalSummary && profile.signalSummary.length > 0;
   const hasNotes = profile.notes.length > 0;
 
+  // For sequence files the profiler's shape.rows/cols are reads × read-length,
+  // not table rows/columns — label them accordingly so "COLUMNS 30" (= 30 bp)
+  // isn't confusing on a FASTQ.
+  const nm = (datasetName || "").toLowerCase();
+  const isFastq = /\.(fastq|fq)(\.gz)?$/.test(nm);
+  const isFasta = /\.(fasta|fa|fna|faa)(\.gz)?$/.test(nm);
+  const rowLabel = isFastq ? "Reads" : isFasta ? "Sequences" : "Rows";
+  const colLabel = isFastq ? "Read length (bp)" : isFasta ? "Length (bp)" : "Columns";
+
   return (
     <div
       data-testid="data-perception"
@@ -160,8 +169,8 @@ export function DataPerception({
 
       {/* Shape + effective-N stat strip */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <Stat k="Rows" v={fmtInt(profile.shape.rows)} />
-        <Stat k="Columns" v={fmtInt(profile.shape.cols)} />
+        <Stat k={rowLabel} v={fmtInt(profile.shape.rows)} />
+        <Stat k={colLabel} v={fmtInt(profile.shape.cols)} />
         {typeof profile.effectiveN === "number" && (
           <Stat
             k="Effective N"

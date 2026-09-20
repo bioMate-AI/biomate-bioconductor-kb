@@ -1549,6 +1549,7 @@ function ReproducibilityRecordTab({
 function ReproducibilityTab({ runId }: { runId: string }) {
   const [rec, setRec] = useState<ReproRecord | null>(null);
   const [err, setErr] = useState(false);
+  const [hashing, setHashing] = useState(false);
   useEffect(() => {
     if (!runId) return;
     let cancelled = false;
@@ -1573,6 +1574,20 @@ function ReproducibilityTab({ runId }: { runId: string }) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  // Checksums are opt-in (hashing bytes is bounded but not free), so the default
+  // record shows "—". This re-fetches with ?checksums=1 to populate SHA-256 on
+  // demand — the tamper-evidence a reproducibility record is for.
+  const anyUnhashed = (rec.outputs || []).some((o: any) => !o.sha256);
+  const computeChecksums = async () => {
+    if (hashing) return;
+    setHashing(true);
+    try {
+      const r = await fetch(`/api/runs/${runId}/reproducibility-record?checksums=1`, { credentials: "include" });
+      if (r.ok) setRec(await r.json());
+    } catch { /* leave dashes — harmless */ }
+    finally { setHashing(false); }
   };
 
   return (
@@ -1609,7 +1624,25 @@ function ReproducibilityTab({ runId }: { runId: string }) {
         </tbody></table>
       ) : <div style={reproEmpty}>No bound inputs recorded (run predates input-binding capture, or has none).</div>}
 
-      <div style={reproH}>Outputs ({rec.outputCount})</div>
+      <div style={{ ...reproH, display: "flex", alignItems: "center", gap: 10 }}>
+        <span>Outputs ({rec.outputCount})</span>
+        {rec.outputs?.length ? (
+          anyUnhashed ? (
+            <button
+              type="button"
+              onClick={computeChecksums}
+              disabled={hashing}
+              data-testid="repro-compute-checksums"
+              title="Compute SHA-256 for each output (bounded: ≤25 files, ≤25 MB each)"
+              style={{ background: "none", border: "none", padding: 0, cursor: hashing ? "default" : "pointer", fontSize: 11, color: "var(--accent, oklch(0.55 0.18 260))" }}
+            >
+              {hashing ? "Computing checksums…" : "↻ Compute checksums"}
+            </button>
+          ) : (
+            <span style={{ fontSize: 11, color: "oklch(0.55 0.12 155)" }} data-testid="repro-checksums-done">SHA-256 computed ✓</span>
+          )
+        ) : null}
+      </div>
       {rec.outputs?.length ? (
         <table style={reproTable}>
           <thead><tr><th style={reproTh}>Name</th><th style={reproTh}>Type</th><th style={reproTh}>Size</th><th style={reproTh}>SHA-256</th></tr></thead>

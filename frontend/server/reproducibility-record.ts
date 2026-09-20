@@ -134,10 +134,28 @@ export function assembleReproducibilityRecord(run: any, outputs: any[] = []): Re
   return {
     recordVersion: RECORD_VERSION,
     runId: String(run?.id ?? ""),
-    workflowName: String(run?.workflowName ?? "Untitled Workflow"),
+    // Workflow name lives on different fields across run shapes — check the
+    // common ones before falling back, so the record isn't "Untitled Workflow"
+    // when the name is actually available.
+    workflowName: String(
+      run?.workflowName ??
+      run?.workflowDefinition?.name ??
+      run?.execution?.workflowName ??
+      run?.workflow?.name ??
+      run?.name ??
+      "Untitled Workflow",
+    ),
     status: String(run?.status ?? run?.execution?.status ?? "unknown"),
-    createdAt: toIso(run?.createdAt),
-    completedAt: toIso(run?.completedAt),
+    createdAt: toIso(run?.createdAt ?? run?.execution?.createdAt ?? run?.startedAt),
+    // Completion timestamp likewise varies; fall back to updatedAt only when the
+    // run is actually in a terminal state (so we don't imply a completion that
+    // didn't happen).
+    completedAt: toIso(
+      run?.completedAt ??
+      run?.execution?.completedAt ??
+      run?.finishedAt ??
+      (/^(completed|success|succeeded|failed|error|cancelled)$/i.test(String(run?.status ?? "")) ? run?.updatedAt : null),
+    ),
     parameters: params,
     inputBindings: bindings,
     outputs: outs,
