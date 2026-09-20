@@ -1521,6 +1521,13 @@ class NextflowQCGateHandler:
                                                "ABPP", "PULLDOWN")):
             return self._parse_pulldown_metrics(task_work_dir)
 
+        # --- Metabolomics (untargeted LC-MS: xcms → CAMERA → biosigner) ---
+        elif any(k in process_upper for k in ("XCMS", "CAMERA", "BIOSIGNER",
+                                               "METABOIGNITER", "ASICS",
+                                               "METABOANALYST", "METABOLOMICS",
+                                               "FEATURE_DETECTION", "PEAK_PICKING")):
+            return self._parse_metabolomics_metrics(task_work_dir)
+
         # --- Disease-state PBPK (renal/hepatic impairment dosing) ---
         elif any(k in process_upper for k in ("PBPK_DISEASE_STATE", "DISEASE_STATE_PK",
                                                "RENAL_IMPAIRMENT_PBPK", "HEPATIC_IMPAIRMENT_PBPK")):
@@ -2827,6 +2834,155 @@ class NextflowQCGateHandler:
                 continue
 
         if not metrics:
+            return None
+        return metrics
+
+    def _parse_metabolomics_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """
+        Parse untargeted LC-MS metabolomics output (xcms → CAMERA → biosigner).
+
+        Primary sources (any that exist are used):
+          *.json / metabolomics_report.json — a summary report emitted by the
+             chain with pre-computed metrics (preferred; keys:
+             qc_cv_median_pct, feature_count, missing_value_pct)
+          xcms peak/feature table (dataMatrix.tsv, *feature*table*.tsv,
+             *peaktable*.csv, xcms*.tsv) — feature count = data rows;
+             per-feature CV across QC (pooled) sample columns and
+             missing-value fraction computed directly when a QC/pool
+             column group is present.
+
+        Metrics returned:
+          qc_cv_median_pct   — median coefficient of variation (%) of feature
+                               intensities across pooled-QC injections
+          feature_count      — number of detected features (aligned peaks)
+          missing_value_pct  — fraction (%) of missing/zero entries in the
+                               feature x sample matrix
+
+        Returns None when no metabolomics output files are found.
+        """
+        import csv as _csv
+        import json as _json
+        import statistics as _stats
+
+        metrics: Dict[str, Any] = {}
+
+        # --- Pre-computed summary report (preferred) ---
+        for report_file in (
+            list(task_work_dir.glob("**/metabolomics_report.json"))
+            + list(task_work_dir.glob("metabolomics_report.json"))
+            + list(task_work_dir.glob("*metabo*report*.json"))
+        ):
+            try:
+                data = _json.loads(report_file.read_text(errors="replace"))
+            except (OSError, ValueError):
+                continue
+            if not isinstance(data, dict):
+                continue
+            for key, val in data.items():
+                key_l = str(key).lower()
+                try:
+                    if "cv" in key_l and ("median" in key_l or "qc" in key_l):
+                        metrics.setdefault("qc_cv_median_pct", round(float(val), 1))
+                    elif "feature" in key_l and "count" in key_l:
+                        metrics.setdefault("feature_count", int(val))
+                    elif "missing" in key_l:
+                        metrics.setdefault("missing_value_pct", round(float(val), 1))
+                except (ValueError, TypeError):
+                    pass
+            if metrics:
+                break
+
+        # --- xcms/CAMERA feature (data) matrix: compute metrics directly ---
+        if "feature_count" not in metrics or "qc_cv_median_pct" not in metrics:
+            table_candidates = (
+                list(task_work_dir.glob("**/dataMatrix.tsv"))
+                + list(task_work_dir.glob("dataMatrix.tsv"))
+                + list(task_work_dir.glob("*feature*table*.tsv"))
+                + list(task_work_dir.glob("*feature*table*.csv"))
+                + list(task_work_dir.glob("*peaktable*.tsv"))
+                + list(task_work_dir.glob("*peaktable*.csv"))
+                + list(task_work_dir.glob("xcms*.tsv"))
+                + list(task_work_dir.glob("xcms*.csv"))
+            )
+            for table_file in table_candidates:
+                delim = "\t" if table_file.suffix.lower() == ".tsv" else ","
+                try:
+                    with open(table_file, newline="", errors="replace") as f:
+                        reader = _csv.reader(f, delimiter=delim)
+                        rows = [r for r in reader if r]
+                except OSError:
+                    continue
+                if len(rows) < 2:
+                    continue
+
+                header = rows[0]
+                data_rows = rows[1:]
+
+                # feature_count = number of feature rows (one feature per row)
+                metrics.setdefault("feature_count", len(data_rows))
+
+                # Identify pooled-QC sample columns (Broadhurst 2018 convention:
+                # intersperse a pooled QC sample; column names contain "QC"/"pool").
+                qc_cols = [
+                    i for i, name in enumerate(header)
+                    if isinstance(name, str)
+                    and any(tok in name.lower() for tok in ("qc", "pool"))
+                ]
+                # Numeric sample columns = every column that parses as a float in
+                # the first data row (skip the leading id/label column at index 0).
+                numeric_cols = []
+                for i in range(1, len(header)):
+                    try:
+                        float(data_rows[0][i])
+                        numeric_cols.append(i)
+                    except (ValueError, IndexError):
+                        pass
+
+                # Missing-value fraction across the full numeric matrix.
+                if numeric_cols:
+                    total = 0
+                    missing = 0
+                    for row in data_rows:
+                        for i in numeric_cols:
+                            total += 1
+                            try:
+                                v = float(row[i])
+                                if v == 0.0:
+                                    missing += 1
+                            except (ValueError, IndexError):
+                                missing += 1
+                    if total > 0:
+                        metrics.setdefault(
+                            "missing_value_pct",
+                            round((missing / total) * 100.0, 1),
+                        )
+
+                # Median per-feature CV across pooled-QC injections.
+                if len(qc_cols) >= 2:
+                    cvs = []
+                    for row in data_rows:
+                        vals = []
+                        for i in qc_cols:
+                            try:
+                                v = float(row[i])
+                                if v > 0:
+                                    vals.append(v)
+                            except (ValueError, IndexError):
+                                pass
+                        if len(vals) >= 2:
+                            mean_v = _stats.mean(vals)
+                            if mean_v > 0:
+                                cv = (_stats.stdev(vals) / mean_v) * 100.0
+                                if 0 <= cv < 500:
+                                    cvs.append(cv)
+                    if cvs:
+                        metrics.setdefault(
+                            "qc_cv_median_pct", round(_stats.median(cvs), 1)
+                        )
+                break
+
+        if not metrics:
+            log.debug(f"[QC] No metabolomics metrics found in {task_work_dir}")
             return None
         return metrics
 
@@ -5902,6 +6058,89 @@ class NextflowQCGateHandler:
                         f"[BRONZE] QSAR model trained on {n_cpds} compounds (advised: ≥ {_n_t}). "
                         f"Small datasets produce high-variance models. "
                         f"Expand the assay data or apply Bayesian uncertainty quantification."
+                    ),
+                })
+
+        # --- Metabolomics (untargeted LC-MS: xcms → CAMERA → biosigner) ---
+        elif any(k in process_upper for k in ("XCMS", "CAMERA", "BIOSIGNER",
+                                              "METABOIGNITER", "ASICS",
+                                              "METABOANALYST", "METABOLOMICS",
+                                              "FEATURE_DETECTION", "PEAK_PICKING")):
+            # [GOLD metric / SILVER cutoff] Pooled-QC coefficient of variation.
+            # Dunn et al. 2011 Nat Protoc 6:1060 and Broadhurst et al. 2018
+            # Metabolomics 14:72 (mQACC): repeated injection of a pooled QC
+            # sample is the reference measure of analytical reproducibility;
+            # features with QC CV > 30% (RSD) are conventionally removed as
+            # unreliable. The metric is GOLD (both papers define QC-RSD as the
+            # analytical-quality readout); the specific 30% cutoff is the
+            # widely-used community operating point (SILVER). Advisory — a high
+            # median CV signals drift/prep issues but does not invalidate the
+            # run outright (features can still be RSD-filtered downstream).
+            cv_median = qc_metrics.get("qc_cv_median_pct")
+            _cv_t = self._get_threshold("qc_cv_median_pct", 30.0)
+            if cv_median is not None and cv_median > _cv_t:
+                failures.append({
+                    "metric": "qc_cv_median_pct",
+                    "value": cv_median,
+                    "threshold": _cv_t,
+                    "operator": ">",
+                    "advisory": True,
+                    "message": (
+                        f"[SILVER] Median pooled-QC CV {cv_median:.1f}% exceeds "
+                        f"{_cv_t:.0f}% (Dunn et al. 2011 Nat Protoc; Broadhurst "
+                        f"et al. 2018 mQACC). High analytical variability — apply "
+                        f"a QC-RSD feature filter, check LC/MS drift, or add "
+                        f"pooled-QC-based signal correction (e.g. LOESS) before "
+                        f"statistical analysis."
+                    ),
+                })
+
+            # [BRONZE advisory] Detected-feature count sanity band.
+            # Dunn et al. 2011 / Broadhurst 2018: a typical untargeted LC-MS
+            # assay yields thousands of aligned features; a run returning very
+            # few features usually indicates a peak-picking parameter problem
+            # (ppm/peakwidth/snthresh) or a failed injection rather than true
+            # low complexity. Community-operational floor (BRONZE), advisory.
+            feat_count = qc_metrics.get("feature_count")
+            _feat_t = self._get_threshold("feature_count_min", 500)
+            if feat_count is not None and feat_count < _feat_t:
+                failures.append({
+                    "metric": "feature_count",
+                    "value": feat_count,
+                    "threshold": _feat_t,
+                    "operator": "<",
+                    "advisory": True,
+                    "message": (
+                        f"[BRONZE] Only {feat_count} features detected (advised: "
+                        f"≥ {_feat_t}). Untargeted LC-MS runs typically yield "
+                        f"thousands of aligned features — check xcms peak-picking "
+                        f"parameters (ppm, peakwidth, snthresh) and verify the "
+                        f"injection succeeded."
+                    ),
+                })
+
+            # [SILVER] Missing-value fraction across the feature x sample matrix.
+            # Broadhurst et al. 2018: excessive missingness undermines
+            # downstream imputation and multivariate modelling; a > 20% overall
+            # missing fraction is a common data-quality cutoff for untargeted
+            # metabolomics feature matrices. Advisory (missing values can be
+            # imputed) — flags likely peak-detection/alignment gaps.
+            missing_pct = qc_metrics.get("missing_value_pct")
+            _miss_t = self._get_threshold("metab_missing_value_pct", 20.0)
+            if missing_pct is not None and missing_pct > _miss_t:
+                failures.append({
+                    "metric": "missing_value_pct",
+                    "value": missing_pct,
+                    "threshold": _miss_t,
+                    "operator": ">",
+                    "advisory": True,
+                    "message": (
+                        f"[SILVER] Missing-value fraction {missing_pct:.1f}% "
+                        f"exceeds {_miss_t:.0f}% (Broadhurst et al. 2018 mQACC). "
+                        f"High missingness weakens imputation and multivariate "
+                        f"models — revisit xcms alignment/fillPeaks or relax "
+                        f"peak-detection thresholds so features are consistently "
+                        f"integrated across samples."
                     ),
                 })
 
