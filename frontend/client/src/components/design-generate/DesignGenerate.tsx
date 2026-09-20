@@ -1783,11 +1783,11 @@ export function DesignGenerate({
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-2 pt-1 border-t">
-            <span className="text-[10px] text-muted-foreground" data-testid="dg-cost">
-              Compute cost before run:{" "}
-              {estimateCost(parseInt(count, 10) || 0, parseInt(nGenerate, 10) || 0)}
-            </span>
+          <div className="flex items-center justify-end gap-2 pt-1 border-t">
+            {/* Pre-run cost estimate removed — no cost estimation in the UI
+                (consistent with the workflow panel, where static estimates were
+                inaccurate; cost belongs on the billing page). estimateCost()
+                retained but unused. */}
             <Button
               type="button"
               size="sm"

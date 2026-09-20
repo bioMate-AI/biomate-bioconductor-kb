@@ -1,13 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { useLocation } from "wouter"
 import { ArrowRight } from "lucide-react"
@@ -88,80 +80,6 @@ const jobClusters = [
   },
 ]
 
-const comparisonRows = [
-  {
-    capability: "Relative binding free energy",
-    biomate: "OpenFE RBFE",
-    commercial: "Schrödinger FEP+",
-    price: "~$100K+/year",
-  },
-  {
-    capability: "Population PK modeling",
-    biomate: "nlmixr2_population_pk",
-    commercial: "NONMEM (Icon)",
-    price: "~$30K/year",
-  },
-  {
-    capability: "PBPK simulation",
-    biomate: "simcyp_pbpk / pk_sim_pbpk",
-    commercial: "Simulations Plus SimCYP",
-    price: "~$40K/year",
-  },
-  {
-    capability: "Generative lead design",
-    biomate: "REINVENT4",
-    commercial: "Schrödinger REINVENT",
-    price: "~$80K/year",
-  },
-  {
-    capability: "ADMET prediction",
-    biomate: "Predict ADMET Properties (AI)",
-    commercial: "StarDrop (Optibrium)",
-    price: "~$20K/year",
-  },
-  {
-    capability: "Adaptive trial design",
-    biomate: "adaptive_trial_design",
-    commercial: "East Adaptive (Cytel)",
-    price: "~$25K/year",
-  },
-  {
-    capability: "Drug repurposing",
-    biomate: "TxGNN Repurposing",
-    commercial: "CRO engagement",
-    price: "~$50K/project",
-  },
-  {
-    capability: "Cryo-EM reconstruction",
-    biomate: "CryoSPARC SPA",
-    commercial: "CryoSPARC license",
-    price: "~$8K/year",
-  },
-  {
-    capability: "ADC design (payload + linker + PK)",
-    biomate: "adc_design",
-    commercial: "No equivalent (CRO engagement)",
-    price: "~$200K+/project",
-  },
-  {
-    capability: "PROTAC degrader design",
-    biomate: "protac_design",
-    commercial: "No equivalent (custom CRO + medchem)",
-    price: "~$500K+/project",
-  },
-  {
-    capability: "mRNA therapeutic design",
-    biomate: "mrna_therapeutic_design",
-    commercial: "Specialized CRO (Moderna/BioNTech outsource)",
-    price: "~$150K+/project",
-  },
-  {
-    capability: "CAR-T construct design",
-    biomate: "cart_construct_design",
-    commercial: "Internal cell therapy team",
-    price: "~$300K+/year (FTE)",
-  },
-]
 
 // ---------------------------------------------------------------------------
 // Component
@@ -214,65 +132,18 @@ export default function CapabilitiesPage() {
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {cluster.description}
                 </p>
-                <div className="mt-auto flex flex-wrap gap-1.5">
-                  {cluster.workflows.map((wf) => (
-                    <Badge key={wf} variant="outline" className="text-xs font-normal">
-                      {wf}
-                    </Badge>
-                  ))}
-                </div>
+                {/* Raw internal pipeline-name chips removed — capability is legible
+                    through the plain-language cluster + the router, not an internal
+                    workflow inventory (design-v2 no-inventory front door). */}
               </CardContent>
             </Card>
           ))}
         </div>
       </section>
 
-      {/* Section 2 — comparison table */}
-      <section className="border-t bg-muted/30">
-        <div className="max-w-6xl mx-auto px-6 py-16">
-          <h2 className="text-2xl font-semibold mb-2">
-            BioMate vs. commercial software
-          </h2>
-          <p className="text-muted-foreground mb-8">
-            BioMate runs the same underlying algorithms as the leading
-            commercial suites — without per-seat licensing fees.
-          </p>
-
-          <div className="rounded-lg border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="font-semibold">Capability</TableHead>
-                  <TableHead className="font-semibold">BioMate workflow</TableHead>
-                  <TableHead className="font-semibold">Commercial alternative</TableHead>
-                  <TableHead className="font-semibold text-right">Commercial price</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {comparisonRows.map((row, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="font-medium">{row.capability}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="font-mono text-xs font-normal">
-                        {row.biomate}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{row.commercial}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{row.price}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          <p className="mt-5 text-sm font-semibold">
-            Estimated stack replacement value: $1.5M+/year (software + modality-specific CRO work)
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Prices are public list prices as of 2025. Actual enterprise discounts vary.
-          </p>
-        </div>
-      </section>
+      {/* Section 2 (BioMate-vs-commercial price table + "$1.5M+/year" claim)
+          removed — competitor price comparisons and savings claims don't belong
+          on the capability front door (design-v2 no-lying-labels / no-inventory). */}
 
       {/* CTA */}
       <section className="border-t">

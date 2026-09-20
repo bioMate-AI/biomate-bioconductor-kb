@@ -96,8 +96,9 @@ describe("DesignGenerate", () => {
     expect(screen.getByTestId("dg-envelope")).toBeTruthy()
     expect(screen.getByTestId("dg-exclusions")).toBeTruthy()
     expect(screen.getByTestId("dg-count")).toBeTruthy()
-    // Count is stated WITH compute cost shown before the run (§5.2).
-    expect(screen.getByTestId("dg-cost").textContent).toMatch(/compute unit/i)
+    // Pre-run cost estimation removed from the UI (no cost estimates anywhere —
+    // consistent with the workflow panel; cost lives on the billing page).
+    expect(screen.queryByTestId("dg-cost")).toBeNull()
   })
 
   it("sends resolved constraints to the backend on run", async () => {
