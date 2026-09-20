@@ -33,7 +33,7 @@ echo "[spot] resume check"; aws s3 sync "$CKPT_S3/" "$OUT/" --quiet || true
 RESUME=""; LAST=$(ls -d "$OUT"/checkpoint-* 2>/dev/null | sort -t- -k2 -n | tail -1)
 [ -n "$LAST" ] && RESUME="--resume $LAST" && echo "[spot] resuming from $LAST"
 
-( while true; do aws s3 sync "$OUT/" "$CKPT_S3/" --exclude "*" --include "checkpoint-*" --quiet; sleep 120; done ) & SYNCPID=$!
+( while true; do aws s3 sync "$OUT/" "$CKPT_S3/" --exclude "*" --include "*checkpoint-*" --quiet; sleep 120; done ) & SYNCPID=$!
 ( while true; do curl -s -m 2 http://169.254.169.254/latest/meta-data/spot/instance-action | grep -q action \
     && { echo "[spot] interruption notice — final sync"; aws s3 sync "$OUT/" "$CKPT_S3/" --quiet; break; }; sleep 5; done ) & WATCHPID=$!
 trap 'kill $SYNCPID $WATCHPID $LOGPID 2>/dev/null; aws s3 sync "$OUT/" "$CKPT_S3/" --quiet; aws s3 cp /var/log/spot_train.log "$LOG_S3/train.log" --quiet' EXIT
