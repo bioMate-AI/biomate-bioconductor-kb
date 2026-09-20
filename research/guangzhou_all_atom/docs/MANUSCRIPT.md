@@ -198,13 +198,16 @@ descriptors were computed on the *linear* peptide — now cyclized; (c) the auto
 verdict is removed. **P1 confounds — now investigated (`perm_size_correction.py`, `results/perm_size_correction.json`):**
 
 *(i) Size bias — RESOLVED, and it OVERTURNS §3.9.* Raw cross-sequence ΔG is largely size-dominated
-(Spearman(rawΔG, ligand-efficiency) = +0.78). Ligand efficiency (ΔG per heavy atom) reverses the §3.9
-conclusion: the permeability-aware picks are *smaller* (1yf4: 47.5 vs 67.1 heavy atoms) and by LE bind
-**better per atom on both targets** (1yf4 −0.620 vs −0.577; 1u8p −0.489 vs −0.373). So the "~9 kcal/mol binding
-sacrificed" in §3.9 was a **size artifact** — permeability-aware selection does not sacrifice per-atom binding;
-it selects smaller, more ligand-efficient, more permeable designs. The §3.9 raw-ΔG framing is withdrawn in
-favor of ligand efficiency (caveat: LE is itself a heuristic favoring small ligands; FEP remains the absolute
-arbiter).
+(Spearman(rawΔG, ligand-efficiency) = +0.78). Ligand efficiency (ΔG per heavy atom) removes the §3.9
+"binding sacrificed" conclusion: the permeability-aware picks are *smaller* (1yf4: 47.5 vs 67.1 heavy atoms)
+and per atom are **at least as efficient** as the default set. With bootstrap 95% CIs
+(`results/perm_uncertainty.json`): on **1u8p** the perm-aware picks are *significantly* more ligand-efficient
+(LE difference −0.117, CI [−0.194, −0.033], excludes 0); on **1yf4** they are *statistically indistinguishable*
+from default (LE difference −0.042, CI [−0.176, +0.088], spans 0). So the "~9 kcal/mol binding sacrificed" in
+§3.9 was a **size artifact** — permeability-aware selection does not sacrifice per-atom binding (it selects
+smaller, more ligand-efficient, more permeable designs), though a per-atom *advantage* is only significant on
+1u8p at this sample size. Caveat: LE is itself a heuristic favoring small ligands; FEP remains the absolute
+arbiter.
 
 *(ii) The §3.2 "iptm ⟂ physics" claim — DOWNGRADED as not robust.* The correlation is unstable across design
 sets and normalizations (−0.04 within-target-z on the original 32; −0.40 pooled on the 27-design union here)
