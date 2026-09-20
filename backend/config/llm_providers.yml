@@ -158,3 +158,17 @@ required_env_vars:
 # - Total possible attempts: 1 × 5 providers = 5 attempts before final failure
 # - Expected success rate: >99% (only fails if all 5 providers completely down)
 # - Timeout 30s for Gemini (fast-fail enables quick fallback to Flash)
+#
+# On-premises / air-gapped deployments:
+# - Set GALAXY_AI_LLM_PROVIDER=openai_compatible in .env
+# - Set LLM_API_URL=http://<server>:8000/v1    (vLLM / LMDeploy base URL)
+# - Set LLM_MODEL=<model-name>                  (e.g. qwen2.5-32b, deepseek-r1-32b)
+# - Set LLM_API_KEY=<key>                       (optional — "none" if not required)
+# - The openai_compatible provider bypasses the fallback chain entirely and calls
+#   the configured endpoint directly. No internet access required.
+# - Supported: any server implementing the OpenAI /chat/completions API
+#   (vLLM, LMDeploy, Ollama ≥0.4, llama.cpp server, LM Studio, FastChat, etc.)
+#
+# DeepSeek / Zhipu domestic API (when GALAXY_AI_LLM_PROVIDER=deepseek|zhipu):
+# - Also uses the direct provider path (bypasses cloud fallback chain)
+# - Set DEEPSEEK_API_KEY or ZHIPU_API_KEY accordingly

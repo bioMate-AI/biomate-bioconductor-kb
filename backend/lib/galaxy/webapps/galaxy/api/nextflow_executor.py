@@ -69,7 +69,8 @@ _runs: Dict[str, Dict[str, Any]] = {}
 # reentrancy is safe. Incident 2026-06-30 (connector hERG, 5 consecutive fails).
 _runs_lock = threading.RLock()
 
-from galaxy.ai.runs import get_run_state_store  # noqa: E402
+from galaxy.ai.runs import get_run_state_store
+from galaxy.ai.s3_utils import make_s3_client  # noqa: E402
 
 # Start the orphan-completion poller on every gunicorn worker at module load,
 # not just when a run is submitted. Without this, workers that restart while
@@ -342,7 +343,7 @@ def _parse_deseq2_results_from_s3(s3_output_files: list) -> tuple:
         return 0, []
     try:
         import boto3
-        _s3 = boto3.client("s3")
+        _s3 = make_s3_client()
         _bucket, _key = results_file.replace("s3://", "").split("/", 1)
         _obj = _s3.get_object(Bucket=_bucket, Key=_key)
         content = _obj["Body"].read().decode("utf-8")
@@ -380,7 +381,7 @@ def _parse_enrichgo_results_from_s3(s3_output_files: list) -> tuple:
         return "", "", 0
     try:
         import boto3
-        _s3 = boto3.client("s3")
+        _s3 = make_s3_client()
         _bucket, _key = results_file.replace("s3://", "").split("/", 1)
         _obj = _s3.get_object(Bucket=_bucket, Key=_key)
         content = _obj["Body"].read().decode("utf-8")
@@ -1655,10 +1656,10 @@ def _stage_declared_input(src: str, dest: Path) -> None:
         # "must be addressed using the specified endpoint".
         import boto3
         _bucket, _key = src[len("s3://"):].split("/", 1)
-        _s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION") or "us-east-1")
+        _s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION") or "us-east-1")
         try:
             _loc = _s3.get_bucket_location(Bucket=_bucket).get("LocationConstraint") or "us-east-1"
-            _s3 = boto3.client("s3", region_name=_loc)
+            _s3 = make_s3_client(region_name=_loc)
         except Exception:
             pass
         _s3.download_file(_bucket, _key, str(dest))
@@ -2472,7 +2473,7 @@ def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
         # Trust known-good public buckets; validate object existence below if needed.
         pass
     else:
-        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
         try:
             s3.head_bucket(Bucket=bucket)
         except NoCredentialsError:
@@ -2579,7 +2580,7 @@ def _generate_executor_config(
     Returns path to generated config file, or None for local execution.
     """
     executor = compute.get("executor", "local")
-    if executor not in ("awsbatch", "slurm"):
+    if executor not in ("awsbatch", "slurm", "k8s"):
         return None
 
     config_path = config_dir / "biomate_executor_override.config"
@@ -2990,16 +2991,62 @@ def _generate_executor_config(
             )
 
     elif executor == "slurm":
-        partition = compute.get("slurm_partition") or "compute"
-        qos = compute.get("slurm_qos") or ""
+        partition = compute.get("slurm_partition") or os.environ.get("SLURM_PARTITION", "compute")
+        qos = compute.get("slurm_qos") or os.environ.get("SLURM_QOS", "")
+        account = compute.get("slurm_account") or os.environ.get("SLURM_ACCOUNT", "")
         cluster_opts = f"--partition={partition}"
         if qos:
             cluster_opts += f" --qos={qos}"
+        if account:
+            cluster_opts += f" --account={account}"
 
         lines = [
             "process {",
             "    executor = 'slurm'",
             f"    clusterOptions = '{cluster_opts}'",
+            # Memory/CPU resource labels → Slurm resource requests
+            "    withLabel: 'process_gpu'    { clusterOptions = '--partition=gpu --gres=gpu:1 " + cluster_opts.split("--partition=")[1].split()[0] + "' }",
+            "    withLabel: 'process_high'   { cpus = 32; memory = '200 GB' }",
+            "    withLabel: 'process_medium' { cpus = 16; memory = '72 GB'  }",
+            "    withLabel: 'process_low'    { cpus = 4;  memory = '12 GB'  }",
+            "}",
+        ]
+
+    elif executor == "k8s":
+        namespace     = compute.get("k8s_namespace")     or os.environ.get("NXF_K8S_NAMESPACE",       "biomate-jobs")
+        storage_claim = compute.get("k8s_storage_claim") or os.environ.get("NXF_K8S_STORAGE_CLAIM",   "biomate-work-pvc")
+        storage_mount = compute.get("k8s_storage_mount") or os.environ.get("NXF_K8S_STORAGE_MOUNT",   "/nf-work")
+        pull_policy   = compute.get("k8s_pull_policy")   or os.environ.get("NXF_K8S_PULL_POLICY",     "IfNotPresent")
+        service_acct  = compute.get("k8s_service_account") or os.environ.get("NXF_K8S_SERVICE_ACCOUNT", "nextflow")
+        gpu_resource  = os.environ.get("NXF_K8S_GPU_RESOURCE", "nvidia.com/gpu")
+
+        lines = [
+            # k8s scope — tells Nextflow how to submit pods
+            "k8s {",
+            f"    namespace        = '{namespace}'",
+            f"    storageClaimName = '{storage_claim}'",
+            f"    storageMountPath = '{storage_mount}'",
+            f"    pullPolicy       = '{pull_policy}'",
+            f"    serviceAccount   = '{service_acct}'",
+            "    debug { yaml = false }",
+            "}",
+            "",
+            "process {",
+            "    executor = 'k8s'",
+            # Resource label → K8s resource requests/limits
+            "    withLabel: 'process_gpu' {",
+            f"        resourceLabels = ['{gpu_resource}': '1']",
+            "        cpus   = 8",
+            "        memory = '48 GB'",
+            "    }",
+            "    withLabel: 'process_high'   { cpus = 32; memory = '200 GB' }",
+            "    withLabel: 'process_medium' { cpus = 16; memory = '72 GB'  }",
+            "    withLabel: 'process_low'    { cpus = 4;  memory = '12 GB'  }",
+            "}",
+            "",
+            # Nextflow k8s plugin
+            "plugins {",
+            "    id 'nf-k8s@0.3.0'",
             "}",
         ]
 
@@ -3232,7 +3279,7 @@ def _evaluate_qc_from_s3(
                 import boto3
                 _bucket, _key = _qc_uri[5:].split("/", 1)
                 _report = _json.loads(
-                    boto3.client("s3").get_object(Bucket=_bucket, Key=_key)["Body"].read()
+                    make_s3_client().get_object(Bucket=_bucket, Key=_key)["Body"].read()
                 )
             except Exception as _e:  # noqa: BLE001 — safe-fail, gate is best-effort
                 log.warning("[QC Gate] preproc qc_report.json read failed for %s: %s", run_id, _e)
@@ -3643,7 +3690,7 @@ def _list_s3_output_files(s3_uri: str) -> list:
         parts = s3_uri[len("s3://"):].split("/", 1)
         bucket = parts[0]
         prefix = (parts[1] if len(parts) > 1 else "").rstrip("/") + "/"
-        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
         paginator = s3.get_paginator("list_objects_v2")
         skip_prefixes = ("/work/", "/.nextflow/", "/trace.", "/timeline.", "/dag.", "/report.")
         results = []
@@ -3706,7 +3753,7 @@ def _list_s3_work_output_files(work_s3_uri: str) -> list:
         parts = work_s3_uri[len("s3://"):].split("/", 1)
         bucket = parts[0]
         prefix = (parts[1] if len(parts) > 1 else "").rstrip("/") + "/"
-        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
         paginator = s3.get_paginator("list_objects_v2")
         results = []
         for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
@@ -3857,7 +3904,7 @@ def _build_qc_report_from_s3_files(s3_files: List[Dict], outdir: str) -> Optiona
     try:
         import boto3 as _boto3
         import json as _json
-        s3_client = _boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        s3_client = _make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
     except ImportError:
         return None
 
@@ -4063,7 +4110,7 @@ def _tag_s3_outputs(run_meta: Dict[str, Any]) -> None:
         bucket = parts[0]
         prefix = parts[1] if len(parts) > 1 else ""
 
-        s3 = boto3.client("s3")
+        s3 = make_s3_client()
         paginator = s3.get_paginator("list_objects_v2")
         tag_set = [
             {"Key": "user_id", "Value": user_id},
@@ -5229,6 +5276,24 @@ def _execute_nextflow_impl(
     _use_aws_env = os.environ.get("NEXTFLOW_USE_AWS", "false").lower() in ("true", "1", "yes")
     # Normalise user_id early for path construction (before run_id is generated)
     _uid_for_path = (request.user_id or "unknown").replace("/", "_").replace("..", "_")
+
+    # On-prem: NEXTFLOW_EXECUTOR env var sets the cluster-level default executor.
+    # Values: local (default) | slurm | k8s | awsbatch
+    # Per-job compute_config.executor always wins over this env var.
+    _executor_env = os.environ.get("NEXTFLOW_EXECUTOR", "local").lower()
+    if not compute.get("executor") and _executor_env in ("slurm", "k8s"):
+        compute["executor"] = _executor_env
+        if _executor_env == "slurm" and not compute.get("slurm_partition"):
+            compute["slurm_partition"] = os.environ.get("SLURM_PARTITION", "compute")
+        if _executor_env == "k8s":
+            if not compute.get("k8s_namespace"):
+                compute["k8s_namespace"] = os.environ.get("NXF_K8S_NAMESPACE", "biomate-jobs")
+            if not compute.get("k8s_storage_claim"):
+                compute["k8s_storage_claim"] = os.environ.get(
+                    "NXF_K8S_STORAGE_CLAIM", "biomate-work-pvc"
+                )
+        log.info("[Nextflow] On-prem executor from NEXTFLOW_EXECUTOR env: %s", _executor_env)
+
     # Route to AWS Batch when NEXTFLOW_USE_AWS=true OR when executor is already "awsbatch"
     # (the frontend sends executor="awsbatch" by default as the platform standard).
     # Skip this block entirely in on-prem local mode.
@@ -5251,6 +5316,20 @@ def _execute_nextflow_impl(
         compute["executor"] = "awsbatch"
         if not compute.get("s3_bucket"):
             compute["s3_bucket"] = s3_bucket_default
+
+    # k8s executor: auto-set outdir to shared PVC mount path (no S3 needed).
+    if compute.get("executor") == "k8s" and not params.get("outdir"):
+        _k8s_mount = os.environ.get("NXF_K8S_STORAGE_MOUNT", "/nf-work")
+        _k8s_outdir = f"{_k8s_mount}/outputs/{_uid_for_path}/{run_id[:8]}"
+        params["outdir"] = _k8s_outdir
+        log.info("[Nextflow] k8s executor — auto-setting outdir=%s", _k8s_outdir)
+
+    # Slurm executor: shared NFS/Lustre outdir from env.
+    if compute.get("executor") == "slurm" and not params.get("outdir"):
+        _slurm_work = os.environ.get("SLURM_WORK_DIR", "/scratch/biomate")
+        _slurm_outdir = f"{_slurm_work}/outputs/{_uid_for_path}/{run_id[:8]}"
+        params["outdir"] = _slurm_outdir
+        log.info("[Nextflow] Slurm executor — auto-setting outdir=%s", _slurm_outdir)
 
     # Personal workflows (written to /tmp/biomate_user_nf/ from file_content at
     # request time) must run locally — they are ad-hoc user scripts that don't
@@ -7145,7 +7224,7 @@ def download_s3_output(
         import boto3
         parts = s3_uri[len("s3://"):].split("/", 1)
         bucket, key = parts[0], parts[1]
-        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
         url = s3.generate_presigned_url(
             "get_object",
             Params={"Bucket": bucket, "Key": key},
@@ -7188,7 +7267,7 @@ def list_run_output_files(run_id: str) -> Any:
     # Generate presigned URLs for each file
     try:
         import boto3
-        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
     except ImportError:
         return {"run_id": run_id, "files": raw_files, "note": "boto3 not available — no download URLs"}
 
@@ -10451,7 +10530,7 @@ async def fetch_public_data(body: FetchPublicDataRequest):
 
     try:
         import boto3
-        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-1"))
+        s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-1"))
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{filename}") as tmp:
             tmp_path = tmp.name
@@ -10533,7 +10612,7 @@ async def browse_s3(
 
     try:
         import boto3
-        s3 = boto3.client("s3", **boto_kwargs)
+        s3 = make_s3_client(**boto_kwargs)
 
         paginator = s3.get_paginator("list_objects_v2")
         page_iter = paginator.paginate(

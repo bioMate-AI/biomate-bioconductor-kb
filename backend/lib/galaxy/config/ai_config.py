@@ -71,10 +71,19 @@ def configure_ai_assistant(
     ai_config_dict = {}
     
     # LLM Configuration — auto-detect provider from available API keys
-    _api_key = raw_config.get('ai_llm_api_key') or os.getenv('ANTHROPIC_API_KEY') or os.getenv('OPENAI_API_KEY') or os.getenv('GALAXY_AI_API_KEY')
+    _api_key = (
+        raw_config.get('ai_llm_api_key')
+        or os.getenv('LLM_API_KEY')           # on-prem generic key
+        or os.getenv('ANTHROPIC_API_KEY')
+        or os.getenv('OPENAI_API_KEY')
+        or os.getenv('GALAXY_AI_API_KEY')
+    )
     _explicit_provider = raw_config.get('ai_llm_provider') or os.getenv('GALAXY_AI_LLM_PROVIDER')
     if _explicit_provider:
         _provider = _explicit_provider
+    elif os.getenv('LLM_API_URL'):
+        # Customer local LLM with explicit base URL → use openai_compatible
+        _provider = 'openai_compatible'
     elif os.getenv('ANTHROPIC_API_KEY'):
         _provider = 'anthropic'
     elif os.getenv('OPENAI_API_KEY'):
@@ -83,7 +92,12 @@ def configure_ai_assistant(
         _provider = 'anthropic'  # Default to anthropic (BioMate default)
     ai_config_dict['llm_provider'] = _provider
     _default_model = 'claude-sonnet-4-6' if _provider == 'anthropic' else 'gpt-4'
-    _configured_model = raw_config.get('ai_llm_model', _default_model)
+    _configured_model = (
+        raw_config.get('ai_llm_model')
+        or os.getenv('GALAXY_AI_LLM_MODEL')   # explicit model override
+        or os.getenv('LLM_MODEL')              # on-prem model name
+        or _default_model
+    )
     # If provider is anthropic but model is a GPT model name (from schema defaults),
     # fall back to the anthropic default model.
     _openai_prefixes = ('gpt-', 'o1', 'o3', 'text-davinci')
@@ -91,7 +105,10 @@ def configure_ai_assistant(
         _configured_model = _default_model
     ai_config_dict['llm_model'] = _configured_model
     ai_config_dict['llm_api_key'] = _api_key
-    ai_config_dict['llm_base_url'] = raw_config.get('ai_llm_base_url')
+    ai_config_dict['llm_base_url'] = (
+        raw_config.get('ai_llm_base_url')
+        or os.getenv('LLM_API_URL')            # on-prem vLLM/LMDeploy base URL
+    )
     
     # Tool Discovery Configuration
     ai_config_dict['max_tools_per_task'] = int(raw_config.get('ai_max_tools_per_task', 5))

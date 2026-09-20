@@ -220,6 +220,14 @@ async def generate_with_fallback(
     kwargs.setdefault("user_id", llm_client.user_id)
     kwargs.setdefault("session_id", llm_client.session_id)
 
+    # On-prem direct path: when the client's provider is not in the YAML fallback
+    # chain (e.g. openai_compatible / deepseek / zhipu set via env var), call it
+    # directly instead of routing through the cloud fallback chain.
+    _direct_providers = {'openai_compatible', 'deepseek', 'zhipu'}
+    if llm_client.provider in _direct_providers:
+        log.info(f"[on-prem] Using direct provider: {llm_client.provider}:{llm_client.model}")
+        return await llm_client._generate_openai_compatible(prompt, **kwargs)
+
     # Get provider chain
     provider_chain = fallback_manager.get_provider_chain()
 
@@ -337,6 +345,8 @@ async def _try_provider_with_retry(
                     result = await llm_client._generate_ollama(prompt, **kwargs)
                 elif provider_config.provider == 'local':
                     result = await llm_client._generate_local(prompt, **kwargs)
+                elif provider_config.provider in ('deepseek', 'zhipu', 'openai_compatible'):
+                    result = await llm_client._generate_openai_compatible(prompt, **kwargs)
                 else:
                     raise ValueError(f"Unsupported provider: {provider_config.provider}")
 
