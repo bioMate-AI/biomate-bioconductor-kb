@@ -14,9 +14,9 @@ against the live system (dev) before anything is marked "supported" — see `cov
 
 ### Part 0 — Overview & orientation
 - [~] `overview/00-what-is-biomate.md`
-- [ ] `overview/01-object-model.md`
-- [ ] `overview/02-personas.md`
-- [ ] `overview/03-first-analysis-5min.md`
+- [~] `overview/01-object-model.md`
+- [~] `overview/02-personas.md`
+- [~] `overview/03-first-analysis-5min.md`
 
 ### Part I — General function modules
 - [~] `modules/I01-getting-started-cold-start.md`   (design v2 §00)
@@ -53,7 +53,7 @@ against the live system (dev) before anything is marked "supported" — see `cov
 - [~] `domains/proteomics.md`       (P2)
 - [~] `domains/metabolomics.md`     (P2)
 - [~] `domains/metagenomics.md`     (P2)
-- [ ] `domains/cro-regulatory.md`   (cross-domain)
+- [~] `domains/cro-regulatory.md`   (cross-domain)
 
 ### Appendices
 - [~] `appendix/A-glossary.md`
