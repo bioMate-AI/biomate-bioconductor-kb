@@ -91,3 +91,34 @@ test("capture data-hub drill-in (I.5)", async ({ page }) => {
   // eslint-disable-next-line no-console
   console.log("\n[manual-screenshots drill-in]\n" + log.join("\n") + "\n");
 });
+
+// Capture the run-dependent after-run report from an EXISTING completed run
+// (no fresh Batch run) via /debug/viewer/:runId, which mounts the workflow
+// viewer in completed state. Set MANUAL_RUN_ID to a run that has outputs.
+const RUN_ID = process.env.MANUAL_RUN_ID || "15736778-6689-44d9-bca1-563987669457";
+test("capture after-run report from an existing run (I.6/I.8/I.9)", async ({ page }) => {
+  test.setTimeout(150_000);
+  await loginAsFixture(page);
+  const log: string[] = [];
+  const shot = async (name: string) => {
+    await page.screenshot({ path: path.join(ASSETS, name) });
+    log.push(`OK   ${name}`);
+  };
+  const clickTab = async (testid: string) => {
+    const t = page.getByTestId(testid);
+    if ((await t.count()) > 0) { await t.click({ timeout: 8_000 }); await page.waitForTimeout(2500); return true; }
+    return false;
+  };
+  try {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto(BASE_URL + `/debug/viewer/${RUN_ID}`, { waitUntil: "domcontentloaded", timeout: 45_000 });
+    await page.waitForTimeout(6000); // viewer + after-run report render
+    await shot("i09-1-three-tabs.png"); // Summary (landing) of the 3-tab report
+    if (await clickTab("after-tab-outputs")) await shot("i08-1-outputs-tab.png");
+    if (await clickTab("after-tab-record")) await shot("i09-2-reproducibility-record.png");
+  } catch (e: any) {
+    log.push(`FAIL after-run — ${e?.message?.split("\n")[0] ?? e}`);
+  }
+  // eslint-disable-next-line no-console
+  console.log("\n[manual-screenshots after-run]\n" + log.join("\n") + "\n");
+});
