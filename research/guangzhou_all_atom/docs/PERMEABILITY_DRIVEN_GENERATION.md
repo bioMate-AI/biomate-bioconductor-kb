@@ -106,9 +106,21 @@ MM-GBSA/FEP; this is oversampling+selection, not sampling-time guidance; one tar
 (smaller peptides bind weaker). Next: MM-GBSA-verify the perm-aware picks; scale to 4 targets; then true
 guided generation (steer sampling, not just select).
 
+## v3 physics-verification (DONE) — select on PHYSICS, not iptm; dual-optimal designs exist
+Tool: `peptide_mmgbsa_v3verify.sh`. Result: `results/v3verify_mmgbsa_1yf4.json`.
+
+MM-GBSA'd the union of the v3 perm-aware top-8 and BoltzGen-default top-8 (14 designs). **Perm-aware set (chosen
+on iptm) mean ΔG −29.6 vs default −38.9 kcal/mol** — iptm-based permeability selection gave up ~9 kcal/mol of
+*physics* binding, because iptm ⟂ physics (3rd confirmation): small Gly-rich permeable designs (MGSGGGS −17.8,
+FGSGGPL −16.8) had OK iptm but weak MM-GBSA. **But** ranking the pool on *physics* ΔG × end-state permeability
+finds genuine dual-optimal designs: **FVVGNPIA (ΔG −42.4, MW 816, 3 donors after redesign)** and **GGPLLGR
+(ΔG −42.2, MW 669)** — as strong as BoltzGen's best binders yet far more permeable than its polar top picks
+(MSRDSSNPEA −44.7 but MW 1093 / 13 donors). **Engine fix: the permeability-driven selection objective must use
+the PHYSICS oracle, not iptm.** With that, oversampling delivers strong+permeable designs. FVVGNPIA/GGPLLGR are
+the concrete dual-objective candidates from 1yf4.
+
 ## Staged roadmap (remaining)
-- **Physics-verify the v3 perm-aware picks** (MM-GBSA ΔG on the small low-donor binders — is their binding real
-  or just high iptm?). FEP for the finalists.
+- **FEP** on the dual-optimal finalists (FVVGNPIA, GGPLLGR) — the ~1 kcal/mol arbiter (also needed for N-methyl ΔΔG).
 - **v2b — scale the ΔΔG across designs/targets**: `peptide_nmethyl_mmgbsa.sh` takes `CIF_S3` + `METH_POS`.
 - **v3b — scale oversampling to 4 targets** (`launch_boltzgen_oversample.sh` TARGET_ONLY=…), then true guided
   generation. Superseded framing of the original v3 bullet:

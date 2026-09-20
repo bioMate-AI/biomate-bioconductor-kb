@@ -96,5 +96,11 @@ but not yet built — that's the frontier. Wet lab remains the ultimate gate.
   cost), HBD-after-redesign 5.75 vs 9.0 (−36%), MW 694 vs 997 (−30%). Surfaces small low-donor binders
   (GGPLLGR, YSGGGPG) the permeability-blind ranking buried. Loop works end-to-end. Caveats: iptm ⟂ physics
   (picks need MM-GBSA/FEP); selection not sampling-guidance; 1 target; iptm dip may be real.
-- **Remaining:** physics-verify the v3 perm-aware picks (MM-GBSA/FEP); FEP finalist tier (doubly motivated);
-  v3b = scale oversampling to 4 targets, then true guided generation.
+- **v3 physics-verified (DONE)** — `peptide_mmgbsa_v3verify.sh`, `results/v3verify_mmgbsa_1yf4.json`. MM-GBSA'd
+  the perm-aware top-8 ∪ default top-8. **iptm-based perm selection sacrificed binding: mean ΔG −29.6 vs default
+  −38.9** (iptm ⟂ physics, 3rd confirmation — small Gly-rich permeable designs had OK iptm, weak MM-GBSA). BUT
+  ranking on PHYSICS ΔG × permeability finds true dual-optimal: **FVVGNPIA (ΔG −42.4, MW 816, 3 donors after
+  redesign), GGPLLGR (ΔG −42.2, MW 669)** — strong AND permeable, beating BoltzGen's polar top picks on both
+  axes. **Engine fix: selection objective must use PHYSICS, not iptm.**
+- **Remaining:** FEP on the dual-optimal finalists (FVVGNPIA/GGPLLGR) + N-methyl ΔΔG (both need FEP);
+  v3b = physics-in-the-loop selection scaled to 4 targets; then true sampling-time guided generation.

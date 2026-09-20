@@ -154,6 +154,21 @@ selection, a simple form of permeability-driven generation, not sampling-time gu
 designs; (iv) the small iptm dip may reflect genuinely weaker binding by the smaller peptides, not just
 selection pressure.
 
+**3.9 Physics verification of the v3 picks: iptm-based selection sacrifices binding, but the pool contains
+true dual-optimal designs.** We MM-GBSA'd the union of the v3 permeability-aware top-8 and the BoltzGen-default
+top-8 (14 designs). The permeability-aware set (selected on iptm) had mean physics ΔG −29.6 kcal/mol versus
+−38.9 for the default set — i.e. selecting on iptm + permeability gave up ~9 kcal/mol of *physics* binding,
+because iptm is orthogonal to physics ΔG (§3.2, a third confirmation): several small glycine-rich permeable
+designs (e.g. `MGSGGGS` −17.8, `FGSGGPL` −16.8) had competitive iptm but weak MM-GBSA. **However**, ranking
+the pool on *physics* ΔG × end-state permeability instead of iptm surfaces genuine dual-optimal designs:
+`FVVGNPIA` (ΔG −42.4, MW 816, 3 donors after redesign) and `GGPLLGR` (ΔG −42.2, MW 669) bind as strongly as
+BoltzGen's best while being far more permeable than its *polar* top-ranked binders (e.g. `MSRDSSNPEA` −44.7
+but MW 1093, 13 residual donors). The actionable conclusion for the engine: the permeability-driven selection
+objective must use the **physics** binding oracle, not the generator's iptm; when it does, oversampling
+delivers designs that are simultaneously strong binders and permeability-favorable. This is the permeability-
+driven loop's genuine payoff — and one more instance of the session-wide lesson that physics verification is
+non-optional (§3.2).
+
 ## 4. Discussion
 Two conclusions follow. First, for cyclic-peptide binder design an independent physics verify step is
 essential and not shortcut-able: ML interface confidence is orthogonal to physics binding
