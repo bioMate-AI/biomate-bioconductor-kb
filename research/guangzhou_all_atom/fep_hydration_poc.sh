@@ -22,7 +22,7 @@ conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/ma
 conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r || true
 conda create -y -n fep -c conda-forge python=3.11 openmm openmmtools openff-toolkit openmmforcefields pymbar numpy >/dev/null 2>&1
 conda activate fep
-python -c "import openmm,openmmtools,openff.toolkit,pymbar; print('openmm',openmm.__version__,'openmmtools',openmmtools.version.version,'pymbar ok'); import openmm as mm; print('platforms',[mm.Platform.getPlatform(i).getName() for i in range(mm.Platform.getNumPlatforms())])"
+python -c "import openmm,openmmtools,openff.toolkit,pymbar; print('openmm',openmm.__version__,'openmmtools',getattr(openmmtools,'__version__','?'),'pymbar ok'); import openmm as mm; print('platforms',[mm.Platform.getPlatform(i).getName() for i in range(mm.Platform.getNumPlatforms())])"
 
 stage run
 python - <<'PY'
@@ -37,8 +37,13 @@ t0=time.time()
 def sync(det):
     open('/opt/fep/status/status.json','w').write(json.dumps({'stage':'run','detail':det}));
     os.system(f'aws s3 cp /opt/fep/status/status.json {os.environ.get("OUT_S3","")}/status/status.json --only-show-errors 2>/dev/null')
-try: PLAT=mm.Platform.getPlatformByName('CUDA')
-except Exception: PLAT=mm.Platform.getPlatformByName('CPU')
+# Force CPU: conda-forge OpenMM's CUDA PTX is newer than the DL-AMI driver (CUDA_ERROR_UNSUPPORTED_PTX_VERSION,
+# the same known issue as the MM-GBSA runs). 744-atom system -> CPU is plenty fast for this POC.
+PLAT=mm.Platform.getPlatformByName('CPU')
+try: PLAT.setPropertyDefaultValue('Threads', str(os.cpu_count() or 8))
+except Exception: pass
+from openmmtools import cache
+cache.global_context_cache.platform = PLAT   # openmmtools' sampler uses this cache for dynamics
 print('platform', PLAT.getName())
 
 # --- ethanol in a small water box (GAFF/AM1-BCC ligand, TIP3P water) ---
@@ -53,6 +58,14 @@ modeller.addSolvent(sysgen.forcefield, model='tip3p', padding=1.0*unit.nanometer
 system=sysgen.create_system(modeller.topology, molecules=[mol])
 lig_atoms=list(range(off_top.n_atoms))   # ethanol atoms are first
 print('total atoms', system.getNumParticles(), 'ligand atoms', len(lig_atoms))
+# FIX: relax the solvated system BEFORE any alchemy/dynamics (addSolvent leaves clashes -> NaN at physical state)
+_ctx=mm.Context(system, mm.LangevinMiddleIntegrator(298.15*unit.kelvin,1/unit.picosecond,1*unit.femtoseconds), PLAT)
+_ctx.setPositions(modeller.getPositions())
+mm.LocalEnergyMinimizer.minimize(_ctx, maxIterations=2000)
+min_pos=_ctx.getState(getPositions=True).getPositions()
+box=modeller.topology.getPeriodicBoxVectors()
+del _ctx
+print('pre-minimized solvated system')
 
 # --- alchemically decouple the ligand (sterics+electrostatics) ---
 sync('alchemical factory')
@@ -65,27 +78,25 @@ alch_state=alchemy.AlchemicalState.from_system(alch_system)
 elec=[1.0,0.75,0.5,0.25,0.0, 0.0,0.0,0.0,0.0,0.0,0.0,0.0]
 ster=[1.0,1.0, 1.0,1.0, 1.0, 0.8,0.6,0.45,0.3,0.2,0.1,0.0]
 nstates=len(elec)
-sampler_states=states.SamplerState(positions=modeller.getPositions(),
-    box_vectors=system.getDefaultPeriodicBoxVectors())
-thermo=states.ThermodynamicState(system=alch_system, temperature=298.15*unit.kelvin,
-    pressure=1.0*unit.atmosphere)
 comp_states=[]
 for e,s in zip(elec,ster):
+    # NVT (no barostat): a barostat's volume moves on this tiny water box are the prime NaN suspect for a POC
     st=states.CompoundThermodynamicState(thermodynamic_state=states.ThermodynamicState(
-        system=alch_system, temperature=298.15*unit.kelvin, pressure=1.0*unit.atmosphere),
+        system=alch_system, temperature=298.15*unit.kelvin),
         composable_states=[alchemy.AlchemicalState.from_system(alch_system)])
     st.lambda_electrostatics=e; st.lambda_sterics=s
     comp_states.append(st)
-sync(f'{nstates} lambda states; replica exchange')
+sync(f'{nstates} lambda states; replica exchange (NVT)')
 
-move=mcmc.LangevinDynamicsMove(timestep=2.0*unit.femtoseconds, collision_rate=1.0/unit.picosecond,
-                               n_steps=500)   # 1 ps / iteration
+move=mcmc.LangevinDynamicsMove(timestep=1.0*unit.femtoseconds, collision_rate=1.0/unit.picosecond,
+                               n_steps=1000)   # 1 ps / iteration at 1 fs (stability margin for the POC)
 reporter=MultiStateReporter('/opt/fep/w/fep.nc', checkpoint_interval=50)
 sampler=ReplicaExchangeSampler(mcmc_moves=move, number_of_iterations=200)  # 200 ps/replica (POC)
 sampler.create(thermodynamic_states=comp_states,
-               sampler_states=[states.SamplerState(positions=modeller.getPositions(),
-                    box_vectors=system.getDefaultPeriodicBoxVectors()) for _ in comp_states],
+               sampler_states=[states.SamplerState(positions=min_pos, box_vectors=box) for _ in comp_states],
                storage=reporter)
+sync('minimizing all states (avoid NaN from addSolvent close contacts)')
+sampler.minimize(max_iterations=500)   # FIX: minimize each alchemical state before dynamics -> no NaN blow-up
 sync('running replica exchange (200 iters)')
 sampler.run()
 

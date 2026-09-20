@@ -75,8 +75,13 @@ iptm↔physics −0.40 CI[−0.71,−0.04]. (b) full-pool MM-GBSA (all 32 1yf4) 
 4 > iptm-only 3 > random 2.3 > raw-dG 2 (worst). Method beats trivial baselines; physics-objective > iptm;
 HONEST caveat: MW-only (pick smaller) is a strong cheap baseline, so the margin is modest.
 **P2 STILL OPEN (dedicated builds):** proper N-methyl FF with CMAP (or FEP); 4-target replication; repro
-artifacts. **Capstone:** FEP finalist tier on the dual-optimal picks (GGPLLGR/GPFVPGL/FVVGNPIA). All committee
-P0+P1 + most P2 addressed; engineering + honest-negatives praised by all three reviewers.
+artifacts. **Capstone:** FEP finalist tier — STARTED (validation-first), see `FEP_STATUS.md`. Toolchain stood up
+(openmmtools alchemy + replica-exchange + MBAR; ethanol hydration validation target); 5 blockers cleared
+(deps, system build, alchemical construction, MBAR wiring, CUDA→CPU). BLOCKED on a persistent MD NaN that
+wanders across λ states (8/0/3) and survives pre-min+NVT+1fs → needs interactive MD-stability debugging
+(read nan-error-logs, plain-system heating/equilibration, soft-core electrostatics, or switch to
+femto/openfe/AToM). Stopped blind relaunch per discipline. All committee P0+P1 + most P2 addressed;
+engineering + honest-negatives praised by all three reviewers.
 
 ## Honest bottom line
 A disciplined, demonstrated, non-circular generate–verify–select engine exists and every layer produced a
