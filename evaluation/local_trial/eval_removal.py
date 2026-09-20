@@ -7,7 +7,7 @@ Works against a cloud baseline (default gpt-5-mini) or the trained on-prem model
 (--url http://127.0.0.1:8000/v1/chat/completions --model <served>). Establishes the bar the on-prem
 model must match/beat."""
 import json, os, sys, re, urllib.request, time, argparse
-REPO="/Users/kky/biomate-review"; D=f"{REPO}/docs/20260912_onprem_llm/routing_data_v1"
+REPO=os.environ.get("REPO","/Users/kky/biomate-review"); D=os.environ.get("EVAL_DIR",f"{REPO}/docs/20260912_onprem_llm/routing_data_v1")
 KEY=os.environ.get("OPENAI_API_KEY","")
 
 INSTR=("You are BioMate. No single existing workflow may exactly fit this request. Decompose it into an "
@@ -15,7 +15,31 @@ INSTR=("You are BioMate. No single existing workflow may exactly fit this reques
        "write \"GENERATE\" if no candidate fits, or \"RUN_CODE\" for a small ad-hoc step. "
        "Reply ONLY a JSON list of {\"step\": ..., \"workflow_or_action\": ...}.")
 
-def call(url, model, prompt, mx=1600):
+_DIRECT={"model":None,"tok":None}
+def direct_load(base, adapter):
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+    from peft import PeftModel
+    tok=AutoTokenizer.from_pretrained(base, trust_remote_code=True)
+    if tok.pad_token is None: tok.pad_token=tok.eos_token
+    bnb=BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True, bnb_4bit_compute_dtype=torch.bfloat16)
+    m=AutoModelForCausalLM.from_pretrained(base, quantization_config=bnb, device_map="auto",
+        torch_dtype=torch.bfloat16, trust_remote_code=True, low_cpu_mem_usage=True)
+    if adapter: m=PeftModel.from_pretrained(m, adapter)
+    m.eval(); _DIRECT["model"]=m; _DIRECT["tok"]=tok
+
+def call_direct(prompt, mx=400):
+    import torch
+    m=_DIRECT["model"]; tok=_DIRECT["tok"]
+    enc=tok.apply_chat_template([{"role":"user","content":prompt}], add_generation_prompt=True,
+        return_tensors="pt", return_dict=True); enc={k:v.to(m.device) for k,v in enc.items()}
+    n=enc["input_ids"].shape[1]
+    with torch.no_grad():
+        out=m.generate(**enc, max_new_tokens=mx, do_sample=False, pad_token_id=tok.pad_token_id)
+    return tok.decode(out[0][n:], skip_special_tokens=True)
+
+def call(url, model, prompt, mx=1600):   # always the API path (used by the model-under-test AND the judge)
     # gpt-5.x are reasoning models: NO temperature (only default supported) and reasoning eats the
     # token budget -> set reasoning_effort=low + a generous max_completion_tokens (else empty content).
     payload={"model":model,"messages":[{"role":"user","content":prompt}],"max_completion_tokens":mx}
@@ -45,13 +69,16 @@ def main():
     ap.add_argument("--url",default="https://api.openai.com/v1/chat/completions")
     ap.add_argument("--model",default="gpt-5-mini"); ap.add_argument("--limit",type=int,default=80)
     ap.add_argument("--out",default=f"{D}/removal_eval_result.json")
+    ap.add_argument("--direct",action="store_true",help="load base+adapter locally (on the GPU box)")
+    ap.add_argument("--base",default=""); ap.add_argument("--adapter",default="")
     a=ap.parse_args()
+    if a.direct: direct_load(a.base, a.adapter or None)   # model-under-test = the trained local model
     rows=[json.loads(l) for l in open(f"{D}/removal_eval.jsonl")][:a.limit]
     composed=valid=n=0; cov=0.0; details=[]
     for r in rows:
         cands=set(r["candidates"]); W=r["removed_workflow"]
         prompt=f"{INSTR}\n\nCandidates:\n"+"\n".join(f"- {c}" for c in r["candidates"])+f"\n\nRequest: {r['query']}"
-        resp=call(a.url,a.model,prompt)
+        resp=call_direct(prompt,400) if a.direct else call(a.url,a.model,prompt)
         if not resp: continue
         n+=1
         named=re.findall(r'"workflow_or_action"\s*:\s*"([^"]+)"', resp)
