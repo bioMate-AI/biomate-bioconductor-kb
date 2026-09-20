@@ -84,7 +84,9 @@ to 5th–7th of 8 by MM-GBSA ΔG:
 
 Within a target, iptm was **uncorrelated with physics binding** (Spearman(iptm, ΔG_z) = −0.04). This is the
 core result: the generator's self-confidence carries essentially no within-target physics signal, so the
-verify oracle is genuinely non-circular and non-optional.
+verify oracle is genuinely non-circular and non-optional. **[Revised — see §3.11(ii): this estimate is not
+robust (−0.04 to −0.40 across sets; CI ≈ ±0.35). The strong "orthogonal" claim is downgraded to "iptm is an
+imperfect predictor of the physics ranking"; the operational conclusion (verify with physics) stands.]**
 
 **3.3 Multi-objective selection and the permeability gap.** Adding permeability as a third objective changed
 the selection (e.g., a top physics binder that is less permeable ties with a weaker binder that is more
@@ -154,10 +156,13 @@ selection, a simple form of permeability-driven generation, not sampling-time gu
 designs; (iv) the small iptm dip may reflect genuinely weaker binding by the smaller peptides, not just
 selection pressure.
 
-**3.9 Physics verification of the v3 picks: iptm-based selection sacrifices binding, but the pool contains
-true dual-optimal designs.** We MM-GBSA'd the union of the v3 permeability-aware top-8 and the BoltzGen-default
-top-8 (14 designs). The permeability-aware set (selected on iptm) had mean physics ΔG −29.6 kcal/mol versus
-−38.9 for the default set — i.e. selecting on iptm + permeability gave up ~9 kcal/mol of *physics* binding,
+**3.9 Physics verification of the v3 picks.** **[REVISED — see §3.11(i): the "sacrifices binding" conclusion
+below is a SIZE ARTIFACT. Size-correcting (ligand efficiency) reverses it — the permeability-aware picks bind
+*better per atom* on both targets. The raw-ΔG interpretation in this paragraph is withdrawn; the "dual-optimal
+designs exist" conclusion strengthens.]** We MM-GBSA'd the union of the v3 permeability-aware top-8 and the
+BoltzGen-default top-8 (14 designs). The permeability-aware set (selected on iptm) had mean physics ΔG −29.6
+kcal/mol versus −38.9 for the default set — i.e. (raw, uncorrected) selecting on iptm + permeability gave up
+~9 kcal/mol of *physics* binding,
 because iptm is orthogonal to physics ΔG (§3.2, a third confirmation): several small glycine-rich permeable
 designs (e.g. `MGSGGGS` −17.8, `FGSGGPL` −16.8) had competitive iptm but weak MM-GBSA. **However**, ranking
 the pool on *physics* ΔG × end-state permeability instead of iptm surfaces genuine dual-optimal designs:
@@ -190,14 +195,32 @@ spurious donor — a *constant +1 HBD / +2 Da offset* on every design (verified)
 ΔHBD headroom are unaffected, but absolute numbers are corrected (e.g. v3-1yf4 permeability-aware
 HBD-after-redesign 4.75 vs default 8.0; `GPFVPGL` reaches **0** donors after redesign, not 1); (b) §3.8/§3.10
 descriptors were computed on the *linear* peptide — now cyclized; (c) the automated "binding PRESERVED"
-verdict is removed. **Open confounds the board raised that are NOT yet resolved and qualify the claims above:**
-(i) cross-sequence MM-GBSA is size-biased, so the §3.9 "~9 kcal/mol binding lost" gap coincides with the MW
-gap (694 vs 997) and may be a size artifact — the ΔG comparisons and the iptm⟂physics −0.04 must be
-re-examined with ligand-efficiency / size correction before the orthogonality and "dual-optimal" claims are
-asserted; (ii) the §3.10 1u8p receptor was built from only the single longest chain, so a Fab (heavy+light)
-was likely truncated — 1u8p must be re-run with the full receptor before its generalization conclusion
-stands; (iii) all small-n comparisons need CIs/replicates; (iv) the N-methyl force field lacks an updated
-CMAP, compounding the §3.7 unreliability. These are tracked as P1 items in `COMMITTEE_REVIEW.md`.
+verdict is removed. **P1 confounds — now investigated (`perm_size_correction.py`, `results/perm_size_correction.json`):**
+
+*(i) Size bias — RESOLVED, and it OVERTURNS §3.9.* Raw cross-sequence ΔG is largely size-dominated
+(Spearman(rawΔG, ligand-efficiency) = +0.78). Ligand efficiency (ΔG per heavy atom) reverses the §3.9
+conclusion: the permeability-aware picks are *smaller* (1yf4: 47.5 vs 67.1 heavy atoms) and by LE bind
+**better per atom on both targets** (1yf4 −0.620 vs −0.577; 1u8p −0.489 vs −0.373). So the "~9 kcal/mol binding
+sacrificed" in §3.9 was a **size artifact** — permeability-aware selection does not sacrifice per-atom binding;
+it selects smaller, more ligand-efficient, more permeable designs. The §3.9 raw-ΔG framing is withdrawn in
+favor of ligand efficiency (caveat: LE is itself a heuristic favoring small ligands; FEP remains the absolute
+arbiter).
+
+*(ii) The §3.2 "iptm ⟂ physics" claim — DOWNGRADED as not robust.* The correlation is unstable across design
+sets and normalizations (−0.04 within-target-z on the original 32; −0.40 pooled on the 27-design union here)
+and it survives size correction (iptm–LE Spearman −0.46), so the strong "orthogonal / essentially no signal"
+claim is **unsupported** at this sample size (95% CI ≈ ±0.35). The defensible, operational statement is:
+*iptm is an imperfect predictor of the physics ranking, so physics verification is prudent* — not that the two
+are orthogonal.
+
+*(iii) 1u8p receptor truncation — MOOT.* The 1u8p design complexes contain only 2 chains (peptide A + receptor
+B, 227 res); BoltzGen's target spec defined the receptor as chain B, so generation and MM-GBSA used it
+consistently — nothing was truncated by `split()`. (Residual minor caveat: binding was modeled to a single Fab
+chain by design choice; `split()` is being hardened for future genuinely multi-chain receptors.)
+
+*(iv) Still open (P2):* CIs/replicates on all small-n comparisons; a properly parameterized N-methyl force
+field with CMAP (compounding the §3.7 unreliability); full-pool scoring with matched baselines. Tracked in
+`COMMITTEE_REVIEW.md`.
 
 ## 4. Discussion
 Two conclusions follow. First, for cyclic-peptide binder design an independent physics verify step is

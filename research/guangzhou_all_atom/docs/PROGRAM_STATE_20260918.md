@@ -59,11 +59,18 @@ BIOMATE_CLOSED_LOOP_INTEGRATION · BOLTZGEN_OURTARGETS_RESULTS · CYCLIC_PEPTIDE
 deleted the carbonyl O not the hydroxyl → spurious +1 donor/+2 Da on EVERY design (verified constant offset;
 ΔHBD headroom & relative rankings unaffected; absolutes corrected — GPFVPGL now 0 donors after redesign);
 (2) v3 scored the LINEAR peptide → now cyclized; (3) removed the auto "binding PRESERVED" verdict.
-**P1 OPEN (qualify current claims):** cross-sequence MM-GBSA is size-biased → the §3.9 "9 kcal/mol lost" and
-the iptm⟂physics −0.04 may be size artifacts (need ligand-efficiency/size correction); the 1u8p receptor was
-built from only the longest chain → a Fab was likely truncated, so §3.10 generalization must be re-run with the
-full receptor; add CIs/replicates; N-methyl FF lacks CMAP. **P2:** proper N-methyl params, full-pool scoring +
-matched baselines, reproducibility artifacts. Engineering + honest-negatives praised by all three reviewers.
+**P1 INVESTIGATED (`perm_size_correction.py`, `results/perm_size_correction.json`):**
+- §3.9 "9 kcal/mol binding lost" = **SIZE ARTIFACT, OVERTURNED.** Raw dG is size-dominated (spearman rawdG~LE
+  +0.78); by ligand efficiency the perm-aware picks bind BETTER per atom on both targets (1yf4 −0.62 vs −0.577;
+  1u8p −0.49 vs −0.37). Permeability-aware selection picks smaller, more ligand-efficient, more permeable
+  designs — it does NOT sacrifice per-atom binding. (LE is a heuristic; FEP still the absolute arbiter.)
+- §3.2 iptm⟂physics = **DOWNGRADED, not robust.** −0.04 (within-target-z, n=32) vs −0.40 (pooled union, n=27);
+  survives size correction (iptm–LE −0.46). Strong "orthogonal" claim unsupported (CI ≈ ±0.35); keep only the
+  operational "verify with physics is prudent."
+- 1u8p receptor truncation = **MOOT.** Design complexes have only 2 chains (peptide + chain B); nothing
+  truncated. `split()` hardened for future multi-chain receptors anyway.
+**P2 OPEN:** CIs/replicates on small-n; proper N-methyl FF with CMAP; full-pool scoring + matched baselines;
+reproducibility artifacts. Engineering + honest-negatives praised by all three reviewers.
 
 ## Honest bottom line
 A disciplined, demonstrated, non-circular generate–verify–select engine exists and every layer produced a
