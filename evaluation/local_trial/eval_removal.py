@@ -89,9 +89,20 @@ def main():
         ok_valid = all((x in cands) for x in picks) and (W not in picks)   # real, available, not the removed one
         valid+=ok_valid
         cv=judge(r["ground_truth_steps"], resp); cov+=cv
-        details.append({"W":W,"plan":is_plan,"valid":ok_valid,"coverage":round(cv,2)})
+        details.append({"W":W,"domain":r.get("domain",""),"plan":is_plan,"valid":ok_valid,"coverage":round(cv,2)})
+    # committee-v3 fix #6: macro-average over domains (not transcriptomics-dominated micro) + nonzero mean
+    import collections as _c
+    bydom=_c.defaultdict(list)
+    for x in details: bydom[x["domain"] or "?"].append(x["coverage"])
+    dom_means={d:round(sum(v)/len(v),3) for d,v in bydom.items()}
+    macro=round(sum(dom_means.values())/max(len(dom_means),1),3)
+    nz=[x["coverage"] for x in details if x["coverage"]>0]
     res={"model":a.model,"n":n,"composed_rate":round(composed/max(n,1),3),
-         "validity_rate":round(valid/max(n,1),3),"mean_step_coverage":round(cov/max(n,1),3)}
+         "validity_rate":round(valid/max(n,1),3),
+         "micro_step_coverage":round(cov/max(n,1),3),          # transcriptomics-dominated (was mean_step_coverage)
+         "macro_step_coverage":macro,                          # mean of per-domain means
+         "nonzero_mean_coverage":round(sum(nz)/max(len(nz),1),3), "nonzero_frac":round(len(nz)/max(n,1),3),
+         "per_domain":dom_means}
     json.dump({"summary":res,"details":details},open(a.out,"w"),indent=2)
     print("REMOVAL EVAL:",json.dumps(res))
 
