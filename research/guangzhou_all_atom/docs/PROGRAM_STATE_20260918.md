@@ -102,5 +102,11 @@ but not yet built — that's the frontier. Wet lab remains the ultimate gate.
   ranking on PHYSICS ΔG × permeability finds true dual-optimal: **FVVGNPIA (ΔG −42.4, MW 816, 3 donors after
   redesign), GGPLLGR (ΔG −42.2, MW 669)** — strong AND permeable, beating BoltzGen's polar top picks on both
   axes. **Engine fix: selection objective must use PHYSICS, not iptm.**
-- **Remaining:** FEP on the dual-optimal finalists (FVVGNPIA/GGPLLGR) + N-methyl ΔΔG (both need FEP);
-  v3b = physics-in-the-loop selection scaled to 4 targets; then true sampling-time guided generation.
+- **v3 GENERALIZED to 2nd target class (1u8p antibody Fab, DONE)** — `results/{perm_generation_v3,v3verify_mmgbsa}_1u8p.json`.
+  Binding cost of perm-selection is TARGET-DEPENDENT: 1u8p perm-aware top-8 did NOT lose binding (physics ΔG
+  −23.7 vs default −22.4) while improving permeability; vs 1yf4's −29.6 vs −38.9 (~9 lost). Reason: 1yf4 deep
+  pocket/strong binders vs 1u8p shallow Fab/weak-comparable binders. Universal rule confirmed: iptm ⟂ physics
+  → physics-verify the perm-aware picks always. Dual-optimal both targets: 1yf4 FVVGNPIA (−42.4/MW816),
+  1u8p GPFVPGL (−27.6/MW686/1 donor after redesign).
+- **Remaining:** FEP on dual-optimal finalists (FVVGNPIA/GGPLLGR/GPFVPGL) + N-methyl ΔΔG (both need FEP);
+  v3b = physics-in-the-loop selection scaled to remaining 2 targets (1csb/1kc4); then true sampling-time guided generation.

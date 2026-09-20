@@ -119,8 +119,18 @@ finds genuine dual-optimal designs: **FVVGNPIA (ΔG −42.4, MW 816, 3 donors af
 the PHYSICS oracle, not iptm.** With that, oversampling delivers strong+permeable designs. FVVGNPIA/GGPLLGR are
 the concrete dual-objective candidates from 1yf4.
 
+## v3 generalization to a 2nd target class (1u8p antibody Fab) — DONE
+Results: `results/perm_generation_v3_1u8p.json`, `results/v3verify_mmgbsa_1u8p.json`. Same oversample→score→
+MM-GBSA protocol. **Binding cost of perm-selection is TARGET-DEPENDENT:** on 1u8p the perm-aware top-8 did NOT
+sacrifice binding (mean physics ΔG −23.7 vs default −22.4 — marginally stronger) while improving permeability;
+contrast 1yf4 (−29.6 vs −38.9, ~9 kcal/mol lost). Mechanistic reason: 1yf4 = deep protease pocket, strong
+binders (−17..−47) the small permeable designs can't match; 1u8p = shallow Fab interface, all designs bind
+weakly/comparably (−14..−28), so permeability costs little. **Universal rule: iptm can't tell which regime
+you're in (iptm ⟂ physics) → physics-verify the perm-aware picks always.** Dual-optimal on both:
+1yf4 FVVGNPIA (−42.4/MW816), 1u8p **GPFVPGL (−27.6/MW686/1 donor after redesign)**.
+
 ## Staged roadmap (remaining)
-- **FEP** on the dual-optimal finalists (FVVGNPIA, GGPLLGR) — the ~1 kcal/mol arbiter (also needed for N-methyl ΔΔG).
+- **FEP** on the dual-optimal finalists (FVVGNPIA, GGPLLGR, GPFVPGL) — the ~1 kcal/mol arbiter (also needed for N-methyl ΔΔG).
 - **v2b — scale the ΔΔG across designs/targets**: `peptide_nmethyl_mmgbsa.sh` takes `CIF_S3` + `METH_POS`.
 - **v3b — scale oversampling to 4 targets** (`launch_boltzgen_oversample.sh` TARGET_ONLY=…), then true guided
   generation. Superseded framing of the original v3 bullet:

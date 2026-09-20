@@ -169,6 +169,20 @@ delivers designs that are simultaneously strong binders and permeability-favorab
 driven loop's genuine payoff — and one more instance of the session-wide lesson that physics verification is
 non-optional (§3.2).
 
+**3.10 Generalization to a second target class (antibody Fab, 1u8p): the binding cost of
+permeability-selection is target-dependent, but physics-in-the-loop is the universal safeguard.** Repeating
+the full oversample→score→MM-GBSA protocol on 1u8p (an antibody Fab paratope; 7–9mers) gave a different
+outcome from 1yf4: the iptm-selected permeability-aware top-8 did **not** sacrifice physics binding (mean ΔG
+−23.7 vs −22.4 for the default set — marginally *stronger*), while still improving the permeability profile.
+The contrast with 1yf4 (where perm-selection lost ~9 kcal/mol) is mechanistically sensible: 1yf4 is a deep
+protease pocket with strong binders (−17..−47) the small permeable designs cannot match, whereas the shallow
+Fab interface binds all designs weakly and comparably (−14..−28), so selecting for permeability costs little
+binding. Two conclusions: (i) the permeability *benefit* of the loop generalizes across target classes, but
+the binding *cost* is target-dependent; (ii) crucially, iptm cannot distinguish the two regimes (iptm ⟂
+physics), so **physics-verifying the permeability-aware picks is the universal safeguard** — on 1yf4 it
+catches a real binding loss, on 1u8p it confirms the picks are sound. Genuine dual-optimal designs appear on
+both targets (1yf4 `FVVGNPIA` ΔG −42.4/MW 816; 1u8p `GPFVPGL` ΔG −27.6/MW 686/**1 donor after redesign**).
+
 ## 4. Discussion
 Two conclusions follow. First, for cyclic-peptide binder design an independent physics verify step is
 essential and not shortcut-able: ML interface confidence is orthogonal to physics binding
