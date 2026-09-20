@@ -57,6 +57,16 @@ the gap** (~54%). v3's WKG-grounded compositional training targets coverage >0.5
 model runs the same harness (`--url` vLLM) to measure it. Artifacts: `removal_eval.jsonl` (150 cases) +
 `removal_eval_result.json` in S3 `.../eval/`.
 
+## Measured v2 models (2026-09-20) — the gap is real
+Removal eval on the trained v2-SFT models (direct-load, 80 cases), step-coverage (LLM-judge):
+- **4B**: 0.30 · **27B**: 0.40 · gpt-5-mini baseline: 0.54.
+- 27B > 4B (capacity helps; train loss 0.305 vs 0.517), both below frontier → **v3 compositional
+  training is warranted**, with the 27B as the better base.
+- CAVEAT: `composed_rate` is a brittle format metric (27B answers with a concise pick, not the exact
+  JSON-list the regex counts → 0.05, despite 0.40 semantic coverage). **Trust `mean_step_coverage`
+  (LLM-judge); relax/drop composed_rate** in the v3 eval.
+Results: S3 `.../eval/removal_eval_{small,large}_trained.json`.
+
 ## Sequence
 1. Extend WKG to multi-granularity (tool functions + submodules + workflows).  *(needs nf-core
    subworkflow fetch on the box for full submodule coverage.)*
