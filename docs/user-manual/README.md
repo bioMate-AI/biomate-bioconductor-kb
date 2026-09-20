@@ -36,9 +36,9 @@ against the live system (dev) before anything is marked "supported" — see `cov
 ### Part II — Databases & retrieval supports
 - [~] `data/II01-workflow-catalog-and-routing.md`
 - [~] `data/II02-public-datasets-accession-resolver.md`
-- [ ] `data/II03-literature-and-evidence-retrieval.md`
-- [ ] `data/II04-reference-data-and-indexes.md`
-- [ ] `data/II05-memory-and-project-knowledge.md`
+- [~] `data/II03-literature-and-evidence-retrieval.md`
+- [~] `data/II04-reference-data-and-indexes.md`
+- [~] `data/II05-memory-and-project-knowledge.md`
 
 ### Part III — Function areas by domain
 - [~] `domains/drug-discovery-ind.md`   ← **flagship, D1 (drafted + code-verified)**

@@ -120,8 +120,9 @@ only fires when relevant). The databases actually wired:
 When your question is a **tool comparison** ("STAR vs HISAT2?"), and the benchmark DB is available and
 populated, the agent runs a semantic query against it and attaches a **benchmark-evidence** card of
 ranked tools + metrics + the source study's DOI/PMID
-(`_query_benchmarks`, `research_agent.py:2000-2044`; DB class `BenchmarkKnowledgeDB`,
-`benchmark_knowledge.py:118-154`; results filtered to ≥0.5 similarity).
+(`_query_benchmarks`, `research_agent.py:2008-2044`, results filtered to ≥0.5 similarity at `:2028`;
+DB class `BenchmarkKnowledgeDB`, `benchmark_knowledge.py:118`, semantic query `query_semantic` at
+`:351-407`).
 
 > **QC gate — benchmark evidence is opt-in and honest-empty.** The card renders **only** when the
 > backend attaches `benchmark_evidence` (which requires the benchmark DB to be present and to return a
@@ -209,7 +210,8 @@ Honest scope — **not** claimed as present; these live in **Appendix E (Coverag
   to the publisher (cross-ref I.3).
 - **A packaged benchmark DB in every deployment.** The benchmark-evidence card renders only when the
   benchmark knowledge DB is present and returns a match above the similarity floor
-  (`benchmark_knowledge.py:118-154`); otherwise no card.
+  (`benchmark_knowledge.py:118`, `query_semantic` `:351-407`; floor applied at `research_agent.py:2028`);
+  otherwise no card.
 
 ---
 _Verification: this page depends on the coverage-ledger rows under **"## II.3 Literature & evidence

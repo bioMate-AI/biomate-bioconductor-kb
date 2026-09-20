@@ -41,7 +41,7 @@ verified** — those are called out explicitly, never sold as proven.
 
 | Goal (researcher's words) | What reference data it uses | Wiring state | Where |
 |---|---|---|---|
-| "Align my human RNA-seq — I didn't upload a genome" | Genome build param (GRCh38…) + pre-wired iGenomes S3 FASTA | Wired & indexed | `ai_assistant.py:2544-2558`; `nfcore/rnaseq/main.nf:12` |
+| "Align my human RNA-seq — I didn't upload a genome" | Genome build param (GRCh38…) + pre-wired iGenomes S3 FASTA | Wired & indexed | `ai_assistant.py:2527-2549`; `nfcore/rnaseq/main.nf:12` |
 | "Find structures similar to this fold" | Foldseek web-API search vs AlphaFold DB (afdb50/afdb-swissprot/pdb100) | Wired & indexed; **not yet verified** (T17) | `.../drug_discovery/alphafold_db_search/main.nf`; `run_phase1.py:76-77` |
 | "Find homologous sequences" | MMseqs2 search vs a pre-built target DB | Wired & indexed; **not yet verified** (T18) | `.../proteomics/mmseqs2_sequence_search/main.nf`; `run_phase1.py:78-79` |
 | "Get the AlphaFold structure for this UniProt" | AlphaFold DB EBI REST fetch by accession | Wired & callable | `tools/biomate_ai_tools/alphafold_client.py:14-62` |
@@ -56,16 +56,16 @@ BioMate carries the common reference builds so you rarely have to supply one:
 
 - **Genome build param.** nf-core/rnaseq declares the accepted builds inline:
   `GRCh38 | GRCm39 | GRCz11 | BDGP6 | Rnor_6.0 | R64-1-1` (`backend/biomni_workflows/nfcore/rnaseq/main.nf:12`).
-- **Build detection from your prompt.** A regex extracts a build you mention —
+- **Build detection from your prompt.** A regex (`_GENOME_BUILD_RE`) extracts a build you mention —
   `hg38|hg19|GRCh38|GRCh37|mm10|mm39|GRCm38|GRCm39|T2T-CHM13|dm6|ce11|danRer11|sacCer3` — so "align my
-  human reads to GRCh38" fills the param automatically (`ai_assistant.py:2544`,
-  `_extract_genome_build` at `:2572`).
+  human reads to GRCh38" fills the param automatically (`ai_assistant.py:2527-2530`,
+  `_extract_genome_build` at `:2556`).
 - **Alias normalisation.** `GRCh38→hg38`, `GRCh37→hg19`, `GRCm38→mm10`, `GRCm39→mm39` — user-facing names
-  are mapped to canonical builds (`ai_assistant.py:2578`).
+  are mapped to canonical builds (`alias_map`, `ai_assistant.py:2563`).
 - **Pre-wired iGenomes paths.** For those builds, the WholeGenome FASTA (and GATK known-sites for
   variant work) are pre-filled from the public `ngi-igenomes` S3 bucket, e.g. GRCh38 →
   `s3://ngi-igenomes/igenomes/Homo_sapiens/Ensembl/GRCh38/…/genome.fa`
-  (`_IGENOMES_REFERENCE`, `ai_assistant.py:2551-2558`; `_IGENOMES_KNOWN_SITES`, `:2559-2561`).
+  (`_IGENOMES_REFERENCE`, `ai_assistant.py:2535-2542`; `_IGENOMES_KNOWN_SITES`, `:2543-2549`).
 
 > **Tip — you usually don't upload a reference genome.** Name the build ("human / GRCh38", "mouse /
 > mm10") and BioMate resolves the FASTA (and dbSNP known-sites for variant calling) from iGenomes. Only
@@ -132,7 +132,7 @@ mismatch in the ledger; treated as wired-but-unverified in Appendix E, not sold 
 
 Fetching public data *by accession* (GEO/SRA/PDB/EMPIAR/PRIDE/UniProt/ChEMBL/PubChem/dbSNP/ClinVar…) is
 its own topic — the detection registry and skip-local-validation logic live in
-`nextflow_executor.py:2365` (`_is_public_accession`) and are classified in
+`nextflow_executor.py:1306` (`_is_public_accession`, applied at `:2363`) and are classified in
 `backend/tests/test_accession_detection.py`. That belongs to **II.2 — Public datasets & accession
 resolver**; this chapter only notes that reference data is often resolved *from* an accession you name.
 

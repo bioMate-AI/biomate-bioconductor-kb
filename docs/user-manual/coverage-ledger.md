@@ -312,12 +312,48 @@ Page: `data/II02-public-datasets-accession-resolver.md`. Tier C.
 | Dataset header quality pill verified rendering live (amber "Watch") | I.5 | ✅ L | dev capture i05-2 post-sync |
 | Models Train copy no longer implies a missing "Start" button (train via chat) | I.10 | ✅ | `models-panel.tsx:365` |
 
+## II.3 Literature & evidence retrieval
+Page: `data/II03-literature-and-evidence-retrieval.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| Sources = PubMed + arXiv + Semantic Scholar only (no patents); parallel search_all + per-source rate limits; PMC/Europe PMC full-text (~6000-char cap) for synthesis | C | ✅ | `literature_clients.py:581-650,82-100,411-427`; `research_agent.py:106-217,220-290` |
+| Live DB lookups before synthesis (Ensembl/GTEx/ENCODE/ClinVar/MyGene/GWAS/OpenTargets/Monarch); query-widening ≤6; found/kept by identity; conflicts ≥2 positions | C | ✅ | `research_agent.py:463-1041,834-871,2319-2353,2355-2415` |
+| Benchmark-evidence card opt-in, honest-empty, ≥0.5 similarity floor | C | ✅ | `research_agent.py:2008-2044`; `benchmark_knowledge.py:351-407` |
+| GAP: no patent/FTO corpus; formatted BibTeX only for tool citations (literature APA-only); locus/recency unpopulated; full-text not rendered in reader | C | 🗺️ | `literature_clients.py:581-593`; `research_agent.py:1176-1193` |
+
+## II.4 Reference data & indexes
+Page: `data/II04-reference-data-and-indexes.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| Genome build param + regex detection + alias normalisation + pre-wired iGenomes FASTA & GATK known-sites (no upload) | C | ✅ | `nfcore/rnaseq/main.nf:12`; `ai_assistant.py:2527-2563,2535-2549` |
+| AlphaFold-DB fetch-by-accession client + indexed workflows (id 12647/14469); Foldseek (id 14456) + MMseqs2 (id 14462) wired & indexed | C | ✅ | `alphafold_client.py:14-121`; `alphafold_db_search/main.nf`; `mmseqs2_sequence_search/main.nf`; DB ids |
+| MISMATCH: FAERS is WIRED + indexed (id 11363) — contradicts prior "coverage-gap" notes/CLAUDE.md; not yet E2E-verified | C | 🔧 | DB id 11363; `bioconductor/faers/main.nf` |
+| GAP: Foldseek/MMseqs2/MD/AF-Multimer (T17–T20) E2E UNVERIFIED; no local Foldseek/AF-DB copy; DepMap/BindingDB = snapshot wrappers not live API | C | 🗺️ | `run_phase1.py:76-88` |
+
+## II.5 Memory & project knowledge
+Page: `data/II05-memory-and-project-knowledge.md`. Tier C.
+
+| Chapter / claim | Tier | Status | Evidence |
+|---|---|---|---|
+| `<project_context>` injects name/desc/research_goal/instructions + ≤8 project_instruction rows @≤300 chars; project-scoped; does NOT read user_notes/notes_synthesis | C | ✅ | `routes.ts:6062-6100` |
+| Memory = project-scoped knowledge + episodic; recall_memory reads session summaries only (not knowledge rows) | C | ✅ | `memory-integration.ts:103-165`; `routes.ts:17040-17042,7765-7800` |
+| FIXED (safety): LTM memory-hint path (`addMemoryHints`) injected top-2 knowledge rows UNFILTERED → a user_notes snippet could leak. Now filtered via `filterModelVisibleKnowledge` (excludes user_notes + notes_synthesis); unit-tested | C | ✅ | `memory-integration.ts:324`; `memory-knowledge-filter.ts` + `.test.ts` (this session) |
+
+## II.5 — notes trust boundary (fixed this session)
+The Notes UI promises user_notes are "not read by the assistant" (I.4). The explicit
+`<project_context>` path honored that, but `addMemoryHints` did not — it pulled the top-2
+knowledge rows unfiltered, so a `user_notes` (or `notes_synthesis`) title/snippet could surface in a
+"[Memory: Project knowledge …]" hint. Fixed: extracted `filterModelVisibleKnowledge`
+(`memory-knowledge-filter.ts`), applied it in the hint path, and locked it with a unit test.
+
 ## Known coverage gaps (→ Appendix E, do NOT document as present)
 | Item | Note | Source |
 |---|---|---|
 | Interactive tools (RStudio/Jupyter/CellxGene) launch | 400 on dev — not provisioned in the Galaxy toolbox | dev probe 2026-09-19 |
 | Somatic variant calling (Mutect2 full chain) | coverage-gap tracked | 20260701_TESTER_GUIDE_21_USE_CASES.md |
-| FAERS pharmacovigilance | coverage-gap tracked | tester guide |
+| FAERS pharmacovigilance | WIRED + indexed (id 11363) — NOT a gap; pending E2E verification | II.4 finding 2026-09-19 |
 | GWAS→scRNA→eQTL target chain | verify it runs before documenting | 20260718_CONFERENCE_BD_X_WORKFLOW_PRIORITY.md |
 | T17–T21 (Foldseek, MMseqs2, MD, AF-Multimer, atlas integration) | UNVERIFIED / smoke-test-gated | 20260817_COMPARISON_TASKLIST_REPRESENTATIVE_USECASES.md |
 | Cryo-EM ensemble→cryptic-pocket mega-chain | does not run — exclude | synthesis 2026-09-19 |

@@ -9,6 +9,7 @@
  */
 
 import { memoryService } from './memory-repository';
+import { filterModelVisibleKnowledge } from './memory-knowledge-filter';
 import type { GalaxyAssistant, ChatContext, GalaxyAssistantResponse } from './galaxy-assistant';
 import type {
   Session,
@@ -320,8 +321,10 @@ export class MemoryIntegration {
       }
     }
 
-    // Add relevant knowledge
-    const relevantKnowledge = knowledge.slice(0, 2);
+    // Add relevant knowledge — but NEVER human-only stores (user_notes /
+    // notes_synthesis). See memory-knowledge-filter.ts for the boundary; this
+    // memory-hint path must filter or a private note could leak into a hint.
+    const relevantKnowledge = filterModelVisibleKnowledge(knowledge).slice(0, 2);
     if (relevantKnowledge.length > 0) {
       const knowledgeHints = relevantKnowledge.map(k => k.title || k.content.substring(0, 50));
       hints.push(`[Memory: Project knowledge - ${knowledgeHints.join('; ')}]`);
