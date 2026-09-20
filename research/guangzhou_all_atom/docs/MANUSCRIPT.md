@@ -225,6 +225,19 @@ chain by design choice; `split()` is being hardened for future genuinely multi-c
 field with CMAP (compounding the §3.7 unreliability); full-pool scoring with matched baselines. Tracked in
 `COMMITTEE_REVIEW.md`.
 
+**3.12 Matched-baseline test on the full pool: the method beats trivial baselines, but "pick smaller" is a
+strong cheap baseline.** Addressing the concern that the selection merely "evaluates its own objective," we
+MM-GBSA'd *all* 32 designs of the 1yf4 pool and compared selection strategies (top-8) on a joint objective —
+"dual-good" = ligand-efficient (LE ≤ pool median) AND low donor burden after redesign (≤ median). Results
+(`perm_matched_baseline.py`): physics-perm (LE × permeability) **6/8 dual-good**; v3 perm-aware (iptm × perm)
+5/8; LE-only 5/8; MW-only 4/8; iptm-only (BoltzGen default) 3/8; random 2.3/8; raw-ΔG-only **2/8 (worst** — it
+selects large polar strong-raw-binders, the size-bias trap). Two honest conclusions: (i) permeability-aware
+selection beats every trivial baseline on getting *both* efficient binding and permeability, and the
+physics-based objective (LE × perm) beats the iptm-based one — reinforcing §3.11(ii); (ii) **MW-only is a
+strong cheap baseline (4/8)** — a large part of the permeability benefit is simply selecting smaller peptides,
+so the method's *margin* over "just pick small" is modest and comes from additionally enforcing binding
+efficiency. One target; LE is a heuristic; FEP remains the arbiter.
+
 ## 4. Discussion
 Two conclusions follow. First, for cyclic-peptide binder design an independent physics verify step is
 essential and not shortcut-able: ML interface confidence is orthogonal to physics binding

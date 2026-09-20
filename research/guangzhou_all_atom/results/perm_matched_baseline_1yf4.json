@@ -1,0 +1,52 @@
+{
+  "pool_n": 32,
+  "K": 8,
+  "medians": {
+    "LE": -0.563,
+    "HBDre": 7.5
+  },
+  "strategies": {
+    "iptm-only (BoltzGen default)": {
+      "meanLE": -0.577,
+      "meanHBDre": 8.0,
+      "meanMW": 979.0,
+      "dual_good": 3
+    },
+    "dG-only (raw)": {
+      "meanLE": -0.667,
+      "meanHBDre": 9.2,
+      "meanMW": 1102.0,
+      "dual_good": 2
+    },
+    "MW-only (smallest)": {
+      "meanLE": -0.599,
+      "meanHBDre": 5.8,
+      "meanMW": 650.0,
+      "dual_good": 4
+    },
+    "LE-only (efficiency)": {
+      "meanLE": -0.751,
+      "meanHBDre": 6.4,
+      "meanMW": 855.0,
+      "dual_good": 5
+    },
+    "perm-aware iptm x perm (v3)": {
+      "meanLE": -0.62,
+      "meanHBDre": 4.8,
+      "meanMW": 676.0,
+      "dual_good": 5
+    },
+    "physics-perm (LE x perm)": {
+      "meanLE": -0.653,
+      "meanHBDre": 4.9,
+      "meanMW": 673.0,
+      "dual_good": 6
+    },
+    "random (2000-draw mean)": {
+      "meanLE": -0.582,
+      "meanHBDre": 7.7,
+      "dual_good": 2.3
+    }
+  },
+  "note": "dual-good = LE<=median AND HBD-after-redesign<=median (efficient binder AND permeable). physics-perm (LE x permeability) is best on the joint objective and beats iptm-perm (confirms select-on-physics-not-iptm) and all trivial baselines; dG-only is worst (size-biased to big polar binders). HONEST caveat: MW-only is a strong cheap baseline -- much of the permeability gain is \"pick smaller peptides\"; physics-perm wins by also enforcing binding efficiency, but its margin over MW-only is modest. One target (1yf4); LE is a heuristic; FEP is the arbiter."
+}

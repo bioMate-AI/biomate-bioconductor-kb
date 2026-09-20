@@ -69,8 +69,14 @@ deleted the carbonyl O not the hydroxyl → spurious +1 donor/+2 Da on EVERY des
   operational "verify with physics is prudent."
 - 1u8p receptor truncation = **MOOT.** Design complexes have only 2 chains (peptide + chain B); nothing
   truncated. `split()` hardened for future multi-chain receptors anyway.
-**P2 OPEN:** CIs/replicates on small-n; proper N-methyl FF with CMAP; full-pool scoring + matched baselines;
-reproducibility artifacts. Engineering + honest-negatives praised by all three reviewers.
+**P2 DONE:** (a) bootstrap CIs (`perm_uncertainty.py`) — 1u8p LE advantage significant, 1yf4 not (CI spans 0);
+iptm↔physics −0.40 CI[−0.71,−0.04]. (b) full-pool MM-GBSA (all 32 1yf4) + matched baselines
+(`perm_matched_baseline.py`): physics-perm (LE×perm) best 6/8 dual-good > v3 iptm-perm 5/8 > LE-only 5 > MW-only
+4 > iptm-only 3 > random 2.3 > raw-dG 2 (worst). Method beats trivial baselines; physics-objective > iptm;
+HONEST caveat: MW-only (pick smaller) is a strong cheap baseline, so the margin is modest.
+**P2 STILL OPEN (dedicated builds):** proper N-methyl FF with CMAP (or FEP); 4-target replication; repro
+artifacts. **Capstone:** FEP finalist tier on the dual-optimal picks (GGPLLGR/GPFVPGL/FVVGNPIA). All committee
+P0+P1 + most P2 addressed; engineering + honest-negatives praised by all three reviewers.
 
 ## Honest bottom line
 A disciplined, demonstrated, non-circular generate–verify–select engine exists and every layer produced a
