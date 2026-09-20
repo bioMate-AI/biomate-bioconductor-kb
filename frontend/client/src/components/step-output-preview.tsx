@@ -29,6 +29,7 @@ import { useInteractiveToolsAvailable } from "@/hooks/use-interactive-tools";
 import { PlddtChart } from "./viewers/plddt-chart";
 import { SeqTracks, type SeqTrack, type FlaggedInterval } from "./viewers/seq-tracks";
 import { HitGrid, type ChemHit, type HitVerdict } from "./viewers/hit-grid";
+import { PaeHeatmap } from "./viewers/pae-heatmap";
 import { SingleCellSummaryPanel } from "./viewers/single-cell-summary";
 // 3Dmol.js loaded dynamically inside InlineStructureViewer so the structure
 // path doesn't pull ~700 KB into the main bundle.
@@ -674,11 +675,24 @@ function CryoChartPreview({ runId, file, onClose, projectId, chartType }: StepOu
  * viewer, and the JSON body IS the viewer's data contract (Spec 08 §8.5 —
  * "domain-specific outputs use their own viewers within these classes").
  */
-function resolveDlJsonViewer(fileName: string): 'seq-tracks' | 'hit-grid' | null {
+function resolveDlJsonViewer(fileName: string): 'seq-tracks' | 'hit-grid' | 'pae' | null {
   const n = fileName.toLowerCase();
   if (n.includes('seqtracks') || n.includes('seq_tracks') || n.includes('_tracks')) return 'seq-tracks';
   if (n.includes('hitgrid') || n.includes('hit_grid') || n.includes('_hits')) return 'hit-grid';
+  // Predicted-structure PAE sidecars (AlphaFold/Boltz/ColabFold): *_pae.json,
+  // predicted_aligned_error.json.
+  if (n.includes('pae') || n.includes('predicted_aligned_error')) return 'pae';
   return null;
+}
+
+// Normalise the various PAE JSON shapes to an n×n matrix. AlphaFold/ColabFold
+// emit {predicted_aligned_error}, {pae}, or a single-element list wrapping one
+// of those; anything else yields [] and PaeHeatmap shows its honest empty state.
+function normalizePae(data: any): number[][] {
+  if (!data) return [];
+  const src = Array.isArray(data) ? data[0] : data;
+  const m = src?.predicted_aligned_error ?? src?.pae ?? null;
+  return Array.isArray(m) && Array.isArray(m[0]) ? (m as number[][]) : [];
 }
 
 // The WS1 hit verdicts are open strings; narrow to the viewer's union, default "held".
@@ -693,7 +707,7 @@ function toHitVerdict(v: unknown): HitVerdict {
  * "no data" rather than a fabricated result.
  */
 function DlJsonPreview({ runId, file, onClose, viewerKind }: StepOutputPreviewProps & {
-  viewerKind: 'seq-tracks' | 'hit-grid'
+  viewerKind: 'seq-tracks' | 'hit-grid' | 'pae'
 }) {
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -755,6 +769,9 @@ function DlJsonPreview({ runId, file, onClose, viewerKind }: StepOutputPreviewPr
           modelName={typeof data.modelName === 'string' ? data.modelName : undefined}
           modelId={typeof data.modelId === 'string' ? data.modelId : undefined}
         />
+      )}
+      {data && viewerKind === 'pae' && (
+        <PaeHeatmap pae={normalizePae(data)} />
       )}
     </div>
   );
