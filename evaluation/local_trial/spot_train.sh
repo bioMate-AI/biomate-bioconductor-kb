@@ -78,16 +78,27 @@ if [ "$STAGE" = midtrain ]; then
   $LAUNCH "$HERE/midtrain_run.py" --base "$BASE" --data "$SCRATCH/data/midtrain_all.jsonl" \
      --out "$OUT" --max-steps $MID --seq-len $SEQ --lora-r $R --batch-size $BS --grad-accum $GA $RESUME ${REPLAY:+--replay "$REPLAY" --replay-frac ${REPLAY_FRAC:-0.5}}
 elif [ "$STAGE" = full ]; then
-  # committee-v3 fix: domain-adaptive mid-training FIRST, merge, then SFT — all on one box
-  $LAUNCH "$HERE/midtrain_run.py" --base "$BASE" --data "$SCRATCH/data/midtrain_all.jsonl" \
-     --out "$OUT/midtrain" --max-steps $MID --seq-len $SEQ --lora-r $R --batch-size $BS --grad-accum $GA ${REPLAY:+--replay "$REPLAY" --replay-frac ${REPLAY_FRAC:-0.5}}
-  python3 "$HERE/merge_lora.py" --base "$BASE" --adapter "$OUT/midtrain" --out "$OUT/base_domain"   # merge = single process
-  # PERSIST mid-training artifacts NOW — NVMe is wiped on spot terminate. full_adapter's base IS
-  # base_domain (the merged domain-adapted base); without it the SFT adapter is orphaned + un-evaluable.
-  aws s3 cp "$OUT/midtrain/" "$S3/models_20260919/$SIZE/midtrain_adapter$TAG/" --recursive --exclude "checkpoint-*/*" --quiet
-  aws s3 cp "$OUT/base_domain/" "$S3/models_20260919/$SIZE/base_domain$TAG/" --recursive --quiet
+  # committee-v3 fix: domain-adaptive mid-training FIRST, merge, then SFT — all on one box.
+  # RESUME-AWARE (safe on-demand<->spot switch via periodic S3 checkpoints):
+  #  - if base_domain already built+persisted -> skip midtrain, restore it, go to SFT
+  #  - else resume midtrain from its nested checkpoint; SFT resumes from its own nested checkpoint
+  if aws s3 ls "$S3/models_20260919/$SIZE/base_domain$TAG/config.json" >/dev/null 2>&1; then
+    echo "[spot] base_domain$TAG already built -> restore + skip to SFT"
+    mkdir -p "$OUT/base_domain"; aws s3 cp "$S3/models_20260919/$SIZE/base_domain$TAG/" "$OUT/base_domain/" --recursive --quiet
+  else
+    MLAST=$(ls -d "$OUT"/midtrain/checkpoint-* 2>/dev/null | sort -t- -k2 -n | tail -1); MR=""
+    [ -n "$MLAST" ] && MR="--resume $MLAST" && echo "[spot] resume midtrain from $MLAST"
+    $LAUNCH "$HERE/midtrain_run.py" --base "$BASE" --data "$SCRATCH/data/midtrain_all.jsonl" \
+       --out "$OUT/midtrain" --max-steps $MID --seq-len $SEQ --lora-r $R --batch-size $BS --grad-accum $GA $MR ${REPLAY:+--replay "$REPLAY" --replay-frac ${REPLAY_FRAC:-0.5}}
+    python3 "$HERE/merge_lora.py" --base "$BASE" --adapter "$OUT/midtrain" --out "$OUT/base_domain"   # merge = single process
+    # PERSIST mid-training artifacts NOW — NVMe is wiped on terminate; base_domain is the SFT adapter's base.
+    aws s3 cp "$OUT/midtrain/" "$S3/models_20260919/$SIZE/midtrain_adapter$TAG/" --recursive --exclude "checkpoint-*/*" --quiet
+    aws s3 cp "$OUT/base_domain/" "$S3/models_20260919/$SIZE/base_domain$TAG/" --recursive --quiet
+  fi
+  SLAST=$(ls -d "$OUT"/sft/checkpoint-* 2>/dev/null | sort -t- -k2 -n | tail -1); SR=""
+  [ -n "$SLAST" ] && SR="--resume $SLAST" && echo "[spot] resume sft from $SLAST"
   $LAUNCH "$HERE/train_qlora_pilot.py" --base "$OUT/base_domain" --data "$SCRATCH/data/sft_enriched.jsonl" \
-     --out "$OUT/sft" --max-steps $SFT --seq-len $SEQ --lora-r $R --batch-size $BS --grad-accum $GA
+     --out "$OUT/sft" --max-steps $SFT --seq-len $SEQ --lora-r $R --batch-size $BS --grad-accum $GA $SR
   OUT="$OUT/sft"   # so the upload below grabs the SFT adapter
 else
   $LAUNCH "$HERE/train_qlora_pilot.py" --base "${BASE_DOMAIN:-$BASE}" --data "$SCRATCH/data/sft_enriched.jsonl" \
