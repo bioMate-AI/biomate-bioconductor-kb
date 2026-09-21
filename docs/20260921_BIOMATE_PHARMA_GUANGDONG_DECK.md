@@ -59,19 +59,19 @@ title: BioMate-Pharma — Guangdong Product Strategy
 ## Layer ① — ANew Labs (ByteDance)  *[competitor / integration source]*
 
 - **Who:** ByteDance's AI‑drug unit, **spun out June 2026**, **$290M @ ~$1.5B** (ByteDance keeps 56%). Shanghai + SF + Singapore.
-- **Stack:** Protenix (open AF3 reproduction), **AnewOmni** (all‑atom cross‑scale generative), **PXDesign** (binder design), DPLM, **AnewDPSA (macrocyclic‑peptide permeability)**, AnewSynth, scNext.
-- **Open source (Apache‑2.0):** Protenix, PXDesign, DPLM, APM — **weights + code**.
-- **Pipeline:** oral IL‑17 / IL‑4R (all **preclinical**); thesis = replace injectable antibodies with oral drugs.
-- **Read:** formidable on *models*; a **closed** drug company, not a platform vendor. **Their open models are ours to integrate.**
-- *Caveat: headline claims (Protenix "beats AF3", AnewOmni "first cross‑scale") are company/preprint‑stage, unvalidated.*
+- **Open, VERIFIED (ByteDance Seed):** **Protenix** (AF3‑level, Apache‑2.0), **PXDesign** (de‑novo binders, 20–73% nM hit rate), **DPLM/DPLM‑2** — weights + code. Anew‑branded: AnewOmni (generative), AnewFold, AnewSampling (MD), AnewMind (reasoning LLM).
+- **Pipeline:** oral pan‑spectrum IL‑17 (shown AAI Apr 2026) + IL‑4R (all **preclinical**); thesis = replace injectable antibodies with oral drugs.
+- **Read:** formidable on *models*; a **closed** drug company, not a platform vendor. **Their open models (Protenix/PXDesign/DPLM) are ours to integrate.**
+- *Caveats: "beats AF3" / "first cross‑scale" are company/preprint‑stage, unvalidated. The earlier "APM" and "AnewDPSA (macrocyclic permeability)" are **UNVERIFIED** — no primary source; do not present as real.*
 
 ---
 
 ## Layer ① — peptide (多肽) players: a crowded, strong field
 
 - **Vilya‑1** (*likely the "Molo‑1/Atomelogy" referenced*; Vilya — Baker/IPD spinout, US; $71M Series A, ARCH+NVIDIA): all‑atom **macrocycle foundation model** doing **structure + permeability + de‑novo design** in one. Benchmark: **89.2%** near‑native ring RMSD vs **Boltz‑2/RoseTTAFold3 ~15%**, ~2× physics methods. **Preview only — no public code/weights.** July 2026. *(Name match high‑confidence but unverified — confirm.)*
-- **ByteDance ANew:** AnewOmni (cross‑scale generative) + **AnewDPSA (macrocyclic‑peptide permeability)** — direct methods competitor, open models.
-- **Others:** BoltzGen (open, what we use), PocketXMol (Tsinghua, *Cell* 2026), Circle Pharma / Bicycle (macrocycle biotechs), Generate:Biomedicines.
+- **ByteDance ANew:** AnewOmni (cross‑scale generative) + open Protenix/PXDesign/DPLM — direct methods competitor whose open models we integrate. *(A dedicated "AnewDPSA" macrocycle‑permeability model is unverified.)*
+- **2026 open works we adopt/inspire from:** **PocketXMol** (*Cell* 2026, **MIT** — pocket‑conditioned cyclic design), **MacroGuide** (ring closure 1%→99%), **EnsembleCycPerm** (chameleon 2‑env permeability), APCyc/PepALD (permeability‑conditioned gen). See leverage doc.
+- **Others:** BoltzGen (open, what we use), Circle Pharma / Bicycle / Unnatural Products (macrocycle biotechs), Generate:Biomedicines (IPO 2026).
 - **Takeaway:** the peptide **generator layer is contested and strong** (Vilya beats Boltz‑2/RF3 on structure). **We do not win by out‑generating them — we win by generate → *verify with physics/ADMET* → learn, on an execution substrate they don't have.** Vilya/ANew are *closed* (preview/pipeline); their edge is a model, not a runnable platform.
 
 ---
