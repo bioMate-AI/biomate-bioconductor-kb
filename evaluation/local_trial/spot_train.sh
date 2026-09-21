@@ -18,7 +18,10 @@ SEQ=${SEQ_OVERRIDE:-$SEQ}; R=${R_OVERRIDE:-$R}; MID=${MID_OVERRIDE:-$MID}   # ov
 BS=${BS_OVERRIDE:-1}; GA=${GA_OVERRIDE:-16}   # per-device batch + grad-accum (raise BS to fill a big GPU)
 NGPU=$(nvidia-smi -L 2>/dev/null | wc -l); [ "${NGPU:-0}" -ge 1 ] || NGPU=1
 # multi-GPU -> torchrun data-parallel (each rank = full model on its own GPU); single GPU -> plain python
-if [ "$NGPU" -gt 1 ]; then LAUNCH="torchrun --nproc_per_node=$NGPU --master_port=29500"; else LAUNCH="python3"; fi
+# FORCE_NGPU pins the launcher (e.g. =1 to use the proven single-process path even on a multi-GPU box).
+[ -n "${FORCE_NGPU:-}" ] && NGPU=$FORCE_NGPU
+# --tee/--redirects surface each rank's child traceback into the log (torchrun otherwise hides it: error_file N/A).
+if [ "$NGPU" -gt 1 ]; then LAUNCH="torchrun --nproc_per_node=$NGPU --master_port=29500 --tee 3 --redirects 3"; else LAUNCH="python3"; fi
 echo "[spot] GPUs=$NGPU launcher='$LAUNCH' per-device-batch=$BS grad-accum=$GA (effective batch=$((BS*GA*NGPU)))"
 BASE="$SCRATCH/models/base_$SIZE"
 

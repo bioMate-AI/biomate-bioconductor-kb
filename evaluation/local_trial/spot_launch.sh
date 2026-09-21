@@ -20,7 +20,7 @@ USERDATA=$(cat <<EOF | base64
 #!/bin/bash
 exec > /var/log/ud.log 2>&1
 set -x
-export SCRATCH=/opt/dlami/nvme MODEL_SIZE=$MODEL_SIZE STAGE=$STAGE TAG=$TAG ENTRY=${ENTRY:-spot_train.sh} BOOTSTRAP=${BOOTSTRAP:-gpu_bootstrap.sh} SEQ_OVERRIDE=${SEQ_OVERRIDE:-} R_OVERRIDE=${R_OVERRIDE:-} MID_OVERRIDE=${MID_OVERRIDE:-} BS_OVERRIDE=${BS_OVERRIDE:-} GA_OVERRIDE=${GA_OVERRIDE:-} CKPTS=${CKPTS:-} FETCH_REPLAY=${FETCH_REPLAY:-0} REPLAY_FRAC=${REPLAY_FRAC:-} REPLAY_DOCS=${REPLAY_DOCS:-} OPENAI_API_KEY=$OPENAI_API_KEY
+export SCRATCH=/opt/dlami/nvme MODEL_SIZE=$MODEL_SIZE STAGE=$STAGE TAG=$TAG ENTRY=${ENTRY:-spot_train.sh} BOOTSTRAP=${BOOTSTRAP:-gpu_bootstrap.sh} SEQ_OVERRIDE=${SEQ_OVERRIDE:-} R_OVERRIDE=${R_OVERRIDE:-} MID_OVERRIDE=${MID_OVERRIDE:-} BS_OVERRIDE=${BS_OVERRIDE:-} GA_OVERRIDE=${GA_OVERRIDE:-} FORCE_NGPU=${FORCE_NGPU:-} CKPTS=${CKPTS:-} FETCH_REPLAY=${FETCH_REPLAY:-0} REPLAY_FRAC=${REPLAY_FRAC:-} REPLAY_DOCS=${REPLAY_DOCS:-} OPENAI_API_KEY=$OPENAI_API_KEY
 # stream the boot log to S3 from the START so bootstrap failures are visible (EBS is gone on terminate)
 ( while true; do aws s3 cp /var/log/ud.log $LOG_S3/boot.log --quiet 2>/dev/null; sleep 20; done ) &
 mkdir -p \$SCRATCH/code && cd \$SCRATCH/code
