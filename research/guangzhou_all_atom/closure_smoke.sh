@@ -25,11 +25,17 @@ pip install -q --disable-pip-version-check 'pip==25.0.1'
 pip install -q 'torch==2.5.1' --index-url https://download.pytorch.org/whl/cu121
 pip install -q 'torch-scatter==2.1.2' --only-binary=:all: -f https://data.pyg.org/whl/torch-2.5.1+cu121.html
 pip install -q 'numpy==1.26.4' 'biopython==1.80' 'scipy==1.13.1' 'rdkit==2024.9.6' 'PyYAML==6.0.2' 'tqdm==4.67.1' 'sympy==1.13.1' 'requests==2.32.3' 'boto3>=1.36,<2'
+# MacroGuide 'ph' mode dep (differentiable persistent homology). Non-fatal: ph_closure_guidance.py
+# falls back to the head-to-tail term if this import is unavailable (logged), so default/cyclic are unaffected.
+pip install -q 'torch_topological==0.1.7' 2>&1 | tail -1 || echo "torch_topological install FAILED -> ph mode will fall back to head-to-tail term"
 python -c 'import torch; assert torch.cuda.is_available(); print(torch.__version__, torch.cuda.get_device_name(0))'
+python -c 'import torch_topological; print("torch_topological", torch_topological.__version__)' || echo "WARN: torch_topological unavailable (ph mode = fallback)"
 
 stage preparing
 aws s3 cp "s3://$BUCKET/cyclic_peptide/code/generate_validation.py" "$ROOT/code/generate_validation.py" --only-show-errors
 aws s3 cp "s3://$BUCKET/cyclic_peptide/code/patch_training_integrity.py" "$ROOT/code/patch_training_integrity.py" --only-show-errors
+# MacroGuide guidance module (imported lazily by generate_validation.py only in --guidance ph).
+aws s3 cp "s3://$BUCKET/cyclic_peptide/code/ph_closure_guidance.py" "$ROOT/code/ph_closure_guidance.py" --only-show-errors || echo "ph_closure_guidance.py missing on S3 -> ph mode will error; upload it first"
 [ -d "$ROOT/PepGLAD/.git" ] || git clone https://github.com/THUNLP-MT/PepGLAD.git "$ROOT/PepGLAD"
 cd "$ROOT/PepGLAD"; git checkout bad015ca50c312a89482adb5220c3d907f13df5c
 python "$ROOT/code/patch_training_integrity.py" --root "$ROOT/PepGLAD" || true
@@ -71,4 +77,5 @@ run_mode() { # $1 = default|cyclic
 }
 run_mode default
 run_mode cyclic
+run_mode ph        # MacroGuide persistent-homology ring-closure guidance (the new arm)
 stage closure_smoke_complete

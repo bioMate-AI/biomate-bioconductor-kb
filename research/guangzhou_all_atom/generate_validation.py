@@ -87,10 +87,11 @@ parser.add_argument('--attempts', type=int, default=4, help='stochastic samples 
 parser.add_argument('--limit', type=int, default=None, help='cap complexes (debug)')
 parser.add_argument('--seed', type=int, default=20260912)
 parser.add_argument('--energy-lambda', type=float, default=0.8)
-parser.add_argument('--guidance', choices=['none', 'default', 'cyclic'], default='default',
+parser.add_argument('--guidance', choices=['none', 'default', 'cyclic', 'ph'], default='default',
                     help="'none' = unguided (control); 'default' = PepGLAD geometry guidance; "
                          "'cyclic' adds a head-to-tail closure energy (first<->last residue "
-                         "latent point pulled to the consecutive-residue distance)")
+                         "latent point pulled to the consecutive-residue distance); "
+                         "'ph' = MacroGuide persistent-homology ring-closure guidance (latent-scaled)")
 parser.add_argument('--closure-thresh', type=float, default=2.0,
                     help='decoded N-term N to C-term C distance (A) counted as closed')
 parser.add_argument('--dataset-dir', default='datasets/train_valid/processed',
@@ -115,6 +116,13 @@ elif args.guidance == 'cyclic':
     assert getattr(model, 'consec_dist_mean', None) is not None, \
         'checkpoint not calibrated: run setup_latent_guidance.py first (needs consec_dist stats)'
     _energy = partial(cyclic_closure_energy, mean=model.consec_dist_mean, std=model.consec_dist_std)
+    sample_opt = {'energy_func': _energy, 'energy_lambda': args.energy_lambda}
+elif args.guidance == 'ph':
+    from ph_closure_guidance import ph_closure_energy  # lazy: only this mode needs torch_topological
+    assert getattr(model, 'consec_dist_mean', None) is not None, \
+        'checkpoint not calibrated: run setup_latent_guidance.py first (needs consec_dist stats)'
+    _energy = partial(ph_closure_energy, mean=model.consec_dist_mean, std=model.consec_dist_std,
+                      tolerance=args.closure_thresh)
     sample_opt = {'energy_func': _energy, 'energy_lambda': args.energy_lambda}
 else:
     sample_opt = {'energy_func': 'default', 'energy_lambda': args.energy_lambda}
