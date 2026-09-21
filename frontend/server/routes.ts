@@ -930,10 +930,16 @@ const prerequisitesValidator = _hasAnyLLMKey ? new WorkflowPrerequisitesValidato
 // Initialize memory integration if Galaxy Assistant is available
 const memoryIntegration = galaxyAssistant ? createMemoryIntegration(galaxyAssistant) : null;
 
-// Configure multer for file uploads
-// 10 GB per-file upload limit. Subject to the user's overall storage quota.
+// Configure multer for file uploads.
+// This limit only guards the simple/FormData path (/api/datasets/upload), which
+// the client uses solely for files <=100 MiB — larger files never reach multer,
+// they go straight to S3 via presigned multipart. So this is a safety guard on
+// the small-file path, NOT the real max upload size (see MAX_BROWSER_UPLOAD_GB).
 const MAX_FILE_SIZE_GB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_GB * 1024 * 1024 * 1024; // 10 GB
+// Real single-file browser-upload cap (S3 multipart path). Must match the client's
+// MAX_LOCAL_FILE_SIZE_GB in file-upload.tsx. Above this, use URL/S3 import.
+const MAX_BROWSER_UPLOAD_GB = 200;
 
 const uploadDir = path.join(process.cwd(), 'data', 'uploads');
 
@@ -1105,7 +1111,7 @@ const upload = multer({
     },
   }),
   limits: {
-    fileSize: MAX_FILE_SIZE_BYTES, // 5GB max file size per file
+    fileSize: MAX_FILE_SIZE_BYTES, // 10 GB guard on the simple/FormData path (files >100 MiB use S3 multipart, not this)
   },
   fileFilter: (req, file, cb) => {
     // Accept common bioinformatics formats
@@ -2754,11 +2760,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } else {
         // For large files, use real S3 multipart upload (chunk to S3 directly).
+        // Adaptive chunk size: default 64 MiB, but grow it so the part count
+        // stays under S3's 10,000-part cap for very large files (9,500 target
+        // leaves headroom). Without this, files >640 GiB would fail init.
+        const DEFAULT_CHUNK = 64 * 1024 * 1024;
+        const chunkSize = Math.max(DEFAULT_CHUNK, Math.ceil(fileSize / 9500));
         const multipartData = await s3Service.startMultipartUpload(
           userId,
           filename,
           fileSize,
-          contentType
+          contentType,
+          chunkSize
         );
 
         res.json({
@@ -3661,17 +3673,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage: {
           uploaded_gb: totalUploadedBytes / (1024 * 1024 * 1024),
           available_gb: availableDiskGB,
-          max_file_size_gb: MAX_FILE_SIZE_GB,
+          max_file_size_gb: MAX_BROWSER_UPLOAD_GB,
           dataset_count: uploadedDatasets.length,
         },
         limits: {
-          max_local_file_size_gb: MAX_FILE_SIZE_GB,
+          max_local_file_size_gb: MAX_BROWSER_UPLOAD_GB,
           max_concurrent_uploads: 3,
           max_concurrent_workflows: 5,
         },
         recommendations: {
-          use_url_import_above_gb: 2,
-          use_ftp_above_gb: 5,
+          // Browser upload works up to max_local_file_size_gb via S3 multipart;
+          // above this, URL/S3 import (server-side fetch, no limit) is faster and
+          // more reliable — the right path for WGS BAM / cryo-EM / long-read.
+          use_url_import_above_gb: 50,
+          use_ftp_above_gb: 50,
         }
       });
     } catch (error: any) {
