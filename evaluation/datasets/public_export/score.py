@@ -208,12 +208,36 @@ def score_litqa2(gt, preds):
             "coverage": round(answered / n, 4) if n else None,
             "note": "LitQA2 MCQ: accuracy=correct/all, precision=correct/answered, coverage=answered/all"}
 
+def score_intent(gt, preds):    return acc(gt, preds, "intent")   # label-constrained classification
+
+def _structure_of(plan):
+    deps=[len(s.get("depends_on",[]) or []) for s in plan if isinstance(s, dict)]
+    if not deps: return "empty"
+    if all(d==0 for d in deps): return "parallel"          # all independent -> concurrent
+    if all(d>0 for d in deps[1:]): return "sequential"     # each after the previous -> chain
+    return "mixed"                                          # some parallel, some dependent
+
+def score_task_decomposition(gt, preds):
+    # objective (no LLM judge): parallel/sequential STRUCTURE correctness + subtask-count coverage
+    n=struct_hit=0; cov=0.0
+    for i, r in gt.items():
+        p = preds.get(i)
+        if p is None: continue
+        n += 1
+        plan = p if isinstance(p, list) else []
+        if _structure_of(plan) == r.get("structure"): struct_hit += 1
+        gsub = r.get("gold_subtasks", [])
+        if gsub: cov += min(len(plan), len(gsub)) / len(gsub)
+    return {"n": n, "structure_accuracy": round(struct_hit/max(n,1), 3), "ci95": wilson(struct_hit, n),
+            "subtask_count_coverage": round(cov/max(n,1), 3)}
+
 SCORERS = {
     "cross_domain_routing": score_routing, "protocol_thresholds": score_protocol,
     "boin_benchmark": score_boin, "workflow_generation": score_workflow_gen,
     "param_prefill": score_param_prefill, "pbpk_benchmark": score_pbpk,
     "drug_discovery_e2e": score_drug_disc, "autofix_benchmark": score_autofix,
     "litqa2": score_litqa2,
+    "intent_interpretation": score_intent, "task_decomposition": score_task_decomposition,
 }
 
 if __name__ == "__main__":

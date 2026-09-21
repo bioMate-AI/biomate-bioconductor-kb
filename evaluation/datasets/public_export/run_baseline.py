@@ -28,6 +28,8 @@ TASKS = {
         instr="Classify this pipeline failure into exactly one fix CATEGORY."),
     "protocol_thresholds": dict(gt="expected_correct_action", inp=lambda r: f"Protocol: {r['protocol']}\nQC situation: {r['universal_threshold_problem']}",
         instr="Given the sequencing protocol and the QC situation, decide the correct action: PASS, FAIL, or WARN."),
+    "intent_interpretation": dict(gt="intent", inp=lambda r: r["query"],
+        instr="Classify this BioMate user request into exactly one INTENT (capability) label from the list."),
 }
 
 def labels(task, rows):
@@ -86,6 +88,13 @@ GEN = {
               "Respond with a JSON list of the ligand indices (1-based, matching the input order), "
               "e.g. [3, 2, 1]. JSON list only.",
         parse=lambda t: (lambda m: json.loads(m.group()) if m else [])(re.search(r"\[.*?\]", t or "", re.S))),
+    "task_decomposition": dict(
+        inp=lambda r: r["query"],
+        instr=("Decompose this request into an ordered plan of sub-tasks. Reply ONLY a JSON list of "
+               "{\"sub_task\": ..., \"order\": N, \"depends_on\": [prerequisite orders]} — INDEPENDENT "
+               "sub-tasks have empty depends_on (they can run in parallel); a sub-task that needs an "
+               "earlier one's output lists that order in depends_on."),
+        parse=lambda t: (lambda m: json.loads(m.group()) if m else [])(re.search(r"\[.*\]", t or "", re.S))),
 }
 
 def main():
