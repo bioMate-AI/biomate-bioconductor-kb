@@ -28,6 +28,7 @@ import {
   Wrench,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { t } from "@/lib/i18n"
 import { analytics } from "@/lib/analytics"
 import { useAuth } from "@/contexts/auth-context"
 import userAvatar from "@assets/generated_images/User_avatar_placeholder_d2803d15.png"
@@ -229,7 +230,7 @@ export function AppSidebar({
         <button className="side-link" onClick={onNewChat} data-testid="button-new-chat" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted, oklch(0.48 0.012 260))', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}>
           <Plus className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <span>New Chat</span>
+            <span>{t('chat.new_chat')}</span>
             <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Start a fresh AI conversation</span>
           </span>
         </button>
@@ -242,7 +243,7 @@ export function AppSidebar({
           <FlaskConical className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              Workflows
+              {t('nav.workflows')}
               {runningCount > 0 && (<span data-testid="workflows-running-badge" style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 999, background: 'oklch(0.92 0.04 230)', color: 'oklch(0.40 0.13 230)' }}>{runningCount}</span>)}
             </span>
             <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Run history, browse & import pipelines</span>
@@ -298,7 +299,7 @@ export function AppSidebar({
         <button className="side-link" data-testid="button-billing-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/billing')}>
           <CreditCard className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <span>Billing</span>
+            <span>{t('nav.billing')}</span>
             <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Usage & subscription</span>
           </span>
         </button>
@@ -313,7 +314,7 @@ export function AppSidebar({
           >
             {projectsExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
             <FolderOpen className="w-3 h-3" style={{ opacity: 0.7 }} />
-            Projects
+            {t('nav.projects')}
           </button>
           {projectsExpanded && apiProjects.map((proj) => {
             const isExpanded = expandedProjectIds.has(proj.id);
@@ -434,7 +435,7 @@ export function AppSidebar({
             data-testid="button-settings-sidebar"
           >
             <Settings className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} />
-            <span>Settings &amp; API Keys</span>
+            <span>{t('settings.title')} &amp; {t('settings.api_keys')}</span>
           </button>
         </div>
       </div>

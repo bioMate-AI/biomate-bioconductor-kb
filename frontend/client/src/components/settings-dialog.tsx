@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { userSettingsService } from "@/lib/user-settings"
+import { t, setLanguagePreference } from "@/lib/i18n"
 import type { UserSettings } from "@shared/schema"
 import {
   User,
@@ -412,7 +413,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="flex items-center gap-2">
             <Key className="w-5 h-5" />
-            API Keys
+            {t('settings.api_keys')}
           </DialogTitle>
         </DialogHeader>
 
@@ -520,8 +521,20 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        <Label htmlFor="language">Language</Label>
-                        <Select value={settings.language} onValueChange={(value: any) => updateSetting('language', value)}>
+                        <Label htmlFor="language">{t('settings.language')}</Label>
+                        <Select
+                          value={settings.language}
+                          onValueChange={(value: any) => {
+                            // Persist + reload FIRST (captures the true previous
+                            // value so a real change triggers the reload that lets
+                            // lib/i18n.ts — which resolves locale once at module
+                            // load from this same localStorage key — apply it).
+                            setLanguagePreference(value)
+                            // Fallback local-state update if the value is unchanged
+                            // (no reload) so the Select still reflects the choice.
+                            updateSetting('language', value)
+                          }}
+                        >
                           <SelectTrigger data-testid="select-language">
                             <SelectValue />
                           </SelectTrigger>
@@ -546,22 +559,22 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   
                   <Card>
                     <CardHeader>
-                      <CardTitle>Theme</CardTitle>
+                      <CardTitle>{t('settings.theme')}</CardTitle>
                       <CardDescription>
                         Choose your preferred appearance
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        <Label htmlFor="theme">Theme</Label>
+                        <Label htmlFor="theme">{t('settings.theme')}</Label>
                         <Select value={settings.theme} onValueChange={(value: any) => updateSetting('theme', value)}>
                           <SelectTrigger data-testid="select-theme">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="system">System</SelectItem>
-                            <SelectItem value="light">Light</SelectItem>
-                            <SelectItem value="dark">Dark</SelectItem>
+                            <SelectItem value="system">{t('settings.system')}</SelectItem>
+                            <SelectItem value="light">{t('settings.light')}</SelectItem>
+                            <SelectItem value="dark">{t('settings.dark')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

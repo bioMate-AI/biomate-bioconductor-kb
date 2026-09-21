@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import '@/styles/workflow-panel.css';
 import { useRunAgainParamCarryover } from '@/hooks/useRunAgainParamCarryover';
 import { analytics } from '@/lib/analytics';
+import { t, tStatus } from '@/lib/i18n';
 import { emitUxEvent } from "@/lib/ux-telemetry";
 import { PhaseCard } from "./phase-card";
 import { ParameterGroup } from "./parameter-group";
@@ -2559,7 +2560,9 @@ export function NextflowWorkflowViewer({
                     data-testid="workflow-overall-status-badge"
                     data-status={status}
                   >
-                    {status.toUpperCase()}
+                    {(['running', 'completed', 'failed', 'queued', 'cancelled', 'pending'].includes(status)
+                      ? tStatus(status)
+                      : status.toUpperCase())}
                   </span>
                 )}
                 {/* Hidden element keeps test selectors working for idle state */}
@@ -2571,7 +2574,7 @@ export function NextflowWorkflowViewer({
                   />
                 )}
                 {(status === 'running' || status === 'paused') && (
-                  <button className="iconbtn" data-testid="button-cancel-workflow-panel" onClick={onCancel} title="Cancel">
+                  <button className="iconbtn" data-testid="button-cancel-workflow-panel" onClick={onCancel} title={t('actions.cancel')}>
                     <Square style={{ width: 14, height: 14 }} />
                   </button>
                 )}
@@ -3746,7 +3749,7 @@ export function NextflowWorkflowViewer({
               ) : status === 'completed' ? (
                 'Run again'
               ) : (
-                'Confirm and run workflow'
+                t('workflow.actions.confirm_and_run')
               )}
             </button>
           )}

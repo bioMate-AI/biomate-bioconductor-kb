@@ -10,6 +10,7 @@ import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser"
 import { SkillsSelector, type SkillPack } from "./skills-selector"
 import { LanePreview, type LaneKind } from "./lane-preview"
 import { useDebounce } from "@/hooks/useDebounce"
+import { t } from "@/lib/i18n"
 
 interface AttachedFile {
   id: string
@@ -147,7 +148,7 @@ export function ChatInput({
   onSend,
   disabled = false,
   pendingCount = 0,
-  placeholder = "What would you like to analyze?",
+  placeholder = t('chat.placeholder'),
   onFilesSelected,
   isStreaming = false,
   onStop,
@@ -832,6 +833,7 @@ export function ChatInput({
             <button
               data-testid="chat-send-button"
               onClick={handleSend}
+              title={t('chat.send')}
               disabled={!message.trim() && attachedFiles.length === 0 && selectedDatasets.length === 0}
               style={{
                 width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',
