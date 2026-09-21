@@ -47,6 +47,10 @@ elif [ "$STAGE" = full ]; then
   python3 "$HERE/midtrain_run.py" --base "$BASE" --data "$SCRATCH/data/midtrain_all.jsonl" \
      --out "$OUT/midtrain" --max-steps $MID --seq-len $SEQ --lora-r $R ${REPLAY:+--replay "$REPLAY" --replay-frac ${REPLAY_FRAC:-0.5}}
   python3 "$HERE/merge_lora.py" --base "$BASE" --adapter "$OUT/midtrain" --out "$OUT/base_domain"
+  # PERSIST mid-training artifacts NOW — NVMe is wiped on spot terminate. full_adapter's base IS
+  # base_domain (the merged domain-adapted base); without it the SFT adapter is orphaned + un-evaluable.
+  aws s3 cp "$OUT/midtrain/" "$S3/models_20260919/$SIZE/midtrain_adapter/" --recursive --exclude "checkpoint-*/*" --quiet
+  aws s3 cp "$OUT/base_domain/" "$S3/models_20260919/$SIZE/base_domain/" --recursive --quiet
   python3 "$HERE/train_qlora_pilot.py" --base "$OUT/base_domain" --data "$SCRATCH/data/sft_enriched.jsonl" \
      --out "$OUT/sft" --max-steps $SFT --seq-len $SEQ --lora-r $R
   OUT="$OUT/sft"   # so the upload below grabs the SFT adapter
