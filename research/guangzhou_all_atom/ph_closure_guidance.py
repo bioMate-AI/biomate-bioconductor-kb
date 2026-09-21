@@ -42,7 +42,7 @@ try:
 except Exception:                                     # torch_topological missing / import error
     _VR, _HAS_TDA = None, False
 
-_WARNED = {"fallback": False}
+_WARNED = {"fallback": False, "ph_error": False}
 
 
 # ---- MacroGuide terms, ported and latent-scaled --------------------------------
@@ -125,20 +125,39 @@ def ph_closure_energy(X, mask_generate, batch_ids, mean, std,
     if not _HAS_TDA:
         if not _WARNED["fallback"]:
             print("[ph_closure_energy] torch_topological unavailable -> falling back to "
-                  "head-to-tail first<->last latent penalty (incumbent cyclic term).")
+                  "head-to-tail first<->last latent penalty (incumbent cyclic term). "
+                  "ph == cyclic for this run; pin torch_topological>=0.1.6 (numpy<2) to test MacroGuide.",
+                  flush=True)
             _WARNED["fallback"] = True
-        lengths = gmask.sum(-1)
-        valid = lengths >= 2
-        first = gb[:, 0]
-        last = gb[torch.arange(gb.size(0), device=gb.device),
-                  (lengths - 1).clamp(min=0).long()]
-        d = torch.norm(first - last, dim=-1)
-        m, s = round(float(mean), 4), round(float(std), 4)
-        lb, ub = m - tolerance * s, m + tolerance * s
-        loss = torch.where((d < lb) & valid, lb - d, torch.zeros_like(d))
-        loss = torch.where((d > ub) & valid, d - ub, loss)
-        return base + torch.sum(loss)
+        return base + _head_to_tail_fallback(gb, gmask, mean, std, tolerance)
 
-    ph = _ph_term(gb, gmask, mean, std, tolerance,
-                  ring_lo_frac, ring_hi_frac, n_rings, weights)
-    return base + ph
+    # Real MacroGuide PH path. If it throws at runtime, SURFACE the first traceback loudly (the PepGLAD
+    # sampling loop swallows per-attempt exceptions -> a silent 0/serialized run otherwise), then fall back
+    # so the run still produces designs instead of zeroing out.
+    try:
+        ph = _ph_term(gb, gmask, mean, std, tolerance,
+                      ring_lo_frac, ring_hi_frac, n_rings, weights)
+        return base + ph
+    except Exception:
+        if not _WARNED["ph_error"]:
+            import traceback
+            print("[ph_closure_energy] PH term FAILED at runtime -> falling back to head-to-tail term "
+                  "(ph == cyclic for this run). First traceback:", flush=True)
+            traceback.print_exc()
+            _WARNED["ph_error"] = True
+        return base + _head_to_tail_fallback(gb, gmask, mean, std, tolerance)
+
+
+def _head_to_tail_fallback(gb, gmask, mean, std, tolerance):
+    """Incumbent cyclic term: pull each peptide's first<->last latent point to the consecutive distance."""
+    lengths = gmask.sum(-1)
+    valid = lengths >= 2
+    first = gb[:, 0]
+    last = gb[torch.arange(gb.size(0), device=gb.device),
+              (lengths - 1).clamp(min=0).long()]
+    d = torch.norm(first - last, dim=-1)
+    m, s = round(float(mean), 4), round(float(std), 4)
+    lb, ub = m - tolerance * s, m + tolerance * s
+    loss = torch.where((d < lb) & valid, lb - d, torch.zeros_like(d))
+    loss = torch.where((d > ub) & valid, d - ub, loss)
+    return torch.sum(loss)

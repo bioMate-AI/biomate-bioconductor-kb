@@ -25,11 +25,13 @@ pip install -q --disable-pip-version-check 'pip==25.0.1'
 pip install -q 'torch==2.5.1' --index-url https://download.pytorch.org/whl/cu121
 pip install -q 'torch-scatter==2.1.2' --only-binary=:all: -f https://data.pyg.org/whl/torch-2.5.1+cu121.html
 pip install -q 'numpy==1.26.4' 'biopython==1.80' 'scipy==1.13.1' 'rdkit==2024.9.6' 'PyYAML==6.0.2' 'tqdm==4.67.1' 'sympy==1.13.1' 'requests==2.32.3' 'boto3>=1.36,<2'
-# MacroGuide 'ph' mode dep (differentiable persistent homology). Non-fatal: ph_closure_guidance.py
-# falls back to the head-to-tail term if this import is unavailable (logged), so default/cyclic are unaffected.
-pip install -q 'torch_topological==0.1.7' 2>&1 | tail -1 || echo "torch_topological install FAILED -> ph mode will fall back to head-to-tail term"
+# MacroGuide 'ph' dep. MUST be >=0.1.6 for VietorisRipsComplex (0.1.0 lacks it -> the 20260921 crash).
+# torch_topological may pull numpy>=2 which breaks torch 2.5.1 AND its own .numpy() calls -> re-pin numpy<2 AFTER.
+# Non-fatal: ph_closure_guidance.py falls back to the head-to-tail term (logged) if the import is unavailable.
+pip install -q 'torch_topological==0.1.9' 2>&1 | tail -2 || echo "torch_topological install FAILED -> ph mode will fall back"
+pip install -q 'numpy==1.26.4' 2>&1 | tail -1
 python -c 'import torch; assert torch.cuda.is_available(); print(torch.__version__, torch.cuda.get_device_name(0))'
-python -c 'import torch_topological; print("torch_topological", torch_topological.__version__)' || echo "WARN: torch_topological unavailable (ph mode = fallback)"
+python -c 'from torch_topological.nn import VietorisRipsComplex; import torch_topological as t; print("torch_topological", t.__version__, "VietorisRipsComplex OK")' || echo "WARN: VietorisRipsComplex import FAILED (ph mode = head-to-tail fallback)"
 
 stage preparing
 aws s3 cp "s3://$BUCKET/cyclic_peptide/code/generate_validation.py" "$ROOT/code/generate_validation.py" --only-show-errors
