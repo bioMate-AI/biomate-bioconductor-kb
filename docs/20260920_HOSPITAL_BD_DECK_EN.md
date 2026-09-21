@@ -54,6 +54,14 @@ A grad student uploads their instrument output, describes their goal ("different
 
 ---
 
+## The interface — one screen, nothing to install
+
+![w:800](assets/hospital_deck/shell_en.png)
+
+Chat-first: describe your goal in plain language, attach data (files **or a whole folder**, or a URL/S3 reference), and BioMate runs the analysis — results, QC, and a report come back in the same place.
+
+---
+
 ## Coverage against *your* facility's instruments
 
 | Instrument | Analysis delivered | Status |
