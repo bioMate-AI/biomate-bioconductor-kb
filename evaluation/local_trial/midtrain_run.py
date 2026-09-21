@@ -29,7 +29,7 @@ def main():
         rep=rep.select(range(min(k,len(rep)))); ds=concatenate_datasets([dom,rep]).shuffle(seed=13)
     else: ds=dom
     bnb=BitsAndBytesConfig(load_in_4bit=True,bnb_4bit_quant_type="nf4",bnb_4bit_use_double_quant=True,bnb_4bit_compute_dtype=torch.bfloat16)
-    model=AutoModelForCausalLM.from_pretrained(a.base,quantization_config=bnb,device_map=DEVMAP,torch_dtype=torch.bfloat16,trust_remote_code=True,low_cpu_mem_usage=True,attn_implementation="eager")
+    model=AutoModelForCausalLM.from_pretrained(a.base,quantization_config=bnb,device_map=DEVMAP,torch_dtype=torch.bfloat16,trust_remote_code=True,low_cpu_mem_usage=True,attn_implementation="sdpa")
     model.config.use_cache=False; model=prepare_model_for_kbit_training(model,use_gradient_checkpointing=True)
     lora=LoraConfig(r=a.lora_r,lora_alpha=2*a.lora_r,lora_dropout=0.05,bias="none",task_type="CAUSAL_LM",
                     target_modules=["q_proj","k_proj","v_proj","o_proj","gate_proj","up_proj","down_proj"])

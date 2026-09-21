@@ -47,7 +47,7 @@ def main() -> int:
     model = AutoModelForCausalLM.from_pretrained(
         args.base, quantization_config=bnb, device_map=devmap,
         torch_dtype=torch.bfloat16, trust_remote_code=True,
-        low_cpu_mem_usage=True, attn_implementation="eager")
+        low_cpu_mem_usage=True, attn_implementation="sdpa")
     model.config.use_cache = False
     model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
 
