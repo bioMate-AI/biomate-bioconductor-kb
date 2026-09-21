@@ -208,26 +208,54 @@ not a post-hoc check; (3) **everything emits provenance** (trace.jsonl) → GxP 
 
 ---
 
-## Requirement fit — Guangdong pharma needs → BioMate
+## Requirement fit — the Guangzhou tender's 4 layers → BioMate
 
-| Pharma need | BioMate‑Pharma capability |
-|---|---|
-| Hit/lead discovery (small mol, peptide, antibody) | Integrated generators + docking/MD + verify loop |
-| DMPK / developability | ADMET suite (hERG, CYP, oral BA), permeability, PK/PD, PBPK |
-| CMC / stability | Accelerated‑stability workflows |
-| Clinical design | BOIN dose‑escalation, trial analysis, FAERS pharmacovigilance |
-| Regulatory (NMPA/FDA) | IND §2.6.1 narratives, CRO compliance packages, audit trail |
-| Governance | Reproducible workspaces + GxP layer + adversarial review |
+*The tender (RMB 70M, deadline 2026‑12‑31) asks for a **reusable molecular generation + optimization platform** for **lead discovery/optimization** — optimizing **synthetic accessibility · target affinity · safety**. Scope is discovery — explicitly **not** clinical, regulatory submission, or candidate nomination.*
+
+| Their layer | What they ask | BioMate today |
+|---|---|---|
+| ① Knowledge | literature + **patent/FTO** search, activity/SAR | platform‑wide **search** (workflows + tools + public data); lit/target retrieval; **novelty/FTO as a design gate** |
+| ② Reasoning | hypothesis, target/chemotype rationale | agentic orchestrator — target/chemotype rationale, **human‑reviewed** |
+| ③ **Generation** *(core)* | **de novo + scaffold hopping** | integrated open generators (Protenix/PXDesign/DrugCLIP/BoltzGen…); **small‑molecule‑first, modality‑configurable** |
+| ④ **Optimisation** *(core)* | activity pred · docking/MD/**BFE** · ADMET/safety · **multi‑objective + closed loop** | docking/MD/**MM‑GBSA/FEP** · ADMET (hERG/CYP/hepatotox/off‑target/metabolic) · **multi‑objective governance** · DMTA loop |
+
+- **Their 3 named dimensions, mapped:** target affinity → docking/MD/FEP · synthetic accessibility → SA score + purchasable‑route check · safety → ADMET panel.
+- **No single opaque score decides** — each criterion is separate, inspectable, human‑overridable (their multi‑objective ask = our *governance*).
 
 ---
 
-## Compliance / GxP — the additive layer (not a subset)
+## Beyond the requirement — BioMate is a full drug‑development platform (with search)
 
-- **Data provenance & audit trail** per drug program (every run, param, and result traceable).
-- **Reproducible session workspaces** (reasoning + tool calls + code + figures) — directly usable in filings.
-- **21 CFR Part 11 / EU Annex 11‑style controls**; NMPA alignment for Guangdong filers.
-- **Access control, e‑signatures, validation documentation.**
-- *This is what turns a research tool into a pharma product — and what neither competitor emphasizes.*
+The tender is a **subset** of what BioMate already is — so the client isn't boxed into one narrow tool:
+
+- **Search across the whole platform** — 4,017 workflows / 36 domains + 12k tools + 60+ data sources; one query finds the right pipeline (their Knowledge layer, platform‑wide).
+- **All modalities, one engine** — small molecule (primary), peptide/macrocycle (proven loop), roadmap to PROTAC/glue (their Q1 "or a combination").
+- **Whole pipeline, not just discovery** — also genomics → variant → structure → ADMET → PK/PD (and clinical/reg *when later wanted*): the platform grows *with* them, no second vendor.
+- **Configurable & on‑prem‑ready** — new targets, new objectives/weights, ELN/LIMS integration, private deployment + data residency (their Q4/Q6/Q8/Q18).
+- **Message:** *you asked for the generation+optimization slice; you're buying a platform that already exceeds it.*
+
+---
+
+## How we'd run it — a jointly‑scoped, validated pilot (not "drug‑from‑a‑button")
+
+1. **Discovery + data audit** — agree the target product profile, data dictionary, **scoring contract**, baseline, validation protocol.
+2. **Retrospective evaluation** — generation/ranking on **held‑out historical activity data**; report enrichment, calibration, failure modes, uncertainty (their acceptance, Q17).
+3. **Human‑reviewed design cycle** — diverse candidate set; explicit **affinity × developability × synthesizability × safety** gates; documented keep/kill rationale.
+4. **Prospective assay loop** — synthesize/test an agreed small set (partner lab or CRO); predicted‑vs‑observed; retrain only under **versioned data/model governance** (their DMTA, Q11‑15).
+5. **Decision package** — ranked candidates + evidence + parameter/model versions + limitations + expand/no‑go.
+
+**Claims we do NOT make:** independent drug discovery, candidate nomination, or that generated molecules are synthesizable/active/safe/novel without prospective evidence; computational ADMET/docking ≠ regulatory‑grade. *Honesty is the differentiator.*
+
+---
+
+## Deployment, IP & governance — their actual asks (Q5–Q18)
+
+- **On‑prem / private / domestic stack** with **data‑residency controls** (Q18) — data and models stay inside the partner.
+- **IP ownership:** foreground work — generated compounds, fine‑tuned models, workflows — assigned per agreement to the partner (Q7).
+- **Train on their data:** activity/property models fine‑tuned on the partner's experimental data behind a **versioned workflow contract** (Q5).
+- **Integration:** bidirectional with **ELN / compound library / LIMS** (Q6).
+- **Provenance:** every run, parameter, output, QC outcome, and decision recorded; **invalid launches blocked before compute is spent**; medicinal chemists retain approval authority.
+- *GxP / 21 CFR Part 11 available as an add‑on for later regulated phases — not required for this discovery‑scoped pilot.*
 
 ---
 
@@ -271,10 +299,10 @@ The 2026 landscape lets us **build the table-stakes stack fast** and concentrate
 
 ## The ask / next steps
 
-- **Position:** *"Agentic drug‑discovery orchestration on a verified execution substrate."*
-- **Decision:** green‑light BioMate‑Pharma as a **vertical** (not a fork) — Phases 0–1 first.
-- **Guangdong pilot:** pick 1–2 partner programs (a peptide or small‑molecule lead) to run the full generate→verify→select→report loop with compliance artifacts.
-- **We bring:** the only execution+verification layer, plus a proven, self‑auditing R&D culture.
+- **Position:** *"A governed molecular generation + optimization platform — search → generate → verify → learn — that you own and run on‑prem."*
+- **Pilot (to the 2026‑12‑31 milestone):** one small‑molecule lead‑optimization program — retrospective benchmark on the partner's held‑out data → human‑reviewed design cycle → a small prospective assay round.
+- **Acceptance:** enrichment vs the partner's baseline on retrospective data; a ranked, **synthesis‑aware** candidate set with evidence + provenance.
+- **We bring:** the full platform (search + all modalities + verify loop) + honest, self‑auditing governance — **exceeding the requirement without boxing them in.**
 
 ---
 
