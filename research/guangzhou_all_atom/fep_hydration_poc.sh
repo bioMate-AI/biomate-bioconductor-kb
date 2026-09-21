@@ -10,7 +10,7 @@ ROOT=/opt/fep; OUT_S3=${OUT_S3:?}
 mkdir -p "$ROOT/status" "$ROOT/w"; cd "$ROOT/w"
 exec > >(tee -a "$ROOT/status/fep.log") 2>&1
 stage(){ printf '{"stage":"%s","time":"%s","detail":"%s"}\n' "$1" "$(date -u +%FT%TZ)" "${2:-}" > "$ROOT/status/status.json"; aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true; }
-trap 'rc=$?; [ $rc -ne 0 ] && stage failed; sync; sleep 4; aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true; sleep 2; shutdown -h now; exit $rc' EXIT
+trap 'rc=$?; [ $rc -ne 0 ] && stage failed; sync; sleep 4; aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true; [ -d "$ROOT/w/nan-error-logs" ] && aws s3 sync "$ROOT/w/nan-error-logs" "$OUT_S3/nan-error-logs/" --only-show-errors || true; sleep 2; shutdown -h now; exit $rc' EXIT
 systemd-run --unit=fep-deadline --on-active=3h /sbin/shutdown -h now || true
 
 stage installing
@@ -58,18 +58,30 @@ modeller.addSolvent(sysgen.forcefield, model='tip3p', padding=1.0*unit.nanometer
 system=sysgen.create_system(modeller.topology, molecules=[mol])
 lig_atoms=list(range(off_top.n_atoms))   # ethanol atoms are first
 print('total atoms', system.getNumParticles(), 'ligand atoms', len(lig_atoms))
-# FIX: relax the solvated system BEFORE any alchemy/dynamics (addSolvent leaves clashes -> NaN at physical state)
-_ctx=mm.Context(system, mm.LangevinMiddleIntegrator(298.15*unit.kelvin,1/unit.picosecond,1*unit.femtoseconds), PLAT)
-_ctx.setPositions(modeller.getPositions())
-mm.LocalEnergyMinimizer.minimize(_ctx, maxIterations=2000)
-min_pos=_ctx.getState(getPositions=True).getPositions()
-box=modeller.topology.getPeriodicBoxVectors()
-del _ctx
-print('pre-minimized solvated system')
+# DIAGNOSTIC + FIX: relax AND EQUILIBRATE the PLAIN system, and VERIFY it is stable before any alchemy.
+# (A wandering NaN could be basic MD setup vs alchemy; this isolates it. Launching Langevin at 298 K straight
+#  from a cold minimized structure is a prime NaN cause -> minimize -> gradual heat -> short NVT equilibrate.)
+_integ=mm.LangevinMiddleIntegrator(10*unit.kelvin,1/unit.picosecond,1*unit.femtoseconds)
+_sim=app.Simulation(modeller.topology, system, _integ, PLAT)
+_sim.context.setPositions(modeller.getPositions())
+_sim.minimizeEnergy(maxIterations=5000)
+e_min=_sim.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(unit.kilocalorie_per_mole)
+print('plain minimized E', round(e_min,1)); sync(f'plain minimized E={round(e_min,1)}')
+for T in range(10,299,20):                     # gradual heat 10->298 K
+    _integ.setTemperature(T*unit.kelvin); _sim.step(500)
+_sim.context.setVelocitiesToTemperature(298.15*unit.kelvin)
+_sim.step(10000)                                # 10 ps NVT equilibration
+_st=_sim.context.getState(getEnergy=True, getPositions=True)
+e_eq=_st.getPotentialEnergy().value_in_unit(unit.kilocalorie_per_mole)
+import math
+if not math.isfinite(e_eq): raise RuntimeError(f'PLAIN system unstable (E={e_eq}) -> MD setup issue, not alchemy')
+print('plain equilibrated E', round(e_eq,1), '-> PLAIN SYSTEM STABLE'); sync(f'plain equilibrated E={round(e_eq,1)} STABLE')
+min_pos=_st.getPositions(); box=modeller.topology.getPeriodicBoxVectors()
+del _sim, _integ
 
 # --- alchemically decouple the ligand (sterics+electrostatics) ---
 sync('alchemical factory')
-factory=alchemy.AbsoluteAlchemicalFactory(consistent_exceptions=False)
+factory=alchemy.AbsoluteAlchemicalFactory(consistent_exceptions=False, alchemical_pme_treatment='exact')
 region=alchemy.AlchemicalRegion(alchemical_atoms=lig_atoms, annihilate_electrostatics=True, annihilate_sterics=False)
 alch_system=factory.create_alchemical_system(system, region)
 alch_state=alchemy.AlchemicalState.from_system(alch_system)

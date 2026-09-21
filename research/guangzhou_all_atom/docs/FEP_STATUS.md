@@ -14,11 +14,25 @@ ReplicaExchangeSampler + MBAR), GPU/CPU spot launcher `launch_fep_poc.sh`.
 5. infra: forced **CPU** platform to dodge the DL-AMI `CUDA_ERROR_UNSUPPORTED_PTX_VERSION` (same known issue
    as the MM-GBSA runs); pre-minimization + NVT + 1 fs added.
 
-## The BLOCKER (needs a dedicated interactive session, not blind relaunch)
-Persistent `SimulationNaNError` during alchemical propagation. It **wanders across λ states** (observed at
-state 8 sterics region, then state 0 physical endpoint, then state 3 electrostatics region) and **survives**
-pre-minimization + NVT + 1 fs + CPU. A wandering, persistent NaN = a systematic MD-stability problem, not a
-one-line fix. Per the "don't saga / review-before-deploy" discipline, blind relaunch cycles were stopped here.
+## The BLOCKER — ISOLATED by the diagnostic run (2026-09-21)
+A diagnostic harness (minimize → gradual heat 10→298 K → 10 ps NVT on the PLAIN system, with a finite-energy
+gate, before any alchemy; + exact PME; + nan-log sync) pinned the cause:
+- **The PLAIN solvated system is STABLE** — minimized to E ≈ −2881 kcal/mol and passed equilibration without
+  tripping the finite-energy guard. So the NaN is **NOT** basic MD/system setup.
+- **The NaN is ALCHEMY-SPECIFIC, in the sterics-decoupling region** (replica at state 10, sterics ≈ 0.1),
+  and persists even with exact PME + an equilibrated start + per-state minimization. Earlier wandering
+  (states 8/0/3) was pre-equilibration noise; with the plain system stabilized it localizes to the
+  near-decoupled-sterics windows.
+- **Root-cause class: soft-core Lennard-Jones sterics-decoupling instability** — a known, non-trivial FEP
+  setup problem, not a one-liner. Diagnostic-first isolation succeeded; blind relaunch stopped per discipline.
+
+### Sharpened next-session fixes (sterics decoupling)
+1. Add more λ windows in the sterics-off region (e.g. 0.1/0.05/0.025/0.0 instead of one 0.1→0 jump).
+2. Tune openmmtools soft-core (`softcore_alpha`, `softcore_beta`) and/or set `annihilate_sterics` explicitly.
+3. Add a weak ligand positional restraint during decoupling (keeps the vanishing ligand from drifting into a clash).
+4. Smaller timestep (0.5 fs) only in the decoupling windows.
+5. Strongly consider a turnkey protocol — `openfe`/`femto`/AToM ship validated soft-core schedules and would
+   likely sidestep this tuning entirely (recommended first move next session).
 
 ## Concrete next-session debugging plan (in order)
 1. **Read the saved `nan-error-logs`** (openmmtools dumps positions+integrator state at blow-up) — identify
