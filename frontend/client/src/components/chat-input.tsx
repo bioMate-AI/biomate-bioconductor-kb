@@ -440,6 +440,7 @@ export function ChatInput({
         style={{ display: 'none' }}
         onChange={handleLocalFilePick}
         accept="*/*"
+        data-testid="chat-attach-file-input"
       />
       {/* Hidden folder input — same attach path as files (matches the upload panel) */}
       <input
@@ -449,6 +450,7 @@ export function ChatInput({
         {...({ webkitdirectory: '', directory: '', mozdirectory: '' } as Record<string, string>)}
         style={{ display: 'none' }}
         onChange={handleLocalFilePick}
+        data-testid="chat-attach-folder-input"
       />
 
       {/* Attached files + selected dataset chips */}
@@ -458,6 +460,8 @@ export function ChatInput({
             <div
               key={file.id}
               className="flex items-center gap-1.5 px-2 py-1 bg-muted rounded-md text-sm group"
+              data-testid="composer-attached-file"
+              data-filename={file.name}
             >
               <FileText className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="max-w-[150px] truncate">{file.name}</span>
@@ -741,6 +745,7 @@ export function ChatInput({
           <button
             disabled={disabled}
             title="Attach file"
+            data-testid="chat-attach-file-button"
             onClick={() => fileInputRef.current?.click()}
             style={{
               width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',
