@@ -26,7 +26,7 @@ export SCRATCH=/opt/dlami/nvme MODEL_SIZE=$MODEL_SIZE STAGE=$STAGE TAG=$TAG ENTR
 mkdir -p \$SCRATCH/code && cd \$SCRATCH/code
 for i in 1 2 3; do aws s3 cp $REPO_TARBALL_S3 code.tgz && break || sleep 10; done
 tar xzf code.tgz
-bash gpu_bootstrap.sh
+bash ${BOOTSTRAP:-gpu_bootstrap.sh}
 bash ${ENTRY:-spot_train.sh}
 aws s3 cp /var/log/ud.log $LOG_S3/boot.log --quiet
 sleep 30
