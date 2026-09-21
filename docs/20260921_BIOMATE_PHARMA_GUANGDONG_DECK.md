@@ -132,24 +132,60 @@ title: BioMate-Pharma — Guangdong Product Strategy
 
 ---
 
-## Architecture — shared engine, pharma vertical
+## Architecture — the five planes (shared engine, pharma vertical)
 
 ```
-   PHARMA UX (program‑centric: "drug program", not "run")   +   GxP / 21 CFR Pt.11 audit layer
-        │
-   ┌────┴───────────────────────────────────────────────────┐
-   │  Agentic orchestrator  (CSO + specialist agents + Reviewer QA)   ← Virtual‑Biotech pattern
-   └────┬───────────────────────────────────────────────────┘
-        │  calls MCP tools
-   ┌────┴───────────────────────────────────────────────────┐
-   │  BioMate execution engine (shared)                       │
-   │   • curated pharma workflow catalog (subset)             │
-   │   • integrated open FMs: Protenix / PXDesign / DPLM …    │  ← ANew open models
-   │   • generate → VERIFY (physics/ADMET) → learn            │
-   │   • public‑data MCP: OpenTargets/ClinicalTrials/…        │  ← Virtual‑Biotech data tools
-   └──────────────────────────────────────────────────────────┘
-              AWS Batch · reproducible workspaces · reports
+ ┌──────────────────────────────────────────────────────────────────────────────┐
+ │ ① EXPERIENCE   Pharma UX (program-centric: a "drug program", not a "run")      │
+ │                + GxP layer: 21 CFR Pt.11 · e-sign · RBAC · immutable audit     │
+ ├──────────────────────────────────────────────────────────────────────────────┤
+ │ ② ORCHESTRATION   CSO agent → 4 divisions (target · safety · modality ·        │
+ │                clinical) + independent Reviewer-QA loop      ← Virtual-Biotech  │
+ │                pure coordinator · per-agent MCP permission scoping             │
+ ├──────────────────────────────────────────────────────────────────────────────┤
+ │ ③ CAPABILITY (MCP tools)   run_workflow · search_workflow · fetch_public_data  │
+ │                · analyze_results · export_report   (one typed tool per action)  │
+ ├──────────────────────────────────────────────────────────────────────────────┤
+ │ ④ EXECUTION + VERIFY   curated pharma catalog (subset of 4,017 wf)             │
+ │                · integrated open FMs: Protenix/PXDesign/DPLM   ← ANew open      │
+ │                · GENERATE → **VERIFY** (physics MM-GBSA/FEP · ADMET · QC gate) │
+ │                  → LEARN     ← the step ① and ② lack                            │
+ ├──────────────────────────────────────────────────────────────────────────────┤
+ │ ⑤ DATA + PROVENANCE   public-data MCP (OpenTargets/ClinicalTrials/DepMap…      │
+ │                ← Virtual-Biotech) · private assay flywheel · per-program        │
+ │                trace.jsonl workspace (reasoning + tools + code + figures)       │
+ └──────────────────────────────────────────────────────────────────────────────┘
+        runs on: AWS Batch (GPU/CPU spot) · reproducible artifacts · reports
 ```
+
+**Three properties that make it a *product*, not a demo:** (1) **MCP-native throughout** — the same
+interface the orchestrator, the UI, and external agents all speak; (2) **verify is a first-class plane**,
+not a post-hoc check; (3) **everything emits provenance** (trace.jsonl) → GxP audit for free.
+
+---
+
+## Architecture — how a drug program flows (generate → verify → learn)
+
+```
+  target/indication ─▶ ② orchestrator decomposes ─▶ ③ MCP tool calls
+        │                                                   │
+        ▼                                                   ▼
+  ④ GENERATE            ④ VERIFY (non-negotiable)     ⑤ data pulled + logged
+  open FM / BoltzGen  ─▶ physics (MM-GBSA/FEP) +     ─▶ OpenTargets, ClinicalTrials,
+  designs candidates     ADMET + QC gate: does the      DepMap … + private assays
+        │                score survive independent           │
+        │                verification?                        │
+        ▼                     │  fail → don't advance          ▼
+  Reviewer-QA loop  ◀─────────┘  pass → rank & report ─▶ ⑤ LEARN: assay results
+  (rubric, re-delegate)                                    retrain the private model
+        │                                                        │
+        └──────────────────  compounding moat  ◀─────────────────┘
+```
+
+- **The loop is the moat:** each assay round sharpens both the generator and the selection policy — a
+  private-data + algorithm flywheel competitors' closed pipelines / read-only reasoners don't accumulate.
+- **Verify gates advancement:** a candidate only moves forward if physics/ADMET *and* an independent
+  reviewer agree — the honest-negative discipline (e.g. our ΔPSA3D result) is built into the flow.
 
 ---
 
