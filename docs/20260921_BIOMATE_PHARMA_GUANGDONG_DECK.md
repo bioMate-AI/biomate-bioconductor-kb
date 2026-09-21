@@ -208,6 +208,59 @@ not a post-hoc check; (3) **everything emits provenance** (trace.jsonl) → GxP 
 
 ---
 
+## Reality check — what a top‑20 pharma (AstraZeneca) actually runs
+
+AZ has **published** its agentic R&D stack (2026) — it validates the tender's direction *and* our architecture:
+
+- **ChatInvent** — production molecular‑design + synthesis agent (supervisor + 4 sub‑agents: Design · Synthesis · Analyzer · Utility); runs the **DMTA loop** conversationally. **Open‑sourced as `MolecularAI/langdmta-lab`** — and it is **MCP‑based** (Model Context Protocol), *the same tool interface BioMate uses.* (Drug Discovery Today, Jan 2026)
+- **Research Assistant** — biomedical R&D agent, **~15k internal users/yr**; literature/target/KG reasoning over BIKG (14M‑entity knowledge graph). (arXiv 2608.12395)
+- **Open tools under it (MolecularAI, Apache/MIT):** **REINVENT4** (de novo, scaffold hop, R‑group, linker, library), **AiZynthFinder** (retrosynthesis), QSARtuna (ADMET/QSAR), DockStream (docking), maize (comp‑chem DAG).
+
+**The point:** the client's ask (**generation + optimization + closed loop**) is exactly what AZ productized — MCP‑orchestrated, human‑in‑the‑loop, DMTA.
+
+---
+
+## BioMate coverage vs AstraZeneca's stack
+
+| AZ workflow (what their agents run) | BioMate today |
+|---|---|
+| MCP tool orchestration | ✅ **MCP‑native** — same paradigm (`run_workflow`, `search_workflow`, `fetch_public_data`…) |
+| De novo design / scaffold hop (REINVENT4) | ✅ generators integrated; **REINVENT4 is open → wire it in directly** |
+| Docking / MD / SBDD (DockStream/Icolos) | ✅ docking + MD + MM‑GBSA/FEP verify |
+| ADMET / QSAR + uncertainty (QSARtuna) | ✅ ADMET suite (hERG/CYP/hepatotox/off‑target) |
+| Literature / target‑ID / KG reasoning (BIKG) | ◑ lit + platform search present; **KG‑target reasoning is lighter** — a fast‑follow |
+| Retrosynthesis / synthetic feasibility (AiZynthFinder) | ◑ SA scoring present; **AiZynthFinder is open (MIT) → integrate for full retro** |
+| DMTA‑loop orchestration (ChatInvent) | ✅ generate→verify→learn loop + QC gates + provenance |
+
+- **Takeaway:** BioMate matches AZ on **architecture (MCP)** and most workflows, and AZ's two biggest gaps for us — **REINVENT4 + AiZynthFinder — are open**, so we absorb them. The client gets **AZ‑class capability, self‑hosted and governed.**
+
+---
+
+## The agent‑vendor model — Biomni / Phylo → Japanese pharma
+
+- **Biomni** (Stanford SNAP lab; *Science* 2026) — general‑purpose biomedical AI agent: **Claude + 150 tools / 59 DBs / ~106 packages**, composes workflows on the fly. Commercialized by **Phylo** ("Biomni Lab"; $13.5M seed from a16z + Anthropic's fund, Feb 2026).
+- **Deployed at two Japanese pharma:**
+  - **Ono** (Jul 2026) — rolled out to *every discovery scientist*; ingest proprietary historical data; reason + design follow‑on experiments.
+  - **Chugai / Roche** (Aug 2026) — **on‑premises, inside Chugai's secure perimeter**, on proprietary data; **4 preclinical areas: single‑cell · human genetics · disease biology · target evaluation.**
+- **This is the exact shape the Guangzhou tender wants** — an agentic workspace on the partner's **own data, on‑prem** (their Q18) — and it's being bought by top pharma *now*.
+
+---
+
+## BioMate coverage vs Biomni / Phylo
+
+| What Phylo provides pharma | BioMate |
+|---|---|
+| Agentic workspace on proprietary data, **on‑prem** | ✅ on‑prem / data‑residency deployment (tender Q18) |
+| Single‑cell · human genetics/GWAS · disease biology · target eval | ✅ workflows across all four (scRNA, GWAS, multi‑omics) |
+| Docking (DiffDock/Vina) · ADMET · binding affinity · repurposing (TxGNN) | ✅ docking + ADMET + repurposing workflows |
+| Powered by **Claude** | ✅ BioMate is Claude‑based + **MCP‑native** (Biomni ships a Claude connector) |
+| Tools = **ad‑hoc Python functions** (generalist agent) | ✅ **curated, validated production pipelines** (Nextflow/AWS‑Batch) — reproducible, QC‑gated, provenance |
+| *(not emphasized)* | ✅ **cryo‑EM · large nf‑core NGS · proteomics‑MS · PBPK** — beyond Biomni's catalog |
+
+- **Net read:** the winning pharma‑agent model (agentic workspace + proprietary data + on‑prem) is validated by **AZ and Biomni@Ono/Chugai** — and BioMate delivers it with **validated execution + governance**, not ad‑hoc scripts. *Differentiator vs Biomni = verified pipelines; vs AZ = self‑hosted + broader domain coverage.*
+
+---
+
 ## Requirement fit — the Guangzhou tender's 4 layers → BioMate
 
 *The tender (RMB 70M, deadline 2026‑12‑31) asks for a **reusable molecular generation + optimization platform** for **lead discovery/optimization** — optimizing **synthetic accessibility · target affinity · safety**. Scope is discovery — explicitly **not** clinical, regulatory submission, or candidate nomination.*
