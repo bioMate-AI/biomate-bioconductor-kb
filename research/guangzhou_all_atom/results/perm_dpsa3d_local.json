@@ -1,0 +1,41 @@
+{
+  "n": 5160,
+  "n_scaffolds": 368,
+  "2D_dims": 217,
+  "env_dims": 13,
+  "random_split": {
+    "2D_only": {
+      "R2": 0.302,
+      "Pearson": 0.563,
+      "Spearman": 0.693
+    },
+    "2D_plus_dPSA3D": {
+      "R2": 0.285,
+      "Pearson": 0.549,
+      "Spearman": 0.663
+    },
+    "dPSA3D_only": {
+      "R2": 0.069,
+      "Pearson": 0.32,
+      "Spearman": 0.373
+    }
+  },
+  "scaffold_split": {
+    "2D_only": {
+      "R2": 0.254,
+      "Pearson": 0.531,
+      "Spearman": 0.641
+    },
+    "2D_plus_dPSA3D": {
+      "R2": 0.24,
+      "Pearson": 0.517,
+      "Spearman": 0.618
+    },
+    "dPSA3D_only": {
+      "R2": 0.036,
+      "Pearson": 0.291,
+      "Spearman": 0.347
+    }
+  },
+  "dPSA3D_vs_target_spearman": -0.057
+}

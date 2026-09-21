@@ -43,6 +43,35 @@ polar-surface difference — the mechanistically loaded term, not a spread stati
 1.9 MB CSV (mirrored to our S3 on first run). Fallback for our OWN designed sequences not in the 4D set: our
 existing CHARMM/psfgen + GBn2 toolchain (`peptide_psfgen_smoke.sh`) gives 2-env geometries without GAFF/`sqm`.
 
+### Build A — MEASURED RESULT (2026-09-21, ran locally, n=5,160, 368 scaffolds) — ❌ HONEST NEGATIVE
+
+Ran `perm_dpsa3d.sh`'s fit locally (rdkit 2025.09.2; 217 RDKit 2D desc + 13 env features; HistGBR; 5-fold random
++ Bemis-Murcko GroupKFold). **The 2-env / ΔPSA3D descriptors do NOT beat 2D, and ΔPSA3D alone is near-zero:**
+
+| feature set | random R² | scaffold R² |
+|---|---|---|
+| 2D_only | **0.302** | **0.254** |
+| 2D + ΔPSA3D(+env) | 0.285 (worse) | 0.240 (worse) |
+| ΔPSA3D(+env) only | 0.069 | 0.036 |
+
+**Why (diagnostic):** individual columns carry modest signal — `Water_3D_PSA` ρ=−0.228, `Hexane_3D_PSA` ρ=−0.219,
+**`Water_Desolvation_Free_Energy` ρ=+0.276 (best single 2-env feature)** — but the **chameleon *difference*
+`ΔPSA3D = Water−Hexane` ρ=−0.057** because the two solvents' PSA are highly correlated, so subtraction cancels the
+signal. And even the raw 2-env set doesn't add over 2D (RDKit TPSA/descriptors already capture polar surface).
+
+**Honest conclusions:**
+1. **Does NOT reproduce EnsembleCycPerm's random R²=0.70.** Their lift must come from their *own* model/feature
+   pipeline (or a different split/target), **not** from the released CycPeptMPDB-4D descriptors bolted onto a GBM.
+   Adopting the *dataset* ≠ adopting the *model*.
+2. **Consistent with our own history:** finding #6 (cheap chameleon-span fails) + survey's "<2% variance" — the
+   cheap 2-env route now fails a **third** way, this time with real MD-ensemble descriptors, not our proxy.
+3. **Cheap win preserved:** the blocker really was eliminated (ran free, no `sqm`) — so this is a *clean* negative,
+   not a toolchain failure. That's the value: we can now stop investing in the cheap 2-env bolt-on with confidence.
+4. **If we still want the lift:** reimplement EnsembleCycPerm's actual model (their features, not just ΔPSA3D), or
+   test `Water_Desolvation_Free_Energy` as an orthogonal add to a *weaker* 2D baseline — low priority given (1)-(2).
+
+Result JSON: `results/perm_dpsa3d_local.json` (this commit).
+
 ---
 
 ## Build B — MacroGuide persistent-homology ring-closure guidance  ⚠️ scaffold ready, GPU + latent-risk, verify checkpoint first
