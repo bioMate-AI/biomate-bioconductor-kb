@@ -2,7 +2,7 @@
 Self-contained test suite for BayesianOptimizer.
 
 Run with:
-    cd /home/yzhang/biomate && python backend/lib/galaxy/ai/drug_discovery/test_bo.py
+    cd /app && python backend/lib/galaxy/ai/drug_discovery/test_bo.py
 """
 import os
 import sys

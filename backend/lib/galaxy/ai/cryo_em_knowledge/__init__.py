@@ -27,7 +27,7 @@ def populate_db(db_path: str) -> None:
 
 
 def build_rag_index(
-    docs_dir: str = "/home/yzhang/biomate/docs/cryo_em_skills",
+    docs_dir: str = "/app/docs/cryo_em_skills",
     db_path: str | None = None,
     force: bool = False,
 ) -> int:
@@ -43,7 +43,7 @@ def build_rag_index(
     if db_path is None:
         db_path = os.environ.get(
             "GALAXY_AI_DB_PATH",
-            "/home/yzhang/biomate/backend/galaxy_ai_tools.db"
+            "/app/database/galaxy_ai_tools.db"
         )
     import sys
     sys.path.insert(0, os.path.dirname(__file__))

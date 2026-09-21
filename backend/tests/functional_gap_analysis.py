@@ -583,7 +583,7 @@ class FunctionalGapAnalyzer:
     def save_results(self):
         """Save results to JSON file"""
         filename = f"functional_gap_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        filepath = f"/home/yzhang/biomate/backend/tests/{filename}"
+        filepath = f"/app/tests/{filename}"
 
         with open(filepath, 'w') as f:
             json.dump(self.results, f, indent=2)

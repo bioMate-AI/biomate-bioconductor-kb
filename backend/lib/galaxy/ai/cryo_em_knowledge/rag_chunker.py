@@ -453,7 +453,7 @@ if __name__ == "__main__":
     import sys, json
     from pathlib import Path
 
-    DOCS = "/home/yzhang/biomate/docs/cryo_em_skills"
+    DOCS = "/app/docs/cryo_em_skills"
     FILE_TO_SC = {
         "00_GENERAL_FRAMEWORK": "general",
         "01_MFSD2B_preprint":   "saposin_nanodisc",

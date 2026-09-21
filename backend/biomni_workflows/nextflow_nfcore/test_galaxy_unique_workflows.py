@@ -6,8 +6,8 @@ runs them in a temp dir, checks the output JSON for success.
 
 import os, re, subprocess, tempfile, json, sys
 
-PYTHON = "/home/yzhang/biomate/.venv_workflow_test/bin/python3"
-NF_BASE = "/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows"
+PYTHON = os.environ.get('PYTHON_BIN', 'python3')
+NF_BASE = os.environ.get('NF_BASE', '/app/biomni_workflows/nextflow_nfcore/subworkflows')
 
 # Galaxy-unique workflows to test (have .ga source files)
 TARGETS = [

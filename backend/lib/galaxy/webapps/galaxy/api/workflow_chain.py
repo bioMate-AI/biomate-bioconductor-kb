@@ -708,7 +708,7 @@ def _poll_run_until_done(chain_run_id: str, step_idx: int, run_id: str, poll_int
 
 # Resolve to the canonical database path: $GALAXY_AI_DB env > app-relative default.
 # Uses the same logic as unified_workflow_search.py so all code that opens this DB
-# resolves to the same file. The hardcoded /home/yzhang/ fallback only worked on one
+# resolves to the same file. The hardcoded developer path fallback only worked on one
 # developer's laptop — it never worked in Docker.
 _DB_PATH = Path(os.environ.get(
     "GALAXY_AI_DB",

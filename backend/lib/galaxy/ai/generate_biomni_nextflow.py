@@ -569,10 +569,10 @@ def main():
 
     parser = argparse.ArgumentParser(description='Generate Nextflow workflows from Galaxy tools')
     parser.add_argument('--galaxy-dir', type=Path,
-                        default=Path('/home/yzhang/biomate/backend/biomni_workflows/galaxy/tools/biomni'),
+                        default=Path(os.environ.get('BIOMNI_TOOLS_PATH', '/app/biomni_workflows/galaxy/tools/biomni')),
                         help='Path to Galaxy tools directory')
     parser.add_argument('--output-dir', type=Path,
-                        default=Path('/home/yzhang/biomate/backend/biomni_workflows/nextflow_generated'),
+                        default=Path(os.environ.get('BIOMNI_NF_PATH', '/app/biomni_workflows/nextflow_generated')),
                         help='Output directory for Nextflow workflows')
 
     args = parser.parse_args()
