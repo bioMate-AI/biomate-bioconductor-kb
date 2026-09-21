@@ -118,6 +118,33 @@ scaffold), not MacroGuide's vendored MolDiff `src/`.
 
 ---
 
+### Build B — MEASURED RESULT (2026-09-21, run `closure-ph-20260921T044733Z`, g6.2xlarge spot) — ⚠️ MIXED
+
+Ran the 3-arm closure smoke on the base LDM `provided.ckpt` (n=20 complexes × 4 attempts; calibrated
+consec_dist=4.514). `summary_{default,cyclic,ph}.json`:
+
+| arm | serialized | closure_rate (≤2Å) | mean_term_NC_dist | verdict |
+|---|---|---|---|---|
+| default | 80/80 | 0.0 | **18.35 Å** | baseline (unguided geometry) |
+| cyclic | 80/80 | 0.0 | **6.94 Å** | ✅ works — head-to-tail term pulls termini ~11 Å closer |
+| ph (MacroGuide) | **0/80** | null | null | ❌ **CRASHED — code bug, not a science result** |
+
+**Two honest findings:**
+1. **Guidance works directionally, but the base checkpoint can't fully close.** `cyclic` cut terminal N–C
+   distance 18.35→6.94 Å, but neither arm reached the strict 2 Å `closure_rate` — expected, because
+   `provided.ckpt` is **not cyclic-trained** (closure_smoke.sh header). A real closure test must use the
+   **cyclic-fine-tuned** checkpoint (`pepglad-cyclicft-…/cyclic_ldm/…/epoch59_step1920.ckpt`), which exists on S3.
+2. **The `ph` arm crashed (0/80 serialized).** `torch_topological==0.1.0` installed and the energy_func was
+   wired, but `ph_closure_energy` threw on every attempt (PepGLAD's sampling loop swallowed the per-attempt
+   exceptions → silent 0 serialized). Root cause: **my persistence code assumed a torch_topological API that
+   doesn't match 0.1.0** (pip resolved 0.1.0, not the pinned 0.1.7). This is an implementation bug — do NOT
+   read it as "MacroGuide doesn't help."
+
+**Fix plan (before any re-run — no speculative redeploy):** (a) correct `ph_closure_guidance.py` to the real
+torch_topological 0.1.0 API (probed locally); (b) make the energy term log the first exception + fall back
+instead of silently zeroing a run; (c) re-run on the **cyclic-ft checkpoint** so `closure_rate` can actually
+move. Cost of this run: ~$1 (g6 spot, self-terminated).
+
 ## Recommended sequencing
 1. **Launch Build A now** — cheap CPU spot, blocker removed, high-confidence, self-terminating. Lowest-risk real result.
 2. **Build B: verify the calibrated checkpoint on S3 first**, then GPU-smoke the `ph` A/B at LIMIT=20 before scaling.
