@@ -44,6 +44,12 @@ except Exception:                                     # torch_topological missin
 
 _WARNED = {"fallback": False, "ph_error": False}
 
+# Gradient-scale match: persistent-homology gradients measured ~26-51 in norm on noisy latent clouds
+# (local test 2026-09-21) vs the cyclic head-to-tail term's ~0-1.4. Un-scaled, at energy_lambda=0.8 the
+# guidance blows the latent off-distribution over the sampling trajectory -> NaN -> 0 valid decodes
+# (the observed 0/80). Scale the PH energy so its gradient magnitude matches the cyclic term's O(1) scale.
+PH_ENERGY_SCALE = 0.04
+
 
 # ---- MacroGuide terms, ported and latent-scaled --------------------------------
 def _window_hinge(value, low, high, power=2.0):
@@ -137,6 +143,9 @@ def ph_closure_energy(X, mask_generate, batch_ids, mean, std,
     try:
         ph = _ph_term(gb, gmask, mean, std, tolerance,
                       ring_lo_frac, ring_hi_frac, n_rings, weights)
+        ph = ph * PH_ENERGY_SCALE                 # match gradient magnitude to the cyclic term (see note above)
+        if not torch.isfinite(ph):
+            raise ValueError('non-finite PH energy')
         return base + ph
     except Exception:
         if not _WARNED["ph_error"]:
