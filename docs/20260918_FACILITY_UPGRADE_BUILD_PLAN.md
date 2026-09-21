@@ -32,6 +32,19 @@ Effort: S = <½ day, M = ~1 day. Risk: workflow-def edit only unless noted.
 
 *In flight (agent A):* **U1, U2, U3.**
 
+> **CORRECTION (2026-09-20) — U1 and U2 are mis-scoped; only U3 shipped.**
+> - **U3** ✅ landed (real `drc` 4PL fitter, commit df7b1664c).
+> - **U1 is NOT a default flip.** In `wgs_germline_gatk/main.nf`, `params.caller` is *defined* (line 55)
+>   but **never read** — there is no DeepVariant process anywhere in the workflow. Flipping the default
+>   to `deepvariant` would silently still run GATK (a mislabel — the exact workaround CLAUDE.md forbids).
+>   Worse, `nextflow_schema.json` advertises `deepvariant`, so the code↔schema is **drift** (should be
+>   caught by the C2 drift test). **Correct scope:** a real BUILD — add a DeepVariant process gated on
+>   `params.caller == 'deepvariant'` (container + GLnexus joint-genotyping), keep GATK the default until a
+>   deliberate Batch germline run validates it. Not shipped this session (needs Batch; no speculative deploy).
+> - **U2 is a DB/container change, not a file edit.** There is no local DIA-NN `.nf`; the DIA proteomics
+>   workflow is registered only in the gitignored `galaxy_ai_tools.db` (lives on dev + S3). Pinning DIA-NN 2.x
+>   is a dev-side container/DB update, done there — not editable from this checkout.
+
 ---
 
 ## Wave 2 — Build items (missing capability, prioritized by leverage)
