@@ -20,7 +20,7 @@ These six categories are the ones the notice itself flags as producing "substant
 | Instrument (中文) | Output format | Aligned BioMate resource | Path / domain | Status |
 |---|---|---|---|---|
 | **Sequencer — NGS RNA** (测序仪) | BCL→FASTQ | *Bulk RNA-seq Differential Expression* (nf-core/rnaseq → DESeq2 chain) | transcriptomics | ✅ Validated |
-| **Sequencer — NGS DNA/WGS** | BCL→FASTQ | *WGS Germline GATK* | `nextflow_nfcore/subworkflows/genomics/wgs_germline_gatk/main.nf` | ✅ Validated · 🔧 **U1** (flip default to DeepVariant; Clair3 for ONT — *not yet landed*) |
+| **Sequencer — NGS DNA/WGS** | BCL→FASTQ | *WGS Germline GATK* | `nextflow_nfcore/subworkflows/genomics/wgs_germline_gatk/main.nf` | ✅ Validated (GATK) · 🛑 **U1 re-scoped to a BUILD** — `params.caller` is dead config (never read, no DeepVariant process; schema drift). Needs a real DeepVariant branch + Batch validation, not a default flip. |
 | **Sequencer — somatic/tumor** | FASTQ (T/N) | nf-core/sarek (Mutect2; ASCAT/PURPLE for purity) | genomics | 🟡 Registered · 🔧 **U13** ASCAT/PURPLE routing · WS1 **A6** (no somatic chain/gold yet) |
 | **Sequencer — Sanger** | `.ab1` chromatogram | — none — | — | 🛑 **B5** (Tracy: trim→consensus/contig) |
 | **Sequencer — Nanopore** | POD5/FAST5 | nf-core/nanoseq (indirect) | genomics | 🔧 **U5** (Guppy→dorado, EOL) · 🛑 **B6** (standalone POD5→dorado) |
