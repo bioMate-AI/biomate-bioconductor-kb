@@ -2,7 +2,8 @@
 // ============================================================
 // Bioconductor workflow: faers — faers_pharmacovigilance_analysis
 // Download, preprocess, standardize, de-duplicate, and perform pharmacovigilance signal detection on FAERS quarterly data.
-// Input: faers_ascii_2004q1.zip, standardized_data.rds
+// Params: faers_year (default 2004), faers_quarter (default q1), drug_substance (default insulin)
+// Input: faers_ascii_<year><quarter>.zip (default faers_ascii_2004q1.zip), standardized_data.rds
 // Container: quay.io/biocontainers/bioconductor-faers:1.6.0--r45hdfd78af_0
 // R packages: (see script)
 // Bioconductor: 3.20 | R: 4.4
@@ -17,10 +18,15 @@
 //  * 4. [Core Analysis] Standardize terminology with MedDRA using faers_standardize()
 //  * 5. [Core Analysis] Retrieve MedDRA hierarchy information using faers_meddra()
 //  * 6. [Visualization & Output] De-duplicate reports using faers_dedup()
-//  * 7. [Core Analysis] Filter for drugs of interest (e.g., insulin) using fda_drugs() and faers_filter()
+//  * 7. [Core Analysis] Filter for the drug/substance of interest (params.drug_substance) using fda_drugs() and faers_filter()
 //  * 8. [Core Analysis] Perform pharmacovigilance signal analysis using faers_phv_signal()
 
 nextflow.enable.dsl = 2
+
+// [Global] User-facing pharmacovigilance query parameters
+params.faers_year    = 2004      // FAERS reporting year (four-digit, e.g. 2004 or 2017)
+params.faers_quarter = 'q1'      // FAERS reporting quarter: q1 | q2 | q3 | q4
+params.drug_substance = 'insulin' // Drug or active-substance name to detect safety signals for (matched case-insensitively against drugname and prod_ai)
 
 process BIOC_FAERS_FAERS_PHARMACOVIGILANCE_ANALYSIS {
     tag "${meta.id}"
@@ -69,25 +75,33 @@ process BIOC_FAERS_FAERS_PHARMACOVIGILANCE_ANALYSIS {
     library(BiocParallel)
     library(data.table)
     
+    # User-provided pharmacovigilance query parameters (injected by Nextflow).
+    faers_year    <- ${params.faers_year}
+    faers_quarter <- tolower("${params.faers_quarter}")
+    drug_substance <- "${params.drug_substance}"
+
     # Ensure the input ZIP file is named correctly for the package's expectations.
-    # The package expects 'aers_ascii_2004q1.zip' for the 2004 Q1 ASCII dataset.
-    if (file.exists("faers_ascii_2004q1.zip") && !file.exists("aers_ascii_2004q1.zip")) {
-        file.copy("faers_ascii_2004q1.zip", "aers_ascii_2004q1.zip")
+    # The package expects 'aers_ascii_<year><quarter>.zip' (e.g. aers_ascii_2004q1.zip).
+    expected_zip <- sprintf("aers_ascii_%d%s.zip", faers_year, faers_quarter)
+    # Accept either the canonical name or a 'faers_'-prefixed upload, for any year/quarter.
+    prefixed_zip <- sprintf("faers_ascii_%d%s.zip", faers_year, faers_quarter)
+    if (file.exists(prefixed_zip) && !file.exists(expected_zip)) {
+        file.copy(prefixed_zip, expected_zip)
     }
-    
+
     # 1. Check FAERS metadata
     faers_meta(internal = TRUE)
-    
-    # 2. Download and parse quarterly data files
-    data1 <- faers(2004, "q1",
+
+    # 2. Download and parse quarterly data files for the requested reporting period
+    data1 <- faers(faers_year, faers_quarter,
         dir = ".",
         compress_dir = tempdir()
     )
     data1
-    
-    # Since only 2004 Q1 is provided in the user input, we adapt the combined dataset step
-    # to use the available 2004 Q1 data.
-    data2 <- faers(2004, "q1",
+
+    # The combined-dataset step uses the same requested period (single quarter provided
+    # as workflow input); extend `dir`/period vectors here to combine multiple quarters.
+    data2 <- faers(faers_year, faers_quarter,
         dir = ".",
         compress_dir = tempdir()
     )
@@ -110,36 +124,36 @@ process BIOC_FAERS_FAERS_PHARMACOVIGILANCE_ANALYSIS {
     data <- faers_dedup(data)
     data
     
-    # 7. Filter for drugs of interest (insulin)
-    insulin_names <- "insulin"
-    insulin_pattern <- paste(insulin_names, collapse = "|")
-    fda_insulin <- fda_drugs()[
-        grepl(insulin_pattern, ActiveIngredient, ignore.case = TRUE)
+    # 7. Filter for the drug / substance of interest (user-provided)
+    drug_names <- drug_substance
+    drug_pattern <- paste(drug_names, collapse = "|")
+    fda_drug <- fda_drugs()[
+        grepl(drug_pattern, ActiveIngredient, ignore.case = TRUE)
     ]
-    insulin_pattern <- paste0(
-        unique(tolower(c(insulin_names, fda_insulin\$DrugName))),
+    drug_pattern <- paste0(
+        unique(tolower(c(drug_names, fda_drug\$DrugName))),
         collapse = "|"
     )
-    insulin_data <- faers_filter(data, .fn = function(x) {
-        idx <- grepl(insulin_pattern, x\$drugname, ignore.case = TRUE) |
-            grepl(insulin_pattern, x\$prod_ai, ignore.case = TRUE)
+    drug_data <- faers_filter(data, .fn = function(x) {
+        idx <- grepl(drug_pattern, x\$drugname, ignore.case = TRUE) |
+            grepl(drug_pattern, x\$prod_ai, ignore.case = TRUE)
         x[idx, primaryid]
     }, .field = "drug")
-    insulin_data
-    
+    drug_data
+
     # 8. Perform pharmacovigilance signal analysis
-    insulin_signals <- faers_phv_signal(insulin_data,
+    drug_signals <- faers_phv_signal(drug_data,
         .full = data,
         BPPARAM = BiocParallel::SerialParam(RNGseed = 1L)
     )
-    insulin_signals
-    
-    insulin_signals_hlgt <- faers_phv_signal(
-        insulin_data,
+    drug_signals
+
+    drug_signals_hlgt <- faers_phv_signal(
+        drug_data,
         .events = "hlgt_name", .full = data,
         BPPARAM = BiocParallel::SerialParam(RNGseed = 1L)
     )
-    insulin_signals_hlgt
+    drug_signals_hlgt
     
     # 9. Write output files
     demo_data <- faers_get(data2, "demo")
@@ -156,8 +170,8 @@ process BIOC_FAERS_FAERS_PHARMACOVIGILANCE_ANALYSIS {
     
     saveRDS(data, "deduplicated_data.rds")
     
-    data.table::fwrite(insulin_signals, "insulin_signals.csv")
-    data.table::fwrite(insulin_signals_hlgt, "insulin_signals_hlgt.csv")
+    data.table::fwrite(drug_signals, "drug_signals.csv")
+    data.table::fwrite(drug_signals_hlgt, "drug_signals_hlgt.csv")
 
     writeLines(c(
         '"BIOC_FAERS_FAERS_PHARMACOVIGILANCE_ANALYSIS":',
@@ -174,7 +188,7 @@ process BIOC_FAERS_FAERS_PHARMACOVIGILANCE_ANALYSIS {
 
 workflow BIOC_FAERS_FAERS_PHARMACOVIGILANCE_ANALYSIS_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), [ faers_ascii_2004q1.zip, standardized_data.rds ] ]
+    ch_input  // channel: [ val(meta), [ faers_ascii_<year><quarter>.zip, standardized_data.rds ] ]
 
     main:
     BIOC_FAERS_FAERS_PHARMACOVIGILANCE_ANALYSIS(ch_input)
