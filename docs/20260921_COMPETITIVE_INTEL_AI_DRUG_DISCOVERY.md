@@ -57,6 +57,34 @@ agents; **confidence flags** included. Strategic read at the end. Three-layer fr
 - **Relevance:** the orchestration PATTERN to adopt (on BioMate's MCP tools); its MCP data servers to integrate.
   **Complementary — it reasons, it does not execute.**
 
+## ② Pharma-deployed agentic systems — the reality check (added 2026-09-21)
+
+### AstraZeneca — published agentic R&D stack (HIGH)
+- **ChatInvent** — production molecular-design + synthesis agent; supervisor + 4 sub-agents (Design/Synthesis/
+  Analyzer/Utility); runs the **DMTA loop**. **Open-sourced as `github.com/MolecularAI/langdmta-lab` and it is
+  MCP-based** (same tool interface as BioMate). *Drug Discovery Today, 16 Jan 2026 (S1359644626000103).*
+- **Research Assistant** — biomedical R&D agent, **~15k internal users/yr**, ~$0.16/query; Apache-Burr orchestration,
+  Gemini; over the **BIKG** knowledge graph (~14M entities / 130M+ rels). *arXiv 2608.12395.*
+- **Open tools (MolecularAI):** REINVENT4 (de novo/scaffold-hop/linker/library), AiZynthFinder (retrosynthesis, MIT),
+  QSARtuna (ADMET/QSAR), DockStream (docking), maize (comp-chem DAG).
+- **Read:** validates the tender's generation+optimization+DMTA ask; **AZ and BioMate share the MCP architecture**,
+  and AZ's key tools are open → BioMate can absorb REINVENT4/AiZynthFinder. Differentiator vs AZ = self-hosted for the client + broader domain coverage.
+
+### Biomni / Phylo — agent vendor selling to Japanese pharma (HIGH)
+- **Biomni** — general-purpose biomedical AI agent (Stanford **SNAP lab / Leskovec**, Snyder, Regev; *Science* 2026;
+  bioRxiv 10.1101/2025.05.30.656746). **Claude-based**, ~150 tools / 59 DBs / ~106 packages; `github.com/snap-stanford/Biomni`, Apache-2.0.
+  *(NOT James Zou / Arc — that's a separate startup; don't conflate.)*
+- **Phylo** — commercializes it as **"Biomni Lab"** (an "Integrated Biology Environment"); **$13.5M seed (a16z + Menlo/
+  Anthropic Anthology Fund), Feb 2026.** CEO Kexin Huang.
+- **Japanese pharma deals (both via Biomni Lab):** **Ono** (28 Jul 2026 — roll out to every discovery scientist, ingest
+  proprietary historical data); **Chugai/Roche** (4 Aug 2026 — **on-premises**, secure perimeter, proprietary data;
+  **4 preclinical areas: single-cell · human genetics · disease biology · target evaluation**).
+- **Capabilities:** agentic discovery workspace; docking (DiffDock/Vina), ADMET, binding affinity, repurposing (TxGNN),
+  single-cell, GWAS, epigenomics, wet-lab protocol design, lit review.
+- **Read:** validates the tender's **on-prem + proprietary-data** shape (Q18). **Differentiator:** Biomni's tools are
+  ad-hoc Python functions (a generalist agent); BioMate runs **curated, validated production pipelines** (Nextflow/
+  AWS-Batch) + covers cryo-EM / large nf-core NGS / proteomics-MS / PBPK, which Biomni doesn't emphasize.
+
 ## ③ BioMate  (execution — our layer)
 - 4,017 workflows / 36 domains on AWS Batch → verified artifacts; MCP-native; drug_discovery domain (ADMET,
   docking, MD, PK/PD, PBPK, stability, BOIN, FAERS, IND narrative, CRO compliance); generate→verify loops +
