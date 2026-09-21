@@ -6,7 +6,39 @@ title: BioMate-Pharma — Guangdong Product Strategy
 ---
 
 <!-- Mixed exec + technical audience. Layered: landscape -> positioning -> architecture -> requirement fit -> roadmap.
-     Render: `marp <this>.md -o deck.pptx` (or --pdf). Competitive facts sourced 2026-09; see COMPETITIVE_INTEL notes. -->
+     Render: `marp <this>.md --pptx --no-stdin -o deck.pptx` (or --pdf). Competitive facts sourced 2026-09; see COMPETITIVE_INTEL notes. -->
+
+<style>
+:root {
+  --navy:#0b2545; --teal:#12808a; --ink:#1b2a38; --muted:#5b6b7a; --line:#d8e0e8; --soft:#f3f8fb;
+}
+section {
+  font-family:-apple-system,"Segoe UI","Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:20px; color:var(--ink); background:#ffffff; padding:44px 56px;
+}
+h1 { color:var(--navy); font-size:42px; }
+h2 { color:var(--navy); font-size:29px; border-bottom:3px solid var(--teal); padding-bottom:6px; margin-bottom:14px; }
+h3 { color:var(--teal); font-weight:600; margin-top:2px; }
+strong { color:var(--navy); }
+em { color:var(--muted); }
+a { color:var(--teal); text-decoration:none; }
+ul,ol { line-height:1.42; } li { margin:3px 0; }
+table { width:100%; border-collapse:collapse; font-size:15.5px; margin:6px 0; }
+th { background:var(--navy); color:#fff; text-align:left; padding:6px 10px; font-weight:600; }
+td { padding:5px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+tr:nth-child(even) td { background:var(--soft); }
+pre { background:var(--soft); border:1px solid var(--line); border-radius:6px; font-size:11px; line-height:1.22; padding:10px 12px; overflow:hidden; }
+code { font-family:"SF Mono","JetBrains Mono",Menlo,Consolas,monospace; }
+blockquote { color:var(--muted); border-left:4px solid var(--teal); padding-left:12px; font-style:italic; }
+section::after { color:var(--muted); font-size:12px; }
+section.lead { background:linear-gradient(135deg,#0b2545 0%,#12808a 100%); color:#eaf3f5; justify-content:center; }
+section.lead h1 { color:#ffffff; font-size:54px; margin-bottom:8px; }
+section.lead h3 { color:#bfe3e8; }
+section.lead strong { color:#ffffff; }
+section.lead em { color:#d6e7ec; }
+</style>
+
+<!-- _class: lead -->
 
 # BioMate‑Pharma
 ### An execution + verification substrate for AI drug discovery
