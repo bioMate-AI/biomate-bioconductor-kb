@@ -22,7 +22,7 @@ import path from "node:path";
 const { buildSchemaFromWorkflowGa } = await import("../paramSchema.ts");
 const { extractParameters } = await import("../schemaGroundedExtractor.ts");
 
-const NF_ROOT = "/home/yzhang/biomate/backend/nf-core-workflows";
+const NF_ROOT = process.env.NF_ROOT || "/app/backend/nf-core-workflows";
 
 // Helper: re-create the shape the backend ships in workflow_ga by parsing the
 // .nf file. In production this happens inside backend (_get_workflow_params)
