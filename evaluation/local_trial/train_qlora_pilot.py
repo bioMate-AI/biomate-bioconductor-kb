@@ -22,16 +22,21 @@ def main() -> int:
     ap.add_argument("--max-steps", type=int, default=60)
     ap.add_argument("--seq-len", type=int, default=1024)
     ap.add_argument("--lora-r", type=int, default=16)
+    ap.add_argument("--batch-size", type=int, default=1, help="per-device batch (raise to fill a big GPU)")
+    ap.add_argument("--grad-accum", type=int, default=16)
     ap.add_argument("--resume", default=None)
     args = ap.parse_args()
 
-    import torch
+    import os, torch
     from datasets import load_dataset
     from transformers import (AutoModelForCausalLM, AutoTokenizer,
                               BitsAndBytesConfig)
     from peft import LoraConfig, prepare_model_for_kbit_training
     from trl import SFTTrainer, SFTConfig
 
+    # DDP-safe device map: under torchrun each rank loads the full 4-bit model onto its own GPU.
+    _lr = os.environ.get("LOCAL_RANK")
+    devmap = {"": int(_lr)} if _lr is not None else "auto"
     tok = AutoTokenizer.from_pretrained(args.base, trust_remote_code=True)
     if tok.pad_token is None:
         tok.pad_token = tok.eos_token
@@ -40,7 +45,7 @@ def main() -> int:
                              bnb_4bit_use_double_quant=True,
                              bnb_4bit_compute_dtype=torch.bfloat16)
     model = AutoModelForCausalLM.from_pretrained(
-        args.base, quantization_config=bnb, device_map="auto",
+        args.base, quantization_config=bnb, device_map=devmap,
         torch_dtype=torch.bfloat16, trust_remote_code=True,
         low_cpu_mem_usage=True, attn_implementation="eager")
     model.config.use_cache = False
@@ -55,8 +60,8 @@ def main() -> int:
 
     cfg = SFTConfig(
         output_dir=args.out,
-        per_device_train_batch_size=1,
-        gradient_accumulation_steps=16,
+        per_device_train_batch_size=args.batch_size,
+        gradient_accumulation_steps=args.grad_accum,
         max_steps=args.max_steps,
         learning_rate=2e-4,
         lr_scheduler_type="cosine",
@@ -69,6 +74,7 @@ def main() -> int:
         gradient_checkpointing_kwargs={"use_reentrant": False},
         optim="paged_adamw_8bit",
         max_length=args.seq_len,
+        ddp_find_unused_parameters=False,
         packing=False,
         assistant_only_loss=True,          # supervise assistant tokens only
         report_to=[],

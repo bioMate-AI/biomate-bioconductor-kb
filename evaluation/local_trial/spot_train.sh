@@ -15,6 +15,11 @@ case "$SIZE" in
   *) echo "MODEL_SIZE must be small|large"; exit 1 ;;
 esac
 SEQ=${SEQ_OVERRIDE:-$SEQ}; R=${R_OVERRIDE:-$R}; MID=${MID_OVERRIDE:-$MID}   # overrides to fit GPU / set corpus coverage
+BS=${BS_OVERRIDE:-1}; GA=${GA_OVERRIDE:-16}   # per-device batch + grad-accum (raise BS to fill a big GPU)
+NGPU=$(nvidia-smi -L 2>/dev/null | wc -l); [ "${NGPU:-0}" -ge 1 ] || NGPU=1
+# multi-GPU -> torchrun data-parallel (each rank = full model on its own GPU); single GPU -> plain python
+if [ "$NGPU" -gt 1 ]; then LAUNCH="torchrun --nproc_per_node=$NGPU --master_port=29500"; else LAUNCH="python3"; fi
+echo "[spot] GPUs=$NGPU launcher='$LAUNCH' per-device-batch=$BS grad-accum=$GA (effective batch=$((BS*GA*NGPU)))"
 BASE="$SCRATCH/models/base_$SIZE"
 
 # stream this log to S3 every 30s so progress/errors are observable without SSH
@@ -67,23 +72,23 @@ trap 'kill $SYNCPID $WATCHPID $LOGPID 2>/dev/null; aws s3 sync "$OUT/" "$CKPT_S3
 
 echo "[spot] START training stage=$STAGE (MID=$MID SFT=$SFT SEQ=$SEQ R=$R)"
 if [ "$STAGE" = midtrain ]; then
-  python3 "$HERE/midtrain_run.py" --base "$BASE" --data "$SCRATCH/data/midtrain_all.jsonl" \
-     --out "$OUT" --max-steps $MID --seq-len $SEQ --lora-r $R $RESUME ${REPLAY:+--replay "$REPLAY" --replay-frac ${REPLAY_FRAC:-0.5}}
+  $LAUNCH "$HERE/midtrain_run.py" --base "$BASE" --data "$SCRATCH/data/midtrain_all.jsonl" \
+     --out "$OUT" --max-steps $MID --seq-len $SEQ --lora-r $R --batch-size $BS --grad-accum $GA $RESUME ${REPLAY:+--replay "$REPLAY" --replay-frac ${REPLAY_FRAC:-0.5}}
 elif [ "$STAGE" = full ]; then
   # committee-v3 fix: domain-adaptive mid-training FIRST, merge, then SFT — all on one box
-  python3 "$HERE/midtrain_run.py" --base "$BASE" --data "$SCRATCH/data/midtrain_all.jsonl" \
-     --out "$OUT/midtrain" --max-steps $MID --seq-len $SEQ --lora-r $R ${REPLAY:+--replay "$REPLAY" --replay-frac ${REPLAY_FRAC:-0.5}}
-  python3 "$HERE/merge_lora.py" --base "$BASE" --adapter "$OUT/midtrain" --out "$OUT/base_domain"
+  $LAUNCH "$HERE/midtrain_run.py" --base "$BASE" --data "$SCRATCH/data/midtrain_all.jsonl" \
+     --out "$OUT/midtrain" --max-steps $MID --seq-len $SEQ --lora-r $R --batch-size $BS --grad-accum $GA ${REPLAY:+--replay "$REPLAY" --replay-frac ${REPLAY_FRAC:-0.5}}
+  python3 "$HERE/merge_lora.py" --base "$BASE" --adapter "$OUT/midtrain" --out "$OUT/base_domain"   # merge = single process
   # PERSIST mid-training artifacts NOW — NVMe is wiped on spot terminate. full_adapter's base IS
   # base_domain (the merged domain-adapted base); without it the SFT adapter is orphaned + un-evaluable.
   aws s3 cp "$OUT/midtrain/" "$S3/models_20260919/$SIZE/midtrain_adapter$TAG/" --recursive --exclude "checkpoint-*/*" --quiet
   aws s3 cp "$OUT/base_domain/" "$S3/models_20260919/$SIZE/base_domain$TAG/" --recursive --quiet
-  python3 "$HERE/train_qlora_pilot.py" --base "$OUT/base_domain" --data "$SCRATCH/data/sft_enriched.jsonl" \
-     --out "$OUT/sft" --max-steps $SFT --seq-len $SEQ --lora-r $R
+  $LAUNCH "$HERE/train_qlora_pilot.py" --base "$OUT/base_domain" --data "$SCRATCH/data/sft_enriched.jsonl" \
+     --out "$OUT/sft" --max-steps $SFT --seq-len $SEQ --lora-r $R --batch-size $BS --grad-accum $GA
   OUT="$OUT/sft"   # so the upload below grabs the SFT adapter
 else
-  python3 "$HERE/train_qlora_pilot.py" --base "${BASE_DOMAIN:-$BASE}" --data "$SCRATCH/data/sft_enriched.jsonl" \
-     --out "$OUT" --max-steps $SFT --seq-len $SEQ --lora-r $R $RESUME
+  $LAUNCH "$HERE/train_qlora_pilot.py" --base "${BASE_DOMAIN:-$BASE}" --data "$SCRATCH/data/sft_enriched.jsonl" \
+     --out "$OUT" --max-steps $SFT --seq-len $SEQ --lora-r $R --batch-size $BS --grad-accum $GA $RESUME
 fi
 RC=$?
 echo "[spot] training exit=$RC — upload final adapter"
