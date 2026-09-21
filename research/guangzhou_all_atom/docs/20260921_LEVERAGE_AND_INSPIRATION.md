@@ -35,6 +35,34 @@ Concrete open needs, from `NEXT_BUILDS_PLAN.md` + `PROGRAM_STATE_20260918.md` + 
 
 ---
 
+## 0.5 The high-level brief, decomposed → leverage vs moat
+
+The platform brief (verbatim, as written before; also quoted in `INNOVATION_ASSESSMENT.md §2`):
+
+> 本平台构建"生成—验证—学习"一体化药物发现引擎：以**口袋条件化全原子模型**设计小分子、环肽等候选分子，结合
+> **构象集合、物理约束和多目标贝叶斯优化**，实现**活性、安全性、成药性与可合成性**的协同寻优；再通过**实验反馈
+> 持续训练企业专属模型**，形成**可积累的私有数据与算法壁垒**。
+
+**Honest read (our own §2):** as *stated*, this stack is **table-stakes** — every well-funded competitor
+(Vilya, ANew, Circle, Isomorphic…) claims exactly it; no single component is defensible in 2026. So the job is
+(a) **build each clause fast by leveraging open work**, and (b) **concentrate our own effort on the moat clauses**
+the landscape does NOT hand us. Clause by clause:
+
+| Brief clause | Leverage to build it fast (open) | Where the MOAT actually is (ours) |
+|---|---|---|
+| 口袋条件化全原子模型（小分子+环肽） | **PocketXMol (MIT)** does exactly this; BoltzGen (MIT), PepGLAD, UniMoMo | **one backbone + per-modality plugins**; cyclic-peptide plugin with *validated* closure / non-natural chemistry (not "looks cyclic") |
+| 构象集合 | RINGER (ensembles), CREMP (our S3), EnsembleCycPerm ΔPSA3D | using the 2-env chameleon signal as a **generation objective**, not just a score (Build A) |
+| 物理约束 | MM-GBSA (built), FEP via **ATM/openfe**, **MacroGuide** (topology/ring closure) | the **automated headless cyclic MM-GBSA verify** step — the field calls it hard; we run it. This is the "验证" that others skip |
+| 多目标贝叶斯优化 | **APCyc** (Bayesian posterior guidance), **PepTune** (MCTS guidance) | developability **+ uncertainty / expected-information-gain** as one learned objective → experiment-native (proposes the molecule *and* the next assay) |
+| 活性·安全性·成药性·可合成性协同寻优 | ADMET suite, CycPeptMPDB/EnsembleCycPerm (perm), stability data | **developability made first-class inside generation**, not a post-hoc filter (finding #5: designs are perm-poor) |
+| 实验反馈持续训练企业专属模型 | (no external shortcut — this is the loop) | the **compounding private-data flywheel**: each assay round sharpens *both* generator and acquisition policy |
+| 可积累的私有数据与算法壁垒 | (none — by definition can't be leveraged) | verify layer + flywheel + **honest adversarial review** + **execution on real compute + GxP** — the layer Vilya/ANew/Virtual-Biotech all lack |
+
+**One-line thesis:** *leverage the open landscape for 生成 (generation) and much of 验证 (physics); spend our
+scarce effort on 学习 (the compounding loop) + the verify layer + execution/compliance — that is the 壁垒.*
+
+---
+
 ## 1. Leverage map — external work → our build
 
 Legend: **Adopt** = wire the actual weights/code/data · **Inspire** = reimplement the idea. Sources verified by

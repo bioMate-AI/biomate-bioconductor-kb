@@ -28,12 +28,18 @@ agents; **confidence flags** included. Strategic read at the end. Three-layer fr
 ## ① ANew Labs / ByteDance  (foundation models + closed pipeline)
 - ByteDance AI-drug unit, **spun out Jun 2026**, **$290M @ ~$1.5B** (ByteDance 56%); Shanghai + SF + Singapore;
   lead Liu Kai; descended from ByteDance Seed "AI for Science" (Quanquan Gu, Zaixiang Zheng).
-- **Models:** Protenix (open AF3 repro, Apache-2.0), **AnewOmni** (all-atom cross-scale generative), **PXDesign**
-  (binder design, open), DPLM (diffusion protein LM, open), APM (open), **AnewDPSA (macrocyclic-peptide
-  permeability)**, AnewSynth, scNext. Open repos: github.com/bytedance/{Protenix,PXDesign,dplm,apm}.
-- **Pipeline:** oral IL-17 / IL-4R, all **preclinical**. First AI-designed therapy shown ~Apr 2026 (oral IL-17i).
-- **Confidence:** HIGH on funding/models/preclinical status; model capability claims (Protenix "beats AF3",
-  AnewOmni "first cross-scale") are **company/preprint-stage, unvalidated**.
+- **Funding (verified):** **$290M first external round, ~16–17 Sep 2026, at $1.5B valuation** (HSG/IDG/Hillhouse
+  lead; ByteDance retains ~56%). Reuters-originated, HIGH but secondhand.
+- **Open (VERIFIED, ByteDance Seed):** **Protenix** (AF3-level, Apache-2.0), **PXDesign** (de-novo binders,
+  20–73% nM hit rate), **DPLM/DPLM-2** (diffusion protein LM). Anew-branded: AnewOmni (generative, >5M complexes),
+  AnewFold, AnewSampling (all-atom MD), AnewMind (reasoning LLM), AnewDesign (antibody).
+- ⚠️ **CORRECTION:** the earlier-cited **"APM" and "AnewDPSA (macrocyclic-peptide permeability)" are UNVERIFIED**
+  — no primary source found. Do NOT cite AnewDPSA as an adoptable permeability model. The Anew-branded ↔ Seed
+  open-model mapping is inferred, not stated.
+- **Pipeline:** oral pan-spectrum IL-17 (shown AAI Boston Apr 2026) + IL-4R + 2 undisclosed, all **preclinical**
+  (no IND stage disclosed).
+- **Relevance:** direct peptide/generative competitor AND an integration source (Protenix/PXDesign/DPLM are the
+  real open pieces we can wire in — see leverage doc).
 - **Relevance:** direct peptide/generative competitor AND an **integration source** (open models we can wire in).
 
 ## ② The Virtual Biotech  (agentic orchestration) — Stanford, Zou lab
@@ -60,8 +66,17 @@ agents; **confidence flags** included. Strategic read at the end. Three-layer fr
 ## Peer mentions (context)
 - Peptide/macrocycle: Circle Pharma, Bicycle Therapeutics, Generate:Biomedicines, PocketXMol (Tsinghua, *Cell*
   2026), BoltzGen (open), RFpeptides/AfCycDesign, Boltz-2, RoseTTAFold3.
-- AI-drug general: Isomorphic Labs (Lilly/Novartis deals), Recursion, Xaira, Insilico (only Chinese player with
-  clinical proof — rentosertib IPF Ph2a), Baidu/BioMap, Tencent iDrug.
+- AI-drug general (verified 2026): **Isomorphic Labs** ($2.1B Series B, May 2026 — largest AI-drug raise, *corrects
+  the earlier ~$600M*; Lilly/Novartis/J&J; first IND targeted end-2026); **Recursion** (REC-4881 FAP Ph2 readout
+  Nov 2026); **Xaira** (>$1B, X-Cell virtual-cell Mar 2026, preclinical); **Insilico** (**rentosertib IPF now
+  Phase III, launched Jul 2026**; HKEX IPO Dec 2025 — strongest AI-drug clinical proof point); **XtalPi** (HKEX,
+  DoveTree "$6B" = mostly biobucks); Baidu/**BioMap** (xTrimo ~100B PLM, HK IPO filed Mar 2026); Tencent iDrug
+  (platform-only, Insilico partnership Jul 2026).
+- Established peptide/macrocycle (verified 2026): **Circle Pharma** ($92.5M Series E incl. Lilly, Sep 2026;
+  CID-078 oral cyclin A/B **RxL PPI** in Ph1 — *not CDK*; platform = **MXMO™**); **Bicycle** (nuzefatide pevedotin
+  ex-BT5528 now lead, PDAC Ph2); **Unnatural Products** ($45M Series B Mar 2026; Novartis ~$1.7B biobucks Feb 2026;
+  running a real DBTL loop behind closed doors — no methods paper); **Generate:Biomedicines** (**IPO Mar 2026,
+  NASDAQ: GENB**; GB-0895 anti-TSLP Ph3; Chroma open).
 
 ## Strategic read (for the deck)
 1. **Layers ① and ② are crowded and commoditizing/open; ③ (execution+verification) is uncontested and defensible.**
@@ -72,5 +87,25 @@ agents; **confidence flags** included. Strategic read at the end. Three-layer fr
    as a **vertical, not a fork**.
 5. **Honest:** our peptide work is in-silico/preclinical (as are theirs); wet-lab remains the ultimate gate.
 
+## Landscape honesty (verified — use these to stay credible)
+- **Clinical proof is rare.** Only **Insilico (rentosertib, Ph3)** and **Recursion (REC-4881, Ph2 readout Nov 2026)**
+  have meaningful clinical-stage *AI-discovered* assets. The direct peptide/macrocycle+AI cohort (Vilya, ANew,
+  UNP, Circle) is uniformly **pre-IND or early Ph1** — the field is young; the moat today is platform + deal-flow,
+  not clinical data.
+- **"Biobucks" are inflated.** Headline deal values (XtalPi–DoveTree "$6B", UNP–Novartis ~$1.7B, Isomorphic ~$3B)
+  are milestone-loaded; near-term upfronts are ~1–3% of the headline. Frame competitor deals accordingly.
+- **Agentic-orchestration white space is real but verify before over-claiming.** Closest analogs (ANew's AnewMind,
+  Tencent Hunyuan-iDrug, Insilico MMAI Gym) are not publicly positioned as *agentic multi-tool orchestrators* on a
+  verified execution substrate the way BioMate is — but run a dedicated search before asserting "no competitor."
+- **Closed-loop DBTL for macrocycles:** no *published* academic exemplar (a real gap to demonstrate), but industry
+  (esp. Unnatural Products) is already doing it privately — say "no published executed exemplar," not "nobody does it."
+
+## Recent cyclic-peptide works (2026) → leverage
+See the program-side synthesis `research/guangzhou_all_atom/docs/20260921_LEVERAGE_AND_INSPIRATION.md` for the
+adopt-vs-inspire map. Highlights the deck should reference: **PocketXMol** (*Cell* 2026, MIT open — pocket-conditioned
+cyclic design), **MacroGuide** (ring-closure guidance, 1%→99%), **EnsembleCycPerm** (chameleon 2-env permeability),
+**PepALD/APCyc** (permeability-conditioned generation), and the **13-method benchmark** (honest R²≈0.55 random ceiling).
+
 ## Open item
-- Confirm the "Molo-1 / Atomelogy" → Vilya-1 mapping with the user (or get the source where they saw the name).
+- Confirm the "Molo-1 / Atomelogy" → Vilya-1 mapping with the user (mapping is high-confidence per fetched arXiv
+  2607.09998 / 2607.25156; Vilya is US/Baker-IPD, not Chinese).
