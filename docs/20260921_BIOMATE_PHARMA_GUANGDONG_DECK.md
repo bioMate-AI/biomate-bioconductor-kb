@@ -180,7 +180,7 @@ section.lead em { color:#d6e7ec; }
  ├──────────────────────────────────────────────────────────────────────────────┤
  │ ④ EXECUTION + VERIFY   curated pharma catalog (subset of 4,017 wf)             │
  │                · integrated open FMs: Protenix/PXDesign/DPLM   ← ANew open      │
- │                · GENERATE → **VERIFY** (physics MM-GBSA/FEP · ADMET · QC gate) │
+ │                · GENERATE → VERIFY (physics MM-GBSA/FEP · ADMET · QC gate)     │
  │                  → LEARN     ← the step ① and ② lack                            │
  ├──────────────────────────────────────────────────────────────────────────────┤
  │ ⑤ DATA + PROVENANCE   public-data MCP (OpenTargets/ClinicalTrials/DepMap…      │
