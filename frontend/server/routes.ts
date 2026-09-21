@@ -6250,8 +6250,14 @@ ${paramLines || '(none recorded)'}`;
         // cache nor the authorized project files. A file that resolved but
         // failed to stage (s3_uri=null) is NOT unresolved — it degrades to
         // execute-time by-name staging.
-        (context as any).datasetReferenceUnresolvedIds = (selection.missingIds ?? [])
-          .filter((id) => !projectFileResolved.has(id));
+        // Guard: `context` is undefined when the request body omits a `context`
+        // field (the normal case for a plain chat message) — assigning onto it
+        // unconditionally crashed the whole /api/chat/stream path. Downstream
+        // readers (6293, 6490, 10225) all tolerate the field being absent.
+        if (context) {
+          (context as any).datasetReferenceUnresolvedIds = (selection.missingIds ?? [])
+            .filter((id) => !projectFileResolved.has(id));
+        }
         return exactSelection?.length
           ? exactSelection
           : (combined.length > 0 ? combined : undefined);
