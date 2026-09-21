@@ -59,9 +59,19 @@ process BIOC_NORMQPCR_DELTA_DELTA_CQ_NORMALIZATION {
     library(NormqPCR)
     
     # --- Read raw qPCR data ---
+    # [biomate] Default sample data: when no input is provided, fall back to the
+    # NormqPCR package's own bundled TaqMan example dataset so the workflow is
+    # one-click runnable for a convenient "try the platform" experience. The
+    # contrast matrix and housekeeping genes below already match this dataset.
     taqman.example <- "example.txt"
     if (!file.exists(taqman.example)) {
-      stop("Required input file 'example.txt' not found in the working directory.")
+      .pkg_example <- system.file("exData", "example.txt", package = "NormqPCR")
+      if (nchar(.pkg_example) && file.exists(.pkg_example)) {
+        file.copy(.pkg_example, taqman.example)
+        message("[biomate demo] No qPCR input provided — using the NormqPCR bundled example TaqMan dataset.")
+      } else {
+        stop("Required input file 'example.txt' not found and no bundled demo dataset available.")
+      }
     }
     qPCRBatch.taqman <- read.taqman(taqman.example)
     
