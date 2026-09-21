@@ -14,7 +14,7 @@ Tests:
   T10 API endpoint — propose response includes confidence_intervals + ad_statuses
 
 Run:
-    cd /home/yzhang/biomate/backend
+    cd /app
     python lib/galaxy/ai/drug_discovery/test_phase1_cro.py
 """
 

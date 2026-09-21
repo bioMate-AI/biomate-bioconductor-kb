@@ -22,17 +22,17 @@ Usage
 =====
     # Build the index (run once)
     python3 rag_index.py build \
-        --docs /home/yzhang/biomate/docs/cryo_em_skills \
-        --db   /home/yzhang/biomate/backend/galaxy_ai_tools.db
+        --docs /app/docs/cryo_em_skills \
+        --db   /app/database/galaxy_ai_tools.db
 
     # Test search
     python3 rag_index.py search \
         --query "saposin reconstitution failed, aggregates" \
-        --db    /home/yzhang/biomate/backend/galaxy_ai_tools.db
+        --db    /app/database/galaxy_ai_tools.db
 
     # Status
     python3 rag_index.py status \
-        --db /home/yzhang/biomate/backend/galaxy_ai_tools.db
+        --db /app/database/galaxy_ai_tools.db
 """
 
 from __future__ import annotations
@@ -684,20 +684,20 @@ def main():
 
     # build
     p_build = sub.add_parser("build", help="Build the RAG index")
-    p_build.add_argument("--docs", default="/home/yzhang/biomate/docs/cryo_em_skills")
-    p_build.add_argument("--db",   default="/home/yzhang/biomate/backend/galaxy_ai_tools.db")
+    p_build.add_argument("--docs", default="/app/docs/cryo_em_skills")
+    p_build.add_argument("--db",   default="/app/database/galaxy_ai_tools.db")
     p_build.add_argument("--force", action="store_true", help="Rebuild even if already built")
 
     # search
     p_search = sub.add_parser("search", help="Test semantic search")
     p_search.add_argument("--query", required=True)
-    p_search.add_argument("--db",    default="/home/yzhang/biomate/backend/galaxy_ai_tools.db")
+    p_search.add_argument("--db",    default="/app/database/galaxy_ai_tools.db")
     p_search.add_argument("--top_k", type=int, default=5)
     p_search.add_argument("--class", dest="sample_class")
 
     # status
     p_status = sub.add_parser("status", help="Print index stats")
-    p_status.add_argument("--db", default="/home/yzhang/biomate/backend/galaxy_ai_tools.db")
+    p_status.add_argument("--db", default="/app/database/galaxy_ai_tools.db")
 
     args = parser.parse_args()
 

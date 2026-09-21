@@ -1696,7 +1696,7 @@ class AIAssistant:
 
                 # Get Galaxy root from app config
                 if self.galaxy_app and hasattr(self.galaxy_app, 'config'):
-                    galaxy_root = str(getattr(self.galaxy_app.config, 'root', '/home/yzhang/biomate/backend'))
+                    galaxy_root = str(getattr(self.galaxy_app.config, 'root', '/app'))
                     http_port = getattr(self.galaxy_app.config, 'http_port', 8081)
                     galaxy_api_url = f"http://localhost:{http_port}"
 

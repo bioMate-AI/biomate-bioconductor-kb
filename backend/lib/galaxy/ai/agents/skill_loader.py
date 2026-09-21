@@ -49,7 +49,7 @@ class SkillLoader:
     """
 
     # Default path to skills repository
-    DEFAULT_SKILLS_PATH = "/home/yzhang/biomate/research_repos/claude-scientific-skills-biomate"
+    DEFAULT_SKILLS_PATH = os.environ.get('SKILLS_PATH', '/app/skills')
 
     # Map intent types to relevant skills
     INTENT_TO_SKILLS: Dict[str, List[str]] = {

@@ -19,7 +19,7 @@ import json
 import sqlite3
 import sys
 
-DB_PATH = "/home/yzhang/biomate/backend/galaxy_ai_tools.db"
+DB_PATH = "/app/database/galaxy_ai_tools.db"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PROTOCOLS — one entry per sample class

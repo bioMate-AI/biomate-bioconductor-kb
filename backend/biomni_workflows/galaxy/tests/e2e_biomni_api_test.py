@@ -16,7 +16,7 @@ import requests
 from anthropic import Anthropic
 
 # Add Biomni to path for direct execution fallback
-BIOMNI_PATH = "/home/yzhang/biomate/Biomni"
+BIOMNI_PATH = os.environ.get('BIOMNI_PATH', '/app/Biomni')
 if BIOMNI_PATH not in sys.path:
     sys.path.insert(0, BIOMNI_PATH)
 

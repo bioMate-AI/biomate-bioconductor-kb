@@ -452,7 +452,7 @@ class BenchmarkKnowledgeDB:
         candidate_paths = [
             _os.path.normpath(_os.path.join(_here, "..", "..", "..", "database", "galaxy_ai_tools.db")),
             _os.path.normpath(_os.path.join(_here, "..", "..", "..", "galaxy_ai_tools.db")),
-            "/home/yzhang/biomate/backend/database/galaxy_ai_tools.db",
+            "/app/database/galaxy_ai_tools.db",
         ]
         db_path = next((p for p in candidate_paths if _os.path.exists(p)), None)
         if not db_path:

@@ -2067,7 +2067,7 @@ class ResearchAgent:
         db_paths = [
             os.path.join(os.path.dirname(__file__), "..", "..", "..", "database", "galaxy_ai_tools.db"),
             os.path.join(os.path.dirname(__file__), "..", "..", "..", "galaxy_ai_tools.db"),
-            "/home/yzhang/biomate/backend/database/galaxy_ai_tools.db",
+            "/app/database/galaxy_ai_tools.db",
         ]
         db_path = None
         for p in db_paths:

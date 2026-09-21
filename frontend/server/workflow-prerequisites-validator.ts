@@ -11,7 +11,7 @@
  * - Works across all life science domains
  *
  * Created: 2026-01-16
- * See: /home/yzhang/biomate/20260116_1610_PRE_EXECUTION_VALIDATION_DESIGN.md
+ * See: docs/20260116_1610_PRE_EXECUTION_VALIDATION_DESIGN.md
  */
 
 import Anthropic from '@anthropic-ai/sdk';

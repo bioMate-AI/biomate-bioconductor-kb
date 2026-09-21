@@ -199,7 +199,7 @@ def rag_search(
 def build_rag_index(
     force: bool = Query(False, description="Rebuild even if already built"),
     docs_dir: str = Query(
-        "/home/yzhang/biomate/docs/cryo_em_skills",
+        "/app/docs/cryo_em_skills",
         description="Directory containing cryo-EM skill markdown files"
     ),
 ):

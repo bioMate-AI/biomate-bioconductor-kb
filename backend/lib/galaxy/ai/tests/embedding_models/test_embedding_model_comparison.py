@@ -81,7 +81,7 @@ def get_tool_database_path() -> str:
     possible_paths = [
         os.path.join(backend_path, "database", "galaxy_ai_tools.db"),
         os.path.join(backend_path, "lib", "galaxy", "ai", "galaxy_ai_tools.db"),
-        "/home/yzhang/biomate/backend/database/galaxy_ai_tools.db",
+        "/app/database/galaxy_ai_tools.db",
     ]
     for path in possible_paths:
         if os.path.exists(path):

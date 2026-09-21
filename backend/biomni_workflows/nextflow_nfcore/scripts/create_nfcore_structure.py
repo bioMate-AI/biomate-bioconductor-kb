@@ -9,7 +9,7 @@ import os
 import re
 from pathlib import Path
 
-NFCORE_DIR = Path('/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore')
+NFCORE_DIR = Path(os.environ.get('NFCORE_DIR', '/app/biomni_workflows/nextflow_nfcore'))
 SUBWORKFLOWS_DIR = NFCORE_DIR / 'subworkflows'
 TEST_VALUES_FILE = NFCORE_DIR / 'test_data' / 'test_values.json'
 PASSED_FILE = NFCORE_DIR / 'test_results' / 'passed_workflows.txt'
