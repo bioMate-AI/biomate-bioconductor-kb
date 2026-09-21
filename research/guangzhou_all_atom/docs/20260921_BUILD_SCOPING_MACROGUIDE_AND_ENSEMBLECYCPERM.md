@@ -145,6 +145,31 @@ torch_topological 0.1.0 API (probed locally); (b) make the energy term log the f
 instead of silently zeroing a run; (c) re-run on the **cyclic-ft checkpoint** so `closure_rate` can actually
 move. Cost of this run: ~$1 (g6 spot, self-terminated).
 
+### Build B — RESOLVED (2026-09-21, 4 runs) — ❌ MacroGuide does NOT beat the cyclic term
+
+After fixing two bugs, the final run (`closure-ph-20260921T082104Z`, base ckpt, n=20×4) is clean and conclusive:
+
+| arm | serialized | mean terminal N–C dist | closure_rate (≤2Å) |
+|---|---|---|---|
+| default (unguided) | 80/80 | 17.89 Å | 0.0 |
+| **cyclic** (head-to-tail) | 80/80 | **6.94 Å** | 0.0 |
+| **ph** (MacroGuide, stable) | 79/80 | **18.63 Å ≈ default** | 0.0 |
+
+**Two root causes found + fixed (grounded, not guessed):**
+1. **Wrong dependency version.** `pip torch_topological==0.1.7` silently failed on torch 2.5.1 → fell back to
+   **0.1.0**, which lacks `VietorisRipsComplex`. Fixed: pin **0.1.9** (verified locally to have the exact API) +
+   re-pin numpy<2 + import verification.
+2. **Gradient 20–50× too strong** (the silent 0/80). Local test: PH grad norm ~26–51 on noisy latent clouds vs
+   the cyclic term's ~0–1.4; at λ=0.8 it blew the latent to NaN → 0 valid decodes (no exception). Fixed:
+   `PH_ENERGY_SCALE=0.04` → grad ~1.06–2.17 (matches cyclic) + non-finite guard.
+
+**Scientific conclusion (honest):** for **head-to-tail macrocyclization**, the simple hand-rolled cyclic term
+**wins decisively** (6.94 Å vs 18.63 Å) and is cheaper/robust. MacroGuide's persistent-homology objective
+optimizes *ring topology/size*, which does **not** align with the terminal-N–C metric, and at the gentle scale
+required for sampler stability it's a **no-op** on this metric. **The paper's 1%→99% (unconditional MolDiff) does
+NOT transfer** to PepGLAD-with-a-working-cyclic-term. **Decision: keep the cyclic term; do not pursue MacroGuide
+here.** (Matches the leverage-doc prediction: "a wash on n=20 is a valid negative.") Net cost of the 4 runs: ~$4.
+
 ## Recommended sequencing
 1. **Launch Build A now** — cheap CPU spot, blocker removed, high-confidence, self-terminating. Lowest-risk real result.
 2. **Build B: verify the calibrated checkpoint on S3 first**, then GPU-smoke the `ph` A/B at LIMIT=20 before scaling.
