@@ -14,12 +14,13 @@ SG=${SG:-sg-0de9af2d4437a8c90}
 INSTANCE_TYPE=${INSTANCE_TYPE:-$( [ "$MODEL_SIZE" = small ] && echo g6e.xlarge || echo g6e.4xlarge )}
 REPO_TARBALL_S3=${REPO_TARBALL_S3:-s3://biomate-models-399683337364/biomate-core-local-trial/20260912/code/evaluation_local_trial.tgz}
 
-LOG_S3="s3://biomate-models-399683337364/biomate-core-local-trial/20260912/spot_logs/$MODEL_SIZE/$STAGE"
+TAG=${TAG:-}   # namespaces logs/ckpts/outputs for A/B variants (e.g. _mix)
+LOG_S3="s3://biomate-models-399683337364/biomate-core-local-trial/20260912/spot_logs/$MODEL_SIZE/$STAGE$TAG"
 USERDATA=$(cat <<EOF | base64
 #!/bin/bash
 exec > /var/log/ud.log 2>&1
 set -x
-export SCRATCH=/opt/dlami/nvme MODEL_SIZE=$MODEL_SIZE STAGE=$STAGE ENTRY=${ENTRY:-spot_train.sh} SEQ_OVERRIDE=${SEQ_OVERRIDE:-} R_OVERRIDE=${R_OVERRIDE:-} MID_OVERRIDE=${MID_OVERRIDE:-} CKPTS=${CKPTS:-} OPENAI_API_KEY=$OPENAI_API_KEY
+export SCRATCH=/opt/dlami/nvme MODEL_SIZE=$MODEL_SIZE STAGE=$STAGE TAG=$TAG ENTRY=${ENTRY:-spot_train.sh} SEQ_OVERRIDE=${SEQ_OVERRIDE:-} R_OVERRIDE=${R_OVERRIDE:-} MID_OVERRIDE=${MID_OVERRIDE:-} CKPTS=${CKPTS:-} FETCH_REPLAY=${FETCH_REPLAY:-0} REPLAY_FRAC=${REPLAY_FRAC:-} REPLAY_DOCS=${REPLAY_DOCS:-} OPENAI_API_KEY=$OPENAI_API_KEY
 # stream the boot log to S3 from the START so bootstrap failures are visible (EBS is gone on terminate)
 ( while true; do aws s3 cp /var/log/ud.log $LOG_S3/boot.log --quiet 2>/dev/null; sleep 20; done ) &
 mkdir -p \$SCRATCH/code && cd \$SCRATCH/code
@@ -44,7 +45,7 @@ IID=$(aws ec2 run-instances --region "$REGION" \
   --block-device-mappings 'DeviceName=/dev/sda1,Ebs={VolumeSize=400,VolumeType=gp3}' \
   --instance-initiated-shutdown-behavior terminate \
   --user-data "$USERDATA" \
-  --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=biomate-onprem-$MODEL_SIZE-$STAGE}]" \
+  --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=biomate-onprem-$MODEL_SIZE-$STAGE$TAG}]" \
   --query 'Instances[0].InstanceId' --output text)
 echo "INSTANCE=$IID  ($MODEL_SIZE/$STAGE)"
 echo "logs:  s3://biomate-models-399683337364/biomate-core-local-trial/20260912/spot_logs/$MODEL_SIZE/$STAGE/train.log"

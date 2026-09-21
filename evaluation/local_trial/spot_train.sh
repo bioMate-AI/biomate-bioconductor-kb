@@ -4,10 +4,10 @@
 # SFT-first path (mid-train optional): STAGE=sft trains the SFT adapter directly on the base.
 #   MODEL_SIZE=small STAGE=sft bash spot_train.sh
 set -uo pipefail
-SIZE=${MODEL_SIZE:-small}; STAGE=${STAGE:-sft}
+SIZE=${MODEL_SIZE:-small}; STAGE=${STAGE:-sft}; TAG=${TAG:-}   # TAG namespaces outputs for A/B variants (e.g. _mix)
 SCRATCH=${SCRATCH:-/opt/dlami/nvme}; HERE=$(cd "$(dirname "$0")" && pwd)
 S3=s3://biomate-models-399683337364/biomate-core-local-trial/20260912
-CKPT_S3="$S3/spot_ckpt/$SIZE/$STAGE"; LOG_S3="$S3/spot_logs/$SIZE/$STAGE"
+CKPT_S3="$S3/spot_ckpt/$SIZE/$STAGE$TAG"; LOG_S3="$S3/spot_logs/$SIZE/$STAGE$TAG"
 OUT="$SCRATCH/out/$SIZE/$STAGE"; mkdir -p "$OUT" "$SCRATCH/data" "$SCRATCH/models"
 case "$SIZE" in
   small) HF=Qwen/Qwen3-4B    ; SFT=500; MID=400; SEQ=2048; R=16 ;;
@@ -27,6 +27,33 @@ aws s3 cp "$S3/sft/multitask_sft_enriched.jsonl" "$SCRATCH/data/sft_enriched.jso
 if [ ! -d "$BASE" ]; then
   echo "[spot] downloading base $HF"
   python3 -c "from huggingface_hub import snapshot_download; snapshot_download('$HF', local_dir='$BASE')"
+fi
+
+# FETCH_REPLAY=1 → build/reuse the general-replay corpus (FineWeb-Edu, ODC-BY) for the 25/75
+# anti-forgetting mixture. Reused from S3 if already staged; else streamed here (disk box) + cached.
+if [ "${FETCH_REPLAY:-0}" = 1 ] && [ "$STAGE" != sft ]; then
+  REPLAY="$SCRATCH/data/general_replay.jsonl"
+  [ -s "$REPLAY" ] || aws s3 cp "$S3/midtrain_corpus/general_replay.jsonl" "$REPLAY" --quiet 2>/dev/null || true
+  if [ ! -s "$REPLAY" ]; then
+    echo "[spot] streaming general-replay (FineWeb-Edu sample-10BT) -> $REPLAY"
+    python3 - "$REPLAY" "${REPLAY_DOCS:-550000}" <<'PYEOF'
+import sys, json
+from datasets import load_dataset
+out, cap = sys.argv[1], int(sys.argv[2])
+ds = load_dataset("HuggingFaceFW/fineweb-edu", "sample-10BT", split="train", streaming=True)
+n = 0
+with open(out, "w") as f:
+    for r in ds:
+        t = r.get("text", "")
+        if len(t) > 300:
+            f.write(json.dumps({"text": t[:16000]}) + "\n"); n += 1
+        if n >= cap: break
+print("general_replay docs:", n)
+PYEOF
+    aws s3 cp "$REPLAY" "$S3/midtrain_corpus/general_replay.jsonl" --quiet
+  fi
+  export REPLAY REPLAY_FRAC=${REPLAY_FRAC:-0.75}
+  echo "[spot] replay ready: $(wc -l < "$REPLAY") docs, frac=$REPLAY_FRAC"
 fi
 
 echo "[spot] resume check"; aws s3 sync "$CKPT_S3/" "$OUT/" --quiet || true
@@ -49,8 +76,8 @@ elif [ "$STAGE" = full ]; then
   python3 "$HERE/merge_lora.py" --base "$BASE" --adapter "$OUT/midtrain" --out "$OUT/base_domain"
   # PERSIST mid-training artifacts NOW — NVMe is wiped on spot terminate. full_adapter's base IS
   # base_domain (the merged domain-adapted base); without it the SFT adapter is orphaned + un-evaluable.
-  aws s3 cp "$OUT/midtrain/" "$S3/models_20260919/$SIZE/midtrain_adapter/" --recursive --exclude "checkpoint-*/*" --quiet
-  aws s3 cp "$OUT/base_domain/" "$S3/models_20260919/$SIZE/base_domain/" --recursive --quiet
+  aws s3 cp "$OUT/midtrain/" "$S3/models_20260919/$SIZE/midtrain_adapter$TAG/" --recursive --exclude "checkpoint-*/*" --quiet
+  aws s3 cp "$OUT/base_domain/" "$S3/models_20260919/$SIZE/base_domain$TAG/" --recursive --quiet
   python3 "$HERE/train_qlora_pilot.py" --base "$OUT/base_domain" --data "$SCRATCH/data/sft_enriched.jsonl" \
      --out "$OUT/sft" --max-steps $SFT --seq-len $SEQ --lora-r $R
   OUT="$OUT/sft"   # so the upload below grabs the SFT adapter
@@ -60,5 +87,5 @@ else
 fi
 RC=$?
 echo "[spot] training exit=$RC — upload final adapter"
-aws s3 cp "$OUT/" "$S3/models_20260919/$SIZE/${STAGE}_adapter/" --recursive --quiet
-echo "SPOT_${STAGE}_DONE size=$SIZE rc=$RC"
+aws s3 cp "$OUT/" "$S3/models_20260919/$SIZE/${STAGE}${TAG}_adapter/" --recursive --quiet
+echo "SPOT_${STAGE}${TAG}_DONE size=$SIZE rc=$RC"
