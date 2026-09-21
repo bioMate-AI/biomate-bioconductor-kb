@@ -205,6 +205,24 @@ title: BioMate-Pharma — Guangdong Product Strategy
 
 ---
 
+## Leverage roadmap: adopt the open frontier, spend our effort on the moat
+
+The 2026 landscape lets us **build the table-stakes stack fast** and concentrate on what's defensible:
+
+| Brief clause (生成→验证→学习) | We ADOPT (open) | Our MOAT (own effort) |
+|---|---|---|
+| Pocket‑conditioned all‑atom design (small mol + cyclic peptide) | **PocketXMol** (*Cell* 2026, MIT), **BoltzGen** (MIT) | one backbone + **validated** per‑modality plugins (closure, non‑natural chemistry) |
+| Conformational ensembles + permeability | **EnsembleCycPerm** (2‑env chameleon) + open CycPeptMPDB‑4D | permeability as a **generation objective**, not a filter |
+| Physical constraints / ring closure | **MacroGuide** (ring formation 1%→99%), **openfe/ATM** (FEP) | **automated cyclic MM‑GBSA verify** — the "验证" others skip |
+| Multi‑objective Bayesian optimization | **APCyc**, **PepTune** (guided sampling) | developability **+ expected‑information‑gain** (experiment‑native loop) |
+| Continuous training on experimental feedback | — (no shortcut) | **compounding private‑data flywheel** + honest adversarial review |
+
+- **Honest calibration:** cyclic‑peptide permeability SOTA is **R²≈0.55 (random split)** and drops on scaffold — we cite the 13‑method benchmark and don't over‑promise.
+- **Message:** *we don't out‑generate Vilya/ANew — we compose the open frontier and win on **验证 + 学习 + execution**.*
+- Detail: `research/guangzhou_all_atom/docs/20260921_LEVERAGE_AND_INSPIRATION.md`.
+
+---
+
 ## Honest risks
 
 - **Competitors are strong** on models (ANew) and reasoning (Virtual Biotech); the generator layer is commoditizing.
