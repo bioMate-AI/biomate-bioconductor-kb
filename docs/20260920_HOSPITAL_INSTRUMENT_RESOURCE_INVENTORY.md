@@ -8,8 +8,11 @@
 **Status legend**
 - ✅ **Validated** — well-trodden path, run end-to-end.
 - 🟡 **Registered** — a real workflow routes with a real param spec, but end-to-end runnability on this data type is unverified.
+- 🆕 **Built (this session)** — workflow file exists in-repo (PR #226) but is **not yet DB-registered/validated on dev** (routing pending re-index).
 - 🔧 **Upgrade** — a workflow exists but is not best-in-class → see U# in `20260918_FACILITY_UPGRADE_BUILD_PLAN.md`.
 - 🛑 **Gap / build** — no real workflow → see B#.
+
+> **U#/B# numbering follows `20260918_FACILITY_UPGRADE_BUILD_PLAN.md`** (B1 imaging readers · B2 pathology FMs · **B3 MS raw→mzML** · **B4 QuPath** · B5 Sanger · B6 POD5 · B7 CyTOF · B8 QC parsers · B9 bench assays · B10 MS niche). ⚠️ The companion `..._AUDIT_AND_UPGRADES.md` **swaps B3/B4** — use this doc's numbering.
 
 ---
 
@@ -43,9 +46,9 @@ These six categories are the ones the notice itself flags as producing "substant
 
 | Instrument (中文) | Output | Aligned BioMate resource | Status |
 |---|---|---|---|
-| **Bioanalyzer / RIN** (生物分析仪) | electropherogram, RIN (PDF/CSV) | — none — | 🛑 **B8** (bioanalyzeR RIN parser) |
-| **Microvolume spectrophotometer / NanoDrop** (微量分光光度计) | A260/280, A260/230 | — none — | 🛑 **B8** (NanoDrop purity parser) |
-| **Automated cell counter** (自动细胞计数仪) | count, viability % | — none — | 🛑 **B8** (cell-count/viability parser) |
+| **Bioanalyzer / RIN** (生物分析仪) | electropherogram, RIN (PDF/CSV) | *RIN/Bioanalyzer QC* `…/lab_automation/rin_bioanalyzer_qc/main.nf` | 🆕 **B8 built** (PR #226) — pending dev DB registration to route |
+| **Microvolume spectrophotometer / NanoDrop** (微量分光光度计) | A260/280, A260/230 | *NanoDrop purity QC* `…/lab_automation/nanodrop_purity_qc/main.nf` | 🆕 **B8 built** (PR #226) — pending dev DB registration to route |
+| **Automated cell counter** (自动细胞计数仪) | count, viability % | *Cell-counter viability QC* `…/lab_automation/cell_counter_viability_qc/main.nf` | 🆕 **B8 built** (PR #226) — pending dev DB registration to route |
 | **Gel & blot imager** (多功能凝胶蛋白成像仪) | band TIFF + densitometry | Western densitometry (real); gel = in-silico sim only | 🔧/🛑 **B9** (real Fiji/ImageJ lane-profile densitometry) |
 | **Protein electrophoresis + transfer** (蛋白电泳系统/全能转印仪) | gel → membrane (physical) | feeds gel/blot imager above | n/a (physical product) |
 | **Gradient PCR** (梯度PCR仪) | amplified DNA (physical) | — | n/a (no data file) |
@@ -66,7 +69,7 @@ Live testing showed a real workflow routes for **every** data-producing instrume
 
 1. **Ingestion edge — vendor format readers (highest leverage).**
    - 🛑 **B1** imaging: `.kfb/.sdpc` (Chinese scanners), `.czi/.lif/.nd2/.oir` (confocal), even OpenSlide `.svs/.ndpi` → OME-TIFF. Unblocks **all** facility imaging.
-   - 🛑 **B4** MS: `.raw/.wiff/.d` → mzML (msConvert/ThermoRawFileParser). Unblocks every MS pipeline on this facility's raw files.
+   - 🛑 **B3** MS: `.raw/.wiff/.d` → mzML (msConvert/ThermoRawFileParser). Unblocks every MS pipeline on this facility's raw files.
 2. **Frontier — pathology foundation models.**
    - 🛑 **B2** UNI/CONCH/Virchow2/Prov-GigaPath (tile+slide encoders). Upstream of the antigen programme: tumor-content QC (Gate A), IHC/antigen validation, organoid histology. BioMate's FM surface is entirely transcriptomic today.
 
@@ -76,7 +79,8 @@ Live testing showed a real workflow routes for **every** data-producing instrume
 
 ## 5. Recommended sequencing (facility deliverables)
 
-1. **Ship the cheap upgrades** the facility touches: **U1** DeepVariant default (not yet landed), **U2** DIA-NN 2.x pin, **U6** flowClean→PeacoQC, **U7** SIRIUS 6 — plus **B8** QC parsers (RIN/NanoDrop/cell-count) which are trivial and genuinely missing.
-2. **Highest-leverage builds first:** **B4** MS raw→mzML, then **B1** imaging converters — they gate whole instrument axes.
-3. **Strategic build (own track):** **B2** pathology FMs + **B4/QuPath** for the antigen programme's tissue-QC / antigen-validation upstream.
-4. **Send the facility the four open questions** (MS model, sequencer model, scanner vendor, access/data-egress terms) — they determine effort more than any code change.
+1. **Already done this session (PR #226):** **B8** QC parsers (RIN/NanoDrop/cell-count) built — the only remaining step is **dev DB registration** so they route. Also landed earlier: metabolomics QC gate (08113a3), real `drc` 4PL dose-response (df7b1664c).
+2. **Cheap upgrades still open:** **U6** flowClean→PeacoQC, **U7** SIRIUS 6 — in-place workflow-def edits. (**U1** and **U2** are *not* cheap: U1 is a real DeepVariant BUILD + Batch validation, not a default flip; U2 is a dev-side DIA-NN container/DB pin — see §1 and the BUILD_PLAN correction.)
+3. **Highest-leverage builds first:** **B3** MS raw→mzML, then **B1** imaging converters — they gate whole instrument axes.
+4. **Strategic build (own track):** **B2** pathology FMs + **B4** QuPath for the antigen programme's tissue-QC / antigen-validation upstream.
+5. **Send the facility the four open questions** (MS model, sequencer model, scanner vendor, access/data-egress terms) — they determine effort more than any code change.
