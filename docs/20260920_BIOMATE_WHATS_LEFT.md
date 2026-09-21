@@ -25,13 +25,13 @@ These are real components/paths that exist but aren't fully connected. Cheap, ve
 
 | # | Gap | Fix shape | Status |
 |---|-----|-----------|--------|
-| A1 | **PaeHeatmap** viewer exists (`viewers/pae-heatmap.tsx`) but `*_pae.json` sidecars aren't routed to it in `step-output-preview.tsx` | one-wire route (like the CitationPanel fix) | **in progress (this session)** |
-| A2 | **Metabolomics has zero code-enforced QC gate** (only domain without one) — no parser/verdict in `qc_trace_monitor.py`, no `qc_evidence.yaml` section | add metric parser + gate + citations, matching the other domains | **in progress (agent)** |
+| A1 | **PaeHeatmap** viewer exists (`viewers/pae-heatmap.tsx`) but `*_pae.json` sidecars aren't routed to it in `step-output-preview.tsx` | one-wire route (like the CitationPanel fix) | ✅ **DONE** (commit af93abe00) |
+| A2 | **Metabolomics has zero code-enforced QC gate** (only domain without one) — no parser/verdict in `qc_trace_monitor.py`, no `qc_evidence.yaml` section | add metric parser + gate + citations, matching the other domains | ✅ **DONE** (commit 08113a330, untargeted LC-MS xcms→CAMERA→biosigner) |
 | A3 | **GWAS→scRNA→eQTL** chain runs but is incomplete (binary eQTL gate, no coloc/PP4, hardcoded demo scRNA) | finish coloc/PP4 + real scRNA input, or keep parked in Appendix E | pending decision |
-| A4 | **Owner-transfer** has a backend but no UI | add the transfer control to project settings | pending |
-| A5 | **FAERS** wired (workflow 11363) but demo-shaped (hardwired 2004-Q1 + insulin) | generalize the query params | pending |
-| A6 | **Somatic variant calling** (Mutect2) — workflows exist + route, but no chain/gold-standard | build chain + gold | pending |
-| A7 | **Stale catalog counts** — CLAUDE.md says "2,455/34"; the MCP server instructions say "4,017/36"; earlier live queries suggested ~4,200/42. **These disagree** and must be reconciled to the live DB | update the strings to the verified live count | **in progress (drift test agent verifying)** |
+| A4 | **Owner-transfer** has a backend but no UI | add the transfer control to project settings | pending (frontend-only, no Batch) |
+| A5 | **FAERS** wired (workflow 11363) but demo-shaped (hardwired 2004-Q1 + insulin) | generalize the query params | pending (low-risk param generalization) |
+| A6 | **Somatic variant calling** (Mutect2) — workflows exist + route, but no chain/gold-standard | build chain + gold | pending (needs Batch — see facility U13 ASCAT/PURPLE) |
+| A7 | **Stale catalog counts** — CLAUDE.md says "2,455/34"; the MCP server instructions say "4,017/36"; earlier live queries suggested ~4,200/42. **These disagree** and must be reconciled to the live DB | update the strings to the verified live count | ✅ **DONE** (drift CI guard, commit 26add34dd) |
 
 ---
 
@@ -71,11 +71,25 @@ per bug-class so they can't recur:
 
 ---
 
-## D. In-flight parallel work (this session)
-- Agent: metabolomics QC gate (A2).
-- Agent: doc↔code drift test suite (C2 / A7).
-- Agent: wiring + trust-boundary test suite (C3 / C1).
-- Me: PaeHeatmap wire (A1) + stale-count reconciliation (A7).
+## D. In-flight parallel work — ✅ ALL LANDED (as of 2026-09-20)
+- A2 metabolomics QC gate — ✅ commit 08113a330.
+- C2 doc↔code drift test suite (also closes A7) — ✅ commit 26add34dd.
+- C3 wiring + C1 trust-boundary test suite — ✅ commit 8c79e2149 (`test(wiring): source-level no-dead-affordance + trust-boundary contracts`).
+- A1 PaeHeatmap wire — ✅ commit af93abe00.
+
+**So the entire "now / cheap / CI-able" tranche (A1, A2, A7, C1–C3) is complete.**
+Facility Wave-1: **U3** real drc 4PL dose-response — ✅ commit df7b1664c.
+Facility Wave-1: **U1** DeepVariant default — ❌ **NOT landed** (`params.caller` still `'gatk'` in
+`wgs_germline_gatk/main.nf:55`); **U2** DIA-NN 2.x pin — unverified.
+
+## D2. Next actionable (post-tranche)
+Ordered by ROI × safety (no speculative Batch deploys per CLAUDE.md):
+1. **A5 FAERS generalize** — low-risk query-param generalization, no Batch.
+2. **A4 owner-transfer UI** — frontend-only, testable locally, no Batch.
+3. **B8 QC parsers** (RIN/NanoDrop/cell-count) — trivial new modules, close facility gaps + serve hospital deliverable.
+4. **U1/U2** facility upgrades — behavior change on a production caller; ship the def edit but validate with ONE deliberate germline run (not speculative).
+5. **A6 somatic chain + A3 coloc/PP4** — largest, need Batch time; schedule deliberately.
+See `docs/20260920_HOSPITAL_INSTRUMENT_RESOURCE_INVENTORY.md` for how U1/U2/U6/U7/B1/B2/B4/B8 map onto the client's instruments.
 
 ---
 
