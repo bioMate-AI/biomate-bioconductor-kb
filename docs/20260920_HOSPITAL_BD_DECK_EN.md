@@ -98,7 +98,8 @@ A grad student uploads their instrument output, describes their goal ("different
 Hospitals handle sensitive patient-derived data. BioMate supports:
 
 - **Cloud (managed):** fastest to start; isolated per-institution workspaces.
-- **On-premises / private deployment:** BioMate runs **inside the hospital network** so patient data never leaves — analysis and (optionally) the AI assistant run locally.
+- **On-premises / private deployment:** BioMate runs **inside the hospital network** — patient data never leaves.
+- **The AI itself can stay on-prem — not just the data.** The AI assistant can run on a **local, on-premises model**, and the language model is **fully configurable**: run a self-hosted model entirely inside your network (no external API calls), or connect a provider of your choice. Both the data *and* the AI reasoning stay on your infrastructure.
 - **Access control & audit logs** aligned to institutional data-governance requirements.
 
 > The deployment model is a decision we make **with** your IT and ethics governance — not a fixed constraint.
@@ -157,7 +158,7 @@ These determine effort more than anything on our side:
 - Your facility solved data **generation**. BioMate solves data **analysis** — by chat, no coding.
 - **One platform** covers the full instrument set your researchers use.
 - **Ready today** for your highest-volume lanes; **honest roadmap** for pathology imaging.
-- **On-prem option** keeps patient data inside the hospital.
+- **On-prem option** keeps patient data — *and the AI itself* — inside the hospital, with a configurable local or provider LLM.
 - **Next step:** a 4–6 week pilot on one real dataset.
 
 **Let's turn your instruments into results.**
