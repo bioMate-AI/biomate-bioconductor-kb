@@ -10,6 +10,7 @@ import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser"
 import { SkillsSelector, type SkillPack } from "./skills-selector"
 import { LanePreview, type LaneKind } from "./lane-preview"
 import { useDebounce } from "@/hooks/useDebounce"
+import { filesFromDataTransfer } from "@/lib/folder-drop"
 import { t } from "@/lib/i18n"
 
 interface AttachedFile {
@@ -207,6 +208,7 @@ export function ChatInput({
   const [, setLocation] = useLocation()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const folderInputRef = useRef<HTMLInputElement>(null)
 
   const addFiles = (files: File[]) => {
     const newAttached: AttachedFile[] = files.map(f => ({
@@ -335,10 +337,11 @@ export function ChatInput({
     }
   }
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault()
     setIsDraggingOver(false)
-    const dropped = Array.from(e.dataTransfer.files)
+    // Expand dropped folders into their files (same handling as the upload panel).
+    const dropped = await filesFromDataTransfer(e.dataTransfer)
     if (dropped.length > 0) addFiles(dropped)
   }
 
@@ -437,6 +440,15 @@ export function ChatInput({
         style={{ display: 'none' }}
         onChange={handleLocalFilePick}
         accept="*/*"
+      />
+      {/* Hidden folder input — same attach path as files (matches the upload panel) */}
+      <input
+        ref={folderInputRef}
+        type="file"
+        multiple
+        {...({ webkitdirectory: '', directory: '', mozdirectory: '' } as Record<string, string>)}
+        style={{ display: 'none' }}
+        onChange={handleLocalFilePick}
       />
 
       {/* Attached files + selected dataset chips */}
@@ -739,6 +751,22 @@ export function ChatInput({
             }}
           >
             <Paperclip className="w-4 h-4" />
+          </button>
+          {/* Upload a folder */}
+          <button
+            disabled={disabled}
+            title="Attach a folder"
+            onClick={() => folderInputRef.current?.click()}
+            data-testid="chat-attach-folder-button"
+            style={{
+              width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',
+              border: 'none', background: 'transparent',
+              color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <FolderInput className="w-4 h-4" />
           </button>
           {/* Browse BioMate datasets */}
           <button

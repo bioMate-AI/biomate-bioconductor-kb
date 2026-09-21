@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react"
 import { uploadFile as uploadFileShared } from "@/lib/upload"
+import { filesFromDataTransfer } from "@/lib/folder-drop"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -63,6 +64,7 @@ export function FileUpload({
   const [uploadTab, setUploadTab] = useState<'local' | 'url'>('local')
   const [urlImportMode, setUrlImportMode] = useState<'immediate' | 'deferred'>('deferred')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const folderInputRef = useRef<HTMLInputElement>(null)
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes'
@@ -77,7 +79,7 @@ export function FileUpload({
   const currentUploadSizeGB = currentUploadSizeBytes / (1024 * 1024 * 1024)
   const remainingStorageGB = availableStorageGB - totalUploadedGB - currentUploadSizeGB
 
-  const handleFileSelect = async (selectedFiles: FileList | null) => {
+  const handleFileSelect = async (selectedFiles: FileList | File[] | null) => {
     if (!selectedFiles) return
 
     const newFiles: UploadedFile[] = Array.from(selectedFiles).map(file => ({
@@ -290,14 +292,22 @@ export function FileUpload({
     setIsDragging(false)
   }
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
-    handleFileSelect(e.dataTransfer.files)
+    // Expand dropped folders (webkitGetAsEntry) into their files; falls back to
+    // the flat file list when the browser doesn't support directory entries.
+    const files = await filesFromDataTransfer(e.dataTransfer)
+    if (files.length > 0) handleFileSelect(files)
   }
 
   const handleClick = () => {
     fileInputRef.current?.click()
+  }
+
+  const handleFolderClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    folderInputRef.current?.click()
   }
 
   const completedCount = files.filter(f => f.status === 'completed').length
@@ -426,8 +436,20 @@ export function FileUpload({
                 Max {MAX_LOCAL_FILE_SIZE_GB} GB per file{multiple && ' · multiple files upload in parallel'}
               </p>
               <p className="text-xs text-muted-foreground/60 mt-1">
-                Folders: zip first · Files &gt;5 GB: use URL Import tab
+                Drop a folder or files · very large files: use URL Import tab
               </p>
+              <div className="mt-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleFolderClick}
+                  data-testid="file-upload-folder-button"
+                >
+                  <FolderArchive className="w-3.5 h-3.5 mr-1.5" />
+                  Select a folder
+                </Button>
+              </div>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -436,6 +458,15 @@ export function FileUpload({
                 onChange={(e) => handleFileSelect(e.target.files)}
                 className="hidden"
                 data-testid="file-upload-input"
+              />
+              <input
+                ref={folderInputRef}
+                type="file"
+                multiple
+                {...({ webkitdirectory: '', directory: '', mozdirectory: '' } as Record<string, string>)}
+                onChange={(e) => { handleFileSelect(e.target.files); e.currentTarget.value = '' }}
+                className="hidden"
+                data-testid="file-upload-folder-input"
               />
             </div>
           </TabsContent>
