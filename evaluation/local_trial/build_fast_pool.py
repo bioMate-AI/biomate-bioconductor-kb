@@ -7,22 +7,23 @@ import json, os, re, sqlite3, random, urllib.request, hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 REPO = "/Users/kky/biomate-review"; DB = f"{REPO}/backend/database/galaxy_ai_tools.db"
 P = f"{REPO}/docs/20260912_onprem_llm/data_pool_v2"
-OK = os.environ["OPENAI_API_KEY"]; MODEL = os.environ.get("SYNTH_MODEL", "gpt-6-luna")
-CAP = int(os.environ.get("CAP", "1600")); WORKERS = int(os.environ.get("WORKERS", "24"))
+GK = os.environ["GOOGLE_API_KEY"]; CAP = int(os.environ.get("CAP", "1600")); WORKERS = int(os.environ.get("WORKERS", "24"))
 random.seed(23)
 split = json.load(open(f"{P}/workflow_split.json")) if os.path.exists(f"{P}/workflow_split.json") else {}
 accept = json.load(open(f"{P}/accept_sets.json")) if os.path.exists(f"{P}/accept_sets.json") else {}
 c = sqlite3.connect(f"file:{DB}?mode=ro", uri=True); c.row_factory = sqlite3.Row
 
 
-def gem(prompt, mx=400):  # now gpt-6-luna (clean output; gemini-flash truncated 51% via thinking tokens)
-    b = json.dumps({"model": MODEL, "messages": [{"role": "user", "content": prompt}], "max_completion_tokens": mx}).encode()
-    for _ in range(3):
+def gem(prompt, mx=400):  # gemini-3.8-flash: fast + high-RPM. Floor maxOutputTokens at 1024 so thinking
+    mx = max(mx, 1024)    # tokens don't truncate the query (root cause of the earlier 51% junk).
+    u = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={GK}"
+    b = json.dumps({"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"maxOutputTokens": mx}}).encode()
+    for _ in range(4):
         try:
-            r = urllib.request.Request("https://api.openai.com/v1/chat/completions", data=b,
-                                       headers={"Authorization": f"Bearer {OK}", "Content-Type": "application/json"})
-            out = json.load(urllib.request.urlopen(r, timeout=90))["choices"][0]["message"]["content"].strip()
-            if out: return out
+            ca = json.load(urllib.request.urlopen(urllib.request.Request(u, data=b, headers={"Content-Type": "application/json"}), timeout=60))["candidates"][0]
+            if ca.get("finishReason") in (None, "STOP"):
+                out = "".join(x.get("text", "") for x in ca.get("content", {}).get("parts", [])).strip()
+                if out: return out
         except Exception: pass
     return ""
 
