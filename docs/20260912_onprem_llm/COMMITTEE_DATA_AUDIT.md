@@ -65,3 +65,24 @@ The three-source strategy is right, and self-mining + graph anchors are the stro
 **label contracts, teacher grounding, noise filtering, and split** must be fixed first. Same lesson as
 the eval saga: get the *contract and measurement* right before scaling. Net raw pool ~16.8k+ examples,
 but a large fraction needs regeneration/filtering before it's trainable.
+
+---
+
+## Fixes APPLIED + results (2026-09-22)
+All three fixes executed (API/DB-only, no GPU):
+
+- **Fix 3 — Jaccard-clustered split** (`build_jaccard_split.py`): 4,172 wf → 3,955 tool-clusters;
+  train 3,547 / eval 625 (family-disjoint, whole-cluster). Deprecates prefix-hash.
+- **Fix 2 — execution-boundary filter** (`fix_selfmining_filter.py`): commit-fixes **0/377 kept** —
+  the entire mined commit source is app-dev (web/API/CI) noise, NOT pipeline logic → autofix training
+  = the DB's 1,719 real `real_exec_err`, exactly as TRAINING_DATA_SOURCES warned. docs-QA 1,812/1,996 kept.
+- **Fix 1 — grounded re-distillation** (`build_committee_grounded.py`): teachers rerun the way BioMate
+  runs (retrieval candidates + schema). RESULTS confirm the diagnosis:
+  - routing: raw ungrounded agreement 0.27 → **grounded selection-given-recall 0.83**
+    (candidate_recall@20 0.81; overall exact 0.67). Retrieval, not teacher selection, is the bottleneck.
+  - param: free-form → **0.95 schema-valid** keys.
+
+**Net:** the pool is now trainable — real graph anchors (14.4k) + grounded/usable teacher distillation
+(routing 0.83 selection, param 0.95 schema-valid) + cleaned self-mining (1,812 QA) + family-disjoint
+split + corrected gold contracts (routing accept-sets, param schema-JSON). The committee-audit→fix cycle
+worked: the 0.27 "teacher quality problem" was a grounding bug, now fixed.
