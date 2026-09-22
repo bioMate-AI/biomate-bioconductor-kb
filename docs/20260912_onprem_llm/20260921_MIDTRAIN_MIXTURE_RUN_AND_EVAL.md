@@ -117,15 +117,17 @@ re-ran BOTH models on the fixed gold:
 | nonzero-mean | 0.508 | 0.518 | +0.010 |
 | nonzero-frac | 0.95 | 0.95 | 0 |
 
-**Two rigorous conclusions:**
-1. **The 0.27 was a metric artifact.** On fair gold, coverage is ~0.49–0.53 and nonzero-frac jumps
-   0.64→0.95 — the model produces sensible substitute plans; the old gold couldn't score them. The
-   on-prem 4B's out-of-catalog composition is *decent* (~0.5), not broken.
-2. **Mid-training is a wash even on the sensitive metric** (Δ within n=80 noise). The light pass adds
-   no measurable benefit over SFT-only. This now holds on a metric that CAN see improvement.
+Frontier re-baseline on the SAME fixed gold — **gpt-5-mini: micro 0.874, macro 0.909, nonzero-mean
+0.875, nonzero-frac 1.0.**
 
-Caveat: the 0.54 "frontier baseline" was measured on the OLD gold → not comparable; must be
-re-baselined on the fixed gold before claiming any gap.
+**Three rigorous conclusions:**
+1. **The 0.27 was a metric artifact.** On fair gold, on-prem coverage is ~0.49–0.53 (nonzero-frac
+   0.64→0.95). The model produces sensible substitute plans; the old gold couldn't score them.
+2. **Mid-training is a wash even on the sensitive metric** (Δ within n=80 noise) — holds on a metric
+   that CAN register improvement.
+3. **The frontier gap is LARGE, not small** (0.49 vs 0.87). The on-prem 4B is NOT near-frontier — big
+   headroom remains. Caveat: the metric is recall-only, so part of gpt-5-mini's lead is
+   thoroughness/verbosity, not necessarily grounded composition (see committee v4 §2).
 
 ## 6. Next steps (revised after corrected-gold re-measurement)
 
