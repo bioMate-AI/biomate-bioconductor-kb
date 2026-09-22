@@ -165,6 +165,22 @@ candidate tool, × (1 − 0.25·fatal-bio-errors). Re-scored the degenerate + fr
 0.45 (not the inflated 0.87). Next: re-score the on-prem 4B (sft-only vs full_mix) under this metric on
 a GPU box for the REAL out-of-catalog number + REAL mid-training verdict.
 
+
+### GROUNDED per-model numbers (on-demand, 2026-09-22) — the honest verdict
+| metric | sft-only | full_mix | frontier gpt-5-mini | degenerate |
+|---|---|---|---|---|
+| gscore_micro | 0.312 | 0.344 | ~0.445 | 0.00 |
+| gscore_macro | 0.338 | 0.320 | — | 0.00 |
+| grounded_micro | 0.441 | 0.453 | 0.50 | 0.00 |
+
+- On-prem 4B grounded composition ~0.31-0.34 = ~70-77% of the honest frontier (0.445), well above the
+  0.00 degenerate floor -> real capability, real-but-modest gap.
+- Mid-training remains a WASH on the grounded metric too (full_mix micro +0.032 / macro -0.018 vs
+  sft-only; metrics disagree on sign = n=80 noise). Robust across broken/corrected/grounded metrics:
+  the light mid-training dose adds nothing measurable for the 4B (single removal task).
+- CAVEAT: this is ONE task. Per-task scorecard across all 8 tasks awaits the data-rebuild + retrain
+  (20260922_DATA_STRATEGY_REBUILD.md).
+
 ## 6. Next steps (revised after metric falsification + slice-1)
 
 1. **Re-baseline the frontier** (gpt-5-mini) on the fixed gold — we need the true gap; the 0.54 was
