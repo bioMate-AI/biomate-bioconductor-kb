@@ -437,6 +437,15 @@ export interface ChatContext {
    * normal product flow, not test-only.
    */
   intentOverride?: string;
+  /**
+   * Populated per-turn by generateResponse() from the user's registered external
+   * MCP servers (via GET /api/users/mcp-tools on the Galaxy backend). Maps each
+   * exposed namespaced tool name (mcp__<server>__<tool>) → its owning server_id,
+   * so the tool loop can dispatch the model's call back to the correct server
+   * via POST /api/users/mcp-servers/{id}/call. Request-scoped (concurrency-safe);
+   * never persisted.
+   */
+  mcpToolServerMap?: Record<string, string>;
 }
 
 export interface ToolRecommendation {
@@ -2876,7 +2885,14 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
             case 'search_literature': output = await this._toolSearchLiterature(args); break;
             case 'search_my_data': output = await this._toolSearchMyData(args, toolContext.context); break;
             case 'list_data_sources': output = await this._toolListDataSources(args); break;
-            default:            output = { error: `Unknown tool: ${name}` };
+            default:
+              // External MCP tools (mcp__<server>__<tool>) → route to owning server.
+              if (typeof name === 'string' && name.startsWith('mcp__')) {
+                output = await this._toolCallExternalMcp(name, args, toolContext.context);
+              } else {
+                output = { error: `Unknown tool: ${name}` };
+              }
+              break;
           }
         } catch (e: any) { error = e.message; output = { error }; }
         const outStr = JSON.stringify(output).slice(0, 200);
@@ -8578,8 +8594,17 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       // ("list my files", "compute this"), which wrongly suppressed the whole agentic
       // tool layer and made the model hallucinate/deny tools it has. Tools are only
       // counter-productive when there is a real workflow to narrate (generatedWorkflow).
-      const agentTools = (!useThinking && onToolEvent && !hasRunnableWorkflow)
-        ? BIOMATE_TOOLS.filter(tool => !localOffline() || !['search_literature', 'list_data_sources'].includes(tool.name))
+      const toolsEnabledThisTurn = (!useThinking && onToolEvent && !hasRunnableWorkflow);
+      // Expose the authenticated user's registered external MCP tools alongside the
+      // built-in tools (namespaced mcp__<server>__<tool> — no collision). Fetched
+      // once per turn; populates context.mcpToolServerMap for dispatch. Skipped
+      // entirely when tools are off this turn or there is no user-scoped proxy.
+      const userMcpTools = toolsEnabledThisTurn ? await this._fetchUserMcpTools(context) : [];
+      const agentTools = toolsEnabledThisTurn
+        ? [
+            ...BIOMATE_TOOLS.filter(tool => !localOffline() || !['search_literature', 'list_data_sources'].includes(tool.name)),
+            ...userMcpTools,
+          ]
         : undefined;
 
       // Vision: when the user attached image(s), send them to the multimodal model
@@ -8647,8 +8672,8 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             // toolContext (as the fallback at the catch below already does).
             fn: () => this._generateWithGemini(
               systemPrompt, plainMessages, onResponseDelta, 4096, undefined,
-              (!useThinking && onToolEvent && !hasRunnableWorkflow)
-                ? { tools: BIOMATE_TOOLS, context, onToolEvent }
+              toolsEnabledThisTurn
+                ? { tools: [...BIOMATE_TOOLS, ...userMcpTools], context, onToolEvent }
                 : undefined,
             ),
             available: !!this.gemini && responseModel.startsWith('gemini-'),
@@ -9043,7 +9068,13 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             output = await this._toolListDataSources(block.input);
             break;
           default:
-            output = { error: `Unknown tool: ${block.name}` };
+            // External MCP tools are namespaced mcp__<server>__<tool>; route them
+            // to the owning remote server (ownership-checked backend-side).
+            if (typeof block.name === 'string' && block.name.startsWith('mcp__')) {
+              output = await this._toolCallExternalMcp(block.name, block.input, context);
+            } else {
+              output = { error: `Unknown tool: ${block.name}` };
+            }
         }
       } catch (err: any) {
         error = err?.message ?? String(err);
@@ -9404,6 +9435,78 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       };
     } catch (err: any) {
       return { error: err?.message ?? String(err) };
+    }
+  }
+
+  // ── External MCP tools (Capability B — user-registered remote MCP servers) ──
+  // At tool-assembly time, expose the authenticated user's registered MCP tools
+  // to the model (namespaced mcp__<server>__<tool> — collision-free with built-in
+  // tools), and dispatch calls back to the owning server. Registration + SSRF +
+  // ownership all live in the Galaxy backend external_mcp module; Node only
+  // fetches the namespaced tool list and forwards tools/call. MVP = expose all of
+  // the user's MCP tools directly (small N); no vector indexing yet.
+
+  /**
+   * Fetch the user's registered MCP tools as Anthropic tool defs, and populate
+   * context.mcpToolServerMap (namespaced name → server_id) for dispatch. Returns
+   * [] and leaves the map empty when there is no user-scoped proxy or on any
+   * error — the model keeps its built-in tools. Never throws.
+   */
+  private async _fetchUserMcpTools(context: ChatContext): Promise<Anthropic.Tool[]> {
+    const proxy = context?.galaxyAPIOverride as GalaxyAPIProxy | undefined;
+    if (!proxy) return []; // no user-scoped Galaxy key this turn → nothing to expose
+    try {
+      const resp = await proxy.client.get('/api/users/mcp-tools');
+      const tools: any[] = Array.isArray(resp?.data?.tools) ? resp.data.tools : [];
+      const map: Record<string, string> = context.mcpToolServerMap ?? {};
+      const out: Anthropic.Tool[] = [];
+      for (const t of tools) {
+        const name = (t?.name || '').toString();
+        const serverId = (t?.server_id || '').toString();
+        if (!name || !serverId || !name.startsWith('mcp__')) continue;
+        map[name] = serverId;
+        const schema = t?.input_schema && typeof t.input_schema === 'object'
+          ? t.input_schema
+          : { type: 'object', properties: {} };
+        out.push({
+          name,
+          description: (t?.description || `External MCP tool from ${t?.server_name || 'a user server'}.`).toString().slice(0, 1024),
+          input_schema: { type: 'object' as const, ...(schema as object) } as any,
+        });
+      }
+      context.mcpToolServerMap = map;
+      if (out.length) {
+        console.log(`[GalaxyAssistant] Exposed ${out.length} external MCP tool(s) to the model`);
+      }
+      return out;
+    } catch (err: any) {
+      console.warn('[GalaxyAssistant] Could not fetch user MCP tools (non-fatal):', err?.message ?? err);
+      return [];
+    }
+  }
+
+  /**
+   * Dispatch an mcp__<server>__<tool> call to the owning remote MCP server via the
+   * user-scoped Galaxy proxy (POST /api/users/mcp-servers/{id}/call — ownership-
+   * checked backend-side). The raw tool name is derived by the backend/client from
+   * the namespaced name; we forward the full namespaced name so the client strips
+   * its own prefix.
+   */
+  private async _toolCallExternalMcp(name: string, args: any, context: ChatContext): Promise<unknown> {
+    const proxy = context?.galaxyAPIOverride as GalaxyAPIProxy | undefined;
+    if (!proxy) return { error: 'external MCP tools require an authenticated user session' };
+    const serverId = context?.mcpToolServerMap?.[name];
+    if (!serverId) return { error: `no registered MCP server owns tool ${name}` };
+    try {
+      const resp = await proxy.client.post(
+        `/api/users/mcp-servers/${encodeURIComponent(serverId)}/call`,
+        { tool: name, arguments: args && typeof args === 'object' ? args : {} },
+      );
+      return resp?.data?.result ?? resp?.data ?? { ok: true };
+    } catch (err: any) {
+      const status = err?.response?.status;
+      const detail = err?.response?.data?.detail || err?.response?.data?.error || err?.message;
+      return { error: `MCP tool ${name} failed${status ? ` (HTTP ${status})` : ''}: ${detail}` };
     }
   }
 

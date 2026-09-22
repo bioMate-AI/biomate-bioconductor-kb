@@ -7345,6 +7345,54 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
+  // ---------------------------------------------------------------------------
+  // External MCP servers (Capability B) — proxy to Galaxy backend external_mcp_api.
+  // The registry (SSRF check + stdio-reject + per-user Vault ownership) lives in
+  // the Galaxy backend; Node only forwards via the user-scoped proxy. Auth headers
+  // never touch Node — they are stored encrypted in Vault by the backend.
+  // Matches the mcp-server-form.tsx contract: /api/mcp/servers GET/POST/DELETE.
+  // ---------------------------------------------------------------------------
+  app.get("/api/mcp/servers", optionalAuth, async (req, res) => {
+    try {
+      const proxy = userProxy(req);
+      const response = await proxy.client.get('/api/users/mcp-servers');
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+    }
+  });
+
+  app.post("/api/mcp/servers", optionalAuth, express.json(), async (req, res) => {
+    try {
+      const proxy = userProxy(req);
+      const response = await proxy.client.post('/api/users/mcp-servers', req.body);
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+    }
+  });
+
+  app.delete("/api/mcp/servers/:serverId", optionalAuth, async (req, res) => {
+    try {
+      const proxy = userProxy(req);
+      const response = await proxy.client.delete(`/api/users/mcp-servers/${encodeURIComponent(req.params.serverId)}`);
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+    }
+  });
+
+  // Re-run the tools/list handshake for a single server (discover / refresh tools).
+  app.post("/api/mcp/servers/:serverId/tools", optionalAuth, async (req, res) => {
+    try {
+      const proxy = userProxy(req);
+      const response = await proxy.client.post(`/api/users/mcp-servers/${encodeURIComponent(req.params.serverId)}/tools`, {});
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+    }
+  });
+
   // Track 7B — DB-sourced domain catalog
   // Returns top workflows grouped by domain, sourced live from the Galaxy backend search index.
   // Falls back to empty arrays on error — callers should use the hardcoded catalog as fallback.
