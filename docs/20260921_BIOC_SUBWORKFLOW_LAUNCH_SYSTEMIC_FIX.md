@@ -48,7 +48,13 @@ Executor-only change (`nextflow_executor.py`) → commit → PR to `next-phase` 
 - The R-level qPCR generalization + demo fallback are **already shipped and validated** (real Ct → COMPLETED). This doc is only the **launch/wrapper** layer.
 - Flow-cytometry `.fcs` fixture (separate item) so its dispatch becomes testable.
 
-## Status of the triggering work (for context)
+## UPDATE 2026-09-22 — Fix A shipped & validated; remaining issue re-scoped
+
+**Fix A (no-input launch) is IMPLEMENTED, synced, and validated.** `_build_bioc_entry_wrapper` now binds a `.dat` placeholder for the single-list-slot no-input case instead of returning None. Live evidence on dev: pre-Fix-A no-input runs `abd5958f`/`9f197935` **failed at launch (422)**; post-Fix-A run `7c9dfd0a` **reaches `running`** (no 422). The launch 422 is resolved for the class.
+
+**Remaining issue re-scoped (was "Fix B flaky wrapper" → now "bioc-container execution reliability").** Runs now *launch* but *completion* is slow/unreliable: `7c9dfd0a` still `running`; `fefa4723` stuck `running` **~13 h**; only `ea45b0de` (uploaded file) cleanly `completed`. Root cause is downstream of the wrapper — most likely the workflow's `BiocManager::install` deps-resolver re-installing (or hanging) even though the `quay.io/biocontainers/bioconductor-*` image should already ship the packages. **Next diagnostic (SSM read the Batch `.command.log`/`.command.err` of a hung run):** confirm whether the container's packages are found (should skip install) vs. re-installed/compiled (slow/hang). If re-installing, the fix is to trust the container's preinstalled packages (skip the BiocManager fallback when `requireNamespace` succeeds) + a hard time budget so a hung dep-install fails loudly instead of running forever. Add a CompletionPoller/orphan guard so a hung bioc run can't sit `running` for hours.
+
+
 - Dev chat-stream outage: fixed + live.
 - Hospital-instrument E2E (routing/UX/upload/folder): green.
 - qPCR generalization: validated end-to-end (flaky launch is THIS doc's subject).
