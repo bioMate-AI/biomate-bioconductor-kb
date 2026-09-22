@@ -7295,6 +7295,7 @@ ${paramLines || '(none recorded)'}`;
   // ---------------------------------------------------------------------------
   app.get("/api/databases/connections", optionalAuth, async (req, res) => {
     try {
+      if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
       const proxy = userProxy(req);
       const response = await proxy.client.get('/api/users/db-connections');
       res.json(response.data);
@@ -7305,6 +7306,7 @@ ${paramLines || '(none recorded)'}`;
 
   app.post("/api/databases/connections", optionalAuth, express.json(), async (req, res) => {
     try {
+      if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
       const proxy = userProxy(req);
       const response = await proxy.client.post('/api/users/db-connections', req.body);
       res.json(response.data);
@@ -7315,6 +7317,7 @@ ${paramLines || '(none recorded)'}`;
 
   app.delete("/api/databases/connections/:connId", optionalAuth, async (req, res) => {
     try {
+      if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
       const proxy = userProxy(req);
       const response = await proxy.client.delete(`/api/users/db-connections/${encodeURIComponent(req.params.connId)}`);
       res.json(response.data);
@@ -7326,6 +7329,7 @@ ${paramLines || '(none recorded)'}`;
   // Test a saved connection (SELECT 1 + list schemas)
   app.post("/api/databases/connections/:connId/test", optionalAuth, async (req, res) => {
     try {
+      if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
       const proxy = userProxy(req);
       const response = await proxy.client.post(`/api/users/db-connections/${encodeURIComponent(req.params.connId)}/test`, {});
       res.json(response.data);
@@ -7337,6 +7341,7 @@ ${paramLines || '(none recorded)'}`;
   // Verify raw params before saving
   app.post("/api/databases/connections/verify", optionalAuth, express.json(), async (req, res) => {
     try {
+      if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
       const proxy = userProxy(req);
       const response = await proxy.client.post('/api/users/db-connections/verify', req.body);
       res.json(response.data);
@@ -7354,6 +7359,7 @@ ${paramLines || '(none recorded)'}`;
   // ---------------------------------------------------------------------------
   app.get("/api/mcp/servers", optionalAuth, async (req, res) => {
     try {
+      if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
       const proxy = userProxy(req);
       const response = await proxy.client.get('/api/users/mcp-servers');
       res.json(response.data);
@@ -7364,6 +7370,7 @@ ${paramLines || '(none recorded)'}`;
 
   app.post("/api/mcp/servers", optionalAuth, express.json(), async (req, res) => {
     try {
+      if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
       const proxy = userProxy(req);
       const response = await proxy.client.post('/api/users/mcp-servers', req.body);
       res.json(response.data);
@@ -7374,6 +7381,7 @@ ${paramLines || '(none recorded)'}`;
 
   app.delete("/api/mcp/servers/:serverId", optionalAuth, async (req, res) => {
     try {
+      if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
       const proxy = userProxy(req);
       const response = await proxy.client.delete(`/api/users/mcp-servers/${encodeURIComponent(req.params.serverId)}`);
       res.json(response.data);
@@ -7385,6 +7393,7 @@ ${paramLines || '(none recorded)'}`;
   // Re-run the tools/list handshake for a single server (discover / refresh tools).
   app.post("/api/mcp/servers/:serverId/tools", optionalAuth, async (req, res) => {
     try {
+      if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
       const proxy = userProxy(req);
       const response = await proxy.client.post(`/api/users/mcp-servers/${encodeURIComponent(req.params.serverId)}/tools`, {});
       res.json(response.data);
