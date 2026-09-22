@@ -1,11 +1,26 @@
 #!/usr/bin/env python3
 """
 Simple test script to verify AI Assistant integration
+
+MANUAL DIAGNOSTIC — requires a live Galaxy server at http://localhost:8080.
+The test_* functions here `return True/False` and print; they have NO
+assertions, so pytest (which ignores return values) would collect them and
+report them GREEN even when the server is down and every call fails. The
+module-level skip below stops that fake-green: it gates honestly instead.
+Run directly (`python3 test_ai_integration.py`) against a running server.
 """
 
 import requests
 import json
 import sys
+
+import pytest
+
+pytestmark = pytest.mark.skip(
+    reason="manual diagnostic: requires live Galaxy server at "
+    "localhost:8080; test_* fns return bool (no asserts) and would "
+    "fake-pass under pytest"
+)
 
 def test_ai_status():
     """Test AI Assistant status endpoint"""

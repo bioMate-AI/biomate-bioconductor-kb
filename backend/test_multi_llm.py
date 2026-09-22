@@ -3,10 +3,25 @@
 多LLM提供商测试脚本
 
 测试不同AI模型提供商的集成是否正常
+
+MANUAL DIAGNOSTIC — print-based script, not a real pytest test. It needs the
+Galaxy runtime (galaxy.ai.llm_client) and prints provider info / connection
+results; test_all_providers() and test_specific_provider() return True/False
+with NO assertions, so pytest would collect and report them GREEN. The
+module-level skip below gates it honestly. Run directly
+(`python3 test_multi_llm.py [provider api_key]`) inside a Galaxy container.
 """
 
 import sys
 import os
+
+import pytest
+
+pytestmark = pytest.mark.skip(
+    reason="manual diagnostic: prints LLM provider info, no assertions; "
+    "requires Galaxy runtime (galaxy.ai.llm_client)"
+)
+
 
 def test_all_providers():
     """测试所有支持的AI提供商"""

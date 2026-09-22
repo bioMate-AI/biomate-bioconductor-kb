@@ -17,10 +17,27 @@ logging.basicConfig(
 # Add Galaxy lib to path
 sys.path.insert(1, os.path.join(os.path.dirname(__file__), "lib"))
 
-from galaxy.ai.galaxy_workflow_generator import GalaxyWorkflowGenerator
+import pytest
+
+pytestmark = pytest.mark.skip(
+    reason="manual diagnostic: prints generated workflow, no assertions; "
+    "requires Galaxy runtime (galaxy.ai) + populated tool DB + LLM access"
+)
+
 
 def test_workflow_generation():
-    """Test complete workflow generation with tool validation and datasets."""
+    """Test complete workflow generation with tool validation and datasets.
+
+    MANUAL DIAGNOSTIC — this prints a generated workflow and writes output
+    files (test_generated_workflow.ga, *_results.json); it returns True/False
+    with NO assertions, so pytest would report it GREEN regardless. It also
+    needs the full Galaxy runtime, a populated tool DB, and LLM access. Run
+    directly (`python3 test_workflow_generator.py`) in a Galaxy container.
+    The module-level skip above gates it honestly under pytest.
+    """
+    # Imported here (not at module top) so pytest collection does not hard-fail
+    # on the missing Galaxy runtime before the skip can take effect.
+    from galaxy.ai.galaxy_workflow_generator import GalaxyWorkflowGenerator
 
     print("=" * 70)
     print("Testing Galaxy Workflow Generator")

@@ -3,10 +3,25 @@
 Claude API 测试脚本
 
 测试Claude API集成是否正常工作
+
+MANUAL DIAGNOSTIC — print-based script, not a real pytest test. It needs the
+Galaxy runtime (galaxy.ai.llm_client) AND a real Claude API key to exercise a
+live connection; `test_claude_api()` returns True/False with NO assertions,
+so pytest would collect it and report GREEN even with the placeholder key.
+The module-level skip below gates it honestly. Run directly
+(`python3 test_claude_api.py`) after setting a real key in config/galaxy.yml.
 """
 
 import sys
 import os
+
+import pytest
+
+pytestmark = pytest.mark.skip(
+    reason="manual diagnostic: prints Claude API status, no assertions; "
+    "requires Galaxy runtime + a real Claude API key"
+)
+
 
 def test_claude_api():
     """测试Claude API连接"""

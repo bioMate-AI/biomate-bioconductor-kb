@@ -16,6 +16,14 @@ import tempfile
 import os
 import sys
 
+import pytest
+
+pytestmark = pytest.mark.skip(
+    reason="manual diagnostic: requires the biomate/biotools:arm64 Docker "
+    "image + a running Docker daemon; test_* fns return bool (no asserts) "
+    "and would fake-pass under pytest"
+)
+
 DOCKER_IMAGE = "biomate/biotools:arm64"
 CONDA_ACTIVATE = 'eval "$(micromamba shell hook --shell bash)" && micromamba activate biotools'
 
