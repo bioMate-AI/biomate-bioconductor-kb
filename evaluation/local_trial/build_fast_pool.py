@@ -7,20 +7,22 @@ import json, os, re, sqlite3, random, urllib.request, hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 REPO = "/Users/kky/biomate-review"; DB = f"{REPO}/backend/database/galaxy_ai_tools.db"
 P = f"{REPO}/docs/20260912_onprem_llm/data_pool_v2"
-GK = os.environ["GOOGLE_API_KEY"]; CAP = int(os.environ.get("CAP", "1600")); WORKERS = int(os.environ.get("WORKERS", "24"))
+OK = os.environ["OPENAI_API_KEY"]; MODEL = os.environ.get("SYNTH_MODEL", "gpt-6-luna")
+CAP = int(os.environ.get("CAP", "1600")); WORKERS = int(os.environ.get("WORKERS", "24"))
 random.seed(23)
 split = json.load(open(f"{P}/workflow_split.json")) if os.path.exists(f"{P}/workflow_split.json") else {}
 accept = json.load(open(f"{P}/accept_sets.json")) if os.path.exists(f"{P}/accept_sets.json") else {}
 c = sqlite3.connect(f"file:{DB}?mode=ro", uri=True); c.row_factory = sqlite3.Row
 
 
-def gem(prompt, mx=400):
-    u = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={GK}"
-    b = json.dumps({"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"maxOutputTokens": mx}}).encode()
+def gem(prompt, mx=400):  # now gpt-6-luna (clean output; gemini-flash truncated 51% via thinking tokens)
+    b = json.dumps({"model": MODEL, "messages": [{"role": "user", "content": prompt}], "max_completion_tokens": mx}).encode()
     for _ in range(3):
         try:
-            d = json.load(urllib.request.urlopen(urllib.request.Request(u, data=b, headers={"Content-Type": "application/json"}), timeout=60))
-            return "".join(x.get("text", "") for x in d["candidates"][0]["content"]["parts"]).strip()
+            r = urllib.request.Request("https://api.openai.com/v1/chat/completions", data=b,
+                                       headers={"Authorization": f"Bearer {OK}", "Content-Type": "application/json"})
+            out = json.load(urllib.request.urlopen(r, timeout=90))["choices"][0]["message"]["content"].strip()
+            if out: return out
         except Exception: pass
     return ""
 
@@ -60,23 +62,26 @@ def anchors_autofix():
     return [(r["name"], None, (r["real_exec_err"] or "")[:1400]) for r in c.execute("select name,real_exec_err from workflows where real_exec_err is not null and length(real_exec_err)>40")]
 
 
+def okq(q): return bool(q and len(q.strip()) >= 25 and " " in q.strip() and "do not name" not in q.lower())
+
+
 def build(task, wf, gold, aux):
     if task == "routing":
         q = gem(f"Write a realistic 1-2 sentence user request a scientist would type that should run the bioinformatics workflow '{wf}' (domain {aux}). Do NOT name the workflow. Reply ONLY the request.", 160)
-        if not q: return None
+        if not okq(q): return None
         r = {"task": "routing", "input": q, "target": wf, "workflow": wf}
     elif task == "wfgen":
         q = gem(f"Write a realistic user request handled by workflow '{wf}' (domain {aux}). Don't name it. Reply ONLY the request.", 160)
-        if not q: return None
+        if not okq(q): return None
         r = {"task": "wfgen", "input": q, "target": aux, "workflow": wf}
     elif task == "param":
         q = gem(f"Write a user request for a '{wf}' analysis that IMPLIES these parameter values without naming the keys: {json.dumps(gold)}. Reply ONLY the request.", 180)
-        if not q: return None
+        if not okq(q): return None
         r = {"task": "param", "input": q, "target": gold, "workflow": wf}
     elif task == "decompose":
         goal = "; ".join(s["sub_task"] for s in gold[:6])
         q = gem(f"Write a realistic multi-step analysis request whose plan is roughly: {goal}. Reply ONLY the request.", 200)
-        if not q: return None
+        if not okq(q): return None
         r = {"task": "decompose", "input": q, "target": gold, "workflow": wf}
     elif task == "autofix":
         cat = gem(f"Classify this pipeline failure into ONE short fix category (e.g. genome_mismatch, missing_input, resource_limit, container_error, dependency, format_error). Reply ONLY the category.\nError:\n{aux}", 30)
