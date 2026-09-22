@@ -286,22 +286,21 @@ test("SB-7: Settings button opens SettingsDialog", async () => {
 //        commented out in app-sidebar.tsx — "Beta: Actions panel hidden")
 // ============================================================================
 
-test("SB-8: Starred Workflows and Recent Tools buttons are absent (Actions block deleted)", async () => {
-  // The entire "Actions" section (Starred Workflows, Recent Tools, Billing) was a
-  // dead JSX comment block and was DELETED from app-sidebar.tsx (2026-09 cleanup).
-  // The Settings button IS present in the footer (separate from the deleted block).
+test("SB-8: Recent Tools + Settings present; the old Actions-block Starred button is gone", async () => {
+  // The old "Actions" section was removed; its functions RE-SURFACED as nav items.
+  // Verified against dev + app-sidebar.tsx source: button-starred-workflows is genuinely
+  // gone; Recent Tools now lives in the nav (button-recent-tools); Settings is in the footer.
   const page = sharedPage;
   await goHome(page);
 
   const starredBtn = page.locator('[data-testid="button-starred-workflows"]');
-  expect(await starredBtn.count(), "button-starred-workflows must be absent (Actions panel commented out)").toBe(0);
+  expect(await starredBtn.count(), "old button-starred-workflows (removed Actions block) must be absent").toBe(0);
   console.log("[SB-8] button-starred-workflows absent: correct");
 
   const recentBtn = page.locator('[data-testid="button-recent-tools"]');
-  expect(await recentBtn.count(), "button-recent-tools must be absent (Actions panel commented out)").toBe(0);
-  console.log("[SB-8] button-recent-tools absent: correct");
+  expect(await recentBtn.count(), "button-recent-tools must be PRESENT (moved into the sidebar nav)").toBeGreaterThan(0);
+  console.log("[SB-8] button-recent-tools present: correct");
 
-  // Settings IS present in the footer — verify it wasn't accidentally removed
   const settingsBtn = page.locator('[data-testid="button-settings"]');
   expect(await settingsBtn.count(), "button-settings must be present in footer").toBeGreaterThan(0);
   console.log("[SB-8] button-settings present in footer: correct");
@@ -311,15 +310,16 @@ test("SB-8: Starred Workflows and Recent Tools buttons are absent (Actions block
 // SB-9: Billing button is absent (same commented-out Actions panel)
 // ============================================================================
 
-test("SB-9: Billing button is absent (Actions block deleted)", async () => {
-  // button-billing was in the same deleted Actions block as
-  // button-starred-workflows and button-recent-tools (removed from app-sidebar.tsx, 2026-09).
+test("SB-9: Billing is present in the sidebar nav (button-billing-nav)", async () => {
+  // Billing moved out of the removed Actions block INTO the sidebar nav as
+  // button-billing-nav (the old button-billing testid no longer exists). Verified
+  // against dev + app-sidebar.tsx source — billing is a live nav item, not removed.
   const page = sharedPage;
   await goHome(page);
 
-  const billingBtn = page.locator('[data-testid="button-billing"]');
-  expect(await billingBtn.count(), "button-billing must be absent (Actions panel commented out)").toBe(0);
-  console.log("[SB-9] button-billing absent: correct");
+  const billingBtn = page.locator('[data-testid="button-billing-nav"]');
+  expect(await billingBtn.count(), "button-billing-nav must be PRESENT in the sidebar nav").toBeGreaterThan(0);
+  console.log("[SB-9] button-billing-nav present: correct");
 });
 
 // ============================================================================
