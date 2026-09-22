@@ -166,8 +166,12 @@ process BIOC_NORMQPCR_DELTA_DELTA_CQ_NORMALIZATION {
       saveRDS(ddCq.gM.taqman, "ddCq_multiple.rds")
       pdf("relative_expression_plot.pdf", width = 10, height = 6)
       plot_data <- ddCq.gM.taqman[1:10, ]
-      vals <- plot_data[["2^-ddCt"]]; vals[is.na(vals)] <- 0
-      barplot(vals, names.arg = plot_data[["ID"]], las = 2,
+      # deltaDeltaCq() returns the "2^-ddCt" column as character/factor, so coerce
+      # to numeric before plotting — barplot() on a non-numeric height halts the run
+      # ("non-numeric argument to binary operator"). names.arg coerced likewise.
+      vals <- suppressWarnings(as.numeric(as.character(plot_data[["2^-ddCt"]])))
+      vals[is.na(vals)] <- 0
+      barplot(vals, names.arg = as.character(plot_data[["ID"]]), las = 2,
               main = "Relative Expression (2^-ddCt) - Top 10 Genes (demo)",
               ylab = "Relative Expression", col = "skyblue", cex.names = 0.8)
       dev.off()
