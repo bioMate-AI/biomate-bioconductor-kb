@@ -23,7 +23,7 @@ Legend: **✅ real & verifiable now** · **◑ real in code/infra, not yet verif
 | 8 | 化学家界面 | program-centric panel, phases/QC gates, ELN/LIMS | ✅ | real (Benchling connector; full LIMS ◑) |
 | 9 | 交付物 候选分子包 | ranked set + evidence + provenance + next-round | ◑ | components real; full package needs the end-to-end run (as S2) |
 | 10 | 四层需求→能力 | Knowledge/Reasoning/Generation/Optimisation | ◑ | mostly real; Generation ◑, Reasoning ◑, FEP soft |
-| 11 | 平台构成 | 5 planes; **AI scientist team + independent reviewer** | ◑/⚠️ | planes/MCP real; **multi-agent "scientist team + reviewer" is the adopt-pattern, not shipped ⚠️** |
+| 11 | 平台构成 | 5 planes; **AI scientist team + independent reviewer** | ✅ | **CORRECTED:** BioMate HAS multi-agent orchestration (`agent_orchestrator.py`: router → parallel domain specialists → validating assembler; + research/error/query agents, agentic memory). Real, not adopt-pattern. Delta vs Virtual Biotech = scale (37k ephemeral research agents), not architecture |
 | 12 | 五阶段落地 | jointly-scoped pilot | ✅ | appropriately forward-looking |
 
 ## The three genuine over-claims (⚠️) — build or reframe

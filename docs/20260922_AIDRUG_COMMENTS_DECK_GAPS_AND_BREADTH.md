@@ -63,16 +63,23 @@ multi-objective across 4 axes (affinity×SA×safety×developability).
 ## 6. Does BioMate do multi-agent orchestration (like Virtual Biotech's simultaneous agents)?
 - **Virtual Biotech** ran **11 standing agents + ~37,000 ephemeral per-trial agents simultaneously** for early-R&D
   research (a 55,984-trial meta-analysis).
-- **Does BioMate do it today? NO (not as a shipped feature).** BioMate has NextflowComposer (workflow generation),
-  lane-arbiter routing, the QC/verify auto-loop, an agentic composer — a **single-orchestrator + workflow-execution**
-  architecture, not a standing team of simultaneous specialist agents + an independent reviewer running in parallel.
-- **Can it? Yes — buildable, not built.** BioMate is **MCP-native**, and the leverage doc (N8) scopes exactly this:
-  adopt the Virtual-Biotech pattern (CSO + specialists + reviewer + ephemeral fan-out) on BioMate's MCP tools; a public
-  re-impl exists (github.com/gliaropoulos/virtualbiotech).
-- **Is it in the deck? Yes — and it OVER-CLAIMS.** Client-deck S11 ("AI 科学家团队规划与调用工具，独立审核者复核") implies
-  a shipped agent team; per the honesty audit this is the **adopt-pattern, not shipped (⚠️ item S11).**
-  **Action: BUILD the multi-agent orchestration on BioMate MCP, or reframe S11** to what's real (the QC/verify
-  auto-loop + adversarial review, which we *did* run on the peptide program).
+- **Does BioMate do it today? YES — it has real multi-agent orchestration** *(corrected — earlier "single-orchestrator"
+  claim was wrong, verified against the code).* `backend/lib/galaxy/ai/agents/agent_orchestrator.py` = *"Coordinates
+  the multi-agent workflow generation system"*: **EnhancedDomainRouter → DomainSpecialistPool (parallel domain
+  specialists) → WorkflowAssembler (synthesizes + validates)** — "3 agents," specialists run **in parallel**
+  (`max_parallel_specialists`), full audit trail + learning-from-corrections. Plus `research_agent` (parallel
+  literature fan-out via `asyncio.gather`), `error_search_agent`, `query_agent`, `comprehensive_tool_knowledge_agent`,
+  `agent_system.py`, `agentic_memory`, and frontend `orchestrator.ts`. The assembler/validator plays the
+  "independent reviewer" role.
+- **Honest nuance vs Virtual Biotech:** BioMate's multi-agent is oriented to **workflow generation + research fan-out**
+  (router → parallel specialists → validator) — real and parallel. Virtual Biotech's is a **standing scientist team
+  (target/safety/modality/clinical divisions) + independent Scientific Reviewer + ~37k *ephemeral per-trial* agents**
+  for early-R&D *research* (a 55,984-trial meta-analysis). So the **architecture is present in BioMate**; the
+  *scale/breadth* of a 37k-agent research fan-out over the whole pipeline is the delta to close (buildable on MCP).
+- **Is it in the deck?** S11 ("AI 科学家团队规划与调用工具，独立审核者复核") is therefore **defensible, not an over-claim**
+  — BioMate genuinely runs parallel specialist agents + a validating assembler. *(This corrects the honesty-audit ⚠️
+  on S11 → ✅/◑.)* Optional upgrade: scale toward the Virtual-Biotech breadth (more standing specialists + ephemeral
+  research fan-out) on the existing MCP substrate.
 
 ## 7. Breadth beyond early R&D (survey in progress)
 The commentary + the Biomni/Chugai model (**single-cell · human genetics · disease biology · target evaluation**) and
