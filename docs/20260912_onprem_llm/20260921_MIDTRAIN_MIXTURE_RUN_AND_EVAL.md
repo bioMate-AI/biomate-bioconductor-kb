@@ -149,7 +149,23 @@ uninterpretable** — the 0.27→0.5 "fix", the mid-training wash, and the front
 fix removed the tautology artifact but the deeper query-circularity + recall-only design remain fatal.
 Do not cite these coverage numbers as capability. Rebuild per committee v4 before any claim.
 
-## 6. Next steps (revised after metric falsification)
+### Rebuild-slice-1 — grounded metric VALIDATED (2026-09-22) ✅
+New metric `eval_grounded.py`: credit a gold milestone only if covered by a plan step naming a REAL
+candidate tool, × (1 − 0.25·fatal-bio-errors). Re-scored the degenerate + frontier strategies:
+
+| strategy | raw (old) | grounded | gscore (new) |
+|---|---|---|---|
+| null-echo | 0.692 | 0.000 | 0.000 |
+| generic-template | 0.584 | 0.000 | 0.000 |
+| query-only (no candidates) | 0.929 | 0.000 | 0.000 |
+| frontier + candidates | 0.865 | 0.500 | 0.445 |
+
+**PASS:** all degenerate baselines → 0.00 (<0.15); frontier-with-candidates 0.445 ≫ query-only 0.00
+(catalog now required). The grounded metric is non-gameable. Honest frontier grounded composition ≈
+0.45 (not the inflated 0.87). Next: re-score the on-prem 4B (sft-only vs full_mix) under this metric on
+a GPU box for the REAL out-of-catalog number + REAL mid-training verdict.
+
+## 6. Next steps (revised after metric falsification + slice-1)
 
 1. **Re-baseline the frontier** (gpt-5-mini) on the fixed gold — we need the true gap; the 0.54 was
    on broken gold. This tells us whether the on-prem 4B (~0.5) is already near-frontier or not.

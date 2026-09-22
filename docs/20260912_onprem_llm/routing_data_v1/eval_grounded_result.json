@@ -1,0 +1,23 @@
+{
+  "null_echo": {
+    "raw": 0.692,
+    "grounded": 0.0,
+    "gscore": 0.0
+  },
+  "generic_template": {
+    "raw": 0.584,
+    "grounded": 0.0,
+    "gscore": 0.0
+  },
+  "query_only": {
+    "raw": 0.929,
+    "grounded": 0.0,
+    "gscore": 0.0
+  },
+  "frontier_cands": {
+    "raw": 0.865,
+    "grounded": 0.5,
+    "gscore": 0.445
+  },
+  "n": 80
+}
