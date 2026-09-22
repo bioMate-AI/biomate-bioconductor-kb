@@ -297,7 +297,7 @@ export class ProjectMemoryRepository {
          p.updated_at     AS "updatedAt",
          p.archived_at    AS "archivedAt",
          (SELECT COUNT(*) FROM chat_sessions cs WHERE cs.project_id = p.id)::int AS "sessionCount",
-         (SELECT COUNT(*) FROM execution_runs er WHERE er.project_id = p.id)::int AS "runCount"
+         (SELECT COUNT(*) FROM execution_runs er WHERE er.project_id = p.id::text)::int AS "runCount"
        FROM projects p
        WHERE (p.user_id::text = $1
          OR EXISTS (
