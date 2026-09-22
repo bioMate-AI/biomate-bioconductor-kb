@@ -68,6 +68,18 @@ for r in rows("self_docs_qa_clean.jsonl"):
     add({"task": "knowledge_qa", "split": hsplit(r["q"]), "source": "self_docs", "weight": 0.7,
          "input": r["q"], "target": r["a"]})
 
+# DIVERSE TASKS (T01-T18): clarification, conditional_param, chaining, diagnosis, dataset_compatibility
+for task, gold_key in [("clarification", "db_gold"), ("conditional_param", "db_gold"),
+                       ("chaining", "db_gold"), ("diagnosis", "teacher_gpt56"),
+                       ("dataset_compatibility", "teacher_gpt56")]:
+    for r in rows(f"committee_{task}.jsonl"):
+        tgt = r.get(gold_key)
+        if not tgt: continue
+        sp = wsplit(r.get("workflow")) or hsplit(r.get("query", ""))
+        add({"task": task, "split": sp, "source": "committee_grounded",
+             "weight": 1.0 if r.get("consensus") else 0.6,
+             "input": r.get("query", ""), "target": tgt, "workflow": r.get("workflow")})
+
 for name, data in [("corpus_train.jsonl", train), ("corpus_eval.jsonl", ev)]:
     with open(f"{P}/{name}", "w") as f:
         for r in data: f.write(json.dumps(r) + "\n")
