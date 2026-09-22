@@ -2,17 +2,25 @@
 /*
  * drug_discovery/reinvent4_lead_design
  *
- * Generative lead design (BRICS enumeration baseline).
+ * Generative lead design. Two selectable generator backends (params.generator):
  *
- * HONESTY NOTE (2026-09): despite the directory name, the GENERATE step below
- * is RDKit BRICS decompose/reassemble + medchem enumeration — a deterministic
- * combinatorial enumerator, NOT REINVENT4 reinforcement learning and NOT a
- * trained generative policy.  The step is named GENERATE_BRICS accordingly and
- * its "score_history" is a presentation artefact, not an RL training curve.
+ *   'reinvent4' (DEFAULT) — REAL learned generation via REINVENT4 (MolecularAI,
+ *       Apache-2.0). Runs the open-weights Reinvent prior (de-novo) or a Mol2Mol
+ *       prior (scaffold hop / analogs) in run_type=sampling mode through the
+ *       `reinvent` CLI, then parses sampled SMILES. This is a trained
+ *       autoregressive policy, NOT enumeration. Requires the reinvent4-nf image
+ *       with priors staged under $REINVENT4_PRIORS; the process fails LOUDLY
+ *       (non-zero rc) if the CLI/prior is missing — it never enumerates silently.
  *
- * The generator is a SWAP-POINT.  A real target/property-conditioned learned
- * generator (NVIDIA BioNeMo GenMol / MolMIM) drops into this slot via the
- * Python abstraction:
+ *   'brics' — deterministic RDKit BRICS decompose/reassemble + medchem
+ *       enumeration. A combinatorial enumerator, NOT reinforcement learning and
+ *       NOT a trained policy. Kept as an HONEST offline baseline; its
+ *       "score_history" is a presentation artefact, not an RL training curve.
+ *
+ * The generator is also a Python SWAP-POINT.  The same generate step is exposed
+ * via generators.py::Generator.propose() (BricsGenerator / Reinvent4Generator /
+ * BioNeMoGenerator), so the Python closed loop (denovo_pipeline.py) can drive any
+ * of them with affinity/ADMET fed back IN-LOOP via bayesian_optimizer.py. See:
  *     backend/lib/galaxy/ai/drug_discovery/generators.py       (Generator.propose)
  *     backend/lib/galaxy/ai/drug_discovery/denovo_pipeline.py  (closed loop:
  *         generate -> predict -> GP/HVI score+select -> rank), where affinity
@@ -58,6 +66,11 @@ nextflow.enable.dsl = 2
 params.outdir               = './results/reinvent4_lead_design'
 params.publish_dir_mode     = 'copy'
 
+// Generator backend
+//   'reinvent4'  — REAL learned generation (REINVENT4 sampling; open-weights prior)
+//   'brics'      — deterministic RDKit BRICS enumeration baseline (NOT learned)
+params.generator            = 'reinvent4'   // reinvent4 | brics
+
 // Mode
 
 // Input — molecule seed
@@ -101,8 +114,16 @@ params.gpu                  = false      // true = GPU-accelerated RL (much fast
 def _useAws = System.getenv('NEXTFLOW_USE_AWS') == 'true'
 def _ECR_DD = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86'
 def _LOCAL  = 'biomate/biomni-drug-discovery-nf:latest'
-def REINVENT4_CONTAINER = _useAws ? _ECR_DD : _LOCAL
 def RDKIT_CONTAINER     = _useAws ? _ECR_DD : _LOCAL
+
+// REINVENT4 image — carries the reinvent CLI + priors under /opt/reinvent4/priors.
+// Built from backend/docker/reinvent4-nf/Dockerfile (see that file for prior
+// checkpoint acquisition). Falls back to the shared drug-discovery image only if
+// the reinvent CLI happens to be installed there; the process fails HONESTLY
+// (non-zero rc, parsed into last_status) if the CLI/prior is absent.
+def _ECR_RI = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/reinvent4-nf:x86'
+def _LOCAL_RI = 'biomate/reinvent4-nf:latest'
+def REINVENT4_CONTAINER = _useAws ? _ECR_RI : _LOCAL_RI
 
 // ============================================================================
 // Processes
@@ -179,7 +200,196 @@ PYEOF
 }
 
 
-// [Molecule Generation]
+// [Molecule Generation — REAL learned generator]
+process GENERATE_REINVENT4 {
+    /*
+     * REAL REINVENT4 generation (run_type=sampling), NOT enumeration.
+     *
+     * Runs the open-weights REINVENT4 prior via the `reinvent` CLI:
+     *   - mode de_novo / scaffold_hopping with no usable seed -> Reinvent prior
+     *     (de-novo sampling from the learned ChEMBL distribution)
+     *   - otherwise                                            -> Mol2Mol prior
+     *     (analogue / scaffold-hop generation seeded on the validated SMILES)
+     *
+     * Priors are staged in the image under $REINVENT4_PRIORS (default
+     * /opt/reinvent4/priors): reinvent.prior, mol2mol_similarity.prior.
+     *
+     * HONESTY: if the CLI or prior is missing, the run exits NON-ZERO and this
+     * process fails loudly — it does NOT silently emit enumerated molecules.
+     * Selecting params.generator='brics' opts into the honest enumeration
+     * baseline instead.
+     *
+     * Outputs (schema-identical to GENERATE_BRICS so FILTER_RANK is unchanged):
+     *   raw_molecules.csv   — sampled SMILES + cheap RDKit descriptor scores
+     *   score_history.json  — score distribution chunks (NOT an RL curve; sampling)
+     *   reinvent.log        — CLI log tail
+     */
+    tag "reinvent4_sampling"
+    container REINVENT4_CONTAINER
+    publishDir "${params.outdir}/rl", mode: params.publish_dir_mode
+
+    input:
+    path input_config
+
+    output:
+    path "raw_molecules.csv",   emit: molecules
+    path "score_history.json",  emit: history
+    path "reinvent.log",        emit: log
+
+    script:
+    def use_gpu = params.gpu ? 'cuda:0' : 'cpu'
+    def n_smiles = params.n_steps * params.batch_size
+        """
+        set -euo pipefail
+        export REINVENT4_DEVICE='${use_gpu}'
+        export REINVENT4_PRIORS="\${REINVENT4_PRIORS:-/opt/reinvent4/priors}"
+
+        python3 << 'PYEOF'
+import json, os, csv, sys, subprocess, tempfile, shutil
+
+with open('${input_config}') as f:
+    cfg = json.load(f)
+
+seed_smi = cfg['validated_smiles'].replace('[*]', '').strip()
+mode     = cfg['mode']
+n_want   = min(${n_smiles}, 5000)   # cap sampling budget; sampling is cheap vs RL
+priors   = os.environ.get('REINVENT4_PRIORS', '/opt/reinvent4/priors')
+device   = os.environ.get('REINVENT4_DEVICE', 'cpu')
+
+# Pick prior + REINVENT4 run mode.
+denovo = mode in ('de_novo',) or not seed_smi
+prior_file = os.path.join(priors, 'reinvent.prior' if denovo else 'mol2mol_similarity.prior')
+
+# Locate the reinvent CLI (PATH first, module fallback).
+cli = shutil.which('reinvent')
+argv0 = [cli] if cli else [sys.executable, '-m', 'reinvent']
+if cli is None:
+    try:
+        import importlib.util
+        if importlib.util.find_spec('reinvent') is None:
+            print('ERROR: REINVENT4 CLI/package not found in container', file=sys.stderr)
+            sys.exit(3)
+    except Exception:
+        print('ERROR: REINVENT4 CLI/package not found in container', file=sys.stderr)
+        sys.exit(3)
+if not os.path.isfile(prior_file):
+    print(f'ERROR: REINVENT4 prior missing: {prior_file}', file=sys.stderr)
+    sys.exit(4)
+
+work = tempfile.mkdtemp(prefix='reinvent4_')
+out_csv = os.path.join(work, 'sampled.csv')
+lines = [
+    'run_type = "sampling"',
+    f'device = "{device}"',
+    '[parameters]',
+    f'model_file = "{prior_file}"',
+    f'output_file = "{out_csv}"',
+    f'num_smiles = {n_want}',
+    'unique_molecules = true',
+    'randomize_smiles = true',
+]
+if not denovo:
+    seed_path = os.path.join(work, 'seeds.smi')
+    with open(seed_path, 'w') as sf:
+        sf.write(seed_smi + '\\n')
+    lines += [f'smiles_file = "{seed_path}"',
+              'sample_strategy = "multinomial"',
+              'temperature = 1.0']
+cfg_path = os.path.join(work, 'sampling.toml')
+with open(cfg_path, 'w') as cf:
+    cf.write('\\n'.join(lines) + '\\n')
+
+log_lines = [f'REINVENT4 sampling | prior={os.path.basename(prior_file)} | '
+             f'mode={"de_novo" if denovo else "mol2mol"} | device={device} | n={n_want}']
+proc = subprocess.run(argv0 + [cfg_path], capture_output=True, text=True)
+log_lines.append(proc.stdout[-2000:])
+log_lines.append(proc.stderr[-2000:])
+if proc.returncode != 0:
+    with open('reinvent.log', 'w') as lf:
+        lf.write('\\n'.join(log_lines))
+    print(f'ERROR: reinvent exited rc={proc.returncode}', file=sys.stderr)
+    sys.exit(proc.returncode)
+
+# Parse output SMILES column.
+from rdkit import Chem
+from rdkit.Chem import Descriptors, QED, rdMolDescriptors
+smiles = []
+if os.path.isfile(out_csv):
+    with open(out_csv, newline='') as fh:
+        reader = csv.reader(fh)
+        header = next(reader, [])
+        col = None
+        for i, h in enumerate(header):
+            hl = h.strip().lower()
+            if 'smiles' in hl and 'input' not in hl:
+                col = i; break
+        if col is None:
+            col = 0
+            if header and header[0].strip():
+                smiles.append(header[0].strip())
+        for row in reader:
+            if col < len(row) and row[col].strip():
+                smiles.append(row[col].strip())
+
+# Score with cheap RDKit descriptors (schema identical to GENERATE_BRICS).
+scored, seen = [], set()
+for smi in smiles:
+    mol = Chem.MolFromSmiles(smi)
+    if mol is None:
+        continue
+    can = Chem.MolToSmiles(mol)
+    if can in seen:
+        continue
+    seen.add(can)
+    try:
+        q = round(QED.qed(mol), 4)
+        sa = round(rdMolDescriptors.CalcNumRotatableBonds(mol) * 0.05 + 2.0, 2)
+        mw = round(Descriptors.MolWt(mol), 1)
+        logp = round(Descriptors.MolLogP(mol), 3)
+        score = round(q * 0.6 + max(0, (1 - sa/10)) * 0.2 + max(0, (1 - abs(mw-350)/300)) * 0.2, 4)
+        scored.append({"smiles": can, "score": score, "qed": q, "sa_score": sa, "mw": mw, "logp": logp})
+    except Exception:
+        pass
+
+if not scored:
+    with open('reinvent.log', 'w') as lf:
+        lf.write('\\n'.join(log_lines) + '\\nERROR: reinvent produced no valid SMILES')
+    print('ERROR: REINVENT4 produced no valid SMILES', file=sys.stderr)
+    sys.exit(5)
+
+scored.sort(key=lambda r: -r['score'])
+top_n = min(${params.top_n} * 4, len(scored))
+with open('raw_molecules.csv', 'w', newline='') as csvf:
+    w = csv.DictWriter(csvf, fieldnames=["smiles","score","qed","sa_score","mw","logp"])
+    w.writeheader(); w.writerows(scored[:top_n])
+
+# score_history.json — distribution chunks (sampling, NOT an RL training curve).
+history = []
+chunk = max(1, len(scored) // max(${params.n_steps}, 1))
+for step in range(1, ${params.n_steps} + 1):
+    items = scored[(step-1)*chunk:step*chunk]
+    if not items:
+        break
+    history.append({"epoch": step,
+                    "mean_score": round(sum(r['score'] for r in items)/len(items), 4),
+                    "top_score": round(max(r['score'] for r in items), 4)})
+with open('score_history.json', 'w') as jf:
+    json.dump({"n_steps_total": ${params.n_steps}, "batch_size": ${params.batch_size},
+               "final_mean_score": history[-1]['mean_score'] if history else 0,
+               "final_top_score": history[-1]['top_score'] if history else 0,
+               "history": history, "tool": "reinvent4_sampling"}, jf, indent=2)
+
+log_lines.append(f'Parsed {len(scored)} valid unique SMILES from REINVENT4 sampling')
+with open('reinvent.log', 'w') as lf:
+    lf.write('\\n'.join(log_lines))
+shutil.rmtree(work, ignore_errors=True)
+print(f'REINVENT4 sampling complete: {len(scored)} candidates, top score={scored[0]["score"]}')
+PYEOF
+        """
+}
+
+
+// [Molecule Generation — enumeration baseline]
 process GENERATE_BRICS {
     /*
      * BRICS enumeration baseline (NOT REINVENT4 RL, NOT a trained policy).
@@ -547,7 +757,7 @@ with open('filter_stats.json', 'w') as f:
     json.dump(stats, f, indent=2)
 print(json.dumps(stats, indent=2))
 PYEOF
-        '''
+        """
 }
 
 
@@ -576,7 +786,7 @@ process REPORT {
     path "design_summary.json",   emit: summary
 
     script:
-        '''
+        """
         python3 << 'PYEOF'
 import json, csv
 import matplotlib
@@ -653,7 +863,7 @@ with open('design_report.html', 'w') as f:
 
 print(json.dumps(summary, indent=2))
 PYEOF
-        '''
+        """
 }
 
 
@@ -673,16 +883,31 @@ workflow {
     if (params.scoring_function == 'custom_toml' && !params.custom_toml) {
         error "ERROR: --custom_toml is required when --scoring_function=custom_toml"
     }
+    if (!(params.generator in ['reinvent4', 'brics'])) {
+        error "ERROR: --generator must be 'reinvent4' (learned) or 'brics' (enumeration baseline)"
+    }
 
     // ── Step 1: Validate input SMILES ─────────────────────────────────────
     VALIDATE_INPUT()
 
-    // ── Step 2: BRICS enumeration (swap-point for a learned generator) ────
-    GENERATE_BRICS(VALIDATE_INPUT.out.input_config)
+    // ── Step 2: Generate ──────────────────────────────────────────────────
+    //   params.generator = 'reinvent4' -> REAL learned REINVENT4 sampling
+    //   params.generator = 'brics'     -> deterministic enumeration baseline
+    def _gen_molecules
+    def _gen_history
+    if (params.generator == 'brics') {
+        GENERATE_BRICS(VALIDATE_INPUT.out.input_config)
+        _gen_molecules = GENERATE_BRICS.out.molecules
+        _gen_history   = GENERATE_BRICS.out.history
+    } else {
+        GENERATE_REINVENT4(VALIDATE_INPUT.out.input_config)
+        _gen_molecules = GENERATE_REINVENT4.out.molecules
+        _gen_history   = GENERATE_REINVENT4.out.history
+    }
 
     // ── Step 3: Filter + rank ─────────────────────────────────────────────
     FILTER_RANK(
-        GENERATE_BRICS.out.molecules,
+        _gen_molecules,
         VALIDATE_INPUT.out.input_config
     )
 
@@ -690,7 +915,7 @@ workflow {
     REPORT(
         FILTER_RANK.out.csv,
         FILTER_RANK.out.sdf,
-        GENERATE_BRICS.out.history,
+        _gen_history,
         FILTER_RANK.out.stats,
         VALIDATE_INPUT.out.input_config
     )

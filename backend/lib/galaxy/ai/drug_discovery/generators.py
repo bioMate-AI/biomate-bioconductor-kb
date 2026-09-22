@@ -25,13 +25,28 @@ Implementations:
                            reason on ``self.last_status`` — it NEVER fabricates
                            molecules.
 
+  * ``Reinvent4Generator`` — REAL learned de-novo / analogue generation via
+                           **REINVENT4** (MolecularAI, Apache-2.0, no API key).
+                           Runs the open-weights Reinvent prior (de-novo) or a
+                           Mol2Mol prior (scaffold hop / analogs from a seed) in
+                           ``run_type=sampling`` mode through REINVENT4's own CLI,
+                           then parses the sampled SMILES.  Same honesty contract:
+                           returns [] + ``last_status`` if the CLI or prior
+                           checkpoint is unavailable; never enumerates as a
+                           fallback.
+
 The point of the abstraction: swapping BRICS out for a real target-conditioned
 generator is a one-line change at the call site (pass a different ``Generator``);
 everything downstream (predict / GP-hypervolume score / rank) is untouched.
 """
 from __future__ import annotations
 
+import json
 import logging
+import os
+import shutil
+import subprocess
+import tempfile
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Optional
@@ -320,6 +335,273 @@ class BioNeMoGenerator(Generator):
 
 
 # ---------------------------------------------------------------------------
+# REINVENT4 generator (the real, open-weights learned generator)
+# ---------------------------------------------------------------------------
+
+class Reinvent4Generator(Generator):
+    """
+    De-novo / analogue generation via **REINVENT4** (MolecularAI, Apache-2.0,
+    https://github.com/MolecularAI/REINVENT4) — a genuinely LEARNED autoregressive
+    SMILES policy, NOT combinatorial enumeration.
+
+    Two operating modes, selected by ``model`` (and overridable per-spec):
+
+      * ``reinvent``  — de-novo sampling from the general **Reinvent prior**
+                        (a RNN trained on ChEMBL). ``seed_smiles`` is ignored;
+                        the model draws novel molecules from its learned
+                        distribution.
+      * ``mol2mol``   — scaffold hopping / analogue generation. Requires a
+                        ``seed_smiles`` input; the Mol2Mol prior transforms each
+                        seed into similar-but-novel molecules (Tanimoto-controlled).
+
+    Both run through REINVENT4's own CLI in ``run_type=sampling`` mode: we write a
+    minimal TOML config pointing at the downloaded prior ``.model`` checkpoint,
+    invoke ``reinvent <config>.toml`` (or ``python -m reinvent``), then parse the
+    output SMILES CSV. Sampling mode needs only the prior — no reward model, no RL
+    training loop — so it is fast (CPU-viable) and deterministic given a seed.
+
+    HONESTY CONTRACT (identical to BioNeMoGenerator): if the ``reinvent`` CLI is
+    not importable/on PATH, or the prior checkpoint is missing, or the subprocess
+    fails, this returns an EMPTY list and records the reason on ``self.last_status``.
+    It NEVER fabricates or falls back to enumeration — a real result is either a
+    genuine REINVENT4 sample set or nothing.
+
+    Prior checkpoints (Apache-2.0, redistributed with REINVENT4) live under
+    ``$REINVENT4_PRIORS`` (default ``/opt/reinvent4/priors``):
+        reinvent.prior   — de-novo Reinvent prior
+        mol2mol_*.prior  — Mol2Mol similarity/scaffold priors
+    The Nextflow container (see reinvent4_lead_design/main.nf) stages these; see
+    that file's REINVENT4_SETUP block for the exact acquisition commands.
+    """
+
+    name = "reinvent4"
+    is_learned = True
+
+    #: Default prior filenames per mode, resolved under $REINVENT4_PRIORS.
+    _DEFAULT_PRIORS = {
+        "reinvent": "reinvent.prior",
+        "mol2mol": "mol2mol_similarity.prior",
+    }
+
+    def __init__(
+        self,
+        model: str = "reinvent",
+        priors_dir: Optional[str] = None,
+        prior_path: Optional[str] = None,
+        cli: Optional[str] = None,
+    ) -> None:
+        """
+        Args:
+            model:      'reinvent' (de-novo sampling) or 'mol2mol' (analog/scaffold hop).
+            priors_dir: directory holding the prior checkpoints
+                        (default: $REINVENT4_PRIORS or /opt/reinvent4/priors).
+            prior_path: explicit path to a .prior/.model checkpoint (overrides
+                        priors_dir + default filename).
+            cli:        override the reinvent executable (default: $REINVENT4_CLI
+                        or 'reinvent' on PATH; falls back to 'python -m reinvent').
+        """
+        super().__init__()
+        if model not in ("reinvent", "mol2mol"):
+            raise ValueError(
+                f"Reinvent4Generator: unsupported model {model!r}; "
+                "use 'reinvent' (de-novo) or 'mol2mol' (analog/scaffold hop)"
+            )
+        self.model = model
+        self.priors_dir = (
+            priors_dir or os.environ.get("REINVENT4_PRIORS", "/opt/reinvent4/priors")
+        )
+        self.prior_path = prior_path
+        self.cli = cli or os.environ.get("REINVENT4_CLI")
+
+    # -- environment resolution ----------------------------------------------
+    def _resolve_prior(self) -> Optional[str]:
+        if self.prior_path:
+            return self.prior_path if os.path.isfile(self.prior_path) else None
+        fname = self._DEFAULT_PRIORS[self.model]
+        candidate = os.path.join(self.priors_dir, fname)
+        if os.path.isfile(candidate):
+            return candidate
+        # Accept a .model extension too (REINVENT4 ships both naming styles).
+        alt = candidate.replace(".prior", ".model")
+        return alt if os.path.isfile(alt) else None
+
+    def _resolve_cli(self) -> Optional[list]:
+        """Return the argv prefix for invoking REINVENT4, or None if unavailable."""
+        if self.cli:
+            exe = shutil.which(self.cli) or (self.cli if os.path.isfile(self.cli) else None)
+            return [exe] if exe else None
+        exe = shutil.which("reinvent")
+        if exe:
+            return [exe]
+        # Fall back to the module entrypoint if the package imports.
+        try:
+            import importlib.util
+            if importlib.util.find_spec("reinvent") is not None:
+                import sys
+                return [sys.executable, "-m", "reinvent"]
+        except Exception:
+            pass
+        return None
+
+    # -- TOML config builder (sampling mode) ---------------------------------
+    def _build_config(self, spec: GenerationSpec, prior: str,
+                      out_smi: str, seed_file: Optional[str]) -> str:
+        """
+        Build a minimal REINVENT4 run_type=sampling TOML.
+
+        REINVENT4's sampling stage needs only: the prior model file, the number of
+        SMILES to draw, and (for Mol2Mol) an input file of seed SMILES. TOML is the
+        documented config format (Loeffler et al. 2024; REINVENT4 configs/toml/*).
+        """
+        n = max(1, spec.n_molecules)
+        # unique_molecules dedups within REINVENT4; we canonicalize again after.
+        lines = [
+            'run_type = "sampling"',
+            'device = "cpu"',            # overridden to "cuda:0" by env in-container
+            f'json_out_config = "{out_smi}.json"',
+            "",
+            "[parameters]",
+            f'model_file = "{prior}"',
+            f'output_file = "{out_smi}"',
+            f'num_smiles = {n}',
+            'unique_molecules = true',
+            'randomize_smiles = true',
+        ]
+        if self.model == "mol2mol":
+            if not seed_file:
+                raise ValueError("mol2mol sampling requires a seed SMILES input file")
+            lines += [
+                f'smiles_file = "{seed_file}"',
+                'sample_strategy = "multinomial"',
+                'temperature = 1.0',
+            ]
+        # Honour a "cuda" hint from the environment (container sets this).
+        if os.environ.get("REINVENT4_DEVICE"):
+            lines[1] = f'device = "{os.environ["REINVENT4_DEVICE"]}"'
+        return "\n".join(lines) + "\n"
+
+    @staticmethod
+    def _parse_output(out_smi: str) -> list:
+        """
+        Parse REINVENT4 sampling output into a plain SMILES list.
+
+        REINVENT4 writes a CSV with a header; the SMILES column is 'SMILES'
+        (de-novo) or 'SMILES'/'Output_SMILES' (Mol2Mol, plus an 'Input_SMILES'
+        column). We read the first column whose header contains 'SMILES' and is
+        not an input column. Never fabricates rows.
+        """
+        if not os.path.isfile(out_smi):
+            return []
+        import csv
+        out: list = []
+        with open(out_smi, newline="") as fh:
+            reader = csv.reader(fh)
+            try:
+                header = next(reader)
+            except StopIteration:
+                return []
+            # Pick the output SMILES column.
+            col = None
+            for i, h in enumerate(header):
+                hl = h.strip().lower()
+                if "smiles" in hl and "input" not in hl:
+                    col = i
+                    break
+            if col is None:
+                # No header match — assume single-column raw SMILES list.
+                if header and header[0].strip():
+                    out.append(header[0].strip())
+                col = 0
+            for row in reader:
+                if col < len(row) and row[col].strip():
+                    out.append(row[col].strip())
+        return out
+
+    def propose(self, spec: GenerationSpec) -> list[str]:
+        cli = self._resolve_cli()
+        if cli is None:
+            self.last_status = {
+                "ok": False, "reason": "reinvent4_cli_unavailable",
+                "generator": self.name, "model": self.model,
+            }
+            return []
+
+        prior = self._resolve_prior()
+        if prior is None:
+            self.last_status = {
+                "ok": False,
+                "reason": (
+                    f"prior_checkpoint_missing: expected "
+                    f"{self._DEFAULT_PRIORS[self.model]!r} under {self.priors_dir!r}"
+                ),
+                "generator": self.name, "model": self.model,
+            }
+            return []
+
+        if self.model == "mol2mol" and not spec.seed_smiles:
+            self.last_status = {
+                "ok": False, "reason": "mol2mol_requires_seed_smiles",
+                "generator": self.name, "model": self.model,
+            }
+            return []
+
+        workdir = tempfile.mkdtemp(prefix="reinvent4_")
+        try:
+            out_smi = os.path.join(workdir, "sampled.csv")
+            seed_file = None
+            if self.model == "mol2mol":
+                seed_file = os.path.join(workdir, "seeds.smi")
+                with open(seed_file, "w") as fh:
+                    fh.write(spec.seed_smiles.strip() + "\n")
+
+            cfg_text = self._build_config(spec, prior, out_smi, seed_file)
+            cfg_path = os.path.join(workdir, "sampling.toml")
+            with open(cfg_path, "w") as fh:
+                fh.write(cfg_text)
+
+            proc = subprocess.run(
+                cli + [cfg_path],
+                capture_output=True, text=True,
+                timeout=int(os.environ.get("REINVENT4_TIMEOUT", "1800")),
+            )
+            if proc.returncode != 0:
+                tail = (proc.stderr or proc.stdout or "").strip()[-500:]
+                self.last_status = {
+                    "ok": False,
+                    "reason": f"reinvent4_run_failed (rc={proc.returncode}): {tail}",
+                    "generator": self.name, "model": self.model,
+                }
+                return []
+
+            smiles = self._parse_output(out_smi)
+            result = self._canonicalize(smiles)
+            self.last_status = {
+                "ok": len(result) > 0,
+                "reason": "ok" if result else "reinvent4_produced_no_valid_smiles",
+                "generator": self.name,
+                "model": self.model,
+                "prior": os.path.basename(prior),
+                "n_candidates": len(result),
+                "is_learned": self.is_learned,
+            }
+            return result
+        except subprocess.TimeoutExpired:
+            self.last_status = {
+                "ok": False, "reason": "reinvent4_timeout",
+                "generator": self.name, "model": self.model,
+            }
+            return []
+        except Exception as exc:  # pragma: no cover - defensive
+            self.last_status = {
+                "ok": False, "reason": f"reinvent4_error: {exc}",
+                "generator": self.name, "model": self.model,
+            }
+            return []
+        finally:
+            shutil.rmtree(workdir, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------
 # Registry / factory
 # ---------------------------------------------------------------------------
 
@@ -327,6 +609,11 @@ _GENERATORS = {
     "brics": BricsGenerator,
     "bionemo_genmol": lambda: BioNeMoGenerator(model="genmol"),
     "bionemo_molmim": lambda: BioNeMoGenerator(model="molmim"),
+    # REINVENT4 — open-weights learned generator (Apache-2.0). Default alias
+    # 'reinvent4' == de-novo sampling from the Reinvent prior; 'reinvent4_mol2mol'
+    # == scaffold hopping / analog generation from a seed.
+    "reinvent4": lambda: Reinvent4Generator(model="reinvent"),
+    "reinvent4_mol2mol": lambda: Reinvent4Generator(model="mol2mol"),
 }
 
 
@@ -336,7 +623,9 @@ def get_generator(kind: str = "brics") -> Generator:
 
     Args:
         kind: 'brics' (default, deterministic enumeration),
-              'bionemo_genmol' or 'bionemo_molmim' (learned, NIM-backed).
+              'bionemo_genmol' / 'bionemo_molmim' (learned, NIM-backed),
+              'reinvent4' (learned de-novo, open-weights REINVENT4 prior) or
+              'reinvent4_mol2mol' (learned scaffold-hop/analog from a seed).
 
     Returns:
         A :class:`Generator` instance.
