@@ -129,7 +129,27 @@ Frontier re-baseline on the SAME fixed gold — **gpt-5-mini: micro 0.874, macro
    headroom remains. Caveat: the metric is recall-only, so part of gpt-5-mini's lead is
    thoroughness/verbosity, not necessarily grounded composition (see committee v4 §2).
 
-## 6. Next steps (revised after corrected-gold re-measurement)
+### Metric FALSIFIED (committee-v4 P0, 2026-09-22) ❌
+Degenerate baselines on the same fixed gold + judge (n=80):
+
+| baseline | coverage |
+|---|---|
+| query-only frontier (gpt-5-mini, NO candidates) | 0.939 |
+| frontier + candidates | 0.874 |
+| null-echo (query restated as bullets) | 0.701 |
+| generic-template (one fixed 7-step pipeline for every case) | 0.580 |
+| on-prem 4B full_mix | 0.493 |
+| on-prem 4B sft-only | 0.483 |
+
+**The metric is inverted, not merely noisy.** Degenerate baselines (0.58–0.70) BEAT the on-prem 4B
+(0.48); threshold was <0.15. query-only ≥ with-candidates ⇒ the catalog is irrelevant (pure
+query reading-comprehension). The frontier "gap" is largely a verbosity artifact (recall-only judge
+rewards thoroughness; the 4B is terse). **Conclusion: EVERY number from this removal eval is
+uninterpretable** — the 0.27→0.5 "fix", the mid-training wash, and the frontier gap alike. The gold
+fix removed the tautology artifact but the deeper query-circularity + recall-only design remain fatal.
+Do not cite these coverage numbers as capability. Rebuild per committee v4 before any claim.
+
+## 6. Next steps (revised after metric falsification)
 
 1. **Re-baseline the frontier** (gpt-5-mini) on the fixed gold — we need the true gap; the 0.54 was
    on broken gold. This tells us whether the on-prem 4B (~0.5) is already near-frontier or not.

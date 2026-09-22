@@ -81,6 +81,15 @@ domain-knowledge probe** is the decisive cheap test for the mid-training wash. D
 falsifications first; only then invest in the executable-DAG benchmark rebuild and the SFT
 tool-dropout intervention.
 
+## P0 falsification — RUN, and the metric FAILED (2026-09-22)
+Ran the cheap check (n=80, same fixed gold + judge). Degenerate baselines:
+`query-only frontier 0.939` (≥ with-candidates 0.874), `null-echo 0.701`, `generic-template 0.580`
+— vs on-prem 4B `0.48–0.49`. **Degenerate baselines BEAT the trained model; threshold was <0.15.**
+Empirically confirms the verdict: the eval measures query-paraphrase, the catalog is irrelevant, and
+the score is inverted (rewards verbosity). Every coverage number this benchmark produced is
+uninterpretable. Proceed directly to the rebuild (P0 below) — no capability claims, no further
+training decisions on this metric.
+
 ## Highest-priority actions (ranked)
 1. **P0 — Falsify the current metric now (no GPU):** run query-only + null-echo + generic-template
    baselines on the fixed gold. Expect ~0.5; if so, stop treating ~0.5 as capability. (~1h)
