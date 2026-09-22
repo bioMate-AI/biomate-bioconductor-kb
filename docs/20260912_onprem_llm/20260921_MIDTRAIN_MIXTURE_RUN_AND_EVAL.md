@@ -83,6 +83,21 @@ Out-of-catalog removal eval (80 cases, `eval_removal.py --direct`, OpenAI covera
 - Per-domain strong: pharmacology 0.60, single_cell 0.39, metagenomics 0.39. Weak:
   synthetic_biology 0.0, proteomics 0.10, systems_biology 0.11, genomics 0.17.
 
+### Apples-to-apples control (SFT-only, no mid-training, same harness)
+`qwen-small-sft-final`: micro 0.271, macro 0.241, nonzero-mean 0.401, nonzero-frac 0.675, validity 0.975.
+
+| metric | SFT-only | full_mix | Δ |
+|---|---|---|---|
+| micro | 0.271 | 0.273 | +0.002 |
+| macro | 0.241 | 0.269 | +0.028 |
+| nonzero-mean | 0.401 | 0.428 | +0.027 |
+| nonzero-frac | 0.675 | 0.637 | −0.038 |
+
+**Conclusion: the light mid-training was a wash** (micro flat; macro/nonzero-mean +0.03 within n=80
+noise; nonzero-frac down). AND the **same common workflows score 0 in BOTH** models
+(`edger_classic`, `rgsea`, `oncomix`, `mixomics`, `pmp`) → the model knows these; the **eval is
+retrieval-bound**, not knowledge-bound. Both plateau at ~0.27 regardless of mid-training.
+
 ### Why it didn't move
 1. **Light mid-training dose.** Speed cuts (MID=800, seq-1024, replay-0.5) → only ~6–7M domain
    tokens seen (~14% of the 46.4M corpus). A partial pass cannot close a 0.24 gap. The dataset is
@@ -91,15 +106,20 @@ Out-of-catalog removal eval (80 cases, `eval_removal.py --direct`, OpenAI covera
    Common workflows (`edger_classic`, `rgsea`) scored 0 → the removal harness/retriever isn't
    supplying the right tool blocks. Mid-training can't fix the retriever half.
 
-## 6. Next steps
+## 6. Next steps (revised after the control)
 
-1. **Apples-to-apples control** — eval SFT-only (`sft_adapter`, raw base) on this same harness to
-   isolate mid-training's true effect on one metric (v2's 0.30 may be a different metric version).
-2. **Full-dose mid-training** — MID high enough to cover the corpus 1–2× at seq-2048 (L40S ~9.6 s/it
-   makes an overnight pass feasible).
-3. **Retriever grounding** (committee #4) — inject WKG 1-hop precede/succeed + fix family-holdout
-   recall; this attacks the 36% zeros.
+The control proved the eval is **retrieval-bound**, so priority order changed:
+
+1. **Retriever grounding FIRST** (committee #4) — inject WKG 1-hop precede/succeed at inference + fix
+   family-holdout recall. This attacks the zero-coverage cases both models share (`edger_classic`,
+   `rgsea`, …). Highest leverage; do before more training.
+2. **Re-measure** the removal eval after the retriever fix (both sft-only and full_mix) — the ~0.27
+   plateau should break if retrieval was the binding constraint.
+3. **Full-dose mid-training** — only worth it once retrieval isn't the ceiling; MID high enough to
+   cover the corpus 1–2× at seq-2048 (L40S ~9.6 s/it → overnight-feasible).
 4. **Multi-GPU DDP** — diagnose with the now-captured child traceback; optional (single-GPU works).
+
+**Done this session:** the apples-to-apples control (step 1 of the prior plan) — result above.
 
 ## 7. Infra lessons (reusable)
 - Spot GPU capacity in us-west-2 can go fully dry across all families for hours; auto-retry across
