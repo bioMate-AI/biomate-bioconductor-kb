@@ -62,6 +62,10 @@ The Fix A validation run's Batch job (`c2d93566`) **FAILED in 13 s** (not hung).
 
 So the launch layer (Fix A) + the demo R bug (Issue 1) are done; the remaining systemic piece is **Batch-job-status reconciliation (Issue 2)**, not container dep-install. (Original speculation about `BiocManager::install` hanging was WRONG — the log shows packages loaded fine.)
 
+**UPDATE 2026-09-22c — Issue 1 FULLY fixed & validated; Issue 2 confirmed CRITICAL (bites on success too).**
+- **Issue 1 done:** two latent demo-path R bugs Fix A uncovered — (a) `barplot()` on a character `2^-ddCt` column, (b) `packageVersion("normqpcr")` wrong case — both fixed. Validated at the Batch layer: post-fix job `9df12a5a` (run `eca7d5b3`/`c8546f27`) **SUCCEEDED, exit 0**, with real outputs written to S3 (`ddCq_multiple.csv`, `ddCq_single_paired.csv`, `relative_expression_plot.pdf`, `versions.yml`). **The one-click no-input demo now computes end-to-end.**
+- **Issue 2 is the real #1 now, and worse than scoped:** run `c8546f27`'s Batch job SUCCEEDED (exit 0 + outputs) yet the run record still shows **`running`**; ditto 3 other runs whose jobs finished (`b943c407`, `7c9dfd0a`, `fefa4723`). So finalization fails on **success**, not just failure — the run status never reconciles `running→completed/failed`, making every bioc dispatch *appear* hung even when the computation succeeds. Likely the local `nextflow` process's completion callback / the S3-**outdir** poll not seeing outputs (they land in the **work** dir; the process has no `publishDir`, so nothing reaches the polled outdir) — combined with no Batch-`describe-jobs` fallback. **This is the top systemic fix** (entry points above): finalize off Batch job terminal status + the work-dir output listing (`_list_workdir_output_files`, `:3765`), not only the outdir poll; add a wall-clock budget + orphan reconcile.
+
 
 - Dev chat-stream outage: fixed + live.
 - Hospital-instrument E2E (routing/UX/upload/folder): green.
