@@ -310,16 +310,18 @@ test("SB-8: Recent Tools + Settings present; the old Actions-block Starred butto
 // SB-9: Billing button is absent (same commented-out Actions panel)
 // ============================================================================
 
-test("SB-9: Billing is present in the sidebar nav (button-billing-nav)", async () => {
-  // Billing moved out of the removed Actions block INTO the sidebar nav as
-  // button-billing-nav (the old button-billing testid no longer exists). Verified
-  // against dev + app-sidebar.tsx source — billing is a live nav item, not removed.
+test("SB-9: Billing is HIDDEN in the sidebar nav (button-billing-nav commented out)", async () => {
+  // Billing was hidden 2026-09-22: the /billing page crashes (BillingPage
+  // toFixed on an undefined breakdown field). The nav entry (button-billing-nav)
+  // is commented out in app-sidebar.tsx until the page is hardened. Usage/quota
+  // are still tracked server-side (/api/billing/usage|quota). Restore the nav +
+  // this assertion to presence once billing.tsx guards undefined fields.
   const page = sharedPage;
   await goHome(page);
 
   const billingBtn = page.locator('[data-testid="button-billing-nav"]');
-  expect(await billingBtn.count(), "button-billing-nav must be PRESENT in the sidebar nav").toBeGreaterThan(0);
-  console.log("[SB-9] button-billing-nav present: correct");
+  expect(await billingBtn.count(), "button-billing-nav must be ABSENT (billing hidden until crash fixed)").toBe(0);
+  console.log("[SB-9] button-billing-nav absent: correct (billing hidden)");
 });
 
 // ============================================================================

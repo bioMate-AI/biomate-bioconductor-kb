@@ -611,11 +611,13 @@ function Router({
         </AuthenticatedPageLayout>
       </Route> */}
 
-      <Route path="/billing">
+      {/* Billing hidden — BillingPage crashes (toFixed on undefined breakdown field);
+          usage/quota are still tracked server-side. Restore once the page is hardened. */}
+      {/* <Route path="/billing">
         <AuthenticatedPageLayout>
           <BillingPage />
         </AuthenticatedPageLayout>
-      </Route>
+      </Route> */}
 
       <Route path="/admin/feedback-dashboard">
         <AuthenticatedPageLayout>
