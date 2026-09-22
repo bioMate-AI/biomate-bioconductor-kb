@@ -631,11 +631,14 @@ function Router({
         </AuthenticatedPageLayout>
       </Route>
 
-      <Route path="/drug-discovery-cro">
+      {/* CRO Library hidden for now (per request 2026-09-22) — no sidebar entry
+          existed; commenting the route so the direct /drug-discovery-cro URL is
+          disabled too. Restore when CRO is ready to surface. */}
+      {/* <Route path="/drug-discovery-cro">
         <AuthenticatedPageLayout>
           <DrugDiscoveryCroDemoPage />
         </AuthenticatedPageLayout>
-      </Route>
+      </Route> */}
 
       <Route path="/ind-report">
         <AuthenticatedPageLayout>
