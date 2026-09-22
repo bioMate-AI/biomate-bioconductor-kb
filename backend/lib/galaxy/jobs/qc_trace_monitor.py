@@ -3625,7 +3625,10 @@ class NextflowQCGateHandler:
         salt_count = 0
         undefined_stereo_count = 0
         high_mw_count = 0
-        mw_limit = 900.0
+        # Honor the active profile / explicit qc_overrides (e.g. druglike Ro5 → 500 Da).
+        # Previously hardcoded 900.0, which silently ignored compound_mw_limit and made
+        # the MW gate never fire for a sub-900 Da compound even under a tighter profile.
+        mw_limit = self._get_threshold("compound_mw_limit", 900.0)
 
         for smi in smiles_list:
             mol = Chem.MolFromSmiles(smi, sanitize=False)
