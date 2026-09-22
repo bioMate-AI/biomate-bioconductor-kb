@@ -62,9 +62,9 @@ section.lead h3 { color:#bfe3e8; } section.lead strong { color:#fff; } section.l
 *Not a single model, and not just a chat — a platform that **runs and verifies** the science on cloud compute.*
 
 - **Generate → VERIFY (physics / ADMET) → learn** — the loop that turns model output into *evidence*, not just suggestions.
-- **4,000+ workflows / 36 domains — production nf‑core pipelines** (RNA‑seq, sarek, chipseq, proteomics‑MS); **MCP‑native**; **Claude‑powered**.
+- **Production, validated pipelines + integrated open generators** on cloud; **MCP‑native**; **Claude‑powered**.
 - Every run **reproducible + auditable**: inputs, parameters, outputs, QC, and the decision context are recorded.
-- **Invalid runs are blocked before compute is spent;** your chemists keep approval authority.
+- **Faster, less wasted compute:** parallel compound‑library screening (designed ~20–50× throughput), tiered screening (cheap surrogates first), cached data lookups (~95% hit), and QC‑loop reruns that resume from cache (60–80% saved) — and **invalid runs are blocked before compute is spent.**
 
 <!-- [DESIGN: a real product UI screenshot of the workflow panel here — this slide should show the product] -->
 
@@ -118,7 +118,7 @@ section.lead h3 { color:#bfe3e8; } section.lead strong { color:#fff; } section.l
 
 *The molecular‑generation+optimization engagement is one slice of what you're adopting.*
 
-- **Search across the whole platform** — 4,000+ workflows + 12k+ tools + 60+ data sources; one query finds the right pipeline.
+- **Search across the whole platform** — one query finds the right pipeline/tool/data instantly (semantic + cached retrieval).
 - **All modalities, one engine** — small molecule (primary), peptide/macrocycle, roadmap to PROTAC/glue.
 - **The whole pipeline** — discovery → DMPK/ADMET → PK/PD → (and clinical/regulatory *when you later want it*).
 - **Configurable & on‑prem‑ready** — new targets, new objectives, ELN/LIMS integration, private deployment.
