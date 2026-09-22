@@ -25,10 +25,12 @@ _log = _logging.getLogger(__name__)
 
 try:
     from galaxy.ai.billing.api.billing_router import router  # noqa: F401 — picked up by include_all_package_routers
-except ImportError as _e:
+except (ImportError, RuntimeError) as _e:
     _log.warning(
-        "Full billing router unavailable (missing dependency: %s). "
-        "Billing endpoints are served by billing_lite.py instead.",
+        "Full billing router unavailable (%s: %s). "
+        "Billing endpoints are served by billing_lite.py instead. "
+        "Set LAGO_API_KEY env var to enable Lago metering.",
+        type(_e).__name__,
         _e,
     )
     # Provide a no-op router so Galaxy's router scanner doesn't crash
