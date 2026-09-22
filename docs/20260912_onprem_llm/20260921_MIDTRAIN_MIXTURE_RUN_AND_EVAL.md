@@ -106,20 +106,41 @@ retrieval-bound**, not knowledge-bound. Both plateau at ~0.27 regardless of mid-
    Common workflows (`edger_classic`, `rgsea`) scored 0 → the removal harness/retriever isn't
    supplying the right tool blocks. Mid-training can't fix the retriever half.
 
-## 6. Next steps (revised after the control)
+### Corrected-gold re-measurement (tool-agnostic ground truth)
+After regenerating `ground_truth_steps` as tool-agnostic analytical goals (`regen_removal_gt.py`),
+re-ran BOTH models on the fixed gold:
 
-The control proved the eval is **retrieval-bound**, so priority order changed:
+| metric | SFT-only | full_mix | Δ |
+|---|---|---|---|
+| micro | 0.483 | 0.493 | +0.010 |
+| macro | 0.527 | 0.513 | −0.014 |
+| nonzero-mean | 0.508 | 0.518 | +0.010 |
+| nonzero-frac | 0.95 | 0.95 | 0 |
 
-1. **Retriever grounding FIRST** (committee #4) — inject WKG 1-hop precede/succeed at inference + fix
-   family-holdout recall. This attacks the zero-coverage cases both models share (`edger_classic`,
-   `rgsea`, …). Highest leverage; do before more training.
-2. **Re-measure** the removal eval after the retriever fix (both sft-only and full_mix) — the ~0.27
-   plateau should break if retrieval was the binding constraint.
-3. **Full-dose mid-training** — only worth it once retrieval isn't the ceiling; MID high enough to
-   cover the corpus 1–2× at seq-2048 (L40S ~9.6 s/it → overnight-feasible).
+**Two rigorous conclusions:**
+1. **The 0.27 was a metric artifact.** On fair gold, coverage is ~0.49–0.53 and nonzero-frac jumps
+   0.64→0.95 — the model produces sensible substitute plans; the old gold couldn't score them. The
+   on-prem 4B's out-of-catalog composition is *decent* (~0.5), not broken.
+2. **Mid-training is a wash even on the sensitive metric** (Δ within n=80 noise). The light pass adds
+   no measurable benefit over SFT-only. This now holds on a metric that CAN see improvement.
+
+Caveat: the 0.54 "frontier baseline" was measured on the OLD gold → not comparable; must be
+re-baselined on the fixed gold before claiming any gap.
+
+## 6. Next steps (revised after corrected-gold re-measurement)
+
+1. **Re-baseline the frontier** (gpt-5-mini) on the fixed gold — we need the true gap; the 0.54 was
+   on broken gold. This tells us whether the on-prem 4B (~0.5) is already near-frontier or not.
+2. **Stop investing in mid-training** for out-of-catalog composition — two clean measurements (broken
+   and fixed gold) both show it's a wash at this dose. A full-dose pass is not justified by evidence.
+   (Mid-training may still help other capabilities — but not this one, measurably.)
+3. **If a gap to frontier remains**, attack composition quality directly (better decomposition SFT,
+   retrieval grounding / WKG 1-hop) rather than more mid-training tokens.
 4. **Multi-GPU DDP** — diagnose with the now-captured child traceback; optional (single-GPU works).
 
-**Done this session:** the apples-to-apples control (step 1 of the prior plan) — result above.
+**Done this session:** apples-to-apples control + benchmark-design fix + corrected-gold
+re-measurement. Net: dataset corrected, model trained/recoverable, and the eval made honest —
+revealing the true story (model ~0.5 not 0.27; mid-training a wash).
 
 ## 7. Infra lessons (reusable)
 - Spot GPU capacity in us-west-2 can go fully dry across all families for hours; auto-retry across
