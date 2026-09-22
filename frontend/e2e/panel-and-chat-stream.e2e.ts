@@ -541,11 +541,9 @@ test("Panel-after: After workflow completes — after-run tab, metrics, download
     const completionBanner = page.locator('[data-testid="workflow-completion-banner"]');
     await expect(completionBanner).toBeVisible();
 
-    // Restart button in header
-    const restartBtn = page.locator('[data-testid="button-restart-workflow-panel"]');
-    await expect(restartBtn).toBeVisible();
-
-    // Action bar — "Run again" CTA
+    // Action bar — "Run again" CTA (the completed-state restart control;
+    // the footer primary button's testid is `panel-run-again-cta` when status==='completed'.
+    // There is no separate `button-restart-workflow-panel` element.)
     const runAgainCta = page.locator('[data-testid="panel-run-again-cta"]');
     await expect(runAgainCta).toBeVisible();
 
@@ -645,8 +643,11 @@ test("Panel-after: After workflow completes — after-run tab, metrics, download
       }
     }
 
-    // Restart button should be present
-    const restartBtn = page.locator('[data-testid="button-restart-workflow-panel"]');
+    // Restart control should be present. In the failed state the footer primary
+    // button carries testid `button-run-workflow-panel` (it becomes
+    // `panel-run-again-cta` only when status==='completed'); it is the "restart"
+    // control for a failed run.
+    const restartBtn = page.locator('[data-testid="button-run-workflow-panel"]');
     await expect(restartBtn).toBeVisible();
 
     await ss(page, "panel_after_01_failed");
