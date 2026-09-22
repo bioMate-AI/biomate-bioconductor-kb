@@ -3031,6 +3031,20 @@ def query_biological_database(
     """
     db = request.database.lower().strip()
 
+    # Private DB path (userdb:<conn_id>) — read-only query against a user-registered
+    # database. Ownership is enforced through trans.user's own Vault namespace inside
+    # private_db.run_query; the LLM never receives another user's connection.
+    if db.startswith("userdb:"):
+        if not getattr(trans, "user", None):
+            return {"success": False, "error": "Authentication required for private DB query"}
+        conn_id = request.database.split(":", 1)[1].strip()
+        try:
+            from galaxy.ai import private_db
+            return private_db.run_query(trans, conn_id, request.query, user_id=trans.user.id)
+        except Exception as e:
+            log.warning(f"[databases/query] userdb query failed: {e}")
+            return {"success": False, "error": "Private DB query failed"}
+
     # Direct federated path — bypass AIAssistant for speed
     if db in ("federated", "auto"):
         try:

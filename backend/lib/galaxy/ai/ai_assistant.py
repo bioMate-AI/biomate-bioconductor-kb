@@ -6351,6 +6351,22 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         """
         db = database.lower().strip()
 
+        # Private DB path (userdb:<conn_id>) — routed to galaxy.ai.private_db.
+        # This dispatcher has no per-request `trans` (the AIAssistant is a process
+        # singleton), and private_db enforces per-user ownership + read-only
+        # execution through `trans.user`'s Vault namespace. So private DB queries
+        # MUST be routed at the trans-aware API layer (query_biological_database in
+        # webapps/.../api/ai_assistant.py), which intercepts `userdb:` before it
+        # reaches here. If a `userdb:` value reaches this dispatcher, it means it was
+        # invoked without user context — refuse rather than run unauthenticated.
+        if db.startswith('userdb:'):
+            return {
+                "success": False,
+                "source": "userdb",
+                "error": "Private DB queries require an authenticated request; "
+                         "route via /api/databases/query (trans-aware) not the singleton dispatcher.",
+            }
+
         # Federated path: parallel fan-out to all relevant sources
         if db in ('federated', 'auto'):
             try:

@@ -7288,6 +7288,63 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
+  // ---------------------------------------------------------------------------
+  // Private DB connections (Capability A) — proxy to Galaxy backend private_db_api.
+  // Executor runs in the Galaxy backend (SQLAlchemy driver + Vault-stored creds).
+  // Node only forwards; it never sees or stores DB credentials.
+  // ---------------------------------------------------------------------------
+  app.get("/api/databases/connections", optionalAuth, async (req, res) => {
+    try {
+      const proxy = userProxy(req);
+      const response = await proxy.client.get('/api/users/db-connections');
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+    }
+  });
+
+  app.post("/api/databases/connections", optionalAuth, express.json(), async (req, res) => {
+    try {
+      const proxy = userProxy(req);
+      const response = await proxy.client.post('/api/users/db-connections', req.body);
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+    }
+  });
+
+  app.delete("/api/databases/connections/:connId", optionalAuth, async (req, res) => {
+    try {
+      const proxy = userProxy(req);
+      const response = await proxy.client.delete(`/api/users/db-connections/${encodeURIComponent(req.params.connId)}`);
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+    }
+  });
+
+  // Test a saved connection (SELECT 1 + list schemas)
+  app.post("/api/databases/connections/:connId/test", optionalAuth, async (req, res) => {
+    try {
+      const proxy = userProxy(req);
+      const response = await proxy.client.post(`/api/users/db-connections/${encodeURIComponent(req.params.connId)}/test`, {});
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+    }
+  });
+
+  // Verify raw params before saving
+  app.post("/api/databases/connections/verify", optionalAuth, express.json(), async (req, res) => {
+    try {
+      const proxy = userProxy(req);
+      const response = await proxy.client.post('/api/users/db-connections/verify', req.body);
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+    }
+  });
+
   // Track 7B — DB-sourced domain catalog
   // Returns top workflows grouped by domain, sourced live from the Galaxy backend search index.
   // Falls back to empty arrays on error — callers should use the hardcoded catalog as fallback.
