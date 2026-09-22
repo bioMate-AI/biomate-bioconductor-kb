@@ -333,6 +333,28 @@ export function DrugDiscoveryAutoRetrain({ campaignId, className }: AutoRetrainP
     }
   }
 
+  const exportCro = async () => {
+    setActionLoading("cro")
+    try {
+      const res = await fetch(
+        `/api/drug-discovery/${campaignId}/export/cro-order?fmt=generic`,
+        { credentials: "include" },
+      )
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${campaignId}_cro-order.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "CRO export failed", description: e.message })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   const uploadLibrary = async (file: File) => {
     const text = await file.text()
     const lines = text
@@ -571,15 +593,15 @@ export function DrugDiscoveryAutoRetrain({ campaignId, className }: AutoRetrainP
             <Button
               size="sm"
               className="h-7 text-xs gap-1.5"
-              onClick={() => {
-                window.dispatchEvent(
-                  new CustomEvent("biomate:open-cro-export", {
-                    detail: { campaignId, round: proposal.round },
-                  }),
-                )
-              }}
+              onClick={exportCro}
+              disabled={actionLoading === "cro"}
+              data-testid="export-cro-button"
             >
-              <ExternalLink className="h-3 w-3" />
+              {actionLoading === "cro" ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <ExternalLink className="h-3 w-3" />
+              )}
               Export to CRO
             </Button>
           </div>
