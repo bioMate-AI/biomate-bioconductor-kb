@@ -1961,7 +1961,15 @@ class TestCompoundProfiles:
         assert overrides.get("hbd_limit") == 10
 
     def test_druglike_profile_fires_mw_gate_at_600da(self, tmp_path):
-        """compound_druglike: compound at 600 Da fires advisory MW gate (>500 Da)."""
+        """compound_druglike: a compound above the 500 Da Ro5 limit fires the
+        advisory high-MW gate with threshold=500.
+
+        This asserts the *intended* behaviour of the compound_druglike profile:
+        its ``compound_mw_limit=500`` override must actually gate a 563 Da
+        compound. The previous version of this test asserted only ``True`` (it
+        "ran without crashing") — a false-green that would pass even if the MW
+        gate never fired. We now assert on the collected gate/warning events.
+        """
         try:
             from rdkit import Chem
             from rdkit.Chem import Descriptors
@@ -1969,22 +1977,53 @@ class TestCompoundProfiles:
             pytest.skip("RDKit not available")
 
         def _write_heavy_smiles(d):
-            # Use a valid large SMILES (simple long chain) — just use a text file
-            # with a high-MW SMILES approximation
+            # C40 straight chain, MW ~563 Da — above druglike Ro5 (500 Da),
+            # below the default 900 Da ceiling. So it MUST be gated by the
+            # druglike profile and NOT by the default profile.
             (d / "compounds.txt").write_text(
                 "# high MW compound\n"
-                "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\n"  # C40, MW ~562 Da
+                "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\n"
             )
         h, events = _make_handler(tmp_path, "drug_discovery", {})
         # Apply compound_druglike profile via override
         from galaxy.jobs.qc_trace_monitor import NextflowQCGateHandler
         overrides = NextflowQCGateHandler.get_profile_overrides("compound_druglike")
+        assert overrides.get("compound_mw_limit") == 500.0, (
+            "compound_druglike profile must set compound_mw_limit=500"
+        )
         h.qc_overrides = overrides
         _submit(h, "SMILES_QC", "ee", "00000030", tmp_path, _write_heavy_smiles)
-        # May produce advisory high_mw_count warning
-        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
-        # Test passes if no exception is raised — profile is applied without error
-        assert True  # Profile loading and gate logic ran without crashing
+
+        # Collect every MW-related gate/warning event.
+        mw_events = []
+        for typ, payload in events:
+            if typ not in ("qc_gate_triggered", "qc_warning"):
+                continue
+            for f in payload.get("failures", []) + payload.get("warnings", []):
+                if f.get("metric") == "high_mw_count":
+                    mw_events.append(f)
+
+        # A 563 Da compound under the druglike (500 Da) profile MUST fire the
+        # advisory high-MW gate, and the gate's reported threshold must be the
+        # profile's 500 Da limit — not the hardcoded 900 Da default.
+        #
+        # KNOWN BUG surfaced by this assertion (see report): _parse_smiles_metrics
+        # counts high_mw_count against a HARDCODED 900 Da limit and ignores
+        # self.qc_overrides["compound_mw_limit"], so the druglike 500 Da override
+        # never affects the COUNT — high_mw_count stays 0 for a 563 Da compound
+        # and this gate never fires. If this test fails here, the fix is in
+        # qc_trace_monitor._parse_smiles_metrics (read the override for mw_limit),
+        # NOT in this test.
+        assert mw_events, (
+            "compound_druglike profile did not fire the high-MW advisory gate "
+            "for a 563 Da compound (expected threshold=500 Da). This indicates "
+            "_parse_smiles_metrics is not honoring the compound_mw_limit override "
+            "when counting high_mw_count (it uses a hardcoded 900 Da limit)."
+        )
+        assert any(int(f.get("threshold", 0)) == 500 for f in mw_events), (
+            f"high-MW gate fired but with the wrong threshold; expected 500 Da "
+            f"(druglike Ro5), got: {[f.get('threshold') for f in mw_events]}"
+        )
 
     def test_all_new_profiles_registered(self):
         """All 5 new profiles are present in QC_NAMED_PROFILES."""
