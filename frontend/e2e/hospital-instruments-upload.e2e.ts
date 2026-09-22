@@ -60,12 +60,18 @@ test.setTimeout(20 * 60_000);
 
 // ── Sample instrument data (written to real temp files, then uploaded) ──────
 
-/** qPCR Ct table: 3 target genes + 1 housekeeping (GAPDH), control vs treated */
-const QPCR_CT_CSV = `gene,control_Ct,treated_Ct
-GAPDH,18.20,18.35
-IL6,26.50,22.10
-TNF,28.90,24.30
-CXCL10,30.10,25.80
+/**
+ * qPCR Ct table for the GENERIC base-R 2^-ddCt path:
+ *   - first column = gene (includes the GAPDH housekeeping gene for normalization)
+ *   - remaining columns = per-sample Ct values; each column name carries
+ *     'control' or 'treated' so the workflow's auto-grouping picks up 2 groups
+ *     of 2 replicates each (4 samples total).
+ */
+const QPCR_CT_CSV = `gene,control_1_Ct,control_2_Ct,treated_1_Ct,treated_2_Ct
+GAPDH,18.20,18.31,18.35,18.28
+IL6,26.50,26.62,22.10,22.31
+TNF,28.90,29.05,24.30,24.18
+CXCL10,30.10,30.22,25.80,25.61
 `;
 
 const QPCR_MESSAGE =
@@ -438,8 +444,129 @@ test("qPCR upload: Ct CSV uploads + attaches + stages, then routes to ΔΔCq fam
     return;
   }
   record("qPCR-panel", "PASS", "workflow panel opened");
-  await assertPreRunPanel(sharedPage, "qPCR");
+  const preRun = await assertPreRunPanel(sharedPage, "qPCR");
   await ss(sharedPage, "qpcr_03_prerun");
+
+  // ── 1e. DISPATCH the workflow → run to a terminal state ─────────────────
+  //   The inline-data path fails at Nextflow launch (no file). Only an UPLOADED
+  //   Ct table exercises the generalized base-R 2^-ddCt path end-to-end. So we
+  //   actually LAUNCH the run here and assert it reaches a terminal state.
+  //   COMPLETED = the generalization works on a real uploaded Ct table (PASS).
+  //   FAILED    = honest signal; we surface the panel/SSE error, do NOT weaken.
+  if (!preRun.hasRunBtn) {
+    record("qPCR-dispatch", "FAIL", "Confirm & Run button not present — cannot dispatch");
+    expect(preRun.hasRunBtn, "must have a run button to dispatch the qPCR workflow").toBe(true);
+    return;
+  }
+
+  const runBtn = sharedPage.locator('[data-testid="button-run-workflow-panel"]').last();
+  await runBtn.click();
+  console.log("[qPCR dispatch] Confirm & Run clicked");
+  record("qPCR-dispatch-click", "PASS", "Confirm & Run clicked to dispatch qPCR run");
+
+  // Live idle→running transition on the overall status badge (or action bar).
+  let ranToRunning = false;
+  try {
+    await sharedPage.waitForFunction(() => {
+      const b = document.querySelector('[data-testid="workflow-overall-status-badge"]');
+      const bar = document.querySelector('[data-testid="panel-action-bar"]');
+      return b?.getAttribute("data-status") === "running" ||
+             bar?.getAttribute("data-status") === "running";
+    }, { timeout: 120_000 });
+    ranToRunning = true;
+  } catch (e) {
+    console.log(`[qPCR dispatch] no idle→running within 120s: ${String(e).slice(0, 160)}`);
+  }
+  record("qPCR-dispatch-running", ranToRunning ? "PASS" : "FAIL",
+    ranToRunning ? "overall badge/action-bar flipped idle→running via SSE"
+                 : "run never reached running within 120s");
+  await ss(sharedPage, "qpcr_04_running");
+
+  // Discover the newest active run id (same pattern as realrun-admet.e2e.ts).
+  let RID: string | null = null;
+  const since = Date.now() - 6 * 60 * 1000;
+  for (let i = 0; i < 25 && !RID; i++) {
+    const ids = await sharedPage.evaluate(async ({ base, since }) => {
+      try {
+        const r = await fetch(`${base}/api/workflows/runs?limit=15`, { credentials: "include" });
+        if (!r.ok) return null;
+        const j = await r.json();
+        const runs = (Array.isArray(j) ? j : j?.runs ?? []) as any[];
+        if (!runs.length) return null;
+        const rows = runs.map((run) => ({
+          run,
+          created: Date.parse(run.createdAt ?? run.created_at ?? "") || 0,
+          status: (run?.execution?.status ?? run.status ?? "").toLowerCase(),
+        }));
+        const active = rows
+          .filter((x) => x.created >= since && ["running", "queued", "pending", "submitted"].includes(x.status))
+          .sort((a, b) => b.created - a.created)[0];
+        const pick = active ?? rows.sort((a, b) => b.created - a.created)[0];
+        const run = pick.run;
+        return {
+          execId: run.id ?? run.run_id ?? null,
+          status: pick.status,
+          name: run.workflowName ?? run?.workflowDefinition?.name ?? "",
+        };
+      } catch { return null; }
+    }, { base: BASE_URL, since });
+    if (ids?.execId) {
+      RID = ids.execId;
+      console.log(`[qPCR dispatch] run RID=${RID} status=${ids.status} name="${ids.name}"`);
+    } else {
+      await sharedPage.waitForTimeout(3000);
+    }
+  }
+  expect(RID, "must resolve a run id for the dispatched qPCR run").toBeTruthy();
+
+  // Poll to a terminal state (up to ~15 min for a small Ct-table run).
+  const deadline = Date.now() + 15 * 60 * 1000;
+  let terminal: string | null = null;
+  let lastExec: string | null = null;
+  while (Date.now() < deadline) {
+    const snap = await sharedPage.evaluate(async ({ base, rid }) => {
+      const out: any = {};
+      try {
+        const r = await fetch(`${base}/api/workflows/runs/${rid}`, { credentials: "include" });
+        if (r.ok) { const j = await r.json(); out.exec = (j?.execution?.status ?? j?.status ?? null); out.err = j?.execution?.error ?? j?.error ?? null; }
+      } catch { /* */ }
+      try {
+        const s = await fetch(`${base}/api/workflows/runs/${rid}/status`, { credentials: "include" });
+        if (s.ok) { const j = await s.json(); out.statusEp = j?.status ?? null; }
+      } catch { /* */ }
+      return out;
+    }, { base: BASE_URL, rid: RID });
+    lastExec = snap.exec ?? lastExec;
+    const combined = (snap.exec || snap.statusEp || "").toLowerCase();
+    if (["completed", "failed", "error"].includes(combined)) {
+      terminal = combined;
+      (globalThis as any).__qpcrRunError = snap.err;
+      console.log(`[qPCR dispatch] terminal: exec=${snap.exec} statusEp=${snap.statusEp} err=${String(snap.err || "").slice(0, 300)}`);
+      break;
+    }
+    console.log(`[qPCR dispatch] exec=${snap.exec} statusEp=${snap.statusEp} (${Math.round((deadline - Date.now()) / 60000)}m left)`);
+    await sharedPage.waitForTimeout(15_000);
+  }
+  await ss(sharedPage, "qpcr_05_terminal");
+
+  const runError = (globalThis as any).__qpcrRunError;
+  if (terminal === "completed") {
+    record("qPCR-dispatch-terminal", "PASS",
+      "uploaded Ct table ran the generalized normqpcr workflow to COMPLETED (base-R 2^-ddCt path validated end-to-end)");
+    // Honest terminal assertion: the uploaded Ct table must reach COMPLETED.
+    expect(terminal, "uploaded qPCR Ct table must run the generalized normqpcr workflow to COMPLETED").toBe("completed");
+  } else if (terminal === "failed" || terminal === "error") {
+    record("qPCR-dispatch-terminal", "FAIL",
+      `uploaded Ct table run FAILED — generalized normqpcr path did not complete. error="${String(runError || "(none surfaced)").slice(0, 400)}"`);
+    console.log(`[qPCR dispatch][FAILURE] real error: ${String(runError || "(none)").slice(0, 600)}`);
+    // Do NOT weaken: a real failure is the honest signal. Assert COMPLETED so
+    // the run outcome is reflected truthfully in the test result.
+    expect(terminal, `uploaded qPCR Ct table run must reach COMPLETED, got ${terminal}. error=${String(runError || "").slice(0, 200)}`).toBe("completed");
+  } else {
+    record("qPCR-dispatch-terminal", "FAIL",
+      `dispatched qPCR run did not reach a terminal state within 15min (last exec=${lastExec}) — INFRA stall`);
+    expect(terminal, `dispatched qPCR run must reach a terminal state (last exec=${lastExec})`).toBeTruthy();
+  }
 });
 
 // ============================================================================
