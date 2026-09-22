@@ -52,7 +52,15 @@ Executor-only change (`nextflow_executor.py`) → commit → PR to `next-phase` 
 
 **Fix A (no-input launch) is IMPLEMENTED, synced, and validated.** `_build_bioc_entry_wrapper` now binds a `.dat` placeholder for the single-list-slot no-input case instead of returning None. Live evidence on dev: pre-Fix-A no-input runs `abd5958f`/`9f197935` **failed at launch (422)**; post-Fix-A run `7c9dfd0a` **reaches `running`** (no 422). The launch 422 is resolved for the class.
 
-**Remaining issue re-scoped (was "Fix B flaky wrapper" → now "bioc-container execution reliability").** Runs now *launch* but *completion* is slow/unreliable: `7c9dfd0a` still `running`; `fefa4723` stuck `running` **~13 h**; only `ea45b0de` (uploaded file) cleanly `completed`. Root cause is downstream of the wrapper — most likely the workflow's `BiocManager::install` deps-resolver re-installing (or hanging) even though the `quay.io/biocontainers/bioconductor-*` image should already ship the packages. **Next diagnostic (SSM read the Batch `.command.log`/`.command.err` of a hung run):** confirm whether the container's packages are found (should skip install) vs. re-installed/compiled (slow/hang). If re-installing, the fix is to trust the container's preinstalled packages (skip the BiocManager fallback when `requireNamespace` succeeds) + a hard time budget so a hung dep-install fails loudly instead of running forever. Add a CompletionPoller/orphan guard so a hung bioc run can't sit `running` for hours.
+**UPDATE 2026-09-22b — the "hang" was NOT a dep-install hang; SSM ground truth found TWO concrete issues:**
+
+The Fix A validation run's Batch job (`c2d93566`) **FAILED in 13 s** (not hung). Its `.command.log` (S3 work-dir): Fix A + the demo fallback both ran (`[biomate demo] … using the NormqPCR bundled example`), then halted at:
+`Error in -0.01 * height : non-numeric argument to binary operator; Calls: barplot`.
+
+- **Issue 1 (FIXED):** the demo-path barplot fed a **character/factor** `2^-ddCt` column (that's how `deltaDeltaCq()` returns it) into `barplot()`, halting the run. Fixed by coercing to numeric (`fix(qpcr): demo-path barplot…`). The generic path was already numeric (`log2FC`) — which is why the uploaded-file run completed. So the no-input demo now runs to completion (dep-install was fine; the container's packages loaded normally — Bioconductor/qpcR/etc. all loaded in the log).
+- **Issue 2 (OPEN — orphan finalization):** the Batch job FAILED at 14:48 yet the run still shows `running` (and `fefa4723` shows `running` ~13 h). The executor **polls S3 for output files**, not Batch **job status** — so a job that FAILS without writing outputs is never reconciled and the run sits `running` forever. **Fix:** poll `aws batch describe-jobs` (or the CompletionPoller) for terminal `FAILED`/`SUCCEEDED` and finalize the run accordingly + a time budget. This is the real "reliability" work — not dep-install.
+
+So the launch layer (Fix A) + the demo R bug (Issue 1) are done; the remaining systemic piece is **Batch-job-status reconciliation (Issue 2)**, not container dep-install. (Original speculation about `BiocManager::install` hanging was WRONG — the log shows packages loaded fine.)
 
 
 - Dev chat-stream outage: fixed + live.
