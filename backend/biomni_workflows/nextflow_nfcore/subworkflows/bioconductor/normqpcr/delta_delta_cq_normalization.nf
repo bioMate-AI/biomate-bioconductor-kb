@@ -175,8 +175,11 @@ process BIOC_NORMQPCR_DELTA_DELTA_CQ_NORMALIZATION {
               main = "Relative Expression (2^-ddCt) - Top 10 Genes (demo)",
               ylab = "Relative Expression", col = "skyblue", cex.names = 0.8)
       dev.off()
+      # Package name is case-sensitive ("NormqPCR", not "normqpcr"); wrap so a
+      # versions.yml lookup can never halt an otherwise-successful run.
+      .ver <- tryCatch(as.character(packageVersion("NormqPCR")), error = function(e) "NA")
       writeLines(c('"BIOC_NORMQPCR_DELTA_DELTA_CQ_NORMALIZATION":',
-                   paste0('        normqpcr: ', as.character(packageVersion("normqpcr")))), "versions.yml")
+                   paste0('        normqpcr: ', .ver)), "versions.yml")
     }
     """
 
