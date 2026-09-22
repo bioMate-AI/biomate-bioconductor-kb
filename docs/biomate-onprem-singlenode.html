@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BioMate 离线单机部署手册</title>
+<style>
+  :root {
+    --blue: #1e6fbf;
+    --blue-light: #e8f2fd;
+    --blue-dark: #145499;
+    --green: #1a7f4b;
+    --green-light: #e6f5ee;
+    --red: #c0392b;
+    --red-light: #fdf0ee;
+    --yellow: #b7791f;
+    --yellow-light: #fef9e7;
+    --gray-50: #f8f9fa;
+    --gray-100: #f1f3f5;
+    --gray-200: #e9ecef;
+    --gray-400: #ced4da;
+    --gray-600: #6c757d;
+    --gray-800: #343a40;
+    --gray-900: #212529;
+    --mono: 'SF Mono', 'Fira Code', 'Consolas', 'Courier New', monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--gray-900);
+    background: #fff;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* ── Cover ── */
+  .cover {
+    border-bottom: 3px solid var(--blue);
+    padding-bottom: 32px;
+    margin-bottom: 40px;
+  }
+  .cover-logo {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--blue);
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+  .cover-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 6px;
+  }
+  .cover-subtitle {
+    font-size: 14px;
+    color: var(--gray-600);
+  }
+  .cover-meta {
+    margin-top: 16px;
+    display: flex;
+    gap: 24px;
+    font-size: 13px;
+    color: var(--gray-600);
+  }
+  .cover-meta span { display: flex; align-items: center; gap: 6px; }
+
+  /* ── TOC ── */
+  .toc {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 40px;
+  }
+  .toc-title { font-weight: 700; margin-bottom: 12px; font-size: 14px; color: var(--gray-600); text-transform: uppercase; letter-spacing: 0.5px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin: 4px 0; font-size: 14px; }
+  .toc a { color: var(--blue); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .toc ol ol { margin-top: 2px; padding-left: 18px; list-style-type: lower-alpha; }
+  .toc ol ol li { color: var(--gray-600); font-size: 13px; }
+
+  /* ── Headings ── */
+  h1 { font-size: 22px; font-weight: 800; border-left: 4px solid var(--blue); padding-left: 12px; margin: 40px 0 16px; color: var(--blue-dark); }
+  h2 { font-size: 17px; font-weight: 700; margin: 28px 0 12px; color: var(--gray-900); }
+  h3 { font-size: 15px; font-weight: 700; margin: 20px 0 8px; color: var(--gray-800); }
+  p { margin: 10px 0; }
+
+  /* ── Code blocks ── */
+  pre {
+    background: #1e2228;
+    color: #abb2bf;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    border-radius: 8px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    margin: 12px 0;
+    position: relative;
+  }
+  pre .comment  { color: #5c6370; font-style: italic; }
+  pre .key      { color: #e5c07b; }
+  pre .val      { color: #98c379; }
+  pre .cmd      { color: #61afef; }
+  pre .prompt   { color: #5c6370; user-select: none; }
+  pre .hi       { color: #e06c75; }
+  code {
+    font-family: var(--mono);
+    font-size: 13px;
+    background: var(--gray-100);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--red);
+  }
+
+  /* ── Callouts ── */
+  .callout {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 14px;
+    display: flex;
+    gap: 12px;
+  }
+  .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .callout.info    { background: var(--blue-light);   border-left: 3px solid var(--blue); }
+  .callout.warn    { background: var(--yellow-light);  border-left: 3px solid #e9a820; }
+  .callout.danger  { background: var(--red-light);    border-left: 3px solid var(--red); }
+  .callout.success { background: var(--green-light);  border-left: 3px solid var(--green); }
+  .callout-body { flex: 1; }
+  .callout b { display: block; margin-bottom: 4px; }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14px; }
+  th { background: var(--gray-100); font-weight: 700; text-align: left; padding: 9px 12px; border: 1px solid var(--gray-200); }
+  td { padding: 8px 12px; border: 1px solid var(--gray-200); vertical-align: top; }
+  tr:nth-child(even) td { background: var(--gray-50); }
+  .required { color: var(--red); font-weight: 700; }
+  .optional { color: var(--gray-600); }
+
+  /* ── Step badges ── */
+  .step-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px; height: 28px;
+    background: var(--blue);
+    color: #fff;
+    font-weight: 800;
+    font-size: 13px;
+    border-radius: 50%;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+  .step-row {
+    display: flex;
+    align-items: flex-start;
+    margin: 14px 0;
+    gap: 0;
+  }
+  .step-content { flex: 1; padding-top: 4px; }
+
+  /* ── Status badges ── */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .badge-required { background: #fce4e4; color: var(--red); }
+  .badge-optional { background: var(--gray-100); color: var(--gray-600); }
+  .badge-default  { background: #e8f4fd; color: var(--blue); }
+
+  /* ── Architecture diagram ── */
+  .arch {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 20px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--gray-800);
+    overflow-x: auto;
+    margin: 16px 0;
+  }
+
+  /* ── Checklist ── */
+  .checklist { list-style: none; padding: 0; margin: 12px 0; }
+  .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; font-size: 14px; }
+  .checklist li::before { content: '☐'; font-size: 16px; flex-shrink: 0; margin-top: -1px; color: var(--gray-400); }
+  .checklist li.done::before { content: '✓'; color: var(--green); }
+
+  /* ── Section divider ── */
+  hr { border: none; border-top: 1px solid var(--gray-200); margin: 32px 0; }
+
+  /* ── Port table ── */
+  .port-row td:first-child { font-family: var(--mono); font-weight: 700; color: var(--blue); }
+
+  /* ── Footer ── */
+  .footer {
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid var(--gray-200);
+    font-size: 13px;
+    color: var(--gray-600);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Cover ── -->
+<div class="cover">
+  <div class="cover-logo">BioMate</div>
+  <div class="cover-title">离线单机部署手册</div>
+  <div class="cover-subtitle">On-Premises Single-Node Deployment Guide · 内部技术文档</div>
+  <div class="cover-meta">
+    <span>📅 2026-09-16</span>
+    <span>📦 版本 v2.x</span>
+    <span>🔒 适用场景：全封闭内网环境</span>
+  </div>
+</div>
+
+<!-- ── TOC ── -->
+<div class="toc">
+  <div class="toc-title">目录</div>
+  <ol>
+    <li><a href="#s1">适用场景与架构概述</a></li>
+    <li><a href="#s2">硬件与系统要求</a></li>
+    <li><a href="#s3">部署前准备（在联网机器上操作）</a>
+      <ol>
+        <li><a href="#s3a">下载 Docker 镜像</a></li>
+        <li><a href="#s3b">打包部署包</a></li>
+      </ol>
+    </li>
+    <li><a href="#s4">传输部署包到目标服务器</a></li>
+    <li><a href="#s5">目标服务器安装步骤</a>
+      <ol>
+        <li><a href="#s5a">解压部署包</a></li>
+        <li><a href="#s5b">加载 Docker 镜像</a></li>
+        <li><a href="#s5c">配置 .env 文件</a></li>
+        <li><a href="#s5d">运行安装脚本</a></li>
+      </ol>
+    </li>
+    <li><a href="#s6">配置项详解</a></li>
+    <li><a href="#s7">验证部署</a></li>
+    <li><a href="#s8">日常运维</a></li>
+    <li><a href="#s9">故障排查</a></li>
+    <li><a href="#s10">版本升级</a></li>
+  </ol>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<h1 id="s1">1. 适用场景与架构概述</h1>
+
+<h2>适用场景</h2>
+<p>本手册适用于以下部署场景：</p>
+<ul style="padding-left:20px; margin:10px 0;">
+  <li style="margin:6px 0">客户环境为<strong>全封闭内网</strong>，服务器无任何出网通道</li>
+  <li style="margin:6px 0">单台高性能服务器（推荐 32 核以上 / 128 GB 以上内存）</li>
+  <li style="margin:6px 0">客户已有或自行部署了<strong>本地大模型服务</strong>（vLLM / LMDeploy 等，OpenAI 兼容接口）</li>
+  <li style="margin:6px 0">由 BioMate 团队上门部署，客户不需要了解技术细节</li>
+</ul>
+
+<div class="callout info">
+  <div class="callout-icon">ℹ️</div>
+  <div class="callout-body"><b>单机 vs 多机</b>
+    本手册仅覆盖单机方案。多机集群（k3s）或 HPC（Slurm）请参考对应手册。
+    单机方案中，所有 Nextflow 工作流均在本机 Docker 容器中运行，无需任何外部调度器。
+  </div>
+</div>
+
+<h2>系统架构</h2>
+<div class="arch">┌─────────────────────────────────────────────────────────────┐
+│                  客户服务器（单台）                            │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  BioMate 服务（Docker Compose）                      │   │
+│  │                                                     │   │
+│  │  ┌──────────┐  ┌──────────┐  ┌───────────────────┐ │   │
+│  │  │ 前端      │  │ Galaxy   │  │  MinIO            │ │   │
+│  │  │ (Node.js)│  │ (Python) │  │  (本地对象存储)    │ │   │
+│  │  │ :5000    │  │ :8081    │  │  :9000 / :9001    │ │   │
+│  │  └────┬─────┘  └────┬─────┘  └───────────────────┘ │   │
+│  │       │             │                               │   │
+│  │  ┌────┴─────┐  ┌────┴──────────────────────────┐   │   │
+│  │  │PostgreSQL│  │ Nextflow（本机 Docker 执行器）  │   │   │
+│  │  │ :5432    │  │ 工作流容器直接在本机 Docker 跑  │   │   │
+│  │  └──────────┘  └───────────────────────────────┘   │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  客户本地大模型服务（独立部署）                        │  │
+│  │  vLLM / LMDeploy / Ollama  — OpenAI 兼容接口         │  │
+│  │  http://localhost:8000/v1  或  http://192.168.x.x/v1 │  │
+│  └──────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘</div>
+
+<h2>端口说明</h2>
+<table class="port-row">
+  <tr><th>端口</th><th>服务</th><th>访问方式</th></tr>
+  <tr><td>5000</td><td>BioMate 前端（主入口）</td><td>内网浏览器访问</td></tr>
+  <tr><td>8081</td><td>Galaxy AI 后端（内部）</td><td>仅容器内部访问</td></tr>
+  <tr><td>9000</td><td>MinIO S3 API（内部）</td><td>仅容器内部访问</td></tr>
+  <tr><td>9001</td><td>MinIO 管理控制台</td><td>运维人员访问</td></tr>
+  <tr><td>5050</td><td>本地镜像仓库（内部）</td><td>仅容器内部访问</td></tr>
+</table>
+
+<!-- ════════════════════════════════════════════ -->
+<h1 id="s2">2. 硬件与系统要求</h1>
+
+<h2>服务器硬件</h2>
+<table>
+  <tr><th>资源</th><th>最低配置</th><th>推荐配置</th><th>说明</th></tr>
+  <tr>
+    <td>CPU</td>
+    <td>16 核</td>
+    <td>64 核以上</td>
+    <td>工作流步骤并发运行，核心数直接影响吞吐</td>
+  </tr>
+  <tr>
+    <td>内存</td>
+    <td>64 GB</td>
+    <td>256 GB 以上</td>
+    <td>基因组分析（WGS/RNA-seq）单步骤可能需要 128 GB</td>
+  </tr>
+  <tr>
+    <td>存储</td>
+    <td>1 TB SSD</td>
+    <td>4 TB NVMe SSD</td>
+    <td>含 Docker 镜像（~200 GB）+ 工作流数据 + 结果</td>
+  </tr>
+  <tr>
+    <td>GPU</td>
+    <td>不强制</td>
+    <td>NVIDIA A100 / H100</td>
+    <td>CryoEM、深度学习工作流需要；纯生信分析可不用</td>
+  </tr>
+  <tr>
+    <td>网络</td>
+    <td>1 Gbps</td>
+    <td>10 Gbps</td>
+    <td>内网访问速度；不需要出网</td>
+  </tr>
+</table>
+
+<h2>操作系统</h2>
+<table>
+  <tr><th>系统</th><th>版本</th><th>支持状态</th></tr>
+  <tr><td>Ubuntu</td><td>20.04 LTS / 22.04 LTS / 24.04 LTS</td><td>✅ 推荐</td></tr>
+  <tr><td>RHEL / CentOS Stream</td><td>8 / 9</td><td>✅ 支持</td></tr>
+  <tr><td>Rocky Linux / AlmaLinux</td><td>8 / 9</td><td>✅ 支持</td></tr>
+  <tr><td>Windows Server</td><td>—</td><td>❌ 不支持</td></tr>
+</table>
+
+<h2>软件依赖</h2>
+<table>
+  <tr><th>软件</th><th>版本要求</th><th>说明</th></tr>
+  <tr><td>Docker Engine</td><td>≥ 24.0</td><td><span class="badge badge-required">必须</span> 所有服务以容器方式运行</td></tr>
+  <tr><td>Docker Compose</td><td>≥ v2.20</td><td><span class="badge badge-required">必须</span> 作为 docker compose 插件</td></tr>
+  <tr><td>Java (JRE)</td><td>≥ 11</td><td><span class="badge badge-required">必须</span> Nextflow 运行时依赖</td></tr>
+  <tr><td>Nextflow</td><td>≥ 24.04</td><td><span class="badge badge-required">必须</span> 工作流引擎（离线包含）</td></tr>
+  <tr><td>Python</td><td>≥ 3.9</td><td><span class="badge badge-optional">可选</span> 管理工具脚本</td></tr>
+</table>
+
+<div class="callout warn">
+  <div class="callout-icon">⚠️</div>
+  <div class="callout-body"><b>离线环境注意</b>
+    以上软件均需在<strong>有网络的机器上提前下载</strong>并随部署包一起传入。目标服务器全程不需要网络。
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<h1 id="s3">3. 部署前准备（在联网机器上操作）</h1>
+
+<p>以下步骤在<strong>有网络访问权限的机器</strong>（非目标服务器）上执行，准备好所有离线材料。</p>
+
+<h2 id="s3a">3.1 下载 Docker 镜像</h2>
+
+<p>在联网机器上拉取并导出所有需要的镜像：</p>
+
+<pre><span class="comment"># 创建工作目录</span>
+mkdir -p ~/biomate-offline-package/images
+cd ~/biomate-offline-package
+
+<span class="comment"># ── 1. BioMate 服务镜像 ────────────────────────────────────</span>
+<span class="comment"># 从 BioMate 团队获取具体的镜像 tag（如 v2.5.0）</span>
+GALAXY_TAG=<span class="hi">v2.x.x</span>    <span class="comment"># 替换为实际版本</span>
+FRONTEND_TAG=<span class="hi">v2.x.x</span>  <span class="comment"># 替换为实际版本</span>
+
+docker pull 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-galaxy:${GALAXY_TAG}
+docker pull 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-frontend:${FRONTEND_TAG}
+
+docker save 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-galaxy:${GALAXY_TAG} \
+  | gzip > images/biomate-galaxy.tar.gz
+
+docker save 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-frontend:${FRONTEND_TAG} \
+  | gzip > images/biomate-frontend.tar.gz
+
+<span class="comment"># ── 2. 基础服务镜像 ────────────────────────────────────────</span>
+for image in \
+  "postgres:15" \
+  "redis:7-alpine" \
+  "minio/minio:latest" \
+  "minio/mc:latest" \
+  "registry:2"; do
+  name=$(echo $image | tr '/:' '--')
+  docker pull $image
+  docker save $image | gzip > images/${name}.tar.gz
+  echo "已保存: ${name}.tar.gz"
+done
+
+<span class="comment"># ── 3. 生信工具镜像（按需选取）─────────────────────────────</span>
+<span class="comment"># 查看 BioMate 工作流目录获取完整列表</span>
+<span class="comment"># 常用生信工具镜像（示例）：</span>
+for image in \
+  "biocontainers/bwa:v0.7.17" \
+  "biocontainers/star:2.7.10a" \
+  "bioconductor/bioconductor_docker:RELEASE_3_18" \
+  "nfcore/base:2.1" \
+  "quay.io/biocontainers/samtools:1.18"; do
+  name=$(echo $image | tr '/:' '--')
+  docker pull $image
+  docker save $image | gzip > images/${name}.tar.gz
+  echo "已保存: ${name}.tar.gz"
+done</pre>
+
+<h2 id="s3b">3.2 打包完整部署包</h2>
+
+<pre><span class="comment"># 克隆 BioMate 代码（或使用 BioMate 提供的 release 压缩包）</span>
+git clone https://github.com/biomate/biomate.git biomate-src
+<span class="comment"># 或解压 BioMate 提供的 biomate-v2.x.x.tar.gz</span>
+
+<span class="comment"># 下载 Nextflow（离线版）</span>
+mkdir -p ~/biomate-offline-package/tools
+cd ~/biomate-offline-package/tools
+
+<span class="comment"># 下载 Nextflow 二进制（含所有 JAR 依赖）</span>
+curl -fsSL https://github.com/nextflow-io/nextflow/releases/download/v24.10.5/nextflow \
+  -o nextflow
+chmod +x nextflow
+
+<span class="comment"># 下载 Java 17（离线包）</span>
+curl -fsSL https://download.java.net/java/GA/jdk17/jdk-17_linux-x64_bin.tar.gz \
+  -o jdk17.tar.gz
+
+<span class="comment"># ── 打包成单一传输包 ────────────────────────────────────────</span>
+cd ~
+tar -czf biomate-offline-$(date +%Y%m%d).tar.gz \
+  biomate-offline-package/ \
+  biomate-src/
+
+ls -lh biomate-offline-*.tar.gz
+<span class="comment"># 预期大小：约 15~50 GB（取决于生信工具镜像数量）</span></pre>
+
+<div class="callout success">
+  <div class="callout-icon">✅</div>
+  <div class="callout-body"><b>部署包清单</b>
+    确保以下文件都在包中：<br>
+    <code>images/biomate-galaxy.tar.gz</code> &nbsp;
+    <code>images/biomate-frontend.tar.gz</code> &nbsp;
+    <code>images/postgres--15.tar.gz</code> &nbsp;
+    <code>images/redis--7-alpine.tar.gz</code> &nbsp;
+    <code>images/minio-minio--latest.tar.gz</code> &nbsp;
+    <code>images/registry--2.tar.gz</code> &nbsp;
+    <code>tools/nextflow</code> &nbsp;
+    <code>tools/jdk17.tar.gz</code> &nbsp;
+    <code>biomate-src/docker-compose.onprem.yml</code> &nbsp;
+    <code>biomate-src/install.sh</code>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<h1 id="s4">4. 传输部署包到目标服务器</h1>
+
+<p>将打包文件通过安全方式传输到目标服务器（U盘、内网共享、SCP 等）。</p>
+
+<pre><span class="comment"># 方式 A：通过内网 SCP 传输</span>
+scp biomate-offline-20260916.tar.gz user@<span class="hi">目标服务器IP</span>:/opt/
+
+<span class="comment"># 方式 B：U 盘 / 移动硬盘（推荐用于完全隔离的内网）</span>
+<span class="comment"># 直接拷贝到 /opt/ 目录</span>
+
+<span class="comment"># 方式 C：内网文件共享服务器</span>
+<span class="comment"># 在目标服务器上执行：</span>
+curl -O http://<span class="hi">内网文件服务器IP</span>/biomate-offline-20260916.tar.gz</pre>
+
+<div class="callout warn">
+  <div class="callout-icon">⚠️</div>
+  <div class="callout-body"><b>校验文件完整性</b>
+    传输完成后建议校验 MD5/SHA256，避免因传输中断导致安装失败：<br>
+    <code style="display:block;margin-top:8px">sha256sum biomate-offline-20260916.tar.gz</code>
+    与联网机器上生成的 SHA256 对比。
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<h1 id="s5">5. 目标服务器安装步骤</h1>
+
+<p>以下所有操作在<strong>目标服务器</strong>上以 <code>root</code> 或具备 <code>sudo</code> 权限的用户执行。</p>
+
+<h2 id="s5a">步骤 1：解压部署包</h2>
+
+<pre><span class="prompt">root@server# </span><span class="cmd">mkdir -p /opt/biomate && cd /opt/biomate</span>
+<span class="prompt">root@server# </span><span class="cmd">tar -xzf /opt/biomate-offline-20260916.tar.gz --strip-components=1</span>
+<span class="prompt">root@server# </span><span class="cmd">ls</span>
+<span class="comment">biomate-src/   images/   tools/</span></pre>
+
+<h2>步骤 2：安装 Docker（离线）</h2>
+
+<p>如果目标服务器已安装 Docker ≥ 24.0，跳过此步骤。</p>
+
+<pre><span class="comment"># Ubuntu 22.04 为例（其他系统参考 Docker 官方离线安装文档）</span>
+
+<span class="comment"># 检查现有 Docker 版本</span>
+docker version 2>/dev/null || echo "未安装"
+
+<span class="comment"># 如需安装，使用离线 deb 包（需在联网机器上提前下载）</span>
+<span class="comment"># 下载命令（在联网机器执行）：</span>
+<span class="comment"># apt-get download docker-ce docker-ce-cli containerd.io docker-compose-plugin</span>
+<span class="comment"># 然后打包随部署包一起传入</span>
+
+<span class="comment"># 安装（在目标服务器执行）</span>
+dpkg -i /opt/biomate/tools/docker-packages/*.deb
+systemctl enable --now docker
+docker version  <span class="comment"># 验证</span></pre>
+
+<h2>步骤 3：安装 Java 17（Nextflow 依赖）</h2>
+
+<pre><span class="comment"># 解压 JDK 到 /usr/local/java</span>
+mkdir -p /usr/local/java
+tar -xzf /opt/biomate/tools/jdk17.tar.gz -C /usr/local/java --strip-components=1
+
+<span class="comment"># 配置环境变量</span>
+cat >> /etc/environment << 'EOF'
+JAVA_HOME=/usr/local/java
+PATH=/usr/local/java/bin:$PATH
+EOF
+
+export JAVA_HOME=/usr/local/java
+export PATH=$JAVA_HOME/bin:$PATH
+
+java -version  <span class="comment"># 应显示 openjdk 17</span></pre>
+
+<h2>步骤 4：安装 Nextflow</h2>
+
+<pre><span class="comment"># 安装到系统路径</span>
+cp /opt/biomate/tools/nextflow /usr/local/bin/nextflow
+chmod +x /usr/local/bin/nextflow
+
+<span class="comment"># 禁用 Nextflow 自动更新（内网环境）</span>
+mkdir -p ~/.nextflow
+cat > ~/.nextflow/config << 'EOF'
+nextflow.enable.dsl = 2
+EOF
+
+<span class="comment"># 设置离线模式环境变量（写入 /etc/environment）</span>
+echo 'NXF_OFFLINE=true' >> /etc/environment
+echo 'NXF_HOME=/opt/biomate/nextflow-home' >> /etc/environment
+
+nextflow -version  <span class="comment"># 验证</span></pre>
+
+<h2 id="s5b">步骤 5：加载 Docker 镜像</h2>
+
+<pre><span class="prompt">root@server# </span><span class="cmd">cd /opt/biomate/images</span>
+
+<span class="comment"># 批量加载所有镜像</span>
+for f in *.tar.gz; do
+  echo "加载: $f"
+  docker load -i "$f"
+done
+
+<span class="comment"># 验证镜像已加载</span>
+docker images | grep -E "biomate|postgres|redis|minio|registry"</pre>
+
+<pre><span class="comment"># 重新打 tag（便于 docker-compose 引用）</span>
+docker tag 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-galaxy:<span class="hi">v2.x.x</span> biomate-galaxy:latest
+docker tag 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-frontend:<span class="hi">v2.x.x</span> biomate-frontend:latest</pre>
+
+<h2 id="s5c">步骤 6：配置 .env 文件</h2>
+
+<pre><span class="prompt">root@server# </span><span class="cmd">cd /opt/biomate/biomate-src</span>
+<span class="prompt">root@server# </span><span class="cmd">cp .env.onprem.example .env</span>
+<span class="prompt">root@server# </span><span class="cmd">nano .env</span>  <span class="comment"># 或 vi .env</span></pre>
+
+<p>必须填写的关键配置项：</p>
+
+<pre><span class="comment"># ─── 1. 许可证（BioMate 团队提供）─────────────────────────────</span>
+<span class="key">BIOMATE_LICENSE_KEY</span>=<span class="val">BMOP-XXXX-XXXX-XXXX-XXXX</span>
+<span class="key">BIOMATE_LICENSE_SECRET</span>=<span class="val">（BioMate提供）</span>
+
+<span class="comment"># ─── 2. 数据库密码（自定义，至少16位）────────────────────────</span>
+<span class="key">POSTGRES_PASSWORD</span>=<span class="val">MyStr0ng#DB#Pass2026</span>
+
+<span class="comment"># ─── 3. MinIO 对象存储密码 ──────────────────────────────────</span>
+<span class="key">MINIO_ROOT_PASSWORD</span>=<span class="val">MyStr0ng#MinIO#Pass</span>
+
+<span class="comment"># ─── 4. JWT / Session 密钥（随机生成）──────────────────────</span>
+<span class="key">JWT_SECRET</span>=<span class="val">（运行 openssl rand -hex 32 生成）</span>
+<span class="key">SESSION_SECRET</span>=<span class="val">（运行 openssl rand -hex 32 生成）</span>
+
+<span class="comment"># ─── 5. LLM 配置（客户本地大模型）──────────────────────────</span>
+<span class="key">GALAXY_AI_LLM_PROVIDER</span>=<span class="val">openai_compatible</span>
+<span class="key">LLM_API_URL</span>=<span class="val">http://192.168.1.200:8000/v1</span>  <span class="comment"># 客户 vLLM 地址</span>
+<span class="key">LLM_MODEL</span>=<span class="val">qwen2.5-32b-instruct</span>           <span class="comment"># 客户部署的模型名</span>
+<span class="key">LLM_API_KEY</span>=<span class="val">none</span>                          <span class="comment"># 内网通常不需要</span>
+
+<span class="comment"># ─── 6. 工作流执行（本机 Docker）────────────────────────────</span>
+<span class="key">NEXTFLOW_USE_AWS</span>=<span class="val">false</span>
+
+<span class="comment"># ─── 7. Docker 镜像 ─────────────────────────────────────────</span>
+<span class="key">GALAXY_IMAGE</span>=<span class="val">biomate-galaxy:latest</span>
+<span class="key">FRONTEND_IMAGE</span>=<span class="val">biomate-frontend:latest</span></pre>
+
+<h3>快速生成密钥</h3>
+<pre><span class="comment"># 在服务器上执行，将输出复制到 .env</span>
+echo "JWT_SECRET=$(openssl rand -hex 32)"
+echo "SESSION_SECRET=$(openssl rand -hex 32)"</pre>
+
+<h2 id="s5d">步骤 7：运行安装脚本</h2>
+
+<pre><span class="prompt">root@server# </span><span class="cmd">cd /opt/biomate/biomate-src</span>
+<span class="prompt">root@server# </span><span class="cmd">bash install.sh</span></pre>
+
+<p>安装脚本自动完成：</p>
+<ul class="checklist">
+  <li>预检（Docker 版本 / 磁盘空间 / 内存 / 端口冲突）</li>
+  <li>启动所有服务（postgres / redis / minio / galaxy / frontend）</li>
+  <li>等待所有容器通过健康检查</li>
+  <li>初始化数据库（执行 migration）</li>
+  <li>创建管理员账号（交互输入邮箱和密码）</li>
+  <li>验证所有 API 端点可访问</li>
+  <li>打印访问地址</li>
+</ul>
+
+<div class="callout info">
+  <div class="callout-icon">ℹ️</div>
+  <div class="callout-body"><b>安装时间参考</b>
+    首次安装约需 3~8 分钟（主要是数据库初始化和服务启动）。
+    安装日志保存在 <code>/tmp/biomate-install.log</code>。
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<h1 id="s6">6. 配置项详解</h1>
+
+<h2>LLM 提供商选择</h2>
+
+<p>根据客户实际情况，选择以下方案之一：</p>
+
+<table>
+  <tr><th>场景</th><th>配置项</th><th>说明</th></tr>
+  <tr>
+    <td><strong>客户自建本地模型</strong><br><small>（vLLM / LMDeploy）</small></td>
+    <td><pre style="margin:0;padding:6px 10px;font-size:12px">GALAXY_AI_LLM_PROVIDER=openai_compatible
+LLM_API_URL=http://192.168.x.x:8000/v1
+LLM_MODEL=qwen2.5-32b-instruct
+LLM_API_KEY=none</pre></td>
+    <td>✅ 推荐。纯内网，零数据出境</td>
+  </tr>
+  <tr>
+    <td><strong>DeepSeek API</strong><br><small>（内网可访问外网时）</small></td>
+    <td><pre style="margin:0;padding:6px 10px;font-size:12px">GALAXY_AI_LLM_PROVIDER=deepseek
+DEEPSEEK_API_KEY=sk-xxxx</pre></td>
+    <td>需要服务器能访问 api.deepseek.com</td>
+  </tr>
+  <tr>
+    <td><strong>Ollama 本机运行</strong><br><small>（无 GPU 或小型测试）</small></td>
+    <td><pre style="margin:0;padding:6px 10px;font-size:12px">GALAXY_AI_LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://ollama:11434</pre></td>
+    <td>取消 docker-compose.onprem.yml 中 ollama 服务的注释</td>
+  </tr>
+</table>
+
+<h2>MinIO 存储</h2>
+<p>MinIO 是 BioMate 在本地部署中替代 AWS S3 的对象存储服务。工作流的输入文件、输出结果、中间文件均存储在 MinIO 中。</p>
+<table>
+  <tr><th>配置项</th><th>默认值</th><th>说明</th></tr>
+  <tr><td><code>MINIO_ROOT_USER</code></td><td>biomate</td><td>MinIO 管理员用户名</td></tr>
+  <tr><td><code>MINIO_ROOT_PASSWORD</code></td><td>（必须设置）</td><td>MinIO 管理员密码，至少 8 位</td></tr>
+  <tr><td><code>S3_BUCKET_NAME</code></td><td>biomate-data</td><td>默认 bucket 名称</td></tr>
+</table>
+
+<h2>Nextflow 工作流执行</h2>
+<table>
+  <tr><th>配置项</th><th>默认值</th><th>说明</th></tr>
+  <tr><td><code>NEXTFLOW_USE_AWS</code></td><td>false</td><td>单机模式设为 false，使用本机 Docker</td></tr>
+  <tr><td><code>NEXTFLOW_EXECUTOR</code></td><td>local</td><td>single-node 不需要修改</td></tr>
+  <tr><td><code>NEXTFLOW_WORK_DIR</code></td><td>/tmp/biomate-nf-work</td><td>Nextflow 工作目录（建议指向大磁盘）</td></tr>
+</table>
+
+<div class="callout warn">
+  <div class="callout-icon">⚠️</div>
+  <div class="callout-body"><b>工作目录磁盘规划</b>
+    <code>NEXTFLOW_WORK_DIR</code> 会存放所有工作流中间文件，RNA-seq 分析一次可能产生 50~200 GB 数据。
+    建议指向挂载的大容量磁盘，例如 <code>/data/biomate-nf-work</code>，并配置定期清理策略。
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<h1 id="s7">7. 验证部署</h1>
+
+<h2>自动验证</h2>
+<pre><span class="prompt">root@server# </span><span class="cmd">bash scripts/biomate status</span></pre>
+
+<p>预期输出（所有服务绿色 ●）：</p>
+<pre><span class="val">●</span> biomate-postgres         running    2026-09-16 10:00
+<span class="val">●</span> biomate-redis            running    2026-09-16 10:00
+<span class="val">●</span> biomate-minio            running    2026-09-16 10:00
+<span class="val">●</span> biomate-galaxy           running    2026-09-16 10:01
+<span class="val">●</span> biomate-frontend         running    2026-09-16 10:02
+<span class="val">●</span> biomate-registry         running    2026-09-16 10:00
+
+  前端:  http://192.168.1.10:5000
+  MinIO: http://192.168.1.10:9001</pre>
+
+<h2>手动检查项</h2>
+<ul class="checklist">
+  <li>浏览器打开 <code>http://&lt;服务器IP&gt;:5000</code> — 显示 BioMate 登录页</li>
+  <li>使用安装时设置的管理员账号登录</li>
+  <li>左上角显示许可证有效（<strong>许可证</strong>图标为绿色）</li>
+  <li>发送测试消息：「帮我分析一组 RNA-seq 数据」— AI 正常回复并推荐工作流</li>
+  <li>在管理面板（右上角头像 → 系统管理）确认所有服务状态绿色</li>
+  <li>MinIO 控制台 <code>http://&lt;服务器IP&gt;:9001</code> 可以登录，<code>biomate-data</code> bucket 存在</li>
+</ul>
+
+<h2>验证许可证</h2>
+<pre><span class="prompt">root@server# </span><span class="cmd">bash scripts/biomate license</span>
+
+<span class="val">[OK]    许可证有效</span>
+  客户: ACME 生命科学
+  到期: 2027-06-30</pre>
+
+<!-- ════════════════════════════════════════════ -->
+<h1 id="s8">8. 日常运维</h1>
+
+<h2>常用命令</h2>
+<table>
+  <tr><th>操作</th><th>命令</th></tr>
+  <tr><td>查看所有服务状态</td><td><code>bash scripts/biomate status</code></td></tr>
+  <tr><td>查看实时日志（AI 后端）</td><td><code>bash scripts/biomate logs galaxy</code></td></tr>
+  <tr><td>查看实时日志（前端）</td><td><code>bash scripts/biomate logs frontend</code></td></tr>
+  <tr><td>查看所有服务日志</td><td><code>bash scripts/biomate logs</code></td></tr>
+  <tr><td>重启单个服务</td><td><code>bash scripts/biomate restart biomate-galaxy</code></td></tr>
+  <tr><td>重启所有服务</td><td><code>bash scripts/biomate restart</code></td></tr>
+  <tr><td>停止所有服务（数据保留）</td><td><code>bash scripts/biomate stop</code></td></tr>
+  <tr><td>启动所有服务</td><td><code>bash scripts/biomate start</code></td></tr>
+  <tr><td>检查许可证</td><td><code>bash scripts/biomate license</code></td></tr>
+  <tr><td>重置管理员密码</td><td><code>bash scripts/biomate create-admin</code></td></tr>
+  <tr><td>进入 Galaxy 容器调试</td><td><code>bash scripts/biomate shell galaxy</code></td></tr>
+</table>
+
+<h2>开机自启动</h2>
+<pre><span class="comment"># 创建 systemd 服务，实现开机自动启动</span>
+cat > /etc/systemd/system/biomate.service << 'EOF'
+[Unit]
+Description=BioMate On-Premises Services
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/biomate/biomate-src
+ExecStart=/usr/bin/docker compose -f docker-compose.onprem.yml up -d
+ExecStop=/usr/bin/docker compose -f docker-compose.onprem.yml down
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable biomate
+<span class="val">systemctl start biomate  # 或重启服务器验证</span></pre>
+
+<h2>数据备份</h2>
+<pre><span class="comment"># 建议每天凌晨自动备份数据库和 MinIO 数据</span>
+cat > /opt/biomate/backup.sh << 'EOF'
+#!/bin/bash
+BACKUP_DIR="/data/biomate-backups/$(date +%Y%m%d)"
+mkdir -p "$BACKUP_DIR"
+
+# 备份 PostgreSQL
+docker exec biomate-postgres pg_dump -U biomate biomate \
+  | gzip > "$BACKUP_DIR/postgres.sql.gz"
+
+# 备份 MinIO（用 mc mirror）
+docker run --rm --network biomate-network \
+  -v "$BACKUP_DIR:/backup" \
+  minio/mc:latest \
+  sh -c "mc alias set local http://biomate-minio:9000 \$MINIO_ROOT_USER \$MINIO_ROOT_PASSWORD \
+    && mc mirror local/biomate-data /backup/minio-data"
+
+# 保留最近 30 天
+find /data/biomate-backups -maxdepth 1 -mtime +30 -exec rm -rf {} +
+echo "备份完成: $BACKUP_DIR"
+EOF
+
+chmod +x /opt/biomate/backup.sh
+
+# 添加到 crontab（每天凌晨 2 点执行）
+(crontab -l 2>/dev/null; echo "0 2 * * * /opt/biomate/backup.sh >> /var/log/biomate-backup.log 2>&1") | crontab -</pre>
+
+<h2>Nextflow 工作目录清理</h2>
+<pre><span class="comment"># 工作流完成后的临时文件会在 NEXTFLOW_WORK_DIR 积累，建议定期清理</span>
+cat >> /opt/biomate/backup.sh << 'EOF'
+
+# 清理 30 天前的 Nextflow 工作目录（保留结果，只删中间文件）
+find /tmp/biomate-nf-work -maxdepth 2 -name ".command.*" -mtime +30 -delete
+find /tmp/biomate-nf-work -maxdepth 2 -name "*.tmp" -mtime +30 -delete
+EOF</pre>
+
+<!-- ════════════════════════════════════════════ -->
+<h1 id="s9">9. 故障排查</h1>
+
+<h2>服务无法启动</h2>
+<pre><span class="comment"># 查看具体错误</span>
+bash scripts/biomate logs galaxy | tail -50
+
+<span class="comment"># 常见原因：</span>
+<span class="comment"># 1. .env 必填项未设置</span>
+docker inspect biomate-galaxy | grep -A 5 "Error"
+
+<span class="comment"># 2. 端口被占用</span>
+ss -tlnp | grep -E ":5000|:8081|:9000"
+
+<span class="comment"># 3. 磁盘满</span>
+df -h</pre>
+
+<h2>AI 无法回复（LLM 连接失败）</h2>
+<pre><span class="comment"># 验证本地模型 API 可访问</span>
+curl http://<span class="hi">LLM_API_URL</span>/v1/models
+<span class="comment"># 应返回 {"object":"list","data":[...]}  如果 timeout 说明 LLM 服务地址不对</span>
+
+<span class="comment"># 查看 Galaxy 日志中的 LLM 错误</span>
+bash scripts/biomate logs galaxy | grep -i "llm\|openai\|error" | tail -20</pre>
+
+<h2>工作流提交失败</h2>
+<pre><span class="comment"># 检查 docker.sock 挂载是否正常（Nextflow local 执行需要）</span>
+docker exec biomate-galaxy docker ps 2>&1
+
+<span class="comment"># 如果报 "permission denied on /var/run/docker.sock"</span>
+chmod 666 /var/run/docker.sock
+<span class="comment"># 或将 biomate-galaxy 容器的运行用户加入 docker 组</span></pre>
+
+<h2>许可证验证失败</h2>
+<pre><span class="comment"># 检查许可证配置</span>
+docker exec biomate-galaxy env | grep BIOMATE_LICENSE
+
+<span class="comment"># 重新触发验证</span>
+curl http://localhost:8081/api/license/status | python3 -m json.tool</pre>
+
+<h2>MinIO 无法访问</h2>
+<pre><span class="comment"># 检查 MinIO 状态</span>
+docker exec biomate-minio mc ready local
+
+<span class="comment"># 确认 bucket 存在</span>
+docker exec biomate-minio mc ls local/</pre>
+
+<h2>恢复数据库备份</h2>
+<pre><span class="comment"># 从备份恢复（注意：会覆盖当前数据库）</span>
+gunzip -c /data/biomate-backups/20260916/postgres.sql.gz \
+  | docker exec -i biomate-postgres psql -U biomate biomate</pre>
+
+<!-- ════════════════════════════════════════════ -->
+<h1 id="s10">10. 版本升级</h1>
+
+<h2>在线升级（服务器可访问 BioMate 内部网络时）</h2>
+<pre><span class="comment"># 使用升级脚本</span>
+bash scripts/onprem-update.sh --tag v2.6.0</pre>
+
+<h2>离线升级（纯内网）</h2>
+<pre><span class="comment"># 1. 在联网机器上下载新版本镜像</span>
+docker pull biomate-galaxy:v2.6.0
+docker save biomate-galaxy:v2.6.0 | gzip > biomate-galaxy-v2.6.0.tar.gz
+
+<span class="comment"># 2. 传输到目标服务器</span>
+scp biomate-galaxy-v2.6.0.tar.gz user@目标服务器:/opt/
+
+<span class="comment"># 3. 在目标服务器加载并升级</span>
+docker load -i /opt/biomate-galaxy-v2.6.0.tar.gz
+docker tag biomate-galaxy:v2.6.0 biomate-galaxy:latest
+
+<span class="comment"># 4. 重启 Galaxy 服务（停机 30 秒）</span>
+docker restart biomate-galaxy
+
+<span class="comment"># 5. 验证</span>
+bash scripts/biomate status
+curl http://localhost:8081/api/version</pre>
+
+<div class="callout success">
+  <div class="callout-icon">✅</div>
+  <div class="callout-body"><b>升级最佳实践</b>
+    升级前执行一次手动备份：<code>bash /opt/biomate/backup.sh</code><br>
+    数据卷（PostgreSQL / MinIO）在升级过程中不会被删除，数据完全保留。
+  </div>
+</div>
+
+<hr>
+
+<div style="margin-top:32px; padding:16px 20px; background:var(--gray-50); border-radius:8px; font-size:14px;">
+  <strong>联系支持</strong><br>
+  <span style="color:var(--gray-600)">
+    技术支持邮箱：support@biomate.ai &nbsp;·&nbsp;
+    紧急热线：（由销售团队提供）&nbsp;·&nbsp;
+    许可证续期：sales@biomate.ai
+  </span>
+</div>
+
+<div class="footer">
+  BioMate On-Premises Deployment Manual · 版本 v2.x · 2026-09-16<br>
+  本文档为 BioMate 内部技术文档，请勿对外传播
+</div>
+
+</body>
+</html>
