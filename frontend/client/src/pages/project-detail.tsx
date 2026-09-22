@@ -54,6 +54,7 @@ import {
   UserPlus,
   Users,
   Download,
+  Crown,
 } from "lucide-react"
 import {
   Select,
@@ -142,6 +143,10 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   const [shareRole, setShareRole] = useState<"viewer" | "editor">("viewer")
   const [inviting, setInviting] = useState(false)
   const [inviteError, setInviteError] = useState<string | null>(null)
+  // Ownership transfer — the member we're about to promote to owner (null = dialog closed).
+  const [transferTarget, setTransferTarget] = useState<{ user_id: string; email: string; fullName?: string } | null>(null)
+  const [transferring, setTransferring] = useState(false)
+  const [transferError, setTransferError] = useState<string | null>(null)
   // Share link
   const [shareToken, setShareToken] = useState<string | null>(null)
   const [shareLinkLoading, setShareLinkLoading] = useState(false)
@@ -275,6 +280,30 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
       })
       if (r.ok) setMembers(prev => prev.map(m => m.user_id === memberId ? { ...m, role: newRole } : m))
     } catch { /* ignore */ }
+  }
+
+  // Transfer ownership to a current member. Irreversible: the server promotes the
+  // target to owner and demotes the current user to editor. On success we reflect
+  // that demotion locally (isOwner → false, myRole → editor) and reload members.
+  const handleTransferOwnership = async () => {
+    if (!transferTarget) return
+    setTransferring(true)
+    setTransferError(null)
+    try {
+      const r = await fetch(`/api/projects/${projectId}/owner`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ newOwnerId: transferTarget.user_id }),
+      })
+      const data = await r.json().catch(() => ({}))
+      if (!r.ok) { setTransferError(data.error ?? "Failed to transfer ownership"); return }
+      setIsOwner(false)
+      setMyRole("editor")
+      setTransferTarget(null)
+      loadMembers()
+    } catch { setTransferError("Failed to transfer ownership") }
+    finally { setTransferring(false) }
   }
 
   const handleLeaveProject = async () => {
@@ -939,6 +968,18 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                           {m.role}
                         </span>
                       )}
+                      {/* Make owner — transfers ownership to this member (owner-only, confirm dialog) */}
+                      {isOwner && m.role !== "owner" && (
+                        <button
+                          onClick={() => { setTransferError(null); setTransferTarget(m) }}
+                          className="text-muted-foreground hover:text-primary shrink-0"
+                          aria-label={`Make ${m.email} owner`}
+                          title="Transfer ownership"
+                          data-testid={`button-transfer-owner-${m.user_id}`}
+                        >
+                          <Crown className="w-3 h-3" />
+                        </button>
+                      )}
                       {/* Remove (owner can remove members, not the owner row itself) */}
                       {isOwner && m.role !== "owner" && (
                         <button
@@ -1050,6 +1091,31 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {actionLoading ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Transfer ownership confirm */}
+      <AlertDialog open={!!transferTarget} onOpenChange={(open) => { if (!open) { setTransferTarget(null); setTransferError(null) } }}>
+        <AlertDialogContent data-testid="dialog-transfer-owner">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Transfer ownership?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This makes <span className="font-medium text-foreground">{transferTarget?.fullName || transferTarget?.email}</span> the
+              owner of this project. You will be demoted to an editor and lose owner-only controls. This cannot be undone by you.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {transferError && <p className="text-xs text-destructive px-1">{transferError}</p>}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={transferring}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleTransferOwnership() }}
+              disabled={transferring}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-transfer-owner"
+            >
+              {transferring ? "Transferring…" : "Transfer ownership"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
