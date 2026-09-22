@@ -251,6 +251,14 @@ services:
       BIOMATE_LICENSE_KEY:    ${BIOMATE_LICENSE_KEY:-}
       BIOMATE_LICENSE_SECRET: ${BIOMATE_LICENSE_SECRET:-}
 
+      # ── Billing (Lago metering — disabled by default on-prem) ─────────────
+      # On-prem deployments use flat-tier billing; Lago is not required.
+      # Setting LAGO_API_KEY prevents the billing module from trying to fetch
+      # from AWS Secrets Manager (which fails when AWS_ACCESS_KEY_ID is set to
+      # MinIO credentials). Set to a real key only if you use Lago metering.
+      BILLING_LAGO_ENABLED: ${BILLING_LAGO_ENABLED:-false}
+      LAGO_API_KEY:         ${LAGO_API_KEY:-on-prem-disabled}
+
     volumes:
       - biomate-backend-db:/app/database        # 工作流目录 SQLite
       - biomate-backend-logs:/app/logs
