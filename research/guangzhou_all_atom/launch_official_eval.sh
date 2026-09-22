@@ -29,6 +29,15 @@ EOF
 )
 
 declare -a COMBO=(
+  # smaller single-GPU types first — this eval is a 10-sample job (fits A10G/T4 24-16GB),
+  # and g5/g6 .xlarge + g4dn have far better spot availability during a 2xlarge drought.
+  "g5.xlarge subnet-0254e4c3634b41bfc"
+  "g5.xlarge subnet-03b277a7a08d388c1"
+  "g5.xlarge subnet-09e4dce46682a6c60"
+  "g6.xlarge subnet-0254e4c3634b41bfc"
+  "g6.xlarge subnet-0b35a6e2c1cf02dc2"
+  "g4dn.xlarge subnet-0254e4c3634b41bfc"
+  "g4dn.xlarge subnet-03b277a7a08d388c1"
   "g5.2xlarge subnet-03b277a7a08d388c1"
   "g5.2xlarge subnet-0254e4c3634b41bfc"
   "g5.2xlarge subnet-09e4dce46682a6c60"
