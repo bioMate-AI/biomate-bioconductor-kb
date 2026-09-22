@@ -64,7 +64,7 @@ section.lead h3 { color:#bfe3e8; } section.lead strong { color:#fff; } section.l
 - **Generate → VERIFY (physics / ADMET) → learn** — the loop that turns model output into *evidence*, not just suggestions.
 - **Production, validated pipelines + integrated open generators** on cloud; **MCP‑native**; **Claude‑powered**.
 - Every run **reproducible + auditable**: inputs, parameters, outputs, QC, and the decision context are recorded.
-- **Faster, less wasted compute:** parallel compound‑library screening (designed ~20–50× throughput), tiered screening (cheap surrogates first), cached data lookups (~95% hit), and QC‑loop reruns that resume from cache (60–80% saved) — and **invalid runs are blocked before compute is spent.**
+- **Faster, and it scales with the compute you allocate** — large‑scale screening runs in parallel (near‑linear with nodes); structure/sequence search is orders of magnitude faster; ML‑accelerated affinity replaces slow physics; genomics/omics pipelines are GPU‑accelerated; cached lookups and QC‑gated early stops avoid wasted compute. *More resources → proportionally faster.*
 
 <!-- [DESIGN: a real product UI screenshot of the workflow panel here — this slide should show the product] -->
 
