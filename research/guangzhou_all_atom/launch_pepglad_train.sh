@@ -10,11 +10,11 @@ BUCKET=knowledge-datasets-1759951976
 AMI=ami-04f7da1c787a89267    # DL Base GPU AMI
 SG=sg-011121fdf81073ec8; KEY=biomate-trial-resume-20260912
 # Training knobs (env-overridable). PROBE defaults: full batch, few epochs, 4h cap.
+LDM_ONLY=${LDM_ONLY:-1}                        # AE already converged (epoch 13) -> train ONLY the LDM (full-batch retrain)
 UBOUND_PER_BATCH=${UBOUND_PER_BATCH:-60000}   # full batch (upstream default); 30000 was the half-batch that under-trained
-AE_MAX_EPOCH=${AE_MAX_EPOCH:-5}               # AE warm-started from RESUME; a short continue
-LDM_MAX_EPOCH=${LDM_MAX_EPOCH:-10}            # PROBE: 10 epochs to measure timing + direction (raise for convergence)
-RESUME_TRAINING_S3=${RESUME_TRAINING_S3:-s3://$BUCKET/cyclic_peptide/runs/pepglad-long-20260913T222203Z}  # warm-start AE
-MAX_RUNTIME=${MAX_RUNTIME:-4h}
+LDM_MAX_EPOCH=${LDM_MAX_EPOCH:-80}            # LDM convergence target (half-batch reached ~79); monitor early for OOM at 60000
+RESUME_TRAINING_S3=${RESUME_TRAINING_S3:-s3://$BUCKET/cyclic_peptide/runs/pepglad-long-20260913T222203Z}  # source of trained AE
+MAX_RUNTIME=${MAX_RUNTIME:-6h}
 RUNID=pepglad-fullbatch-$(date -u +%Y%m%dT%H%M%SZ)
 S3RUN=s3://$BUCKET/cyclic_peptide/runs/$RUNID
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -30,7 +30,7 @@ tar czf "$TMP/code.tar.gz" -C "$TMP" run_pepglad_ec2.sh collect_pepbench.py conf
   configure_warm_start.py patch_training_integrity.py generate_validation.py pepbench_zenodo.json
 SHA=$(shasum -a 256 "$TMP/code.tar.gz" | awk '{print $1}')
 aws s3 cp "$TMP/code.tar.gz" "$S3RUN/code/code.tar.gz" --only-show-errors
-echo "uploaded code.tar.gz ($SHA); UBOUND=$UBOUND_PER_BATCH AE=$AE_MAX_EPOCH LDM=$LDM_MAX_EPOCH RESUME=$RESUME_TRAINING_S3"
+echo "uploaded code.tar.gz ($SHA); LDM_ONLY=$LDM_ONLY UBOUND=$UBOUND_PER_BATCH LDM=$LDM_MAX_EPOCH RESUME=$RESUME_TRAINING_S3"
 
 UD=$(cat <<EOF | base64
 #!/bin/bash
@@ -42,7 +42,7 @@ for i in 1 2 3 4 5; do aws s3 cp $S3RUN/code/code.tar.gz /opt/guangzhou-peptide/
 echo '$SHA  /opt/guangzhou-peptide/code.tar.gz' | sha256sum -c -
 tar xzf /opt/guangzhou-peptide/code.tar.gz -C /opt/guangzhou-peptide/code
 export OUT_S3=$S3RUN RESUME_TRAINING_S3=$RESUME_TRAINING_S3
-export UBOUND_PER_BATCH=$UBOUND_PER_BATCH AE_MAX_EPOCH=$AE_MAX_EPOCH LDM_MAX_EPOCH=$LDM_MAX_EPOCH MAX_RUNTIME=$MAX_RUNTIME
+export LDM_ONLY=$LDM_ONLY UBOUND_PER_BATCH=$UBOUND_PER_BATCH LDM_MAX_EPOCH=$LDM_MAX_EPOCH MAX_RUNTIME=$MAX_RUNTIME
 bash /opt/guangzhou-peptide/code/run_pepglad_ec2.sh
 EOF
 )

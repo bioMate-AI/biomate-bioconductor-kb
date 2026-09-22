@@ -107,8 +107,31 @@ Path('run_outputs/split_audit.json').write_text(json.dumps(r,indent=2))
 PY
 # Fail visibly instead of upstream's zero-loss replacement on NaN/OOM.
 python "$ROOT/code/patch_training_integrity.py" --root "$ROOT/PepGLAD"
+# LDM_ONLY: AE already trained (via RESUME_TRAINING_S3) -> skip AE, train ONLY the latent diffusion
+# (e.g. a full-batch LDM retrain on a converged AE). Requires RESUME_TRAINING_S3 with a trained autoencoder.
+if [ "${LDM_ONLY:-0}" = 1 ]; then
+  [ -n "${RESUME_TRAINING_S3:-}" ] || { echo "LDM_ONLY requires RESUME_TRAINING_S3 (trained AE checkpoint)"; exit 1; }
+  stage ldm_only_fetch_ae
+  aws s3 sync "$RESUME_TRAINING_S3/training/autoencoder/" run_outputs/autoencoder/ --only-show-errors
+  AE_CKPT=$(python - <<'PY'
+import re
+from pathlib import Path
+tk = next(Path('run_outputs/autoencoder').glob('version_*/checkpoint/topk_map.txt'))
+best = Path(tk.read_text().splitlines()[0].split(': ', 1)[1]).name  # val-selected best, basename
+local = tk.parent / best
+def ep(p): return int(re.search(r'epoch(\d+)_step', p.name).group(1))
+print(local if local.is_file() else max(tk.parent.glob('epoch*_step*.ckpt'), key=ep))
+PY
+)
+  [ -f "$AE_CKPT" ] || { echo "FATAL: no AE checkpoint resolved for LDM_ONLY"; exit 1; }
+  echo "LDM-only: AE checkpoint = $AE_CKPT"
+  python "$ROOT/code/configure_pepglad.py" --root "$ROOT/PepGLAD" --stage ldm --checkpoint "$AE_CKPT"
+  stage training_latent_diffusion
+  python train.py --gpus 0 --seed 20260912 --config run_outputs/ldm.yaml
+  stage training_complete
+  sync_results
 # EVAL_ONLY: skip training, benchmark a provided LDM checkpoint (EVAL_CKPT_S3) on the valid split.
-if [ "${EVAL_ONLY:-0}" = 1 ]; then
+elif [ "${EVAL_ONLY:-0}" = 1 ]; then
   stage eval_only_fetch_checkpoint
   mkdir -p run_outputs/ldm/version_0/checkpoint
   aws s3 cp "${EVAL_CKPT_S3:?EVAL_CKPT_S3 required}" run_outputs/ldm/version_0/checkpoint/provided.ckpt --only-show-errors
