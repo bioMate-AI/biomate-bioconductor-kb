@@ -64,6 +64,23 @@ def judge(gt_steps, plan_text):
     m=re.search(r"[01]?\.\d+|[01]", out or "")
     return float(m.group(0)) if m else 0.0
 
+def grounded_only(plan_text, cands):
+    """Keep only plan steps whose workflow_or_action names a REAL candidate (grounded metric v2)."""
+    try: arr=json.loads(re.search(r"\[.*\]", plan_text, re.S).group(0))
+    except Exception:
+        st=re.findall(r'"step"\s*:\s*"([^"]+)"', plan_text); ac=re.findall(r'"workflow_or_action"\s*:\s*"([^"]+)"', plan_text)
+        arr=[{"step":s,"workflow_or_action":a} for s,a in zip(st,ac)]
+    kept=[x for x in arr if isinstance(x,dict) and x.get("workflow_or_action") in cands]
+    return json.dumps(kept) if kept else ""
+
+def neg_penalty(plan_text):
+    p=("Below is a proposed bioinformatics analysis plan. Count DISQUALIFYING errors (e.g. log/CPM-"
+       "normalizing before a raw-count model like DESeq2/edgeR; batch-correcting normalized data with a "
+       "count method; wrong data type into a tool; invalid ordering). Reply ONLY an integer count.\n\n"
+       f"Plan:\n{plan_text}")
+    out=call("https://api.openai.com/v1/chat/completions","gpt-5-mini",p,mx=1500)
+    m=re.search(r"\d+", out or ""); return min(1.0, 0.25*(int(m.group(0)) if m else 0))
+
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--url",default="https://api.openai.com/v1/chat/completions")
@@ -74,7 +91,7 @@ def main():
     a=ap.parse_args()
     if a.direct: direct_load(a.base, a.adapter or None)   # model-under-test = the trained local model
     rows=[json.loads(l) for l in open(f"{D}/removal_eval.jsonl")][:a.limit]
-    composed=valid=n=0; cov=0.0; details=[]
+    composed=valid=n=0; cov=0.0; gcov=0.0; gsc=0.0; details=[]
     for r in rows:
         cands=set(r["candidates"]); W=r["removed_workflow"]
         prompt=f"{INSTR}\n\nCandidates:\n"+"\n".join(f"- {c}" for c in r["candidates"])+f"\n\nRequest: {r['query']}"
@@ -89,18 +106,29 @@ def main():
         ok_valid = all((x in cands) for x in picks) and (W not in picks)   # real, available, not the removed one
         valid+=ok_valid
         cv=judge(r["ground_truth_steps"], resp); cov+=cv
-        details.append({"W":W,"domain":r.get("domain",""),"plan":is_plan,"valid":ok_valid,"coverage":round(cv,2)})
+        # grounded metric v2: credit only milestones realized by a real candidate, x (1-neg_penalty)
+        gplan=grounded_only(resp, cands)
+        gc=judge(r["ground_truth_steps"], gplan) if gplan else 0.0
+        gs=gc*(1-neg_penalty(resp)) if gc>0 else 0.0
+        gcov+=gc; gsc+=gs
+        details.append({"W":W,"domain":r.get("domain",""),"plan":is_plan,"valid":ok_valid,
+                        "coverage":round(cv,2),"grounded":round(gc,2),"gscore":round(gs,2)})
     # committee-v3 fix #6: macro-average over domains (not transcriptomics-dominated micro) + nonzero mean
     import collections as _c
     bydom=_c.defaultdict(list)
     for x in details: bydom[x["domain"] or "?"].append(x["coverage"])
     dom_means={d:round(sum(v)/len(v),3) for d,v in bydom.items()}
     macro=round(sum(dom_means.values())/max(len(dom_means),1),3)
+    gbydom=_c.defaultdict(list)
+    for x in details: gbydom[x["domain"] or "?"].append(x.get("gscore",0.0))
+    gmacro=round(sum(sum(v)/len(v) for v in gbydom.values())/max(len(gbydom),1),3)
     nz=[x["coverage"] for x in details if x["coverage"]>0]
     res={"model":a.model,"n":n,"composed_rate":round(composed/max(n,1),3),
          "validity_rate":round(valid/max(n,1),3),
-         "micro_step_coverage":round(cov/max(n,1),3),          # transcriptomics-dominated (was mean_step_coverage)
-         "macro_step_coverage":macro,                          # mean of per-domain means
+         "micro_step_coverage":round(cov/max(n,1),3),          # OLD (paraphrase-inflated) metric
+         "macro_step_coverage":macro,
+         "grounded_micro":round(gcov/max(n,1),3),              # NEW grounded metric v2 (non-gameable)
+         "gscore_micro":round(gsc/max(n,1),3), "gscore_macro":gmacro,
          "nonzero_mean_coverage":round(sum(nz)/max(len(nz),1),3), "nonzero_frac":round(len(nz)/max(n,1),3),
          "per_domain":dom_means}
     json.dump({"summary":res,"details":details},open(a.out,"w"),indent=2)
