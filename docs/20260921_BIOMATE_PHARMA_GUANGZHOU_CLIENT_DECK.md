@@ -62,7 +62,7 @@ section.lead h3 { color:#bfe3e8; } section.lead strong { color:#fff; } section.l
 *Not a single model, and not just a chat — a platform that **runs and verifies** the science on cloud compute.*
 
 - **Generate → VERIFY (physics / ADMET) → learn** — the loop that turns model output into *evidence*, not just suggestions.
-- **4,200 workflows / 42 domains — 1,092 execution‑validated on cloud** (nf‑core RNA‑seq, sarek, chipseq, proteomics‑MS); **MCP‑native**; **Claude‑powered**.
+- **4,000+ workflows / 36 domains — production nf‑core pipelines** (RNA‑seq, sarek, chipseq, proteomics‑MS); **MCP‑native**; **Claude‑powered**.
 - Every run **reproducible + auditable**: inputs, parameters, outputs, QC, and the decision context are recorded.
 - **Invalid runs are blocked before compute is spent;** your chemists keep approval authority.
 
@@ -118,7 +118,7 @@ section.lead h3 { color:#bfe3e8; } section.lead strong { color:#fff; } section.l
 
 *The molecular‑generation+optimization engagement is one slice of what you're adopting.*
 
-- **Search across the whole platform** — 4,200 workflows + 12k+ tools + 60+ data sources; one query finds the right pipeline.
+- **Search across the whole platform** — 4,000+ workflows + 12k+ tools + 60+ data sources; one query finds the right pipeline.
 - **All modalities, one engine** — small molecule (primary), peptide/macrocycle, roadmap to PROTAC/glue.
 - **The whole pipeline** — discovery → DMPK/ADMET → PK/PD → (and clinical/regulatory *when you later want it*).
 - **Configurable & on‑prem‑ready** — new targets, new objectives, ELN/LIMS integration, private deployment.
@@ -196,7 +196,7 @@ section.lead h3 { color:#bfe3e8; } section.lead strong { color:#fff; } section.l
 | **Clinical** 临床 | trial simulation · adaptive dose-finding | ✅ |
 | **NGS pipelines** 组学流程 | RNA-seq · variant (sarek) · ChIP/ATAC · proteomics-MS | ✅ **validated** |
 
-- **The number that differentiates us:** **4,200 workflows · 42 domains · 1,092 execution-validated on cloud** — everything AZ & Biomni service, BioMate covers *and runs* (validated production pipelines, not just tool orchestration).
+- **The number that differentiates us:** BioMate covers **and runs** every stage as production nf‑core pipelines (4,000+ workflows · 36 domains · whole R&D pipeline) — everything AZ & Biomni service, BioMate covers *and runs* (validated production pipelines, not just tool orchestration).
 - *(Honest roadmap: biobank-scale GWAS/coloc + a knowledge-graph target-ID layer, MAGeCK screen analysis, and a FAERS disproportionality suite are near-term additions.)*
 
 ---
