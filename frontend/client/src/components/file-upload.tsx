@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react"
 import { uploadFile as uploadFileShared } from "@/lib/upload"
+import { filesFromDataTransfer } from "@/lib/folder-drop"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,12 +16,16 @@ import { analytics } from "@/lib/analytics"
 // Size-branch threshold for FormData vs multipart lives in @/lib/upload now;
 // this file is only a UI shell over uploadFileShared().
 
-// Hard cap on a single uploaded file. S3 multipart with 64 MiB chunks tops
-// out at 640 GiB before hitting the 10,000-part limit, but anything beyond
-// ~50 GiB from a browser tab is impractical (long-lived JS context, no
-// app-level resume across reloads). 50 GiB matches the ceiling of every
-// public RNA-seq / WGS sample we’ve seen in practice.
-const MAX_LOCAL_FILE_SIZE_GB = 50
+// Hard cap on a single browser upload. The S3 multipart path scales to 640 GiB
+// (adaptive chunking on the server keeps parts under the 10,000-part limit), so
+// this cap is a *browser-ergonomics* ceiling, not a data ceiling: a tab pushing
+// hundreds of GB is fragile (no resume across reload). 200 GB covers the large
+// single-file genomics cases — 30x WGS BAM (~100-120 GB), long-read BAM — while
+// truly huge or multi-file data (cryo-EM movie sets, TB-scale runs) should come
+// in by reference via URL/S3 import (server-side fetch, no size limit). We nudge
+// to URL/S3 import above URL_IMPORT_RECOMMENDED_GB rather than block.
+const MAX_LOCAL_FILE_SIZE_GB = 200
+const URL_IMPORT_RECOMMENDED_GB = 50
 const MAX_LOCAL_FILE_SIZE_BYTES = MAX_LOCAL_FILE_SIZE_GB * 1024 * 1024 * 1024
 
 interface UploadedFile {
@@ -63,6 +68,7 @@ export function FileUpload({
   const [uploadTab, setUploadTab] = useState<'local' | 'url'>('local')
   const [urlImportMode, setUrlImportMode] = useState<'immediate' | 'deferred'>('deferred')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const folderInputRef = useRef<HTMLInputElement>(null)
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes'
@@ -77,7 +83,7 @@ export function FileUpload({
   const currentUploadSizeGB = currentUploadSizeBytes / (1024 * 1024 * 1024)
   const remainingStorageGB = availableStorageGB - totalUploadedGB - currentUploadSizeGB
 
-  const handleFileSelect = async (selectedFiles: FileList | null) => {
+  const handleFileSelect = async (selectedFiles: FileList | File[] | null) => {
     if (!selectedFiles) return
 
     const newFiles: UploadedFile[] = Array.from(selectedFiles).map(file => ({
@@ -97,7 +103,7 @@ export function FileUpload({
       setFiles(prev => [...prev, ...oversizedFiles.map(f => ({
         ...f,
         status: 'error' as const,
-        error: `File exceeds ${MAX_LOCAL_FILE_SIZE_GB}GB limit. Use URL import for large files, or compress/split the file.`
+        error: `File exceeds the ${MAX_LOCAL_FILE_SIZE_GB} GB browser-upload limit. Use URL/S3 import (no size limit — fetched server-side) for large files like this.`
       }))])
 
       // Filter out oversized files and continue with valid ones
@@ -290,14 +296,22 @@ export function FileUpload({
     setIsDragging(false)
   }
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
-    handleFileSelect(e.dataTransfer.files)
+    // Expand dropped folders (webkitGetAsEntry) into their files; falls back to
+    // the flat file list when the browser doesn't support directory entries.
+    const files = await filesFromDataTransfer(e.dataTransfer)
+    if (files.length > 0) handleFileSelect(files)
   }
 
   const handleClick = () => {
     fileInputRef.current?.click()
+  }
+
+  const handleFolderClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    folderInputRef.current?.click()
   }
 
   const completedCount = files.filter(f => f.status === 'completed').length
@@ -353,7 +367,8 @@ export function FileUpload({
             <Info className="h-3.5 w-3.5 text-blue-500 mt-0.5 shrink-0" />
             <div className="space-y-0.5 text-muted-foreground">
               <span className="font-medium text-foreground">Size limits: </span>
-              Local upload <strong>{MAX_LOCAL_FILE_SIZE_GB} GB</strong> per file · URL/S3 import <strong>no limit</strong> (Galaxy downloads server-side)
+              Local upload <strong>{MAX_LOCAL_FILE_SIZE_GB} GB</strong> per file · URL/S3 import <strong>no limit</strong> (fetched server-side).
+              For files over <strong>{URL_IMPORT_RECOMMENDED_GB} GB</strong> (WGS BAM, cryo-EM movie sets, long-read runs), <span className="text-foreground">URL/S3 import is faster and more reliable</span> than a browser upload.
             </div>
           </div>
 
@@ -372,8 +387,8 @@ export function FileUpload({
             <FolderArchive className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
             <div className="space-y-0.5 text-muted-foreground">
               <span className="font-medium text-foreground">Folders: </span>
-              No folder picker — zip your folder first (<code className="font-mono bg-background/60 px-1 rounded">zip -r data.zip folder/</code>), then upload the <code className="font-mono bg-background/60 px-1 rounded">.zip</code>.
-              For S3 folders, use URL Import with your bucket prefix instead.
+              Drop a folder onto the box, or use <strong>Select a folder</strong> — every file inside uploads (no need to zip first).
+              For folders already in S3, use URL Import with your bucket prefix instead.
             </div>
           </div>
 
@@ -426,8 +441,20 @@ export function FileUpload({
                 Max {MAX_LOCAL_FILE_SIZE_GB} GB per file{multiple && ' · multiple files upload in parallel'}
               </p>
               <p className="text-xs text-muted-foreground/60 mt-1">
-                Folders: zip first · Files &gt;5 GB: use URL Import tab
+                Drop a folder or files · very large files: use URL Import tab
               </p>
+              <div className="mt-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleFolderClick}
+                  data-testid="file-upload-folder-button"
+                >
+                  <FolderArchive className="w-3.5 h-3.5 mr-1.5" />
+                  Select a folder
+                </Button>
+              </div>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -436,6 +463,15 @@ export function FileUpload({
                 onChange={(e) => handleFileSelect(e.target.files)}
                 className="hidden"
                 data-testid="file-upload-input"
+              />
+              <input
+                ref={folderInputRef}
+                type="file"
+                multiple
+                {...({ webkitdirectory: '', directory: '', mozdirectory: '' } as Record<string, string>)}
+                onChange={(e) => { handleFileSelect(e.target.files); e.currentTarget.value = '' }}
+                className="hidden"
+                data-testid="file-upload-folder-input"
               />
             </div>
           </TabsContent>
