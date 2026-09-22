@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Brain, Database, CheckSquare, Square } from 'lucide-react';
+import { Brain, Database, CheckSquare, Square, Plug } from 'lucide-react';
 import {
   ResidencyBadge, ScopeSelector, NOT_DECLARED,
   type Residency, type Scope, type DeclaredFacts,
 } from './connector-residency';
+import { PrivateDbConnectionForm } from './private-db-connection-form';
+import { McpServerForm } from './mcp-server-form';
 
 const ACTIVE_DBS_KEY = 'biomate-active-databases';
 const CONNECTOR_SCOPES_KEY = 'biomate-connector-scopes';
@@ -44,7 +46,7 @@ interface Connector extends DeclaredFacts {
 // user's stated preference locally so the UI is stable, not because it gates access.
 const DEFAULT_SCOPE: Scope = 'account';
 
-type TabId = 'databases' | 'ai';
+type TabId = 'databases' | 'ai' | 'yours';
 
 // NOTE: A "Skills" tab (upload / activate .md skill files) was scaffolded here but
 // removed — no backend read the selection (`/api/skills` returned nothing and
@@ -343,11 +345,55 @@ function DatabasesTab({
   );
 }
 
+// ── Your connections tab ─────────────────────────────────────────────────────
+
+// This is the ONE genuinely writable surface in the dialog. Unlike the public
+// databases and AI/platform tabs — which are an honest READ-ONLY reference
+// directory (nothing to connect or switch on there) — this tab connects the
+// user's OWN private database and MCP server via real backend endpoints. Keep the
+// distinction sharp: the copy here says "connect", the reference tabs never do.
+function YourConnectionsTab() {
+  const [section, setSection] = useState<'db' | 'mcp'>('db');
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }} data-testid="your-connections-tab">
+      {/* Sub-tabs: Private databases | MCP servers */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--muted)', padding: '0 12px', gap: 2, flexShrink: 0 }}>
+        {([['db', 'Private databases'], ['mcp', 'MCP servers']] as const).map(([id, label]) => {
+          const active = section === id;
+          return (
+            <button
+              key={id}
+              data-testid={`your-connections-sub-${id}`}
+              onClick={() => setSection(id)}
+              style={{
+                padding: '6px 10px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+                fontSize: 12, fontWeight: active ? 600 : 400,
+                color: active ? 'var(--foreground)' : 'var(--muted-foreground)',
+                background: 'transparent',
+                borderBottom: active ? '2px solid var(--foreground)' : '2px solid transparent',
+                marginBottom: -1,
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ padding: 16 }}>
+        {section === 'db' && <PrivateDbConnectionForm />}
+        {section === 'mcp' && <McpServerForm />}
+      </div>
+    </div>
+  );
+}
+
 // ── Tab config ─────────────────────────────────────────────────────────────────
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode; count?: number; tip: string }[] = [
   { id: 'databases', label: 'Public Databases',   icon: <Database style={{ width: 13, height: 13 }} />, count: DB.length, tip: 'Public protein, genomics, omics, chemical, pathway, disease, literature, and imaging sources BioMate can query from chat' },
   { id: 'ai',        label: 'AI & Platforms',      icon: <Brain    style={{ width: 13, height: 13 }} />, count: AI.length, tip: 'LLM providers and messaging / IDE surfaces BioMate exposes — reference only, not configured here' },
+  { id: 'yours',     label: 'Your connections',    icon: <Plug     style={{ width: 13, height: 13 }} />,                   tip: 'Connect your OWN private database and MCP server — the one writable surface here, backed by real endpoints' },
   // A "Skills" tab was removed, not merely hidden: no backend read its selection,
   // so it advertised an activation capability that did not exist. Add a real
   // endpoint before re-introducing it — do not restore the facade.
@@ -402,10 +448,12 @@ export function ConnectorsDialog({ open, onOpenChange }: ConnectorsDialogProps) 
         <DialogHeader style={{ padding: '16px 20px 0', flexShrink: 0 }}>
           <DialogTitle>Connectors reference</DialogTitle>
           <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: '3px 0 0' }}>
-            A reference directory of the public data sources BioMate can already reach from chat, plus the
-            AI models and messaging surfaces it exposes. Ask in chat and BioMate queries the relevant sources
-            automatically — there is nothing to connect or switch on here. Each row carries where it runs,
-            because the question behind most of them is whether your data leaves the estate.
+            The <strong>Public Databases</strong> and <strong>AI &amp; Platforms</strong> tabs are a read-only
+            reference directory of what BioMate can already reach from chat — ask in chat and BioMate queries
+            the relevant sources automatically; there is nothing to connect or switch on in those two tabs.
+            The <strong>Your connections</strong> tab is different: it is where you connect your OWN private
+            database and MCP server. Each row carries where it runs, because the question behind most of them
+            is whether your data leaves the estate.
           </p>
           {/* Residency legend (§0.9.3): the five values, so a badge is readable at a glance */}
           <div data-testid="residency-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 8px', marginTop: 8, fontSize: 10.5, color: 'var(--muted-foreground)' }}>
@@ -460,11 +508,13 @@ export function ConnectorsDialog({ open, onOpenChange }: ConnectorsDialogProps) 
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', display: 'flex', flexDirection: 'column' }}>
           {activeTab === 'databases' && <DatabasesTab selected={selectedDbs} onToggle={toggleDb} scopes={scopes} onScopeChange={setScope} />}
           {activeTab === 'ai'        && <ConnectorTable rows={AI} scopes={scopes} onScopeChange={setScope} />}
+          {activeTab === 'yours'     && <YourConnectionsTab />}
         </div>
 
         <div style={{ flexShrink: 0, padding: '6px 20px', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--muted-foreground)' }}>
           {activeTab === 'databases' && dbFooter}
           {activeTab === 'ai'        && `${AI.length} AI models and platform surfaces BioMate exposes — reference only. This panel does not configure them; set up messaging bots / IDE (MCP) / GPT-action access from their own tools or the BioMate MCP install flow.`}
+          {activeTab === 'yours'     && 'Your own private database and MCP server — the one writable surface here. Connections you add are used by BioMate chat; DB queries are read-only and credentials are encrypted at rest.'}
         </div>
       </DialogContent>
     </Dialog>
