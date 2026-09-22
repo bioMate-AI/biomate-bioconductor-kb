@@ -82,10 +82,10 @@ def process(kind, wf, x):
 
 
 def run(kind_filter, anchors, outname):
-    anchors = anchors[:CAP]
+    sel = [(k, wf, x) for (k, wf, x) in anchors if k == kind_filter or kind_filter == "*"][:CAP]
     res = []
     with ThreadPoolExecutor(max_workers=WORKERS) as ex:
-        futs = [ex.submit(process, k, wf, x) for (k, wf, x) in anchors if k == kind_filter or kind_filter == "*"]
+        futs = [ex.submit(process, k, wf, x) for (k, wf, x) in sel]
         for i, f in enumerate(as_completed(futs)):
             r = f.result()
             if r: res.append(r)
