@@ -3075,6 +3075,74 @@ export function NextflowWorkflowViewer({
                         />
                       )}
 
+                      {/* ── Output location (Phase C) ─────────────────────────────
+                          Restored 2026-09-22: the picker UI was removed in
+                          112181d64 ("output location removal") but the backend
+                          plumbing (NextflowExecuteRequest.output_location +
+                          _resolve_outdir in nextflow_executor.py) and the
+                          routes.ts __outputLocation forwarding were never
+                          removed — outputLocationType was stuck at 'default'
+                          with no way to change it. This re-activates the
+                          fully-supported backend feature.
+                          Only shown for Nextflow workflows — Galaxy .ga
+                          workflows write to Galaxy history automatically; no
+                          output path is user-configurable. */}
+                      {(workflowDefinition as any)?.workflow_type !== 'galaxy' &&
+                       (workflowDefinition as any)?.format !== 'galaxy' && (
+                      <div data-testid="output-location-section"
+                           style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 4 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6, color: 'var(--text)' }}>
+                          Output location
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12 }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                            <input type="radio"
+                                   name="output-location"
+                                   value="default"
+                                   checked={outputLocationType === 'default'}
+                                   onChange={() => setOutputLocationType('default')}
+                                   data-testid="output-location-default" />
+                            <span>Default (BioMate-managed, kept 90 days)</span>
+                          </label>
+                          {projectId && (
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                              <input type="radio"
+                                     name="output-location"
+                                     value="project"
+                                     checked={outputLocationType === 'project'}
+                                     onChange={() => setOutputLocationType('project')}
+                                     data-testid="output-location-project" />
+                              <span>My project folder</span>
+                            </label>
+                          )}
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                            <input type="radio"
+                                   name="output-location"
+                                   value="user_s3"
+                                   checked={outputLocationType === 'user_s3'}
+                                   onChange={() => setOutputLocationType('user_s3')}
+                                   data-testid="output-location-user-s3" />
+                            <span title="Advanced — your bucket must grant BioMate's service role write access.">
+                              My S3 bucket <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>(Advanced)</span>
+                            </span>
+                          </label>
+                          {outputLocationType === 'user_s3' && (
+                            <input
+                              type="text"
+                              placeholder="s3://my-bucket/my-prefix"
+                              value={userS3Uri}
+                              onChange={(e) => setUserS3Uri(e.target.value)}
+                              data-testid="output-location-user-s3-uri"
+                              style={{ marginLeft: 22, fontSize: 12, padding: '3px 6px',
+                                       border: '1px solid var(--border)', borderRadius: 3,
+                                       background: 'var(--surface)', color: 'var(--text)',
+                                       fontFamily: 'var(--font-mono)', width: 320 }}
+                            />
+                          )}
+                        </div>
+                      </div>
+                      )}
+
                     </div>
                   </div>
                 )}
