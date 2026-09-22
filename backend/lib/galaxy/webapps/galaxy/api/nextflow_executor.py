@@ -1846,6 +1846,23 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
                 if _collected:
                     src = _collected
             if not src:
+                # No input resolved for this declared name. Rather than abort the
+                # launch with a 422 ("no entry wrapper could be generated"), bind a
+                # non-data placeholder so the workflow LAUNCHES — its own no-input
+                # demo fallback (qPCR ddCq, HTS plate QC, the B8 QC parsers, …) then
+                # supplies sample data for a one-click "try the platform" run, while
+                # a workflow that truly needs input fails loudly inside R (better UX
+                # than an opaque channel-binding 422). Only for the single list-slot
+                # shape (path(input_files, stageAs:'?/*')); a multi-input workflow
+                # with a genuinely missing declared input still bails to the caller.
+                # The `.dat` extension is deliberately NOT a data extension the .nf
+                # bodies scan for (csv/tsv/txt/rds), so demo-capable workflows ignore
+                # it and take their no-input path.
+                if n_path <= 1 and len(names) == 1:
+                    _ph = run_dir / "bioc_no_input_placeholder.dat"
+                    _ph.write_text("")
+                    staged.append(_ph.resolve())
+                    continue
                 return None
             # UNIVERSAL multi-omics interface: a declared input may be a LIST of files — one
             # matrix per omics modality (e.g. rna.csv, methylation.csv, proteomics.csv). Stage
