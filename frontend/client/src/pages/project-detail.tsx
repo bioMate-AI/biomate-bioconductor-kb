@@ -299,7 +299,6 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
       const data = await r.json().catch(() => ({}))
       if (!r.ok) { setTransferError(data.error ?? "Failed to transfer ownership"); return }
       setIsOwner(false)
-      setMyRole("editor")
       setTransferTarget(null)
       loadMembers()
     } catch { setTransferError("Failed to transfer ownership") }
