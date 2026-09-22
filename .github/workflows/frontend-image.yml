@@ -203,8 +203,8 @@ jobs:
           {
             echo "## Frontend image build"
             echo "- sha tag: \`${{ steps.tags.outputs.sha_tag }}\`"
-            [[ -n "${{ steps.tags.outputs.branch_tag }}" ]]  && echo "- branch tag: \`${{ steps.tags.outputs.branch_tag }}\`"
-            [[ -n "${{ steps.tags.outputs.release_tag }}" ]] && echo "- release tag: \`${{ steps.tags.outputs.release_tag }}\`"
+            [[ -n "${{ steps.tags.outputs.branch_tag }}" ]]  && echo "- branch tag: \`${{ steps.tags.outputs.branch_tag }}\`" || true
+            [[ -n "${{ steps.tags.outputs.release_tag }}" ]] && echo "- release tag: \`${{ steps.tags.outputs.release_tag }}\`" || true
             echo "- ECR: \`${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}\`"
-            [[ -n "${{ steps.tags.outputs.release_tag }}" ]] && echo "- GHCR: \`${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.release_tag }}\`"
+            [[ -n "${{ steps.tags.outputs.release_tag }}" ]] && echo "- GHCR: \`${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.release_tag }}\`" || true
           } >> "$GITHUB_STEP_SUMMARY"
