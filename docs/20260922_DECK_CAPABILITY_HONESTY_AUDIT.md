@@ -44,8 +44,22 @@ Legend: **✅ real & verifiable now** · **◑ real in code/infra, not yet verif
 - **Generator (S3):** ✅ **built** — real REINVENT4 (de-novo + scaffold-hop), 43 tests pass, workflow compiles
   (commit `c3ae0efbd`, branch `feat/drugdev-reinvent4-realgen`). Needs x86 container build + a real gen run.
 - **MPO / closed loop (S5/S10):** ✅ **built** — GP-Pareto Batch workflow, green locally (commit `853c2e3e1`).
-- **Generator RL/fine-tuning (S4 ⚠️):** in progress (build agent rate-limited; redoing).
-- **FEP (⚠️):** in progress (OpenFE RBFE workflow; build agent rate-limited; redoing).
+- **Generator RL/fine-tuning (S4 ⚠️):** ◑ **now built** — real REINVENT4 training added:
+  `reinvent4_trainer.py` (`Reinvent4TransferLearner` = `run_type=transfer_learning` generator
+  fine-tuning; `Reinvent4StagedLearner` = `run_type=staged_learning` DAP RL vs a multi-objective
+  reward affinity×SA×safety×QED with an always-on Murcko `[diversity_filter]` = reward-hacking
+  suppression), the `reinvent4_finetune_rl/` Nextflow workflow (transfer→RL, awsbatch/ECR conv.),
+  and the `bin/run_reinvent4_training.py` Batch entrypoint. 40 new unit tests pass; the workflow
+  DAG compiles under `nextflow -stub-run`; honesty contract verified (no CLI → `ok=False`, exits
+  rc 4/5, **zero fabricated checkpoints**). Needs the x86 `reinvent4-nf` container build + one real
+  training run on Batch to move ◑ → ✅ (Dockerfile smoke 2/3 gate this).
+- **FEP (⚠️):** ✅ **now real** (commit `c15e971fb`) — **and this uncovered an active fabrication**: the prior
+  `openfe_rbfe` workflow wrote a **placeholder ΔΔG = −1.23 kcal/mol + synthetic `np.random` overlap/convergence**
+  when parsing failed. Replaced with a genuine OpenFE v1.2 RBFE (LOMAP network → RelativeHybridTopologyProtocol →
+  MBAR ΔΔG ± SEM) with an **honesty contract (returns null + status, never fabricates)**. Real ΔΔG needs the openfe
+  container on GPU Batch. ⚠️ **Recommend a repo-wide fabrication sweep** (grep for `np.random`/hardcoded results in
+  workflow analysis steps) — if FEP fabricated, other stub/placeholder paths may too (e.g. the ADMET_pred touch-stub,
+  the p0 docking silent-bad-score fallback flagged earlier).
 - **Multi-agent reviewer (S11 ⚠️):** decision pending — build vs reframe.
 
 ## The rule going forward (so the deck never over-claims silently)
