@@ -1,8 +1,11 @@
 /**
- * Minimal i18n for on-premises deployments.
+ * Minimal i18n for BioMate.
  *
- * When VITE_ONPREM=true the app shows Chinese labels on the sidebar and key UI
- * surfaces. SaaS builds (VITE_ONPREM unset) always get English.
+ * Language detection order:
+ *   1. Stored user preference in localStorage (biomate-user-settings.language)
+ *   2. navigator.language (browser default)
+ *   3. VITE_ONPREM=true build flag (on-prem defaults to Chinese)
+ *   4. 'en' fallback
  *
  * Usage:
  *   import { t } from '@/lib/i18n'
@@ -80,8 +83,41 @@ const isOnPrem = typeof import.meta !== 'undefined'
   ? (import.meta as any).env?.VITE_ONPREM === 'true'
   : false;
 
+/** Read stored language preference from localStorage (set by user settings). */
+function readStoredLocale(): string | null {
+  try {
+    const raw = typeof localStorage !== 'undefined'
+      ? localStorage.getItem('biomate-user-settings')
+      : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return typeof parsed.language === 'string' ? parsed.language : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Normalise a BCP-47 tag to a 2-letter prefix ('zh-CN' → 'zh'). */
+function langPrefix(tag: string): string {
+  return tag.toLowerCase().split('-')[0];
+}
+
+/**
+ * Detect whether the active locale is Chinese.
+ * Priority: stored preference → navigator.language → VITE_ONPREM flag.
+ */
+function isChineseLocale(): boolean {
+  const stored = readStoredLocale();
+  if (stored) return langPrefix(stored) === 'zh';
+  const nav = typeof navigator !== 'undefined' ? navigator.language : null;
+  if (nav) return langPrefix(nav) === 'zh';
+  return isOnPrem;
+}
+
+const useZh = isChineseLocale();
+
 export function t(key: string): string {
-  if (!isOnPrem) return key;
+  if (!useZh) return key;
   return ZH[key] ?? key;
 }
 
