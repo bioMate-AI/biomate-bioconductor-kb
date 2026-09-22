@@ -473,7 +473,8 @@ test.describe("Exec-plan: Design & Generate / Sidebar (live dev)", () => {
         `landed at ${landed}`
       );
     }
-    await navEntry("C04", "button-ind-report", "/ind-report");
+    // C04 button-ind-report hidden from sidebar 2026-09-22 (per request); route still exists via direct URL.
+    // await navEntry("C04", "button-ind-report", "/ind-report");
     await navEntry("C05", "button-data-nav", "/files");
     await navEntry("C06", "button-models-nav", "/models");
     await navEntry("C07", "button-design-generate-nav", "/design");

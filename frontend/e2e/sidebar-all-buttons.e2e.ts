@@ -203,17 +203,20 @@ test("SB-4: current nav items (connectors, IND report) are present", async () =>
   await expect(connectorsBtn, "button-connectors-nav must be present and visible").toBeVisible();
   console.log("[SB-4] button-connectors-nav present: correct");
 
-  // The IND Report button IS active
-  const indBtn = page.locator('[data-testid="button-ind-report"]').first();
-  await expect(indBtn, "button-ind-report must be present and visible").toBeVisible();
-  console.log("[SB-4] button-ind-report present: correct");
+  // IND Report is HIDDEN from the sidebar (commented out 2026-09-22 per request).
+  // Route still exists; only the nav entry is removed.
+  const indCount = await page.locator('[data-testid="button-ind-report"]').count();
+  expect(indCount, "button-ind-report must be ABSENT (IND Report hidden from sidebar)").toBe(0);
+  console.log("[SB-4] button-ind-report absent: correct (hidden)");
 });
 
 // ============================================================================
 // SB-5: IND Report nav → navigates to /ind-report
 // ============================================================================
 
-test("SB-5: IND Report nav navigates to /ind-report", async () => {
+// IND Report sidebar nav was hidden 2026-09-22 (per request). The nav click can
+// no longer be exercised; the /ind-report route itself still exists (direct URL).
+test.skip("SB-5: IND Report nav navigates to /ind-report (nav hidden)", async () => {
   const page = sharedPage;
   await goHome(page);
 

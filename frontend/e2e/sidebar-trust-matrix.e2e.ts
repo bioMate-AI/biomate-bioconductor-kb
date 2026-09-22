@@ -47,7 +47,8 @@ test.describe("Sidebar trust matrix — live JSX (C2)", () => {
     await shot(page, "02_workflows_dialog");
   });
 
-  test("C2.03 IND Report: navigates to /ind-report", async ({ page }) => {
+  // IND Report sidebar nav hidden 2026-09-22 (per request); route still exists via direct URL.
+  test.skip("C2.03 IND Report: navigates to /ind-report (nav hidden)", async ({ page }) => {
     await bootApp(page);
     await page.locator('[data-testid="button-ind-report"]').click();
     await expect(page).toHaveURL(/\/ind-report/);
