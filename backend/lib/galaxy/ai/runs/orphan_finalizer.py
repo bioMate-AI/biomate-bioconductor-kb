@@ -242,10 +242,19 @@ def finalize_orphaned_run(
       5. Stash S3 outputs + qc_gates back in the store so subsequent
          /api/workflows/runs/<id> reads see the terminal state.
     """
-    returncode, _ = _read_returncode_from_disk(run_record)
-    final_status = "succeeded" if returncode == 0 else (
-        "interrupted" if returncode < 0 else "failed"
-    )
+    # Prefer the authoritative AWS Batch verdict when the poller supplied it —
+    # the disk-artifact inference (_read_returncode_from_disk) mislabels Batch
+    # runs as 'interrupted' when the local .nextflow.log/trace never reached
+    # local disk (the container recycled), which is exactly the stuck-run case.
+    _batch_status = str(run_record.get("batch_terminal_status") or "").lower()
+    if _batch_status in ("succeeded", "failed"):
+        returncode = 0 if _batch_status == "succeeded" else 1
+        final_status = _batch_status
+    else:
+        returncode, _ = _read_returncode_from_disk(run_record)
+        final_status = "succeeded" if returncode == 0 else (
+            "interrupted" if returncode < 0 else "failed"
+        )
     completed_at = time.time()
 
     # Step 2 — persist terminal status.

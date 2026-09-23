@@ -41,6 +41,8 @@ Usage (target shape):
 from __future__ import annotations
 
 import logging
+import os
+import re
 import threading
 import time
 from typing import Callable, Optional
@@ -96,6 +98,7 @@ class CompletionPoller:
         completion_handler: CompletionHandler,
         interval_s: float = 5.0,
         min_run_age_s: float = 5.0,
+        batch_check_age_s: float = 300.0,
     ) -> None:
         """
         Args:
@@ -119,6 +122,9 @@ class CompletionPoller:
         self._handler = completion_handler
         self._interval = max(0.5, float(interval_s))
         self._min_age = max(0.0, float(min_run_age_s))
+        # Only ask AWS Batch about a run once it's this old — avoids describe_jobs
+        # calls on young runs whose local driver is still healthily finalizing.
+        self._batch_check_age = max(0.0, float(batch_check_age_s))
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
 
@@ -181,26 +187,101 @@ class CompletionPoller:
         if record is None:
             return False
         # Check min age to avoid racing freshly-launched subprocesses.
+        age: Optional[float] = None
         started_at = record.get("started_at")
         if isinstance(started_at, (int, float)) and started_at > 0:
             age = time.time() - float(started_at)
             if age < self._min_age:
                 return False
         pid = self._store.get_pid(run_id)
-        if pid is None:
-            # We don't know the PID — either Stage 2a hasn't wired the
-            # set_pid call for this run yet, or it was a non-subprocess
-            # path (e.g., an external Galaxy invocation). Skip.
-            return False
-        if _pid_exists(int(pid)):
-            return False
-        # Process is gone but status is still non-terminal. This is the
-        # scenario the L3 bug creates. Take the lock and run completion.
+        pid_gone = pid is not None and not _pid_exists(int(pid))
+
+        batch_status: Optional[str] = None
+        if not pid_gone:
+            # The local Nextflow driver is still alive (or its PID was never
+            # recorded), so it can't be trusted to finalize. For an AWS Batch
+            # run the driver's completion callback can silently never fire,
+            # leaving the run 'running' forever (the 282-stuck-run bug). Ask
+            # AWS Batch directly — the authoritative signal nothing else reads —
+            # but only once the run is old enough to avoid hammering the API.
+            if age is None or age < self._batch_check_age:
+                return False
+            batch_status = self._batch_terminal_status(run_id, record)
+            if batch_status is None:
+                # No Batch ids yet, at least one job still running, or the
+                # describe call failed — leave it for a later sweep.
+                return False
+        # Either the local PID is gone, or every Batch job is terminal.
         if not self._store.acquire_completion_lock(run_id, ttl_s=120):
             return False
         try:
+            if batch_status is not None:
+                # Hand the authoritative Batch verdict to the finalizer so it
+                # doesn't have to infer the returncode from local disk artifacts.
+                try:
+                    self._store.update_run(run_id, batch_terminal_status=batch_status)
+                except Exception:
+                    pass
+                record["batch_terminal_status"] = batch_status
             self._handler(run_id, record)
             return True
         except Exception:
             # Re-raise so _sweep logs with context.
             raise
+
+    def _batch_terminal_status(self, run_id: str, record: dict) -> Optional[str]:
+        """Return 'succeeded'/'failed' iff EVERY AWS Batch job for this run is
+        terminal, else None (still running / unknown / error).
+
+        Batch job ids come from the run-state store (persisted on an earlier
+        sweep) or, failing that, are scraped from the local .nextflow.log and
+        persisted so a later worker/container can still see them after a recycle.
+        """
+        ids = record.get("batch_job_ids") or []
+        if not ids:
+            ids = self._scrape_and_persist_batch_ids(run_id, record)
+        if not ids:
+            return None
+        try:
+            import boto3  # Galaxy runtime has boto3
+            region = (os.environ.get("AWS_REGION")
+                      or os.environ.get("AWS_DEFAULT_REGION") or "us-west-2")
+            client = boto3.client("batch", region_name=region)
+            statuses: list = []
+            for i in range(0, len(ids), 100):
+                resp = client.describe_jobs(jobs=list(ids[i:i + 100]))
+                statuses.extend(j.get("status") for j in resp.get("jobs", []))
+        except Exception as exc:
+            log.debug("[completion_poller] %s: describe_jobs failed: %s", run_id, exc)
+            return None
+        if not statuses or any(s not in ("SUCCEEDED", "FAILED") for s in statuses):
+            return None  # at least one job still pending/running (or none found)
+        return "failed" if any(s == "FAILED" for s in statuses) else "succeeded"
+
+    def _scrape_and_persist_batch_ids(self, run_id: str, record: dict) -> list:
+        """Scrape AWS Batch job ids from the run's local .nextflow.log (shared
+        across gunicorn workers in the container) and persist them to the store
+        (Redis) so they survive a worker/container recycle."""
+        try:
+            work_base = os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs")
+            nf_log = os.path.join(work_base, run_id, "work", ".nextflow.log")
+            if not os.path.isfile(nf_log):
+                return []
+            ids: list = []
+            seen: set = set()
+            pat = re.compile(r"submitted > job=([0-9a-f\-]{36})")
+            with open(nf_log, errors="replace") as fh:
+                for line in fh:
+                    m = pat.search(line)
+                    if m and m.group(1) not in seen:
+                        seen.add(m.group(1))
+                        ids.append(m.group(1))
+            if ids:
+                try:
+                    self._store.update_run(run_id, batch_job_ids=ids)
+                except Exception:
+                    pass
+            return ids
+        except Exception as exc:
+            log.debug("[completion_poller] %s: scrape batch ids failed: %s", run_id, exc)
+            return []
