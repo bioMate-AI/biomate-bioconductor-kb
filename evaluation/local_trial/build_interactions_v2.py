@@ -2,7 +2,7 @@
 + the full 12,312-tool DB (never used before). gemini-flash mx=3000. Target 60k+. Task type emerges.
 Output: data_pool_v2/interactions_v2.jsonl {anchor_type, task_type, input, target, split, source}
 """
-import json, os, re, sqlite3, random, urllib.request, hashlib
+import json, os, re, sqlite3, random, urllib.request, hashlib, time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 REPO = "/Users/kky/biomate-review"; DB = f"{REPO}/backend/database/galaxy_ai_tools.db"
 P = f"{REPO}/docs/20260912_onprem_llm/data_pool_v2"
@@ -15,12 +15,14 @@ c = sqlite3.connect(f"file:{DB}?mode=ro", uri=True); c.row_factory = sqlite3.Row
 def gem(prompt, mx=3000):
     u = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={GK}"
     b = json.dumps({"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"maxOutputTokens": mx}}).encode()
-    for _ in range(4):
+    for a in range(6):
         try:
             ca = json.load(urllib.request.urlopen(urllib.request.Request(u, data=b, headers={"Content-Type": "application/json"}), timeout=90))["candidates"][0]
             if ca.get("finishReason") in (None, "STOP"):
                 return "".join(x.get("text", "") for x in ca.get("content", {}).get("parts", [])).strip()
-        except Exception: pass
+            return ""  # MAX_TOKENS/other -> don't retry (won't improve)
+        except Exception:
+            time.sleep(min(2 ** a, 20))  # backoff so high concurrency doesn't drop on rate limits
     return ""
 
 
