@@ -48,7 +48,7 @@ def main():
     ap.add_argument("--model", default="model"); ap.add_argument("--out", required=True)
     a = ap.parse_args()
     direct_load(a.base, a.adapter or None)
-    rows = [json.loads(l) for l in open(f"{P}/corpus_eval.jsonl")]
+    import os as _os; rows = [json.loads(l) for l in open(_os.environ.get("EVAL_DIR",P)+"/corpus_eval.jsonl")]
     agg = defaultdict(lambda: [0.0, 0])
     for r in rows:
         mk = PROMPT.get(r["task"])
