@@ -109,7 +109,9 @@ class LLMClient:
 
     def __init__(self, config: AIConfig):
         self.config = config
-        self.provider = config.llm_provider.lower()
+        import os as _os_provider_override
+        _env_provider = _os_provider_override.environ.get("GALAXY_AI_LLM_PROVIDER", "").lower()
+        self.provider = _env_provider if _env_provider else config.llm_provider.lower()
         self.model = config.llm_model
         self.api_key = config.llm_api_key
         self.base_url = config.llm_base_url
@@ -188,9 +190,11 @@ class LLMClient:
             _key = self.api_key or _os.environ.get("LLM_API_KEY", "none")
             if _key and _key != "none":
                 self.headers["Authorization"] = f"Bearer {_key}"
-            # Use LLM_MODEL as model name if not already set via config
-            if not self.model:
-                self.model = _os.environ.get("LLM_MODEL", "")
+            # LLM_MODEL env var always wins for custom providers (avoids inheriting
+            # config default like 'claude-sonnet-4-5' when Qianwen/vLLM is configured)
+            _env_model = _os.environ.get("LLM_MODEL", "")
+            if _env_model:
+                self.model = _env_model
 
         else:
             raise ValueError(f"Unsupported LLM provider: {self.provider}")
