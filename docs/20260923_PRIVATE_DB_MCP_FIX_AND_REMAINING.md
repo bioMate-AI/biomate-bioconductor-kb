@@ -30,6 +30,21 @@ Two symptoms found by end-to-end testing after the routing fix:
    - Register writes record + index via `registry._write_secret`; `list()` reads an empty index in the next request. The vault-success path does **not** commit (only the preferences fallback commits, `registry.py:98`); dev runs gunicorn with 4 workers, so an uncommitted write in the POST worker isn't visible to the GET worker.
 3. **`owner_user_id: 0`** on the registered record — `getattr(trans.user, "id", None)` resolved to **0** for the userProxy-mapped fixture user. Unresolved; may indicate the userProxy→Galaxy user context is a synthetic/id-0 user whose Vault/preferences don't persist normally. NOTE: `credentials_api` uses the same `trans.user` and its GET returns 200, but a credentials store→read round-trip was **never actually verified** — it may share this latent non-persistence.
 
+### ROOT CAUSE CONFIRMED (2026-09-23, via SSH-over-SSM Galaxy traceback)
+`trans.user` for these userProxy calls is a **`BootstrapAdminUser` (id 0)**, NOT the real user. The Galaxy log on a create shows:
+```
+File "/app/lib/galaxy/webapps/galaxy/api/users.py", line 662, in show
+  ...serialize... BootstrapAdminUser...
+AttributeError: 'BootstrapAdminUser' object has no attribute 'preferred_object_store_id'
+```
+plus the earlier `credential_map from vault: {...real values...}` proves **Vault is healthy**. So the persistence failure is NOT Vault and NOT a commit gap — it is that `userProxy(req)` calls Galaxy with the **master/bootstrap key** because the fixture user has **no provisioned per-user `galaxyApiKey`** (`req.user.galaxyApiKey` is null → `forUser(undefined)` → Galaxy resolves the master key → `BootstrapAdminUser`). Every write is therefore scoped to the synthetic bootstrap admin (id 0), which has no persistent per-user Vault/preferences store → writes "succeed" but never round-trip, and `owner_user_id=0`.
+
+This is the CLAUDE.md credential-architecture case: *"If a feature fails because a user lacks a Galaxy account → fix the provisioning flow, don't skip Galaxy account operations."* It affects `credentials_api` identically (its store→read round-trip was never actually verified — it likely also writes to the bootstrap admin). Related prior incident: the "provision master-key poison" note in the Input-HDA pipeline work.
+
+**Proper fix (architectural, not a patch):** ensure the user has a provisioned real Galaxy user + `galaxyApiKey` so `userProxy` authenticates as that user (not the master key). Then per-user Vault/preferences persist and `owner_user_id` is the real id. This is the same provisioning path the HDA-input work fixed; verify it runs for this user/flow. Only after provisioning is correct do the (secondary) create-path error-handling + commit hardening matter.
+
+Also surfaced: a **pre-existing Galaxy bug** — serializing a `BootstrapAdminUser` via `GET /api/users/{user_id}` throws `AttributeError: preferred_object_store_id` (500). Independent of our feature but worth noting.
+
 ### Why not patched yet (discipline)
 CLAUDE.md: "no fix without an identified cause." The clean fix for #1 (wrap the vault write) and #2 (commit after vault write) is understood, BUT #3 (`owner_user_id: 0`) suggests the deeper cause may be the user context itself — in which case commit/fallback patches would produce a false "no crash" without real persistence. Confirming needs the Galaxy backend traceback for the create-500 + a check of what `trans.user` resolves to for a userProxy call.
 
