@@ -320,16 +320,16 @@ export function shouldEnableThinking(message: string, intent: string): boolean {
 }
 
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {
-  intentModel: 'gemini-3.5-flash',  // overridden by BIOMATE_INTENT_MODEL env var; gemini-3.5-flash in production
+  intentModel: 'gemini-3.8-flash',  // overridden by BIOMATE_INTENT_MODEL env var; gemini-3.8-flash in production
   toolRankingModel: 'claude-haiku-4-5',  // Haiku: fast lightweight ranking
-  responseModel: 'gemini-3.5-flash',     // Primary: Gemini Flash; Claude/OpenAI/Ollama as fallback chain
+  responseModel: 'gemini-3.8-flash',     // Primary: Gemini Flash; Claude/OpenAI/Ollama as fallback chain
   enableThinking: false,                 // Disable thinking by default for lower latency
   thinkingBudget: 2000,
 };
 
 // Two-tier Gemini routing: Pro for complex queries, Flash for simple ones.
 // Overridable via env so model names can be tuned without code changes.
-const GEMINI_FLASH_MODEL = process.env.BIOMATE_INTENT_MODEL_FLASH || 'gemini-3.5-flash';
+const GEMINI_FLASH_MODEL = process.env.BIOMATE_INTENT_MODEL_FLASH || 'gemini-3.8-flash';
 const GEMINI_PRO_MODEL   = process.env.BIOMATE_INTENT_MODEL_PRO   || 'gemini-3.1-pro-preview';
 
 /**
@@ -8664,7 +8664,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           {
             name: 'Gemini',
             // Activate the agentic tool loop on the PRIMARY Gemini backbone — same
-            // gate as the Claude path (8338). Without this, the default gemini-3.5-flash
+            // gate as the Claude path (8338). Without this, the default gemini-3.8-flash
             // config ran tool-less: run_code/list_history AND the data-plane tools
             // (search_literature/search_my_data/list_data_sources) never attached, so
             // the model hallucinated tool use and denied capabilities it has. The
@@ -8966,7 +8966,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           // Gate on a real RUNNABLE workflow, not isWorkflowTurn/mere non-null — see 8344.
           const geminiTools = !hasRunnableWorkflow ? BIOMATE_TOOLS : undefined;
           const geminiResponse = await this._generateWithGemini(
-            systemPrompt, plainMessages, onResponseDelta, 4096, 'gemini-3.5-flash',
+            systemPrompt, plainMessages, onResponseDelta, 4096, 'gemini-3.8-flash',
             geminiTools ? { tools: geminiTools, context, onToolEvent } : undefined,
           );
           return { message: geminiResponse, truncated: false };
@@ -8996,7 +8996,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             { role: 'user' as const, content: userPrompt },
           ];
           const geminiResponse = await this._generateWithGemini(
-            systemPrompt, plainMessages, onResponseDelta, 4096, 'gemini-3.5-flash',
+            systemPrompt, plainMessages, onResponseDelta, 4096, 'gemini-3.8-flash',
           );
           const fallbackMsg = geminiResponse || 'I\'m having trouble generating a response right now. Please try again in a moment.';
           if (!geminiResponse && onResponseDelta) onResponseDelta(fallbackMsg);

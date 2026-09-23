@@ -23,13 +23,13 @@ from typing import Any, Dict, Optional
 # (Supersedes the stale literals: claude-3-5-sonnet-20241022, claude-3-haiku-20240307,
 #  gemini-2.0-flash-exp, claude-sonnet-4-20250514.)
 ROLE_DEFAULTS: Dict[str, str] = {
-    "intent":    "gemini-3.5-flash",   # cheap/fast intent classification
+    "intent":    "gemini-3.8-flash",   # cheap/fast intent classification
     "tool_rank": "claude-haiku-4-5",   # tool re-ranking
     "response":  "claude-sonnet-4-5",  # main chat response
     "convert":   "claude-sonnet-4-5",  # process/workflow conversion (quality)
     "autofix":   "claude-sonnet-4-5",  # workflow auto-fix / remediation
     "audit":     "claude-haiku-4-5",   # cheap semantic audit / log analysis / judging
-    "rag":       "gemini-3.5-flash",   # fast RAG / lightweight utility calls
+    "rag":       "gemini-3.8-flash",   # fast RAG / lightweight utility calls
     "judge":     "claude-haiku-4-5",   # benchmark hallucination judge
     "param":     "claude-sonnet-4-5",  # parameter extraction
 }

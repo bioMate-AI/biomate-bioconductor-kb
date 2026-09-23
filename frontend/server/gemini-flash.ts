@@ -15,7 +15,7 @@ import { localOnly, localCompletion } from './local-llm.js';
 
 import { GoogleGenerativeAI, GenerativeModel, GenerationConfig } from '@google/generative-ai';
 
-export const GEMINI_FLASH_MODEL = 'gemini-3.5-flash';
+export const GEMINI_FLASH_MODEL = 'gemini-3.8-flash';
 
 function getClient(): GoogleGenerativeAI {
   const apiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
@@ -60,7 +60,7 @@ export async function callGeminiFlash(opts: CallGeminiFlashOpts): Promise<string
   const generationConfig: GenerationConfig = {
     maxOutputTokens: opts.maxTokens ?? 4096,
     temperature: opts.temperature ?? 0,
-    // @ts-expect-error — thinkingConfig is supported by gemini-3.5-flash but
+    // @ts-expect-error — thinkingConfig is supported by gemini-3.8-flash but
     // not yet in @google/generative-ai types
     thinkingConfig: { thinkingBudget: 0 },
     ...(opts.jsonMode ? { responseMimeType: 'application/json' } : {}),

@@ -5618,7 +5618,7 @@ N. REFERENCES — Relevant tool citations with PMIDs.`;
         // ── Step-by-step report generation with Claude Sonnet 4.5 ─────────────
         // Route through the canonical fallback chain
         // (backend/config/llm_providers.yml: gemini-3.1-pro-preview primary,
-        // gemini-3.5-flash-preview / claude-sonnet-4-5 / gpt-4o / qwen3:32b
+        // gemini-3.8-flash-preview / claude-sonnet-4-5 / gpt-4o / qwen3:32b
         // fallbacks). Replaces the previous direct Anthropic SDK call that
         // hardcoded claude-sonnet-4-5 and bypassed the YAML chain.
         const { llmGenerate } = await import('./llm-client');
@@ -6479,7 +6479,7 @@ ${paramLines || '(none recorded)'}`;
               'claude-sonnet-4-6':          {i:  3.00,  o: 15.00},
               'claude-sonnet-4-5-20250929': {i:  3.00,  o: 15.00},
               'claude-haiku-4-5-20251001':  {i:  0.25,  o:  1.25},
-              'gemini-3.5-flash':     {i:  0.075, o:  0.30},
+              'gemini-3.8-flash':     {i:  0.075, o:  0.30},
             };
             const p = pricing[model] ?? {i: 3.00, o: 15.00};
             const cost = (inTok * p.i + outTok * p.o) / 1_000_000;

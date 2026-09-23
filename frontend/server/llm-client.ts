@@ -5,7 +5,7 @@ import { localOnly, localCompletion } from './local-llm.js';
  * Routes to the backend's `/internal/llm/generate` endpoint which uses the
  * YAML-defined fallback chain in `backend/config/llm_providers.yml`:
  *   1. gemini-3.1-pro-preview (primary)
- *   2. gemini-3.5-flash-preview
+ *   2. gemini-3.8-flash-preview
  *   3. claude-sonnet-4-5
  *   4. gpt-4o
  *   5. ollama qwen3:32b

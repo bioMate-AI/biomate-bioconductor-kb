@@ -27,7 +27,7 @@ class FallbackChain:
 
     # Fallback order (after primary fails)
     FALLBACK_ORDER = [
-        ('gemini', 'gemini-3.5-flash'),  # Fast, reliable
+        ('gemini', 'gemini-3.8-flash'),  # Fast, reliable
         ('openai', 'gpt-4o'),                # Widely available
         ('ollama', 'gemma4:31b'),            # Local fallback
     ]

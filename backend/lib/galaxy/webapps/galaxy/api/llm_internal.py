@@ -3,7 +3,7 @@ llm_internal.py — Internal LLM endpoint called by the BioMate frontend.
 
 Routes all frontend LLM calls through the YAML-defined fallback chain in
 `backend/config/llm_providers.yml` (primary: gemini-3.1-pro-preview;
-fallbacks: gemini-3.5-flash-preview → claude-sonnet-4-5 → gpt-4o →
+fallbacks: gemini-3.8-flash-preview → claude-sonnet-4-5 → gpt-4o →
 qwen3:32b) via the existing `LLMClient` + `FallbackChainManager`.
 
 Authentication mirrors billing_internal.py (X-Internal-Key shared with
