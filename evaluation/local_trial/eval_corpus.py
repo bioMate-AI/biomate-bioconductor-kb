@@ -49,6 +49,7 @@ def main():
     a = ap.parse_args()
     direct_load(a.base, a.adapter or None)
     import os as _os; rows = [json.loads(l) for l in open(_os.environ.get("EVAL_DIR",P)+"/corpus_eval.jsonl")]
+    print(f"[eval_corpus] loaded {len(rows)} eval rows from {_os.environ.get(chr(69)+chr(86)+chr(65)+chr(76)+chr(95)+chr(68)+chr(73)+chr(82),P)}", flush=True)
     agg = defaultdict(lambda: [0.0, 0])
     for r in rows:
         # format-tolerant: SFT-messages {messages,task} OR {input,target,task/task_type}
