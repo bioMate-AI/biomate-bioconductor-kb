@@ -798,13 +798,42 @@ def internal_provision_galaxy_user(payload: ProvisionGalaxyUserPayload):
                 galaxy_user_id, galaxy_username, galaxy_email,
             )
 
+        # Galaxy's shared master_api_key must NEVER be handed to a per-user proxy:
+        # a request bearing it authenticates as the synthetic BootstrapAdminUser
+        # (id 0), which has no persistent per-user Vault/preferences store — so
+        # private-DB / MCP / credentials silently never round-trip. If a user's
+        # api_keys row happens to contain the master key (legacy poison), skip it.
+        def _galaxy_master_api_key():
+            mk = os.environ.get("GALAXY_CONFIG_MASTER_API_KEY") or os.environ.get("MASTER_API_KEY")
+            if mk:
+                return mk.strip()
+            try:
+                _here = os.path.dirname(os.path.abspath(__file__))
+                _root = os.path.normpath(os.path.join(_here, "..", "..", "..", "..", ".."))
+                for _cfg in (
+                    os.path.join(_root, "config", "galaxy.yml"),
+                    os.path.join(_root, "config", "galaxy.yml.docker"),
+                ):
+                    if os.path.exists(_cfg):
+                        with open(_cfg) as _fh:
+                            for _line in _fh:
+                                _s = _line.strip()
+                                if _s.startswith("master_api_key:"):
+                                    return _s.split(":", 1)[1].strip().strip("\"'") or None
+            except Exception:
+                pass
+            return None
+
+        _master_key = _galaxy_master_api_key()
+
         # Generate API key (32-char hex token)
-        # First check if an active key already exists
+        # Reuse an existing active key (newest first) — but never the master key.
         existing_key = conn.execute(
             _sa.text(
-                'SELECT "key" FROM api_keys WHERE user_id = :uid AND deleted = 0 LIMIT 1'
+                'SELECT "key" FROM api_keys WHERE user_id = :uid AND deleted = 0 '
+                'AND (:mk IS NULL OR "key" != :mk) ORDER BY id DESC LIMIT 1'
             ),
-            {"uid": galaxy_user_id},
+            {"uid": galaxy_user_id, "mk": _master_key},
         ).fetchone()
 
         if existing_key:
