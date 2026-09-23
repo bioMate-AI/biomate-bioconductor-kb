@@ -410,6 +410,12 @@ export interface ChatContext {
    */
   selectedModel?: string;
   /**
+   * Custom OpenAI-compatible base URL (e.g. DashScope / local vLLM).
+   * When set alongside openrouterKey, overrides the default openrouter.ai base URL.
+   * Enables on-prem deployments with Qianwen, DeepSeek, or local models.
+   */
+  openaiBaseUrl?: string;
+  /**
    * Forces the result of intent classification to this type, bypassing the LLM.
    * Gated by routes.ts behind the E2E bypass token — only valid in test mode.
    * When set AND the query has design-verb+modality patterns, _detectCrossIntentAmbiguity
@@ -3748,17 +3754,16 @@ Rules:
     const userAnthropicKey = context.userAnthropicApiKey;
     const openrouterKey = context.openrouterKey;
 
-    // OpenRouter path: bypass the Anthropic pipeline entirely and stream directly
-    // through OpenRouter's OpenAI-compatible API. Tool use / workflow generation
-    // is not available on this path — users can switch back to default for that.
+    // OpenRouter / OpenAI-compatible path: bypass the Anthropic pipeline and stream
+    // directly through any OpenAI-compatible API (OpenRouter, DashScope/Qianwen, vLLM…).
+    // Tool use / workflow generation is not available on this path.
     if (openrouterKey) {
+      const baseURL = context.openaiBaseUrl || 'https://openrouter.ai/api/v1';
+      const isOpenRouter = baseURL.includes('openrouter.ai');
       const orClient = new OpenAI({
-        baseURL: 'https://openrouter.ai/api/v1',
+        baseURL,
         apiKey: openrouterKey,
-        defaultHeaders: {
-          'HTTP-Referer': 'https://biomate.ai',
-          'X-Title': 'BioMate',
-        },
+        ...(isOpenRouter ? { defaultHeaders: { 'HTTP-Referer': 'https://biomate.ai', 'X-Title': 'BioMate' } } : {}),
       });
       return _openrouterClientStorage.run(orClient, () =>
         this._generateChatWithOpenRouter(message, context, onResponseDelta));
