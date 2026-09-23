@@ -268,23 +268,6 @@ extension. See **I.8 Outputs, viewers & interactive panels** for the full taxono
 > download; you only need IGV or a genome browser when you want to eyeball a
 > specific locus's read pileup. Cross-ref **I.8** for the viewer taxonomy.
 
-**Screenshots** (run-dependent — require a completed GIAB HG002 germline run; not
-captured here):
-
-![The in-app VCF table viewer showing called germline variants (CHROM/POS/REF/ALT/FILTER) for GIAB HG002 chr20](../assets/var-1-vcf-viewer.png)
-
-<!-- CAPTURE var-1-vcf-viewer.png: Run bioc_variant_annotation_workflow (or Wgs Germline Gatk) on the
-GIAB HG002 chr20 gold input to completion on dev. In the after-run Outputs tab, open the filtered/
-annotated .vcf output. Screenshot the InlineVcfViewer table showing the CHROM/POS/ID/REF/ALT/QUAL/
-FILTER/INFO columns with real HG002 chr20 variants and the "first 100 rows" truncation note. Requires
-a real Batch run. -->
-
-![MultiQC report for the germline run showing mapped %, duplicate rate, coverage, and Ts/Tv](../assets/var-2-multiqc.png)
-
-<!-- CAPTURE var-2-multiqc.png: From the same completed run, open multiqc_report.html in the HTML iframe
-viewer. Screenshot the general-statistics / alignment section showing mapped % (≥70%), duplicate rate,
-mean coverage (≥30×), and the Ts/Tv value (~2.0-2.1). Requires a real Batch run. -->
-
 ## Pitfalls & tips
 
 > **Pitfall — germline vs somatic is an assay difference, not a preference.** This

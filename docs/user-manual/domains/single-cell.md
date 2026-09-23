@@ -298,15 +298,6 @@ is by file type.
 > cluster. Go interactive (CellxGene / Jupyter) only to re-gate or re-cluster — and
 > only where those tools are provisioned (see *What's not covered*).
 
-![In-app single-cell summary: UMAP coloured by cluster, cluster-composition bars, and top markers per cluster.](../assets/sc-1-single-cell-umap.png)
-<!-- CAPTURE route=/ (after-run report → Outputs → view annotated.h5ad) ; state=a COMPLETED live scRNA run whose annotated.h5ad has a populated annotated.h5ad.summary.json sidecar (STAGE 6.5 emitted) ; focus=single-cell-summary ; note=show the single-cell-umap SVG + single-cell-clusters bars + single-cell-markers list. REQUIRES a real Batch scRNA run (L/⏳) — until then the panel self-hides and this screenshot cannot be captured. -->
-
-![Cluster marker table: top marker genes per cluster/cell type, rendered in the in-app table viewer.](../assets/sc-2-cluster-markers.png)
-<!-- CAPTURE route=/ (after-run report → Outputs → view marker_genes_per_cluster.csv) ; state=a completed scRNA run with marker_genes_per_cluster.csv present ; focus=inline-table-viewer ; note=show the sortable marker table (cluster + top genes). REQUIRES a real scRNA run's output file. -->
-
-![Per-cell QC violins (genes / counts / %mito) and the doublet-score histogram — the "are these real cells" check.](../assets/sc-3-qc-violin.png)
-<!-- CAPTURE route=/ (after-run report → Outputs → view qc_violin.png / doublet_hist.png) ; state=a completed scRNA run with qc_violin.png + doublet_hist.png present ; focus=inline-image-viewer ; note=show the QC violin distributions + doublet histogram. REQUIRES a real scRNA run's output files. -->
-
 ## Pitfalls & tips
 
 > **Pitfall — bulk vs single-cell is a statistical fork, not a preference.**

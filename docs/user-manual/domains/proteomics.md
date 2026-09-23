@@ -250,14 +250,6 @@ mapping below is by file extension.
 | Protein-quant matrix | `*.csv` / `*.tsv` | **Table** viewer | Download for your own re-analysis |
 | MSnSet / limma R object | `*.rds` | **R-object** viewer (binary → open in RStudio) | Re-analyse in R only if you need more than the table |
 
-Run-dependent surfaces (no Batch run was fired; placeholders + capture specs):
-
-![The in-app table viewer showing limma DE-proteins (protein, logFC, adj.P.Val) for the PXD002952 UPS1 spike-in](../assets/prot-1-de-proteins.png)
-<!-- CAPTURE prot-1-de-proteins.png: Run bioc_proteomics_de_v2 on PXD002952; from the completed run's after-run Outputs tab, open de_proteins.csv so the inline table viewer renders (protein, logFC, adj.P.Val). Needs a real Batch run (L/⏳). -->
-
-![The volcano plot with UPS1 spike-in proteins highlighted in the significant corner, rendered in the PDF/image viewer](../assets/prot-2-volcano.png)
-<!-- CAPTURE prot-2-volcano.png: From the same completed run, open the limma volcano PDF/PNG so it renders in the in-app PDF/Image viewer. Needs a real Batch run. -->
-
 > **Tip — read the table in-app, don't re-plot.** The DE table renders sortable
 > with a 200-row preview and full download. Sort by `adj.P.Val` for your top hits
 > or by `logFC` for effect size — you rarely need RStudio just to look. Go

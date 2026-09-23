@@ -157,8 +157,6 @@ table, a ChEMBL selectivity profile — and those render in the standard in-app 
 structures; table viewer for hit lists and activity tables). There is no separate "reference data
 browser" surface.
 
-![Placeholder: workflow panel pre-run strip showing an auto-filled GRCh38 genome param resolved from the user's "human" prompt](../assets/ii04-1-genome-prefill.png)
-
 ## Pitfalls & tips
 
 > **Tip — name the organism/build, not the file.** "Human / GRCh38" or "mouse / mm10" auto-resolves the

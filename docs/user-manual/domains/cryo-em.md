@@ -291,12 +291,6 @@ this FSC-0.143 resolution, with D7 symmetry, passes the gate* — which is exact
 the "gold-standard-comparable artifact" the tutorial-demo plan mandates, not a
 CryoSPARC job tree.
 
-![FSC curve for the reconstructed map](../assets/cryo-1-fsc-curve.png)
-<!-- CAPTURE route=/chat (or the run's after-run Outputs tab) state=a completed cryosparc_standard_spa run on EMPIAR-10025; open the fsc_validation.json output so FscCurveChart renders the gold-standard FSC curve with the 0.143 crossing marked. Needs a real GPU/Batch run. -->
-
-![Sharpened density map in the Density Map Viewer](../assets/cryo-2-density-map.png)
-<!-- CAPTURE route=/chat (after-run Outputs tab) state=a completed cryosparc_standard_spa run; open volume_sharpened.mrc so DensityMapViewer renders orthogonal XY/XZ/YZ slices with the slice slider. Needs a real GPU/Batch run producing a .mrc. -->
-
 ## Outputs & visualization
 
 Every cryo-EM output renders in the after-run panel's Outputs tab through the

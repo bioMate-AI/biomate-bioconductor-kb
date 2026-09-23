@@ -232,14 +232,6 @@ mapping below is by file extension.
 | Consensus-selection R object | `*.rds` | **R-object** viewer (binary → open in RStudio) | Re-analyse in R only if you need more than the table |
 | QC / PCA plots | `*.pdf` / `*.png` | **PDF / Image** viewer | Read the QC-sample clustering; export for figures |
 
-Run-dependent surfaces (no Batch run was fired; placeholders + capture specs):
-
-![The in-app table viewer showing biosigner-selected differential features (m/z, RT, selection score) for MTBLS136](../assets/metab-1-differential-features.png)
-<!-- CAPTURE metab-1-differential-features.png: Run lcms_metabolomics_consensus on MTBLS136 (phenotype=gender); from the completed run's after-run Outputs tab, open differential_features.tsv so the inline table viewer renders (m/z, RT, selection score). Needs a real Batch run (L/⏳). -->
-
-![The QC-sample PCA / CV plot showing pooled QC clustering — the analytical-stability check — rendered in the PDF/image viewer](../assets/metab-2-qc-pca.png)
-<!-- CAPTURE metab-2-qc-pca.png: From the same completed run, open the xcms QC PCA/CV plot PDF/PNG so it renders in the in-app PDF/Image viewer. Needs a real Batch run. -->
-
 > **Tip — read the QC plot before the biomarker list.** The QC-sample PCA/CV plot
 > tells you whether the run was analytically stable. If pooled QC samples don't
 > cluster tightly, the "differences" downstream may be drift — read this first,

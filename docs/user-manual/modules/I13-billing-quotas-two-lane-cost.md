@@ -41,9 +41,6 @@ reachable from the sidebar. It reads two endpoints:
 The page also shows usage history (`/api/billing/usage/history`, `billing.tsx:196`) and offers credit
 top-ups via the payments/subscription path (`/api/payments/subscription`, `billing.tsx:221`).
 
-![The /billing page: current-month usage broken into LLM / compute / storage, the quota bar, and credit-pack top-ups.](../assets/i13-1-billing-page.png)
-<!-- CAPTURE route=/billing ; state=logged in ; focus=billing usage + quota bar ; note=LLM/compute/storage breakdown, quota %, credit packs -->
-
 ## The plan model — flat tiers + internal quota
 
 BioMate bills on a **flat-tier subscription model**, not usage-based metering. Two systems run

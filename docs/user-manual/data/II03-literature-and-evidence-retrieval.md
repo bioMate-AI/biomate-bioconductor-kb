@@ -193,8 +193,6 @@ per-source found/kept bars, the conflicts card, the source reader (link-out), th
 three exits (Save to project / Make instruction / Check against our data). There is no separate viewer
 for the backbone — it is the evidence layer *under* the I.3 UI. See **I.3 — Outputs & visualization**.
 
-![Placeholder: an evidence answer showing the "How this was searched" per-source found/kept bars over a live literature query](../assets/ii03-1-retrieval-bars.png)
-
 ## What's not covered
 
 Honest scope — **not** claimed as present; these live in **Appendix E (Coverage & roadmap)**:

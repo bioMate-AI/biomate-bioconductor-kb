@@ -162,8 +162,6 @@ where instructions, notes, and saved syntheses are listed — documented in **I.
 answers land as `notes_synthesis` rows in the Notes list, not as versioned Files documents
 (cross-ref I.3, "Save to project").
 
-![Placeholder: project detail showing Standing instructions (agent-read) alongside Notes (human-only), illustrating the injection boundary](../assets/ii05-1-instructions-vs-notes.png)
-
 ## Pitfalls & tips
 
 > **Tip — put durable behaviour in a Standing instruction, not a Note.** Instructions (`research_goal`,

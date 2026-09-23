@@ -286,15 +286,6 @@ Outputs render in the after-run panel's Outputs tab via the in-app viewer taxono
 | Enrichment (GSEA/ORA) | `*_results.csv` / `.tsv` | **Table** viewer | Download for the pathway figure; sort by adjusted p-value |
 | WGCNA modules / dotplots | `*.pdf` / `*.csv` | **PDF / Table** viewer | Export module plots; download module membership |
 
-![MOFA2 factor plot — factors coloured by IGHV status, Factor 1 separating mutated vs unmutated](../assets/mo-1-mofa-factor-plot.png)
-<!-- CAPTURE: live dev run of `mofa2` on the Dietrich CLL 2-layer input (s3://biomate-nextflow-work/cll_test/ mrna+methylation).
-     After-run panel → Outputs tab → open `mofa_analysis_plots.pdf` (factor scatter / variance decomposition) OR the rendered
-     factors table coloured by IGHV. Frame the panel showing Factor 1 as the dominant IGHV-separating axis. Run-dependent → placeholder. -->
-
-![SNF fused-network subtype clustering on the same CLL layers](../assets/mo-2-snf-clusters.png)
-<!-- CAPTURE: live dev run of `Snf_multiomics` on the same CLL matrices. After-run panel → Outputs tab → `snf_clusters.csv` table
-     view (sample → cluster), ideally cross-tabbed against IGHV. Run-dependent → placeholder. -->
-
 > **Tip — read the variance plot before the factors.** The MOFA variance
 > decomposition tells you which factors are genuinely *shared* across layers. Interpret
 > those as your multi-omics story; treat single-layer-dominated factors as

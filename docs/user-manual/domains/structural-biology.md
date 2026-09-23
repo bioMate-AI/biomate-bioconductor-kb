@@ -302,12 +302,6 @@ should place erlotinib in the ATP pocket.
 `qc_metrics.json` (pLDDT / confident-fraction / PAE) + ranked docked poses
 (`.pdbqt`) + Vina/DiffDock score JSONs.
 
-![Predicted EGFR model in the 3-D structure viewer, coloured by per-residue pLDDT, with the pLDDT confidence chart beside it](../assets/struct-1-model-plddt.png)
-<!-- CAPTURE route=/ (after-run report → Outputs → view the predicted .pdb/.mmcif) ; state=a completed Boltz-2 (or structure_prediction_docking) run producing a predicted structure with pLDDT in the B-factor column ; focus=inline-structure-viewer ; note=show the 3Dmol cartoon coloured by pLDDT spectrum + PlddtChart below it; data-has-confidence should be "true". Reuses the I.8 real capture pattern (step-output-preview.tsx:1067,1167). Needs a real GPU run. -->
-
-![Ranked AutoDock Vina docked poses of erlotinib in the EGFR ATP pocket](../assets/struct-2-docked-poses.png)
-<!-- CAPTURE route=/ (after-run report → Outputs) ; state=a completed docking run (structure_prediction_docking or docking_autodock_vina) with *_vina_poses.pdbqt + *_vina_summary.json ; focus=inline-structure-viewer ; note=load the receptor + top-ranked pose; show the summary table of per-mode affinities. Needs a real GPU/Batch run producing poses. -->
-
 ## Outputs & visualization
 
 Structure and docking outputs render in the after-run panel's Outputs tab through

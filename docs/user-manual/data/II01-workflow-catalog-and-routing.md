@@ -45,9 +45,6 @@ drug_discovery (200), proteomics (184), and variant_calling (181).
 > `galaxy_ai_tools.db`. Treat the round numbers in prose as approximate; the catalog grows as
 > workflows are indexed.
 
-![The catalog spans dozens of domains; a goal routes to one workflow or a chain, not a name you have to remember.](../assets/ii01-1-catalog-domains.png)
-<!-- CAPTURE route=/capabilities ; state=capabilities page listing domains/workflow counts ; focus=domain grid ; note=shows breadth of catalog (captured live from dev) -->
-
 ## What a chain is (and why it matters)
 
 A single workflow does one job (align FASTQ; call variants). A **chain** wires several together so an
@@ -157,9 +154,6 @@ re-submits as an explicit choice. Three near-identical bulk-RNA chains
 (`bulk_rnaseq_de_analysis`, `bulk_rnaseq_consensus_de_bioc`, `bioc_bulk_rnaseq_de_v2`) carry
 pre-written differentiation blurbs specifically so this step reads clearly
 (`backend/scripts/differentiate_ambiguous_chains.py:31-75`).
-
-![A disambiguation card: two or more candidate workflows, each with a one-line role, when the goal is genuinely ambiguous.](../assets/ii01-2-disambiguation.png)
-<!-- CAPTURE route=/ ; state=chat after an ambiguous prompt (e.g. "compare DESeq2 vs edgeR") ; focus=disambiguation card in chat ; note=candidates with role + score (captured live from dev) -->
 
 ## Indexed vs generated-on-demand (the honest boundary)
 

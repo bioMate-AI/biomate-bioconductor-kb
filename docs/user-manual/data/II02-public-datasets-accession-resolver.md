@@ -109,9 +109,6 @@ classification entirely:
   this is "no transfer at all" — it registers the location rather than re-uploading
   (`galaxy-dataset-browser.tsx:185`).
 
-![The composer's data browser, From URL tab: paste an HTTPS/FTP/S3 URL (or an S3 prefix) to register data as a dataset with no re-upload.](../assets/ii02-1-from-url.png)
-<!-- CAPTURE component=GalaxyDatasetBrowser ; state=From URL tab active with a sample URL typed ; focus=URL input + Import button ; note=reached via composer database icon (captured live from dev) -->
-
 ## Tools behind this (agent/MCP surface)
 
 | Tool | What it does | Backend |
@@ -123,9 +120,6 @@ classification entirely:
 `browse_data` public sources are `ebi_ftp`, `ncbi_ftp`, `ensembl_ftp`, `ucsc_downloads`, `http_public`,
 plus the S3 sources `biomate_workspace` and `user_s3`; the frontend routes the S3 sources to
 `/api/s3/browse` and the rest to Galaxy's `remote_files` proxy (`routes.ts:892-896`).
-
-![Resolving an accession: BioMate names the fetch workflow and the pre-filled parameter — one confirm away from a run.](../assets/ii02-2-resolve-accession.png)
-<!-- CAPTURE route=/ ; state=chat after "fetch GSE183947" showing the resolved fetch-workflow card ; focus=workflow card with prefilled accession param ; note=captured live from dev -->
 
 ## What's not covered
 

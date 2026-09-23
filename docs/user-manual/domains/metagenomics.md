@@ -240,14 +240,6 @@ mapping below is by file extension.
 | Kraken2 / Bracken profile | `*.tsv` / `*.report` | **Table** viewer | Download the abundance table for plotting |
 | PathoStat / QC plots | `*.pdf` / `*.png` / `*.html` | **PDF / Image / HTML** viewer | Read community composition; export for figures |
 
-Run-dependent surfaces (no Batch run was fired; placeholders + capture specs):
-
-![The in-app table viewer showing MMseqs2 per-bin taxonomy (bin, rank, taxon) for the CAMI II gut subset](../assets/mg-1-taxonomy-table.png)
-<!-- CAPTURE mg-1-taxonomy-table.png: Run shotgun_metagenomics_to_mag on the CAMI II low-complexity gut subset; from the completed run's after-run Outputs tab, open taxonomy.tsv so the inline table viewer renders (bin, rank, taxon). Needs a real Batch run (L/⏳). -->
-
-![The PathoStat differential-abundance table (taxon, effect size, p-value across conditions) rendered in the table viewer](../assets/mg-2-differential-abundance.png)
-<!-- CAPTURE mg-2-differential-abundance.png: From the same completed run, open differential_abundance.tsv so the inline table viewer renders. Needs a real Batch run. -->
-
 > **Tip — MAGs are the start of the next analysis.** The recovered bins are FASTA
 > genomes; download the high-quality ones to annotate (gene calling / functional
 > annotation) or place them phylogenetically. In-app, read the taxonomy and

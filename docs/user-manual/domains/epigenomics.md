@@ -252,17 +252,6 @@ mapping below is by file extension.
 | Pathway enrichment table | `enrichment_results.csv` | **Table** viewer | Download; sort by adjusted p-value |
 | bigWig coverage tracks (ATAC) | `*.bigWig` / `*.bw` | **Download** (not browser-renderable) | Load into IGV / UCSC for signal tracks |
 
-Run-dependent surfaces (no Batch run was fired; placeholders + capture specs):
-
-![The in-app table viewer showing ChIPseeker-annotated peaks (peak, nearest gene, feature type) for ENCODE K562 H3K27ac](../assets/epi-1-annotated-peaks.png)
-<!-- CAPTURE epi-1-annotated-peaks.png: Run bioc_chipseq_annotation_v2 on the ENCODE K562 H3K27ac gold peak set; from the completed run's after-run Outputs tab, open annotated_peaks.csv so the inline table viewer renders (peak, gene, feature). Needs a real Batch run (L/⏳). -->
-
-![The peak-feature-distribution plot (promoter/intron/intergenic fractions) rendered in the PDF/image viewer](../assets/epi-2-feature-distribution.png)
-<!-- CAPTURE epi-2-feature-distribution.png: From the same completed run, open the ChIPseeker feature-distribution PDF/PNG so it renders in the in-app PDF/Image viewer. Needs a real Batch run. -->
-
-![The GO enrichment dotplot for peak-adjacent genes rendered in the PDF viewer](../assets/epi-3-go-dotplot.png)
-<!-- CAPTURE epi-3-go-dotplot.png: From the same run, open the clusterProfiler GO dotplot output in the in-app PDF/Image viewer. Needs a real Batch run. -->
-
 > **Pitfall — `.narrowPeak` / `.broadPeak` render as download, not as a table.**
 > The in-app viewer maps `.bed` to the annotation viewer, but MACS2's
 > `.narrowPeak` / `.broadPeak` extensions fall through to a **download** tile

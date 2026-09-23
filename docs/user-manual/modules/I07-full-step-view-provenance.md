@@ -42,9 +42,6 @@ This is the honest part — read it before you go looking.
 > view."** The after-run report's Outputs tab gives you the rich viewer and a download, but not the
 > param-origin / provenance surface. This is a real wiring gap — see **What's not covered**.
 
-![The step-as-object: provenance row on top, resolved parameters with origin badges below](../assets/i07-1-step-as-object.png)
-<!-- CAPTURE route=/ (run panel, a completed run) ; state=open a completed run's phase list, click "Details" on a completed step (e.g. salmon_quant) ; focus=step-detail ; note=show the provenance row (step-provenance) with inputs → tool version → N outputs · duration, and the "Parameters this step actually ran with" list with param-origin badges + the "N not default" count -->
-
 ## The provenance row (what fed it → what ran → what came out)
 
 The header carries a single compact chain (`step-detail.tsx:312-337`):
@@ -108,9 +105,6 @@ Each output appears as a tab; selecting one shows it two ways via the **rendered
 If the raw bytes can't be read as text (a binary artifact), the raw view says so and offers a direct
 download rather than a dead end (`step-detail.tsx:214-228`). Selecting a different output tab resets to
 rendered and refetches (`:272-277`, `step-detail.test.tsx:133-140`).
-
-![The rendered ⇄ raw toggle: the same output shown as its evidence-typed viewer and as the raw bytes it was derived from](../assets/i07-2-rendered-raw-toggle.png)
-<!-- CAPTURE route=/ (run panel, a completed run) ; state=open a completed step's full step view, select a text/table output (e.g. quant.sf), then click the "raw" toggle ; focus=rendered-raw-toggle ; note=show the toggle group (toggle-rendered / toggle-raw) and the raw-view pane with the "Raw first: the summary above is derived from these bytes" caption -->
 
 The toggle is the load-bearing behaviour the test suite guards: "rendered" delegates to the shipped viewer
 with **no** fetch; flipping to "raw" fetches from `/step-file` exactly once and shows the bytes; flipping

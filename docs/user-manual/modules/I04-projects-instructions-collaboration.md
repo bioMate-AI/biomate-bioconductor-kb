@@ -89,9 +89,6 @@ note's content reaches the assistant — an explicit, deliberate action, never a
 > Note and expect the assistant to pick it up, it won't. Put behavioral guidance in **Standing
 > instructions**, or promote the note.
 
-![Project detail: the Plan / hypothesis card above, with the Standing-instructions and Notes cards showing the "Promote to instruction ↑" action and the "not read by the assistant" boundary.](../assets/i04-1-instructions-notes-plan.png)
-<!-- CAPTURE route=/projects?project=<id> ; state=a project with one saved standing instruction, one note, and one plan ; focus=[data-testid="standing-instructions-card"],[data-testid="notes-card"],[data-testid="plans-card"] ; note=show the right sidebar with all three cards; highlight the "not read by the assistant" note text and the Promote button -->
-
 ## Plans & hypotheses
 
 A **plan** captures the goal (and optional hypothesis) motivating a piece of work, as a first-class
@@ -155,9 +152,6 @@ roles** panel on the project page (`project-detail.tsx:1078-1248`).
 > members, changing roles, sharing links, and transferring ownership return **402 TEAM_REQUIRED** for
 > plans below Team (`blockedByCollaborationTier`, `project-routes.ts:151-163, :670, :721, :768, :823`).
 > Reading and single-user project work are unaffected. See I.13 for the tier model.
-
-![Members & roles panel: the owner's invite-by-email and share-link controls, the member list with per-member role dropdowns and remove buttons, and the "You: <role>" badge with the capability card below.](../assets/i04-2-members-roles.png)
-<!-- CAPTURE route=/projects?project=<id> ; state=a project owned by the fixture user with at least one invited member ; focus=[data-testid="members-panel"] ; note=show invite link, invite-by-email row, member rows with role selects, my-role-badge, and the RolesCard capabilities list -->
 
 ## Project lifecycle
 

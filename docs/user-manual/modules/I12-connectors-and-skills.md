@@ -93,9 +93,6 @@ affordance (`skills-selector.tsx:75`, `data-testid="composer-experts-toggle"`):
 - The "**N on**" chip only counts selections that map to a **real, available** pack
   (`skills-selector.tsx:117-119`) — it can't show a phantom count.
 
-![The composer Experts popover: expert packs with per-pack toggles and an "N on" chip; empty state reads "No expert packs available yet".](../assets/i12-2-experts-popover.png)
-<!-- CAPTURE route=/ ; state=empty chat, click "Experts" in composer ; focus=composer-experts-popover ; note=toggles + N-on chip, or honest-empty state -->
-
 > **Pitfall — the catalogue is honest-empty when unpopulated.** If the backend skills catalogue has
 > no entries, the popover shows **"No expert packs available yet"** rather than fabricating toggles
 > that do nothing (`skills-selector.tsx:204-209`, `data-testid="composer-experts-empty"`). An empty

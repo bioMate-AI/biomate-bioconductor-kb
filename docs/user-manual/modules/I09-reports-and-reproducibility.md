@@ -26,9 +26,6 @@ separate tab (resolved parameters, methods, software, citations, QC report, traj
 into the Reproducibility record tab as expandable sections — nothing is hidden, just re-nested
 (`:1500-1528`).
 
-![The three-tab after-run report on a completed run — Summary landing tab with the Run-original badge](../assets/i09-1-three-tabs.png)
-<!-- CAPTURE route=/ (chat session with a completed Cloud run, run panel open) ; state=a completed run ; focus=[data-testid="after-summary-tab"] ; note=show the tab bar (Summary / Outputs / Reproducibility record), the "Run original" badge, and FindingsCard headline metric chips -->
-
 ### Summary — the headline finding
 
 The Summary tab is the run's answer at a glance. It renders the `FindingsCard` (`AfterRunReport.tsx:256`),
@@ -123,9 +120,6 @@ The immutability is enforced in the model, not just the UI: `makeRunOriginal` mi
 inherits the run id, and can never replace v0 (`report-version.ts:50-88`). The store seeds v0 from the
 report as it stood **before** the first edit, so the original is a faithful snapshot of what the run
 produced (`report-version-store.ts:159-167`).
-
-![The report version list — v0 marked "immutable run original" with an edited version above it](../assets/i09-3-version-list.png)
-<!-- CAPTURE route=/ (completed run, Reproducibility record → Methods section, after one Save version) ; state=a completed run with ≥1 saved edit ; focus=[data-testid="report-versions"] ; note=show v0 "immutable run original" plus a later edited version with its note and date -->
 
 > **Tip — edit freely; the original is safe.** Editing and saving never touches v0. If you need the
 > exact record of what the run produced, it's always there as the run original.

@@ -82,9 +82,6 @@ rather than a fabricated one (`:1048-1053`).
 > backbone); 70–90 is confident; 50–70 is low; below 50 is often disordered. Read the *colour* of the
 > chart, not a single global score.
 
-![A predicted structure in the 3-D viewer with its per-residue pLDDT confidence chart.](../assets/i08-2-structure-plddt.png)
-<!-- CAPTURE route=/ (after-run report → Outputs → view a .pdb prediction) ; state=a completed structure-prediction run with a predicted .pdb (pLDDT in B-factor column) ; focus=inline-structure-viewer ; note=show the 3Dmol cartoon (spectrum) + the pLDDT chart below it; data-has-confidence should be "true" -->
-
 ### Domain JSON sidecars → dedicated charts
 
 Some workflows emit small JSON sidecars whose filename names a dedicated chart viewer, so a domain
@@ -119,9 +116,6 @@ draws:
 > interactive / download path (`step-output-preview.tsx:589`, `:618-623`). Until the single-cell
 > pipelines emit that sidecar end-to-end, expect the fallback rather than the UMAP on a real run — this
 > is tracked as **L / ⏳** in the ledger, not claimed as universally live.
-
-![The in-app single-cell summary: UMAP coloured by cluster, cluster composition bars, and top markers.](../assets/i08-3-single-cell-umap.png)
-<!-- CAPTURE route=/ (after-run report → Outputs → view a .h5ad that has a .summary.json sidecar) ; state=a completed single-cell run whose .h5ad has a populated <path>.summary.json sidecar ; focus=single-cell-summary ; note=show single-cell-umap SVG + single-cell-clusters bars + single-cell-markers list -->
 
 ## Interactive panels (RStudio / Jupyter / CellxGene) — the honest scope
 
@@ -161,9 +155,6 @@ alert and disables the launch button when the selected tool is unavailable
 > lists tools that *could* apply to your file types, but it does **not** itself check provisioning —
 > the honest gate fires when you actually try to launch (the launcher's disabled button + alert, above).
 > On dev, opening the launcher from that row will surface the "not enabled" alert.
-
-![The interactive launcher: choose an environment and which files to load; disabled with a "not enabled" note when the tool isn't provisioned.](../assets/i08-4-interactive-launcher.png)
-<!-- CAPTURE route=/ (after-run report → Outputs → "Explore in" row → open launcher) ; state=a completed run on dev (interactive tools unprovisioned) ; focus=interactive-unavailable ; note=show the launcher's "isn't enabled in this environment yet" alert + disabled Launch button (the honesty gate), OR the InteractiveUnavailableNote download fallback in a file viewer -->
 
 ## Bulk actions & saving
 

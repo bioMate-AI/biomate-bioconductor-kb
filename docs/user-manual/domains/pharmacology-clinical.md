@@ -205,15 +205,6 @@ terminus the tutorial-demo plan mandates.
 
 ## Outputs & visualization
 
-The two figures below are **run-dependent** (they require a real AWS-Batch run) and are shown here as
-capture placeholders — no speculative Batch run was fired to generate them.
-
-![NCA concentration–time profile (log-linear) from the PKNCA HTML report](../assets/pk-1-nca-conc-time.png)
-<!-- CAPTURE route=/chat (after-run Outputs tab) state=a completed nca_pknca run on a concentration-time CSV (columns subject_id,time,conc,dose,route); open nca_report.html so the log-linear conc-time plot renders (individual profiles in blue + geometric mean in red). Needs a real Batch run. -->
-
-![BOIN dose-escalation boundary table + operating characteristics](../assets/pk-2-boin-boundary-table.png)
-<!-- CAPTURE route=/chat (after-run Outputs tab) state=a completed clinical_trial_simulation run with design=BOIN, dose_levels_json=[10,20,40,80,160], DLT_rate_target=0.30; open BOIN_decision_table.json and operating_characteristics.json in the table viewer so the escalate/de-escalate boundary (λe/λd) and P(correct MTD)/P(overdosing) render. Needs a real Batch run. -->
-
 | Output | Where it renders | When to go interactive |
 |---|---|---|
 | NCA per-subject table (`nca_results.csv`) + population summary | After-run **Outputs** → table viewer | Export CSV for your PK report appendix |
