@@ -39,6 +39,19 @@ def call_direct(prompt, mx=400):
         out=m.generate(**enc, max_new_tokens=mx, do_sample=False, pad_token_id=tok.pad_token_id)
     return tok.decode(out[0][n:], skip_special_tokens=True)
 
+def call_direct_batch(prompts, mx=300):
+    """Batched greedy decode — left-padded for decoder-only. ~Bx faster than one-at-a-time."""
+    import torch
+    m=_DIRECT["model"]; tok=_DIRECT["tok"]
+    tok.padding_side="left"
+    strs=[tok.apply_chat_template([{"role":"user","content":p}], add_generation_prompt=True, tokenize=False) for p in prompts]
+    enc=tok(strs, return_tensors="pt", padding=True, truncation=True, max_length=1024, add_special_tokens=False)
+    enc={k:v.to(m.device) for k,v in enc.items()}
+    n=enc["input_ids"].shape[1]
+    with torch.no_grad():
+        out=m.generate(**enc, max_new_tokens=mx, do_sample=False, pad_token_id=tok.pad_token_id)
+    return [tok.decode(o[n:], skip_special_tokens=True) for o in out]
+
 def call(url, model, prompt, mx=1600):   # always the API path (used by the model-under-test AND the judge)
     # gpt-5.x are reasoning models: NO temperature (only default supported) and reasoning eats the
     # token budget -> set reasoning_effort=low + a generous max_completion_tokens (else empty content).
