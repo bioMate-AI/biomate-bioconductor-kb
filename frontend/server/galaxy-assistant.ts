@@ -322,11 +322,7 @@ export function shouldEnableThinking(message: string, intent: string): boolean {
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {
   intentModel: 'gemini-3.8-flash',  // overridden by BIOMATE_INTENT_MODEL env var; gemini-3.8-flash in production
   toolRankingModel: 'claude-haiku-4-5',  // Haiku: fast lightweight ranking
-  // Primary response model. Default gpt-6-luna (OpenAI direct); routes via the
-  // gpt-* OpenAI branch in generateResponse(). Override with BIOMATE_RESPONSE_MODEL
-  // (e.g. 'gemini-3.8-flash' to revert, or any claude-*/gemini-*/gpt-* id) —
-  // future swaps need no code change. Requires OPENAI_API_KEY set on the server.
-  responseModel: process.env.BIOMATE_RESPONSE_MODEL || 'gpt-6-luna',
+  responseModel: 'gemini-3.8-flash',     // Primary: Gemini Flash; Claude/OpenAI/Ollama as fallback chain
   enableThinking: false,                 // Disable thinking by default for lower latency
   thinkingBudget: 2000,
 };
@@ -2610,12 +2606,7 @@ export class GalaxyAssistant {
     // Auto-detect: if no Anthropic key but Gemini is available, switch response model to Gemini.
     // This prevents silent auth failures when ANTHROPIC_API_KEY is absent on a Gemini-only deployment.
     const computedModelConfig = { ...DEFAULT_MODEL_CONFIG, ...options.modelConfig };
-    // A gpt-* responseModel routes through the OpenAI branch in generateResponse()
-    // and must NOT be clobbered to gemini as long as OPENAI_API_KEY is present.
-    const responseModelSupported =
-      computedModelConfig.responseModel?.startsWith('gemini-') ||
-      (computedModelConfig.responseModel?.startsWith('gpt-') && !!process.env.OPENAI_API_KEY);
-    if (!options.anthropicApiKey && geminiKey && !responseModelSupported) {
+    if (!options.anthropicApiKey && geminiKey && !computedModelConfig.responseModel?.startsWith('gemini-')) {
       computedModelConfig.responseModel = GEMINI_FLASH_MODEL;
       console.log('[GalaxyAssistant] No ANTHROPIC_API_KEY — switching responseModel to gemini flash');
     }
@@ -3008,39 +2999,23 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
     messages: Array<{ role: 'user' | 'assistant'; content: string }>,
     onResponseDelta?: (text: string) => void,
     maxTokens = 4096,
-    modelOverride?: string,
   ): Promise<string> {
     const openaiKey = process.env.OPENAI_API_KEY;
     if (!openaiKey) throw new Error('OPENAI_API_KEY not set');
-    // Precedence: explicit caller override (e.g. responseModel='gpt-6-luna') →
-    // OPENAI_MODEL env → gpt-4o. Base URL is overridable so an OpenAI-compatible
-    // gateway can be swapped in without a code change.
-    const model = modelOverride ?? process.env.OPENAI_MODEL ?? 'gpt-4o';
-    const baseURL = (process.env.OPENAI_BASE_URL ?? 'https://api.openai.com/v1').replace(/\/+$/, '');
-    // Newer OpenAI models (gpt-5/gpt-6/o-series, incl. gpt-6-luna) reject the
-    // legacy `max_tokens` (require `max_completion_tokens`) and only accept the
-    // default temperature (omit `temperature`). Older chat models (gpt-4o) still
-    // use `max_tokens` + `temperature`. Verified on dev: gpt-6-luna 400s on
-    // `max_tokens`, succeeds on `max_completion_tokens`.
-    const isNewOpenAIModel = /^(gpt-[5-9]|o[1-9])/i.test(model);
-    const body: Record<string, unknown> = {
-      model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...messages.map(m => ({ role: m.role, content: m.content })),
-      ],
-      stream: true,
-    };
-    if (isNewOpenAIModel) {
-      body.max_completion_tokens = maxTokens;
-    } else {
-      body.temperature = 0;
-      body.max_tokens = maxTokens;
-    }
-    const res = await fetch(`${baseURL}/chat/completions`, {
+    const model = process.env.OPENAI_MODEL ?? 'gpt-4o';
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages.map(m => ({ role: m.role, content: m.content })),
+        ],
+        stream: true,
+        temperature: 0,
+        max_tokens: maxTokens,
+      }),
     });
     if (!res.ok) throw new Error(`OpenAI HTTP ${res.status}: ${await res.text()}`);
     let rawResponse = '';
@@ -8684,23 +8659,8 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           { role: 'user' as const, content: userPrompt },
         ];
 
-        const isOpenAIBackbone = responseModel.startsWith('gpt-');
-
         // Provider chain: try each in order, stop on first success
         const providers: Array<{ name: string; fn: () => Promise<string>; available: boolean }> = [
-          {
-            // PRIMARY when responseModel is a gpt-* id (e.g. gpt-6-luna). Honors
-            // responseModel directly via the OpenAI Chat Completions API (direct
-            // api.openai.com by default; OPENAI_BASE_URL overridable). Without this
-            // branch a gpt-* responseModel would never route to OpenAI with that
-            // model — the fallback OpenAI entry below reads OPENAI_MODEL, not
-            // responseModel. See docs/20260922_LLM_CONFIG_MAP_FOR_DEFAULT_SWAP.md.
-            name: 'OpenAI (primary)',
-            fn: () => this._generateWithOpenAI(
-              systemPrompt, plainMessages, onResponseDelta, 4096, responseModel,
-            ),
-            available: isOpenAIBackbone && !!process.env.OPENAI_API_KEY,
-          },
           {
             name: 'Gemini',
             // Activate the agentic tool loop on the PRIMARY Gemini backbone — same
@@ -8735,13 +8695,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             available: !!process.env.ANTHROPIC_API_KEY,
           },
           {
-            // Fallback OpenAI entry (reads OPENAI_MODEL / gpt-4o). Skipped when the
-            // primary is already an OpenAI gpt-* backbone — that entry above already
-            // hit OpenAI with responseModel; re-hitting the same endpoint with a
-            // different OPENAI_MODEL would just mask the real failure.
             name: 'OpenAI',
             fn: () => this._generateWithOpenAI(systemPrompt, plainMessages, onResponseDelta),
-            available: !isOpenAIBackbone && !!process.env.OPENAI_API_KEY,
+            available: !!process.env.OPENAI_API_KEY,
           },
           {
             name: 'Ollama',
