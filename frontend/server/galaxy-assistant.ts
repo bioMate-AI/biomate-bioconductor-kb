@@ -3754,9 +3754,19 @@ Rules:
     const userAnthropicKey = context.userAnthropicApiKey;
     const openrouterKey = context.openrouterKey;
 
-    // OpenRouter / OpenAI-compatible path: bypass the Anthropic pipeline and stream
-    // directly through any OpenAI-compatible API (OpenRouter, DashScope/Qianwen, vLLM…).
-    // Tool use / workflow generation is not available on this path.
+    const runInner = () => {
+      if (overrideProxy) {
+        return _galaxyAPIRequestStorage.run(overrideProxy, () =>
+          this._processMessageInner(message, context, onResponseDelta, onToolEvent));
+      }
+      return this._processMessageInner(message, context, onResponseDelta, onToolEvent);
+    };
+
+    // OpenRouter / OpenAI-compatible path.
+    // Real OpenRouter keys → lightweight chat (no workflow support, user's choice of model).
+    // Custom OpenAI-compatible providers (DashScope/Qianwen, vLLM, local LLM…) → full
+    // BioMate pipeline: the client is stored in AsyncLocalStorage and picked up by the
+    // provider chain in _processMessageInner so workflow generation works normally.
     if (openrouterKey) {
       const baseURL = context.openaiBaseUrl || 'https://openrouter.ai/api/v1';
       const isOpenRouter = baseURL.includes('openrouter.ai');
@@ -3765,17 +3775,14 @@ Rules:
         apiKey: openrouterKey,
         ...(isOpenRouter ? { defaultHeaders: { 'HTTP-Referer': 'https://biomate.ai', 'X-Title': 'BioMate' } } : {}),
       });
-      return _openrouterClientStorage.run(orClient, () =>
-        this._generateChatWithOpenRouter(message, context, onResponseDelta));
-    }
-
-    const runInner = () => {
-      if (overrideProxy) {
-        return _galaxyAPIRequestStorage.run(overrideProxy, () =>
-          this._processMessageInner(message, context, onResponseDelta, onToolEvent));
+      if (isOpenRouter) {
+        // Real OpenRouter: lightweight chat path (no tool/workflow support)
+        return _openrouterClientStorage.run(orClient, () =>
+          this._generateChatWithOpenRouter(message, context, onResponseDelta));
       }
-      return this._processMessageInner(message, context, onResponseDelta, onToolEvent);
-    };
+      // Custom provider (Qianwen, vLLM, etc.): inject client and run full pipeline
+      return _openrouterClientStorage.run(orClient, () => runInner());
+    }
 
     if (userAnthropicKey) {
       const userClaude = new Anthropic({ apiKey: userAnthropicKey });
@@ -8583,7 +8590,34 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         ];
 
         // Provider chain: try each in order, stop on first success
+        const _openaiCompatClient = _openrouterClientStorage.getStore();
         const providers: Array<{ name: string; fn: () => Promise<string>; available: boolean }> = [
+          {
+            // Custom OpenAI-compatible provider (Qianwen/DashScope, vLLM, etc.) injected
+            // via AsyncLocalStorage when LLM_API_KEY + LLM_API_URL are set.
+            name: 'OpenAI-compatible',
+            fn: async () => {
+              if (!_openaiCompatClient) throw new Error('No OpenAI-compatible client');
+              const model = context.selectedModel || process.env.LLM_MODEL || 'qwen-max';
+              const stream = await _openaiCompatClient.chat.completions.create({
+                model,
+                messages: [
+                  { role: 'system' as const, content: systemPrompt },
+                  ...plainMessages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+                ],
+                stream: true,
+                max_tokens: 4096,
+                temperature: 0.3,
+              });
+              let text = '';
+              for await (const chunk of stream) {
+                const delta = chunk.choices[0]?.delta?.content ?? '';
+                if (delta) { text += delta; onResponseDelta?.(delta); }
+              }
+              return text;
+            },
+            available: !!_openaiCompatClient,
+          },
           {
             name: 'Gemini',
             // Activate the agentic tool loop on the PRIMARY Gemini backbone — same
