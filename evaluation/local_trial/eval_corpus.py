@@ -71,9 +71,17 @@ def main():
         items.append((user, teacher if isinstance(teacher, str) else json.dumps(teacher), task))
     # 1) BATCHED generation (Bx faster than one-at-a-time) with progress
     BS = int(_os.environ.get("GEN_BATCH", "12")); outs = []
+    import traceback as _tb
     for i in range(0, len(items), BS):
         chunk = items[i:i + BS]
-        outs.extend(call_direct_batch([u for u, _, _ in chunk], 300))
+        try:
+            outs.extend(call_direct_batch([u for u, _, _ in chunk], 300))
+        except Exception as e:  # never crash the whole eval on a batch edge case — surface + degrade
+            print(f"[eval_corpus] BATCH FAIL @ {i}: {type(e).__name__}: {e}", flush=True)
+            _tb.print_exc()
+            for u, _, _ in chunk:
+                try: outs.append(call_direct(u, 300))
+                except Exception as e2: print(f"  single fail: {e2}", flush=True); outs.append("")
         print(f"[eval_corpus] generated {min(i+BS,len(items))}/{len(items)}", flush=True)
     # 2) PARALLEL judge (923 sequential OpenAI calls -> concurrent) with progress
     def jrow(idx):
