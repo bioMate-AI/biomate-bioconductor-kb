@@ -7076,30 +7076,57 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
           });
         }
       } else {
-        // Anthropic path (default)
-        // Note: temperature is deprecated for Claude 4.x models
-        const completion = await this._withAnthropicRetry(
-          () => this._getClaude().messages.create({
-            model: this.modelConfig.intentModel,
-            max_tokens: 4096,
-            system: [
-              {
-                type: 'text',
-                text: systemPrompt,
-                cache_control: { type: 'ephemeral' },
-              },
+        // Anthropic path (default). When ANTHROPIC_API_KEY is absent but a custom
+        // OpenAI-compatible client is available (e.g. Qianwen on-prem), use that
+        // instead so intent classification works without Claude.
+        const compatClient = _openrouterClientStorage.getStore();
+        if (!process.env.ANTHROPIC_API_KEY && compatClient) {
+          const compatModel = process.env.LLM_MODEL || 'qwen-max';
+          console.log('[GalaxyAssistant] Intent classification via OpenAI-compatible provider:', compatModel);
+          const stream = await compatClient.chat.completions.create({
+            model: compatModel,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: messageForUQU },
             ],
-            messages: [{ role: 'user', content: messageForUQU }],
-          }),
-          'intent-classification',
-        );
-        console.log('[GalaxyAssistant] Intent API response:', {
-          model: this.modelConfig.intentModel,
-          time_ms: Date.now() - intentStartTime,
-          usage: completion.usage,
-        });
-        const content = completion.content[0];
-        resultText = content.type === 'text' ? content.text : '{}';
+            stream: true,
+            max_tokens: 4096,
+            temperature: 0,
+          });
+          let text = '';
+          for await (const chunk of stream) {
+            text += chunk.choices[0]?.delta?.content ?? '';
+          }
+          resultText = text;
+          console.log('[GalaxyAssistant] Intent API response (OpenAI-compatible):', {
+            model: compatModel,
+            time_ms: Date.now() - intentStartTime,
+          });
+        } else {
+          // Note: temperature is deprecated for Claude 4.x models
+          const completion = await this._withAnthropicRetry(
+            () => this._getClaude().messages.create({
+              model: this.modelConfig.intentModel,
+              max_tokens: 4096,
+              system: [
+                {
+                  type: 'text',
+                  text: systemPrompt,
+                  cache_control: { type: 'ephemeral' },
+                },
+              ],
+              messages: [{ role: 'user', content: messageForUQU }],
+            }),
+            'intent-classification',
+          );
+          console.log('[GalaxyAssistant] Intent API response:', {
+            model: this.modelConfig.intentModel,
+            time_ms: Date.now() - intentStartTime,
+            usage: completion.usage,
+          });
+          const content = completion.content[0];
+          resultText = content.type === 'text' ? content.text : '{}';
+        }
       }
 
       // Strip markdown code blocks if present
