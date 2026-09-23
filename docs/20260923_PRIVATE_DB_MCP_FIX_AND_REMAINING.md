@@ -1,4 +1,20 @@
-# Private-DB + External-MCP: authed-500 FIXED; persistence layer still open
+# Private-DB + External-MCP: FULLY FIXED & verified end-to-end (2026-09-23)
+
+> **STATUS: RESOLVED.** Full CRUD round-trips for a real user on dev:
+> MCP register→list (`owner=1`) ✅, DB create→list ✅, SSRF→400, db verify→200,
+> unauthenticated→401. The four-layer fix chain below is complete and verified.
+>
+> **Fix chain (all committed + synced):**
+> 1. **Route collision** — moved `/api/users/{db-connections,mcp-servers,mcp-tools}` → `/api/biomate/*` (collided with Galaxy `/api/users/{user_id}`). `eacb3f36`.
+> 2. **Proxy status mapping** — Node read `error.response?.status`; proxy throws `.status_code`. `bb0ae978`.
+> 3. **Master-key poison (the deep one)** — provisioning reuse query could hand a user Galaxy's `master_api_key` → auth as `BootstrapAdminUser` (id 0) → no per-user store. Excluded the master key from reuse (`9dd7143e`) + re-provisioned the fixture to its real key (WHOAMI → 200 real user).
+> 4. **Vault not configured on dev** — `private_db.create_connection` called Vault directly (`NullVault` → `InvalidVaultConfigException` → 500) while MCP already fell back to preferences. Added the same Vault→preferences fallback to private_db (`6728256a`).
+>
+> Also hit + worked around a **deploy race**: a concurrent session's sync overwrote the dev frontend without these routes; forced a frontend rebuild (`335425a2`).
+
+---
+
+## (historical) Private-DB + External-MCP: authed-500 FIXED; persistence layer still open
 
 **Date:** 2026-09-23
 **Context:** #1 from the "what's left" list — the private-DB/MCP connectors were deployed but returned 500 for logged-in users.
