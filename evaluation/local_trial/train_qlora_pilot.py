@@ -67,7 +67,7 @@ def main() -> int:
         lr_scheduler_type="cosine",
         warmup_steps=3,
         logging_steps=1,
-        save_steps=max(args.max_steps // 2, 10),
+        save_steps=min(max(args.max_steps // 4, 10), 200),  # spot-friendly: checkpoint <=every 200 steps
         save_total_limit=3,
         bf16=True,
         gradient_checkpointing=True,
