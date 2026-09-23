@@ -7208,7 +7208,7 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.get('/api/users/credentials/map');
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
@@ -7218,7 +7218,7 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.get('/api/users/credentials', { params: req.query });
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
@@ -7228,7 +7228,7 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.post('/api/users/credentials', req.body);
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
@@ -7238,7 +7238,7 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.delete(`/api/users/credentials/${req.params.toolId}`);
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
@@ -7274,7 +7274,7 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.get('/api/users/credentials', { params: { tool: 's3' } });
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
@@ -7284,7 +7284,7 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.get('/api/nextflow/license-requirements', { params: req.query });
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
@@ -7300,7 +7300,7 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.get('/api/biomate/db-connections');
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
@@ -7311,7 +7311,7 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.post('/api/biomate/db-connections', req.body);
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
@@ -7322,7 +7322,7 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.delete(`/api/biomate/db-connections/${encodeURIComponent(req.params.connId)}`);
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
@@ -7334,7 +7334,7 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.post(`/api/biomate/db-connections/${encodeURIComponent(req.params.connId)}/test`, {});
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
@@ -7346,7 +7346,7 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.post('/api/biomate/db-connections/verify', req.body);
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
@@ -7364,7 +7364,7 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.get('/api/biomate/mcp-servers');
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
@@ -7375,7 +7375,7 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.post('/api/biomate/mcp-servers', req.body);
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
@@ -7386,7 +7386,7 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.delete(`/api/biomate/mcp-servers/${encodeURIComponent(req.params.serverId)}`);
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
@@ -7398,7 +7398,7 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.post(`/api/biomate/mcp-servers/${encodeURIComponent(req.params.serverId)}/tools`, {});
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
