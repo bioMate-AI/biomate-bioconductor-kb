@@ -51,13 +51,20 @@ def main():
     import os as _os; rows = [json.loads(l) for l in open(_os.environ.get("EVAL_DIR",P)+"/corpus_eval.jsonl")]
     agg = defaultdict(lambda: [0.0, 0])
     for r in rows:
-        mk = PROMPT.get(r["task"])
-        if not mk: continue
-        out = call_direct(mk(r), 300)
+        # format-tolerant: SFT-messages {messages,task} OR {input,target,task/task_type}
+        if r.get("messages"):
+            um = [m for m in r["messages"] if m.get("role") == "user"]
+            am = [m for m in r["messages"] if m.get("role") == "assistant"]
+            if not (um and am): continue
+            user, teacher, task = um[-1]["content"], am[-1]["content"], r.get("task", "?")
+        else:
+            user, teacher, task = r.get("input"), r.get("target"), r.get("task", r.get("task_type", "?"))
+        if not (user and teacher): continue
+        out = call_direct(user, 300)  # user message already carries the task instruction
         if out is None: continue
-        s = score(r, norm(out) if r["task"] in () else out)
-        if s is None: continue
-        agg[r["task"]][0] += float(s); agg[r["task"]][1] += 1
+        tgt = teacher if isinstance(teacher, str) else json.dumps(teacher)
+        s = judge([{"step": tgt}], out)  # semantic coverage of the teacher/gold answer (distillation fidelity)
+        agg[task][0] += float(s); agg[task][1] += 1
     per = {t: {"score": round(v[0] / max(v[1], 1), 3), "n": v[1]} for t, v in agg.items()}
     macro = round(sum(p["score"] for p in per.values()) / max(len(per), 1), 3)
     res = {"model": a.model, "macro_over_tasks": macro, "per_task": per, "eval": "family-disjoint corpus_eval"}
