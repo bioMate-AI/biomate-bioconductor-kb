@@ -7297,7 +7297,7 @@ ${paramLines || '(none recorded)'}`;
     try {
       if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
       const proxy = userProxy(req);
-      const response = await proxy.client.get('/api/users/db-connections');
+      const response = await proxy.client.get('/api/biomate/db-connections');
       res.json(response.data);
     } catch (error: any) {
       res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
@@ -7308,7 +7308,7 @@ ${paramLines || '(none recorded)'}`;
     try {
       if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
       const proxy = userProxy(req);
-      const response = await proxy.client.post('/api/users/db-connections', req.body);
+      const response = await proxy.client.post('/api/biomate/db-connections', req.body);
       res.json(response.data);
     } catch (error: any) {
       res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
@@ -7319,7 +7319,7 @@ ${paramLines || '(none recorded)'}`;
     try {
       if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
       const proxy = userProxy(req);
-      const response = await proxy.client.delete(`/api/users/db-connections/${encodeURIComponent(req.params.connId)}`);
+      const response = await proxy.client.delete(`/api/biomate/db-connections/${encodeURIComponent(req.params.connId)}`);
       res.json(response.data);
     } catch (error: any) {
       res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
@@ -7331,7 +7331,7 @@ ${paramLines || '(none recorded)'}`;
     try {
       if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
       const proxy = userProxy(req);
-      const response = await proxy.client.post(`/api/users/db-connections/${encodeURIComponent(req.params.connId)}/test`, {});
+      const response = await proxy.client.post(`/api/biomate/db-connections/${encodeURIComponent(req.params.connId)}/test`, {});
       res.json(response.data);
     } catch (error: any) {
       res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
@@ -7343,7 +7343,7 @@ ${paramLines || '(none recorded)'}`;
     try {
       if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
       const proxy = userProxy(req);
-      const response = await proxy.client.post('/api/users/db-connections/verify', req.body);
+      const response = await proxy.client.post('/api/biomate/db-connections/verify', req.body);
       res.json(response.data);
     } catch (error: any) {
       res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
@@ -7361,7 +7361,7 @@ ${paramLines || '(none recorded)'}`;
     try {
       if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
       const proxy = userProxy(req);
-      const response = await proxy.client.get('/api/users/mcp-servers');
+      const response = await proxy.client.get('/api/biomate/mcp-servers');
       res.json(response.data);
     } catch (error: any) {
       res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
@@ -7372,7 +7372,7 @@ ${paramLines || '(none recorded)'}`;
     try {
       if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
       const proxy = userProxy(req);
-      const response = await proxy.client.post('/api/users/mcp-servers', req.body);
+      const response = await proxy.client.post('/api/biomate/mcp-servers', req.body);
       res.json(response.data);
     } catch (error: any) {
       res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
@@ -7383,7 +7383,7 @@ ${paramLines || '(none recorded)'}`;
     try {
       if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
       const proxy = userProxy(req);
-      const response = await proxy.client.delete(`/api/users/mcp-servers/${encodeURIComponent(req.params.serverId)}`);
+      const response = await proxy.client.delete(`/api/biomate/mcp-servers/${encodeURIComponent(req.params.serverId)}`);
       res.json(response.data);
     } catch (error: any) {
       res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
@@ -7395,7 +7395,7 @@ ${paramLines || '(none recorded)'}`;
     try {
       if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
       const proxy = userProxy(req);
-      const response = await proxy.client.post(`/api/users/mcp-servers/${encodeURIComponent(req.params.serverId)}/tools`, {});
+      const response = await proxy.client.post(`/api/biomate/mcp-servers/${encodeURIComponent(req.params.serverId)}/tools`, {});
       res.json(response.data);
     } catch (error: any) {
       res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });

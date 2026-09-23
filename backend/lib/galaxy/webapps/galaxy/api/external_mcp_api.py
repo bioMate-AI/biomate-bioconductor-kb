@@ -8,22 +8,22 @@ include_all_package_routers). All state is per-user, Vault-backed, and scoped
 to `trans.user`.
 
 Endpoints:
-  POST   /api/users/mcp-servers              — register a remote MCP server
+  POST   /api/biomate/mcp-servers              — register a remote MCP server
                                                (name, transport sse|http, url,
                                                 optional auth_header). Runs the
                                                 SSRF check + stdio-reject that
                                                 already live in the external_mcp
                                                 module, then best-effort discovers
                                                 the server's tool names.
-  GET    /api/users/mcp-servers              — list this user's servers (auth masked)
-  DELETE /api/users/mcp-servers/{server_id}  — delete a server (404-not-403)
-  POST   /api/users/mcp-servers/{server_id}/tools — connect + tools/list; returns
+  GET    /api/biomate/mcp-servers              — list this user's servers (auth masked)
+  DELETE /api/biomate/mcp-servers/{server_id}  — delete a server (404-not-403)
+  POST   /api/biomate/mcp-servers/{server_id}/tools — connect + tools/list; returns
                                                discovered namespaced tool names
-  GET    /api/users/mcp-tools                — aggregate: every tool across all of
+  GET    /api/biomate/mcp-tools                — aggregate: every tool across all of
                                                this user's servers, namespaced. This
                                                is the single call the chat tool-
                                                assembly path makes per turn.
-  POST   /api/users/mcp-servers/{server_id}/call — dispatch a tools/call to an owned
+  POST   /api/biomate/mcp-servers/{server_id}/call — dispatch a tools/call to an owned
                                                server (used by the LLM tool loop).
 
 Security: the SSRF guard (is_safe_url) and stdio-reject are enforced INSIDE
@@ -127,7 +127,7 @@ def _discover_tool_names(reg, server_id: str, user_id: Any) -> List[str]:
 # ---------------------------------------------------------------------------
 
 @router.post(
-    "/api/users/mcp-servers",
+    "/api/biomate/mcp-servers",
     summary="Register a remote MCP server (SSRF-checked, stdio rejected) and discover its tools",
 )
 def register_mcp_server(
@@ -157,7 +157,7 @@ def register_mcp_server(
 
 
 @router.get(
-    "/api/users/mcp-servers",
+    "/api/biomate/mcp-servers",
     summary="List the current user's remote MCP servers (auth masked)",
 )
 def list_mcp_servers(
@@ -175,7 +175,7 @@ def list_mcp_servers(
 
 
 @router.delete(
-    "/api/users/mcp-servers/{server_id}",
+    "/api/biomate/mcp-servers/{server_id}",
     summary="Delete a remote MCP server",
 )
 def delete_mcp_server(
@@ -192,7 +192,7 @@ def delete_mcp_server(
 
 
 @router.post(
-    "/api/users/mcp-servers/{server_id}/tools",
+    "/api/biomate/mcp-servers/{server_id}/tools",
     summary="Discover a server's tools (connect + tools/list, namespaced names)",
 )
 def list_mcp_server_tools(
@@ -212,7 +212,7 @@ def list_mcp_server_tools(
 
 
 @router.get(
-    "/api/users/mcp-tools",
+    "/api/biomate/mcp-tools",
     summary="Aggregate: every namespaced tool across all of the user's MCP servers",
 )
 def list_all_mcp_tools(
@@ -250,7 +250,7 @@ def list_all_mcp_tools(
 
 
 @router.post(
-    "/api/users/mcp-servers/{server_id}/call",
+    "/api/biomate/mcp-servers/{server_id}/call",
     summary="Dispatch a tools/call to an owned MCP server (used by the LLM tool loop)",
 )
 def call_mcp_tool(

@@ -439,10 +439,10 @@ export interface ChatContext {
   intentOverride?: string;
   /**
    * Populated per-turn by generateResponse() from the user's registered external
-   * MCP servers (via GET /api/users/mcp-tools on the Galaxy backend). Maps each
+   * MCP servers (via GET /api/biomate/mcp-tools on the Galaxy backend). Maps each
    * exposed namespaced tool name (mcp__<server>__<tool>) → its owning server_id,
    * so the tool loop can dispatch the model's call back to the correct server
-   * via POST /api/users/mcp-servers/{id}/call. Request-scoped (concurrency-safe);
+   * via POST /api/biomate/mcp-servers/{id}/call. Request-scoped (concurrency-safe);
    * never persisted.
    */
   mcpToolServerMap?: Record<string, string>;
@@ -9456,7 +9456,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     const proxy = context?.galaxyAPIOverride as GalaxyAPIProxy | undefined;
     if (!proxy) return []; // no user-scoped Galaxy key this turn → nothing to expose
     try {
-      const resp = await proxy.client.get('/api/users/mcp-tools');
+      const resp = await proxy.client.get('/api/biomate/mcp-tools');
       const tools: any[] = Array.isArray(resp?.data?.tools) ? resp.data.tools : [];
       const map: Record<string, string> = context.mcpToolServerMap ?? {};
       const out: Anthropic.Tool[] = [];
@@ -9487,7 +9487,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
 
   /**
    * Dispatch an mcp__<server>__<tool> call to the owning remote MCP server via the
-   * user-scoped Galaxy proxy (POST /api/users/mcp-servers/{id}/call — ownership-
+   * user-scoped Galaxy proxy (POST /api/biomate/mcp-servers/{id}/call — ownership-
    * checked backend-side). The raw tool name is derived by the backend/client from
    * the namespaced name; we forward the full namespaced name so the client strips
    * its own prefix.
@@ -9499,7 +9499,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     if (!serverId) return { error: `no registered MCP server owns tool ${name}` };
     try {
       const resp = await proxy.client.post(
-        `/api/users/mcp-servers/${encodeURIComponent(serverId)}/call`,
+        `/api/biomate/mcp-servers/${encodeURIComponent(serverId)}/call`,
         { tool: name, arguments: args && typeof args === 'object' ? args : {} },
       );
       return resp?.data?.result ?? resp?.data ?? { ok: true };

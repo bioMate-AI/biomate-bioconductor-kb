@@ -4,11 +4,11 @@ Private DB Connect API — register / test / list / delete user database connect
 Capability A of docs/20260922_CONNECTOR_PRIVATE_DB_AND_EXTERNAL_MCP_PLAN.md.
 
 Endpoints (auto-discovered by include_all_package_routers):
-  POST   /api/users/db-connections          — create a connection (creds → Vault)
-  GET    /api/users/db-connections          — list connections (public metadata only)
-  DELETE /api/users/db-connections/{conn_id}— delete a connection
-  POST   /api/users/db-connections/verify   — test raw params before saving
-  POST   /api/users/db-connections/{conn_id}/test — test a saved connection
+  POST   /api/biomate/db-connections          — create a connection (creds → Vault)
+  GET    /api/biomate/db-connections          — list connections (public metadata only)
+  DELETE /api/biomate/db-connections/{conn_id}— delete a connection
+  POST   /api/biomate/db-connections/verify   — test raw params before saving
+  POST   /api/biomate/db-connections/{conn_id}/test — test a saved connection
 
 Storage: Galaxy Vault (per-user namespaced UserVaultWrapper), keyed at
 `biomate/private_db/<conn_id>`. Credentials are NEVER returned by any read path,
@@ -62,7 +62,7 @@ class VerifyConnectionRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post(
-    "/api/users/db-connections",
+    "/api/biomate/db-connections",
     summary="Register a private database connection (read-only)",
 )
 def create_db_connection(
@@ -91,7 +91,7 @@ def create_db_connection(
 
 
 @router.get(
-    "/api/users/db-connections",
+    "/api/biomate/db-connections",
     summary="List the current user's private database connections (no secrets)",
 )
 def list_db_connections(
@@ -104,7 +104,7 @@ def list_db_connections(
 
 
 @router.delete(
-    "/api/users/db-connections/{conn_id}",
+    "/api/biomate/db-connections/{conn_id}",
     summary="Delete a private database connection",
 )
 def delete_db_connection(
@@ -122,7 +122,7 @@ def delete_db_connection(
 
 
 @router.post(
-    "/api/users/db-connections/{conn_id}/test",
+    "/api/biomate/db-connections/{conn_id}/test",
     summary="Test a saved private database connection (SELECT 1 + list schemas)",
 )
 def test_db_connection(
@@ -136,7 +136,7 @@ def test_db_connection(
 
 
 @router.post(
-    "/api/users/db-connections/verify",
+    "/api/biomate/db-connections/verify",
     summary="Test raw connection params before saving (verify form)",
 )
 def verify_db_connection(
