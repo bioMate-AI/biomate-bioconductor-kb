@@ -7292,6 +7292,8 @@ ${paramLines || '(none recorded)'}`;
   // Private DB connections (Capability A) — proxy to Galaxy backend private_db_api.
   // Executor runs in the Galaxy backend (SQLAlchemy driver + Vault-stored creds).
   // Node only forwards; it never sees or stores DB credentials.
+  // Routes target /api/biomate/* (NOT /api/users/*) to avoid the Galaxy
+  // /api/users/{user_id} collision — see 20260923 fix.
   // ---------------------------------------------------------------------------
   app.get("/api/databases/connections", optionalAuth, async (req, res) => {
     try {
