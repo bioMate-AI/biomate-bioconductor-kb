@@ -201,7 +201,19 @@ class LLMClient:
 
         Priority order: Gemini 3.1 Pro → Gemini Flash → Claude → OpenAI → Local Qwen3
         Each provider gets 2 retry attempts before moving to next.
+
+        On-prem override: when self.provider is a direct/custom provider (e.g.
+        openai_compatible, deepseek, zhipu), bypass the YAML fallback chain and
+        call the provider directly so that on-prem deployments with only one LLM
+        configured (e.g. Qianwen) work without cloud API keys.
         """
+        _DIRECT_PROVIDERS = {'openai_compatible', 'deepseek', 'zhipu', 'local'}
+        if self.provider in _DIRECT_PROVIDERS:
+            import logging
+            logging.getLogger(__name__).info(
+                f"[on-prem] Direct provider route: {self.provider}:{getattr(self, 'model', '?')}"
+            )
+            return await self._generate_openai_compatible(prompt, **kwargs)
         return await generate_with_fallback(
             llm_client=self,
             prompt=prompt,
