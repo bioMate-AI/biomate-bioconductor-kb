@@ -17,16 +17,23 @@ INSTR=("You are BioMate. No single existing workflow may exactly fit this reques
 
 _DIRECT={"model":None,"tok":None}
 def direct_load(base, adapter):
-    import torch
+    import torch, os
     from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
     from peft import PeftModel
     tok=AutoTokenizer.from_pretrained(base, trust_remote_code=True)
     if tok.pad_token is None: tok.pad_token=tok.eos_token
-    bnb=BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4",
-        bnb_4bit_use_double_quant=True, bnb_4bit_compute_dtype=torch.bfloat16)
-    m=AutoModelForCausalLM.from_pretrained(base, quantization_config=bnb, device_map="auto",
-        torch_dtype=torch.bfloat16, trust_remote_code=True, low_cpu_mem_usage=True)
-    if adapter: m=PeftModel.from_pretrained(m, adapter)
+    if os.environ.get("EVAL_DTYPE","4bit")=="bf16":
+        # bf16 eval: 4B weights ~8GB fit a 24GB GPU and generate ~3-5x faster than bnb-4bit
+        # (which dequantizes every forward). Merge the LoRA so there's zero adapter overhead.
+        m=AutoModelForCausalLM.from_pretrained(base, device_map="auto", torch_dtype=torch.bfloat16,
+            trust_remote_code=True, low_cpu_mem_usage=True)
+        if adapter: m=PeftModel.from_pretrained(m, adapter).merge_and_unload()
+    else:
+        bnb=BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True, bnb_4bit_compute_dtype=torch.bfloat16)
+        m=AutoModelForCausalLM.from_pretrained(base, quantization_config=bnb, device_map="auto",
+            torch_dtype=torch.bfloat16, trust_remote_code=True, low_cpu_mem_usage=True)
+        if adapter: m=PeftModel.from_pretrained(m, adapter)
     m.eval(); _DIRECT["model"]=m; _DIRECT["tok"]=tok
 
 def call_direct(prompt, mx=400):
