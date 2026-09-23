@@ -7,7 +7,7 @@ import json, os, re, sqlite3, random, urllib.request, hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 REPO = "/Users/kky/biomate-review"; DB = f"{REPO}/backend/database/galaxy_ai_tools.db"
 P = f"{REPO}/docs/20260912_onprem_llm/data_pool_v2"
-GK = os.environ["GOOGLE_API_KEY"]; CAP = int(os.environ.get("CAP", "1600")); WORKERS = int(os.environ.get("WORKERS", "24"))
+GK = os.environ["GOOGLE_API_KEY"]; CAP = int(os.environ.get("CAP", "100000")); WORKERS = int(os.environ.get("WORKERS", "24"))  # no artificial cap; use all anchors
 random.seed(23)
 split = json.load(open(f"{P}/workflow_split.json")) if os.path.exists(f"{P}/workflow_split.json") else {}
 accept = json.load(open(f"{P}/accept_sets.json")) if os.path.exists(f"{P}/accept_sets.json") else {}
