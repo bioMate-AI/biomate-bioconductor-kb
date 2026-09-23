@@ -199,21 +199,60 @@ def _user_vault(trans):
     return UserVaultWrapper(trans.app.vault, trans.user)
 
 
-def _load_index(trans) -> Dict[str, Dict[str, Any]]:
-    """Return {conn_id: metadata_without_secrets} for the calling user."""
-    vault = _user_vault(trans)
+# Preferences fallback when Galaxy's Vault is not configured (NullVault raises
+# InvalidVaultConfigException). Mirrors galaxy.ai.external_mcp.registry so private
+# DB connections persist per-user even without a configured vault. Still scoped to
+# the calling user (trans.user.preferences), so ownership holds.
+_PREFS_KEY = "biomate_private_db"
+
+
+def _write_secret(trans, path: str, value: str) -> None:
+    """Write a per-user secret to Vault, falling back to user preferences."""
+    vault = _user_vault(trans)  # raises PermissionError if no authenticated user
     try:
-        raw = vault.read_secret(VAULT_INDEX_KEY)
+        vault.write_secret(path, value)
+        return
+    except Exception as e:  # vault unconfigured / unavailable → preferences fallback
+        log.warning("[private_db] Vault unavailable (%s), using preferences fallback", e)
+    user = trans.user
+    try:
+        store = json.loads(user.preferences.get(_PREFS_KEY, "{}"))
+    except Exception:
+        store = {}
+    store[path] = value
+    user.preferences[_PREFS_KEY] = json.dumps(store)
+    trans.sa_session.commit()
+
+
+def _read_secret(trans, path: str) -> Optional[str]:
+    """Read a per-user secret from Vault, falling back to user preferences."""
+    try:
+        vault = _user_vault(trans)
+        raw = vault.read_secret(path)
         if raw:
-            return json.loads(raw)
+            return raw
     except Exception:
         pass
+    try:
+        store = json.loads(trans.user.preferences.get(_PREFS_KEY, "{}"))
+        return store.get(path)
+    except Exception:
+        return None
+
+
+def _load_index(trans) -> Dict[str, Dict[str, Any]]:
+    """Return {conn_id: metadata_without_secrets} for the calling user."""
+    raw = _read_secret(trans, VAULT_INDEX_KEY)
+    if raw:
+        try:
+            return json.loads(raw)
+        except Exception:
+            return {}
     return {}
 
 
 def _save_index(trans, index: Dict[str, Dict[str, Any]]) -> None:
-    vault = _user_vault(trans)
-    vault.write_secret(VAULT_INDEX_KEY, json.dumps(index))
+    _write_secret(trans, VAULT_INDEX_KEY, json.dumps(index))
 
 
 def _public_metadata(conn: Dict[str, Any]) -> Dict[str, Any]:
@@ -276,8 +315,7 @@ def create_connection(
         "owner_user_id": getattr(trans.user, "id", None),
         "project_id": project_id,
     }
-    vault = _user_vault(trans)
-    vault.write_secret(f"{VAULT_PREFIX}/{conn_id}", json.dumps(blob))
+    _write_secret(trans, f"{VAULT_PREFIX}/{conn_id}", json.dumps(blob))
 
     # Maintain a secrets-free index so list_connections needn't enumerate the vault.
     index = _load_index(trans)
@@ -295,8 +333,7 @@ def _resolve_connection(trans, conn_id: str) -> Dict[str, Any]:
     only exists under the calling user's `user/<id>/…` path. A conn_id owned by a
     different user resolves to None → PermissionError (404-not-403 at the API).
     """
-    vault = _user_vault(trans)
-    raw = vault.read_secret(f"{VAULT_PREFIX}/{conn_id}")
+    raw = _read_secret(trans, f"{VAULT_PREFIX}/{conn_id}")
     if not raw:
         raise PermissionError(f"Connection not found: {conn_id}")
     blob = json.loads(raw)
@@ -315,13 +352,12 @@ def list_connections(trans) -> List[Dict[str, Any]]:
 
 def delete_connection(trans, conn_id: str) -> Dict[str, Any]:
     """Delete a connection (blank the vault secret + drop from index)."""
-    vault = _user_vault(trans)
     # Ownership check first (raises if not owned).
     _resolve_connection(trans, conn_id)
     try:
-        vault.write_secret(f"{VAULT_PREFIX}/{conn_id}", "")
+        _write_secret(trans, f"{VAULT_PREFIX}/{conn_id}", "")
     except Exception as e:
-        log.warning("[private_db] failed to blank vault secret for %s: %s", conn_id, e)
+        log.warning("[private_db] failed to blank secret for %s: %s", conn_id, e)
     index = _load_index(trans)
     index.pop(conn_id, None)
     _save_index(trans, index)
