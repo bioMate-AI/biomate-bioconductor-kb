@@ -464,8 +464,6 @@ export function ChatMessage({
                 prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
                 prose-h1:text-base prose-h2:text-sm prose-h3:text-sm
                 prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5
-                prose-code:text-xs prose-code:bg-muted prose-code:px-1 prose-code:rounded
-                prose-pre:bg-muted prose-pre:text-xs prose-pre:overflow-x-auto
                 prose-blockquote:border-l-4 prose-blockquote:pl-3 prose-blockquote:italic prose-blockquote:text-muted-foreground
                 prose-hr:my-3">
                 <ReactMarkdown
@@ -496,6 +494,27 @@ export function ChatMessage({
                           {...props}
                           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                         />
+                      );
+                    },
+                    pre: ({ children, ...props }) => (
+                      <pre
+                        {...props}
+                        className="bg-muted text-foreground text-xs overflow-x-auto rounded p-3 my-2"
+                      >
+                        {children}
+                      </pre>
+                    ),
+                    code: ({ className, children, ...props }) => {
+                      const isBlock = className?.includes('language-');
+                      return (
+                        <code
+                          {...props}
+                          className={isBlock
+                            ? `${className ?? ''} text-foreground`
+                            : 'text-xs bg-muted text-foreground px-1 rounded'}
+                        >
+                          {children}
+                        </code>
                       );
                     },
                   }}

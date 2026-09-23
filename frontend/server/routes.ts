@@ -743,7 +743,12 @@ if (typeof parsedThinkingBudget === "number" && Number.isFinite(parsedThinkingBu
 const _hasAnyLLMKey = !!(
   process.env.ANTHROPIC_API_KEY ||
   process.env.GOOGLE_API_KEY ||
-  process.env.GEMINI_API_KEY
+  process.env.GEMINI_API_KEY ||
+  process.env.LLM_API_KEY ||
+  process.env.OPENAI_API_KEY ||
+  process.env.OPENROUTER_API_KEY ||
+  process.env.DEEPSEEK_API_KEY ||
+  process.env.ZHIPU_API_KEY
 );
 const galaxyAssistant = _hasAnyLLMKey ? new GalaxyAssistant({
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
@@ -5975,6 +5980,16 @@ ${paramLines || '(none recorded)'}`;
         if (!_selectedModel) _selectedModel = process.env.OPENROUTER_DEFAULT_MODEL || 'deepseek/deepseek-chat';
       }
 
+      // Fall back to system-level openai_compatible key (LLM_API_KEY + LLM_API_URL).
+      // Enables on-prem deployments with Qianwen/DashScope, local vLLM, DeepSeek, etc.
+      // when no Anthropic/Gemini/OpenRouter key is configured.
+      let _openaiBaseUrl: string | undefined;
+      if (!_openrouterKey && process.env.LLM_API_KEY && process.env.LLM_API_KEY !== 'none') {
+        _openrouterKey = process.env.LLM_API_KEY;
+        _openaiBaseUrl = process.env.LLM_API_URL || undefined;
+        if (!_selectedModel) _selectedModel = process.env.LLM_MODEL || process.env.GALAXY_AI_LLM_MODEL || 'qwen-max';
+      }
+
       const enrichedContext = {
         ...(context || {}),
         // Normalise session identity: frontend sends memorySessionId; processMessage uses sessionId.
@@ -5985,6 +6000,7 @@ ${paramLines || '(none recorded)'}`;
         userAnthropicApiKey: _userAnthropicApiKey,
         openrouterKey: _openrouterKey,
         selectedModel: _selectedModel,
+        openaiBaseUrl: _openaiBaseUrl,
         // memorySessionId must be the LTM sessions.id (uuid) so recordEpisode's
         // project_episodes.session_id FK is satisfied. If the bridge call
         // failed (no LTM session created), leave it undefined and let

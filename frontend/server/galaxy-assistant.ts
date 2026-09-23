@@ -410,6 +410,12 @@ export interface ChatContext {
    */
   selectedModel?: string;
   /**
+   * Custom OpenAI-compatible base URL (e.g. DashScope / local vLLM).
+   * When set alongside openrouterKey, overrides the default openrouter.ai base URL.
+   * Enables on-prem deployments with Qianwen, DeepSeek, or local models.
+   */
+  openaiBaseUrl?: string;
+  /**
    * Forces the result of intent classification to this type, bypassing the LLM.
    * Gated by routes.ts behind the E2E bypass token — only valid in test mode.
    * When set AND the query has design-verb+modality patterns, _detectCrossIntentAmbiguity
@@ -3748,22 +3754,6 @@ Rules:
     const userAnthropicKey = context.userAnthropicApiKey;
     const openrouterKey = context.openrouterKey;
 
-    // OpenRouter path: bypass the Anthropic pipeline entirely and stream directly
-    // through OpenRouter's OpenAI-compatible API. Tool use / workflow generation
-    // is not available on this path — users can switch back to default for that.
-    if (openrouterKey) {
-      const orClient = new OpenAI({
-        baseURL: 'https://openrouter.ai/api/v1',
-        apiKey: openrouterKey,
-        defaultHeaders: {
-          'HTTP-Referer': 'https://biomate.ai',
-          'X-Title': 'BioMate',
-        },
-      });
-      return _openrouterClientStorage.run(orClient, () =>
-        this._generateChatWithOpenRouter(message, context, onResponseDelta));
-    }
-
     const runInner = () => {
       if (overrideProxy) {
         return _galaxyAPIRequestStorage.run(overrideProxy, () =>
@@ -3771,6 +3761,28 @@ Rules:
       }
       return this._processMessageInner(message, context, onResponseDelta, onToolEvent);
     };
+
+    // OpenRouter / OpenAI-compatible path.
+    // Real OpenRouter keys → lightweight chat (no workflow support, user's choice of model).
+    // Custom OpenAI-compatible providers (DashScope/Qianwen, vLLM, local LLM…) → full
+    // BioMate pipeline: the client is stored in AsyncLocalStorage and picked up by the
+    // provider chain in _processMessageInner so workflow generation works normally.
+    if (openrouterKey) {
+      const baseURL = context.openaiBaseUrl || 'https://openrouter.ai/api/v1';
+      const isOpenRouter = baseURL.includes('openrouter.ai');
+      const orClient = new OpenAI({
+        baseURL,
+        apiKey: openrouterKey,
+        ...(isOpenRouter ? { defaultHeaders: { 'HTTP-Referer': 'https://biomate.ai', 'X-Title': 'BioMate' } } : {}),
+      });
+      if (isOpenRouter) {
+        // Real OpenRouter: lightweight chat path (no tool/workflow support)
+        return _openrouterClientStorage.run(orClient, () =>
+          this._generateChatWithOpenRouter(message, context, onResponseDelta));
+      }
+      // Custom provider (Qianwen, vLLM, etc.): inject client and run full pipeline
+      return _openrouterClientStorage.run(orClient, () => runInner());
+    }
 
     if (userAnthropicKey) {
       const userClaude = new Anthropic({ apiKey: userAnthropicKey });
@@ -7064,30 +7076,57 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
           });
         }
       } else {
-        // Anthropic path (default)
-        // Note: temperature is deprecated for Claude 4.x models
-        const completion = await this._withAnthropicRetry(
-          () => this._getClaude().messages.create({
-            model: this.modelConfig.intentModel,
-            max_tokens: 4096,
-            system: [
-              {
-                type: 'text',
-                text: systemPrompt,
-                cache_control: { type: 'ephemeral' },
-              },
+        // Anthropic path (default). When ANTHROPIC_API_KEY is absent but a custom
+        // OpenAI-compatible client is available (e.g. Qianwen on-prem), use that
+        // instead so intent classification works without Claude.
+        const compatClient = _openrouterClientStorage.getStore();
+        if (!process.env.ANTHROPIC_API_KEY && compatClient) {
+          const compatModel = process.env.LLM_MODEL || 'qwen-max';
+          console.log('[GalaxyAssistant] Intent classification via OpenAI-compatible provider:', compatModel);
+          const stream = await compatClient.chat.completions.create({
+            model: compatModel,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: messageForUQU },
             ],
-            messages: [{ role: 'user', content: messageForUQU }],
-          }),
-          'intent-classification',
-        );
-        console.log('[GalaxyAssistant] Intent API response:', {
-          model: this.modelConfig.intentModel,
-          time_ms: Date.now() - intentStartTime,
-          usage: completion.usage,
-        });
-        const content = completion.content[0];
-        resultText = content.type === 'text' ? content.text : '{}';
+            stream: true,
+            max_tokens: 4096,
+            temperature: 0,
+          });
+          let text = '';
+          for await (const chunk of stream) {
+            text += chunk.choices[0]?.delta?.content ?? '';
+          }
+          resultText = text;
+          console.log('[GalaxyAssistant] Intent API response (OpenAI-compatible):', {
+            model: compatModel,
+            time_ms: Date.now() - intentStartTime,
+          });
+        } else {
+          // Note: temperature is deprecated for Claude 4.x models
+          const completion = await this._withAnthropicRetry(
+            () => this._getClaude().messages.create({
+              model: this.modelConfig.intentModel,
+              max_tokens: 4096,
+              system: [
+                {
+                  type: 'text',
+                  text: systemPrompt,
+                  cache_control: { type: 'ephemeral' },
+                },
+              ],
+              messages: [{ role: 'user', content: messageForUQU }],
+            }),
+            'intent-classification',
+          );
+          console.log('[GalaxyAssistant] Intent API response:', {
+            model: this.modelConfig.intentModel,
+            time_ms: Date.now() - intentStartTime,
+            usage: completion.usage,
+          });
+          const content = completion.content[0];
+          resultText = content.type === 'text' ? content.text : '{}';
+        }
       }
 
       // Strip markdown code blocks if present
@@ -8578,7 +8617,34 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         ];
 
         // Provider chain: try each in order, stop on first success
+        const _openaiCompatClient = _openrouterClientStorage.getStore();
         const providers: Array<{ name: string; fn: () => Promise<string>; available: boolean }> = [
+          {
+            // Custom OpenAI-compatible provider (Qianwen/DashScope, vLLM, etc.) injected
+            // via AsyncLocalStorage when LLM_API_KEY + LLM_API_URL are set.
+            name: 'OpenAI-compatible',
+            fn: async () => {
+              if (!_openaiCompatClient) throw new Error('No OpenAI-compatible client');
+              const model = context.selectedModel || process.env.LLM_MODEL || 'qwen-max';
+              const stream = await _openaiCompatClient.chat.completions.create({
+                model,
+                messages: [
+                  { role: 'system' as const, content: systemPrompt },
+                  ...plainMessages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+                ],
+                stream: true,
+                max_tokens: 4096,
+                temperature: 0.3,
+              });
+              let text = '';
+              for await (const chunk of stream) {
+                const delta = chunk.choices[0]?.delta?.content ?? '';
+                if (delta) { text += delta; onResponseDelta?.(delta); }
+              }
+              return text;
+            },
+            available: !!_openaiCompatClient,
+          },
           {
             name: 'Gemini',
             // Activate the agentic tool loop on the PRIMARY Gemini backbone — same

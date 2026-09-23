@@ -177,9 +177,10 @@ services:
       - "127.0.0.1:8081:8080"
     environment:
       PYTHONUNBUFFERED: "1"
-      # galaxy.yml is .gitignore'd (per-install copy). Use the committed template
-      # instead — it reads all secrets from env vars via GALAXY_CONFIG_OVERRIDE_*.
-      GALAXY_CONFIG_FILE: /app/config/galaxy.yml.template
+      # The Dockerfile creates /app/config/galaxy.yml from the template (cp galaxy.yml.template galaxy.yml).
+      # Galaxy's properties reader rejects non-.yml/.yaml extensions — point to galaxy.yml, not the template.
+      # All secrets are injected at runtime via GALAXY_CONFIG_OVERRIDE_* env vars below.
+      GALAXY_CONFIG_FILE: /app/config/galaxy.yml
 
       # ── LLM 配置 (选择其中一项) ───────────────────────────────────────────
       #
