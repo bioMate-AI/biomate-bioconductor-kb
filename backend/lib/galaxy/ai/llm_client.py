@@ -466,15 +466,19 @@ class LLMClient:
 
     async def _generate_openai_compatible(self, prompt: str, **kwargs) -> str:
         """Generate using OpenAI-compatible APIs (for Chinese models)."""
-        data = {
+        system_content = kwargs.get('system') or "You are a helpful bioinformatics assistant."
+        data: dict = {
             "model": self.model,
             "messages": [
-                {"role": "system", "content": "You are a helpful bioinformatics assistant. Please respond in Chinese when appropriate."},
+                {"role": "system", "content": system_content},
                 {"role": "user", "content": prompt}
             ],
             "max_tokens": kwargs.get('max_tokens', 1000),
-            "temperature": kwargs.get('temperature', 0.0)
+            "temperature": kwargs.get('temperature', 0.0),
         }
+        # Honor json_mode: instruct the model to return valid JSON
+        if kwargs.get('json_mode'):
+            data["response_format"] = {"type": "json_object"}
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
