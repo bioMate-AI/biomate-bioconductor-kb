@@ -3008,6 +3008,146 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
     return rawResponse;
   }
 
+  /** Convert Anthropic.Tool[] → OpenAI ChatCompletionTool[] (function-calling format). */
+  private static _anthropicToolsToOpenAI(tools: Anthropic.Tool[]): OpenAI.ChatCompletionTool[] {
+    return tools.map(t => ({
+      type: 'function' as const,
+      function: {
+        name: t.name,
+        description: t.description ?? '',
+        parameters: t.input_schema as Record<string, unknown>,
+      },
+    }));
+  }
+
+  /**
+   * Agentic tool loop for any OpenAI-compatible provider
+   * (Qianwen/DashScope, DeepSeek, vLLM, GPT-4, local LLMs, …).
+   *
+   * Mirrors _generateWithGemini's structure but uses OpenAI function-calling
+   * format.  Tool execution is delegated to the existing _executeTools() so
+   * all BioMate tools (run_code, search_literature, list_data_sources, …)
+   * work identically regardless of which model is driving the conversation.
+   *
+   * Falls back to tool-less streaming if the provider rejects the tool schema
+   * (HTTP 400/422) — allows less-capable models to still generate text.
+   */
+  private async _generateWithOpenAICompatible(
+    client: OpenAI,
+    model: string,
+    systemPrompt: string,
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+    onResponseDelta?: (text: string) => void,
+    maxTokens = 4096,
+    toolContext?: { tools: Anthropic.Tool[]; context: ChatContext; onToolEvent?: (e: AgentToolEvent) => void },
+  ): Promise<string> {
+    let openaiTools: OpenAI.ChatCompletionTool[] | undefined = toolContext
+      ? GalaxyAssistant._anthropicToolsToOpenAI(toolContext.tools)
+      : undefined;
+
+    const chatMessages: OpenAI.ChatCompletionMessageParam[] = [
+      { role: 'system', content: systemPrompt },
+      ...messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+    ];
+
+    const MAX_TURNS = 8;
+    let fullText = '';
+
+    for (let turn = 0; turn < MAX_TURNS; turn++) {
+      // Accumulate streaming tool_call deltas indexed by their array position.
+      const pending: Record<number, { id: string; name: string; argsRaw: string }> = {};
+      let turnText = '';
+
+      let stream: AsyncIterable<OpenAI.ChatCompletionChunk>;
+      try {
+        stream = await client.chat.completions.create({
+          model,
+          messages: chatMessages,
+          stream: true,
+          max_tokens: maxTokens,
+          temperature: 0,
+          ...(openaiTools ? { tools: openaiTools, tool_choice: 'auto' } : {}),
+        } as OpenAI.ChatCompletionCreateParamsStreaming);
+      } catch (err: any) {
+        // Provider rejected tool schemas — fall back to tool-less for the remainder
+        if (openaiTools && (err?.status === 400 || err?.status === 422)) {
+          console.warn('[GalaxyAssistant] OpenAI-compat provider rejected tool schemas, falling back to tool-less');
+          openaiTools = undefined;
+          stream = await client.chat.completions.create({
+            model, messages: chatMessages, stream: true, max_tokens: maxTokens, temperature: 0,
+          } as OpenAI.ChatCompletionCreateParamsStreaming);
+        } else {
+          throw err;
+        }
+      }
+
+      for await (const chunk of stream) {
+        const choice = chunk.choices[0];
+        if (!choice) continue;
+
+        // Text delta
+        const textDelta = choice.delta?.content ?? '';
+        if (textDelta) {
+          turnText += textDelta;
+          fullText += textDelta;
+          onResponseDelta?.(textDelta);
+        }
+
+        // Tool-call deltas — accumulate by index (id + name in first chunk only,
+        // arguments fragments stream across multiple chunks)
+        const tcDeltas = (choice.delta as any)?.tool_calls as any[] | undefined;
+        if (tcDeltas) {
+          for (const tc of tcDeltas) {
+            const idx: number = tc.index ?? 0;
+            if (!pending[idx]) pending[idx] = { id: '', name: '', argsRaw: '' };
+            if (tc.id) pending[idx].id = tc.id;
+            if (tc.function?.name) pending[idx].name = (pending[idx].name || '') + tc.function.name;
+            if (tc.function?.arguments) pending[idx].argsRaw += tc.function.arguments;
+          }
+        }
+      }
+
+      const toolCalls = Object.values(pending).filter(tc => tc.id && tc.name);
+
+      // No tool calls or tools disabled → generation complete for this turn
+      if (!toolCalls.length || !openaiTools || !toolContext) break;
+
+      // Append the assistant turn (with tool_calls) to the conversation
+      chatMessages.push({
+        role: 'assistant',
+        content: turnText || null,
+        tool_calls: toolCalls.map(tc => ({
+          id: tc.id,
+          type: 'function' as const,
+          function: { name: tc.name, arguments: tc.argsRaw },
+        })),
+      } as OpenAI.ChatCompletionMessageParam);
+
+      // Execute tools in parallel via the shared _executeTools implementation
+      const toolBlocks = toolCalls.map(tc => {
+        let input: Record<string, unknown> = {};
+        try { input = JSON.parse(tc.argsRaw || '{}'); } catch { /* ignore */ }
+        return { id: tc.id, name: tc.name, input };
+      });
+      const results = await this._executeTools(toolBlocks, toolContext.context, toolContext.onToolEvent);
+
+      // Append tool results as tool-role messages
+      for (const result of results) {
+        const contentStr = typeof result.content === 'string'
+          ? result.content
+          : JSON.stringify(result.content);
+        chatMessages.push({
+          role: 'tool',
+          tool_call_id: result.tool_use_id,
+          content: contentStr,
+        } as OpenAI.ChatCompletionMessageParam);
+      }
+      // Next turn: model reads tool results and decides whether to call more tools or stop
+    }
+
+    return fullText;
+  }
+
   /**
    * Retry helper for Anthropic API calls — handles 429 rate-limit and 529 overloaded errors.
    * Only retries if no streaming content has been emitted yet (rawResponseSoFar empty).
@@ -8620,28 +8760,25 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         const _openaiCompatClient = _openrouterClientStorage.getStore();
         const providers: Array<{ name: string; fn: () => Promise<string>; available: boolean }> = [
           {
-            // Custom OpenAI-compatible provider (Qianwen/DashScope, vLLM, etc.) injected
-            // via AsyncLocalStorage when LLM_API_KEY + LLM_API_URL are set.
+            // Custom OpenAI-compatible provider (Qianwen/DashScope, DeepSeek, vLLM, etc.)
+            // injected via AsyncLocalStorage when LLM_API_KEY + LLM_API_URL are set.
+            // Uses the full agentic tool loop so all BioMate tools work (run_code,
+            // search_literature, list_data_sources, …) — same capability as Claude/Gemini.
             name: 'OpenAI-compatible',
-            fn: async () => {
+            fn: () => {
               if (!_openaiCompatClient) throw new Error('No OpenAI-compatible client');
               const model = context.selectedModel || process.env.LLM_MODEL || 'qwen-max';
-              const stream = await _openaiCompatClient.chat.completions.create({
+              return this._generateWithOpenAICompatible(
+                _openaiCompatClient,
                 model,
-                messages: [
-                  { role: 'system' as const, content: systemPrompt },
-                  ...plainMessages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-                ],
-                stream: true,
-                max_tokens: 4096,
-                temperature: 0.3,
-              });
-              let text = '';
-              for await (const chunk of stream) {
-                const delta = chunk.choices[0]?.delta?.content ?? '';
-                if (delta) { text += delta; onResponseDelta?.(delta); }
-              }
-              return text;
+                systemPrompt,
+                plainMessages,
+                onResponseDelta,
+                4096,
+                (!useThinking && onToolEvent && !hasRunnableWorkflow)
+                  ? { tools: BIOMATE_TOOLS, context, onToolEvent }
+                  : undefined,
+              );
             },
             available: !!_openaiCompatClient,
           },
@@ -8679,8 +8816,25 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             available: !!process.env.ANTHROPIC_API_KEY,
           },
           {
+            // System-level OpenAI key (OPENAI_API_KEY env var) — also gets the full
+            // agentic tool loop via _generateWithOpenAICompatible.
             name: 'OpenAI',
-            fn: () => this._generateWithOpenAI(systemPrompt, plainMessages, onResponseDelta),
+            fn: () => {
+              const openaiKey = process.env.OPENAI_API_KEY!;
+              const openaiModel = process.env.OPENAI_MODEL ?? 'gpt-4o';
+              const openaiClient = new OpenAI({ apiKey: openaiKey });
+              return this._generateWithOpenAICompatible(
+                openaiClient,
+                openaiModel,
+                systemPrompt,
+                plainMessages,
+                onResponseDelta,
+                4096,
+                (!useThinking && onToolEvent && !hasRunnableWorkflow)
+                  ? { tools: BIOMATE_TOOLS, context, onToolEvent }
+                  : undefined,
+              );
+            },
             available: !!process.env.OPENAI_API_KEY,
           },
           {
