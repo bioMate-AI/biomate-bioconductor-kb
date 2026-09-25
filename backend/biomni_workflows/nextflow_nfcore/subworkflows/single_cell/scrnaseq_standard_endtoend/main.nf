@@ -191,3 +191,42 @@ process SCRNASEQ_STANDARD_ENDTOEND {
     EOF
     """
 }
+
+// ============================================================
+// Entry point
+//
+// The single process consumes `val(meta)` and reads all real inputs
+// (fastq_dir, samplesheet, reference, params) inside its script from
+// `params.*`. The named workflow binds a meta channel to the process
+// and re-exports its emitted outputs; the anonymous `workflow { }` makes
+// the file directly runnable (default entry) and satisfies
+// `_detect_nextflow_entry()` in nextflow_executor.py.
+//
+// Mirrors the sibling single_cell subworkflows
+// (parse_split_seq_scrna, bd_rhapsody_scrna, cite_seq_preprocessing).
+// ============================================================
+workflow SCRNASEQ_STANDARD_ENDTOEND_WORKFLOW {
+    take:
+    meta_ch    // channel: val(meta)  e.g. [ id: 'sample' ]
+
+    main:
+    SCRNASEQ_STANDARD_ENDTOEND(meta_ch)
+
+    emit:
+    annotated = SCRNASEQ_STANDARD_ENDTOEND.out.annotated
+    celltypes = SCRNASEQ_STANDARD_ENDTOEND.out.celltypes
+    markers   = SCRNASEQ_STANDARD_ENDTOEND.out.markers
+    qc        = SCRNASEQ_STANDARD_ENDTOEND.out.qc
+    report    = SCRNASEQ_STANDARD_ENDTOEND.out.report
+    viz       = SCRNASEQ_STANDARD_ENDTOEND.out.viz
+    summary   = SCRNASEQ_STANDARD_ENDTOEND.out.summary
+    versions  = SCRNASEQ_STANDARD_ENDTOEND.out.versions
+}
+
+workflow {
+    if (!params.fastq_dir) {
+        error "Usage: nextflow run main.nf --fastq_dir <10X paired-end fastq dir> --samplesheet <nf-core CSV>"
+    }
+    def meta = [ id: (params.samplesheet ? file(params.samplesheet).baseName : 'scrnaseq_run') ]
+    Channel.value(meta) | SCRNASEQ_STANDARD_ENDTOEND_WORKFLOW
+}

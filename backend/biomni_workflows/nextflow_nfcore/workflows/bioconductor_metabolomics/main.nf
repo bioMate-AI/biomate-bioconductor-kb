@@ -19,10 +19,10 @@
 
 nextflow.enable.dsl = 2
 
-include { BIOC_XCMS            } from '../../subworkflows/bioconductor/xcms/main.nf'
-include { BIOC_CAMERA          } from '../../subworkflows/bioconductor/camera/main.nf'
-include { BIOC_METABOANNOTATION } from '../../subworkflows/bioconductor/metaboannotation/main.nf'
-include { BIOC_CLUSTERPROFILER } from '../../subworkflows/bioconductor/clusterprofiler/main.nf'
+include { BIOC_XCMS_DIRECT_INJECTION_MS_PREPROCESSING_WORKFLOW      as BIOC_XCMS            } from '../../subworkflows/bioconductor/xcms/main.nf'
+include { BIOC_CAMERA_SINGLE_SAMPLE_LCMS_ANNOTATION_WORKFLOW        as BIOC_CAMERA          } from '../../subworkflows/bioconductor/camera/main.nf'
+include { BIOC_METABOANNOTATION_MATCH_VALUES_WORKFLOW               as BIOC_METABOANNOTATION } from '../../subworkflows/bioconductor/metaboannotation/main.nf'
+include { BIOC_CLUSTERPROFILER_OVER_REPRESENTATION_ANALYSIS_WORKFLOW as BIOC_CLUSTERPROFILER } from '../../subworkflows/bioconductor/clusterprofiler/main.nf'
 
 params.mzml_dir     = null
 params.sample_sheet = null
@@ -45,21 +45,23 @@ workflow BIOCONDUCTOR_METABOLOMICS {
     ch_versions = ch_versions.mix(BIOC_XCMS.out.versions)
 
     // Step 2: Adduct/isotope annotation
-    BIOC_CAMERA(BIOC_XCMS.out.rds)
+    BIOC_CAMERA(BIOC_XCMS.out.objects)
     ch_versions = ch_versions.mix(BIOC_CAMERA.out.versions)
 
     // Step 3: Metabolite identification
-    BIOC_METABOANNOTATION(BIOC_CAMERA.out.results)
+    BIOC_METABOANNOTATION(BIOC_CAMERA.out.objects)
     ch_versions = ch_versions.mix(BIOC_METABOANNOTATION.out.versions)
 
     // Step 4: Metabolic pathway enrichment
-    BIOC_CLUSTERPROFILER(BIOC_METABOANNOTATION.out.results)
+    // NB: the clusterprofiler subworkflow reads its gene list from params.gene_list
+    // (no `take:` channel), so it is invoked without an upstream argument.
+    BIOC_CLUSTERPROFILER()
     ch_versions = ch_versions.mix(BIOC_CLUSTERPROFILER.out.versions)
 
     emit:
-    peak_matrix  = BIOC_XCMS.out.results
-    annotations  = BIOC_METABOANNOTATION.out.results
-    enrichment   = BIOC_CLUSTERPROFILER.out.results
+    peak_matrix  = BIOC_XCMS.out.tables
+    annotations  = BIOC_METABOANNOTATION.out.tables
+    enrichment   = BIOC_CLUSTERPROFILER.out.tables
     versions     = ch_versions
 }
 
