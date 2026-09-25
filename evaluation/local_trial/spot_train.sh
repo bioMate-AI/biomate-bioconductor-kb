@@ -34,6 +34,22 @@ LOGPID=$!
 echo "[spot] $(date) size=$SIZE stage=$STAGE — pull data + base"
 aws s3 cp "$S3/sft/multitask_sft_enriched.jsonl" "$SCRATCH/data/sft_enriched.jsonl" --quiet
 [ "$STAGE" != sft ] && aws s3 cp "$S3/midtrain_corpus/midtrain_all.jsonl" "$SCRATCH/data/midtrain_all.jsonl" --quiet
+# MIX_LITERATURE=1 -> mid-train DOMAIN = PubMed literature (stride-sampled) + structured (upweighted).
+# Build once + persist to S3 (composition logged for verification); resume pulls the prebuilt mix (cheap).
+DATA_MID="$SCRATCH/data/midtrain_all.jsonl"
+if [ "${MIX_LITERATURE:-0}" = 1 ] && [ "$STAGE" != sft ]; then
+  DATA_MID="$SCRATCH/data/midtrain_domain.jsonl"
+  if aws s3 ls "$S3/midtrain_corpus/midtrain_domain.jsonl" >/dev/null 2>&1; then
+    echo "[spot] pulling prebuilt domain mix"; aws s3 cp "$S3/midtrain_corpus/midtrain_domain.jsonl" "$DATA_MID" --quiet
+  else
+    echo "[spot] building domain mix = literature + structured (keep-every=${LIT_KEEP_EVERY:-5}, struct-repeat=${STRUCT_REPEAT:-8})"
+    aws s3 cp "$S3/midtrain_corpus/literature_corpus.jsonl" "$SCRATCH/data/lit.jsonl" --quiet
+    python3 "$HERE/build_midtrain_mix.py" --lit "$SCRATCH/data/lit.jsonl" --struct "$SCRATCH/data/midtrain_all.jsonl" \
+      --out "$DATA_MID" --struct-repeat "${STRUCT_REPEAT:-8}" --lit-keep-every "${LIT_KEEP_EVERY:-5}"
+    aws s3 cp "$DATA_MID" "$S3/midtrain_corpus/midtrain_domain.jsonl" --quiet
+    aws s3 cp "$DATA_MID.composition.json" "$S3/midtrain_corpus/midtrain_domain.composition.json" --quiet
+  fi
+fi
 if [ ! -d "$BASE" ]; then
   echo "[spot] downloading base $HF"
   python3 -c "from huggingface_hub import snapshot_download; snapshot_download('$HF', local_dir='$BASE')"
@@ -77,7 +93,7 @@ trap 'kill $SYNCPID $WATCHPID $LOGPID 2>/dev/null; aws s3 sync "$OUT/" "$CKPT_S3
 
 echo "[spot] START training stage=$STAGE (MID=$MID SFT=$SFT SEQ=$SEQ R=$R)"
 if [ "$STAGE" = midtrain ]; then
-  $LAUNCH "$HERE/midtrain_run.py" --base "$BASE" --data "$SCRATCH/data/midtrain_all.jsonl" \
+  $LAUNCH "$HERE/midtrain_run.py" --base "$BASE" --data "$DATA_MID" \
      --out "$OUT" --max-steps $MID --seq-len $SEQ --lora-r $R --batch-size $BS --grad-accum $GA $RESUME ${REPLAY:+--replay "$REPLAY" --replay-frac ${REPLAY_FRAC:-0.5}}
 elif [ "$STAGE" = full ]; then
   # committee-v3 fix: domain-adaptive mid-training FIRST, merge, then SFT — all on one box.
@@ -90,7 +106,7 @@ elif [ "$STAGE" = full ]; then
   else
     MLAST=$(ls -d "$OUT"/midtrain/checkpoint-* 2>/dev/null | sort -t- -k2 -n | tail -1); MR=""
     [ -n "$MLAST" ] && MR="--resume $MLAST" && echo "[spot] resume midtrain from $MLAST"
-    $LAUNCH "$HERE/midtrain_run.py" --base "$BASE" --data "$SCRATCH/data/midtrain_all.jsonl" \
+    $LAUNCH "$HERE/midtrain_run.py" --base "$BASE" --data "$DATA_MID" \
        --out "$OUT/midtrain" --max-steps $MID --seq-len $SEQ --lora-r $R --batch-size $BS --grad-accum $GA $MR ${REPLAY:+--replay "$REPLAY" --replay-frac ${REPLAY_FRAC:-0.5}}
     python3 "$HERE/merge_lora.py" --base "$BASE" --adapter "$OUT/midtrain" --out "$OUT/base_domain"   # merge = single process
     # PERSIST mid-training artifacts NOW — NVMe is wiped on terminate; base_domain is the SFT adapter's base.

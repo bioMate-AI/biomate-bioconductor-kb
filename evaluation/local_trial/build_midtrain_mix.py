@@ -17,18 +17,20 @@ def main():
     ap.add_argument("--lit", required=True); ap.add_argument("--struct", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--struct-repeat", type=int, default=8, help="repeat structured N times to upweight it")
-    ap.add_argument("--lit-cap-tokens", type=int, default=0, help="0 = use ALL literature")
+    ap.add_argument("--lit-keep-every", type=int, default=1, help="keep 1 of every N abstracts (uniform "
+                    "sample across ALL years/topics; e.g. 5 -> ~2.1B of 10.7B tokens). 1 = use ALL")
     a = ap.parse_args()
     lit_t = struct_t = lit_n = struct_n = 0
     with open(a.out, "w") as fo:
-        # literature (optionally capped)
-        for line in open(a.lit):
+        # literature — STRIDE sample uniformly across the whole corpus (shards are PMID-ordered, so a
+        # sequential cap would bias to 1970s abstracts; modulo keeps all eras/topics represented)
+        for i, line in enumerate(open(a.lit)):
+            if a.lit_keep_every > 1 and (i % a.lit_keep_every) != 0: continue
             try: t = json.loads(line).get("text", "")
             except Exception: continue
             if not t: continue
             fo.write(line if line.endswith("\n") else line + "\n")
             lit_t += toks(t); lit_n += 1
-            if a.lit_cap_tokens and lit_t >= a.lit_cap_tokens: break
         # structured, repeated N times (upweight the small BioMate-specific corpus)
         struct_rows = []
         for line in open(a.struct):
