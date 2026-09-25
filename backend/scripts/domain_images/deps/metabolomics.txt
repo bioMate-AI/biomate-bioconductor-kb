@@ -24,3 +24,32 @@ msentropy
 phenomis
 readr
 stringr
+# --- MetaboAnalystR (xia-lab) heavy Bioc/CRAN deps -----------------------------
+# MetaboAnalystR + OptiLCMS themselves are GitHub-only and installed by the extra
+# RUN step appended to Dockerfile.tmpl (BiocManager can't fetch them). These are the
+# Bioc/CRAN packages MetaboAnalystR's DESCRIPTION needs at load time, resolved here
+# so they are baked into bioc-domain-metabolomics:3.20-deps.
+impute
+pcaMethods
+siggenes
+globaltest
+GlobalAncova
+Rgraphviz
+KEGGgraph
+SSPA
+sva
+limma
+crmn
+pls
+caret
+e1071
+igraph
+fitdistrplus
+ellipse
+scatterplot3d
+pheatmap
+RColorBrewer
+pROC
+data.table
+plotly
+Cairo

@@ -9,6 +9,8 @@ RUN Rscript -e '\
   snap <- "https://packagemanager.posit.co/cran/2024-10-30"; \
   options(repos = c(CRAN = snap)); \
   pkgs <- readLines("/tmp/deps.txt"); \
+  pkgs <- trimws(pkgs); \
+  pkgs <- pkgs[nzchar(pkgs) & !startsWith(pkgs, "#")]; \
   if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager"); \
   install.packages(c("rbiom","xfun"), repos = snap, quiet = TRUE); \
   miss <- pkgs[!pkgs %in% rownames(installed.packages())]; \
@@ -17,3 +19,20 @@ RUN Rscript -e '\
   wont  <- pkgs[!vapply(pkgs, function(p) requireNamespace(p, quietly=TRUE), logical(1))]; \
   cat("STILL MISSING:", length(still), paste(head(still,40), collapse=","), "\n"); \
   cat("INSTALLED BUT WONT LOAD:", length(wont), paste(head(wont,40), collapse=","), "\n")'
+
+# --- MetaboAnalystR (xia-lab/MetaboAnalystR) + OptiLCMS -------------------------
+# MetaboAnalystR and its raw-spectra companion OptiLCMS are GitHub-only (not on
+# Bioconductor/CRAN), so BiocManager can't fetch them above. We install them from
+# GitHub here so the `metaboanalystr` subworkflow's runtime auto-install guard is a
+# no-op in production. This RUN self-gates: it only installs when MetaboAnalystR's
+# heavy Bioc deps (impute/pcaMethods/...) are already present — i.e. ONLY in the
+# metabolomics image (those deps live in deps/metabolomics.txt) — and is a harmless
+# no-op for every other domain that shares this template. remotes is CRAN.
+RUN Rscript -e '\
+  gate <- all(vapply(c("impute","pcaMethods","siggenes","limma"), function(p) requireNamespace(p, quietly=TRUE), logical(1))); \
+  if (gate) { \
+    if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://packagemanager.posit.co/cran/2024-10-30"); \
+    try(remotes::install_github("xia-lab/OptiLCMS", upgrade="never", quiet=TRUE), silent=TRUE); \
+    try(remotes::install_github("xia-lab/MetaboAnalystR", upgrade="never", build=FALSE, quiet=TRUE), silent=TRUE); \
+    cat("MetaboAnalystR present:", requireNamespace("MetaboAnalystR", quietly=TRUE), "\n"); \
+  } else { cat("Skipping MetaboAnalystR (non-metabolomics domain)\n") }'
