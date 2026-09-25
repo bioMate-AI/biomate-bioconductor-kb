@@ -36,7 +36,7 @@ globaltest
 GlobalAncova
 Rgraphviz
 KEGGgraph
-SSPA
+# SSPA — REMOVED from Bioconductor (deprecated 3.16, gone by 3.20); not installable. MetaboAnalystR treats it as optional (power-analysis module only).
 sva
 limma
 crmn

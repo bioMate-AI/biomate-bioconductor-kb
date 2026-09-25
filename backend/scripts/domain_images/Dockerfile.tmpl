@@ -13,8 +13,11 @@ RUN Rscript -e '\
   pkgs <- pkgs[nzchar(pkgs) & !startsWith(pkgs, "#")]; \
   if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager"); \
   install.packages(c("rbiom","xfun"), repos = snap, quiet = TRUE); \
+  bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL); \
   miss <- pkgs[!pkgs %in% rownames(installed.packages())]; \
-  if (length(miss)) BiocManager::install(miss, update=FALSE, ask=FALSE, Ncpus=4); \
+  if (length(miss)) BiocManager::install(miss, update=FALSE, ask=FALSE, Ncpus=4, site_repository=bin); \
+  still0 <- pkgs[!pkgs %in% rownames(installed.packages())]; \
+  if (length(still0)) BiocManager::install(still0, update=FALSE, ask=FALSE, Ncpus=4); \
   still <- pkgs[!pkgs %in% rownames(installed.packages())]; \
   wont  <- pkgs[!vapply(pkgs, function(p) requireNamespace(p, quietly=TRUE), logical(1))]; \
   cat("STILL MISSING:", length(still), paste(head(still,40), collapse=","), "\n"); \
