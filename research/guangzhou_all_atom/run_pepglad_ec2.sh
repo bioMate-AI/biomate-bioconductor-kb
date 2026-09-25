@@ -126,6 +126,15 @@ PY
   [ -f "$AE_CKPT" ] || { echo "FATAL: no AE checkpoint resolved for LDM_ONLY"; exit 1; }
   echo "LDM-only: AE checkpoint = $AE_CKPT"
   python "$ROOT/code/configure_pepglad.py" --root "$ROOT/PepGLAD" --stage ldm --checkpoint "$AE_CKPT"
+  # RESUME_LDM_S3: warm-restart the LDM from a prior (interrupted) run's latest checkpoint,
+  # so a spot interruption is recoverable instead of restarting LDM from scratch. Loads
+  # weights (optimizer resets) and continues toward ldm.yaml's target max_epoch.
+  if [ -n "${RESUME_LDM_S3:-}" ]; then
+    stage ldm_resume_fetch
+    aws s3 sync "$RESUME_LDM_S3/training/ldm/" "$ROOT/PepGLAD/previous_outputs/ldm/" --only-show-errors
+    python "$ROOT/code/configure_warm_start.py" --root "$ROOT/PepGLAD" --stage ldm
+    echo "LDM warm-restart from $RESUME_LDM_S3"
+  fi
   stage training_latent_diffusion
   python train.py --gpus 0 --seed 20260912 --config run_outputs/ldm.yaml
   stage training_complete

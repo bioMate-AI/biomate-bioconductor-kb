@@ -14,6 +14,7 @@ LDM_ONLY=${LDM_ONLY:-1}                        # AE already converged (epoch 13)
 UBOUND_PER_BATCH=${UBOUND_PER_BATCH:-60000}   # full batch (upstream default); 30000 was the half-batch that under-trained
 LDM_MAX_EPOCH=${LDM_MAX_EPOCH:-80}            # LDM convergence target (half-batch reached ~79); monitor early for OOM at 60000
 RESUME_TRAINING_S3=${RESUME_TRAINING_S3:-s3://$BUCKET/cyclic_peptide/runs/pepglad-long-20260913T222203Z}  # source of trained AE
+RESUME_LDM_S3=${RESUME_LDM_S3:-}   # optional: prior LDM run to warm-restart from (spot-interruption recovery)
 MAX_RUNTIME=${MAX_RUNTIME:-6h}
 RUNID=pepglad-fullbatch-$(date -u +%Y%m%dT%H%M%SZ)
 S3RUN=s3://$BUCKET/cyclic_peptide/runs/$RUNID
@@ -41,19 +42,26 @@ trap 'shutdown -h now' ERR
 for i in 1 2 3 4 5; do aws s3 cp $S3RUN/code/code.tar.gz /opt/guangzhou-peptide/code.tar.gz && break; sleep 10; done
 echo '$SHA  /opt/guangzhou-peptide/code.tar.gz' | sha256sum -c -
 tar xzf /opt/guangzhou-peptide/code.tar.gz -C /opt/guangzhou-peptide/code
-export OUT_S3=$S3RUN RESUME_TRAINING_S3=$RESUME_TRAINING_S3
+export OUT_S3=$S3RUN RESUME_TRAINING_S3=$RESUME_TRAINING_S3 RESUME_LDM_S3=$RESUME_LDM_S3
 export LDM_ONLY=$LDM_ONLY UBOUND_PER_BATCH=$UBOUND_PER_BATCH LDM_MAX_EPOCH=$LDM_MAX_EPOCH MAX_RUNTIME=$MAX_RUNTIME
 bash /opt/guangzhou-peptide/code/run_pepglad_ec2.sh
 EOF
 )
 
 declare -a COMBO=(
+  "g5.xlarge subnet-0254e4c3634b41bfc"
+  "g5.xlarge subnet-03b277a7a08d388c1"
+  "g5.xlarge subnet-09e4dce46682a6c60"
+  "g6.xlarge subnet-0254e4c3634b41bfc"
+  "g6.xlarge subnet-0b35a6e2c1cf02dc2"
   "g5.2xlarge subnet-03b277a7a08d388c1"
   "g5.2xlarge subnet-0254e4c3634b41bfc"
   "g5.2xlarge subnet-09e4dce46682a6c60"
   "g6.2xlarge subnet-0b35a6e2c1cf02dc2"
   "g6.2xlarge subnet-0254e4c3634b41bfc"
   "g6.4xlarge subnet-0254e4c3634b41bfc"
+  "g5.4xlarge subnet-0254e4c3634b41bfc"
+  "g5.8xlarge subnet-0254e4c3634b41bfc"
 )
 IID=""
 for c in "${COMBO[@]}"; do
