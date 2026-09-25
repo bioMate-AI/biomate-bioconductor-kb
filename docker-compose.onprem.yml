@@ -260,10 +260,19 @@ services:
       BILLING_LAGO_ENABLED: ${BILLING_LAGO_ENABLED:-false}
       LAGO_API_KEY:         ${LAGO_API_KEY:-on-prem-disabled}
 
+    # Add the host Docker socket group so the galaxy user (uid=1000) can call
+    # `docker run` without root. The GID varies by distro (121 on Ubuntu 22.04,
+    # 999 on Debian/RHEL). Set DOCKER_GID in .env: DOCKER_GID=$(stat -c %g /var/run/docker.sock)
+    group_add:
+      - "${DOCKER_GID:-999}"
     volumes:
       - biomate-backend-db:/app/database        # 工作流目录 SQLite
       - biomate-backend-logs:/app/logs
-      - biomate-nf-work:/app/nf-work          # Nextflow work + output files (persistent)
+      # Nextflow work dir: bind-mounted at the SAME path on host and in container.
+      # Task containers launched via Docker socket mount the same /app/nf-work path —
+      # this only works when the host path equals the container path.
+      # The installer pre-creates this: mkdir -p /app/nf-work && chmod 777 /app/nf-work
+      - /app/nf-work:/app/nf-work
       - ./backend/config:/app/config
       # Docker socket required for local Nextflow executor (NEXTFLOW_EXECUTOR=local).
       # Comment out if you use AWS Batch instead.
@@ -450,7 +459,8 @@ volumes:
   biomate-registry-data:
   biomate-backend-db:
   biomate-backend-logs:
-  biomate-nf-work:            # Nextflow work dir + outputs (survives container restarts)
+  # biomate-nf-work: replaced with host bind-mount /app/nf-work:/app/nf-work
+  #   (named volumes create a path mismatch when Nextflow launches Docker task containers)
   # biomate-caddy-data:       # uncomment when using Caddy
   # biomate-caddy-config:     # uncomment when using Caddy
   # biomate-ollama-models:    # uncomment when using Ollama / 使用 Ollama 时取消注释

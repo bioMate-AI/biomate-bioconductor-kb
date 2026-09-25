@@ -63,6 +63,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openjdk-17-jre-headless \
     procps ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+# Docker CLI — required by the local Nextflow executor (NEXTFLOW_EXECUTOR=local)
+# so that workflow process scripts can run `docker run` against the host daemon
+# (mounted via /var/run/docker.sock in docker-compose.onprem.yml).
+# Uses the static release binary: no daemon installed, no apt repo needed.
+ARG DOCKER_CLI_VERSION=26.1.4
+RUN curl -fsSL "https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_CLI_VERSION}.tgz" \
+    | tar xz --strip-components=1 -C /usr/local/bin docker/docker \
+    && docker --version
 # JDK 17 is REQUIRED (do not change to default-jre-headless).
 # default-jre-headless on Debian 13 trixie = OpenJDK 21. JDK 21 + glibc 2.41 +
 # AWS CRT native lib randomly SIGSEGVs the JVM in ld-linux during the dlopen
