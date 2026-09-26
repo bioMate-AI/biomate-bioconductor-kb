@@ -1170,14 +1170,33 @@ async function stageLocalFilesForBatch(
   uuidFilePaths?: Record<string, { filePath: string; name: string }>
 ): Promise<Record<string, any>> {
   const useAws = (process.env.NEXTFLOW_USE_AWS || '').toLowerCase() in { true: 1, '1': 1, yes: 1 };
-  if (!useAws) return params;
+  // On-prem: if MinIO is configured (S3_ENDPOINT_URL set), stage files there so
+  // the Galaxy/Nextflow side can fetch them via the same MinIO endpoint.
+  const minioEndpoint = process.env.S3_ENDPOINT_URL; // e.g. "http://minio:9000"
+  if (!useAws && !minioEndpoint) return params;
 
-  const { PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || process.env.NEXTFLOW_S3_BUCKET || 'biomate-nextflow-work';
-  // Pin the client to the BUCKET's real region (us-east-1), not the us-west-2 default —
-  // a region-mismatched client rejects the PutObject with "must be addressed using the
-  // specified endpoint", which silently failed input staging for every file-param run.
-  const s3 = await _s3ClientForBucket(s3Bucket);
+  const { PutObjectCommand, S3Client } = await import('@aws-sdk/client-s3');
+  let s3: any;
+  let s3Bucket: string;
+  if (useAws) {
+    s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || process.env.NEXTFLOW_S3_BUCKET || 'biomate-nextflow-work';
+    // Pin the client to the BUCKET's real region (us-east-1), not the us-west-2 default —
+    // a region-mismatched client rejects the PutObject with "must be addressed using the
+    // specified endpoint", which silently failed input staging for every file-param run.
+    s3 = await _s3ClientForBucket(s3Bucket);
+  } else {
+    // On-prem MinIO path: use path-style access against the local MinIO endpoint.
+    s3Bucket = process.env.S3_BUCKET_NAME || 'biomate-data';
+    s3 = new S3Client({
+      endpoint: minioEndpoint,
+      region: 'us-east-1',
+      credentials: {
+        accessKeyId:     process.env.AWS_ACCESS_KEY_ID || process.env.MINIO_ROOT_USER || 'biomate',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || process.env.MINIO_ROOT_PASSWORD || '',
+      },
+      forcePathStyle: true,
+    });
+  }
 
   const _UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
