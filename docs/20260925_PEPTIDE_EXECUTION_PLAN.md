@@ -3,6 +3,7 @@
 **Date:** 2026-09-25
 **Baseline:** frozen `pepglad_ldm_epoch221` (DockQ 0.557 / Consistency 0.853 / RMSD 4.29 Å — converged; base-model DockQ is done).
 **Strategy (settled, IP + loop docs):** stop chasing base DockQ; value is the **loop** + **differentiated non-canonical chemistry**. Two independent tracks run in parallel; they converge only when the loop starts optimizing non-canonical outputs.
+**IP posture:** leverage the PepGLAD-class backbone to go FAST; the IP is in the **challenges we resolve** (non-canonical-native representation #1, hard closure #3, proprietary closed-loop #4) + the composite system — PepGLAD is a **baseline-to-beat**, not a thing we merely extend. Full map: `INTERNAL_IP/20260926_PEPTIDE_LLM_ARCHITECTURE_IP.md`.
 **Grounding:** files in `research/guangzhou_all_atom/` (PepGLAD stack) and `drug_discovery/` (shared loop primitives). Every item ships a **multi-metric, leakage-honest** acceptance (all 7 metrics; never DockQ-only).
 
 ---
@@ -39,7 +40,7 @@
 
 ### B1 — Non-canonical macrocycle **generation** (#1, biggest differentiator)
 - **Have (verification only):** `launch_nmethyl_mmgbsa.sh`, `peptide_nmethyl_mmgbsa.sh`, `perm_redesign_v1.py`, `perm_generation_v3.py` — N-Me is scored/redesigned, not *generated natively*.
-- **Do:** extend the generator's representation to emit N-methylation / D-amino acids / staples directly (not post-hoc). Start with N-Me (head start), then D-AA, then staples.
+- **Do:** **resolve the non-canonical-representation challenge generally** — a chemistry-native encoding (NOT a fixed-residue-vocab / brittle 14→15 patch) that emits N-Me / D-AA / staples directly. **This general solution is the crown technical IP** (#1), not "extend PepGLAD's atom count." Start with N-Me (dataset in prep), then D-AA, then staples.
 - **Effort:** L. **Accept:** model samples valid non-canonical macrocycles; permeability distribution shifts favorably vs canonical-only (`chemistry_permeability_analysis.py`); this is the capability generic generators lack.
 
 ### B2 — Hard cyclic-manifold closure (#3)

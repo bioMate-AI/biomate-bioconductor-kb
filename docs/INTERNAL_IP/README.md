@@ -10,6 +10,7 @@ emails. Those state **what we deliver** + a light credibility tag only. The **ho
 verified method-clean.)
 
 ## Contents
+- `20260926_PEPTIDE_LLM_ARCHITECTURE_IP.md` — **architecture & IP** (challenge→resolution→claim): leverage the PepGLAD-class backbone for speed; the IP is the resolved challenges (#1 non-canonical-native representation, #3 hard closure, #4 proprietary closed-loop) + the composite system. PepGLAD = baseline-to-beat, not a derivative.
 - `20260922_PROPRIETARY_PEPTIDE_IP_TECHNIQUE.md` — the proprietary technique spec and IP-claim map.
   Honest novelty calibration: multi-objective in-sampling guidance is PRIOR ART (table-stakes capability,
   not our claim); the defensible IP is **#1 non-canonical macrocycle-chemistry generation** + **#4
