@@ -95,6 +95,28 @@ All 9 steps GREEN on final run with image `sha-97f38f24b169`:
 - **Fix**: Replaced with API-based flow: `POST /api/auth/register` → `POST /api/auth/verify-email` → psql UPDATE to `subscription_tier='admin'`.
 - **Commit**: `15c3237d1`
 
+### Bug 12 — `install.sh` calls `_wizard()` before defining it
+- **Root cause**: `_wizard()` function was defined at line ~131, but called at line ~119 inside the `if [[ ! -f ".env" ]]` block. With `set -euo pipefail`, bash exits with "command not found" on first-time installs without an existing `.env`.
+- **Fix**: Moved `_wizard()` definition before the `if` block that calls it.
+- **Commit**: `d545a57e0`
+
+### Bug 13 — `DOCKER_GID` not auto-detected; GALAXY_API_KEY not auto-generated
+- **Root cause 1**: install.sh wizard auto-generated JWT/Session secrets but not `GALAXY_API_KEY` (shared key for frontend↔Galaxy auth). The `.env` comment said "auto-generate" but nothing was implemented — both containers run with empty key.
+- **Root cause 2**: `DOCKER_GID` defaults to 999 but actual Docker socket GID varies by distro. Wrong GID → galaxy user can't access docker.sock → Nextflow task containers can't launch.
+- **Fix**: Wizard now generates GALAXY_API_KEY alongside JWT/Session. Added step 4b to auto-detect Docker socket GID via `stat -c %g /var/run/docker.sock` and update `.env`.
+- **Commit**: `d545a57e0`
+
+### Bug 14 — Local file download proxy missing authentication (SECURITY)
+- **Root cause**: `/api/galaxy-proxy/api/nextflow/outputs/local-download` used `optionalAuth` — any caller who guessed a run_id UUID could download output files without logging in.
+- **Fix**: Changed to `authenticateToken` + user ownership check (run.userId must match req.user.id).
+- **Commit**: `d545a57e0`
+
+### Bug 15 — `backend/config/galaxy.yml` tracked in git with real credentials + broken paths
+- **Root cause (security)**: The dev `galaxy.yml` (containing Anthropic/OpenAI API keys and a `/Users/kky/...` absolute path) was tracked in git despite `.gitignore`, due to `git add -f` at some earlier point.
+- **Root cause (functionality)**: On a fresh git clone, `backend/config/galaxy.yml` doesn't exist (now removed). The bind mount `./backend/config:/app/config` hides the image-baked `galaxy.yml`, causing Galaxy to fail to start.
+- **Fix**: Removed `galaxy.yml` and `galaxy.yml.docker` from git tracking. Added install.sh step 4a to copy `galaxy.yml.template → galaxy.yml` if missing before `docker compose up`.
+- **Commit**: `c2ca6b39f`
+
 ## Known Issues (Not Blocking)
 
 - **Workflow search routing**: Searching for "ADMET prediction small molecule toxicity" returns wrong workflow via search API. Chat routing (via `workflow_ready`) works correctly. DB scoring fix is a separate issue.
@@ -122,3 +144,6 @@ All 9 steps GREEN on final run with image `sha-97f38f24b169`:
 | `85728dc56` | Env example: demo license key, remove duplicate NEXTFLOW_WORK_DIR |
 | `fda22c82f` | install.sh: create nf-work dir before docker compose up |
 | `15c3237d1` | install.sh: fix admin creation (API-based, not require .ts) |
+| `d545a57e0` | install.sh: wizard order fix, DOCKER_GID detection, GALAXY_API_KEY generation |
+| `d545a57e0` | routes.ts: authenticateToken + ownership on local file download proxy |
+| `c2ca6b39f` | Remove credentials from git; install.sh auto-generates galaxy.yml from template |
