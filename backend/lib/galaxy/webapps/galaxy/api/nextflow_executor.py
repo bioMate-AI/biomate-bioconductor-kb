@@ -2590,6 +2590,10 @@ def _generate_executor_config(
         # MinIO config for local executor
         minio_key    = os.environ.get("AWS_ACCESS_KEY_ID",     os.environ.get("MINIO_ROOT_USER", "biomate"))
         minio_secret = os.environ.get("AWS_SECRET_ACCESS_KEY", os.environ.get("MINIO_ROOT_PASSWORD", ""))
+        # Docker network for task containers: must match the compose network so
+        # task containers can resolve "minio" hostname for S3 file staging.
+        # BIOMATE_DOCKER_NETWORK defaults to "biomate-network" (on-prem compose default).
+        docker_network = os.environ.get("BIOMATE_DOCKER_NETWORK", "biomate-network")
         minio_config = f"""
 aws {{
   client {{
@@ -2600,6 +2604,11 @@ aws {{
   }}
   accessKey = '{minio_key}'
   secretKey = '{minio_secret}'
+}}
+
+docker {{
+  enabled = true
+  runOptions = '--network {docker_network}'
 }}
 """
         config_path = config_dir / "biomate_executor_override.config"

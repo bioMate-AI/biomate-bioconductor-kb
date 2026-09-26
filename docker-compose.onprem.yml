@@ -220,6 +220,9 @@ services:
       # local: 用本机 Docker 跑 Nextflow（需要挂载 docker.sock，见下方 volumes）
       # Nextflow 工作目录（容器内路径，对应下方 volume 挂载）
       NEXTFLOW_WORK_DIR: ${NEXTFLOW_WORK_DIR:-/app/nf-work}
+      # Docker network for local Nextflow task containers: must match the compose
+      # network so task containers can resolve "minio" hostname for S3 staging.
+      BIOMATE_DOCKER_NETWORK: ${BIOMATE_DOCKER_NETWORK:-biomate-network}
 
       # ── 存储 (MinIO 替代 S3) ─────────────────────────────────────────────
       S3_ENDPOINT_URL:      http://minio:9000
