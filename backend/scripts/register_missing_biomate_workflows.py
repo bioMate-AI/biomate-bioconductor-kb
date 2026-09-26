@@ -609,9 +609,25 @@ def register(db_path: Path) -> None:
             skipped += 1
             continue
 
-        nf_path = NF_BASE / entry["name"] / "main.nf"
-        if not nf_path.exists():
-            print(f"  WARN  {entry['name']} — main.nf not found at {nf_path}, skipping")
+        # Resolve the workflow's main.nf. Historically all entries lived under
+        # NF_BASE (nf-core-workflows/modules/biomate-ai-tools/<name>/main.nf), but
+        # newer entries (e.g. the proteomics DDA/EncyclopeDIA workflows) live under
+        # nf-core-modules/ and carry a logical `filename` like
+        # "nfcore/<name>/main.nf". Try, in order: the entry's own filename relative
+        # to REPO_ROOT, the same with the leading "nfcore/" mapped to nf-core-modules/,
+        # then the legacy NF_BASE location. (The executor resolves these logical
+        # paths the same way — see nextflow_executor._resolve_nextflow_path.)
+        _fn = entry.get("filename", "")
+        _stripped = _fn[len("nfcore/"):] if _fn.startswith("nfcore/") else _fn
+        nf_candidates = [
+            REPO_ROOT / _fn,
+            REPO_ROOT / "nf-core-modules" / _stripped,
+            NF_BASE / entry["name"] / "main.nf",
+        ]
+        nf_path = next((p for p in nf_candidates if p.exists()), None)
+        if nf_path is None:
+            print(f"  WARN  {entry['name']} — main.nf not found (tried "
+                  f"{', '.join(str(p) for p in nf_candidates)}), skipping")
             skipped += 1
             continue
 
