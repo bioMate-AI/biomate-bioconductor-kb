@@ -11874,6 +11874,32 @@ Rules:
               if (!outdir && gData.outdir) outdir = gData.outdir;
             }
           } catch { /* Galaxy unreachable — continue without */ }
+
+          // On-prem local executor: Galaxy's /api/nextflow/runs/{id}/output_files returns
+          // local filesystem files via /api/nextflow/outputs/local-download. The status
+          // endpoint above only carries s3_output_files, so we must call this separately.
+          if (outputFiles.length === 0) {
+            try {
+              const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+              const localResp = await fetch(
+                `${galaxyUrl}/api/nextflow/runs/${nfRunId}/output_files`,
+                { signal: AbortSignal.timeout(8000) }
+              );
+              if (localResp.ok) {
+                const localData = await localResp.json() as any;
+                if (Array.isArray(localData.files) && localData.files.length > 0) {
+                  // Translate Galaxy-backend local-download URLs to frontend proxy URLs
+                  // so the browser can download without hitting Galaxy directly.
+                  outputFiles = localData.files.map((f: any) => ({
+                    ...f,
+                    download_url: f.download_url
+                      ? `/api/galaxy-proxy${f.download_url}`
+                      : undefined,
+                  }));
+                }
+              }
+            } catch { /* Galaxy unreachable — continue without */ }
+          }
         }
       }
 
@@ -12070,6 +12096,32 @@ Rules:
     } catch (error: any) {
       console.error('[output_files] Error:', error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // On-prem local output file download proxy.
+  // Galaxy's /api/nextflow/outputs/local-download is only reachable on the
+  // internal network (port 8081, not exposed to browsers). This route
+  // forwards authenticated download requests to Galaxy so browsers can
+  // fetch on-prem workflow output files through the main app port.
+  app.get("/api/galaxy-proxy/api/nextflow/outputs/local-download", optionalAuth, async (req: any, res) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const qs = new URLSearchParams(req.query as Record<string, string>).toString();
+      const upstream = await fetch(`${galaxyUrl}/api/nextflow/outputs/local-download?${qs}`, {
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (!upstream.ok) {
+        return res.status(upstream.status).json({ error: 'Galaxy backend error' });
+      }
+      const ct = upstream.headers.get('content-type') || 'application/octet-stream';
+      const cd = upstream.headers.get('content-disposition');
+      res.setHeader('Content-Type', ct);
+      if (cd) res.setHeader('Content-Disposition', cd);
+      const buf = await upstream.arrayBuffer();
+      res.send(Buffer.from(buf));
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
     }
   });
 
