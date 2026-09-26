@@ -1,0 +1,284 @@
+{
+  "train": {
+    "label": "train",
+    "total": 47959,
+    "exact_dup_answers": 88,
+    "exact_dup_pairs": 2,
+    "same_answer_multiple_tasks": 21,
+    "per_task": {
+      "tool_recommendation": {
+        "n": 8703,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.0,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 189,
+        "answer_leak_%": 0.0
+      },
+      "knowledge_recall": {
+        "n": 7380,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.1,
+        "short_ans_%": 0.1,
+        "mean_ans_chars": 158,
+        "answer_leak_%": null
+      },
+      "scientific_qa": {
+        "n": 6985,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.1,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 199,
+        "answer_leak_%": null
+      },
+      "dataset_prerequisite_check": {
+        "n": 6463,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.0,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 192,
+        "answer_leak_%": null
+      },
+      "workflow_routing": {
+        "n": 5366,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.1,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 201,
+        "answer_leak_%": 0.1
+      },
+      "log_diagnosis": {
+        "n": 2719,
+        "trunc_%": 0.0,
+        "ci_leak_%": 8.8,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 250,
+        "answer_leak_%": null
+      },
+      "parameter_extraction": {
+        "n": 2273,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.0,
+        "short_ans_%": 0.1,
+        "mean_ans_chars": 194,
+        "answer_leak_%": null
+      },
+      "autofix_repair": {
+        "n": 1636,
+        "trunc_%": 0.0,
+        "ci_leak_%": 7.4,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 310,
+        "answer_leak_%": null
+      },
+      "clarification_request": {
+        "n": 1432,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.6,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 242,
+        "answer_leak_%": null
+      },
+      "task_decomposition": {
+        "n": 1312,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.0,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 312,
+        "answer_leak_%": null
+      },
+      "lane_arbitration": {
+        "n": 1027,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.0,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 194,
+        "answer_leak_%": null
+      },
+      "findings_interpretation": {
+        "n": 784,
+        "trunc_%": 0.0,
+        "ci_leak_%": 2.0,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 229,
+        "answer_leak_%": null
+      },
+      "out_of_catalog_composition": {
+        "n": 599,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.0,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 512,
+        "answer_leak_%": null
+      },
+      "design_constraint": {
+        "n": 416,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.0,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 390,
+        "answer_leak_%": null
+      },
+      "workflow_generation": {
+        "n": 365,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.0,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 320,
+        "answer_leak_%": 0.0
+      },
+      "model_selection": {
+        "n": 330,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.0,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 603,
+        "answer_leak_%": null
+      },
+      "multi_workflow_chaining": {
+        "n": 169,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.0,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 250,
+        "answer_leak_%": null
+      }
+    }
+  },
+  "eval": {
+    "label": "eval",
+    "total": 8111,
+    "exact_dup_answers": 6,
+    "exact_dup_pairs": 1,
+    "same_answer_multiple_tasks": 1,
+    "per_task": {
+      "tool_recommendation": {
+        "n": 1516,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.1,
+        "short_ans_%": 0.1,
+        "mean_ans_chars": 189,
+        "answer_leak_%": 0.0
+      },
+      "knowledge_recall": {
+        "n": 1333,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.1,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 160,
+        "answer_leak_%": null
+      },
+      "scientific_qa": {
+        "n": 1149,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.0,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 199,
+        "answer_leak_%": null
+      },
+      "dataset_prerequisite_check": {
+        "n": 1082,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.1,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 194,
+        "answer_leak_%": null
+      },
+      "workflow_routing": {
+        "n": 957,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.1,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 197,
+        "answer_leak_%": 0.0
+      },
+      "parameter_extraction": {
+        "n": 495,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.0,
+        "short_ans_%": 0.4,
+        "mean_ans_chars": 192,
+        "answer_leak_%": null
+      },
+      "log_diagnosis": {
+        "n": 299,
+        "trunc_%": 0.0,
+        "ci_leak_%": 5.4,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 245,
+        "answer_leak_%": null
+      },
+      "clarification_request": {
+        "n": 276,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.0,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 239,
+        "answer_leak_%": null
+      },
+      "task_decomposition": {
+        "n": 274,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.0,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 304,
+        "answer_leak_%": null
+      },
+      "autofix_repair": {
+        "n": 171,
+        "trunc_%": 0.0,
+        "ci_leak_%": 5.8,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 306,
+        "answer_leak_%": null
+      },
+      "lane_arbitration": {
+        "n": 171,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.0,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 194,
+        "answer_leak_%": null
+      },
+      "workflow_generation": {
+        "n": 110,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.0,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 332,
+        "answer_leak_%": 0.0
+      },
+      "findings_interpretation": {
+        "n": 106,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.9,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 248,
+        "answer_leak_%": null
+      },
+      "design_constraint": {
+        "n": 79,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.0,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 412,
+        "answer_leak_%": null
+      },
+      "model_selection": {
+        "n": 70,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.0,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 594,
+        "answer_leak_%": null
+      },
+      "multi_workflow_chaining": {
+        "n": 23,
+        "trunc_%": 0.0,
+        "ci_leak_%": 0.0,
+        "short_ans_%": 0.0,
+        "mean_ans_chars": 252,
+        "answer_leak_%": null
+      }
+    }
+  }
+}
