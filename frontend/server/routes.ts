@@ -10888,7 +10888,7 @@ ${paramLines || '(none recorded)'}`;
   };
 
   // Get execution run status (lightweight polling endpoint)
-  app.get("/api/workflows/runs/:id/status", async (req, res) => {
+  app.get("/api/workflows/runs/:id/status", authenticateToken, async (req, res) => {
     try {
       let run = await storage.getExecutionRun(req.params.id);
       if (!run) {
@@ -13345,6 +13345,20 @@ Rules:
       const run = await storage.getExecutionRun(runId);
       if (!run) {
         return res.status(404).json({ error: "Run not found" });
+      }
+
+      // Failed runs have no meaningful outputs — return static error immediately
+      // so the UI shows a clear message instead of an infinite "Analysis in progress…" spinner.
+      const runStatus: string = (run as any).status || '';
+      if (runStatus === 'failed') {
+        return res.json({
+          status: 'error',
+          message: 'Analysis not available — workflow did not complete successfully.',
+          summary: 'The workflow run failed before producing output files. Check the error message in the workflow panel for details.',
+          key_results: [],
+          next_steps: ['Review the error message and fix the workflow parameters, then re-run.'],
+          caveats: [],
+        });
       }
 
       // Determine local output dir (local runs only; S3 runs not supported for disk check)
