@@ -623,7 +623,8 @@ deploy_workflows() {
     --exclude='*/.nextflow' \
     --exclude='*/.nextflow.log*' \
     backend/biomni_workflows/ \
-    backend/nf-core-workflows/modules/biomate-ai-tools/ 2>/dev/null
+    backend/nf-core-workflows/modules/biomate-ai-tools/ \
+    backend/nf-core-modules/ 2>/dev/null
   log "[workflows] Archive: $(du -sh $tar_file | cut -f1)"
 
   ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/workflows_sync.tar.gz"
@@ -667,6 +668,21 @@ deploy_workflows() {
         rm -rf \"\$dest\" 2>/dev/null
         cp -P \"\$rel\" \"\$dest\"
       done
+
+      # Per-file replacement for nf-core-modules/. The executor resolves workflows
+      # from backend_root/nf-core-modules (nextflow_executor _candidate_bases), but
+      # this directory was NEVER synced — so any workflow placed there (e.g. the
+      # proteomics DDA/EncyclopeDIA DIA workflows from PR #217) could not run on dev.
+      if [ -d /tmp/workflows_extract_in/backend/nf-core-modules ]; then
+        cd /tmp/workflows_extract_in/backend/nf-core-modules
+        find . -mindepth 1 \( -type f -o -type l \) | while read -r rel; do
+          rel=\${rel#./}
+          dest=/app/nf-core-modules/\$rel
+          mkdir -p \"\$(dirname \"\$dest\")\"
+          rm -rf \"\$dest\" 2>/dev/null
+          cp -P \"\$rel\" \"\$dest\"
+        done
+      fi
     " 2>&1 | tail -3
 
     # Workflow-script cache invalidation: Nextflow caches compiled .nf
@@ -1636,7 +1652,7 @@ do_sync() {
     grep -vE '\.(test|spec)\.(ts|tsx|js)$|^frontend/e2e/' || true)"
   [[ -n "$_runtime_frontend" ]] && do_frontend=true
   echo "$changed_paths" | grep -q "^backend/lib/" && do_backend=true
-  echo "$changed_paths" | grep -qE "^backend/biomni_workflows/|^backend/nf-core-workflows/modules/biomate-ai-tools/" && do_workflows=true
+  echo "$changed_paths" | grep -qE "^backend/biomni_workflows/|^backend/nf-core-workflows/modules/biomate-ai-tools/|^backend/nf-core-modules/" && do_workflows=true
   echo "$changed_paths" | grep -q "^backend/database/" && do_db=true
 
   # Always sync logo
