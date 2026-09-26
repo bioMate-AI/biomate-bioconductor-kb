@@ -21,7 +21,9 @@ Last updated: **2026-09-26**.
 | Committee SFT audit | ✅ done | `20260925_COMMITTEE_SFT_TASK_DATASET_AUDIT.md` |
 | Corpus-scale quality pass | ✅ done | `sft_quality_audit.json` — narrows the committee claims |
 | Literature corpus (entire PubMed) | ✅ built | 28.2M abstracts, ~10.7B tok, 40 GiB on S3 |
-| Mid-train `_lit` (literature) | 🔄 running | at midtrain step ~1,200/5,000, resume-safe spot |
+| **KG corpus (FULL PrimeKG + MAP-KG)** | 🔄 building | verbalize 8.1M PrimeKG + ~694k MAP-KG edges → text |
+| Mid-train `_lit` (literature-only) | ⏸ stopped | superseded by `_litkg` (had no KG); checkpoints resumable on S3 |
+| **Mid-train `_litkg` (lit + KG + structured)** | ⏳ pending KG corpus | launches once `kg_corpus.jsonl` verified |
 | 27B (large) | ⏸ not started | gate on 4B mid-train signal + a cheap domain-knowledge probe |
 
 **S3 root:** `s3://biomate-models-399683337364/biomate-core-local-trial/20260912/`
@@ -61,7 +63,14 @@ Last updated: **2026-09-26**.
 | Structured midtrain `midtrain_all.jsonl` | 173,583 | ~50M | `midtrain_corpus/` (tools/onto/KG/code/internal) |
 | **Literature `literature_corpus.jsonl`** ✅ | 28,204,269 | **~10.7B** | `midtrain_corpus/` (entire PubMed baseline, all topics) |
 | General replay `general_replay.jsonl` | 550k | — | `midtrain_corpus/` (FineWeb-Edu, anti-forgetting) |
-| Domain mix `midtrain_domain.jsonl` ✅ | 7.03M | ~2.44B | `midtrain_corpus/` (lit 84.8% + structured×8 15.2%) |
+| **KG corpus `kg_corpus.jsonl`** 🔄 | ~8.8M edges | ~0.13B | `midtrain_corpus/` (FULL PrimeKG 8.1M + MAP-KG ~694k, verbalized) |
+| Domain mix `midtrain_domain_lit.jsonl` (lit-only) | 7.03M | ~2.44B | superseded (lit 84.8% + structured×8 15.2%) |
+| Domain mix `midtrain_domain_litkg.jsonl` ⏳ | — | — | lit + KG(×3) + structured×8 (built on box for `_litkg`) |
+
+**KG note:** the structured corpus had only trivial hetionet (46k tok). Big relational KGs (PrimeKG,
+MAP-KG) are now verbalized to NL sentences (PrimeKG: typed "{x} (type) {phrase} {y} (type)."; MAP-KG uses
+its own NL relation strings) and folded into the domain mix. **Full graphs, not the immune subgraph.**
+Sources: PrimeKG Harvard Dataverse `kg.csv` (datafile 6180620, 936 MB); MAP-KG HF `RainGate/MAP-KG`.
 
 Split: tool-Jaccard **family-disjoint** (`workflow_split.json`). Routing accept-sets:
 `accept_sets.json` (4,172 workflows). Gold routing eval: `gold_routing_eval.jsonl` (279 cases,
@@ -174,6 +183,11 @@ no literature, no open-text mix." **Fixed by acquiring the entire PubMed corpus.
 6. `full_lit` eval + decision on 27B. [after mid-train]
 
 ## 10. Change log
+- 2026-09-26 (later): KG gap identified (only trivial hetionet in the mix) → building FULL PrimeKG
+  (8.1M edges) + MAP-KG (verbalized) corpus from immune-llm-sourced references; wired `--kg`/`MIX_KG`/
+  TAG-namespaced mix into the pipeline; stopped `_lit` (lit-only, superseded) to relaunch as `_litkg`
+  (lit + KG + structured + replay) once the KG corpus is verified. KG assets found in
+  `/Users/kky/biomate-immune-llm/research/knowledge/` (MAP-KG primary, PrimeKG fallback per their registry).
 - 2026-09-26: Literature corpus built (10.7B tok); `_lit` mid-train launched + composition verified
   (63/12/25); corpus-scale quality pass (confirmed CI-leak, disconfirmed truncation/leak/templating);
   committee SFT audit; frontier gold ceiling (~97%); latest model IDs probed (opus-5-5). Master doc created.
