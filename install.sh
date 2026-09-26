@@ -272,6 +272,26 @@ chmod 777 "$NF_WORK_DIR"
 ok "Nextflow 工作目录已就绪: $NF_WORK_DIR (权限: 777)"
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 4a. 生成 backend/config/galaxy.yml（从模板；不覆盖已有文件）
+# ─────────────────────────────────────────────────────────────────────────────
+# docker-compose.onprem.yml bind-mounts ./backend/config:/app/config.
+# galaxy.yml is gitignored (it contains dev secrets); install.sh must generate
+# it from galaxy.yml.template before composing up, otherwise the bind mount
+# hides the image-baked config and Galaxy fails to start.
+_GALAXY_YML="$SCRIPT_DIR/backend/config/galaxy.yml"
+_GALAXY_TMPL="$SCRIPT_DIR/backend/config/galaxy.yml.template"
+if [[ ! -f "$_GALAXY_YML" ]]; then
+  if [[ -f "$_GALAXY_TMPL" ]]; then
+    cp "$_GALAXY_TMPL" "$_GALAXY_YML"
+    ok "backend/config/galaxy.yml 已从模板生成"
+  else
+    warn "未找到 galaxy.yml.template — Galaxy 可能无法正常启动"
+  fi
+else
+  ok "backend/config/galaxy.yml 已存在，跳过生成"
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
 # 4b. 检测 Docker socket GID（Nextflow 本地执行器必须）
 # ─────────────────────────────────────────────────────────────────────────────
 # galaxy-backend 以 uid=1000 (galaxy user) 运行，需要访问宿主机 Docker socket。
