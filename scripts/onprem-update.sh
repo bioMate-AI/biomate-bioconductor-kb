@@ -139,17 +139,23 @@ update_images() {
   docker compose -f "$COMPOSE_FILE" up -d --remove-orphans 2>>"$LOG_FILE"
 
   info "等待服务健康检查…"
-  local services=("postgres" "redis" "galaxy-backend" "frontend")
+  # Container names are set via container_name in docker-compose.onprem.yml.
+  # galaxy-backend → biomate-galaxy (not biomate-galaxy-backend).
+  local containers=("biomate-postgres" "biomate-redis" "biomate-galaxy" "biomate-frontend")
   local max_wait=120
   local waited=0
   while true; do
     all_healthy=true
-    for svc in "${services[@]}"; do
-      status=$(docker compose -f "$COMPOSE_FILE" ps "$svc" --format json 2>/dev/null \
-        | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('Health',''))" 2>/dev/null || echo "")
-      if [[ "$status" != "healthy" && "$status" != "" ]]; then
+    for cname in "${containers[@]}"; do
+      # docker inspect is reliable across all Docker Compose v2 versions.
+      # "docker compose ps --format json" outputs NDJSON (one object per line)
+      # which json.load() rejects — do not use it here.
+      status=$(docker inspect --format '{{.State.Health.Status}}' "$cname" 2>/dev/null || echo "missing")
+      if [[ "$status" == "unhealthy" ]]; then
+        warn "容器 $cname 健康检查失败，请查看日志: docker logs $cname"
+        break 2
+      elif [[ "$status" != "healthy" && "$status" != "" ]]; then
         all_healthy=false
-        break
       fi
     done
     $all_healthy && break
@@ -191,6 +197,14 @@ main() {
   echo "=================================================="
 
   check_prerequisites
+
+  # Source .env so POSTGRES_USER, POSTGRES_DB, FRONTEND_PORT etc. are available
+  # to backup_data() and verify_deployment() without hardcoded defaults.
+  set -a
+  # shellcheck disable=SC1090
+  source "$REPO_DIR/.env"
+  set +a
+
   backup_data
 
   if $DB_ONLY; then

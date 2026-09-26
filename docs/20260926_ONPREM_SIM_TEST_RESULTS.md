@@ -117,6 +117,36 @@ All 9 steps GREEN on final run with image `sha-97f38f24b169`:
 - **Fix**: Removed `galaxy.yml` and `galaxy.yml.docker` from git tracking. Added install.sh step 4a to copy `galaxy.yml.template → galaxy.yml` if missing before `docker compose up`.
 - **Commit**: `c2ca6b39f`
 
+### Bug 16 — `galaxy.yml.template` LLM provider/model/key override env vars (CRITICAL)
+- **Root cause**: The template contained `ai_llm_provider: anthropic`, `ai_llm_model: claude-sonnet-4-5`, and `ai_llm_api_key: ${ANTHROPIC_API_KEY}`. Galaxy reads galaxy.yml with a raw YAML parser — `${ANTHROPIC_API_KEY}` is NOT substituted; it's treated as the literal string `"${ANTHROPIC_API_KEY}"`. Galaxy's config system calls `setattr(self, 'ai_llm_api_key', '${ANTHROPIC_API_KEY}')` for every key in the YAML. When `configure_ai_assistant(dict(app.config.__dict__), ...)` runs, `raw_config.get('ai_llm_api_key')` returns the truthy literal, short-circuiting the env-var fallback chain. Similarly, `raw_config.get('ai_llm_provider')` returns `'anthropic'`, overriding `GALAXY_AI_LLM_PROVIDER` from .env.
+- **Impact**: All non-Anthropic customers on fresh install get `provider=anthropic` with `api_key="${ANTHROPIC_API_KEY}"` (literal) → every LLM call fails with API authentication error.
+- **Fix**: Removed all three LLM keys from `galaxy.yml.template`. LLM config comes exclusively from env vars via `configure_ai_assistant()`'s fallback chain.
+- **Commit**: see below
+
+### Bug 17 — `install.sh` `_wizard()` sed injection via user-supplied values
+- **Root cause**: All password/key writes used `sed -i.bak "s|^KEY=.*|KEY=$val|"`. If the value contains `|` (a valid password character, common in password-manager-generated passwords), the sed delimiter is broken — the command either fails or corrupts the .env file line.
+- **Impact**: Passwords or API keys containing `|` are silently not written to `.env`, leaving the field empty and causing startup failures that are hard to diagnose.
+- **Fix**: Added a `_setenv KEY VALUE` helper function using pure bash line-by-line rewrite (no delimiters) — handles any value including `|`, `\`, `&`, and `/`.
+- **Commit**: see below
+
+### Bug 18 — `install.sh` missing `_check_required GALAXY_API_KEY`
+- **Root cause**: `_check_required` was called for POSTGRES_PASSWORD, JWT_SECRET, SESSION_SECRET, MINIO_ROOT_PASSWORD — but not GALAXY_API_KEY. In `--non-interactive` mode, if the user's pre-filled `.env` has empty GALAXY_API_KEY, the install proceeds without complaint.
+- **Impact**: Both frontend and Galaxy start with empty bootstrap API key → internal auth uses empty == empty (matches), but Galaxy's port 8081 is effectively unauthenticated.
+- **Fix**: Added `_check_required GALAXY_API_KEY` to the validation block.
+- **Commit**: see below
+
+### Bug 19 — `onprem-update.sh` health check always passes (NDJSON vs single-JSON parse)
+- **Root cause**: `docker compose ps --format json` (Docker Compose v2) emits NDJSON — one JSON object per line. The check used `python3 -c "import sys,json; d=json.load(sys.stdin)"` which expects a single JSON value and raises `json.JSONDecodeError: Extra data` on NDJSON. The error was suppressed by `2>/dev/null`, `|| echo ""` returned an empty string, and the condition `"" != "healthy" && "" != ""` is `False` → service counted as healthy immediately.
+- **Impact**: `bash onprem-update.sh` exits the health-check loop without waiting for services to actually be ready, causing the verification step to run against containers still starting up.
+- **Fix**: Replaced JSON-parsing approach with `docker inspect --format '{{.State.Health.Status}}'` using the known container names (`biomate-postgres`, `biomate-redis`, `biomate-galaxy`, `biomate-frontend`) — matches the approach in `install.sh`.
+- **Commit**: see below
+
+### Bug 20 — `onprem-update.sh` never sources `.env` — POSTGRES_USER/DB always use hardcoded defaults
+- **Root cause**: `backup_data()` references `${POSTGRES_USER:-biomate}` and `${POSTGRES_DB:-biomate}`. The script never sources `.env`, so these always fall back to the hardcoded `biomate` defaults, even if the customer configured different values.
+- **Impact**: If POSTGRES_USER != "biomate" in .env, `pg_dump -U biomate` fails with authentication error and backup is skipped (silently, since the outer `||` swallows the failure).
+- **Fix**: Added `set -a; source "$REPO_DIR/.env"; set +a` in `main()` immediately after `check_prerequisites`.
+- **Commit**: see below
+
 ## Known Issues (Not Blocking)
 
 - **Workflow search routing**: Searching for "ADMET prediction small molecule toxicity" returns wrong workflow via search API. Chat routing (via `workflow_ready`) works correctly. DB scoring fix is a separate issue.
@@ -147,3 +177,6 @@ All 9 steps GREEN on final run with image `sha-97f38f24b169`:
 | `d545a57e0` | install.sh: wizard order fix, DOCKER_GID detection, GALAXY_API_KEY generation |
 | `d545a57e0` | routes.ts: authenticateToken + ownership on local file download proxy |
 | `c2ca6b39f` | Remove credentials from git; install.sh auto-generates galaxy.yml from template |
+| TBD | galaxy.yml.template: remove hardcoded LLM config (Bug 16) |
+| TBD | install.sh: _setenv helper + GALAXY_API_KEY check (Bugs 17-18) |
+| TBD | onprem-update.sh: .env sourcing + docker inspect health check (Bugs 19-20) |

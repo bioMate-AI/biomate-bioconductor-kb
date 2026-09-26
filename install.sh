@@ -106,6 +106,31 @@ done
 ok "预检完成"
 
 # ─────────────────────────────────────────────────────────────────────────────
+# _setenv KEY VALUE — safely write KEY=VALUE into $ENV_FILE.
+# Uses pure bash so passwords / URLs containing sed metacharacters (|, &, \, /)
+# are written verbatim without corrupting the file.
+# ─────────────────────────────────────────────────────────────────────────────
+_setenv() {
+  local key="$1" val="$2"
+  local tmp
+  tmp=$(mktemp "${ENV_FILE}.tmp.XXXXXX")
+  local found=false
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" == "${key}="* ]]; then
+      printf '%s=%s\n' "$key" "$val"
+      found=true
+    else
+      printf '%s\n' "$line"
+    fi
+  done < "$ENV_FILE" > "$tmp"
+  # If the key didn't exist, append it
+  if ! $found; then
+    printf '%s=%s\n' "$key" "$val" >> "$tmp"
+  fi
+  mv "$tmp" "$ENV_FILE"
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # 交互式配置向导 (must be defined before it is called below)
 # ─────────────────────────────────────────────────────────────────────────────
 _wizard() {
@@ -116,7 +141,7 @@ _wizard() {
   # 许可证
   read -rp "  许可证 Key [${BIOMATE_LICENSE_KEY:-BMOP-DEMO-DEMO-DEMO-DEMO}]: " _lic
   _lic="${_lic:-${BIOMATE_LICENSE_KEY:-BMOP-DEMO-DEMO-DEMO-DEMO}}"
-  sed -i.bak "s|^BIOMATE_LICENSE_KEY=.*|BIOMATE_LICENSE_KEY=$_lic|" "$ENV_FILE"
+  _setenv BIOMATE_LICENSE_KEY "$_lic"
 
   # 数据库密码
   _pg_pass=""
@@ -124,7 +149,7 @@ _wizard() {
     read -rsp "  PostgreSQL 密码 (必填，至少8位): " _pg_pass; echo ""
     [[ ${#_pg_pass} -lt 8 ]] && { warn "密码太短，请重新输入。"; _pg_pass=""; }
   done
-  sed -i.bak "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$_pg_pass|" "$ENV_FILE"
+  _setenv POSTGRES_PASSWORD "$_pg_pass"
 
   # MinIO 密码
   _minio_pass=""
@@ -132,16 +157,16 @@ _wizard() {
     read -rsp "  MinIO 密码 (必填，至少8位): " _minio_pass; echo ""
     [[ ${#_minio_pass} -lt 8 ]] && { warn "密码太短，请重新输入。"; _minio_pass=""; }
   done
-  sed -i.bak "s|^MINIO_ROOT_PASSWORD=.*|MINIO_ROOT_PASSWORD=$_minio_pass|" "$ENV_FILE"
+  _setenv MINIO_ROOT_PASSWORD "$_minio_pass"
 
   # JWT/Session/Galaxy API 密钥 — 自动生成
   if command -v openssl &>/dev/null; then
     _jwt=$(openssl rand -hex 32)
     _sess=$(openssl rand -hex 32)
     _api_key=$(openssl rand -hex 32)
-    sed -i.bak "s|^JWT_SECRET=.*|JWT_SECRET=$_jwt|" "$ENV_FILE"
-    sed -i.bak "s|^SESSION_SECRET=.*|SESSION_SECRET=$_sess|" "$ENV_FILE"
-    sed -i.bak "s|^GALAXY_API_KEY=.*|GALAXY_API_KEY=$_api_key|" "$ENV_FILE"
+    _setenv JWT_SECRET "$_jwt"
+    _setenv SESSION_SECRET "$_sess"
+    _setenv GALAXY_API_KEY "$_api_key"
     ok "JWT/Session/Galaxy API 密钥已自动生成"
   else
     warn "openssl 未找到，请手动设置 JWT_SECRET、SESSION_SECRET 和 GALAXY_API_KEY。"
@@ -163,32 +188,31 @@ _wizard() {
       _url="${_url:-http://192.168.1.100:8000/v1}"
       read -rp "  模型名称 [qwen2.5-32b-instruct]: " _model
       _model="${_model:-qwen2.5-32b-instruct}"
-      sed -i.bak "s|^LLM_API_URL=.*|LLM_API_URL=$_url|" "$ENV_FILE"
-      sed -i.bak "s|^LLM_MODEL=.*|LLM_MODEL=$_model|" "$ENV_FILE"
-      sed -i.bak "s|^GALAXY_AI_LLM_PROVIDER=.*|GALAXY_AI_LLM_PROVIDER=openai_compatible|" "$ENV_FILE"
+      _setenv LLM_API_URL "$_url"
+      _setenv LLM_MODEL "$_model"
+      _setenv GALAXY_AI_LLM_PROVIDER openai_compatible
       ;;
     2)
       read -rsp "  DeepSeek API Key: " _key; echo ""
-      sed -i.bak "s|^DEEPSEEK_API_KEY=.*|DEEPSEEK_API_KEY=$_key|" "$ENV_FILE"
-      sed -i.bak "s|^GALAXY_AI_LLM_PROVIDER=.*|GALAXY_AI_LLM_PROVIDER=deepseek|" "$ENV_FILE"
+      _setenv DEEPSEEK_API_KEY "$_key"
+      _setenv GALAXY_AI_LLM_PROVIDER deepseek
       ;;
     3)
       read -rsp "  智谱 GLM API Key: " _key; echo ""
-      sed -i.bak "s|^ZHIPU_API_KEY=.*|ZHIPU_API_KEY=$_key|" "$ENV_FILE"
-      sed -i.bak "s|^GALAXY_AI_LLM_PROVIDER=.*|GALAXY_AI_LLM_PROVIDER=zhipu|" "$ENV_FILE"
+      _setenv ZHIPU_API_KEY "$_key"
+      _setenv GALAXY_AI_LLM_PROVIDER zhipu
       ;;
     4)
       read -rsp "  Anthropic API Key: " _key; echo ""
-      sed -i.bak "s|^ANTHROPIC_API_KEY=.*|ANTHROPIC_API_KEY=$_key|" "$ENV_FILE"
-      sed -i.bak "s|^GALAXY_AI_LLM_PROVIDER=.*|GALAXY_AI_LLM_PROVIDER=anthropic|" "$ENV_FILE"
+      _setenv ANTHROPIC_API_KEY "$_key"
+      _setenv GALAXY_AI_LLM_PROVIDER anthropic
       ;;
     5)
-      sed -i.bak "s|^GALAXY_AI_LLM_PROVIDER=.*|GALAXY_AI_LLM_PROVIDER=ollama|" "$ENV_FILE"
+      _setenv GALAXY_AI_LLM_PROVIDER ollama
       warn "Ollama 服务默认已注释，请手动取消 docker-compose.onprem.yml 中的注释。"
       ;;
   esac
 
-  rm -f "$ENV_FILE.bak"
   ok "配置已保存到 $ENV_FILE"
 }
 
@@ -225,6 +249,7 @@ _check_required POSTGRES_PASSWORD
 _check_required JWT_SECRET
 _check_required SESSION_SECRET
 _check_required MINIO_ROOT_PASSWORD
+_check_required GALAXY_API_KEY
 
 ok "必填项校验通过"
 
