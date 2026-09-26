@@ -78,6 +78,7 @@ RUN Rscript -e '\
   gate <- all(vapply(c("impute","pcaMethods","siggenes","limma"), function(p) requireNamespace(p, quietly=TRUE), logical(1))); \
   if (gate) { \
     if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://packagemanager.posit.co/cran/2024-10-30"); \
+    if (utils::packageVersion("xfun") < "0.52") install.packages("xfun", repos="https://cloud.r-project.org"); \
     remotes::install_github("xia-lab/OptiLCMS", upgrade="never", quiet=TRUE); \
     remotes::install_github("xia-lab/MetaboAnalystR", upgrade="never", build=FALSE, quiet=TRUE); \
     ok <- requireNamespace("OptiLCMS", quietly=TRUE) && requireNamespace("MetaboAnalystR", quietly=TRUE); \
