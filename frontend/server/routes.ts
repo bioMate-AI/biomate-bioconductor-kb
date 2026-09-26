@@ -12906,11 +12906,6 @@ Rules:
         return res.status(404).json({ error: "Execution run not found" });
       }
 
-      const apiKey = process.env.ANTHROPIC_API_KEY;
-      if (!apiKey) {
-        return res.status(503).json({ error: "AI analysis unavailable — ANTHROPIC_API_KEY not set" });
-      }
-
       // ── Gather output file content ────────────────────────────────────────
       // Use the local invocations outputs endpoint (same data the UI uses).
       const runIdForOutputs = req.params.id;
@@ -13432,10 +13427,13 @@ Rules:
       // 4. Mark as generating so concurrent polls don't double-fire
       _findingsCache.set(runId, { _generating: true });
 
-      // 5. Fire background Claude analysis (works for both local and AWS S3 outputs)
+      // 5. Fire background LLM analysis (works for both local and AWS S3 outputs)
       //    Uses the same output-discovery logic as /api/workflows/runs/:id/ai/analyze
       const workflowName: string = (run as any).workflowName || (run as any).name || "Workflow";
-      const apiKey = process.env.ANTHROPIC_API_KEY;
+      // Check if any LLM is configured (Gemini, Anthropic, Qianwen/openai_compatible, DeepSeek, etc.)
+      const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY ||
+        process.env.ANTHROPIC_API_KEY || process.env.LLM_API_KEY ||
+        process.env.DEEPSEEK_API_KEY || process.env.ZHIPU_API_KEY || process.env.OPENAI_API_KEY;
 
       const runAsync = async () => {
         try {
@@ -13623,14 +13621,33 @@ Respond ONLY with valid JSON (no markdown wrapper):
   "caveats": ["<caveat 1>"]
 }`;
 
-          const rawText = await callGeminiFlash({
-            messages: [{ role: 'user', content: `Workflow: ${workflowName}\n\nOutput files:\n${fileContext}` }],
-            system: SYSTEM,
-            maxTokens: 32768,
-            jsonMode: true,
-          });
+          // Use llmGenerate so findings work with any configured LLM provider
+          // (Gemini, Anthropic, Qianwen/openai_compatible, DeepSeek, etc.)
+          // Fallback to callGeminiFlash only when GEMINI_API_KEY is available
+          // and no other provider is configured (legacy path).
+          let rawText: string;
+          const hasGemini = !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
+          const hasOtherLLM = !!(process.env.ANTHROPIC_API_KEY || process.env.LLM_API_KEY ||
+            process.env.DEEPSEEK_API_KEY || process.env.ZHIPU_API_KEY || process.env.OPENAI_API_KEY);
+          if (hasGemini && !hasOtherLLM) {
+            rawText = await callGeminiFlash({
+              messages: [{ role: 'user', content: `Workflow: ${workflowName}\n\nOutput files:\n${fileContext}` }],
+              system: SYSTEM,
+              maxTokens: 32768,
+              jsonMode: true,
+            });
+          } else {
+            const { llmGenerate } = await import('./llm-client');
+            const completion = await llmGenerate({
+              prompt: `Workflow: ${workflowName}\n\nOutput files:\n${fileContext}`,
+              system: SYSTEM,
+              maxTokens: 32768,
+              jsonMode: true,
+            });
+            rawText = completion.text || '';
+          }
           console.log(
-            `[Findings] gemini returned: length=${rawText.length} ` +
+            `[Findings] llm returned: length=${rawText.length} ` +
               `firstChar=${JSON.stringify(rawText.slice(0, 1))} ` +
               `endsWithBrace=${rawText.trimEnd().endsWith('}')} ` +
               `preview=${JSON.stringify(rawText.slice(0, 200))} ` +
