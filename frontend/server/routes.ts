@@ -3920,12 +3920,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // The frontend viewer passes its execution run UUID (frontend storage ID).
   // The Python backend's _runs dict is keyed by the Nextflow-assigned run_id.
   // We resolve the translation here before proxying to the Python backend.
-  app.post("/api/workflows/runs/:runId/rerun", optionalAuth, async (req, res) => {
+  app.post("/api/workflows/runs/:runId/rerun", authenticateToken, async (req, res) => {
     try {
       const { runId } = req.params;
 
       // Resolve the Nextflow run_id from the frontend execution run record.
       const execRun = await storage.getExecutionRun(runId).catch(() => null);
+
+      // Ownership check: runs with a known userId must belong to the caller.
+      if (execRun?.userId && req.user?.id && execRun.userId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
       const nextflowRunId =
         execRun?.execution?.nextflowRunId ||
         execRun?.execution?.galaxyInvocationId ||
@@ -9714,7 +9720,7 @@ ${paramLines || '(none recorded)'}`;
   // ============================================================================
 
   // Create a new execution run (unified sandbox/production)
-  app.post("/api/workflows/execute", optionalAuth, async (req, res) => {
+  app.post("/api/workflows/execute", authenticateToken, async (req, res) => {
     let executionRun: any = null;
     let galaxyHistoryId: string | null = null;
     let galaxyWorkflowId: string | null = null;
@@ -12791,13 +12797,18 @@ Rules:
   });
 
   // Cancel execution run
-  app.post("/api/workflows/runs/:id/cancel", optionalAuth, async (req, res) => {
+  app.post("/api/workflows/runs/:id/cancel", authenticateToken, async (req, res) => {
     try {
       const { reason } = req.body;
       const run = await storage.getExecutionRun(req.params.id);
 
       if (!run) {
         return res.status(404).json({ error: "Execution run not found" });
+      }
+
+      // Ownership check: a run with a known userId must belong to the caller.
+      if (run.userId && req.user?.id && run.userId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden" });
       }
 
       // Record interaction
