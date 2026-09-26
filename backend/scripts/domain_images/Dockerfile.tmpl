@@ -1,4 +1,5 @@
 FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-__DOMAIN__:3.20
+ENV MAKEFLAGS="-j16"
 COPY deps.txt /tmp/deps.txt
 # --- GLOBAL R_NO_REMAP counter (applies to EVERY R source compile in this image) ---
 # The base :3.20 image's R defines R_NO_REMAP globally, so <Rinternals.h>/<Rdefines.h>
@@ -30,9 +31,9 @@ RUN Rscript -e '\
   install.packages(c("rbiom","xfun"), repos = snap, quiet = TRUE); \
   bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL); \
   miss <- pkgs[!pkgs %in% rownames(installed.packages())]; \
-  if (length(miss)) BiocManager::install(miss, update=FALSE, ask=FALSE, Ncpus=4, site_repository=bin); \
+  if (length(miss)) BiocManager::install(miss, update=FALSE, ask=FALSE, Ncpus=16, site_repository=bin); \
   still0 <- pkgs[!pkgs %in% rownames(installed.packages())]; \
-  if (length(still0)) BiocManager::install(still0, update=FALSE, ask=FALSE, Ncpus=4); \
+  if (length(still0)) BiocManager::install(still0, update=FALSE, ask=FALSE, Ncpus=16); \
   still <- pkgs[!pkgs %in% rownames(installed.packages())]; \
   wont  <- pkgs[!vapply(pkgs, function(p) requireNamespace(p, quietly=TRUE), logical(1))]; \
   cat("STILL MISSING:", length(still), paste(head(still,40), collapse=","), "\n"); \
