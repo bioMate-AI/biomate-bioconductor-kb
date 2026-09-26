@@ -1,5 +1,20 @@
 FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-__DOMAIN__:3.20
 COPY deps.txt /tmp/deps.txt
+# --- GLOBAL R_NO_REMAP counter (applies to EVERY R source compile in this image) ---
+# The base :3.20 image's R defines R_NO_REMAP globally, so <Rinternals.h>/<Rdefines.h>
+# expose only the Rf_-prefixed API. Several legacy Bioc/GitHub packages (xcms 4.4.0 and
+# — critically — OptiLCMS, which VENDORS its own copy of xcms's massifquant source) still
+# use the un-prefixed API (error/allocVector/mkChar/setAttrib) → source compile fails.
+# Rather than patch each package's vendored source, force-include a `#undef R_NO_REMAP`
+# header into EVERY translation unit via ~/.R/Makevars CPPFLAGS. GCC processes -include
+# after all -D/-U, so it beats the global -DR_NO_REMAP regardless of flag order (verified
+# locally with clang: -DR_NO_REMAP -include undef.h compiles clean, incl. -D last + subdir
+# sources). Undefining R_NO_REMAP only ADDS the un-prefixed aliases (Rf_ names remain), so
+# it is safe/backward-compatible for all packages. Absolute path so it resolves from any
+# package's src dir. Set for root (docker build/install runs as root, HOME=/root).
+RUN printf '#undef R_NO_REMAP\n' > /opt/undef_rno_remap.h \
+ && mkdir -p /root/.R \
+ && printf 'CPPFLAGS += -include /opt/undef_rno_remap.h\n' >> /root/.R/Makevars
 # Pin CRAN to the Bioc-3.20-era snapshot (Bioc 3.20 released ~2024-10-30) so CRAN dependency
 # versions match what the Bioc 3.20 packages were built against. The base :3.20 image shipped
 # with NEWER CRAN deps (rbiom 3.1.0 dropped unifrac; xfun 0.5x dropped attr; ...) which broke
@@ -62,7 +77,9 @@ RUN Rscript -e '\
   gate <- all(vapply(c("impute","pcaMethods","siggenes","limma"), function(p) requireNamespace(p, quietly=TRUE), logical(1))); \
   if (gate) { \
     if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://packagemanager.posit.co/cran/2024-10-30"); \
-    try(remotes::install_github("xia-lab/OptiLCMS", upgrade="never", quiet=TRUE), silent=TRUE); \
-    try(remotes::install_github("xia-lab/MetaboAnalystR", upgrade="never", build=FALSE, quiet=TRUE), silent=TRUE); \
-    cat("MetaboAnalystR present:", requireNamespace("MetaboAnalystR", quietly=TRUE), "\n"); \
+    remotes::install_github("xia-lab/OptiLCMS", upgrade="never", quiet=TRUE); \
+    remotes::install_github("xia-lab/MetaboAnalystR", upgrade="never", build=FALSE, quiet=TRUE); \
+    ok <- requireNamespace("OptiLCMS", quietly=TRUE) && requireNamespace("MetaboAnalystR", quietly=TRUE); \
+    cat("OptiLCMS present:", requireNamespace("OptiLCMS", quietly=TRUE), "| MetaboAnalystR present:", requireNamespace("MetaboAnalystR", quietly=TRUE), "\n"); \
+    if (!ok) stop("OptiLCMS/MetaboAnalystR failed to install — failing the build loudly (was silently swallowed before)"); \
   } else { cat("Skipping MetaboAnalystR (non-metabolomics domain)\n") }'
