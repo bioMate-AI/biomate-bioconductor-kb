@@ -989,6 +989,19 @@ export function getUploadedFile(datasetId: string): { name: string; filePath: st
  */
 async function _s3ClientForBucket(s3Bucket: string): Promise<any> {
   const { S3Client, GetBucketLocationCommand } = await import('@aws-sdk/client-s3');
+  // On-prem MinIO: skip region detection (not applicable) and use endpoint.
+  const endpointUrl = process.env.S3_ENDPOINT_URL;
+  if (endpointUrl) {
+    return new S3Client({
+      endpoint: endpointUrl,
+      region: 'us-east-1',
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+      },
+      forcePathStyle: true,
+    });
+  }
   const base = process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1';
   let region = base;
   try {
@@ -999,7 +1012,13 @@ async function _s3ClientForBucket(s3Bucket: string): Promise<any> {
 }
 
 async function _uploadFileToS3(localPath: string, datasetId: string, fileName: string): Promise<string | undefined> {
-  const s3Bucket = process.env.NEXTFLOW_S3_BUCKET || process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
+  const endpointUrl = process.env.S3_ENDPOINT_URL;
+  // On-prem MinIO: upload to the app bucket (S3_BUCKET_NAME) so the Galaxy
+  // container can access the file via MinIO (there is no shared filesystem
+  // between the frontend and galaxy containers). SaaS: use the Nextflow bucket.
+  const s3Bucket = endpointUrl
+    ? (process.env.S3_BUCKET_NAME || 'biomate-data')
+    : (process.env.NEXTFLOW_S3_BUCKET || process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work');
   const s3Key = `uploads/${datasetId}/${fileName}`;
   const s3Uri = `s3://${s3Bucket}/${s3Key}`;
   try {
@@ -1007,7 +1026,7 @@ async function _uploadFileToS3(localPath: string, datasetId: string, fileName: s
     const fs = await import('node:fs');
     const s3 = await _s3ClientForBucket(s3Bucket);
     await s3.send(new PutObjectCommand({ Bucket: s3Bucket, Key: s3Key, Body: fs.createReadStream(localPath) }));
-    console.log(`[FileUpload] Mirrored to S3: ${s3Uri}`);
+    console.log(`[FileUpload] Mirrored to ${endpointUrl ? 'MinIO' : 'S3'}: ${s3Uri}`);
     return s3Uri;
   } catch (err: any) {
     console.warn(`[FileUpload] S3 mirror failed (Nextflow workflows may not access this file): ${err.message}`);
