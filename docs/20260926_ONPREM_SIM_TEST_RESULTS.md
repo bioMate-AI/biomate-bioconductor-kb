@@ -154,7 +154,13 @@ All 9 steps GREEN on final run with image `sha-97f38f24b169`:
 - **Fix**: Replaced the Node.js+SQL approach with the same API-based flow used in `install.sh` (register → auto-verify → `psql UPDATE` with single-quote escaping via `sed "s/'/''/g"`). Moved `_load_env` to run unconditionally at the top-level before the `case` dispatch.
 - **Commit**: see below
 
-### Bug 22 — `scripts/create-first-admin.sh` missing `"acceptTerms":true` in register request
+### Bug 23 — `configure_ai_assistant` LLM_API_KEY=none masks DeepSeek/Zhipu real API keys
+- **Root cause**: `.env.onprem.example` sets `LLM_API_KEY=none` (for local vLLM that needs no auth). `configure_ai_assistant` included `os.getenv('LLM_API_KEY')` in the generic API key fallback chain — BEFORE provider-specific env vars like `DEEPSEEK_API_KEY`. A customer who copies the example and switches to DeepSeek (Option B) would still have `LLM_API_KEY=none` set, so `_api_key = "none"`. The DeepSeek LLM client then sends `Authorization: Bearer none` → 401 Unauthorized on every LLM call.
+- **Additional issue**: Provider was determined AFTER the key lookup (using `raw_config.get('ai_llm_provider')` which could contain stale YAML values), so the generic chain was further polluted by wrong ordering.
+- **Fix**: Restructured `configure_ai_assistant`: (1) determine provider first — env var `GALAXY_AI_LLM_PROVIDER` wins over YAML `ai_llm_provider` (not the reverse); (2) look up API key based on resolved provider; (3) added explicit per-provider key map (DEEPSEEK_API_KEY, ZHIPU_API_KEY, OPENROUTER_API_KEY, etc.); (4) added `${...}` literal guard to reject un-expanded YAML placeholders.
+- **Commit**: see below
+
+### Bug 24 — `scripts/create-first-admin.sh` missing `"acceptTerms":true` in register request
 - **Root cause**: The `/api/auth/register` endpoint requires `acceptTerms: true` in the request body. The script's curl call omitted this field.
 - **Impact**: Registration fails with 400; user not created; `UPDATE users SET subscription_tier='admin'` matches 0 rows; script prints "Done!" but no admin exists in the database.
 - **Fix**: Added `"acceptTerms":true` to the JSON body.
@@ -194,4 +200,5 @@ All 9 steps GREEN on final run with image `sha-97f38f24b169`:
 | TBD | install.sh: _setenv helper + GALAXY_API_KEY check (Bugs 17-18) |
 | TBD | onprem-update.sh: .env sourcing + docker inspect health check (Bugs 19-20) |
 | TBD | scripts/biomate: API-based create-admin + top-level _load_env (Bug 21) |
-| TBD | scripts/create-first-admin.sh: add acceptTerms to register request (Bug 22) |
+| TBD | scripts/create-first-admin.sh: add acceptTerms to register request (Bug 24) |
+| TBD | ai_config.py configure_ai_assistant: provider-aware API key lookup (Bug 23) |
