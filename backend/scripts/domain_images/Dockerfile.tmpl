@@ -26,22 +26,26 @@ RUN Rscript -e '\
 # --- xcms source patch for R_NO_REMAP ------------------------------------------
 # The base :3.20 image's R defines R_NO_REMAP globally, so <Rinternals.h>/<Rdefines.h>
 # only expose the Rf_-prefixed API. xcms 4.4.0 (Bioc 3.20) still uses the legacy
-# un-prefixed API (error/allocVector/mkChar/setAttrib) in 4 source files
-# (mzROI.c, massifquant/xcms_massifquant.cpp, xcms_obiwarp.cpp, fastMatch.c) → source
-# compile fails ("'allocVector' was not declared") → cascades to metaMS/OptiLCMS/
-# MetaboAnalystR. Diagnosed by READING the xcms 4.4.0 source (not trial builds).
-# Fix: install a patched xcms that inserts `#undef R_NO_REMAP` before the first
-# Rinternals/Rdefines include in each affected file, restoring the un-prefixed macros.
-# Self-gates on "xcms not loadable" so it is a no-op for any image where xcms compiled
-# fine (harmless for every non-metabolomics domain). Runs AFTER the deps pass so xcms's
-# own deps (mzR/Spectra/MSnbase/...) are already present for R CMD INSTALL.
+# un-prefixed API (error/allocVector/mkChar/setAttrib) across several compilation units
+# (mzROI.c, massifquant/*, xcms_obiwarp.cpp, fastMatch.c) → source compile fails
+# ("'allocVector' was not declared") → cascades to metaMS/OptiLCMS/MetaboAnalystR.
+# Diagnosed by READING the xcms 4.4.0 source; fix VERIFIED locally with clang.
+#
+# Fix: force-include a `#undef R_NO_REMAP` header at the top of EVERY xcms translation
+# unit via PKG_CPPFLAGS=-include. This is robust where a per-file `#undef` is NOT:
+# several units (e.g. massifquant/xcms_massifquant.cpp) pull the R headers TRANSITIVELY
+# (via DataKeeper.h), so editing only files with a *direct* Rinternals/Rdefines include
+# misses them. GCC processes `-include` AFTER all -D/-U, so it beats the global
+# -DR_NO_REMAP regardless of flag ordering (verified: clang -DR_NO_REMAP -include undef.h
+# compiles clean; and with -D last too). Self-gates on "xcms not loadable" → no-op for
+# any image where xcms already compiled fine (harmless for non-metabolomics domains).
+# Runs AFTER the deps pass so xcms's own deps (mzR/Spectra/MSnbase/...) are present.
 RUN if ! Rscript -e 'quit(status = as.integer(!requireNamespace("xcms", quietly=TRUE)))' ; then \
       set -e; cd /tmp; rm -rf xcms xcms_*.tar.gz; \
       Rscript -e 'if(!requireNamespace("BiocManager",quietly=TRUE)) install.packages("BiocManager"); download.packages("xcms", ".", repos=BiocManager::repositories()["BioCsoft"], type="source")'; \
       tar xzf xcms_*.tar.gz; \
-      for f in xcms/src/mzROI.c xcms/src/massifquant/xcms_massifquant.cpp xcms/src/xcms_obiwarp.cpp xcms/src/fastMatch.c; do \
-        awk 'BEGIN{d=0} /#include[ \t]*[<"]R(internals|defines)\.h[>"]/ && !d {print "#undef R_NO_REMAP"; d=1} {print}' "$f" > "$f.p" && mv "$f.p" "$f"; \
-      done; \
+      printf '#undef R_NO_REMAP\n' > xcms/src/undef_rno_remap.h; \
+      printf 'PKG_CPPFLAGS += -include undef_rno_remap.h\n' | cat - xcms/src/Makevars > xcms/src/Makevars.new && mv xcms/src/Makevars.new xcms/src/Makevars; \
       R CMD INSTALL xcms; \
       Rscript -e 'library(xcms); cat("xcms patched+loaded:", as.character(packageVersion("xcms")), "\n")'; \
     else echo "xcms already loads — no R_NO_REMAP patch needed"; fi
