@@ -42,6 +42,21 @@
 
 ---
 
+## Part 2b — Physicochemical data (the third pillar)
+
+**Why high-leverage:** **target-agnostic** — a solubility/permeability/logD model transfers to *any* new target's chemistry, so it's the single best answer to the **new-target-generalizability pain**. Computable from structure (RDKit/Mordred, no assay), measured sets are large + **calibration-grade**, and for peptides it's *the* developability driver (permeability/3D-PSA/lipophilicity). It's the **"physical" leg** alongside biological (activity/negatives) and expert (patents).
+
+| Property | Dataset(s) | ~Scale | Access | License |
+|---|---|---|---|---|
+| **Aqueous solubility** | AqSolDB, ESOL, MoleculeNet | ~10k / ~1.1k | TDC / Dataverse / MoleculeNet | permissive (CC0/MIT) |
+| **Permeability** | Caco-2, PAMPA (NCATS), MDCK; **CycPeptMPDB** (peptides) | ~1k–10k | TDC `ADME`; CycPeptMPDB | permissive |
+| **Lipophilicity (logD/logP)** | MoleculeNet Lipophilicity, ChEMBL logD, OChem | ~4.2k / large | TDC / ChEMBL / OChem | MIT / CC-BY-SA |
+| **pKa** | curated pKa sets, DataWarrior | ~1–10k | public | mixed |
+| **Bundled ADME** | **TDC ADME suite** (20+ tasks: sol/perm/logD/PPBR/…) | — | `pip install PyTDC` | permissive |
+| **Computed descriptors** | RDKit / Mordred | infinite | pip | BSD |
+
+**We already use:** EnsembleCycPerm ΔPSA3D (permeability), CycPeptMPDB, descriptor featurizations, QED/Ro5. **Gap:** the broader *measured* sets aren't ingested to calibrate the ranking-grade heads (permeability ~R²0.23 partly for this reason), and physchem is applied **post-hoc** (verify/guidance), not **baked into generation**.
+
 ## Part 3 — Where "patients" fit (honest)
 Patient data is **downstream and indirect** for the chemistry loop:
 - **FAERS / clinical failures** → chemotype-level *safety* weak-labels ("this scaffold failed in humans"). Coarse but real.
@@ -53,6 +68,8 @@ Patient data is **downstream and indirect** for the chemistry loop:
 ## Part 4 — Ingestion plan (source → our A1 / A2 / DPO pipeline)
 
 - **A1 verify / property heads** ← measured negatives train calibrated heads: ExCAPE/ChEMBL/PubChem inactives → affinity/permeability heads; Tox21/ToxCast/hERG/DILIrank → safety heads. (Fixes verify's "safety is a stability proxy" gap with real tox negatives.)
+- **A1 physchem calibration** ← measured physicochemical sets (AqSolDB/ESOL solubility, Caco-2/PAMPA/MDCK permeability, MoleculeNet/ChEMBL logD — bundled in TDC-ADME) calibrate the permeability/solubility/logD/tox heads (turns ranking-grade → calibrated). **Best lever for new-target generalizability** — these transfer target-agnostically. RDKit/Mordred descriptors as free features for the surrogate + applicability domain.
+- **DCG-P1 (generation)** ← physchem learned heads *condition sampling* (bake permeability/SA into the generator, not just post-hoc verify) — replaces the P0 geometric proxies in `developability_guidance.py`.
 - **A2 select** ← rule guardrails as filters/penalties: **hard reject** = BRENK + CHEMBL_Glaxo + Lilly 100-demerit; **soft** = QED↑, PAINS↓, Lilly-demerits↓, Ro5/Veber↓. mmpdb transform prior weights proposed edits.
 - **A4 DPO (the generator)** ← two preference streams:
   1. **Activity DPO:** active ≻ inactive pairs from measured DBs → steer generation away from inactive regions.
