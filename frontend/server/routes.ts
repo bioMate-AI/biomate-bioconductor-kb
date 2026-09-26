@@ -1037,9 +1037,20 @@ async function _uploadFileToS3(localPath: string, datasetId: string, fileName: s
 // Stage a project-uploaded file (stored in the app bucket S3_BUCKET_NAME, which
 // AWS Batch workers cannot read) into the Batch-readable Nextflow bucket via a
 // server-side cross-bucket copy. Returns the resolvable s3:// URI, or undefined.
+//
+// On-prem MinIO (S3_ENDPOINT_URL set): the local Nextflow executor accesses MinIO
+// directly using the same bucket, so no cross-bucket copy is needed — return the
+// file's existing URI directly. The separate NEXTFLOW_S3_BUCKET doesn't exist in
+// MinIO and the copy would fail, silently dropping the resolved URI.
 async function _stageProjectFileToNextflow(
   srcBucket: string, srcKey: string, projectId: string, fileName: string,
 ): Promise<string | undefined> {
+  // On-prem: return the file's existing MinIO URI — no cross-bucket copy needed.
+  if (process.env.S3_ENDPOINT_URL) {
+    const uri = `s3://${srcBucket}/${srcKey}`;
+    console.log(`[ProjectStage] on-prem: using direct MinIO URI: ${uri}`);
+    return uri;
+  }
   const destBucket = process.env.NEXTFLOW_S3_BUCKET || process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
   const destKey = `uploads/project-${projectId}/${fileName}`;
   const destUri = `s3://${destBucket}/${destKey}`;
