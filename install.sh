@@ -106,28 +106,8 @@ done
 ok "预检完成"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 2. 环境配置 (.env)
+# 交互式配置向导 (must be defined before it is called below)
 # ─────────────────────────────────────────────────────────────────────────────
-step "环境配置 / Environment setup"
-
-if [[ ! -f "$ENV_FILE" ]]; then
-  if [[ "$NON_INTERACTIVE" == "true" ]]; then
-    die ".env 文件不存在。请先: cp .env.onprem.example .env 并填写必填项。"
-  fi
-  info "未找到 .env 文件，开始交互式配置向导..."
-  cp "$SCRIPT_DIR/.env.onprem.example" "$ENV_FILE"
-  _wizard
-else
-  ok "找到 .env 文件: $ENV_FILE"
-fi
-
-# 加载 .env
-set -a
-# shellcheck disable=SC1090
-source "$ENV_FILE"
-set +a
-
-# ── 交互式配置向导 ────────────────────────────────────────────────────────────
 _wizard() {
   echo ""
   echo "请根据提示填写配置（直接回车使用默认值）。"
@@ -154,15 +134,17 @@ _wizard() {
   done
   sed -i.bak "s|^MINIO_ROOT_PASSWORD=.*|MINIO_ROOT_PASSWORD=$_minio_pass|" "$ENV_FILE"
 
-  # JWT/Session 密钥 — 自动生成
+  # JWT/Session/Galaxy API 密钥 — 自动生成
   if command -v openssl &>/dev/null; then
     _jwt=$(openssl rand -hex 32)
     _sess=$(openssl rand -hex 32)
+    _api_key=$(openssl rand -hex 32)
     sed -i.bak "s|^JWT_SECRET=.*|JWT_SECRET=$_jwt|" "$ENV_FILE"
     sed -i.bak "s|^SESSION_SECRET=.*|SESSION_SECRET=$_sess|" "$ENV_FILE"
-    ok "JWT/Session 密钥已自动生成"
+    sed -i.bak "s|^GALAXY_API_KEY=.*|GALAXY_API_KEY=$_api_key|" "$ENV_FILE"
+    ok "JWT/Session/Galaxy API 密钥已自动生成"
   else
-    warn "openssl 未找到，请手动设置 JWT_SECRET 和 SESSION_SECRET。"
+    warn "openssl 未找到，请手动设置 JWT_SECRET、SESSION_SECRET 和 GALAXY_API_KEY。"
   fi
 
   # LLM 选择
@@ -209,6 +191,28 @@ _wizard() {
   rm -f "$ENV_FILE.bak"
   ok "配置已保存到 $ENV_FILE"
 }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 2. 环境配置 (.env)
+# ─────────────────────────────────────────────────────────────────────────────
+step "环境配置 / Environment setup"
+
+if [[ ! -f "$ENV_FILE" ]]; then
+  if [[ "$NON_INTERACTIVE" == "true" ]]; then
+    die ".env 文件不存在。请先: cp .env.onprem.example .env 并填写必填项。"
+  fi
+  info "未找到 .env 文件，开始交互式配置向导..."
+  cp "$SCRIPT_DIR/.env.onprem.example" "$ENV_FILE"
+  _wizard
+else
+  ok "找到 .env 文件: $ENV_FILE"
+fi
+
+# 加载 .env
+set -a
+# shellcheck disable=SC1090
+source "$ENV_FILE"
+set +a
 
 # ── 校验必填项 ────────────────────────────────────────────────────────────────
 _check_required() {
@@ -266,6 +270,28 @@ if [[ ! -d "$NF_WORK_DIR" ]]; then
 fi
 chmod 777 "$NF_WORK_DIR"
 ok "Nextflow 工作目录已就绪: $NF_WORK_DIR (权限: 777)"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4b. 检测 Docker socket GID（Nextflow 本地执行器必须）
+# ─────────────────────────────────────────────────────────────────────────────
+# galaxy-backend 以 uid=1000 (galaxy user) 运行，需要访问宿主机 Docker socket。
+# group_add 配置的 GID 必须与 /var/run/docker.sock 的实际 GID 一致，否则
+# local Nextflow 任务容器无法启动 (Permission denied on docker.sock)。
+if [[ -e /var/run/docker.sock ]]; then
+  _detected_gid=$(stat -c %g /var/run/docker.sock 2>/dev/null || echo "999")
+  _current_gid="${DOCKER_GID:-999}"
+  if [[ "$_detected_gid" != "$_current_gid" ]]; then
+    info "检测到 Docker socket GID: $_detected_gid（当前 .env 配置: $_current_gid），自动更新..."
+    sed -i.bak "s|^DOCKER_GID=.*|DOCKER_GID=$_detected_gid|" "$ENV_FILE" 2>/dev/null || true
+    rm -f "$ENV_FILE.bak"
+    export DOCKER_GID="$_detected_gid"
+    ok "DOCKER_GID 已更新为 $_detected_gid"
+  else
+    ok "Docker socket GID: $_detected_gid（与 .env 一致）"
+  fi
+else
+  warn "/var/run/docker.sock 未找到，将使用 DOCKER_GID=${DOCKER_GID:-999}"
+fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 5. 启动服务

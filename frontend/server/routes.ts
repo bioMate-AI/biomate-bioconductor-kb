@@ -12129,8 +12129,16 @@ Rules:
   // internal network (port 8081, not exposed to browsers). This route
   // forwards authenticated download requests to Galaxy so browsers can
   // fetch on-prem workflow output files through the main app port.
-  app.get("/api/galaxy-proxy/api/nextflow/outputs/local-download", optionalAuth, async (req: any, res) => {
+  app.get("/api/galaxy-proxy/api/nextflow/outputs/local-download", authenticateToken, async (req: any, res) => {
     try {
+      // Ownership check: the run must belong to the authenticated user.
+      const runId = req.query.run_id as string | undefined;
+      if (runId) {
+        const execRun = await storage.getExecutionRun(runId).catch(() => null);
+        if (execRun?.userId && req.user?.id && execRun.userId !== req.user.id) {
+          return res.status(403).json({ error: 'Forbidden' });
+        }
+      }
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       const qs = new URLSearchParams(req.query as Record<string, string>).toString();
       const upstream = await fetch(`${galaxyUrl}/api/nextflow/outputs/local-download?${qs}`, {
