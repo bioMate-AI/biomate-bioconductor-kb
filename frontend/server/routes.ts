@@ -13349,7 +13349,8 @@ Rules:
 
       // Failed runs have no meaningful outputs — return static error immediately
       // so the UI shows a clear message instead of an infinite "Analysis in progress…" spinner.
-      const runStatus: string = (run as any).status || '';
+      // Status is stored at run.execution.status (not run.status — see storage._dbRowToExecutionRun).
+      const runStatus: string = (run as any).execution?.status || '';
       if (runStatus === 'failed') {
         return res.json({
           status: 'error',
