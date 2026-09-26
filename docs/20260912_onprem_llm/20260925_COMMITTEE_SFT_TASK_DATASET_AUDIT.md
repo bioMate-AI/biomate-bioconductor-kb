@@ -56,9 +56,21 @@ and **~82% of the eval scores teacher-fidelity, not correctness** — so it can 
    ("validation failure was a test-environment artifact, /rlib shadow, flagged as runnable"). This trains the
    model to (a) dismiss failures as environmental and (b) recite internal benchmark flags to end users.
 
-8. **Data-quality bugs [G/Gem].** Truncated generations (`multi_workflow_chaining`: "...run chainSort on
-   each of " — no EOS validation), and free-text "workflows" that are non-executable (package lists, prose
-   steps) where the orchestrator needs deterministic JSON with I/O bindings.
+8. **Data-quality bugs [G/Gem] — PARTIALLY DISCONFIRMED at scale.** The committee flagged truncated
+   generations ("...run chainSort on each of ") and non-executable free-text workflows. The corpus-scale
+   pass (`sft_quality_audit.json`) shows **truncation = 0.0%** across all tasks — the "chainSort" cutoff was
+   an artifact of the **500-char display cap in the sample I fed the committee**, NOT a data defect. The
+   free-text-vs-JSON point stands (a design choice, not corruption). See the corpus-scale results below.
+
+### Corpus-scale verification of the sample-level findings (`audit_sft_quality.py`)
+Ran on all 47,959 train + 8,111 eval rows (no LLM):
+- **CONFIRMED — CI/CD leakage, localized:** `log_diagnosis` **8.8%** train / 5.4% eval, `autofix_repair`
+  **7.4%** / 5.8%, `findings_interpretation` 2.0%. ~360 train rows recite internal QA jargon → filter.
+- **DISCONFIRMED / overstated (sample or display artifacts):** truncation **0.0%**; answer-leakage
+  (strict token-subset) **~0.1%** on routing/tool_rec/wfgen; short/templated answers **0.0%** (mean
+  158–603 chars); exact-dup answers **0.18%** (88/48k); same-answer-across-tasks 21 rows.
+- **Net:** the STRUCTURAL findings (value-volume inversion, N1 0-eval, teacher-fidelity metric, redundancy,
+  mis-scoping — all count/definition based) stand; the DATA-CORRUPTION claims mostly do not.
 
 9. **Missing high-value tasks [C/G].** dataset profiling / data-understanding (a data-centric product with
    no data-reading task is a contradiction); backend argument-building (routing to NIM/REINVENT/ML-train is
