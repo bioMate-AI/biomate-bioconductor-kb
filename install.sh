@@ -358,24 +358,36 @@ else
   done
 
   if [[ -n "$ADMIN_EMAIL" && -n "$_admin_pass" ]]; then
-    _CREATE_RESULT=$(docker exec biomate-frontend node -e "
-      const db = require('./server/db.ts');
-      const bcrypt = require('bcryptjs');
-      (async () => {
-        const hash = await bcrypt.hash('$_admin_pass', 12);
-        await db.db.execute(\`
-          INSERT INTO users (email, password_hash, subscription_tier, created_at)
-          VALUES ('$ADMIN_EMAIL', '\${hash}', 'admin', NOW())
-          ON CONFLICT (email) DO UPDATE
-          SET subscription_tier = 'admin', password_hash = '\${hash}'
-        \`);
-        console.log('OK');
-      })();
-    " 2>&1 || true)
-    if echo "$_CREATE_RESULT" | grep -q "OK"; then
+    _FE_PORT="${FRONTEND_PORT:-5000}"
+    _API="http://localhost:${_FE_PORT}"
+    # Step 1: register (bcrypt is handled server-side; no-SMTP returns verificationToken)
+    _REG=$(curl -sf -X POST "$_API/api/auth/register" \
+      -H "Content-Type: application/json" \
+      -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$_admin_pass\",\"acceptTerms\":true}" 2>&1 || true)
+    _VER_TOKEN=$(echo "$_REG" | grep -o '"verificationToken":"[^"]*"' | cut -d'"' -f4 || true)
+
+    # Step 2: verify email (token returned when SMTP not configured)
+    if [[ -n "$_VER_TOKEN" ]]; then
+      curl -sf -X POST "$_API/api/auth/verify-email" \
+        -H "Content-Type: application/json" \
+        -d "{\"token\":\"$_VER_TOKEN\"}" >/dev/null 2>&1 || true
+    fi
+
+    # Step 3: promote to admin via direct SQL on postgres container
+    _PROMOTE=$(docker exec biomate-postgres psql -U "${POSTGRES_USER:-biomate}" "${POSTGRES_DB:-biomate}" \
+      -c "UPDATE users SET subscription_tier='admin' WHERE email='$ADMIN_EMAIL'; SELECT changes();" 2>&1 \
+      || docker exec biomate-postgres psql -U "${POSTGRES_USER:-biomate}" "${POSTGRES_DB:-biomate}" \
+         -t -c "UPDATE users SET subscription_tier='admin' WHERE email='$ADMIN_EMAIL'" 2>&1 || true)
+
+    # Verify the user exists
+    _USER_EXISTS=$(docker exec biomate-postgres psql -U "${POSTGRES_USER:-biomate}" "${POSTGRES_DB:-biomate}" \
+      -t -c "SELECT COUNT(*) FROM users WHERE email='$ADMIN_EMAIL'" 2>&1 | tr -d ' ' || echo "0")
+
+    if [[ "$_USER_EXISTS" -gt 0 ]]; then
       ok "管理员账号已创建: $ADMIN_EMAIL"
     else
       warn "管理员账号创建遇到问题，请稍后运行: bash scripts/biomate create-admin"
+      info "手动创建: curl -X POST http://localhost:${_FE_PORT}/api/auth/register -H 'Content-Type: application/json' -d '{\"email\":\"admin@example.com\",\"password\":\"yourpass\",\"acceptTerms\":true}'"
     fi
   fi
 fi
