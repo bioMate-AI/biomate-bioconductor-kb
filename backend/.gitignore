@@ -121,6 +121,8 @@ tool-data/**/*.fa
 # Test output
 .pytest_cache/
 assets/
+# vendored nf_encyclopedia ships its own assets/ (email template + NO_FILE placeholder)
+!nf-core-modules/nf_encyclopedia/assets/
 test-data-cache
 run_api_tests.html
 run_cwl_tests.html

@@ -1,0 +1,16 @@
+name: nf-encyclopedia
+channels:
+  - bioconda
+  - conda-forge
+  - r
+dependencies:
+  - python=3.10
+  - pytest
+  - numpy
+  - pandas
+  - bioconductor-msstats=4.2.0
+  - r-rlang
+  - r-dplyr
+  - r-tidyr
+  - r-magrittr
+  - r-stringr
