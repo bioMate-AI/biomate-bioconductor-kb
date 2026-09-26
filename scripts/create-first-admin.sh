@@ -45,10 +45,15 @@ echo ""
 # ── Step 1: Register via API ───────────────────────────────────────────────────
 echo "Step 1/3: Registering user..."
 
+# Encode values as proper JSON strings to handle special characters.
+_json_email=$(printf '%s' "$EMAIL"     | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')
+_json_pass=$(printf '%s'  "$PASSWORD"  | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')
+_json_name=$(printf '%s'  "$FULL_NAME" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')
+
 REG_RESPONSE=$(curl -s -w "\n%{http_code}" \
   -X POST "${APP_URL}/api/auth/register" \
   -H "Content-Type: application/json" \
-  -d "{\"email\":\"${EMAIL}\",\"password\":\"${PASSWORD}\",\"fullName\":\"${FULL_NAME}\",\"acceptTerms\":true}" \
+  --data-binary "{\"email\":${_json_email},\"password\":${_json_pass},\"fullName\":${_json_name},\"acceptTerms\":true}" \
   2>/dev/null)
 
 HTTP_CODE=$(echo "$REG_RESPONSE" | tail -1)
@@ -67,12 +72,14 @@ fi
 # ── Step 2: Grant admin + verify email in Postgres ─────────────────────────────
 echo "Step 2/3: Granting admin privileges in database..."
 
+# Escape single quotes for SQL by doubling them (standard SQL literal escaping).
+_SQL_EMAIL="${EMAIL//\'/\'\'}"
 DB_SQL="
 UPDATE users
 SET subscription_tier = 'admin',
     email_verified = true,
     updated_at = NOW()
-WHERE LOWER(email) = LOWER('${EMAIL}');
+WHERE LOWER(email) = LOWER('${_SQL_EMAIL}');
 "
 
 # Detect how to connect to Postgres
@@ -97,7 +104,7 @@ fi
 # ── Step 3: Verify ────────────────────────────────────────────────────────────
 echo "Step 3/3: Verifying..."
 
-VERIFY_SQL="SELECT email, subscription_tier, email_verified FROM users WHERE LOWER(email) = LOWER('${EMAIL}');"
+VERIFY_SQL="SELECT email, subscription_tier, email_verified FROM users WHERE LOWER(email) = LOWER('${_SQL_EMAIL}');"
 
 if [[ -n "${DATABASE_URL:-}" ]]; then
   psql "$DATABASE_URL" -t -c "$VERIFY_SQL" 2>/dev/null | grep -v "^$" | sed 's/^/  /'

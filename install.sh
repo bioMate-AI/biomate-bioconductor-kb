@@ -267,14 +267,15 @@ docker pull registry:2 2>&1 | tail -1
 ok "基础镜像就绪"
 
 # BioMate 镜像（如果是离线包，已经 docker load 好了）
-GALAXY_IMAGE="${GALAXY_IMAGE:-biomate-galaxy:latest}"
-FRONTEND_IMAGE="${FRONTEND_IMAGE:-biomate-frontend:latest}"
+# Variable names match docker-compose.onprem.yml so offline installs work.
+GALAXY_IMAGE="${BIOMATE_BACKEND_IMAGE:-ghcr.io/biomate-ai/biomate-backend:latest}"
+FRONTEND_IMAGE="${BIOMATE_FRONTEND_IMAGE:-ghcr.io/biomate-ai/biomate-frontend:latest}"
 
 if ! docker image inspect "$GALAXY_IMAGE" &>/dev/null; then
-  warn "Galaxy 镜像 $GALAXY_IMAGE 不存在，请确认已 docker load 离线包或设置正确的 GALAXY_IMAGE。"
+  info "Galaxy 镜像 $GALAXY_IMAGE 将在启动时从 GHCR 拉取（在线安装正常）"
 fi
 if ! docker image inspect "$FRONTEND_IMAGE" &>/dev/null; then
-  warn "前端镜像 $FRONTEND_IMAGE 不存在，请确认已 docker load 离线包或设置正确的 FRONTEND_IMAGE。"
+  info "前端镜像 $FRONTEND_IMAGE 将在启动时从 GHCR 拉取（在线安装正常）"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -393,7 +394,10 @@ _wait_healthy() {
 _wait_healthy biomate-postgres 60
 _wait_healthy biomate-redis   30
 _wait_healthy biomate-minio   60
-_wait_healthy biomate-galaxy  120
+# Galaxy backend starts AFTER db-init completes. db-init downloads the
+# 280MB workflow catalog, which can take 5-10 min on a slow link. Use a
+# 600s (10 min) timeout so fresh installs do not show a spurious error.
+_wait_healthy biomate-galaxy  600
 _wait_healthy biomate-frontend 60
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -431,11 +435,17 @@ else
   if [[ -n "$ADMIN_EMAIL" && -n "$_admin_pass" ]]; then
     _FE_PORT="${FRONTEND_PORT:-5000}"
     _API="http://localhost:${_FE_PORT}"
+    # Encode values as JSON strings to handle special characters.
+    _json_email=$(printf '%s' "$ADMIN_EMAIL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')
+    _json_pass=$(printf '%s'  "$_admin_pass"  | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')
+    # Escape single quotes for SQL (double them: standard SQL literal escaping).
+    _sql_email="${ADMIN_EMAIL//\'/\'\'}"
+
     # Step 1: register (bcrypt is handled server-side; no-SMTP returns verificationToken)
     _REG=$(curl -sf -X POST "$_API/api/auth/register" \
       -H "Content-Type: application/json" \
-      -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$_admin_pass\",\"acceptTerms\":true}" 2>&1 || true)
-    _VER_TOKEN=$(echo "$_REG" | grep -o '"verificationToken":"[^"]*"' | cut -d'"' -f4 || true)
+      --data-binary "{\"email\":${_json_email},\"password\":${_json_pass},\"acceptTerms\":true}" 2>&1 || true)
+    _VER_TOKEN=$(echo "$_REG" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('verificationToken',''))" 2>/dev/null || true)
 
     # Step 2: verify email (token returned when SMTP not configured)
     if [[ -n "$_VER_TOKEN" ]]; then
@@ -445,14 +455,13 @@ else
     fi
 
     # Step 3: promote to admin via direct SQL on postgres container
-    _PROMOTE=$(docker exec biomate-postgres psql -U "${POSTGRES_USER:-biomate}" "${POSTGRES_DB:-biomate}" \
-      -c "UPDATE users SET subscription_tier='admin' WHERE email='$ADMIN_EMAIL'; SELECT changes();" 2>&1 \
-      || docker exec biomate-postgres psql -U "${POSTGRES_USER:-biomate}" "${POSTGRES_DB:-biomate}" \
-         -t -c "UPDATE users SET subscription_tier='admin' WHERE email='$ADMIN_EMAIL'" 2>&1 || true)
+    docker exec biomate-postgres psql -U "${POSTGRES_USER:-biomate}" "${POSTGRES_DB:-biomate}" \
+      -t -c "UPDATE users SET subscription_tier='admin', email_verified=true WHERE email='${_sql_email}'" \
+      >/dev/null 2>&1 || true
 
     # Verify the user exists
     _USER_EXISTS=$(docker exec biomate-postgres psql -U "${POSTGRES_USER:-biomate}" "${POSTGRES_DB:-biomate}" \
-      -t -c "SELECT COUNT(*) FROM users WHERE email='$ADMIN_EMAIL'" 2>&1 | tr -d ' ' || echo "0")
+      -t -c "SELECT COUNT(*) FROM users WHERE email='${_sql_email}'" 2>&1 | tr -d ' ' || echo "0")
 
     if [[ "$_USER_EXISTS" -gt 0 ]]; then
       ok "管理员账号已创建: $ADMIN_EMAIL"
