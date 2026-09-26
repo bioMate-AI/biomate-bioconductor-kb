@@ -147,6 +147,19 @@ All 9 steps GREEN on final run with image `sha-97f38f24b169`:
 - **Fix**: Added `set -a; source "$REPO_DIR/.env"; set +a` in `main()` immediately after `check_prerequisites`.
 - **Commit**: see below
 
+### Bug 21 — `scripts/biomate create-admin` shell/SQL injection + wrong Postgres defaults
+- **Root cause 1**: Password was interpolated directly into a Node.js `-e` string: `b.hash('$_admin_pass',12)`. A password containing `'` breaks JavaScript syntax; one containing `$HOME` would be expanded by the shell before reaching Node.js.
+- **Root cause 2**: Email was interpolated directly into raw SQL: `VALUES ('$ADMIN_EMAIL', ...)`. An email with `'` causes a SQL syntax error.
+- **Root cause 3**: `scripts/biomate` only called `_load_env` in the `status` case. Other commands like `create-admin` used `${POSTGRES_USER:-biomate}` from an unsourced shell, always falling back to `biomate` even if the customer set a different user.
+- **Fix**: Replaced the Node.js+SQL approach with the same API-based flow used in `install.sh` (register → auto-verify → `psql UPDATE` with single-quote escaping via `sed "s/'/''/g"`). Moved `_load_env` to run unconditionally at the top-level before the `case` dispatch.
+- **Commit**: see below
+
+### Bug 22 — `scripts/create-first-admin.sh` missing `"acceptTerms":true` in register request
+- **Root cause**: The `/api/auth/register` endpoint requires `acceptTerms: true` in the request body. The script's curl call omitted this field.
+- **Impact**: Registration fails with 400; user not created; `UPDATE users SET subscription_tier='admin'` matches 0 rows; script prints "Done!" but no admin exists in the database.
+- **Fix**: Added `"acceptTerms":true` to the JSON body.
+- **Commit**: see below
+
 ## Known Issues (Not Blocking)
 
 - **Workflow search routing**: Searching for "ADMET prediction small molecule toxicity" returns wrong workflow via search API. Chat routing (via `workflow_ready`) works correctly. DB scoring fix is a separate issue.
@@ -180,3 +193,5 @@ All 9 steps GREEN on final run with image `sha-97f38f24b169`:
 | TBD | galaxy.yml.template: remove hardcoded LLM config (Bug 16) |
 | TBD | install.sh: _setenv helper + GALAXY_API_KEY check (Bugs 17-18) |
 | TBD | onprem-update.sh: .env sourcing + docker inspect health check (Bugs 19-20) |
+| TBD | scripts/biomate: API-based create-admin + top-level _load_env (Bug 21) |
+| TBD | scripts/create-first-admin.sh: add acceptTerms to register request (Bug 22) |

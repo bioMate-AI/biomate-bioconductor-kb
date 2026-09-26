@@ -48,7 +48,7 @@ echo "Step 1/3: Registering user..."
 REG_RESPONSE=$(curl -s -w "\n%{http_code}" \
   -X POST "${APP_URL}/api/auth/register" \
   -H "Content-Type: application/json" \
-  -d "{\"email\":\"${EMAIL}\",\"password\":\"${PASSWORD}\",\"fullName\":\"${FULL_NAME}\"}" \
+  -d "{\"email\":\"${EMAIL}\",\"password\":\"${PASSWORD}\",\"fullName\":\"${FULL_NAME}\",\"acceptTerms\":true}" \
   2>/dev/null)
 
 HTTP_CODE=$(echo "$REG_RESPONSE" | tail -1)
