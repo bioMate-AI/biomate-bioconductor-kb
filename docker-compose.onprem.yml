@@ -286,7 +286,8 @@ services:
       "--workers", "2",
       "--timeout", "600",
       "--preload",
-      "--log-level", "info"
+      "--log-level", "info",
+      "-c", "lib/galaxy/web_stack/gunicorn_config.py"
     ]
     restart: unless-stopped
     healthcheck:
