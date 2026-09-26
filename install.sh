@@ -249,7 +249,26 @@ if ! docker image inspect "$FRONTEND_IMAGE" &>/dev/null; then
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 4. 启动服务
+# 4. 创建 Nextflow 工作目录
+# ─────────────────────────────────────────────────────────────────────────────
+step "准备 Nextflow 工作目录 / Nextflow work directory"
+
+# /app/nf-work is bind-mounted into the galaxy container AND into every
+# Docker task container launched via DinD.  Both host and container paths
+# MUST be identical (/app/nf-work:/app/nf-work) — this is enforced by
+# docker-compose.onprem.yml.  If we let Docker create the directory on
+# first mount it will be owned by root; the galaxy user (uid=1000) would
+# then get "Permission denied" writing the Nextflow work files.
+NF_WORK_DIR="${NEXTFLOW_WORK_DIR:-/app/nf-work}"
+if [[ ! -d "$NF_WORK_DIR" ]]; then
+  info "创建 $NF_WORK_DIR ..."
+  mkdir -p "$NF_WORK_DIR"
+fi
+chmod 777 "$NF_WORK_DIR"
+ok "Nextflow 工作目录已就绪: $NF_WORK_DIR (权限: 777)"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5. 启动服务
 # ─────────────────────────────────────────────────────────────────────────────
 step "启动服务 / Starting services"
 
@@ -260,7 +279,7 @@ docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d \
 ok "服务已启动"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 5. 等待健康检查
+# 6. 等待健康检查
 # ─────────────────────────────────────────────────────────────────────────────
 step "等待服务就绪 / Waiting for health checks"
 
@@ -307,7 +326,7 @@ _wait_healthy biomate-galaxy  120
 _wait_healthy biomate-frontend 60
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 6. 初始化数据库
+# 7. 初始化数据库
 # ─────────────────────────────────────────────────────────────────────────────
 step "初始化数据库 / Database initialization"
 
@@ -322,7 +341,7 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 7. 创建管理员账号
+# 8. 创建管理员账号
 # ─────────────────────────────────────────────────────────────────────────────
 step "创建管理员账号 / Admin account setup"
 
@@ -362,7 +381,7 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 8. 验证部署
+# 9. 验证部署
 # ─────────────────────────────────────────────────────────────────────────────
 step "验证部署 / Deployment verification"
 
@@ -384,7 +403,7 @@ _check_endpoint "MinIO API"    "http://localhost:9000/minio/health/ready"
 _check_endpoint "许可证 API"   "http://localhost:8081/api/license/status"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 9. 完成
+# 10. 完成
 # ─────────────────────────────────────────────────────────────────────────────
 step "安装完成 / Installation complete"
 
