@@ -38,16 +38,21 @@ aws s3 cp "$S3/sft/multitask_sft_enriched.jsonl" "$SCRATCH/data/sft_enriched.jso
 # Build once + persist to S3 (composition logged for verification); resume pulls the prebuilt mix (cheap).
 DATA_MID="$SCRATCH/data/midtrain_all.jsonl"
 if [ "${MIX_LITERATURE:-0}" = 1 ] && [ "$STAGE" != sft ]; then
-  DATA_MID="$SCRATCH/data/midtrain_domain.jsonl"
-  if aws s3 ls "$S3/midtrain_corpus/midtrain_domain.jsonl" >/dev/null 2>&1; then
-    echo "[spot] pulling prebuilt domain mix"; aws s3 cp "$S3/midtrain_corpus/midtrain_domain.jsonl" "$DATA_MID" --quiet
+  DATA_MID="$SCRATCH/data/midtrain_domain$TAG.jsonl"      # TAG-namespaced so mixes don't collide across runs
+  if aws s3 ls "$S3/midtrain_corpus/midtrain_domain$TAG.jsonl" >/dev/null 2>&1; then
+    echo "[spot] pulling prebuilt domain mix"; aws s3 cp "$S3/midtrain_corpus/midtrain_domain$TAG.jsonl" "$DATA_MID" --quiet
   else
-    echo "[spot] building domain mix = literature + structured (keep-every=${LIT_KEEP_EVERY:-5}, struct-repeat=${STRUCT_REPEAT:-8})"
+    echo "[spot] building domain mix = literature + structured + KG (keep-every=${LIT_KEEP_EVERY:-5}, struct-repeat=${STRUCT_REPEAT:-8}, kg-repeat=${KG_REPEAT:-1})"
     aws s3 cp "$S3/midtrain_corpus/literature_corpus.jsonl" "$SCRATCH/data/lit.jsonl" --quiet
+    KGARG=""
+    if [ "${MIX_KG:-0}" = 1 ] && aws s3 ls "$S3/midtrain_corpus/kg_corpus.jsonl" >/dev/null 2>&1; then
+      aws s3 cp "$S3/midtrain_corpus/kg_corpus.jsonl" "$SCRATCH/data/kg.jsonl" --quiet
+      KGARG="--kg $SCRATCH/data/kg.jsonl --kg-repeat ${KG_REPEAT:-1}"
+    fi
     python3 "$HERE/build_midtrain_mix.py" --lit "$SCRATCH/data/lit.jsonl" --struct "$SCRATCH/data/midtrain_all.jsonl" \
-      --out "$DATA_MID" --struct-repeat "${STRUCT_REPEAT:-8}" --lit-keep-every "${LIT_KEEP_EVERY:-5}"
-    aws s3 cp "$DATA_MID" "$S3/midtrain_corpus/midtrain_domain.jsonl" --quiet
-    aws s3 cp "$DATA_MID.composition.json" "$S3/midtrain_corpus/midtrain_domain.composition.json" --quiet
+      --out "$DATA_MID" --struct-repeat "${STRUCT_REPEAT:-8}" --lit-keep-every "${LIT_KEEP_EVERY:-5}" $KGARG
+    aws s3 cp "$DATA_MID" "$S3/midtrain_corpus/midtrain_domain$TAG.jsonl" --quiet
+    aws s3 cp "$DATA_MID.composition.json" "$S3/midtrain_corpus/midtrain_domain$TAG.composition.json" --quiet
   fi
 fi
 if [ ! -d "$BASE" ]; then

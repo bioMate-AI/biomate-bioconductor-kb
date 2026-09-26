@@ -15,12 +15,14 @@ def toks(s): return max(1, len(s) // 4)
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--lit", required=True); ap.add_argument("--struct", required=True)
+    ap.add_argument("--kg", default="", help="verbalized KG corpus (PrimeKG+MAP-KG); optional")
+    ap.add_argument("--kg-repeat", type=int, default=1, help="repeat KG N times to upweight it")
     ap.add_argument("--out", required=True)
     ap.add_argument("--struct-repeat", type=int, default=8, help="repeat structured N times to upweight it")
     ap.add_argument("--lit-keep-every", type=int, default=1, help="keep 1 of every N abstracts (uniform "
                     "sample across ALL years/topics; e.g. 5 -> ~2.1B of 10.7B tokens). 1 = use ALL")
     a = ap.parse_args()
-    lit_t = struct_t = lit_n = struct_n = 0
+    lit_t = struct_t = lit_n = struct_n = kg_t = kg_n = 0
     with open(a.out, "w") as fo:
         # literature — STRIDE sample uniformly across the whole corpus (shards are PMID-ordered, so a
         # sequential cap would bias to 1970s abstracts; modulo keeps all eras/topics represented)
@@ -43,11 +45,21 @@ def main():
             for r in struct_rows:
                 fo.write(r + "\n")
                 struct_t += toks(json.loads(r)["text"]); struct_n += 1
-    total = lit_t + struct_t
+        # verbalized KG (PrimeKG + MAP-KG), optionally upweighted
+        if a.kg and os.path.exists(a.kg):
+            kg_rows = [l for l in open(a.kg) if l.strip()]
+            for _ in range(a.kg_repeat):
+                for l in kg_rows:
+                    fo.write(l if l.endswith("\n") else l + "\n")
+                    try: kg_t += toks(json.loads(l).get("text", ""))
+                    except Exception: pass
+                    kg_n += 1
+    total = lit_t + struct_t + kg_t
     comp = {"literature": {"rows": lit_n, "~tokens": lit_t, "pct": round(100 * lit_t / total, 1)},
             "structured": {"rows": struct_n, "~tokens": struct_t, "pct": round(100 * struct_t / total, 1),
                            "repeat": a.struct_repeat, "unique_rows": len(struct_rows)},
-            "domain_total": {"rows": lit_n + struct_n, "~tokens": total}}
+            "kg": {"rows": kg_n, "~tokens": kg_t, "pct": round(100 * kg_t / total, 1), "repeat": a.kg_repeat},
+            "domain_total": {"rows": lit_n + struct_n + kg_n, "~tokens": total}}
     json.dump(comp, open(a.out + ".composition.json", "w"), indent=2)
     print("MIX COMPOSITION:", json.dumps(comp), flush=True)
 

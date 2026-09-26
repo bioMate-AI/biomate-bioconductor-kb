@@ -5,7 +5,7 @@
 set -uo pipefail
 cd "$(dirname "$0")"
 S3=s3://biomate-models-399683337364/biomate-core-local-trial/20260912
-SIZE=small; STAGE=full; TAG=${TAG:-_lit}
+SIZE=small; STAGE=full; TAG=${TAG:-_litkg}   # literature + KG + structured + replay
 DONE="$S3/models_20260919/$SIZE/${STAGE}${TAG}_adapter/adapter_model.safetensors"
 # large-scale mid-train on the DOMAIN mix = PubMed literature (stride-sampled ~2B tok) + structured
 # (x8 upweight) + 25% general replay. MID=5000 (~325M tok seen, ~4-5h) vs old 400=wash.
@@ -13,6 +13,7 @@ export MODEL_SIZE=$SIZE STAGE=$STAGE TAG=$TAG ENTRY=spot_train.sh \
   MID_OVERRIDE=${MID_OVERRIDE:-5000} SEQ_OVERRIDE=2048 R_OVERRIDE=16 \
   BS_OVERRIDE=8 GA_OVERRIDE=4 FORCE_NGPU=1 \
   MIX_LITERATURE=1 LIT_KEEP_EVERY=${LIT_KEEP_EVERY:-5} STRUCT_REPEAT=${STRUCT_REPEAT:-8} \
+  MIX_KG=${MIX_KG:-1} KG_REPEAT=${KG_REPEAT:-3} \
   FETCH_REPLAY=1 REPLAY_FRAC=${REPLAY_FRAC:-0.25}
 SUBS=(subnet-09e4dce46682a6c60 subnet-03b277a7a08d388c1 subnet-0b35a6e2c1cf02dc2 subnet-0254e4c3634b41bfc)
 TYPES=(g6e.xlarge g6e.2xlarge g6e.4xlarge g6e.12xlarge)   # all 48GB L40S (12xl=4x, FORCE_NGPU=1 uses one)
