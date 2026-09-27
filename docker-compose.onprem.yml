@@ -402,29 +402,27 @@ services:
       BIOMATE_LICENSE_KEY:    ${BIOMATE_LICENSE_KEY:-}
       BIOMATE_LICENSE_SECRET: ${BIOMATE_LICENSE_SECRET:-}
 
-      # ── run_code 沙箱 ─────────────────────────────────────────────────────────
-      # The sandbox-launcher is the only container that holds the Docker socket.
-      # The frontend dispatches run_code requests to it over HTTP so the Node
-      # process itself never needs Docker access.
-      RUN_CODE_BACKEND_URL: http://sandbox-launcher:8899
-      # Reuse the backend image as the run_code sandbox — it's already pulled,
-      # and it has Python 3.9, R 4.x, and bioinformatics tools.
-      # Must match LAUNCHER_ALLOWED_IMAGES set on the sandbox-launcher service.
-      RUN_CODE_IMAGE: "${BIOMATE_BACKEND_IMAGE:-ghcr.io/biomate-ai/biomate-backend:latest}"
+      # ── run_code 沙箱 (可选) ──────────────────────────────────────────────────
+      # AI 内联代码执行 (run_code tool) 需要 sandbox-launcher 服务。
+      # 启用步骤:
+      #   1. 取消下面 sandbox-launcher 服务的注释
+      #   2. 取消此处注释:
+      # RUN_CODE_BACKEND_URL: http://sandbox-launcher:8899
+      # RUN_CODE_IMAGE: "${BIOMATE_BACKEND_IMAGE:-ghcr.io/biomate-ai/biomate-backend:latest}"
+      # 3. 在下方 volumes 取消 /tmp/biomate_code 挂载注释
+      # 4. 在下方 depends_on 取消 sandbox-launcher 注释
 
     volumes:
-      # Shared run_code workdir: the frontend writes scripts here, the
-      # sandbox-launcher binds them into Docker containers at /work.
-      # Both services mount the SAME host path so bind-mounts work correctly.
-      - /tmp/biomate_code:/tmp/biomate_code
+      # Uncomment if sandbox-launcher is enabled (run_code support):
+      # - /tmp/biomate_code:/tmp/biomate_code
 
     depends_on:
       postgres:
         condition: service_healthy
       galaxy-backend:
         condition: service_healthy
-      sandbox-launcher:
-        condition: service_started
+      # sandbox-launcher:
+      #   condition: service_started
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
@@ -435,33 +433,31 @@ services:
     networks:
       - biomate-network
 
-  # ── 代码沙箱启动器 (run_code tool — inline Python/R/bash analysis) ─────────
-  # Narrow launcher: the ONLY service that holds the Docker socket. The frontend
-  # submits run_code requests to it over HTTP (RUN_CODE_BACKEND_URL); the launcher
-  # validates the spec (image allowlist, workdir prefix, interpreter) and spawns
-  # the actual container. Built from source — no separate image pull required.
-  #
+  # ── 代码沙箱启动器 (run_code tool — 可选，默认关闭) ─────────────────────────
+  # 启用后，AI 可以在对话中直接执行 Python/R/bash 代码 (inline analysis)。
+  # 要求: 克隆完整 repo (包含 ./deploy/sandbox-launcher/), 或等待
+  # ghcr.io/biomate-ai/biomate-sandbox-launcher 镜像发布后改为 image: 引用。
+  # 启用步骤: 取消以下服务注释，并取消 frontend 服务中对应的注释。
   # Security note: gVisor (runsc) is disabled by default. Set LAUNCHER_RUNTIME=runsc
   # and install gVisor on the host for hardware-level sandbox isolation.
-  sandbox-launcher:
-    build: ./deploy/sandbox-launcher/
-    container_name: biomate-sandbox-launcher
-    restart: unless-stopped
-    environment:
-      LAUNCHER_WORKDIR_PREFIX: /tmp/biomate_code
-      # Must match RUN_CODE_IMAGE set on the frontend service. Using the backend
-      # image avoids a separate pull — it has Python 3.9, R 4.x, scipy, DESeq2, etc.
-      LAUNCHER_ALLOWED_IMAGES: "${BIOMATE_BACKEND_IMAGE:-ghcr.io/biomate-ai/biomate-backend:latest}"
-      LAUNCHER_RUNTIME: ""        # gVisor disabled by default; set to runsc if installed
-      LAUNCHER_UID: "1000"
-      LAUNCHER_GID: "1000"
-    group_add:
-      - "${DOCKER_GID:-999}"
-    volumes:
-      - /tmp/biomate_code:/tmp/biomate_code    # shared run_code workdir
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - biomate-network
+  #
+  # sandbox-launcher:
+  #   build: ./deploy/sandbox-launcher/
+  #   container_name: biomate-sandbox-launcher
+  #   restart: unless-stopped
+  #   environment:
+  #     LAUNCHER_WORKDIR_PREFIX: /tmp/biomate_code
+  #     LAUNCHER_ALLOWED_IMAGES: "${BIOMATE_BACKEND_IMAGE:-ghcr.io/biomate-ai/biomate-backend:latest}"
+  #     LAUNCHER_RUNTIME: ""
+  #     LAUNCHER_UID: "1000"
+  #     LAUNCHER_GID: "1000"
+  #   group_add:
+  #     - "${DOCKER_GID:-999}"
+  #   volumes:
+  #     - /tmp/biomate_code:/tmp/biomate_code
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   networks:
+  #     - biomate-network
 
   # ── Caddy (HTTPS / TLS termination — optional but recommended) ────────────
   # Uncomment to enable automatic HTTPS via Let's Encrypt.
