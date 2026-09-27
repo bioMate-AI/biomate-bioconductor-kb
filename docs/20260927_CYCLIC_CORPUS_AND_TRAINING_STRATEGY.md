@@ -21,6 +21,9 @@ verdict replaces it. Change log at the bottom.
 - **The true ceiling is NOT corpus size — it is the near-total absence of target-*bound* cyclic
   complexes.** No self-supervised strategy on ~40k isolated cyclics can manufacture binding supervision.
   This reframes corpus priorities (Part A): the highest-value acquisition is *bound* cyclic complexes.
+  **This is the same scarce resource behind pharma Pain 2 (new-target generalization) and Pain 3
+  (receptor-carrying negatives)** — and the DMTA loop is what manufactures it over time. See the
+  pharma-pains ↔ loop ↔ architecture cross-reference in `20260925_PEPTIDE_EXECUTION_PLAN.md`.
 - **Decisive cheap gate before any GPU spend:** a frozen-encoder linear-probe transfer matrix
   (3 AE inits: small-mol / linear-epoch221 / random → measure reconstruction + ring-closure on
   held-out CREMP *and* the experimental cyclic-complex subset). One afternoon, no diffusion training.

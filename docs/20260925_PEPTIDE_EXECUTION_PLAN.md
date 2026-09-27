@@ -68,3 +68,37 @@
 ## Honest gates (every item)
 - Report the **full 7-metric panel**, on **leakage-filtered/family-disjoint** splits, always vs a **physics baseline** (Vina/FEP) and a **simple baseline**.
 - The closed loop is unproven until a **prospective wet-lab round** shows predicted→measured lift — that is the moat and the honest limiter.
+
+---
+
+## Pharma pains ↔ loop ↔ architecture ↔ training strategy (cross-reference)
+
+The three pharma-customer pains (accumulate expert knowledge · generalize to new targets · use
+internal negatives) are **open-loop / Learn-phase problems** — they are solved **loop-side** (A1/A4/A5),
+with only model-side *hooks* in the architecture. Source docs: `20260924_PHARMA_LOOP_PAINS_LEVERAGE_SURVEY.md`,
+`20260926_NEGATIVE_AND_EXPERT_DATA_SOURCING.md`, `INTERNAL_IP/20260926_PEPTIDE_LLM_ARCHITECTURE_IP.md`,
+`20260927_CYCLIC_CORPUS_AND_TRAINING_STRATEGY.md`.
+
+| Pharma pain | Loop stage (this doc) | Architecture hook (IP doc) | Training-strategy link (0927 doc) |
+|---|---|---|---|
+| **1 — accumulate expert med-chem knowledge** | **A4 DPO** — expert / advanced-vs-abandoned pairs + taste scorer fine-tuned on customer accept/reject; SAR guardrails | #4 closed-loop DPO on proprietary data | — (loop-only) |
+| **2 — generalize to new targets** | **A5 cross-target warm-start** (transfer + transfer-BO; DrugCLIP triage; physics baseline) | #C target conditioning + #5 data foundation | **generator Option-D binding curriculum** is the model-side half — learn receptor conditioning from linear complexes → cyclic |
+| **3 — internal data / negatives** | **A1 verify heads** on measured negatives + **A4 activity-DPO** + DrugCLIP hard negatives | #4 proprietary closed loop | the **bound-complex data gap** (the generator's true ceiling) is the *same* scarce resource — negatives that carry a receptor |
+
+**The shared bottleneck (the load-bearing point):** Pain 2, Pain 3, and the committee's "generator ceiling"
+all reduce to **one missing resource — target-*bound* cyclic complexes.** Public DBs don't have them
+(CREMP is receptor-free; CycPeptMPDB is SMILES-only). **The loop is what manufactures them:** every DMTA
+round on the customer's target yields bound / active-inactive / expert-chosen data that lifts the ceiling
+the training strategy can't lift alone. That is the compounding moat (#4) — and the honest reason the loop
+matters more than the base-model DockQ.
+
+**Peptide-specific adaptations still needed** (the pharma solutions were surveyed on small molecules;
+these have no peptide analog yet):
+- **Taste scorer** — MolSkill is trained on small-molecule chemist choices; the peptide analog is a
+  desirability scorer fine-tuned on **cyclic-peptide** accept/reject (customer med-chem + our own verify verdicts).
+- **SAR transforms** — mmpdb operates on SMILES MMPs; the peptide analog is **residue-/monomer-level MMP**
+  (single-residue swaps, N-Me on/off, L→D, staple add/remove) over HELM, not SMILES fragmentation.
+- **Expert DPO signal** — SureChEMBL×`max_phase` (advanced-vs-abandoned) is small-molecule patent data;
+  the peptide analog is **cyclic-peptide patents / clinical-stage macrocycles** joined to development phase.
+- Everything else (A1 verify, A2/A3 select/gate, A4 DPO on TRL, measured-negative ingestion) is already
+  **modality-general** in the built loop code (A1–A4 + 37 tests) and applies to peptides directly.
