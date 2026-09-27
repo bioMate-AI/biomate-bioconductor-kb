@@ -126,9 +126,15 @@ update_db_only() {
 update_images() {
   info "拉取最新镜像…"
   if [[ -n "$TAG" ]]; then
-    # 设置版本标签（通过 COMPOSE_IMAGE_TAG env var 透传到 compose 文件）
-    export COMPOSE_IMAGE_TAG="$TAG"
+    # docker-compose.onprem.yml uses BIOMATE_BACKEND_IMAGE / BIOMATE_FRONTEND_IMAGE
+    # (not COMPOSE_IMAGE_TAG) to resolve image tags. Export both so docker compose
+    # pull + up pick the requested version instead of silently using :latest.
+    _REGISTRY="${BIOMATE_REGISTRY:-ghcr.io/biomate-ai}"
+    export BIOMATE_BACKEND_IMAGE="${_REGISTRY}/biomate-backend:${TAG}"
+    export BIOMATE_FRONTEND_IMAGE="${_REGISTRY}/biomate-frontend:${TAG}"
     info "  → 使用版本: $TAG"
+    info "  → backend:  $BIOMATE_BACKEND_IMAGE"
+    info "  → frontend: $BIOMATE_FRONTEND_IMAGE"
   fi
 
   docker compose -f "$COMPOSE_FILE" pull 2>>"$LOG_FILE" \
