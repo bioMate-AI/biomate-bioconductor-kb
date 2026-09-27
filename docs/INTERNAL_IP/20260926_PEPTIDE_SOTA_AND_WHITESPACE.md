@@ -71,12 +71,30 @@ Self-reported, each on its own split:
 - **Cyclic permeability (developability):** **HELM-BERT** scaffold-split R² 0.483 (random 0.668); honest scaffold ceiling ~0.48–0.50; RF-ECFP4 floor.
 - **Experimental cyclic binder:** **RFpeptides** 6–9.4 nM, 21–37% hit, ~6–14 synth/target, canonical.
 
-## 5. Positioning recommendation (2026-09-27)
-Given APCyc occupies the co-design core, **lead with the composite, not the backbone** (consistent with the IP doc posture):
-1. **Headline = the narrow cell (§3):** native-sidechain-ncAA full-atom cyclic co-design at a pocket, **tied to a developability win** (the RFpeptides-canonical caveat forces this).
-2. **Co-design parity vs APCyc = a REQUIRED gating experiment**, not the headline. We must show we match APCyc on the shared panel *and* add the ncAA axis it lacks. If we can't match APCyc, the co-design contribution collapses and the paper rests on ncAA + loop + proprietary data.
-3. **Moat = the closed loop on proprietary wet-lab data** (differentiate from GALILEO = general agent; from PEGASUS = HT-assay, not learned-generator-on-proprietary-pharma-data).
-4. **Do NOT claim:** "first non-canonical" (PepINVENT), "first cyclic co-design" (APCyc), the backbone, or in-sampling guidance (prior art). Claim the *composite* + the narrow cell + the proprietary loop.
+## 5. Positioning (2026-09-27) — we are building a PRODUCT, the model is a strong component
+
+**Framing correction:** the goal is **the strongest integrated cyclic-peptide *therapy-development* model, embedded
+in the BioMate system** — not a model constrained to an unclaimed niche to manufacture a novelty point. Novelty is
+a *consequence* of resolving hard, therapy-relevant challenges well; it is not the objective. The competitor
+landscape (§1–2) tells us what to **leverage and exceed**, not what to shrink into.
+
+1. **Build a strong model across every therapy-relevant axis** — affinity, **developability** (permeability/oral/
+   protease-stability), synthesizability, **new-target generalization**, learning from data **including negatives +
+   expert knowledge**, and **native non-canonical chemistry** where it buys real drug properties. Be strong vs the
+   best component per axis: APCyc (co-design), RINGER (conformers), HELM-BERT (developability), RFpeptides
+   (experimental affinity bar). *Match-or-beat where they're strong; integrate their strengths — don't cede an axis.*
+2. **Integrate the solutions to the pharma challenges into the model + loop** (per `20260924_PHARMA_LOOP_PAINS…`
+   and the execution plan): developability-conditioned generation, warm-start for new targets, negatives/expert
+   feedback as first-class training signal. The model is *challenge-resolving*, not a bare generator.
+3. **The differentiation is the composite system** — strong integrated model **+** closed DMTA loop on **proprietary
+   wet-lab data** **+** the resolved challenges — which no single competitor (APCyc/Vilya/GALILEO/PEGASUS) replicates
+   as a whole. The native-sidechain-ncAA cell (§3) is *one* genuine edge within that system, tied to a developability
+   result — an asset, not the whole story.
+4. **Honesty guardrails (still binding):** don't claim "first non-canonical" (PepINVENT), "first cyclic co-design"
+   (APCyc), the backbone, or in-sampling guidance (prior art) as inventions. Claim the **strong integrated system**,
+   the resolved challenges, and the proprietary loop.
+5. **APCyc/RINGER/HELM-BERT parity = required strength checks** (not novelty gates): a therapy-grade model must be at
+   least as strong as the best public component on each axis before the system story is credible.
 
 ## Change log
 - **2026-09-27:** verified 5-agent competitor pass. Corrected the central white-space claim (intersection partly occupied by APCyc/CP-Composer); added APCyc/CP-Composer/Vilya/NS-Pep/NCFlow/HFGuidedDesign/HighPlay2/CycleRFdiffusion/PepALD/PepBFN/SurfFlow/A-CODE/FoldFlow-2/GALILEO/PEGASUS/HELM-BERT; verified numbers, licenses, re-runnability; narrowed the claim to native-sidechain-ncAA + tied it to a developability result; made APCyc the primary co-design comparator; added the honest RFpeptides-canonical caveat.

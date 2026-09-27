@@ -10,7 +10,15 @@ the paper is falsifiable and head-to-head. Grounds on `20260926_PEPTIDE_SOTA_AND
 
 ## 0. Evaluation philosophy (the rules the reviewers will hold us to)
 
-1. **Claims-driven.** Every task exists to test one paper claim. No claim without a task; no task without a
+**Frame: we evaluate a THERAPY-DEVELOPMENT SYSTEM, of which the model is a strong component — not a novelty
+point.** The bar is "is this a strong, challenge-resolving model for developing cyclic-peptide therapies,
+integrated into the loop," measured across *every* therapy-relevant axis (affinity, developability,
+synthesizability, new-target generalization, learning-from-data-incl-negatives, native ncAA where it buys drug
+properties). Competitors are **strength bars to match/exceed and integrate**, not fences to stay inside. The
+system-level result (strong model + closed loop + proprietary data + resolved pharma challenges) is the
+contribution; per-axis parity vs the best public method is a *strength check*, not a novelty gate.
+
+1. **Claims-driven.** Every task exists to test one paper/product claim. No claim without a task; no task without a
    named public benchmark, a defined metric, and ≥1 competitor + a naive baseline.
 2. **Head-to-head on a SHARED split, not a table of self-reported numbers.** The literature has *no* common
    cyclic benchmark — cross-paper rankings are directional only. So for every competitor with open code
