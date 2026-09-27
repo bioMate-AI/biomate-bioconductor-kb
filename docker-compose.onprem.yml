@@ -94,7 +94,7 @@ services:
         ACTUAL=$$(stat -c%s "$$DB" 2>/dev/null || echo 0);
         if [ "$$ACTUAL" -lt "$$MIN_SIZE" ]; then
           echo "[db-init] Downloading workflow catalog from $$BIOMATE_DB_URL ...";
-          curl -fL --retry 3 --retry-delay 5 --progress-bar "$$BIOMATE_DB_URL" -o "$$DB"
+          curl -fL --retry 3 --retry-delay 5 --progress-bar "$$BIOMATE_DB_URL" -o "$$DB" || exit 1;
           echo "[db-init] Done.";
         else
           echo "[db-init] Workflow catalog already present ($$(du -sh $$DB | cut -f1)). Skipping.";
@@ -517,6 +517,11 @@ services:
 
 networks:
   biomate-network:
+    # Explicit name prevents Docker Compose from prefixing with the project
+    # name (e.g. "biomate_biomate-network").  Nextflow task containers are
+    # launched via the host Docker socket with --network biomate-network;
+    # they must see the exact name used here.
+    name: biomate-network
     driver: bridge
 
 volumes:
