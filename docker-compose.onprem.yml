@@ -412,9 +412,8 @@ services:
       # 3. 在下方 volumes 取消 /tmp/biomate_code 挂载注释
       # 4. 在下方 depends_on 取消 sandbox-launcher 注释
 
-    volumes:
-      # Uncomment if sandbox-launcher is enabled (run_code support):
-      # - /tmp/biomate_code:/tmp/biomate_code
+    # volumes:  # Uncomment and add entries when enabling sandbox-launcher (run_code support):
+    #   - /tmp/biomate_code:/tmp/biomate_code
 
     depends_on:
       postgres:
