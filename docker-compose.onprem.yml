@@ -402,11 +402,29 @@ services:
       BIOMATE_LICENSE_KEY:    ${BIOMATE_LICENSE_KEY:-}
       BIOMATE_LICENSE_SECRET: ${BIOMATE_LICENSE_SECRET:-}
 
+      # ── run_code 沙箱 ─────────────────────────────────────────────────────────
+      # The sandbox-launcher is the only container that holds the Docker socket.
+      # The frontend dispatches run_code requests to it over HTTP so the Node
+      # process itself never needs Docker access.
+      RUN_CODE_BACKEND_URL: http://sandbox-launcher:8899
+      # Reuse the backend image as the run_code sandbox — it's already pulled,
+      # and it has Python 3.9, R 4.x, and bioinformatics tools.
+      # Must match LAUNCHER_ALLOWED_IMAGES set on the sandbox-launcher service.
+      RUN_CODE_IMAGE: "${BIOMATE_BACKEND_IMAGE:-ghcr.io/biomate-ai/biomate-backend:latest}"
+
+    volumes:
+      # Shared run_code workdir: the frontend writes scripts here, the
+      # sandbox-launcher binds them into Docker containers at /work.
+      # Both services mount the SAME host path so bind-mounts work correctly.
+      - /tmp/biomate_code:/tmp/biomate_code
+
     depends_on:
       postgres:
         condition: service_healthy
       galaxy-backend:
         condition: service_healthy
+      sandbox-launcher:
+        condition: service_started
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
@@ -414,6 +432,34 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
+    networks:
+      - biomate-network
+
+  # ── 代码沙箱启动器 (run_code tool — inline Python/R/bash analysis) ─────────
+  # Narrow launcher: the ONLY service that holds the Docker socket. The frontend
+  # submits run_code requests to it over HTTP (RUN_CODE_BACKEND_URL); the launcher
+  # validates the spec (image allowlist, workdir prefix, interpreter) and spawns
+  # the actual container. Built from source — no separate image pull required.
+  #
+  # Security note: gVisor (runsc) is disabled by default. Set LAUNCHER_RUNTIME=runsc
+  # and install gVisor on the host for hardware-level sandbox isolation.
+  sandbox-launcher:
+    build: ./deploy/sandbox-launcher/
+    container_name: biomate-sandbox-launcher
+    restart: unless-stopped
+    environment:
+      LAUNCHER_WORKDIR_PREFIX: /tmp/biomate_code
+      # Must match RUN_CODE_IMAGE set on the frontend service. Using the backend
+      # image avoids a separate pull — it has Python 3.9, R 4.x, scipy, DESeq2, etc.
+      LAUNCHER_ALLOWED_IMAGES: "${BIOMATE_BACKEND_IMAGE:-ghcr.io/biomate-ai/biomate-backend:latest}"
+      LAUNCHER_RUNTIME: ""        # gVisor disabled by default; set to runsc if installed
+      LAUNCHER_UID: "1000"
+      LAUNCHER_GID: "1000"
+    group_add:
+      - "${DOCKER_GID:-999}"
+    volumes:
+      - /tmp/biomate_code:/tmp/biomate_code    # shared run_code workdir
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - biomate-network
 

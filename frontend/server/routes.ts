@@ -8735,6 +8735,17 @@ ${paramLines || '(none recorded)'}`;
       if (!s3Service.getBucketName()) {
         return res.status(503).json({ error: "S3 not configured — file uploads unavailable in this environment" });
       }
+      // On-prem MinIO: the generated presigned URL contains the internal Docker
+      // hostname (minio:9000) which is unreachable from outside the Docker network.
+      // MCP connector clients run outside Docker, so returning that URL would silently
+      // fail. Direct presigned uploads are a SaaS-only path; on-prem users should
+      // upload via the web interface (/api/datasets/upload or /api/s3/upload/init).
+      if (process.env.S3_ENDPOINT_URL) {
+        return res.status(501).json({
+          error: "Direct presigned uploads are not supported on on-prem MinIO deployments. " +
+            "Use the web interface to upload files, or POST binary data to /api/datasets/upload.",
+        });
+      }
       const userId = req.user?.id ?? 'anonymous';
       const uploadData = await s3Service.generatePresignedUploadUrl(
         userId,
