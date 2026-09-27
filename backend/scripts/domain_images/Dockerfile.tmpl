@@ -80,8 +80,8 @@ RUN Rscript -e '\
   if (gate) { \
     if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://packagemanager.posit.co/cran/2024-10-30"); \
     if (utils::packageVersion("xfun") < "0.52") install.packages("xfun", repos="https://cloud.r-project.org"); \
-    remotes::install_github("xia-lab/OptiLCMS", upgrade="never", quiet=TRUE); \
-    remotes::install_github("xia-lab/MetaboAnalystR", upgrade="never", build=FALSE, quiet=TRUE); \
+    remotes::install_github("xia-lab/OptiLCMS", upgrade="never", quiet=FALSE); \
+    remotes::install_github("xia-lab/MetaboAnalystR", upgrade="never", build=FALSE, quiet=FALSE); \
     ok <- requireNamespace("OptiLCMS", quietly=TRUE) && requireNamespace("MetaboAnalystR", quietly=TRUE); \
     cat("OptiLCMS present:", requireNamespace("OptiLCMS", quietly=TRUE), "| MetaboAnalystR present:", requireNamespace("MetaboAnalystR", quietly=TRUE), "\n"); \
     if (!ok) stop("OptiLCMS/MetaboAnalystR failed to install — failing the build loudly (was silently swallowed before)"); \
