@@ -6,11 +6,12 @@
 #
 # 手动启动 (Manual):
 #   1. cp .env.onprem.example .env
-#   2. Edit .env — set POSTGRES_PASSWORD, JWT_SECRET, SESSION_SECRET, LLM provider key
-#   3. docker compose -f docker-compose.onprem.yml up -d
-#   4. Wait ~2 min for workflow DB download + services to start
-#   5. Create first admin: bash scripts/create-first-admin.sh admin@company.com MyPassword
-#   6. Open http://localhost:5000
+#   2. Edit .env — set POSTGRES_PASSWORD, JWT_SECRET, SESSION_SECRET, GALAXY_API_KEY, LLM provider key
+#   3. cp backend/config/galaxy.yml.template backend/config/galaxy.yml   ← REQUIRED: bind-mount hides image config
+#   4. docker compose -f docker-compose.onprem.yml up -d
+#   5. Wait ~2 min for workflow DB download + services to start
+#   6. Create first admin: bash scripts/biomate create-admin
+#   7. Open http://localhost:5000
 #
 # 架构说明 (Architecture):
 #   - MinIO     → 替代 AWS S3，所有工作流文件存储在本机
@@ -169,10 +170,11 @@ services:
   galaxy-backend:
     image: ${BIOMATE_BACKEND_IMAGE:-ghcr.io/biomate-ai/biomate-backend:latest}
     container_name: biomate-galaxy
-    # Clear the image's ENTRYPOINT so `command` below runs as the process directly.
-    # Without this, ENTRYPOINT=["/bin/sh"] + command=[gunicorn...] → /bin/sh gunicorn...,
-    # which makes sh treat "gunicorn" as a script file and fails.
-    entrypoint: []
+    # Use /bin/sh -c as entrypoint so the command runs as a shell string.
+    # This lets us add a safety-net before gunicorn: if galaxy.yml is missing from
+    # the bind-mounted config dir (fresh checkout, no install.sh), copy from template
+    # so Galaxy doesn't fail with "config file not found".
+    entrypoint: ["/bin/sh", "-c"]
     ports:
       - "127.0.0.1:8081:8080"
     environment:
@@ -244,7 +246,18 @@ services:
       # Overrides the placeholder in galaxy.yml.template so every deployment
       # uses a unique key.  Must match GALAXY_API_KEY set in the frontend service.
       # Generate with: openssl rand -hex 32
-      GALAXY_CONFIG_OVERRIDE_BOOTSTRAP_ADMIN_API_KEY: ${GALAXY_API_KEY}
+      # The :? guard fails docker compose up with a clear error if unset/empty,
+      # matching the same fail-fast pattern as POSTGRES_PASSWORD and JWT_SECRET.
+      GALAXY_CONFIG_OVERRIDE_BOOTSTRAP_ADMIN_API_KEY: "${GALAXY_API_KEY:?GALAXY_API_KEY is required (run install.sh or: openssl rand -hex 32)}"
+
+      # ── Frontend SSE inject URL ────────────────────────────────────────────
+      # Galaxy backend calls /internal/sse-inject on the frontend to push
+      # real-time run-state updates. Without this explicit setting the backend
+      # probes several candidates at first use and caches the result — if the
+      # probe fires before the frontend container is ready it falls back to
+      # localhost:5000 (wrong) and SSE never works. Hardcode the Docker service
+      # name so the URL is always correct and the probe is skipped entirely.
+      FRONTEND_URL: http://biomate-frontend:3000
 
       # ── 本地镜像仓库 ──────────────────────────────────────────────────────
       BIOMATE_LOCAL_REGISTRY: ${BIOMATE_LOCAL_REGISTRY:-localhost:5050}
@@ -262,6 +275,11 @@ services:
       # MinIO credentials). Set to a real key only if you use Lago metering.
       BILLING_LAGO_ENABLED: ${BILLING_LAGO_ENABLED:-false}
       LAGO_API_KEY:         ${LAGO_API_KEY:-on-prem-disabled}
+      # BILLING_INTERNAL_KEY must match the frontend's value.
+      # Used by /internal/users/provision (Galaxy account creation on registration)
+      # and /internal/sse-inject. Without it, require_internal_key() returns HTTP
+      # 503 for ALL internal endpoints, breaking new user provisioning.
+      BILLING_INTERNAL_KEY: ${BILLING_INTERNAL_KEY:-onprem-billing-disabled}
 
     # Add the host Docker socket group so the galaxy user (uid=1000) can call
     # `docker run` without root. The GID varies by distro (121 on Ubuntu 22.04,
@@ -280,18 +298,17 @@ services:
       # Docker socket required for local Nextflow executor (NEXTFLOW_EXECUTOR=local).
       # Comment out if you use AWS Batch instead.
       - /var/run/docker.sock:/var/run/docker.sock
-    command: [
-      "gunicorn",
-      "galaxy.webapps.galaxy.fast_factory:factory()",
-      "--pythonpath", "lib",
-      "-k", "galaxy.webapps.galaxy.workers.Worker",
-      "--bind", "0.0.0.0:8080",
-      "--workers", "2",
-      "--timeout", "600",
-      "--preload",
-      "--log-level", "info",
-      "-c", "lib/galaxy/web_stack/gunicorn_config.py"
-    ]
+    command: >-
+      [ -f /app/config/galaxy.yml ] || cp /app/config/galaxy.yml.template /app/config/galaxy.yml;
+      exec gunicorn "galaxy.webapps.galaxy.fast_factory:factory()"
+      --pythonpath lib
+      -k galaxy.webapps.galaxy.workers.Worker
+      --bind 0.0.0.0:8080
+      --workers 2
+      --timeout 600
+      --preload
+      --log-level info
+      -c lib/galaxy/web_stack/gunicorn_config.py
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/version"]

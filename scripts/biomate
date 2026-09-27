@@ -144,7 +144,7 @@ create-admin)
   _PG_USER="${POSTGRES_USER:-biomate}"
   _PG_DB="${POSTGRES_DB:-biomate}"
   docker exec biomate-postgres psql -U "$_PG_USER" "$_PG_DB" \
-    -c "UPDATE users SET subscription_tier='admin' WHERE email='$(printf '%s' "$ADMIN_EMAIL" | sed "s/'/''/g")';" 2>&1 | grep -v "^UPDATE" || true
+    -c "UPDATE users SET subscription_tier='admin', email_verified=true WHERE email='$(printf '%s' "$ADMIN_EMAIL" | sed "s/'/''/g")';" 2>&1 | grep -v "^UPDATE" || true
 
   # Verify
   _USER_EXISTS=$(docker exec biomate-postgres psql -U "$_PG_USER" "$_PG_DB" \

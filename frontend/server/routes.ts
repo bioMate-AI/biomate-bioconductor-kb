@@ -2819,6 +2819,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // leaves headroom). Without this, files >640 GiB would fail init.
         const DEFAULT_CHUNK = 64 * 1024 * 1024;
         const chunkSize = Math.max(DEFAULT_CHUNK, Math.ceil(fileSize / 9500));
+        const numParts = Math.ceil(fileSize / chunkSize);
+
+        // On-prem (MinIO): presigned part URLs use internal minio:9000 hostname
+        // that browsers cannot reach. Instead, create the multipart upload server-side
+        // and return proxy URLs (/api/s3/upload/part) that the browser PUTs to.
+        // The Node.js proxy relays each part to MinIO and returns the ETag.
+        if (process.env.S3_ENDPOINT_URL) {
+          const { S3Client, CreateMultipartUploadCommand } = await import('@aws-sdk/client-s3');
+          const minioBucket = process.env.S3_BUCKET_NAME || 'biomate-data';
+          const objectKey = `users/${userId}/uploads/${(await import('crypto')).randomUUID()}-${filename}`;
+          const minioClient = new S3Client({
+            endpoint: process.env.S3_ENDPOINT_URL,
+            region: 'us-east-1',
+            forcePathStyle: true,
+            credentials: {
+              accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+              secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+            },
+          });
+          const created = await minioClient.send(new CreateMultipartUploadCommand({
+            Bucket: minioBucket,
+            Key: objectKey,
+            ContentType: contentType,
+          }));
+          const s3UploadId = created.UploadId;
+          if (!s3UploadId) throw new Error('MinIO did not return UploadId');
+          // Return proxy URLs — browser PUTs to Node.js which relays to MinIO.
+          const partUrls = Array.from({ length: numParts }, (_, i) =>
+            `/api/s3/upload/part?uploadId=${encodeURIComponent(s3UploadId)}&key=${encodeURIComponent(objectKey)}&partNumber=${i + 1}&bucket=${encodeURIComponent(minioBucket)}`
+          );
+          return res.json({
+            uploadId: s3UploadId,
+            key: objectKey,
+            partUrls,
+            chunkSize,
+            numParts,
+            method: 'multipart',
+            expiresIn: 6 * 3600,
+          });
+        }
+
         const multipartData = await s3Service.startMultipartUpload(
           userId,
           filename,
@@ -2892,6 +2933,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: 'Failed to abort multipart upload',
         message: error.message,
       });
+    }
+  });
+
+  // On-prem MinIO proxy for multipart part upload.
+  // Browser PUTs each chunk here; Node.js relays to MinIO via UploadPartCommand
+  // and returns { ETag } so the client can assemble the CompleteMultipartUpload call.
+  app.put("/api/s3/upload/part", authenticateToken, async (req, res) => {
+    try {
+      const endpointUrl = process.env.S3_ENDPOINT_URL;
+      if (!endpointUrl) return res.status(404).json({ error: 'Proxy only available on-prem (S3_ENDPOINT_URL not set)' });
+
+      const { uploadId, key, partNumber, bucket } = req.query as Record<string, string>;
+      if (!uploadId || !key || !partNumber || !bucket) {
+        return res.status(400).json({ error: 'Missing required query params: uploadId, key, partNumber, bucket' });
+      }
+      const partNum = parseInt(partNumber, 10);
+      if (!Number.isInteger(partNum) || partNum < 1 || partNum > 10000) {
+        return res.status(400).json({ error: 'Invalid partNumber' });
+      }
+
+      // Tenant isolation: key must belong to the calling user.
+      const userId = req.user!.id;
+      if (!String(key).startsWith(`users/${userId}/`)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const ALLOWED_BUCKETS_UP = new Set([
+        process.env.S3_BUCKET_NAME || 'biomate-data',
+        'biomate-data', 'biomate-nextflow-work', 'biomate-outputs',
+      ]);
+      if (!ALLOWED_BUCKETS_UP.has(bucket)) return res.status(403).json({ error: 'S3 bucket not allowed' });
+
+      // Collect the raw body (the file chunk from the browser).
+      const chunks: Buffer[] = [];
+      await new Promise<void>((resolve, reject) => {
+        req.on('data', (chunk: Buffer) => chunks.push(chunk));
+        req.on('end', resolve);
+        req.on('error', reject);
+      });
+      const body = Buffer.concat(chunks);
+
+      const { S3Client, UploadPartCommand } = await import('@aws-sdk/client-s3');
+      const minioClient = new S3Client({
+        endpoint: endpointUrl,
+        region: 'us-east-1',
+        forcePathStyle: true,
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+        },
+      });
+
+      const out = await minioClient.send(new UploadPartCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: uploadId,
+        PartNumber: partNum,
+        Body: body,
+        ContentLength: body.length,
+      }));
+
+      const eTag = out.ETag;
+      if (!eTag) throw new Error('MinIO did not return ETag for part upload');
+      // S3-compatible responses need CORS-exposed ETag header so browser fetch() can read it.
+      res.setHeader('ETag', eTag);
+      res.json({ ETag: eTag });
+    } catch (error: any) {
+      console.error('[S3] Part upload proxy error:', error);
+      res.status(500).json({ error: 'Part upload failed', message: error.message });
     }
   });
 

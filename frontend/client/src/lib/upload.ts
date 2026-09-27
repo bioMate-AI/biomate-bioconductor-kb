@@ -173,14 +173,18 @@ async function uploadMultipart(file: File, opts: UploadOptions): Promise<UploadR
     body: JSON.stringify({ key, uploadId, parts: completedParts }),
   });
   if (!completeR.ok) throw new Error((await completeR.text()) || 'complete failed');
+  // Server returns { key, bucket } — use both to form a valid S3 URI.
+  // Without bucket, s3://${key} would be malformed (bucket == first path segment).
+  const completeData = await completeR.json().catch(() => ({} as Record<string, string>));
+  const s3Bucket = completeData.bucket as string | undefined;
+  const s3FullUri = s3Bucket ? `s3://${s3Bucket}/${key}` : `s3://${key}`;
 
-  // Register the resulting S3 key as a Galaxy dataset reference so workflows
-  // can use it. Use s3:// URL form — register-path accepts it explicitly.
+  // Register the resulting S3 URI as a dataset reference so workflows can use it.
   const regR = await fetchImpl('/api/datasets/register-path', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ path: `s3://${key}`, name: file.name }),
+    body: JSON.stringify({ path: s3FullUri, name: file.name }),
   });
   if (!regR.ok) throw new Error((await regR.text()) || 'register-path failed');
   const reg = await regR.json();

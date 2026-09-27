@@ -7171,6 +7171,7 @@ def _list_local_output_files(outdir: str, run_id: str) -> list:
         )
         results.append({
             "name": f.name,
+            "rel_path": str(rel),
             "local_path": str(f),
             "size": size,
             "extension": ext,
