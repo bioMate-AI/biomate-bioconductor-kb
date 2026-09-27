@@ -104,33 +104,46 @@ metrics stratified by provenance. Bound-geometry claims use experimental-only te
 
 Legend: **[OSS]** = open code, we **re-run on our split**; **[SR]** = self-reported only (no code), flagged in tables.
 
-**T1 Canonical co-design** — targets to beat (verified SOTA-per-metric):
-- **PepGLAD** [OSS] — DockQ 0.592 · Diversity 0.506 · Consistency 0.789 · Success 56% (our primary co-design ref)
-- **PepFlow** [OSS] — AAR 51.25% · RMSD 2.07 Å
-- **D-Flow** [SR] — AAR 58.69% · RMSD-Cα 1.63 Å (the AAR/RMSD bar)
-- **RFdiffusion + ProteinMPNN** [OSS], **Multiflow** [OSS] — joint seq/struct baselines
+**PRIMARY CO-DESIGN COMPARATOR (T1 + T4) — the head-to-head:**
+- **APCyc** [OSS, KDD 2026] — pocket-conditioned full-atom joint seq+struct latent-diffusion **cyclic** co-design
+  + Bayesian multi-property loop; same PepGLAD lineage as us. **We must match it on the shared panel and add the
+  sidechain-ncAA axis it lacks.** Beating APCyc is the gating experiment for the co-design claim.
+- **CP-Composer** [OSS, ICML 2025] — zero-shot cyclic (staple/head-to-tail/disulfide/bicycle) on PepGLAD, full-atom, target-binding.
+
+**T1 Canonical co-design** — targets to beat (verified, all self-reported on own splits):
+- **PepGLAD** [OSS, MIT] — DockQ 0.592 · Diversity 0.506 · Consistency 0.789 · Success 55.97% · RMSD-Cα 4.09 Å (linear)
+- **PepFlow** [OSS, MIT] — AAR 51.25% · RMSD-Cα 2.07 Å · Designability 65% (linear)
+- **D-Flow** [OSS, license unconfirmed] — AAR 58.69% · RMSD-Cα 1.63 Å · Designability 75% (linear D-peptides — mirror, not cyclization)
+- **MultiFlow** [OSS, MIT] — co-designability PMPNN@8 81.4% (linear); **RFdiffusion+ProteinMPNN** [OSS, BSD/MIT]
+- **Newer successors to verify/add:** SurfFlow (AAR 54%), **PepBFN** (AAAI 2026, THU PepGLAD-successor), A-CODE (81.2%), FoldFlow-2
 - Physics: **Rosetta FlexPepDock / AutoDock Vina**. Naive: random sequence + native backbone, native-rotamer.
 
 **T2 Geometry (AE):**
-- **RINGER** [OSS] — SOTA macrocycle conformer generation (the AE bar)
-- **RDKit ETKDG-macrocycle** [OSS], **CREST/xTB** (data oracle), **OMEGA-macrocycle** [SR, commercial ref]
+- **RINGER** [OSS, MIT] — macrocycle-peptide SOTA: **coverage-recall 79.7%** vs ETKDG 35.8% / OMEGA 32.3%; needs SLSQP ring-closure post-processing; trained on 4/5/6-mer canonical sidechains (match or retrain for our split)
+- **RDKit ETKDGv3-macrocycle** [OSS, BSD] — free default baseline; **CREST/xTB** (CREMP data oracle)
+- **OMEGA-macrocycle** [proprietary — **academic-only license, excludes CRO/commercial**; cannot use in our commercial context]
+- **PuckerFlow** (2026) — fixes post-hoc closure but on 5–8-membered rings, not peptide macrocycles (not like-for-like)
 
 **T3 Non-canonical generation** — these are receptor-blind (the whitespace):
 - **PepINVENT** [OSS] — ncAA chem-LM (CHUCKLES); **PepTune** [OSS] — multi-objective ncAA; **NCFlow** [SR] — structure-aware ncAA (mutation, not de-novo)
 - Comparison framing: **match their ncAA chemical validity while adding full-atom 3D + target conditioning they lack** (capability matrix, Section 6).
 
-**T4 Target-conditioned cyclic binders** — experimental bar:
-- **RFpeptides** [SR] — sub-nM / sub-10-nM on 4 targets, ~20 synth/target (the experimental gold bar)
-- **EvoBind2** [OSS] — 75% cyclic success, best 0.26 nM (sequence-only)
-- **AlphaProteo** [SR] — 9–88% hit rate; **BindCraft** [OSS] — ~31% real hit rate
+**T4 Target-conditioned cyclic binders** — experimental bar (verified):
+- **RFpeptides** [OSS, BSD] — **6 nM (GABARAP) / 9.4 nM (RbtA)**, µM on MCL1/MDM2; hit rate **21–37%**; 4 targets;
+  **~6–14 synth/target**; crystal Cα-RMSD 0.7–1.4 Å. **All-canonical L-AA — the affinity bar, and it needs no ncAA.**
+- **EvoBind2** [OSS, CC-BY-**NC** → non-commercial] — 19 nM best, 46% sub-µM, 75% cyclic success, sequence-only
+- **HFGuidedDesign** [OSS, Chem Sci 2026] — MDM2 ~1.2 µM / 75% success, canonical seq-only; **HighPlay2 / CycleRFdiffusion** — target+cyclic search pipelines w/ wet-lab hits (µM), some ncAA
+- **Context, NOT cyclic competitors:** AlphaProteo [SR, closed] + BindCraft [OSS] are **protein-binder** methods
 - Physics: **Vina/FEP** on random cyclics (zero-data reference).
 
-**T5 Developability prediction:**
-- **CycPeptMP** [OSS], **HELM-BERT** [OSS] (R² ~0.664–0.668), **PeptideCLM** [OSS], **MolFormer-XL** [OSS] (~0.578)
-- **RF / XGBoost on ECFP4** — the mandatory floor (competitive on scaffold-split per the 13-method benchmark)
-- Reference: **"Systematic benchmarking of 13 AI methods for cyclic-peptide permeability"** (JCIM 2025) as the protocol anchor.
+**T5 Developability prediction** (verified — report scaffold-split; random-split is inflated):
+- **HELM-BERT** [OSS, MIT] — **PRIMARY comparator**: scaffold-split **R² 0.483** (random 0.668); custom-split ready
+- **DMPNN** [OSS] — winner of the 13-method benchmark, random R² 0.555 (collapses on scaffold); **CycPeptMP** [OSS, MIT] R² 0.772 **but Kennard–Stone split — not comparable**
+- **PeptideCLM** [OSS] (random R² 0.536), **MolFormer-XL** [OSS] baseline (random R² 0.578); **RF/XGBoost on ECFP4** — mandatory floor
+- **Honest scaffold-split ceiling ≈ R² 0.48–0.50.** Reference protocol: **"Systematic benchmarking of 13 AI methods for cyclic-peptide permeability"** (JCIM 2025).
+- **Strategic threat (data moat):** **PEGASUS** (J Med Chem 2026) — billions of cyclic peptides via massively-parallel NGS assays + de-novo design. Track it; differentiate our moat as *learned generator on proprietary pharma data*, not HT-assay throughput.
 
-**T6 Closed loop:** no external SOTA (novel setting) → baselines are ablations of our own loop (no-loop / random / greedy / physics-only).
+**T6 Closed loop:** baselines are ablations of our own loop (no-loop / random / greedy / physics-only). **External comparators to distinguish from:** **GALILEO** (embodied AI-scientist, wet-lab in the loop — differentiate as *peptide-specialized generator + proprietary pharma data*, not a general agent) and **PEGASUS** (HT-assay flywheel — differentiate as *learned generator*, not assay throughput).
 
 **Ablations (own model — required for the method claims):**
 - Training strategy: AE init {small-mol, linear-epoch221, random}; generator curriculum stages {binding-prior, +cyclic-mid-train, +target-SFT}
@@ -151,19 +164,34 @@ Legend: **[OSS]** = open code, we **re-run on our split**; **[SR]** = self-repor
 
 ## 6. The intersection claim — capability matrix (the headline figure)
 
-The paper's central contribution is the *intersection* no prior method occupies. Demonstrate with a
-capability matrix + per-cell evidence:
+**⚠️ Updated 2026-09-27 after the verified competitor pass — the intersection is now PARTLY OCCUPIED.**
+The co-design core (full-atom + target + de-novo + cyclic) is held by **APCyc (KDD 2026)** and **CP-Composer
+(ICML 2025)**, both PepGLAD-derived. The claim must be written at the **narrow surviving cell** and the
+"native ncAA" column split into **sidechain ncAA (N-Me/D-AA/staples)** vs **linkage/PTM chemistry** — that
+split is the whole differentiation.
 
-| Method | native ncAA | full-atom 3D | target-conditioned | de-novo (not mutation) | cyclic |
+| Method | sidechain ncAA (N-Me/D-AA/staple) | full-atom 3D | target-*structure* conditioned | de-novo (not mutation) | cyclic co-design |
 |---|:---:|:---:|:---:|:---:|:---:|
-| PepGLAD / PepFlow / D-Flow | ✗ | ✓ | ✓ | ✓ | ✗ / partial |
+| PepGLAD / PepFlow / D-Flow / MultiFlow | ✗ | ✓ | ✓ | ✓ | ✗ (linear) |
+| **APCyc** (KDD 2026) | ✗ (linkage only) | ✓ | ✓ | ✓ | ✓ |
+| **CP-Composer** (ICML 2025) | ✗ (geom. constraint) | ✓ | ✓ | ✓ | ✓ |
 | RFpeptides | ✗ (L-canonical) | ✓ | ✓ | ✓ | ✓ |
-| PepINVENT / PepTune | ✓ | ✗ (SMILES) | ✗ | ✓ | ✓ |
-| NCFlow | ✓ | ✓ | ✗ | ✗ (mutation) | ✓ |
+| NS-Pep | ⚠️ (PTM-dominated) | ✓ | ✓ | ✓ | ✗ (not cyclic-primary) |
+| NCFlow | ✓ | ✓ | ✓ | ✗ (mutation/DMS) | ✓ |
+| PepALD / PepINVENT / PepTune | ✓ | ✗ (SMILES/HELM) | ✗ | ✓ / ✗ | ✓ |
 | **Ours** | **✓** | **✓** | **✓** | **✓** | **✓** |
 
-Each ✓ must be backed by a task result (ncAA→T3, 3D→T2, target→T4, de-novo→T4). **Do NOT claim
-"first to generate non-canonical peptides"** (refuted by PepINVENT) — claim the intersection, evidenced.
+**The narrow surviving claim (write exactly this):** *full-atom cyclic-peptide co-design at a receptor pocket
+with **native sidechain** non-canonical chemistry (N-Me/D-AA/staples as first-class residues — not
+cyclization-linkage tokens (APCyc/CP-Composer) or PTM residues (NS-Pep)), de-novo (not mutation, cf. NCFlow).*
+Each ✓ backed by a task (sidechain-ncAA→T3, 3D→T2, target→T4, de-novo→T4, cyclic→T4). **Do NOT claim** "first
+non-canonical" (PepINVENT) or "first cyclic co-design" (APCyc). **Name and distinguish APCyc, CP-Composer,
+and NS-Pep explicitly in related work — reviewers will raise them.**
+
+**The honest ncAA caveat (load-bearing):** RFpeptides reaches nM with all-canonical chemistry → native ncAA
+is **not an affinity advantage**. The T3/T4 ncAA claim is only valid if tied to a **developability result**
+(permeability / oral / protease-stability the canonical binder can't reach) — a DockQ delta alone does not
+justify the ncAA machinery.
 
 ---
 
