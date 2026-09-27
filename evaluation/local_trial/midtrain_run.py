@@ -35,7 +35,7 @@ def main():
                     target_modules=["q_proj","k_proj","v_proj","o_proj","gate_proj","up_proj","down_proj"])
     cfg=SFTConfig(output_dir=a.out,per_device_train_batch_size=a.batch_size,gradient_accumulation_steps=a.grad_accum,
         max_steps=a.max_steps,learning_rate=1e-4,lr_scheduler_type="cosine",warmup_steps=20,logging_steps=5,
-        save_steps=min(max(a.max_steps//8,50),300),save_total_limit=3,bf16=True,gradient_checkpointing=True,  # spot-friendly: checkpoint <=every 300 steps
+        save_steps=min(max(a.max_steps//8,50),300),save_total_limit=10,bf16=True,gradient_checkpointing=True,  # spot-friendly: checkpoint <=every 300 steps
         gradient_checkpointing_kwargs={"use_reentrant":False},optim="paged_adamw_8bit",max_length=a.seq_len,
         ddp_find_unused_parameters=False,
         packing=True, dataset_text_field="text", report_to=[], seed=13)  # packing + text field = pretraining
