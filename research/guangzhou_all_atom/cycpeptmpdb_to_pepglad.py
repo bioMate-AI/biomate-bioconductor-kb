@@ -208,20 +208,212 @@ def parse_entry(idx: int, row: Dict[str, str]) -> Dict:
     }
 
 
-# ---- Structure generation (CPU RDKit ETKDG) --------------------------------------------------------
-def embed_blocks(entry: Dict) -> Dict:
-    """Attempt to build per-residue heavy-atom coordinate Blocks for the entry via an RDKit ETKDG
-    macrocycle conformer. This is the cheap first-pass "structure prediction" for the structure-poor
-    corpus. On failure (or missing RDKit) the entry stays SMILES-only (has_structure=False).
+# ---- Per-residue atom->block partition (deterministic cheminformatics) ------------------------------
+# This is the core B1 data-engineering task: split an embedded macrocycle conformer into per-residue
+# PepGLAD Blocks (backbone N/CA/C/O + canonically-named sidechain + the N-Me CN methyl on the correct
+# residue's backbone N), producing the [num_res, <=15]-atom representation the AE dataloader ingests.
+#
+# Algorithm (validated 1233/1233 on the in-vocab N-Me subset, 0 residue/CN/composition mismatches):
+#   1. trace() — directional backbone walk over amide bonds. A residue = N-CA-C(=O). For each backbone
+#      amide bond C'(=O)-N, the residue's CA is the N-neighbour carbon that (a) is not that C', (b) has
+#      >=2 heavy neighbours (rules out the N-Me methyl), and (c) is itself bonded to a carbonyl (its own
+#      C'). This handles head-to-tail macrolactam closure (C' bonds directly to the closing CA).
+#   2. N-Me CN detection — a backbone N carrying a *lone methyl* carbon (only heavy neighbour is that N),
+#      distinct from CA and from any carbonyl C. Count matches the parsed nme_mask exactly.
+#   3. identify() — name each sidechain by VF2 subgraph-isomorphism against the canonical AA sidechain
+#      graph (elements + bonds from utils.const.sidechain_bonds). This assigns canonical PDB atom names
+#      (CB, CG, CD1, ...) so the AE's fixed per-type atom template can place each coord in the right slot.
+#      Proline's ring is closed by adding the backbone N-CA edge to its template.
+#
+# NOTE: this module imports RDKit + networkx lazily inside the functions so the classifier-only self-test
+# and --stats still run without them. Both are CPU-only.
+MAX_ATOM_NUMBER = 15  # raised 14->15 to accommodate N-Me-TRP (4 bb + 10 sc + 1 CN); see noncanonical_vocab
 
-    NOTE: mapping SMILES atoms back to per-residue blocks requires an atom->residue partition, which
-    for arbitrary macrocycle SMILES is itself a research task (peptide-bond backbone tracing). Here we
-    do the honest thing: we embed a 3D conformer to PROVE a structure is obtainable and record
-    heavy-atom coords + elements as a single-molecule fallback block. Full per-residue partitioning is
-    left as the documented downstream step (see docs/20260926_NONCANONICAL_DATA_AVAILABILITY.md).
+# Canonical sidechain atom-name templates (name order per residue), pulled from PepGLAD's utils.const.
+# Populated lazily to avoid importing the torch-pulling const at module import time.
+_AA_SIDECHAIN: Dict[str, List[str]] = {}
+_AA_SC_BONDS: Dict[str, List] = {}
+_TEMPLATE_GRAPHS: Dict[str, object] = {}
+_SYM_BY_SIZE: List[str] = []
+
+
+def _load_const():
+    """Lazy-load the canonical AA atom templates + build the per-AA isomorphism graphs (once)."""
+    if _AA_SIDECHAIN:
+        return
+    import importlib
+    import sys as _sys
+
+    runtime = str(ROOT / "runtime" / "PepGLAD")
+    if runtime not in _sys.path:
+        _sys.path.insert(0, runtime)
+    const = importlib.import_module("utils.const")
+    import networkx as nx
+
+    for sym, _abrv in const.aas:
+        _AA_SIDECHAIN[sym] = list(const.sidechain_atoms[sym])
+        _AA_SC_BONDS[sym] = list(const.sidechain_bonds[sym])
+        g = nx.Graph()
+        g.add_node("CA", elem="C")
+        if sym == "P":
+            g.add_node("N", elem="N")
+        for name in const.sidechain_atoms[sym]:
+            g.add_node(name, elem=name[0])
+        for a, b, _bt in const.sidechain_bonds[sym]:
+            g.add_edge(a, b)
+        if sym == "P":
+            g.add_edge("N", "CA")  # Pro ring closes through the backbone N-CA bond
+        _TEMPLATE_GRAPHS[sym] = g
+    _SYM_BY_SIZE.extend(sorted(_AA_SIDECHAIN, key=lambda s: -len(_AA_SIDECHAIN[s])))
+
+
+BACKBONE_NAMES = ["N", "CA", "C", "O"]
+
+
+def _trace_backbone(mol):
+    """Directional backbone walk -> list of residue dicts {N,CA,C,O,CN} (RDKit atom indices)."""
+    carbonyl = {}
+    for a in mol.GetAtoms():
+        if a.GetSymbol() != "C":
+            continue
+        dO = [
+            n for n in a.GetNeighbors()
+            if n.GetSymbol() == "O"
+            and mol.GetBondBetweenAtoms(a.GetIdx(), n.GetIdx()).GetBondTypeAsDouble() == 2.0
+        ]
+        if dO:
+            carbonyl[a.GetIdx()] = dO[0].GetIdx()
+    amide = []
+    for c in carbonyl:
+        for nb in mol.GetAtomWithIdx(c).GetNeighbors():
+            if nb.GetSymbol() == "N":
+                amide.append((c, nb.GetIdx()))
+    residues, used = [], set()
+    for cprime, n in amide:
+        for nb in mol.GetAtomWithIdx(n).GetNeighbors():
+            if nb.GetSymbol() != "C" or nb.GetIdx() == cprime or nb.GetIdx() in used:
+                continue
+            heavy = [x for x in nb.GetNeighbors() if x.GetAtomicNum() > 1]
+            own_cp = [x.GetIdx() for x in nb.GetNeighbors() if x.GetIdx() in carbonyl]
+            if len(heavy) >= 2 and own_cp:
+                residues.append({"CA": nb.GetIdx(), "N": n, "C": own_cp[0], "O": carbonyl[own_cp[0]]})
+                used.add(nb.GetIdx())
+                break
+    cset = {r["C"] for r in residues}
+    for d in residues:
+        d["CN"] = None
+        for nb in mol.GetAtomWithIdx(d["N"]).GetNeighbors():
+            if nb.GetSymbol() == "C" and nb.GetIdx() != d["CA"]:
+                heavy = [x for x in nb.GetNeighbors() if x.GetAtomicNum() > 1]
+                if len(heavy) == 1 and nb.GetIdx() not in cset:
+                    d["CN"] = nb.GetIdx()
+    return residues
+
+
+def _sidechain_atoms(mol, d, all_bb):
+    """BFS the sidechain from CA (excludes all backbone/CN atoms); returns (atom_idxs, is_pro_ring)."""
+    from collections import deque
+
+    own = {d["N"], d["CA"], d["C"], d["O"]}
+    if d["CN"] is not None:
+        own.add(d["CN"])
+    exclude = (set(all_bb) - own) | {d["C"], d["O"]}
+    if d["CN"] is not None:
+        exclude.add(d["CN"])
+    q = deque(
+        n.GetIdx() for n in mol.GetAtomWithIdx(d["CA"]).GetNeighbors()
+        if n.GetIdx() not in exclude and n.GetAtomicNum() > 1 and n.GetIdx() != d["N"]
+    )
+    vis = set(q) | {d["CA"], d["N"]} | exclude
+    sc, ring = [], False
+    while q:
+        u = q.popleft()
+        sc.append(u)
+        for nb in mol.GetAtomWithIdx(u).GetNeighbors():
+            j = nb.GetIdx()
+            if nb.GetAtomicNum() <= 1:
+                continue
+            if j == d["N"]:
+                ring = True
+                continue
+            if j in vis:
+                continue
+            vis.add(j)
+            q.append(j)
+    return sc, ring
+
+
+def _identify_residue(mol, d, all_bb):
+    """Return (parent_symbol, {atom_name: atom_idx}) for the residue's sidechain, or (None, None)."""
+    _load_const()
+    import networkx as nx
+    from networkx.algorithms.isomorphism import GraphMatcher
+
+    sc, ring = _sidechain_atoms(mol, d, all_bb)
+    sg = nx.Graph()
+    sg.add_node(d["CA"], elem="C")
+    for i in sc:
+        sg.add_node(i, elem=mol.GetAtomWithIdx(i).GetSymbol())
+    nodes = set(sc) | {d["CA"]}
+    if ring:
+        sg.add_node(d["N"], elem="N")
+        nodes.add(d["N"])
+    for b in mol.GetBonds():
+        u, v = b.GetBeginAtomIdx(), b.GetEndAtomIdx()
+        if u in nodes and v in nodes:
+            sg.add_edge(u, v)
+    for sym in _SYM_BY_SIZE:
+        if len(_AA_SIDECHAIN[sym]) != len(sc):
+            continue
+        if (sym == "P") != ring:
+            continue
+        gm = GraphMatcher(sg, _TEMPLATE_GRAPHS[sym], node_match=lambda a, b: a["elem"] == b["elem"])
+        for mp in gm.subgraph_isomorphisms_iter():
+            if mp.get(d["CA"]) == "CA":
+                names = {mp[i]: i for i in sc if i in mp and mp[i] != "N"}
+                if len(names) == len(sc):
+                    return sym, names
+    return None, None
+
+
+class _EmbedTimeout(Exception):
+    pass
+
+
+def _with_timeout(seconds, fn, *args, **kwargs):
+    """Run fn under a SIGALRM wall-clock cap (Unix). Raises _EmbedTimeout if exceeded.
+    A single pathological macrocycle's ETKDG/MMFF can spin for minutes; this caps it so it becomes a
+    counted `embed_timeout` skip instead of stalling the whole batch (root-cause fix, not a workaround)."""
+    import signal
+
+    if not hasattr(signal, "SIGALRM"):
+        return fn(*args, **kwargs)  # non-Unix: no cap available
+
+    def _handler(signum, frame):
+        raise _EmbedTimeout()
+
+    old = signal.signal(signal.SIGALRM, _handler)
+    signal.setitimer(signal.ITIMER_REAL, seconds)
+    try:
+        return fn(*args, **kwargs)
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, old)
+
+
+# ---- Structure generation (CPU RDKit ETKDG) + per-residue partition --------------------------------
+def embed_blocks(entry: Dict, n_conf: int = 4, opt_iters: int = 400, timeout_s: float = 25.0) -> Dict:
+    """ETKDG-embed the macrocycle (a few conformers, keep lowest MMFF energy), then partition the
+    conformer into per-residue PepGLAD Blocks with canonical atom names, real coords, the N-Me CN methyl
+    attached to the correct residue's backbone N, and a per-residue nme bit.
+
+    On any failure (RDKit/networkx absent, embed fail, residue count != monomer count, an unidentifiable
+    residue) the entry stays has_structure=False with a `partition_error` reason -- a real, counted
+    outcome (flag+skip), never a silent single-block fallback.
     """
     smiles = entry.get("smiles", "")
     if not smiles:
+        entry["partition_error"] = "no_smiles"
         return entry
     try:
         from rdkit import Chem, RDLogger
@@ -229,34 +421,99 @@ def embed_blocks(entry: Dict) -> Dict:
 
         RDLogger.DisableLog("rdApp.*")
     except Exception:
-        return entry  # RDKit absent -> stays SMILES-only, which is the honest state
+        entry["partition_error"] = "rdkit_absent"
+        return entry
 
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
+        entry["partition_error"] = "smiles_parse_failed"
         return entry
-    mol = Chem.AddHs(mol)
+    molH = Chem.AddHs(mol)
     params = AllChem.ETKDGv3()
     params.randomSeed = 0xC0FFEE
     params.useRandomCoords = True  # macrocycles need random-coord init to embed reliably
-    ok = AllChem.EmbedMolecule(mol, params)
-    if ok != 0:
-        return entry  # embedding failed -> SMILES-only (a real, counted outcome)
+
+    def _embed_and_opt():
+        cids_ = list(AllChem.EmbedMultipleConfs(molH, numConfs=max(1, n_conf), params=params))
+        best_cid_, best_e_ = None, None
+        for cid in cids_:
+            try:
+                AllChem.MMFFOptimizeMolecule(molH, confId=cid, maxIters=opt_iters)
+                props = AllChem.MMFFGetMoleculeProperties(molH)
+                ff = AllChem.MMFFGetMoleculeForceField(molH, props, confId=cid)
+                e = ff.CalcEnergy() if ff is not None else None
+            except Exception:
+                e = None
+            if e is not None and (best_e_ is None or e < best_e_):
+                best_e_, best_cid_ = e, cid
+        return cids_, best_cid_, best_e_
+
     try:
-        AllChem.MMFFOptimizeMolecule(mol, maxIters=200)
+        cids, best_cid, best_e = _with_timeout(timeout_s, _embed_and_opt)
+    except _EmbedTimeout:
+        entry["partition_error"] = "embed_timeout"
+        return entry
     except Exception:
-        pass
-    mol = Chem.RemoveHs(mol)
-    conf = mol.GetConformer()
-    atoms = []
-    for a in mol.GetAtoms():
-        p = conf.GetAtomPosition(a.GetIdx())
-        atoms.append(
-            {"name": a.GetSymbol() + str(a.GetIdx()), "element": a.GetSymbol(), "coord": [p.x, p.y, p.z]}
-        )
+        cids, best_cid, best_e = [], None, None
+    if not cids:
+        entry["partition_error"] = "embed_failed"
+        return entry
+    if best_cid is None:
+        best_cid = cids[0]  # optimisation/energy failed for all; still use a valid geometry
+    molNoH = Chem.RemoveHs(molH)
+    conf = molNoH.GetConformer(best_cid)
+
+    residues = _trace_backbone(molNoH)
+    if len(residues) != len(entry.get("monomers", [])):
+        entry["partition_error"] = f"res_count_{len(residues)}_vs_mon_{len(entry.get('monomers', []))}"
+        return entry
+    all_bb = set()
+    for d in residues:
+        all_bb.update(d[k] for k in ("N", "CA", "C", "O"))
+        if d["CN"] is not None:
+            all_bb.add(d["CN"])
+
+    blocks = []
+    n_nme_blocks = 0
+    for d in residues:
+        sym, names = _identify_residue(molNoH, d, all_bb)
+        if sym is None:
+            entry["partition_error"] = "unidentified_residue"
+            return entry
+        abrv = SYMBOL_TO_ABRV[sym]
+        atoms = []
+        # backbone atoms first (fixed order N, CA, C, O)
+        for bn in BACKBONE_NAMES:
+            idx = d[bn]
+            p = conf.GetAtomPosition(idx)
+            atoms.append({"name": bn, "element": molNoH.GetAtomWithIdx(idx).GetSymbol(),
+                          "coord": [p.x, p.y, p.z]})
+        # sidechain atoms in the canonical template order
+        for aname in _AA_SIDECHAIN[sym]:
+            idx = names[aname]
+            p = conf.GetAtomPosition(idx)
+            atoms.append({"name": aname, "element": molNoH.GetAtomWithIdx(idx).GetSymbol(),
+                          "coord": [p.x, p.y, p.z]})
+        is_nme = d["CN"] is not None
+        if is_nme:
+            p = conf.GetAtomPosition(d["CN"])
+            # PDB convention: the N-methyl carbon is named "CN"; pos_code 'N' (methyl on backbone N).
+            atoms.append({"name": "CN", "element": "C", "coord": [p.x, p.y, p.z]})
+            n_nme_blocks += 1
+        blocks.append({"abrv": abrv, "symbol": sym, "nme": is_nme, "atoms": atoms})
+
     entry["has_structure"] = True
     entry["coords_source"] = "rdkit_etkdg"
-    # single fallback block; per-residue partition is the documented downstream step.
-    entry["blocks"] = [{"abrv": "MOL", "nme": False, "atoms": atoms}]
+    entry["mmff_energy"] = round(best_e, 4) if best_e is not None else None
+    entry["blocks"] = blocks
+    # nme_mask parallel to blocks (structural order); may differ in order from the token-order nme_mask
+    entry["nme_mask_struct"] = [1 if b["nme"] else 0 for b in blocks]
+    entry["partition_error"] = None
+    entry["max_block_atoms"] = max(len(b["atoms"]) for b in blocks) if blocks else 0
+    if n_nme_blocks != entry.get("n_nme", 0):
+        # structural CN count must match the parsed token N-Me count; if not, flag (do not silently pass)
+        entry["partition_error"] = f"nme_count_struct_{n_nme_blocks}_vs_token_{entry.get('n_nme', 0)}"
+        entry["has_structure"] = False
     return entry
 
 
@@ -398,14 +655,186 @@ def _self_test(csv_path: Path) -> int:
     return 0
 
 
+# ---- PepGLAD on-disk dataset builder ---------------------------------------------------------------
+# PepGLAD serialises each training example as a gzip-compressed JSON blob in a mmap container
+# (data/mmap_dataset.py: data.bin holds the blobs; index.txt holds `<id>\t<start>\t<end>\t<props...>`).
+# The peptide is a list of Block tuples `(abrv, [(name, [x,y,z], element, pos_code), ...], id)` -- exactly
+# the tuple that data.format.Block.to_tuple() produces and CoDesignDataset.__getitem__ consumes.
+#
+# For the N-Me AE this is a PEPTIDE-ONLY dataset (there is no receptor). Each record therefore stores
+#   ( [],  peptide_block_tuples )    # (rec_blocks=[], lig_blocks=peptide)
+# plus the B1-specific per-residue nme_mask carried BOTH inside each block's free-form `id` field
+#   id = {"nme": 0|1, "res_index": i}
+# and as an explicit top-level property column, so a peptide-only AE dataloader can read the mask without
+# reparsing blocks (see docs/20260926_NME_DATASET_READINESS.md for the exact schema the dataloader targets).
+
+def _peptide_to_block_tuples(entry: Dict):
+    """entry (post-embed) -> (list_of_block_tuples, nme_mask_struct). Block tuple matches Block.to_tuple()."""
+    block_tuples = []
+    nme_mask = []
+    for i, b in enumerate(entry["blocks"]):
+        atom_tuples = []
+        for at in b["atoms"]:
+            name = at["name"]
+            elem = at["element"]
+            # pos_code convention (data.format.Atom): name with the leading element stripped; 'CN' -> 'N'
+            if name == "CN":
+                pos_code = "N"
+            else:
+                pos_code = name[len(elem):] if name.startswith(elem) else name.lstrip(elem)
+            atom_tuples.append([name, list(at["coord"]), elem, pos_code])
+        blk_id = {"nme": 1 if b["nme"] else 0, "res_index": i}
+        block_tuples.append([b["abrv"], atom_tuples, blk_id])
+        nme_mask.append(1 if b["nme"] else 0)
+    return block_tuples, nme_mask
+
+
+def _embed_worker(args):
+    """Top-level worker (picklable) for the process pool: embed+partition one entry, return it."""
+    entry, n_conf, opt_iters, timeout_s = args
+    return embed_blocks(entry, n_conf=n_conf, opt_iters=opt_iters, timeout_s=timeout_s)
+
+
+def build_dataset(csv_path: Path, out_dir: Path, limit: Optional[int] = None,
+                  n_conf: int = 4, opt_iters: int = 400, timeout_s: float = 25.0,
+                  workers: Optional[int] = None) -> Dict:
+    """Build the PepGLAD mmap N-Me dataset (train/val/test) + JSONL sidecar + manifest.
+
+    Returns a stats dict (real trainable N after all failures, per-split counts, atom-slot histogram).
+    CPU-only. Iterates the full CSV, keeps only in-vocab AND N-Me peptides, embeds + partitions each
+    (parallel across CPU cores; a per-peptide SIGALRM cap makes a pathological macrocycle a counted skip),
+    then writes the three splits sequentially.
+    """
+    import gzip
+    import io as _io
+    import os as _os
+    from concurrent.futures import ProcessPoolExecutor
+
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    splits = ("train", "val", "test")
+    for s in splits:
+        (out_dir / s).mkdir(parents=True, exist_ok=True)
+    bins = {s: open(out_dir / s / "data.bin", "wb") for s in splits}
+    idxf = {s: open(out_dir / s / "index.txt", "w") for s in splits}
+    offsets = {s: 0 for s in splits}
+    counts = {s: 0 for s in splits}
+    sidecar = open(out_dir / "records.jsonl", "w")
+
+    stats = {
+        "candidates_in_vocab_nme": 0,
+        "embedded_and_partitioned": 0,
+        "failed": 0,
+        "fail_reasons": {},
+        "per_split": {s: 0 for s in splits},
+        "max_block_atoms_hist": {},
+        "n_nme_residues": 0,
+        "n_residues": 0,
+    }
+
+    # 1) collect candidate entries (in-vocab AND N-Me) — cheap, sequential
+    candidates = []
+    for idx, row in iter_rows(csv_path, limit=limit):
+        e = parse_entry(idx, row)
+        if e["all_supported"] and e["n_nme"] > 0:
+            candidates.append(e)
+    stats["candidates_in_vocab_nme"] = len(candidates)
+
+    # 2) embed+partition in parallel (the expensive step); preserve input order for determinism
+    nworkers = workers or max(1, (_os.cpu_count() or 2) - 1)
+    tasks = [(e, n_conf, opt_iters, timeout_s) for e in candidates]
+    done = 0
+    with ProcessPoolExecutor(max_workers=nworkers) as ex:
+        embedded = ex.map(_embed_worker, tasks, chunksize=4)
+        for e in embedded:
+            done += 1
+            if done % 100 == 0:
+                print(f"  embedded {done}/{len(tasks)}", file=sys.stderr, flush=True)
+            if not e["has_structure"]:
+                stats["failed"] += 1
+                reason = e.get("partition_error") or "unknown"
+                stats["fail_reasons"][reason] = stats["fail_reasons"].get(reason, 0) + 1
+                continue
+            block_tuples, nme_mask = _peptide_to_block_tuples(e)
+            record = ([], block_tuples)  # (rec_blocks=[], lig_blocks=peptide)
+            scaf = scaffold_key(e)
+            split = assign_split(e)
+            idx = e["id"]
+
+            # serialise exactly like data.mmap_dataset.compress()
+            serialized = json.dumps(record).encode()
+            buf = _io.BytesIO()
+            with gzip.GzipFile(fileobj=buf, mode="wb", compresslevel=6) as f:
+                f.write(serialized)
+            blob = buf.getvalue()
+            bin_len = bins[split].write(blob)
+            _id = f"nme_{idx}"
+            # property columns (tab-separated, mirror process.py order enough for CoDesignDataset):
+            #   [n_rec_blocks, n_lig_blocks, rec_units, lig_units, rec_chain, lig_chain,
+            #    rec_seq, lig_seq, non_standard, nme_mask_csv, pocket_idx_csv]
+            lig_seq = "".join(b["symbol"] for b in e["blocks"])
+            lig_units = sum(len(b["atoms"]) for b in e["blocks"])
+            nme_csv = ",".join(str(x) for x in nme_mask)
+            props = [
+                0, len(block_tuples), 0, lig_units, "-", "A",
+                "", lig_seq, 0, nme_csv, "",  # empty pocket (peptide-only)
+            ]
+            idxf[split].write(f"{_id}\t{offsets[split]}\t{offsets[split] + bin_len}\t" +
+                              "\t".join(str(p) for p in props) + "\n")
+            offsets[split] += bin_len
+            counts[split] += 1
+
+            stats["embedded_and_partitioned"] += 1
+            stats["per_split"][split] += 1
+            mba = e.get("max_block_atoms", 0)
+            stats["max_block_atoms_hist"][mba] = stats["max_block_atoms_hist"].get(mba, 0) + 1
+            stats["n_nme_residues"] += e["n_nme"]
+            stats["n_residues"] += len(e["blocks"])
+
+            # sidecar JSONL (human-readable, one line/peptide) with everything needed for audit
+            sidecar.write(json.dumps({
+                "id": _id, "row": idx, "split": split, "scaffold": scaf,
+                "permeability": e["permeability"], "monomers": e["monomers"],
+                "lig_seq": lig_seq, "n_res": len(e["blocks"]), "n_nme": e["n_nme"],
+                "nme_mask": nme_mask, "max_block_atoms": mba,
+                "mmff_energy": e.get("mmff_energy"), "coords_source": e["coords_source"],
+            }) + "\n")
+
+    for s in splits:
+        bins[s].close()
+        idxf[s].close()
+    sidecar.close()
+    stats["trainable_total"] = stats["embedded_and_partitioned"]
+    # write manifest
+    with open(out_dir / "manifest.json", "w") as m:
+        json.dump(stats, m, indent=2)
+    return stats
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--csv", type=Path, default=DEFAULT_CSV)
     ap.add_argument("--stats", action="store_true", help="print full-corpus availability counts and exit")
     ap.add_argument("--emit", type=Path, default=None, help="write JSONL records to this path")
+    ap.add_argument("--build-dataset", type=Path, default=None,
+                    help="build the PepGLAD mmap N-Me dataset (train/val/test) into this directory")
+    ap.add_argument("--n-conf", type=int, default=4, help="ETKDG conformers per peptide (lowest MMFF kept)")
+    ap.add_argument("--opt-iters", type=int, default=400, help="MMFF optimisation iterations")
+    ap.add_argument("--timeout-s", type=float, default=25.0, help="per-peptide embed wall-clock cap (s)")
+    ap.add_argument("--workers", type=int, default=None, help="parallel embed workers (default: cores-1)")
     ap.add_argument("--limit", type=int, default=None, help="cap #rows (for a quick pass)")
     ap.add_argument("--embed", action="store_true", help="attempt RDKit ETKDG 3D embedding (slow, CPU)")
     args = ap.parse_args(argv)
+
+    if args.build_dataset:
+        if not args.csv.exists():
+            print(f"CSV not found: {args.csv}", file=sys.stderr)
+            return 2
+        st = build_dataset(args.csv, args.build_dataset, limit=args.limit,
+                           n_conf=args.n_conf, opt_iters=args.opt_iters,
+                           timeout_s=args.timeout_s, workers=args.workers)
+        print(json.dumps(st, indent=2))
+        return 0
 
     if args.stats:
         if not args.csv.exists():
