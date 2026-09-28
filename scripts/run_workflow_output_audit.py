@@ -220,7 +220,7 @@ DOMAIN_EXPECTED: Dict[str, Dict[str, Any]] = {
 # ── Tutorial case → workflow file mapping ─────────────────────────────────────
 TUTORIAL_CASES = {
     "T1_rnaseq":          "nfcore/rnaseq/main.nf",
-    "T2_single_cell":     "nextflow_nfcore/subworkflows/single_cell/scrnaseq_standard_endtoend/main.nf",
+    "T2_single_cell":     "nextflow_nfcore/subworkflows/single_cell/scrnaseq_trajectory_pseudotime/main.nf",
     "T3_variant_calling": "nfcore/sarek/main.nf",
     "T4_epigenomics":     "nfcore/chipseq/main.nf",
     "T5_proteomics":      "nfcore/proteomicslfq/main.nf",

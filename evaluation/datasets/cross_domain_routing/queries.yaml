@@ -217,8 +217,7 @@
   difficulty: indirect
   domain: single_cell
   correct_workflow: nf-core/scrnaseq
-  acceptable_alts:
-  - scrnaseq_standard_endtoend
+  acceptable_alts: []
   disqualified:
   - nf-core/rnaseq
   notes: 'Source: nf-co.re/scrnaseq — pipeline runs Cell Ranger/STARsolo to produce
@@ -1737,11 +1736,13 @@
     UMAP'
   difficulty: direct
   domain: single_cell
-  correct_workflow: scrnaseq_standard_endtoend
-  acceptable_alts:
-  - nf-core/scrnaseq
+  correct_workflow: nf-core/scrnaseq
+  acceptable_alts: []
   disqualified: []
-  notes: Full pipeline FASTQ → count matrix → cell type annotation → iSEE app
+  notes: 'BioMate has no single raw-FASTQ → annotated-cell-types pipeline; nf-core/scrnaseq
+    performs the FASTQ → count-matrix step (Cell Ranger/STARsolo/alevin-fry), then
+    downstream matrix-based workflows (Annotate Celltype Scrna, Harmony/scVI embeddings)
+    annotate. Retargeted from the removed scrnaseq_standard_endtoend stub.'
 - id: sc2_002
   query: I have a pre-quantified scRNA-seq count matrix (h5ad). Cluster cells, detect
     doublets, and annotate cell types
@@ -1782,8 +1783,7 @@
   difficulty: direct
   domain: single_cell
   correct_workflow: nf-core/scrnaseq
-  acceptable_alts:
-  - scrnaseq_standard_endtoend
+  acceptable_alts: []
   disqualified: []
   notes: STARsolo is one of scrnaseq's aligners
 - id: sc2_006
@@ -1811,8 +1811,7 @@
   difficulty: indirect
   domain: single_cell
   correct_workflow: nf-core/scdownstream
-  acceptable_alts:
-  - scrnaseq_standard_endtoend
+  acceptable_alts: []
   disqualified: []
   notes: scdownstream includes batch correction with Harmony + clustering
 - id: sc2_009
@@ -1842,7 +1841,6 @@
   domain: single_cell
   correct_workflow: scthi_tme_classification
   acceptable_alts:
-  - scrnaseq_standard_endtoend
   - Map To Ima Interpret Scrna
   disqualified: []
   notes: scthi_tme_classification classifies TME immune/stromal types via gene signatures;
@@ -1853,11 +1851,13 @@
     hematopoietic cell types
   difficulty: direct
   domain: single_cell
-  correct_workflow: scrnaseq_standard_endtoend
-  acceptable_alts:
-  - nf-core/scrnaseq
+  correct_workflow: nf-core/scrnaseq
+  acceptable_alts: []
   disqualified: []
-  notes: Full pipeline; scrnaseq_standard_endtoend handles end-to-end including annotation
+  notes: 'BioMate has no single raw-FASTQ → annotated-cell-types pipeline; nf-core/scrnaseq
+    does FASTQ → count matrix, then matrix-based workflows (Annotate Celltype Scrna,
+    Harmony/scVI embeddings) annotate. Retargeted from the removed scrnaseq_standard_endtoend
+    stub.'
 - id: sc2_013
   query: Filter dead cells by mitochondrial fraction and empty droplets in my scRNA-seq
     preprocessing
