@@ -3,11 +3,9 @@ process OPENMS_DECOYDATABASE {
     label 'process_single'
 
     conda "${moduleDir}/environment.yml"
-    // Pinned to match the proteomics_dda_search capability container
-    // (OpenMS BSD + Comet Apache bundled in openms-thirdparty).
-    container "${ workflow.containerEngine in ['singularity', 'apptainer'] && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/openms-thirdparty:3.4.1--h9ee0642_1' :
-        'biocontainers/openms-thirdparty:3.4.1--h9ee0642_1' }"
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/openms:3.4.1--h81ffffe_1' :
+        'biocontainers/openms:3.4.1--h81ffffe_1' }"
 
     input:
     tuple val(meta), path(fasta)
@@ -30,13 +28,15 @@ process OPENMS_DECOYDATABASE {
         -threads $task.cpus \\
         $args
 
+
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        openms: \$(FileInfo --help 2>&1 | sed -nE 's/^Version: ([0-9.]+).*/\\1/p')
+        openms: \$(echo \$(FileInfo --help 2>&1) | sed 's/^.*Version: //; s/-.*\$//' | sed 's/ -*//; s/ .*\$//')
     END_VERSIONS
     """
 
     stub:
+    def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${fasta.baseName}_decoy"
 
     """
@@ -44,7 +44,7 @@ process OPENMS_DECOYDATABASE {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        openms: 3.4.1
+        openms: \$(echo \$(FileInfo --help 2>&1) | sed 's/^.*Version: //; s/-.*\$//' | sed 's/ -*//; s/ .*\$//')
     END_VERSIONS
     """
 }

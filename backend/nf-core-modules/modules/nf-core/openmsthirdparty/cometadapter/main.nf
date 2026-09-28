@@ -3,9 +3,7 @@ process OPENMSTHIRDPARTY_COMETADAPTER {
     label 'process_high'
 
     conda "${moduleDir}/environment.yml"
-    // Pinned to match the proteomics_dda_search capability container
-    // (openms-thirdparty bundles Comet; OpenMS BSD + Comet Apache).
-    container "${ workflow.containerEngine in ['singularity', 'apptainer'] && !task.ext.singularity_pull_docker_container ?
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/openms-thirdparty:3.4.1--h9ee0642_1' :
         'biocontainers/openms-thirdparty:3.4.1--h9ee0642_1' }"
 
@@ -32,14 +30,16 @@ process OPENMSTHIRDPARTY_COMETADAPTER {
         -threads $task.cpus \\
         $args
 
+
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        CometAdapter: \$(CometAdapter --help 2>&1 | sed -nE 's/^Version: ([0-9.]+).*/\\1/p')
-        Comet: \$(comet 2>&1 | sed -n 's/.*Comet version " *\\(.*\\)".*/\\1/p')
+        CometAdapter: \$(CometAdapter 2>&1 | grep -E '^Version(.*)' | sed 's/Version: //g' | cut -d ' ' -f 1 | cut -d '-' -f 1)
+        Comet: \$(comet 2>&1 | grep -E "Comet version.*" | sed 's/Comet version //g' | sed 's/"//g')
     END_VERSIONS
     """
 
     stub:
+    def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
 
     """
@@ -48,8 +48,8 @@ process OPENMSTHIRDPARTY_COMETADAPTER {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        CometAdapter: 3.4.1
-        Comet: 2024.01.0
+        CometAdapter: \$(CometAdapter 2>&1 | grep -E '^Version(.*)' | sed 's/Version: //g' | cut -d ' ' -f 1 | cut -d '-' -f 1)
+        Comet: \$(comet 2>&1 | grep -E "Comet version.*" | sed 's/Comet version //g' | sed 's/"//g')
     END_VERSIONS
     """
 }

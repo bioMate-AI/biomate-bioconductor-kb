@@ -1,6 +1,5 @@
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/modules/environment-schema.json
-# Pinned to match the proteomics_dda_search capability container (openms-thirdparty 3.4.1).
 channels:
   - conda-forge
   - bioconda
