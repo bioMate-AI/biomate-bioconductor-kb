@@ -1,0 +1,83 @@
+# =====================================================================================================
+# m1_ae_midtrain.yaml — M1 geometry-AE mid-train on CREMP macrocycles (Option B), warm-started from the
+# epoch-221 linear/protein AE. Consumed by m1_train_ae.py (NOT stock train.py — because of warm_start_ckpt
+# + the peptide-only dataset + the closure-aware model/trainer subclasses).
+#
+# Provenance: architecture block is COPIED from configs/pepbench/autoencoder/train_codesign.yaml (the
+# config that trained epoch-221) so the warm-start state_dict loads 1:1. Only the dataset, trainer,
+# schedule, and the two M4 closure fields differ. Paths (WARM_CKPT / CREMP dataset) are filled in by
+# run_m1_ae_midtrain.sh at launch via overwrite_values (key=value opt-args), or edit here.
+# =====================================================================================================
+
+# Warm-start: epoch-221 checkpoint. m1_train_ae.warm_start() extracts its `.autoencoder` and loads it
+# into the (Closure-aware) AutoEncoder. This is the M0-selected linear-epoch221 init.
+warm_start_ckpt: ./data/epoch221.ckpt
+
+dataset:
+  train:
+    class: PeptideOnlyCoDesignDataset      # M1 fix: peptide-only (no receptor/pocket). See m1_peptide_dataset.py
+    mmap_dir: ./data/cremp_pepglad/train
+    backbone_only: false
+  valid:
+    class: PeptideOnlyCoDesignDataset
+    mmap_dir: ./data/cremp_pepglad/valid
+    backbone_only: false
+
+dataloader:
+  shuffle: true
+  num_workers: 4
+  wrapper:
+    class: DynamicBatchWrapper
+    complexity: n**2
+    ubound_per_batch: 60000   # same budget the epoch-221 AE trained under (~24 peptides/batch)
+
+trainer:
+  class: ClosureAETrainer      # AutoEncoderTrainer + ring-closure validation metrics (M4 tracking)
+  config:
+    max_epoch: 40              # MID-train: tens of epochs, NOT from-scratch (RINGER-scale would be 100s)
+    save_topk: 5
+    save_dir: ./ckpts/m1_ae_midtrain
+    patience: 8                # early stop if val loss stalls
+    metric_min_better: true
+
+    optimizer:
+      class: AdamW
+      lr: 2.0e-5               # LOW lr for mid-train (5x below the 1e-4 from-scratch lr) — adapt, don't wreck the prior
+
+    scheduler:
+      class: ReduceLROnPlateau
+      factor: 0.8
+      patience: 4
+      mode: min
+      frequency: val_epoch
+      min_lr: 2.0e-6
+
+model:
+  class: ClosureAwareAutoEncoder   # AutoEncoder + optional M4 closing-bond loss (weight below)
+  # ---- architecture: MUST match epoch-221 (train_codesign.yaml) for a 1:1 warm-start load ----
+  embed_size: 128
+  hidden_size: 128
+  latent_size: 8
+  latent_n_channel: 1
+  n_layers: 3
+  n_channel: 14                 # all-atom
+  h_kl_weight: 0.3
+  z_kl_weight: 0.5
+  coord_loss_ratio: 0.5
+  coord_loss_weights:
+    Xloss: 1.0
+    ca_Xloss: 1.0
+    bb_bond_lengths_loss: 1.0
+    sc_bond_lengths_loss: 1.0
+    bb_dihedral_angles_loss: 0.0
+    sc_chi_angles_loss: 0.5
+  relative_position: false
+  anchor_at_ca: true
+  mask_ratio: 0.25
+  # ---- M4 co-development (closure-aware) ----
+  # The stock bb_bond_lengths term only supervises SEQUENTIAL amides; it never sees the head-to-tail
+  # closing bond, which is why the linear AE holds only 32% ring closure. This term regresses the
+  # C_last->N_first distance toward an amide length. Start SMALL so the geometry prior isn't overwhelmed;
+  # 0.0 => pure Option-B mid-train (ablation control). Enabled here at a gentle weight for the M1+M4 run.
+  ring_closure_loss_weight: 0.3
+  ring_closure_target: 1.33
