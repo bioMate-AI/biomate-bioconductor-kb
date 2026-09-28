@@ -21,10 +21,12 @@
 # Result: aws s3 cp $S3RUN/m1_eval_result.json -
 # =====================================================================================================
 set -Eeuo pipefail
-export AWS_DEFAULT_REGION=us-west-2
-BUCKET=knowledge-datasets-1759951976
-AMI=ami-04f7da1c787a89267        # DL Base OSS Nvidia Driver GPU AMI (Ubuntu 22.04) — drivers + awscli
-SG=sg-011121fdf81073ec8; KEY=biomate-trial-resume-20260912
+REGION=${REGION:-us-west-2}
+export AWS_DEFAULT_REGION=$REGION
+BUCKET=knowledge-datasets-1759951976   # S3 bucket lives in us-west-2; cross-region reads work (small transfer cost)
+AMI=${AMI:-ami-04f7da1c787a89267}      # DL Base OSS Nvidia GPU AMI (Ubuntu 22.04); region-specific => OVERRIDE per region
+SG=${SG:-sg-011121fdf81073ec8}         # security group (region-specific) => OVERRIDE per region
+KEY=${KEY:-biomate-trial-resume-20260912}  # optional SSH key (region-specific); set KEY="" to omit (instance is autonomous)
 
 # --- inputs (env-overridable) ------------------------------------------------------------------------
 WARM_CKPT_S3=${WARM_CKPT_S3:-s3://$BUCKET/cyclic_peptide/RELEASED/pepglad_ldm_epoch221/epoch221_step77700.ckpt}
@@ -218,12 +220,16 @@ declare -a COMBO=(
   "g6.4xlarge subnet-0b35a6e2c1cf02dc2"
   "g4dn.2xlarge subnet-09e4dce46682a6c60"
 )
+# Region override: pass COMBO_OVERRIDE as newline-separated "TYPE SUBNET" pairs (for cross-region launches).
+if [ -n "${COMBO_OVERRIDE:-}" ]; then
+  mapfile -t COMBO <<< "$COMBO_OVERRIDE"
+fi
 IID=""
 for c in "${COMBO[@]}"; do
   set -- $c; TYPE=$1; SUBNET=$2
   echo "trying $TYPE in $SUBNET ..."
   IID=$(aws ec2 run-instances \
-    --image-id "$AMI" --instance-type "$TYPE" --key-name "$KEY" \
+    --image-id "$AMI" --instance-type "$TYPE" ${KEY:+--key-name $KEY} \
     --subnet-id "$SUBNET" --security-group-ids "$SG" \
     --iam-instance-profile Name=AutoimmuneCorpusProfile \
     --instance-market-options '{"MarketType":"spot","SpotOptions":{"SpotInstanceType":"one-time","InstanceInterruptionBehavior":"terminate"}}' \
