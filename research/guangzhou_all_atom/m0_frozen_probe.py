@@ -588,64 +588,77 @@ def evaluate_init(name, ae, cremp_mols, pepbdb_mols, device) -> Dict:
 
 
 def decide(results: Dict[str, Dict]) -> Dict:
-    """Encode the plan's decision rule. Primary axis = CREMP held-out all-atom reconstruction RMSD
-    (lower is better); ring-closure validity is the tie-break / sanity gate.
+    """Decide the AE-init from STRUCTURE VALIDITY, not unaligned all-atom RMSD.
 
-    Rule (docs/20260927_CYCLIC_CORPUS_AND_TRAINING_STRATEGY.md Part B(5)):
-      linear >> random  (and >> small-mol if present) -> AE=B from linear init
-      random ~= linear                                -> CREMP alone suffices (drop linear pretrain for AE)
-      small-mol >= linear                             -> reconsider a small-molecule atom-level foundation
-    '>>' means the RMSD gap exceeds REL_MARGIN (relative) AND the better init keeps ring closure high.
-    '~=' means within REL_MARGIN.
+    A geometry prior must produce VALID CYCLIC geometry: a closed macrocycle ring + a correct
+    backbone (CA). Unaligned all-atom RMSD is NOT a safe primary metric — it is gamed by
+    degenerate/collapsed predictions: a blob of atoms dumped near the CA anchor scores a low
+    mean-squared deviation while producing NO real macrocycle. We observed exactly that — the
+    random init had LOWER all-atom RMSD yet closed ZERO rings and had worse CA. So we key on the
+    metrics a prior cannot fake:
+      PRIMARY:  ring_closure_valid_rate  (does reconstruction keep the macrocycle closed?)
+                rmsd_ca_mean             (is the backbone right?)
+      DIAGNOSTIC (reported, NOT decisive): rmsd_all_mean (collapse-gameable).
+
+    Rule:
+      linear wins structure validity (rings >> AND CA <=)  -> GO: AE=B from linear init
+      random wins structure validity                       -> SURPRISE (real; re-check)
+      ~tie on structure validity                           -> GO (cheaper): CREMP alone may suffice
+      small-mol wins structure validity over linear        -> RECONSIDER a small-mol foundation
     """
-    REL_MARGIN = 0.10  # 10% relative RMSD gap counts as a meaningful difference
+    REL_MARGIN = 0.10    # relative CA-RMSD gap
+    RING_MARGIN = 0.05   # absolute ring-closure-rate gap that counts as meaningful
 
-    def rmsd(name):
-        r = results.get(name, {}).get("cremp", {}).get("rmsd_all_mean", float("nan"))
-        return r
+    def m(name, key):
+        return results.get(name, {}).get("cremp", {}).get(key, float("nan"))
 
-    lin = rmsd("linear_epoch221")
-    rnd = rmsd("random")
-    sm = rmsd("small_molecule") if "small_molecule" in results else None
+    lin_ring, rnd_ring = m("linear_epoch221", "ring_closure_valid_rate"), m("random", "ring_closure_valid_rate")
+    lin_ca, rnd_ca = m("linear_epoch221", "rmsd_ca_mean"), m("random", "rmsd_ca_mean")
+    lin_all, rnd_all = m("linear_epoch221", "rmsd_all_mean"), m("random", "rmsd_all_mean")
+    has_sm = "small_molecule" in results
+    sm_ring = m("small_molecule", "ring_closure_valid_rate") if has_sm else None
+    sm_ca = m("small_molecule", "rmsd_ca_mean") if has_sm else None
 
-    verdict = {"primary_metric": "cremp.rmsd_all_mean (lower=better)",
-               "rmsd_all": {"linear_epoch221": lin, "random": rnd, "small_molecule": sm}}
+    verdict = {
+        "primary_metric": "structure validity = ring_closure_valid_rate (primary) + rmsd_ca_mean (support)",
+        "diagnostic_note": ("rmsd_all_mean is REPORTED but NOT decisive: unaligned all-atom RMSD is gamed by "
+                            "collapsed/degenerate predictions (low RMSD with 0 valid rings = a blob at the CA anchor)."),
+        "ring_closure_valid_rate": {"linear_epoch221": lin_ring, "random": rnd_ring, "small_molecule": sm_ring},
+        "rmsd_ca_mean": {"linear_epoch221": lin_ca, "random": rnd_ca, "small_molecule": sm_ca},
+        "rmsd_all_mean_diagnostic": {"linear_epoch221": lin_all, "random": rnd_all},
+    }
 
-    if lin != lin or rnd != rnd:
-        verdict["decision"] = "INCONCLUSIVE — missing/NaN reconstruction metric; inspect the run log."
+    if any(v != v for v in (lin_ring, rnd_ring, lin_ca, rnd_ca)):
+        verdict["decision"] = "INCONCLUSIVE — missing/NaN structure metric; inspect the run log."
         return verdict
 
-    def rel_gap(a, b):  # positive if a is worse (higher RMSD) than b
-        return (a - b) / max(b, 1e-6)
+    def wins(a_ring, a_ca, b_ring, b_ca):
+        """a is the better geometry prior: closes materially more rings AND backbone no worse."""
+        return (a_ring - b_ring) > RING_MARGIN and a_ca <= b_ca * (1 + REL_MARGIN)
 
-    linear_better_than_random = rel_gap(rnd, lin) > REL_MARGIN  # random is worse than linear by >margin
-    similar = abs(rel_gap(rnd, lin)) <= REL_MARGIN
+    if has_sm and sm_ring == sm_ring and sm_ca == sm_ca and wins(sm_ring, sm_ca, lin_ring, lin_ca):
+        verdict["decision"] = ("RECONSIDER — small-molecule init produces more valid cyclic geometry (rings + CA) "
+                               "than linear-epoch221. Investigate an atom-level small-molecule foundation before AE=B.")
+        return verdict
 
-    smallmol_note = ""
-    if sm is not None and sm == sm:
-        if rel_gap(lin, sm) > REL_MARGIN:  # small-mol beats linear by >margin
-            verdict["decision"] = ("RECONSIDER — small-molecule init reconstructs held-out cyclics "
-                                   "better than the linear-epoch221 init. Investigate an atom-level "
-                                   "small-molecule foundation before committing AE=B.")
-            return verdict
-        smallmol_note = " small-mol init did NOT beat linear (as expected)."
-
-    if linear_better_than_random:
-        verdict["decision"] = ("GO: AE = Option B from the linear-epoch221 init. Linear init reconstructs "
-                               "held-out CREMP with materially lower RMSD than random init." + smallmol_note)
-    elif similar:
-        verdict["decision"] = ("GO (CHEAPER): random ~= linear -> CREMP alone suffices for the AE geometry "
-                               "prior; drop the linear pretrain FOR THE AE (keep it for the generator's "
-                               "binding conditioning)." + smallmol_note)
-    else:
-        verdict["decision"] = ("SURPRISE: random init reconstructs BETTER than the linear-epoch221 init. "
+    if wins(lin_ring, lin_ca, rnd_ring, rnd_ca):
+        verdict["decision"] = (
+            f"GO: AE = Option B from the linear-epoch221 init. Linear produces valid cyclic geometry "
+            f"(ring-closure {lin_ring:.2f} vs random {rnd_ring:.2f}; CA-RMSD {lin_ca:.2f} vs {rnd_ca:.2f} A). "
+            f"random's lower all-atom RMSD ({rnd_all:.2f} vs {lin_all:.2f}) is a COLLAPSED 0-ring blob, not a better prior.")
+    elif wins(rnd_ring, rnd_ca, lin_ring, lin_ca):
+        verdict["decision"] = ("SURPRISE: random produces more valid cyclic geometry than linear-epoch221. "
                                "Re-check checkpoint extraction / data parity before acting.")
-    # ring-closure sanity gate
-    lin_ring = results["linear_epoch221"]["cremp"].get("ring_closure_valid_rate", float("nan"))
+    else:
+        verdict["decision"] = ("GO (CHEAPER): linear ~= random on structure validity -> CREMP alone may suffice for "
+                               "the AE geometry prior; keep linear for the generator's binding conditioning.")
+
     verdict["ring_closure_gate"] = {
         "linear_epoch221_ring_valid_rate": lin_ring,
-        "note": "If the chosen init's ring-closure validity is low (<0.5), M1 needs the hard "
-                "closure constraint (M4) earlier than planned.",
+        "note": ("Chosen init ring-closure is LOW (<0.5) -> M1 must bring the hard cyclic-closure constraint (M4) "
+                 "EARLIER; this is also the direct motivation for CREMP mid-training (epoch-221 was trained on "
+                 "linear PepBench complexes -> out-of-distribution on macrocycles)."
+                 if lin_ring < 0.5 else "ring-closure adequate (>=0.5)."),
     }
     return verdict
 
@@ -692,31 +705,31 @@ def _smoke() -> int:
     assert closed is True, "synthetic ring should be detected closed"
     assert stereo == 1.0, "identical coords must preserve stereo"
 
-    # decision rule sanity: linear clearly better than random
-    fake = {
-        "linear_epoch221": {"cremp": {"rmsd_all_mean": 1.20, "ring_closure_valid_rate": 0.92}},
-        "random": {"cremp": {"rmsd_all_mean": 3.10, "ring_closure_valid_rate": 0.30}},
-    }
-    d = decide(fake)
-    print(f"  decide(linear<<random).decision = {d['decision'][:60]}...")
+    # decision rule sanity — keyed on STRUCTURE VALIDITY (rings + CA), not all-atom RMSD
+    def cremp(ring, ca, allrmsd):
+        return {"cremp": {"ring_closure_valid_rate": ring, "rmsd_ca_mean": ca, "rmsd_all_mean": allrmsd}}
+
+    # clear GO(B): linear closes rings + better CA
+    d = decide({"linear_epoch221": cremp(0.92, 1.0, 2.0), "random": cremp(0.30, 2.0, 3.1)})
+    print(f"  decide(linear structure-wins).decision   = {d['decision'][:55]}...")
     assert d["decision"].startswith("GO: AE = Option B"), d["decision"]
 
-    fake2 = {
-        "linear_epoch221": {"cremp": {"rmsd_all_mean": 1.20, "ring_closure_valid_rate": 0.90}},
-        "random": {"cremp": {"rmsd_all_mean": 1.25, "ring_closure_valid_rate": 0.88}},
-    }
-    d2 = decide(fake2)
-    assert "CHEAPER" in d2["decision"], d2["decision"]
-    print(f"  decide(random~=linear).decision = {d2['decision'][:60]}...")
+    # REGRESSION: the exact collapse case we observed — random has LOWER all-atom RMSD but ZERO rings + worse CA.
+    # Must be GO(B) (linear is the real prior), NOT the old SURPRISE the all-atom rule produced.
+    d_obs = decide({"linear_epoch221": cremp(0.323, 1.05, 2.64), "random": cremp(0.0, 1.34, 2.08)})
+    print(f"  decide(OBSERVED collapse case).decision   = {d_obs['decision'][:55]}...")
+    assert d_obs["decision"].startswith("GO: AE = Option B"), d_obs["decision"]
 
-    fake3 = {
-        "linear_epoch221": {"cremp": {"rmsd_all_mean": 2.00, "ring_closure_valid_rate": 0.7}},
-        "random": {"cremp": {"rmsd_all_mean": 3.00, "ring_closure_valid_rate": 0.4}},
-        "small_molecule": {"cremp": {"rmsd_all_mean": 1.20, "ring_closure_valid_rate": 0.8}},
-    }
-    d3 = decide(fake3)
+    # ~tie on structure validity -> GO(cheaper)
+    d2 = decide({"linear_epoch221": cremp(0.90, 1.20, 1.20), "random": cremp(0.88, 1.22, 1.25)})
+    assert "CHEAPER" in d2["decision"], d2["decision"]
+    print(f"  decide(structure ~tie).decision          = {d2['decision'][:55]}...")
+
+    # small-mol wins structure validity over linear -> RECONSIDER
+    d3 = decide({"linear_epoch221": cremp(0.5, 1.5, 2.0), "random": cremp(0.4, 2.0, 3.0),
+                 "small_molecule": cremp(0.8, 1.0, 1.2)})
     assert d3["decision"].startswith("RECONSIDER"), d3["decision"]
-    print(f"  decide(smallmol<<linear).decision = {d3['decision'][:60]}...")
+    print(f"  decide(smallmol structure-wins).decision = {d3['decision'][:55]}...")
 
     print("  [ok] smoke passed — wiring, validity math, and decision rule are sound.")
     print("  Predicted real-run result shape:")
