@@ -44,15 +44,32 @@ Convergence points: **①** D0 (frozen eval + clean corpus) gates all training �
 > - M0's reconstruction RMSD already equals the official `evaluation/rmsd.compute_rmsd` (un-aligned per-atom) —
 >   consistent with the panel; the fix there was determinism only.
 
-### M0 — Tier-0 go/no-go gate  ·  *week 1, ~1 GPU afternoon, NO new data*
+### M0 — Tier-0 go/no-go gate  ·  ✅ DONE (2026-09-28) → **GO: AE = Option B (linear-epoch221 init)**
+**Result (deterministic run, 300 held-out CREMP mols):** linear-init AE reconstructs valid cyclic geometry —
+**ring-closure 0.32 vs random 0.00**, **RMSD-Cα 1.05 vs 1.34 Å**; random's lower *all-atom* RMSD (2.08 vs 2.64)
+was a collapsed 0-ring blob, not a better prior (decision rule corrected to key on structure validity, not
+collapse-gameable all-atom RMSD). **Two findings carried forward:** (1) even the linear AE holds only **32%
+ring closure** on CREMP → epoch-221 (trained on linear PepBench complexes) is **out-of-distribution on
+macrocycles**, which is exactly the M1 mid-training thesis; (2) low closure → **M4 (hard cyclic-closure
+constraint) must be co-developed with M1, not deferred to week 4** (see M1/M4). Cost: 2 spot runs (~30 min
+each), both self-terminated cleanly. Small-mol arm skipped (no checkpoint).
+
+<details><summary>original M0 spec</summary>
+
+*week 1, ~1 GPU afternoon, NO new data*
 Frozen-encoder linear-probe transfer matrix (committee's decisive experiment). 3 AE inits —
 small-mol / linear-epoch221 / random — frozen; measure all-atom reconstruction + ring-closure validity on
 held-out CREMP **and** the experimental cyclic-complex subset. Add Gemini's latent-interpolation ring-break
 test. **Decides AE init** (expected: linear-epoch221 ≫ random ≫ small-mol). **Blocks M1.** Uses
 `cremp_partial` (have) + epoch-221 (have) — can run before D0/D1 finish.
 
-### M1 — Geometry AE mid-train (Option B)  ·  *week 2–3, GPU*
-Mid-train the all-atom geometry AE on cyclic conformers, init per M0. Sample **per molecule** (not per
+</details>
+
+### M1 — Geometry AE mid-train (Option B)  ·  *week 2–3, GPU*  ·  **UNBLOCKED by M0 → GO(B)**
+Mid-train the all-atom geometry AE on cyclic conformers, **init from the linear-epoch221 AE (M0 verdict)**.
+**M0 finding — bring M4 forward:** the linear AE holds only 32% ring closure on held-out CREMP, so the hard
+cyclic-closure constraint (M4) is **co-developed with M1**, not deferred to week 4 — M1's acceptance includes
+ring-closure recovery, not just reconstruction RMSD. Use the official trainer (`train.py`/`AutoEncoderTrainer`). Sample **per molecule** (not per
 conformer) to avoid CREMP correlation bias. Metrics: reconstruction, ring-closure, stereochemistry, clashes
 on the **frozen** family-disjoint split. **Depends on:** M0 (init), D0 (frozen eval), D1 (full CREMP —
 can start on partial). This is the not-data-starved component; highest-confidence win.
