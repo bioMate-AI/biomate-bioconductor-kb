@@ -44,6 +44,10 @@ for p in (str(RUNTIME), str(ROOT)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
+# Reduce CUDA fragmentation (the M4 closure term's 2nd encode/decode raises peak memory). Must be set
+# BEFORE torch initializes the CUDA allocator.
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+
 import yaml
 import torch
 

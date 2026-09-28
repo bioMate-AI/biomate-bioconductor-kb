@@ -29,7 +29,10 @@ dataloader:
   wrapper:
     class: DynamicBatchWrapper
     complexity: n**2
-    ubound_per_batch: 60000   # same budget the epoch-221 AE trained under (~24 peptides/batch)
+    ubound_per_batch: 12000   # SIZED FOR CREMP: 60000 was tuned for ~50-res protein-peptide complexes,
+                              # but CREMP macrocycles are ~6-mers (n^2~36) -> 60000 packed ~1600 peptides/batch,
+                              # and the M4 closure term doubles peak memory (2nd encode/decode) -> OOM on 22GB L4.
+                              # 12000 -> ~330 6-mers/batch, ~4-5GB peak incl. closure recompute; fits 16GB+ GPUs.
 
 trainer:
   class: ClosureAETrainer      # AutoEncoderTrainer + ring-closure validation metrics (M4 tracking)
