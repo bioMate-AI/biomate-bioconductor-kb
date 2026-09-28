@@ -3,7 +3,7 @@ set -uo pipefail
 cd "$(dirname "$0")"
 S3=s3://biomate-models-399683337364/biomate-core-local-trial/20260912
 STEP=${MID_CKPT:-1200}; RESULT="$S3/eval/headtohead_${STEP}.json"
-export MODEL_SIZE=small STAGE=h2h TAG=_h2h ENTRY=headtohead.sh BOOTSTRAP=gpu_bootstrap.sh
+export MODEL_SIZE=small STAGE=h2h TAG=_h2h ENTRY=headtohead.sh BOOTSTRAP=gpu_bootstrap.sh SFTN=${SFTN:-150} SEQ=1024
 SUBS=(subnet-09e4dce46682a6c60 subnet-03b277a7a08d388c1 subnet-0b35a6e2c1cf02dc2 subnet-0254e4c3634b41bfc)
 TYPES=(g6e.xlarge g5.4xlarge g6.4xlarge g6e.2xlarge)
 aws s3 rm "$RESULT" --quiet 2>/dev/null
