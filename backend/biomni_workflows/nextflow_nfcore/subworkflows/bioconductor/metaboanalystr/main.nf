@@ -4,7 +4,7 @@
 // Canonical MetaboAnalyst statistical pipeline over a peak-intensity table + a class/sample
 // sheet: normalization (log + auto-scale), univariate (fold-change + t-test), and multivariate
 // (PLS-DA with VIP) analysis, with optional pathway/enrichment when a compound list is present.
-// Input: peak_intensity_table.csv (features x samples), class_labels.csv (2-group sample sheet)
+// Input: peak_intensity_table.csv, class_labels.csv, compound_list.txt
 // Container: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20-deps
 // R packages: MetaboAnalystR (GitHub xia-lab/MetaboAnalystR), OptiLCMS (raw spectra dep)
 // Bioconductor: 3.20 | R: 4.4

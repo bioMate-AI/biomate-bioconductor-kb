@@ -23,6 +23,25 @@ if (utils::packageVersion("xfun") < "0.52") {
   install.packages("xfun", repos = "https://cloud.r-project.org")
 }
 
+# MetaboAnalystR now Imports qs2 (fast serialization). qs2 depends on stringfish +
+# RcppParallel. Installing qs2 in the Step-5 deps pass pulled a PREBUILT *binary*
+# stringfish from the Bioc container-binaries repo that was linked against a DIFFERENT
+# RcppParallel ABI than the one installed here -> at load, stringfish.so has an
+# "undefined symbol: RcppParallel::tbbParallelFor(...)" and qs2 lazy-load fails.
+# Fix the ABI skew by building the WHOLE qs2 stack FROM SOURCE together, so stringfish
+# links against the exact RcppParallel present in this image. type="source" forces a
+# local compile (no prebuilt binary), guaranteeing a consistent RcppParallel ABI.
+# Use cloud.r-project.org: on Linux it serves SOURCE only (no prebuilt binaries), so
+# RcppParallel + stringfish + qs2 all compile against each other in this image, with a
+# consistent RcppParallel ABI (verified: a prior run source-built the same stack clean).
+if (!requireNamespace("qs2", quietly = TRUE)) {
+  install.packages(c("RcppParallel", "stringfish", "qs2"),
+                   repos = "https://cloud.r-project.org", type = "source", Ncpus = 16)
+  if (!requireNamespace("qs2", quietly = TRUE)) {
+    stop("qs2 (MetaboAnalystR dep) failed to install from source — stringfish/RcppParallel ABI still unresolved")
+  }
+}
+
 # First attempt: installs all of OptiLCMS's deps, then tries to compile OptiLCMS.
 # Its src/mzClust.cpp uses std::array but omits #include <array>; GCC 13 (the noble
 # base) no longer pulls <array> in transitively -> "incomplete type" compile error.
