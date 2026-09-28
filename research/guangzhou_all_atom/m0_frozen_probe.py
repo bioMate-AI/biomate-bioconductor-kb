@@ -371,10 +371,20 @@ def reconstruct(ae, blocks: List[Dict], device) -> Optional[Dict]:
 
     batch, true_X, true_atom_mask = _blocks_to_batch(blocks, device)
     with torch.no_grad():
+        # DETERMINISTIC reconstruction: encode with no_randomness=True to take the posterior MEAN
+        # (no VAE resampling), then decode from those fixed latents. Passing given_laten_H/X makes
+        # AE.test set no_randomness internally and skip re-encoding — so the RMSD is a clean transfer
+        # probe, not a stochastic sample (matches this function's stated intent). test() without given
+        # latents would call encode(no_randomness=False) -> rsample() -> noisy RMSD.
+        H, Z, _, _ = ae.encode(
+            batch["X"], batch["S"], batch["mask"], batch["position_ids"],
+            batch["lengths"], batch["atom_mask"], no_randomness=True,
+        )
         # AE.test returns per-example lists: batch_X (coords), batch_S (seq), ppls
         rec_X, rec_S, _ = ae.test(
             batch["X"], batch["S"], batch["mask"], batch["position_ids"],
-            batch["lengths"], batch["atom_mask"], idealize=False,
+            batch["lengths"], batch["atom_mask"],
+            given_laten_H=H, given_latent_X=Z, idealize=False,
         )
     if not rec_X or rec_X[0] is None:
         return None
