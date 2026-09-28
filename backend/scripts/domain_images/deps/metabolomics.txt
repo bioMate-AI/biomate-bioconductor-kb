@@ -54,3 +54,4 @@ data.table
 plotly
 Cairo
 xcms
+fgsea

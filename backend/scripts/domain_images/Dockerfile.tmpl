@@ -80,7 +80,12 @@ RUN Rscript -e '\
   if (gate) { \
     if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://packagemanager.posit.co/cran/2024-10-30"); \
     if (utils::packageVersion("xfun") < "0.52") install.packages("xfun", repos="https://cloud.r-project.org"); \
-    remotes::install_github("xia-lab/OptiLCMS", upgrade="never", quiet=FALSE); \
+    try(remotes::install_github("xia-lab/OptiLCMS", upgrade="never", quiet=FALSE), silent=TRUE); \
+    if (!requireNamespace("OptiLCMS", quietly=TRUE)) { \
+      cat("[optilcms-patch] OptiLCMS compile failed (src/mzClust.cpp uses std::array but omits #include <array>; GCC13 no longer pulls it in transitively) — patching source + local install. Deps were installed by the attempt above.\n"); \
+      st <- system("set -e; cd /tmp && rm -rf OptiLCMS-master && curl -fsSL https://github.com/xia-lab/OptiLCMS/archive/refs/heads/master.tar.gz | tar xz && sed -i \x271i #include <array>\x27 OptiLCMS-master/src/mzClust.cpp && R CMD INSTALL OptiLCMS-master"); \
+      if (st != 0) stop("OptiLCMS patched local install failed (system rc=", st, ")"); \
+    } \
     remotes::install_github("xia-lab/MetaboAnalystR", upgrade="never", build=FALSE, quiet=FALSE); \
     ok <- requireNamespace("OptiLCMS", quietly=TRUE) && requireNamespace("MetaboAnalystR", quietly=TRUE); \
     cat("OptiLCMS present:", requireNamespace("OptiLCMS", quietly=TRUE), "| MetaboAnalystR present:", requireNamespace("MetaboAnalystR", quietly=TRUE), "\n"); \
