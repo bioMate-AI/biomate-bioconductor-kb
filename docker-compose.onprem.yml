@@ -428,14 +428,12 @@ services:
 
   # ── 代码沙箱启动器 (run_code tool — 可选，默认关闭) ─────────────────────────
   # 启用后，AI 可以在对话中直接执行 Python/R/bash 代码 (inline analysis)。
-  # 要求: 克隆完整 repo (包含 ./deploy/sandbox-launcher/), 或等待
-  # ghcr.io/biomate-ai/biomate-sandbox-launcher 镜像发布后改为 image: 引用。
   # 启用步骤: 取消以下服务注释，并取消 frontend 服务中对应的注释。
   # Security note: gVisor (runsc) is disabled by default. Set LAUNCHER_RUNTIME=runsc
   # and install gVisor on the host for hardware-level sandbox isolation.
   #
   # sandbox-launcher:
-  #   build: ./deploy/sandbox-launcher/
+  #   image: ${BIOMATE_SANDBOX_LAUNCHER_IMAGE:-ghcr.io/biomate-ai/biomate-sandbox-launcher:latest}
   #   container_name: biomate-sandbox-launcher
   #   restart: unless-stopped
   #   environment:
