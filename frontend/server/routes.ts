@@ -9449,10 +9449,18 @@ ${paramLines || '(none recorded)'}`;
                     const AWS = await import('@aws-sdk/client-s3');
                     const _nfKey = process.env.AWS_NF_ACCESS_KEY_ID;
                     const _nfSec = process.env.AWS_NF_SECRET_ACCESS_KEY;
+                    const _s3Ep = process.env.S3_ENDPOINT_URL;
                     const s3 = new AWS.S3Client({
                       region: 'us-east-1',
-                      followRegionRedirects: true,
-                      ...(_nfKey && _nfSec ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } } : {}),
+                      followRegionRedirects: !_s3Ep, // not applicable for MinIO
+                      ...(_s3Ep ? {
+                        endpoint: _s3Ep,
+                        forcePathStyle: true,
+                        credentials: {
+                          accessKeyId: _nfKey || process.env.AWS_ACCESS_KEY_ID || '',
+                          secretAccessKey: _nfSec || process.env.AWS_SECRET_ACCESS_KEY || '',
+                        },
+                      } : _nfKey && _nfSec ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } } : {}),
                     });
                     const listed: string[] = [];
                     let continuationToken: string | undefined = undefined;
@@ -9875,9 +9883,20 @@ ${paramLines || '(none recorded)'}`;
           if (!s3Match) throw new Error(`Invalid S3 URI: ${s3Uri}`);
           const [, bucket, key] = s3Match;
           const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+          // On-prem (MinIO): inject endpoint + forcePathStyle so the client hits
+          // MinIO instead of trying to reach AWS S3.
+          const _s3Endpoint = process.env.S3_ENDPOINT_URL;
           const s3 = new S3Client({
             region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1',
             followRegionRedirects: true,
+            ...(_s3Endpoint ? {
+              endpoint: _s3Endpoint,
+              forcePathStyle: true,
+              credentials: {
+                accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+                secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+              },
+            } : {}),
           });
           const s3Obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
           const chunks: Buffer[] = [];
@@ -12356,10 +12375,18 @@ Rules:
             // (same pattern as /api/invocations/:id/outputs at line ~7045).
             const _nfKey = process.env.AWS_NF_ACCESS_KEY_ID;
             const _nfSec = process.env.AWS_NF_SECRET_ACCESS_KEY;
+            const _s3Ep = process.env.S3_ENDPOINT_URL;
             const s3 = new AWS.S3Client({
               region: 'us-east-1',
-              followRegionRedirects: true,
-              ...(_nfKey && _nfSec ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } } : {}),
+              followRegionRedirects: !_s3Ep,
+              ...(_s3Ep ? {
+                endpoint: _s3Ep,
+                forcePathStyle: true,
+                credentials: {
+                  accessKeyId: _nfKey || process.env.AWS_ACCESS_KEY_ID || '',
+                  secretAccessKey: _nfSec || process.env.AWS_SECRET_ACCESS_KEY || '',
+                },
+              } : _nfKey && _nfSec ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } } : {}),
             });
             const listed: any[] = [];
             let continuationToken: string | undefined = undefined;
@@ -12388,19 +12415,23 @@ Rules:
               continuationToken = lr.IsTruncated ? lr.NextContinuationToken : undefined;
             } while (continuationToken);
 
-            // Presign each file's downloadUrl (1 hour TTL) in parallel
+            // Presign each file's downloadUrl (1 hour TTL) in parallel.
+            // On-prem (MinIO): presigned URLs embed internal minio:9000 hostname
+            // unreachable from browser — use Galaxy proxy path instead.
             const PRESIGN_TTL = 3600;
-            await Promise.all(listed.map(async (f: any) => {
-              try {
-                f.downloadUrl = await presigner.getSignedUrl(
-                  s3,
-                  new AWS.GetObjectCommand({ Bucket: f.s3_bucket, Key: f.s3_key }),
-                  { expiresIn: PRESIGN_TTL }
-                );
-              } catch (e: any) {
-                console.warn(`[output_files] presign failed for ${f.s3_key}: ${e?.message}`);
-              }
-            }));
+            if (!_s3Ep) {
+              await Promise.all(listed.map(async (f: any) => {
+                try {
+                  f.downloadUrl = await presigner.getSignedUrl(
+                    s3,
+                    new AWS.GetObjectCommand({ Bucket: f.s3_bucket, Key: f.s3_key }),
+                    { expiresIn: PRESIGN_TTL }
+                  );
+                } catch (e: any) {
+                  console.warn(`[output_files] presign failed for ${f.s3_key}: ${e?.message}`);
+                }
+              }));
+            }
             outputFiles = listed;
             console.log(`[output_files] S3 listing fallback: found ${listed.length} files under ${outdir} (presigned for ${PRESIGN_TTL}s)`);
           }
@@ -12422,7 +12453,16 @@ Rules:
               const AWS = await import('@aws-sdk/client-s3');
               const _nfKey = process.env.AWS_NF_ACCESS_KEY_ID;
               const _nfSec = process.env.AWS_NF_SECRET_ACCESS_KEY;
-              const s3 = new AWS.S3Client({
+              const _wdS3Ep = process.env.S3_ENDPOINT_URL;
+              const s3 = new AWS.S3Client(_wdS3Ep ? {
+                endpoint: _wdS3Ep,
+                region: 'us-east-1',
+                forcePathStyle: true,
+                credentials: {
+                  accessKeyId: _nfKey || process.env.AWS_ACCESS_KEY_ID || '',
+                  secretAccessKey: _nfSec || process.env.AWS_SECRET_ACCESS_KEY || '',
+                },
+              } : {
                 region: 'us-east-1',
                 followRegionRedirects: true,
                 ...(_nfKey && _nfSec ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } } : {}),
@@ -12845,8 +12885,10 @@ Rules:
         // Security: only allow our known buckets
         const ALLOWED_BUCKETS = new Set([
           process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work',
+          process.env.S3_BUCKET_NAME || 'biomate-data',
           'biomate-nextflow-work',
           'biomate-outputs',
+          'biomate-data',
         ]);
         if (!ALLOWED_BUCKETS.has(bucket)) {
           return res.status(403).json({ error: 'S3 bucket not allowed' });
@@ -12855,7 +12897,16 @@ Rules:
         const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
         const nfKey = process.env.AWS_NF_ACCESS_KEY_ID;
         const nfSecret = process.env.AWS_NF_SECRET_ACCESS_KEY;
-        const s3 = new S3Client({
+        const _stepS3Ep = process.env.S3_ENDPOINT_URL;
+        const s3 = new S3Client(_stepS3Ep ? {
+          endpoint: _stepS3Ep,
+          region: 'us-east-1',
+          forcePathStyle: true,
+          credentials: {
+            accessKeyId: nfKey || process.env.AWS_ACCESS_KEY_ID || '',
+            secretAccessKey: nfSecret || process.env.AWS_SECRET_ACCESS_KEY || '',
+          },
+        } : {
           region: 'us-east-1',
           followRegionRedirects: true,
           ...(nfKey && nfSecret ? { credentials: { accessKeyId: nfKey, secretAccessKey: nfSecret } } : {}),
@@ -13416,7 +13467,11 @@ Rules:
                 if (s3Match) {
                   const [, bucket, key] = s3Match;
                   const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-                  const s3c = new S3Client({
+                  const _anS3Ep = process.env.S3_ENDPOINT_URL;
+                  const s3c = new S3Client(_anS3Ep ? {
+                    endpoint: _anS3Ep, region: 'us-east-1', forcePathStyle: true,
+                    credentials: { accessKeyId: process.env.AWS_ACCESS_KEY_ID || '', secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '' },
+                  } : {
                     region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1',
                     followRegionRedirects: true,
                   });
@@ -13940,7 +13995,11 @@ Rules:
               const { S3Client: _S3C, GetObjectCommand: _GOC } = await import('@aws-sdk/client-s3');
               const _nfKey2 = process.env.AWS_NF_ACCESS_KEY_ID;
               const _nfSec2 = process.env.AWS_NF_SECRET_ACCESS_KEY;
-              const _s3c = new _S3C({
+              const _s3cEp = process.env.S3_ENDPOINT_URL;
+              const _s3c = new _S3C(_s3cEp ? {
+                endpoint: _s3cEp, region: 'us-east-1', forcePathStyle: true,
+                credentials: { accessKeyId: _nfKey2 || process.env.AWS_ACCESS_KEY_ID || '', secretAccessKey: _nfSec2 || process.env.AWS_SECRET_ACCESS_KEY || '' },
+              } : {
                 region: 'us-east-1', followRegionRedirects: true,
                 ...(_nfKey2 && _nfSec2 ? { credentials: { accessKeyId: _nfKey2, secretAccessKey: _nfSec2 } } : {}),
               });
@@ -13979,7 +14038,11 @@ Rules:
               const { S3Client: _S3F, GetObjectCommand: _GF, ListObjectsV2Command: _LF } = await import('@aws-sdk/client-s3');
               const _nfKeyF = process.env.AWS_NF_ACCESS_KEY_ID;
               const _nfSecF = process.env.AWS_NF_SECRET_ACCESS_KEY;
-              const _s3f = new _S3F({
+              const _s3fEp = process.env.S3_ENDPOINT_URL;
+              const _s3f = new _S3F(_s3fEp ? {
+                endpoint: _s3fEp, region: 'us-east-1', forcePathStyle: true,
+                credentials: { accessKeyId: _nfKeyF || process.env.AWS_ACCESS_KEY_ID || '', secretAccessKey: _nfSecF || process.env.AWS_SECRET_ACCESS_KEY || '' },
+              } : {
                 region: 'us-east-1', followRegionRedirects: true,
                 ...(_nfKeyF && _nfSecF ? { credentials: { accessKeyId: _nfKeyF, secretAccessKey: _nfSecF } } : {}),
               });
