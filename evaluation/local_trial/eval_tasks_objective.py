@@ -18,7 +18,7 @@ def main():
     rows=[json.loads(l) for l in open(a.evalfile)]
     BS=int(os.environ.get("GEN_BATCH","24")); outs=[]
     for i in range(0,len(rows),BS):
-        outs.extend(call_direct_batch([r["prompt"] for r in rows[i:i+BS]], 64))
+        outs.extend(call_direct_batch([r["prompt"] for r in rows[i:i+BS]], 256))
         print(f"[obj] {min(i+BS,len(rows))}/{len(rows)}",flush=True)
     agg=collections.defaultdict(lambda:[0,0])
     for r,o in zip(rows,outs):
