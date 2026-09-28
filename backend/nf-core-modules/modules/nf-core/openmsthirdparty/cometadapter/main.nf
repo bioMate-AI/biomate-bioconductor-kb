@@ -5,7 +5,7 @@ process OPENMSTHIRDPARTY_COMETADAPTER {
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/openms-thirdparty:3.4.1--h9ee0642_1' :
-        'biocontainers/openms-thirdparty:3.4.1--h9ee0642_1' }"
+        'quay.io/biocontainers/openms-thirdparty:3.4.1--h9ee0642_1' }"
 
     input:
     tuple val(meta), path(mzml), path(fasta)
