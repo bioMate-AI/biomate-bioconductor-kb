@@ -70,6 +70,12 @@ metrics stratified by provenance. Bound-geometry claims use experimental-only te
 
 ## 3. Metrics (per task, with definitions)
 
+> **Implementation: call the official harness, don't reimplement.** The 7-metric panel is computed by the
+> vendored `runtime/PepGLAD/cal_metrics.py` (`DockQ`, `DockQ≥0.23/0.49/0.80`, `RMSD(CA)`, `RMSD(full-atom)`,
+> `Slide AAR`, `Sequence/Struct/Codesign Diversity`, `Consistency`) via `evaluation/{dockq,diversity,seq_metric,rmsd,dG}`.
+> Report these keys verbatim. Competitors we re-run are scored through the *same* `cal_metrics.py` so the
+> comparison is apples-to-apples. (RMSD is un-aligned per-atom `compute_rmsd`.)
+
 **T1 — Canonical co-design (the 7-metric panel + stability):**
 - **DockQ** (0–1, interface quality; Success = DockQ ≥ 0.23 or field threshold)
 - **RMSD-Cα** (Å, backbone) and **full-atom RMSD** (Å)

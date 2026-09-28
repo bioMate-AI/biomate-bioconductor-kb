@@ -32,6 +32,18 @@ Convergence points: **①** D0 (frozen eval + clean corpus) gates all training �
 
 ## LANE M — Model building (GPU)
 
+> **LEVERAGE THE OFFICIAL HARNESS — do NOT reinvent (CLAUDE.md rule; the M0 stochastic-recon bug was a
+> reinvention symptom).** All model-lane steps call the vendored PepGLAD code in
+> `research/guangzhou_all_atom/runtime/PepGLAD/`:
+> - **Eval / 7-metric panel** → `cal_metrics.py` (emits DockQ, DockQ≥0.23/0.49/0.80, RMSD(CA), RMSD(full-atom),
+>   Slide AAR, Sequence/Struct/Codesign Diversity, Consistency) + `evaluation/{dockq,diversity,seq_metric,rmsd,dG}`.
+>   **Do not reimplement the panel.**
+> - **AE mid-train (M1)** → `train.py` + `AutoEncoderTrainer` (config-driven), not a custom training loop.
+> - **Generation (M2)** → `generate.py`. **Featurization** → `CoDesignDataset` + `scripts/data_process/process.py`
+>   (route CREMP/bound complexes through the real processor, don't hand-build batches).
+> - M0's reconstruction RMSD already equals the official `evaluation/rmsd.compute_rmsd` (un-aligned per-atom) —
+>   consistent with the panel; the fix there was determinism only.
+
 ### M0 — Tier-0 go/no-go gate  ·  *week 1, ~1 GPU afternoon, NO new data*
 Frozen-encoder linear-probe transfer matrix (committee's decisive experiment). 3 AE inits —
 small-mol / linear-epoch221 / random — frozen; measure all-atom reconstruction + ring-closure validity on
