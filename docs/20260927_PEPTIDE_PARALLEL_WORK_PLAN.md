@@ -142,11 +142,16 @@ spot GPU). Lane M owns the training GPUs. They don't fight for the same resource
 
 ---
 
-## Strength checkpoints (therapy-grade acceptance gates, not novelty gates)
+## Strength checkpoints (therapy-grade acceptance gates)
 
-Each model milestone is judged by **therapy-grade strength vs the best public component on that axis** — the
-model must be at least as strong before the system story is credible. Match-or-exceed is the bar; the
-differentiation is the composite system, not being first.
+Each model milestone is judged by **therapy-grade strength vs the best public component on that axis**.
+**Parity is the FLOOR, not the goal — the product has to be both strong AND genuinely innovative, or there's
+no reason to build it.** Matching SOTA per axis is the entry ticket; the win is **out-resolving the hard
+challenges** so we *exceed* SOTA where it counts. The innovation vectors (the resolved-challenge IP) are
+expected to *beat*, not just tie: **#1 chemistry-agnostic sidechain-ncAA representation**, **#3 hard
+non-canonical ring closure**, **joint co-design consistency**, **developability-conditioned generation**, and
+**#4 the closed loop compounding on proprietary data**. The differentiation is the composite system *plus*
+these advances — not being first in a niche, and not settling for parity.
 
 | Milestone | Axis | Strength bar (match or beat) | Beyond-parity (the added capability) |
 |---|---|---|---|
