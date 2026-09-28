@@ -12659,7 +12659,14 @@ Rules:
         const m = /^s3:\/\/([^/]+)\/(.+)$/.exec(uri || '');
         if (!m) return '';
         const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const client = new S3Client({ region: process.env.AWS_REGION || 'us-west-2' });
+        const _s3Ep = process.env.S3_ENDPOINT_URL;
+        const client = new S3Client(_s3Ep ? {
+          endpoint: _s3Ep, region: 'us-east-1', forcePathStyle: true,
+          credentials: {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+          },
+        } : { region: process.env.AWS_REGION || 'us-east-1', followRegionRedirects: true });
         const out = await client.send(new GetObjectCommand({ Bucket: m[1], Key: m[2] }));
         return (await (out.Body as any).transformToString()) as string;
       },
