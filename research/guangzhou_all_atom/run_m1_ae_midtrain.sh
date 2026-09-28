@@ -208,6 +208,15 @@ declare -a COMBO=(
   "g6.xlarge subnet-0254e4c3634b41bfc"
   "g5.2xlarge subnet-0254e4c3634b41bfc"
   "g6.2xlarge subnet-0b35a6e2c1cf02dc2"
+  # broadened net (M1 model is tiny — a T4 is plenty; add cheaper/older families across AZs)
+  "g4dn.xlarge subnet-0254e4c3634b41bfc"
+  "g4dn.xlarge subnet-03b277a7a08d388c1"
+  "g4dn.xlarge subnet-09e4dce46682a6c60"
+  "g4dn.xlarge subnet-0b35a6e2c1cf02dc2"
+  "g4dn.2xlarge subnet-0254e4c3634b41bfc"
+  "g5.4xlarge subnet-0254e4c3634b41bfc"
+  "g6.4xlarge subnet-0b35a6e2c1cf02dc2"
+  "g4dn.2xlarge subnet-09e4dce46682a6c60"
 )
 IID=""
 for c in "${COMBO[@]}"; do
