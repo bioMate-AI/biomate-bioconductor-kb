@@ -1,0 +1,6 @@
+# Generated corpus artifacts (large; rebuild with build_cyclic_corpus_v1.py, or pull from S3).
+# Keep the pipeline code + README tracked; never commit the multi-MB JSONL outputs.
+cyclic_corpus_v1/
+cyclic_corpus_*/
+*.jsonl
+__pycache__/
