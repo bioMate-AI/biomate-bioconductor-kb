@@ -464,7 +464,7 @@ else
     # Step 1: register (bcrypt is handled server-side; no-SMTP returns verificationToken)
     _REG=$(curl -sf -X POST "$_API/api/auth/register" \
       -H "Content-Type: application/json" \
-      --data-binary "{\"email\":${_json_email},\"password\":${_json_pass},\"acceptTerms\":true}" 2>&1 || true)
+      --data-binary "{\"email\":${_json_email},\"password\":${_json_pass},\"termsAccepted\":true}" 2>&1 || true)
     _VER_TOKEN=$(echo "$_REG" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('verificationToken',''))" 2>/dev/null || true)
 
     # Step 2: verify email (token returned when SMTP not configured)
@@ -487,7 +487,7 @@ else
       ok "管理员账号已创建: $ADMIN_EMAIL"
     else
       warn "管理员账号创建遇到问题，请稍后运行: bash scripts/biomate create-admin"
-      info "手动创建: curl -X POST http://localhost:${_FE_PORT}/api/auth/register -H 'Content-Type: application/json' -d '{\"email\":\"admin@example.com\",\"password\":\"yourpass\",\"acceptTerms\":true}'"
+      info "手动创建: curl -X POST http://localhost:${_FE_PORT}/api/auth/register -H 'Content-Type: application/json' -d '{\"email\":\"admin@example.com\",\"password\":\"yourpass\",\"termsAccepted\":true}'"
     fi
   fi
 fi

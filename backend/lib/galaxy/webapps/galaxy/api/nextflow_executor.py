@@ -4035,7 +4035,7 @@ def _build_qc_report_from_s3_files(s3_files: List[Dict], outdir: str) -> Optiona
     try:
         import boto3 as _boto3
         import json as _json
-        s3_client = _make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        s3_client = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
     except ImportError:
         return None
 
@@ -5525,11 +5525,12 @@ def _execute_nextflow_impl(
     # Auto-detect S3 inputs → also route to AWS Batch.
     # Nextflow stages S3 inputs natively on awsbatch; local executor cannot
     # reliably access S3 paths without the nf-amazon plugin + S3 workDir.
+    # Skip in on-prem local mode — MinIO paths start with s3:// but stay local.
     s3_inputs = [
         v for k, v in params.items()
         if k != "outdir" and isinstance(v, str) and v.startswith("s3://")
     ]
-    if s3_inputs:
+    if s3_inputs and not _onprem_local:
         if not compute.get("executor"):
             compute["executor"] = "awsbatch"
             log.info(
@@ -7390,6 +7391,26 @@ def download_s3_output(
         parts = s3_uri[len("s3://"):].split("/", 1)
         bucket, key = parts[0], parts[1]
         s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+
+        # On-prem (MinIO): presigned URL contains the internal Docker hostname
+        # (e.g. http://minio:9000/…) which is unreachable from the user's browser.
+        # Stream the file through Galaxy instead of issuing a redirect.
+        _s3_endpoint = os.environ.get("S3_ENDPOINT_URL", "")
+        if _s3_endpoint:
+            from starlette.responses import StreamingResponse
+            import mimetypes as _mimetypes
+            try:
+                obj = s3.get_object(Bucket=bucket, Key=key)
+            except Exception as exc:
+                raise HTTPException(status_code=404, detail=f"File not found in storage: {exc}")
+            filename = key.split("/")[-1]
+            content_type = obj.get("ContentType") or _mimetypes.guess_type(filename)[0] or "application/octet-stream"
+            return StreamingResponse(
+                obj["Body"].iter_chunks(),
+                media_type=content_type,
+                headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            )
+
         url = s3.generate_presigned_url(
             "get_object",
             Params={"Bucket": bucket, "Key": key},
@@ -7398,6 +7419,8 @@ def download_s3_output(
         if presigned_only:
             return {"url": url}
         return RedirectResponse(url, status_code=302)
+    except HTTPException:
+        raise
     except ImportError:
         raise HTTPException(status_code=503, detail="boto3 not installed — S3 downloads unavailable.")
     except Exception as exc:
@@ -7429,7 +7452,23 @@ def list_run_output_files(run_id: str) -> Any:
     if not raw_files:
         return {"run_id": run_id, "files": []}
 
-    # Generate presigned URLs for each file
+    # Generate download URLs for each file.
+    # On-prem (MinIO): presigned URLs point to the internal Docker hostname
+    # (minio:9000) which is unreachable from the browser. Use the Galaxy proxy
+    # endpoint /api/nextflow/outputs/download instead, which streams the file.
+    _s3_endpoint = os.environ.get("S3_ENDPOINT_URL", "")
+    if _s3_endpoint:
+        # Proxy through Galaxy — no boto3 presigning needed.
+        enriched = []
+        for f in raw_files:
+            s3_uri = f.get("s3_uri", "")
+            proxy_url = (
+                f"/api/nextflow/outputs/download?s3_uri={s3_uri}&run_id={run_id}"
+                if s3_uri else None
+            )
+            enriched.append({**f, "download_url": proxy_url})
+        return {"run_id": run_id, "files": enriched}
+
     try:
         import boto3
         s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))

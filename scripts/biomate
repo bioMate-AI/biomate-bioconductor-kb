@@ -128,7 +128,7 @@ create-admin)
   info "注册用户..."
   _REG=$(curl -sf -X POST "$_API/api/auth/register" \
     -H "Content-Type: application/json" \
-    --data-binary "{\"email\":$(printf '%s' "$ADMIN_EMAIL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'),\"password\":$(printf '%s' "$_admin_pass" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'),\"acceptTerms\":true}" 2>&1 || true)
+    --data-binary "{\"email\":$(printf '%s' "$ADMIN_EMAIL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'),\"password\":$(printf '%s' "$_admin_pass" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'),\"termsAccepted\":true}" 2>&1 || true)
   _VER_TOKEN=$(echo "$_REG" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('verificationToken',''))" 2>/dev/null || true)
 
   # Step 2: auto-verify email (no SMTP required)
@@ -154,7 +154,7 @@ create-admin)
     ok "管理员账号已创建/更新: $ADMIN_EMAIL (tier=admin)"
   else
     warn "账号未找到，请确认前端服务运行正常后重试"
-    info "手动创建: curl -X POST $_API/api/auth/register -H 'Content-Type: application/json' -d '{\"email\":\"admin@example.com\",\"password\":\"yourpass\",\"acceptTerms\":true}'"
+    info "手动创建: curl -X POST $_API/api/auth/register -H 'Content-Type: application/json' -d '{\"email\":\"admin@example.com\",\"password\":\"yourpass\",\"termsAccepted\":true}'"
   fi
   ;;
 
