@@ -1858,6 +1858,21 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
                 # The `.dat` extension is deliberately NOT a data extension the .nf
                 # bodies scan for (csv/tsv/txt/rds), so demo-capable workflows ignore
                 # it and take their no-input path.
+                #
+                # SINGLE COLLECT-ALL SLOT (n_path<=1) — declared names are logical, not
+                # positional: every supplied file lands in the SAME `path(input_files,
+                # stageAs:'?/*')` list regardless of which `// Input:` token it maps to. So
+                # when the slot is a single list AND we have already staged at least one real
+                # file for a prior declared name, a subsequent unsupplied name is harmless —
+                # it does NOT mean "half-bound channel". Skip it (do NOT even add a placeholder,
+                # which would pollute the file list) and let the R body resolve it as optional.
+                # Concrete case: dropletutils `// Input: dir.name, my.counts` — the 10X files
+                # cover `dir.name`; `my.counts` is optional (the R body derives it from the SCE
+                # via counts(sce) when no my.counts.rds/.mtx is staged). Previously this returned
+                # None → a 422 for the natural single-input call. A genuinely multi-SLOT
+                # workflow (n_path>1) still bails so its real missing input surfaces.
+                if n_path <= 1 and staged:
+                    continue
                 if n_path <= 1 and len(names) == 1:
                     _ph = run_dir / "bioc_no_input_placeholder.dat"
                     _ph.write_text("")

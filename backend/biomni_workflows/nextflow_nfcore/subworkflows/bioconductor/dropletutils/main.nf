@@ -3,7 +3,9 @@
 // Bioconductor workflow: dropletutils — import_and_filter_10x_data
 // Load 10X Genomics UMI count matrices, compute barcode ranks, and distinguish cell-containing droplets from empty droplets.
 // Input: dir.name, my.counts
-// Container: quay.io/biocontainers/bioconductor-dropletutils:1.30.0--r45ha27e39d_0
+// Container: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim
+// (Batch-ready ECR image w/ aws-cli deps + DropletUtils baked in; matches scran/scater/scuttle siblings.
+//  The raw quay.io biocontainer was missing libz.so.1 → Nextflow's injected AWS CLI failed S3 staging.)
 // R packages: Matrix, SingleCellExperiment, DropletUtils, knitr
 // Bioconductor: 3.21 | R: 4.5
 // Document-derived (two-stage interpret->build) real input-consuming pipeline.
@@ -20,7 +22,7 @@ process BIOC_DROPLETUTILS_IMPORT_AND_FILTER_10X_DATA {
 
     publishDir "${params.outdir}", mode: 'copy'
 
-    container "quay.io/biocontainers/bioconductor-dropletutils:1.30.0--r45ha27e39d_0"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
