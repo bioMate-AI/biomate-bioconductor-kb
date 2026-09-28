@@ -2797,8 +2797,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const userId = req.user!.id;
 
-      // For files < 100MB, use simple presigned URL
+      // For files < 100MB, use simple presigned URL.
+      // On-prem (MinIO): presigned URL embeds internal minio:9000 hostname
+      // unreachable from the browser — use the Node.js proxy route instead.
       if (fileSize < 100 * 1024 * 1024) {
+        if (process.env.S3_ENDPOINT_URL) {
+          const { randomUUID } = await import('crypto');
+          const minioBucket = process.env.S3_BUCKET_NAME || 'biomate-data';
+          const objectKey = `users/${userId}/uploads/${randomUUID()}-${filename}`;
+          const proxyUrl = `/api/s3/proxy-upload?key=${encodeURIComponent(objectKey)}&bucket=${encodeURIComponent(minioBucket)}&contentType=${encodeURIComponent(contentType)}`;
+          return res.json({
+            uploadId: randomUUID(),
+            uploadUrl: proxyUrl,
+            key: objectKey,
+            method: 'simple',
+            expiresIn: 3600,
+          });
+        }
         const uploadData = await s3Service.generatePresignedUploadUrl(
           userId,
           filename,
@@ -3005,6 +3020,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // On-prem proxy: relay a small-file PUT upload from the browser to MinIO.
+  // Used for files < 100MB when S3_ENDPOINT_URL is set (MinIO mode) to avoid
+  // exposing the internal minio:9000 hostname in presigned PUT URLs.
+  app.put("/api/s3/proxy-upload", authenticateToken, async (req, res) => {
+    try {
+      const endpointUrl = process.env.S3_ENDPOINT_URL;
+      if (!endpointUrl) return res.status(404).json({ error: 'Proxy only available on-prem (S3_ENDPOINT_URL not set)' });
+
+      const key = String(req.query.key || '');
+      const bucket = String(req.query.bucket || process.env.S3_BUCKET_NAME || 'biomate-data');
+      const contentType = String(req.query.contentType || 'application/octet-stream');
+      if (!key) return res.status(400).json({ error: 'Missing required query param: key' });
+
+      // Tenant isolation: key must belong to the calling user.
+      const userId = req.user!.id;
+      if (!key.startsWith(`users/${userId}/`)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const ALLOWED_BUCKETS = new Set([
+        process.env.S3_BUCKET_NAME || 'biomate-data',
+        'biomate-data', 'biomate-nextflow-work', 'biomate-outputs',
+      ]);
+      if (!ALLOWED_BUCKETS.has(bucket)) return res.status(403).json({ error: 'S3 bucket not allowed' });
+
+      // Collect the raw body (the file from the browser).
+      const chunks: Buffer[] = [];
+      await new Promise<void>((resolve, reject) => {
+        req.on('data', (chunk: Buffer) => chunks.push(chunk));
+        req.on('end', resolve);
+        req.on('error', reject);
+      });
+      const body = Buffer.concat(chunks);
+
+      const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+      const minioClient = new S3Client({
+        endpoint: endpointUrl,
+        region: 'us-east-1',
+        forcePathStyle: true,
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+        },
+      });
+
+      await minioClient.send(new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+        ContentLength: body.length,
+      }));
+
+      res.json({ success: true, key });
+    } catch (error: any) {
+      console.error('[S3] Proxy upload error:', error);
+      res.status(500).json({ error: 'Upload failed', message: error.message });
+    }
+  });
+
   // Get presigned download URL
   app.post("/api/s3/download", authenticateToken, async (req, res) => {
     try {
@@ -3026,6 +3101,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'File not found' });
       }
 
+      // On-prem (MinIO): presigned URL embeds internal Docker hostname (minio:9000)
+      // unreachable from the browser. Return a Galaxy-proxied URL instead.
+      if (process.env.S3_ENDPOINT_URL) {
+        const proxyUrl = `/api/s3/proxy-download?key=${encodeURIComponent(key)}`;
+        return res.json({ downloadUrl: proxyUrl, expiresIn: 3600 });
+      }
+
       // Generate presigned URL
       const downloadUrl = await s3Service.generatePresignedDownloadUrl(key);
 
@@ -3039,6 +3121,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: 'Failed to generate download URL',
         message: error.message,
       });
+    }
+  });
+
+  // On-prem proxy: stream an S3/MinIO object through Node.js.
+  // Used when S3_ENDPOINT_URL is set (MinIO mode) to avoid exposing the internal
+  // minio:9000 hostname in presigned URLs that browsers cannot reach.
+  app.get("/api/s3/proxy-download", authenticateToken, async (req, res) => {
+    try {
+      const endpointUrl = process.env.S3_ENDPOINT_URL;
+      if (!endpointUrl) return res.status(404).json({ error: 'Proxy only available on-prem (S3_ENDPOINT_URL not set)' });
+
+      const key = String(req.query.key || '');
+      if (!key) return res.status(400).json({ error: 'Missing required query param: key' });
+
+      // Tenant isolation: key must belong to the calling user.
+      const userId = req.user!.id;
+      if (!key.startsWith(`users/${userId}/`)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+      const minioClient = new S3Client({
+        endpoint: endpointUrl,
+        region: 'us-east-1',
+        forcePathStyle: true,
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+        },
+      });
+      const minioBucket = process.env.S3_BUCKET_NAME || 'biomate-data';
+      const obj = await minioClient.send(new GetObjectCommand({ Bucket: minioBucket, Key: key }));
+      const filename = key.split('/').pop() || 'download';
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', (obj as any).ContentType || 'application/octet-stream');
+      ((obj as any).Body as NodeJS.ReadableStream).pipe(res);
+    } catch (error: any) {
+      console.error('[S3] Proxy download error:', error);
+      res.status(500).json({ error: 'Download failed', message: error.message });
     }
   });
 
@@ -5221,15 +5342,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let allOutputFiles: string[] = [];
         let textOutputSamples: Array<{ name: string; content: string }> = [];
 
+        // On-prem: if outdir is a local filesystem path, scan it directly
+        // instead of trying to list it from S3/MinIO.
+        if (s3OutputBase && !s3OutputBase.startsWith('s3://')) {
+          try {
+            const fs = await import('fs/promises');
+            const { join: pathJoin } = await import('path');
+            const entries: string[] = [];
+            const walkDir = async (dir: string) => {
+              let list: string[] = [];
+              try { list = (await fs.readdir(dir)).map(e => pathJoin(dir, e)); } catch { return; }
+              for (const entry of list) {
+                const stat = await fs.stat(entry).catch(() => null);
+                if (!stat) continue;
+                if (stat.isDirectory()) await walkDir(entry);
+                else entries.push(entry);
+              }
+            };
+            await walkDir(s3OutputBase);
+            for (const fpath of entries) {
+              const fname = fpath.split('/').pop() || fpath;
+              if (BIN_EXTS.test(fname)) { allOutputFiles.push(fname + ' [binary]'); continue; }
+              allOutputFiles.push(fname);
+              if (TEXT_EXTS.test(fname) && textOutputSamples.length < 15) {
+                try {
+                  const content = (await fs.readFile(fpath, 'utf-8')).slice(0, 6000);
+                  textOutputSamples.push({ name: fname, content });
+                } catch { /* skip unreadable */ }
+              }
+            }
+          } catch { /* non-critical */ }
+        } else
+
         try {
           const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
           const nfAccessKey = process.env.AWS_NF_ACCESS_KEY_ID;
           const nfSecretKey = process.env.AWS_NF_SECRET_ACCESS_KEY;
+          // On-prem (MinIO): inject endpoint + forcePathStyle so listing hits MinIO
+          // instead of AWS S3. Also fall back to MinIO credentials when NF-specific
+          // keys are absent (on-prem uses MINIO_ROOT_USER as AWS_ACCESS_KEY_ID).
+          const s3EndpointUrl = process.env.S3_ENDPOINT_URL;
           const s3Client = new S3Client({
             region: 'us-east-1',
-            ...(nfAccessKey && nfSecretKey ? {
-              credentials: { accessKeyId: nfAccessKey, secretAccessKey: nfSecretKey }
+            ...(s3EndpointUrl ? {
+              endpoint: s3EndpointUrl,
+              forcePathStyle: true,
             } : {}),
+            credentials: {
+              accessKeyId: nfAccessKey || process.env.AWS_ACCESS_KEY_ID || '',
+              secretAccessKey: nfSecretKey || process.env.AWS_SECRET_ACCESS_KEY || '',
+            },
           });
 
           // Parse bucket and prefix from s3OutputBase
