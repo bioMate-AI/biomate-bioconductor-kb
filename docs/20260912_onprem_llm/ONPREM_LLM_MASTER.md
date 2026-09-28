@@ -182,6 +182,19 @@ no literature, no open-text mix." **Fixed by acquiring the entire PubMed corpus.
 5. **Programmatic scorers** (DAG/JSON-schema/type/EM) to replace teacher-fidelity. [TODO]
 6. `full_lit` eval + decision on 27B. [after mid-train]
 
+## 9b. DECISION (2026-09-28): 27B mid-train = NO-GO; eval judge was broken
+
+- **Broken metric found:** the teacher-coverage LLM judge (fidelity scorecard) is unreliable — diagnostic
+  showed it scored a hallucinated wrong workflow (`clustermix` vs gold `clustall`) as 1.0, and near-identical
+  answers 0.0 vs 0.8. The `sft_v4` macro 0.458 is **judge noise on an ungrounded eval**, NOT a real fail.
+- **Valid signal (objective gold routing, accept-set, no judge, matched 150-step SFT):**
+  plain-base+SFT **0.849** accept / 0.781 exact vs midtrain-1200-base+SFT **0.796** / 0.706 → **lift −0.053**.
+- **Conclusions:** (1) the plain-SFT 4B is strong on routing (0.849 vs frontier 0.978) — not a fail;
+  (2) **mid-training HURTS** (−5.3 pts), consistent with the prior wash + ~1% NLL. **27B → SFT-only, skip
+  mid-train.** Literature+KG corpus → use via RAG + KG→SFT-reasoning, not mid-train.
+- **Caveat:** ckpt-1200 + routing-only; full objective per-task grader suite (RealBio score.py contracts) is
+  the next build to confirm across all tasks and retire the judge everywhere.
+
 ## 10. Change log
 - 2026-09-26 (later): KG gap identified (only trivial hetionet in the mix) → building FULL PrimeKG
   (8.1M edges) + MAP-KG (verbalized) corpus from immune-llm-sourced references; wired `--kg`/`MIX_KG`/
