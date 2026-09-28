@@ -25,6 +25,10 @@ backend/nf-core-modules/*
 # (the bulk vendored module tree stays ignored above; our capability dirs are tracked)
 !backend/nf-core-modules/proteomics_dda_search/
 !backend/nf-core-modules/nf_encyclopedia/
+# vendored nf-core module deps (openms/*, openmsthirdparty/*, etc.) that the
+# capability subworkflows include by relative path — must ship or the workflow
+# registers but cannot compile (see docs/20260928_PROTEOMICS_DDA_VALIDATION.md).
+!backend/nf-core-modules/modules/
 backend/nf-core-workflows/
 backend/**/pkgs/cache/
 backend/tests/e2e_ui/test_videos/
