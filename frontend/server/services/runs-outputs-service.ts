@@ -29,6 +29,7 @@ const DEFAULT_NF_BUCKET =
   process.env.AWS_S3_NEXTFLOW_BUCKET || "biomate-nextflow-work";
 
 /** Single S3 client. us-east-1 + follow-redirects + NF creds when present.
+ *  On-prem MinIO: uses S3_ENDPOINT_URL + forcePathStyle (no AWS region redirect).
  *  Default credential chain when NF creds are absent (lets a dev environment
  *  with only AWS_ACCESS_KEY_ID still work). One construction; no drift. */
 let _s3: S3Client | null = null;
@@ -36,7 +37,16 @@ function s3(): S3Client {
   if (_s3) return _s3;
   const key = process.env.AWS_NF_ACCESS_KEY_ID;
   const sec = process.env.AWS_NF_SECRET_ACCESS_KEY;
-  _s3 = new S3Client({
+  const endpointUrl = process.env.S3_ENDPOINT_URL;
+  _s3 = new S3Client(endpointUrl ? {
+    endpoint: endpointUrl,
+    region: "us-east-1",
+    forcePathStyle: true,
+    credentials: {
+      accessKeyId: key || process.env.AWS_ACCESS_KEY_ID || "",
+      secretAccessKey: sec || process.env.AWS_SECRET_ACCESS_KEY || "",
+    },
+  } : {
     region: "us-east-1",
     followRegionRedirects: true,
     ...(key && sec
@@ -316,16 +326,23 @@ export class RunsOutputsService {
         const fileType = classifyFileType(extension);
         const s3Uri = `s3://${parsed.bucket}/${s3Key}`;
         let downloadUrl = "";
-        try {
-          downloadUrl = await getSignedUrl(
-            client,
-            new GetObjectCommand({ Bucket: parsed.bucket, Key: s3Key }),
-            { expiresIn: PRESIGN_TTL_SEC }
-          );
-        } catch (e: any) {
-          console.warn(
-            `[runs-outputs] presign failed for ${s3Key}: ${e?.message || e}`
-          );
+        // On-prem MinIO: presigned URLs embed the internal minio:9000 hostname
+        // which browsers cannot reach. Route through the Galaxy streaming proxy
+        // (/api/nextflow/outputs/download) which is proxied by Node.js.
+        if (process.env.S3_ENDPOINT_URL) {
+          downloadUrl = `/api/nextflow/outputs/download?s3_uri=${encodeURIComponent(s3Uri)}&run_id=${encodeURIComponent(meta.runId)}`;
+        } else {
+          try {
+            downloadUrl = await getSignedUrl(
+              client,
+              new GetObjectCommand({ Bucket: parsed.bucket, Key: s3Key }),
+              { expiresIn: PRESIGN_TTL_SEC }
+            );
+          } catch (e: any) {
+            console.warn(
+              `[runs-outputs] presign failed for ${s3Key}: ${e?.message || e}`
+            );
+          }
         }
         return {
           id: `${meta.runId}:${s3Key}`,

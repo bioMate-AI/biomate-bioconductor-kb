@@ -3136,8 +3136,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!key) return res.status(400).json({ error: 'Missing required query param: key' });
 
       // Tenant isolation: key must belong to the calling user.
+      // Accepted patterns:
+      //   users/<userId>/...       — personal uploads/outputs
+      //   projects/<projectId>/... — project files (verified by project membership below)
       const userId = req.user!.id;
-      if (!key.startsWith(`users/${userId}/`)) {
+      if (key.startsWith(`users/${userId}/`)) {
+        // personal file — allowed
+      } else if (key.startsWith('projects/')) {
+        // project file — verify caller is a project member
+        const projectId = key.split('/')[1];
+        if (!projectId) return res.status(403).json({ error: 'Access denied' });
+        const membership = await pool.query(
+          `SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2
+           UNION SELECT 1 FROM projects WHERE id = $1 AND owner_id = $2
+           LIMIT 1`,
+          [projectId, userId]
+        );
+        if (membership.rowCount === 0) return res.status(403).json({ error: 'Access denied' });
+      } else {
         return res.status(403).json({ error: 'Access denied' });
       }
 

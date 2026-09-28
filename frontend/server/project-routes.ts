@@ -518,7 +518,14 @@ export function registerProjectRoutes(app: Express): void {
         [fileId, id]
       );
       if (!fileRow.rows.length) return res.status(404).json({ error: "File not found" });
-      const url = await s3Service.generatePresignedDownloadUrl(fileRow.rows[0].s3_key, 900);
+      // On-prem (MinIO): presigned URLs embed internal minio:9000 hostname
+      // unreachable from the browser — return a Node.js proxy URL instead.
+      let url: string;
+      if (process.env.S3_ENDPOINT_URL) {
+        url = `/api/s3/proxy-download?key=${encodeURIComponent(fileRow.rows[0].s3_key)}`;
+      } else {
+        url = await s3Service.generatePresignedDownloadUrl(fileRow.rows[0].s3_key, 900);
+      }
       res.json({ url, name: fileRow.rows[0].name });
     } catch (e: any) {
       console.error("[project_files] url failed:", e?.message ?? e);

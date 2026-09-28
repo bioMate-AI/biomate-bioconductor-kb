@@ -10747,15 +10747,21 @@ async def fetch_public_data(body: FetchPublicDataRequest):
         finally:
             Path(tmp_path).unlink(missing_ok=True)
 
-        # Generate presigned URL (valid 24h)
-        presigned = s3.generate_presigned_url(
-            "get_object",
-            Params={"Bucket": s3_bucket, "Key": dest_key},
-            ExpiresIn=86400,
-        )
+        # Generate download URL.
+        # On-prem MinIO: presigned URLs embed the internal minio:9000 hostname
+        # which browsers cannot reach — return a Galaxy streaming proxy URL instead.
+        s3_uri_str = f"s3://{s3_bucket}/{dest_key}"
+        if os.environ.get("S3_ENDPOINT_URL"):
+            presigned = f"/api/nextflow/outputs/download?s3_uri={s3_uri_str}&run_id=direct"
+        else:
+            presigned = s3.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": s3_bucket, "Key": dest_key},
+                ExpiresIn=86400,
+            )
 
         return {
-            "s3_uri": f"s3://{s3_bucket}/{dest_key}",
+            "s3_uri": s3_uri_str,
             "s3_key": dest_key,
             "presigned_url": presigned,
             "filename": filename,
