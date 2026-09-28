@@ -74,22 +74,10 @@ RUN if ! Rscript -e 'quit(status = as.integer(!requireNamespace("xcms", quietly=
 # no-op in production. This RUN self-gates: it only installs when MetaboAnalystR's
 # heavy Bioc deps (impute/pcaMethods/...) are already present — i.e. ONLY in the
 # metabolomics image (those deps live in deps/metabolomics.txt) — and is a harmless
-# no-op for every other domain that shares this template. remotes is CRAN.
-RUN Rscript -e '\
-  gate <- all(vapply(c("impute","pcaMethods","siggenes","limma"), function(p) requireNamespace(p, quietly=TRUE), logical(1))); \
-  if (gate) { \
-    if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://packagemanager.posit.co/cran/2024-10-30"); \
-    if (utils::packageVersion("xfun") < "0.52") install.packages("xfun", repos="https://cloud.r-project.org"); \
-    try(remotes::install_github("xia-lab/OptiLCMS", upgrade="never", quiet=FALSE), silent=TRUE); \
-    if (!requireNamespace("OptiLCMS", quietly=TRUE)) { \
-      cat("[optilcms-patch] OptiLCMS compile failed (src/mzClust.cpp uses std::array but omits #include <array>; GCC13 no longer pulls it in transitively) — patching via R file-IO + local install. Deps were installed by the attempt above.\n"); \
-      download.file("https://github.com/xia-lab/OptiLCMS/archive/refs/heads/master.tar.gz", "/tmp/opti.tar.gz", quiet=TRUE); \
-      untar("/tmp/opti.tar.gz", exdir="/tmp"); \
-      f <- "/tmp/OptiLCMS-master/src/mzClust.cpp"; writeLines(c("#include <array>", readLines(f)), f); \
-      if (system("R CMD INSTALL /tmp/OptiLCMS-master") != 0) stop("OptiLCMS patched local install failed"); \
-    } \
-    remotes::install_github("xia-lab/MetaboAnalystR", upgrade="never", build=FALSE, quiet=FALSE); \
-    ok <- requireNamespace("OptiLCMS", quietly=TRUE) && requireNamespace("MetaboAnalystR", quietly=TRUE); \
-    cat("OptiLCMS present:", requireNamespace("OptiLCMS", quietly=TRUE), "| MetaboAnalystR present:", requireNamespace("MetaboAnalystR", quietly=TRUE), "\n"); \
-    if (!ok) stop("OptiLCMS/MetaboAnalystR failed to install — failing the build loudly (was silently swallowed before)"); \
-  } else { cat("Skipping MetaboAnalystR (non-metabolomics domain)\n") }'
+# no-op for every other domain that shares this template. The install logic lives
+# in install_metaboanalystr.R (COPY + Rscript <file>) — NOT inline `Rscript -e`:
+# long/complex inline R corrupted in transit through RUN -> /bin/sh -> Rscript -e
+# (parse errors that split mid-string at different points on different builds).
+# A file is byte-exact and self-gates to a no-op on non-metabolomics domains.
+COPY install_metaboanalystr.R /tmp/install_metaboanalystr.R
+RUN Rscript /tmp/install_metaboanalystr.R
