@@ -258,6 +258,18 @@ ok "必填项校验通过"
 # ─────────────────────────────────────────────────────────────────────────────
 step "拉取服务镜像 / Pulling images"
 
+# ── GHCR 认证（如果 BioMate 镜像是私有包，需要提供 Token）──────────────────────
+# GHCR_TOKEN: GitHub Personal Access Token (read:packages 权限)
+# 如果 BioMate 团队已将镜像设为公开，无需此步骤。
+# 如果拉取失败报 401，请在 .env 中添加: GHCR_TOKEN=ghp_xxxx 并重新运行 install.sh
+if [[ -n "${GHCR_TOKEN:-}" ]]; then
+  _ghcr_user="${GHCR_USER:-${GHCR_TOKEN_USER:-biomate-deploy}}"
+  info "使用 GHCR Token 登录 ghcr.io (用户: ${_ghcr_user})..."
+  echo "$GHCR_TOKEN" | docker login ghcr.io -u "$_ghcr_user" --password-stdin 2>&1 \
+    && ok "GHCR 登录成功" \
+    || warn "GHCR 登录失败，将尝试匿名拉取"
+fi
+
 info "拉取基础服务镜像（postgres, redis, minio, registry）..."
 docker pull postgres:15 2>&1 | tail -1
 docker pull redis:7-alpine 2>&1 | tail -1
@@ -271,12 +283,24 @@ ok "基础镜像就绪"
 GALAXY_IMAGE="${BIOMATE_BACKEND_IMAGE:-ghcr.io/biomate-ai/biomate-backend:latest}"
 FRONTEND_IMAGE="${BIOMATE_FRONTEND_IMAGE:-ghcr.io/biomate-ai/biomate-frontend:latest}"
 
-if ! docker image inspect "$GALAXY_IMAGE" &>/dev/null; then
-  info "Galaxy 镜像 $GALAXY_IMAGE 将在启动时从 GHCR 拉取（在线安装正常）"
-fi
-if ! docker image inspect "$FRONTEND_IMAGE" &>/dev/null; then
-  info "前端镜像 $FRONTEND_IMAGE 将在启动时从 GHCR 拉取（在线安装正常）"
-fi
+for _img in "$GALAXY_IMAGE" "$FRONTEND_IMAGE"; do
+  if docker image inspect "$_img" &>/dev/null; then
+    ok "镜像已存在（离线包）: $_img"
+  else
+    info "拉取 BioMate 镜像: $_img ..."
+    if ! docker pull "$_img" 2>&1; then
+      error "镜像拉取失败: $_img"
+      echo ""
+      echo "  可能原因:"
+      echo "    1. 网络问题（检查是否能访问 ghcr.io）"
+      echo "    2. 镜像为私有包，需要认证（在 .env 中设置 GHCR_TOKEN=ghp_xxxx）"
+      echo "    3. 离线部署：将 docker 镜像 tar 包传入并 docker load"
+      echo ""
+      die "请解决上述问题后重新运行 install.sh"
+    fi
+    ok "镜像拉取成功: $_img"
+  fi
+done
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 4. 创建 Nextflow 工作目录
@@ -405,15 +429,11 @@ _wait_healthy biomate-frontend 60
 # ─────────────────────────────────────────────────────────────────────────────
 step "初始化数据库 / Database initialization"
 
-info "运行数据库迁移..."
-if docker exec biomate-frontend node -e "
-  const { execSync } = require('child_process');
-  execSync('npx drizzle-kit migrate', { stdio: 'inherit' });
-" 2>/dev/null; then
-  ok "数据库迁移完成"
-else
-  warn "数据库迁移跳过（可能已经是最新版本）"
-fi
+# Migrations run automatically inside the frontend container at startup
+# (server/migrate.ts → applyPendingMigrations called in server/index.ts before
+# registerRoutes). The healthcheck above already confirmed the frontend is
+# healthy, so all pending migrations have been applied.
+ok "数据库迁移已在服务启动时自动完成"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 8. 创建管理员账号

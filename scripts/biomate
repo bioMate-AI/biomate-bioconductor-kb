@@ -163,20 +163,24 @@ license)
   info "检查许可证状态..."
   RESULT=$(curl -sf --max-time 10 http://localhost:8081/api/license/status 2>/dev/null || echo '{"status":"error"}')
   STATUS=$(echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','unknown'))" 2>/dev/null || echo "unknown")
+  EXPIRES=$(echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('expires','') or '')" 2>/dev/null || echo "")
   case "$STATUS" in
-    valid)
-      CUSTOMER=$(echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('customer',''))" 2>/dev/null || echo "")
-      EXPIRES=$(echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('expires',''))" 2>/dev/null || echo "")
+    active)
       ok "许可证有效"
-      echo "  客户: $CUSTOMER"
-      echo "  到期: $EXPIRES"
+      [[ -n "$EXPIRES" ]] && echo "  到期: $EXPIRES"
+      ;;
+    demo)
+      ok "许可证: 演示模式 (Demo)"
       ;;
     expired)
       error "许可证已过期，请联系 BioMate 团队续期: support@biomate.ai"
       exit 1 ;;
-    invalid|invalid_format|invalid_signature)
+    invalid_format|invalid_signature|invalid_expiry)
       error "许可证无效 ($STATUS)，请检查 BIOMATE_LICENSE_KEY 配置"
       exit 1 ;;
+    missing)
+      warn "未设置许可证 (BIOMATE_LICENSE_KEY 未配置，以演示模式运行)"
+      ;;
     *)
       warn "许可证状态: $STATUS (Galaxy 服务可能还未就绪)"
       ;;
