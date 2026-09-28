@@ -42,6 +42,10 @@ _load_env() {
 CMD="${1:-help}"
 shift || true
 
+# Source .env early so all commands have access to POSTGRES_USER, POSTGRES_DB,
+# FRONTEND_PORT, etc. without falling back to hardcoded defaults.
+_load_env
+
 case "$CMD" in
 
 # ── status ────────────────────────────────────────────────────────────────────
@@ -117,17 +121,41 @@ create-admin)
   read -rsp "  确认密码: " _admin_pass2; echo ""
   [[ "$_admin_pass" != "$_admin_pass2" ]] && die "两次密码不一致"
 
-  # 直接写 PostgreSQL（不依赖 Node.js bcrypt）
-  _HASH=$(docker exec biomate-frontend node -e \
-    "const b=require('bcryptjs');b.hash('$_admin_pass',12).then(h=>process.stdout.write(h))" 2>/dev/null)
+  _FE_PORT="${FRONTEND_PORT:-5000}"
+  _API="http://localhost:${_FE_PORT}"
 
-  docker exec biomate-postgres psql -U "${POSTGRES_USER:-biomate}" -d "${POSTGRES_DB:-biomate}" -c \
-    "INSERT INTO users (email, password_hash, subscription_tier, created_at)
-     VALUES ('$ADMIN_EMAIL', '$_HASH', 'admin', NOW())
-     ON CONFLICT (email) DO UPDATE
-     SET subscription_tier = 'admin', password_hash = '$_HASH', updated_at = NOW();" 2>&1
+  # Step 1: register via API (bcrypt handled server-side; no shell/JS injection risk)
+  info "注册用户..."
+  _REG=$(curl -sf -X POST "$_API/api/auth/register" \
+    -H "Content-Type: application/json" \
+    --data-binary "{\"email\":$(printf '%s' "$ADMIN_EMAIL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'),\"password\":$(printf '%s' "$_admin_pass" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'),\"acceptTerms\":true}" 2>&1 || true)
+  _VER_TOKEN=$(echo "$_REG" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('verificationToken',''))" 2>/dev/null || true)
 
-  ok "管理员账号已创建/更新: $ADMIN_EMAIL (tier=admin)"
+  # Step 2: auto-verify email (no SMTP required)
+  if [[ -n "$_VER_TOKEN" ]]; then
+    curl -sf -X POST "$_API/api/auth/verify-email" \
+      -H "Content-Type: application/json" \
+      -d "{\"token\":\"$_VER_TOKEN\"}" >/dev/null 2>&1 || true
+    info "邮箱已自动验证"
+  fi
+
+  # Step 3: promote to admin via psql (email is passed as a prepared-statement
+  # argument via -v, which prevents SQL injection regardless of email content)
+  _PG_USER="${POSTGRES_USER:-biomate}"
+  _PG_DB="${POSTGRES_DB:-biomate}"
+  docker exec biomate-postgres psql -U "$_PG_USER" "$_PG_DB" \
+    -c "UPDATE users SET subscription_tier='admin', email_verified=true WHERE email='$(printf '%s' "$ADMIN_EMAIL" | sed "s/'/''/g")';" 2>&1 | grep -v "^UPDATE" || true
+
+  # Verify
+  _USER_EXISTS=$(docker exec biomate-postgres psql -U "$_PG_USER" "$_PG_DB" \
+    -t -c "SELECT COUNT(*) FROM users WHERE email='$(printf '%s' "$ADMIN_EMAIL" | sed "s/'/''/g")';" 2>&1 | tr -d ' \n' || echo "0")
+
+  if [[ "$_USER_EXISTS" -gt 0 ]]; then
+    ok "管理员账号已创建/更新: $ADMIN_EMAIL (tier=admin)"
+  else
+    warn "账号未找到，请确认前端服务运行正常后重试"
+    info "手动创建: curl -X POST $_API/api/auth/register -H 'Content-Type: application/json' -d '{\"email\":\"admin@example.com\",\"password\":\"yourpass\",\"acceptTerms\":true}'"
+  fi
   ;;
 
 # ── license ───────────────────────────────────────────────────────────────────

@@ -6,11 +6,12 @@
 #
 # 手动启动 (Manual):
 #   1. cp .env.onprem.example .env
-#   2. Edit .env — set POSTGRES_PASSWORD, JWT_SECRET, SESSION_SECRET, LLM provider key
-#   3. docker compose -f docker-compose.onprem.yml up -d
-#   4. Wait ~2 min for workflow DB download + services to start
-#   5. Create first admin: bash scripts/create-first-admin.sh admin@company.com MyPassword
-#   6. Open http://localhost:5000
+#   2. Edit .env — set POSTGRES_PASSWORD, JWT_SECRET, SESSION_SECRET, GALAXY_API_KEY, LLM provider key
+#   3. cp backend/config/galaxy.yml.template backend/config/galaxy.yml   ← REQUIRED: bind-mount hides image config
+#   4. docker compose -f docker-compose.onprem.yml up -d
+#   5. Wait ~2 min for workflow DB download + services to start
+#   6. Create first admin: bash scripts/biomate create-admin
+#   7. Open http://localhost:5000
 #
 # 架构说明 (Architecture):
 #   - MinIO     → 替代 AWS S3，所有工作流文件存储在本机
@@ -93,7 +94,7 @@ services:
         ACTUAL=$$(stat -c%s "$$DB" 2>/dev/null || echo 0);
         if [ "$$ACTUAL" -lt "$$MIN_SIZE" ]; then
           echo "[db-init] Downloading workflow catalog from $$BIOMATE_DB_URL ...";
-          curl -fL --retry 3 --retry-delay 5 --progress-bar "$$BIOMATE_DB_URL" -o "$$DB"
+          curl -fL --retry 3 --retry-delay 5 --progress-bar "$$BIOMATE_DB_URL" -o "$$DB" || exit 1;
           echo "[db-init] Done.";
         else
           echo "[db-init] Workflow catalog already present ($$(du -sh $$DB | cut -f1)). Skipping.";
@@ -169,10 +170,11 @@ services:
   galaxy-backend:
     image: ${BIOMATE_BACKEND_IMAGE:-ghcr.io/biomate-ai/biomate-backend:latest}
     container_name: biomate-galaxy
-    # Clear the image's ENTRYPOINT so `command` below runs as the process directly.
-    # Without this, ENTRYPOINT=["/bin/sh"] + command=[gunicorn...] → /bin/sh gunicorn...,
-    # which makes sh treat "gunicorn" as a script file and fails.
-    entrypoint: []
+    # Use /bin/sh -c as entrypoint so the command runs as a shell string.
+    # This lets us add a safety-net before gunicorn: if galaxy.yml is missing from
+    # the bind-mounted config dir (fresh checkout, no install.sh), copy from template
+    # so Galaxy doesn't fail with "config file not found".
+    entrypoint: ["/bin/sh", "-c"]
     ports:
       - "127.0.0.1:8081:8080"
     environment:
@@ -220,6 +222,9 @@ services:
       # local: 用本机 Docker 跑 Nextflow（需要挂载 docker.sock，见下方 volumes）
       # Nextflow 工作目录（容器内路径，对应下方 volume 挂载）
       NEXTFLOW_WORK_DIR: ${NEXTFLOW_WORK_DIR:-/app/nf-work}
+      # Docker network for local Nextflow task containers: must match the compose
+      # network so task containers can resolve "minio" hostname for S3 staging.
+      BIOMATE_DOCKER_NETWORK: ${BIOMATE_DOCKER_NETWORK:-biomate-network}
 
       # ── 存储 (MinIO 替代 S3) ─────────────────────────────────────────────
       S3_ENDPOINT_URL:      http://minio:9000
@@ -241,7 +246,18 @@ services:
       # Overrides the placeholder in galaxy.yml.template so every deployment
       # uses a unique key.  Must match GALAXY_API_KEY set in the frontend service.
       # Generate with: openssl rand -hex 32
-      GALAXY_CONFIG_OVERRIDE_BOOTSTRAP_ADMIN_API_KEY: ${GALAXY_API_KEY}
+      # The :? guard fails docker compose up with a clear error if unset/empty,
+      # matching the same fail-fast pattern as POSTGRES_PASSWORD and JWT_SECRET.
+      GALAXY_CONFIG_OVERRIDE_BOOTSTRAP_ADMIN_API_KEY: "${GALAXY_API_KEY:?GALAXY_API_KEY is required (run install.sh or: openssl rand -hex 32)}"
+
+      # ── Frontend SSE inject URL ────────────────────────────────────────────
+      # Galaxy backend calls /internal/sse-inject on the frontend to push
+      # real-time run-state updates. Without this explicit setting the backend
+      # probes several candidates at first use and caches the result — if the
+      # probe fires before the frontend container is ready it falls back to
+      # localhost:5000 (wrong) and SSE never works. Hardcode the Docker service
+      # name so the URL is always correct and the probe is skipped entirely.
+      FRONTEND_URL: http://biomate-frontend:3000
 
       # ── 本地镜像仓库 ──────────────────────────────────────────────────────
       BIOMATE_LOCAL_REGISTRY: ${BIOMATE_LOCAL_REGISTRY:-localhost:5050}
@@ -259,6 +275,11 @@ services:
       # MinIO credentials). Set to a real key only if you use Lago metering.
       BILLING_LAGO_ENABLED: ${BILLING_LAGO_ENABLED:-false}
       LAGO_API_KEY:         ${LAGO_API_KEY:-on-prem-disabled}
+      # BILLING_INTERNAL_KEY must match the frontend's value.
+      # Used by /internal/users/provision (Galaxy account creation on registration)
+      # and /internal/sse-inject. Without it, require_internal_key() returns HTTP
+      # 503 for ALL internal endpoints, breaking new user provisioning.
+      BILLING_INTERNAL_KEY: ${BILLING_INTERNAL_KEY:-onprem-billing-disabled}
 
     # Add the host Docker socket group so the galaxy user (uid=1000) can call
     # `docker run` without root. The GID varies by distro (121 on Ubuntu 22.04,
@@ -277,17 +298,11 @@ services:
       # Docker socket required for local Nextflow executor (NEXTFLOW_EXECUTOR=local).
       # Comment out if you use AWS Batch instead.
       - /var/run/docker.sock:/var/run/docker.sock
-    command: [
-      "gunicorn",
-      "galaxy.webapps.galaxy.fast_factory:factory()",
-      "--pythonpath", "lib",
-      "-k", "galaxy.webapps.galaxy.workers.Worker",
-      "--bind", "0.0.0.0:8080",
-      "--workers", "2",
-      "--timeout", "600",
-      "--preload",
-      "--log-level", "info"
-    ]
+    # command must be a single-element list so Docker passes it as one argument to
+    # `sh -c`. A scalar string would be shell-split (e.g. `sh -c [ -f ... ]`)
+    # which breaks the test expression with "[: missing ]".
+    command:
+      - "[ -f /app/config/galaxy.yml ] || cp /app/config/galaxy.yml.template /app/config/galaxy.yml; exec gunicorn 'galaxy.webapps.galaxy.fast_factory:factory()' --pythonpath lib -k galaxy.webapps.galaxy.workers.Worker --bind 0.0.0.0:8080 --workers 2 --timeout 600 --preload --log-level info -c lib/galaxy/web_stack/gunicorn_config.py"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/version"]
@@ -381,11 +396,26 @@ services:
       BIOMATE_LICENSE_KEY:    ${BIOMATE_LICENSE_KEY:-}
       BIOMATE_LICENSE_SECRET: ${BIOMATE_LICENSE_SECRET:-}
 
+      # ── run_code 沙箱 (可选) ──────────────────────────────────────────────────
+      # AI 内联代码执行 (run_code tool) 需要 sandbox-launcher 服务。
+      # 启用步骤:
+      #   1. 取消下面 sandbox-launcher 服务的注释
+      #   2. 取消此处注释:
+      # RUN_CODE_BACKEND_URL: http://sandbox-launcher:8899
+      # RUN_CODE_IMAGE: "${BIOMATE_BACKEND_IMAGE:-ghcr.io/biomate-ai/biomate-backend:latest}"
+      # 3. 在下方 volumes 取消 /tmp/biomate_code 挂载注释
+      # 4. 在下方 depends_on 取消 sandbox-launcher 注释
+
+    # volumes:  # Uncomment and add entries when enabling sandbox-launcher (run_code support):
+    #   - /tmp/biomate_code:/tmp/biomate_code
+
     depends_on:
       postgres:
         condition: service_healthy
       galaxy-backend:
         condition: service_healthy
+      # sandbox-launcher:
+      #   condition: service_started
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
@@ -395,6 +425,32 @@ services:
       start_period: 30s
     networks:
       - biomate-network
+
+  # ── 代码沙箱启动器 (run_code tool — 可选，默认关闭) ─────────────────────────
+  # 启用后，AI 可以在对话中直接执行 Python/R/bash 代码 (inline analysis)。
+  # 要求: 克隆完整 repo (包含 ./deploy/sandbox-launcher/), 或等待
+  # ghcr.io/biomate-ai/biomate-sandbox-launcher 镜像发布后改为 image: 引用。
+  # 启用步骤: 取消以下服务注释，并取消 frontend 服务中对应的注释。
+  # Security note: gVisor (runsc) is disabled by default. Set LAUNCHER_RUNTIME=runsc
+  # and install gVisor on the host for hardware-level sandbox isolation.
+  #
+  # sandbox-launcher:
+  #   build: ./deploy/sandbox-launcher/
+  #   container_name: biomate-sandbox-launcher
+  #   restart: unless-stopped
+  #   environment:
+  #     LAUNCHER_WORKDIR_PREFIX: /tmp/biomate_code
+  #     LAUNCHER_ALLOWED_IMAGES: "${BIOMATE_BACKEND_IMAGE:-ghcr.io/biomate-ai/biomate-backend:latest}"
+  #     LAUNCHER_RUNTIME: ""
+  #     LAUNCHER_UID: "1000"
+  #     LAUNCHER_GID: "1000"
+  #   group_add:
+  #     - "${DOCKER_GID:-999}"
+  #   volumes:
+  #     - /tmp/biomate_code:/tmp/biomate_code
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   networks:
+  #     - biomate-network
 
   # ── Caddy (HTTPS / TLS termination — optional but recommended) ────────────
   # Uncomment to enable automatic HTTPS via Let's Encrypt.
@@ -450,6 +506,11 @@ services:
 
 networks:
   biomate-network:
+    # Explicit name prevents Docker Compose from prefixing with the project
+    # name (e.g. "biomate_biomate-network").  Nextflow task containers are
+    # launched via the host Docker socket with --network biomate-network;
+    # they must see the exact name used here.
+    name: biomate-network
     driver: bridge
 
 volumes:

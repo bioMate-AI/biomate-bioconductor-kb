@@ -989,6 +989,19 @@ export function getUploadedFile(datasetId: string): { name: string; filePath: st
  */
 async function _s3ClientForBucket(s3Bucket: string): Promise<any> {
   const { S3Client, GetBucketLocationCommand } = await import('@aws-sdk/client-s3');
+  // On-prem MinIO: skip region detection (not applicable) and use endpoint.
+  const endpointUrl = process.env.S3_ENDPOINT_URL;
+  if (endpointUrl) {
+    return new S3Client({
+      endpoint: endpointUrl,
+      region: 'us-east-1',
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+      },
+      forcePathStyle: true,
+    });
+  }
   const base = process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1';
   let region = base;
   try {
@@ -999,7 +1012,13 @@ async function _s3ClientForBucket(s3Bucket: string): Promise<any> {
 }
 
 async function _uploadFileToS3(localPath: string, datasetId: string, fileName: string): Promise<string | undefined> {
-  const s3Bucket = process.env.NEXTFLOW_S3_BUCKET || process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
+  const endpointUrl = process.env.S3_ENDPOINT_URL;
+  // On-prem MinIO: upload to the app bucket (S3_BUCKET_NAME) so the Galaxy
+  // container can access the file via MinIO (there is no shared filesystem
+  // between the frontend and galaxy containers). SaaS: use the Nextflow bucket.
+  const s3Bucket = endpointUrl
+    ? (process.env.S3_BUCKET_NAME || 'biomate-data')
+    : (process.env.NEXTFLOW_S3_BUCKET || process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work');
   const s3Key = `uploads/${datasetId}/${fileName}`;
   const s3Uri = `s3://${s3Bucket}/${s3Key}`;
   try {
@@ -1007,7 +1026,7 @@ async function _uploadFileToS3(localPath: string, datasetId: string, fileName: s
     const fs = await import('node:fs');
     const s3 = await _s3ClientForBucket(s3Bucket);
     await s3.send(new PutObjectCommand({ Bucket: s3Bucket, Key: s3Key, Body: fs.createReadStream(localPath) }));
-    console.log(`[FileUpload] Mirrored to S3: ${s3Uri}`);
+    console.log(`[FileUpload] Mirrored to ${endpointUrl ? 'MinIO' : 'S3'}: ${s3Uri}`);
     return s3Uri;
   } catch (err: any) {
     console.warn(`[FileUpload] S3 mirror failed (Nextflow workflows may not access this file): ${err.message}`);
@@ -1018,9 +1037,20 @@ async function _uploadFileToS3(localPath: string, datasetId: string, fileName: s
 // Stage a project-uploaded file (stored in the app bucket S3_BUCKET_NAME, which
 // AWS Batch workers cannot read) into the Batch-readable Nextflow bucket via a
 // server-side cross-bucket copy. Returns the resolvable s3:// URI, or undefined.
+//
+// On-prem MinIO (S3_ENDPOINT_URL set): the local Nextflow executor accesses MinIO
+// directly using the same bucket, so no cross-bucket copy is needed — return the
+// file's existing URI directly. The separate NEXTFLOW_S3_BUCKET doesn't exist in
+// MinIO and the copy would fail, silently dropping the resolved URI.
 async function _stageProjectFileToNextflow(
   srcBucket: string, srcKey: string, projectId: string, fileName: string,
 ): Promise<string | undefined> {
+  // On-prem: return the file's existing MinIO URI — no cross-bucket copy needed.
+  if (process.env.S3_ENDPOINT_URL) {
+    const uri = `s3://${srcBucket}/${srcKey}`;
+    console.log(`[ProjectStage] on-prem: using direct MinIO URI: ${uri}`);
+    return uri;
+  }
   const destBucket = process.env.NEXTFLOW_S3_BUCKET || process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
   const destKey = `uploads/project-${projectId}/${fileName}`;
   const destUri = `s3://${destBucket}/${destKey}`;
@@ -1170,14 +1200,33 @@ async function stageLocalFilesForBatch(
   uuidFilePaths?: Record<string, { filePath: string; name: string }>
 ): Promise<Record<string, any>> {
   const useAws = (process.env.NEXTFLOW_USE_AWS || '').toLowerCase() in { true: 1, '1': 1, yes: 1 };
-  if (!useAws) return params;
+  // On-prem: if MinIO is configured (S3_ENDPOINT_URL set), stage files there so
+  // the Galaxy/Nextflow side can fetch them via the same MinIO endpoint.
+  const minioEndpoint = process.env.S3_ENDPOINT_URL; // e.g. "http://minio:9000"
+  if (!useAws && !minioEndpoint) return params;
 
-  const { PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || process.env.NEXTFLOW_S3_BUCKET || 'biomate-nextflow-work';
-  // Pin the client to the BUCKET's real region (us-east-1), not the us-west-2 default —
-  // a region-mismatched client rejects the PutObject with "must be addressed using the
-  // specified endpoint", which silently failed input staging for every file-param run.
-  const s3 = await _s3ClientForBucket(s3Bucket);
+  const { PutObjectCommand, S3Client } = await import('@aws-sdk/client-s3');
+  let s3: any;
+  let s3Bucket: string;
+  if (useAws) {
+    s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || process.env.NEXTFLOW_S3_BUCKET || 'biomate-nextflow-work';
+    // Pin the client to the BUCKET's real region (us-east-1), not the us-west-2 default —
+    // a region-mismatched client rejects the PutObject with "must be addressed using the
+    // specified endpoint", which silently failed input staging for every file-param run.
+    s3 = await _s3ClientForBucket(s3Bucket);
+  } else {
+    // On-prem MinIO path: use path-style access against the local MinIO endpoint.
+    s3Bucket = process.env.S3_BUCKET_NAME || 'biomate-data';
+    s3 = new S3Client({
+      endpoint: minioEndpoint,
+      region: 'us-east-1',
+      credentials: {
+        accessKeyId:     process.env.AWS_ACCESS_KEY_ID || process.env.MINIO_ROOT_USER || 'biomate',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || process.env.MINIO_ROOT_PASSWORD || '',
+      },
+      forcePathStyle: true,
+    });
+  }
 
   const _UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -2770,6 +2819,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // leaves headroom). Without this, files >640 GiB would fail init.
         const DEFAULT_CHUNK = 64 * 1024 * 1024;
         const chunkSize = Math.max(DEFAULT_CHUNK, Math.ceil(fileSize / 9500));
+        const numParts = Math.ceil(fileSize / chunkSize);
+
+        // On-prem (MinIO): presigned part URLs use internal minio:9000 hostname
+        // that browsers cannot reach. Instead, create the multipart upload server-side
+        // and return proxy URLs (/api/s3/upload/part) that the browser PUTs to.
+        // The Node.js proxy relays each part to MinIO and returns the ETag.
+        if (process.env.S3_ENDPOINT_URL) {
+          const { S3Client, CreateMultipartUploadCommand } = await import('@aws-sdk/client-s3');
+          const minioBucket = process.env.S3_BUCKET_NAME || 'biomate-data';
+          const objectKey = `users/${userId}/uploads/${(await import('crypto')).randomUUID()}-${filename}`;
+          const minioClient = new S3Client({
+            endpoint: process.env.S3_ENDPOINT_URL,
+            region: 'us-east-1',
+            forcePathStyle: true,
+            credentials: {
+              accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+              secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+            },
+          });
+          const created = await minioClient.send(new CreateMultipartUploadCommand({
+            Bucket: minioBucket,
+            Key: objectKey,
+            ContentType: contentType,
+          }));
+          const s3UploadId = created.UploadId;
+          if (!s3UploadId) throw new Error('MinIO did not return UploadId');
+          // Return proxy URLs — browser PUTs to Node.js which relays to MinIO.
+          const partUrls = Array.from({ length: numParts }, (_, i) =>
+            `/api/s3/upload/part?uploadId=${encodeURIComponent(s3UploadId)}&key=${encodeURIComponent(objectKey)}&partNumber=${i + 1}&bucket=${encodeURIComponent(minioBucket)}`
+          );
+          return res.json({
+            uploadId: s3UploadId,
+            key: objectKey,
+            partUrls,
+            chunkSize,
+            numParts,
+            method: 'multipart',
+            expiresIn: 6 * 3600,
+          });
+        }
+
         const multipartData = await s3Service.startMultipartUpload(
           userId,
           filename,
@@ -2843,6 +2933,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: 'Failed to abort multipart upload',
         message: error.message,
       });
+    }
+  });
+
+  // On-prem MinIO proxy for multipart part upload.
+  // Browser PUTs each chunk here; Node.js relays to MinIO via UploadPartCommand
+  // and returns { ETag } so the client can assemble the CompleteMultipartUpload call.
+  app.put("/api/s3/upload/part", authenticateToken, async (req, res) => {
+    try {
+      const endpointUrl = process.env.S3_ENDPOINT_URL;
+      if (!endpointUrl) return res.status(404).json({ error: 'Proxy only available on-prem (S3_ENDPOINT_URL not set)' });
+
+      const { uploadId, key, partNumber, bucket } = req.query as Record<string, string>;
+      if (!uploadId || !key || !partNumber || !bucket) {
+        return res.status(400).json({ error: 'Missing required query params: uploadId, key, partNumber, bucket' });
+      }
+      const partNum = parseInt(partNumber, 10);
+      if (!Number.isInteger(partNum) || partNum < 1 || partNum > 10000) {
+        return res.status(400).json({ error: 'Invalid partNumber' });
+      }
+
+      // Tenant isolation: key must belong to the calling user.
+      const userId = req.user!.id;
+      if (!String(key).startsWith(`users/${userId}/`)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const ALLOWED_BUCKETS_UP = new Set([
+        process.env.S3_BUCKET_NAME || 'biomate-data',
+        'biomate-data', 'biomate-nextflow-work', 'biomate-outputs',
+      ]);
+      if (!ALLOWED_BUCKETS_UP.has(bucket)) return res.status(403).json({ error: 'S3 bucket not allowed' });
+
+      // Collect the raw body (the file chunk from the browser).
+      const chunks: Buffer[] = [];
+      await new Promise<void>((resolve, reject) => {
+        req.on('data', (chunk: Buffer) => chunks.push(chunk));
+        req.on('end', resolve);
+        req.on('error', reject);
+      });
+      const body = Buffer.concat(chunks);
+
+      const { S3Client, UploadPartCommand } = await import('@aws-sdk/client-s3');
+      const minioClient = new S3Client({
+        endpoint: endpointUrl,
+        region: 'us-east-1',
+        forcePathStyle: true,
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+        },
+      });
+
+      const out = await minioClient.send(new UploadPartCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: uploadId,
+        PartNumber: partNum,
+        Body: body,
+        ContentLength: body.length,
+      }));
+
+      const eTag = out.ETag;
+      if (!eTag) throw new Error('MinIO did not return ETag for part upload');
+      // S3-compatible responses need CORS-exposed ETag header so browser fetch() can read it.
+      res.setHeader('ETag', eTag);
+      res.json({ ETag: eTag });
+    } catch (error: any) {
+      console.error('[S3] Part upload proxy error:', error);
+      res.status(500).json({ error: 'Part upload failed', message: error.message });
     }
   });
 
@@ -3920,12 +4079,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // The frontend viewer passes its execution run UUID (frontend storage ID).
   // The Python backend's _runs dict is keyed by the Nextflow-assigned run_id.
   // We resolve the translation here before proxying to the Python backend.
-  app.post("/api/workflows/runs/:runId/rerun", optionalAuth, async (req, res) => {
+  app.post("/api/workflows/runs/:runId/rerun", authenticateToken, async (req, res) => {
     try {
       const { runId } = req.params;
 
       // Resolve the Nextflow run_id from the frontend execution run record.
       const execRun = await storage.getExecutionRun(runId).catch(() => null);
+
+      // Ownership check: runs with a known userId must belong to the caller.
+      if (execRun?.userId && req.user?.id && execRun.userId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
       const nextflowRunId =
         execRun?.execution?.nextflowRunId ||
         execRun?.execution?.galaxyInvocationId ||
@@ -5983,8 +6148,18 @@ ${paramLines || '(none recorded)'}`;
       // Fall back to system-level openai_compatible key (LLM_API_KEY + LLM_API_URL).
       // Enables on-prem deployments with Qianwen/DashScope, local vLLM, DeepSeek, etc.
       // when no Anthropic/Gemini/OpenRouter key is configured.
+      // Condition: check LLM_API_URL first so on-prem setups work even when
+      // LLM_API_KEY=none (the default in .env.onprem.example — local models
+      // typically require no auth key; 'none' is a valid placeholder).
       let _openaiBaseUrl: string | undefined;
-      if (!_openrouterKey && process.env.LLM_API_KEY && process.env.LLM_API_KEY !== 'none') {
+      if (!_openrouterKey && process.env.LLM_API_URL) {
+        // Use the key if provided; 'none' or empty → pass 'none' (accepted by local servers).
+        _openrouterKey = (process.env.LLM_API_KEY && process.env.LLM_API_KEY !== 'none')
+          ? process.env.LLM_API_KEY
+          : 'none';
+        _openaiBaseUrl = process.env.LLM_API_URL;
+        if (!_selectedModel) _selectedModel = process.env.LLM_MODEL || process.env.GALAXY_AI_LLM_MODEL || 'qwen-max';
+      } else if (!_openrouterKey && process.env.LLM_API_KEY && process.env.LLM_API_KEY !== 'none') {
         _openrouterKey = process.env.LLM_API_KEY;
         _openaiBaseUrl = process.env.LLM_API_URL || undefined;
         if (!_selectedModel) _selectedModel = process.env.LLM_MODEL || process.env.GALAXY_AI_LLM_MODEL || 'qwen-max';
@@ -8116,6 +8291,8 @@ ${paramLines || '(none recorded)'}`;
         process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work',
         'biomate-nextflow-work',
         'biomate-outputs',
+        // On-prem MinIO single-bucket deployment uses S3_BUCKET_NAME (default: biomate-data).
+        process.env.S3_BUCKET_NAME || 'biomate-data',
       ]);
       if (!ALLOWED_BUCKETS.has(bucket)) {
         return res.status(403).json({ error: "S3 bucket not allowed" });
@@ -8139,6 +8316,12 @@ ${paramLines || '(none recorded)'}`;
       const cmd = new GetObjectCommand({ Bucket: bucket, Key: key });
 
       if (IMAGE_EXTS.has(ext)) {
+        if (process.env.S3_ENDPOINT_URL) {
+          // On-prem MinIO: presigned URLs use internal hostname browsers can't reach.
+          // Return a Node.js proxy path instead so the UI can load the image via the API.
+          const proxyPath = `/api/files/serve?bucket=${encodeURIComponent(bucket)}&key=${encodeURIComponent(key)}`;
+          return res.json({ content_type: 'image', download_url: proxyPath });
+        }
         const url = await getSignedUrl(s3, cmd, { expiresIn: 3600 });
         return res.json({ content_type: 'image', download_url: url });
       }
@@ -8158,9 +8341,54 @@ ${paramLines || '(none recorded)'}`;
         return res.json({ content_type: isTable ? 'table' : 'text', preview_text: preview, rows: lines.length, truncated });
       }
 
-      // Binary / unknown: return a presigned download URL
+      // Binary / unknown: return a presigned download URL (SaaS) or proxy path (on-prem).
+      if (process.env.S3_ENDPOINT_URL) {
+        const proxyPath = `/api/files/serve?bucket=${encodeURIComponent(bucket)}&key=${encodeURIComponent(key)}`;
+        return res.json({ content_type: 'binary', download_url: proxyPath });
+      }
       const url = await getSignedUrl(s3, cmd, { expiresIn: 3600 });
       return res.json({ content_type: 'binary', download_url: url });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/files/serve — on-prem MinIO proxy: stream a file object through Node.js
+  // so browsers can download MinIO objects without needing direct access to minio:9000.
+  // Only active when S3_ENDPOINT_URL is set (on-prem); on SaaS, clients use presigned S3 URLs.
+  app.get("/api/files/serve", optionalAuth, async (req, res) => {
+    try {
+      const { bucket, key } = req.query as { bucket?: string; key?: string };
+      if (!bucket || !key) return res.status(400).json({ error: "bucket and key are required" });
+
+      // Restrict to known on-prem buckets to prevent arbitrary object access.
+      const ALLOWED = new Set([
+        process.env.S3_BUCKET_NAME || 'biomate-data',
+        process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work',
+        'biomate-data', 'biomate-nextflow-work', 'biomate-outputs',
+      ]);
+      if (!ALLOWED.has(bucket)) return res.status(403).json({ error: "S3 bucket not allowed" });
+
+      const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+      const endpointUrl = process.env.S3_ENDPOINT_URL;
+      if (!endpointUrl) return res.status(404).json({ error: "Proxy only available on-prem (S3_ENDPOINT_URL not set)" });
+
+      const s3 = new S3Client({
+        endpoint: endpointUrl,
+        region: 'us-east-1',
+        forcePathStyle: true,
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+        },
+      });
+      const out = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+      const contentType = out.ContentType || 'application/octet-stream';
+      const fname = String(key).split('/').pop() || 'download';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `inline; filename="${fname}"`);
+      if (out.ContentLength) res.setHeader('Content-Length', String(out.ContentLength));
+      (out.Body as any).pipe(res);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -8506,6 +8734,17 @@ ${paramLines || '(none recorded)'}`;
       if (!filename) return res.status(400).json({ error: "filename is required" });
       if (!s3Service.getBucketName()) {
         return res.status(503).json({ error: "S3 not configured — file uploads unavailable in this environment" });
+      }
+      // On-prem MinIO: the generated presigned URL contains the internal Docker
+      // hostname (minio:9000) which is unreachable from outside the Docker network.
+      // MCP connector clients run outside Docker, so returning that URL would silently
+      // fail. Direct presigned uploads are a SaaS-only path; on-prem users should
+      // upload via the web interface (/api/datasets/upload or /api/s3/upload/init).
+      if (process.env.S3_ENDPOINT_URL) {
+        return res.status(501).json({
+          error: "Direct presigned uploads are not supported on on-prem MinIO deployments. " +
+            "Use the web interface to upload files, or POST binary data to /api/datasets/upload.",
+        });
       }
       const userId = req.user?.id ?? 'anonymous';
       const uploadData = await s3Service.generatePresignedUploadUrl(
@@ -9714,7 +9953,7 @@ ${paramLines || '(none recorded)'}`;
   // ============================================================================
 
   // Create a new execution run (unified sandbox/production)
-  app.post("/api/workflows/execute", optionalAuth, async (req, res) => {
+  app.post("/api/workflows/execute", authenticateToken, async (req, res) => {
     let executionRun: any = null;
     let galaxyHistoryId: string | null = null;
     let galaxyWorkflowId: string | null = null;
@@ -10888,7 +11127,7 @@ ${paramLines || '(none recorded)'}`;
   };
 
   // Get execution run status (lightweight polling endpoint)
-  app.get("/api/workflows/runs/:id/status", async (req, res) => {
+  app.get("/api/workflows/runs/:id/status", authenticateToken, async (req, res) => {
     try {
       let run = await storage.getExecutionRun(req.params.id);
       if (!run) {
@@ -12104,8 +12343,16 @@ Rules:
   // internal network (port 8081, not exposed to browsers). This route
   // forwards authenticated download requests to Galaxy so browsers can
   // fetch on-prem workflow output files through the main app port.
-  app.get("/api/galaxy-proxy/api/nextflow/outputs/local-download", optionalAuth, async (req: any, res) => {
+  app.get("/api/galaxy-proxy/api/nextflow/outputs/local-download", authenticateToken, async (req: any, res) => {
     try {
+      // Ownership check: the run must belong to the authenticated user.
+      const runId = req.query.run_id as string | undefined;
+      if (runId) {
+        const execRun = await storage.getExecutionRun(runId).catch(() => null);
+        if (execRun?.userId && req.user?.id && execRun.userId !== req.user.id) {
+          return res.status(403).json({ error: 'Forbidden' });
+        }
+      }
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       const qs = new URLSearchParams(req.query as Record<string, string>).toString();
       const upstream = await fetch(`${galaxyUrl}/api/nextflow/outputs/local-download?${qs}`, {
@@ -12269,7 +12516,8 @@ Rules:
       const localFiles: any[] = Array.isArray(nfStatus?.output_files) ? nfStatus.output_files : [];
       const allFiles = [...s3Files, ...localFiles];
       const match = allFiles.find((f: any) =>
-        (f?.filename === filename || f?.name === filename) && (f?.s3_uri || f?.path)
+        // Match by filename or name; accept s3_uri, path, or local_path (on-prem local executor).
+        (f?.filename === filename || f?.name === filename) && (f?.s3_uri || f?.path || f?.local_path)
       );
       if (!match) {
         await writeAuditRow(404, null, runProjectId);
@@ -12277,6 +12525,30 @@ Rules:
       }
 
       const fileSize = typeof match.size === 'number' ? match.size : null;
+
+      // 4a. On-prem local executor: proxy through the Galaxy backend's local-download endpoint.
+      const localPath: string | undefined = match.local_path;
+      if (localPath) {
+        const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+        const galaxyRunId = (run as any).galaxyId || runId;
+        const path = await import('node:path');
+        // Derive rel_path from the local_path and the run's outdir context.
+        // The local-download endpoint resolves it against the stored outdir.
+        const relPath = match.rel_path || path.basename(localPath);
+        const dlUrl = `${galaxyUrl}/api/nextflow/outputs/local-download?run_id=${encodeURIComponent(galaxyRunId)}&rel_path=${encodeURIComponent(relPath)}`;
+        const upstream = await fetch(dlUrl);
+        if (!upstream.ok) {
+          await writeAuditRow(upstream.status, fileSize, runProjectId);
+          return res.status(upstream.status).json({ error: `Galaxy local-download failed: ${upstream.status}` });
+        }
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        const ct = upstream.headers.get('content-type') || 'application/octet-stream';
+        res.setHeader('Content-Type', ct);
+        await writeAuditRow(200, fileSize, runProjectId);
+        const elapsed = Date.now() - startedAt;
+        console.log(`[output_download] runId=${runId} file=${filename} user=${userId} → 200 local-proxy (${elapsed}ms)`);
+        return (upstream.body as any).pipe(res);
+      }
 
       // 4. If it's an S3 file, generate 60-second presigned URL and 302 redirect.
       //    If it's a local path, stream it (small files only — large ones live in S3).
@@ -12289,14 +12561,45 @@ Rules:
         }
         const [, bucket, key] = m;
         const AWS = await import('@aws-sdk/client-s3');
-        const presigner = await import('@aws-sdk/s3-request-presigner');
+        const endpointUrl = process.env.S3_ENDPOINT_URL;
         const _nfKey = process.env.AWS_NF_ACCESS_KEY_ID;
         const _nfSec = process.env.AWS_NF_SECRET_ACCESS_KEY;
-        const s3 = new AWS.S3Client({
-          region: 'us-east-1',
-          followRegionRedirects: true,
-          ...(_nfKey && _nfSec ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } } : {}),
-        });
+        const s3 = new AWS.S3Client(
+          endpointUrl
+            ? {
+                // On-prem MinIO: Node.js can reach the internal endpoint; browser cannot.
+                // Stream the object through Node.js instead of 302-redirecting.
+                endpoint: endpointUrl,
+                region: 'us-east-1',
+                forcePathStyle: true,
+                credentials: {
+                  accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+                  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+                },
+              }
+            : {
+                region: 'us-east-1',
+                followRegionRedirects: true,
+                ...(_nfKey && _nfSec ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } } : {}),
+              }
+        );
+
+        if (endpointUrl) {
+          // On-prem: MinIO presigned URLs use internal hostname (minio:9000) that
+          // browsers can't reach. Stream directly from Node.js instead.
+          const out = await s3.send(new AWS.GetObjectCommand({ Bucket: bucket, Key: key }));
+          const contentType = out.ContentType || 'application/octet-stream';
+          res.setHeader('Content-Type', contentType);
+          res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+          if (out.ContentLength) res.setHeader('Content-Length', String(out.ContentLength));
+          await writeAuditRow(200, fileSize, runProjectId);
+          const elapsed = Date.now() - startedAt;
+          console.log(`[output_download] runId=${runId} file=${filename} user=${userId} → 200 stream/minio (${elapsed}ms)`);
+          return (out.Body as any).pipe(res);
+        }
+
+        // SaaS: presigned URL redirect — browser accesses S3 directly.
+        const presigner = await import('@aws-sdk/s3-request-presigner');
         // 60-second TTL is intentional — short enough that a leaked URL is
         // not useful; long enough for the browser to follow the redirect.
         const PRESIGN_TTL = 60;
@@ -12313,15 +12616,15 @@ Rules:
 
       // Local file path fallback — small files only; stream-through
       const fsLocal = await import('node:fs');
-      const path = await import('node:path');
-      const localPath: string = match.path || match.filepath;
-      if (!localPath || !fsLocal.existsSync(localPath)) {
+      const pathMod = await import('node:path');
+      const absLocalPath: string = match.path || match.filepath;
+      if (!absLocalPath || !fsLocal.existsSync(absLocalPath)) {
         await writeAuditRow(404, fileSize, runProjectId);
         return res.status(404).json({ error: 'File path unavailable' });
       }
       await writeAuditRow(200, fileSize, runProjectId);
-      res.setHeader('Content-Disposition', `attachment; filename="${path.basename(localPath)}"`);
-      return res.sendFile(path.resolve(localPath));
+      res.setHeader('Content-Disposition', `attachment; filename="${pathMod.basename(absLocalPath)}"`);
+      return res.sendFile(pathMod.resolve(absLocalPath));
     } catch (err: any) {
       console.error(`[output_download] runId=${runId} file=${filename} 500: ${err?.message}`);
       await writeAuditRow(500, null, null);
@@ -12791,13 +13094,18 @@ Rules:
   });
 
   // Cancel execution run
-  app.post("/api/workflows/runs/:id/cancel", optionalAuth, async (req, res) => {
+  app.post("/api/workflows/runs/:id/cancel", authenticateToken, async (req, res) => {
     try {
       const { reason } = req.body;
       const run = await storage.getExecutionRun(req.params.id);
 
       if (!run) {
         return res.status(404).json({ error: "Execution run not found" });
+      }
+
+      // Ownership check: a run with a known userId must belong to the caller.
+      if (run.userId && req.user?.id && run.userId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden" });
       }
 
       // Record interaction
@@ -13345,6 +13653,21 @@ Rules:
       const run = await storage.getExecutionRun(runId);
       if (!run) {
         return res.status(404).json({ error: "Run not found" });
+      }
+
+      // Failed runs have no meaningful outputs — return static error immediately
+      // so the UI shows a clear message instead of an infinite "Analysis in progress…" spinner.
+      // Status is stored at run.execution.status (not run.status — see storage._dbRowToExecutionRun).
+      const runStatus: string = (run as any).execution?.status || '';
+      if (runStatus === 'failed') {
+        return res.json({
+          status: 'error',
+          message: 'Analysis not available — workflow did not complete successfully.',
+          summary: 'The workflow run failed before producing output files. Check the error message in the workflow panel for details.',
+          key_results: [],
+          next_steps: ['Review the error message and fix the workflow parameters, then re-run.'],
+          caveats: [],
+        });
       }
 
       // Determine local output dir (local runs only; S3 runs not supported for disk check)

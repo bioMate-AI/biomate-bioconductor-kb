@@ -2580,8 +2580,40 @@ def _generate_executor_config(
     Returns path to generated config file, or None for local execution.
     """
     executor = compute.get("executor", "local")
+    s3_endpoint = os.environ.get("S3_ENDPOINT_URL", "")
+
+    # For local executor with MinIO: generate a minimal config so Nextflow can
+    # stage s3:// input files from MinIO rather than AWS S3.
     if executor not in ("awsbatch", "slurm", "k8s"):
-        return None
+        if not s3_endpoint:
+            return None
+        # MinIO config for local executor
+        minio_key    = os.environ.get("AWS_ACCESS_KEY_ID",     os.environ.get("MINIO_ROOT_USER", "biomate"))
+        minio_secret = os.environ.get("AWS_SECRET_ACCESS_KEY", os.environ.get("MINIO_ROOT_PASSWORD", ""))
+        # Docker network for task containers: must match the compose network so
+        # task containers can resolve "minio" hostname for S3 file staging.
+        # BIOMATE_DOCKER_NETWORK defaults to "biomate-network" (on-prem compose default).
+        docker_network = os.environ.get("BIOMATE_DOCKER_NETWORK", "biomate-network")
+        minio_config = f"""
+aws {{
+  client {{
+    endpoint = '{s3_endpoint}'
+    s3PathStyleAccess = true
+    connectionTimeout = 60000
+    maxConnections    = 4
+  }}
+  accessKey = '{minio_key}'
+  secretKey = '{minio_secret}'
+}}
+
+docker {{
+  enabled = true
+  runOptions = '--network {docker_network}'
+}}
+"""
+        config_path = config_dir / "biomate_executor_override.config"
+        config_path.write_text(minio_config)
+        return config_path
 
     config_path = config_dir / "biomate_executor_override.config"
 
@@ -7139,6 +7171,7 @@ def _list_local_output_files(outdir: str, run_id: str) -> list:
         )
         results.append({
             "name": f.name,
+            "rel_path": str(rel),
             "local_path": str(f),
             "size": size,
             "extension": ext,
