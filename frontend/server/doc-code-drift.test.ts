@@ -119,13 +119,16 @@ const liveCount = (sql: string): number =>
 // ===========================================================================
 describe("doc<->code drift: catalog counts (live DB is the truth)", () => {
   it.skipIf(db === null)(
-    "live DB holds exactly 4,200 workflows / 42 domains / 70 chains",
+    "live DB holds exactly 4,201 workflows / 42 domains / 69 chains",
     () => {
       // If any of these change, the fix is: update these numbers AND every
       // user/agent-facing string that quotes the catalog size in the same PR.
-      expect(liveCount("SELECT COUNT(*) AS c FROM workflows")).toBe(4200);
+      // 2026-09-28: removed the broken scrnaseq_standard_endtoend stub (id 14435)
+      // and its now-dangling chain scrnaseq_standard_to_isee (id 66) -> workflows
+      // and chains each dropped by one.
+      expect(liveCount("SELECT COUNT(*) AS c FROM workflows")).toBe(4201);
       expect(liveCount("SELECT COUNT(DISTINCT domain) AS c FROM workflows")).toBe(42);
-      expect(liveCount("SELECT COUNT(*) AS c FROM workflow_chains")).toBe(70);
+      expect(liveCount("SELECT COUNT(*) AS c FROM workflow_chains")).toBe(69);
     },
   );
 

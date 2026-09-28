@@ -1,0 +1,59 @@
+# bioc-domain-spatial:3.20-deps — Voyager Visium ESDA stack.
+#
+# There is no bioc-domain-spatial:3.20 BASE in ECR, and the spatial packages (Voyager,
+# SpatialFeatureExperiment, SFEData) plus their geospatial deps (sf, spdep) are NOT baked
+# into any existing domain image. This Dockerfile builds the spatial deps image ON TOP OF
+# the transcriptomics base, which already carries the CRAN-snapshot-consistent layer and
+# the Bioc graph deps (scater/scran/SpatialExperiment/SpatialFeatureExperiment/Voyager
+# metadata). We add:
+#   1. the geospatial SYSTEM libraries (libgdal/libgeos/libproj/libudunits) — sf & spdep
+#      FAIL to compile from source without them; and
+#   2. the R spatial stack from deps/spatial.txt (sf, spdep, SFEData, Voyager, ...).
+#
+# Build/push a NEW tag :3.20-deps to the (new) biomate/bioc-domain-spatial ECR repo so a
+# bad build can't clobber any working image. Sanity-gated (library() on the key packages)
+# before push. Same guards as Dockerfile.tmpl: R_NO_REMAP undef header, CRAN snapshot pin.
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20
+ENV MAKEFLAGS="-j16"
+ENV DEBIAN_FRONTEND=noninteractive
+
+# --- Geospatial system libraries (sf/spdep hard requirement) --------------------
+# sf links against GDAL/GEOS/PROJ; spdep pulls sf. udunits2 is a common transitive dep.
+# Without these, install.packages("sf") fails at configure ("gdal-config not found").
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      libgdal-dev libgeos-dev libproj-dev libudunits2-dev libsqlite3-dev \
+      gdal-bin proj-bin libfontconfig1-dev libharfbuzz-dev libfribidi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY deps.txt /tmp/deps.txt
+
+# --- GLOBAL R_NO_REMAP counter (same rationale as Dockerfile.tmpl) --------------
+RUN printf '#undef R_NO_REMAP\n' > /opt/undef_rno_remap.h \
+ && mkdir -p /root/.R \
+ && printf 'CPPFLAGS += -include /opt/undef_rno_remap.h\n' >> /root/.R/Makevars
+
+# --- Install the spatial R stack (Bioc-release-pinned + CRAN snapshot) ----------
+# Bioc 3.20 snapshot pin so CRAN dep versions match what the Bioc 3.20 packages were
+# built against (identical logic to Dockerfile.tmpl). sf/spdep/spData/sfheaders come
+# from CRAN; SFEData/Voyager/SpatialFeatureExperiment from Bioc.
+RUN Rscript -e '\
+  snap <- "https://packagemanager.posit.co/cran/2024-10-30"; \
+  options(repos = c(CRAN = snap)); \
+  pkgs <- readLines("/tmp/deps.txt"); \
+  pkgs <- trimws(pkgs); \
+  pkgs <- pkgs[nzchar(pkgs) & !startsWith(pkgs, "#")]; \
+  if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager"); \
+  bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL); \
+  miss <- pkgs[!pkgs %in% rownames(installed.packages())]; \
+  if (length(miss)) BiocManager::install(miss, update=FALSE, ask=FALSE, Ncpus=16, site_repository=bin); \
+  still0 <- pkgs[!pkgs %in% rownames(installed.packages())]; \
+  if (length(still0)) BiocManager::install(still0, update=FALSE, ask=FALSE, Ncpus=16); \
+  still <- pkgs[!pkgs %in% rownames(installed.packages())]; \
+  wont  <- pkgs[!vapply(pkgs, function(p) requireNamespace(p, quietly=TRUE), logical(1))]; \
+  cat("STILL MISSING:", length(still), paste(head(still,40), collapse=","), "\n"); \
+  cat("INSTALLED BUT WONT LOAD:", length(wont), paste(head(wont,40), collapse=","), "\n")'
+
+# --- Bake the minimal-correct Voyager Visium ESDA driver script -----------------
+# The workflow (single_cell/visium_voyager_spatial_esda/main.nf) calls
+# /opt/biomate/voyager/esda_run.R. Ship it in the image.
+COPY esda_run.R /opt/biomate/voyager/esda_run.R
