@@ -44,6 +44,10 @@ Mid-train the all-atom geometry AE on cyclic conformers, init per M0. Sample **p
 conformer) to avoid CREMP correlation bias. Metrics: reconstruction, ring-closure, stereochemistry, clashes
 on the **frozen** family-disjoint split. **Depends on:** M0 (init), D0 (frozen eval), D1 (full CREMP —
 can start on partial). This is the not-data-starved component; highest-confidence win.
+- **STRENGTH GATE (vs RINGER):** the AE latent must reconstruct/generate cyclic geometry at **≥ RINGER
+  coverage-recall (79.7%)** and **ring-closure validity**, on the same CREMP held-out, *without* a separate
+  SLSQP post-processing crutch if possible. A therapy-grade latent that is weaker than the public conformer
+  SOTA is not acceptable — fix before M2 builds on it.
 
 ### M2 — Co-design generator curriculum (Option D)  ·  *week 3–5, GPU*
 Three stages: **(2a)** keep the epoch-221 linear-complex **binding prior** as warm start (have it) →
@@ -51,6 +55,13 @@ Three stages: **(2a)** keep the epoch-221 linear-complex **binding prior** as wa
 replay to avoid forgetting) → **(2c) target-conditioned SFT** on the scarce bound cyclic subset. **(2c)
 depends on D2** (bound complexes) — the critical path. Report the 7-metric panel + a **modification-recovery /
 chemical-validity metric** (guards against silent canonical collapse); never DockQ-only.
+- **STRENGTH GATE (vs APCyc — the head-to-head):** on the **shared full-atom cyclic co-design panel** (DockQ,
+  RMSD, consistency, diversity + APCyc's multi-property axes: affinity/permeability/protease/solubility),
+  **match or beat APCyc** — *and* deliver the **native sidechain-ncAA (N-Me/D-AA/staple)** generation APCyc
+  can't. Match-or-beat is the acceptance bar (strength check), not a novelty gate.
+- **Developability tie-in (the RFpeptides caveat):** since RFpeptides reaches nM with all-canonical chemistry,
+  the ncAA output must show a **developability distribution shift** (permeability/ΔPSA3D) canonical designs
+  can't reach — the ncAA machinery is justified by drug properties, not a DockQ delta.
 
 ### M3 — Non-canonical representation (#1, the crown IP)  ·  *week 2–4, parallel to M1, GPU*
 Chemistry-native encoding decoupling residue identity ⊥ atom template, with **modification as an explicit
@@ -66,6 +77,13 @@ gradient-scale lessons already encoded). **Depends on:** M3.
 Turn the built model into a closed loop: A1 verify heads (calibrated by D5 physchem + D3 negatives), A4 DPO
 on the generator (D3 activity pairs + D4 expert pairs + peptide taste scorer). **Depends on:** M2 + D3/D4/D5.
 This is where the pharma pains actually get solved (per the cross-reference in the execution plan).
+- **STRENGTH GATE (vs HELM-BERT):** the A1 permeability/developability head must reach **≥ HELM-BERT
+  scaffold-split R² (0.483)** on CycPeptMPDB (honest ceiling ~0.48–0.50) — a verify layer weaker than the
+  public developability SOTA can't gate a therapy loop credibly.
+- **LOOP GATE (vs no-loop + GALILEO framing):** show **developable-candidate yield lift** (7-metric panel, no
+  diversity collapse) over the no-loop baseline; differentiate from GALILEO (general agent) / PEGASUS
+  (HT-assay) as *a learned generator compounding on proprietary pharma data*. Prospective wet-lab lift is the
+  final proof (execution-plan honest limiter).
 
 ---
 
@@ -123,6 +141,20 @@ residue-/monomer-level MMP over HELM.
 spot GPU). Lane M owns the training GPUs. They don't fight for the same resource.
 
 ---
+
+## Strength checkpoints (therapy-grade acceptance gates, not novelty gates)
+
+Each model milestone is judged by **therapy-grade strength vs the best public component on that axis** — the
+model must be at least as strong before the system story is credible. Match-or-exceed is the bar; the
+differentiation is the composite system, not being first.
+
+| Milestone | Axis | Strength bar (match or beat) | Beyond-parity (the added capability) |
+|---|---|---|---|
+| **M1** | cyclic geometry (AE) | **RINGER** coverage-recall 79.7% + ring-closure validity | closure without SLSQP crutch; ncAA-ready latent |
+| **M2** | cyclic co-design | **APCyc** full-atom panel + multi-property axes | **native sidechain ncAA** (N-Me/D-AA/staple) APCyc lacks |
+| **M2** | affinity (experimental, T4) | **RFpeptides** 6–9.4 nM, canonical | ncAA → **developability shift** canonical can't reach |
+| **M5** | developability head | **HELM-BERT** scaffold R² 0.483 | integrated into the live verify/loop |
+| **M5** | closed loop | no-loop baseline; **GALILEO/PEGASUS** framing | learned generator compounding on **proprietary pharma data** |
 
 ## Honest gates (carried from the source docs)
 - Every training step: 7-metric panel, leakage-filtered/family-disjoint splits, vs physics + simple baseline.
