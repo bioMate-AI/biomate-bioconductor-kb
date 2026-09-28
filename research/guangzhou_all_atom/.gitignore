@@ -4,3 +4,7 @@ runtime/
 __pycache__/
 tests/__pycache__/
 *.tar.gz
+
+# Derived physchem/data artifacts — some sources are CC BY-NC-SA (non-commercial, no redistribution).
+# Rebuild locally with build_physchem_calibration.py; never commit the derived CSVs.
+data/processed/
