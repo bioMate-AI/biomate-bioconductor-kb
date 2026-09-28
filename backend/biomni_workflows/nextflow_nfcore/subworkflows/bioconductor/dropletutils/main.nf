@@ -190,7 +190,7 @@ process BIOC_DROPLETUTILS_IMPORT_AND_FILTER_10X_DATA {
 
     writeLines(c(
         '"BIOC_DROPLETUTILS_IMPORT_AND_FILTER_10X_DATA":',
-        paste0('        dropletutils: ', as.character(packageVersion("dropletutils")))
+        paste0('        dropletutils: ', as.character(packageVersion("DropletUtils")))
     ), "versions.yml")
     """
 
