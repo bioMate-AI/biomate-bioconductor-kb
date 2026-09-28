@@ -1221,6 +1221,7 @@ def _looks_like_false_success(
     total_steps: int = 0,
     duration_s: Optional[int] = None,
     s3_output_files: Optional[list] = None,
+    local_output_files: Optional[list] = None,
     workflow_domain: str = "",
     nextflow_path: str = "",
 ) -> bool:
@@ -1228,6 +1229,11 @@ def _looks_like_false_success(
     if _log_indicates_nextflow_failure(log_full_text, log_tail):
         return True
     has_outputs = bool(_non_pipeline_info_s3_outputs(s3_output_files))
+    # On-prem local mode: outputs go to the local filesystem, not S3.
+    # If the caller provided a list of local output files, treat any non-empty
+    # list as "has outputs" so the S3 requirement check doesn't fire.
+    if not has_outputs and local_output_files:
+        has_outputs = True
     if (
         total_steps == 0
         and duration_s is not None
@@ -1469,6 +1475,15 @@ def _candidate_bases() -> list[Path]:
         backend_root / "biomni_workflows" / "nextflow_nfcore",
         backend_root / "biomni_workflows" / "nextflow_nfcore" / "subworkflows",
         backend_root / "biomni_workflows" / "nextflow_nfcore" / "workflows",
+        # biomni_workflows/nextflow/ — primary home of flat .nf workflow files in the
+        # backend image (e.g. predict_admet_properties.nf, not predict_admet_properties/main.nf).
+        # Must be searched so on-prem Docker-image deployments find these files without
+        # requiring NEXTFLOW_SEARCH_ROOTS to be set explicitly.
+        backend_root / "biomni_workflows" / "nextflow",
+        backend_root / "biomni_workflows" / "nextflow" / "subworkflows",
+        backend_root / "biomni_workflows" / "nextflow" / "workflows",
+        backend_root / "biomni_workflows" / "nextflow_generated",
+        backend_root / "biomni_workflows" / "nextflow_generated" / "subworkflows",
         # REAL downloaded nf-core pipelines (their own per-process biocontainers + bin/
         # scripts) MUST be searched BEFORE the display-only stubs in biomni_workflows/nfcore/.
         # The stubs declare no container and call tools absent from the base image, so they
@@ -1550,6 +1565,10 @@ def _resolve_nextflow_path(raw_path: str) -> Path:
         if candidate.suffix != ".nf":
             expanded_candidates.append(candidate.with_suffix(".nf"))
             expanded_candidates.append(candidate / "main.nf")
+        elif candidate.name == "main.nf" and candidate.parent.suffix != ".nf":
+            # DB path like predict_admet_properties/main.nf — also try the flat file
+            # predict_admet_properties.nf used in biomni_workflows/nextflow/.
+            expanded_candidates.append(candidate.parent.with_suffix(".nf"))
 
     # Search all candidates under configured roots.
     for root in _candidate_bases():
@@ -2353,8 +2372,8 @@ def _validate_input_paths(params: dict) -> None:
     large_items: list[str] = []
 
     for key, value in params.items():
-        if key == "outdir":
-            continue  # output, not input — validated elsewhere
+        if key == "outdir" or key.lower().startswith("output"):
+            continue  # output param — not a pre-existing input path, skip
         if isinstance(value, str) and value.startswith("s3://"):
             # Pre-flight: validate S3 input is accessible before job starts.
             _validate_s3_url(value, check_object=True)
@@ -3087,6 +3106,62 @@ docker {{
     return config_path
 
 
+def _extract_nf_process_containers(nf_path: Path) -> list[str]:
+    """
+    Extract container image references declared in process { container '...' } blocks.
+
+    These images are used by Nextflow directly for each process.  When a workflow
+    already declares its own container, the Python-module check in
+    _choose_container_strategy must NOT require those modules on the host — they live
+    inside the declared container.
+    """
+    try:
+        text = nf_path.read_text(errors="replace")
+    except OSError:
+        return []
+    images: list[str] = []
+    # Match   container 'image:tag'   or   container "image:tag"
+    # Also handles ternary expressions: container cond ? 'img1' : 'img2'
+    for m in re.findall(r"container\s+[^{}\n]*?['\"]([^'\"]+)['\"]", text):
+        if m and m not in images:
+            images.append(m)
+    return images
+
+
+def _resolve_local_image_alias(image: str) -> Optional[str]:
+    """
+    Given a short image name (e.g. 'biomate/biomni-tools:latest'), return the
+    locally-available tag that satisfies it.
+
+    On on-prem deployments the same image may be present under its full ECR path
+    (399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:latest).
+    We match by the image name+tag ignoring the registry prefix.
+    """
+    if _is_local_docker_image(image):
+        return image
+    # Extract just the name:tag portion (everything after the last '/')
+    name_tag = image.split("/")[-1]
+    repo_tag = "/".join(image.split("/")[-2:]) if "/" in image else image
+    try:
+        result = subprocess.run(
+            ["docker", "images", "--format", "{{.Repository}}:{{.Tag}}"],
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=10,
+        )
+        if result.returncode != 0:
+            return None
+        for line in result.stdout.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            local_name_tag = line.split("/")[-1]
+            local_repo_tag = "/".join(line.split("/")[-2:]) if "/" in line else line
+            if local_name_tag == name_tag or local_repo_tag == repo_tag:
+                return line
+    except Exception:
+        pass
+    return None
+
+
 def _choose_container_strategy(nf_path: Path, raw_nextflow_path: str) -> Dict[str, Any]:
     """
     Choose execution strategy:
@@ -3095,6 +3170,30 @@ def _choose_container_strategy(nf_path: Path, raw_nextflow_path: str) -> Dict[st
     """
     required_modules = _extract_python_imports(nf_path)
     documented_images = _extract_documented_images()
+
+    # If the .nf file declares its own per-process container(s), prefer those first.
+    # Python imports inside `script:` blocks run INSIDE the declared container, so
+    # module availability on the host is irrelevant for those workflows.  Resolving
+    # the declared container also handles on-prem where images are stored under their
+    # full ECR path rather than the short `biomate/...` alias.
+    nf_declared_containers = _extract_nf_process_containers(nf_path)
+    for declared_img in nf_declared_containers:
+        resolved = _resolve_local_image_alias(declared_img)
+        if resolved:
+            log.info(
+                f"[Nextflow container] Using per-process container declared in .nf file: "
+                f"{declared_img!r} → local image {resolved!r}"
+            )
+            return {
+                "mode": "docker",
+                "image": resolved,
+                "docker_opts": '-u $(id -u):$(id -g) --entrypoint ""',
+                "required_modules": required_modules,
+                "missing_modules": [],
+                "host_arch": _host_arch(),
+                "image_arch": _image_runtime_arch(resolved),
+                "cross_arch_allowed": os.environ.get("NEXTFLOW_ALLOW_CROSS_ARCH_DOCKER", "false"),
+            }
 
     # Domain-aware preference order
     image_preferences: list[str] = []
@@ -4229,11 +4328,29 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                 pass
         _nf_path_for_check = str(_run_snap.get("nextflow_path", ""))
         _is_personal_nf_run = _nf_path_for_check.startswith("/tmp/biomate_user_nf/")
+        # On-prem local mode: scan the local output directory for real output files
+        # so the S3-output-requirement check doesn't falsely mark successful local
+        # runs as failed (Bug #68 — on-prem false-success).
+        _use_aws_now = os.environ.get("NEXTFLOW_USE_AWS", "").lower() in ("1", "true", "yes")
+        _local_output_files: list = []
+        if not _use_aws_now:
+            _local_outdir = _run_snap.get("outdir", "")
+            if _local_outdir:
+                try:
+                    _local_outdir_path = Path(_local_outdir)
+                    if _local_outdir_path.is_dir():
+                        _local_output_files = [
+                            str(f) for f in _local_outdir_path.rglob("*")
+                            if f.is_file() and "pipeline_info" not in f.parts
+                        ]
+                except Exception:
+                    pass
         if returncode == 0 and not _is_personal_nf_run and _looks_like_false_success(
             log_full_text=_log_text,
             total_steps=_total_steps,
             duration_s=_duration_s,
             s3_output_files=[],
+            local_output_files=_local_output_files,
             workflow_domain=_run_snap.get("workflow_domain", ""),
             nextflow_path=_nf_path_for_check,
         ):
@@ -7066,12 +7183,27 @@ def _get_nextflow_status_impl(
 
     _nf_path_for_status = info.get("nextflow_path", "")
     _is_personal_nf_status = str(_nf_path_for_status).startswith("/tmp/biomate_user_nf/")
+    # Bug 68 (status-poll path): on-prem local mode — scan local outdir to avoid
+    # false-success downgrade when S3 output list is empty.
+    _use_aws_status = os.environ.get("NEXTFLOW_USE_AWS", "").lower() in ("1", "true", "yes")
+    _local_out_status: list = []
+    if not _use_aws_status and outdir and not str(outdir).startswith("s3://"):
+        try:
+            _lodp = Path(outdir)
+            if _lodp.is_dir():
+                _local_out_status = [
+                    str(f) for f in _lodp.rglob("*")
+                    if f.is_file() and "pipeline_info" not in f.parts
+                ]
+        except Exception:
+            pass
     if _info_status in ("succeeded", "completed") and not _is_personal_nf_status and _looks_like_false_success(
         log_full_text=log_full_text,
         log_tail=log_tail,
         total_steps=progress.get("totalTasks", progress.get("totalSteps", 0)),
         duration_s=duration_s,
         s3_output_files=s3_files,
+        local_output_files=_local_out_status,
         workflow_domain=workflow_domain,
         nextflow_path=_nf_path_for_status,
     ):
