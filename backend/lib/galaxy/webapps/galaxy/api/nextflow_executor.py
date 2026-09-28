@@ -2864,7 +2864,20 @@ def _generate_executor_config(
         # docs/20260607_BATCH_AMI_AWSCLI_NOT_SELF_CONTAINED.md (the true
         # fix is rebuilding the AMI with a self-contained aws-cli; this
         # is the temporary workaround so nf-core test runs work today).
-        if "/nf-core-workflows/" in nf_path:
+        #
+        # nf-core-modules/ capability subworkflows (proteomics_dda_search,
+        # etc.) use the SAME pattern: quay.io biocontainers whose libz lives in
+        # /usr/local/lib (deliberately EXCLUDED from _ld_aws_host to avoid the
+        # libtinfo pyFlow breakage above). The OpenMS/Comet binaries resolve
+        # their own libz via RPATH and run fine, but the host-mounted aws binary
+        # (which downloads .command.run at task START) exits 127 with
+        # 'libz.so.1: cannot open shared object file'. Mount the host libz into a
+        # covered path so aws staging works, just like /nf-core-workflows/.
+        # Verified live 2026-09-28 on proteomics_dda_search (docs/20260928_PROTEOMICS_DDA_VALIDATION.md).
+        _needs_host_libz = (
+            "/nf-core-workflows/" in nf_path or "/nf-core-modules/" in nf_path
+        )
+        if _needs_host_libz:
             # AL2023 Batch host is RHEL-family: libs live in /usr/lib64.
             # Mount into BOTH /lib/x86_64-linux-gnu/ AND /usr/lib64/ inside
             # the container so glibc-style and RHEL-style search paths both
