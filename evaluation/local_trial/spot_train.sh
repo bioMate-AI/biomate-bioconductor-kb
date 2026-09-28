@@ -14,7 +14,7 @@ case "$SIZE" in
   large) HF=Qwen/Qwen3.8-27B ; SFT=700; MID=800; SEQ=2048; R=32 ;;
   *) echo "MODEL_SIZE must be small|large"; exit 1 ;;
 esac
-SEQ=${SEQ_OVERRIDE:-$SEQ}; R=${R_OVERRIDE:-$R}; MID=${MID_OVERRIDE:-$MID}   # overrides to fit GPU / set corpus coverage
+SEQ=${SEQ_OVERRIDE:-$SEQ}; R=${R_OVERRIDE:-$R}; MID=${MID_OVERRIDE:-$MID}; SFT=${SFT_OVERRIDE:-$SFT}   # overrides to fit GPU / set corpus coverage
 BS=${BS_OVERRIDE:-1}; GA=${GA_OVERRIDE:-16}   # per-device batch + grad-accum (raise BS to fill a big GPU)
 # reduce CUDA fragmentation (the packed-logits allocation OOM'd a 24GB L4 with 12GB reserved-but-free)
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
