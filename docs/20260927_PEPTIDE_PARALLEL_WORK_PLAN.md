@@ -65,16 +65,25 @@ test. **Decides AE init** (expected: linear-epoch221 ≫ random ≫ small-mol). 
 
 </details>
 
-### M1 — Geometry AE mid-train (Option B)  ·  **v1 DONE (2026-09-28) → mid-train VALIDATED; M4-as-loss REVERTED**
-**v1 result (epoch39 vs epoch-221 baseline, 300 held-out CREMP):** RMSD-Cα **1.05→0.57 Å** (nearly halved) ·
-RMSD-all 2.65→1.73 · AAR 0.73 · warm-start loaded 202/202. **The mid-train thesis (GO(B)) is confirmed — the
-AE is now a much stronger CREMP geometry prior.** BUT two problems from folding M4 (closure) in as a training
-loss (weight 0.3): (1) real ring-closure (permissive, M0-comparable) stayed **flat 0.32→0.33** — the head-to-tail
-L1 over-imposed a bond on the ~84% of CREMP that isn't head-to-tail (input head-to-tail rate only 0.16), no genuine
-closure gain; (2) latent smoothness **regressed** (ring-break interp 0.18→0.05), a concern for M2's diffusion.
-**Correction:** M4 belongs at SAMPLING time (hard constraint), not as an M1 training loss (revert). **M1-v2 = pure
-mid-train, `ring_closure_loss_weight=0.0`** → clean production AE for M2. Cost: ~20 min/$0.50 (epochs ~30s on g6.2xlarge).
-Fixes banked: batch sized for CREMP (ubound 12000) + expandable_segments (OOM fix); warm-start via `.autoencoder` 1:1.
+### M1 — Geometry AE mid-train (Option B)  ·  **v1+v2 DONE (2026-09-28) → mid-train helps backbone but TRADES OFF ring+latent**
+**Three-way (epoch39 vs epoch-221 baseline, 300 held-out CREMP):**
+| AE | RMSD-Cα | Ring-closure | Latent smoothness |
+|---|---|---|---|
+| baseline epoch-221 | 1.053 | 0.323 | 0.183 |
+| v1 (mid-train + closure w=0.3) | 0.569 | 0.33 | 0.05 |
+| v2 (mid-train, closure OFF) | 0.504 | **0.06** | 0.017 |
+
+**Confirmed:** mid-train on CREMP **halves backbone Cα (1.05→0.50)** — GO(B) validated; warm-start 202/202.
+**The catch (v2 ablation overturned the v1 read):** pure mid-train **COLLAPSES ring-closure (0.32→0.06)** and
+roughens the latent (0.18→0.017). It lowers aggregate coord loss while the specific ring-closing bond drifts out of
+tolerance. **So "revert the closure term" was WRONG** — v2 proves the closure loss was *holding* ring-closure up
+(0.33 vs 0.06) and partly protecting the latent (0.05 vs 0.017). v1 (closure ON) is the better AE, but NEITHER
+recovers the baseline latent smoothness → **M1 not cleanly solved; a generator needs valid rings + smooth latent.**
+**M1-v3 (next):** keep the closure term, but preserve latent+ring while keeping the Cα gain — raise KL weights
+(h_kl 0.3→~0.6, z_kl 0.5→~1.0) and/or fewer epochs / lower lr (latent likely drifts with over-training); target
+Cα<0.6 + ring≥0.33 + latent≥0.10. v1 is the fallback production AE if v3 doesn't beat it.
+Fixes banked: OOM (ubound 12000 + expandable_segments); warm-start via `.autoencoder` 1:1. Cost/run ~20min/$0.50.
+Audit-gate lesson: running v2 as a controlled ablation caught a wrong conclusion before it propagated to M2.
 
 <details><summary>original M1 spec (GO(B))</summary>
 Mid-train the all-atom geometry AE on cyclic conformers, **init from the linear-epoch221 AE (M0 verdict)**.
