@@ -19,6 +19,8 @@ random.seed(41)
 
 SYS = ("You are BioMate. Given the user request and the retrieved candidate workflows, choose the single "
        "best-matching workflow and reply with ONLY its exact name, copied verbatim from the candidates.")
+# non-real catalog entries that must never be a routing target or a candidate
+JUNK = re.compile(r"\b(test|testpipeline|hackathon|demo|mock|sandbox|template|tutorial|example|dummy|placeholder)\b", re.I)
 
 
 def canon(s): return re.sub(r"[\s_./-]+", " ", s.lower()).strip()
@@ -72,19 +74,26 @@ def main():
         if not g or canon(g) not in name_dom:
             miss += 1; continue
         gold, dom = name_dom[canon(g)]
+        if JUNK.search(gold):
+            miss += 1; continue
         sibs = [n for n in by_dom.get(dom, []) if canon(n) != canon(gold)]
         if len(sibs) < 2:
             miss += 1; continue
-        # HARD sibling = highest description-token Jaccard to the gold (most confusable), but EXCLUDE
-        # substring-related names (foo vs foo_advanced) — those are ambiguous FALSE-negative risks
-        # (the sibling may also be a valid answer for a generic request). Conservative: skip them.
+        # SEMI-HARD sibling: confusable but NOT a near-duplicate. Two false-negative traps to avoid:
+        #  (a) substring-related names (foo vs foo_advanced) — the sibling may also be valid → exclude.
+        #  (b) VERY-high description overlap (>=0.5 Jaccard) — either genuinely interchangeable OR a
+        #      boilerplate artifact (nf-core stubs share template text -> mitodetect~sopa at J=0.96) → exclude.
+        # Pick the HARDEST sibling in the semi-hard band [floor, 0.5).
         cg = canon(gold)
+        def jacc(n):
+            A = toks(name_desc.get(cg, "") + " " + gold); B = toks(name_desc.get(canon(n), "") + " " + n)
+            return len(A & B) / max(1, len(A | B))
         def unrelated(n): cn = canon(n); return cn not in cg and cg not in cn
-        gt = toks(name_desc.get(cg, "") + " " + gold)
-        sibs_scored = sorted([s for s in sibs if unrelated(s)],
-                             key=lambda n: len(gt & toks(name_desc.get(canon(n), "") + " " + n)), reverse=True)
-        if len(sibs_scored) < 2:
+        band = [(jacc(s), s) for s in sibs if unrelated(s) and not JUNK.search(s)]
+        band = sorted([(j, s) for j, s in band if j < 0.5], reverse=True)  # drop near-dups/boilerplate
+        if len(band) < 2:
             miss += 1; continue
+        sibs_scored = [s for _, s in band]
         kept += 1
         hard = sibs_scored[0]
         cands = [gold, hard] + random.sample([s for s in sibs_scored[1:] if s != hard], min(a.k - 2, max(0, len(sibs_scored) - 1)))
