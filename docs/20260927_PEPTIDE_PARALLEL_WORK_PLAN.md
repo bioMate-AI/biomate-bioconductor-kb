@@ -106,7 +106,20 @@ can start on partial). This is the not-data-starved component; highest-confidenc
 
 </details>
 
-### M2 — Co-design generator curriculum (Option D)  ·  *week 3–5, GPU*  ·  **NOTE: watch latent smoothness (M1-v1 regressed it)**
+### M2 — Co-design generator curriculum (Option D)  ·  **2b-unconditional ABANDONED — generator trains on COMPLEXES (needs D2)**
+**Finding (2026-09-29):** the PepGLAD diffusion is CONDITIONAL by design (pocket→peptide) with multiple
+receptor-assuming code paths (position centering, covariance, AND inter-molecular edges at
+`dpm_full.py:223` — `.view(inter_edges.shape[1], -1)` crashes on 0 inter-edges peptide-only). Trying to
+mid-train it UNCONDITIONALLY on receptor-free CREMP fights the framework (3 patch-points found, more likely).
+**Validated + reusable:** the M2 construction is correct — warm-start loaded **84/84 diffusion tensors, dropped
+202 autoencoder.* keys, v1 AE preserved** (frozen-v1-AE + warm-started-diffusion works). **Pivot:** the AE
+(M1) already carries cyclic geometry from CREMP; the diffusion needs a receptor, so the generator curriculum is
+epoch-221 **linear-complex prior → cyclic-COMPLEX fine-tune on the D2 bound complexes** (receptor present → the
+peptide-only patches don't even trigger; clean stock path). So **the model lane genuinely waits on D2, and "2c"
+IS the generator training (on complexes)** — no unconditional detour. The M2 code (m2_*.py) is ~90% reused:
+swap PeptideOnlyCoDesignDataset(CREMP) → CoDesignDataset(D2 bound-cyclic complexes). D2 mine running now.
+
+<details><summary>original M2 spec</summary>
 Three stages: **(2a)** keep the epoch-221 linear-complex **binding prior** as warm start (have it) →
 **(2b)** cyclic mid-train in the M1 latent (penalize non-cyclic topologies; LoRA/DoRA or linear-complex
 replay to avoid forgetting) → **(2c) target-conditioned SFT** on the scarce bound cyclic subset. **(2c)
@@ -119,6 +132,8 @@ chemical-validity metric** (guards against silent canonical collapse); never Doc
 - **Developability tie-in (the RFpeptides caveat):** since RFpeptides reaches nM with all-canonical chemistry,
   the ncAA output must show a **developability distribution shift** (permeability/ΔPSA3D) canonical designs
   can't reach — the ncAA machinery is justified by drug properties, not a DockQ delta.
+
+</details>
 
 ### M3 — Non-canonical representation (#1, the crown IP)  ·  *week 2–4, parallel to M1, GPU*
 Chemistry-native encoding decoupling residue identity ⊥ atom template, with **modification as an explicit
