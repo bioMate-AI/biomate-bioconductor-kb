@@ -1,6 +1,7 @@
 #!/bin/bash
 set -uo pipefail; cd "$(dirname "$0")"
 S3=s3://biomate-models-399683337364/biomate-core-local-trial/20260912
+ACQ_RESULT="${ACQ_RESULT:-${ACQ_RESULT_KEY##*/}}"   # keep bound under set -u when only ACQ_RESULT_KEY is given
 export MODEL_SIZE=small STAGE=${ACQ_STAGE:-acq} TAG=${ACQ_TAG:-_acq} ENTRY=$ACQ_ENTRY BOOTSTRAP=noop_bootstrap.sh PMC_MAXTOK=${PMC_MAXTOK:-}
 SUBS=(subnet-09e4dce46682a6c60 subnet-03b277a7a08d388c1 subnet-0b35a6e2c1cf02dc2 subnet-0254e4c3634b41bfc)
 TYPES=(c5.2xlarge c5.4xlarge m5.2xlarge g6.2xlarge)
