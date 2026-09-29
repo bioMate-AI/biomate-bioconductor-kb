@@ -32,7 +32,8 @@ BASE="$SCRATCH/models/base_$SIZE"
 LOGPID=$!
 
 echo "[spot] $(date) size=$SIZE stage=$STAGE — pull data + base"
-aws s3 cp "$S3/sft/multitask_sft_enriched.jsonl" "$SCRATCH/data/sft_enriched.jsonl" --quiet
+aws s3 cp "$S3/sft/${SFT_DATA:-multitask_sft_enriched.jsonl}" "$SCRATCH/data/sft_enriched.jsonl" --quiet
+[ -n "${DPO_PAIRS:-}" ] && aws s3 cp "$S3/sft/${DPO_PAIRS}" "$SCRATCH/data/dpo_pairs.jsonl" --quiet && echo "[spot] DPO pairs: $(wc -l < "$SCRATCH/data/dpo_pairs.jsonl")"
 [ "$STAGE" != sft ] && aws s3 cp "$S3/midtrain_corpus/midtrain_all.jsonl" "$SCRATCH/data/midtrain_all.jsonl" --quiet
 # MIX_LITERATURE=1 -> mid-train DOMAIN = PubMed literature (stride-sampled) + structured (upweighted).
 # Build once + persist to S3 (composition logged for verification); resume pulls the prebuilt mix (cheap).
@@ -137,6 +138,24 @@ elif [ "$STAGE" = full ]; then
   $LAUNCH "$HERE/train_qlora_pilot.py" --base "$OUT/base_domain" --data "$SCRATCH/data/sft_enriched.jsonl" \
      --out "$OUT/sft" --max-steps $SFT --seq-len $SEQ --lora-r $R --batch-size $BS --grad-accum $GA $SR
   OUT="$OUT/sft"   # so the upload below grabs the SFT adapter
+elif [ "$STAGE" = sftdpo ]; then
+  # SFT on v5 (clean+openbook+contrastive+paraphrase) -> merge -> DPO on hard-negative pairs.
+  SLAST=$(ls -d "$OUT"/sft/checkpoint-* 2>/dev/null | sort -t- -k2 -n | tail -1); SR=""
+  [ -n "$SLAST" ] && SR="--resume $SLAST" && echo "[spot] resume sft from $SLAST"
+  if aws s3 ls "$S3/models_20260919/$SIZE/sft${TAG}_merged/config.json" >/dev/null 2>&1; then
+    echo "[spot] sft${TAG}_merged already built -> restore + skip to DPO"
+    mkdir -p "$OUT/sft_merged"; aws s3 cp "$S3/models_20260919/$SIZE/sft${TAG}_merged/" "$OUT/sft_merged/" --recursive --quiet
+  else
+    $LAUNCH "$HERE/train_qlora_pilot.py" --base "${BASE_DOMAIN:-$BASE}" --data "$SCRATCH/data/sft_enriched.jsonl" \
+       --out "$OUT/sft" --max-steps $SFT --seq-len $SEQ --lora-r $R --batch-size $BS --grad-accum $GA $SR
+    python3 "$HERE/merge_lora.py" --base "${BASE_DOMAIN:-$BASE}" --adapter "$OUT/sft" --out "$OUT/sft_merged"
+    aws s3 cp "$OUT/sft/" "$S3/models_20260919/$SIZE/sft${TAG}_adapter/" --recursive --exclude "checkpoint-*/*" --quiet
+    aws s3 cp "$OUT/sft_merged/" "$S3/models_20260919/$SIZE/sft${TAG}_merged/" --recursive --quiet
+  fi
+  $LAUNCH "$HERE/train_dpo_grounded.py" --phase train --model "$OUT/sft_merged" \
+     --pairs-out "$SCRATCH/data/dpo_pairs.jsonl" --out "$OUT/dpo"
+  aws s3 cp "$OUT/dpo/" "$S3/models_20260919/$SIZE/dpo${TAG}_adapter/" --recursive --quiet
+  OUT="$OUT/dpo"
 else
   $LAUNCH "$HERE/train_qlora_pilot.py" --base "${BASE_DOMAIN:-$BASE}" --data "$SCRATCH/data/sft_enriched.jsonl" \
      --out "$OUT" --max-steps $SFT --seq-len $SEQ --lora-r $R --batch-size $BS --grad-accum $GA $RESUME
