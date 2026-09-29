@@ -74,17 +74,21 @@ def main():
         if len(texts) >= a.n: break
     print(f"papers to process: {len(texts):,}", flush=True)
 
+    def S(x):  # coerce any LLM field (str | list | None) to a clean string
+        if isinstance(x, list): return " ; ".join(str(i) for i in x).strip()
+        return str(x or "").strip()
+
     def one(t):
+      try:
         o = call(SCHEMA + t[:10000]); m = re.search(r"\{.*\}", o, re.S)
         if not m: return ([], [])
         try: r = json.loads(m.group(0))
         except Exception: return ([], [])
         rows = []; gaps = []
-        prob = (r.get("problem") or "").strip(); design = r.get("study_design"); data = (r.get("data") or "").strip()
+        prob = S(r.get("problem")); design = r.get("study_design"); data = S(r.get("data"))
         tools = [x for x in (r.get("tools") or []) if isinstance(x, str)]
         params = [x for x in (r.get("parameters") or []) if isinstance(x, str)]
-        results = (r.get("results") or "").strip(); findings = (r.get("findings") or "").strip()
-        concl = (r.get("conclusion") or "").strip()
+        results = S(r.get("results")); findings = S(r.get("findings")); concl = S(r.get("conclusion"))
         grounded = [x for x in tools if canon(x) in catalog]
         for x in tools:
             if canon(x) not in catalog: gaps.append(x)
@@ -115,6 +119,8 @@ def main():
                 {"role": "user", "content": f"Given these results:\n{results}\n\nWhat can be concluded, and what are the implications?"},
                 {"role": "assistant", "content": concl}], "task": "conclusion_drawing", "source": "recipe_lit"})
         return (rows, gaps)
+      except Exception:
+        return ([], [])   # one bad article must not kill the whole pool
 
     allrows = []; allgaps = collections.Counter()
     with ThreadPoolExecutor(max_workers=a.workers) as ex:
