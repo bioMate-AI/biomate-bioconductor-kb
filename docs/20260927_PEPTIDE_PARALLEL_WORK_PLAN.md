@@ -65,7 +65,18 @@ test. **Decides AE init** (expected: linear-epoch221 ≫ random ≫ small-mol). 
 
 </details>
 
-### M1 — Geometry AE mid-train (Option B)  ·  *week 2–3, GPU*  ·  **UNBLOCKED by M0 → GO(B)**
+### M1 — Geometry AE mid-train (Option B)  ·  **v1 DONE (2026-09-28) → mid-train VALIDATED; M4-as-loss REVERTED**
+**v1 result (epoch39 vs epoch-221 baseline, 300 held-out CREMP):** RMSD-Cα **1.05→0.57 Å** (nearly halved) ·
+RMSD-all 2.65→1.73 · AAR 0.73 · warm-start loaded 202/202. **The mid-train thesis (GO(B)) is confirmed — the
+AE is now a much stronger CREMP geometry prior.** BUT two problems from folding M4 (closure) in as a training
+loss (weight 0.3): (1) real ring-closure (permissive, M0-comparable) stayed **flat 0.32→0.33** — the head-to-tail
+L1 over-imposed a bond on the ~84% of CREMP that isn't head-to-tail (input head-to-tail rate only 0.16), no genuine
+closure gain; (2) latent smoothness **regressed** (ring-break interp 0.18→0.05), a concern for M2's diffusion.
+**Correction:** M4 belongs at SAMPLING time (hard constraint), not as an M1 training loss (revert). **M1-v2 = pure
+mid-train, `ring_closure_loss_weight=0.0`** → clean production AE for M2. Cost: ~20 min/$0.50 (epochs ~30s on g6.2xlarge).
+Fixes banked: batch sized for CREMP (ubound 12000) + expandable_segments (OOM fix); warm-start via `.autoencoder` 1:1.
+
+<details><summary>original M1 spec (GO(B))</summary>
 Mid-train the all-atom geometry AE on cyclic conformers, **init from the linear-epoch221 AE (M0 verdict)**.
 **M0 finding — bring M4 forward:** the linear AE holds only 32% ring closure on held-out CREMP, so the hard
 cyclic-closure constraint (M4) is **co-developed with M1**, not deferred to week 4 — M1's acceptance includes
@@ -78,7 +89,9 @@ can start on partial). This is the not-data-starved component; highest-confidenc
   SLSQP post-processing crutch if possible. A therapy-grade latent that is weaker than the public conformer
   SOTA is not acceptable — fix before M2 builds on it.
 
-### M2 — Co-design generator curriculum (Option D)  ·  *week 3–5, GPU*
+</details>
+
+### M2 — Co-design generator curriculum (Option D)  ·  *week 3–5, GPU*  ·  **NOTE: watch latent smoothness (M1-v1 regressed it)**
 Three stages: **(2a)** keep the epoch-221 linear-complex **binding prior** as warm start (have it) →
 **(2b)** cyclic mid-train in the M1 latent (penalize non-cyclic topologies; LoRA/DoRA or linear-complex
 replay to avoid forgetting) → **(2c) target-conditioned SFT** on the scarce bound cyclic subset. **(2c)
