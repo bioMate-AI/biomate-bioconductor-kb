@@ -437,7 +437,7 @@ def mine_entry(pdb: str, max_pep_len: int):
 
 
 # ----------------------------------------------------------------------------- outputs
-def write_manifest(rows, out_dir):
+def write_manifest(rows, out_dir, n_examined=None):
     os.makedirs(out_dir, exist_ok=True)
     jsonl = os.path.join(out_dir, "bound_cyclic_manifest.jsonl")
     idx = os.path.join(out_dir, "index.txt")  # PepGLAD-style: pdb_id_pepchain  rec_chain  pep_chain
@@ -453,10 +453,15 @@ def write_manifest(rows, out_dir):
     by_type = {}
     for r in kept:
         by_type[r["cyclization_type"]] = by_type.get(r["cyclization_type"], 0) + 1
+    # n_examined = true total attempted (linear peptides return None and are NOT in `rows`, so
+    # len(rows) UNDER-counts and would imply a false ~100% hit rate). Caller passes len(todo).
+    n_examined = n_examined if n_examined is not None else len(rows)
     summary = {
         "out_dir": out_dir,
-        "n_candidates_examined": len(rows),
+        "n_candidates_examined": n_examined,
         "n_cyclic_bound_complexes": len(kept),
+        "cyclic_hit_rate": round(len(kept) / n_examined, 4) if n_examined else None,
+        "n_dropped_linear_or_failed": n_examined - len(kept),
         "by_cyclization_type": by_type,
         "provenance": "PDB_experimental",
         "written": [jsonl, idx],
@@ -521,7 +526,7 @@ def main():
             print(f"[mine] {i}/{len(todo)} examined, {n_ok} cyclic-bound kept", file=sys.stderr)
         time.sleep(args.sleep)
 
-    summary = write_manifest(rows, args.out_dir)
+    summary = write_manifest(rows, args.out_dir, n_examined=len(todo))
     print(json.dumps(summary, indent=2))
 
 
