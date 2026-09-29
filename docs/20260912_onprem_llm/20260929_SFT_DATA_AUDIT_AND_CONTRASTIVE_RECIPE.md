@@ -66,6 +66,27 @@ family, different method) — the exact confusable boundary. All contrastive dat
 - v1 mid-train running (`full_v1strong`, L4) — corpus now includes PMC full-text (63M v1) + tool-docs +
   DB-catalog + de-degenerated KG (×1) + dedup/quality filter.
 
+## Task-aware mid-train (v2) — design the mid-train toward the ultimate goal
+
+Root cause D4: v1-style mid-train is next-token LM on flat text; it raised perplexity but transferred
+nothing (degenerate KG hurt most). Fix = **instruction / task-aware continued pre-training** (cf. Cheng et
+al. 2024, *Instruction Pre-Training*): convert the corpus into task-structured examples so the objective
+rehearses the goal skills. **Division of labor** (also resolves the tool-upgrade question):
+
+- **mid-train (task-aware) = STABLE, transferable knowledge + reasoning** → OK in weights:
+  - `kg_multihop`: verbalized KG triples → entity adjacency → **2-hop reasoning QA** ("through which
+    intermediate is A connected to C, by what relations?") — *uses* the graph vs memorizing flat triples.
+  - `tooldoc_qa`: catalog tool/workflow fields → usage/param knowledge QA.
+  - `lit_extract` (LLM, sampled): abstract → method/organism/finding extraction QA.
+- **SFT+DPO+retrieval = VOLATILE catalog selection** (routing/tool/chain) → NOT in weights (re-mine on
+  upgrade). This is `build_contrastive.py` (open-book + hard-negative DPO).
+
+Generator: `evaluation/local_trial/build_instruction_midtrain.py` (+ `build_instmid.sh` box runner →
+`s3://…/midtrain_corpus/instruction_midtrain.jsonl`). Targets ~250k KG-reasoning + 60k tool-QA + 40k
+lit-extraction. **v1 = raw-text baseline** (running now); **v2 = task-aware** — measures whether aligning the
+mid-train objective to the goal makes mid-train finally *help* (v1 tests whether dedup+KG-balance stopped the
+bleeding; v2 tests whether task-alignment reverses it).
+
 ## Open / next
 - Run paraphrase-v2 on low-diversity tasks; assemble v5 SFT; wire DPO stage; re-eval routing (candidate-
   grounded, deployment mode).
