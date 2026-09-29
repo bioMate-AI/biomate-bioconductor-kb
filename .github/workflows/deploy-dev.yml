@@ -25,7 +25,7 @@ jobs:
   deploy-dev:
     name: Deploy to dev via SSM
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     environment:
       name: test
     steps:
@@ -62,7 +62,7 @@ jobs:
             --output text --query "Command.CommandId")
           echo "Command ID: $CMD_ID"
 
-          for i in $(seq 1 30); do
+          for i in $(seq 1 80); do
             sleep 15
             STATUS=$(aws ssm get-command-invocation \
               --command-id "$CMD_ID" \
