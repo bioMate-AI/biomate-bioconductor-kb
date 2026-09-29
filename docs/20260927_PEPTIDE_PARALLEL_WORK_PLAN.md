@@ -79,9 +79,15 @@ roughens the latent (0.18→0.017). It lowers aggregate coord loss while the spe
 tolerance. **So "revert the closure term" was WRONG** — v2 proves the closure loss was *holding* ring-closure up
 (0.33 vs 0.06) and partly protecting the latent (0.05 vs 0.017). v1 (closure ON) is the better AE, but NEITHER
 recovers the baseline latent smoothness → **M1 not cleanly solved; a generator needs valid rings + smooth latent.**
-**M1-v3 (next):** keep the closure term, but preserve latent+ring while keeping the Cα gain — raise KL weights
-(h_kl 0.3→~0.6, z_kl 0.5→~1.0) and/or fewer epochs / lower lr (latent likely drifts with over-training); target
-Cα<0.6 + ring≥0.33 + latent≥0.10. v1 is the fallback production AE if v3 doesn't beat it.
+**M1-v3 (KL 0.6/1.0, closure on) — DONE: KL hypothesis DISPROVEN.** Cα 0.539 (fine) but ring **0.127** (worse than
+v1's 0.33) and latent **0.017** (worse than v1's 0.05). Higher KL did NOT preserve the latent and hurt ring-closure.
+**DECISION — AE settled, stop tuning: v1 is the production AE** (Cα 0.57 + ring 0.33 held by the closure term + best
+latent 0.05). **Reframe on the latent metric:** `latent_ring_break` measures *linear-interpolation* validity, which
+is NOT what a latent-*diffusion* generator needs — M2 trains a fresh denoiser over whatever latent the AE produces,
+so linear-interp validity is likely the wrong proxy. Do not block M2 on it; **let M2 (the actual LDM) be the real
+test of latent quality.** Net M1 outcome: mid-train robustly halves backbone Cα (1.05→0.57), closure term holds
+ring-closure at baseline; proceed to **M2 on the v1 checkpoint**
+(`runs/m1-ae-midtrain-20260928T225554Z/.../epoch39_step3520.ckpt`).
 Fixes banked: OOM (ubound 12000 + expandable_segments); warm-start via `.autoencoder` 1:1. Cost/run ~20min/$0.50.
 Audit-gate lesson: running v2 as a controlled ablation caught a wrong conclusion before it propagated to M2.
 
