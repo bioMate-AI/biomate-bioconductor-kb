@@ -83,7 +83,54 @@ def parse_msgf_mzid(path):
                 yield sid, pep, prot, score
 
 
-PARSERS = {"comet": parse_comet_pepxml, "msgf": parse_msgf_mzid}
+def parse_sage_tsv(path):
+    """
+    Yield (spectrum_id, peptide, protein, score). Sage's native results.sage.tsv is a
+    plain TSV; the discriminant score (sage_discriminant_score) is HIGHER = better
+    (already the scorer contract). Columns vary slightly by Sage version; we look up
+    by name and fall back to hyperscore.
+    """
+    with open(path, newline="") as fh:
+        rdr = csv.DictReader(fh, delimiter="\t")
+        for r in rdr:
+            sid = r.get("scannr") or r.get("psm_id") or r.get("spectrum_q") or ""
+            pep = r.get("peptide", "")
+            prot = (r.get("proteins") or r.get("protein") or "").split(";")[0]
+            score_s = (r.get("sage_discriminant_score") or r.get("hyperscore")
+                       or r.get("score") or "0")
+            try:
+                score = float(score_s)
+            except ValueError:
+                score = 0.0
+            yield sid, pep, prot, score
+
+
+def parse_mokapot_psms(path):
+    """
+    Yield (spectrum_id, peptide, protein, score, qvalue). Mokapot's *.mokapot.psms.txt
+    gives a CALIBRATED 'mokapot q-value' (LOWER = better). We pass the q-value through
+    as a 5th element so the scorer honors mokapot's own FDR (it is the correct rescored
+    FDR) instead of recomputing target-decoy on rescored PSMs (mokapot drops decoys from
+    the target output, so a recomputed TD pass would see no decoys). Score = 1 - q so
+    HIGHER = better if any downstream ranking is still applied. Entrapment/decoy labels
+    still come from the protein accession via db_map — the honesty check is unaffected.
+    """
+    with open(path, newline="") as fh:
+        rdr = csv.DictReader(fh, delimiter="\t")
+        for r in rdr:
+            sid = r.get("PSMId") or r.get("SpecId") or r.get("psm_id") or ""
+            pep = r.get("peptide") or r.get("Peptide") or ""
+            prot = (r.get("Proteins") or r.get("proteins") or "").split("\t")[0].split(";")[0]
+            q_s = r.get("mokapot q-value") or r.get("q-value") or "1.0"
+            try:
+                q = float(q_s)
+            except ValueError:
+                q = 1.0
+            yield sid, pep, prot, 1.0 - q, q
+
+
+PARSERS = {"comet": parse_comet_pepxml, "msgf": parse_msgf_mzid,
+           "sage": parse_sage_tsv, "sage_mokapot": parse_mokapot_psms}
 
 
 def normalize(engine, input_path, dbmap_path, out_path):
@@ -92,11 +139,20 @@ def normalize(engine, input_path, dbmap_path, out_path):
     if parser is None:
         raise SystemExit(f"unknown engine {engine!r}; expected one of {list(PARSERS)}")
     n = 0
+    emit_q = engine == "sage_mokapot"   # this engine carries its own calibrated q-value
     with open(out_path, "w", newline="") as out:
         w = csv.writer(out, delimiter="\t")
-        w.writerow(["spectrum_id", "peptide", "protein", "score", "label"])
-        for sid, pep, prot, score in parser(input_path):
-            w.writerow([sid, pep, prot, f"{score:.6f}", label_for(prot, dbmap)])
+        header = ["spectrum_id", "peptide", "protein", "score", "label"]
+        if emit_q:
+            header.append("qvalue")
+        w.writerow(header)
+        for rec in parser(input_path):
+            if emit_q:
+                sid, pep, prot, score, q = rec
+                w.writerow([sid, pep, prot, f"{score:.6f}", label_for(prot, dbmap), f"{q:.6g}"])
+            else:
+                sid, pep, prot, score = rec
+                w.writerow([sid, pep, prot, f"{score:.6f}", label_for(prot, dbmap)])
             n += 1
     return n
 

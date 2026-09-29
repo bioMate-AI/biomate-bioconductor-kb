@@ -70,6 +70,7 @@ from dataclasses import dataclass, field, asdict
 def read_psms(path):
     """Read a normalized PSM TSV -> list of dict rows. Minimal, dependency-free."""
     rows = []
+    has_qvalue = False
     with open(path, newline="") as fh:
         rdr = csv.DictReader(fh, delimiter="\t")
         for r in rdr:
@@ -78,9 +79,18 @@ def read_psms(path):
             if r["label"] not in ("target", "decoy", "entrapment"):
                 raise ValueError(f"{path}: bad label {r['label']!r} "
                                  "(expected target|decoy|entrapment)")
+            # Optional pre-computed q-value column: honored for engines that emit a
+            # calibrated FDR themselves (e.g. mokapot rescoring). When present the
+            # scorer trusts it instead of recomputing target-decoy q-values — but the
+            # entrapment-FMR honesty check still runs on the accepted set independently.
+            if r.get("qvalue") not in (None, ""):
+                r["qvalue"] = float(r["qvalue"])
+                has_qvalue = True
             rows.append(r)
     if not rows:
         raise ValueError(f"{path}: no PSM rows")
+    for r in rows:
+        r["_precomputed_q"] = has_qvalue
     return rows
 
 
@@ -207,7 +217,8 @@ def parse_nextflow_trace(path):
 # ------------------------------------------------------------------- top-level
 def score_method(psm_path, claimed_fdr, ratio, trace=None, method_id=None):
     psms = read_psms(psm_path)
-    assign_qvalues(psms)
+    if not (psms and psms[0].get("_precomputed_q")):
+        assign_qvalues(psms)  # target-decoy q-values (engines without their own FDR)
     ids = count_ids(psms, claimed_fdr)
     fmr = entrapment_fmr(psms, claimed_fdr, ratio)
     calib = calibration_curve(psms, ratio)
