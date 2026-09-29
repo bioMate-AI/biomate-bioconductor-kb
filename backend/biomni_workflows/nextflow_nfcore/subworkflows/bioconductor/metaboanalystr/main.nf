@@ -115,13 +115,20 @@ process BIOC_METABOANALYSTR_STATISTICAL_METABOLOMICS_ANALYSIS {
         }
         if (any(is.na(labels))) stop("Class labels could not be matched to every sample column of the peak table.")
 
-        # Write the canonical MetaboAnalyst upload CSV: header = sample names, row 1 = 'Label'
+        # Write the canonical MetaboAnalyst upload CSV: header = sample names, row 1 = 'Label'.
+        # Build as a single character matrix — NOT rbind() of two data.frames: the label
+        # frame's auto-generated column names (t(data.frame(Label=labels)) -> "1","2",...)
+        # differ from mat's real sample names, so rbind() throws
+        # "names do not match previous names". A matrix rbind is name-agnostic and coerces
+        # cleanly (the Label row is text, the feature rows are numbers-as-text — exactly the
+        # MetaboAnalyst 'conc' upload format).
         ma_csv <- "metaboanalyst_input.csv"
+        sample_names <- colnames(mat)
         out <- rbind(
-          data.frame(Sample = "Label", t(data.frame(Label = labels)), check.names = FALSE),
-          data.frame(Sample = rownames(mat), mat, check.names = FALSE)
+          c("Label", as.character(labels)),
+          cbind(rownames(mat), matrix(as.character(mat), nrow = nrow(mat)))
         )
-        colnames(out) <- c("Sample", colnames(mat))
+        colnames(out) <- c("Sample", sample_names)
         write.csv(out, ma_csv, row.names = FALSE, quote = FALSE)
 
         # ------------------------------------------------------------------
