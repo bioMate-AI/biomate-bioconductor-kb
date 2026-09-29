@@ -3027,9 +3027,20 @@ def _generate_executor_config(
             # on nfcore/chipseq: with libz-only mount, GTF2BED passes (libz
             # error gone) and the run moves to next process. With full
             # /usr/lib64 mount, /bin/sh itself fails on tinfo glibc.
+            #
+            # Applies to nf-core AND bioconductor AND nf-core-modules — all three run
+            # minimal quay.io/biocontainers task images whose own libz lives in
+            # /usr/local/lib (not on the host aws binary's search path), so the mounted
+            # aws exits 127 'libz.so.1: cannot open shared object file' during S3 staging.
+            # (Audit 2026-09-29: 699 raw-quay workflows sit under bioconductor/+modules,
+            # previously EXCLUDED from this mount; the `containerOptions -v` branch above
+            # is IGNORED by AWS Batch — only this `volumes` directive is Batch-effective,
+            # so extending the gate here is the real fix. Observed failure: dropletutils.)
+            # Broadening to ALL paths is also safe (single-file, proven no-regression) —
+            # kept surgical to leave BioMate's own full-image workflows untouched.
             *(
                 ["        volumes = ['/usr/lib64/libz.so.1:/usr/lib64/libz.so.1:ro']"]
-                if is_nfcore
+                if (is_nfcore or "/bioconductor/" in nf_path or "/nf-core-modules/" in nf_path)
                 else []
             ),
             "    }",
