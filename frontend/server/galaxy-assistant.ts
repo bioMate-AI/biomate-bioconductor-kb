@@ -7963,7 +7963,7 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       const resp = await fetch(
         `${galaxyUrl}/api/ai_assistant/workflow_by_name?name=${encodeURIComponent(name)}`,
-        { headers: { 'x-api-key': process.env.GALAXY_MASTER_API_KEY || '' } }
+        { headers: { 'x-api-key': process.env.GALAXY_MASTER_API_KEY || process.env.GALAXY_API_KEY || '' } }
       );
       if (!resp.ok) return null;
       return await resp.json();
