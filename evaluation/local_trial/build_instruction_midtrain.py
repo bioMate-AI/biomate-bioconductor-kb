@@ -102,53 +102,66 @@ def tooldoc_qa(path, n):
     return out[:n]
 
 
-def lit_extract(path, n, workers=12):
-    """(LLM) abstract -> extraction QA. Samples n abstracts, one gpt call each (low effort)."""
+def lit_findings(path, n, workers=12):
+    """(LLM) literature -> BioMate-ALIGNED tasks: interpret results -> FINDINGS, and draw CONCLUSIONS +
+    implications/next-steps. Mirrors BioMate's findings_interpretation / analyze_results / conclusion_drawing
+    skills (NOT generic knowledge trivia). Prefers full-text (real Results/Discussion) over bare abstracts."""
     key = os.environ.get("OPENAI_API_KEY")
     if not key:
-        print("[lit_extract] no OPENAI_API_KEY — skipping LLM literature tasks", flush=True)
+        print("[lit_findings] no OPENAI_API_KEY — skipping LLM literature tasks", flush=True)
         return []
     model = os.environ.get("PARA_MODEL", "gpt-5-mini")
-    abstracts = []
+    texts = []
     for line in open(path):
         try:
             t = json.loads(line).get("text", "")
         except Exception:
             continue
-        if 400 < len(t) < 4000:
-            abstracts.append(t)
-        if len(abstracts) >= n * 4:
+        if 500 < len(t) < 12000:
+            texts.append(t)
+        if len(texts) >= n * 4:
             break
-    random.shuffle(abstracts); abstracts = abstracts[:n]
+    random.shuffle(texts); texts = texts[:n]
 
     def one(t):
-        ask = ("From this biomedical abstract, write ONE useful question a researcher would ask and its "
-               "concise factual answer, both grounded ONLY in the abstract (method used, organism/model, "
-               "key finding, or measured quantity). Reply as JSON {\"q\":...,\"a\":...}.\n\nABSTRACT:\n" + t[:3500])
+        ask = ("You are building training data that teaches an agent to INTERPRET analysis results and "
+               "GENERATE FINDINGS — like a bioinformatician reading pipeline outputs. From this biomedical "
+               "text, produce ONE example as JSON with THREE fields, all grounded ONLY in the text:\n"
+               "  \"results\": the study's concrete RESULTS/DATA (numbers, effects, comparisons) as an "
+               "analyst would see them — no interpretation;\n"
+               "  \"findings\": the key FINDINGS interpreting those results (what they mean);\n"
+               "  \"conclusion\": the CONCLUSION + implications or next steps.\n"
+               "Reply ONLY the JSON.\n\nTEXT:\n" + t[:8000])
         body = json.dumps({"model": model, "messages": [{"role": "user", "content": ask}],
-                           "max_completion_tokens": 300, "reasoning_effort": "low"}).encode()
+                           "max_completion_tokens": 600, "reasoning_effort": "low"}).encode()
         for _ in range(3):
             try:
                 d = json.load(urllib.request.urlopen(urllib.request.Request(
                     "https://api.openai.com/v1/chat/completions", data=body,
-                    headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"}), timeout=60))
+                    headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"}), timeout=90))
                 o = d["choices"][0]["message"]["content"]
                 m = re.search(r"\{.*\}", o, re.S)
-                if m:
-                    r = json.loads(m.group(0))
-                    if r.get("q") and r.get("a"):
-                        return {"text": f"{r['q'].strip()}\n\n{r['a'].strip()}", "source": "task_lit_extract"}
-                return None
+                if not m:
+                    return []
+                r = json.loads(m.group(0))
+                res, fnd, con = (r.get("results") or "").strip(), (r.get("findings") or "").strip(), (r.get("conclusion") or "").strip()
+                out = []
+                if res and fnd and len(res) > 40:
+                    out.append({"text": f"Here are the analysis results:\n{res}\n\nInterpret these results and "
+                                        f"state the key findings.\n\n{fnd}", "source": "task_findings_interpretation"})
+                if res and con and len(con) > 40:
+                    out.append({"text": f"Given these results:\n{res}\n\nWhat can be concluded, and what are the "
+                                        f"implications or next steps?\n\n{con}", "source": "task_conclusion_drawing"})
+                return out
             except Exception:
                 time.sleep(1.5)
-        return None
+        return []
     out = []
     with ThreadPoolExecutor(max_workers=workers) as ex:
-        for i, r in enumerate(ex.map(one, abstracts)):
-            if r:
-                out.append(r)
+        for i, rs in enumerate(ex.map(one, texts)):
+            out.extend(rs)
             if i % 500 == 0:
-                print(f"  lit_extract {i}/{len(abstracts)} -> {len(out)}", flush=True)
+                print(f"  lit_findings {i}/{len(texts)} -> {len(out)}", flush=True)
     return out
 
 
@@ -165,7 +178,7 @@ def main():
     if a.dbcat and os.path.exists(a.dbcat):
         r = tooldoc_qa(a.dbcat, a.tooldoc_n); print(f"tooldoc_qa: {len(r):,}", flush=True); allrows += r
     if a.lit and os.path.exists(a.lit):
-        r = lit_extract(a.lit, a.lit_n); print(f"lit_extract: {len(r):,}", flush=True); allrows += r
+        r = lit_findings(a.lit, a.lit_n); print(f"lit_findings: {len(r):,}", flush=True); allrows += r
     random.shuffle(allrows)
     with open(a.out, "w") as f:
         for r in allrows:
