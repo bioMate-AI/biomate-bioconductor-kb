@@ -75,25 +75,32 @@ def main():
         sibs = [n for n in by_dom.get(dom, []) if canon(n) != canon(gold)]
         if len(sibs) < 2:
             miss += 1; continue
+        # HARD sibling = highest description-token Jaccard to the gold (most confusable), but EXCLUDE
+        # substring-related names (foo vs foo_advanced) — those are ambiguous FALSE-negative risks
+        # (the sibling may also be a valid answer for a generic request). Conservative: skip them.
+        cg = canon(gold)
+        def unrelated(n): cn = canon(n); return cn not in cg and cg not in cn
+        gt = toks(name_desc.get(cg, "") + " " + gold)
+        sibs_scored = sorted([s for s in sibs if unrelated(s)],
+                             key=lambda n: len(gt & toks(name_desc.get(canon(n), "") + " " + n)), reverse=True)
+        if len(sibs_scored) < 2:
+            miss += 1; continue
         kept += 1
-        # HARD sibling = highest description-token Jaccard to the gold (most confusable)
-        gt = toks(name_desc.get(canon(gold), "") + " " + gold)
-        sibs_scored = sorted(sibs, key=lambda n: len(gt & toks(name_desc.get(canon(n), "") + " " + n)), reverse=True)
         hard = sibs_scored[0]
         cands = [gold, hard] + random.sample([s for s in sibs_scored[1:] if s != hard], min(a.k - 2, max(0, len(sibs_scored) - 1)))
         cands = list(dict.fromkeys(cands)); random.shuffle(cands)
         prompt = (f"Retrieved candidates:\n" + "\n".join(f"- {c}" for c in cands) + f"\n\nRequest: {u}")
-        # open-book SFT (target = exact gold)
+        # open-book SFT (target = exact gold — this alone teaches exact spelling/casing, so no spelling-DPO)
         sft_out.append({"messages": [{"role": "system", "content": SYS},
                                      {"role": "user", "content": prompt},
                                      {"role": "assistant", "content": gold}],
                         "task": "workflow_routing_openbook", "source": "contrastive_openbook"})
-        # DPO pairs: chosen=gold; 3 rejected flavors
+        # DPO pairs: chosen=gold; hard sibling (confusable, distinct) + off-catalog (never emit off-list).
+        # (spelling flavor dropped — near-identical strings are a weak/unstable DPO signal, already covered by SFT.)
         full = SYS + "\n\n" + prompt
         dpo_out.append({"prompt": full, "chosen": gold, "rejected": hard, "task": "routing_sibling"})
-        dpo_out.append({"prompt": full, "chosen": gold, "rejected": mangle(gold), "task": "routing_spelling"})
         offcat = random.choice(allnames)
-        while offcat in cands: offcat = random.choice(allnames)
+        while offcat in cands or canon(offcat) == cg: offcat = random.choice(allnames)
         dpo_out.append({"prompt": full, "chosen": gold, "rejected": offcat, "task": "routing_offcatalog"})
     random.shuffle(sft_out); random.shuffle(dpo_out)
     with open(a.out_sft, "w") as f:
