@@ -64,8 +64,10 @@ model:
   latent_n_channel: 1
   n_layers: 3
   n_channel: 14                 # all-atom
-  h_kl_weight: 0.3
-  z_kl_weight: 0.5
+  h_kl_weight: 0.6   # v3: raised from 0.3 to keep the latent regularized toward the prior during mid-train
+  z_kl_weight: 1.0   # v3: raised from 0.5 — v1/v2 latent smoothness regressed (0.18->0.05/0.017); stronger
+                     # KL should preserve latent structure. NOT a layer -> warm-start still loads 202/202 1:1.
+                     # Target: Ca<0.6 + ring>=0.33 + latent>=0.10. If recon (Ca) degrades, KL is too high.
   coord_loss_ratio: 0.5
   coord_loss_weights:
     Xloss: 1.0
