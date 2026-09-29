@@ -355,6 +355,7 @@ services:
       LLM_API_URL:  ${LLM_API_URL:-}
       LLM_API_KEY:  ${LLM_API_KEY:-none}
       LLM_MODEL:    ${LLM_MODEL:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
       DEEPSEEK_API_KEY:   ${DEEPSEEK_API_KEY:-}
       ZHIPU_API_KEY:      ${ZHIPU_API_KEY:-}
       ANTHROPIC_API_KEY:  ${ANTHROPIC_API_KEY:-}
