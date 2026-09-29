@@ -2904,6 +2904,21 @@ def _generate_executor_config(
             or os.environ.get("GPU_BATCH_QUEUE", "")
             or "biomate-gpu-spot-queue"
         )
+        # Per-label HPC queue routing (same class of bug as GPU above): processes
+        # labelled `process_high` (72 GB) / `process_high_memory` (200 GB) request more
+        # RAM than the default CPU CE `biomate-nextflow-ce-v2` offers (m5/r5.2xlarge =
+        # 64 GB max), so on the default `biomate-nextflow-queue` they sit RUNNABLE
+        # forever (Batch never finds a fitting instance) with no hard failure — observed
+        # 2026-09-28 with nf-encyclopedia's ENCYCLOPEDIA_AGGREGATE (process_high). Route
+        # them to the HPC CE (biomate-nextflow-hpc-v1: c5.9xlarge/r5.4xlarge = 72/128 GB).
+        # NOTE: process_high_memory (200 GB) still exceeds r5.4xlarge (128 GB) — hpc is
+        # strictly better than the 64 GB default but a 200 GB tier needs a larger instance
+        # added to the hpc CE to actually schedule (infra follow-up, not an executor fix).
+        hpc_queue = (
+            compute.get("hpc_batch_queue")
+            or os.environ.get("HPC_BATCH_QUEUE", "")
+            or "biomate-hpc-queue"
+        )
         # Skip GPU process label/name selectors for user-uploaded personal workflows.
         # Personal workflows live under /tmp/biomate_user_nf/ and don't use BioMate
         # process labels (process_gpu, PRODUCTION_MD). Nextflow 24+ strict mode exits
@@ -2943,11 +2958,11 @@ def _generate_executor_config(
                 "process {",
                 "    withLabel: 'process_low'         { cpus = 2;  memory = '12.GB' }",
                 "    withLabel: 'process_medium'      { cpus = 6;  memory = '36.GB' }",
-                "    withLabel: 'process_high'        { cpus = 12; memory = '72.GB' }",
-                "    withLabel: 'process_high_memory' { cpus = 12; memory = '200.GB' }",
+                f"    withLabel: 'process_high'        {{ cpus = 12; memory = '72.GB'; queue = '{hpc_queue}' }}",
+                f"    withLabel: 'process_high_memory' {{ cpus = 12; memory = '200.GB'; queue = '{hpc_queue}' }}",
                 "}",
             ]
-            log.info("[Nextflow] injected process_low/medium/high memory tiers (12/36/72 GB)")
+            log.info(f"[Nextflow] injected process_low/medium/high memory tiers (12/36/72 GB); process_high+ → {hpc_queue}")
         # For nf-core pipelines: emit a slimmer aws.client block.
         # Their own nextflow.config often sets `aws.client.anonymous = true`
         # globally (so iGenomes public-bucket reads work). That makes ALL
