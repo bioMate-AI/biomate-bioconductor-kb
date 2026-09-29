@@ -26,6 +26,8 @@ jobs:
     name: Deploy to dev via SSM
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    environment:
+      name: test
     steps:
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
