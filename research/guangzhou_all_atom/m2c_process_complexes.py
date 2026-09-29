@@ -401,10 +401,23 @@ def main(argv=None) -> int:
     # <out-dir>/index.txt (chain-only) process.py consumed.
     mmap_index = processed_dir / "index.txt"
     id2line = {}
+    n_degenerate_pocket = 0
     with open(mmap_index) as f:
         for line in f:
-            if line.strip():
-                id2line[line.split("\t")[0]] = line
+            if not line.strip():
+                continue
+            fields = line.rstrip("\n").split("\t")
+            _id = fields[0]
+            # props[-1] is the comma-joined pocket residue idxs. use_covariance_matrix=True computes
+            # np.cov over the receptor(pocket) CA atoms -> needs >=2 points for a valid 3x3 matrix
+            # (a 1-residue pocket -> np.cov returns a 0-d scalar -> codesign.py:128 cov.shape[0] IndexError,
+            # the exact crash we hit). Drop entries with <3 pocket residues so the covariance path is safe.
+            pocket = fields[-1].strip() if len(fields) > 1 else ""
+            n_pocket = len([x for x in pocket.split(",") if x != ""]) if pocket else 0
+            if n_pocket < 3:
+                n_degenerate_pocket += 1
+                continue
+            id2line[_id] = line
     id_of = lambda i: kept_rows[i]["pdb_id"]
 
     def _write(split_idxs, name):
@@ -438,6 +451,8 @@ def main(argv=None) -> int:
         "n_dropped_stage": len(dropped),
         "n_in_mmap": len(kept_rows),
         "n_dropped_process": len(staged) - len(kept_rows),
+        "n_dropped_degenerate_pocket": n_degenerate_pocket,
+        "n_usable": len(id2line),
         "split": {"train": n_tr, "valid": n_va, "test": n_te},
         "n_clusters": len(clusters),
         "max_train_test_peptide_identity": round(max_cross, 3),
