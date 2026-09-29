@@ -447,11 +447,12 @@ export BACKEND_IMAGE="\$NEW_BACKEND"
 export FRONTEND_IMAGE="\$NEW_FRONTEND"
 docker compose -f docker-compose.deploy.yml down --timeout 30 || true
 
-# New image gets up to 180s to go healthy (Galaxy cold start is ~60-90s).
+# New image gets up to 360s to go healthy (Galaxy cold start with 4 workers
+# and preload can take 3-5 min; 180s was too tight on cold instances).
 # Health gate = boot (docker healthchecks) + endpoints (version/health HTTP) +
 # functional smoke (a workflow can be routed/generated). Any gating failure
 # falls through to the rollback below.
-if bring_up "\$NEW_BACKEND" "\$NEW_FRONTEND" 180 && endpoints_ok && workflow_smoke; then
+if bring_up "\$NEW_BACKEND" "\$NEW_FRONTEND" 360 && endpoints_ok && workflow_smoke; then
   finish healthy 0
 fi
 
