@@ -1,0 +1,22 @@
+# =====================================================================================================
+# m2c_setup_latent_guidance.yaml — config for the STOCK setup_latent_guidance.py step. It encodes the
+# TRAIN split with the frozen v1 AE, computes the mean/std of consecutive-latent distances, and calls
+# model.set_consec_dist(mean,std) then RE-SAVES the ckpt. REQUIRED before generate.py with
+# sample_opt.energy_func == default (ldm.py:138-140 asserts consec_dist_mean is set). Verified.
+#
+# Provenance: copied from configs/pepbench/ldm/setup_latent_guidance.yaml; only the mmap/index differ.
+# =====================================================================================================
+
+dataset:
+  test:                                        # setup_latent_guidance uses create_dataset(...)[2] = 'test' slot
+    class: CoDesignDataset                     # STOCK (receptor present)
+    mmap_dir: ./data/bound_cyclic_pepglad/processed
+    specify_index: ./data/bound_cyclic_pepglad/processed/train_index.txt   # consec-dist over TRAIN latent
+    backbone_only: false
+    use_covariance_matrix: true
+
+dataloader:
+  num_workers: 2
+  batch_size: 16
+
+backbone_only: false
