@@ -1,0 +1,6 @@
+name: mokapot
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - bioconda::mokapot=0.10.0
