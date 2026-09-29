@@ -2613,6 +2613,19 @@ def _generate_executor_config(
         # task containers can resolve "minio" hostname for S3 file staging.
         # BIOMATE_DOCKER_NETWORK defaults to "biomate-network" (on-prem compose default).
         docker_network = os.environ.get("BIOMATE_DOCKER_NETWORK", "biomate-network")
+        # On-prem container override: bioc workflows hard-code a private ECR image.
+        # BIOMATE_BIOC_CONTAINER lets operators substitute a public/pre-pulled image.
+        # Example: BIOMATE_BIOC_CONTAINER=localhost:5050/biomate/bioc-domain-transcriptomics:3.20-slim
+        bioc_container = os.environ.get("BIOMATE_BIOC_CONTAINER", "")
+        container_override = ""
+        if bioc_container:
+            container_override = f"""
+process {{
+  withName: '/BIOC_.*/' {{
+    container = '{bioc_container}'
+  }}
+}}
+"""
         minio_config = f"""
 aws {{
   client {{
@@ -2629,7 +2642,7 @@ docker {{
   enabled = true
   runOptions = '--network {docker_network}'
 }}
-"""
+{container_override}"""
         config_path = config_dir / "biomate_executor_override.config"
         config_path.write_text(minio_config)
         return config_path
@@ -10721,14 +10734,17 @@ async def fetch_public_data(body: FetchPublicDataRequest):
     filename = Path(parsed.path).name or "data.bin"
     dest_key = body.destination_key or f"public-data/{filename}"
 
-    # Default to the standard work bucket like the rest of nextflow_executor
-    # (lines ~2091/4389) instead of hard-failing — fetch_public_data otherwise
-    # 503'd on envs that never set NEXTFLOW_S3_BUCKET explicitly.
-    s3_bucket = (
-        os.environ.get("NEXTFLOW_S3_BUCKET")
-        or os.environ.get("AWS_S3_BUCKET")
-        or "biomate-nextflow-work"
-    )
+    # On-prem MinIO: only the S3_BUCKET_NAME bucket is created by docker-compose
+    # init — biomate-nextflow-work doesn't exist in MinIO. Use S3_BUCKET_NAME.
+    # SaaS: use NEXTFLOW_S3_BUCKET or AWS_S3_BUCKET as before.
+    if os.environ.get("S3_ENDPOINT_URL"):
+        s3_bucket = os.environ.get("S3_BUCKET_NAME") or "biomate-data"
+    else:
+        s3_bucket = (
+            os.environ.get("NEXTFLOW_S3_BUCKET")
+            or os.environ.get("AWS_S3_BUCKET")
+            or "biomate-nextflow-work"
+        )
 
     log.info("[fetch_public_data] Downloading %s → s3://%s/%s", download_url, s3_bucket, dest_key)
 
@@ -10811,7 +10827,11 @@ async def browse_s3(
         bucket = user_cred.get("s3_bucket")
 
     if not bucket:
-        bucket = os.environ.get("NEXTFLOW_S3_BUCKET") or os.environ.get("AWS_S3_BUCKET")
+        # On-prem MinIO: only S3_BUCKET_NAME bucket is created; NEXTFLOW_S3_BUCKET not set.
+        if os.environ.get("S3_ENDPOINT_URL"):
+            bucket = os.environ.get("S3_BUCKET_NAME") or "biomate-data"
+        else:
+            bucket = os.environ.get("NEXTFLOW_S3_BUCKET") or os.environ.get("AWS_S3_BUCKET")
         if not boto_kwargs:
             # Fall back to instance role / env-var creds
             region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")

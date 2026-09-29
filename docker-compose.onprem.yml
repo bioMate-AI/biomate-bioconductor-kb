@@ -262,6 +262,16 @@ services:
       # ── 本地镜像仓库 ──────────────────────────────────────────────────────
       BIOMATE_LOCAL_REGISTRY: ${BIOMATE_LOCAL_REGISTRY:-localhost:5050}
 
+      # ── Bioconductor container override ───────────────────────────────────
+      # Bioconductor R workflows use a private ECR image by default.
+      # On air-gapped or no-AWS hosts, set this to a pre-pulled local image:
+      #   1. Pull: docker pull 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim
+      #   2. Tag:  docker tag <sha> localhost:5050/biomate/bioc-transcriptomics:latest
+      #   3. Push: docker push localhost:5050/biomate/bioc-transcriptomics:latest
+      #   4. Set:  BIOMATE_BIOC_CONTAINER=registry:5000/biomate/bioc-transcriptomics:latest
+      # Leave empty to use the default ECR image (requires Docker login to ECR).
+      BIOMATE_BIOC_CONTAINER: ${BIOMATE_BIOC_CONTAINER:-}
+
       # ── On-premises license ────────────────────────────────────────────────
       # BIOMATE_LICENSE_KEY:   由 BioMate 团队签发，格式 BMOP-XXXX-XXXX-XXXX-XXXX
       # BIOMATE_LICENSE_SECRET: 由 BioMate 团队随部署包一并提供，勿自行修改
