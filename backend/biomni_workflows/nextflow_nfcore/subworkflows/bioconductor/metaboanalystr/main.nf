@@ -86,6 +86,18 @@ process BIOC_METABOANALYSTR_STATISTICAL_METABOLOMICS_ANALYSIS {
           library(MetaboAnalystR)
         })
 
+        # Ensure the Batch task exits promptly. MetaboAnalystR/OptiLCMS fork a background
+        # Rserve daemon at init which keeps this task's stdout/stderr FDs open, so the AWS
+        # Batch container hangs in RUNNING for the full timeout AFTER the R script finishes
+        # OR errors (observed 2026-09-29: a failed run zombied ~30 min; even a SUCCESSFUL
+        # run would hang identically). Kill Rserve on both paths so the container exits in
+        # seconds, letting Nextflow stage outputs and the job reach a terminal state.
+        .bm_finish <- function(status) {
+          try(suppressWarnings(system("pkill -9 -f Rserve 2>/dev/null")), silent = TRUE)
+          quit(save = "no", status = status, runLast = FALSE)
+        }
+        options(error = function() .bm_finish(1))
+
         # ------------------------------------------------------------------
         # 1. Read User Inputs (peak-intensity table + 2-group class labels)
         # ------------------------------------------------------------------
@@ -137,7 +149,13 @@ process BIOC_METABOANALYSTR_STATISTICAL_METABOLOMICS_ANALYSIS {
         mSet <- InitDataObjects("conc", "stat", FALSE)
         mSet <- Read.TextData(mSet, ma_csv, "colu", "disc")
         mSet <- SanityCheckData(mSet)
-        mSet <- ReplaceMin(mSet)
+        # ReplaceMin() is no longer EXPORTED by MetaboAnalystR 4.x ("could not find
+        # function ReplaceMin") — SanityCheckData already replaces missing with half the
+        # minimal positive value by default, and the exported modern equivalent for the
+        # min-imputation step is ImputeMissingVar(method="min"). (Verified against the
+        # MetaboAnalystR master source: ReplaceMin has only a leftover roxygen doc, not an
+        # export; ImputeMissingVar is @export'd.)
+        mSet <- ImputeMissingVar(mSet, method = "min")
         mSet <- FilterVariable(mSet, "F", 25, "none", -1, "mean", 0)
         mSet <- PreparePrenormData(mSet)
         # LogNorm (base-10 log) + AutoNorm (auto/unit-variance scaling) -- the canonical stat prep
@@ -216,6 +234,10 @@ process BIOC_METABOANALYSTR_STATISTICAL_METABOLOMICS_ANALYSIS {
         '"BIOC_METABOANALYSTR_STATISTICAL_METABOLOMICS_ANALYSIS":',
         paste0('    MetaboAnalystR: ', as.character(packageVersion('MetaboAnalystR')))
     ), "versions.yml")
+
+    # Kill the Rserve daemon + exit 0 so the Batch container terminates promptly and
+    # Nextflow stages the outputs written above (see .bm_finish note near the top).
+    .bm_finish(0)
     """
 
     stub:
