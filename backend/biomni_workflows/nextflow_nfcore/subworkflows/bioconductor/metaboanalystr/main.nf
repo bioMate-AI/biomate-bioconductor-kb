@@ -126,7 +126,7 @@ process BIOC_METABOANALYSTR_STATISTICAL_METABOLOMICS_ANALYSIS {
         sample_names <- colnames(mat)
         out <- rbind(
           c("Label", as.character(labels)),
-          cbind(rownames(mat), matrix(as.character(mat), nrow = nrow(mat)))
+          cbind(rownames(mat), matrix(as.character(as.matrix(mat)), nrow = nrow(mat)))
         )
         colnames(out) <- c("Sample", sample_names)
         write.csv(out, ma_csv, row.names = FALSE, quote = FALSE)
