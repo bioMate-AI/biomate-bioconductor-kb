@@ -42,15 +42,29 @@ if [ "${MIX_LITERATURE:-0}" = 1 ] && [ "$STAGE" != sft ]; then
   if aws s3 ls "$S3/midtrain_corpus/midtrain_domain$TAG.jsonl" >/dev/null 2>&1; then
     echo "[spot] pulling prebuilt domain mix"; aws s3 cp "$S3/midtrain_corpus/midtrain_domain$TAG.jsonl" "$DATA_MID" --quiet
   else
-    echo "[spot] building domain mix = literature + structured + KG (keep-every=${LIT_KEEP_EVERY:-5}, struct-repeat=${STRUCT_REPEAT:-8}, kg-repeat=${KG_REPEAT:-1})"
+    echo "[spot] building domain mix = literature + full-text + tool-docs + DB + structured + KG (dedup=${MIX_DEDUP:-1}, keep-every=${LIT_KEEP_EVERY:-5}, struct-repeat=${STRUCT_REPEAT:-8}, kg-repeat=${KG_REPEAT:-1})"
     aws s3 cp "$S3/midtrain_corpus/literature_corpus.jsonl" "$SCRATCH/data/lit.jsonl" --quiet
     KGARG=""
     if [ "${MIX_KG:-0}" = 1 ] && aws s3 ls "$S3/midtrain_corpus/kg_corpus.jsonl" >/dev/null 2>&1; then
       aws s3 cp "$S3/midtrain_corpus/kg_corpus.jsonl" "$SCRATCH/data/kg.jsonl" --quiet
       KGARG="--kg $SCRATCH/data/kg.jsonl --kg-repeat ${KG_REPEAT:-1}"
     fi
+    # extra Meditron-style sources: PMC full-text (incl. methods/protocols), tool-docs, DB catalog. Each
+    # pulled if present on S3; passed as path:source:repeat. Full-text upweighted (highest-value domain text).
+    EXTRA=""
+    for spec in "${PMC_FILE:-pmc_fulltext_corpus.jsonl}:pmc_fulltext:${PMC_REPEAT:-2}" \
+                "tooldocs_corpus.jsonl:tooldoc:${TOOLDOC_REPEAT:-3}" \
+                "db_catalog_corpus.jsonl:db_catalog:${DBCAT_REPEAT:-1}" \
+                "forum_corpus.jsonl:forum:${FORUM_REPEAT:-2}"; do
+      f="${spec%%:*}"
+      if aws s3 ls "$S3/midtrain_corpus/$f" >/dev/null 2>&1; then
+        aws s3 cp "$S3/midtrain_corpus/$f" "$SCRATCH/data/$f" --quiet
+        EXTRA="$EXTRA --extra $SCRATCH/data/${spec}"
+      else echo "[spot] extra source absent, skipping: $f"; fi
+    done
+    DEDUP=""; [ "${MIX_DEDUP:-1}" = 1 ] && DEDUP="--dedup"
     python3 "$HERE/build_midtrain_mix.py" --lit "$SCRATCH/data/lit.jsonl" --struct "$SCRATCH/data/midtrain_all.jsonl" \
-      --out "$DATA_MID" --struct-repeat "${STRUCT_REPEAT:-8}" --lit-keep-every "${LIT_KEEP_EVERY:-5}" $KGARG
+      --out "$DATA_MID" --struct-repeat "${STRUCT_REPEAT:-8}" --lit-keep-every "${LIT_KEEP_EVERY:-5}" $KGARG $EXTRA $DEDUP
     aws s3 cp "$DATA_MID" "$S3/midtrain_corpus/midtrain_domain$TAG.jsonl" --quiet
     aws s3 cp "$DATA_MID.composition.json" "$S3/midtrain_corpus/midtrain_domain$TAG.composition.json" --quiet
   fi
