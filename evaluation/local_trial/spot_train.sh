@@ -148,10 +148,14 @@ elif [ "$STAGE" = sftdpo ]; then
   else
     $LAUNCH "$HERE/train_qlora_pilot.py" --base "${BASE_DOMAIN:-$BASE}" --data "$SCRATCH/data/sft_enriched.jsonl" \
        --out "$OUT/sft" --max-steps $SFT --seq-len $SEQ --lora-r $R --batch-size $BS --grad-accum $GA $SR
+    # FAIL-FAST: don't barrel on if SFT produced no adapter (else merge+DPO fail confusingly)
+    [ -f "$OUT/sft/adapter_config.json" ] || { echo "[spot] FATAL: SFT produced no adapter — aborting"; exit 21; }
     python3 "$HERE/merge_lora.py" --base "${BASE_DOMAIN:-$BASE}" --adapter "$OUT/sft" --out "$OUT/sft_merged"
+    [ -f "$OUT/sft_merged/config.json" ] || { echo "[spot] FATAL: merge produced no model — aborting"; exit 22; }
     aws s3 cp "$OUT/sft/" "$S3/models_20260919/$SIZE/sft${TAG}_adapter/" --recursive --exclude "checkpoint-*/*" --quiet
     aws s3 cp "$OUT/sft_merged/" "$S3/models_20260919/$SIZE/sft${TAG}_merged/" --recursive --quiet
   fi
+  [ -f "$OUT/sft_merged/config.json" ] || { echo "[spot] FATAL: no merged SFT model for DPO — aborting"; exit 23; }
   $LAUNCH "$HERE/train_dpo_grounded.py" --phase train --model "$OUT/sft_merged" \
      --pairs-out "$SCRATCH/data/dpo_pairs.jsonl" --out "$OUT/dpo"
   aws s3 cp "$OUT/dpo/" "$S3/models_20260919/$SIZE/dpo${TAG}_adapter/" --recursive --quiet

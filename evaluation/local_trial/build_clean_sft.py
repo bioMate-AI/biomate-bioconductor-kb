@@ -79,7 +79,8 @@ def main():
         seen.add(h); final.append(r)
     with open(a.out, "w") as f:
         for r in final:
-            f.write(json.dumps(r) + "\n")
+            # UNIFORM schema — extra keys (e.g. 'aug') break load_dataset("json") with a CastError
+            f.write(json.dumps({"messages": r["messages"], "task": r.get("task", "?"), "source": r.get("source", "?")}) + "\n")
     print(f"CLEAN v5: base {len(base):,} -> dropped(corrupt={dropped_corrupt}, scaffold={dropped_scaffold}) "
           f"cleaned-answers={cleaned} | +added({add:,}) | dedup -> {len(final):,}")
     print("  final task dist:", dict(collections.Counter(r.get("task", "?") for r in final).most_common()))
