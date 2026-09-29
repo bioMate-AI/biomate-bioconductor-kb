@@ -85,9 +85,11 @@ def main():
         try: r = json.loads(m.group(0))
         except Exception: return ([], [])
         rows = []; gaps = []
+        def L(x):  # a string field must NOT be iterated char-by-char; wrap it as a single-item list
+            return x if isinstance(x, list) else ([x] if isinstance(x, str) and x.strip() else [])
         prob = S(r.get("problem")); design = r.get("study_design"); data = S(r.get("data"))
-        tools = [x for x in (r.get("tools") or []) if isinstance(x, str)]
-        params = [x for x in (r.get("parameters") or []) if isinstance(x, str)]
+        tools = [x.strip() for x in L(r.get("tools")) if isinstance(x, str) and len(x.strip()) > 1]
+        params = [x.strip() for x in L(r.get("parameters")) if isinstance(x, str) and len(x.strip()) > 1]
         results = S(r.get("results")); findings = S(r.get("findings")); concl = S(r.get("conclusion"))
         grounded = [x for x in tools if canon(x) in catalog]
         for x in tools:
