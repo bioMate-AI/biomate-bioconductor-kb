@@ -87,11 +87,25 @@ RUN pip install --no-cache-dir \
     statsmodels \
     scikit-image
 
-RUN pip install --no-cache-dir descriptastorus pandas-flavor || \
+# descriptastorus must be installed from GitHub — the PyPI package is stale.
+# biomni.tool.pharmacology.predict_admet_properties checks for the git version
+# at import time and returns an error dict if absent.
+RUN pip install --no-cache-dir \
+    "git+https://github.com/bp-kelley/descriptastorus" \
+    pandas-flavor || \
     echo "WARNING: descriptastorus install failed — DeepPurpose will be degraded"
 
 RUN pip install --no-cache-dir DeepPurpose || \
     echo "WARNING: DeepPurpose install failed — ADMET will use RDKit fallback"
+
+# ── Layer 8: BioMate Python SDK (biomni) ──────────────────────────────────
+# biomni is BioMate's Python tool library used by all biomni_* Nextflow
+# workflows (pharmacology, structural_biology, etc.). Without this package
+# the container cannot run any workflow that contains:
+#   from biomni.tool.<domain> import <function>
+# It also pulls in langchain-core, langchain, and other runtime dependencies.
+RUN pip install --no-cache-dir "biomni>=0.0.8" || \
+    echo "WARNING: biomni install failed — biomni_* workflows will fail"
 
 # ── Smoke tests ────────────────────────────────────────────────────────────
 RUN python3 -c "\

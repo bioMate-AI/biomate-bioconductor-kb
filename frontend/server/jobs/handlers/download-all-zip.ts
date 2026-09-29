@@ -75,11 +75,21 @@ async function resolveInvocation(idOrRunId: string): Promise<any | null> {
   return null;
 }
 
-/** S3 client lazily constructed so unit tests that mock the module work. */
+/** S3 client lazily constructed so unit tests that mock the module work.
+ *  On-prem MinIO: uses S3_ENDPOINT_URL + forcePathStyle. */
 function makeS3Client(): S3Client {
   const accessKey = process.env.AWS_NF_ACCESS_KEY_ID;
   const secretKey = process.env.AWS_NF_SECRET_ACCESS_KEY;
-  return new S3Client({
+  const endpointUrl = process.env.S3_ENDPOINT_URL;
+  return new S3Client(endpointUrl ? {
+    endpoint: endpointUrl,
+    region: "us-east-1",
+    forcePathStyle: true,
+    credentials: {
+      accessKeyId: accessKey || process.env.AWS_ACCESS_KEY_ID || "",
+      secretAccessKey: secretKey || process.env.AWS_SECRET_ACCESS_KEY || "",
+    },
+  } : {
     region: "us-east-1",
     ...(accessKey && secretKey
       ? { credentials: { accessKeyId: accessKey, secretAccessKey: secretKey } }

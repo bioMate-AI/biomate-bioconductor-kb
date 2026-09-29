@@ -1221,6 +1221,7 @@ def _looks_like_false_success(
     total_steps: int = 0,
     duration_s: Optional[int] = None,
     s3_output_files: Optional[list] = None,
+    local_output_files: Optional[list] = None,
     workflow_domain: str = "",
     nextflow_path: str = "",
 ) -> bool:
@@ -1228,6 +1229,11 @@ def _looks_like_false_success(
     if _log_indicates_nextflow_failure(log_full_text, log_tail):
         return True
     has_outputs = bool(_non_pipeline_info_s3_outputs(s3_output_files))
+    # On-prem local mode: outputs go to the local filesystem, not S3.
+    # If the caller provided a list of local output files, treat any non-empty
+    # list as "has outputs" so the S3 requirement check doesn't fire.
+    if not has_outputs and local_output_files:
+        has_outputs = True
     if (
         total_steps == 0
         and duration_s is not None
@@ -1469,6 +1475,15 @@ def _candidate_bases() -> list[Path]:
         backend_root / "biomni_workflows" / "nextflow_nfcore",
         backend_root / "biomni_workflows" / "nextflow_nfcore" / "subworkflows",
         backend_root / "biomni_workflows" / "nextflow_nfcore" / "workflows",
+        # biomni_workflows/nextflow/ — primary home of flat .nf workflow files in the
+        # backend image (e.g. predict_admet_properties.nf, not predict_admet_properties/main.nf).
+        # Must be searched so on-prem Docker-image deployments find these files without
+        # requiring NEXTFLOW_SEARCH_ROOTS to be set explicitly.
+        backend_root / "biomni_workflows" / "nextflow",
+        backend_root / "biomni_workflows" / "nextflow" / "subworkflows",
+        backend_root / "biomni_workflows" / "nextflow" / "workflows",
+        backend_root / "biomni_workflows" / "nextflow_generated",
+        backend_root / "biomni_workflows" / "nextflow_generated" / "subworkflows",
         # REAL downloaded nf-core pipelines (their own per-process biocontainers + bin/
         # scripts) MUST be searched BEFORE the display-only stubs in biomni_workflows/nfcore/.
         # The stubs declare no container and call tools absent from the base image, so they
@@ -1550,6 +1565,10 @@ def _resolve_nextflow_path(raw_path: str) -> Path:
         if candidate.suffix != ".nf":
             expanded_candidates.append(candidate.with_suffix(".nf"))
             expanded_candidates.append(candidate / "main.nf")
+        elif candidate.name == "main.nf" and candidate.parent.suffix != ".nf":
+            # DB path like predict_admet_properties/main.nf — also try the flat file
+            # predict_admet_properties.nf used in biomni_workflows/nextflow/.
+            expanded_candidates.append(candidate.parent.with_suffix(".nf"))
 
     # Search all candidates under configured roots.
     for root in _candidate_bases():
@@ -2353,8 +2372,8 @@ def _validate_input_paths(params: dict) -> None:
     large_items: list[str] = []
 
     for key, value in params.items():
-        if key == "outdir":
-            continue  # output, not input — validated elsewhere
+        if key == "outdir" or key.lower().startswith("output"):
+            continue  # output param — not a pre-existing input path, skip
         if isinstance(value, str) and value.startswith("s3://"):
             # Pre-flight: validate S3 input is accessible before job starts.
             _validate_s3_url(value, check_object=True)
@@ -2594,6 +2613,19 @@ def _generate_executor_config(
         # task containers can resolve "minio" hostname for S3 file staging.
         # BIOMATE_DOCKER_NETWORK defaults to "biomate-network" (on-prem compose default).
         docker_network = os.environ.get("BIOMATE_DOCKER_NETWORK", "biomate-network")
+        # On-prem container override: bioc workflows hard-code a private ECR image.
+        # BIOMATE_BIOC_CONTAINER lets operators substitute a public/pre-pulled image.
+        # Example: BIOMATE_BIOC_CONTAINER=localhost:5050/biomate/bioc-domain-transcriptomics:3.20-slim
+        bioc_container = os.environ.get("BIOMATE_BIOC_CONTAINER", "")
+        container_override = ""
+        if bioc_container:
+            container_override = f"""
+process {{
+  withName: '/BIOC_.*/' {{
+    container = '{bioc_container}'
+  }}
+}}
+"""
         minio_config = f"""
 aws {{
   client {{
@@ -2610,7 +2642,7 @@ docker {{
   enabled = true
   runOptions = '--network {docker_network}'
 }}
-"""
+{container_override}"""
         config_path = config_dir / "biomate_executor_override.config"
         config_path.write_text(minio_config)
         return config_path
@@ -3087,6 +3119,62 @@ docker {{
     return config_path
 
 
+def _extract_nf_process_containers(nf_path: Path) -> list[str]:
+    """
+    Extract container image references declared in process { container '...' } blocks.
+
+    These images are used by Nextflow directly for each process.  When a workflow
+    already declares its own container, the Python-module check in
+    _choose_container_strategy must NOT require those modules on the host — they live
+    inside the declared container.
+    """
+    try:
+        text = nf_path.read_text(errors="replace")
+    except OSError:
+        return []
+    images: list[str] = []
+    # Match   container 'image:tag'   or   container "image:tag"
+    # Also handles ternary expressions: container cond ? 'img1' : 'img2'
+    for m in re.findall(r"container\s+[^{}\n]*?['\"]([^'\"]+)['\"]", text):
+        if m and m not in images:
+            images.append(m)
+    return images
+
+
+def _resolve_local_image_alias(image: str) -> Optional[str]:
+    """
+    Given a short image name (e.g. 'biomate/biomni-tools:latest'), return the
+    locally-available tag that satisfies it.
+
+    On on-prem deployments the same image may be present under its full ECR path
+    (399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:latest).
+    We match by the image name+tag ignoring the registry prefix.
+    """
+    if _is_local_docker_image(image):
+        return image
+    # Extract just the name:tag portion (everything after the last '/')
+    name_tag = image.split("/")[-1]
+    repo_tag = "/".join(image.split("/")[-2:]) if "/" in image else image
+    try:
+        result = subprocess.run(
+            ["docker", "images", "--format", "{{.Repository}}:{{.Tag}}"],
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=10,
+        )
+        if result.returncode != 0:
+            return None
+        for line in result.stdout.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            local_name_tag = line.split("/")[-1]
+            local_repo_tag = "/".join(line.split("/")[-2:]) if "/" in line else line
+            if local_name_tag == name_tag or local_repo_tag == repo_tag:
+                return line
+    except Exception:
+        pass
+    return None
+
+
 def _choose_container_strategy(nf_path: Path, raw_nextflow_path: str) -> Dict[str, Any]:
     """
     Choose execution strategy:
@@ -3095,6 +3183,30 @@ def _choose_container_strategy(nf_path: Path, raw_nextflow_path: str) -> Dict[st
     """
     required_modules = _extract_python_imports(nf_path)
     documented_images = _extract_documented_images()
+
+    # If the .nf file declares its own per-process container(s), prefer those first.
+    # Python imports inside `script:` blocks run INSIDE the declared container, so
+    # module availability on the host is irrelevant for those workflows.  Resolving
+    # the declared container also handles on-prem where images are stored under their
+    # full ECR path rather than the short `biomate/...` alias.
+    nf_declared_containers = _extract_nf_process_containers(nf_path)
+    for declared_img in nf_declared_containers:
+        resolved = _resolve_local_image_alias(declared_img)
+        if resolved:
+            log.info(
+                f"[Nextflow container] Using per-process container declared in .nf file: "
+                f"{declared_img!r} → local image {resolved!r}"
+            )
+            return {
+                "mode": "docker",
+                "image": resolved,
+                "docker_opts": '-u $(id -u):$(id -g) --entrypoint ""',
+                "required_modules": required_modules,
+                "missing_modules": [],
+                "host_arch": _host_arch(),
+                "image_arch": _image_runtime_arch(resolved),
+                "cross_arch_allowed": os.environ.get("NEXTFLOW_ALLOW_CROSS_ARCH_DOCKER", "false"),
+            }
 
     # Domain-aware preference order
     image_preferences: list[str] = []
@@ -3936,7 +4048,7 @@ def _build_qc_report_from_s3_files(s3_files: List[Dict], outdir: str) -> Optiona
     try:
         import boto3 as _boto3
         import json as _json
-        s3_client = _make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        s3_client = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
     except ImportError:
         return None
 
@@ -4229,11 +4341,29 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                 pass
         _nf_path_for_check = str(_run_snap.get("nextflow_path", ""))
         _is_personal_nf_run = _nf_path_for_check.startswith("/tmp/biomate_user_nf/")
+        # On-prem local mode: scan the local output directory for real output files
+        # so the S3-output-requirement check doesn't falsely mark successful local
+        # runs as failed (Bug #68 — on-prem false-success).
+        _use_aws_now = os.environ.get("NEXTFLOW_USE_AWS", "").lower() in ("1", "true", "yes")
+        _local_output_files: list = []
+        if not _use_aws_now:
+            _local_outdir = _run_snap.get("outdir", "")
+            if _local_outdir:
+                try:
+                    _local_outdir_path = Path(_local_outdir)
+                    if _local_outdir_path.is_dir():
+                        _local_output_files = [
+                            str(f) for f in _local_outdir_path.rglob("*")
+                            if f.is_file() and "pipeline_info" not in f.parts
+                        ]
+                except Exception:
+                    pass
         if returncode == 0 and not _is_personal_nf_run and _looks_like_false_success(
             log_full_text=_log_text,
             total_steps=_total_steps,
             duration_s=_duration_s,
             s3_output_files=[],
+            local_output_files=_local_output_files,
             workflow_domain=_run_snap.get("workflow_domain", ""),
             nextflow_path=_nf_path_for_check,
         ):
@@ -5408,11 +5538,12 @@ def _execute_nextflow_impl(
     # Auto-detect S3 inputs → also route to AWS Batch.
     # Nextflow stages S3 inputs natively on awsbatch; local executor cannot
     # reliably access S3 paths without the nf-amazon plugin + S3 workDir.
+    # Skip in on-prem local mode — MinIO paths start with s3:// but stay local.
     s3_inputs = [
         v for k, v in params.items()
         if k != "outdir" and isinstance(v, str) and v.startswith("s3://")
     ]
-    if s3_inputs:
+    if s3_inputs and not _onprem_local:
         if not compute.get("executor"):
             compute["executor"] = "awsbatch"
             log.info(
@@ -7066,12 +7197,27 @@ def _get_nextflow_status_impl(
 
     _nf_path_for_status = info.get("nextflow_path", "")
     _is_personal_nf_status = str(_nf_path_for_status).startswith("/tmp/biomate_user_nf/")
+    # Bug 68 (status-poll path): on-prem local mode — scan local outdir to avoid
+    # false-success downgrade when S3 output list is empty.
+    _use_aws_status = os.environ.get("NEXTFLOW_USE_AWS", "").lower() in ("1", "true", "yes")
+    _local_out_status: list = []
+    if not _use_aws_status and outdir and not str(outdir).startswith("s3://"):
+        try:
+            _lodp = Path(outdir)
+            if _lodp.is_dir():
+                _local_out_status = [
+                    str(f) for f in _lodp.rglob("*")
+                    if f.is_file() and "pipeline_info" not in f.parts
+                ]
+        except Exception:
+            pass
     if _info_status in ("succeeded", "completed") and not _is_personal_nf_status and _looks_like_false_success(
         log_full_text=log_full_text,
         log_tail=log_tail,
         total_steps=progress.get("totalTasks", progress.get("totalSteps", 0)),
         duration_s=duration_s,
         s3_output_files=s3_files,
+        local_output_files=_local_out_status,
         workflow_domain=workflow_domain,
         nextflow_path=_nf_path_for_status,
     ):
@@ -7258,6 +7404,26 @@ def download_s3_output(
         parts = s3_uri[len("s3://"):].split("/", 1)
         bucket, key = parts[0], parts[1]
         s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+
+        # On-prem (MinIO): presigned URL contains the internal Docker hostname
+        # (e.g. http://minio:9000/…) which is unreachable from the user's browser.
+        # Stream the file through Galaxy instead of issuing a redirect.
+        _s3_endpoint = os.environ.get("S3_ENDPOINT_URL", "")
+        if _s3_endpoint:
+            from starlette.responses import StreamingResponse
+            import mimetypes as _mimetypes
+            try:
+                obj = s3.get_object(Bucket=bucket, Key=key)
+            except Exception as exc:
+                raise HTTPException(status_code=404, detail=f"File not found in storage: {exc}")
+            filename = key.split("/")[-1]
+            content_type = obj.get("ContentType") or _mimetypes.guess_type(filename)[0] or "application/octet-stream"
+            return StreamingResponse(
+                obj["Body"].iter_chunks(),
+                media_type=content_type,
+                headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            )
+
         url = s3.generate_presigned_url(
             "get_object",
             Params={"Bucket": bucket, "Key": key},
@@ -7266,6 +7432,8 @@ def download_s3_output(
         if presigned_only:
             return {"url": url}
         return RedirectResponse(url, status_code=302)
+    except HTTPException:
+        raise
     except ImportError:
         raise HTTPException(status_code=503, detail="boto3 not installed — S3 downloads unavailable.")
     except Exception as exc:
@@ -7297,7 +7465,23 @@ def list_run_output_files(run_id: str) -> Any:
     if not raw_files:
         return {"run_id": run_id, "files": []}
 
-    # Generate presigned URLs for each file
+    # Generate download URLs for each file.
+    # On-prem (MinIO): presigned URLs point to the internal Docker hostname
+    # (minio:9000) which is unreachable from the browser. Use the Galaxy proxy
+    # endpoint /api/nextflow/outputs/download instead, which streams the file.
+    _s3_endpoint = os.environ.get("S3_ENDPOINT_URL", "")
+    if _s3_endpoint:
+        # Proxy through Galaxy — no boto3 presigning needed.
+        enriched = []
+        for f in raw_files:
+            s3_uri = f.get("s3_uri", "")
+            proxy_url = (
+                f"/api/nextflow/outputs/download?s3_uri={s3_uri}&run_id={run_id}"
+                if s3_uri else None
+            )
+            enriched.append({**f, "download_url": proxy_url})
+        return {"run_id": run_id, "files": enriched}
+
     try:
         import boto3
         s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
@@ -10550,14 +10734,17 @@ async def fetch_public_data(body: FetchPublicDataRequest):
     filename = Path(parsed.path).name or "data.bin"
     dest_key = body.destination_key or f"public-data/{filename}"
 
-    # Default to the standard work bucket like the rest of nextflow_executor
-    # (lines ~2091/4389) instead of hard-failing — fetch_public_data otherwise
-    # 503'd on envs that never set NEXTFLOW_S3_BUCKET explicitly.
-    s3_bucket = (
-        os.environ.get("NEXTFLOW_S3_BUCKET")
-        or os.environ.get("AWS_S3_BUCKET")
-        or "biomate-nextflow-work"
-    )
+    # On-prem MinIO: only the S3_BUCKET_NAME bucket is created by docker-compose
+    # init — biomate-nextflow-work doesn't exist in MinIO. Use S3_BUCKET_NAME.
+    # SaaS: use NEXTFLOW_S3_BUCKET or AWS_S3_BUCKET as before.
+    if os.environ.get("S3_ENDPOINT_URL"):
+        s3_bucket = os.environ.get("S3_BUCKET_NAME") or "biomate-data"
+    else:
+        s3_bucket = (
+            os.environ.get("NEXTFLOW_S3_BUCKET")
+            or os.environ.get("AWS_S3_BUCKET")
+            or "biomate-nextflow-work"
+        )
 
     log.info("[fetch_public_data] Downloading %s → s3://%s/%s", download_url, s3_bucket, dest_key)
 
@@ -10576,15 +10763,21 @@ async def fetch_public_data(body: FetchPublicDataRequest):
         finally:
             Path(tmp_path).unlink(missing_ok=True)
 
-        # Generate presigned URL (valid 24h)
-        presigned = s3.generate_presigned_url(
-            "get_object",
-            Params={"Bucket": s3_bucket, "Key": dest_key},
-            ExpiresIn=86400,
-        )
+        # Generate download URL.
+        # On-prem MinIO: presigned URLs embed the internal minio:9000 hostname
+        # which browsers cannot reach — return a Galaxy streaming proxy URL instead.
+        s3_uri_str = f"s3://{s3_bucket}/{dest_key}"
+        if os.environ.get("S3_ENDPOINT_URL"):
+            presigned = f"/api/nextflow/outputs/download?s3_uri={s3_uri_str}&run_id=direct"
+        else:
+            presigned = s3.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": s3_bucket, "Key": dest_key},
+                ExpiresIn=86400,
+            )
 
         return {
-            "s3_uri": f"s3://{s3_bucket}/{dest_key}",
+            "s3_uri": s3_uri_str,
             "s3_key": dest_key,
             "presigned_url": presigned,
             "filename": filename,
@@ -10634,7 +10827,11 @@ async def browse_s3(
         bucket = user_cred.get("s3_bucket")
 
     if not bucket:
-        bucket = os.environ.get("NEXTFLOW_S3_BUCKET") or os.environ.get("AWS_S3_BUCKET")
+        # On-prem MinIO: only S3_BUCKET_NAME bucket is created; NEXTFLOW_S3_BUCKET not set.
+        if os.environ.get("S3_ENDPOINT_URL"):
+            bucket = os.environ.get("S3_BUCKET_NAME") or "biomate-data"
+        else:
+            bucket = os.environ.get("NEXTFLOW_S3_BUCKET") or os.environ.get("AWS_S3_BUCKET")
         if not boto_kwargs:
             # Fall back to instance role / env-var creds
             region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")

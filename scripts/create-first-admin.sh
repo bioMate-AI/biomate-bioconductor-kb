@@ -53,7 +53,7 @@ _json_name=$(printf '%s'  "$FULL_NAME" | python3 -c 'import json,sys; print(json
 REG_RESPONSE=$(curl -s -w "\n%{http_code}" \
   -X POST "${APP_URL}/api/auth/register" \
   -H "Content-Type: application/json" \
-  --data-binary "{\"email\":${_json_email},\"password\":${_json_pass},\"fullName\":${_json_name},\"acceptTerms\":true}" \
+  --data-binary "{\"email\":${_json_email},\"password\":${_json_pass},\"fullName\":${_json_name},\"termsAccepted\":true}" \
   2>/dev/null)
 
 HTTP_CODE=$(echo "$REG_RESPONSE" | tail -1)

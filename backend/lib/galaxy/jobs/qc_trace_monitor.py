@@ -1670,15 +1670,15 @@ class NextflowQCGateHandler:
         Read QC metrics from published S3 report files.
         Returns a metrics dict compatible with _check_qc_thresholds, or None if not found.
         """
-        if not self.s3_outdir:
+        if not self.s3_outdir or not self.s3_outdir.startswith("s3://"):
             return None
 
         try:
-            import boto3 as _boto3
             import json as _json
             import fnmatch as _fnmatch
+            from galaxy.ai.s3_utils import make_s3_client
 
-            s3 = _boto3.client("s3", region_name=__import__("os").environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+            s3 = make_s3_client()
             parts = self.s3_outdir[5:].split("/", 1)
             bucket = parts[0]
             prefix_base = parts[1].rstrip("/") if len(parts) > 1 else ""
@@ -1763,8 +1763,8 @@ class NextflowQCGateHandler:
         if "/" not in process_hash:
             return None
         try:
-            import boto3 as _boto3
             import json as _json
+            from galaxy.ai.s3_utils import make_s3_client
 
             prefix, rest = process_hash.split("/", 1)
             parts = self.s3_work_dir[5:].split("/", 1)
@@ -1774,12 +1774,7 @@ class NextflowQCGateHandler:
                 f"{prefix_base}/{prefix}/" if prefix_base else f"{prefix}/"
             )
 
-            s3 = _boto3.client(
-                "s3",
-                region_name=__import__("os").environ.get(
-                    "AWS_DEFAULT_REGION", "us-west-2"
-                ),
-            )
+            s3 = make_s3_client()
             paginator = s3.get_paginator("list_objects_v2")
             target_key: Optional[str] = None
             for page in paginator.paginate(Bucket=bucket, Prefix=list_prefix):

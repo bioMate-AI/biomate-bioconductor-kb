@@ -125,6 +125,16 @@ update_db_only() {
 # ── 拉取新镜像并重启 ──────────────────────────────────────────────────────────
 update_images() {
   info "拉取最新镜像…"
+
+  # ── GHCR 认证（如果设置了 GHCR_TOKEN，先登录再拉取）──────────────────────────
+  if [[ -n "${GHCR_TOKEN:-}" ]]; then
+    _ghcr_user="${GHCR_USER:-${GHCR_TOKEN_USER:-biomate-deploy}}"
+    info "使用 GHCR Token 登录 ghcr.io..."
+    echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${_ghcr_user}" --password-stdin 2>>"$LOG_FILE" \
+      && info "GHCR 登录成功" \
+      || warn "GHCR 登录失败，将尝试匿名拉取"
+  fi
+
   if [[ -n "$TAG" ]]; then
     # docker-compose.onprem.yml uses BIOMATE_BACKEND_IMAGE / BIOMATE_FRONTEND_IMAGE
     # (not COMPOSE_IMAGE_TAG) to resolve image tags. Export both so docker compose
@@ -139,7 +149,7 @@ update_images() {
 
   docker compose -f "$COMPOSE_FILE" pull 2>>"$LOG_FILE" \
     && info "镜像拉取完成 ✓" \
-    || warn "部分镜像拉取失败，将使用已有镜像继续"
+    || warn "部分镜像拉取失败（将使用已有镜像继续）。如遇 401，在 .env 中设置 GHCR_TOKEN=ghp_xxxx"
 
   info "重启服务（零停机：先启动新容器再停止旧容器）…"
   docker compose -f "$COMPOSE_FILE" up -d --remove-orphans 2>>"$LOG_FILE"

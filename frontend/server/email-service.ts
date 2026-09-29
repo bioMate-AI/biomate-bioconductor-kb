@@ -45,8 +45,12 @@ class EmailService {
   }
 
   private isSesConfigured(): boolean {
-    // AWS_REGION is sufficient — on EC2 the SDK resolves credentials from the instance
-    // IAM role automatically; explicit AWS_ACCESS_KEY_ID only needed locally.
+    // On-prem (MinIO): AWS_REGION is set for S3 path-style access but the
+    // AWS credentials are MinIO credentials — they have no SES permissions.
+    // Skip SES initialization so the system falls through to SMTP.
+    if (process.env.S3_ENDPOINT_URL) return false;
+    // On EC2 the SDK resolves credentials from the instance IAM role automatically;
+    // explicit AWS_ACCESS_KEY_ID only needed locally.
     return !!(process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION);
   }
 

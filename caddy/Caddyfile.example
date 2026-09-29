@@ -39,8 +39,11 @@
         max_size 512MB
     }
 
-    # SSE / streaming: disable buffering for real-time workflow status
-    @sse path /api/stream* /api/workflow-status*
+    # SSE / streaming: disable buffering for real-time workflow status.
+    # path_regexp matches any /api path that contains "stream" (e.g. /api/chat/stream,
+    # /api/workflow-status-stream). A simple `path /api/stream*` would miss paths
+    # where "stream" is not the first segment after /api/.
+    @sse path_regexp sse /api/.*stream
     flush_interval -1
 }
 
@@ -54,6 +57,6 @@
 #     request_body {
 #         max_size 512MB
 #     }
-#     @sse path /api/stream* /api/workflow-status*
+#     @sse path_regexp sse /api/.*stream
 #     flush_interval -1
 # }
