@@ -5680,14 +5680,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let SYSTEM: string;
         let USER: string;
 
+        const _isOnprem = !!process.env.S3_ENDPOINT_URL;
         const executionBlock = `=== EXECUTION METADATA ===
 WORKFLOW: ${workflowName}
 EXECUTION STATUS: ${runStatus}
 START TIME: ${startedAt}
 COMPLETION TIME: ${completedAt || 'N/A'}
 TOTAL WALL TIME: ${wallTimeStr}
-CLOUD PLATFORM: AWS Batch (us-west-2 region)
-ORCHESTRATION: BioMate pipeline on AWS Batch`;
+CLOUD PLATFORM: ${_isOnprem ? 'On-premises (local Docker executor)' : 'AWS Batch (us-west-2 region)'}
+ORCHESTRATION: BioMate pipeline on ${_isOnprem ? 'on-premises infrastructure' : 'AWS Batch'}`;
 
         const commonTail = `
 === EXTRACTED METRICS (parsed from pipeline JSON reports — verified real numbers) ===
