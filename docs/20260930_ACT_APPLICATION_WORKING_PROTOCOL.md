@@ -4,9 +4,10 @@
 **Owner (this doc):** the three technical/strategy lines of the ACT task —
 (1) accelerator landscape, (2) top-3 target directions for cyclic-peptide
 generation + wet-lab validation, (3) cyclic-peptide generation using existing
-models + our own model. The remaining two lines of the ACT task (validation
-**quota/cost-as-therapy**, and the **MD Anderson / Texas clinical-collaborator**
-map) are owned by a parallel session — referenced here, not duplicated.
+models + our own model; **plus the MD Anderson / Texas clinical-collaborator map**
+(§8 — moved into this workstream 2026-09-30 per user). The one remaining line
+(validation **quota/cost-as-therapy**) is owned by a parallel session — referenced
+here, not duplicated.
 
 **What "ACT" is:** TMC Innovation's **Accelerator for Cancer Therapeutics**
 (Texas Medical Center, Houston). Cancer-therapeutics-focused → our submission is
@@ -428,6 +429,63 @@ design** (RFdiffusion/ProteinMPNN) — §3 flags this as reference-only/needs-in
 + **Rosetta-weights commercial-license caution**. This is a build item for the
 corrected lead, distinct from the BoltzGen/PepGLAD macrocycle stack (which fits the
 TAA arm).
+
+---
+
+## 8 · Texas / MD Anderson collaborator map (verified 2026-09-30)
+
+~40 faculty checked (official profile + real 2022–26 pub, PMIDs API-confirmed).
+**This line moved from the parallel session to this workstream.** Full map in the
+agent transcript; the actionable core:
+
+**Near-perfect scientific fits to our corrected lead (§7):**
+- **Brian Grindel** (MDACC, Cancer Systems Imaging) ⭐ — builds **cyclic peptides
+  via mRNA-display with a PD-L1 binder track** (Protein Science 2025, PMID
+  40852896). Early-career, approachable → exact match for the **PD-L1 macrocycle
+  loop-proof**. Cold but low-risk; approach peer-to-peer as a methods collab.
+- **Yang-Xin Fu** (UTSW) ⭐ — engineers **tumor-masked cytokine/checkpoint
+  prodrugs + bispecifics** — directly relevant to our **tumor-conditional masked
+  TCE**. Strong scientific fit.
+- **Ann Leen** (BCM CAGT) ⭐ — **multi-TAA T-cell therapy** (PRAME/MAGEA4/NY-ESO-1;
+  Nat Med 2026, PMID 41482561) → TAA-arm + GMP cohorts.
+
+**TCE clinical on-ramp (MDACC, cold → via ACT accelerator):** Sarina Piha-Paul +
+Funda Meric-Bernstam (first-in-human bispecific/TCE solid-tumor trials).
+**Responder-cohort data:** Jennifer Wargo (ICB responder vs non-responder +
+TLS/B-cell), Alexandre Reuben (TCR-repertoire ICB predictors), Padmanee Sharma.
+**Wet-lab for TCE functional readouts:** Cassian Yee (T-cell potency assays),
+Cara Haymaker (immune-monitoring core: flow/CyTOF/mIF/spatial), Jared Burks,
+Michael Curran. **Target/biomarker:** Gregory Lizée + Sachet Shukla
+(immunopeptidome → non-redundant target nomination), Linghua Wang / Kenneth Hu
+(spatial TME).
+
+**Warm-intro routing (honest):**
+1. **Zhongming Zhao (UTHealth SBMI)** — *direct warm* (your former department) +
+   the strongest local computational-IO scientist. Zero-friction first call.
+2. **William Decker (BCM)** — warmest MDACC-*adjacent* path: co-founder of
+   **Diakonos**, reachable via the Zhandong Liu → Diakonos thread; DC-vaccine IO
+   trials + immunophenotyping, IND-experienced, startup-friendly. Most actionable.
+3. **Ann Leen (BCM)** — via BCM/Zhandong Liu standing.
+4. **Grindel (MDACC)** — cold, direct peer approach on PD-L1 macrocycles.
+5. **Piha-Paul/Meric-Bernstam (MDACC)** — cold; realistic route is **entering the
+   TMC ACT accelerator**, which is itself the institutional on-ramp to MDACC.
+
+**HONEST GAPS:** MDACC is **genuinely cold** — no warm intro exists today; aligned
+MDACC people are either big-name (unlikely to partner pre-seed: Allison, Sharma,
+Rezvani, Wargo, Meric-Bernstam) or mid-career reachable only cold / via accelerator.
+**Zhandong Liu is NOT IO** (neuro + comp-genomics; a bridge, not a domain
+collaborator). **The realistic first partnerships are Houston non-MDACC — Decker
+(BCM) + Zhao (UTHealth)** — both warm/campus-adjacent, IO-real, partnerable at
+pre-seed. Modality-relevant discovery infra without MDACC: **BCM Center for Drug
+Discovery** (Matzuk; DNA-templated **macrocycle** DELs + a Sept-2025 immune-targeted
+discovery collaboration) + **Weiyi Peng (UH Drug Discovery Institute)**. Cores
+(fee-for-service, no PI needed): BCM Single Cell Genomics (Chromium/Xenium/MERSCOPE)
++ GARP.
+
+**Strategic tie-in:** applying to **ACT is itself the on-ramp** to the MDACC
+clinical network — and Grindel (PD-L1 macrocycle) + Yang-Xin Fu (tumor-masked
+bispecific) are near-exact scientific matches to the corrected lead, i.e. real
+prospective co-authors/advisors for the application.
 
 ---
 
