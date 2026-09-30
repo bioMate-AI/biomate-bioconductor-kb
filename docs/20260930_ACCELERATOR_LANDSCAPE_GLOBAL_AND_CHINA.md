@@ -78,14 +78,40 @@ The **biggest China grants split by who can apply** — this shapes how we struc
 
 ---
 
-## F · Global / US-ex-Texas + AI-DD specialized + big non-dilutive — **PENDING (rate-limited; rerun queued)**
+## F · Global / US-ex-Texas + AI-DD specialized + big non-dilutive
 
-These buckets were interrupted by a transient upstream rate-limit and are being re-fetched:
-- **US/global (ex-TX):** IndieBio/SOSV, Y Combinator (bio), **Illumina Accelerator**, Creative Destruction Lab (health/therapeutics), Petri (Pillar VC), MassChallenge HealthTech, BioLabs/LabCentral, Bakar/QB3, Nucleate (national); corporate (Bayer Leaps, Merck Digital Sciences Studio, AstraZeneca A.Catalyst).
-- **AI-DD / peptide-IO specialized + non-dilutive:** **AION Labs (Israel)** — *strategically critical*: an AZ/Merck/Pfizer/Teva + BenevolentAI + AWS venture-creation lab reportedly targeting **immune target nomination** = the white space we claim (verdict needed: partner vs compete vs emulate); plus EU EIC Accelerator, Wellcome Leap, Cancer Research Horizons, Novo Nordisk Foundation; NVIDIA Inception / Microsoft for Startups (compute credits).
-- **HK / Singapore / Korea:** HKSTP Incu-Bio, Singapore A*STAR/EDBI, Songdo.
+### F.1 · AION Labs (Israel) — the strategic priority
+Venture-creation studio (2021) backed by **AstraZeneca, Merck, Pfizer, Teva + Israel Biotech Fund, Amiti, and AWS**; 9 startups built; wet+dry labs in Rehovot. **Engagement = venture-creation only, NOT an open call:** it posts a pharma-defined challenge, recruits founders via the BioMed X platform, runs a ~5-day workshop, and co-founds **one new Israeli NewCo** per challenge (≥$1M over 2yr + $100K AWS credits + facilities; founders take equity in the NewCo). You **cannot** bring your existing US/China entity in.
+- **Direct thesis overlap:** its **"Generative-AI for Novel Target Combinations"** challenge explicitly sought *ranked target-pair lists for multi-specific biologics* across oncology/CVRM/**immune-mediated disease** — nearly identical to our immune-mechanism target-pair wedge. That call closed **May 5, 2025**; ⚠️ no open on-topic 2026 challenge as of 2026-09-30 (they run 2–3/yr — set a monitor on BioMed X + aionlabs.com).
+- **VERDICT: EMULATE + selectively PARTNER — do NOT compete head-on.** (1) *Emulate:* AION has already validated our exact wedge as a pharma-priority problem — cite it as external de-risking. (2) *Partner, not join:* joining means a separate Israeli NewCo (dilutive; IP in the NewCo) — better to engage the **member pharma (AZ/Merck/Pfizer) directly** via their own programs (MDSS, A.Catalyst) where our entity keeps IP. (3) *Don't frame as a rival:* they build point-solution NewCos; we're a full closed-loop platform (target-pair → peptide gen → wet validation) — different altitude.
 
-*(This section will be filled in the follow-up commit.)*
+### F.2 · US / global accelerators (beyond Texas)
+| Program | Fit | Terms | Location / relocation | Next deadline | Verdict |
+|---|---|---|---|---|---|
+| **Merck Digital Sciences Studio (MDSS)** ★ | Strong — "AI for drug discovery" + biologics platforms | **$100K SAFE** + up to $120K cloud credits; 9-mo | Montréal; US+Canada eligible | **2027 cohort opens Oct 1, 2026** (imminent) | **APPLY** |
+| **IndieBio / SOSV** ★ | Strong — funds therapeutics incl. AI-bio | ~$525K (equity + SAFE) + lab | NY or SF; **relocate for program** | ⚠️ rolling (confirm at indiebio.co/apply) | **APPLY** |
+| **Petri (Pillar VC)** | Strong — frontier-bio pre-seed, conversation-based | ≥$250K + lab | Boston | ⚠️ rolling / by intro | **APPLY** |
+| **Y Combinator (bio)** | Moderate — funds bio, no wet-lab | $500K standard | SF, in-person | rolling quarterly | CONSIDER |
+| **Creative Destruction Lab** (Health/Adv-Therapies) | Moderate — free mentorship | **No equity, no cash** | 17 sites, mostly virtual | 2026 closed (Jul 24); next ~mid-2027 | DEFER to 2027 |
+| **BioLabs / LabCentral** | Infra only | No equity; bench ~$2.2k/mo+ (LabCentral First = 6 mo free) | 15+ sites / Cambridge MA | rolling | **USE** as US wet-lab home |
+| **Bakar Labs / QB3** | Infra + mentoring | Pay-to-play, no company equity | Berkeley (no affiliation needed) | mentoring 2026: Feb 13/May 29/Oct 9 | **USE** (West-Coast lab) |
+| **AstraZeneca A.Catalyst Network** | Pharma-partnering (IO is AZ core); IP stays yours | No standard funding; occasional challenges | 20+ hubs | rolling | **ENGAGE** as BD door |
+| **Illumina Accelerator** | Weak (genomics-centric) | ~$200K + sequencing + lab | Cambridge UK / SF Bay | 2 cycles/yr | SKIP unless target-ID needs seq |
+| **Nucleate (national)** | Free, trainee-founder gated | No equity, mentorship | 17 chapters | ~Oct 20 annual | CONSIDER if a co-founder is a trainee |
+| **Bayer Co.Lab (US, Cambridge)** | Weak — cell&gene focus | Space + mentoring | Boston | rolling | SKIP (modality mismatch) |
+| **MassChallenge HealthTech** | Weak (digital-health lean) | Equity-free, prizes | Boston / Switzerland | ⚠️ confirm US window | LOW |
+
+### F.3 · Large non-dilutive (global, non-US-SBIR)
+- **Wellcome Leap** — best large non-dilutive genuinely open to a **US/China** company (DARPA-style milestone contracts; global eligibility; sign CORFA). Watch for an immunology/oncology program. Rolling per call.
+- **EU EIC Accelerator** — grant ≤€2.5M (+equity ≤€10M) but **⚠️ third-country (US/China) applicants must establish an EU entity before Step 2** — hard gate. 2026 cut-offs incl. **Nov 4, 2026**.
+- **Cancer Research Horizons (CRUK)** — UK/academia-anchored; engage as an **IO asset partnering/licensing** counterparty, not a grantee (non-UK company eligibility ⚠️ unconfirmed).
+- **Novo Nordisk Foundation** — mostly needs a Danish host → SKIP for now.
+- **Compute credits to stack:** NVIDIA Inception, Microsoft for Startups (both low-friction for a compute-heavy AI-DD startup).
+
+### F.4 · Hong Kong / Singapore
+- **HKSTP Incu-Bio (Hong Kong)** ★ — non-equity milestone grant **up to HK$6M** (HK$4M + HK$2M clinical/regulatory), 4-yr; needs an HK company incorporated <2yr. **Rolling** — the cleanest large non-dilutive lever given our Asia footprint (stand up an HK subsidiary). (Earlier-stage: **HKSTP Ideation**, intakes Jan/May/Sep.)
+- **ClavystBio (Temasek, Singapore)** — venture builder + investor ($220M; pre-seed→Series A; co-invests with EDBI); equity, expects Singapore presence.
+- **A*STAR / EDBI (Singapore)** — institutional R&D collaboration + state equity (needs Singapore substance). **Esco Ventures** — SG venture builder ⚠️ terms unverified.
 
 ---
 
@@ -98,7 +124,9 @@ These buckets were interrupted by a transient upstream rate-limit and are being 
 5. **Bayer Co.Lab Shanghai (§D)** — no-equity, oncology-leaning, with a built-in VC bridge. **Next action:** approach via Co.Lab / an AdVenture VC.
 6. **WuXi TIDES (§E)** — peptide CRDMO to be the wet-lab arm of the loop (pair with an incubator seat).
 7. **BioBAY Suzhou (§A)** — Soochow-adjacent AI-pharma cluster (confirm terms).
-8. **AION Labs (§F, pending)** — engage regardless of outcome; it validates our thesis and is the key partner-or-competitor to understand.
+8. **AION Labs (§F.1)** — engage regardless: it validates our exact thesis. Emulate + partner via member pharma; monitor for the next immune/target-pair challenge.
+
+**Best global-ex-China adds (from §F):** **Merck Digital Sciences Studio** (apply when the 2027 cohort opens **Oct 1, 2026** — AI+biologics fit, $100K SAFE + cloud); **IndieBio/SOSV** & **Petri** (real cash + lab, founder-friendly); **HKSTP Incu-Bio** (up to **HK$6M non-equity**, rolling — leverage the Asia footprint via an HK subsidiary); **Wellcome Leap** (the one large non-dilutive genuinely open to a US/China company); **BioLabs/LabCentral** or **Bakar/QB3** as the US wet-lab home.
 
 ---
 
@@ -108,7 +136,7 @@ These buckets were interrupted by a transient upstream rate-limit and are being 
 3. **Suzhou/BioBAY + 姑苏人才 + SIP-biomed** specifics — not yet pulled (queued).
 4. **JLABS Shanghai 2025-26 operating status** (confirmed only through mid-2024).
 5. **Bayer Co.Lab / LAV / ClavystBio** are curated/selective — no public term sheet.
-6. **§F global/AION/HK-SG** — rerun pending.
+6. **§F (global/AION/HK-SG)** — now filled; remaining ⚠️: IndieBio next-batch date, Petri fixed deadline (conversation-based), MassChallenge US window, AION's next on-topic challenge, CRUK non-UK eligibility, Esco Ventures terms.
 
 ## Change log
-- 2026-09-30 — created to fix the Texas-centric gap in `20260930_ACT_APPLICATION_WORKING_PROTOCOL.md`. China/Asia (Guangdong strongest, Shanghai/Shenzhen, no-equity incubators, CRDMO/builder-VC) synthesized from web-verified research; global/US-ex-TX + AION Labs + HK/SG rerun queued (§F).
+- 2026-09-30 — created to fix the Texas-centric gap in `20260930_ACT_APPLICATION_WORKING_PROTOCOL.md`. China/Asia (Guangdong strongest, Shanghai/Shenzhen, no-equity incubators, CRDMO/builder-VC, national-grant/entity-structure lever) + §F (global/US-ex-TX, AION Labs verdict, non-dilutive, HK/Singapore) — all synthesized from web-verified research (RMB figures snippet-sourced + flagged). Suzhou/BioBAY deep-dive still queued.
