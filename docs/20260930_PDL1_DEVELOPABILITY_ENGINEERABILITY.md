@@ -50,3 +50,14 @@ If the asset is **injectable** (like BMS-986189, which failed on **half-life**, 
 governing axis is **proteolytic stability / half-life** (DPP4 & tryptic liabilities + cyclization [done] +
 albumin-binding conjugation), not oral permeability. The oral-permeability engineering above applies if the
 program targets the **oral-macrocycle** white-space.
+
+## Update — 3D-PSA (the correct oral ruler) computed for the engineerable panel (2026-09-30)
+Conformer-ensemble min-3D-PSA (RDKit ETKDG macrocycle confs + rdFreeSASA polar-atom SASA), NON-methylated baseline:
+- Best starting points: **d49 `ATGLVIGGVVVP` = 178 Å²**, d127 `SVTVGGIVIP` = 181, d60 `SLGTFIGVPV` = 199.
+- Rest of panel 205–360 Å². **As-is none clear the ~160 Å² permeable guideline** (expected without N-methylation).
+- Value: ranks the best *starting points* for the N-methyl scan (lowest baseline 3D-PSA → most likely to cross
+  the permeable line once backbone donors are shielded). Results: `results/pdl1_panel_3dpsa.json`.
+
+## Update — MM-GBSA ΔG launched (2026-09-30)
+On-demand GPU (user directive) `i-0820e0ef576141ab5`, run `mmgbsa-pool-5o45-…213239Z` — self-contained
+OpenMM GBn2 single-trajectory MM-GBSA over the 199-pool final_ranked CIFs; streams per-design ΔG to S3.
