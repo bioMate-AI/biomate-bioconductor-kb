@@ -11,7 +11,7 @@ BUCKET = "pmc-oa-opendata"
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True); ap.add_argument("--n", type=int, default=8000)
-    ap.add_argument("--max-tokens", type=int, default=3_000_000_000); ap.add_argument("--workers", type=int, default=48)
+    ap.add_argument("--max-tokens", type=int, default=3_000_000_000); ap.add_argument("--workers", type=int, default=64)
     a = ap.parse_args()
     s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED, max_pool_connections=a.workers + 8))
     prefixes = []
