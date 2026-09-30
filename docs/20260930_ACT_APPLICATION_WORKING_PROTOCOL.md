@@ -181,16 +181,89 @@ Grounded in `20260926_IO_MULTITARGET_MARKET_LANDSCAPE.md` §4–§6.
 
 ---
 
-## 3 · Cyclic-peptide generation protocol (Task 3) — *being filled by parallel research*
+## 3 · Cyclic-peptide generation protocol (Task 3)
 
-> Capability-inventory agent running: reads our macrocycle/closed-loop docs +
-> locates the **PepGLAD harness** (commit 68df05ba9), inventories existing models
-> (PepGLAD, RFpeptides/RFdiffusion+ProteinMPNN, AfCycDesign, HighFold, ADCP) +
-> our own macrocycle permeability scorer/optimizer, and writes the concrete
-> generate→fold→dock→filter→rank→select pipeline (inputs per target, spot compute,
-> cost/wall-clock, IP-clean licensing flags). Lands here.
+Verified against repo code + internal docs. **Key finding: a full single-round
+generation is runnable TODAY on any IO target with a structure** (~$65–90
+compute/target/round) — the chain has already been run end-to-end on 4 receptor
+targets. Harness root: `research/guangzhou_all_atom/`.
 
-_(placeholder — do not cite until filled)_
+### 3.1 Bottom line
+- **Near-term route (runnable now, IP-clean):** **BoltzGen** (open-source
+  de-novo cyclic binder design + folding + 9-filter developability) → **our
+  cyclic MM-GBSA** physics re-rank (non-circular; iptm⟂ΔG ρ=−0.04) → **our
+  permeability GBM** (logPapp, R²~0.45, ranking-grade) → **our GP-Pareto/HVI
+  selector** → order 12–15. Proven on 4 targets (best iptm 0.79, 0.45 Å refold,
+  9/9 filters).
+- **Our own generator (PepGLAD fine-tune "M2c"): trained & works** — DockQ
+  **0.437** on 140 cyclic complexes. Usable now as a **diversity arm**, but it is
+  **bound-complex-data-limited** (ceiling = ~140 target-bound cyclic complexes,
+  not model size). **For the first IO run, lead with BoltzGen** (stronger measured
+  results, fully IP-clean); use PepGLAD-M2c alongside — do **not** pitch our own
+  generator as SOTA-beating yet.
+- **The moat is the loop + proprietary wet-lab/assay data, not any single
+  model.** The permeability model is a commodity (R²~0.45, field SOTA ~0.55).
+  No published end-to-end macrocycle DBTL loop exists — that is the defensible
+  asset.
+
+### 3.2 Capability inventory (runnable-now core)
+| Component | Role | Where | Status |
+|---|---|---|---|
+| **BoltzGen** | primary de-novo cyclic generator + fold + 9 developability filters | public + `boltzgen_ourtarget.sh` | ✅ run on 4 targets |
+| **PepGLAD-M2c** (ours) | all-atom co-design diffusion, pocket-conditioned (diversity arm) | `runtime/PepGLAD/` + `m2c_*` | ✅ DockQ 0.437 (MIT) |
+| **Cyclic MM-GBSA verify** (ours) | headless head-to-tail build + OpenMM GBn2 physics ΔG re-rank | `peptide_mmgbsa_run.sh` | ✅ 32/32 rings closed |
+| **Permeability GBM** (ours) | logPapp ranker (3D-PSA descriptors) | `permeability_predictor.py` | ✅ R²~0.45, ranking-grade |
+| **GP-Pareto / HVI selector** (ours) | multi-objective select: bind×physics×perm×SA | `peptide_select.py` | ✅ |
+| **DMTA orchestrator** (ours) | chains generate→gate→verify→select→DPO-pair-emit (CPU) | `peptide_loop.py` | ✅ |
+| RFpeptides / AfCycDesign / HighFold / ADCP | external comparators / QC / docking cross-check | public, needs install | reference-only |
+
+### 3.3 Pipeline (chosen IO target → orderable panel)
+`[0] target prep` (receptor mmCIF + pocket = residues <5 Å of reference ligand,
+indexed over **resolved** residues; length 8–16-mer — keep the length-cap fix) →
+`[1] GENERATE` BoltzGen (200–500 oversampled) + PepGLAD-M2c diversity →
+`[2] A3 gate` (RDKit-valid; SA≤6.5; logPapp≥−7.0 floor) →
+`[3] designability` (filter-RMSD <2.0 Å; BoltzGen filters passed) →
+`[4] MM-GBSA ΔG` (expensive, non-circular re-rank on survivors; size-bias → rank within-target) →
+`[5] permeability/developability` (logPapp as an **objective**, not a hard reject at this maturity — designs run perm-poor) →
+`[6] synthesizability` (SA ceiling + cyclization feasibility) →
+`[7] SELECT` GP-Pareto front + HVI + diversity → N=12–15 →
+`[8] order sheet` → wet lab (synthesis + PAMPA + SPR/BLI) →
+`[9] LEARN` assay results → DPO pairs → retrain (**A4 DPO trainer = TO BUILD**;
+emitter ready).
+
+**Key thresholds:** iptm prioritize ≥0.6 (strong ≥0.79); consistency ≥0.8;
+diversity ≥0.75 (no mode collapse); select top N=12–15 Pareto-optimal.
+
+### 3.4 Compute (spot always; self-terminating; stream to S3)
+| Step | Instance | Wall | ~Cost (spot) |
+|---|---|---|---|
+| BoltzGen generate 200–500 | g5/g6 (A10G), H100 if avail | 1–3 h | $5–15 |
+| PepGLAD-M2c diversity arm | g5/g6 / H100 | 1–2 h | $5–10 |
+| MM-GBSA verify ~50 survivors | GPU (parallel spots) | ~10 GPU-h | ~$50 |
+| gate + perm + Pareto select | CPU | minutes | ~$0.10 |
+| **compute / target / round** | | | **~$65–90** |
+| wet lab (12–15 pep: synth+PAMPA+SPR) | CRO | 4–8 wk | **~$15–25k** |
+
+Spot fallback g5.xlarge→g5.2xlarge→g6.xlarge→g4dn across us-west-2 AZs;
+dead-man's-switch auto-shutdown; 60 s heartbeat (launchers implement this).
+
+### 3.5 IP posture (commercial/therapeutic)
+- **Clean:** PepGLAD (MIT, PepBench-trained), BoltzGen (open), our
+  MM-GBSA/permeability/loop/selector code, ProteinMPNN (MIT). CRO fee-for-service
+  assigns IP to us.
+- **Avoid / flag on commercial path:** **HighFold3/AF3 weights** (gated,
+  research-only → use Boltz fallback); **HADDOCK** commercial license;
+  **RosettaCommons weights** (RFdiffusion/RFpeptides) commercial terms; **ADCP**
+  academic terms. CREMP dataset = Genentech CC-BY (attribution only).
+- **Protect:** keep the loop + flywheel data proprietary (trade secret); file
+  provisionals on novel *compositions* before disclosure.
+
+### 3.6 Ready-now vs. needs-building
+**Ready (has been run):** BoltzGen + filters, PepGLAD-M2c, MM-GBSA, permeability,
+gate, GP-Pareto, DMTA orchestrator → **a full single-round run on a PD-L1
+structure is executable today.** **Needs building to compound the loop:** A4 DPO
+trainer (emitter done); unified verify service; native ncAA generation; scaling
+the bound-complex corpus (~140→1–2k) to lift the PepGLAD ceiling.
 
 ---
 
@@ -200,9 +273,19 @@ _(placeholder — do not cite until filled)_
 target + staged first-in-class asset; lead with the closed-loop moat.
 
 **B. Traction to show** (the point of round-1 generation): a generated,
-folded, docked, developability-filtered PD-L1 macrocycle panel → the wet-lab
-validation result (affinity + blockade) → model-update = a *demonstrated* loop,
-not a slide.
+folded, physics-re-ranked, developability-filtered PD-L1 macrocycle panel → the
+wet-lab validation result (affinity + blockade) → model-update = a *demonstrated*
+loop, not a slide. **This is runnable now** — the §3 chain (BoltzGen → MM-GBSA →
+permeability → GP-Pareto) executes on a PD-L1 structure for **~$65–90 compute**
+and yields the 12–15-candidate order sheet; only the CRO synthesis+assay
+(~$15–25k, the parallel session's quota line) and A4 DPO retrain (to build) sit
+beyond it. The *in-silico* panel alone is a credible pre-application artifact;
+the wet-lab-confirmed hit is the winning one.
+
+**Immediate next action (this program):** run Round-1 PD-L1 generation now —
+obtain a PD-L1 IgV co-crystal (PD-1-binding face as the pocket), run the §3
+pipeline on spot, produce the ranked panel → decision-gate on ordering. Do **not**
+spend round-1 budget on Direction 3; run the LLM pair-nominator in parallel.
 
 **C. Milestones (proposed, to be timeboxed to ACT's cycle in §1):**
 1. Generate + in-silico rank PD-L1 macrocycle panel (compute; per §3).
