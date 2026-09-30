@@ -1835,19 +1835,40 @@ export function DesignGenerate({
       )}
 
       {/* ---- results ---- */}
-      {run?.status === "completed" && candidates.length === 0 && (
-        <>
-          <Card data-testid="dg-empty">
-            <CardContent className="text-xs text-muted-foreground py-4">
-              No candidates cleared the pipeline. The failure profile is above — the
-              constraints or seed are the most likely cause. Nothing was fabricated to
-              fill a shortlist.
-            </CardContent>
-          </Card>
-          {/* §5.8 "Most generations rejected → reports the rejection profile" */}
-          <RejectionProfile rejected={rejected} nGenerated={run.n_generated} nScored={run.n_scored} />
-        </>
-      )}
+      {run?.status === "completed" && candidates.length === 0 && (() => {
+        // Distinguish an infra/generator failure (nothing was generated at all —
+        // e.g. RDKit or the NIM endpoint unavailable) from a genuine "constraints
+        // too tight" empty result. Blaming the user's constraints when the backend
+        // couldn't even run the generator is misleading.
+        const infraNote = (run.notes || []).find((n) =>
+          /unavailable|not available|no generator|generator .*(fail|error)|nim|endpoint|not installed/i.test(n)
+        );
+        const infraFailure = !!infraNote || run.n_generated === 0;
+        return (
+          <>
+            <Card data-testid="dg-empty">
+              <CardContent className="text-xs text-muted-foreground py-4">
+                {infraFailure ? (
+                  <>
+                    The generator produced nothing to score
+                    {infraNote ? <> — <span className="font-mono">{infraNote}</span></> : null}.
+                    This is a generator/environment issue (the design backend could not run),
+                    <strong> not</strong> a problem with your constraints or seed. Nothing was fabricated.
+                  </>
+                ) : (
+                  <>
+                    No candidates cleared the pipeline. The failure profile is above — the
+                    constraints or seed are the most likely cause. Nothing was fabricated to
+                    fill a shortlist.
+                  </>
+                )}
+              </CardContent>
+            </Card>
+            {/* §5.8 "Most generations rejected → reports the rejection profile" */}
+            <RejectionProfile rejected={rejected} nGenerated={run.n_generated} nScored={run.n_scored} />
+          </>
+        );
+      })()}
 
       {candidates.length > 0 && (
         <>
