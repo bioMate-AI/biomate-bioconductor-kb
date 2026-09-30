@@ -54,3 +54,12 @@ now running). If a proper run beats sft_v5, it ships.
 before concluding — the "base wins generative tasks" verdict was 100% a verbosity artifact.
 Next: proper graders for the generative tasks → then re-judge SFT there (it may well win once terseness
 isn't penalized). The literature-recipe + PMC-bulk work continues to enrich SFT data for those tasks.
+
+## Recipe pipeline — loose vs strict filter (2026-09-30, batched audit)
+- LOOSE filter recipe: ~2-20% bioinformatics (2-model committee: 80-90% off-domain) -> QUARANTINED/dead.
+- STRICT filter recipe (>=2 specific bioinfo signals AND a real tool): batched full-audit (corrected reviewer,
+  3387-row judged sample) = **81% bio, 86% correct, 71% keep** -> SALVAGED. Clean subset
+  `sft/recipe_clean_bioinformatics.jsonl` (~2.4k audited-clean, ~4.3k projected). Coverage-gap now REAL
+  (limma/WGCNA/blastp/STRING = catalog-expansion candidates).
+- Batch-reviewer bug fixed: failed LLM calls were silently counted as reject (false 2.4%); now retried +
+  excluded from denominator. Lesson: verify the measurement before trusting it (twice: F1 grader, this reviewer).
