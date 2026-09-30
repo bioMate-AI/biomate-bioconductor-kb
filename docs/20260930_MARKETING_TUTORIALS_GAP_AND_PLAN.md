@@ -128,7 +128,13 @@ E2. Update the coverage ledger + screenshot audit as items close.
 - **Sidebar root-cause bug FOUND + FIXED.** Archiving alone didn't clean the sidebar: `/api/projects` (unfiltered) returns *all* statuses incl. archived (`getUserProjects` builds no WHERE clause when `status` is undefined), and `app-sidebar.tsx` showed the first 12 regardless. Fixed the sidebar to drop `status==='archived'` (keeps active+completed). tsc clean; 1623/1624 vitest pass (the 1 failure = unrelated workflow-catalog count drift). **Syncing to dev** via `sync_to_dev.sh` so the clean sidebar is live for capture.
 - **Note — shared-fixture concurrency:** live e2e suites burst-create projects on this account during capture (observed ~12 created+torn-down mid-run). Best to capture in a quiet window; the sidebar fix + archived-status filter makes stray *active* debris the only remaining risk.
 
-**Still to do in Track D:** after the sync lands, re-capture the clean set; replace the after-run report figures (i08-1/i09-1/i09-2) — currently sourced from `/debug/viewer` (debug-banner leak) — with a real completed run opened through the normal chrome (needs a clean completed run on the fixture); then the ~29 missing figures per the screenshot audit.
+- **Sidebar fix synced to dev (result=healthy) + verified.** `sync_to_dev.sh` completed healthy; re-captured cold-start on dev → sidebar now shows only the 4 IL-17A projects (archived debris gone). Regenerated 7 data-independent surfaces at 2880×1800 with the clean sidebar and committed them to `docs/user-manual/assets/`.
+
+**Still to do in Track D:**
+1. **A clean demo project WITH data** — the file-detail figures (i05-1 file-tree / i05-2 dataset-header / i05-3 quality-tab) currently come from an old E2E-named project (the drill-in's target was archived). Seed one well-named demo project (e.g. an RNA-seq or peptide dataset) so these shoot clean.
+2. **Real after-run report** — replace i08-1/i09-1/i09-2 (currently `/debug/viewer` → debug-banner leak + stuck spinner) with a real completed run opened through the normal chrome. Needs a clean completed run on the fixture.
+3. **The ~29 missing figures** per `docs/20260922_USER_MANUAL_SCREENSHOT_AUDIT.md` (domain/data chapters).
+4. Capture in **quiet windows** — concurrent e2e suites still burst-create *active* projects mid-run.
 
 **Next:** finish Track D capture → Track B (drug-dev manual) per §5.
 
