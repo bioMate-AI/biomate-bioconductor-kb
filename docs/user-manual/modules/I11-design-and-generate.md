@@ -162,10 +162,19 @@ every 1.5 s (`DesignGenerate.tsx:1505-1518`) and, on completion, renders (`:1852
 - **Export order sheet** — a CSV pairing candidate ids with registry ids and per-objective values, so a
   shortlist can leave the platform as an order (`:1037-1113`).
 
-> **QC gate — an empty result is an honest answer.** If nothing clears the pipeline, the panel shows
-> "No candidates cleared the pipeline" plus the rejection profile — not a fabricated shortlist
-> (`DesignGenerate.tsx:1838-1850`; backend `_finish_empty`, `generation.py:465-474`). The seed or
-> constraints are the usual cause.
+![A completed Design & generate run](../assets/i11-2-design-results.png)
+*A real `/design` run on dev (seed = aspirin, default envelope): the status strip (generator, generated/scored
+counts), the editable Criteria & weights strip, the Ranked hits table (candidate id · score · confidence ·
+SMILES · drug-like · verdict), the Trade-off (Pareto) view, the Multi-objective view with per-candidate
+"why?", the Rejection profile, and the Predicted-vs-measured record. (Live capture, 2026-09-30.)*
+
+> **QC gate — an empty result is an honest answer, but read *why* it's empty.** If nothing clears the
+> pipeline the panel shows "No candidates cleared the pipeline" plus the rejection profile — not a
+> fabricated shortlist (`DesignGenerate.tsx:1838-1850`; backend `_finish_empty`,
+> `generation.py:465-474`). Distinguish two empties: a *constraints/seed* empty (things generated but all
+> gated out — tune constraints) vs a *generator/infra* empty (nothing generated at all, e.g. RDKit or a
+> NIM endpoint unavailable — an environment issue, not your inputs). The panel now says which
+> (`DesignGenerate.tsx` dg-empty branch, 2026-09-30).
 
 ## Outputs & visualization
 
@@ -210,6 +219,11 @@ stated in the code and honestly reflected here.
   Models module (I.10). Predicted-vs-measured here is a record only, not a refit trigger.
 
 ---
-_Verification: coverage-ledger.md "## I.11 Design & generate" — all tier C (source-read:
+_Verification: coverage-ledger.md "## I.11 Design & generate" — tier C (source-read:
 `App.tsx`, `DesignGenerate.tsx`, `routes.ts`, `backend/.../api/generation.py`,
-`.../drug_discovery/generators.py`, `cold-start-dashboard.tsx`); no generation runs fired on dev._
+`.../drug_discovery/generators.py`, `cold-start-dashboard.tsx`) **PLUS a live end-to-end run on dev
+(2026-09-30)** — the first `/design` generation fired against the dev deployment. That run surfaced a
+real infra bug: the dev Galaxy container (a hot-patched `:rollback` image, never rebuilt from
+`backend/Dockerfile`) had **no RDKit**, so the BRICS generator returned `rdkit_unavailable` / 0 candidates.
+Fixed by bootstrapping `rdkit==2024.3.5` into the gunicorn python in `scripts/sync_to_dev.sh`; re-run now
+produces candidates (screenshot above)._
