@@ -66,24 +66,31 @@ def main():
         print("no OPENAI_API_KEY — abort"); return 1
     wf, tool = load_catalog(a.dbcat); catalog = wf | tool
     print(f"catalog grounding set: {len(catalog):,} names", flush=True)
-    # DOMAIN FILTER: only computational-biology papers — random PMC (clinical/humanities) yields noise
-    # ("iodine", "national portrait gallery") not bioinformatics tools. Require >=2 signal terms OR a catalog tool.
-    BIOINFO = re.compile(r"\b(bioinformatic|sequenc|RNA-?seq|scRNA|single-cell|genome|transcriptom|proteom|"
-                         r"variant call|alignment|read(s)?\b|FASTQ|BAM|VCF|differential expression|"
-                         r"assembl|annotation|pipeline|workflow|CHIP-?seq|ATAC|metagenom|phylogen|"
-                         r"gene expression|reference genome|nextflow|galaxy|bioconductor)\b", re.I)
-    catl = [n for n in catalog if len(n) > 4]
+    # DOMAIN FILTER (committee-hardened): the loose filter let through ~80% off-domain (tourism, corporate
+    # governance, materials science) — because "reads"/"pipeline"/"alignment"/"sequence" match generic English,
+    # and un-anchored catalog-substring matched short junk names (anova/blast/r/tree). FIX: require >=2 DISTINCT
+    # SPECIFIC bioinformatics signals (word-boundary, no generic sub-words) AND >=1 real bioinformatics tool.
+    BIOINFO = re.compile(r"\b(bioinformatic\w*|RNA-seq|scRNA-seq|single-cell RNA|ChIP-seq|ATAC-seq|"
+                         r"variant calling|genome assembly|differential expression|read alignment|sequencing reads|"
+                         r"whole-genome sequencing|\bWGS\b|\bFASTQ\b|\bVCF\b|\.bam\b|transcriptom\w+|proteom\w+|"
+                         r"metagenom\w+|phylogenetic|reference genome|multiple sequence alignment|gene expression|"
+                         r"nextflow|bioconductor|deseq2|edger|salmon|kallisto|bowtie2?|hisat2|\bSTAR\b|\bGATK\b|"
+                         r"samtools|bcftools|seurat|scanpy|blastn|blastp|megahit|spades|cufflinks|featurecounts)\b", re.I)
+    TOOLS = re.compile(r"\b(deseq2|edger|limma|salmon|kallisto|bowtie2?|hisat2|\bSTAR\b|\bGATK\b|samtools|bcftools|"
+                       r"seurat|scanpy|blast[npx]?|megahit|spades|cufflinks|featurecounts|fastp|fastqc|trimmomatic|"
+                       r"macs2|bwa|minimap2|stringtie|cellranger|nextflow|snakemake|bioconductor|unicycler|prokka)\b", re.I)
     texts = []
     for l in open(a.lit):
         try: t = json.loads(l).get("text", "")
         except Exception: continue
-        if len(t) <= 800:            # keep long full-text (was wrongly excluded at 14000); call truncates to 10k
+        if len(t) <= 800:
             continue
         head = t[:6000]
-        if len(BIOINFO.findall(head)) >= 2 or any(c in head.lower() for c in catl[:2000]):
+        signals = set(m.lower() for m in BIOINFO.findall(head))
+        if len(signals) >= 2 and TOOLS.search(head):   # AND a real tool -> excludes off-domain false positives
             texts.append(t)
         if len(texts) >= a.n: break
-    print(f"papers to process (bioinformatics-scoped): {len(texts):,}", flush=True)
+    print(f"papers to process (STRICT bioinformatics-scoped): {len(texts):,}", flush=True)
 
     def S(x):  # coerce any LLM field (str | list | None) to a clean string
         if isinstance(x, list): return " ; ".join(str(i) for i in x).strip()
@@ -91,7 +98,7 @@ def main():
 
     def one(t):
       try:
-        o = call(SCHEMA + t[:10000]); m = re.search(r"\{.*\}", o, re.S)
+        o = call(SCHEMA + t[:10000], 1600); m = re.search(r"\{.*\}", o, re.S)
         if not m: return ([], [])
         try: r = json.loads(m.group(0))
         except Exception: return ([], [])
