@@ -375,15 +375,30 @@ Implications that now govern the plan:
   the lead asset rests on the nominator being real — so finishing the nominator's
   technical validation is the critical path, not optional.
 
-### 6.6 Critical through-line (business ↔ technical)
-All three models say the moat is the **pair-nominator** — but the nominator IS the
-immune-LLM's target-pair head, which our technical committee finds **not yet
-validated**: target-ID fails the degree-null on all 3 axes, batch-leakage ~28×,
-and the responder-stratification confound test shows the negative **persists**
-(study-leaky-z *content*, not a crude-eval artifact). **#1 priority for the
-therapeutics-first plan: make the nominator real (fix batch-leakage → beat nulls)
-before it can be the thing we pitch.** This is the same "validate the black box /
-close the loop once before pitching" credibility floor the committee named.
+### 6.6 Critical through-line — RESOLVED 2026-09-30: validate-the-black-box returned PIVOT
+All three business models said the moat is the **pair-nominator**; the credibility
+floor was "validate the black box before pitching." **We ran that validation (the
+atlas-of-atlases product-gate experiment, `20260930_ATLAS_OF_ATLASES_PRODUCT_GATE_RESULT.md`).
+Result: the learned-FM nominator is NOT real for the clinical tasks.**
+- **Batch gate CLEARED** (atlas broke the annotation wall: cond_norm 0.381 @
+  annotF1 0.574) — the FM is a real *annotation* substrate.
+- **Product gate FAILED** — integrated-atlas z **loses to PCA(20) by 0.10–0.15
+  LCO** on three independent measurements; responder-stratification confound
+  **persists** (study-leaky-z content). Target-ID also fails the degree-null on all
+  3 axes. The ~28× batch leakage is the blocker; more atlases won't fix it; batch
+  defense has repeatedly failed.
+
+**Consequence — do NOT pitch "our immune-LLM nominates pairs" as the moat.** The
+honest, null-beating capability set to build the pitch on:
+- **Measured virtual-KO target screen — AUROC 0.85** vs degree-null (the real
+  target-nomination capability: *measured perturbation*, not a learned FM head).
+- **Gene-set / PCA responder stratification — 0.734 LCO** (simple features, real).
+- **FM annotation +0.039** (the one clean FM win) + self-supervised biomarker.
+- **The closed-loop wet-lab flywheel + composite system** — which the committee
+  already named as the real moat, "not any single component."
+
+The validate-first floor paid off: it stopped a pitch built on a claim that
+doesn't hold, and redirected to capabilities with real null-beating numbers.
 
 Raw model outputs: `scratchpad/committee_{GPT,Gemini}.md` + Claude review in the
 task transcript.
