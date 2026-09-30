@@ -972,8 +972,13 @@ export function ChatInterface({
         /workflow generation failed|could not build (a|the) runnable workflow|domain alignment|recovery plan|targeted follow-up questions/i;
       const looksLikeNarrativeFailure =
         typeof data.response === 'string' && failureNarrativePattern.test(data.response);
+      // Show collaborative failure UI only when generation explicitly failed (diagnostics.failed=true)
+      // or when the LLM response itself describes a failure narrative. A workflow object being
+      // present alone (e.g. a failed generation attempt that the LLM handled as a clarification
+      // question) is not a sufficient signal — it would wrongly show the failure card for every
+      // clarification turn with openai_compatible providers (Qianwen, DeepSeek, etc.).
       const shouldRenderCollaborativeFailure =
-        !workflowSuccess && (!!data.workflow || hasFailureDiagnostics || looksLikeNarrativeFailure);
+        !workflowSuccess && (hasFailureDiagnostics || looksLikeNarrativeFailure);
 
       // If workflow was generated, append workflow-specific info
       if (workflowSuccess && workflowData) {
