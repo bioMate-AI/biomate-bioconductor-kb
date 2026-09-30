@@ -1844,16 +1844,18 @@ export function DesignGenerate({
           /unavailable|not available|no generator|generator .*(fail|error)|nim|endpoint|not installed/i.test(n)
         );
         const infraFailure = !!infraNote || run.n_generated === 0;
+        // Log the internal reason for operators/devs, but don't surface it to the
+        // user — an infra failure is not something they can act on.
+        if (infraFailure && infraNote) console.warn("[design] generator failure:", infraNote);
         return (
           <>
             <Card data-testid="dg-empty">
               <CardContent className="text-xs text-muted-foreground py-4">
                 {infraFailure ? (
                   <>
-                    The generator produced nothing to score
-                    {infraNote ? <> — <span className="font-mono">{infraNote}</span></> : null}.
-                    This is a generator/environment issue (the design backend could not run),
-                    <strong> not</strong> a problem with your constraints or seed. Nothing was fabricated.
+                    The generator is temporarily unavailable, so no candidates could be
+                    produced. This is on our side — <strong>not</strong> a problem with your
+                    constraints or seed, and nothing for you to change. Please try again shortly.
                   </>
                 ) : (
                   <>
