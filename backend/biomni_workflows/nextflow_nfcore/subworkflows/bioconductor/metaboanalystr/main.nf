@@ -166,15 +166,15 @@ process BIOC_METABOANALYSTR_STATISTICAL_METABOLOMICS_ANALYSIS {
           mSet <- ImputeMissingVar(mSet, method = "min")
         }
         # FilterVariable in MetaboAnalystR 4.x returns an INTEGER status code (1 if missing
-        # values remain, else 2) in the off-web path — NOT the mSet object. It mutates state
+        # values remain, else 2) in the off-web path -- NOT the mSet object. It mutates state
         # via .set.mSet() (a no-op that just returns the object off-web) and writes its result
         # matrices to data.filt.qs / data_proc.qs on disk. So the usual chained idiom
-        # `mSet <- FilterVariable(mSet, ...)` clobbers mSet with an atomic 2, and the next
-        # PreparePrenormData(mSet) dies with "$ operator is invalid for atomic vectors"
-        # (root-caused 2026-09-30 on a real Batch run). Only re-bind mSet when the call
+        # mSet <- FilterVariable(mSet, ...) clobbers mSet with an atomic 2, and the next
+        # PreparePrenormData(mSet) then fails inside pick.cls with an invalid-dollar-operator
+        # error (root-caused 2026-09-30 on a real Batch run). Only re-bind mSet when the call
         # actually returns an mSet-shaped list; otherwise keep the pre-filter object (its
-        # dataSet$proc.cls stays valid and PreparePrenormData re-reads the filtered matrix
-        # from the .qs files FilterVariable just wrote).
+        # proc.cls stays valid and PreparePrenormData re-reads the filtered matrix from the
+        # .qs files FilterVariable just wrote).
         .fv <- FilterVariable(mSet, "F", 25, "none", -1, "mean", 0)
         if (is.list(.fv) && !is.null(.fv\$dataSet)) mSet <- .fv
         mSet <- PreparePrenormData(mSet)
