@@ -98,15 +98,17 @@ def main():
         hard = sibs_scored[0]
         cands = [gold, hard] + random.sample([s for s in sibs_scored[1:] if s != hard], min(a.k - 2, max(0, len(sibs_scored) - 1)))
         cands = list(dict.fromkeys(cands)); random.shuffle(cands)
-        prompt = (f"Retrieved candidates:\n" + "\n".join(f"- {c}" for c in cands) + f"\n\nRequest: {u}")
-        # open-book SFT (target = exact gold — this alone teaches exact spelling/casing, so no spelling-DPO)
-        sft_out.append({"messages": [{"role": "system", "content": SYS},
-                                     {"role": "user", "content": prompt},
+        # EXACT eval template (routing_objective) so DPO/SFT train the SAME distribution the eval measures —
+        # the earlier mismatch (Candidates-before-Request + different wording) is why DPO didn't transfer.
+        prompt = ("You are BioMate. Choose the single best workflow for this request from the candidates. "
+                  f"Reply ONLY the exact workflow name.\n\nRequest: {u}\n\nCandidates:\n"
+                  + "\n".join(f"- {c}" for c in cands))
+        # open-book SFT (target = exact gold). Single user turn, matching the eval (no separate system msg).
+        sft_out.append({"messages": [{"role": "user", "content": prompt},
                                      {"role": "assistant", "content": gold}],
                         "task": "workflow_routing_openbook", "source": "contrastive_openbook"})
         # DPO pairs: chosen=gold; hard sibling (confusable, distinct) + off-catalog (never emit off-list).
-        # (spelling flavor dropped — near-identical strings are a weak/unstable DPO signal, already covered by SFT.)
-        full = SYS + "\n\n" + prompt
+        full = prompt
         dpo_out.append({"prompt": full, "chosen": gold, "rejected": hard, "task": "routing_sibling"})
         offcat = random.choice(allnames)
         while offcat in cands or canon(offcat) == cg: offcat = random.choice(allnames)

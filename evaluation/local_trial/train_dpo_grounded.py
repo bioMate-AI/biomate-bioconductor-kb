@@ -72,7 +72,7 @@ def train(args):
         target_modules=["q_proj","k_proj","v_proj","o_proj","gate_proj","up_proj","down_proj"])
     ds=load_dataset("json", data_files=args.pairs_out, split="train")
     cfg=DPOConfig(output_dir=args.out, per_device_train_batch_size=1, gradient_accumulation_steps=16,
-        num_train_epochs=1, learning_rate=5e-6, lr_scheduler_type="cosine", warmup_steps=10,
+        num_train_epochs=int(os.environ.get("DPO_EPOCHS","3")), learning_rate=5e-6, lr_scheduler_type="cosine", warmup_steps=10,
         bf16=True, gradient_checkpointing=True, gradient_checkpointing_kwargs={"use_reentrant":False},
         optim="paged_adamw_8bit", beta=0.1, max_length=1024, report_to=[], seed=13)
     tr=DPOTrainer(model=model, args=cfg, train_dataset=ds, processing_class=tok, peft_config=lora)
