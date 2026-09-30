@@ -611,14 +611,15 @@ function Router({
         </AuthenticatedPageLayout>
       </Route> */}
 
-      {/* Billing — hardened 2026-09-30: breakdown fields (compute.total_hours,
-          storage.size_gb) are now null-safe, so the page no longer crashes when
-          the usage API returns a partial breakdown. */}
-      <Route path="/billing">
+      {/* Billing stays HIDDEN — deliberate owner decision; do NOT re-enable without
+          the owner's explicit OK. (The crash was separately hardened 2026-09-30 —
+          compute.total_hours / storage.size_gb are now null-safe — so it is ready to
+          restore WHENEVER the owner chooses, but it stays commented out until then.) */}
+      {/* <Route path="/billing">
         <AuthenticatedPageLayout>
           <BillingPage />
         </AuthenticatedPageLayout>
-      </Route>
+      </Route> */}
 
       <Route path="/admin/feedback-dashboard">
         <AuthenticatedPageLayout>
