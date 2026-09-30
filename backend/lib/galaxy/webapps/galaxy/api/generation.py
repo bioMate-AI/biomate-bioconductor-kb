@@ -276,6 +276,7 @@ def _execute_run(run_id: str, req: GenerateRequest) -> None:
             ObjectiveSpec,
         )
     except Exception as exc:
+        log.exception("[design] pipeline import failed (run=%s)", run_id)
         _set_run(run_id, status="failed",
                  notes=[f"pipeline import failed: {exc}"])
         return
@@ -309,6 +310,7 @@ def _execute_run(run_id: str, req: GenerateRequest) -> None:
     try:
         generator = get_generator(req.generator)
     except ValueError as exc:
+        log.error("[design] unknown/invalid generator %r (run=%s): %s", req.generator, run_id, exc)
         _set_run(run_id, status="failed", notes=[str(exc)])
         return
 
@@ -352,6 +354,7 @@ def _execute_run(run_id: str, req: GenerateRequest) -> None:
             n_propose=req.count,
         )
     except Exception as exc:
+        log.exception("[design] run_round failed (run=%s)", run_id)
         _set_run(run_id, status="failed",
                  notes=notes + [f"run_round failed: {exc}"])
         return
@@ -464,6 +467,23 @@ def _verdict(row, drug_like_val) -> str:
 
 def _finish_empty(run_id, generator, notes, reason, n_generated=0):
     status = dict(getattr(generator, "last_status", {}))
+    # Surface the failure to OPERATORS, not just the user's run object. An
+    # infra/generator failure (last_status ok=False, e.g. rdkit_unavailable /
+    # nim_call_failed / import_failed) is operator-actionable and MUST land in the
+    # server logs + monitoring — a silently-swallowed one is exactly how RDKit
+    # stayed broken unnoticed until 2026-09-30. A genuine constraints-empty
+    # (candidates generated but all gated out) is expected behaviour → INFO.
+    if status.get("ok") is False or n_generated == 0:
+        log.error(
+            "[design] generation produced 0 candidates — generator/infra failure: "
+            "reason=%s generator=%s status=%s run=%s",
+            reason, getattr(generator, "name", "unknown"), status, run_id,
+        )
+    else:
+        log.info(
+            "[design] generation produced 0 candidates — all %d generated were "
+            "gated out (reason=%s, run=%s)", n_generated, reason, run_id,
+        )
     _set_run(
         run_id, status="completed", candidates=[], rejected=[], pareto=[],
         generator=getattr(generator, "name", "unknown"),
