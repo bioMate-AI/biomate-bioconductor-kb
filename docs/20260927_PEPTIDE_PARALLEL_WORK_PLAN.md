@@ -133,7 +133,18 @@ chemical-validity metric** (guards against silent canonical collapse); never Doc
   the ncAA output must show a **developability distribution shift** (permeability/ΔPSA3D) canonical designs
   can't reach — the ncAA machinery is justified by drug properties, not a DockQ delta.
 
-</details>
+### 2c generator on complexes — RESULT (2026-09-30): DATA IS THE WALL (latent-mismatch ruled out)
+Fine-tuned the diffusion on the 235 D2 complexes (175 usable, ~140 train). **Collapsed: val CA-RMSD flat
+~9 Å, AAR flat ~4% (random), no improvement over 40 epochs.** DIAGNOSTIC (AE_MODE=epoch221, matched latent =
+epoch-221 AE + epoch-221 diffusion, self-consistent) collapsed **IDENTICALLY** (~9.3–9.6 Å / ~4%) → the v1-AE
+latent shift was NOT the cause; ~140 complexes is simply far too few to learn target-conditioned cyclic
+generation (compounded by the epoch-221 prior being linear-complex = partly OOD on cyclic). Pipeline validated
+end-to-end (staging→warm-start 84/84→train→eval); result gated entirely on DATA. Fixes banked: degenerate-pocket
+filter (covariance crash), eval-path abs-config (setup_latent_guidance). **Priority (user-directed): scale the
+mine to ~1–2k + HighFold3 augmentation; even ~1–2k may be marginal (PepGLAD used thousands) → the DMTA loop
+generating proprietary bound complexes is the real long-term lever.**
+
+<details><summary>M3+ (deferred until the generator has enough data)</summary>
 
 ### M3 — Non-canonical representation (#1, the crown IP)  ·  *week 2–4, parallel to M1, GPU*
 Chemistry-native encoding decoupling residue identity ⊥ atom template, with **modification as an explicit
@@ -156,6 +167,8 @@ This is where the pharma pains actually get solved (per the cross-reference in t
   diversity collapse) over the no-loop baseline; differentiate from GALILEO (general agent) / PEGASUS
   (HT-assay) as *a learned generator compounding on proprietary pharma data*. Prospective wet-lab lift is the
   final proof (execution-plan honest limiter).
+
+</details>
 
 ---
 
