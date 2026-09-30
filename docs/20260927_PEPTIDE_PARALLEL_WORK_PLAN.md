@@ -146,8 +146,15 @@ at 140 complexes; more data pushes toward/past SOTA). Latent-mismatch: still ope
 re-run the v1-AE 2c (now that the eval-path is fixed) to compare DockQ(v1-AE) vs 0.437.
 Pipeline fully validated end-to-end (staging→warm-start 84/84→train→generate→panel; DockQ built OK). Fixes
 banked: degenerate-pocket filter (covariance crash), eval-path abs-config (setup_latent_guidance).
-**Data scaling (mine→~1–2k) + HighFold3 augmentation now push a WORKING generator higher, and the DMTA loop
-is the long-term lever — not the difference between working and random.**
+
+**AE DECISION SETTLED (v1-AE vs epoch-221-AE, generation panel):** DockQ 0.4386 vs 0.4366, RMSD 4.62 vs 4.60,
+AAR 0.2317 both, Consistency 0.911 vs 0.930 — **essentially IDENTICAL.** The M1 mid-trained v1 AE does NOT help
+the generator (its reconstruction gain Cα 1.05→0.57 does not propagate to generation); latent-mismatch fully
+moot. **Generation is gated by the DIFFUSION + DATA, not the AE** — the generator can use the stock epoch-221 AE.
+Two independent runs at DockQ 0.4386/0.4366 = strong reproducibility → "DockQ ~0.44 on 140 complexes" is solid.
+
+**Data scaling (mine→~1–2k) + Boltz augmentation (~3.2× via BindingDB, HighFold3 blocked on gated AF3 weights)
+now push a WORKING generator (DockQ 0.44) toward/past SOTA 0.592; the DMTA loop is the long-term lever.**
 
 <details><summary>M3+ (deferred until the generator has enough data)</summary>
 
