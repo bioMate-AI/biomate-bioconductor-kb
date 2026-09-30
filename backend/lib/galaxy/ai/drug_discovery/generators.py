@@ -53,6 +53,14 @@ from typing import Optional
 
 log = logging.getLogger(__name__)
 
+# RDKit is a RUNTIME requirement for the BRICS generator (the /design module).
+# NOTE (2026-09-30): dev runs a hot-patched :rollback container that is never
+# rebuilt from backend/Dockerfile, so the Dockerfile's `pip install rdkit` never
+# reaches dev — gunicorn's system python3.9 had NO rdkit and /design returned
+# "rdkit_unavailable" (0 candidates). rdkit is now bootstrapped into the running
+# container by scripts/sync_to_dev.sh (backend layer), alongside boto3/redis.
+# If you add an image-level dependency, remember it will NOT land on dev via the
+# .py-hot-patch deploy path — bootstrap it in sync_to_dev.sh too.
 try:
     from rdkit import Chem
     from rdkit.Chem import BRICS
