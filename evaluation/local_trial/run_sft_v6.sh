@@ -11,7 +11,7 @@ launch(){ for T in "${TYPES[@]}"; do for S in "${SUBS[@]}"; do
   O=$(ONDEMAND=$1 INSTANCE_TYPE=$T SUBNET=$S bash spot_launch.sh 2>&1); IID=$(echo "$O"|grep -oE "i-[0-9a-f]{8,}"|head -1)
   [ -n "$IID" ] && { echo "LAUNCHED ${1:+od-}$T -> $IID">&2; echo "$IID"; return 0; }
 done; done; return 1; }
-IID=""; for c in 1 2; do IID=$(launch 0) && break; sleep 60; done; [ -z "$IID" ] && IID=$(launch 1); [ -z "$IID" ] && { echo GAVEUP; exit 3; }
+IID=""; for c in $(seq 1 10); do IID=$(launch 0) && break; sleep 120; done; [ -z "$IID" ] && { echo "SPOT UNAVAILABLE (no on-demand, policy)"; exit 3; }
 echo "SFT_V6 instance=$IID"
 for i in $(seq 1 160); do aws s3 ls "$RESULT" >/dev/null 2>&1 && { echo "=== sft_v6_adapter READY ==="; exit 0; }
   ST=$(aws ec2 describe-instances --region us-west-2 --instance-ids "$IID" --query "Reservations[0].Instances[0].State.Name" --output text 2>/dev/null)

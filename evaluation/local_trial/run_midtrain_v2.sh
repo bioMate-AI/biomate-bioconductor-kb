@@ -6,18 +6,17 @@ S3=s3://biomate-models-399683337364/biomate-core-local-trial/20260912
 export MODEL_SIZE=small STAGE=full TAG=_v2mid ENTRY=spot_train.sh BOOTSTRAP=gpu_bootstrap.sh
 export MIX_LITERATURE=1 FETCH_REPLAY=1 REPLAY_FRAC=0.25   # MIX_LITERATURE -> pulls the prebuilt task-aware v2mid mix
 export SFT_DATA=multitask_sft_v5.jsonl
-export MID_OVERRIDE=800 SFT_OVERRIDE=1000 SEQ_OVERRIDE=2048 BS_OVERRIDE=2 GA_OVERRIDE=16 FORCE_NGPU=1
+export MID_OVERRIDE=300 SFT_OVERRIDE=500 SEQ_OVERRIDE=1024 BS_OVERRIDE=2 GA_OVERRIDE=8 FORCE_NGPU=1  # fast early usefulness check
 SUBS=(subnet-09e4dce46682a6c60 subnet-03b277a7a08d388c1 subnet-0b35a6e2c1cf02dc2 subnet-0254e4c3634b41bfc)
-TYPES=(g5.2xlarge g6e.xlarge g6e.2xlarge g5.4xlarge)   # L40S first (fast) — the failed run used slow L4
+TYPES=(g5.2xlarge g5.4xlarge g6e.xlarge g6.2xlarge g5.8xlarge g4dn.2xlarge)  # SPOT across many types/AZs
 BASE_MARK="$S3/models_20260919/small/base_domain_v2mid/config.json"
 FINAL_MARK="$S3/models_20260919/small/full_v2mid_adapter/"
 launch(){ for T in "${TYPES[@]}"; do for S in "${SUBS[@]}"; do
   O=$(ONDEMAND=$1 INSTANCE_TYPE=$T SUBNET=$S bash spot_launch.sh 2>&1); IID=$(echo "$O"|grep -oE "i-[0-9a-f]{8,}"|head -1)
   [ -n "$IID" ] && { echo "LAUNCHED ${1:+od-}$T @ $S -> $IID">&2; echo "$IID"; return 0; }
 done; done; return 1; }
-IID=""; for c in 1 2 3; do IID=$(launch 0) && break; echo "spot cycle $c failed">&2; sleep 90; done
-[ -z "$IID" ] && { echo "spot exhausted -> on-demand">&2; IID=$(launch 1); }
-[ -z "$IID" ] && { echo GAVEUP; exit 3; }
+IID=""; for c in $(seq 1 10); do IID=$(launch 0) && break; echo "spot cycle $c failed, retrying (NO on-demand)">&2; sleep 120; done
+[ -z "$IID" ] && { echo "SPOT UNAVAILABLE after retries — NOT falling back to on-demand (policy)"; exit 3; }
 echo "MIDTRAIN_V2 instance=$IID"
 for i in $(seq 1 400); do
   aws s3 ls "$BASE_MARK" >/dev/null 2>&1 && { echo "=== base_domain_v2mid READY (mid-train done; SFT next) ==="; break; }
