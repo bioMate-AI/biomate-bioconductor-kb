@@ -727,7 +727,7 @@ export default function BillingPage() {
                     <TableCell className="pl-6 font-medium">Compute (Batch)</TableCell>
                     <TableCell className="text-muted-foreground">
                       {compute && compute.jobs > 0
-                        ? `${compute.jobs} job${compute.jobs !== 1 ? "s" : ""} · ${compute.total_hours.toFixed(1)} hrs`
+                        ? `${compute.jobs} job${compute.jobs !== 1 ? "s" : ""} · ${(compute.total_hours ?? 0).toFixed(1)} hrs`
                         : "0 jobs"}
                     </TableCell>
                     <TableCell className="text-right pr-6 text-muted-foreground">
@@ -742,7 +742,7 @@ export default function BillingPage() {
                     <TableCell className="pl-6 font-medium">Storage (S3)</TableCell>
                     <TableCell className="text-muted-foreground">
                       {storage && storage.size_gb > 0
-                        ? `${storage.size_gb.toFixed(2)} GB`
+                        ? `${(storage.size_gb ?? 0).toFixed(2)} GB`
                         : "0 GB"}
                     </TableCell>
                     <TableCell className="text-right pr-6 text-muted-foreground">
@@ -847,7 +847,7 @@ export default function BillingPage() {
                           <TableCell className="pl-6 font-medium">Compute</TableCell>
                           <TableCell className="text-muted-foreground">vCPU time</TableCell>
                           <TableCell className="text-muted-foreground">$0.10 / hr</TableCell>
-                          <TableCell className="text-muted-foreground">{compute.total_hours.toFixed(1)} hrs</TableCell>
+                          <TableCell className="text-muted-foreground">{(compute.total_hours ?? 0).toFixed(1)} hrs</TableCell>
                           <TableCell className="text-right pr-6">{fmt(compute.vcpu_usd)}</TableCell>
                         </TableRow>
                       )}
@@ -856,7 +856,7 @@ export default function BillingPage() {
                           <TableCell className="pl-6 font-medium">{compute.vcpu_usd > 0 ? "" : "Compute"}</TableCell>
                           <TableCell className="text-muted-foreground">GPU time</TableCell>
                           <TableCell className="text-muted-foreground">$1.50 / hr</TableCell>
-                          <TableCell className="text-muted-foreground">{compute.total_hours.toFixed(1)} hrs</TableCell>
+                          <TableCell className="text-muted-foreground">{(compute.total_hours ?? 0).toFixed(1)} hrs</TableCell>
                           <TableCell className="text-right pr-6">{fmt(compute.gpu_usd)}</TableCell>
                         </TableRow>
                       )}
@@ -868,7 +868,7 @@ export default function BillingPage() {
                       <TableCell className="pl-6 font-medium">Storage</TableCell>
                       <TableCell className="text-muted-foreground">S3 objects</TableCell>
                       <TableCell className="text-muted-foreground">$0.15 / GB</TableCell>
-                      <TableCell className="text-muted-foreground">{storage.size_gb.toFixed(2)} GB</TableCell>
+                      <TableCell className="text-muted-foreground">{(storage.size_gb ?? 0).toFixed(2)} GB</TableCell>
                       <TableCell className="text-right pr-6">{fmt(storage.total_usd)}</TableCell>
                     </TableRow>
                   )}

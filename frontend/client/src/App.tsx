@@ -611,13 +611,14 @@ function Router({
         </AuthenticatedPageLayout>
       </Route> */}
 
-      {/* Billing hidden — BillingPage crashes (toFixed on undefined breakdown field);
-          usage/quota are still tracked server-side. Restore once the page is hardened. */}
-      {/* <Route path="/billing">
+      {/* Billing — hardened 2026-09-30: breakdown fields (compute.total_hours,
+          storage.size_gb) are now null-safe, so the page no longer crashes when
+          the usage API returns a partial breakdown. */}
+      <Route path="/billing">
         <AuthenticatedPageLayout>
           <BillingPage />
         </AuthenticatedPageLayout>
-      </Route> */}
+      </Route>
 
       <Route path="/admin/feedback-dashboard">
         <AuthenticatedPageLayout>
