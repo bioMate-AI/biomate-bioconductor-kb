@@ -53,7 +53,8 @@ SYSUCC was founded **March 1964**, one of the four earliest dedicated tumor hosp
 3. **Liquid biopsy / ctDNA / early detection.** ctDNA-methylation for CRC (the **ColonAiQ** assay; STM/JAMA Oncology); EBV-antibody (BNLF2b/P85-Ab) NPC mass screening. ([Sci Transl Med](https://www.science.org/doi/10.1126/scitranslmed.aax7533); [JAMA Onc MRD](https://jamanetwork.com/journals/jamaoncology/fullarticle/2803768))
 4. **Tumor immunology & microenvironment / single-cell & spatial atlases.** scRNA + scTCR atlases of NPC, HCC, breast, CRC, brain-metastasis TMEs; spatial transcriptomics of response. ([NPC scRNA Nat Commun](https://www.nature.com/articles/s41467-021-21043-4); [brain-met atlas, Cancer Cell 2025](https://www.cell.com/cancer-cell/abstract/S1535-6108(25)00126-6))
 5. **Precision oncology / multi-omics & biomarkers.** Proteogenomic subtyping of NPC (240 pts), HCC (160 pts), esophageal cancer; molecular classifiers. ([NPC multi-omics](https://pubmed.ncbi.nlm.nih.gov/41986499/); [HCC omics](https://www.cell.com/cell-reports-medicine/fulltext/S2666-3791(23)00509-8))
-6. **NPC genomics / druggable dependencies.** NF-κB-driven biology (~90% of NPC), MTAP/CDKN2A co-deletion → MAT2A synthetic lethality, EBV LMP1 signaling. ([Nature Genetics](https://www.nature.com/articles/ng.3006); [Nat Commun WGS](https://www.nature.com/articles/s41467-021-24348-6))
+6. **NPC genomics / druggable dependencies (field-canonical; note attribution).** NF-κB-driven biology (~90% of NPC), MTAP/CDKN2A co-deletion → MAT2A synthetic lethality, EBV LMP1 signaling. **⚠ The NF-κB WGS (Nat Commun 2021) is a CUHK/Toronto paper (Pugh/Lo), and the 2014 Nat Genet landscape is mixed/De-Chen Lin — NOT clean SYSUCC attributions** (see §7 correction). ([Nature Genetics](https://www.nature.com/articles/ng.3006); [Nat Commun WGS](https://www.nature.com/articles/s41467-021-24348-6))
+7. **EBV entry-receptor biology (SYSUCC-owned, Zeng lab) — the peptide-relevant strength.** R9AP (Nature 2025), EphA2 (Nat Microbiol 2018, crystal PDB 7CZE), NRP1 (Nat Commun 2015) — causal, extracellular receptor–glycoprotein interfaces. ([R9AP](https://www.nature.com/articles/s41586-025-09166-w))
 
 ---
 
@@ -75,10 +76,13 @@ SYSUCC was founded **March 1964**, one of the four earliest dedicated tumor hosp
 
 1. GP vs 5-FU+cisplatin in recurrent/metastatic NPC — *Lancet* 2016 (Zhang L). [DOI](https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(16)31388-5/abstract)
 2. GP induction chemo in locoregionally advanced NPC — *NEJM* 2019. [DOI](https://www.nejm.org/doi/full/10.1056/NEJMoa1905287)
-3. Genomic landscape of NPC — *Nature Genetics* 2014. [DOI](https://www.nature.com/articles/ng.3006)
-4. Whole-genome NPC: viral-host NF-κB activation & immune escape — *Nat Commun* 2021. [DOI](https://www.nature.com/articles/s41467-021-24348-6)
-5. EphA2 as epithelial receptor for EBV entry — *Nature Microbiology* 2018 (Zeng MS). ([SYSUCC](https://english.sysucc.org.cn/info_19.aspx?itemid=197))
-6. R9AP — universal B-cell/epithelial receptor for EBV — *Nature* 2025 (Zeng MS, Zhong Q). ([coverage](https://www.sohu.com/a/953431279_122519566))
+3. Genomic landscape of NPC — *Nature Genetics* 2014. **⚠ mixed/De-Chen Lin lead — not clean SYSUCC.** [DOI](https://www.nature.com/articles/ng.3006)
+4. Whole-genome NPC: viral-host NF-κB activation & immune escape — *Nat Commun* 2021. **⚠ CUHK/Toronto (Pugh/Lo) — NOT SYSUCC; do not credit to SYSUCC.** [DOI](https://www.nature.com/articles/s41467-021-24348-6)
+5. **EphA2 as epithelial receptor for EBV entry — *Nature Microbiology* 2018 (Zeng MS corresponding). ✅ SYSUCC. Crystal PDB 7CZE. Note: a separate simultaneous EphA2 paper (Longnecker/Jardetzky, DOI 0081-7) is NOT SYSUCC — SYSUCC's is DOI 10.1038/s41564-017-0080-8.** ([Nature](https://www.nature.com/articles/s41564-017-0080-8))
+5b. **NRP1 as EBV entry factor — *Nat Commun* 2015 (Zeng MS). ✅ SYSUCC** (binds gB CendR motif). [DOI](https://www.nature.com/articles/ncomms7240)
+6. **R9AP — universal B-cell/epithelial receptor for EBV — *Nature* 2025 (Zeng MS, Zhong Q corresponding). ✅ SYSUCC. Reports blocking peptide R9AP19–30, Kd 3.27 nM — top peptide lead.** ([Nature](https://www.nature.com/articles/s41586-025-09166-w))
+6c. **rNPC MCAM⁺ CAF collagen-IV–ITGA2–FAK–AKT radioresistance + T-cell exclusion — *Nat Genet* 2025. ✅ SYSUCC.** [DOI](https://www.nature.com/articles/s41588-025-02253-8)
+6d. **EBV LMP1/NSUN2/YBX3/ICAM-1 m5C metastasis axis — *Cell Death Differ* 2026. ✅ SYSUCC.** [DOI](https://www.nature.com/articles/s41418-026-01719-4)
 7. Anti-EBV BNLF2b (P85-Ab) for mass NPC screening — *NEJM* 2023. [DOI](https://www.nejm.org/doi/full/10.1056/NEJMoa2301496)
 8. Tumour heterogeneity & intercellular networks of NPC at single-cell resolution — *Nat Commun* 2021 (Bei JX, Zeng YX). [DOI](https://www.nature.com/articles/s41467-021-21043-4)
 9. Single-cell regulators of immune diversity & prognostic immune subtypes in NPC — *Cell Research* 2020. [DOI](https://www.nature.com/articles/s41422-020-0374-x)
@@ -118,32 +122,38 @@ SYSUCC was founded **March 1964**, one of the four earliest dedicated tumor hosp
 
 We seek a cancer-center partner supplying four things we cannot generate ourselves:
 
-**(1) Target nomination — druggable oncology / tumor-immune targets from SYSUCC's expertise + cohorts.** Cyclic peptides are the right modality for PPIs and flat/undruggable surfaces. SYSUCC's world-leading NPC program surfaces concrete peptide-credible candidates:
-- **EBV LMP1 signaling hub (top NPC candidate).** LMP1 drives NPC via **PPIs with TRAF1/2/3/5, TRADD, RIP**, constitutively activating NF-κB (~90% of NPC). Classic flat PPI interfaces — the modality gap stapled/cyclic peptides are built for; small molecules struggle, antibodies can't reach the intracellular/membrane-proximal complex. ([EBV oncoprotein review](https://link.springer.com/article/10.1007/s12032-025-02610-x); [NF-κB WGS](https://www.nature.com/articles/s41467-021-24348-6))
-- **EBV entry receptors EphA2 / NRP1 / R9AP (prevention + therapy).** Zeng Musheng's validated EBV-epithelial entry points/vaccine targets. Cyclic peptides blocking the EBV-glycoprotein↔receptor interface are a credible entry-inhibition/prophylactic modality complementary to their vaccine effort. ([EphA2/NRP1/R9AP](https://english.sysucc.org.cn/info_19.aspx?itemid=197))
-- **NF-κB negative-regulator axis / MTAP-MAT2A synthetic lethality.** NPC genomics show recurrent CYLD/TRAF3/NFKBIA lesions and **MTAP homozygous co-deletion in ~32–34% of NPC → MAT2A dependency** — a molecularly-stratified subpopulation with clear rationale and a SYSUCC-curated patient set. ([genomic landscape](https://www.nature.com/articles/ng.3006))
+> **CRITICAL CORRECTION (2026-09-30 author-affiliation + modality verification).** An earlier draft of this section led with LMP1–NF-κB and MTAP-MAT2A. Verification found: (a) the **NF-κB WGS (Nat Commun 2021)** is a **CUHK/Toronto** paper (Pugh/Lo), **not SYSUCC**; the 2014 Nat Genet landscape is mixed/De-Chen Lin, not clean SYSUCC — so LMP1/MTAP genomics is field-canonical but *not SYSUCC's collaboration credit*. (b) **MAT2A is an enzyme pocket with clinical-stage small molecules** (AG-270, IDE397 Ph2 ~33–39% ORR in MTAP-del) → **wrong modality for a macrocycle, no differentiation → dropped.** (c) The genuinely **SYSUCC-owned, causal, extracellular** targets (Zeng lab EBV-entry receptors; Bei/NPC-Dept single-cell/spatial) are *better* peptide fits and are now the lead. Reordered below.
 
-Secondary: tumor-immune checkpoint / TME PPIs from their single-cell atlases; fusion/neoantigen-adjacent surfaces in GI/lung cohorts.
+**(1) Target nomination — verified SYSUCC-owned, peptide-fit targets.** Cyclic peptides win on flat/undruggable PPIs; extracellular is easiest (no penetration). Ranked:
+- **① EBV-entry receptor R9AP ↔ gH/gL (top pick).** SYSUCC-discovered (**Zeng Musheng & Qian Zhong**, *Nature* 2025) — a causally-validated **extracellular** receptor–glycoprotein PPI with a **small defined epitope**; the paper **already reports a functional blocking peptide (R9AP19–30)** and nM binding (Kd 3.27 nM). Ideal macrocycle starting point; first-in-class pan-EBV-entry blocker niche. ([Nature 2025](https://www.nature.com/articles/s41586-025-09166-w))
+- **② EBV-entry receptor EphA2 ↔ gH/gL.** SYSUCC-owned (**Zeng**, *Nat Microbiol* 2018) and — decisively — a **3.0 Å co-crystal exists (PDB 7CZE)** so our generator conditions on the real interface, not a guess. Extracellular; dual anti-viral + anti-tumor readout (EphA2 also over-expressed on NPC cells). *Counter-screen vs native ephrin-A to avoid host toxicity.* ([Nat Microbiol 2018](https://www.nature.com/articles/s41564-017-0080-8); [PDB 7CZE](https://www.rcsb.org/structure/7CZE))
+- **③ ITGA2 / collagen-IV axis (recurrent radioresistant NPC).** SYSUCC-owned (*Nat Genet* 2025) — MCAM⁺ CAF collagen-IV–ITGA2–FAK–AKT drives radioresistance + T-cell exclusion; **extracellular integrin-ECM PPI** (RGD-adjacent, peptide-native), addressing the highest unmet need (recurrent NPC), positioned as a radiosensitiser. ([Nat Genet 2025](https://www.nature.com/articles/s41588-025-02253-8))
+- **④ ICAM-1 surface adhesion (EBV+ metastatic NPC).** SYSUCC-linked (*Cell Death Differ* 2026; LMP1/NSUN2/YBX3 m5C axis; ICAM1-CCR7-PD-L1) — extracellular Ig-domain adhesion protein, causal metastasis driver tied to the PD-L1 immuno-axis. ([Cell Death Differ 2026](https://www.nature.com/articles/s41418-026-01719-4))
+- **⑤ LMP1 CTAR1/2 ↔ TRAF (NF-κB) — the differentiated moonshot.** The biological heart of ~90% of NPC and genuinely undruggable by small molecules — but **intracellular**, so it hinges on our stapled/non-canonical **cell-penetration** chemistry. Peptide precedent exists (Helmholtz LMP1–TRAF6 inhibitory peptide, *Nat Commun* 2024 — **not SYSUCC**, de-risks chemistry only). No published TRAF-complex crystal. Stage after the extracellular leads prove the loop. ([LMP1-TRAF6, Helmholtz](https://www.nature.com/articles/s41467-023-44455-w))
 
-**(2) Patient-derived data to prioritize/stratify targets.** Million-scale NPC screening cohorts, proteogenomic subtyping (240-pt NPC, 160-pt HCC), single-cell/spatial atlases, ctDNA — let us **rank candidates by prevalence, subtype-specificity, clinical association** before committing design cycles (which NPC subtype carries LMP1/NF-κB dependency; which patients carry MTAP deletion).
+**(2) Patient-derived data to prioritize/stratify targets.** Million-scale NPC screening cohorts, proteogenomic subtyping (240-pt NPC), single-cell/spatial atlases, ctDNA — let us **rank candidates by prevalence, subtype-specificity, clinical association** before committing design cycles (e.g., which recurrent-NPC subset carries the collagen-IV/ITGA2 radioresistance axis; EBV+ status for the entry-receptor programs).
 
 **(3) Wet-lab validation — the assay arm that closes our loop (most valuable).** Their **PDX / PDO platforms, world's largest NPC biobank, immune-cell co-culture, functional assays** are the "test" step. A CRO-synthesized peptide gets binding/functional readout in their NPC organoids/PDX and primary samples; results flow back to DPO-retrain our generator. Their biology *manufactures our moat.*
 
 **(4) Clinical / translational path.** Their **NMPA National New-Drug Anti-Tumor Clinical Trial Center + GCP Phase-I early-trial unit** (33 beds, ~50% drug-to-approval) offers a credible in-house route toward first-in-human peptide therapy.
 
 **Concrete opening proposal (top 3 candidates).**
-1. **LMP1–TRAF/TRADD PPI-disrupting macrocycle for EBV+ NPC** — highest conviction: world-leading partner, genuinely peptide-shaped undruggable interface, validatable in NPC organoids/PDX.
-2. **EphA2/NRP1 EBV-entry-blocking cyclic peptide** — complements their vaccine/prevention program; SYSUCC nominates + runs the receptor-interaction assay.
-3. **MTAP-deleted NPC subpopulation program** — molecularly-stratified, cohort-prioritized, their proteogenomic data selecting the responder subtype.
+1. **R9AP–gH/gL EBV-entry-blocking macrocycle** — highest conviction: SYSUCC-owned, causal, extracellular, small defined epitope, **peptide already works (R9AP19–30)**. Validate in Zeng lab's existing EBV-entry blockade assay (primary NPECs + B cells) + BLI vs gH/gL. First-in-class pan-entry niche.
+2. **EphA2–gH/gL macrocycle** — SYSUCC-owned + **structure-enabled (PDB 7CZE)** so the generator conditions on the real interface; dual anti-viral/anti-tumor; same entry-blockade panel. Counter-screen vs ephrin-A.
+3. **ITGA2 / collagen-IV macrocycle for recurrent radioresistant NPC** — SYSUCC-owned, extracellular, highest unmet need; validate for radiosensitisation + T-cell re-infiltration in their rNPC PDX/organoid + spatial platform.
+
+*(Moonshot, staged: LMP1–TRAF NF-κB — most differentiated but intracellular; commit after the extracellular leads prove the loop and our cell-penetration chemistry is demonstrated.)*
 
 **Honest gaps / positioning.**
 - **We do design + compute; they do biology + clinic.** We do *not* bring an analysis platform to replace their bioinformatics — SYSUCC has **world-class internal bioinformatics**. Position strictly on the **drug-MODALITY / generative-design side**.
 - **Peptide synthesis is a separate CRO step** — we are the design + verification + learning engine, not the manufacturer.
-- **Intracellular targets (LMP1 adaptors) require solving membrane permeability** — exactly why our non-canonical/stapled chemistry + permeability objective exist; the honest technical risk to stress-test first in cell-based assays.
-- **IP/data governance** (biobank/cohort DUA, ownership of co-generated wet-lab data feeding our generator) must be structured up front.
+- **Structure availability is uneven.** EphA2–gH/gL has a crystal (7CZE) for conditioning; **R9AP–gH/gL, NRP1–gB, and LMP1–TRAF have no published structure** — the generator works from peptide-epitope + biochemical/BLI data, or structure is an early co-development deliverable.
+- **The most differentiated target (LMP1–TRAF) is intracellular** → hinges on our stapled/non-canonical permeability chemistry; the honest technical risk, staged after extracellular leads.
+- **MAT2A dropped** — despite ~32–34% MTAP-deletion prevalence, it's an enzyme pocket with dosed oral small molecules; no macrocycle differentiation.
+- **IP/data governance** (biobank/cohort DUA, ownership of co-generated wet-lab data feeding our generator) must be structured up front (and see the engagement plan's HGRAC note — mitigated via our Chinese entity).
 
-**One-line thesis:** SYSUCC supplies *the best NPC target biology, patient cohorts, wet-lab/PDX validation, and a Phase-I path in the world*; we supply *a generative cyclic-peptide engine that hits the PPI/undruggable targets their science uniquely surfaces* — together closing a design→validate→clinic loop neither side can run alone.
+**One-line thesis:** SYSUCC supplies *the best EBV/NPC target biology (esp. Zeng-lab entry receptors), patient cohorts, wet-lab/PDX validation, and a Phase-I path in the world*; we supply *a generative cyclic-peptide engine that hits the extracellular receptor PPIs their science uniquely owns* — together closing a design→validate→clinic loop neither side can run alone.
 
 ---
 
-*Publications items 10, 12, 13, 18, 20: confirm exact author ordering/DOIs against the journal record before external citation.*
+*Verification (2026-09-30): the Zeng-lab entry receptors (R9AP Nature 2025; EphA2 Nat Microbiol 2018 — note two simultaneous 2018 EphA2 papers, SYSUCC's is DOI 10.1038/s41564-017-0080-8; NRP1 Nat Commun **2015** ncomms7240) and Bei single-cell atlas are SYSUCC-authored. The NF-κB WGS (Nat Commun 2021) is CUHK/Toronto; MAT2A synthetic-lethality enabling paper likewise — do not credit these to SYSUCC. Publication list items 10, 12, 13, 18, 20 still need author-ordering/DOI confirmation.*

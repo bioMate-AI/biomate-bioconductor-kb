@@ -23,7 +23,7 @@ Scored 1–5 on the four things we need from a partner plus engagement friction.
 
 | Criterion | SYSUCC (oncology) | Soochow rheum (autoimmune) |
 |---|---|---|
-| **Target quality × peptide-fit** | 5 — LMP1–TRAF/TRADD is a textbook flat intracellular PPI; EBV-entry receptors are clean extracellular interfaces | 4 — Tfh/Tph–B costimulatory PPI + intracellular TWEAK-HOIP-HuR are strongly peptide-shaped; slightly less structurally resolved |
+| **Target quality × peptide-fit** (verified) | 5 — SYSUCC-owned EBV-entry receptors R9AP/EphA2 are causal, **extracellular**, peptide-precedented (R9AP19–30) and structure-enabled (EphA2 PDB 7CZE); LMP1–TRAF is the intracellular moonshot | 4 — verified lead **IL-23/IL-23R** is causal + extracellular; CD226/B7-family are flat surface PPIs; mostly correlative beyond IL-23 |
 | **Wet-lab validation strength** | 5 — world's largest NPC biobank, PDX/organoids, functional assays | 4 — patient-PBMC/Tfh-B help + mesangial-cell + murine models; assays already running for UTAA91 |
 | **Data for prioritization/stratification** | 5 — million-scale NPC cohorts, proteogenomic subtyping, single-cell atlases | 3 — real SLE/RA/Sjögren cohorts + biologic-response data, but no confirmed biobank/registry/omics |
 | **Clinical / translational path** | 5 — NMPA anti-tumor New-Drug trial center + GCP Phase-I unit (~50% drug-to-approval) | 3 — national drug-trial base; strong for autoimmune cell-therapy, peptide path less proven |
@@ -44,15 +44,18 @@ Scored 1–5 on the four things we need from a partner plus engagement friction.
 
 Keep the opening ask small, specific, and validation-anchored — one target, one cheap assay, one cohort question.
 
+*(Lead targets below are the verified, publication-mined picks — see the two survey docs' §5/§7 corrections. Earlier drafts led with mis-attributed targets; those are retired.)*
+
 ### Soochow (rheumatology) — first ask
-1. **Nominate ONE target node** from their own discoveries where reversible PPI blockade is therapeutically sufficient (not requiring cell depletion). Lead candidate: the **Tfh/Tph ↔ B-cell costimulatory interface** (ICOS–ICOSL / CD40–CD40L-type), because they already run the patient-PBMC / Tfh-B help assay for UTAA91 — the assay is in place. Backup: the **intracellular TWEAK–HOIP–HuR** LN axis (needs cell-penetrant macrocycle; higher risk, higher novelty).
-2. **One stratification question** from their SLE/RA/Sjögren cohort (e.g., which subset the nominated node is most active in) — lets us prioritize before design.
-3. **Agreement to run the round-1 functional assay** on a CRO-synthesized peptide panel we deliver.
+1. **Lead target: IL-23 / IL-23R interface** — the **only** node where the group has *causal in-vivo* evidence (their IL-23p19 mAb reversed nephritis in MRL/lpr mice, PMID 40620119). A cytokine–receptor flat PPI, no cell penetration needed. Backups (their own surface/secreted targets): **CD226 (DNAM-1)–CD155** and **soluble B7-H1/H2/H5** in Sjögren's.
+2. **Head-to-head validation offer:** we deliver a macrocyclic IL-23p19/IL-23R binder → competition ELISA/SPR → run it against their mAb in the *same MRL/lpr readout they've already validated*. Apples-to-apples.
+3. **One stratification question** from their SLE/pSS cohort (which subset the node is most active in) to prioritize before design.
 
 ### SYSUCC (oncology) — first ask
-1. **Confirm the LMP1–TRAF/TRADD (or LMP1–TRADD) interface** as a nominated target and share/point to the structural basis they'd condition validation on.
-2. **One NPC organoid/PDX or primary-sample assay** they'd run on our delivered peptide panel (binding + functional NF-κB readout).
-3. **Cohort/subtype prioritization** — which NPC proteomic subtype carries the LMP1/NF-κB dependency (their 240-patient proteogenomic data), so we design for the right subpopulation.
+1. **Lead target: EBV-entry receptor R9AP ↔ gH/gL** (Zeng/Zhong, *Nature* 2025) — SYSUCC-owned, causal, extracellular, with a **published blocking peptide (R9AP19–30)** to anchor design. Co-lead: **EphA2 ↔ gH/gL** (structure-enabled, PDB 7CZE). Second track: **ITGA2/collagen-IV** for recurrent radioresistant NPC.
+2. **Validation:** run our delivered macrocycle panel in the Zeng lab's existing **EBV-entry blockade assay** (primary NPECs + B cells) + BLI vs gH/gL; ITGA2 track uses their rNPC PDX/organoid + spatial platform (radiosensitisation readout).
+3. **Structure co-development note:** R9AP–gH/gL has no published crystal — offer joint structure determination as an early deliverable (EphA2 already has 7CZE for immediate generator conditioning).
+   *(LMP1–TRAF NF-κB is the differentiated intracellular moonshot — staged, not the opener; MAT2A dropped as wrong-modality.)*
 
 ---
 
@@ -107,9 +110,9 @@ Merged from both surveys' open items, plus the cross-border constraints that app
 ## 6 · Open decisions (founder)
 
 1. **Lead partner** — recommendation is Soochow-first / SYSUCC-parallel; confirm or reprioritize.
-2. **Lead target per partner** — Soochow: costimulatory PPI (assay-ready) vs TWEAK-HOIP-HuR (novel, harder); SYSUCC: LMP1-PPI is the clear opener.
+2. **Lead target per partner (verified)** — Soochow: **IL-23/IL-23R** (only causal + assay-ready); SYSUCC: **R9AP/EphA2 EBV-entry receptors** (causal, extracellular, EphA2 structure-enabled). LMP1–TRAF and the correlative surface targets are staged/backup.
 3. **Budget** — approve one ~$15–25k CRO round per partner for Phase-0, or gate on a signed collaboration first.
-4. **HGRAC counsel** — engage before any cohort data is requested.
+4. **HGRAC** — mitigated via our Chinese entity (structure domestically); confirm exact structure with counsel.
 
 ---
 

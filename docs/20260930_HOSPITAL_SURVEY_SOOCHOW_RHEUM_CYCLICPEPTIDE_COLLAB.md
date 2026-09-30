@@ -42,7 +42,7 @@ Nationally elite: **A++ overall** in the Fudan China Hospital Rankings; **Hemato
 
 **Core diseases (clinical):** SLE (incl. lupus nephritis, lupus encephalopathy), RA (incl. refractory), Sjögren's, systemic sclerosis, PM/DM, vasculitis, adult-onset Still's, Behçet's, APS, gout, spondyloarthritis, osteoporosis/GIOP. ([Baidu](https://health.baidu.com/doctordec/depintro/1002282_10064923))
 
-**Mechanistic themes (2024–2026 papers, §5):** lupus-nephritis metabolic immunology (lactate → mesangial cell → Tfh differentiation; NAD/glomerular-endothelial biology); MDSC-derived IFN-β in lupus; TWEAK–HOIP–HuR axis in lupus mesangial cells; biomarkers (BST2⁺CD4⁺ T in Sjögren's; PCSK9 pyroptosis + S100A8 in RA); RA T-cell senescence/mitophagy; disease-activity/stratification modeling in large SLE cohorts. ([PubMed Soochow filter](https://pubmed.ncbi.nlm.nih.gov/?term=%28%22First+Affiliated+Hospital+of+Soochow+University%22%5BAffiliation%5D%29+AND+%28lupus+OR+rheumatoid+OR+Sjogren+OR+rheumatology+OR+autoimmune%29&sort=date))
+**Verified bench signature (§5, author-affiliation-confirmed).** The genuine First-Affiliated-Hospital rheumatology group works predominantly on **cell-surface immune receptors and secreted checkpoint ligands** — CD226 (DNAM-1), TIGIT, the B7 family (B7-H1/H2/H5/H6), BST2, CD200/CD200R, IL-23 — profiled by flow cytometry + soluble-protein ELISA, largely in **primary Sjögren's and lupus**. One **causal in-vivo** result: **IL-23p19 antibody blockade reversed nephritis in MRL/lpr lupus mice**. *(Note: the lupus-nephritis metabolic-immunology work — lactate→Tfh, NAD/GEC, TWEAK-HOIP-HuR, cGAS-STING — belongs to OTHER Soochow-affiliated hospitals, not this partner; see §5 correction.)* Extracellular receptor/ligand PPIs are exactly the flat-interface, no-small-molecule-pocket space macrocycles win, with no cell-penetration requirement. ([PubMed: Jiangsu Institute of Clinical Immunology](https://pubmed.ncbi.nlm.nih.gov/?term=%22Jiangsu+Institute+of+Clinical+Immunology%22&sort=date))
 
 **Translational / immunotherapy (flagship, most collaboration-relevant):**
 - **CAR-cell therapy for refractory autoimmune disease.** Wu Jian is **PI** of an early-phase trial of **UTAA91** (NCT06970951) — an **off-the-shelf allogeneic CAR-Vδ1 T-cell therapy** carrying a **CD19 nanobody (B-cell depletion)** + a **PD-1-agonist nanobody** directing Vδ1 T cells to kill **PD-1⁺ pathogenic T cells (Tfh/Tph)**. Preclinical: depleted pathogenic cells from SLE/RA/Sjögren's PBMCs while sparing PD-1⁻ T cells. Developed with **PersonGen BioTherapeutics (博生吉, Suzhou)** + Soochow's Cyrus Tang Medical Institute. ([NCT06970951](https://clinicaltrials.gov/study/NCT06970951); [ACR abstract](https://acrabstracts.org/abstract/utaa91-an-off-the-shelf-allogeneic-car-v%CE%B41t-therapy-leveraging-cd19-nanoantibody-for-b-cell-depletion-and-pd-1-agonist-nanoantibody-for-pathogenic-t-cell-elimination-in-refractory-autoimmune-dis/))
@@ -64,40 +64,38 @@ Nationally elite: **A++ overall** in the Fudan China Hospital Rankings; **Hemato
 
 ---
 
-## 5. Representative publications (2020–2026)
+## 5. Representative publications (verified attribution, 2025–2026)
 
-*(surfaced under a "Soochow University" affiliation filter, rheumatology/immunology scope; confirm each author's specific affiliation for load-bearing use — Soochow spans multiple hospitals; see §2 caution)*
+> **CRITICAL CORRECTION (2026-09-30 author-affiliation verification via NCBI E-utilities).** An earlier draft of this section listed 20 "Soochow University"-affiliation-filter hits. A dedicated verification pass found **most were mis-attributed to other labs** — Soochow University spans many affiliated hospitals. Confirmed mis-attributions (do **not** cite as this partner's work):
+> - Lactate→mesangial→Tfh (Nat Commun 2025, 41381571), GEC/NAD (PNAS 2025, 41385546), lactate/GEC barrier (JCI Insight 2026, 42611553) → **Fourth** Affiliated Hospital (Wen Z lab)
+> - TWEAK-HOIP-HuR (Mediators Inflamm 2026, 41778053) → **Second** Affiliated Hospital
+> - MDSC-IFN-β (Arthritis Rheumatol 2026, 41312596) → **Jiangsu University** (Tian J / Rui K, Zhenjiang) — the suspected collision, **confirmed**
+> - Lactate cGAS-STING RA (Int Immunopharmacol 2026, 41389663) → **Zhangjiagang** Affiliated Hospital
+> - S100A8 (Int Immunopharmacol 2026, 41539002) → **Wuxi 9th People's Hospital, Orthopaedics**
+>
+> The cohort papers formerly listed (ESR/clustering/LN-progression/myocarditis/telitacicept — 41972130, 41951250, 41268554, 41978272, 42601521) were **not** re-verified in this pass; treat their attribution as unconfirmed until checked.
 
-1. Lactate bridges mesangial cells to Tfh differentiation in lupus nephritis — *Nat Commun* 2025, PMID **41381571** *(high-impact target paper)*
-2. Glomerular endothelial cells eliminate NAD in lupus nephritis — *PNAS* 2025, PMID **41385546**
-3. Lactate controls glomerular endothelial barrier in LN — *JCI Insight* 2026, PMID **42611553**
-4. MDSC-derived IFN-β in lupus — *Arthritis Rheumatol* 2026, PMID **41312596** *(verify affiliation — possible Jiangsu-Univ overlap)*
-5. TWEAK-HOIP-HuR axis in LN mesangial cells — *Mediators Inflamm* 2026, PMID **41778053**
-6. BST2⁺CD4⁺ T cells biomarker for Sjögren's — *Clin Rheumatol* 2026, PMID **41954819**
-7. Telitacicept vs belimumab (SRI-4/LLDAS) in active SLE — *Clin Rheumatol* 2026, PMID **42601521**
-8. Unsupervised clustering of SLE clinical/lab features — *Lupus Sci Med* 2026, PMID **41951250**
-9. ESR-based stratification in a large retrospective SLE cohort — *Front Immunol* 2026, PMID **41972130**
-10. Age-stratified predictive models for progression to LN — *Front Immunol* 2025, PMID **41268554**
-11. Clinical features of lupus myocarditis — *Immun Inflamm Dis* 2026, PMID **41978272**
-12. ANK1/EPB41 variants & glucocorticoid-induced osteonecrosis — *Arthritis Rheumatol* 2026, PMID **41920036**
-13. Proteomics PCSK9 pyroptosis biomarker in RA — *Kaohsiung J Med Sci* 2026, PMID **41665155**
-14. Sakuranetin ameliorates joint inflammation/bone erosion in RA — *Int Immunopharmacol* 2026, PMID **41864012**
-15. High-glucose mitophagy accelerates premature T-cell aging in RA — *Clin Rheumatol* 2026, PMID **41261244**
-16. Lactate exacerbates RA via cGAS-STING in macrophages — *Int Immunopharmacol* 2026, PMID **41389663**
-17. Tissue-specific dysregulation of S100A8 in inflammatory arthritis — *Int Immunopharmacol* 2026, PMID **41539002**
-18. Pleiotropic gene mapping: shared immune hubs across 15 autoimmune diseases — *Hum Immunol* 2026, PMID **41406704**
-19. Accelerated aging mediates RA–depression association — 2025, PMID **40032139**
-20. UTAA91 off-the-shelf allogeneic CAR-Vδ1T for refractory autoimmune disease — Jiang L, Wu J, Chang X, Peng C et al., **ACR 2025 abstract** (PersonGen + Soochow). ([ACR](https://acrabstracts.org/abstract/utaa91-an-off-the-shelf-allogeneic-car-v%CE%B41t-therapy-leveraging-cd19-nanoantibody-for-b-cell-depletion-and-pd-1-agonist-nanoantibody-for-pathogenic-t-cell-elimination-in-refractory-autoimmune-dis/))
+**Genuinely this group (First Affiliated Hospital rheumatology cluster: Wu Jian, Chang Xin, Ren Ting, Peng Cheng + Jiangsu Institute / Jiangsu Key Lab of Clinical Immunology wet-lab: Liu C, Song S, Cheng W, Shen Y).** Their verified bench signature is **cell-surface immune receptors and secreted checkpoint ligands** (flow cytometry + soluble-protein ELISA), plus one causal in-vivo therapeutic experiment:
 
-([PMIDs 1–19 list](https://pubmed.ncbi.nlm.nih.gov/?term=%28%22Soochow+University%22%5BAffiliation%5D%29+AND+%28lupus+OR+rheumatoid+arthritis+OR+Sjogren+OR+vasculitis+OR+autoantibody%29&sort=date))
+1. **IL-23p19 mAb blockade alleviates MRL/lpr lupus nephritis** — *Cell Mol Immunol* (Chinese) 2025, PMID **40620119** (Cheng W, Song S, Liu C, **Chang X, Wu J**). **The only causal in-vivo target paper** — antibody blockade reduced proteinuria/anti-dsDNA/GN by rebalancing Th17/Treg. ([PubMed](https://pubmed.ncbi.nlm.nih.gov/40620119/))
+2. **CD226 (DNAM-1)⁺ B cells in primary Sjögren's** — *Front Immunol* 2025, PMID **40787453** (**Chang X**, Liu C, Peng C); nominates CD226 as a therapeutic target. ([PubMed](https://pubmed.ncbi.nlm.nih.gov/40787453/))
+3. **Soluble B7-family biomarkers in primary Sjögren's** (B7-H1/H2/H5 up, B7-H6 down) — *Immun Inflamm Dis* 2025, PMID **40844039** (Song S, Shen Y, Liu C, **Ren T**). ([PubMed](https://pubmed.ncbi.nlm.nih.gov/40844039/))
+4. **TIGIT⁺CD56⁺ NK cells reduced in primary Sjögren's** — *Clin Rheumatol* 2025, PMID **40906346** (Song S, Liu C, **Chang X, Wu J**, Peng C). ([PubMed](https://pubmed.ncbi.nlm.nih.gov/40906346/))
+5. **BST2⁺CD4⁺ T cells biomarker for Sjögren's** — *Clin Rheumatol* 2026, PMID **41954819** (Ren T, **Wu J, Chang X**, Liu C). ([PubMed](https://pubmed.ncbi.nlm.nih.gov/41954819/))
+6. **CD200–CD200R inhibitory axis in myasthenia gravis** — *Clin Chim Acta* 2026, PMID **42700883** (Jiangsu Inst. Clinical Immunology). ([PubMed](https://pubmed.ncbi.nlm.nih.gov/42700883/))
+7. **UTAA91 off-the-shelf allogeneic CAR-Vδ1T** (CD19 nanobody + PD-1-agonist nanobody) for refractory SLE/RA/pSS — **ACR 2025 abstract** / [NCT06970951](https://clinicaltrials.gov/study/NCT06970951) (**Wu J, Chang X, Peng C**; co-dev PersonGen). ([ACR](https://acrabstracts.org/abstract/utaa91-an-off-the-shelf-allogeneic-car-v%CE%B41t-therapy-leveraging-cd19-nanoantibody-for-b-cell-depletion-and-pd-1-agonist-nanoantibody-for-pathogenic-t-cell-elimination-in-refractory-autoimmune-dis/))
+8. **JAK1/2 inhibitor KL130008 in RA** — *BMC Med* 2025, PMID **41361324** (trial site, Wu J). *(Intracellular kinase — poor macrocycle fit; listed for completeness.)* ([PubMed](https://pubmed.ncbi.nlm.nih.gov/41361324/))
+
+*Note: the broader "Jiangsu Institute of Clinical Immunology" corpus (~172 papers, 2022–26) is oncology-checkpoint-heavy (B7-H3/H4/H6, CD39, LLT1) — a strength for reagent/assay capability, but the rheumatology-specific causal target work is the smaller subset above.*
 
 ---
 
 ## 6. Wet-lab & platform resources
 
 - **Department-level laboratories** — the dept operates its own specialty labs alongside clinic/ward. ([Baidu](https://health.baidu.com/doctordec/depintro/1002282_10064923))
-- **Flow cytometry / immunophenotyping** — implied by biomarker work (BST2⁺CD4⁺ panels in Sjögren's; MDSC/Tfh/Treg in lupus). ([PMID 41954819](https://pubmed.ncbi.nlm.nih.gov/41954819/))
-- **Mechanistic/molecular + proteomics + likely single-cell** — inferred from *Nat Commun*/*PNAS*/*Arthritis Rheumatol* + proteomics RA paper. *(No explicit CyTOF/named single-cell core for the rheum dept — confirm.)*
+- **Flow cytometry / immunophenotyping + soluble-protein ELISA (confirmed core capability)** — the group's verified target papers all rest on patient-cell flow (CD226⁺ B cells, TIGIT⁺ NK, BST2⁺CD4⁺ T) + secreted-ligand ELISA (soluble B7 family). This is a mature, in-hand assay pipeline directly usable to test peptide binders against surface/secreted targets. ([PMID 40787453](https://pubmed.ncbi.nlm.nih.gov/40787453/); [PMID 40844039](https://pubmed.ncbi.nlm.nih.gov/40844039/))
+- **In-vivo autoimmune models (confirmed)** — ran the causal **IL-23p19 blockade in MRL/lpr lupus mice** (urine protein, anti-dsDNA, Th17/Treg, histology readouts) — a validated disease-model pipeline a peptide can drop straight into. ([PMID 40620119](https://pubmed.ncbi.nlm.nih.gov/40620119/))
+- **Reagent/assay depth via the Jiangsu Institute of Clinical Immunology** — deep B7-family + checkpoint toolbox (oncology-heavy corpus) → strong recombinant-protein/SPR capability for interface assays. *(No explicit CyTOF/named single-cell core confirmed for the rheum dept — confirm in diligence.)*
 - **Animal disease models** — murine arthritis/lupus/Kawasaki models in their papers; PersonGen partner runs autoimmune mouse models (bioluminescence + flow + cytokine). ([PersonGen](https://www.persongen.com/index.php/technology-platform/44.html))
 - **cGMP cell-therapy / CAR-T manufacturing (decisive institutional asset)** — via the Jiangsu Institute of Hematology (#4 nationally, 46 laminar-flow beds) + the China-first **TCT Center (2025-03-28)** + the **PersonGen** cGMP Vδ1-T partnership (Vδ1 purity >90%, >10,000× expansion). Rare for a rheumatology dept to have this access. ([新浪财经](https://finance.sina.com.cn/jjxw/2025-03-31/doc-inerqfek3721726.shtml))
 
@@ -107,21 +105,23 @@ Nationally elite: **A++ overall** in the Fudan China Hospital Rankings; **Hemato
 
 **What we bring.** A therapeutics company building a **cyclic-peptide (macrocycle) drug-design engine for immune-mediated disorders**: (a) computational **target identification** for autoimmune targets; (b) a **generative peptide designer** (PepGLAD-class) + **proprietary non-canonical chemistry** (N-methylation, D-amino acids, stapled macrocycles) aimed at **hard-to-drug PPIs and intracellular immune signaling nodes** small molecules and antibodies miss; (c) **multi-objective in-silico verification** (affinity, permeability, synthetic accessibility, developability, safety); (d) a **closed-loop design→make→test→learn cycle** — wet-lab assay results ingested to **DPO-retrain the generator**; the accumulating proprietary assay data is the moat.
 
-**Why this hospital.** The group couples (i) **mechanism-level autoimmune target biology** (lupus-nephritis metabolic-immune axes, Tfh/Tph + MDSC pathogenic populations, Sjögren's/RA biomarkers), (ii) **structured cohorts + a national drug-trial base** for stratification, (iii) **flow/mechanistic wet-lab** + **rare in-house cell-therapy/GMP infrastructure**, and (iv) an **already-running pathogenic-cell-targeting program (UTAA91)** whose biology is exactly the PPI/receptor target set a macrocycle can attack. They already think in "modulate pathogenic Tfh/Tph + B-cell collaboration" terms; we offer a **complementary modality** — a peptide that blocks the interaction rather than a cell that kills the cell.
+**Why this hospital.** The group's **verified** profile is unusually favorable for macrocycles: their bench signature is **extracellular immune receptors and secreted checkpoint ligands** (§3, §5) — flat PPI interfaces with no small-molecule pocket and, mostly, **no cell-penetration requirement** — plus (i) in-hand flow + soluble-ELISA + MRL/lpr in-vivo assays, and (ii) an **already-running pathogenic-cell program (UTAA91)** that means they think in receptor/PPI-modulation terms. We offer a **complementary modality** — a small, reversible peptide that blocks the interaction, vs a cell that kills the cell.
 
-| Their asset | Feeds our capability |
+| Their asset (verified) | Feeds our capability |
 |---|---|
-| Mechanism papers pinpointing pathway nodes (lactate→Tfh, TWEAK–HOIP–HuR, MDSC-IFN-β, cGAS-STING in RA macrophages) | **Target nomination** — druggable PPI/signaling nodes |
-| SLE/RA/Sjögren cohorts + telitacicept/belimumab response data | **Target prioritization & responder-stratification** |
-| Flow/immunophenotyping, patient PBMCs & ex-vivo samples | **Functional wet-lab validation** (closes our loop) |
-| Murine lupus/arthritis models + PersonGen platform | **In-vivo validation** of lead peptides |
+| Surface/secreted target papers (IL-23/IL-23R, CD226, B7 family, TIGIT, CD200/CD200R, BST2) | **Target nomination** — flat extracellular PPI nodes ideal for macrocycles |
+| SLE/pSS/RA patient cohorts + disease-activity correlations | **Target prioritization & responder-stratification** |
+| Flow cytometry + soluble-protein ELISA on patient cells | **Functional wet-lab validation** (closes our loop) |
+| MRL/lpr lupus model (IL-23p19 blockade already run) + PersonGen platform | **In-vivo validation** of lead peptides |
 
-**Top 3 concrete candidate directions (peptide-credible + they can validate):**
-1. **Block the Tfh/Tph ↔ B-cell "help" interface (costimulatory PPI) in lupus/Sjögren's.** UTAA91 *kills* PD-1⁺ Tfh/Tph; a **stapled/macrocyclic PPI inhibitor** of the relevant costimulatory axis (ICOS–ICOSL / CD40–CD40L-type) is a reversible non-ablative alternative — testable in their **patient-PBMC co-culture / Tfh-B help assays** the UTAA91 work already uses. ([ACR abstract](https://acrabstracts.org/abstract/utaa91-an-off-the-shelf-allogeneic-car-v%CE%B41t-therapy-leveraging-cd19-nanoantibody-for-b-cell-depletion-and-pd-1-agonist-nanoantibody-for-pathogenic-t-cell-elimination-in-refractory-autoimmune-dis/))
-2. **Intracellular lupus-nephritis nodes — TWEAK–HOIP–HuR axis + lactate→Tfh circuit.** Their own *Nat Commun/PNAS/Mediators Inflamm* discoveries involve **intracellular PPI/RNA-binding interactions (HOIP LUBAC, HuR)** antibodies can't reach — a natural fit for **cell-penetrant macrocycles**. Validate in their **LN mesangial-cell + murine LN models**. ([PMID 41381571](https://pubmed.ncbi.nlm.nih.gov/41381571/); [PMID 41778053](https://pubmed.ncbi.nlm.nih.gov/41778053/))
-3. **RA innate-immune / alarmin nodes — cGAS-STING, S100A8/MRP.** Intracellular innate signaling + alarmin PPIs, peptide-addressable, validatable in their RA models and synovial samples. ([PMID 41389663](https://pubmed.ncbi.nlm.nih.gov/41389663/); [PMID 41539002](https://pubmed.ncbi.nlm.nih.gov/41539002/))
+**Top 3 concrete candidate directions (verified, peptide-credible, they can validate):**
+1. **IL-23 / IL-23R interface (lupus nephritis) — the standout.** The **only** target where the group has *causal in-vivo* evidence: an IL-23p19 blocking antibody reduced proteinuria/anti-dsDNA/GN in MRL/lpr mice by rebalancing Th17/Treg. A cytokine–receptor interface is a canonical flat PPI, no pocket, no penetration needed. **Validate:** design a macrocyclic IL-23p19 (or IL-23R-ectodomain) binder → IL-23–IL-23R competition ELISA/SPR → head-to-head vs their mAb in the *same* MRL/lpr readout they've already validated. Lowest-friction, apples-to-apples PoC. ([PMID 40620119](https://pubmed.ncbi.nlm.nih.gov/40620119/))
+2. **CD226 (DNAM-1) – CD155/CD112 (primary Sjögren's).** They show CD226 upregulated on pathogenic B cells, tracks disease activity, and explicitly nominate it as a target. Flat extracellular adhesion/costim interface → macrocycle antagonist. **Validate:** SPR/competition vs CD155, then their in-hand patient-B-cell activation / Ig-secretion assays. *(Caveat: correlative — add a causal blockade/KD arm.)* ([PMID 40787453](https://pubmed.ncbi.nlm.nih.gov/40787453/))
+3. **Soluble B7-family checkpoint ligands (B7-H1/H2/H5, primary Sjögren's).** Their deepest, most differentiated expertise (large B7-H3/H4/H6 toolbox) — all secreted/surface ligand–receptor PPIs suited to macrocycles. **Validate:** peptide binders in their soluble-ELISA/SPR pipeline → T/B costimulation functional assays. *(Caveat: biomarker-level; pin block-vs-restore direction per member first.)* ([PMID 40844039](https://pubmed.ncbi.nlm.nih.gov/40844039/))
 
-**Joint-project shape.** Phase 0 — they nominate 1–2 validated targets + a cohort stratification question; we run target-confidence + generate a first macrocycle library in silico. Phase 1 — we deliver verified candidates; **CRO synthesis** (third party); their lab runs binding + functional PBMC/mesangial assays. Phase 2 — assay data returns to DPO-retrain our generator; leads advance to their **murine model**; translation leverages their **national drug-trial base**.
+*Related optionality (not top-3): PD-1 **agonism** on pathogenic Tfh/Tph (the UTAA91 mechanism, but agonist peptides are harder than blockers); TIGIT / CD200-CD200R are **reduced/protective** axes needing agonists (deprioritized vs the up-regulated blockade targets above).*
+
+**Joint-project shape.** Phase 0 — lead with **IL-23/IL-23R** (causal + assay-ready); we run target-confidence + generate a first macrocycle library in silico. Phase 1 — we deliver verified candidates; **CRO synthesis** (third party); their lab runs competition ELISA/SPR + functional assays. Phase 2 — assay data returns to DPO-retrain our generator; leads advance to the **MRL/lpr model** head-to-head vs their mAb; translation leverages their **national drug-trial base**.
 
 **Honest gaps / division of labor.**
 - **We do design + compute; they do biology + clinic.** We don't run wet-lab assays or hold patient samples — the collaboration supplies those.
@@ -130,7 +130,7 @@ Nationally elite: **A++ overall** in the Fudan China Hospital Rankings; **Hemato
 - **Peptides can't do everything** — targets requiring true cell depletion remain a cell-therapy/antibody job; scope to interfaces where reversible PPI blockade suffices.
 
 ### Diligence open items
-1. Confirm cohort/biobank scope + data-governance (IRB/DUA) with Wu Jian's group.
-2. Confirm "程韬 = Cheng Peng" identity and each flagship paper's author-level Soochow affiliation (multi-hospital university; Ke-Rui/Jie-Tian Breg group is likely Jiangsu University).
+1. Confirm cohort/biobank scope + data-governance (IRB/DUA) with Wu Jian's group. **Re-verify the cohort-paper attributions** (ESR/clustering/LN-progression/telitacicept — 41972130, 41951250, 41268554, 42601521) not covered in the §5 author-affiliation pass; given the systematic mis-attribution found, do not assume they are this group's.
+2. **RESOLVED (§5):** the seed-list mis-attribution is confirmed and corrected — the Ke-Rui/田洁 Breg group is **Jiangsu University**; the lupus-nephritis metabolic-immune papers are the **Fourth/Second** Soochow hospitals. The genuine group = **Wu J / Chang X / Ren T / Peng C + Liu C / Song S** (Jiangsu Institute of Clinical Immunology). "程韬 = Peng Cheng" identity still to confirm at signing.
 3. Treat the "Soochow 5-patient CAR-T-SLE case series" as **unverified**; confirmed asset is **UTAA91 (NCT06970951, Wu Jian PI)**.
-4. Jointly nominate the specific target node(s) from directions 1–3 before committing design compute.
+4. Lead with **IL-23/IL-23R** (only causal, assay-ready target); confirm the group will run the head-to-head vs their mAb before committing design compute.
