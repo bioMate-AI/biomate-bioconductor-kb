@@ -19,7 +19,12 @@ def score(it, out):
     if grd == "accept_set": return float(any(norm(x) in na for x in it["accept"]))
     if grd == "mcqa": return float(first_letter(out) == str(it["gold"]).strip().upper())
     if grd == "clarify_ask": return float("?" in a)
-    S = salient(it.get("gold", "")); return sum(1 for t in S if t in na) / len(S) if S else 0.0
+    # content_overlap -> salient-token F1 (NOT recall-only, which is verbosity-biased: a long answer hits
+    # more gold tokens by chance. F1 penalizes low precision, so terse-correct beats verbose-noisy.)
+    G = salient(it.get("gold", "")); O = salient(a)
+    if not G or not O: return 0.0
+    inter = len(G & O); prec = inter / len(O); rec = inter / len(G)
+    return 0.0 if prec + rec == 0 else round(2 * prec * rec / (prec + rec), 4)
 def gen(model, prompt, mx=320):
     body = json.dumps({"model": model, "messages": [{"role": "user", "content": prompt}], "max_tokens": mx, "temperature": 0}).encode()
     for a in range(3):
