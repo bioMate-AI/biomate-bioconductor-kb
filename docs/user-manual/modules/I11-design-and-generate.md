@@ -162,11 +162,13 @@ every 1.5 s (`DesignGenerate.tsx:1505-1518`) and, on completion, renders (`:1852
 - **Export order sheet** — a CSV pairing candidate ids with registry ids and per-objective values, so a
   shortlist can leave the platform as an order (`:1037-1113`).
 
-![A completed Design & generate run](../assets/i11-2-design-results.png)
-*A real `/design` run on dev (seed = aspirin, default envelope): the status strip (generator, generated/scored
-counts), the editable Criteria & weights strip, the Ranked hits table (candidate id · score · confidence ·
-SMILES · drug-like · verdict), the Trade-off (Pareto) view, the Multi-objective view with per-candidate
-"why?", the Rejection profile, and the Predicted-vs-measured record. (Live capture, 2026-09-30.)*
+![Multi-objective view of a completed Design & generate run](../assets/i11-3-multi-objective.png)
+*The Multi-objective view from a real `/design` run on dev (seed = aspirin, default envelope): each objective
+keeps its own units and its own target — `drug_like` (QED) and `property_envelope` (fraction-in-window) are
+shown side by side, never blended. `score*` is a ranking key only (labelled as such), each candidate carries
+an accepted/rejected verdict, and every row has a "why?" drill-in. The full run also renders a status strip,
+an editable Criteria & weights strip, a Ranked-hits table, a Pareto trade-off plot, a rejection profile, and a
+predicted-vs-measured record. (Live capture, 2026-09-30.)*
 
 > **QC gate — an empty result is an honest answer, but read *why* it's empty.** If nothing clears the
 > pipeline the panel shows "No candidates cleared the pipeline" plus the rejection profile — not a
