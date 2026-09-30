@@ -270,6 +270,27 @@ else
 fi
 echo ""
 
+# Step 2.5: Apply on-prem env overlay (optional — only for environments that need
+# local overrides not stored in Secrets Manager, e.g. TEST simulating on-prem with
+# a different LLM provider or MinIO instead of AWS S3).
+# Convention: if /opt/biomate/.env.onprem exists on the host, each KEY=VALUE line
+# in it overrides the corresponding key written by Step 2.  The file is created
+# manually on the host and is never committed to the repo.
+ssm_run "if [ -f /opt/biomate/.env.onprem ]; then
+  echo 'Applying on-prem env overlay from /opt/biomate/.env.onprem...'
+  while IFS= read -r line || [ -n \"\$line\" ]; do
+    [[ \"\$line\" =~ ^#.*\$ || -z \"\$line\" ]] && continue
+    key=\$(echo \"\$line\" | cut -d= -f1)
+    sed -i \"/^\${key}=/d\" /opt/biomate/.env
+    echo \"\$line\" >> /opt/biomate/.env
+  done < /opt/biomate/.env.onprem
+  echo \"overlay applied: \$(wc -l < /opt/biomate/.env.onprem) var(s)\"
+else
+  echo 'No /opt/biomate/.env.onprem found — using Secrets Manager config as-is'
+fi" \
+  "Applying on-prem env overlay (if present)"
+echo ""
+
 # Step 3: Ship docker-compose.deploy.yml to the host (from THIS checkout, via SSM)
 echo "=== Step 3: Ship docker-compose.deploy.yml ==="
 #
