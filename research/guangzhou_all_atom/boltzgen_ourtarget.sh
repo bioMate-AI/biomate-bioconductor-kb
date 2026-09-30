@@ -28,6 +28,7 @@ TARGETS=(
   "1kc4 A B 19"   # toxin-scaffold receptor
   "1u8p B C 7"    # antibody Fab (paratope target)
   "5o45 A B 14"   # PD-L1 IgV + macrocyclic peptide-71 (IO target, ACT Round-1; 0.99A; chain B is non-canonical)
+  "4um9 A,B E 13" # alphaV/beta6 integrin RGD site + LAP peptide (ACT next target; TWO-subunit pocket: Arg->aV chain A, Asp->b6 MIDAS chain B)
 )
 # v3 oversampling: TARGET_ONLY=<pdbid> restricts to one target (scoped POC); NUM_DESIGNS bumps the pool.
 if [ -n "${TARGET_ONLY:-}" ]; then
@@ -70,34 +71,46 @@ def get_chain(name):
     for ch in model:
         if ch.name==name: return ch
     return None
-rc=get_chain(recep); pc=get_chain(pep)
-# fallback: two longest polymer chains if named chains missing
-if rc is None or pc is None:
-    polys=sorted(model, key=lambda c: sum(is_aa(r) for r in c), reverse=True)
-    rc = rc or polys[0]; pc = pc or (polys[1] if len(polys)>1 else polys[0])
-rres=[r for r in rc if is_aa(r)]
-# PEPTIDE pocket-definer: use ALL non-water residues of the ligand chain (canonical AND non-canonical),
-# so a macrocycle with ncAAs (e.g. 5o45 peptide-71: MEA/SAR/9KK/CCS) defines the FULL pocket. For the
-# 6 canonical proven targets this is identical to is_aa() (polymer chains carry no waters) — safe no-op.
-pres=[r for r in pc if r.name not in ('HOH','WAT','H2O','DOD')]
 def hcoords(res):
     return np.array([[a.pos.x,a.pos.y,a.pos.z] for a in res if a.element.name!='H'], dtype=float)
-P=np.vstack([hcoords(r) for r in pres]) if pres else np.zeros((0,3))
-assert len(rres) and len(P), "empty chain coords"
-# BoltzGen indexes binding residues by 1-based position among the RESOLVED residues it builds
-# (bounded by that count), NOT by PDB author number NOR by label_seq. For chains with unresolved
-# gaps (e.g. trypsin 1g9i) label_seq overshoots the resolved count and is rejected, so we use the
-# enumeration index over resolved AA residues (in file order, matching BoltzGen's build order).
-pocket=[]
-for i,res in enumerate(rres):
-    c=hcoords(res)
-    if len(c) and np.sqrt(((c[:,None,:]-P[None,:,:])**2).sum(-1)).min() < 5.0:
-        pocket.append(i+1)
-pocket=sorted(set(pocket))
-assert pocket, "empty pocket"
+# RECEP may be a COMMA-SEPARATED chain list (e.g. "A,B") for a multi-subunit pocket such as the
+# alpha-v/beta-6 integrin RGD site, where the ligand contacts BOTH subunits (Arg->alphaV, Asp->beta6
+# MIDAS). A single receptor chain would condition the binder on half the interface. Backward-compatible:
+# a single id "A" behaves exactly as before.
+recep_ids=[c.strip() for c in recep.split(',') if c.strip()]
+pc=get_chain(pep)
+# fallback: two longest polymer chains only when the NAMED chains are entirely missing (single-chain case)
+if pc is None or all(get_chain(r) is None for r in recep_ids):
+    polys=sorted(model, key=lambda c: sum(is_aa(r) for r in c), reverse=True)
+    pc = pc or (polys[1] if len(polys)>1 else polys[0])
+    if all(get_chain(r) is None for r in recep_ids): recep_ids=[polys[0].name]
+# PEPTIDE pocket-definer: use ALL non-water residues of the ligand chain (canonical AND non-canonical),
+# so a macrocycle with ncAAs (e.g. 5o45 peptide-71: MEA/SAR/9KK/CCS) defines the FULL pocket.
+pres=[r for r in pc if r.name not in ('HOH','WAT','H2O','DOD')]
+P=np.vstack([hcoords(r) for r in pres if len(hcoords(r))]) if pres else np.zeros((0,3))
+assert len(P), "empty peptide coords"
+# BoltzGen indexes binding residues by 1-based position among the RESOLVED residues it builds PER CHAIN
+# (bounded by that count), NOT by PDB author number NOR by label_seq. Compute the pocket per receptor
+# chain independently (each chain's own enumeration), in file order (matching BoltzGen's build order).
+inc_lines=[]; bind_lines=[]; report=[]; total_pocket=0
+for rname in recep_ids:
+    rc=get_chain(rname)
+    if rc is None: continue
+    rres=[r for r in rc if is_aa(r)]
+    pocket=[]
+    for i,res in enumerate(rres):
+        c=hcoords(res)
+        if len(c) and np.sqrt(((c[:,None,:]-P[None,:,:])**2).sum(-1)).min() < 5.0:
+            pocket.append(i+1)
+    pocket=sorted(set(pocket))
+    if not pocket: continue  # this subunit doesn't line the pocket -> omit it
+    inc_lines.append(f"        - chain:\n            id: {rc.name}")
+    bind_lines.append(f"        - chain:\n            id: {rc.name}\n            binding: {','.join(map(str,pocket))}")
+    report.append(f"{rc.name}(n={len(pocket)},max={max(pocket)},resolved={len(rres)})")
+    total_pocket+=len(pocket)
+assert bind_lines, "empty pocket across all receptor chains"
 # drug-like cyclic length range (8..16), anchored near the native length but capped both ends
 lo=max(7, min(L-2, 10)); hi=min(16, max(lo+1, L+2))
-binding=",".join(str(x) for x in pocket)
 yaml=f"""entities:
   - protein:
       id: X
@@ -106,15 +119,12 @@ yaml=f"""entities:
   - file:
       path: {cif}
       include:
-        - chain:
-            id: {rc.name}
+{chr(10).join(inc_lines)}
       binding_types:
-        - chain:
-            id: {rc.name}
-            binding: {binding}
+{chr(10).join(bind_lines)}
 """
 open(spec,'w').write(yaml)
-print(f"{os.environ['PDB']}: recep_chain={rc.name} ({len(rres)} resolved) pep_chain={pc.name} pocket_n={len(pocket)} max_idx={max(pocket)} design_len={lo}..{hi}")
+print(f"{os.environ['PDB']}: recep_chains=[{' '.join(report)}] pep_chain={pc.name} total_pocket={total_pocket} design_len={lo}..{hi}")
 PY
 }
 

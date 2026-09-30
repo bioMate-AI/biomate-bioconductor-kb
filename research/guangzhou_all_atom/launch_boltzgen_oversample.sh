@@ -43,7 +43,7 @@ for c in "${COMBO[@]}"; do
     --image-id "$AMI" --instance-type "$TYPE" --key-name "$KEY" \
     --subnet-id "$SUBNET" --security-group-ids "$SG" \
     --iam-instance-profile Name=AutoimmuneCorpusProfile \
-    --instance-market-options '{"MarketType":"spot","SpotOptions":{"SpotInstanceType":"one-time","InstanceInterruptionBehavior":"terminate"}}' \
+    $([ -z "${ONDEMAND:-}" ] && echo "--instance-market-options {\"MarketType\":\"spot\",\"SpotOptions\":{\"SpotInstanceType\":\"one-time\",\"InstanceInterruptionBehavior\":\"terminate\"}}") \
     --instance-initiated-shutdown-behavior terminate \
     --block-device-mappings '[{"DeviceName":"/dev/sda1","Ebs":{"VolumeSize":100,"VolumeType":"gp3"}}]' \
     --user-data "$UD" \
