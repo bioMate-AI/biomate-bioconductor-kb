@@ -1,0 +1,28 @@
+QIODevice::read (QNetworkReplyHttpImpl): device not open
+Invalid parameter: Invalid output file extension for file '/d/results/comet.pin'. Valid file extensions are: 'tsv'.
+Command exited with non-zero status 6
+	Command being timed: "docker run --rm -v /mnt/bench:/d -w /d quay.io/biocontainers/openms-thirdparty:3.4.1--h9ee0642_1 bash -c 
+  CometAdapter -in /d/BA1_DDA_1h.mzML -database /d/combined.fasta -out /d/results/comet_raw.idXML     -threads 16     -precursor_mass_tolerance 10 -precursor_error_units ppm     -fragment_mass_tolerance 0.02 -fragment_error_units Da     -enzyme Trypsin -missed_cleavages 2     -fixed_modifications 'Carbamidomethyl (C)' -variable_modifications 'Oxidation (M)'     -pin_out /d/results/comet.pin
+"
+	User time (seconds): 0.00
+	System time (seconds): 0.02
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:28.37
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 27880
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 2707
+	Voluntary context switches: 594
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 6
