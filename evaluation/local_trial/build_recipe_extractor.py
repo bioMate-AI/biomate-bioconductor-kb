@@ -102,6 +102,11 @@ def main():
         tools = [x.strip() for x in L(r.get("tools")) if isinstance(x, str) and len(x.strip()) > 1]
         params = [x.strip() for x in L(r.get("parameters")) if isinstance(x, str) and len(x.strip()) > 1]
         results = S(r.get("results")); findings = S(r.get("findings")); concl = S(r.get("conclusion"))
+        # RECENCY: PMCID != publication year (bulk includes digitized OLD papers, e.g. 1800s Chicago Med Exam).
+        # Old tool/param settings are stale -> gate the TIME-SENSITIVE tasks on year>=RECENT_MIN. Findings/
+        # decomposition are time-INVARIANT skills -> always kept.
+        yrs = [int(y) for y in re.findall(r"\b(19\d{2}|20\d{2})\b", t[:4000])]
+        recent_ok = (not yrs) or (max(yrs) >= int(os.environ.get("RECENT_MIN", "2018")))
         grounded = [x for x in tools if canon(x) in catalog]
         for x in tools:
             if canon(x) not in catalog: gaps.append(x)
@@ -111,11 +116,11 @@ def main():
             rows.append({"messages": [{"role": "system", "content": SYS},
                 {"role": "user", "content": f"Research problem: {prob}" + (f"\nData: {data}" if data else "") + "\n\nOutline the analysis plan (ordered steps)."},
                 {"role": "assistant", "content": dz}], "task": "task_decomposition", "source": "recipe_lit"})
-        if prob and grounded:
+        if prob and grounded and recent_ok:   # tool recs from old papers can be stale -> recency-gated
             rows.append({"messages": [{"role": "system", "content": SYS},
                 {"role": "user", "content": f"For this task, what tools/methods are appropriate?\nTask: {prob}" + (f"\nData: {data}" if data else "")},
                 {"role": "assistant", "content": "Suitable tools/methods: " + ", ".join(grounded) + "."}], "task": "tool_recommendation", "source": "recipe_lit"})
-        if grounded and params:
+        if grounded and params and recent_ok:  # param values age fastest -> recency-gated
             rows.append({"messages": [{"role": "system", "content": SYS},
                 {"role": "user", "content": f"Using {', '.join(grounded[:4])} for: {prob}. What parameter settings are appropriate?"},
                 {"role": "assistant", "content": "Parameters: " + "; ".join(params) + "."}], "task": "parameter_extraction", "source": "recipe_lit"})
