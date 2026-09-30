@@ -133,16 +133,21 @@ chemical-validity metric** (guards against silent canonical collapse); never Doc
   the ncAA output must show a **developability distribution shift** (permeability/ΔPSA3D) canonical designs
   can't reach — the ncAA machinery is justified by drug properties, not a DockQ delta.
 
-### 2c generator on complexes — RESULT (2026-09-30): DATA IS THE WALL (latent-mismatch ruled out)
-Fine-tuned the diffusion on the 235 D2 complexes (175 usable, ~140 train). **Collapsed: val CA-RMSD flat
-~9 Å, AAR flat ~4% (random), no improvement over 40 epochs.** DIAGNOSTIC (AE_MODE=epoch221, matched latent =
-epoch-221 AE + epoch-221 diffusion, self-consistent) collapsed **IDENTICALLY** (~9.3–9.6 Å / ~4%) → the v1-AE
-latent shift was NOT the cause; ~140 complexes is simply far too few to learn target-conditioned cyclic
-generation (compounded by the epoch-221 prior being linear-complex = partly OOD on cyclic). Pipeline validated
-end-to-end (staging→warm-start 84/84→train→eval); result gated entirely on DATA. Fixes banked: degenerate-pocket
-filter (covariance crash), eval-path abs-config (setup_latent_guidance). **Priority (user-directed): scale the
-mine to ~1–2k + HighFold3 augmentation; even ~1–2k may be marginal (PepGLAD used thousands) → the DMTA loop
-generating proprietary bound complexes is the real long-term lever.**
+### 2c generator on complexes — RESULT (2026-09-30): **IT WORKS** (DockQ 0.437 on 140 complexes)
+Fine-tuned the diffusion on the 235 D2 complexes (175 usable, ~140 train), epoch-221 AE + diffusion.
+**GENERATION PANEL (held-out cyclic test, via stock generate.py + cal_metrics.py):
+DockQ 0.437 · RMSD-Cα 4.60 Å · Slide-AAR 0.232 · Consistency 0.930 · Diversity 0.81/0.77/0.78.**
+Approaching PepGLAD SOTA (DockQ 0.592) and BEATING its Consistency (0.789) — a real target-conditioned cyclic
+generator, on only 140 complexes.
+**CORRECTION (honest):** the training-time val CA-RMSD (flat ~9 Å) and AAR (~4%) I first read as a "collapse /
+data wall" were a **denoising-loss artifact, NOT generation quality** — the real generation panel is good. The
+"data is the wall" interim conclusion was WRONG; data is a **lever, not a wall** (the generator already works
+at 140 complexes; more data pushes toward/past SOTA). Latent-mismatch: still open on the generation metric —
+re-run the v1-AE 2c (now that the eval-path is fixed) to compare DockQ(v1-AE) vs 0.437.
+Pipeline fully validated end-to-end (staging→warm-start 84/84→train→generate→panel; DockQ built OK). Fixes
+banked: degenerate-pocket filter (covariance crash), eval-path abs-config (setup_latent_guidance).
+**Data scaling (mine→~1–2k) + HighFold3 augmentation now push a WORKING generator higher, and the DMTA loop
+is the long-term lever — not the difference between working and random.**
 
 <details><summary>M3+ (deferred until the generator has enough data)</summary>
 
