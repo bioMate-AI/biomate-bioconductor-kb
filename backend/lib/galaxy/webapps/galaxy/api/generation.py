@@ -69,6 +69,41 @@ def _store():
 
 
 # ---------------------------------------------------------------------------
+# Module health self-check (Design & generate critical deps)
+# ---------------------------------------------------------------------------
+# Surfaces silent infra breakage at STARTUP and via GET /api/generate/health,
+# instead of only when the first user run returns 0 candidates. The RDKit-missing
+# outage (see generators.py, 2026-09-30) went unnoticed precisely because nothing
+# checked critical deps at boot.
+def _generator_health() -> Dict[str, Any]:
+    checks: Dict[str, bool] = {}
+    # RDKit — required in-process by the default BRICS generator; without it every
+    # /design run returns 0 candidates (reason "rdkit_unavailable").
+    try:
+        import rdkit  # noqa: F401
+        checks["rdkit"] = True
+    except Exception:
+        checks["rdkit"] = False
+    missing = [name for name, ok in checks.items() if not ok]
+    return {"ok": not missing, "checks": checks, "missing": missing}
+
+
+# Runs once per gunicorn worker at import time: log LOUDLY if a critical dep is
+# missing so operators/monitoring catch it at boot, not from a user complaint.
+_STARTUP_HEALTH = _generator_health()
+if not _STARTUP_HEALTH["ok"]:
+    log.error(
+        "[design] STARTUP HEALTH DEGRADED — missing critical deps %s. The Design & "
+        "generate module (/design) will return 0 candidates until fixed. Remedy: "
+        "bootstrap the dep into the Galaxy container via scripts/sync_to_dev.sh — a "
+        "Dockerfile-only install does NOT reach the hot-patched dev container.",
+        _STARTUP_HEALTH["missing"],
+    )
+else:
+    log.info("[design] startup health OK: %s", _STARTUP_HEALTH["checks"])
+
+
+# ---------------------------------------------------------------------------
 # Request / response schemas
 # ---------------------------------------------------------------------------
 
@@ -533,6 +568,15 @@ def start_generation(request: GenerateRequest) -> Dict[str, Any]:
     t = threading.Thread(target=_execute_run, args=(run_id, request), daemon=True)
     t.start()
     return {"run_id": run_id, "status": "running"}
+
+
+@router.get("/api/generate/health", summary="Design & generate module health (critical deps)")
+def generation_health() -> Dict[str, Any]:
+    """Live self-check of the Design & generate module's critical dependencies
+    (e.g. RDKit). ok=false means /design will return 0 candidates until fixed —
+    operators/monitoring should alert on this. Registered BEFORE the /{run_id}
+    route so 'health' is not matched as a run_id."""
+    return _generator_health()
 
 
 @router.get("/api/generate/{run_id}", summary="Poll a de-novo design run")
