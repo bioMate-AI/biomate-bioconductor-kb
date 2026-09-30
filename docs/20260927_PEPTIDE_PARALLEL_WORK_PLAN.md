@@ -153,8 +153,16 @@ the generator (its reconstruction gain Cα 1.05→0.57 does not propagate to gen
 moot. **Generation is gated by the DIFFUSION + DATA, not the AE** — the generator can use the stock epoch-221 AE.
 Two independent runs at DockQ 0.4386/0.4366 = strong reproducibility → "DockQ ~0.44 on 140 complexes" is solid.
 
-**Data scaling (mine→~1–2k) + Boltz augmentation (~3.2× via BindingDB, HighFold3 blocked on gated AF3 weights)
-now push a WORKING generator (DockQ 0.44) toward/past SOTA 0.592; the DMTA loop is the long-term lever.**
+**Data scaling now pushes a WORKING generator (DockQ 0.44) toward/past SOTA 0.592:**
+- **MINE (primary lever, running):** scale real experimental complexes ~235→~1–2k.
+- **Boltz augmentation — DEFERRED (2026-09-30):** HighFold3/HighFold-MeD blocked (gated AF3 weights);
+  Boltz chosen + **install fixed + runs (boltz 2.2.1, CUDA ok)**, BUT the BindingDB pairs lack receptor
+  SEQUENCES (`no_uniprot 712 / no_sequence 7511`; prep `resolve_receptor=false`) → Boltz had no receptor to
+  fold → all predictions failed. Needs a UniProt→sequence resolution step + re-run. Deferred (secondary,
+  bias-carrying, train-only lever; generator already works at 0.44 without it) — resume only if the mine +
+  DMTA loop don't supply enough real complexes. Pipeline code (highfold_d2_augment/) is built + install-fixed;
+  just needs the receptor-resolution pass.
+- **DMTA loop = the long-term data lever (proprietary bound complexes over time).**
 
 <details><summary>M3+ (deferred until the generator has enough data)</summary>
 
