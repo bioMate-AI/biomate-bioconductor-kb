@@ -175,3 +175,85 @@ trade the fast+rescored stack improves on.)
   top-level `-decoy_string` it cannot parse → move to `-PeptideIndexing:decoy_string ...` or to the
   standalone PeptideIndexer step. **[latent crash]**
 - Correct the pyteomics container tag to `4.7.2--pyh7cba7a3_0` (or newer) in the launcher.
+
+---
+
+## Made default + live — production-path verification (2026-09-30)
+
+**Goal of this pass:** prove the now-LIVE Sage+Mokapot *default* actually runs end-to-end on
+BioMate's production executor path (`POST /api/nextflow/execute` on dev Galaxy), with the single
+**combined** image (`399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/proteomics-search:v1`)
+serving all three tools — NOT the per-tool quay biocontainers used in §7/§9 of
+`docs/20260928_PROTEOMICS_DDA_VALIDATION.md`.
+
+**Pre-flight (all verified live in the running `biomate-galaxy-dev` container):**
+- Workflow default flipped: `params.engine = 'sage'`, `params.rescoring = 'mokapot'`
+  (`/app/nf-core-modules/proteomics_dda_search/main.nf:58-59`).
+- DB row: `workflows.docker_image` for `proteomics_dda_search` =
+  `399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/proteomics-search:v1`.
+- ECR image `biomate/proteomics-search:v1` exists (pushed 2026-09-30 12:52 CDT).
+- Executor libz→Batch fix (`aws.batch.volumes`) covers `/nf-core-modules/`
+  (`nextflow_executor.py:3043`); `params.container` injection applies to `/nf-core-modules/`
+  paths (`:2723`).
+- **Note on the executor's container source:** the direct `/api/nextflow/execute` path does
+  **not** read `workflows.docker_image` from the DB — it takes the container only from
+  `compute_config.container`. So the dispatch passed `compute_config.container=<the v1 ECR image>`
+  explicitly (== the DB row value). The chat/MCP path is what consumes the DB `docker_image`.
+
+**Run dispatched (NEW default — engine/rescoring NOT overridden):**
+
+| Field | Value |
+|---|---|
+| BioMate run id | `b263bd5f-fb6e-459c-b61e-c8c08c0c0bd4` |
+| Invocation id | `2c2ed015-cfcf-4184-bf17-719f9579ae9e` |
+| nextflow_path | `nf-core-modules/proteomics_dda_search/main.nf` |
+| Inputs | `s3://biomate-nextflow-work/proteomics_dda_validation_20260928/` (BSA1_F1.mzML + target.fasta + samplesheet.csv) |
+| Container (forced) | `399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/proteomics-search:v1` |
+| Outdir | `s3://biomate-nextflow-work/nextflow/outputs/proteomics-validation-agent/5b455bde` |
+| Workdir | `s3://biomate-nextflow-work/nextflow/work/proteomics-validation-agent/b263bd5f-fb6e-459c-b61e-c8c08c0c0bd4` |
+
+**What worked (the head JVM + DAG + Batch submission all confirmed on the combined image):**
+- Executor = awsbatch; libz volume present in `AwsOptions(... volumes:[/usr/lib64/libz.so.1:…:ro] …)`
+  → the §8 libz-delivery gap stays fixed on the awsbatch path.
+- Batch job definition auto-created with
+  `container=399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/proteomics-search:v1`.
+- DAG took the **sage+mokapot branch** (processes SAGE + MOKAPOT instantiated; `params.engine=='sage'`
+  and `params.rescoring=='mokapot'` evaluated true → default confirmed at the DAG level).
+- `OPENMS_DECOYDATABASE (searchdb)` **submitted** → Batch job **`3e7be7d1-8831-4251-b871-683012213bee`**,
+  container **pulled and started** on the combined image (so the image is reachable + runs on Batch).
+
+**BLOCKER (❌ run FAILED at step 1 — image is missing `ps`):**
+
+| Batch job | Step | Status | Container image | Exit |
+|---|---|---|---|---|
+| `3e7be7d1-8831-4251-b871-683012213bee` | OPENMS_DECOYDATABASE (searchdb) | **FAILED** | `…/biomate/proteomics-search:v1` | **1** |
+| (never submitted) | SAGE | — | — | — |
+| (never submitted) | MOKAPOT | — | — | — |
+
+SAGE/MOKAPOT never ran because their upstream (the target+decoy DB) failed.
+
+**Root cause (from the task's own `.command.run` in S3, exact):** the combined image ships **no
+`ps` binary** (no `procps`). Nextflow's Linux trace wrapper `nxf_trace_linux()` has a hard guard:
+```
+command -v ps &>/dev/null || { >&2 echo "Command 'ps' required by nextflow to collect task metrics cannot be found"; exit 1; }
+```
+That guard runs **before** `.command.sh`, so it `exit 1`s *before DecoyDatabase ever executes* —
+which is exactly why `.command.err`/`.command.log` contain only the `ps` message (74 B), no
+`target_decoy.fasta`/`versions.yml` were produced, and there is **zero** OpenMS output. It is **not**
+an OpenMS/tool-path problem and **not** a DecoyDatabase flag problem. (§9 of the DDA validation doc
+succeeded because the quay `openms*` biocontainers bundle `procps`; the new combined image dropped it.)
+
+**Fix (image rebuild — a blocker, not a 1-line code fix):** add `procps` to the combined image
+(`apt-get install -y procps`, or `conda install -y -n base procps-ng`, or the `bioconda::procps-ng`
+package) and re-push `proteomics-search:v1` (or a `:v2`). Every Nextflow-on-Batch container needs
+`ps`; this is a build-recipe omission in the combined image. After the rebuild, re-dispatch the exact
+same run to obtain the live Sage PSM count (`results.sage.tsv`) and Mokapot peptides@1%FDR — the
+production-path default cannot be certified until then.
+
+**Cost/hygiene:** ~$0 Batch spend (job died at container start, before any OpenMS/Sage/Mokapot compute);
+no new EC2; **zero orphan compute confirmed** (all queues empty of proteomics/SAGE/MOKAPOT/OPENMS jobs
+across SUBMITTED/PENDING/RUNNABLE/STARTING/RUNNING after the run went terminal).
+
+**Status:** production path, DAG default, combined-image reachability, container-forcing, and the
+awsbatch libz fix are all **PROVEN**. The Sage+Mokapot *scientific* default (real PSM/peptide counts
+on the production path) is **BLOCKED** on the one-line image fix above (add `procps`).
