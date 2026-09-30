@@ -2829,8 +2829,20 @@ def _generate_executor_config(
         # Symptom hit by nfcore/abotyper, nfcore/createtaxdb on NF 25.10
         # post-pull (2026-06-07). Skip the directive for nfcore + bioconductor.
         is_nfcore_or_bioc = "/nf-core-workflows/" in nf_path or "/bioconductor/" in nf_path
+        # Per-process-container workflows: some nf-core-modules workflows are multi-tool
+        # (each process a separate LEAN bioconda/quay biocontainer) — e.g. proteomics_db_search
+        # runs OpenMS (decoy DB) + Sage (search) + Mokapot (rescore), three distinct images.
+        # Forcing ONE global container can't serve all three; a monolithic combined image is
+        # fragile (dep-skew whack-a-mole: procps, pandas...) and doesn't scale to large tools.
+        # For these ALLOW-LISTED workflows, skip the global container so each process's own
+        # `container` directive wins (the benchmark-validated per-tool images). SAFETY: only
+        # add a workflow here whose EVERY process declares a container — nf_encyclopedia does
+        # NOT (its modules rely on the forced global), so it is intentionally excluded.
+        _PER_PROCESS_CONTAINER_WORKFLOWS = ("proteomics_dda_search", "proteomics_db_search")
+        _per_process_containers = any(w in (nf_path or "") for w in _PER_PROCESS_CONTAINER_WORKFLOWS)
+        _skip_global_container = is_nfcore_or_bioc or _per_process_containers
         lines += [
-            *( [f"    container = '{container}'"] if not is_nfcore_or_bioc else [] ),
+            *( [f"    container = '{container}'"] if not _skip_global_container else [] ),
             # Inject billing context + credentials into every Batch task container.
             "    environment = [",
         ] + env_lines + [

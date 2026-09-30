@@ -6,7 +6,7 @@ process OPENMSTHIRDPARTY_COMETADAPTER {
     // Combined image (OpenMS+Sage+Mokapot) when set — required so the multi-engine
     // proteomics_dda_search runs as ONE forced container under BioMate's executor.
     // Falls back to the per-tool OpenMS-thirdparty biocontainer for standalone runs.
-    container "${ params.container ?:
+    container "${
         ( workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/openms-thirdparty:3.4.1--h9ee0642_1' :
         'quay.io/biocontainers/openms-thirdparty:3.4.1--h9ee0642_1' ) }"
